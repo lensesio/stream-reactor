@@ -8,3 +8,7 @@ A collection of components to build a real time ingestion pipleline
 #### [Kafka-Connect-Cassandra](kafka-connect/README.md)
 
 Kafka connect Cassandra connector and sink to write Kafka topic payloads to Cassandra.
+
+#### [Confluent Flume Kafka Channel](flume-ng/README.md)
+
+Untested modified Flume Kafka channel for [Confluent](www.confluent.io) integration.
