@@ -51,7 +51,7 @@ You must also supply the `connector.class` as `com.datamountaineer.streamreactor
 
 * [Download and install Cassandra](http://cassandra.apache.org/)
 * [Download and install Confluent](http://www.confluent.io/)
-* Copy the Cassandra sink jar from your build location to $CONFLUENT_HOME/share/java/kafka-connect-cassandra
+* Copy the Cassandra sink jar from your build location to `$CONFLUENT_HOME/share/java/kafka-connect-cassandra`
 
     ```bash
     mkdir $CONFLUENT_HOME/share/java/kafka-connect-cassandra
