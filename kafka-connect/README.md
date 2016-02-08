@@ -108,7 +108,11 @@ You must also supply the `connector.class` as `com.datamountaineer.streamreactor
     {"id": 888, "random_field": "bar"}
     ````
     
-* Check in Cassandra
+* Check in Cassandra for the records
+
+    ```bash
+    SELECT * FROM connect_test.test_table"
+    ```
 
 #### Improvements
 * Add key of message to payload
