@@ -1,30 +1,50 @@
 package com.datamountaineer.streamreactor.connect
 
-/**
-  * Created by andrew on 22/01/16.
-  */
-
 import java.util
-import java.util.{List, Map}
 
-import org.apache.kafka.connect.connector.{Connector, Task}
+import org.apache.kafka.connect.connector.Task
+import org.apache.kafka.connect.errors.ConnectException
+import org.apache.kafka.connect.sink.SinkConnector
 
 import scala.collection.JavaConverters._
+import scala.util.{Failure, Try}
 
-class CassandraSinkConnector extends Connector {
+class CassandraSinkConnector extends SinkConnector with Logging {
   //???
-  var configProps : Map[String, String] = null
+  private var configProps : util.Map[String, String] = null
 
-  override def taskClass(): Class[_ <: Task] = ???
+  /**
+    * States which SinkTask class to use
+    * */
+  override def taskClass(): Class[_ <: Task] = classOf[CassandraSinkTask]
 
-  override def taskConfigs(maxTasks: Int): List[Map[String, String]] = (1 to maxTasks).map(c => configProps).toList.asJava
+  /**
+    * Set the configuration for each work and determine the split
+    *
+    * @param maxTasks The max number of task workers be can spawn
+    * @return a List of configuration properties per worker
+    * */
+  override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
+    log.info(s"Setting task configurations for $maxTasks workers.")
+    (1 to maxTasks).map(c => configProps).toList.asJava
+  }
 
-  override def stop(): Unit = ???
+  override def stop(): Unit = {}
 
+  /**
+    * Start the sink and set to configuration
+    *
+    * @param props A map of properties for the connector and worker
+    * */
   override def start(props: util.Map[String, String]): Unit = {
+    log.info(s"Starting Cassandra sink task with ${props.toString}.")
     configProps = props
+    Try(new CassandraSinkConfig(props)) match {
+      case Failure(f) => throw new ConnectException("Couldn't start CassandraSink due to configuration error.", f)
+      case _ =>
+    }
   }
 
   //fix
-  override def version(): String = "unknown"
+  override def version(): String = ""
 }

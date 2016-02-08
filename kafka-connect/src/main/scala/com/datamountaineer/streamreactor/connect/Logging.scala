@@ -1,8 +1,8 @@
 package com.datamountaineer.streamreactor.connect
 
-/**
-  * Created by andrew on 05/02/16.
-  */
-trait Logging {
+import org.slf4j.LoggerFactory
 
+trait Logging {
+  val loggerName = this.getClass.getName
+  @transient lazy val log = LoggerFactory.getLogger(loggerName)
 }
