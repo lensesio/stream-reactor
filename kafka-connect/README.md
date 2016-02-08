@@ -110,7 +110,7 @@ You must also supply the `connector.class` as `com.datamountaineer.streamreactor
     
 * Check in Cassandra for the records
 
-    ```bash
+    ```sql
     SELECT * FROM connect_test.test_table"
     ```
 
