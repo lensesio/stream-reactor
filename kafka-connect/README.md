@@ -41,8 +41,23 @@ You must also supply the `connector.class` as `com.datamountaineer.streamreactor
 
 #### Setup
 
+* Clone and build the Connector and Sink
+
+    ```bash
+    git clone git@github.com:andrewstevenson/stream-reactor.git
+    cd stream-reactor
+    mvn package
+    ```
+
 * [Download and install Cassandra](http://cassandra.apache.org/)
 * [Download and install Confluent](http://www.confluent.io/)
+* Copy the Cassandra sink jar from your build location to $CONFLUENT_HOME/share/java/kafka-connect-cassandra
+
+    ```bash
+    mkdir $CONFLUENT_HOME/share/java/kafka-connect-cassandra
+    cp target/kafka-connect-0.1-jar-with-dependencies.jar $CONFLUENT_HOME/share/java/kafka-connect-cassandra/
+    ```
+    
 * Start Cassandra
 
     ```bash
@@ -56,6 +71,7 @@ You must also supply the `connector.class` as `com.datamountaineer.streamreactor
     nohup $CONFLUENT_HOME/bin/kafka-server-start $CONFLUENT_HOME/etc/kafka/server.properties &
     nohup $CONFLUENT_HOME/bin/schema-registry-start $CONFLUENT_HOME/etc/schema-registry/schema-registry.properties &"
     ```
+    
 * Create keyspace in Cassandra
 
     ```sql
@@ -77,6 +93,7 @@ You must also supply the `connector.class` as `com.datamountaineer.streamreactor
     ```bash
     $CONFLUENT_HOME/bin/connect-standalone etc/schema-registry/connect-avro-standalone.properties etc/kafka-connect-cassandra/cassandra.properties
     ```
+    
 * Test with avro console, start the console to create the topic and write values
 
     ```bash
@@ -90,6 +107,7 @@ You must also supply the `connector.class` as `com.datamountaineer.streamreactor
     {"id": 999, "random_field": "foo"}
     {"id": 888, "random_field": "bar"}
     ````
+    
 * Check in Cassandra
 
 #### Improvements
