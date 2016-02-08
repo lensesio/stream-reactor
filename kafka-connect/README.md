@@ -45,7 +45,7 @@ You must also supply the `connector.class` as `com.datamountaineer.streamreactor
 
     ```bash
     git clone git@github.com:andrewstevenson/stream-reactor.git
-    cd stream-reactor
+    cd stream-reactor/kafka-connect
     mvn package
     ```
 
