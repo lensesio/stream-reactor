@@ -1,14 +1,13 @@
 package com.datamountaineer.streamreactor.connect
 
 import java.util
+
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+
 import scala.collection.JavaConverters._
 
-/**
-  * Created by andrew on 22/01/16.
-  */
 
 class CassandraSinkTask extends SinkTask with Logging {
   private var writer : Option[CassandraJsonWriter] = None
