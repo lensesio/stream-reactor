@@ -5,6 +5,6 @@ Streaming reference architecture built around Kafka.
 
 A collection of components to build a real time ingestion pipleline
 
-#### Kafka-Connect-Cassandra
+#### [Kafka-Connect-Cassandra](kafka-connect/README.md)
 
 Kafka connect Cassandra connector and sink to write Kafka topic payloads to Cassandra.
