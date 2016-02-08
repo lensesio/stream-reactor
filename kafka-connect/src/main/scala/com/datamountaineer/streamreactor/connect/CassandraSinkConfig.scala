@@ -28,6 +28,11 @@ object CassandraSinkConfig {
 
 }
 
+/**
+  * <h1>CassandraSinkConfig</h1>
+  *
+  * Holds config, extends AbstractConfig.
+  * */
 class CassandraSinkConfig(props: util.Map[String, String])
   extends AbstractConfig(CassandraSinkConfig.config, props) {
 }

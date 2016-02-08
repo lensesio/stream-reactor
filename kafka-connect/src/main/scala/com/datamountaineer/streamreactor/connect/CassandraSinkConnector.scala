@@ -9,6 +9,12 @@ import org.apache.kafka.connect.sink.SinkConnector
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Try}
 
+/**
+  * <h1>CassandraSinkConnector</h1>
+  * Kafka connect Cassandra Sink connector
+  *
+  * Sets up CassandraSinkTask and configurations for the tasks.
+  * */
 class CassandraSinkConnector extends SinkConnector with Logging {
   //???
   private var configProps : util.Map[String, String] = null

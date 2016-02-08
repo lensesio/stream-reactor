@@ -8,7 +8,12 @@ import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConverters._
 
-
+/**
+  * <h1>CassandraSinkTask</h1>
+  *
+  * Kafka Connect Cassandra sink task. Called by framework to put records to the
+  * target sink
+  * */
 class CassandraSinkTask extends SinkTask with Logging {
   private var writer : Option[CassandraJsonWriter] = None
 

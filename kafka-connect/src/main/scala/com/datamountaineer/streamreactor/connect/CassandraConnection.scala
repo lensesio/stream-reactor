@@ -20,4 +20,10 @@ object CassandraConnection extends Logging {
     }
 }
 
+
+/**
+  * <h1>CassandraConnection</h1>
+  *
+  * Case class to hold a Cassandra cluster and session connection
+  * */
 case class CassandraConnection(cluster: Cluster, session: Session)

@@ -28,6 +28,12 @@ object CassandraWriter {
   }
 }
 
+/**
+  * <h1>CassandraJsonWriter</h1>
+  * Cassandra Json writer for Kafka connect
+  * Writes a list of Kafka connect sink records to Cassandra using the JSON support
+  *
+  */
 class CassandraJsonWriter(connector: CassandraConnection, context : SinkTaskContext) extends Logging {
   log.info("Initialising Cassandra writer")
   private val converter = new JsonConverter()
@@ -74,11 +80,10 @@ class CassandraJsonWriter(connector: CassandraConnection, context : SinkTaskCont
     * */
   private def cachePreparedStatements(topics : List[String]) : Map[String, PreparedStatement] = {
     log.info(s"Preparing statements for ${topics.mkString(",")}.")
-    topics
-      .distinct
-        .map( t=> { val prepare = getPreparedStatement(t)
-                    (t, prepare)
-                  }).toMap
+    topics.distinct.map( t=> {
+                                val prepare = getPreparedStatement(t)
+                                (t, prepare)
+                              }).toMap
   }
 
   /**
@@ -99,7 +104,7 @@ class CassandraJsonWriter(connector: CassandraConnection, context : SinkTaskCont
     * */
   private def convertValueToJson(record: SinkRecord) : String = {
     val converted: Array[Byte] = converter.fromConnectData(record.topic(), record.valueSchema(), record.value())
-    val json = deserializer.deserialize(record.topic(), converted).get("payload").toString
+    val json = deserializer.deserialize(record.topic(), converted).get("key").toString
     log.debug(s"Converted payload to $json.")
     json
   }
