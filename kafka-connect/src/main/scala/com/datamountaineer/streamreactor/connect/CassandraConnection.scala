@@ -10,11 +10,12 @@ import com.datastax.driver.core.{Cluster, Session}
 object CassandraConnection extends Logging {
   def apply(contactPoints: String, port: Int , keySpace: String) = {
     log.info(s"Attempting to connect to Cassandra cluster at $contactPoints and create keyspace $keySpace")
+
     val cluster = Cluster
       .builder()
       .addContactPoints(contactPoints)
       .withPort(port)
-      //.withLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy()))
+      .withLoadBalancingPolicy(new TokenAwarePolicy(DCAwareRoundRobinPolicy.builder().build()))
       .build()
       new CassandraConnection(cluster=cluster, session = cluster.connect(keySpace))
     }

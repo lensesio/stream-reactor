@@ -104,7 +104,7 @@ class CassandraJsonWriter(connector: CassandraConnection, context : SinkTaskCont
     * */
   private def convertValueToJson(record: SinkRecord) : String = {
     val converted: Array[Byte] = converter.fromConnectData(record.topic(), record.valueSchema(), record.value())
-    val json = deserializer.deserialize(record.topic(), converted).get("key").toString
+    val json = deserializer.deserialize(record.topic(), converted).get("payload").toString
     log.debug(s"Converted payload to $json.")
     json
   }
@@ -117,7 +117,7 @@ class CassandraJsonWriter(connector: CassandraConnection, context : SinkTaskCont
     * */
   private def convertKeyToJson(record: SinkRecord) : String = {
     val converted: Array[Byte] = converter.fromConnectData(record.topic(), record.keySchema(), record.key())
-    val json = deserializer.deserialize(record.topic(), converted).get("payload").toString
+    val json = deserializer.deserialize(record.topic(), converted).get("key").toString
     log.debug(s"Converted key to $json.")
     json
   }
