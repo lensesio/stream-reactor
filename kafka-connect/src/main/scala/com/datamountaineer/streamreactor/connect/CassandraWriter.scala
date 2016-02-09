@@ -56,19 +56,16 @@ class CassandraJsonWriter(connector: CassandraConnection, context : SinkTaskCont
     * @param keySpace The keyspace to look in for the tables
     * */
   private def checkCassandraTables(topics: List[String], keySpace: String) = {
-    val tables = connector.cluster.getMetadata.getKeyspace(keySpace).getTables.asScala.map(t => t.getName).asJavaCollection
-    //check tables
-    tables.isEmpty match {
-      case true => throw new ConnectException(s"No tables found in Cassandra for keyspace $keySpace")
-      case false => //Check we have our topics as tables
+    val metaData = connector.cluster.getMetadata.getKeyspace(keySpace).getTables.asScala
+    val tables: List[String] = metaData.map(t=>t.getName).toList
 
-        tables.containsAll(topics.asJavaCollection) match {
-          case true =>
-          case false =>
-            val missing = topics.filter(p => !tables.contains(p))
-            throw new ConnectException(s"Not table found in Cassandra for topics ${missing.mkString(",")}")
-        }
-    }
+    //check tables
+    if (tables.isEmpty) throw new ConnectException(s"No tables found in Cassandra for keyspace $keySpace")
+
+    //check we have a table for all topics
+    val missing = topics.filter( tp => !tables.contains(tp))
+
+    if (!missing.isEmpty) throw new ConnectException(s"Not table found in Cassandra for topics ${missing.mkString(",")}")
   }
 
   /**
@@ -80,10 +77,7 @@ class CassandraJsonWriter(connector: CassandraConnection, context : SinkTaskCont
     * */
   private def cachePreparedStatements(topics : List[String]) : Map[String, PreparedStatement] = {
     log.info(s"Preparing statements for ${topics.mkString(",")}.")
-    topics.distinct.map( t=> {
-                                val prepare = getPreparedStatement(t)
-                                (t, prepare)
-                              }).toMap
+    topics.distinct.map( t=> (t, getPreparedStatement(t))).toMap
   }
 
   /**
@@ -142,6 +136,7 @@ class CassandraJsonWriter(connector: CassandraConnection, context : SinkTaskCont
             case true => preparedCache.get(r.topic()).get
             case false =>
               val preparedStatement : PreparedStatement = getPreparedStatement(r.topic())
+              //add to cache
               preparedCache += (r.topic() -> preparedStatement)
               preparedStatement
           }

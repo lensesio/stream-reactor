@@ -4,16 +4,16 @@ A Connector and Sink to write events from Kafka to Cassandra. The connector conv
 
 PreparedStatements are created and cached at startup for the topics assigned to the task.
 
-The task expects a table in Cassandra per topic that the sink is configured to listen to. You could have different schemas in the same topic, Cassandra's JSON functioanlity will ignore missing columns.
+The task expects a table in Cassandra per topic that the sink is configured to listen to. You could have different schemas in the same topic, Cassandra's JSON functionality will ignore missing columns.
 
-The table and keyspace must be created before hand! The sink tries to write to a table matching the name of the topic. The prepared statements will blow if the corressponding table does not exist.
+The table and keyspace must be created before hand! The sink tries to write to a table matching the name of the topic. The prepared statements will blow if the corresponding table does not exist.
 
-#### Prequisties
+#### Perquisites
 
 * Cassandra 2.2.4 - Json support was added in 2.2 but a bug wasn't fixed till 2.2.4 for rebinding prepared statements with JSON
-* Cassandra-unit 2.2.2.1 - For Unit testing, currently built against 2.2 so I've included a version built againts 2.2.4 in the lib folder
+* Cassandra-unit 2.2.2.1 - For Unit testing, currently built against 2.2 so I've included a version built against 2.2.4 in the lib folder
   Install locally with `mvn install:install-file -Dfile=src/lib/cassandra-unit-2.2.2.2-SNAPSHOT.jar`
-* Kafka 0.9.0
+* Confluent 2.0
 
 #### Properties
 
