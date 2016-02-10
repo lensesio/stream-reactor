@@ -1,6 +1,5 @@
 package com.datamountaineer.streamreactor.connect.elastic
 
-import com.datamountaineer.streamreactor.connect.cassandra.{CassandraWriter, CassandraSinkConfig}
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
@@ -16,7 +15,7 @@ class TestElasticWriter extends TestElasticBase  with MockitoSugar  {
     val config  = new ElasticSinkConfig(getElasticSinkConfigProps)
     //get writer
     val writer = ElasticWriter(config = config, context = context)
-    //write records to cassandra
+    //write records to elastic
     writer.write(testRecords)
     //close writer
     writer.close()
