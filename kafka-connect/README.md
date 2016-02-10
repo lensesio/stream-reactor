@@ -1,3 +1,7 @@
+# Kafka Connect Connectors
+
+[Kafka-Connect-Cassandra](###Kafka-Connect-Cassandra)
+
 ### Kafka-Connect-Cassandra
 
 A Connector and Sink to write events from Kafka to Cassandra. The connector converts the value from the Kafka Connect SinkRecords to Json and uses Cassandra's JSON insert functionality to insert the rows.
@@ -29,7 +33,7 @@ Example connector.properties file
 
 ```bash 
 name=cassandra-sink
-connector.class=com.datamountaineer.streamreactor.connect.CassandraSinkConnector
+connector.class=com.datamountaineer.streamreactor.connect.Cassandra.CassandraSinkConnector
 tasks.max=1
 topics=test_table
 contact_points=localhost
@@ -37,7 +41,7 @@ port=9042
 key_space=connect_test
 ```
 
-You must also supply the `connector.class` as `com.datamountaineer.streamreactor.connect.CassandraSinkConnector`
+You must also supply the `connector.class` as `com.datamountaineer.streamreactor.connect.Cassandra.CassandraSinkConnector`
 
 #### Setup
 
@@ -111,7 +115,7 @@ You must also supply the `connector.class` as `com.datamountaineer.streamreactor
 * Check in Cassandra for the records
 
     ```sql
-    SELECT * FROM connect_test.test_table"
+    SELECT * FROM connect_test.test_table
     ```
 
 #### Improvements
