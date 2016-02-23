@@ -7,10 +7,10 @@ class TestCassandraSinkConnector extends TestCassandraBase {
     val config = getCassandraSinkConfigProps
     val connector = new CassandraSinkConnector()
     connector.start(config)
-    val taskConfigs = connector.taskConfigs(10)
+    val taskConfigs = connector.taskConfigs(1)
     taskConfigs.asScala.head.get(CassandraSinkConfig.CONTACT_POINTS) shouldBe CONTACT_POINT
     taskConfigs.asScala.head.get(CassandraSinkConfig.KEY_SPACE) shouldBe TOPIC
-    taskConfigs.size() shouldBe 10
+    taskConfigs.size() shouldBe 1
     connector.taskClass() shouldBe classOf[CassandraSinkTask]
     connector.version() shouldBe ""
     connector.stop()

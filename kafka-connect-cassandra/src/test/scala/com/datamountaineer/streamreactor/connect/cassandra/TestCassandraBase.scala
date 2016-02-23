@@ -2,6 +2,7 @@ package com.datamountaineer.streamreactor.connect.cassandra
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.Logging
 import com.datastax.driver.core.{Cluster, Session}
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Struct, SchemaBuilder, Schema}
@@ -12,8 +13,8 @@ import org.scalatest.{Matchers, FunSuite, BeforeAndAfter}
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-trait TestCassandraBase extends FunSuite with BeforeAndAfter with Matchers {
-
+trait TestCassandraBase extends FunSuite with BeforeAndAfter with Matchers with Logging {
+  var CLUSTER : Cluster = null
   var SESSION : Session = null
   val CONTACT_POINT = "localhost"
   val CASSANDRA_PORT = 9042
@@ -37,7 +38,10 @@ trait TestCassandraBase extends FunSuite with BeforeAndAfter with Matchers {
 
   //stop embedded cassandra
   after {
+    log.info("Shutting down Test Cassandra")
     EmbeddedCassandraServerHelper.cleanEmbeddedCassandra()
+    SESSION.close()
+    CLUSTER.close()
   }
 
 
@@ -51,19 +55,19 @@ trait TestCassandraBase extends FunSuite with BeforeAndAfter with Matchers {
 
   //create a cluster, test keyspace and table
   def createTableAndKeySpace() : Session = {
-    val cluster = Cluster
+    CLUSTER = Cluster
       .builder()
       .addContactPoints(CONTACT_POINT)
       .withPort(CASSANDRA_PORT)
       // .withLoadBalancingPolicy(new TokenAwarePolicy(new DCAwareRoundRobinPolicy()))
       .build()
 
-    val session = cluster.connect()
-    session.execute(s"DROP KEYSPACE IF EXISTS $CASSANDRA_KEYSPACE")
-    session.execute(s"CREATE KEYSPACE $CASSANDRA_KEYSPACE WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 3}")
-    session.execute(s"CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TOPIC (id text PRIMARY KEY, int_field int, long_field bigint," +
+    SESSION = CLUSTER.connect()
+    SESSION.execute(s"DROP KEYSPACE IF EXISTS $CASSANDRA_KEYSPACE")
+    SESSION.execute(s"CREATE KEYSPACE $CASSANDRA_KEYSPACE WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 3}")
+    SESSION.execute(s"CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TOPIC (id text PRIMARY KEY, int_field int, long_field bigint," +
       s" string_field text)")
-    session
+    SESSION
   }
 
   //get the assignment of topic partitions for the sinkTask
