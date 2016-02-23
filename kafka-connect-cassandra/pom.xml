@@ -169,6 +169,9 @@
                 <groupId>org.scalatest</groupId>
                 <artifactId>scalatest-maven-plugin</artifactId>
                 <version>1.0</version>
+                <configuration>
+                    <parallel>false</parallel>
+                </configuration>
                 <executions>
                     <execution>
                         <id>test</id>
