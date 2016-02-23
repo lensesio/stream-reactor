@@ -4,4 +4,5 @@ scala:
 jdk:
 - oraclejdk8
 
-install: mvn install -Dmaven.javadoc.skip=true -Dsource.skip=true -DjavaVersion=1.8
+install: mvn install -DskipTest=true -Dmaven.javadoc.skip=true -Dsource.skip=true -DjavaVersion=1.8
+script: mvn test
