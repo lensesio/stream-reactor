@@ -6,7 +6,7 @@
 
     <groupId>com.datamountaineer.stream-reactor</groupId>
     <artifactId>kafka-connect-bloomberg</artifactId>
-    <packaging>pom</packaging>
+    <packaging>jar</packaging>
     <version>0.1</version>
     <name>kafka-connect-bloomberg</name>
     <organization>
