@@ -106,7 +106,7 @@ class CassandraJsonWriter(connector: CassandraConnection, context : SinkTaskCont
       //increment latch
       results.onSuccess({
         case r:ResultSet =>
-          log.info(s"Write successful for ${records.size} records!")
+          log.debug(s"Write successful!")
           insertCount.decrementAndGet()
       })
 
@@ -116,7 +116,6 @@ class CassandraJsonWriter(connector: CassandraConnection, context : SinkTaskCont
           log.warn(s"Write failed for ! ${t.getMessage}")
           insertCount.decrementAndGet()
       })
-      results
     })
   }
 
@@ -126,6 +125,7 @@ class CassandraJsonWriter(connector: CassandraConnection, context : SinkTaskCont
   def close(): Unit = {
     log.info("Shutting down Cassandra driver session and cluster")
     //connector.session.close()
+    connector.session.close()
     connector.cluster.close()
   }
 }

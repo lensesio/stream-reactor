@@ -46,6 +46,7 @@ class CassandraSinkTask extends SinkTask with Logging {
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]) = {
     while (writer.get.insertCount.get > 0) {
+      log.info("Waiting for writes to flush.")
       Thread.sleep(10)
     }
   }
