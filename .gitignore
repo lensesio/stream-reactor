@@ -1,5 +1,6 @@
 *.class
 *.log
+*org.junit*
 
 # sbt specific
 .cache
@@ -17,8 +18,12 @@ project/plugins/project/
 .worksheet
 
 .idea
-kafka-connect/kafka-connect.iml
-kafka-connect/target
+/stream-reactor.iml
+*/target
+/kafka-connect-elastic/kafka-connect-elastic.iml
+/kafka-connect-kudu/kafka-connect-kudu.iml
+/kafka-connect-bloomberg/kafka-connect-bloomberg.iml
+/kafka-connect-cassandra/kafka-connect-cassandra.iml
 
 flume-ng/flume-ng.iml
 flume-ng/target

@@ -1,0 +1,7 @@
+language: scala
+scala:
+- 2.11.7
+jdk:
+  - oraclejdk8
+
+install: mvn install -Dmaven.javadoc.skip=true -Dsource.skip=true -DjavaVersion=1.8

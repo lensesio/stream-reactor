@@ -30,4 +30,6 @@ public class KafkaChannelConfiguration {
     public static final String SCHEMA_REGISTRY_KEY = "schema.registry.url";
     public static final String SCHEMA_REGISTRY_URL_DEFAULT = "http://localhost:8081";
 
+    public static final String PARTITION_HEADER_KEY = "partitionKey";
+
 }

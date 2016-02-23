@@ -301,7 +301,7 @@ public class KafkaChannel extends BasicChannelSemantics {
                     //serializedEvents.get().add(tempOutStream.get().toByteArray());
                     serializedEvents.get().put(tempOutStream.get().toByteArray(), null);
                 } else {
-                    String key = event.getHeaders().get("partitionKey");
+                    String key = event.getHeaders().get(PARTITION_HEADER_KEY);
                     serializedEvents.get().put(event.getBody(), key);
                 }
             } catch (Exception e) {
@@ -387,7 +387,7 @@ public class KafkaChannel extends BasicChannelSemantics {
                     producer.send(messages);
                     long endTime = System.nanoTime();
                     counter.addToKafkaEventSendTimer((endTime-startTime)/(1000*1000));
-                    counter.addToEventPutSuccessCount(Long.valueOf(messages.size()));
+                    counter.addToEventPutSuccessCount((long) messages.size());
                     serializedEvents.get().clear();
                 } catch (Exception ex) {
                     LOGGER.warn("Sending events to Kafka failed", ex);
@@ -401,7 +401,7 @@ public class KafkaChannel extends BasicChannelSemantics {
                     long endTime = System.nanoTime();
                     counter.addToKafkaCommitTimer((endTime-startTime)/(1000*1000));
                 }
-                counter.addToEventTakeSuccessCount(Long.valueOf(events.get().size()));
+                counter.addToEventTakeSuccessCount((long) events.get().size());
                 events.get().clear();
             }
         }
@@ -414,7 +414,7 @@ public class KafkaChannel extends BasicChannelSemantics {
             if (type.equals(TransactionType.PUT)) {
                 serializedEvents.get().clear();
             } else {
-                counter.addToRollbackCounter(Long.valueOf(events.get().size()));
+                counter.addToRollbackCounter((long) events.get().size());
                 consumerAndIter.get().failedEvents.addAll(events.get());
                 events.get().clear();
             }
