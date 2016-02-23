@@ -10,9 +10,7 @@ The table and keyspace must be created before hand! The sink tries to write to a
 
 ## Perquisites
 
-* Cassandra 2.2.4 - Json support was added in 2.2 but a bug wasn't fixed till 2.2.4 for rebinding prepared statements with JSON
-* Cassandra-unit 2.2.2.1 - For Unit testing, currently built against 2.2 so I've included a version built against 2.2.4 in the lib folder
-  Install locally with `mvn install:install-file -Dfile=src/lib/cassandra-unit-2.2.2.2-SNAPSHOT.jar`
+* Cassandra 2.2.4
 * Confluent 2.0
 
 ## Properties
