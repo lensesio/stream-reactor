@@ -16,8 +16,8 @@ class ElasticSinkTask extends SinkTask with Logging {
     * */
   override def start(props: util.Map[String, String]): Unit = {
     ElasticSinkConfig.config.parse(props)
-    val sinkConig = new ElasticSinkConfig(props)
-    writer = Some(ElasticWriter(config = sinkConig, context = context))
+    val sinkConfig = new ElasticSinkConfig(props)
+    writer = Some(ElasticWriter(config = sinkConfig, context = context))
   }
 
   /**

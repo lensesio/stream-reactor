@@ -3,7 +3,7 @@ Streaming reference architecture built around Kafka.
 
 ![Alt text](https://datamountaineer.files.wordpress.com/2016/01/stream-reactor-1.jpg?w=1320)
 
-A collection of components to build a real time ingestion pipleline
+A collection of components to build a real time ingestion pipeline
 
 #### [Kafka-Connect-Cassandra](kafka-connect-cassandra/README.md)
 

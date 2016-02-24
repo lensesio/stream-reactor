@@ -20,8 +20,8 @@ class KuduSinkTask extends SinkTask with Logging {
     * */
   override def start(props: util.Map[String, String]): Unit = {
     KuduSinkConfig.config.parse(props)
-    val sinkConig = new KuduSinkConfig(props)
-    writer = Some(KuduWriter(config = sinkConig, context = context))
+    val sinkConfig = new KuduSinkConfig(props)
+    writer = Some(KuduWriter(config = sinkConfig, context = context))
   }
 
   /**

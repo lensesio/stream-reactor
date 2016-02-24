@@ -31,8 +31,8 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     val client = ElasticClient.local(essettings)
 
     //check counts
-    val res = client.execute { count from TOPIC }.await
-    res.getCount shouldBe(testRecords.size)
+    val res = client.execute { search in TOPIC }.await
+    res.totalHits shouldBe testRecords.size
     //close writer
     writer.close()
     client.close()

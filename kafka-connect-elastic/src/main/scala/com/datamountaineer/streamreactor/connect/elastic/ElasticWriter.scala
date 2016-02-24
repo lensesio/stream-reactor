@@ -10,19 +10,17 @@ object  ElasticWriter {
     val esHomePath = config.getString(ElasticSinkConfig.ES_PATH_HOME)
     val esClusterName = config.getString(ElasticSinkConfig.ES_CLUSTER_NAME)
     val split = hostNames.split(",")
-    val client = (split.contains(s"${ElasticConstants.LOCAL_HOST}:" +
-      s"${ElasticConstants.PORT}") || split.contains(s"${ElasticConstants.LOCAL_IP}:${ElasticConstants.PORT}"))
+    val client = split.contains(s"${ElasticConstants.LOCAL_HOST}:" +
+      s"${ElasticConstants.PORT}") || split.contains(s"${ElasticConstants.LOCAL_IP}:${ElasticConstants.PORT}")
     match {
-      case true => {
+      case true =>
         val essettings = Settings
           .settingsBuilder().put(s"${ElasticConstants.CLUSTER_NAME}", esClusterName)
           .put(s"${ElasticConstants.PATH_HOME}", esHomePath).build()
         ElasticClient.local(essettings)
-      }
-      case false => {
+      case false =>
         val uri = ElasticsearchClientUri(s"${ElasticConstants.URL_PREFIX}://$hostNames")
-        ElasticClient.remote(uri)
-      }
+        ElasticClient.transport(uri)
     }
     new ElasticJsonWriter(client = client, context = context)
   }

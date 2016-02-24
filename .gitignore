@@ -1,22 +1,6 @@
-*.class
-*.log
-*org.junit*
-
 # sbt specific
-.cache
-.history
-.lib/
-dist/*
 target/
-lib_managed/
-src_managed/
-project/boot/
-project/plugins/project/
-
 # Scala-IDE specific
-.scala_dependencies
-.worksheet
-
 .idea
 /stream-reactor.iml
 */target
@@ -26,4 +10,3 @@ project/plugins/project/
 /kafka-connect-cassandra/kafka-connect-cassandra.iml
 
 flume-ng/flume-ng.iml
-flume-ng/target

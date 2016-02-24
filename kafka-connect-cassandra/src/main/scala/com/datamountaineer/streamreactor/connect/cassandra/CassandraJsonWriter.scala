@@ -89,7 +89,7 @@ class CassandraJsonWriter(connector: CassandraConnection, context : SinkTaskCont
     * */
   def insert(records: List[SinkRecord]) = {
     insertCount.addAndGet(records.size)
-    records.map( r => {
+    records.foreach(r => {
       //get the preparedStatement, else create and add to cache
       val preparedStatement = preparedCache.contains(r.topic()) match {
         case true => preparedCache.get(r.topic()).get
