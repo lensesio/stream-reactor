@@ -1,13 +1,8 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
 import com.datamountaineer.streamreactor.connect.{ConnectUtils, Logging}
-import com.fasterxml.jackson.databind.JsonNode
-import org.apache.kafka.connect.data.Field
-import org.apache.kafka.connect.data.Schema.Type
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
-import org.kududb.client.shaded.com.google.common.primitives.Bytes
 import org.kududb.client._
-
 import scala.collection.JavaConverters._
 
 /**
@@ -34,10 +29,10 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends Logging {
     * Build a cache of Kudu insert statements per topic
     *
     * @param topics Topic list, we are expecting pre created tables in Kudu
-    * @return A Map of topic -> Insert
+    * @return A Map of topic -> KuduRowInsert
     **/
-  private def buildTableCache(topics: List[String]): Map[String, Insert] = {
-    topics.map(t => (t, client.openTable(t).newInsert())).toMap
+  private def buildTableCache(topics: List[String]): Map[String, KuduTable] = {
+    topics.map(t =>(t,client.openTable(t))).toMap
   }
 
   /**
@@ -46,10 +41,22 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends Logging {
     * @param records A list of SinkRecords to write
     * */
   def write(records: List[SinkRecord]) = {
-    //map the rows onto the inserts in the cache
-    records.map(r => convertToKudu(r))
-    //apply the inserts for each topic
-    topics.map(t => session.apply(kuduTableInserts.get(t).get))
+    //group the records by topic to get a map [string, list[sinkrecords]]
+    val grouped = records.groupBy(_.topic())
+    //for each group get a new insert, convert and apply
+    grouped.map(g=>applyInsert(g._1, g._2, session))
+  }
+
+  /**
+    * Per topic, build an new Kudu insert. Per insert build a Kudu row per SinkRecord.
+    * Apply the insert per topic for the rows
+    * */
+  private def applyInsert(topic: String, records: List[SinkRecord], session: KuduSession) = {
+    //get a new insert
+    val table = kuduTableInserts.get(topic).get
+    records
+      .map(r=>convertToKudu(r, table.newInsert()))
+      .map(i=>session.apply(i))
   }
 
   /**
@@ -58,36 +65,11 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends Logging {
     * @param record A SinkRecord to convert
     * @return A Kudu Row
     * */
-  private def convertToKudu(record: SinkRecord) : PartialRow = {
-    val row = kuduTableInserts.get(record.topic()).get.getRow
+  private def convertToKudu(record: SinkRecord, insert : Insert) : Insert = {
     val fields =  record.valueSchema().fields().asScala
-    fields.foreach(f => convertTypeAndAdd(f.schema().`type`(), f.name(), record, row))
-    row
-  }
-
-  /**
-    * Convert SinkRecord type to Kudu and add the column to the Kudu row
-    *
-    * @param fieldType Type of SinkRecord field
-    * @param fieldName Name of SinkRecord field
-    * @param record    The SinkRecord
-    * @param row       The Kudu row to add the field tp
-    * @return the updated Kudu row
-    **/
-  private def convertTypeAndAdd(fieldType: Type, fieldName: String, record: SinkRecord, row: PartialRow): PartialRow = {
-    val avro = utils.convertToGenericAvro(record)
-    fieldType match {
-      case Type.STRING => row.addString(fieldName, avro.get(fieldName).toString)
-      case Type.INT8 => row.addByte(fieldName, avro.get(fieldName).asInstanceOf[Byte])
-      case Type.INT16 => row.addShort(fieldName, avro.get(fieldName).asInstanceOf[Short])
-      case Type.INT32 => row.addInt(fieldName, avro.get(fieldName).asInstanceOf[Int])
-      case Type.INT64 => row.addLong(fieldName, avro.get(fieldName).asInstanceOf[Long])
-      case Type.BOOLEAN => row.addBoolean(fieldName, avro.get(fieldName).asInstanceOf[Boolean])
-      case Type.FLOAT32 | Type.FLOAT64 => row.addFloat(fieldName, avro.get(fieldName).asInstanceOf[Float])
-      case Type.BYTES => row.addBinary(fieldName, avro.get(fieldName).asInstanceOf[Array[Byte]])
-      case _ => throw new UnsupportedOperationException(s"Unknown type $fieldType")
-    }
-    row
+    val row = insert.getRow
+    fields.foreach(f => utils.convertTypeAndAdd(f.schema().`type`(), f.name(), record, row))
+    insert
   }
 
   /**

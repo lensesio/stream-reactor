@@ -1,7 +1,6 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
 import java.util
-
 import com.datamountaineer.streamreactor.connect.Logging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
