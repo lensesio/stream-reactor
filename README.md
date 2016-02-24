@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/andrewstevenson/stream-reactor.svg?branch=master)](https://travis-ci.org/andrewstevenson/stream-reactor)
+
 # Stream Reactor
 Streaming reference architecture built around Kafka. 
 
@@ -9,7 +11,9 @@ A collection of components to build a real time ingestion pipeline
 
 Kafka connect Cassandra connector and sink to write Kafka topic payloads to Cassandra.
 
-###  [Kafka-Connect]
+#### [Kafka-Connect-Elastic](kafka-connect-elastic/README.md)
+
+Kafka connect Elastic Search connector and sink to write Kafka topic payloads to Elastic Search.
 
 #### [Confluent Flume Kafka Channel](flume-ng/README.md)
 
