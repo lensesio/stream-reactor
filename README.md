@@ -11,6 +11,10 @@ A collection of components to build a real time ingestion pipleline
 
 Kafka connect Cassandra connector and sink to write Kafka topic payloads to Cassandra.
 
+#### [Kafka-Connect-Elastic](kafka-connect-elastic/README.md)
+
+Kafka connect Elastic Search connector and sink to write Kafka topic payloads to Elastic Search.
+
 ###  [Kafka-Connect]
 
 #### [Confluent Flume Kafka Channel](flume-ng/README.md)
