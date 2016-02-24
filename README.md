@@ -15,8 +15,6 @@ Kafka connect Cassandra connector and sink to write Kafka topic payloads to Cass
 
 Kafka connect Elastic Search connector and sink to write Kafka topic payloads to Elastic Search.
 
-###  [Kafka-Connect]
-
 #### [Confluent Flume Kafka Channel](flume-ng/README.md)
 
 Untested modified Flume Kafka channel for [Confluent](www.confluent.io) integration.
