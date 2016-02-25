@@ -53,7 +53,7 @@ You must also supply the `connector.class` as `com.datamountaineer.streamreactor
 
     ```bash
     mkdir $CONFLUENT_HOME/share/java/kafka-connect-cassandra
-    cp target/kafka-connect-0.1-jar-with-dependencies.jar $CONFLUENT_HOME/share/java/kafka-connect-cassandra/
+    cp target/kafka-connect-cassandra-0.1-jar-with-dependencies.jar  $CONFLUENT_HOME/share/java/kafka-connect-cassandra/
     ```
     
 * Start Cassandra

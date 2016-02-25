@@ -73,10 +73,17 @@ trait TestElasticBase extends FunSuite with Matchers with BeforeAndAfter {
     }).toList
   }
 
-  def getElasticSinkConfigProps(path: String) = {
+  def getElasticSinkConfigProps = {
     Map (
-      ElasticSinkConfig.ES_PATH_HOME->path,
-      ElasticSinkConfig.HOST_NAME->ELASTIC_SEARCH_HOSTNAMES
+      ElasticSinkConfig.URL->ELASTIC_SEARCH_HOSTNAMES,
+      ElasticSinkConfig.ES_CLUSTER_NAME->ElasticSinkConfig.ES_CLUSTER_NAME_DEFAULT,
+      ElasticSinkConfig.URL_PREFIX->ElasticSinkConfig.URL_PREFIX_DEFAULT
+    ).asJava
+  }
+
+  def getElasticSinkConfigPropsDefaults = {
+    Map (
+      ElasticSinkConfig.URL->ELASTIC_SEARCH_HOSTNAMES
     ).asJava
   }
 }

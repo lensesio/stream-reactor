@@ -7,18 +7,17 @@ import io.confluent.common.config.{AbstractConfig, ConfigDef}
 
 
 object CassandraSinkConfig {
-  val KEY_SPACE = "key_space"
+  val KEY_SPACE = "key.space"
   val KEY_SPACE_DOC = "Keyspace to write to."
-  val CONTACT_POINTS = "contact_points"
+  val CONTACT_POINTS = "contact.points"
   val CONTACT_POINT_DOC = "Initial contact point host for Cassandra including port."
   val CONTACT_POINT_DEFAULT = "localhost"
-  val PORT = "Port"
+  val PORT = "port"
   val PORT_DEFAULT = "9042"
   val PORT_DOC = "Cassandra native port."
   val INSERT_JSON_PREFIX = "INSERT INTO "
   val INSERT_JSON_POSTFIX = " JSON '?';"
   val PAYLOAD = "payload"
-
 
   val config: ConfigDef = new ConfigDef()
                           .define(CONTACT_POINTS, Type.STRING, CONTACT_POINT_DEFAULT, Importance.HIGH,CONTACT_POINT_DOC)

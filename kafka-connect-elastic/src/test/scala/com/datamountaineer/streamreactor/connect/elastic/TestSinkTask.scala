@@ -14,7 +14,7 @@ class TestSinkTask extends TestElasticBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecords
     //get config
-    val config = getElasticSinkConfigProps(TMP.toString)
+    val config = getElasticSinkConfigProps
     //get task
     val task = new ElasticSinkTask()
     //initialise the tasks context

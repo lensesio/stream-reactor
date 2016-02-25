@@ -55,7 +55,11 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends Logging {
     //get a new insert
     val table = kuduTableInserts.get(topic).get
     records
-      .map(r=>convertToKudu(r, table.newInsert()))
+      .map(r=>{
+        val insert = table.newInsert()
+        convertToKudu(r, insert.getRow)
+        insert
+      })
       .map(i=>session.apply(i))
   }
 
@@ -65,11 +69,10 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends Logging {
     * @param record A SinkRecord to convert
     * @return A Kudu Row
     * */
-  private def convertToKudu(record: SinkRecord, insert : Insert) : Insert = {
+  private def convertToKudu(record: SinkRecord, row : PartialRow) : PartialRow = {
     val fields =  record.valueSchema().fields().asScala
-    val row = insert.getRow
     fields.foreach(f => utils.convertTypeAndAdd(f.schema().`type`(), f.name(), record, row))
-    insert
+    row
   }
 
   /**

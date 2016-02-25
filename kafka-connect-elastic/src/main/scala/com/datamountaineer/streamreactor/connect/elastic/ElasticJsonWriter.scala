@@ -16,6 +16,7 @@ class ElasticJsonWriter(client: ElasticClient, context: SinkTaskContext) extends
   log.info("Initialising Elastic Json writer")
   private val utils = new ConnectUtils
   val topics = context.assignment().asScala.map(c=>c.topic()).toList
+  log.info(s"Assigned $topics topics.")
   createIndexes(topics)
 
   implicit object SinkRecordIndexable extends Indexable[SinkRecord] {

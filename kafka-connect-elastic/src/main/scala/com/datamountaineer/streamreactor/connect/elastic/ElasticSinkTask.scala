@@ -36,6 +36,8 @@ class ElasticSinkTask extends SinkTask with Logging {
     writer.foreach(w => w.close())
   }
 
-  override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
+  override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {
+    log.info("Flushing Elastic Sink")
+  }
   override def version(): String = ""
 }
