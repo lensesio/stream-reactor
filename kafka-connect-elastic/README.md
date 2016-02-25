@@ -68,5 +68,25 @@ nohup $CONFLUENT_HOME/bin/schema-registry-start $CONFLUENT_HOME/etc/schema-regis
 $CONFLUENT_HOME/bin/connect-standalone etc/schema-registry/connect-avro-standalone.properties etc/kafka-connect-elastic/elastic.properties
 ```    
 
+* Test with avro console, start the console to create the topic and write values
+
+```bash
+$CONFLUENT_HOME/bin/kafka-avro-console-producer \
+--broker-list localhost:9092 --topic test_table \
+--property value.schema='{"type":"record","name":"myrecord","fields":[{"name":"id","type":"int"}, {"name":"random_field", "type": "string"}]}'
+```
+    
+```bash
+#insert at prompt
+{"id": 999, "random_field": "foo"}
+{"id": 888, "random_field": "bar"}
+```
+    
+   * Query Elastic
+    
+```
+curl -XGET 'http://localhost:9200/test_table/_search?q=id:999'
+```
+
 ## Improvements
 

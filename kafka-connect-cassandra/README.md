@@ -19,8 +19,8 @@ In addition to the default topics configuration the following options are added:
 
 name | data type | required | description
 -----|-----------|----------|------------
-contact_points | string | yes | contact points (hosts) in Cassandra cluster
-key_space | string | yes | key_space the tables to write to belong to
+contact.points | string | yes | contact points (hosts) in Cassandra cluster
+key.space | string | yes | key_space the tables to write to belong to
 port | int | no | port for the native Java driver (default 9042)
 
 Example connector.properties file
@@ -41,76 +41,75 @@ You must also supply the `connector.class` as `com.datamountaineer.streamreactor
 
 * Clone and build the Connector and Sink
 
-    ```bash
-    git clone git@github.com:andrewstevenson/stream-reactor.git
-    cd stream-reactor/kafka-connect
-    mvn package
-    ```
+```bash
+git clone git@github.com:andrewstevenson/stream-reactor.git
+cd stream-reactor/kafka-connect
+mvn package
+```
 
 * [Download and install Cassandra](http://cassandra.apache.org/)
 * [Download and install Confluent](http://www.confluent.io/)
 * Copy the Cassandra sink jar from your build location to `$CONFLUENT_HOME/share/java/kafka-connect-cassandra`
 
-    ```bash
-    mkdir $CONFLUENT_HOME/share/java/kafka-connect-cassandra
-    cp target/kafka-connect-cassandra-0.1-jar-with-dependencies.jar  $CONFLUENT_HOME/share/java/kafka-connect-cassandra/
-    ```
+```bash
+mkdir $CONFLUENT_HOME/share/java/kafka-connect-cassandra
+cp target/kafka-connect-cassandra-0.1-jar-with-dependencies.jar  $CONFLUENT_HOME/share/java/kafka-connect-cassandra/
+```
     
 * Start Cassandra
 
-    ```bash
-   nohup $CASSANDRA_HOME/bin/cassandra &
-    ```
+```bash
+nohup $CASSANDRA_HOME/bin/cassandra &
+```
     
 * Start Confluents Zookeeper, Kafka and Schema registry
 
-    ```bash
-    nohup $CONFLUENT_HOME/bin/zookeeper-server-start $CONFLUENT_HOME/etc/kafka/zookeeper.properties &
-    nohup $CONFLUENT_HOME/bin/kafka-server-start $CONFLUENT_HOME/etc/kafka/server.properties &
-    nohup $CONFLUENT_HOME/bin/schema-registry-start $CONFLUENT_HOME/etc/schema-registry/schema-registry.properties &"
-    ```
+```bash
+nohup $CONFLUENT_HOME/bin/zookeeper-server-start $CONFLUENT_HOME/etc/kafka/zookeeper.properties &
+nohup $CONFLUENT_HOME/bin/kafka-server-start $CONFLUENT_HOME/etc/kafka/server.properties &
+nohup $CONFLUENT_HOME/bin/schema-registry-start $CONFLUENT_HOME/etc/schema-registry/schema-registry.properties &"
+```
     
 * Create keyspace in Cassandra
 
-    ```sql
-    $CASSANDRA_HOME/bin/cqlsh
-    ```
-    
-    ```sql
-    CREATE KEYSPACE connect_test WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '3'}  
-    AND durable_writes = true;
-    
-    CREATE TABLE connect_test.test_table (
-    id int PRIMARY KEY,
-    random_field text
-    ); 
-    ```
+```sql
+$CASSANDRA_HOME/bin/cqlsh
+```
+
+```sql
+CREATE KEYSPACE connect_test WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '3'}  
+AND durable_writes = true;
+
+CREATE TABLE connect_test.test_table (
+id int PRIMARY KEY,
+random_field text
+); 
+```
     
 * Start Kafka Connect with the Cassandra sink
 
-    ```bash
-    $CONFLUENT_HOME/bin/connect-standalone etc/schema-registry/connect-avro-standalone.properties etc/kafka-connect-cassandra/cassandra.properties
-    ```
-    
+```bash
+$CONFLUENT_HOME/bin/connect-standalone etc/schema-registry/connect-avro-standalone.properties etc/kafka-connect-cassandra/cassandra.properties
+```
+
 * Test with avro console, start the console to create the topic and write values
 
-    ```bash
-    $CONFLUENT_HOME/bin/kafka-avro-console-producer \
-      --broker-list localhost:9092 --topic test_table \
-      --property value.schema='{"type":"record","name":"myrecord","fields":[{"name":"id","type":"int"}, {"name":"random_field", "type": "string"}]}'
-    ```
-    
-    ```bash
-    #insert at prompt
-    {"id": 999, "random_field": "foo"}
-    {"id": 888, "random_field": "bar"}
-    ````
+```bash
+$CONFLUENT_HOME/bin/kafka-avro-console-producer \
+  --broker-list localhost:9092 --topic test_table \
+  --property value.schema='{"type":"record","name":"myrecord","fields":[{"name":"id","type":"int"}, {"name":"random_field", "type": "string"}]}'
+```
+
+```bash
+{"id": 999, "random_field": "foo"}
+{"id": 888, "random_field": "bar"}
+```
     
 * Check in Cassandra for the records
 
-    ```sql
+```sql
     SELECT * FROM connect_test.test_table
-    ```
+``` 
 
 ## Improvements
 * Add key of message to payload

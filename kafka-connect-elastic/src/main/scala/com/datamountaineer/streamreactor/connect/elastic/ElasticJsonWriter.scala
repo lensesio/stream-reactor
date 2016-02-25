@@ -54,6 +54,7 @@ class ElasticJsonWriter(client: ElasticClient, context: SinkTaskContext) extends
     * @param records A list of SinkRecords
     * */
   def insert(records: List[SinkRecord]) : Future[BulkResponse] = {
+
     val indexes: List[IndexDefinition] = records.map(r => index into r.topic() / r.topic() source r)
     val ret = client.execute(bulk(indexes).refresh(true))
 
