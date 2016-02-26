@@ -51,46 +51,31 @@
             <groupId>io.confluent</groupId>
             <artifactId>kafka-connect-avro-converter</artifactId>
             <version>${confluent.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.jboss.netty</groupId>
-                    <artifactId>netty</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.datastax.cassandra</groupId>
             <artifactId>cassandra-driver-core</artifactId>
             <version>${cassandra.driver.version}</version>
-            <classifier>shaded</classifier>
-            <exclusions>
-                <exclusion>
-                    <!-- make sure wrong scala version is not pulled in -->
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
-                </exclusion>
-            </exclusions>
+            <!--<classifier>shaded</classifier>-->
+            <!--<exclusions>-->
+                <!--<exclusion>-->
+                    <!--&lt;!&ndash; make sure wrong scala version is not pulled in &ndash;&gt;-->
+                    <!--<groupId>com.google.guava</groupId>-->
+                    <!--<artifactId>guava</artifactId>-->
+                <!--</exclusion>-->
+            <!--</exclusions>-->
         </dependency>
         <dependency>
             <groupId>org.apache.cassandra</groupId>
             <artifactId>cassandra-all</artifactId>
             <version>${cassandra.all.version}</version>
             <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <!-- make sure wrong scala version is not pulled in -->
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>ch.qos.logback</groupId>
-                    <artifactId>logback-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>ch.qos.logback</groupId>
-                    <artifactId>logback-classic</artifactId>
-                </exclusion>
-            </exclusions>
+            <!--<exclusions>-->
+                <!--<exclusion>-->
+                    <!--<groupId>com.google.guava</groupId>-->
+                    <!--<artifactId>guava</artifactId>-->
+                <!--</exclusion>-->
+            <!--</exclusions>-->
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
@@ -98,7 +83,6 @@
             <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.cassandraunit</groupId>
             <artifactId>cassandra-unit</artifactId>

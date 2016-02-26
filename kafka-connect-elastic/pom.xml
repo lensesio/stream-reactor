@@ -25,17 +25,10 @@
 
     <properties>
         <elastic4s.version>2.1.0</elastic4s.version>
+        <elastic.version>2.2.0</elastic.version>
         <jacksonxml.version>2.6.5</jacksonxml.version>
         <jna.version>3.0.9</jna.version>
     </properties>
-
-    <repositories>
-        <repository>
-            <id>confluent</id>
-            <name>Confluent</name>
-            <url>${confluent.maven.repo}</url>
-        </repository>
-    </repositories>
 
     <dependencies>
         <dependency>
@@ -71,6 +64,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.elasticsearch</groupId>
+            <artifactId> elasticsearch</artifactId>
+            <version>${elastic.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.sksamuel.elastic4s</groupId>
             <artifactId>elastic4s-core_2.11</artifactId>
             <version>${elastic4s.version}</version>
@@ -81,7 +79,6 @@
                     <artifactId>scala-library</artifactId>
                 </exclusion>
                 <exclusion>
-                    <!-- make sure wrong scala version is not pulled in -->
                     <groupId>org.scalactic</groupId>
                     <artifactId>scalactic_2.11</artifactId>
                 </exclusion>
@@ -99,7 +96,6 @@
             <scope>test</scope>
             <exclusions>
                 <exclusion>
-                    <!-- make sure wrong scala version is not pulled in -->
                     <groupId>org.scala-lang</groupId>
                     <artifactId>scala-library</artifactId>
                 </exclusion>
@@ -114,11 +110,6 @@
             <groupId>com.sun.jna</groupId>
             <artifactId>jna</artifactId>
             <version>${jna.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.elasticsearch</groupId>
-            <artifactId>elasticsearch</artifactId>
-            <version>2.2.0</version>
         </dependency>
     </dependencies>
 
