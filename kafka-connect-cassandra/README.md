@@ -88,17 +88,16 @@ random_field text
     
 * Start Kafka Connect with the Cassandra sink
 
-** If you have the Elastic Sink Connector
+* If you have the Elastic Sink Connector
 Elastic Search is on Netty 3.10 so to avoid conflicts we need our Elastic Sink Connector first in the classpath
 
 ```bash
 export CLASSPATH=$CONFLUENT_HOME/share/java/kafka-connect-elastic/kafka-connect-elastic-0.1-jar-with-dependencies.jar;export CLASSPATH=$CONFLUENT_HOME/share/java/kafka-connect-cassandra/kafka-connect-cassandra-0.1-jar-with-dependencies.jar
 ```
 
-                                       
-                                       ```bash
-                                       export CLASSPATH=$CONFLUENT_HOME/share/java/kafka-connect-elastic/kafka-connect-elastic-0.1-jar-with-dependencies.jar
-                                       ```
+```bash
+export CLASSPATH=$CONFLUENT_HOME/share/java/kafka-connect-elastic/kafka-connect-elastic-0.1-jar-with-dependencies.jar
+```
 
 ```bash
 $CONFLUENT_HOME/bin/connect-standalone etc/schema-registry/connect-avro-standalone.properties etc/kafka-connect-cassandra/cassandra.properties
