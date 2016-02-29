@@ -30,9 +30,9 @@ name=cassandra-sink
 connector.class=com.datamountaineer.streamreactor.connect.cassandra.CassandraSinkConnector
 tasks.max=1
 topics=test_table
-contact_points=localhost
+contact.points=localhost
 port=9042
-key_space=connect_test
+key.space=connect_test
 ```
 
 You must also supply the `connector.class` as `com.datamountaineer.streamreactor.connect.cassandra.CassandraSinkConnector`
