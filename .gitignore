@@ -1,3 +1,4 @@
+/kafka-connect-utils/kafka-connect-utils.iml
 # sbt specific
 target/
 # Scala-IDE specific

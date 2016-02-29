@@ -1,8 +1,7 @@
 package com.datamountaineer.streamreactor.connect.elastic
 
 import java.util
-
-import com.datamountaineer.streamreactor.connect.Logging
+import com.datamountaineer.streamreactor.connect.utils.Logging
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkConnector

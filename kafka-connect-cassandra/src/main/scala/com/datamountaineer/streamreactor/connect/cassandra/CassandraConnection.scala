@@ -1,6 +1,6 @@
 package com.datamountaineer.streamreactor.connect.cassandra
 
-import com.datamountaineer.streamreactor.connect.Logging
+import com.datamountaineer.streamreactor.connect.utils.Logging
 import com.datastax.driver.core.policies.{DCAwareRoundRobinPolicy, TokenAwarePolicy}
 import com.datastax.driver.core.{Cluster, Session}
 

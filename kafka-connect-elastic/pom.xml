@@ -26,7 +26,6 @@
     <properties>
         <elastic4s.version>2.1.0</elastic4s.version>
         <elastic.version>2.2.0</elastic.version>
-        <jacksonxml.version>2.6.5</jacksonxml.version>
         <jna.version>3.0.9</jna.version>
     </properties>
 
@@ -37,25 +36,14 @@
             <version>${scala.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.datamountaineer.stream-reactor</groupId>
+            <artifactId>kafka-connect-utils</artifactId>
+            <version>${version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-api</artifactId>
             <version>${kafka.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>connect-json</artifactId>
-            <version>${kafka.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.confluent</groupId>
-            <artifactId>kafka-connect-avro-converter</artifactId>
-            <version>${confluent.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.jboss.netty</groupId>
-                    <artifactId>netty</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
@@ -100,11 +88,6 @@
                     <artifactId>scala-library</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>${jacksonxml.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.jna</groupId>

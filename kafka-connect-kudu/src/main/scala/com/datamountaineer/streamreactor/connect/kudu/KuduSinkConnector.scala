@@ -1,7 +1,7 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
 import java.util
-import com.datamountaineer.streamreactor.connect.Logging
+import com.datamountaineer.streamreactor.connect.utils.Logging
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkConnector
@@ -37,10 +37,10 @@ class KuduSinkConnector extends SinkConnector with Logging {
     * @param props A map of properties for the connector and worker
     * */
   override def start(props: util.Map[String, String]): Unit = {
-    log.info(s"Starting Elastic sink task with ${props.toString}.")
+    log.info(s"Starting Kudu sink task with ${props.toString}.")
     configProps = props
     Try(new KuduSinkConfig(props)) match {
-      case Failure(f) => throw new ConnectException("Couldn't start Elastic sink due to configuration error.", f)
+      case Failure(f) => throw new ConnectException("Couldn't start Kudu sink due to configuration error.", f)
       case _ =>
     }
   }

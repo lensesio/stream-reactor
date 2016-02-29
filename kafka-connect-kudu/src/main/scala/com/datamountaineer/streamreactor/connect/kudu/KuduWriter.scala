@@ -1,6 +1,7 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
-import com.datamountaineer.streamreactor.connect.{ConnectUtils, Logging}
+import com.datamountaineer.streamreactor.connect.KuduConverter
+import com.datamountaineer.streamreactor.connect.utils.Logging
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.kududb.client._
 import scala.collection.JavaConverters._
@@ -17,13 +18,12 @@ object KuduWriter {
   }
 }
 
-class KuduWriter(client: KuduClient, context: SinkTaskContext) extends Logging {
+class KuduWriter(client: KuduClient, context: SinkTaskContext) extends Logging with KuduConverter {
   log.info("Initialising Kudu writer")
   private val topics = context.assignment().asScala.map(c=>c.topic()).toList
   private val kuduTableInserts = buildTableCache(topics)
   private val session = client.newSession()
   session.setFlushMode(SessionConfiguration.FlushMode.AUTO_FLUSH_BACKGROUND)
-  private val utils = new ConnectUtils
 
   /**
     * Build a cache of Kudu insert statements per topic
@@ -71,7 +71,12 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends Logging {
     * */
   private def convertToKudu(record: SinkRecord, row : PartialRow) : PartialRow = {
     val fields =  record.valueSchema().fields().asScala
-    fields.foreach(f => utils.convertTypeAndAdd(f.schema().`type`(), f.name(), record, row))
+    fields.foreach(f =>
+      {
+        val fieldType = f.schema().`type`()
+        convertTypeAndAdd(fieldType = fieldType, fieldName = f.name(), record = record, row = row)
+      }
+    )
     row
   }
 

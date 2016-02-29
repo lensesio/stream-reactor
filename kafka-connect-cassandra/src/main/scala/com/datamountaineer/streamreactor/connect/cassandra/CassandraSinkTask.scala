@@ -1,8 +1,7 @@
 package com.datamountaineer.streamreactor.connect.cassandra
 
 import java.util
-
-import com.datamountaineer.streamreactor.connect.Logging
+import com.datamountaineer.streamreactor.connect.utils.Logging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}

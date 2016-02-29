@@ -1,10 +1,9 @@
-package com.datamountaineer.streamreactor.connect
+package com.datamountaineer.streamreactor.connect.utils
 
 /**
   * Created by andrew@datamountaineer.com on 22/02/16. 
   * stream-reactor
   */
-
 import org.slf4j.LoggerFactory
 
 trait Logging {

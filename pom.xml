@@ -48,6 +48,7 @@
     </repositories>
 
     <modules>
+        <module>kafka-connect-utils</module>
         <module>kafka-connect-elastic</module>
         <module>kafka-connect-cassandra</module>
         <module>kafka-connect-bloomberg</module>

@@ -1,7 +1,6 @@
 package com.datamountaineer.streamreactor.connect.elastic
 
-import com.datamountaineer.streamreactor.connect.{ConnectUtils, Logging}
-import com.sksamuel.elastic4s.mappings.FieldType.{IntegerType, GeoPointType}
+import com.datamountaineer.streamreactor.connect.utils.{Logging, ConverterUtil}
 import com.sksamuel.elastic4s.{IndexDefinition, ElasticClient}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.source.Indexable
@@ -11,16 +10,16 @@ import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ElasticJsonWriter(client: ElasticClient, context: SinkTaskContext) extends Logging {
+class ElasticJsonWriter(client: ElasticClient, context: SinkTaskContext) extends Logging with ConverterUtil {
 
   log.info("Initialising Elastic Json writer")
-  private val utils = new ConnectUtils
   val topics = context.assignment().asScala.map(c=>c.topic()).toList
   log.info(s"Assigned $topics topics.")
   createIndexes(topics)
+  configureConverter(jsonConverter)
 
   implicit object SinkRecordIndexable extends Indexable[SinkRecord] {
-    override def json(t: SinkRecord): String = utils.convertValueToJson(t)
+    override def json(t: SinkRecord): String = convertValueToJson(t).toString
   }
 
   /**
