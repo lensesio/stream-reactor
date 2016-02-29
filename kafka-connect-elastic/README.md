@@ -50,7 +50,7 @@ cd elasticsearch-2.2.0/bin
 * Copy the Elastic sink jar from your build location to `$CONFLUENT_HOME/share/java/kafka-connect-elastic`
 
 ```bash
-mkdir $CONFLUENT_HOME/share/java/kafka-connect-cassandra
+mkdir $CONFLUENT_HOME/share/java/kafka-connect-elastic
 cp target/kafka-connect-elastic-0.1-jar-with-dependencies.jar  $CONFLUENT_HOME/share/java/kafka-connect-elastic/
 ```
 

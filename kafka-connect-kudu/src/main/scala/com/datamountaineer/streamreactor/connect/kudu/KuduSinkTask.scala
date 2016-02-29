@@ -28,7 +28,7 @@ class KuduSinkTask extends SinkTask with Logging {
     * */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.map(w=>w.write(records.asScala.toList))
+    writer.foreach(w=>w.write(records.asScala.toList))
   }
 
   /**
@@ -39,6 +39,10 @@ class KuduSinkTask extends SinkTask with Logging {
     writer.foreach(w => w.close())
   }
 
-  override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
+  //0.7 has
+  override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {
+    require(writer.nonEmpty, "Writer is not set!")
+    writer.map(w=>w.flush())
+  }
   override def version(): String = ""
 }

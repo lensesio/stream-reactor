@@ -35,7 +35,7 @@ trait TestBase extends FunSuite with BeforeAndAfter with Matchers {
   after {
   }
 
-  def getConfig() = {
+  def getConfig = {
     Map(KuduSinkConfig.KUDU_MASTER->KUDU_MASTER).asJava
   }
 

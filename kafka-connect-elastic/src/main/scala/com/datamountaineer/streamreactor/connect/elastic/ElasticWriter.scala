@@ -13,7 +13,7 @@ object  ElasticWriter {
               .settingsBuilder()
               .put(s"${ElasticSinkConfig.ES_CLUSTER_NAME}", esClusterName)
               .build()
-    val uri = ElasticsearchClientUri(s"${esPrefix}://$hostNames")
+    val uri = ElasticsearchClientUri(s"$esPrefix://$hostNames")
     val client = ElasticClient.transport(essettings, uri)
     new ElasticJsonWriter(client = client, context = context)
   }

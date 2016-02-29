@@ -10,9 +10,10 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 22/02/16. 
   * stream-reactor
   */
-object KuduWriter {
+object KuduWriter extends Logging {
   def apply(config: KuduSinkConfig, context: SinkTaskContext) = {
     val kuduMaster = config.getString(KuduSinkConfig.KUDU_MASTER)
+    log.info(s"Connecting to Kudu Master at $kuduMaster")
     val client = new KuduClient.KuduClientBuilder(kuduMaster).build()
     new KuduWriter(client = client, context = context)
   }
@@ -24,6 +25,7 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends Logging w
   private val kuduTableInserts = buildTableCache(topics)
   private val session = client.newSession()
   session.setFlushMode(SessionConfiguration.FlushMode.AUTO_FLUSH_BACKGROUND)
+  session.isIgnoreAllDuplicateRows
 
   /**
     * Build a cache of Kudu insert statements per topic
@@ -44,7 +46,13 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends Logging w
     //group the records by topic to get a map [string, list[sinkrecords]]
     val grouped = records.groupBy(_.topic())
     //for each group get a new insert, convert and apply
-    grouped.map(g=>applyInsert(g._1, g._2, session))
+    grouped.foreach(g=>
+      {
+        applyInsert(g._1, g._2, session)
+        log.info(s"Written ${records.size} for ${g._1}")
+      }
+    )
+    flush()
   }
 
   /**
@@ -54,13 +62,14 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends Logging w
   private def applyInsert(topic: String, records: List[SinkRecord], session: KuduSession) = {
     //get a new insert
     val table = kuduTableInserts.get(topic).get
+    log.debug(s"Preparing write for $topic.")
     records
       .map(r=>{
         val insert = table.newInsert()
         convertToKudu(r, insert.getRow)
         insert
       })
-      .map(i=>session.apply(i))
+      .foreach(i=>session.apply(i))
   }
 
   /**
@@ -71,12 +80,7 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends Logging w
     * */
   private def convertToKudu(record: SinkRecord, row : PartialRow) : PartialRow = {
     val fields =  record.valueSchema().fields().asScala
-    fields.foreach(f =>
-      {
-        val fieldType = f.schema().`type`()
-        convertTypeAndAdd(fieldType = fieldType, fieldName = f.name(), record = record, row = row)
-      }
-    )
+    fields.foreach(f =>convertTypeAndAdd(fieldType = f.schema().`type`(), fieldName = f.name(), record = record, row = row))
     row
   }
 
@@ -84,7 +88,17 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends Logging w
     * Close the Kudu session and client
     * */
   def close() = {
-    session.close()
-    client.close()
+    log.info("Closing Kudu Session and Client")
+    flush()
+    if (!session.isClosed) session.close()
+    client.shutdown()
+  }
+
+  /**
+    * Force the session to flush it's buffers.
+    *
+    * */
+  def flush() = {
+    session.flush()
   }
 }

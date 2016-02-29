@@ -1,9 +1,8 @@
 package com.datamountaineer.streamreactor.connect.utils
 
 import com.fasterxml.jackson.databind.JsonNode
-import io.confluent.connect.avro.{AvroData, AvroConverter}
-import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
-import org.apache.avro.io.DecoderFactory
+import io.confluent.connect.avro.AvroData
+import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.json.{JsonDeserializer, JsonConverter}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.storage.Converter
@@ -19,7 +18,6 @@ import scala.collection.immutable.HashMap
 trait ConverterUtil extends Logging {
   lazy val jsonConverter = new JsonConverter()
   lazy val deserializer = new JsonDeserializer()
-  lazy val avroConverter = new AvroConverter()
   lazy val avroData = new AvroData(100)
 
   /**
@@ -30,9 +28,7 @@ trait ConverterUtil extends Logging {
     * */
   def convertValueToJson(record: SinkRecord) : JsonNode = {
     val converted: Array[Byte] = jsonConverter.fromConnectData(record.topic(), record.valueSchema(), record.value())
-    val json = deserializer.deserialize(record.topic(), converted).get("payload")
-    log.debug(s"Converted payload to $json.")
-    json
+    deserializeToJson(record.topic(), payload = converted)
   }
 
   /**
@@ -42,9 +38,21 @@ trait ConverterUtil extends Logging {
     * @return A json string for the payload of the record
     * */
   def convertKeyToJson(record: SinkRecord) : JsonNode = {
-    val converted: Array[Byte] = jsonConverter.fromConnectData(record.topic(), record.keySchema(), record.key())
-    val json = deserializer.deserialize(record.topic(), converted).get("key")
-    log.debug(s"Converted key to $json.")
+    val converted = jsonConverter.fromConnectData(record.topic(), record.keySchema(), record.key())
+    deserializeToJson(record.topic(), payload = converted)
+  }
+
+  /**
+    * Deserialize Byte array for a topic to json
+    *
+    * @param topic Topic name for the byte array
+    * @param payload Byte Array payload
+    * @return A JsonNode representing the byte array
+    *
+    * */
+  def deserializeToJson(topic: String, payload: Array[Byte]) : JsonNode = {
+    val json = deserializer.deserialize(topic, payload).get("payload")
+    log.debug(s"Converted to $json.")
     json
   }
 
@@ -66,11 +74,7 @@ trait ConverterUtil extends Logging {
     * @return a GenericRecord
     **/
   def convertToGenericAvro(record: SinkRecord): GenericRecord = {
-    val obj = avroConverter.fromConnectData(record.topic(), record.valueSchema(), record.value())
-    val avroSchema = avroData.fromConnectSchema(record.keySchema())
-    val reader = new GenericDatumReader[GenericRecord](avroSchema)
-    val decoder = DecoderFactory.get().binaryDecoder(obj, null)
-    reader.read(null, decoder)
+    val avro = avroData.fromConnectData(record.valueSchema(), record.value())
+    avro.asInstanceOf[GenericRecord]
   }
-
 }

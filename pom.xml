@@ -53,6 +53,7 @@
         <module>kafka-connect-cassandra</module>
         <module>kafka-connect-bloomberg</module>
         <module>kafka-connect-kudu</module>
+        <module>kafka-connect-druid</module>
     </modules>
 
     <build>

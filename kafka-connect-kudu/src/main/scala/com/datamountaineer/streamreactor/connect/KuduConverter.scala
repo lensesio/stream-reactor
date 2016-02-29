@@ -7,8 +7,6 @@ import org.kududb.client.PartialRow
 
 
 trait KuduConverter extends ConverterUtil {
-  configureConverter(jsonConverter)
-
   /**
     * Convert SinkRecord type to Kudu and add the column to the Kudu row
     *
@@ -19,16 +17,16 @@ trait KuduConverter extends ConverterUtil {
     * @return the updated Kudu row
     **/
    def convertTypeAndAdd(fieldType: Type, fieldName: String, record: SinkRecord, row: PartialRow): PartialRow = {
-    val jsonNode = convertValueToJson(record)
+    val avro = convertToGenericAvro(record)
     fieldType match {
-      case Type.STRING => row.addString(fieldName, jsonNode.get(fieldName).toString)
-      case Type.INT8 => row.addByte(fieldName, jsonNode.get(fieldName).asInstanceOf[Byte])
-      case Type.INT16 => row.addShort(fieldName, jsonNode.get(fieldName).asInstanceOf[Short])
-      case Type.INT32 => row.addInt(fieldName, jsonNode.get(fieldName).asInstanceOf[Int])
-      case Type.INT64 => row.addLong(fieldName, jsonNode.get(fieldName).asInstanceOf[Long])
-      case Type.BOOLEAN => row.addBoolean(fieldName, jsonNode.get(fieldName).asInstanceOf[Boolean])
-      case Type.FLOAT32 | Type.FLOAT64 => row.addFloat(fieldName, jsonNode.get(fieldName).asInstanceOf[Float])
-      case Type.BYTES => row.addBinary(fieldName, jsonNode.get(fieldName).asInstanceOf[Array[Byte]])
+      case Type.STRING => row.addString(fieldName, avro.get(fieldName).toString)
+      case Type.INT8 => row.addByte(fieldName, avro.get(fieldName).asInstanceOf[Byte])
+      case Type.INT16 => row.addShort(fieldName, avro.get(fieldName).asInstanceOf[Short])
+      case Type.INT32 => row.addInt(fieldName, avro.get(fieldName).asInstanceOf[Int])
+      case Type.INT64 => row.addLong(fieldName, avro.get(fieldName).asInstanceOf[Long])
+      case Type.BOOLEAN => row.addBoolean(fieldName, avro.get(fieldName).asInstanceOf[Boolean])
+      case Type.FLOAT32 | Type.FLOAT64 => row.addFloat(fieldName, avro.get(fieldName).asInstanceOf[Float])
+      case Type.BYTES => row.addBinary(fieldName, avro.get(fieldName).asInstanceOf[Array[Byte]])
       case _ => throw new UnsupportedOperationException(s"Unknown type $fieldType")
     }
     row

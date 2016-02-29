@@ -7,7 +7,7 @@ import scala.collection.JavaConverters._
   */
 class TestKuduSinkConnector extends TestBase {
   test("Should start a Kudu Connector") {
-    val config = getConfig()
+    val config = getConfig
     val connector = new KuduSinkConnector()
     connector.start(config)
     val taskConfigs = connector.taskConfigs(1)

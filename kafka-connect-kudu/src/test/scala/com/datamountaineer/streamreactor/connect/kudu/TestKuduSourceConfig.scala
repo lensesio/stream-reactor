@@ -7,7 +7,7 @@ package com.datamountaineer.streamreactor.connect.kudu
   */
 class TestKuduSourceConfig extends TestBase {
   test("A KuduSinkConfig should return Kudu Master") {
-    val config  = new KuduSinkConfig(getConfig())
+    val config  = new KuduSinkConfig(getConfig)
     config.getString(KuduSinkConfig.KUDU_MASTER) shouldBe KUDU_MASTER
   }
 }
