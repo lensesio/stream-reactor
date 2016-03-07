@@ -16,6 +16,7 @@ class ElasticJsonWriter(client: ElasticClient, context: SinkTaskContext) extends
   log.info("Initialising Elastic Json writer")
   private val utils = new ConnectUtils
   val topics = context.assignment().asScala.map(c=>c.topic()).toList
+  log.info(s"Assigned $topics topics.")
   createIndexes(topics)
 
   implicit object SinkRecordIndexable extends Indexable[SinkRecord] {
@@ -53,6 +54,7 @@ class ElasticJsonWriter(client: ElasticClient, context: SinkTaskContext) extends
     * @param records A list of SinkRecords
     * */
   def insert(records: List[SinkRecord]) : Future[BulkResponse] = {
+
     val indexes: List[IndexDefinition] = records.map(r => index into r.topic() / r.topic() source r)
     val ret = client.execute(bulk(indexes).refresh(true))
 

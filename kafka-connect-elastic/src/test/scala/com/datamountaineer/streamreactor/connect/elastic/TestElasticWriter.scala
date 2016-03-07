@@ -16,23 +16,22 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecords
     //get config
-    val config  = new ElasticSinkConfig(getElasticSinkConfigProps(TMP.toString))
+    val config  = new ElasticSinkConfig(getElasticSinkConfigProps)
+
+    val essettings = Settings
+      .settingsBuilder().put(ElasticSinkConfig.ES_CLUSTER_NAME, ElasticSinkConfig.ES_CLUSTER_NAME_DEFAULT)
+      .put("path.home", TMP.toString).build()
+    val client = ElasticClient.local(essettings)
+
     //get writer
-    val writer = ElasticWriter(config = config, context = context)
+    val writer = new ElasticJsonWriter(client = client, context = context)
     //write records to elastic
     writer.insert(testRecords).await
 
-    //allow Elastic search to write behind the scenes, waiting to the future on the write is not enough,
-    //this just says elastics has it.
     Thread.sleep(2000)
-    val essettings = Settings
-      .settingsBuilder().put(ElasticConstants.CLUSTER_NAME, ElasticConstants.DEFAULT_CLUSTER_NAME)
-      .put(ElasticConstants.PATH_HOME, TMP.toString).build()
-    val client = ElasticClient.local(essettings)
-
     //check counts
-    val res = client.execute { count from TOPIC }.await
-    res.getCount shouldBe(testRecords.size)
+    val res = client.execute { search in TOPIC }.await
+    res.totalHits shouldBe testRecords.size
     //close writer
     writer.close()
     client.close()

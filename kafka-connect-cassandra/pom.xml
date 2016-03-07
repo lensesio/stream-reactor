@@ -4,7 +4,6 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.datamountaineer.stream-reactor</groupId>
     <artifactId>kafka-connect-cassandra</artifactId>
     <packaging>jar</packaging>
     <version>0.1</version>
@@ -25,11 +24,9 @@
     </parent>
 
     <properties>
-        <kafka.version>0.9.0.1</kafka.version>
         <cassandra.all.version>2.2.4</cassandra.all.version>
         <cassandra.driver.version>3.0.0</cassandra.driver.version>
         <cassandra.unit.version>2.2.2.1</cassandra.unit.version>
-        <guava.version>19.0</guava.version>
         <lz4.version>1.3.0</lz4.version>
         <snappy.version>1.1.2.1</snappy.version>
     </properties>
@@ -59,34 +56,26 @@
             <groupId>com.datastax.cassandra</groupId>
             <artifactId>cassandra-driver-core</artifactId>
             <version>${cassandra.driver.version}</version>
-            <exclusions>
-                <exclusion>
-                    <!-- make sure wrong scala version is not pulled in -->
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
-                </exclusion>
-            </exclusions>
+            <!--<classifier>shaded</classifier>-->
+            <!--<exclusions>-->
+                <!--<exclusion>-->
+                    <!--&lt;!&ndash; make sure wrong scala version is not pulled in &ndash;&gt;-->
+                    <!--<groupId>com.google.guava</groupId>-->
+                    <!--<artifactId>guava</artifactId>-->
+                <!--</exclusion>-->
+            <!--</exclusions>-->
         </dependency>
         <dependency>
             <groupId>org.apache.cassandra</groupId>
             <artifactId>cassandra-all</artifactId>
             <version>${cassandra.all.version}</version>
             <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <!-- make sure wrong scala version is not pulled in -->
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>ch.qos.logback</groupId>
-                    <artifactId>logback-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>ch.qos.logback</groupId>
-                    <artifactId>logback-classic</artifactId>
-                </exclusion>
-            </exclusions>
+            <!--<exclusions>-->
+                <!--<exclusion>-->
+                    <!--<groupId>com.google.guava</groupId>-->
+                    <!--<artifactId>guava</artifactId>-->
+                <!--</exclusion>-->
+            <!--</exclusions>-->
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
@@ -94,7 +83,6 @@
             <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.cassandraunit</groupId>
             <artifactId>cassandra-unit</artifactId>

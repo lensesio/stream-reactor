@@ -5,13 +5,15 @@ Streaming reference architecture built around Kafka.
 
 ![Alt text](https://datamountaineer.files.wordpress.com/2016/01/stream-reactor-1.jpg?w=1320)
 
-A collection of components to build a real time ingestion pipleline
+A collection of components to build a real time ingestion pipeline
 
 #### [Kafka-Connect-Cassandra](kafka-connect-cassandra/README.md)
 
 Kafka connect Cassandra connector and sink to write Kafka topic payloads to Cassandra.
 
-###  [Kafka-Connect]
+#### [Kafka-Connect-Elastic](kafka-connect-elastic/README.md)
+
+Kafka connect Elastic Search connector and sink to write Kafka topic payloads to Elastic Search.
 
 #### [Confluent Flume Kafka Channel](flume-ng/README.md)
 

@@ -1,21 +1,23 @@
-package com.datamountaineer.streamreactor.connect.elastic
+package com.datamountaineer.streamreactor.connect.kudu
+
+/**
+  * Created by andrew@datamountaineer.com on 24/02/16. 
+  * stream-reactor
+  */
 
 import java.util
-import java.util.UUID
 
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Struct, SchemaBuilder, Schema}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{BeforeAndAfter, Matchers, FunSuite}
+import org.scalatest.{Matchers, FunSuite, BeforeAndAfter}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.reflect.io.File
 
-trait TestElasticBase extends FunSuite with Matchers with BeforeAndAfter {
-  val ELASTIC_SEARCH_HOSTNAMES = "localhost:9300"
+trait TestBase extends FunSuite with BeforeAndAfter with Matchers {
   val TOPIC = "sink_test"
-  var TMP : File = null
+  val KUDU_MASTER = ""
 
   protected val PARTITION: Int = 12
   protected val PARTITION2: Int = 13
@@ -27,12 +29,14 @@ trait TestElasticBase extends FunSuite with Matchers with BeforeAndAfter {
   ASSIGNMENT.add(TOPIC_PARTITION2)
 
   before {
-    TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
-    TMP.createDirectory()
+
   }
 
   after {
-    TMP.deleteRecursively()
+  }
+
+  def getConfig() = {
+    Map(KuduSinkConfig.KUDU_MASTER->KUDU_MASTER).asJava
   }
 
   //get the assignment of topic partitions for the sinkTask
@@ -72,18 +76,5 @@ trait TestElasticBase extends FunSuite with Matchers with BeforeAndAfter {
       })
     }).toList
   }
-
-  def getElasticSinkConfigProps = {
-    Map (
-      ElasticSinkConfig.URL->ELASTIC_SEARCH_HOSTNAMES,
-      ElasticSinkConfig.ES_CLUSTER_NAME->ElasticSinkConfig.ES_CLUSTER_NAME_DEFAULT,
-      ElasticSinkConfig.URL_PREFIX->ElasticSinkConfig.URL_PREFIX_DEFAULT
-    ).asJava
-  }
-
-  def getElasticSinkConfigPropsDefaults = {
-    Map (
-      ElasticSinkConfig.URL->ELASTIC_SEARCH_HOSTNAMES
-    ).asJava
-  }
 }
+

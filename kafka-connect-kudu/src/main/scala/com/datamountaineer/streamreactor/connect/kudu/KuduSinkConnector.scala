@@ -1,12 +1,10 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
 import java.util
-
 import com.datamountaineer.streamreactor.connect.Logging
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkConnector
-
 import scala.util.{Failure, Try}
 import scala.collection.JavaConverters._
 

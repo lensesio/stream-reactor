@@ -33,7 +33,7 @@ class CassandraSinkTask extends SinkTask with Logging {
     * */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.map(w=> w.write(records.asScala.toList))
+    writer.foreach(w => w.write(records.asScala.toList))
   }
 
   /**

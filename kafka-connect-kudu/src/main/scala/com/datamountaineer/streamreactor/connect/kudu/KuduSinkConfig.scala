@@ -1,7 +1,6 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
 import java.util
-
 import org.apache.kafka.common.config.{ConfigDef, AbstractConfig}
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
