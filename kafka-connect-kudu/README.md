@@ -31,7 +31,6 @@ topics=kafka_test
 
 
 ## Setup
-
 * [Download Kudu Virtual Box](http://getkudu.io/docs/quickstart.html)
 ```bash
 curl -s https://raw.githubusercontent.com/cloudera/kudu-examples/master/demo-vm-setup/bootstrap.sh | bash
@@ -96,6 +95,26 @@ ssh demo@quickstart -t impala-shell
 
 SELECT * FROM test_table;
 ```
+
+## Distributed Deployment
+    
+Kafka Connect is intended to be run as a service. A number of nodes and join together to form a 'leaderless' cluster. Each node or worker in
+the cluster is also running a REST API to allow submitting, stopping and viewing running tasks.
+
+To start in distributed mode run the following (note we only pass in one properties file):
+
+```bash
+export CLASSPATH=kafka-connect-kudu-0.1-jar-with-dependencies.jar
+$CONFLUENT_HOME/bin/connect-distrbuted etc/schema-registry/connect-avro-distributed.properties
+```
+
+Now you can post in your task configuration
+
+```bash
+curl -X POST -H "Content-Type: application/json" --data '{"name":"kudu-sink", "config" : {"connector.class":"com.datamountaineer.streamreactor.connect.kudu.KuduSinkConnector","tasks.max":"1","kudu.master";"127.0.0.1","topics":"kafka_test"}}' http://localhost:8083/connectors
+```
+
+    
     
 ## Improvements
 
