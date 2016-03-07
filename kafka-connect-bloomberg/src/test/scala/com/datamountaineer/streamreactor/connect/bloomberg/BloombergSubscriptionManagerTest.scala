@@ -1,0 +1,72 @@
+package com.datamountaineer.streamreactor.connect.bloomberg
+
+import com.bloomberglp.blpapi.Event.EventType
+import com.bloomberglp.blpapi._
+import org.mockito.Mockito._
+import org.scalatest.mock.MockitoSugar
+import org.scalatest.{Matchers, WordSpec}
+
+class BloombergSubscriptionManagerTest extends WordSpec with Matchers with MockitoSugar {
+  "BloombergSubscriptionManager" should {
+    "return null if there are no items in the manager buffer" in {
+      val manager = new BloombergSubscriptionManager(Map(1L -> "ticker1"))
+      manager.getData shouldBe None
+    }
+
+    "ignore non SUBSCRIPTION_DATA events" in {
+      val manager = new BloombergSubscriptionManager(Map(1L -> "ticker1"))
+      val events = Seq(EventType.ADMIN,
+        EventType.AUTHORIZATION_STATUS,
+        EventType.PARTIAL_RESPONSE,
+        EventType.REQUEST,
+        EventType.REQUEST_STATUS,
+        EventType.RESOLUTION_STATUS,
+        EventType.RESPONSE,
+        EventType.SERVICE_STATUS,
+        EventType.SESSION_STATUS,
+        EventType.SUBSCRIPTION_STATUS,
+        EventType.TIMEOUT,
+        EventType.TOPIC_STATUS,
+        EventType.TOKEN_STATUS)
+
+      events.map(MockedEvent(_, Seq.empty)).foreach(manager.processEvent(_, null))
+      manager.getData shouldBe None
+    }
+
+    "return all items in the buffer" in {
+      val manager = new BloombergSubscriptionManager(Map(1L -> "ticker1"))
+
+      val correlationId = new CorrelationID(1)
+
+      val msg1 = mock[Message]
+      val elem1 = MockElementFn(Seq(MockElementFn(3.15D, "FIELD1")))
+
+      when(msg1.correlationID()).thenReturn(correlationId)
+      when(msg1.asElement()).thenReturn(elem1)
+
+
+      val msg2 = mock[Message]
+      val elem2 = MockElementFn(Seq(MockElementFn(true, "FIELD2")))
+
+      when(msg2.correlationID()).thenReturn(correlationId)
+      when(msg2.asElement()).thenReturn(elem2)
+
+      val ev = MockedEvent(Event.EventType.SUBSCRIPTION_DATA, Seq(msg1, msg2))
+
+      manager.processEvent(ev, null)
+
+      val data = manager.getData.get
+      data.size() shouldBe 2
+
+      data.get(0).fields.size() shouldBe 1
+      data.get(0).fields.containsKey("FIELD1") shouldBe true
+      data.get(0).fields.get("FIELD1") shouldBe 3.15D
+
+      data.get(1).fields.size() shouldBe 1
+      data.get(1).fields.containsKey("FIELD2") shouldBe true
+      data.get(1).fields.get("FIELD2") shouldBe true
+
+      manager.getData shouldBe None
+    }
+  }
+}
