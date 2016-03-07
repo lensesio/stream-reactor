@@ -24,57 +24,20 @@
     </parent>
 
     <properties>
+        <bloomberg.version>3.8.8-2</bloomberg.version>
+        <jackson.databind.version>2.7.0</jackson.databind.version>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-library</artifactId>
-            <version>${scala.version}</version>
+            <groupId>com.datamountaineer.stream-reactor</groupId>
+            <artifactId>kafka-connect-utils</artifactId>
+            <version>${version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>connect-api</artifactId>
-            <version>${kafka.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-all</artifactId>
-            <version>${mockito.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.google.code.findbugs</groupId>
-            <artifactId>jsr305</artifactId>
-            <version>${jsr305.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.scalatest</groupId>
-            <artifactId>scalatest_2.11</artifactId>
-            <version>${scalatest.version}</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <!-- make sure wrong scala version is not pulled in -->
-                    <groupId>org.scala-lang</groupId>
-                    <artifactId>scala-library</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>com.typesafe.scala-logging</groupId>
-            <artifactId>scala-logging-slf4j_2.11</artifactId>
-            <version>2.1.2</version>
-        </dependency>
-       <!-- <dependency>
-            <groupId>com.assylias</groupId>
-            <artifactId>jbloomberg</artifactId>
-            <version>3.4</version>
-        </dependency> -->
         <dependency>
             <groupId>com.bloomberg</groupId>
             <artifactId>blpapi</artifactId>
-            <version>3.8.8-2</version>
+            <version>${bloomberg.version}</version>
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/blpapi-3.8.8-2.jar</systemPath>
             <!--<systemPath>${project.basedir}/lib/BEmu.jar</systemPath>-->
@@ -82,7 +45,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.7.0</version>
+            <version>${jackson.databind.version}</version>
         </dependency>
     </dependencies>
 

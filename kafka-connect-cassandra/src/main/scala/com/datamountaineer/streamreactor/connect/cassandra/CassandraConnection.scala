@@ -1,16 +1,16 @@
 package com.datamountaineer.streamreactor.connect.cassandra
 
-import com.datamountaineer.streamreactor.connect.utils.Logging
 import com.datastax.driver.core.policies.{DCAwareRoundRobinPolicy, TokenAwarePolicy}
 import com.datastax.driver.core.{Cluster, Session}
+import com.typesafe.scalalogging.slf4j.StrictLogging
 
 /**
   * Set up a Casssandra connection
   * */
 
-object CassandraConnection extends Logging {
+object CassandraConnection extends StrictLogging {
   def apply(contactPoints: String, port: Int , keySpace: String) = {
-    log.info(s"Attempting to connect to Cassandra cluster at $contactPoints and create keyspace $keySpace")
+    logger.info(s"Attempting to connect to Cassandra cluster at $contactPoints and create keyspace $keySpace")
 
     val cluster = Cluster
       .builder()

@@ -1,7 +1,8 @@
 package com.datamountaineer.streamreactor.connect.cassandra
 
 import java.util
-import com.datamountaineer.streamreactor.connect.utils.Logging
+
+import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkConnector
@@ -15,7 +16,7 @@ import scala.util.{Failure, Try}
   *
   * Sets up CassandraSinkTask and configurations for the tasks.
   * */
-class CassandraSinkConnector extends SinkConnector with Logging {
+class CassandraSinkConnector extends SinkConnector with StrictLogging {
   //???
   private var configProps : util.Map[String, String] = null
 
@@ -31,7 +32,7 @@ class CassandraSinkConnector extends SinkConnector with Logging {
     * @return a List of configuration properties per worker
     * */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
-    log.info(s"Setting task configurations for $maxTasks workers.")
+    logger.info(s"Setting task configurations for $maxTasks workers.")
     (1 to maxTasks).map(c => configProps).toList.asJava
   }
 
@@ -41,7 +42,7 @@ class CassandraSinkConnector extends SinkConnector with Logging {
     * @param props A map of properties for the connector and worker
     * */
   override def start(props: util.Map[String, String]): Unit = {
-    log.info(s"Starting Cassandra sink task with ${props.toString}.")
+    logger.info(s"Starting Cassandra sink task with ${props.toString}.")
     configProps = props
     Try(new CassandraSinkConfig(props)) match {
       case Failure(f) => throw new ConnectException("Couldn't start CassandraSink due to configuration error.", f)

@@ -1,18 +1,20 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
 import java.util
-import com.datamountaineer.streamreactor.connect.utils.Logging
+
+import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkConnector
-import scala.util.{Failure, Try}
+
 import scala.collection.JavaConverters._
+import scala.util.{Failure, Try}
 
 /**
   * Created by andrew@datamountaineer.com on 22/02/16. 
   * stream-reactor
   */
-class KuduSinkConnector extends SinkConnector with Logging {
+class KuduSinkConnector extends SinkConnector with StrictLogging {
   private var configProps : util.Map[String, String] = null
 
   /**
@@ -27,7 +29,7 @@ class KuduSinkConnector extends SinkConnector with Logging {
     * @return a List of configuration properties per worker
     * */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
-    log.info(s"Setting task configurations for $maxTasks workers.")
+    logger.info(s"Setting task configurations for $maxTasks workers.")
     (1 to maxTasks).map(c => configProps).toList.asJava
   }
 
@@ -37,7 +39,7 @@ class KuduSinkConnector extends SinkConnector with Logging {
     * @param props A map of properties for the connector and worker
     * */
   override def start(props: util.Map[String, String]): Unit = {
-    log.info(s"Starting Kudu sink task with ${props.toString}.")
+    logger.info(s"Starting Kudu sink task with ${props.toString}.")
     configProps = props
     Try(new KuduSinkConfig(props)) match {
       case Failure(f) => throw new ConnectException("Couldn't start Kudu sink due to configuration error.", f)

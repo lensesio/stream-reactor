@@ -19,9 +19,11 @@
 
     <properties>
         <java.version>1.8</java.version>
-        <scala.version>2.11.7</scala.version>
+        <scala.major.version>2.11</scala.major.version>
+        <scala.version>${scala.major.version}.7</scala.version>
         <guava.version>19.0</guava.version>
         <confluent.version>2.0.1</confluent.version>
+        <scala.logging.version>2.1.2</scala.logging.version>
         <kafka.version>0.9.0.1</kafka.version>
         <jsr305.version>1.3.9</jsr305.version>
         <mockito.version>1.10.19</mockito.version>
@@ -55,6 +57,49 @@
         <module>kafka-connect-kudu</module>
         <module>kafka-connect-druid</module>
     </modules>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>${scala.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-api</artifactId>
+            <version>${kafka.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-all</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>${jsr305.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_${scala.major.version}</artifactId>
+            <version>${scalatest.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <!-- make sure wrong scala version is not pulled in -->
+                    <groupId>org.scala-lang</groupId>
+                    <artifactId>scala-library</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.scala-logging</groupId>
+            <artifactId>scala-logging-slf4j_${scala.major.version}</artifactId>
+            <version>${scala.logging.version}</version>
+        </dependency>
+    </dependencies>
 
     <build>
         <pluginManagement>

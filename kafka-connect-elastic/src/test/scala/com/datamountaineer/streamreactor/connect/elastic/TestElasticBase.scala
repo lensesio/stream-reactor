@@ -4,9 +4,9 @@ import java.util
 import java.util.UUID
 
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.connect.data.{Struct, SchemaBuilder, Schema}
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{BeforeAndAfter, Matchers, FunSuite}
+import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable

@@ -1,15 +1,9 @@
 package com.datamountaineer.connect.utils
 
-import java.util
-
-import org.apache.avro.generic.{GenericRecord, GenericData}
-import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.connect.data.{Struct, SchemaBuilder, Schema}
+import org.apache.avro.generic.{GenericData, GenericRecord}
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{BeforeAndAfter, Matchers, FunSuite}
-
-import scala.collection.JavaConverters._
-import scala.collection.mutable
+import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 
 /**
   * Created by andrew@datamountaineer.com on 29/02/16. 

@@ -1,9 +1,11 @@
 package com.datamountaineer.streamreactor.connect.cassandra
 
 import java.util.concurrent.atomic.AtomicLong
+
 import com.datamountaineer.streamreactor.connect.cassandra.CassandraWrapper.resultSetFutureToScala
-import com.datamountaineer.streamreactor.connect.utils.{Logging, ConverterUtil}
+import com.datamountaineer.streamreactor.connect.utils.ConverterUtil
 import com.datastax.driver.core.{PreparedStatement, ResultSet}
+import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 
@@ -16,8 +18,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
   * Writes a list of Kafka connect sink records to Cassandra using the JSON support
   *
   */
-class CassandraJsonWriter(connector: CassandraConnection, context : SinkTaskContext) extends Logging with ConverterUtil {
-  log.info("Initialising Cassandra writer")
+class CassandraJsonWriter(connector: CassandraConnection, context : SinkTaskContext) extends StrictLogging with ConverterUtil {
+  logger.info("Initialising Cassandra writer")
   val insertCount = new AtomicLong()
   configureConverter(jsonConverter)
 
@@ -57,7 +59,7 @@ class CassandraJsonWriter(connector: CassandraConnection, context : SinkTaskCont
     * @return A Map of topic->preparedStatements
     * */
   private def cachePreparedStatements(topics : List[String]) : Map[String, PreparedStatement] = {
-    log.info(s"Preparing statements for ${topics.mkString(",")}.")
+    logger.info(s"Preparing statements for ${topics.mkString(",")}.")
     topics.distinct.map( t=> (t, getPreparedStatement(t))).toMap
   }
 
@@ -77,7 +79,7 @@ class CassandraJsonWriter(connector: CassandraConnection, context : SinkTaskCont
     * @param records A list of SinkRecords from Kafka Connect to write
     * */
   def write(records : List[SinkRecord]) = {
-    if (records.isEmpty) log.info("No records received.") else insert(records)
+    if (records.isEmpty) logger.info("No records received.") else insert(records)
   }
 
   /**
@@ -100,14 +102,14 @@ class CassandraJsonWriter(connector: CassandraConnection, context : SinkTaskCont
         //increment latch
         results.onSuccess({
           case r:ResultSet =>
-            log.debug(s"Write successful!")
+            logger.debug(s"Write successful!")
             insertCount.decrementAndGet()
         })
 
         //increment latch but set status to false
         results.onFailure({
           case t:Throwable =>
-            log.warn(s"Write failed! ${t.getMessage}")
+            logger.warn(s"Write failed! ${t.getMessage}")
             insertCount.decrementAndGet()
         })
       })
@@ -118,7 +120,7 @@ class CassandraJsonWriter(connector: CassandraConnection, context : SinkTaskCont
     * Closed down the driver session and cluster
     * */
   def close(): Unit = {
-    log.info("Shutting down Cassandra driver session and cluster")
+    logger.info("Shutting down Cassandra driver session and cluster")
     connector.session.close()
     connector.cluster.close()
   }

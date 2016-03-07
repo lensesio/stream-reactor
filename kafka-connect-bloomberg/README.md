@@ -44,42 +44,57 @@ buffer.size=4096
 ## Setup
 * Clone and build the Connector and Sink
 
-    ```bash
-    git clone git@github.com:andrewstevenson/stream-reactor.git
-    cd stream-reactor/kafka-connect-bloomberg
-    mvn package
-    ```
+```bash
+git clone git@github.com:andrewstevenson/stream-reactor.git
+cd stream-reactor/kafka-connect-bloomberg
+mvn package
+```
 
 * [Download and install Confluent](http://www.confluent.io/)
 * Copy the Bloomberg source jar from your build location to `$CONFLUENT_HOME/share/java/kafka-connect-bloomberg`
 
-    ```bash
-    mkdir $CONFLUENT_HOME/share/java/kafka-connect-bloomberg
-    cp target/kafka-connect-bloomberg-0.1-jar-with-dependencies.jar $CONFLUENT_HOME/share/java/kafka-connect-bloomberg/
-    ```
+```bash
+mkdir $CONFLUENT_HOME/share/java/kafka-connect-bloomberg
+cp target/kafka-connect-bloomberg-0.1-jar-with-dependencies.jar $CONFLUENT_HOME/share/java/kafka-connect-bloomberg/
+```
 
 * Start Confluents Zookeeper, Kafka and Schema registry
 
-    ```bash
-    nohup $CONFLUENT_HOME/bin/zookeeper-server-start $CONFLUENT_HOME/etc/kafka/zookeeper.properties &
-    nohup $CONFLUENT_HOME/bin/kafka-server-start $CONFLUENT_HOME/etc/kafka/server.properties &
-    nohup $CONFLUENT_HOME/bin/schema-registry-start $CONFLUENT_HOME/etc/schema-registry/schema-registry.properties &"
-    ```
+```bash
+nohup $CONFLUENT_HOME/bin/zookeeper-server-start $CONFLUENT_HOME/etc/kafka/zookeeper.properties &
+nohup $CONFLUENT_HOME/bin/kafka-server-start $CONFLUENT_HOME/etc/kafka/server.properties &
+nohup $CONFLUENT_HOME/bin/schema-registry-start $CONFLUENT_HOME/etc/schema-registry/schema-registry.properties &"
+```
 
 
 * Start Kafka Connect in standalone with the Bloomberg source
 
-    ```bash
-    $CONFLUENT_HOME/bin/connect-standalone etc/schema-registry/connect-avro-standalone.properties etc/kafka-connect-bloomberg/bloomberg.properties
-    ```
+```bash
+$CONFLUENT_HOME/bin/connect-standalone etc/schema-registry/connect-avro-standalone.properties etc/kafka-connect-bloomberg/bloomberg.properties
+```
 
 * Test with avro console, start the console to create the topic and read the values
 
-    ```bash
-    $CONFLUENT_HOME/bin/kafka-avro-console-consumer \
-     --zookeeper localhost:2181 --topic bloomberg \
-     --from-beginning
-     ```
+```bash
+$CONFLUENT_HOME/bin/kafka-avro-console-consumer \
+ --zookeeper localhost:2181 --topic bloomberg \
+ --from-beginning
+```
+
+## Distributed Deployment
+    
+Kafka Connect is intended to be run as a service. A number of nodes and join together to form a 'leaderless' cluster. Each node or worker in
+the cluster is also running a REST API to allow submitting, stopping and viewing running tasks.
+
+To start in distributed mode run the following (note we only pass in one properties file):
+
+```bash
+export CLASSPATH=kafka-connect-bloomberg-0.1-jar-with-dependencies.jar
+$CONFLUENT_HOME/bin/connect-distributed etc/schema-registry/connect-avro-distributed.properties
+```
+
+Now you can post in your task configuration
 
 ## Improvements
   - Upgrade the bloomberg emulator api to work with the latest version of the bloomberg api
+  - Push in Avro instead of a json string - Avro4s or Kite SDK to convert to Avro or convert the whole of Bloomberg Constatnts to a massive schema

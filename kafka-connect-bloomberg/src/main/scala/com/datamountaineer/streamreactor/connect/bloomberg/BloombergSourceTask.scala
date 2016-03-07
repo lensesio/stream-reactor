@@ -26,6 +26,7 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
     * Un-subscribes the tickers and stops the Bloomberg session
     */
   override def stop(): Unit = {
+    logger.info(s"Shutting down Bloomberg source for subscriptions ${subscriptions.asScala.mkString(",")}")
     try {
       session.unsubscribe(subscriptions)
     }
@@ -49,9 +50,29 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
   /**
     * Creates and starts the Bloomberg session and subscribes for the tickers data update
     *
-    * @param map
+    * @param map A map of configuration properties for this task
     */
   override def start(map: util.Map[String, String]): Unit = {
+
+    logger.info(
+      """
+        |
+        |    ____        __        __  ___                  __        _
+        |   / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
+        |  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
+        | / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
+        |/_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
+        |       ____  __                      __                    _____
+        |      / __ )/ /___  ____  ____ ___  / /_  ___  _________ _/ ___/____  __  _______________
+        |     / __  / / __ \/ __ \/ __ `__ \/ __ \/ _ \/ ___/ __ `/\__ \/ __ \/ / / / ___/ ___/ _ \
+        |    / /_/ / / /_/ / /_/ / / / / / / /_/ /  __/ /  / /_/ /___/ / /_/ / /_/ / /  / /__/  __/
+        |   /_____/_/\____/\____/_/ /_/ /_/_.___/\___/_/   \__, //____/\____/\__,_/_/   \___/\___/
+        |                                                 /____/
+        |
+        |By Stefan Bocutiu
+      """.stripMargin)
+
+
     try {
       settings = Some(BloombergSettings(new ConnectorConfig(map)))
       subscriptions = SubscriptionsBuilderFn(settings.get)
@@ -96,7 +117,7 @@ object SubscriptionsBuilderFn extends StrictLogging {
     settings.subscriptions.zipWithIndex.foreach { case (config, i) =>
       val unrecognizedFields = config.fields.map(_.toUpperCase).filterNot(BloombergConstants.SubscriptionFields.contains)
       if (unrecognizedFields.nonEmpty) {
-        throw new IllegalArgumentException(s"Following fileds are not recognized: ${unrecognizedFields.mkString(",")}")
+        throw new IllegalArgumentException(s"Following fields are not recognized: ${unrecognizedFields.mkString(",")}")
       }
 
       val fields = config.fields.map(_.trim.toUpperCase).mkString(",")
@@ -104,12 +125,12 @@ object SubscriptionsBuilderFn extends StrictLogging {
       val subscription = new Subscription(config.ticket, fields, new CorrelationID(i))
       subscriptions.add(subscription)
     }
-
+    logger.info(s"Created subscriptions for ${subscriptions.asScala.mkString(",")}")
     subscriptions
   }
 }
 
-object BloombergSessionCreateFn {
+object BloombergSessionCreateFn extends StrictLogging {
   /**
     * Creates and starts a Bloomberg session and connects to the appropriate Bloomberg service (market data, reference data)
     *
@@ -124,6 +145,7 @@ object BloombergSessionCreateFn {
     options.setServerPort(settings.serverPort)
     settings.authenticationMode.foreach(options.setAuthenticationOptions)
 
+    logger.info("Starting session.")
     val session = new Session(options, handler)
 
     if (!session.start())

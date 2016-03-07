@@ -3,7 +3,7 @@ package com.datamountaineer.streamreactor.connect.elastic
 import java.util
 
 import io.confluent.common.config.ConfigDef.{Importance, Type}
-import io.confluent.common.config.{ConfigDef, AbstractConfig}
+import io.confluent.common.config.{AbstractConfig, ConfigDef}
 
 object ElasticSinkConfig {
   val URL = "url"

@@ -1,20 +1,22 @@
 package com.datamountaineer.streamreactor.connect.elastic
 
-import com.datamountaineer.streamreactor.connect.utils.{Logging, ConverterUtil}
-import com.sksamuel.elastic4s.{IndexDefinition, ElasticClient}
+import com.datamountaineer.streamreactor.connect.utils.ConverterUtil
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.source.Indexable
+import com.sksamuel.elastic4s.{ElasticClient, IndexDefinition}
+import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.elasticsearch.action.bulk.BulkResponse
+
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ElasticJsonWriter(client: ElasticClient, context: SinkTaskContext) extends Logging with ConverterUtil {
-
-  log.info("Initialising Elastic Json writer")
+class ElasticJsonWriter(client: ElasticClient, context: SinkTaskContext) extends StrictLogging with ConverterUtil {
+  require(context != null, "Context can not be null")
+  logger.info("Initialising Elastic Json writer")
   val topics = context.assignment().asScala.map(c=>c.topic()).toList
-  log.info(s"Assigned $topics topics.")
+  logger.info(s"Assigned $topics topics.")
   createIndexes(topics)
   configureConverter(jsonConverter)
 
@@ -44,7 +46,7 @@ class ElasticJsonWriter(client: ElasticClient, context: SinkTaskContext) extends
     * @param records A list of SinkRecords
     * */
   def write(records: List[SinkRecord]) = {
-    if (records.isEmpty) log.info("No records received.") else insert(records)
+    if (records.isEmpty) logger.info("No records received.") else insert(records)
   }
 
   /**
@@ -58,11 +60,11 @@ class ElasticJsonWriter(client: ElasticClient, context: SinkTaskContext) extends
     val ret = client.execute(bulk(indexes).refresh(true))
 
     ret.onSuccess({
-      case s => log.info(s"Elastic write successful for ${records.size} records!")
+      case s => logger.info(s"Elastic write successful for ${records.size} records!")
     })
 
     ret.onFailure( {
-      case f:Throwable => log.info(f.toString)
+      case f:Throwable => logger.info(f.toString)
     })
     ret
   }

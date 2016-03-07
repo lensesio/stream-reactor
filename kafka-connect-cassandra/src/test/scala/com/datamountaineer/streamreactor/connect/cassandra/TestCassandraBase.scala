@@ -1,18 +1,19 @@
 package com.datamountaineer.streamreactor.connect.cassandra
 
 import java.util
-import com.datamountaineer.streamreactor.connect.utils.Logging
+
 import com.datastax.driver.core.{Cluster, Session}
+import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.connect.data.{Struct, SchemaBuilder, Schema}
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper
-import org.scalatest.{Matchers, FunSuite, BeforeAndAfter}
+import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-trait TestCassandraBase extends FunSuite with BeforeAndAfter with Matchers with Logging {
+trait TestCassandraBase extends FunSuite with BeforeAndAfter with Matchers with StrictLogging {
   var CLUSTER : Cluster = null
   var SESSION : Session = null
   val CONTACT_POINT = "localhost"
@@ -37,7 +38,7 @@ trait TestCassandraBase extends FunSuite with BeforeAndAfter with Matchers with 
 
   //stop embedded cassandra
   after {
-    log.info("Shutting down Test Cassandra")
+    logger.info("Shutting down Test Cassandra")
     EmbeddedCassandraServerHelper.cleanEmbeddedCassandra()
     SESSION.close()
     CLUSTER.close()

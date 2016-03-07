@@ -25,13 +25,15 @@ Example connector.properties file
 name=kudu-sink
 connector.class=com.datamountaineer.streamreactor.connect.kudu.KuduSinkConnector
 tasks.max=1
-kudu.master=127.0.0.1
-topics=kafka_test
+kudu.master=quickstart
+topics=kudu_test
 ```
 
 
 ## Setup
+
 * [Download Kudu Virtual Box](http://getkudu.io/docs/quickstart.html)
+
 ```bash
 curl -s https://raw.githubusercontent.com/cloudera/kudu-examples/master/demo-vm-setup/bootstrap.sh | bash
 ```
@@ -59,7 +61,7 @@ Log on to Kudu quickstart demo and create table
 ```bash
 ssh demo@quickstart -t impala-shell
 
-CREATE TABLE default.test_table_ (id INT,random_field STRING  ) TBLPROPERTIES ('kudu.master_addresses'='127.0.0.1', 'kudu.key_columns'='id', 'kudu.table_name'='kafka_test', 'transient_lastDdlTime'='1456744118', 'storage_handler'='com.cloudera.kudu.hive.KuduStorageHandler') 
+CREATE TABLE default.kudu_test (id INT,random_field STRING  ) TBLPROPERTIES ('kudu.master_addresses'='127.0.0.1', 'kudu.key_columns'='id', 'kudu.table_name'='kudu_test', 'transient_lastDdlTime'='1456744118', 'storage_handler'='com.cloudera.kudu.hive.KuduStorageHandler') 
 exit;
 ```
 
@@ -76,7 +78,7 @@ $CONFLUENT_HOME/bin/connect-standalone etc/schema-registry/connect-avro-standalo
 
 ```bash
 $CONFLUENT_HOME/bin/kafka-avro-console-producer \
---broker-list localhost:9092 --topic test_table \
+--broker-list localhost:9092 --topic kudu_test \
 --property value.schema='{"type":"record","name":"myrecord","fields":[{"name":"id","type":"int"}, {"name":"random_field", "type": "string"}]}'
 ```
     
@@ -93,7 +95,7 @@ Check the logs of Kafka connect for the write and check in Impala (quickstart vm
 ```bash 
 ssh demo@quickstart -t impala-shell
 
-SELECT * FROM test_table;
+SELECT * FROM kudu_test;
 ```
 
 ## Distributed Deployment
@@ -105,7 +107,7 @@ To start in distributed mode run the following (note we only pass in one propert
 
 ```bash
 export CLASSPATH=kafka-connect-kudu-0.1-jar-with-dependencies.jar
-$CONFLUENT_HOME/bin/connect-distrbuted etc/schema-registry/connect-avro-distributed.properties
+$CONFLUENT_HOME/bin/connect-distributed etc/schema-registry/connect-avro-distributed.properties
 ```
 
 Now you can post in your task configuration
@@ -114,12 +116,10 @@ Now you can post in your task configuration
 curl -X POST -H "Content-Type: application/json" --data '{"name":"kudu-sink", "config" : {"connector.class":"com.datamountaineer.streamreactor.connect.kudu.KuduSinkConnector","tasks.max":"1","kudu.master";"127.0.0.1","topics":"kafka_test"}}' http://localhost:8083/connectors
 ```
 
-    
-    
 ## Improvements
 
 * Limited unit tests
 * Schema evolution, not sure yet about's Kudu's abilities here
 * No logging of failed writes.
-* Auto create Kudu tables based on SinkRecord's schema.
+* Auto create Kudu tables based on SinkRecord's schema? What to use as primary keys. What about data distribution and encoding?
 * Add upsert when Kudu supports

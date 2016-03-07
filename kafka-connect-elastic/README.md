@@ -94,5 +94,23 @@ $CONFLUENT_HOME/bin/kafka-avro-console-producer \
 curl -XGET 'http://localhost:9200/test_table/_search?q=id:999'
 ```
 
+## Distributed Deployment
+    
+Kafka Connect is intended to be run as a service. A number of nodes and join together to form a 'leaderless' cluster. Each node or worker in
+the cluster is also running a REST API to allow submitting, stopping and viewing running tasks.
+
+To start in distributed mode run the following (note we only pass in one properties file):
+
+```bash
+export CLASSPATH=kafka-connect-elastic-0.1-jar-with-dependencies.jar
+$CONFLUENT_HOME/bin/connect-distributed etc/schema-registry/connect-avro-distributed.properties
+```
+
+Now you can post in your task configuration
+
+```bash
+curl -X POST -H "Content-Type: application/json" --data '{"name":"elastic-sink","config" : { "connector.class":"com.datamountaineer.streamreactor.connect.elastic.ElasticSinkConnector","tasks.max":"1", "topics":"test_table","url":"localhost:9300", "cluster.name":"elasticsearch"}}' http://localhost:8083/connectors
+```
+
 ## Improvements
 

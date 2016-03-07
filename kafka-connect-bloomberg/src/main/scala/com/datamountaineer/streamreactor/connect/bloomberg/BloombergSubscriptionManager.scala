@@ -15,6 +15,10 @@ import scala.collection.JavaConverters._
 class BloombergSubscriptionManager(correlationToSubscriptionMap: Map[Long, String], bufferSize: Int = 2048) extends EventHandler with StrictLogging {
   val queue: BlockingQueue[BloombergData] = new ArrayBlockingQueue[BloombergData](bufferSize)
 
+  /**
+    * Return data from the bloomberg queue
+    * @return A LinkedList of BloombergData
+    * */
   def getData: Option[util.LinkedList[BloombergData]] = {
     logger.debug("Draining the buffer queue....")
     if (queue.isEmpty) {
@@ -29,6 +33,12 @@ class BloombergSubscriptionManager(correlationToSubscriptionMap: Map[Long, Strin
     }
   }
 
+  /**
+    * Process a Bloomberg event
+    *
+    * @param event A bloomberg session event
+    * @param session The session the event is for
+    * */
   override def processEvent(event: Event, session: Session): Unit = {
     event.eventType().intValue() match {
       case Event.EventType.Constants.SUBSCRIPTION_DATA => onDataEvent(event, session)
@@ -44,8 +54,8 @@ class BloombergSubscriptionManager(correlationToSubscriptionMap: Map[Long, Strin
   /**
     * Handles status updates. For now all it does is logging them
     *
-    * @param event
-    * @param session
+    * @param event An event for which the status has change
+    * @param session A session for the event
     */
   private def onStatusEvent(event: Event, session: Session) = {
     event.iterator().asScala.foreach { message =>
@@ -85,8 +95,8 @@ class BloombergSubscriptionManager(correlationToSubscriptionMap: Map[Long, Strin
   /**
     * Handles non status and non data events. All it does is logging them
     *
-    * @param event
-    * @param session
+    * @param event A event for session
+    * @param session A session the event occurred for
     */
   private def onOtherEvent(event: Event, session: Session) = {
     logger.trace(s"Ignoring event:${event.eventType().toString}...")

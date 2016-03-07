@@ -46,7 +46,7 @@ class BloombergSubscriptionManagerTest extends WordSpec with Matchers with Mocki
 
 
       val msg2 = mock[Message]
-      val elem2 = MockElementFn(Seq(MockElementFn(true, "FIELD2")))
+      val elem2 = MockElementFn(Seq(MockElementFn(value = true, "FIELD2")))
 
       when(msg2.correlationID()).thenReturn(correlationId)
       when(msg2.asElement()).thenReturn(elem2)

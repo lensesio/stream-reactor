@@ -1,9 +1,10 @@
 package com.datamountaineer.streamreactor.connect.utils
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.typesafe.scalalogging.slf4j.StrictLogging
 import io.confluent.connect.avro.AvroData
 import org.apache.avro.generic.GenericRecord
-import org.apache.kafka.connect.json.{JsonDeserializer, JsonConverter}
+import org.apache.kafka.connect.json.{JsonConverter, JsonDeserializer}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.storage.Converter
 
@@ -15,7 +16,7 @@ import scala.collection.immutable.HashMap
   * stream-reactor
   */
 
-trait ConverterUtil extends Logging {
+trait ConverterUtil extends StrictLogging {
   lazy val jsonConverter = new JsonConverter()
   lazy val deserializer = new JsonDeserializer()
   lazy val avroData = new AvroData(100)
@@ -52,7 +53,7 @@ trait ConverterUtil extends Logging {
     * */
   def deserializeToJson(topic: String, payload: Array[Byte]) : JsonNode = {
     val json = deserializer.deserialize(topic, payload).get("payload")
-    log.debug(s"Converted to $json.")
+    logger.debug(s"Converted to $json.")
     json
   }
 
