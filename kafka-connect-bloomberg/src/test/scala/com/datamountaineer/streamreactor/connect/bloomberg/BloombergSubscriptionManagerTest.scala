@@ -5,6 +5,7 @@ import com.bloomberglp.blpapi._
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
+import scala.collection.JavaConverters._
 
 class BloombergSubscriptionManagerTest extends WordSpec with Matchers with MockitoSugar {
   "BloombergSubscriptionManager" should {
@@ -29,7 +30,11 @@ class BloombergSubscriptionManagerTest extends WordSpec with Matchers with Mocki
         EventType.TOPIC_STATUS,
         EventType.TOKEN_STATUS)
 
-      events.map(MockedEvent(_, Seq.empty)).foreach(manager.processEvent(_, null))
+      events.map { case et =>
+        val ev = mock[Event]
+        when(ev.eventType()).thenReturn(et)
+        ev
+      }.foreach(manager.processEvent(_, null))
       manager.getData shouldBe None
     }
 
@@ -51,7 +56,9 @@ class BloombergSubscriptionManagerTest extends WordSpec with Matchers with Mocki
       when(msg2.correlationID()).thenReturn(correlationId)
       when(msg2.asElement()).thenReturn(elem2)
 
-      val ev = MockedEvent(Event.EventType.SUBSCRIPTION_DATA, Seq(msg1, msg2))
+      val ev = mock[Event]
+      when(ev.eventType()).thenReturn(Event.EventType.SUBSCRIPTION_DATA)
+      when(ev.iterator()).thenReturn(Seq(msg1, msg2).iterator.asJava)
 
       manager.processEvent(ev, null)
 

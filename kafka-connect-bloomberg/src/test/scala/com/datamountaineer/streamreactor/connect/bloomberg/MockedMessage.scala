@@ -5,7 +5,7 @@ import java.io.{OutputStream, Writer}
 import com.bloomberglp.blpapi.Message.Fragment
 import com.bloomberglp.blpapi._
 
-case class MockedMessage(`type`:String,correlationId:CorrelationID) extends Message {
+case class MockedMessage(`type`: String, correlationId: CorrelationID) extends Message {
   override def getElementAsDatetime(name: Name): Datetime = throw new UnsupportedOperationException
 
   override def getElementAsDatetime(s: String): Datetime = throw new UnsupportedOperationException
