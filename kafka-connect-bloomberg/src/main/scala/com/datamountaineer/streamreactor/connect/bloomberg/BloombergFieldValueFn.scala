@@ -3,7 +3,7 @@ package com.datamountaineer.streamreactor.connect.bloomberg
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetTime, ZoneOffset}
 
-import com.bloomberglp.blpapi.{Schema, Datetime, Element}
+import com.bloomberglp.blpapi.{Datetime, Element}
 
 import scala.collection.JavaConverters._
 

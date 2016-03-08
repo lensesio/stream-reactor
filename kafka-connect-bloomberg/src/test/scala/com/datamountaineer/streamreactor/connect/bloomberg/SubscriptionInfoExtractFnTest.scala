@@ -1,6 +1,6 @@
 package com.datamountaineer.streamreactor.connect.bloomberg
 
-import org.scalatest.{WordSpec, Matchers}
+import org.scalatest.{Matchers, WordSpec}
 
 class SubscriptionInfoExtractFnTest extends WordSpec with Matchers {
   "SubscriptionInfoExtractFn" should {

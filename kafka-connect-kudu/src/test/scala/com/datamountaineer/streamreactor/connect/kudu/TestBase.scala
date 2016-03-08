@@ -8,16 +8,16 @@ package com.datamountaineer.streamreactor.connect.kudu
 import java.util
 
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.connect.data.{Struct, SchemaBuilder, Schema}
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{Matchers, FunSuite, BeforeAndAfter}
+import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 trait TestBase extends FunSuite with BeforeAndAfter with Matchers {
   val TOPIC = "sink_test"
-  val KUDU_MASTER = ""
+  val KUDU_MASTER = "127.0.0.1"
 
   protected val PARTITION: Int = 12
   protected val PARTITION2: Int = 13
@@ -35,7 +35,7 @@ trait TestBase extends FunSuite with BeforeAndAfter with Matchers {
   after {
   }
 
-  def getConfig() = {
+  def getConfig = {
     Map(KuduSinkConfig.KUDU_MASTER->KUDU_MASTER).asJava
   }
 
@@ -70,7 +70,7 @@ trait TestBase extends FunSuite with BeforeAndAfter with Matchers {
     val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
 
     assignment.flatMap(a => {
-      (1 to 7).map(i => {
+      (1 to 1).map(i => {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
         new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i)
       })

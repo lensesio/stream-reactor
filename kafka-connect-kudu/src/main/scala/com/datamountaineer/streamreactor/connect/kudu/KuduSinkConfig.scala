@@ -1,8 +1,9 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
 import java.util
-import org.apache.kafka.common.config.{ConfigDef, AbstractConfig}
+
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
+import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 /**
   * Created by andrew@datamountaineer.com on 22/02/16. 
@@ -10,7 +11,7 @@ import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
   */
 
 object KuduSinkConfig {
-  val KUDU_MASTER = "kudu_master"
+  val KUDU_MASTER = "kudu.master"
   val KUDU_MASTER_DOC = "Kudu master cluster."
   val KUDU_MASTER_DEFAULT = "localhost"
 

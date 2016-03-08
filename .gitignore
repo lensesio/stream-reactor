@@ -1,3 +1,5 @@
+/kafka-connect-druid/kafka-connect-druid.iml
+/kafka-connect-utils/kafka-connect-utils.iml
 # sbt specific
 target/
 # Scala-IDE specific
@@ -9,4 +11,3 @@ target/
 /kafka-connect-bloomberg/kafka-connect-bloomberg.iml
 /kafka-connect-cassandra/kafka-connect-cassandra.iml
 
-flume-ng/flume-ng.iml

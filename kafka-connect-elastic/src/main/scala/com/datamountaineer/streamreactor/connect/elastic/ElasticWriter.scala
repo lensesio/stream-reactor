@@ -1,6 +1,6 @@
 package com.datamountaineer.streamreactor.connect.elastic
 
-import com.sksamuel.elastic4s.{ElasticsearchClientUri, ElasticClient}
+import com.sksamuel.elastic4s.{ElasticClient, ElasticsearchClientUri}
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.elasticsearch.common.settings.Settings
 
@@ -13,7 +13,7 @@ object  ElasticWriter {
               .settingsBuilder()
               .put(s"${ElasticSinkConfig.ES_CLUSTER_NAME}", esClusterName)
               .build()
-    val uri = ElasticsearchClientUri(s"${esPrefix}://$hostNames")
+    val uri = ElasticsearchClientUri(s"$esPrefix://$hostNames")
     val client = ElasticClient.transport(essettings, uri)
     new ElasticJsonWriter(client = client, context = context)
   }

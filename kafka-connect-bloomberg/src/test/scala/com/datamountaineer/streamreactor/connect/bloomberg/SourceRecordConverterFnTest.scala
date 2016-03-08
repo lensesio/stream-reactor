@@ -1,8 +1,9 @@
 package com.datamountaineer.streamreactor.connect.bloomberg
 
-import scala.collection.JavaConverters._
 import org.apache.kafka.connect.data.Schema
-import org.scalatest.{WordSpec, Matchers}
+import org.scalatest.{Matchers, WordSpec}
+
+import scala.collection.JavaConverters._
 
 class SourceRecordConverterFnTest extends WordSpec with Matchers {
   "SourceRecordConverterFn" should {

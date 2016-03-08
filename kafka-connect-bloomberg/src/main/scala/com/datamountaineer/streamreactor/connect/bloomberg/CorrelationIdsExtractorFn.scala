@@ -1,6 +1,7 @@
 package com.datamountaineer.streamreactor.connect.bloomberg
 
 import com.bloomberglp.blpapi.SubscriptionList
+
 import scala.collection.JavaConverters._
 
 object CorrelationIdsExtractorFn {

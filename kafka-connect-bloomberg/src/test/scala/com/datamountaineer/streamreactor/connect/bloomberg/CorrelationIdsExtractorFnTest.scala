@@ -1,7 +1,7 @@
 package com.datamountaineer.streamreactor.connect.bloomberg
 
 import com.bloomberglp.blpapi.{CorrelationID, Subscription, SubscriptionList}
-import org.scalatest.{WordSpec, Matchers}
+import org.scalatest.{Matchers, WordSpec}
 
 class CorrelationIdsExtractorFnTest extends WordSpec with Matchers {
   "CorrelationIdsExtractorFn" should {

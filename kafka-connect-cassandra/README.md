@@ -30,9 +30,9 @@ name=cassandra-sink
 connector.class=com.datamountaineer.streamreactor.connect.cassandra.CassandraSinkConnector
 tasks.max=1
 topics=test_table
-contact_points=localhost
+contact.points=localhost
 port=9042
-key_space=connect_test
+key.space=connect_test
 ```
 
 You must also supply the `connector.class` as `com.datamountaineer.streamreactor.connect.cassandra.CassandraSinkConnector`
@@ -88,19 +88,12 @@ random_field text
     
 * Start Kafka Connect with the Cassandra sink
 
-** If you have the Elastic Sink Connector
+* If you have the Elastic Sink Connector
 Elastic Search is on Netty 3.10 so to avoid conflicts we need our Elastic Sink Connector first in the classpath
 
 ```bash
-export CLASSPATH=$CONFLUENT_HOME/share/java/kafka-connect-elastic/kafka-connect-elastic-0.1-jar-with-dependencies.jar;export CLASSPATH=$CONFLUENT_HOME/share/java/kafka-connect-cassandra/kafka-connect-cassandra-0.1-jar-with-dependencies.jar
-```
+export CLASSPATH=$CONFLUENT_HOME/share/java/kafka-connect-elastic/kafka-connect-elastic-0.1-jar-with-dependencies.jar;
 
-                                       
-                                       ```bash
-                                       export CLASSPATH=$CONFLUENT_HOME/share/java/kafka-connect-elastic/kafka-connect-elastic-0.1-jar-with-dependencies.jar
-                                       ```
-
-```bash
 $CONFLUENT_HOME/bin/connect-standalone etc/schema-registry/connect-avro-standalone.properties etc/kafka-connect-cassandra/cassandra.properties
 ```
 
@@ -120,8 +113,26 @@ $CONFLUENT_HOME/bin/kafka-avro-console-producer \
 * Check in Cassandra for the records
 
 ```sql
-    SELECT * FROM connect_test.test_table
+SELECT * FROM connect_test.test_table
 ``` 
+
+## Distributed Deployment
+    
+Kafka Connect is intended to be run as a service. A number of nodes and join together to form a 'leaderless' cluster. Each node or worker in
+the cluster is also running a REST API to allow submitting, stopping and viewing running tasks.
+
+To start in distributed mode run the following (note we only pass in one properties file):
+
+```bash
+export CLASSPATH=kafka-connect-kudu-0.1-jar-with-dependencies.jar
+$CONFLUENT_HOME/bin/connect-distributed etc/schema-registry/connect-avro-distributed.properties
+```
+
+Now you can post in your task configuration
+
+```bash
+curl -X POST -H "Content-Type: application/json" --data '{"name":"cassandra-sink","config": {"connector.class":"com.datamountaineer.streamreactor.connect.cassandra.CassandraSinkConnector","tasks.max":"1","topics":"test_table","contact.points":"localhost","port":"9042","key.space":"connect_test"}}' http://localhost:8083/connectors
+```
 
 ## Improvements
 * Add key of message to payload
