@@ -11,7 +11,7 @@ import ConnectSchema._
 object SourceRecordConverterFn {
   lazy val mapper = new ObjectMapper
 
-  lazy val avroConverter = new AvroConverter
+  //lazy val avroConverter = new AvroConverter
   lazy val jsonConverter = new JsonConverter
 
   /**
@@ -26,10 +26,10 @@ object SourceRecordConverterFn {
     require(kafkaTopic != null && kafkaTopic.trim.nonEmpty, s"$kafkaTopic is not a valid kafka topic.")
     val sourceMap = Collections.singletonMap(BloombergConstants.SUBSCRIPTION_KEY, data.subscription)
 
-    val payload = jsonConverter.fromConnectData(kafkaTopic, data.getConnectçSchema, data.fields)
-    new SourceRecord(sourceMap, null, kafkaTopic, org.apache.kafka.connect.data.Schema.BYTES_SCHEMA, payload)
+    //val payload = jsonConverter.fromConnectData(kafkaTopic, data.getConnectçSchema, data.fields)
+    //new SourceRecord(sourceMap, null, kafkaTopic, org.apache.kafka.connect.data.Schema.BYTES_SCHEMA, payload)
 
-    //    val json = mapper.writeValueAsString(data.fields)
-    //   new SourceRecord(sourceMap, null, kafkaTopic, org.apache.kafka.connect.data.Schema.STRING_SCHEMA, json)
+    val json = mapper.writeValueAsString(data.fields)
+    new SourceRecord(sourceMap, null, kafkaTopic, org.apache.kafka.connect.data.Schema.STRING_SCHEMA, json)
   }
 }
