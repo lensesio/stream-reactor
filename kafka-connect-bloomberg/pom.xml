@@ -26,6 +26,7 @@
     <properties>
         <bloomberg.version>3.8.8-2</bloomberg.version>
         <jackson.databind.version>2.7.0</jackson.databind.version>
+        <avro.version>1.8.0</avro.version>
     </properties>
 
     <dependencies>
@@ -46,6 +47,11 @@
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>${jackson.databind.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro</artifactId>
+            <version>${avro.version}</version>
         </dependency>
     </dependencies>
 

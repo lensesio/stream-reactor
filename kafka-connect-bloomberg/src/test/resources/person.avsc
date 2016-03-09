@@ -1,0 +1,60 @@
+{
+  "type" : "record",
+  "name" : "ConnectDefault",
+  "namespace" : "io.confluent.connect.avro",
+  "fields" : [ {
+    "name" : "firstName",
+    "type" : "string"
+  }, {
+    "name" : "lastName",
+    "type" : "string"
+  }, {
+    "name" : "age",
+    "type" : "int"
+  }, {
+    "name" : "address",
+    "type" : {
+      "type" : "record",
+      "name" : "address",
+      "fields" : [ {
+        "name" : "streetAddress",
+        "type" : "string"
+      }, {
+        "name" : "city",
+        "type" : "string"
+      }, {
+        "name" : "state",
+        "type" : "string"
+      }, {
+        "name" : "postalCode",
+        "type" : "string"
+      } ]
+    }
+  }, {
+    "name" : "phoneNumber",
+    "type" : {
+      "type" : "array",
+      "items" : {
+        "type" : "record",
+        "name" : "phoneNumber",
+        "fields" : [ {
+          "name" : "type",
+          "type" : "string"
+        }, {
+          "name" : "number",
+          "type" : "string"
+        } ]
+      }
+    }
+  }, {
+    "name" : "gender",
+    "type" : {
+      "type" : "record",
+      "name" : "gender",
+      "fields" : [ {
+        "name" : "type",
+        "type" : "string"
+      } ]
+    }
+  } ]
+}
