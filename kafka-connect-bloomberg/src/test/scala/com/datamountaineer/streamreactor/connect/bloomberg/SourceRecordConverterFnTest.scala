@@ -10,14 +10,14 @@ class SourceRecordConverterFnTest extends WordSpec with Matchers {
     "handle null kafka topic parameter" in {
       intercept[IllegalArgumentException] {
         val data = BloombergData("ticker", Map.empty[String, Any].asJava)
-        SourceRecordConverterFn(data, null)
+        data.toJsonSourceRecord(null)
       }
     }
 
     "handle empty kafka topic" in {
       intercept[IllegalArgumentException] {
         val data = BloombergData("ticker", Map.empty[String, Any].asJava)
-        SourceRecordConverterFn(data, " ")
+        data.toJsonSourceRecord(" ")
       }
     }
 
@@ -34,7 +34,7 @@ class SourceRecordConverterFnTest extends WordSpec with Matchers {
       val topic = "destination"
       val data = BloombergData(ticker, values)
 
-      val record = SourceRecordConverterFn(data, topic)
+      val record = data.toJsonSourceRecord(topic)
 
       record.keySchema() shouldBe null
       record.key() shouldBe null //for now we don't support it

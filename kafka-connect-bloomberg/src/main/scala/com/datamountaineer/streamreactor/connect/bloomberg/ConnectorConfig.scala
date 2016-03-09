@@ -31,7 +31,11 @@ object ConnectorConfig {
   val BUFFER_SIZE_DOC = "Specifies how big is the queue to hold the updates received from Bloomberg. If the buffer is full" +
     "it won't accept new items until it is drained."
 
+  val PAYLOAD_TYPE = "payload.type"
+  val PAYLOAD_TYPE_DOC = "Specifies the way the information is serialized and sent over kafka. There are two modes supported: json(default) and avro."
+
   val BloombergServicesUris = Set("//blp/mkdata", "//blp/refdata")
+  val PayloadTypes = Set("json", "avro")
 
   lazy val config = new ConfigDef()
     .define(SERVER_HOST, Type.STRING, Importance.HIGH, SERVER_HOST_DOC)
@@ -41,4 +45,5 @@ object ConnectorConfig {
     .define(AUTHENTICATION_MODE, Type.STRING, Importance.LOW, AUTHENTICATION_MODE_DOC)
     .define(KAFKA_TOPIC, Type.STRING, Importance.HIGH, KAFKA_TOPIC_DOC)
     .define(BUFFER_SIZE, Type.INT, Importance.MEDIUM, BUFFER_SIZE_DOC)
+    .define(PAYLOAD_TYPE, Type.STRING, Importance.MEDIUM, PAYLOAD_TYPE_DOC)
 }

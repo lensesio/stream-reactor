@@ -52,7 +52,7 @@ object AvroSchema {
 
   implicit class BloombergDataToAvroSchema(val data: BloombergData) {
     def getSchema = {
-      avroSchema.createSchema("BloombergData", data.fields)
+      avroSchema.createSchema("BloombergData", data.asMap)
     }
   }
 

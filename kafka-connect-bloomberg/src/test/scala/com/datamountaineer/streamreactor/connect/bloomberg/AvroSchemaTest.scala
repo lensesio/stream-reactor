@@ -2,8 +2,11 @@ package com.datamountaineer.streamreactor.connect.bloomberg
 
 import java.util
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import io.confluent.kafka.serializers.KafkaAvroSerializer
 import org.apache.avro.Schema
 import org.scalatest.{Matchers, WordSpec}
+import tech.allegro.schema.json2avro.converter.JsonAvroConverter
 
 import scala.collection.JavaConverters._
 
@@ -73,7 +76,7 @@ class AvroSchemaTest extends WordSpec with Matchers {
       mapAddress.put("streetAddress", "21 2nd Street")
       mapAddress.put("city", "New York")
       mapAddress.put("state", "NY")
-      mapAddress.put("postalCode", "10021")
+      mapAddress.put("postalCode", 10021)
 
       map.put("address", mapAddress)
 
@@ -96,6 +99,15 @@ class AvroSchemaTest extends WordSpec with Matchers {
 
       val expectedSchema = new org.apache.avro.Schema.Parser().parse(getClass.getResourceAsStream(s"/person.avsc"))
 
+      /* val converter = new JsonAvroConverter
+       val mapper = new ObjectMapper()
+       val payload = mapper.writeValueAsBytes(map)
+
+       val avro = converter.convertToAvro(payload, actualSchema)
+
+       val jsonbytes = converter.convertToJson(avro, actualSchema)
+       val initialMap = mapper.readValue(jsonbytes, 0, jsonbytes.length, classOf[java.util.Map[String, Any]]).asInstanceOf[java.util.Map[String, Any]]
+ */
       actualSchema.toString(true) shouldBe expectedSchema.toString(true)
     }
   }

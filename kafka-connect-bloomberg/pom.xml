@@ -31,6 +31,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>tech.allegro.schema.json2avro</groupId>
+            <artifactId>converter</artifactId>
+            <version>0.2.2</version>
+        </dependency>
+        <dependency>
             <groupId>com.datamountaineer.stream-reactor</groupId>
             <artifactId>kafka-connect-utils</artifactId>
             <version>${version}</version>

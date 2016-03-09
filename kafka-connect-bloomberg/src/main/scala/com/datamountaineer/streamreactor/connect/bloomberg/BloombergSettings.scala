@@ -20,7 +20,8 @@ case class BloombergSettings(serverHost: String,
                              subscriptions: Seq[SubscriptionInfo],
                              kafkaTopic: String,
                              authenticationMode: Option[String] = None,
-                             bufferSize: Int = 2048) {
+                             bufferSize: Int = 2048,
+                             payloadType: PayloadTye = JsonPayload) {
   def asMap(): java.util.Map[String, String] = {
     import ConnectorConfig._
 
@@ -32,6 +33,7 @@ case class BloombergSettings(serverHost: String,
     map.put(KAFKA_TOPIC, kafkaTopic.toString)
     authenticationMode.foreach(v => map.put(AUTHENTICATION_MODE, v))
     map.put(BUFFER_SIZE, bufferSize.toString)
+    map.put(PAYLOAD_TYPE, payloadType.toString)
     map
   }
 }
@@ -67,12 +69,34 @@ object BloombergSettings {
       case _ => BloombergConstants.Default_Buffer_Size
     }
 
+    val payloadType = Try(connectorConfig.getString(ConnectorConfig.PAYLOAD_TYPE)).toOption match {
+      case None => JsonPayload
+      case Some(v) => v match {
+        case "json" => JsonPayload
+        case "avro" => AvroPayload
+      }
+    }
     new BloombergSettings(serverHost,
       serverPort,
       bloombergService,
       subscriptions,
       kafkaTopic,
       authenticationMode,
-      bufferSize)
+      bufferSize,
+      payloadType)
   }
+}
+
+
+/**
+  * Defines the way the source serializes the data sent over Kafka. There are two modes available: json and avro
+  */
+sealed trait PayloadTye
+
+case object JsonPayload extends PayloadTye {
+  override def toString = "json"
+}
+
+case object AvroPayload extends PayloadTye {
+  override def toString = "avro"
 }
