@@ -29,3 +29,14 @@ Kafka connect Druid connect and sink to write Kafka topic payloads to Druid.
 
 WORK IN PROGRESS
 
+#### Future Work
+
+* HBase
+* OrientDb
+* Neo4j
+* Rest (spray-can post)
+* UPC Scada Source and Sink
+* MQTT Sink
+* RDBMS (Sql Server 2016 supports JSON inserts)
+* TCP sockets?
+* Solr
