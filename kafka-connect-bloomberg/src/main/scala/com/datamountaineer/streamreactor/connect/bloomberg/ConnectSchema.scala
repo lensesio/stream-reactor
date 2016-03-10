@@ -49,7 +49,7 @@ object ConnectSchema {
 
   implicit class BloombergDataToConnectSchema(val data: BloombergData) {
     def getConnectçSchema = {
-      connectSchema.createSchema("BloombergData", data.fields)
+      connectSchema.createSchema("BloombergData", data.data)
     }
   }
 

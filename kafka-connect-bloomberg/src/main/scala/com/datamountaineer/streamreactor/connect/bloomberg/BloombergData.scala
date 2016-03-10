@@ -13,21 +13,14 @@ import AvroSchema._
   * Holds the values associated with an update event for a given ticker
   *
   * @param subscription : The ticker for which the data was received from Bloomberg
-  * @param fields       : A map of field=value
+  * @param data         : A map of field=value as received from Bloomberg plus an entry for the subscription/ticker
   */
-private[bloomberg] case class BloombergData(subscription: String, fields: java.util.Map[String, Any]) {
-  def asMap = {
-    val map = new util.LinkedHashMap[String, Any]()
-    map.put("subscription", subscription)
-    map.put("fields", fields)
-  }
-}
-
+private[bloomberg] case class BloombergData(subscription: String, data: java.util.Map[String, Any])
 
 private[bloomberg] object BloombergData {
 
+  val SubscriptionFieldKey = "subscriptionId"
   lazy val mapper = new ObjectMapper
-
   lazy val converter = new JsonAvroConverter
 
 
@@ -42,7 +35,11 @@ private[bloomberg] object BloombergData {
     val fields = (0 until element.numValues())
       .map(element.getElement)
       .filter(f => !f.isNull)
-      .foldLeft(new util.LinkedHashMap[String, Any]()) { case (map, f) =>
+      .foldLeft {
+        val map = new util.LinkedHashMap[String, Any]()
+        map.put(SubscriptionFieldKey, ticker)
+        map
+      } { case (map, f) =>
         val value = BloombergFieldValueFn(f)
         map.put(f.name().toString, value)
         map
@@ -63,7 +60,7 @@ private[bloomberg] object BloombergData {
       require(kafkaTopic != null && kafkaTopic.trim.nonEmpty, s"$kafkaTopic is not a valid kafka topic.")
       val sourceMap = Collections.singletonMap(BloombergConstants.SUBSCRIPTION_KEY, data.subscription)
 
-      val json = mapper.writeValueAsString(data.asMap)
+      val json = mapper.writeValueAsString(data.data)
       new SourceRecord(sourceMap, null, kafkaTopic, org.apache.kafka.connect.data.Schema.STRING_SCHEMA, json)
     }
 
@@ -78,7 +75,7 @@ private[bloomberg] object BloombergData {
       require(kafkaTopic != null && kafkaTopic.trim.nonEmpty, s"$kafkaTopic is not a valid kafka topic.")
       val sourceMap = Collections.singletonMap(BloombergConstants.SUBSCRIPTION_KEY, data.subscription)
 
-      val payload = converter.convertToAvro(mapper.writeValueAsBytes(data.fields), data.getSchema)
+      val payload = converter.convertToAvro(mapper.writeValueAsBytes(data.data), data.getSchema)
 
       new SourceRecord(sourceMap, null, kafkaTopic, org.apache.kafka.connect.data.Schema.BYTES_SCHEMA, payload)
     }

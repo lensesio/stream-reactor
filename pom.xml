@@ -18,6 +18,9 @@
     </scm>
 
     <properties>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+
         <java.version>1.8</java.version>
         <scala.major.version>2.11</scala.major.version>
         <scala.version>${scala.major.version}.7</scala.version>

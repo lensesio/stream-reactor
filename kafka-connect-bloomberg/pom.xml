@@ -24,6 +24,9 @@
     </parent>
 
     <properties>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+
         <bloomberg.version>3.8.8-2</bloomberg.version>
         <jackson.databind.version>2.7.0</jackson.databind.version>
         <avro.version>1.8.0</avro.version>
