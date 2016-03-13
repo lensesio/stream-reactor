@@ -84,7 +84,7 @@ nohup $CONFLUENT_HOME/bin/schema-registry-start $CONFLUENT_HOME/etc/schema-regis
 * Start Kafka Connect in standalone with the Bloomberg source
 
 ```bash
-$CONFLUENT_HOME/bin/connect-standalone etc/schema-registry/connect-avro-standalone.properties etc/kafka-connect-bloomberg/bloomberg.properties
+$CONFLUENT_HOME/bin/connect-standalone etc/schema-registry/connect-avro-standalone.properties share/java/kafka-connect-bloomberg/bloomberg.properties
 ```
 
 * Test with avro console, start the console to create the topic and read the values

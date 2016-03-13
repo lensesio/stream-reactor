@@ -17,8 +17,9 @@ class BloombergSubscriptionManager(correlationToSubscriptionMap: Map[Long, Strin
 
   /**
     * Return data from the bloomberg queue
+    *
     * @return A LinkedList of BloombergData
-    * */
+    **/
   def getData: Option[util.LinkedList[BloombergData]] = {
     logger.debug("Draining the buffer queue....")
     if (queue.isEmpty) {
@@ -36,9 +37,9 @@ class BloombergSubscriptionManager(correlationToSubscriptionMap: Map[Long, Strin
   /**
     * Process a Bloomberg event
     *
-    * @param event A bloomberg session event
+    * @param event   A bloomberg session event
     * @param session The session the event is for
-    * */
+    **/
   override def processEvent(event: Event, session: Session): Unit = {
     event.eventType().intValue() match {
       case Event.EventType.Constants.SUBSCRIPTION_DATA => onDataEvent(event, session)
@@ -54,7 +55,7 @@ class BloombergSubscriptionManager(correlationToSubscriptionMap: Map[Long, Strin
   /**
     * Handles status updates. For now all it does is logging them
     *
-    * @param event An event for which the status has change
+    * @param event   An event for which the status has change
     * @param session A session for the event
     */
   private def onStatusEvent(event: Event, session: Session) = {
@@ -79,15 +80,7 @@ class BloombergSubscriptionManager(correlationToSubscriptionMap: Map[Long, Strin
 
       correlationToSubscriptionMap.get(correlation) match {
         case None => logger.warn(s"Received an unmatched correlation id: $correlation. All available correlation ids are $correlationToSubscriptionMap")
-        case Some(s) =>
-          val fields = (0 until fieldsNo)
-            .map(element.getElement)
-            .filter(f => !f.isNull)
-            .foldLeft(new util.HashMap[String, Any]()) { case (map, f) =>
-              map.put(f.name().toString, BloombergFieldValueFn(f))
-              map
-            }
-          queue.add(BloombergData(s, fields))
+        case Some(s) => queue.add(BloombergData(s, element))
       }
     }
   }
@@ -95,7 +88,7 @@ class BloombergSubscriptionManager(correlationToSubscriptionMap: Map[Long, Strin
   /**
     * Handles non status and non data events. All it does is logging them
     *
-    * @param event A event for session
+    * @param event   A event for session
     * @param session A session the event occurred for
     */
   private def onOtherEvent(event: Event, session: Session) = {

@@ -4,18 +4,21 @@ import java.util
 import java.util.Collections
 
 import com.bloomberglp.blpapi.Element
+import com.datamountaineer.streamreactor.connect.bloomberg.avro.{AvroSerializer, AvroSchemaGenerator$}
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.kafka.connect.source.SourceRecord
 import tech.allegro.schema.json2avro.converter.JsonAvroConverter
-import AvroSchema._
+import AvroSerializer._
+import BloombergData._
 
 /**
   * Holds the values associated with an update event for a given ticker
   *
-  * @param subscription : The ticker for which the data was received from Bloomberg
-  * @param data         : A map of field=value as received from Bloomberg plus an entry for the subscription/ticker
+  * @param data : A map of field=value as received from Bloomberg plus an entry for the subscription/ticker
   */
-private[bloomberg] case class BloombergData(subscription: String, data: java.util.Map[String, Any])
+private[bloomberg] case class BloombergData(data: java.util.Map[String, Any]) {
+  def subscriptionKey: String = data.get(SubscriptionFieldKey).asInstanceOf[String]
+}
 
 private[bloomberg] object BloombergData {
 
@@ -27,8 +30,8 @@ private[bloomberg] object BloombergData {
   /**
     * Converts a Bloomberg Element instance to a BloombergData one
     *
-    * @param ticker
-    * @param element
+    * @param ticker  The item for which live data was requested
+    * @param element The Bloomberg data holder as part of an update event
     * @return
     */
   def apply(ticker: String, element: Element): BloombergData = {
@@ -45,7 +48,7 @@ private[bloomberg] object BloombergData {
         map
       }
 
-    BloombergData(ticker, fields)
+    BloombergData(fields)
   }
 
   implicit class BloombergDataToSourceRecordConverter(val data: BloombergData) extends AnyVal {
@@ -58,7 +61,7 @@ private[bloomberg] object BloombergData {
       */
     def toJsonSourceRecord(kafkaTopic: String): SourceRecord = {
       require(kafkaTopic != null && kafkaTopic.trim.nonEmpty, s"$kafkaTopic is not a valid kafka topic.")
-      val sourceMap = Collections.singletonMap(BloombergConstants.SUBSCRIPTION_KEY, data.subscription)
+      val sourceMap = Collections.singletonMap(BloombergConstants.SUBSCRIPTION_KEY, data.subscriptionKey)
 
       val json = mapper.writeValueAsString(data.data)
       new SourceRecord(sourceMap, null, kafkaTopic, org.apache.kafka.connect.data.Schema.STRING_SCHEMA, json)
@@ -73,11 +76,9 @@ private[bloomberg] object BloombergData {
       */
     def toAvroSourceRecord(kafkaTopic: String): SourceRecord = {
       require(kafkaTopic != null && kafkaTopic.trim.nonEmpty, s"$kafkaTopic is not a valid kafka topic.")
-      val sourceMap = Collections.singletonMap(BloombergConstants.SUBSCRIPTION_KEY, data.subscription)
+      val sourceMap = Collections.singletonMap(BloombergConstants.SUBSCRIPTION_KEY, data.subscriptionKey)
 
-      val payload = converter.convertToAvro(mapper.writeValueAsBytes(data.data), data.getSchema)
-
-      new SourceRecord(sourceMap, null, kafkaTopic, org.apache.kafka.connect.data.Schema.BYTES_SCHEMA, payload)
+      new SourceRecord(sourceMap, null, kafkaTopic, org.apache.kafka.connect.data.Schema.BYTES_SCHEMA, data.toAvro())
     }
 
     def toSourceRecord(settings: BloombergSettings): SourceRecord = {

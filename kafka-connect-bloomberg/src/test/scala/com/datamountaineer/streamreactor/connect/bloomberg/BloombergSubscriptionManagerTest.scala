@@ -5,6 +5,7 @@ import com.bloomberglp.blpapi._
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
+
 import scala.collection.JavaConverters._
 
 class BloombergSubscriptionManagerTest extends WordSpec with Matchers with MockitoSugar {
@@ -54,6 +55,7 @@ class BloombergSubscriptionManagerTest extends WordSpec with Matchers with Mocki
       val msg2 = mock[Message]
       val elem2 = MockElementFn(Seq(MockElementFn(value = true, "FIELD2")))
 
+      when(msg2.numElements()).thenReturn(1)
       when(msg2.correlationID()).thenReturn(correlationId)
       when(msg2.asElement()).thenReturn(elem2)
 
@@ -66,11 +68,13 @@ class BloombergSubscriptionManagerTest extends WordSpec with Matchers with Mocki
       val data = manager.getData.get
       data.size() shouldBe 2
 
-      data.get(0).data.size() shouldBe 1
+      data.get(0).data.size() shouldBe 2 //contains the ticker as well
+      data.get(0).data.containsKey(BloombergData.SubscriptionFieldKey)
       data.get(0).data.containsKey("FIELD1") shouldBe true
       data.get(0).data.get("FIELD1") shouldBe 3.15D
 
-      data.get(1).data.size() shouldBe 1
+      data.get(1).data.size() shouldBe 2
+      data.get(1).data.containsKey(BloombergData.SubscriptionFieldKey)
       data.get(1).data.containsKey("FIELD2") shouldBe true
       data.get(1).data.get("FIELD2") shouldBe true
 

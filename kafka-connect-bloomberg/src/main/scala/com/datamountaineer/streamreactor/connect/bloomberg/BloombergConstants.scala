@@ -9,9 +9,9 @@ object BloombergConstants {
 
   val SUBSCRIPTION_KEY = "SUBSCRIPTION_KEY"
 
-  /*
-   All the fields available to receive data for when subscribing for a ticker updates
-   */
+  /**
+    * All the fields available to receive data for when subscribing for a ticker updates
+    */
   val SubscriptionFields = Set(
     "ALL_PRICE",
     "ALL_PRICE_COND_CODE",

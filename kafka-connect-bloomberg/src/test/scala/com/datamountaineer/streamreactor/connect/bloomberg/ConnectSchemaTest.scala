@@ -3,7 +3,6 @@ package com.datamountaineer.streamreactor.connect.bloomberg
 import java.util
 
 import io.confluent.connect.avro.AvroData
-import org.apache.avro
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
 import org.scalatest.{Matchers, WordSpec}
 
@@ -95,11 +94,11 @@ class ConnectSchemaTest extends WordSpec with Matchers {
 
       val actualSchema = schemaGenerator.createSchema("ConnectDefault", map)
 
-      val avroSchema: avro.Schema = new AvroData(1).fromConnectSchema(actualSchema)
+      val avroSchema = new AvroData(1).fromConnectSchema(actualSchema)
 
-      val expectedSchema = new org.apache.avro.Schema.Parser().parse(getClass.getResourceAsStream(s"/person.avsc"))
+      val expectedSchema = new org.apache.avro.Schema.Parser().parse(getClass.getResourceAsStream(s"/person_connect.avsc"))
 
-      //avroSchema.toString(true) shouldBe expectedSchema.toString(true)
+      avroSchema.toString(true) shouldBe expectedSchema.toString(true)
     }
   }
 }
