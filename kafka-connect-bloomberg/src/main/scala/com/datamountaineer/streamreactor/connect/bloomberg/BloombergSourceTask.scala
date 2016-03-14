@@ -98,7 +98,9 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
   override def poll(): util.List[SourceRecord] = {
     subscriptionManager.getData.map { case d =>
       val list = new util.ArrayList[SourceRecord](d.size())
-      d.asScala.foreach(d => list.add(SourceRecordConverterFn(d, settings.get.kafkaTopic)))
+      d.asScala.foreach { d =>
+        list.add(d.toSourceRecord(settings.get))
+      }
       list
     }.orNull
   }

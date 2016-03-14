@@ -1,0 +1,143 @@
+{
+  "type": "record",
+  "name": "ConnectDefault",
+  "namespace": "io.confluent.connect.avro",
+  "fields": [
+    {
+      "name": "firstName",
+      "type": [
+        "null",
+        {
+          "type": "string",
+          "avro.java.string": "String"
+        }
+      ]
+    },
+    {
+      "name": "lastName",
+      "type": [
+        "null",
+        {
+          "type": "string",
+          "avro.java.string": "String"
+        }
+      ]
+    },
+    {
+      "name": "age",
+      "type": [
+        "null",
+        "int"
+      ]
+    },
+    {
+      "name": "address",
+      "type": [
+        "null",
+        {
+          "type": "record",
+          "name": "address",
+          "fields": [
+            {
+              "name": "streetAddress",
+              "type": [
+                "null",
+                {
+                  "type": "string",
+                  "avro.java.string": "String"
+                }
+              ]
+            },
+            {
+              "name": "city",
+              "type": [
+                "null",
+                {
+                  "type": "string",
+                  "avro.java.string": "String"
+                }
+              ]
+            },
+            {
+              "name": "state",
+              "type": [
+                "null",
+                {
+                  "type": "string",
+                  "avro.java.string": "String"
+                }
+              ]
+            },
+            {
+              "name": "postalCode",
+              "type": [
+                "null",
+                {
+                  "type": "string",
+                  "avro.java.string": "String"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "phoneNumber",
+      "type": [
+        "null",
+        {
+          "type": "array",
+          "items": {
+            "type": "record",
+            "name": "phoneNumber",
+            "fields": [
+              {
+                "name": "type",
+                "type": [
+                  "null",
+                  {
+                    "type": "string",
+                    "avro.java.string": "String"
+                  }
+                ]
+              },
+              {
+                "name": "number",
+                "type": [
+                  "null",
+                  {
+                    "type": "string",
+                    "avro.java.string": "String"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "gender",
+      "type": [
+        "null",
+        {
+          "type": "record",
+          "name": "gender",
+          "fields": [
+            {
+              "name": "type",
+              "type": [
+                "null",
+                {
+                  "type": "string",
+                  "avro.java.string": "String"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

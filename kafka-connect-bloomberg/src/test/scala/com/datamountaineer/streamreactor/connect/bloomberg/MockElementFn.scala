@@ -75,10 +75,11 @@ object MockElementFn extends MockitoSugar {
   }
 
 
-  def apply(elements: Seq[Element]): Element= {
+  def apply(elements: Seq[Element]): Element = {
     val parentElement = mock[Element]
     when(parentElement.isNull).thenReturn(false)
     when(parentElement.numElements()).thenReturn(elements.size)
+    when(parentElement.numValues()).thenReturn(elements.size)
     elements.zipWithIndex.foreach { case (e, i) =>
       when(parentElement.getElement(i)).thenReturn(e)
     }

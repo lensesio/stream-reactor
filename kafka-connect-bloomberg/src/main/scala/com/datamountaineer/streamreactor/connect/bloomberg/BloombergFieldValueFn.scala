@@ -10,13 +10,14 @@ import scala.collection.JavaConverters._
 /**
   * Extracts the values held within the the bloomberg message.
   */
-object BloombergFieldValueFn {
-  lazy val datetimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+private[bloomberg] object BloombergFieldValueFn {
+  private lazy val datetimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
   /**
     * Returns the value contained by the element. Given its data type information(see Schema.Datatype)
     * returns the appropriate value
-    * @param element: Instance of the bloomberg field update
+    *
+    * @param element : Instance of the bloomberg field update
     * @return The value encapsulated by the element
     */
   def apply(element: Element): Any = {
@@ -41,7 +42,7 @@ object BloombergFieldValueFn {
         offsetDateTime(dt)
 
       case 258 | 259 /*Schema.Datatype.SEQUENCE | Schema.Datatype.CHOICE*/ =>
-        element.elementIterator().asScala.foldLeft(new java.util.HashMap[String, Any]) { case (map, element) =>
+        element.elementIterator().asScala.foldLeft(new java.util.LinkedHashMap[String, Any]) { case (map, element) =>
           map.put(element.name().toString, BloombergFieldValueFn(element))
           map
         } //needs to be a java map because of json serialization

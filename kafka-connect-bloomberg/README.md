@@ -26,6 +26,7 @@ authentication.mode|string|no| There are two modes supported by the Bloomberg AP
 bloomberg.subscriptions|string|yes| Specifies which ticker subscription to make. The format is TICKER:FIELD,FIELD,..;TICKER:FIELD,FIELD,... etc. And example is: AAPL US Equity:LAST_PRICE,BID,ASK;IBM US Equity:BID,ASK,HIGH,LOW,OPEN
 kafka.topic|string|yes|The Kafka topic to send the data to
 buffer.size|int|no| The buffer accumulating the data updates received from Bloomberg. If not provided it will default to 2048. If the buffer is full and a new update will be received it won't be added to the buffer until it is first drained
+payload.type|string|no| Specifies the payload type going over kafka. There are two supported mode:json(default) and avro.
 
 Example connector.properties file
 
@@ -40,6 +41,19 @@ bloomberg.subscriptions=AAPL US Equity:LAST_PRICE,BID,ASK;IBM US Equity:BID,ASK,
 kafka.topic=bloomberg
 buffer.size=4096
 ```
+
+## Payload
+The content of the message passed to Kafka is as follows
+{
+  "subscription": "$subscription_key/ticker"
+  "fields":{
+    "field1" : "value1"
+    "field2" : "value2"
+    ...
+  }
+}
+
+All the fields are driven by the subscription defined in the config for the subscription_key/ticker
 
 ## Setup
 * Clone and build the Connector and Sink
@@ -70,7 +84,7 @@ nohup $CONFLUENT_HOME/bin/schema-registry-start $CONFLUENT_HOME/etc/schema-regis
 * Start Kafka Connect in standalone with the Bloomberg source
 
 ```bash
-$CONFLUENT_HOME/bin/connect-standalone etc/schema-registry/connect-avro-standalone.properties etc/kafka-connect-bloomberg/bloomberg.properties
+$CONFLUENT_HOME/bin/connect-standalone etc/schema-registry/connect-avro-standalone.properties share/java/kafka-connect-bloomberg/bloomberg.properties
 ```
 
 * Test with avro console, start the console to create the topic and read the values
