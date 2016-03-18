@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/andrewstevenson/stream-reactor.svg?branch=master)](https://travis-ci.org/andrewstevenson/stream-reactor)
+[![Build Status](https://travis-ci.org/datamountaineer/stream-reactor.svg?branch=master)](https://travis-ci.org/datamountaineer/stream-reactor)
 
 # Stream Reactor
 Streaming reference architecture built around Kafka. 
