@@ -124,7 +124,7 @@ the cluster is also running a REST API to allow submitting, stopping and viewing
 To start in distributed mode run the following (note we only pass in one properties file):
 
 ```bash
-export CLASSPATH=kafka-connect-kudu-0.1-jar-with-dependencies.jar
+export CLASSPATH=kafka-connect-cassandra-0.1-jar-with-dependencies.jar
 $CONFLUENT_HOME/bin/connect-distributed etc/schema-registry/connect-avro-distributed.properties
 ```
 
