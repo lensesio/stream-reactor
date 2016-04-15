@@ -6,4 +6,4 @@ install: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dsource.skip=tr
 script: mvn test
 notifications:
   slack: datamountaineers:gpg5e7VabFjAT1gQZqwxgsqP
-travis encrypt "datamountaineers:gpg5e7VabFjAT1gQZqwxgsqP" --add notifications.slack
+travis encrypt "datamountaineers:gpg5e7VabFjAT1gQZqwxgsqP" --add notifications.slack.rooms
