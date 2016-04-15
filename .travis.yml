@@ -4,6 +4,5 @@ jdk: oraclejdk8
 before_script: ulimit -u 30000
 install: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dsource.skip=true -DjavaVersion=1.8
 script: mvn test
-travis encrypt 'datamountaineers:gpg5e7VabFjAT1gQZqwxgsqP' --add notifications.slack.rooms
 notifications:
-  slack: datamountaineers:gpg5e7VabFjAT1gQZqwxgsqP
+ slack: datamountaineers:gpg5e7VabFjAT1gQZqwxgsqP
