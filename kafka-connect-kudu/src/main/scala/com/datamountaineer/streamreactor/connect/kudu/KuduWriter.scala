@@ -3,6 +3,7 @@ package com.datamountaineer.streamreactor.connect.kudu
 import com.datamountaineer.streamreactor.connect.KuduConverter
 import com.datamountaineer.streamreactor.connect.utils.ConverterUtil
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.kududb.client._
@@ -25,12 +26,10 @@ object KuduWriter extends StrictLogging {
 class KuduWriter(client: KuduClient, context: SinkTaskContext) extends StrictLogging with KuduConverter with ConverterUtil {
   logger.info("Initialising Kudu writer")
   require(context !=null, "Context can not be null!")
-  private val topics = context.assignment().asScala.map(c=>c.topic()).toList
-  logger.info(s"Assigned topics ${topics.mkString(",")}")
-  private lazy val kuduTableInserts = buildTableCache(topics)
   private lazy val session = client.newSession()
   session.setFlushMode(SessionConfiguration.FlushMode.AUTO_FLUSH_BACKGROUND)
   session.isIgnoreAllDuplicateRows
+  private var kuduTableInserts: Option[Map[String, KuduTable]] = None
 
   /**
     * Build a cache of Kudu insert statements per topic and check tables exists for topics
@@ -40,8 +39,14 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends StrictLog
     **/
   private def buildTableCache(topics: List[String]): Map[String, KuduTable] = {
     val missing = topics.filter(t=> !client.tableExists(t)).map(f=>logger.error("Missing kudu table for topic $f"))
-    if (missing.isEmpty) throw new ConnectException(s"Not tables found in Kudu for topics ${missing.mkString(",")}")
+    if (missing.nonEmpty) throw new ConnectException(s"No tables found in Kudu for topics ${missing.mkString(",")}")
     topics.map(t =>(t,client.openTable(t))).toMap
+  }
+
+  def addPartitions(partitions: List[TopicPartition]) = {
+    val topics = partitions.map(c=>c.topic())
+    logger.info(s"Adding topics ${topics.mkString(",")}")
+    kuduTableInserts = Some(buildTableCache(topics))
   }
 
   /**
@@ -67,7 +72,7 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends StrictLog
     * Apply the insert per topic for the rows
     * */
   private def applyInsert(topic: String, records: List[SinkRecord], session: KuduSession) = {
-    val table = kuduTableInserts.get(topic).get
+    val table = kuduTableInserts.get.get(topic).get
     logger.debug(s"Preparing write for $topic.")
     records
       .map(r=>convert(r, table))

@@ -3,6 +3,7 @@ package com.datamountaineer.streamreactor.connect.kudu
 import java.util
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkConnector
@@ -16,6 +17,7 @@ import scala.util.{Failure, Try}
   */
 class KuduSinkConnector extends SinkConnector with StrictLogging {
   private var configProps : util.Map[String, String] = null
+  private val CONFIG_DEF : ConfigDef = new ConfigDef()
 
   /**
     * States which SinkTask class to use
@@ -49,5 +51,9 @@ class KuduSinkConnector extends SinkConnector with StrictLogging {
 
   override def stop(): Unit = {}
   override def version(): String = ""
+
+  override def config(): ConfigDef = {
+    CONFIG_DEF
+  }
 }
 

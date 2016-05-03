@@ -1,16 +1,14 @@
 package com.datamountaineer.streamreactor.connect
 
 import com.datamountaineer.streamreactor.connect.utils.ConverterUtil
-import org.apache.avro.generic.GenericRecord
-import org.apache.kafka.connect.data.Field
+import org.apache.kafka.connect.data.{Field, Struct}
 import org.apache.kafka.connect.data.Schema.Type
 import org.apache.kafka.connect.sink.SinkRecord
 import org.kududb.ColumnSchema.ColumnSchemaBuilder
-import org.kududb.Schema
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
-//import org.kududb.Type
 import org.kududb.client.{KuduTable, PartialRow}
 
 
@@ -19,26 +17,32 @@ trait KuduConverter extends ConverterUtil {
   /**
     * Convert SinkRecord type to Kudu and add the column to the Kudu row
     *
-    * @param field SinkRecord Field
-    * @param avroRecord Avro record
-    * @param row The Kudu row to add the field to
+    * @param field field of sink record
+    * @param value data object
+    * @param row the Kudu row to add the field to
+    * @param prefix outer schema prefix
     * @return the updated Kudu row
     **/
-   private def addFieldToRow(field: Field, avroRecord: GenericRecord, row: PartialRow): PartialRow = {
-    val fieldType = field.schema().`type`()
-    val fieldName = field.name()
-    val avro = avroRecord.get(fieldName)
+   private def addFieldToRow(field: Field, value: Object, row: PartialRow, prefix: String = ""): PartialRow = {
+    val schema = field.schema
+    val fieldSchemaType = schema.`type`
+    val fieldSchemaName = prefix + (if (prefix.nonEmpty) "_" else "") + field.name
 
-    fieldType match {
-      case Type.STRING => row.addString(fieldName, avro.toString)
-      case Type.INT8 => row.addByte(fieldName, avro.asInstanceOf[Byte])
-      case Type.INT16 => row.addShort(fieldName, avro.asInstanceOf[Short])
-      case Type.INT32 => row.addInt(fieldName, avro.asInstanceOf[Int])
-      case Type.INT64 => row.addLong(fieldName, avro.asInstanceOf[Long])
-      case Type.BOOLEAN => row.addBoolean(fieldName, avro.asInstanceOf[Boolean])
-      case Type.FLOAT32 | Type.FLOAT64 => row.addFloat(fieldName, avro.asInstanceOf[Float])
-      case Type.BYTES => row.addBinary(fieldName, avro.asInstanceOf[Array[Byte]])
-      case _ => throw new UnsupportedOperationException(s"Unknown type $fieldType")
+    fieldSchemaType match {
+      case Type.STRUCT =>
+        val schemas: mutable.Buffer[Field] = schema.fields().asScala
+        val valueStruct: Struct = value.asInstanceOf[Struct]
+        val values = schemas.map(f=>valueStruct.get(f.name()))
+        (schemas zip values).map(f=>addFieldToRow(f._1, f._2, row, fieldSchemaName.toLowerCase))
+      case Type.STRING => row.addString(fieldSchemaName.toLowerCase, value.toString)
+      case Type.INT8 => row.addByte(fieldSchemaName.toLowerCase, value.asInstanceOf[Byte])
+      case Type.INT16 => row.addShort(fieldSchemaName.toLowerCase, value.asInstanceOf[Short])
+      case Type.INT32 => row.addInt(fieldSchemaName.toLowerCase, value.asInstanceOf[Int])
+      case Type.INT64 => row.addLong(fieldSchemaName.toLowerCase, value.asInstanceOf[Long])
+      case Type.BOOLEAN => row.addBoolean(fieldSchemaName.toLowerCase, value.asInstanceOf[Boolean])
+      case Type.FLOAT32 | Type.FLOAT64 => row.addFloat(fieldSchemaName.toLowerCase, value.asInstanceOf[Float])
+      case Type.BYTES => row.addBinary(fieldSchemaName.toLowerCase, value.asInstanceOf[Array[Byte]])
+      case _ => throw new UnsupportedOperationException(s"Unknown type $fieldSchemaType")
     }
     row
   }
@@ -51,14 +55,18 @@ trait KuduConverter extends ConverterUtil {
     * @return A Kudu insert operation
     * */
   def convert(record: SinkRecord, table: KuduTable) = {
-    val avro = convertToGenericAvro(record)
-    val fields = record.valueSchema().fields().asScala
-    val insert = table.newInsert()
+    val insert = table.newInsert
+    val valueSchema = record.valueSchema
+    val fieldSchemas = valueSchema.fields.asScala
+    val value = record.value.asInstanceOf[Struct]
+    val fieldValues = fieldSchemas.map(f=>value.get(f.name()))
     val row = insert.getRow
-    fields.map(f=>addFieldToRow(f, avro, row))
+
+    configureConverter(jsonConverter)
+    val valueJson = convertValueToJson(record)
+    (fieldSchemas zip fieldValues).map(f=>addFieldToRow(f._1, f._2, row))
     insert
   }
-
 
   /**
     * Convert Connect Schema to Kudu
@@ -67,9 +75,16 @@ trait KuduConverter extends ConverterUtil {
     * */
   def convertToKuduSchema(record: SinkRecord) = {
     val connectFields = record.valueSchema().fields().asScala
-    val kuduFields = connectFields.map(cf=>convertConnectField(cf)).asJava
-    val schema = new Schema(kuduFields)
+    val kuduFields = connectFields.flatMap(cf=>flattenIfRequired(cf)).map(cf=>convertConnectField(cf)).asJava
+    val schema = new org.kududb.Schema(kuduFields)
     schema
+  }
+
+  def flattenIfRequired(field: Field): List[Field] = {
+    if (field.schema.`type`.getName.equals(Type.STRUCT.getName)) {
+      field.schema.fields.asScala.flatMap(f=>flattenIfRequired(f)).toList
+    } else
+      List(field)
   }
 
   /**

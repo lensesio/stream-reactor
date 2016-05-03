@@ -44,6 +44,10 @@ class KuduSinkTask extends SinkTask with StrictLogging {
     writer = Some(KuduWriter(config = sinkConfig, context = context))
   }
 
+  override def open (partitions: util.Collection[TopicPartition]) {
+    writer.get.addPartitions(partitions.asScala.toList)
+  }
+
   /**
     * Pass the SinkRecords to the writer for Writing
     * */
