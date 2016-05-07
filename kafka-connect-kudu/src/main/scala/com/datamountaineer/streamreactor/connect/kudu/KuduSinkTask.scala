@@ -77,7 +77,7 @@ class KuduSinkTask extends SinkTask with StrictLogging {
   //0.7 has
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.map(w=>w.flush())
+    writer.foreach(w=>w.flush())
   }
   override def version(): String = getClass.getPackage.getImplementationVersion
 }

@@ -52,7 +52,12 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends StrictLog
     * @return A Map of topic -> KuduRowInsert
     **/
   private def buildTableCache(topics: List[String]): Map[String, KuduTable] = {
-    val missing = topics.filter(t=> !client.tableExists(t)).map(f=>logger.error("Missing kudu table for topic $f"))
+    val missing = topics
+                      .filter(t=> !client.tableExists(t))
+                      .map(f=>{
+                        logger.error("Missing kudu table for topic $f")
+                        f
+                      })
     if (missing.isEmpty) throw new ConnectException(s"No tables found in Kudu for topics ${missing.mkString(",")}")
     topics.map(t =>(t,client.openTable(t))).toMap
   }
