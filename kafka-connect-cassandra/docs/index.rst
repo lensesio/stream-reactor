@@ -81,13 +81,11 @@ Start the Confluent platform.
     bin/schema-registry-start etc/schema-registry/schema-registry.properties &
 
 Build the Connector and CLI
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The prebuilt jars can be taken from here and
 `here <https://github.com/datamountaineer/kafka-connect-tools/releases>`__
-or from Maven.
-
-` <http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22kafka-connect-cli%22>`__
+or from `Maven <http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22kafka-connect-cli%22>`__
 
 If you want to build the connector, clone the repo and build the jar.
 
@@ -125,9 +123,7 @@ Cassandra's and CQL restrictions this should be a primary key or part of
 a composite primary keys. ALLOW\_FILTERING can also be supplied as an
 configuration.
 
-.note::TimeUUIDs are convert to strings. Use the
-`UUIDs <https://docs.datastax.com/en/drivers/java/2.0/com/datastax/driver/core/utils/UUIDs.html>`__
-helpers to convert to Dates.
+.. note:: TimeUUIDs are convert to strings. Use the `UUIDs <https://docs.datastax.com/en/drivers/java/2.0/com/datastax/driver/core/utils/UUIDs.html>`__ helpers to convert to Dates.
 
 Source Connector QuickStart
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -315,12 +311,13 @@ kafka topic we have routed the order table to.
 
 Now stop the connector.
 
-.. note:: Next time the Connector polls another 3 would be pulled in. In
-our example the default poll interval is set to 1 minute. So in 1 minute
+.. note:: Next time the Connector polls another 3 would be pulled in. In our example the default poll interval is set to 1 minute. So in 1 minute
 we'd get rows again.
+
 
 .. note:: The created field in a TimeUUID is Cassandra, this represented
 as a string in the Kafka Connect schema.
+
 
 Source Connector Configuration (Incremental)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -357,8 +354,7 @@ introduce a full scan with ALLOW\_FILTERING added to the query.
 We can reuse the 3 records inserted into Cassandra earlier but lets
 clean out the target Kafka topic.
 
-.note::You must delete.topics.enable in etc/kafka/server.properties and
-shutdown any consumers of this topic for this to take effect.
+.. note:: You must delete.topics.enable in etc/kafka/server.properties and shutdown any consumers of this topic for this to take effect.
 
 .. code:: bash
 
@@ -502,25 +498,29 @@ Check Kafka.
 
 Bingo, we have our extra row.
 
-Sink Connector QuickStart
--------------------------
+Sink Connector
+--------------
 
 The Cassandra Sink allows you to write events from Kafka to Cassandra.
+
 The connector converts the value from the Kafka Connect SinkRecords to
 Json and uses Cassandra's JSON insert functionality to insert the rows.
 
 The task expects pre-created tables in Cassandra. Like the source
 connector the sink allows mapping of topics to tables.
 
-.note:: The table and keyspace must be created before hand! .note:: If
-the target table has TimeUUID fields the payload string for the
-corresponding field in Kafka must be a UUID.
+.. note:: The table and keyspace must be created before hand! 
+.. note:: If the target table has TimeUUID fields the payload string for the corresponding field in Kafka must be a UUID.
+
+
+Sink Connector QuickStart
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For the quick-start we will reuse the order-topic we created for the
 source.
 
 Sink Connector Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The sink configuration is similar to the source, they share most of the
 same configuration options. Create a file called
@@ -550,13 +550,12 @@ Cassandra.
 
 Additional we must supply the topics configuration option.
 
-.note::All tables must be in the same keyspace.
+.. note:: All tables must be in the same keyspace.
 
-.note::If a topic specified in the topics configuration option is not
-present in the export.map the the topic name will be used.
+.. note:: If a topic specified in the topics configuration option is not present in the export.map the the topic name will be used.
 
 Cassandra Tables
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 The sink expects the tables it's configured to write to are already
 present in Cassandra. Lets create our table for the sink.
@@ -575,7 +574,7 @@ present in Cassandra. Lets create our table for the sink.
     cqlsh:demo> 
 
 Starting the Sink Connector (Distributed)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Again will start in distributed mode.
 
@@ -721,7 +720,7 @@ The following CQL data types are supported:
 | Set         | Optional String     |
 +-------------+---------------------+
 
-.note:: For Map, List and Set the value is extracted from the Cassandra
+.. note:: For Map, List and Set the value is extracted from the Cassandra
 Row and inserted as a JSON string representation.
 
 Modes
@@ -765,7 +764,7 @@ Bulk
 In ``bulk`` mode the connector extracts the full table, no where clause
 is attached to the query.
 
-.note:: ! Watch out with the poll interval. After each interval the bulk
+.. note:: ! Watch out with the poll interval. After each interval the bulk
 query will be executed again.
 
 Mappings
