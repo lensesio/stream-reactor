@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/datamountaineer/stream-reactor-gradle.svg?branch=master)](https://travis-ci.org/datamountaineer/stream-reactor-gradle)
 [![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://streamreactor.readthedocs.org/en/latest/?badge=latest)
 
-![](../images/DM-logo.jpg)
+![](images/DM-logo.jpg)
 
 # Stream Reactor
 Streaming reference architecture built around Kafka. 
@@ -56,11 +56,11 @@ Kafka connect Bloomberg source to subscribe to Bloomberg streams via the open AP
 
 Kafka connect Druid sink to write Kafka topic payloads to Druid.
 
-#### [Kafka-Connect-HBase](kafka-connect-hbase)/README.md)
+#### [Kafka-Connect-HBase](kafka-connect-hbase/README.md)
 
 Kafka connect HBase sink to write Kafka topic payloads to HBase.
 
-#### [Kafka-Connect-Redis](kafka-connect-redis)/README.md)
+#### [Kafka-Connect-Redis](kafka-connect-redis/README.md)
 
 Kafka connect HBase sink to write Kafka topic payloads to HBase.
 
