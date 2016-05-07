@@ -1,3 +1,4 @@
+.. kafka-connect-cassandra:
 .. figure:: ../../images/DM-logo.jpg
    :alt: 
 
