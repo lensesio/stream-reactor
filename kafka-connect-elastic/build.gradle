@@ -1,0 +1,19 @@
+project(":kafka-connect-elastic") {
+
+    ext {
+        elastic4sVersion = '2.1.0'
+        elasticVersion = '2.2.0'
+        jnaVersion = '3.0.9'
+    }
+
+    dependencies {
+        compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
+        compile("com.sksamuel.elastic4s:elastic4s-core_$scalaMajorVersion:$elastic4sVersion") {
+            exclude group: "org.scala-lang", module: "scala-library"
+            exclude group: "org.scalactic", module: "scalactic_2.11"
+        }
+        compile "com.sun.jna:jna:$jnaVersion"
+        testCompile "org.elasticsearch:elasticsearch:$elasticVersion"
+
+    }
+}

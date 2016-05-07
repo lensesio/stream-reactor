@@ -16,8 +16,6 @@ class TestKuduSink extends TestBase with MockitoSugar {
     val task = new KuduSinkTask()
     //initialise the tasks context
     task.initialize(context)
-    //check version
-    task.version() shouldBe ""
     //start task
     task.start(config)
     task.stop()

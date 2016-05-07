@@ -16,7 +16,6 @@ class TestElasticsSinkConnector extends TestElasticBase {
     taskConfigs.size() shouldBe 10
     //check connector
     connector.taskClass() shouldBe classOf[ElasticSinkTask]
-    connector.version() shouldBe ""
     connector.stop()
   }
 }

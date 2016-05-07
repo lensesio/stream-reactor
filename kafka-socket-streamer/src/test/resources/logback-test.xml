@@ -1,0 +1,18 @@
+<!--suppress ALL -->
+<configuration>
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{ISO8601} %-5p [%t] [%c{2}] [%M:%L] %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="akka" level="INFO" />
+    <logger name="org.apache.kafka.clients.consumer.ConsumerConfig" level="WARN"/>
+    <logger name="org.apache.kafka.common.utils.AppInfoParser" level="WARN"/>
+    <logger name="io.confluent.kafka.serializers.KafkaAvroDeserializerConfig" level="WARN"/>
+
+
+    <root level="INFO">
+        <appender-ref ref="stdout"/>
+    </root>
+</configuration>

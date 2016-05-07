@@ -1,7 +1,7 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.KuduConverter
-import com.datamountaineer.streamreactor.connect.utils.ConverterUtil
 import org.kududb.client.{Insert, KuduTable}
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar

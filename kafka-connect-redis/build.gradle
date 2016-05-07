@@ -1,0 +1,14 @@
+project(':kafka-connect-redis') {
+
+    ext {
+        jedisVersion = "2.8.1"
+        embeddedRedisVersion = "0.6"
+    }
+
+    dependencies {
+        compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
+        compile "redis.clients:jedis:$jedisVersion"
+        compile "com.google.code.gson:gson:$gsonVersion"
+        testCompile "com.orange.redis-embedded:embedded-redis:$embeddedRedisVersion"
+    }
+}

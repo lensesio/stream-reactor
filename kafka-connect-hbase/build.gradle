@@ -1,0 +1,18 @@
+project(":kafka-connect-hbase") {
+    dependencies {
+        compile ("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
+        compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
+        compile("org.apache.hbase:hbase-client:$hbaseClientVersion") {
+            exclude group: "javax.ws.rs", module: "jsr311-api"
+        }
+
+        testCompile("org.kitesdk:kite-minicluster:$kiteMiniClusterVersion")
+        testCompile("org.apache.hbase:hbase-server:$hbaseServerVersion")
+        testCompile("org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion")
+        testCompile("com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion")
+        testCompile("com.sksamuel.avro4s:avro4s-macros_$scalaMajorVersion:$avro4sVersion")
+        testCompile("com.sksamuel.avro4s:avro4s-generator_$scalaMajorVersion:$avro4sVersion")
+    }
+}

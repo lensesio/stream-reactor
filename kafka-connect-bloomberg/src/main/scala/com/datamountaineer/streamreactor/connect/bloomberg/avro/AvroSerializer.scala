@@ -1,3 +1,19 @@
+/**
+  * Copyright 2015 Datamountaineer.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **/
+
 package com.datamountaineer.streamreactor.connect.bloomberg.avro
 
 import java.io.ByteArrayOutputStream
@@ -16,10 +32,10 @@ object AvroSerializer {
     * Provides the method to serialize a BloombergData instance to avro.
     * Only the data field is taken into account
     *
-    * @param data
+    * @param data Bloomberg data to serialize to avro
     */
   implicit class BloombergDataToAvroSerialization(val data: BloombergData) {
-    def toAvro(): Array[Byte] = {
+    def toAvro: Array[Byte] = {
       val schema = data.getSchema
 
       val output = new ByteArrayOutputStream()
@@ -38,7 +54,7 @@ object AvroSerializer {
   /**
     * Converts a map to an avro generic record to be serialized as avro
     *
-    * @param map
+    * @param map A Map to convert to a generic record
     */
   implicit class MapToGenericRecordConverter(val map: java.util.Map[String, Any]) {
     def toAvroRecord(schema: Schema): GenericData.Record = {
@@ -50,10 +66,10 @@ object AvroSerializer {
     /**
       * Given the instance of the value will either add the value to the generic record or create another
       *
-      * @param record
-      * @param schema
-      * @param fieldName
-      * @param value
+      * @param record A GenericRecord to add the value to
+      * @param schema The schema for the field
+      * @param fieldName The field name
+      * @param value The value of the field
       */
     private def recursive(record: GenericData.Record, schema: Schema, fieldName: String, value: Any): Unit = {
       value match {
@@ -96,5 +112,4 @@ object AvroSerializer {
       }
     }
   }
-
 }

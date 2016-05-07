@@ -1,0 +1,8 @@
+project(":kafka-connect-bloomberg") {
+    dependencies {
+        compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
+        compile files('lib/blpapi-3.8.8-2.jar')
+        compile "com.fasterxml.jackson.core:jackson-databind:$jacksonDatabind"
+        compile "org.apache.avro:avro:$avroVersion"
+    }
+}

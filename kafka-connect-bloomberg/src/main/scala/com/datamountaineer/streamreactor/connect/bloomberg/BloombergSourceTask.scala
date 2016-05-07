@@ -1,3 +1,19 @@
+/**
+  * Copyright 2015 Datamountaineer.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **/
+
 package com.datamountaineer.streamreactor.connect.bloomberg
 
 import java.util
@@ -17,34 +33,34 @@ import scala.collection.JavaConverters._
 class BloombergSourceTask extends SourceTask with StrictLogging {
   var settings: Option[BloombergSettings] = None
 
-  var subscriptions: SubscriptionList = null
-  var session: Session = null
+  var subscriptions: Option[SubscriptionList] = None
+  var session: Option[Session] = None
 
-  var subscriptionManager: BloombergSubscriptionManager = null
+  var subscriptionManager: Option[BloombergSubscriptionManager] = None
 
   /**
     * Un-subscribes the tickers and stops the Bloomberg session
     */
   override def stop(): Unit = {
-    logger.info(s"Shutting down Bloomberg source for subscriptions ${subscriptions.asScala.mkString(",")}")
+    logger.info(s"Shutting down Bloomberg source for subscriptions ${subscriptions.get.asScala.mkString(",")}")
     try {
-      session.unsubscribe(subscriptions)
+      session.get.unsubscribe(subscriptions.get)
     }
     catch {
       case t: Throwable =>
-        logger.error(s"Unexpected exception un-subscribing for correlation=${CorrelationIdsExtractorFn(subscriptions)}")
+        logger.error(s"Unexpected exception un-subscribing for correlation=${CorrelationIdsExtractorFn(subscriptions.get)}")
     }
     try {
-      session.stop()
+      session.get.stop()
     }
     catch {
       case e: InterruptedException =>
-        logger.error(s"There was an error stopping the bloomberg session for correlation=${CorrelationIdsExtractorFn(subscriptions)}")
+        logger.error(s"There was an error stopping the bloomberg session for correlation=${CorrelationIdsExtractorFn(subscriptions.get)}")
     }
-    session = null
-    subscriptions.clear()
-    subscriptions = null
-    subscriptionManager = null
+    session = None
+    subscriptions.get.clear()
+    subscriptions = None
+    subscriptionManager = None
   }
 
   /**
@@ -75,13 +91,13 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
 
     try {
       settings = Some(BloombergSettings(new ConnectorConfig(map)))
-      subscriptions = SubscriptionsBuilderFn(settings.get)
+      subscriptions = Some(SubscriptionsBuilderFn(settings.get))
 
-      val correlationToTicketMap = subscriptions.asScala.map { s => s.correlationID().value() -> s.subscriptionString() }.toMap
-      subscriptionManager = new BloombergSubscriptionManager(correlationToTicketMap)
-      session = BloombergSessionCreateFn(settings.get, subscriptionManager)
+      val correlationToTicketMap = subscriptions.get.asScala.map { s => s.correlationID().value() -> s.subscriptionString() }.toMap
+      subscriptionManager = Some(new BloombergSubscriptionManager(correlationToTicketMap))
+      session = Some(BloombergSessionCreateFn(settings.get, subscriptionManager.get))
 
-      session.subscribe(subscriptions)
+      session.get.subscribe(subscriptions.get)
     }
     catch {
       case t: Throwable => throw new ConnectException("Could not start the task because of invalid configuration.", t)
@@ -96,7 +112,7 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
     * @return A list of records as a result of Bloomberg updates since the previous call.
     */
   override def poll(): util.List[SourceRecord] = {
-    subscriptionManager.getData.map { case d =>
+    subscriptionManager.get.getData.map { case d =>
       val list = new util.ArrayList[SourceRecord](d.size())
       d.asScala.foreach { d =>
         list.add(d.toSourceRecord(settings.get))
@@ -140,7 +156,7 @@ object BloombergSessionCreateFn extends StrictLogging {
     * @param handler  : Instance of EventHandler providing the callbacks for Bloomberg events
     * @return The Bloomberg session
     */
-  def apply(settings: BloombergSettings, handler: EventHandler) = {
+  def apply(settings: BloombergSettings, handler: EventHandler) : Session = {
     val options = new SessionOptions
     options.setKeepAliveEnabled(true)
     options.setServerHost(settings.serverHost)
@@ -150,11 +166,13 @@ object BloombergSessionCreateFn extends StrictLogging {
     logger.info("Starting session.")
     val session = new Session(options, handler)
 
-    if (!session.start())
+    if (!session.start()) {
       sys.error(s"Could not start the session for ${settings.serverHost}:${settings.serverPort}")
+    }
 
-    if (!session.openService(settings.serviceUri))
+    if (!session.openService(settings.serviceUri)) {
       sys.error(s"Could not open service ${settings.serviceUri}")
+    }
     session
   }
 }

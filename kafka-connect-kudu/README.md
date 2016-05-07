@@ -9,6 +9,35 @@ Writing with the same primary key twice will result in a Kudu write failure. See
 ## Perquisites
 * Confluent 2.0
 * Kudu 0.6
+* Java 1.8 
+* Scala 2.11
+
+To build
+
+```bash
+gradle compile
+```
+
+To test
+
+```bash
+gradle test
+```
+
+To create a fat jar
+
+```bash
+gradle fatJar
+
+# or with no tests run
+
+gradle fatJarNoTest
+```
+
+## Perquisites
+
+* Cassandra 2.2.4
+* Kudu Quickstart
 
 ## Properties
 

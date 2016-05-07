@@ -14,7 +14,6 @@ class TestKuduSinkConnector extends TestBase {
     taskConfigs.asScala.head.get(KuduSinkConfig.KUDU_MASTER) shouldBe KUDU_MASTER
     taskConfigs.size() shouldBe 1
     connector.taskClass() shouldBe classOf[KuduSinkTask]
-    connector.version() shouldBe ""
     connector.stop()
   }
 }

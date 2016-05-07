@@ -1,0 +1,10 @@
+project(":kafka-connect-kudu") {
+    ext {
+        kuduVersion = "0.7.0"
+    }
+
+    dependencies {
+        compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
+        compile "org.kududb:kudu-client:$kuduVersion"
+    }
+}
