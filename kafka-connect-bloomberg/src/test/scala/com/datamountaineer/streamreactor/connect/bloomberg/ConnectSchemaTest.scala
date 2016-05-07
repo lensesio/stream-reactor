@@ -63,7 +63,7 @@ class ConnectSchemaTest extends WordSpec with Matchers {
     }
 
 
-    "create the apropriate schema for the given linkedhashmap entry" in {
+    "create the appropriate schema for the given linkedhashmap entry" in {
       val map = new util.LinkedHashMap[String, Any]()
       map.put("firstName", "John")
       map.put("lastName", "Smith")

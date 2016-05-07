@@ -1,3 +1,6 @@
+/*/*.iml
+/*/build
+/build
 /kafka-connect-druid/kafka-connect-druid.iml
 /kafka-connect-utils/kafka-connect-utils.iml
 # sbt specific
@@ -11,3 +14,4 @@ target/
 /kafka-connect-bloomberg/kafka-connect-bloomberg.iml
 /kafka-connect-cassandra/kafka-connect-cassandra.iml
 
+/.gradle

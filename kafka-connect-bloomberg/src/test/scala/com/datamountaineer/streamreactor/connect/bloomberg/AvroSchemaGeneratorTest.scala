@@ -2,16 +2,11 @@ package com.datamountaineer.streamreactor.connect.bloomberg
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.bloomberg.avro.{AvroSchemaGenerator, AvroSchemaGenerator$}
-import com.fasterxml.jackson.databind.ObjectMapper
-import io.confluent.kafka.serializers.KafkaAvroSerializer
+import com.datamountaineer.streamreactor.connect.bloomberg.avro.AvroSchemaGenerator
 import org.apache.avro.Schema
-import org.apache.avro.generic.GenericData.Record
 import org.apache.avro.generic.{GenericData, GenericDatumReader, GenericRecord}
-import org.apache.avro.io.{BinaryDecoder, DecoderFactory}
-import org.apache.avro.specific.SpecificDatumReader
+import org.apache.avro.io.DecoderFactory
 import org.scalatest.{Matchers, WordSpec}
-import tech.allegro.schema.json2avro.converter.JsonAvroConverter
 
 import scala.collection.JavaConverters._
 
@@ -76,7 +71,7 @@ class AvroSchemaGeneratorTest extends WordSpec with Matchers {
     }
 
 
-    "create the apropriate schema for the given linkedhashmap entry" in {
+    "create the appropriate schema for the given linkedhashmap entry" in {
       val map = new util.LinkedHashMap[String, Any]()
       map.put("firstName", "John")
       map.put("lastName", "Smith")

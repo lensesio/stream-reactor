@@ -1,18 +1,33 @@
+/**
+  * Copyright 2015 Datamountaineer.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **/
+
 package com.datamountaineer.streamreactor.connect
 
-import com.datamountaineer.streamreactor.connect.utils.ConverterUtil
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.Field
 import org.apache.kafka.connect.data.Schema.Type
 import org.apache.kafka.connect.sink.SinkRecord
 import org.kududb.ColumnSchema.ColumnSchemaBuilder
-import org.kududb.Schema
+import org.kududb.{ColumnSchema, Schema}
+import org.kududb.client.Insert
 
 import scala.collection.JavaConverters._
-
 //import org.kududb.Type
 import org.kududb.client.{KuduTable, PartialRow}
-
 
 trait KuduConverter extends ConverterUtil {
 
@@ -50,7 +65,7 @@ trait KuduConverter extends ConverterUtil {
     * @param table A Kudu table to create a row insert for
     * @return A Kudu insert operation
     * */
-  def convert(record: SinkRecord, table: KuduTable) = {
+  def convert(record: SinkRecord, table: KuduTable) : Insert = {
     val avro = convertToGenericAvro(record)
     val fields = record.valueSchema().fields().asScala
     val insert = table.newInsert()
@@ -65,7 +80,7 @@ trait KuduConverter extends ConverterUtil {
     *
     * @param record A sinkRecord to get the value schema from
     * */
-  def convertToKuduSchema(record: SinkRecord) = {
+  def convertToKuduSchema(record: SinkRecord)  : Schema = {
     val connectFields = record.valueSchema().fields().asScala
     val kuduFields = connectFields.map(cf=>convertConnectField(cf)).asJava
     val schema = new Schema(kuduFields)
@@ -78,7 +93,7 @@ trait KuduConverter extends ConverterUtil {
     * @param field The Connect field to convert
     * @return The equivalent Kudu type
     * */
-  def convertConnectField(field: Field) = {
+  def convertConnectField(field: Field) : ColumnSchema = {
     val fieldType = field.schema().`type`()
     val fieldName = field.name()
     val kudu = fieldType match {

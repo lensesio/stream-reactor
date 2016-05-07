@@ -1,3 +1,19 @@
+/**
+  * Copyright 2015 Datamountaineer.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **/
+
 package com.datamountaineer.streamreactor.connect.bloomberg
 
 import java.util
@@ -19,7 +35,7 @@ import scala.collection.JavaConverters._
 class BloombergSourceConnector extends SourceConnector with StrictLogging {
   //var configProps: util.Map[String, String]
 
-  var bloombergSettings: BloombergSettings = null
+  var bloombergSettings: Option[BloombergSettings] = None
 
   /**
     * Defines the sink class to use
@@ -32,9 +48,9 @@ class BloombergSourceConnector extends SourceConnector with StrictLogging {
     //ConnectorUtils.groupPartitions()
     logger.info(s"Setting task configurations for $maxTasks workers.")
 
-    val partitions = Math.min(bloombergSettings.subscriptions.size, maxTasks)
-    bloombergSettings.subscriptions.grouped(partitions)
-      .map(p => bloombergSettings.copy(subscriptions = p).asMap())
+    val partitions = Math.min(bloombergSettings.get.subscriptions.size, maxTasks)
+    bloombergSettings.get.subscriptions.grouped(partitions)
+      .map(p => bloombergSettings.get.copy(subscriptions = p).asMap())
       .toList.asJava
   }
 
@@ -48,7 +64,7 @@ class BloombergSourceConnector extends SourceConnector with StrictLogging {
     **/
   override def start(props: util.Map[String, String]): Unit = {
     try {
-      bloombergSettings = BloombergSettings(new ConnectorConfig(props))
+      bloombergSettings = Some(BloombergSettings(new ConnectorConfig(props)))
     }
     catch {
       case t: Throwable => throw new ConnectException("Cannot start the Bloomberg connector due to invalid configuration.", t)
@@ -63,4 +79,3 @@ class BloombergSourceConnector extends SourceConnector with StrictLogging {
     */
   override def version(): String = getClass.getPackage.getImplementationVersion
 }
-

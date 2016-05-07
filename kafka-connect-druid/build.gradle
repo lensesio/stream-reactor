@@ -1,0 +1,17 @@
+project(":kafka-connect-druid") {
+    repositories {
+        maven { url "https://repository.cloudera.com/artifactory/cloudera-repos/" }
+        maven { url "http://conjars.org/repo" }
+    }
+
+    ext {
+        tranquilityCoreVersion = '0.7.4'
+    }
+
+    dependencies {
+        compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
+        compile "io.druid:tranquility-core_$scalaMajorVersion:$tranquilityCoreVersion"
+        testCompile("org.kitesdk:kite-minicluster:$kiteMiniClusterVersion")
+        testCompile("org.apache.hbase:hbase-server:$hbaseServerVersion")
+    }
+}

@@ -1,0 +1,206 @@
+buildscript {
+    repositories {
+        jcenter()
+        maven {
+            url 'https://plugins.gradle.org/m2/'
+        }
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+        classpath 'com.github.maiflai:gradle-scalatest:0.9'
+        classpath 'io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.5.1'
+        classpath 'net.researchgate:gradle-release:2.3.4'
+        classpath "org.github.ngbinh.scalastyle:gradle-scalastyle-plugin_2.11:0.8.2"
+    }
+}
+
+apply plugin: 'signing'
+apply plugin: 'io.codearte.nexus-staging'
+
+allprojects {
+    group = 'com.datamountaineer'
+    version =  version
+    description = "stream-reactor"
+    apply plugin: 'java'
+    apply plugin: 'scala'
+    apply plugin: 'maven'
+    apply plugin: 'com.github.maiflai.scalatest'
+    apply plugin: 'com.github.johnrengelman.shadow'
+    apply plugin: 'net.researchgate.release'
+    apply plugin: 'scalaStyle'
+
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+
+    ext {
+        scalaMajorVersion = '2.11'
+        scala = '2.11.7'
+        scalaCheck = '1.11.1'
+        scalaTest = '2.2.6'
+        junit = '4.11'
+        confluentVersion = '2.0.1'
+        scalaLoggingVersion = '2.1.2'
+        kafkaVersion = '0.9.0.1'
+        mockitoVersion = '1.10.19'
+        jacksonDatabind = '2.7.0'
+        avroVersion = '1.8.0'
+        jacksonxmlVersion = '2.6.5'
+        slf4jVersion = "1.7.7"
+        dataMountaineerCommonVersion = "0.2.1"
+        hbaseClientVersion = "1.2.0"
+        hbaseServerVersion = "1.2.0"
+        avro4sVersion = "1.3.2"
+        json4sVersion = "3.3.0"
+        kiteMiniClusterVersion = "1.1.0"
+        gsonVersion = "2.6.2"
+    }
+
+    repositories {
+        //mavenLocal()
+        mavenCentral()
+        maven { url "http://packages.confluent.io/maven/" }
+        maven { url "http://repo.typesafe.com/typesafe/releases/" }
+        maven { url "https://repository.cloudera.com/artifactory/cloudera-repos/" }
+        maven { url "http://conjars.org/repo" }
+    }
+
+    dependencies {
+        compile "org.scala-lang:scala-library:$scala"
+        compile "org.scala-lang:scala-compiler:$scala"
+        compile "com.typesafe.scala-logging:scala-logging-slf4j_$scalaMajorVersion:$scalaLoggingVersion"
+        compile "com.fasterxml.jackson.core:jackson-core:$jacksonxmlVersion"
+        compile "org.apache.kafka:connect-api:$kafkaVersion"
+        testCompile "org.mockito:mockito-all:$mockitoVersion"
+        testCompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
+        testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
+        testCompile "junit:junit:$junit"
+        testRuntime 'org.pegdown:pegdown:1.1.0'
+    }
+
+    test {
+        maxParallelForks = 1
+        minHeapSize '256m'
+        maxHeapSize '2048m'
+    }
+
+    task testJar(type: Jar, dependsOn: testClasses) {
+        baseName = "test-${project.archivesBaseName}"
+        from sourceSets.test.output
+    }
+
+    configurations {
+        tests
+    }
+
+    task sourcesJar(type: Jar) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    task javadocJar(type: Jar) {
+        classifier = 'javadoc'
+        from javadoc
+    }
+
+
+    task scaladocJar(type: Jar) {
+        classifier = 'scaladoc'
+        from '../LICENSE'
+        from scaladoc
+    }
+
+    artifacts {
+        archives javadocJar, scaladocJar, sourcesJar
+    }
+
+    tasks.withType(Tar) {
+        compression Compression.GZIP
+        extension = 'tgz'
+    }
+
+    shadowJar {
+        transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer) {
+            resource = 'reference.conf'
+        }
+    }
+
+    task compile(dependsOn: 'compileScala')
+    task fatJar(dependsOn : ['test', 'shadowJar'])
+    task fatJarNoTest(dependsOn : 'shadowJar')
+
+    println "Building ${name}-${version}"
+
+//    signing {
+//        sign configurations.archives
+//    }
+
+    // OSSRH publication
+    if (project.hasProperty('release')) {
+        uploadArchives {
+            repositories {
+                mavenDeployer {
+                    // POM signature
+                    beforeDeployment {
+                        MavenDeployment deployment -> signing.signPom(deployment)
+                    }
+                    // Target repository
+                    repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                        authentication(userName: ossrhUsername, password: ossrhPassword)
+                    }
+                    pom.project {
+                        name project.name
+                        description project.description
+                        packaging 'jar'
+                        url 'https://github.com/datamountaineer/stream-reactor'
+
+                        scm {
+                            connection 'scm:git:https://github.com/datamountaineer/stream-reactor.git'
+                            developerConnection 'scm:git:git@github.com:datamountaineer/stream-reactor.git'
+                            url 'https://github.com/datamountaineer/stream-reactor.git'
+                        }
+
+                        licenses {
+                            license {
+                                name 'Apache License 2.0'
+                                url 'http://www.apache.org/licenses/LICENSE-2.0.html'
+                                distribution 'repo'
+                            }
+                        }
+
+                        developers {
+                            developer {
+                                id = 'andrewstevenson'
+                                name = 'Andrew Stevenson'
+                                email = 'andrew@datamountaineer.com'
+                            }
+                            developer {
+                                id = 'stheppi'
+                                name = 'Stefan Bocutiu'
+                                email = 'stefan@datamountaineer.com'
+                            }
+                            developer {
+                                id = 'Antwnis'
+                                name = 'Antonios Chalkiopoulos'
+                                email = 'antonios@datamountaineer.com'
+                            }
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+
+    nexusStaging {
+        packageGroup = project.getGroup()
+        username = ossrhUsername
+        password = ossrhPassword
+    }
+
+    scalaStyle {
+        configLocation = "${project.projectDir}/../style/scalastyle_config.xml"
+        includeTestSourceDirectory = false
+        source = "src/main/scala"
+        testSource = "src/test/scala"
+    }
+}

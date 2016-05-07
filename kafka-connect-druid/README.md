@@ -7,6 +7,9 @@ WORK IN PROGRESS
 ## Perquisites
 
 * Confluent 2.0
+* Druid Tranquility 0.7.4
+* Java 1.8 
+* Scala 2.11
 
 ## Properties
 

@@ -10,8 +10,34 @@ When the session is created it will be linked to a Bloomberg service. There are 
 
 The configuration can specify different tickers to subscribe for and for each one it can specify a different fields. See in the Properties section more details
 
+To build
+
+```bash
+gradle compile
+```
+
+To test
+
+```bash
+gradle test
+```
+
+To create a fat jar
+
+```bash
+gradle fatJar
+
+# or with no tests run
+
+gradle fatJarNoTest
+```
+
+
 ## Perquisites
 * Confluent 2.0
+* Java 1.8 
+* Scala 2.11
+* Expensive Bloomberg subscription
 
 ## Properties
 
@@ -111,4 +137,4 @@ Now you can post in your task configuration
 
 ## Improvements
   - Upgrade the bloomberg emulator api to work with the latest version of the bloomberg api
-  - Push in Avro instead of a json string - Avro4s or Kite SDK to convert to Avro or convert the whole of Bloomberg Constatnts to a massive schema
+  - Push in Avro instead of a json string - Avro4s or Kite SDK to convert to Avro or convert the whole of Bloomberg Constants to a massive schema

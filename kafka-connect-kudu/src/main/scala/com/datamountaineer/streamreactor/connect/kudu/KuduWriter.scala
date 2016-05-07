@@ -1,12 +1,26 @@
+/**
+  * Copyright 2015 Datamountaineer.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **/
+
 package com.datamountaineer.streamreactor.connect.kudu
 
 import com.datamountaineer.streamreactor.connect.KuduConverter
-import com.datamountaineer.streamreactor.connect.utils.ConverterUtil
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.kududb.client._
-
 import scala.collection.JavaConverters._
 
 /**
@@ -14,7 +28,7 @@ import scala.collection.JavaConverters._
   * stream-reactor
   */
 object KuduWriter extends StrictLogging {
-  def apply(config: KuduSinkConfig, context: SinkTaskContext) = {
+  def apply(config: KuduSinkConfig, context: SinkTaskContext)  : KuduWriter = {
     val kuduMaster = config.getString(KuduSinkConfig.KUDU_MASTER)
     logger.info(s"Connecting to Kudu Master at $kuduMaster")
     lazy val client = new KuduClient.KuduClientBuilder(kuduMaster).build()
@@ -22,9 +36,8 @@ object KuduWriter extends StrictLogging {
   }
 }
 
-class KuduWriter(client: KuduClient, context: SinkTaskContext) extends StrictLogging with KuduConverter with ConverterUtil {
+class KuduWriter(client: KuduClient, context: SinkTaskContext) extends StrictLogging with KuduConverter {
   logger.info("Initialising Kudu writer")
-  require(context !=null, "Context can not be null!")
   private val topics = context.assignment().asScala.map(c=>c.topic()).toList
   logger.info(s"Assigned topics ${topics.mkString(",")}")
   private lazy val kuduTableInserts = buildTableCache(topics)
@@ -39,8 +52,13 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends StrictLog
     * @return A Map of topic -> KuduRowInsert
     **/
   private def buildTableCache(topics: List[String]): Map[String, KuduTable] = {
-    val missing = topics.filter(t=> !client.tableExists(t)).map(f=>logger.error("Missing kudu table for topic $f"))
-    if (missing.isEmpty) throw new ConnectException(s"Not tables found in Kudu for topics ${missing.mkString(",")}")
+    val missing = topics
+                      .filter(t=> !client.tableExists(t))
+                      .map(f=>{
+                        logger.error("Missing kudu table for topic $f")
+                        f
+                      })
+    if (missing.isEmpty) throw new ConnectException(s"No tables found in Kudu for topics ${missing.mkString(",")}")
     topics.map(t =>(t,client.openTable(t))).toMap
   }
 
@@ -49,16 +67,13 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends StrictLog
     *
     * @param records A list of SinkRecords to write
     * */
-  def write(records: List[SinkRecord]) = {
+  def write(records: List[SinkRecord]) : Unit = {
     //group the records by topic to get a map [string, list[sinkrecords]]
     val grouped = records.groupBy(_.topic())
     //for each group get a new insert, convert and apply
-    grouped.foreach(g=>
-      {
-        applyInsert(g._1, g._2, session)
-        logger.info(s"Written ${records.size} for ${g._1}")
-      }
-    )
+    grouped.foreach {
+      case (topic, entries) => applyInsert(topic, entries, session)
+    }
     flush()
   }
 
@@ -72,12 +87,13 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends StrictLog
     records
       .map(r=>convert(r, table))
       .foreach(i=>session.apply(i))
+    logger.info(s"Written ${records.size} for $topic")
   }
 
   /**
     * Close the Kudu session and client
     * */
-  def close() = {
+  def close() : Unit = {
     logger.info("Closing Kudu Session and Client")
     flush()
     if (!session.isClosed) session.close()
@@ -88,7 +104,7 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends StrictLog
     * Force the session to flush it's buffers.
     *
     * */
-  def flush() = {
+  def flush() : Unit = {
     session.flush()
   }
 }

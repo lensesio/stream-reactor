@@ -7,6 +7,31 @@ The Sink creates an Index and Type corresponding to the topic name and uses the 
 ## Perquisites
 * Confluent 2.0
 * Elastic Search 2.2
+* Java 1.8 
+* Scala 2.11
+
+To build
+
+```bash
+gradle compile
+```
+
+To test
+
+```bash
+gradle test
+```
+
+To create a fat jar
+
+```bash
+gradle fatJar
+
+# or with no tests run
+
+gradle fatJarNoTest
+```
+
 
 ## Properties
 
