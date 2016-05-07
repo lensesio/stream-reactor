@@ -1,4 +1,4 @@
-![](../../images/DM-logo.jpg)
+![](../images/DM-logo.jpg)
 
 # Kafka Connect Cassandra
 
