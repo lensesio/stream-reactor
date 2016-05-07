@@ -1,17 +1,17 @@
-## Kafka Connect Hbase
+## Kafka Connect Redis
 
 A Connector and Sink to write events from Kafka to Redis. The connector takes the value from the Kafka Connect SinkRecords and inserts a new entry to Redis.
 
-When inserting a row in Hbase you need a row key. There are 3 different settings:
+When inserting a row in redis you need a row key. There are 3 different settings:
 *SINK_RECORD - it grabs the SinkRecord.keyValue
 *GENERIC - It combines the SinkRecord kafka topic, kafka offset and kafka partition to form the key
 *FIELDS - It combines all the specified payload fields to form the row key.
 
-The task expects the table in HBase to exist. By default all the fields in the record would be added to the hbase table and column familty. However you can specify the fields to insert and the column to insert to (see the configuration table below).
+The task expects the table in Redis to exist. By default all the fields in the record would be added to the redis table and column familty. However you can specify the fields to insert and the column to insert to (see the configuration table below).
 
 ## Perquisites
 
-* Hbase 1.2.0
+* Jedis 2.8.1
 * Confluent 2.0
 * Java 1.8 
 * Scala 2.11
@@ -25,14 +25,14 @@ In addition to the default topics configuration the following options are added:
 | connect.redis.sink.connection.host| String | Yes | Specifies the Redis server |
 | connect.redis.sink.connection.port| String | Yes | Specifies the Redis server port number |
 | connect.redis.sink.connection.password| String |  | Specifies the authorization password |
-| connect.redis.sink.key.mode | String | Yes | There are three available modes: SINK_RECORD, FIELDS and GENERIC. SINK_RECORD - uses the SinkRecord.keyValue as the Hbase row key; FIELDS - combines the specified payload (kafka connect Struct instance) fields to make up the Hbase row key; GENERIC- combines the kafka topic, offset and partition to build the Hbase row key. |
+| connect.redis.sink.key.mode | String | Yes | There are three available modes: SINK_RECORD, FIELDS and GENERIC. SINK_RECORD - uses the SinkRecord.keyValue as the redis row key; FIELDS - combines the specified payload (kafka connect Struct instance) fields to make up the redis row key; GENERIC- combines the kafka topic, offset and partition to build the redis row key. |
 | connect.redis.sink.keys | String | | If row key mode is set to FIELDS this setting is required. Multiple fields can be specified by separating them via a comma; The fields are combined using a key separator by default is set to <\\n>. |
 |connect.redis.sink.fields | String | | Specifies which fields to consider when inserting the new Redis entry. If is not set it will take all the fields present in the payload. Field mapping is supported; this way a payload field can be inserted into a 'mapped' column. If this setting is not present it will insert all fields.  Examples: * fields to be used:field1,field2,field3; - Only! field1,field2 and field3 will be inserted ** fields with mapping: field1=alias1,field2,field3=alias3 - Only! field1, field2 and field3 will be inserted *** fields with mapping:*,field3=alias - All fields are inserted but field3 will be inserted as 'alias' |
 
-Example hbase.properties file
+Example redis.properties file
 
 ```bash
-name=redis-hbase
+name=redis
 connect.redis.sink.key.mode=FIELDS
 connect.redis.sink.keys=firstName,lastName
 connect.redis.sink.fields=firstName,lastName,age,salary=income
