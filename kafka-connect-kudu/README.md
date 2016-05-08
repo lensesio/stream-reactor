@@ -45,7 +45,7 @@ In addition to the default topics configuration the following options are added:
 
 name | data type | required | description
 -----|-----------|----------|------------
-kudu.master | string | yes | Kudu master host and port
+connect.kudu.master | string | yes | Kudu master host and port
 
 
 Example connector.properties file
@@ -54,7 +54,7 @@ Example connector.properties file
 name=kudu-sink
 connector.class=com.datamountaineer.streamreactor.connect.kudu.KuduSinkConnector
 tasks.max=1
-kudu.master=quickstart
+connect.kudu.master=quickstart
 topics=kudu_test
 ```
 

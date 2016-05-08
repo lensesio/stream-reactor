@@ -14,4 +14,12 @@ target/
 /kafka-connect-bloomberg/kafka-connect-bloomberg.iml
 /kafka-connect-cassandra/kafka-connect-cassandra.iml
 
+/kafka-connect-hbase/docs/build
+/kafka-connect-druid/docs/build
+/kafka-connect-bloomberg/docs/build
+/kafka-connect-kudu/docs/build
+/kafka-connect-redis/docs/build
+/kafka-socket-streamer/docs/build
+/kafka-connect-elastic/docs/build
+/kafka-connect-cassandra/docs/build
 /.gradle

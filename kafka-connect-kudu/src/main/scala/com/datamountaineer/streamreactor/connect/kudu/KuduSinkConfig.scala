@@ -27,7 +27,7 @@ import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
   */
 
 object KuduSinkConfig {
-  val KUDU_MASTER = "kudu.master"
+  val KUDU_MASTER = "connect.kudu.master"
   val KUDU_MASTER_DOC = "Kudu master cluster."
   val KUDU_MASTER_DEFAULT = "localhost"
 

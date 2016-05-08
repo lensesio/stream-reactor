@@ -21,10 +21,10 @@ import io.confluent.common.config.ConfigDef.{Importance, Type}
 import io.confluent.common.config.{AbstractConfig, ConfigDef}
 
 object ElasticSinkConfig {
-  val URL = "elastic.url"
+  val URL = "connect.elastic.url"
   val URL_DOC = "Url including port for Elastic Search cluster node."
   val URL_DEFAULT = "localhost:9300"
-  val ES_CLUSTER_NAME = "elastic.cluster.name"
+  val ES_CLUSTER_NAME = "connect.elastic.cluster.name"
   val ES_CLUSTER_NAME_DEFAULT = "elasticsearch"
   val ES_CLUSTER_NAME_DOC = "Name of the elastic search cluster, used in local mode for setting the connection"
   val URL_PREFIX = "elastic.url.prefix"
