@@ -1,4 +1,4 @@
-[![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://streamreactor.readthedocs.org/en/latest/?badge=latest)
+![](../images/DM-logo.jpg)
 
 # Kafka Connect Elastic
 

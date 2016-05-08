@@ -1,3 +1,5 @@
+![](../images/DM-logo.jpg)
+
 # Kafka Connect Kudu
 
 A Connector and Sink to write events from Kafka to Kudu. 
