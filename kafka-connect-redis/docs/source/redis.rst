@@ -19,22 +19,46 @@ Setup
 Redis Setup
 ~~~~~~~~~~~
 
+Download and install Redis.
+
+.. code:: bash
+
+    ➜  wget http://download.redis.io/redis-stable.tar.gz
+    ➜  tar xvzf redis-stable.tar.gz
+    ➜  cd redis-stable
+    ➜  sudo make install
+
+
+Start Redis
+
+.. code:: bash
+
+    ➜  bin/redis-server
+
+Check Redis is running:
+
+.. code:: bash
+
+    ➜  redis-cli ping
+        PONG
+    ➜  sudo service redis-server status
+
 Confluent Setup
 ~~~~~~~~~~~~~~~
 
 .. code:: bash
 
     #make confluent home folder
-    mkdir confluent
+    ➜  mkdir confluent
 
     #download confluent
-    wget http://packages.confluent.io/archive/2.0/confluent-2.0.1-2.11.7.tar.gz
+    ➜  wget http://packages.confluent.io/archive/2.0/confluent-2.0.1-2.11.7.tar.gz
 
     #extract archive to confluent folder
-    tar -xvf confluent-2.0.1-2.11.7.tar.gz -C confluent
+    ➜  tar -xvf confluent-2.0.1-2.11.7.tar.gz -C confluent
 
     #setup variables
-    export CONFLUENT_HOME=~/confluent/confluent-2.0.1
+    ➜  export CONFLUENT_HOME=~/confluent/confluent-2.0.1
 
 Enable topic deletion.
 
@@ -50,9 +74,9 @@ Start the Confluent platform.
 .. code:: bash
 
     #Start the confluent platform, we need kafka, zookeeper and the schema registry
-    bin/zookeeper-server-start etc/kafka/zookeeper.properties &
-    bin/kafka-server-start etc/kafka/server.properties &
-    bin/schema-registry-start etc/schema-registry/schema-registry.properties &
+    ➜  bin/zookeeper-server-start etc/kafka/zookeeper.properties &
+    ➜  bin/kafka-server-start etc/kafka/server.properties &
+    ➜  bin/schema-registry-start etc/schema-registry/schema-registry.properties &
 
 Build the Connector and CLI
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -66,20 +90,17 @@ If you want to build the connector, clone the repo and build the jar.
 .. code:: bash
 
     ##Build the connectors
-    git clone https://github.com/datamountaineer/stream-reactor
-    cd stream-reactor
-    gradle fatJar
+    ➜  git clone https://github.com/datamountaineer/stream-reactor
+    ➜  cd stream-reactor
+    ➜  gradle fatJar
 
     ##Build the CLI for interacting with Kafka connectors
-    git clone https://github.com/datamountaineer/kafka-connect-tools
-    cd kafka-connect-tools
-    gradle fatJar
+    ➜  git clone https://github.com/datamountaineer/kafka-connect-tools
+    ➜  cd kafka-connect-tools
+    ➜  gradle fatJar
 
 Sink Connector QuickStart
 -------------------------
-
-Test data
-~~~~~~~~~
 
 Sink Connector Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -117,10 +138,9 @@ This configuration defines:
 3.  The fields to extract from the source topics payload to form the Redis key.
 4.  The fields to extract from the source topic payload to write to Redis.
 5.  The name of the redis host to connect to.
-5.  The redis port to connect to.
+6.  The redis port to connect to.
 7.  The sink class.
-8.  The max number of tasks the connector is allowed to created. Should not be greater than the number of partitions in the source topics
-    otherwise tasks will be idle.
+8.  The max number of tasks the connector is allowed to created. Should not be greater than the number of partitions in the source topicsotherwise tasks will be idle.
 9.  The source kafka topics to take events from.
 
 Starting the Sink Connector (Standalone)
@@ -143,15 +163,83 @@ We can use the CLI to check if the connector is up but you should be able to see
 
     ➜ java -jar build/libs/kafka-connect-cli-0.2-all.jar get redis-sink
 
-Insert Test Data
-~~~~~~~~~~~~~~~~
+    #Connector name=`redis-sink`
+    connect.redis.sink.key.mode=FIELDS
+    connect.redis.sink.keys=firstName,lastName
+    connect.redis.sink.fields=firstName,lastName,age,salary=income
+    connect.redis.connection.host=localhost
+    connect.redis.connection.port=6379
+    connector.class=com.datamountaineer.streamreactor.connect.redis.sink.RedisSinkConnector
+    tasks.max=1
+    topics=person_redis
+    #task ids: 0
+
+.. code:: bash
+
+    [2016-05-08 22:37:05,616] INFO
+     ____              __                                                 __
+    /\  _`\           /\ \__              /'\_/`\                        /\ \__           __
+    \ \ \/\ \     __  \ \ ,_\    __      /\      \    ___   __  __    ___\ \ ,_\    __   /\_\    ___      __     __   _ __
+     \ \ \ \ \  /'__`\ \ \ \/  /'__`\    \ \ \__\ \  / __`\/\ \/\ \ /' _ `\ \ \/  /'__`\ \/\ \ /' _ `\  /'__`\ /'__`\/\`'__\
+      \ \ \_\ \/\ \L\.\_\ \ \_/\ \L\.\_   \ \ \_/\ \/\ \L\ \ \ \_\ \/\ \/\ \ \ \_/\ \L\.\_\ \ \/\ \/\ \/\  __//\  __/\ \ \/
+    \ \____/\ \__/.\_\\ \__\ \__/.\_\   \ \_\\ \_\ \____/\ \____/\ \_\ \_\ \__\ \__/.\_\\ \_\ \_\ \_\ \____\ \____\\ \_\
+        \/___/  \/__/\/_/ \/__/\/__/\/_/    \/_/ \/_/\/___/  \/___/  \/_/\/_/\/__/\/__/\/_/ \/_/\/_/\/_/\/____/\/____/ \/_/
+
+
+     ____               __                  ____                __
+    /\  _`\            /\ \  __            /\  _`\   __        /\ \
+    \ \ \L\ \     __   \_\ \/\_\    ____   \ \,\L\_\/\_\    ___\ \ \/'\ By Stefan Bocutiu
+     \ \ ,  /   /'__`\ /'_` \/\ \  /',__\   \/_\__ \\/\ \ /' _ `\ \ , <
+      \ \ \\ \ /\  __//\ \L\ \ \ \/\__, `\    /\ \L\ \ \ \/\ \/\ \ \ \\`\
+    \ \_\ \_\ \____\ \___,_\ \_\/\____/    \ `\____\ \_\ \_\ \_\ \_\ \_\
+        \/_/\/ /\/____/\/__,_ /\/_/\/___/      \/_____/\/_/\/_/\/_/\/_/\/_/
+           (com.datamountaineer.streamreactor.connect.redis.sink.RedisSinkTask:41)
+    [2016-05-08 22:37:05,617] INFO RedisSinkConfig values:
+        connect.redis.connection.port = 6379
+        connect.redis.sink.fields = firstName,lastName,age,salary=income
+        connect.redis.sink.keys = firstName,lastName
+        connect.redis.connection.host = localhost
+        connect.redis.sink.key.mode = FIELDS
+     (com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkConfig:165)
+    [2016-05-08 22:37:05,641] INFO Settings:
+    RedisSinkSettings(RedisConnectionInfo(localhost,6379,None),RedisKey(FIELDS,WrappedArray(firstName, lastName)),PayloadFields(false,Map(firstName -> firstName, lastName -> lastName, age -> age, salary -> income)))
+           (com.datamountaineer.streamreactor.connect.redis.sink.RedisSinkTask:65)
+    [2016-05-08 22:37:05,687] INFO Sink task org.apache.kafka.connect.runtime.WorkerSinkTask@44b24eaa finished initialization and start (org.apache.kafka.connect.runtime.WorkerSinkTask:155)
+
+
+Test Records
+^^^^^^^^^^^^
+
+Now we need to put some records it to the test_table topics. We can use the ``kafka-avro-console-producer`` to do this.
+
+Start the producer and pass in a schema to register in the Schema Registry. The schema has a ``firstname`` field of type string
+a ``lastnamme`` field of type string, an ``age`` field of type int and a ``salary`` field of type double.
+
+.. code:: bash
+
+    bin/kafka-avro-console-producer \
+      --broker-list localhost:9092 --topic person_redis \
+      --property value.schema='{"type":"record","name":"User","namespace":"com.datamountaineer.streamreactor.connect.redis","fields":[{"name":"firstName","type":"string"},{"name":"lastName","type":"string"},{"name":"age","type":"int"},{"name":"salary","type":"double"}]}'
+
+Now the producer is waiting for input. Paste in the following:
+
+.. code:: bash
+
+    {"firstName": "John", "lastName": "Smith", "age":30, "salary": 4830}
+    {"firstName": "Anna", "lastName": "Jones", "age":28, "salary": 5430}
 
 Check for records in Redis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Now check the logs of the connector you should see this
+Now check the logs of the connector you should see this:
 
-... code:: bash
+.. code:: bash
+
+Check the Redis.
+
+.. code:: bash
+
+    redis-cli
 
 Now stop the connector.
 
@@ -176,7 +264,7 @@ configurations.
 
 .. code:: bash
 
-    ➜  confluent-2.0.1/bin/connect-distributed etc/schema-registry/connect-avro-distributed.properties 
+    ➜  confluent-2.0.1/bin/connect-distributed confluent-2.0.1/etc/schema-registry/connect-avro-distributed.properties
 
 Once the connector has started lets use the kafka-connect-tools cli to
 post in our distributed properties file.
@@ -188,9 +276,6 @@ post in our distributed properties file.
 If you switch back to the terminal you started the Connector in you
 should see the Redis sink being accepted and the task starting.
 
-Check the logs.
-
-Check Kafka.
 
 Features
 --------

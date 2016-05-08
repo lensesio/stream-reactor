@@ -239,15 +239,15 @@ We can use the CLI to check if the connector is up but you should be able to see
 
     ➜ java -jar build/libs/kafka-connect-cli-0.2-all.jar get cassandra-source-orders
     #Connector `cassandra-source-orders`:
-    cassandra.key.space=demo
+    connect.cassandra.key.space=demo
     name=cassandra-source-orders
-    cassandra.import.mode=bulk
+    connect.cassandra.import.mode=bulk
     connector.class=com.datamountaineer.streamreactor.connect.cassandra.source.CassandraSourceConnector
-    cassandra.authentication.mode=username_password
-    cassandra.contact.points=localhost
-    cassandra.username=cassandra
-    cassandra.password=cassandra
-    cassandra.import.map=orders:orders-topic
+    connect.cassandra.authentication.mode=username_password
+    connect.cassandra.contact.points=localhost
+    connect.cassandra.username=cassandra
+    connect.cassandra.password=cassandra
+    connect.cassandra.import.map=orders:orders-topic
     #task ids: 0
 
 Check for Source Records in Kafka
@@ -366,7 +366,7 @@ configurations.
 
 .. code:: bash
 
-    ➜  confluent-2.0.1/bin/connect-distributed etc/schema-registry/connect-avro-distributed.properties 
+    ➜  confluent-2.0.1/bin/connect-distributed confluent-2.0.1/etc/schema-registry/connect-avro-distributed.properties
 
 Once the connector has started lets use the kafka-connect-tools cli to
 post in our incremental properties file.
@@ -376,16 +376,16 @@ post in our incremental properties file.
     ➜  java -jar build/libs/kafka-connect-cli-0.2-all.jar create cassandra-source-orders < cassandra-source-incr-orders.properties
 
     #Connector `cassandra-source-orders`:
-    cassandra.key.space=demo
+    connect.cassandra.key.space=demo
     name=cassandra-source-orders
-    cassandra.import.mode=incremental
+    connect.cassandra.import.mode=incremental
     connector.class=com.datamountaineer.streamreactor.connect.cassandra.source.CassandraSourceConnector
-    cassandra.authentication.mode=username_password
-    cassandra.contact.points=localhost
-    cassandra.username=cassandra
-    cassandra.password=cassandra
-    cassandra.import.map=orders:orders-topic
-    cassandra.import.timestamp.column=orders:created
+    connect.cassandra.authentication.mode=username_password
+    connect.cassandra.contact.points=localhost
+    connect.cassandra.username=cassandra
+    connect.cassandra.password=cassandra
+    connect.cassandra.import.map=orders:orders-topic
+    connect.cassandra.import.timestamp.column=orders:created
     #task ids: 0
 
 If you switch back to the terminal you started the Connector in you
@@ -589,7 +589,7 @@ post in our distributed properties file.
 
 Now check the logs to see if we started the sink.
 
-:.. code:: bash
+.. code:: bash
 
     [2016-05-06 13:52:28,178] INFO 
         ____        __        __  ___                  __        _
@@ -835,44 +835,44 @@ Source Connector Configurations
 
 Configurations options specific to the source connector are:
 
-+-------------------------------------+-----------+----------+----------------------------------+
-| name                                | data type | required | description                      |
-+=====================================+===========+==========+==================================+
-||connect.cassandra.import.poll.      | int       | no       || The polling interval            |
-||interval                            |           |          || between queries against tables  |
-|                                     |           |          || for bulk mode in milliseconds.  |
-|                                     |           |          || Default is 1 minute.            |
-|                                     |           |          || WATCH OUT WITH BULK MODE AS     |
-|                                     |           |          || MAY REPEATEDLY PULL IN THE      |
-|                                     |           |          || SAME DATE.                      |
-+-------------------------------------+-----------+----------+----------------------------------+
-|connect.cassandra.import.mode        | string    | yes      || Either bulk or incremental      |
-+-------------------------------------+-----------+----------+----------------------------------+
-||connect.cassandra.import.timestamp. | string    | yes      || Name of the timestamp column in |
-||column                              |           |          || the cassandra table to use      |
-|                                     |           |          || identify deltas.                |
-|                                     |           |          || table1:col,table2:col.          |
-|                                     |           |          || MUST BE OF TYPE TIMEUUID        |
-+-------------------------------------+-----------+----------+----------------------------------+
-|connect.cassandra.import.table.map   | string    | yes      || Table to Topic map for import in|
-|                                     |           |          || format table1=topic1,           |
-|                                     |           |          || table2=topic2, if the topic left|
-|                                     |           |          || blank table name is used.       |
-+-------------------------------------+-----------+----------+----------------------------------+
-|| connect.cassandra.import.source.   |  string   |   no     || Enable ALLOW FILTERING in       |
-|| allow.filtering                    |           |          || incremental selects. Default is |
-|                                     |           |          || true                            |
-+-------------------------------------+-----------+----------+----------------------------------+
-|connect.cassandra.import.fetch.size  | int       | no       || The fetch size for the Cassandra|
-|                                     |           |          || driver to read. Default is 1000.|
-+-------------------------------------+-----------+----------+----------------------------------+
-|| connect.cassandra.source.task.     | int       | no       || The size of the queue as read   |
-|| buffer.size                        |           |          || writes to. Default 10000.       |
-+-------------------------------------+-----------+----------+----------------------------------+
-|| connect.cassandra.source.task.     | int       | no       || The number of records the source|
-|| batch.size                         |           |          || task should drain from the      |
-|                                     |           |          || reader queue.                   |
-+-------------------------------------+-----------+----------+----------------------------------+
++---------------------------------+-----------+----------+----------------------------------+
+| name                            | data type | required | description                      |
++=================================+===========+==========+==================================+
+|| connect.cassandra.import.poll. | Int       | No       || The polling interval            |
+|| poll.interval                  |           |          || between queries against tables  |
+|                                 |           |          || for bulk mode in milliseconds.  |
+|                                 |           |          || Default is 1 minute.            |
+|                                 |           |          || WATCH OUT WITH BULK MODE AS     |
+|                                 |           |          || MAY REPEATEDLY PULL IN THE      |
+|                                 |           |          || SAME DATE.                      |
++---------------------------------+-----------+----------+----------------------------------+
+|connect.cassandra.import.mode    | String    | Yes      || Either bulk or incremental      |
++---------------------------------+-----------+----------+----------------------------------+
+|| connect.cassandra.import.      | String    | Yes      || Name of the timestamp column in |
+|| timestamp.column               |           |          || the cassandra table to use      |
+|                                 |           |          || identify deltas.                |
+|                                 |           |          || table1:col,table2:col.          |
+|                                 |           |          || MUST BE OF TYPE TIMEUUID        |
++---------------------------------+-----------+----------+----------------------------------+
+|| connect.cassandra.import.      | String    | Yes      || Table to Topic map for import in|
+|| table.map                      |           |          || format table1=topic1,           |
+|                                 |           |          || table2=topic2, if the topic left|
+|                                 |           |          || blank table name is used.       |
++---------------------------------+-----------+----------+----------------------------------+
+|| connect.cassandra.import.      | String    | No       || Enable ALLOW FILTERING in       |
+|| source.allow.filtering         |           |          || incremental selects. Default is |
+|                                 |           |          || true                            |
++---------------------------------+-----------+----------+----------------------------------+
+|| connect.cassandra.import.      | Int       | No       || The fetch size for the Cassandra|
+|| fetch.size                     |           |          || driver to read. Default is 1000.|
++---------------------------------+-----------+----------+----------------------------------+
+|| connect.cassandra.source.task. | Int       | No       || The size of the queue as read   |
+|| buffer.size                    |           |          || writes to. Default 10000.       |
++---------------------------------+-----------+----------+----------------------------------+
+|| connect.cassandra.source.task. | Int       | No       || The number of records the source|
+|| batch.size                     |           |          || task should drain from the      |
+|                                 |           |          || reader queue.                   |
++---------------------------------+-----------+----------+----------------------------------+
 
 
 Bulk Example
@@ -914,7 +914,7 @@ Configurations options specific to the sink connector are:
 +----------------------+-----------+----------+-----------------------------------------+
 |name                  | data type | required | description                             |
 +======================+===========+==========+=========================================+
-|| connect.cassandra.  | string    | yes      || Topic to Table map for import          |
+|| connect.cassandra.  | String    | Yes      || Topic to Table map for import          |
 || export.map          |           |          || format topic1:table1, if the table     |
 |                      |           |          || left blank topic name is used.         |
 +----------------------+-----------+----------+-----------------------------------------+

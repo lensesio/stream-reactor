@@ -21,6 +21,12 @@ Setup
 Kudu Setup
 ~~~~~~~~~~~
 
+Download and check Kudu QuickStart VM starts up.
+
+.. code:: bash
+
+    curl -s https://raw.githubusercontent.com/cloudera/kudu-examples/master/demo-vm-setup/bootstrap.sh | bash
+
 Confluent Setup
 ~~~~~~~~~~~~~~~
 
@@ -80,8 +86,24 @@ If you want to build the connector, clone the repo and build the jar.
 Sink Connector QuickStart
 -------------------------
 
-Test data
-~~~~~~~~~
+Kudu Table
+~~~~~~~~~~
+
+The sink currently expects precreated tables in Kudu.
+
+
+.. code:: bash
+
+    #demo/demo
+    ssh demo@quickstart -t impala-shell
+
+    CREATE TABLE default.kudu_test (id INT,random_field STRING  ) \
+    > TBLPROPERTIES ('kudu.master_addresses'='127.0.0.1', 'kudu.key_columns'='id', \
+    > 'kudu.table_name'='kudu_test', 'transient_lastDdlTime'='1456744118', \
+    > 'storage_handler'='com.cloudera.kudu.hive.KuduStorageHandler')
+    exit;
+
+.. note:: The sink will fail to start if the tables matching the topics do not already exist.
 
 Sink Connector Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -116,6 +138,7 @@ This configuration defines:
     otherwise tasks will be idle.
 4.  The source kafka topics to take events from.
 
+
 Starting the Sink Connector (Standalone)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -134,17 +157,113 @@ We can use the CLI to check if the connector is up but you should be able to see
 
 .. code:: bash
 
-    ➜ java -jar build/libs/kafka-connect-cli-0.2-all.jar get Kudu-sink
+    ➜ java -jar build/libs/kafka-connect-cli-0.2-all.jar get kudu-sink
 
-Insert Test Data
-~~~~~~~~~~~~~~~~
+    #Connector name=kudu-sink
+    connector.class=com.datamountaineer.streamreactor.connect.kudu.KuduSinkConnector
+    tasks.max=1
+    connect.kudu.master=quickstart
+    topics=kudu_test
+    #task ids: 0
+
+ .. code:: bash
+
+    [2016-05-08 22:00:20,823] INFO
+        ____        __        __  ___                  __        _
+    / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
+    / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
+     / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
+    /_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
+           __ __          __      _____ _       __
+    / //_/_  ______/ /_  __/ ___/(_)___  / /__
+    / ,< / / / / __  / / / /\__ \/ / __ \/ //_/
+        / /| / /_/ / /_/ / /_/ /___/ / / / / / ,<
+       /_/ |_\__,_/\__,_/\__,_//____/_/_/ /_/_/|_|
+
+
+    by Andrew Stevenson
+           (com.datamountaineer.streamreactor.connect.kudu.KuduSinkTask:37)
+    [2016-05-08 22:00:20,823] INFO KuduSinkConfig values:
+        connect.kudu.master = quickstart
+     (com.datamountaineer.streamreactor.connect.kudu.KuduSinkConfig:165)
+    [2016-05-08 22:00:20,824] INFO Connecting to Kudu Master at quickstart (com.datamountaineer.streamreactor.connect.kudu.KuduWriter$:33)
+    [2016-05-08 22:00:20,875] INFO Initialising Kudu writer (com.datamountaineer.streamreactor.connect.kudu.KuduWriter:40)
+    [2016-05-08 22:00:20,892] INFO Assigned topics  (com.datamountaineer.streamreactor.connect.kudu.KuduWriter:42)
+    [2016-05-08 22:00:20,904] INFO Sink task org.apache.kafka.connect.runtime.WorkerSinkTask@b60ba7b finished initialization and start (org.apache.kafka.connect.runtime.WorkerSinkTask:155)
+
+Test Records
+^^^^^^^^^^^^
+
+Now we need to put some records it to the test_table topics. We can use the ``kafka-avro-console-producer`` to do this.
+
+Start the producer and pass in a schema to register in the Schema Registry. The schema has a ``id`` field of type int
+and a ``random_field`` of type string.
+
+.. code:: bash
+
+    bin/kafka-avro-console-producer \
+    > --broker-list localhost:9092 --topic kudu_test \
+    > --property value.schema='{"type":"record","name":"myrecord","fields":[{"name":"id","type":"int"}, {"name":"random_field", "type": "string"}]}'
+
+Now the producer is waiting for input. Paste in the following:
+
+.. code:: bash
+
+    {"id": 999, "random_field": "foo"}
+    {"id": 888, "random_field": "bar"}
 
 Check for records in Kudu
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Now check the logs of the connector you should see this
+Now check the logs of the connector you should see this:
 
-... code:: bash
+.. code:: bash
+
+    [2016-05-08 22:09:22,065] INFO
+        ____        __        __  ___                  __        _
+    / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
+    / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
+     / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
+    /_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
+           __ __          __      _____ _       __
+    / //_/_  ______/ /_  __/ ___/(_)___  / /__
+    / ,< / / / / __  / / / /\__ \/ / __ \/ //_/
+        / /| / /_/ / /_/ / /_/ /___/ / / / / / ,<
+       /_/ |_\__,_/\__,_/\__,_//____/_/_/ /_/_/|_|
+
+
+    by Andrew Stevenson
+           (com.datamountaineer.streamreactor.connect.kudu.KuduSinkTask:37)
+    [2016-05-08 22:09:22,065] INFO KuduSinkConfig values:
+        connect.kudu.master = quickstart
+     (com.datamountaineer.streamreactor.connect.kudu.KuduSinkConfig:165)
+    [2016-05-08 22:09:22,066] INFO Connecting to Kudu Master at quickstart (com.datamountaineer.streamreactor.connect.kudu.KuduWriter$:33)
+    [2016-05-08 22:09:22,116] INFO Initialising Kudu writer (com.datamountaineer.streamreactor.connect.kudu.KuduWriter:40)
+    [2016-05-08 22:09:22,134] INFO Assigned topics kudu_test (com.datamountaineer.streamreactor.connect.kudu.KuduWriter:42)
+    [2016-05-08 22:09:22,148] INFO Sink task org.apache.kafka.connect.runtime.WorkerSinkTask@68496440 finished initialization and start (org.apache.kafka.connect.runtime.WorkerSinkTask:155)
+    [2016-05-08 22:09:22,276] WARN Slow DNS lookup!  Resolved IP of `quickstart' to 192.168.56.101 in 6704556ns (org.kududb.client.AsyncKuduClient:1711)
+    [2016-05-08 22:09:22,432] INFO Discovered tablet Kudu Master for table Kudu Master with partition ["", "") (org.kududb.client.AsyncKuduClient:1230)
+    [2016-05-08 22:09:22,476] INFO Written 2 for kudu_test (com.datamountaineer.streamreactor.connect.kudu.KuduWriter:90)
+    [2016-05-08 22:09:22,476] INFO Discovered tablet 8340243e03ea4381b680d497be9a6c5e for table kudu_test with partition ["", "") (org.kududb.client.AsyncKuduClient:1230)
+    [2016-05-08 22:09:23,555] WARN Slow DNS lookup!  Resolved IP of `quickstart.cloudera' to 192.168.56.101 in 1078859124ns (org.kududb.client.AsyncKuduClient:1711)
+
+In Kudu:
+
+.. code:: bash
+
+    #demo/demo
+    ssh demo@quickstart -t impala-shell
+
+    SELECT * FROM kudu_test;
+
+    Query: select * FROM kudu_test
+    +-----+--------------+
+    | id  | random_field |
+    +-----+--------------+
+    | 888 | bar          |
+    | 999 | foo          |
+    +-----+--------------+
+    Fetched 2 row(s) in 0.14s
 
 Now stop the connector.
 
@@ -169,7 +288,7 @@ configurations.
 
 .. code:: bash
 
-    ➜  confluent-2.0.1/bin/connect-distributed etc/schema-registry/connect-avro-distributed.properties 
+    ➜  confluent-2.0.1/bin/connect-distributed confluent-2.0.1/etc/schema-registry/connect-avro-distributed.properties
 
 Once the connector has started lets use the kafka-connect-tools cli to
 post in our distributed properties file.
@@ -181,9 +300,7 @@ post in our distributed properties file.
 If you switch back to the terminal you started the Connector in you
 should see the Kudu sink being accepted and the task starting.
 
-Check the logs.
-
-Check Kafka.
+Insert the records as before to have them written to Kudu.
 
 Features
 --------
@@ -192,11 +309,11 @@ Features
 Configurations
 --------------
 
-+---------------------+-----------+----------+----------------------------+
-| name                | data type | required | description                |
-+=====================+===========+==========+============================+
-||connect.kudu.master | String    | Yes      || Specifies the Kudu server.|
-+---------------------+-----------+----------+----------------------------+
++----------------------+-----------+----------+----------------------------+
+| name                 | data type | required | description                |
++======================+===========+==========+============================+
+|| connect.kudu.master | String    | Yes      || Specifies the Kudu server.|
++----------------------+-----------+----------+----------------------------+
 
 Example
 ~~~~~~~

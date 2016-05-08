@@ -78,8 +78,14 @@ If you want to build the connector, clone the repo and build the jar.
 Sink Connector QuickStart
 -------------------------
 
-Test data
-~~~~~~~~~
+HBase Table
+~~~~~~~~~~~
+
+The sink expects a precreated table in HBase. In the HBase shell create the test table:
+
+.. code:: bash
+
+    create 'person',{NAME=>'d', VERSIONS=>1}
 
 Sink Connector Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -106,7 +112,7 @@ hbase-sink.properties with the contents below:
     connector.class=com.datamountaineer.streamreactor.connect.hbase.HbaseSinkConnector
     tasks.max=1
     topics=person_hbase
-    connect.hbase.sink.table.name=person
+    connect.hbase.sink.table.name=person_hbase
     connect.hbase.sink.column.family=d
     connect.hbase.sink.key=firstName,lastName
 
@@ -120,7 +126,7 @@ This configuration defines:
     otherwise tasks will be idle.
 6.  The source kafka topics to take events from.
 7.  The HBase table to write to.
-8.  The Hbase column family to write to.
+8.  The HBase column family to write to.
 9.  The topic payload fields to use and the row key in Hbase.
 
 Starting the Sink Connector (Standalone)
@@ -143,8 +149,27 @@ We can use the CLI to check if the connector is up but you should be able to see
 
     ➜ java -jar build/libs/kafka-connect-cli-0.2-all.jar get hbase-sink
 
-Insert Test Data
-~~~~~~~~~~~~~~~~
+
+Test Records
+^^^^^^^^^^^^
+
+Now we need to put some records it to the test_table topics. We can use the ``kafka-avro-console-producer`` to do this.
+
+Start the producer and pass in a schema to register in the Schema Registry. The schema has a ``firstname`` field of type string
+a ``lastnamme`` field of type string, an ``age`` field of type int and a ``salary`` field of type double.
+
+.. code:: bash
+
+    bin/kafka-avro-console-producer \
+      --broker-list localhost:9092 --topic person_hbase \
+      --property value.schema='{"type":"record","name":"User","namespace":"com.datamountaineer.streamreactor.connect.redis","fields":[{"name":"firstName","type":"string"},{"name":"lastName","type":"string"},{"name":"age","type":"int"},{"name":"salary","type":"double"}]}'
+
+Now the producer is waiting for input. Paste in the following:
+
+.. code:: bash
+
+    {"firstName": "John", "lastName": "Smith", "age":30, "salary": 4830}
+    {"firstName": "Anna", "lastName": "Jones", "age":28, "salary": 5430}
 
 Check for records in HBase
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -176,7 +201,7 @@ configurations.
 
 .. code:: bash
 
-    ➜  confluent-2.0.1/bin/connect-distributed etc/schema-registry/connect-avro-distributed.properties 
+    ➜  confluent-2.0.1/bin/connect-distributed confluent-2.0.1/etc/schema-registry/connect-avro-distributed.properties
 
 Once the connector has started lets use the kafka-connect-tools cli to
 post in our distributed properties file.
@@ -188,9 +213,6 @@ post in our distributed properties file.
 If you switch back to the terminal you started the Connector in you
 should see the HBase sink being accepted and the task starting.
 
-Check the logs.
-
-Check Kafka.
 
 Features
 --------

@@ -87,17 +87,12 @@ If you want to build the connector, clone the repo and build the jar.
     cd kafka-connect-tools
     gradle fatJar
 
-Sink Connector
---------------
 
 Sink Connector QuickStart
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Test data
-^^^^^^^^^
+-------------------------
 
 Sink Connector Configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Next we start the connector in standalone mode. This useful for testing
 and one of jobs, usually you'd run in distributed mode to get fault
@@ -124,7 +119,7 @@ elastic-sink.properties with the contents below:
 
 This configuration defines:
 
-1. The name of the connectors.
+1. The name of the connector.
 2. The class containing the connector.
 3. The Elastic Search URL.
 4. Tne name of the cluster on the Elastic Search server to connect to.
@@ -132,11 +127,11 @@ This configuration defines:
 6. The source topic to get records from.
 
 Starting the Sink Connector (Standalone)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now we are ready to start the Elastic sink Connector in standalone mode.
 
-.. note:: You need to add the connector to your classpath or you can create a folder in share/java like kafka-connect-myconnector and the start scripts provided by Confluent will pick it up. The start script looks for folders beginning with kafka-connect.
+.. note:: You need to add the connector to your classpath or you can create a folder in ``share/java`` of the Confluent install location like, kafka-connect-myconnector and the start scripts provided by Confluent will pick it up. The start script looks for folders beginning with kafka-connect.
 
 .. code:: bash
 
@@ -150,6 +145,63 @@ We can use the CLI to check if the connector is up but you should be able to see
 .. code:: bash
 
     ➜ java -jar build/libs/kafka-connect-cli-0.2-all.jar get elastic-sink
+    #Connector `elastic-sink`:
+    topics=test_table
+    name=elastic-sink
+    connect.elastic.cluster.name=elasticsearch
+    tasks.max=1
+    connector.class=com.datamountaineer.streamreactor.connect.elastic.ElasticSinkConnector
+    connect.elastic.url=127.0.0.1:9300
+    #task ids: 0
+
+.. code:: bash
+
+    [2016-05-08 20:56:52,241] INFO
+
+        ____        __        __  ___                  __        _
+    / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
+    / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
+     / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
+    /_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
+           ________           __  _      _____ _       __
+    / ____/ /___ ______/ /_(_)____/ ___/(_)___  / /__
+         / __/ / / __ `/ ___/ __/ / ___/\__ \/ / __ \/ //_/
+        / /___/ / /_/ (__  ) /_/ / /__ ___/ / / / / / ,<
+       /_____/_/\__,_/____/\__/_/\___//____/_/_/ /_/_/|_|
+
+
+    by Andrew Stevenson
+           (com.datamountaineer.streamreactor.connect.elastic.ElasticSinkTask:33)
+    [2016-05-08 20:56:52,241] INFO ElasticSinkConfig values:
+        connect.elastic.url = 127.0.0.1:9300
+        connect.elastic.url.prefix = elasticsearch
+        connect.elastic.cluster.name = elasticsearch
+     (com.datamountaineer.streamreactor.connect.elastic.ElasticSinkConfig:135)
+    [2016-05-08 20:56:52,327] INFO [Hebe] loaded [], sites [] (org.elasticsearch.plugins:149)
+    [2016-05-08 20:56:52,765] INFO Initialising Elastic Json writer (com.datamountaineer.streamreactor.connect.elastic.ElasticJsonWriter:31)
+    [2016-05-08 20:56:52,777] INFO Assigned List(test_table) topics. (com.datamountaineer.streamreactor.connect.elastic.ElasticJsonWriter:33)
+    [2016-05-08 20:56:52,836] INFO Sink task org.apache.kafka.connect.runtime.WorkerSinkTask@69b6b39 finished initialization and start (org.apache.kafka.connect.runtime.WorkerSinkTask:155)
+
+Test Records
+^^^^^^^^^^^^
+
+Now we need to put some records it to the test_table topics. We can use the ``kafka-avro-console-producer`` to do this.
+
+Start the producer and pass in a schema to register in the Schema Registry. The schema has a ``id`` field of type int
+and a ``random_field`` of type string.
+
+.. code:: bash
+
+    bin/kafka-avro-console-producer \
+    > --broker-list localhost:9092 --topic test_table \
+    > --property value.schema='{"type":"record","name":"myrecord","fields":[{"name":"id","type":"int"}, {"name":"random_field", "type": "string"}]}'
+
+Now the producer is waiting for input. Paste in the following:
+
+.. code:: bash
+
+    {"id": 999, "random_field": "foo"}
+    {"id": 888, "random_field": "bar"}
 
 
 Check for records in Elastic Search
@@ -157,9 +209,46 @@ Check for records in Elastic Search
 
 Now check the logs of the connector you should see this
 
-... code:: bash
+Now if we check the logs of the connector we should see 2 records being inserted to Elastic serach:
 
-Now stop the connector.
+.. code:: bash
+
+    [2016-05-08 21:02:52,095] INFO Flushing Elastic Sink (com.datamountaineer.streamreactor.connect.elastic.ElasticSinkTask:73)
+    [2016-05-08 21:03:52,097] INFO No records received. (com.datamountaineer.streamreactor.connect.elastic.ElasticJsonWriter:63)
+    [2016-05-08 21:03:52,097] INFO org.apache.kafka.connect.runtime.WorkerSinkTask@69b6b39 Committing offsets (org.apache.kafka.connect.runtime.WorkerSinkTask:187)
+    [2016-05-08 21:03:52,097] INFO Flushing Elastic Sink (com.datamountaineer.streamreactor.connect.elastic.ElasticSinkTask:73)
+    [2016-05-08 21:04:20,613] INFO Elastic write successful for 2 records! (com.datamountaineer.streamreactor.connect.elastic.ElasticJsonWriter:77)
+
+If we query Elastic Search for ``id`` 999:
+
+.. code:: bash
+
+    curl -XGET 'http://localhost:9200/test_table/_search?q=id:999'
+
+    {
+        "took": 45,
+        "timed_out": false,
+        "_shards": {
+            "total": 5,
+            "successful": 5,
+            "failed": 0
+        },
+        "hits": {
+            "total": 1,
+            "max_score": 1.2231436,
+            "hits": [{
+                "_index": "test_table",
+                "_type": "test_table",
+                "_id": "AVMY4eZXFguf2uMZyxjU",
+                "_score": 1.2231436,
+                "_source": {
+                    "id": 999,
+                    "random_field": "foo"
+                }
+            }]
+        }
+    }
+
 
 Starting the Connector (Distributed)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -182,7 +271,7 @@ configurations.
 
 .. code:: bash
 
-    ➜  confluent-2.0.1/bin/connect-distributed etc/schema-registry/connect-avro-distributed.properties 
+    ➜  confluent-2.0.1/bin/connect-distributed confluent-2.0.1/etc/schema-registry/connect-avro-distributed.properties
 
 Once the connector has started lets use the kafka-connect-tools cli to
 post in our distributed properties file.
@@ -194,9 +283,8 @@ post in our distributed properties file.
 If you switch back to the terminal you started the Connector in you
 should see the Elastic sink being accepted and the task starting.
 
-Check the logs.
+Insert the records as before to have them written to elastic search.
 
-Check Kafka.
 
 Features
 --------
@@ -204,17 +292,15 @@ Features
 Configurations
 --------------
 
-+---------------------+-----------+----------+----------------------------+
-| name                | data type | required | description                |
-+=====================+===========+==========+============================+
-|| connect.elastic.url| String    | Yes      || Url include port          |
-|                     |           |          || (default 9300) of a node  |
-|                     |           |          || in the Elastic CLuster.   |
-+---------------------+-----------+-----------+----------+----------------+
-|| connect.elastic.   | String    | Yes      || Url include port          |
-|| cluster.name       |           |          || (default 9300) of a node  |
-|                     |           |          || in the Elastic Cluster.   |
-+---------------------------------+----------+----------+-----------------+
++----------------------+-----------+----------+----------------------------+
+| name                 | data type | required | description                |
++======================+===========+==========+============================+
+|connect.elastic.url   | String    | Yes      | | Url of the               |
+|                      |           |          | | Elastic Cluster.         |
++----------------------+-----------+----------+----------+-----------------+
+|connect.elastic.port  | String    | Yes      | | Port of the              |
+|                      |           |          | | Elastic Cluster.         |
++----------------------+-----------+----------+----------+-----------------+
 
 Example
 ~~~~~~~

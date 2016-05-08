@@ -27,7 +27,7 @@ object ElasticSinkConfig {
   val ES_CLUSTER_NAME = "connect.elastic.cluster.name"
   val ES_CLUSTER_NAME_DEFAULT = "elasticsearch"
   val ES_CLUSTER_NAME_DOC = "Name of the elastic search cluster, used in local mode for setting the connection"
-  val URL_PREFIX = "elastic.url.prefix"
+  val URL_PREFIX = "connect.elastic.url.prefix"
   val URL_PREFIX_DOC = "URL connection string prefix"
   val URL_PREFIX_DEFAULT = "elasticsearch"
 
