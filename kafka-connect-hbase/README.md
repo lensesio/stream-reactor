@@ -1,3 +1,5 @@
+[![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://streamreactor.readthedocs.org/en/latest/?badge=latest)
+![](../images/DM-logo.jpg)
 ## Kafka Connect Hbase
 
 A Connector and Sink to write events from Kafka to Hbase. The connector takes the value from the Kafka Connect SinkRecords and inserts a new row into Hbase.
