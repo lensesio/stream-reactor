@@ -58,7 +58,7 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends StrictLog
                         logger.error("Missing kudu table for topic $f")
                         f
                       })
-    if (missing.isEmpty) throw new ConnectException(s"No tables found in Kudu for topics ${missing.mkString(",")}")
+    if (!missing.isEmpty) throw new ConnectException(s"No tables found in Kudu for topics ${missing.mkString(",")}")
     topics.map(t =>(t,client.openTable(t))).toMap
   }
 

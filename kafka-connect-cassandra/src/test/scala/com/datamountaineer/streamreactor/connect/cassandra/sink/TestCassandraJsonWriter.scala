@@ -20,7 +20,7 @@ class TestCassandraJsonWriter  extends WordSpec with Matchers with MockitoSugar 
     startEmbeddedCassandra()
   }
 
-  "Cassandra JsonWriterShould write records to Cassandra" in {
+  "Cassandra JsonWriter should write records to Cassandra" in {
     val session = createTableAndKeySpace(secure = true, ssl = false)
     val context = mock[SinkTaskContext]
     val assignment = getAssignment

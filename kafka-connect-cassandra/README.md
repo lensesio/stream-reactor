@@ -446,14 +446,14 @@ name=cassandra-sink-orders
 connector.class=com.datamountaineer.streamreactor.connect.cassandra.sink.CassandraSinkConnector
 tasks.max=1
 topics=orders-topic 
-cassandra.export.map=orders-topic:orders_write_back
-cassandra.contact.points=localhost
-cassandr.port=9042
-cassandra.key.space=demo
-cassandra.authentication.mode=username_password
-cassandra.contact.points=localhost
-cassandra.username=cassandra
-cassandra.password=cassandra
+connect.cassandra.export.map=orders-topic:orders_write_back
+connect.cassandra.contact.points=localhost
+connect.cassandra.port=9042
+connect.cassandra.key.space=demo
+connect.cassandra.authentication.mode=username_password
+connect.cassandra.contact.points=localhost
+connect.cassandra.username=cassandra
+connect.cassandra.password=cassandra
 ```
 
 The main difference here is the *cassandra.export.map*. This like the source connector but reversed is comma separated list of topic to table mappings. The mapping for each element in the list is separate by a colon. The topic is before and the table after the colon. In this example the routing is orders-topic to the orders\_write\_back table in Cassandra.
@@ -500,14 +500,14 @@ name=cassandra-sink-orders
 connector.class=com.datamountaineer.streamreactor.connect.cassandra.sink.CassandraSinkConnector
 tasks.max=1
 topics=orders-topic
-cassandra.export.map=orders-topic:orders_write_back
-cassandra.contact.points=localhost
-cassandr.port=9042
-cassandra.key.space=demo
-cassandra.authentication.mode=username_password
-cassandra.contact.points=localhost
-cassandra.username=cassandra
-cassandra.password=cassandra
+connect.cassandra.export.map=orders-topic:orders_write_back
+connect.cassandra.contact.points=localhost
+connect.cassandra.port=9042
+connect.cassandra.key.space=demo
+connect.cassandra.authentication.mode=username_password
+connect.cassandra.contact.points=localhost
+connect.cassandra.username=cassandra
+connect.cassandra.password=cassandra
 #task ids: 0
 ```
 
@@ -646,18 +646,18 @@ Configurations common to both sink and source are:
 
 name | data type | required | description
 -----|-----------|----------|------------
-cassandra.contact.points | string | yes | contact points (hosts) in Cassandra cluster
-cassandra.key.space | string | yes | key_space the tables to write to belong to
-cassandra.port | int | no | port for the native Java driver (default 9042)
-cassandra.authentication.mode | string | no | Mode to authenticate with Cassandra, either username or none, default is none
-cassandra.username | no | string | Username to connect to Cassandra with if USERNAME_PASSWORD enabled
-cassandra.password | no | string | Password to connect to Cassandra with if USERNAME_PASSWORD enabled
-cassandra.ssl.enabled | no | boolean | Enables SSL communication against SSL enabled Cassandra, default false
-cassandra.trust.store.path | no | string | Path to truststore
-cassandra.trust.store.password | no | string | Password for truststore
-cassandra.key.store.path | no | string | Path to keystore
-cassandra.key.store.password | no | string | Password for the keystore
-cassandra.ssl.client.cert.aut | no | boolean | Enable client certification authentication by Cassandra. Requires KeyStore options to be set. Default false.
+connect.cassandra.contact.points | string | yes | contact points (hosts) in Cassandra cluster
+connect.cassandra.key.space | string | yes | key_space the tables to write to belong to
+connect.cassandra.port | int | no | port for the native Java driver (default 9042)
+connect.cassandra.authentication.mode | string | no | Mode to authenticate with Cassandra, either username or none, default is none
+connect.cassandra.username | no | string | Username to connect to Cassandra with if USERNAME_PASSWORD enabled
+connect.cassandra.password | no | string | Password to connect to Cassandra with if USERNAME_PASSWORD enabled
+connect.cassandra.ssl.enabled | no | boolean | Enables SSL communication against SSL enabled Cassandra, default false
+connect.cassandra.trust.store.path | no | string | Path to truststore
+connect.cassandra.trust.store.password | no | string | Password for truststore
+connect.cassandra.key.store.path | no | string | Path to keystore
+connect.cassandra.key.store.password | no | string | Password for the keystore
+connect.cassandra.ssl.client.cert.aut | no | boolean | Enable client certification authentication by Cassandra. Requires KeyStore options to be set. Default false.
 
 ### Source Connector Configurations
 
@@ -665,27 +665,27 @@ Configurations options specific to the source connector are:
 
 name | data type | required | description
 -----|-----------|----------|------------
-cassandra.import.poll.interval | int | no | The polling interval between queries against tables for bulk mode in milliseconds. Default is 1 minute. **WATCH OUT WITH BULK MODE AS MAY REPEATEDLY PULL IN THE SAME DATE.**
-cassandra.import.mode | string | yes | Either bulk or incremental
-cassandra.import.timestamp.column | string | yes | Name of the timestamp column in the cassandra table to use identify deltas. table1:col,table2:col. **MUST BE OF TYPE TIMEUUID**
-cassandra.import.table.map | string | yes | Table to Topic map for import in format table1=topic1,table2=topic2, if the topic left blank table name is used
-cassandra.import.source.allow.filtering | string | no | Enable ALLOW FILTERING in incremental selects. Default is true
-cassandra.import.fetch.size | int | no | The fetch size for the Cassandra driver to read. Default is 1000.
-source.task.buffer.size | int | no | The size of the queue as read writes to. Default 10000.
-source.task.batch.size | int | no | The number of records the source task should drain from the reader queue.
+connect.cassandra.import.poll.interval | int | no | The polling interval between queries against tables for bulk mode in milliseconds. Default is 1 minute. **WATCH OUT WITH BULK MODE AS MAY REPEATEDLY PULL IN THE SAME DATE.**
+connect.cassandra.import.mode | string | yes | Either bulk or incremental
+connect.cassandra.import.timestamp.column | string | yes | Name of the timestamp column in the cassandra table to use identify deltas. table1:col,table2:col. **MUST BE OF TYPE TIMEUUID**
+connect.cassandra.import.table.map | string | yes | Table to Topic map for import in format table1=topic1,table2=topic2, if the topic left blank table name is used
+connect.cassandra.import.source.allow.filtering | string | no | Enable ALLOW FILTERING in incremental selects. Default is true
+connect.cassandra.import.fetch.size | int | no | The fetch size for the Cassandra driver to read. Default is 1000.
+connect.cassandra.source.task.buffer.size | int | no | The size of the queue as read writes to. Default 10000.
+connect.cassandra.source.task.batch.size | int | no | The number of records the source task should drain from the reader queue.
 
 #### Bulk Example
 
 ```bash
 name=cassandra-source-orders-bulk
 connector.class=com.datamountaineer.streamreactor.connect.cassandra.source.CassandraSourceConnector
-cassandra.key.space=demo
-cassandra.import.map=orders:orders-topic
-cassandra.import.mode=bulk
-cassandra.authentication.mode=username_password
-cassandra.contact.points=localhost
-cassandra.username=cassandra
-cassandra.password=cassandra
+connect.cassandra.key.space=demo
+connect.cassandra.import.map=orders:orders-topic
+connect.cassandra.import.mode=bulk
+connect.cassandra.authentication.mode=username_password
+connect.cassandra.contact.points=localhost
+connect.cassandra.username=cassandra
+connect.cassandra.password=cassandra
 ```
 
 #### Incremental Example
@@ -693,14 +693,14 @@ cassandra.password=cassandra
 ```bash
 name=cassandra-source-orders-incremental
 connector.class=com.datamountaineer.streamreactor.connect.cassandra.source.CassandraSourceConnector
-cassandra.key.space=demo
-cassandra.import.map=orders:orders-topic
-cassandra.import.timestamp.column=orders:created
-cassandra.import.mode=incremental
-cassandra.authentication.mode=username_password
-cassandra.contact.points=localhost
-cassandra.username=cassandra
-cassandra.password=cassandra
+connect.cassandra.key.space=demo
+connect.cassandra.import.map=orders:orders-topic
+connect.cassandra.import.timestamp.column=orders:created
+connect.cassandra.import.mode=incremental
+connect.cassandra.authentication.mode=username_password
+connect.cassandra.contact.points=localhost
+connect.cassandra.username=cassandra
+connect.cassandra.password=cassandra
 ```
 
 ### Sink Connector Configurations
@@ -709,7 +709,7 @@ Configurations options specific to the sink connector are:
 
 name | data type | required | description
 -----|-----------|----------|------------
-cassandra.export.map | string | yes | Topic to Table map for import in format topic1:table1, if the table left blank topic name is used.
+connect.cassandra.export.map | string | yes | Topic to Table map for import in format topic1:table1, if the table left blank topic name is used.
 
 #### Example
 
@@ -718,14 +718,14 @@ name=cassandra-sink-orders
 connector.class=com.datamountaineer.streamreactor.connect.cassandra.sink.CassandraSinkConnector
 tasks.max=1
 topics=orders-topic
-cassandra.export.map=orders-topic:orders_write_back
-cassandra.contact.points=localhost
-cassandra.port=9042
-cassandra.key.space=demo
-cassandra.authentication.mode=username_password
-cassandra.contact.points=localhost
-cassandra.username=cassandra
-cassandra.password=cassandra
+connect.cassandra.export.map=orders-topic:orders_write_back
+connect.cassandra.contact.points=localhost
+connect.cassandra.port=9042
+connect.cassandra.key.space=demo
+connect.cassandra.authentication.mode=username_password
+connect.cassandra.contact.points=localhost
+connect.cassandra.username=cassandra
+connect.cassandra.password=cassandra
 ```
 
 ## Schema Evolution

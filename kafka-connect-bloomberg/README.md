@@ -1,3 +1,5 @@
+![](../images/DM-logo.jpg)
+
 # Kafka Connect Bloomberg
 
 A Connector to Subscribe to Bloomberg ticker updates and write the data to Kafka. The connector will create and open a

@@ -1,3 +1,5 @@
+![](../images/DM-logo.jpg)
+
 # Kafka Socket Streamer
 
 Akka Http with Reactive Kafka to stream topics to clients via Web sockets and Server Send Events.

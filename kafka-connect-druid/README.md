@@ -1,3 +1,5 @@
+![](../images/DM-logo.jpg)
+
 # Kafka Connect Druid
 
 PLACEHOLDER --NOT COMPLETE---- VOLUNTEERS!

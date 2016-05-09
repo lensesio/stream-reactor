@@ -1,3 +1,5 @@
+![](../images/DM-logo.jpg)
+
 # Kafka Connect Elastic
 
 A Connector and Sink to write events from Kafka to Elastic Search using [Elastic4s](https://github.com/sksamuel/elastic4s) client. The connector converts the value from the Kafka Connect SinkRecords to Json and uses Elastic4s's JSON insert functionality to index.
@@ -39,16 +41,16 @@ In addition to the default topics configuration the following options are added:
 
 name | data type | required | description
 -----|-----------|----------|------------
-url | string | yes | Url include port (default 9300) of a node in the Elastic CLuster
-cluster.name | string | yes | Elastic cluster name to connect to 
+connect.elastic.url | string | yes | Url include port (default 9300) of a node in the Elastic Cluster.
+connect.elastic.cluster.name | string | yes | Elastic cluster name to connect to. 
 
 Example connector.properties file
 
 ```bash 
 name=elastic-sink
 connector.class=com.datamountaineer.streamreactor.connect.elastic.ElasticSinkConnector
-url=localhost:9300
-cluster.name=elasticsearch
+connect.elastic.url=localhost:9300
+connect.elastic.cluster.name=elasticsearch
 tasks.max=1
 topics=test_table
 ```
