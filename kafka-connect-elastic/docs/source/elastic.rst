@@ -207,7 +207,7 @@ Check for records in Elastic Search
 
 Now check the logs of the connector you should see this
 
-Now if we check the logs of the connector we should see 2 records being inserted to Elastic serach:
+Now if we check the logs of the connector we should see 2 records being inserted to Elastic Search:
 
 .. code:: bash
 
@@ -281,7 +281,7 @@ post in our distributed properties file.
 If you switch back to the terminal you started the Connector in you
 should see the Elastic sink being accepted and the task starting.
 
-Insert the records as before to have them written to elastic search.
+Insert the records as before to have them written to Elastic Search.
 
 
 Features
