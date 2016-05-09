@@ -1,4 +1,6 @@
 ![](../images/DM-logo.jpg)
+[![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://streamreactor.readthedocs.io/en/latest/socket-streamer.html#kafka-socket-streamer)
+
 
 # Kafka Socket Streamer
 

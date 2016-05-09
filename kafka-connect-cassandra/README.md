@@ -1,4 +1,5 @@
 ![](../images/DM-logo.jpg)
+[![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://streamreactor.readthedocs.io/en/latest/cassandra.html#kafka-connect-cassandra)
 
 # Kafka Connect Cassandra
 

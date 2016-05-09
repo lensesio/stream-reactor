@@ -520,7 +520,6 @@ cassandra-sink-distributed-orders.properties with contents below.
     connect.cassandra.port=9042
     connect.cassandra.key.space=demo
     connect.cassandra.authentication.mode=username_password
-    connect.cassandra.contact.points=localhost
     connect.cassandra.username=cassandra
     connect.cassandra.password=cassandra
 

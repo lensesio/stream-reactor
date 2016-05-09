@@ -1,4 +1,5 @@
 ![](../images/DM-logo.jpg)
+[![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://streamreactor.readthedocs.io/en/latest/hbase.html#kafka-connect-hbase)
 
 ## Kafka Connect Hbase
 
