@@ -233,7 +233,7 @@ Check for records in Redis
 
 Now check the logs of the connector you should see this:
 
-.. code:: bash
+... code:: bash
 
 Check the Redis.
 

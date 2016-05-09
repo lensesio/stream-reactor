@@ -1,5 +1,3 @@
-.. socket-streamer:
-
 Kafka Socket Streamer
 =====================
 

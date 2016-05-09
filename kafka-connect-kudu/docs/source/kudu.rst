@@ -166,7 +166,7 @@ We can use the CLI to check if the connector is up but you should be able to see
     topics=kudu_test
     #task ids: 0
 
- .. code:: bash
+.. code:: bash
 
     [2016-05-08 22:00:20,823] INFO
         ____        __        __  ___                  __        _
