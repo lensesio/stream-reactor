@@ -1,4 +1,4 @@
-.. kafka-connect-Kudu:
+.. kafka-connectors:
 
 Kafka Connect Kudu
 ===================

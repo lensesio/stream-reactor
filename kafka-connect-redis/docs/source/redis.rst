@@ -1,4 +1,4 @@
-.. kafka-connect-redis:
+.. kafka-connectors:
 
 Kafka Connect Redis
 ===================

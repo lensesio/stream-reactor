@@ -1,4 +1,4 @@
-.. kafka-connect-bloomberg:
+.. kafka-connectors:
 
 Kafka Connect Bloomberg
 =======================

@@ -1,4 +1,4 @@
-.. kafka-connect-cassandra:
+.. kafka-connectors:
 
 Kafka Connect Cassandra
 =======================

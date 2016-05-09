@@ -1,4 +1,4 @@
-.. kafka-socket-streamer:
+.. socket-streamer:
 
 Kafka Socket Streamer
 =====================

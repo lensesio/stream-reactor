@@ -1,4 +1,4 @@
-.. kafka-connect-elastic:
+.. kafka-connectors:
 
 Kafka Connect Elastic
 =====================
