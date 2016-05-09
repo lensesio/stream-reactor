@@ -1,5 +1,3 @@
-.. kafka-connectors:
-
 Kafka Connect HBase
 ===================
 

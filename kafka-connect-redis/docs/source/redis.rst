@@ -1,5 +1,3 @@
-.. kafka-connectors:
-
 Kafka Connect Redis
 ===================
 
@@ -291,52 +289,52 @@ The sink supports:
 Configurations
 --------------
 
-+--------------------------------+-----------+----------+-----------------------------------+
-| name                           | data type | required | description                       |
-+================================+===========+==========+===================================+
-||connect.redis.sink.connection. | String    | Yes      || Specifies the Redis server.      |
-||host                           |           |          |                                   |
-+--------------------------------+-----------+----------+-----------------------------------+
-||connect.redis.sink.connection. | Int       | Yes      || Specifies the Redis server port  |
-||port                           |           |          ||                                  |
-|                                |           |          || number                           |
-+--------------------------------+-----------+----------+-----------------------------------+
-| connect.redis.sink.connection  | String    | Yes      || Specifies the authorization      |
-| password                       |           |          || password.                        |
-+--------------------------------+-----------+----------+-----------------------------------+
-| connect.redis.sink.key.mode    | String    | Yes      || There are three available modes: |
-|                                |           |          || SINK_RECORD, FIELDS and GENERIC. |
-|                                |           |          || uses the SinkRecord.keyValue as  |
-|                                |           |          || SINK_RECORD.                     |
-|                                |           |          || the redis row key; FIELDS -      |
-|                                |           |          || combines the specified payload   |
-|                                |           |          || (kafka connect Struct instance)  |
-|                                |           |          || fields to make up the redis row  |
-|                                |           |          || key; GENERIC- combines the kafka |
-|                                |           |          || topic, offset and partition to   |
-|                                |           |          || build the redis row key.         |
-+--------------------------------+-----------+----------+-----------------------------------+
-| connect.redis.sink.fields      | String    | Yes      || Specifies which fields to        |
-|                                |           |          || consider when inserting the new  |
-|                                |           |          || Redis entry. If is not set it    |
-|                                |           |          || will take all the fields present |
-|                                |           |          || in the payload. Field mapping is |
-|                                |           |          || supported; this way a payload    |
-|                                |           |          || field can be inserted into a     |
-|                                |           |          || 'mapped' column. If this setting |
-|                                |           |          || is not present it will insert all|
-|                                |           |          || fields.  Examples: * fields to be|
-|                                |           |          || used:field1,field2,field3; -     |
-|                                |           |          || Only! field1,field2 and field3   |
-|                                |           |          || will be inserted ** fields with  |
-|                                |           |          || mapping: field1=alias1,field2,   |
-|                                |           |          || field3=alias3 - Only! field1,    |
-|                                |           |          || field2 and field3 will be        |
-|                                |           |          || inserted fields with             |
-|                                |           |          || mapping:\*,field3=alias.         |
-|                                |           |          || All fields are inserted but      |
-|                                |           |          || field3 will be inserted as alias |
-+--------------------------------+-----------+----------+-----------------------------------+
++---------------------------------+-----------+----------+-----------------------------------+
+| name                            | data type | required | description                       |
++=================================+===========+==========+===================================+
+|| connect.redis.sink.connection. | String    | Yes      || Specifies the Redis server.      |
+|| host                           |           |          |                                   |
++---------------------------------+-----------+----------+-----------------------------------+
+|| connect.redis.sink.connection. | Int       | Yes      || Specifies the Redis server port  |
+|| port                           |           |          ||                                  |
+|                                 |           |          || number                           |
++---------------------------------+-----------+----------+-----------------------------------+
+| connect.redis.sink.connection   | String    | Yes      || Specifies the authorization      |
+| password                        |           |          || password.                        |
++---------------------------------+-----------+----------+-----------------------------------+
+| connect.redis.sink.key.mode     | String    | Yes      || There are three available modes: |
+|                                 |           |          || SINK_RECORD, FIELDS and GENERIC. |
+|                                 |           |          || uses the SinkRecord.keyValue as  |
+|                                 |           |          || SINK_RECORD.                     |
+|                                 |           |          || the redis row key; FIELDS -      |
+|                                 |           |          || combines the specified payload   |
+|                                 |           |          || (kafka connect Struct instance)  |
+|                                 |           |          || fields to make up the redis row  |
+|                                 |           |          || key; GENERIC- combines the kafka |
+|                                 |           |          || topic, offset and partition to   |
+|                                 |           |          || build the redis row key.         |
++---------------------------------+-----------+----------+-----------------------------------+
+| connect.redis.sink.fields       | String    | Yes      || Specifies which fields to        |
+|                                 |           |          || consider when inserting the new  |
+|                                 |           |          || Redis entry. If is not set it    |
+|                                 |           |          || will take all the fields present |
+|                                 |           |          || in the payload. Field mapping is |
+|                                 |           |          || supported; this way a payload    |
+|                                 |           |          || field can be inserted into a     |
+|                                 |           |          || 'mapped' column. If this setting |
+|                                 |           |          || is not present it will insert all|
+|                                 |           |          || fields.  Examples: * fields to be|
+|                                 |           |          || used:field1,field2,field3; -     |
+|                                 |           |          || Only! field1,field2 and field3   |
+|                                 |           |          || will be inserted ** fields with  |
+|                                 |           |          || mapping: field1=alias1,field2,   |
+|                                 |           |          || field3=alias3 - Only! field1,    |
+|                                 |           |          || field2 and field3 will be        |
+|                                 |           |          || inserted fields with             |
+|                                 |           |          || mapping:\*,field3=alias.         |
+|                                 |           |          || All fields are inserted but      |
+|                                 |           |          || field3 will be inserted as alias |
++---------------------------------+-----------+----------+-----------------------------------+
 
 Example
 ~~~~~~~

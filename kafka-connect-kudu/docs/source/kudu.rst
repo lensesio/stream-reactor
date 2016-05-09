@@ -1,5 +1,3 @@
-.. kafka-connectors:
-
 Kafka Connect Kudu
 ===================
 
@@ -134,8 +132,7 @@ This configuration defines:
 
 1.  The name of the sink.
 2.  The sink class.
-3.  The max number of tasks the connector is allowed to created. Should not be greater than the number of partitions in the source topics
-    otherwise tasks will be idle.
+3.  The max number of tasks the connector is allowed to created. Should not be greater than the number of partitions in the source topics otherwise tasks will be idle.
 4.  The source kafka topics to take events from.
 
 
@@ -170,13 +167,13 @@ We can use the CLI to check if the connector is up but you should be able to see
 
     [2016-05-08 22:00:20,823] INFO
         ____        __        __  ___                  __        _
-    / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
-    / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
+       / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
+      /  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
      / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
     /_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
            __ __          __      _____ _       __
-    / //_/_  ______/ /_  __/ ___/(_)___  / /__
-    / ,< / / / / __  / / / /\__ \/ / __ \/ //_/
+          / //_/_  ______/ /_  __/ ___/(_)___  / /__
+         / ,< / / / / __  / / / /\__ \/ / __ \/ //_/
         / /| / /_/ / /_/ / /_/ /___/ / / / / / ,<
        /_/ |_\__,_/\__,_/\__,_//____/_/_/ /_/_/|_|
 
