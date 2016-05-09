@@ -234,7 +234,7 @@ Configurations
 |                     |           |          || AAPL US Equity:LAST_PRICE;|
 |                     |           |          || IBM US Equity:BID         |
 +---------------------+-----------+----------+----------------------------+
-|| connect.bloomberg. | Int       | No       || The buffer accumulating   | .
+|| connect.bloomberg. | Int       | No       || The buffer accumulating   |
 || buffer.size        |           |          || the data updates received |
 |                     |           |          || from Bloomberg.           |
 |                     |           |          || If not provided it will   |
