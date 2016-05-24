@@ -1,0 +1,4 @@
+{"row":1,"f1":"Required string","f2":null,"f3":{"int":42},"f4":{"boolean":false}}
+{"row":2,"f1":"Required string","f2":{"string":"Optional string"},"f3":{"int":89},"f4":null}
+{"row":3,"f1":"Required string","f2":null,"f3":null,"f4":{"boolean":true}}
+{"row":4,"f1":"Required string","f2":{"string":"Optional string"},"f3":null,"f4":null}

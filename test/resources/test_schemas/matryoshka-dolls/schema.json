@@ -1,0 +1,38 @@
+{ "type": "record",
+  "name": "outer_doll",
+  "namespace": "com.wepay.kafka.connect.bigquery",
+  "fields": [
+      { "name": "row", "type": "int" },
+      { "name": "middle", "type":
+        { "type": "record",
+          "name": "middle_doll",
+          "fields": [
+            { "name": "middle_array",
+              "type": {
+                        "type": "array",
+                        "items": "float"
+                      }
+            },
+            { "name": "inner",
+              "type": {
+                        "type": "record",
+                        "name": "inner_doll",
+                        "fields": [
+                                    { "name": "inner_int",
+                                      "type": "int"
+                                    },
+                                    { "name": "inner_string",
+                                      "type": "string"
+                                    }
+                                  ]
+                      }
+            }
+                    ]
+        }
+      },
+      {
+        "name": "inner",
+        "type": "com.wepay.kafka.connect.bigquery.inner_doll"
+      }
+            ]
+}

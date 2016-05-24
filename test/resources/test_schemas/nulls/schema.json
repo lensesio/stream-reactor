@@ -1,0 +1,9 @@
+{"type":"record",
+ "name":"myrecord",
+ "fields":[
+  {"name":"row","type":"int"},
+  {"name":"f1","type":"string"},
+  {"name":"f2","type":["null","string"]},
+  {"name":"f3","type":["null","int"]},
+  {"name":"f4","type":["null","boolean"]}]
+}

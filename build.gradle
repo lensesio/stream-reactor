@@ -1,0 +1,99 @@
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'checkstyle'
+apply plugin: 'findbugs'
+apply plugin: 'jacoco'
+
+sourceCompatibility = 1.8
+version = '0.1'
+
+jar {
+  manifest {
+    attributes  'Implementation-Title': 'Kafka-Connect-BigQuery',
+                'Implementation-Version': version
+  }
+}
+
+// Copied from http://stackoverflow.com/questions/4871656/using-gradle-to-build-a-jar-with-dependencies
+task fatJar(type: Jar) {
+  baseName = project.name + '-all'
+  from {
+    (configurations.runtime).collect {
+      it.isDirectory() ? it : zipTree(it)
+    }
+  }
+  with jar
+}
+
+jacocoTestReport {
+  reports {
+    html.destination "$buildDir/reports/jacoco/"
+  }
+}
+
+repositories {
+  mavenCentral()
+  maven {
+    url 'http://packages.confluent.io/maven'
+  }
+  jcenter()
+}
+
+sourceSets {
+  integrationTest {
+    java {
+      compileClasspath += main.output
+      runtimeClasspath += main.output
+      srcDir file('src/integration-test/java')
+    }
+    resources.srcDir file('src/integration-test/resources')
+  }
+}
+
+task integrationTestJar(type: Jar, dependsOn: compileIntegrationTestJava) {
+  baseName = 'integration-test'
+  from sourceSets.integrationTest.runtimeClasspath
+  with fatJar
+}
+
+task integrationTest(type: Test) {
+  testClassesDir = sourceSets.integrationTest.output.classesDir
+  classpath = sourceSets.integrationTest.runtimeClasspath
+}
+
+configurations {
+  integrationTestCompile.extendsFrom testCompile
+  integrationTestRuntime.extendsFrom testRuntime
+}
+
+javadoc {
+  options.links 'http://docs.oracle.com/javase/8/docs/api/'
+  options.links 'http://docs.confluent.io/3.0.0/connect/javadocs/'
+  options.links 'http://googlecloudplatform.github.io/gcloud-java/0.2.3/apidocs/'
+  options.links 'https://kafka.apache.org/0100/javadoc/'
+  options.links 'https://avro.apache.org/docs/1.8.1/api/java/'
+}
+
+dependencies {
+  compile group: 'com.google.cloud', name: 'gcloud-java', version: '0.2.3'
+
+  compile group: 'io.confluent', name: 'kafka-connect-avro-converter', version: '3.0.0'
+  compile group: 'io.confluent', name: 'kafka-schema-registry', version: '3.0.0'
+
+  compile group: 'org.apache.avro', name: 'avro', version: '1.8.1'
+  compile group: 'org.apache.kafka', name: 'connect-api', version: '0.10.0.0'
+
+  compile group: 'org.slf4j', name: 'slf4j-api', version: '1.6.1'
+
+  testCompile group: 'junit', name: 'junit', version: '4.12'
+  testCompile group: 'org.mockito', name: 'mockito-core', version: '1.10.19'
+}
+
+[compileJava, compileTestJava, compileIntegrationTestJava].each {
+  it.options.compilerArgs << '-Xlint:unchecked'
+}
+
+checkstyle {
+  configFile = file("${project.rootDir}/config/checkstyle/google_checks.xml")
+  toolVersion = '6.18'
+}
