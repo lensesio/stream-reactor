@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/datamountaineer/stream-reactor-gradle.svg?branch=master)](https://travis-ci.org/datamountaineer/stream-reactor-gradle)
-[![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://streamreactor.readthedocs.org/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://docs.datamountaineer.com/en/latest/?badge=latest)
 
 ![](images/DM-logo.jpg)
 
