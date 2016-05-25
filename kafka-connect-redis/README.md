@@ -13,7 +13,7 @@ When inserting a row in redis you need a row key. There are 3 different settings
 
 The task expects the table in Redis to exist. By default all the fields in the record would be added to the redis table and column familty. However you can specify the fields to insert and the column to insert to (see the configuration table below).
 
-## Perquisites
+## Prerequisites
 
 * Jedis 2.8.1
 * Confluent 2.0
