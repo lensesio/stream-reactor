@@ -1,3 +1,11 @@
+/docs/build
+/*.iml
+/*/sample.db
+/.idea
+/.gradle
+/build
+/configs
+/*/build
 *.class
 *.log
 
