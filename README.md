@@ -24,18 +24,28 @@ Kafka topics and external systems as _sinks_ or _sources_.
     UPSERT into TARGET_SQL_TABLE SELECT ...       // INSERT & UPSERT allowed
     UPSERT PK field1 into TARGET_SQL_TABLE ..     // UPSERT on particular Primary Keys
 
-    AUTOCREATE INSERT ...                         // AUTOCREATE TABLE
-    AUTOCREATE PK field1,field2 INSERT ...        // AUTOCREATE with Primary Keys
-    AUTOCREATE UPSERT ...                         // AUTOCREATE and UPSERT
-    
+    ... AUTOCREATE                                // AUTOCREATE TABLE
+    ... AUTOCREATE PK field1,field2               // AUTOCREATE with Primary Keys
+    ... AUTOEVOLVE
+    ... AUTOCREATE AUTOEVOLVE
     .. BATCH 5000                                 // SET BATCHING TO 5000 records
     
-
 ## Building
 
 Get this repository and run:
 
-    mvn clean compile
+    mvn clean compile test
 
 Java files are generate under `generated-sources/antlr4` folder
 
+## Testing
+
+Install the antlr4test maven plugin
+
+    mkdir temp; cd temp
+    git clone git@github.com:antlr/grammars-v4.git
+    cd grammars-v4/support/antlr4test-maven-plugin
+    mvn clean install 
+    cd ../../../..
+
+And then 

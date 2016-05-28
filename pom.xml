@@ -85,35 +85,17 @@
         </dependency>
 
         <dependency>
-            <groupId>io.confluent</groupId>
-            <artifactId>kafka-schema-registry</artifactId>
-            <version>${confluent.version}</version>
-            <scope>test</scope>
+            <groupId>org.antlr</groupId>
+            <artifactId>antlr4-runtime</artifactId>
+            <version>${antlr.version}</version>
+            <type>jar</type>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
-            <groupId>org.apache.curator</groupId>
-            <artifactId>curator-test</artifactId>
-            <version>2.9.0</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>${guava.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>connect-api</artifactId>
-            <version>${kafka.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>connect-json</artifactId>
-            <version>${kafka.version}</version>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>6.9.9</version>
         </dependency>
 
         <dependency>
@@ -122,19 +104,6 @@
             <version>${confluent.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-all</artifactId>
-            <version>${mockito.version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
@@ -143,39 +112,45 @@
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4-maven-plugin</artifactId>
                 <version>${antlr.version}</version>
+                <configuration>
+                    <sourceDirectory>src/main/antlr4</sourceDirectory>
+                    <outputDirectory>src/main/java</outputDirectory>
+                    <grammars>Connector.g4</grammars>
+                    <visitor>true</visitor>
+                    <listener>true</listener>
+                </configuration>
                 <executions>
                     <execution>
+                        <id>antlr</id>
                         <goals>
                             <goal>antlr4</goal>
                         </goals>
                     </execution>
                 </executions>
             </plugin>
-            <!--
-                        <plugin>
-                            <groupId>org.antlr</groupId>
-                            <artifactId>antlr4test-maven-plugin</artifactId>
-                            <configuration>
-                                <verbose>false</verbose>
-                                <showTree>false</showTree>
-                                <entryPoint>stat</entryPoint>
-                                <grammarName>MySQL</grammarName>
-                                <packageName></packageName>
-                                <exampleFiles>examples/</exampleFiles>
-                            </configuration>
-                            <executions>
-                                <execution>
-                                    <goals>
-                                        <goal>test</goal>
-                                    </goals>
-                                </execution>
-                            </executions>
-                        </plugin>
-            -->
+            <plugin>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4test-maven-plugin</artifactId>
+                <configuration>
+                    <verbose>false</verbose>
+                    <showTree>false</showTree>
+                    <entryPoint>stat</entryPoint>
+                    <grammarName>Connector</grammarName>
+                    <packageName>com.datamountaineer.connector.querylanguage</packageName>
+                    <exampleFiles>examples/</exampleFiles>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.5.1</version>
+                <version>3.0</version>
                 <inherited>true</inherited>
                 <configuration>
                     <source>1.7</source>
@@ -202,7 +177,6 @@
                     </execution>
                 </executions>
             </plugin>
-            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -233,6 +207,7 @@
                     </execution>
                 </executions>
             </plugin>
+            -->
         </plugins>
 
         <resources>
