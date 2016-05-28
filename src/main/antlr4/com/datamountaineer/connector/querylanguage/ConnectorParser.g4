@@ -7,8 +7,28 @@ stat
    : select_clause+
    ;
 
+into
+   : INTO
+   ;
+
+pk
+   : PK
+   ;
+
+insert_into
+   : INSERT into
+   ;
+
+upsert_into
+   : UPSERT into
+   ;
+
+upsert_pk_into
+   : UPSERT pk ID into
+   ;
+
 sql_action
-   : SQL_ACTION
+   : insert_into | upsert_into | upsert_pk_into
    ;
 
 schema_name
@@ -16,7 +36,7 @@ schema_name
    ;
 
 select_clause
-   : sql_action SELECT column_list_clause ( FROM table_references )? ( where_clause )?
+   : sql_action table_name SELECT column_list_clause ( FROM table_references )? ( where_clause )?
    ;
 
 table_name
@@ -44,7 +64,7 @@ column_list
    ;
 
 column_list_clause
-   : column_name ( COMMA column_name )*
+   : column_name ( COMMA column_name )* | '*'
    ;
 
 from_clause

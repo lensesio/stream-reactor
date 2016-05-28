@@ -2,10 +2,21 @@ lexer grammar ConnectorLexer;
 @ header {
  }
 
-SQL_ACTION
-   : 'insert' | 'upsert' | 'INSERT' | 'UPSERT'
+INSERT
+   : 'insert' | 'INSERT'
    ;
 
+UPSERT
+   : 'upsert' | 'UPSERT'
+   ;
+
+PK
+   : 'PK' | 'pk'
+   ;
+
+INTO
+   : 'into' | 'INTO'
+   ;
 
 SELECT
    : 'select' | 'SELECT'
