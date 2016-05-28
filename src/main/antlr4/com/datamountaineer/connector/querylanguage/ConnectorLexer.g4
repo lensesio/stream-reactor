@@ -2,98 +2,103 @@ lexer grammar ConnectorLexer;
 @ header {
  }
 
+SQL_ACTION
+   : 'insert' | 'upsert' | 'INSERT' | 'UPSERT'
+   ;
+
+
 SELECT
-   : 'select'
+   : 'select' | 'SELECT'
    ;
 
 
 FROM
-   : 'from'
+   : 'from' | 'FROM'
    ;
 
 
 WHERE
-   : 'where'
+   : 'where' | 'WHERE'
    ;
 
 
 AND
-   : 'and' | '&&'
+   : 'and' | 'AND' | '&&'
    ;
 
 
 OR
-   : 'or' | '||'
+   : 'or' | 'OR' | '||'
    ;
 
 
 XOR
-   : 'xor'
+   : 'xor' | 'XOR'
    ;
 
 
 IS
-   : 'is'
+   : 'is' | 'IS'
    ;
 
 
 NULL
-   : 'null'
+   : 'null' | 'NULL'
    ;
 
 
 LIKE
-   : 'like'
+   : 'like' | 'LIKE'
    ;
 
 
 IN
-   : 'in'
+   : 'in' | 'IN'
    ;
 
 
 EXISTS
-   : 'exists'
+   : 'exists' | 'EXISTS'
    ;
 
 
 ALL
-   : 'all'
+   : 'all' | 'ALL'
    ;
 
 
 ANY
-   : 'any'
+   : 'any' | 'ANY'
    ;
 
 
 TRUE
-   : 'true'
+   : 'true' | 'TRUE'
    ;
 
 
 FALSE
-   : 'false'
+   : 'false' | 'FALSE'
    ;
 
 
 DIVIDE
-   : 'div' | '/'
+   : 'div' | '/' | 'DIV'
    ;
 
 
 MOD
-   : 'mod' | '%'
+   : 'mod' | '%' | 'MOD'
    ;
 
 
 BETWEEN
-   : 'between'
+   : 'between' | 'BETWEEN'
    ;
 
 
 REGEXP
-   : 'regexp'
+   : 'regexp' | 'REGEXP'
    ;
 
 

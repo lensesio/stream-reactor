@@ -28,7 +28,10 @@ Kafka topics and external systems as _sinks_ or _sources_.
     ... AUTOCREATE PK field1,field2               // AUTOCREATE with Primary Keys
     ... AUTOEVOLVE
     ... AUTOCREATE AUTOEVOLVE
-    .. BATCH 5000                                 // SET BATCHING TO 5000 records
+    ... BATCH 5000                                // SET BATCHING TO 5000 records
+    ... NOOP 
+    ... THROW
+    ... RETRY
     
 ## Building
 

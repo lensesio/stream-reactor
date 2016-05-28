@@ -7,12 +7,16 @@ stat
    : select_clause+
    ;
 
+sql_action
+   : SQL_ACTION
+   ;
+
 schema_name
    : ID
    ;
 
 select_clause
-   : SELECT column_list_clause ( FROM table_references )? ( where_clause )?
+   : sql_action SELECT column_list_clause ( FROM table_references )? ( where_clause )?
    ;
 
 table_name
