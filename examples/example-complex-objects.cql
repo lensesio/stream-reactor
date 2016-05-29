@@ -1,1 +1,0 @@
-INSERT into TARGET_SQL_TABLE SELECT field1.subField1 from SOURCE_TOPIC

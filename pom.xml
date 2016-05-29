@@ -113,11 +113,16 @@
                 <artifactId>antlr4-maven-plugin</artifactId>
                 <version>${antlr.version}</version>
                 <configuration>
+                    <arguments>
+                        <argument>-package</argument>
+                        <argument>com.datamountaineer.connector.config.antlr4</argument>
+                    </arguments>
                     <sourceDirectory>src/main/antlr4</sourceDirectory>
-                    <outputDirectory>src/main/java</outputDirectory>
-                    <grammars>Connector.g4</grammars>
+                    <outputDirectory>src/main/java/com/datamountaineer/connector/config/antlr4</outputDirectory>
+                    <!--<grammars>Connector.g4</grammars>-->
                     <visitor>true</visitor>
                     <listener>true</listener>
+
                 </configuration>
                 <executions>
                     <execution>
@@ -132,11 +137,11 @@
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4test-maven-plugin</artifactId>
                 <configuration>
-                    <verbose>false</verbose>
+                    <verbose>true</verbose>
                     <showTree>false</showTree>
                     <entryPoint>stat</entryPoint>
                     <grammarName>Connector</grammarName>
-                    <packageName>com.datamountaineer.connector.querylanguage</packageName>
+                    <packageName>com.datamountaineer.connector.antlr4</packageName>
                     <exampleFiles>examples/</exampleFiles>
                 </configuration>
                 <executions>
@@ -157,58 +162,8 @@
                     <target>1.7</target>
                 </configuration>
             </plugin>
-            <!--
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.5.3</version>
-                <configuration>
-                    <descriptors>
-                        <descriptor>src/assembly/development.xml</descriptor>
-                        <descriptor>src/assembly/package.xml</descriptor>
-                    </descriptors>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make-assembly</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.18.1</version>
-                <configuration>
-                    <argLine>-Djava.awt.headless=true</argLine>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>2.17</version>
-                <executions>
-                    <execution>
-                        <id>validate</id>
-                        <phase>validate</phase>
-                        <configuration>
-                            <configLocation>checkstyle/checkstyle.xml</configLocation>
-                            <encoding>UTF-8</encoding>
-                            <consoleOutput>true</consoleOutput>
-                            <failsOnError>true</failsOnError>
-                            <includeResources>false</includeResources>
-                            <includeTestResources>false</includeTestResources>
-                        </configuration>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            -->
-        </plugins>
+
+         </plugins>
 
         <resources>
             <resource>
@@ -218,23 +173,4 @@
         </resources>
     </build>
 
-    <!--
-    <profiles>
-        <profile>
-            <id>standalone</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <configuration>
-                            <descriptors>
-                                <descriptor>src/assembly/standalone.xml</descriptor>
-                            </descriptors>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
-    -->
 </project>
