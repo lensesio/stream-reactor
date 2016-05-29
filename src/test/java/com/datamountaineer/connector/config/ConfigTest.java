@@ -32,6 +32,50 @@ public class ConfigTest {
   }
 
   @Test
+  public void parseAnInsertWithSelectAllFieldsAndNoIgnoreWithThrowErrorPolicy() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT * FROM %s THROW", table, topic);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getSource());
+    assertEquals(table, config.getTarget());
+    assertFalse(config.getFieldAlias().hasNext());
+    assertTrue(config.isIncludeAllFields());
+    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+    assertEquals(ErrorPolicyEnum.THROW, config.getErrorPolicy());
+  }
+
+  @Test
+  public void parseAnInsertWithSelectAllFieldsAndNoIgnoreWithDefaultRetryErrorPolicy() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT * FROM %s RETRY", table, topic);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getSource());
+    assertEquals(table, config.getTarget());
+    assertFalse(config.getFieldAlias().hasNext());
+    assertTrue(config.isIncludeAllFields());
+    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+    assertEquals(ErrorPolicyEnum.RETRY, config.getErrorPolicy());
+    assertEquals(1, config.getRetries());
+  }
+
+  //@Test
+  public void parseAnInsertWithSelectAllFieldsAndNoIgnoreWithRetryErrorPolicy() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT * FROM %s RETRY 6", table, topic);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getSource());
+    assertEquals(table, config.getTarget());
+    assertFalse(config.getFieldAlias().hasNext());
+    assertTrue(config.isIncludeAllFields());
+    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+    assertEquals(ErrorPolicyEnum.RETRY, config.getErrorPolicy());
+    assertEquals(6, config.getRetries());
+  }
+
+  @Test
   public void parseAnInsertWithFieldAlias() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
@@ -255,6 +299,8 @@ public class ConfigTest {
     assertTrue(pks.contains("col1"));
     assertTrue(pks.contains("col3"));
     assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+
+    assertEquals(ErrorPolicyEnum.NOOP, config.getErrorPolicy());
   }
 
   @Test(expected = IllegalArgumentException.class)

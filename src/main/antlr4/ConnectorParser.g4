@@ -35,8 +35,16 @@ schema_name
    : ID
    ;
 
+error_policy
+   :  ERRPOLICY ( retries )?
+   ;
+
+retries
+   : INT
+   ;
+
 select_clause
-   : sql_action table_name SELECT column_list FROM topic_name ( IGNORE ignore_clause )? ( autocreate )?
+   : sql_action table_name SELECT column_list FROM topic_name ( IGNORE ignore_clause )? ( autocreate )? ( error_policy )?
    ;
 
 topic_name

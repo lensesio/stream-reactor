@@ -35,6 +35,8 @@ public class Config {
   private Map<String, FieldAlias> fields = new HashMap<>();
   private Set<String> ignoredFields = new HashSet<>();
   private Set<String> primaryKeys = new HashSet<>();
+  private ErrorPolicyEnum errorPolicy = ErrorPolicyEnum.NOOP;
+  private int retries = 1;
 
   public void addIgnoredField(final String ignoredField) {
     if (ignoredField == null || ignoredField.trim().length() == 0) {
@@ -179,6 +181,22 @@ public class Config {
       public void exitPk_name(ConnectorParser.Pk_nameContext ctx) {
         config.addPrimaryKey(ctx.getText());
       }
+
+      @Override
+      public void exitError_policy(ConnectorParser.Error_policyContext ctx) {
+        config.setErrorPolicy(ErrorPolicyEnum.valueOf(ctx.getText().toUpperCase()));
+      }
+
+      @Override
+      public void exitRetries(ConnectorParser.RetriesContext ctx) {
+        final String value = ctx.getText();
+        try {
+          int retries = Integer.parseInt(value);
+          config.setRetries(retries);
+        } catch (NumberFormatException ex) {
+          throw new IllegalArgumentException(value + " is not a valid number for retries.");
+        }
+      }
     });
     try {
       parser.stat();
@@ -216,5 +234,21 @@ public class Config {
 
   public void setAutoCreate(boolean autoCreate) {
     this.autoCreate = autoCreate;
+  }
+
+  public void setErrorPolicy(ErrorPolicyEnum errorPolicy) {
+    this.errorPolicy = errorPolicy;
+  }
+
+  public ErrorPolicyEnum getErrorPolicy() {
+    return errorPolicy;
+  }
+
+  public int getRetries() {
+    return retries;
+  }
+
+  public void setRetries(int retries) {
+    this.retries = retries;
   }
 }

@@ -40,6 +40,10 @@ PK
    : 'pk' | 'PK'
    ;
 
+ERRPOLICY
+   : 'noop' | 'NOOP' | 'retry' | 'RETRY' | 'throw' | 'THROW'
+   ;
+
 ASTERISK
    : '*'
    ;
