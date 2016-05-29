@@ -36,7 +36,7 @@ schema_name
    ;
 
 select_clause
-   : sql_action table_name SELECT column_list_clause FROM topic_name ( IGNORE ignore_clause )?
+   : sql_action table_name SELECT column_list FROM topic_name ( IGNORE ignore_clause )? ( autocreate )?
    ;
 
 topic_name
@@ -55,12 +55,7 @@ column_name_alias
    : ID
    ;
 
-
 column_list
-   : column_name ( COMMA column_name )*
-   ;
-
-column_list_clause
    : column_name ( COMMA column_name )*
    ;
 
@@ -74,4 +69,16 @@ ignored_name
 
 ignore_clause
    : ignored_name ( COMMA ignored_name )*
+   ;
+
+pk_name
+   : ID
+   ;
+
+primary_key_list
+   : pk_name ( COMMA pk_name )*
+   ;
+
+autocreate
+   : AUTOCREATE ( PK primary_key_list)?
    ;

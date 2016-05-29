@@ -3,33 +3,38 @@ package com.datamountaineer.connector.config;
 import com.datamountaineer.connector.config.antlr4.ConnectorLexer;
 import com.datamountaineer.connector.config.antlr4.ConnectorParser;
 import com.datamountaineer.connector.config.antlr4.ConnectorParserBaseListener;
+import com.google.common.collect.Lists;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.TerminalNode;
+import org.testng.collections.Sets;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 /**
- * Created by stepi on 29/05/16.
+ * Holds the configuration for the Kafka Connect topic.
  */
 public class Config {
+
+  /**
+   * Returns true if all payload fields should be included; false - otherwise
+   */
   private boolean includeAllFields;
+  private boolean autoCreate;
   private WriteModeEnum writeMode;
-  private String topic;
-  private String table;
+  private String source;
+  private String target;
   private Map<String, FieldAlias> fields = new HashMap<>();
   private Set<String> ignoredFields = new HashSet<>();
+  private Set<String> primaryKeys = new HashSet<>();
 
   public void addIgnoredField(final String ignoredField) {
     if (ignoredField == null || ignoredField.trim().length() == 0) {
@@ -45,20 +50,27 @@ public class Config {
     fields.put(fieldAlias.getField(), fieldAlias);
   }
 
-  public String getTopic() {
-    return topic;
+  public void addPrimaryKey(final String primaryKey) {
+    if (primaryKey == null || primaryKey.trim().length() == 0) {
+      throw new IllegalArgumentException("Invalid primaryKey.");
+    }
+    primaryKeys.add(primaryKey);
   }
 
-  public void setTopic(String topic) {
-    this.topic = topic;
+  public String getSource() {
+    return source;
   }
 
-  public String getTable() {
-    return table;
+  public void setSource(String source) {
+    this.source = source;
   }
 
-  public void setTable(String table) {
-    this.table = table;
+  public String getTarget() {
+    return target;
+  }
+
+  public void setTarget(String target) {
+    this.target = target;
   }
 
   public Iterator<FieldAlias> getFieldAlias() {
@@ -85,6 +97,10 @@ public class Config {
     this.writeMode = writeMode;
   }
 
+  public Iterator<String> getPrimaryKeys() {
+    return primaryKeys.iterator();
+  }
+
   public static Config parse(final String syntax) {
     final ConnectorLexer lexer = new ConnectorLexer(new ANTLRInputStream(syntax));
     final CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -106,22 +122,13 @@ public class Config {
     final String[] columnNameAndAlias = new String[]{null, null};
 
     parser.addParseListener(new ConnectorParserBaseListener() {
-      @Override
-      public void exitColumn_list(ConnectorParser.Column_listContext ctx) {
-        for (ConnectorParser.Column_nameContext cn_ctx : ctx.column_name()) {
-          ConnectorParser.Column_name_aliasContext cn_alias_ctx = cn_ctx.column_name_alias();
-          if (cn_alias_ctx != null) {
-            config.addFieldAlias(new FieldAlias(cn_alias_ctx.getText(), ctx.getText()));
-          } else {
-            config.addFieldAlias(new FieldAlias(ctx.getText(), ctx.getText()));
-          }
-        }
-      }
 
       @Override
       public void exitColumn_name(ConnectorParser.Column_nameContext ctx) {
         if (ctx.ID() == null) {
-          //for *
+          if (Objects.equals(ctx.getText(), "*")) {
+            config.setIncludeAllFields(true);
+          }
           super.exitColumn_name(ctx);
           return;
         }
@@ -140,7 +147,7 @@ public class Config {
 
       @Override
       public void exitTable_name(ConnectorParser.Table_nameContext ctx) {
-        config.setTable(ctx.getText());
+        config.setTarget(ctx.getText());
       }
 
       @Override
@@ -150,7 +157,7 @@ public class Config {
 
       @Override
       public void exitTopic_name(ConnectorParser.Topic_nameContext ctx) {
-        config.setTopic(ctx.getText());
+        config.setSource(ctx.getText());
       }
 
       @Override
@@ -164,17 +171,50 @@ public class Config {
       }
 
       @Override
-      public void exitSelect_clause(ConnectorParser.Select_clauseContext ctx) {
-        for (ParseTree pt : ctx.column_list_clause().children) {
-          if (Objects.equals(pt.getText(), "*")) {
-            config.setIncludeAllFields(true);
-            break;
-          }
-        }
+      public void exitAutocreate(ConnectorParser.AutocreateContext ctx) {
+        config.setAutoCreate(true);
+      }
+
+      @Override
+      public void exitPk_name(ConnectorParser.Pk_nameContext ctx) {
+        config.addPrimaryKey(ctx.getText());
       }
     });
-    parser.stat();
+    try {
+      parser.stat();
+    } catch (RecognitionException ex) {
+      throw new IllegalArgumentException("Invalid syntax." + ex.getMessage(), ex);
+    }
+    if (config.isAutoCreate()) {
+      final HashSet<String> pks = new HashSet<>();
+      final Iterator<String> iter = config.getPrimaryKeys();
+      while (iter.hasNext()) {
+        pks.add(iter.next());
+      }
 
+      final HashSet<String> cols = new HashSet<>();
+      final Iterator<FieldAlias> aliasIterator = config.getFieldAlias();
+      while (aliasIterator.hasNext()) {
+        cols.add(aliasIterator.next().getAlias());
+      }
+
+      if (cols.size() == 0 && pks.size() > 0) {
+        throw new IllegalArgumentException("Invalid syntax. Primary Keys are specified but they are not present in the select clause.");
+      }
+      for (String key : pks) {
+        if (!cols.contains(key)) {
+          throw new IllegalArgumentException(String.format("%s Primary Key needs to appear in the Select clause", key));
+        }
+      }
+    }
     return config;
+  }
+
+  public boolean isAutoCreate() {
+    return autoCreate;
+  }
+
+  public void setAutoCreate(boolean autoCreate) {
+    this.autoCreate = autoCreate;
   }
 }

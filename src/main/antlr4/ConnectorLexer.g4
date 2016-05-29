@@ -10,10 +10,6 @@ UPSERT
    : 'upsert' | 'UPSERT'
    ;
 
-PK
-   : 'PK' | 'pk'
-   ;
-
 INTO
    : 'into' | 'INTO'
    ;
@@ -34,6 +30,14 @@ IGNORE
 
 AS
    : 'as' | 'AS'
+   ;
+
+AUTOCREATE
+   : 'autocreate' | 'AUTOCREATE'
+   ;
+
+PK
+   : 'pk' | 'PK'
    ;
 
 ASTERISK
