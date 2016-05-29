@@ -48,7 +48,7 @@ table_name
    ;
 
 column_name
-   : ID ( column_name_alias )?
+   : ID ( AS column_name_alias )?
    ;
 
 column_name_alias

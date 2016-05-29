@@ -32,19 +32,13 @@ IGNORE
    : 'ignore' | 'IGNORE'
    ;
 
+AS
+   : 'as' | 'AS'
+   ;
+
 ASTERISK
    : '*'
    ;
-
-
-ALL_FIELDS
-   : '.*'
-   ;
-
-SEMI
-   : ';'
-   ;
-
 
 COMMA
    : ','
@@ -56,7 +50,7 @@ DOT
    ;
 
 ID
-   : ( 'a' .. 'z' | 'A' .. 'Z' | '_' )+
+   : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' )+
    ;
 
 
