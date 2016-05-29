@@ -120,23 +120,22 @@ public class Config {
 
       @Override
       public void exitColumn_name(ConnectorParser.Column_nameContext ctx) {
-        if (columnNameAndAlias[0] != null) {
-          if (columnNameAndAlias[1] == null) {
-            config.addFieldAlias(new FieldAlias(columnNameAndAlias[0], columnNameAndAlias[0]));
-          } else {
-            config.addFieldAlias(new FieldAlias(columnNameAndAlias[0], columnNameAndAlias[1]));
-          }
-          columnNameAndAlias[1] = null;
+        if (ctx.ID() == null) {
+          //for *
+          super.exitColumn_name(ctx);
+          return;
         }
-
-        columnNameAndAlias[0] = ctx.getText();
+        if (columnNameAndAlias[1] != null) {
+          config.addFieldAlias(new FieldAlias(ctx.ID().getText(), columnNameAndAlias[1]));
+          columnNameAndAlias[1] = null;
+        } else {
+          config.addFieldAlias(new FieldAlias(ctx.ID().getText()));
+        }
       }
 
       @Override
       public void exitColumn_name_alias(ConnectorParser.Column_name_aliasContext ctx) {
-        String alias = ctx.getText();
-        config.addFieldAlias(new FieldAlias(columnNameAndAlias[0], alias));
-        columnNameAndAlias[0] = null;
+        columnNameAndAlias[1] = ctx.getText();
       }
 
       @Override
@@ -175,13 +174,7 @@ public class Config {
       }
     });
     parser.stat();
-    if (columnNameAndAlias[0] != null) {
-      if (columnNameAndAlias[1] == null) {
-        config.addFieldAlias(new FieldAlias(columnNameAndAlias[0], columnNameAndAlias[0]));
-      } else {
-        config.addFieldAlias(new FieldAlias(columnNameAndAlias[0], columnNameAndAlias[1]));
-      }
-    }
+
     return config;
   }
 }

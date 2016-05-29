@@ -20,7 +20,7 @@ import static org.junit.Assert.assertTrue;
  *
  */
 public class ConfigTest {
-  //@Test
+  @Test
   public void parseAnInsertWithSelectAllFieldsAndNoIgnore() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
@@ -43,17 +43,108 @@ public class ConfigTest {
     assertEquals(table, config.getTable());
     List<FieldAlias> fa = Lists.newArrayList(config.getFieldAlias());
     Map<String, FieldAlias> map = new HashMap<>();
-    for(FieldAlias alias:fa){
+    for (FieldAlias alias : fa) {
       map.put(alias.getField(), alias);
     }
     assertEquals(2, fa.size());
-    assertTrue(map.containsKey("col1"));
-    assertTrue(map.containsKey("col2"));
+    assertTrue(map.containsKey("f1"));
+    assertEquals("col1", map.get("f1").getAlias());
+    assertTrue(map.containsKey("f2"));
+    assertEquals("col2", map.get("f2").getAlias());
+    assertFalse(config.isIncludeAllFields());
+    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+  }
+
+  @Test
+  public void parseAnInsertWithFieldAliasMixedWithNoAliasing() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f3, f2 as col2,f4 FROM %s", table, topic);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getTopic());
+    assertEquals(table, config.getTable());
+    List<FieldAlias> fa = Lists.newArrayList(config.getFieldAlias());
+    Map<String, FieldAlias> map = new HashMap<>();
+    for (FieldAlias alias : fa) {
+      map.put(alias.getField(), alias);
+    }
+    assertEquals(4, fa.size());
+    assertTrue(map.containsKey("f1"));
+    assertEquals("col1", map.get("f1").getAlias());
+    assertTrue(map.containsKey("f2"));
+    assertEquals("col2", map.get("f2").getAlias());
+    assertTrue(map.containsKey("f3"));
+    assertEquals("f3", map.get("f3").getAlias());
+    assertTrue(map.containsKey("f4"));
+    assertEquals("f4", map.get("f4").getAlias());
+    assertFalse(config.isIncludeAllFields());
+    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+  }
+
+  @Test
+  public void parseAnInsertWithFieldAliasMixedWithAllFieldsTheAsterixAtTheEnd() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT f1 as col1, * FROM %s", table, topic);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getTopic());
+    assertEquals(table, config.getTable());
+    List<FieldAlias> fa = Lists.newArrayList(config.getFieldAlias());
+    Map<String, FieldAlias> map = new HashMap<>();
+    for (FieldAlias alias : fa) {
+      map.put(alias.getField(), alias);
+    }
+    assertEquals(1, fa.size());
+    assertTrue(map.containsKey("f1"));
+    assertEquals("col1", map.get("f1").getAlias());
     assertTrue(config.isIncludeAllFields());
     assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
   }
 
-  //@Test
+  @Test
+  public void parseAnInsertWithFieldAliasMixedWithAllFieldsTheAsterixAtTheBegining() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT *,f1 as col1 FROM %s", table, topic);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getTopic());
+    assertEquals(table, config.getTable());
+    List<FieldAlias> fa = Lists.newArrayList(config.getFieldAlias());
+    Map<String, FieldAlias> map = new HashMap<>();
+    for (FieldAlias alias : fa) {
+      map.put(alias.getField(), alias);
+    }
+    assertEquals(1, fa.size());
+    assertTrue(map.containsKey("f1"));
+    assertEquals("col1", map.get("f1").getAlias());
+    assertTrue(config.isIncludeAllFields());
+    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+  }
+
+  @Test
+  public void parseAnInsertWithFieldAliasMixedWithAllFieldsTheAsterixInTheMiddle() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT f2 as col2,*,f1 as col1 FROM %s", table, topic);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getTopic());
+    assertEquals(table, config.getTable());
+    List<FieldAlias> fa = Lists.newArrayList(config.getFieldAlias());
+    Map<String, FieldAlias> map = new HashMap<>();
+    for (FieldAlias alias : fa) {
+      map.put(alias.getField(), alias);
+    }
+    assertEquals(2, fa.size());
+    assertTrue(map.containsKey("f1"));
+    assertEquals("col1", map.get("f1").getAlias());
+    assertTrue(map.containsKey("f2"));
+    assertEquals("col2", map.get("f2").getAlias());
+    assertTrue(config.isIncludeAllFields());
+    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+  }
+
+
+  @Test
   public void parseAnUpsertWithSelectAllFieldsAndNoIgnore() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
@@ -66,7 +157,7 @@ public class ConfigTest {
     assertEquals(WriteModeEnum.UPSERT, config.getWriteMode());
   }
 
-  //@Test
+  @Test
   public void parseAnInsertWithSelectAllFieldsWithIgnoredColumns() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
@@ -87,7 +178,7 @@ public class ConfigTest {
     assertTrue(ignored.contains("col2"));
   }
 
-  //@Test
+  @Test
   public void parseAnUpsertWithSelectAllFieldsWithIgnoredColumns() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";

@@ -48,7 +48,7 @@ table_name
    ;
 
 column_name
-   : ID ( AS column_name_alias )?
+   : ID ( AS column_name_alias )? | ASTERISK
    ;
 
 column_name_alias
@@ -61,7 +61,7 @@ column_list
    ;
 
 column_list_clause
-   : column_name ( COMMA column_name )* | '*'
+   : column_name ( COMMA column_name )*
    ;
 
 from_clause
