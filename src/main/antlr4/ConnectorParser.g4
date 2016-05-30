@@ -87,6 +87,10 @@ autoevolve
    : AUTOEVOLVE
    ;
 
+batch_size
+    : INT
+    ;
+
 batching
-   : BATCH EQUAL ID
+   : BATCH EQUAL batch_size
    ;

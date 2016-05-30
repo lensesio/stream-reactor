@@ -190,15 +190,10 @@ public class Config {
       }
 
       @Override
-      public void exitBatching(ConnectorParser.BatchingContext ctx) {
+      public void exitBatch_size(ConnectorParser.Batch_sizeContext ctx) {
         final String value = ctx.getText();
-        int newBatchSize = 0;
         try {
-          if (value.contains("=")) {
-            newBatchSize = Integer.parseInt(value.replace("BATCH", "").replace("=", "").trim());
-          } else {
-            newBatchSize = DEFAULT_BATCH_SIZE;
-          }
+          int newBatchSize = Integer.parseInt(value);
           if (newBatchSize <= 0) {
             throw new IllegalArgumentException(value + " is not a valid number for a batch Size.");
           }
@@ -207,7 +202,6 @@ public class Config {
           throw new IllegalArgumentException(value + " is not a valid number for a batch Size.");
         }
       }
-
     });
 
     try {
