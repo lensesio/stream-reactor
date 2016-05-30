@@ -18,6 +18,28 @@ import static org.junit.Assert.assertTrue;
  *
  */
 public class ConfigTest {
+
+  @Test
+  public void parseAnInsertWithSelectAllFieldsAndNoIgnoreAndPKs() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT * FROM %s PK f1,f2", table, topic);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getSource());
+    assertEquals(table, config.getTarget());
+    assertFalse(config.getFieldAlias().hasNext());
+    assertTrue(config.isIncludeAllFields());
+    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+    HashSet<String> pks = new HashSet<>();
+    Iterator<String> iter = config.getPrimaryKeys();
+    while (iter.hasNext()) {
+      pks.add(iter.next());
+    }
+    assertEquals(2, pks.size());
+    assertTrue(pks.contains("f1"));
+    assertTrue(pks.contains("f2"));
+  }
+
   @Test
   public void parseAnInsertWithSelectAllFieldsAndNoIgnore() {
     String topic = "TOPIC_A";
