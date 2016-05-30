@@ -3,18 +3,15 @@ package com.datamountaineer.connector.config;
 import com.datamountaineer.connector.config.antlr4.ConnectorLexer;
 import com.datamountaineer.connector.config.antlr4.ConnectorParser;
 import com.datamountaineer.connector.config.antlr4.ConnectorParserBaseListener;
-import com.google.common.collect.Lists;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
-import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -206,7 +203,7 @@ public class Config {
 
     try {
       parser.stat();
-    } catch (RecognitionException ex) {
+    } catch (Throwable ex) {
       throw new IllegalArgumentException("Invalid syntax." + ex.getMessage(), ex);
     }
     if (config.isAutoCreate()) {
@@ -223,7 +220,7 @@ public class Config {
       }
 
       for (String key : pks) {
-        if (!cols.contains(key)) {
+        if (!cols.contains(key) && !config.includeAllFields) {
           throw new IllegalArgumentException(String.format("%s Primary Key needs to appear in the Select clause", key));
         }
       }
