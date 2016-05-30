@@ -18,11 +18,10 @@ Kafka topics and external systems as _sinks_ or _sources_.
     SELECT field1.subfield1                       // Project one avro field from a complex message
     SELECT field1 AS newName                      // Project and renames a field
     SELECT *                                      // Select everything - perfect for avro evolution
-    SELECT * RENAME field1 AS newName             // Rename a field - excellent for avro evolution
-    SELECT * IGNORE badField                      // Ignore a field - excellent for avro evolution
+    SELECT *, field1 AS newName                   // Select all & rename a field - excellent for avro evolution
+    SELECT * IGNORE badField                      // Select all & ignore a field - excellent for avro evolution
 
-    UPSERT into TARGET_SQL_TABLE SELECT ...       // INSERT & UPSERT allowed
-    UPSERT PK field1 into TARGET_SQL_TABLE ..     // UPSERT on particular Primary Keys
+    UPSERT into TARGET_SQL_TABLE SELECT ...       // INSERT & UPSERT allowed. Works out PK from DB
 
     ... AUTOCREATE                                // AUTOCREATE TABLE
     ... AUTOCREATE PK field1,field2               // AUTOCREATE with Primary Keys
