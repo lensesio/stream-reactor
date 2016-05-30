@@ -13,24 +13,25 @@ Kafka topics and external systems as _sinks_ or _sources_.
 # Connector Query Language 
 
     INSERT into TARGET_SQL_TABLE SELECT * FROM SOURCE_TOPIC IGNORE a,b,c
+    UPSERT into TARGET_SQL_TABLE SELECT ..        // INSERT & UPSERT allowed. Works out PK from DB
 
-    SELECT field1                                 // Project one avro field named field1
-    SELECT field1.subfield1                       // Project one avro field from a complex message
-    SELECT field1 AS newName                      // Project and renames a field
-    SELECT *                                      // Select everything - perfect for avro evolution
-    SELECT *, field1 AS newName                   // Select all & rename a field - excellent for avro evolution
-    SELECT * IGNORE badField                      // Select all & ignore a field - excellent for avro evolution
+### Examples of SELECT
 
-    UPSERT into TARGET_SQL_TABLE SELECT ...       // INSERT & UPSERT allowed. Works out PK from DB
+    .. SELECT field1                                 // Project one avro field named field1
+    .. SELECT field1.subfield1                       // Project one avro field from a complex message
+    .. SELECT field1 AS newName                      // Project and renames a field
+    .. SELECT *                                      // Select everything - perfect for avro evolution
+    .. SELECT *, field1 AS newName                   // Select all & rename a field - excellent for avro evolution
+    .. SELECT * IGNORE badField                      // Select all & ignore a field - excellent for avro evolution
 
-    ... AUTOCREATE                                // AUTOCREATE TABLE
-    ... AUTOCREATE PK field1,field2               // AUTOCREATE with Primary Keys
-    ... AUTOEVOLVE
-    ... AUTOCREATE AUTOEVOLVE
-    ... BATCH 5000                                // SET BATCHING TO 5000 records
-    ... NOOP 
-    ... THROW
-    ... RETRY
+### Other operators
+
+    .. AUTOCREATE                                // AUTOCREATE TABLE
+    .. AUTOCREATE PK field1,field2               // AUTOCREATE with Primary Keys
+    .. BATCH 5000                                // SET BATCHING TO 5000 records
+    .. AUTOEVOLVE
+    .. AUTOCREATE AUTOEVOLVE
+    .. NOOP | THROW | RETRY
     
 ## Building
 
