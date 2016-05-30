@@ -1,4 +1,4 @@
-# kafka-connect-query-language
+# Kafka Connect Query Language
 
 The **Kafka Connect Query Language** is implemented in `antlr4` grammar files.
 
