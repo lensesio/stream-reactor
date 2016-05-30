@@ -44,7 +44,7 @@ retries
    ;
 
 select_clause
-   : sql_action table_name SELECT column_list FROM topic_name ( IGNORE ignore_clause )? ( autocreate )? ( error_policy )?
+   : sql_action table_name SELECT column_list FROM topic_name ( IGNORE ignore_clause )? ( autocreate )? ( autoevolve )? ( error_policy )?
    ;
 
 topic_name
@@ -89,4 +89,8 @@ primary_key_list
 
 autocreate
    : AUTOCREATE ( PK primary_key_list)?
+   ;
+
+autoevolve
+   : AUTOEVOLVE
    ;

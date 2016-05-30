@@ -29,6 +29,7 @@ public class Config {
    */
   private boolean includeAllFields;
   private boolean autoCreate;
+  private boolean autoEvolve;
   private WriteModeEnum writeMode;
   private String source;
   private String target;
@@ -188,6 +189,11 @@ public class Config {
       }
 
       @Override
+      public void exitAutoevolve(ConnectorParser.AutoevolveContext ctx) {
+        config.setAutoEvolve(true);
+      }
+
+      @Override
       public void exitRetries(ConnectorParser.RetriesContext ctx) {
         final String value = ctx.getText();
         try {
@@ -250,5 +256,13 @@ public class Config {
 
   public void setRetries(int retries) {
     this.retries = retries;
+  }
+
+  public boolean isAutoEvolve() {
+    return autoEvolve;
+  }
+
+  public void setAutoEvolve(boolean autoEvolve) {
+    this.autoEvolve = autoEvolve;
   }
 }

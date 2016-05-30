@@ -58,6 +58,39 @@ public class ConfigTest {
     assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
     assertEquals(ErrorPolicyEnum.RETRY, config.getErrorPolicy());
     assertEquals(1, config.getRetries());
+    assertFalse(config.isAutoEvolve());
+  }
+
+  @Test
+  public void handleAutoevolve() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT * FROM %s AUTOEVOLVE RETRY", table, topic);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getSource());
+    assertEquals(table, config.getTarget());
+    assertFalse(config.getFieldAlias().hasNext());
+    assertTrue(config.isIncludeAllFields());
+    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+    assertEquals(ErrorPolicyEnum.RETRY, config.getErrorPolicy());
+    assertEquals(1, config.getRetries());
+    assertTrue(config.isAutoEvolve());
+  }
+
+  @Test
+  public void shouldNotSetAutoevolveIfIsSpecifiedAfterTheRetry() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT * FROM %s RETRY AUTOEVOLVE", table, topic);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getSource());
+    assertEquals(table, config.getTarget());
+    assertFalse(config.getFieldAlias().hasNext());
+    assertTrue(config.isIncludeAllFields());
+    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+    assertEquals(ErrorPolicyEnum.RETRY, config.getErrorPolicy());
+    assertEquals(1, config.getRetries());
+    assertFalse(config.isAutoEvolve());
   }
 
   //@Test
@@ -301,6 +334,45 @@ public class ConfigTest {
     assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
 
     assertEquals(ErrorPolicyEnum.NOOP, config.getErrorPolicy());
+    assertFalse(config.isAutoEvolve());
+  }
+
+  @Test
+  public void parseAnInsertWithFieldAliasAndAutocreateWithPKsAndAutoevolve() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f2 as col2, col3 FROM %s AUTOCREATE PK col1,col3 AUTOEVOLVE", table, topic);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getSource());
+    assertEquals(table, config.getTarget());
+    List<FieldAlias> fa = Lists.newArrayList(config.getFieldAlias());
+    Map<String, FieldAlias> map = new HashMap<>();
+    for (FieldAlias alias : fa) {
+      map.put(alias.getField(), alias);
+    }
+    assertEquals(3, fa.size());
+    assertTrue(map.containsKey("f1"));
+    assertEquals("col1", map.get("f1").getAlias());
+    assertTrue(map.containsKey("f2"));
+    assertEquals("col2", map.get("f2").getAlias());
+    assertTrue(map.containsKey("col3"));
+    assertEquals("col3", map.get("col3").getAlias());
+    assertFalse(config.isIncludeAllFields());
+    assertTrue(config.isAutoCreate());
+
+    Iterator<String> pksIterator = config.getPrimaryKeys();
+    HashSet<String> pks = new HashSet<>();
+    while (pksIterator.hasNext()) {
+      pks.add(pksIterator.next());
+    }
+
+    assertEquals(2, pks.size());
+    assertTrue(pks.contains("col1"));
+    assertTrue(pks.contains("col3"));
+    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+
+    assertEquals(ErrorPolicyEnum.NOOP, config.getErrorPolicy());
+    assertTrue(config.isAutoEvolve());
   }
 
   @Test(expected = IllegalArgumentException.class)

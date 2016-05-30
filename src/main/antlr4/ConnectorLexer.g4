@@ -36,6 +36,11 @@ AUTOCREATE
    : 'autocreate' | 'AUTOCREATE'
    ;
 
+
+AUTOEVOLVE
+   : 'autoevolve' | 'AUTOEVOLVE'
+   ;
+
 PK
    : 'pk' | 'PK'
    ;
