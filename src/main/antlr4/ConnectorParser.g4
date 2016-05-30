@@ -35,7 +35,6 @@ schema_name
    : ID
    ;
 
-
 select_clause
    : sql_action table_name SELECT column_list FROM topic_name ( IGNORE ignore_clause )? ( autocreate )? ( autoevolve )? ( batching )?
    ;
@@ -88,10 +87,6 @@ autoevolve
    : AUTOEVOLVE
    ;
 
-batch_size
-   : INTEGER_NUMBER
-   ;
-
 batching
-   : BATCH_EXPR EQUAL batch_size
+   : BATCH EQUAL ID
    ;

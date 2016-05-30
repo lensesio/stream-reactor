@@ -41,6 +41,10 @@ AUTOEVOLVE
    : 'autoevolve' | 'AUTOEVOLVE'
    ;
 
+BATCH
+   : 'batch' | 'BATCH'
+   ;
+
 PK
    : 'pk' | 'PK'
    ;
@@ -77,18 +81,6 @@ WS
    : ( ' ' | '\t' | '\n' | '\r' )+ -> skip
    ;
 
-BATCH_EXPR
-   : 'batch' | 'BATCH'
-   ;
-
 EQUAL
    : '='
-   ;
-
-INTEGER_NUMBER
-   : DIGIT+
-   ;
-
-fragment DIGIT
-   :   [0-9]
    ;

@@ -58,7 +58,8 @@ public class ConfigTest {
   public void parseAnInsertWithFieldAliasAndSettingTheBatchSize() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
-    String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f2 as col2 FROM %s BATCH = 500", table, topic);
+    String batchSize = "500";
+    String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f2 as col2 FROM %s BATCH = %s", table, topic, batchSize);
     Config config = Config.parse(syntax);
     assertEquals(topic, config.getSource());
     assertEquals(table, config.getTarget());
