@@ -14,6 +14,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -23,6 +24,7 @@ import java.util.Set;
  */
 public class Config {
 
+  public final static int DEFAULT_BATCH_SIZE = 3000;
   /**
    * Returns true if all payload fields should be included; false - otherwise
    */
@@ -35,8 +37,8 @@ public class Config {
   private Map<String, FieldAlias> fields = new HashMap<>();
   private Set<String> ignoredFields = new HashSet<>();
   private Set<String> primaryKeys = new HashSet<>();
-  private ErrorPolicyEnum errorPolicy = ErrorPolicyEnum.NOOP;
   private int retries = 1;
+  private int batchSize = DEFAULT_BATCH_SIZE;
 
   public void addIgnoredField(final String ignoredField) {
     if (ignoredField == null || ignoredField.trim().length() == 0) {
@@ -183,26 +185,26 @@ public class Config {
       }
 
       @Override
-      public void exitError_policy(ConnectorParser.Error_policyContext ctx) {
-        config.setErrorPolicy(ErrorPolicyEnum.valueOf(ctx.getText().toUpperCase()));
-      }
-
-      @Override
       public void exitAutoevolve(ConnectorParser.AutoevolveContext ctx) {
         config.setAutoEvolve(true);
       }
 
       @Override
-      public void exitRetries(ConnectorParser.RetriesContext ctx) {
+      public void exitBatch_size(ConnectorParser.Batch_sizeContext ctx) {
         final String value = ctx.getText();
         try {
-          int retries = Integer.parseInt(value);
-          config.setRetries(retries);
+          int batchSize = Integer.parseInt(value);
+          if (batchSize <= 0) {
+            throw new IllegalArgumentException(value + " is not a valid number for a batch Size.");
+          }
+          config.setBatchSize(batchSize);
         } catch (NumberFormatException ex) {
-          throw new IllegalArgumentException(value + " is not a valid number for retries.");
+          throw new IllegalArgumentException(value + " is not a valid number for a batch Size.");
         }
       }
+
     });
+
     try {
       parser.stat();
     } catch (RecognitionException ex) {
@@ -241,14 +243,6 @@ public class Config {
     this.autoCreate = autoCreate;
   }
 
-  public void setErrorPolicy(ErrorPolicyEnum errorPolicy) {
-    this.errorPolicy = errorPolicy;
-  }
-
-  public ErrorPolicyEnum getErrorPolicy() {
-    return errorPolicy;
-  }
-
   public int getRetries() {
     return retries;
   }
@@ -263,5 +257,13 @@ public class Config {
 
   public void setAutoEvolve(boolean autoEvolve) {
     this.autoEvolve = autoEvolve;
+  }
+
+  public int getBatchSize() {
+    return batchSize;
+  }
+
+  public void setBatchSize(int batchSize) {
+    this.batchSize = batchSize;
   }
 }

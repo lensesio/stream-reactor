@@ -32,83 +32,6 @@ public class ConfigTest {
   }
 
   @Test
-  public void parseAnInsertWithSelectAllFieldsAndNoIgnoreWithThrowErrorPolicy() {
-    String topic = "TOPIC_A";
-    String table = "TABLE_A";
-    String syntax = String.format("INSERT INTO %s SELECT * FROM %s THROW", table, topic);
-    Config config = Config.parse(syntax);
-    assertEquals(topic, config.getSource());
-    assertEquals(table, config.getTarget());
-    assertFalse(config.getFieldAlias().hasNext());
-    assertTrue(config.isIncludeAllFields());
-    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
-    assertEquals(ErrorPolicyEnum.THROW, config.getErrorPolicy());
-  }
-
-  @Test
-  public void parseAnInsertWithSelectAllFieldsAndNoIgnoreWithDefaultRetryErrorPolicy() {
-    String topic = "TOPIC_A";
-    String table = "TABLE_A";
-    String syntax = String.format("INSERT INTO %s SELECT * FROM %s RETRY", table, topic);
-    Config config = Config.parse(syntax);
-    assertEquals(topic, config.getSource());
-    assertEquals(table, config.getTarget());
-    assertFalse(config.getFieldAlias().hasNext());
-    assertTrue(config.isIncludeAllFields());
-    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
-    assertEquals(ErrorPolicyEnum.RETRY, config.getErrorPolicy());
-    assertEquals(1, config.getRetries());
-    assertFalse(config.isAutoEvolve());
-  }
-
-  @Test
-  public void handleAutoevolve() {
-    String topic = "TOPIC_A";
-    String table = "TABLE_A";
-    String syntax = String.format("INSERT INTO %s SELECT * FROM %s AUTOEVOLVE RETRY", table, topic);
-    Config config = Config.parse(syntax);
-    assertEquals(topic, config.getSource());
-    assertEquals(table, config.getTarget());
-    assertFalse(config.getFieldAlias().hasNext());
-    assertTrue(config.isIncludeAllFields());
-    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
-    assertEquals(ErrorPolicyEnum.RETRY, config.getErrorPolicy());
-    assertEquals(1, config.getRetries());
-    assertTrue(config.isAutoEvolve());
-  }
-
-  @Test
-  public void shouldNotSetAutoevolveIfIsSpecifiedAfterTheRetry() {
-    String topic = "TOPIC_A";
-    String table = "TABLE_A";
-    String syntax = String.format("INSERT INTO %s SELECT * FROM %s RETRY AUTOEVOLVE", table, topic);
-    Config config = Config.parse(syntax);
-    assertEquals(topic, config.getSource());
-    assertEquals(table, config.getTarget());
-    assertFalse(config.getFieldAlias().hasNext());
-    assertTrue(config.isIncludeAllFields());
-    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
-    assertEquals(ErrorPolicyEnum.RETRY, config.getErrorPolicy());
-    assertEquals(1, config.getRetries());
-    assertFalse(config.isAutoEvolve());
-  }
-
-  //@Test
-  public void parseAnInsertWithSelectAllFieldsAndNoIgnoreWithRetryErrorPolicy() {
-    String topic = "TOPIC_A";
-    String table = "TABLE_A";
-    String syntax = String.format("INSERT INTO %s SELECT * FROM %s RETRY 6", table, topic);
-    Config config = Config.parse(syntax);
-    assertEquals(topic, config.getSource());
-    assertEquals(table, config.getTarget());
-    assertFalse(config.getFieldAlias().hasNext());
-    assertTrue(config.isIncludeAllFields());
-    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
-    assertEquals(ErrorPolicyEnum.RETRY, config.getErrorPolicy());
-    assertEquals(6, config.getRetries());
-  }
-
-  @Test
   public void parseAnInsertWithFieldAlias() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
@@ -128,6 +51,30 @@ public class ConfigTest {
     assertEquals("col2", map.get("f2").getAlias());
     assertFalse(config.isIncludeAllFields());
     assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+    assertEquals(Config.DEFAULT_BATCH_SIZE, config.getBatchSize());
+  }
+
+  @Test
+  public void parseAnInsertWithFieldAliasAndSettingTheBatchSize() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f2 as col2 FROM %s BATCH = 500", table, topic);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getSource());
+    assertEquals(table, config.getTarget());
+    List<FieldAlias> fa = Lists.newArrayList(config.getFieldAlias());
+    Map<String, FieldAlias> map = new HashMap<>();
+    for (FieldAlias alias : fa) {
+      map.put(alias.getField(), alias);
+    }
+    assertEquals(2, fa.size());
+    assertTrue(map.containsKey("f1"));
+    assertEquals("col1", map.get("f1").getAlias());
+    assertTrue(map.containsKey("f2"));
+    assertEquals("col2", map.get("f2").getAlias());
+    assertFalse(config.isIncludeAllFields());
+    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+    assertEquals(500, config.getBatchSize());
   }
 
   @Test
@@ -333,7 +280,6 @@ public class ConfigTest {
     assertTrue(pks.contains("col3"));
     assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
 
-    assertEquals(ErrorPolicyEnum.NOOP, config.getErrorPolicy());
     assertFalse(config.isAutoEvolve());
   }
 
@@ -371,7 +317,6 @@ public class ConfigTest {
     assertTrue(pks.contains("col3"));
     assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
 
-    assertEquals(ErrorPolicyEnum.NOOP, config.getErrorPolicy());
     assertTrue(config.isAutoEvolve());
   }
 

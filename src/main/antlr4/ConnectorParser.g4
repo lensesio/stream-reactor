@@ -35,16 +35,9 @@ schema_name
    : ID
    ;
 
-error_policy
-   :  ERRPOLICY ( retries )?
-   ;
-
-retries
-   : INT
-   ;
 
 select_clause
-   : sql_action table_name SELECT column_list FROM topic_name ( IGNORE ignore_clause )? ( autocreate )? ( autoevolve )? ( error_policy )?
+   : sql_action table_name SELECT column_list FROM topic_name ( IGNORE ignore_clause )? ( autocreate )? ( autoevolve )? ( batching )?
    ;
 
 topic_name
@@ -93,4 +86,12 @@ autocreate
 
 autoevolve
    : AUTOEVOLVE
+   ;
+
+batch_size
+   : INTEGER_NUMBER
+   ;
+
+batching
+   : BATCH_EXPR EQUAL batch_size
    ;
