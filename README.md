@@ -1,15 +1,15 @@
-# kafka-connector-query-language
+# kafka-connect-query-language
 
-The Kafka **connector query language** is implemented in `antlr4` grammar files.
+The **Kafka Connect Query Language** is implemented in `antlr4` grammar files.
 
 You can find example grammars <a href="https://github.com/antlr/grammars-v4">here</a>
 
 # Why ?
 
-A Kafka Connect **CQL** (**C**onnector **Q**uery **L**anguages) makes a lot of sense when you need to define mappings between 
-Kafka topics with Avro records and external systems as _sinks_ or _sources_. 
+A Kafka Connect **KCQL** (**K**afka **C**onnect **Q**uery **L**anguages) makes a lot of sense when you need to define mappings between 
+Kafka topics (with Avro records) and external systems as _sinks_ or _sources_. 
 
-# Connector Query Language 
+# Kafka Connect Query Language 
 
     INSERT into TARGET_SQL_TABLE SELECT * FROM SOURCE_TOPIC IGNORE a,b,c
     UPSERT into TARGET_SQL_TABLE SELECT ..           // INSERT & UPSERT allowed. Works out PK from DB
