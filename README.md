@@ -1,19 +1,18 @@
 # kafka-connector-query-language
 
 The Kafka **connector query language** is implemented in `antlr4` grammar files.
-Available at src/main/antlr/com/datamountaineer/connector/querylanguage
 
 You can find example grammars <a href="https://github.com/antlr/grammars-v4">here</a>
 
 # Why ?
 
-A **C**onnector **q**uery **l**anguages (Cql) makes a lot of sense when you need to define mappings between 
-Kafka topics and external systems as _sinks_ or _sources_. 
+A Kafka Connect **CQL** (**C**onnector **Q**uery **L**anguages) makes a lot of sense when you need to define mappings between 
+Kafka topics with Avro records and external systems as _sinks_ or _sources_. 
 
 # Connector Query Language 
 
     INSERT into TARGET_SQL_TABLE SELECT * FROM SOURCE_TOPIC IGNORE a,b,c
-    UPSERT into TARGET_SQL_TABLE SELECT ..        // INSERT & UPSERT allowed. Works out PK from DB
+    UPSERT into TARGET_SQL_TABLE SELECT ..           // INSERT & UPSERT allowed. Works out PK from DB
 
 ### Examples of SELECT
 
@@ -26,12 +25,15 @@ Kafka topics and external systems as _sinks_ or _sources_.
 
 ### Other operators
 
-    .. AUTOCREATE                                // AUTOCREATE TABLE
-    .. AUTOCREATE PK field1,field2               // AUTOCREATE with Primary Keys
-    .. BATCH 5000                                // SET BATCHING TO 5000 records
+    .. AUTOCREATE                                    // AUTOCREATE TABLE
+    .. AUTOCREATE PK field1,field2                   // AUTOCREATE with Primary Keys
+    .. BATCH 5000                                    // SET BATCHING TO 5000 records
     .. AUTOEVOLVE
     .. AUTOCREATE AUTOEVOLVE
-    .. NOOP | THROW | RETRY
+
+### Future options
+
+    .. NOOP | THROW | RETRY                          // Define the error policy 
     
 ## Building
 
@@ -40,15 +42,3 @@ Get this repository and run:
     mvn clean compile test
 
 Java files are generate under `generated-sources/antlr4` folder
-
-## Testing
-
-Install the antlr4test maven plugin
-
-    mkdir temp; cd temp
-    git clone git@github.com:antlr/grammars-v4.git
-    cd grammars-v4/support/antlr4test-maven-plugin
-    mvn clean install 
-    cd ../../../..
-
-And then 
