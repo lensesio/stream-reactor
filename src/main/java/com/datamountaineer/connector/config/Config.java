@@ -222,9 +222,6 @@ public class Config {
         cols.add(aliasIterator.next().getAlias());
       }
 
-      if (cols.size() == 0 && pks.size() > 0) {
-        throw new IllegalArgumentException("Invalid syntax. Primary Keys are specified but they are not present in the select clause.");
-      }
       for (String key : pks) {
         if (!cols.contains(key)) {
           throw new IllegalArgumentException(String.format("%s Primary Key needs to appear in the Select clause", key));
