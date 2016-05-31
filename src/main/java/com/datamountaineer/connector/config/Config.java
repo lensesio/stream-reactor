@@ -206,25 +206,25 @@ public class Config {
     } catch (Throwable ex) {
       throw new IllegalArgumentException("Invalid syntax." + ex.getMessage(), ex);
     }
-    if (config.isAutoCreate()) {
-      final HashSet<String> pks = new HashSet<>();
-      final Iterator<String> iter = config.getPrimaryKeys();
-      while (iter.hasNext()) {
-        pks.add(iter.next());
-      }
 
-      final HashSet<String> cols = new HashSet<>();
-      final Iterator<FieldAlias> aliasIterator = config.getFieldAlias();
-      while (aliasIterator.hasNext()) {
-        cols.add(aliasIterator.next().getAlias());
-      }
+    final HashSet<String> pks = new HashSet<>();
+    final Iterator<String> iter = config.getPrimaryKeys();
+    while (iter.hasNext()) {
+      pks.add(iter.next());
+    }
 
-      for (String key : pks) {
-        if (!cols.contains(key) && !config.includeAllFields) {
-          throw new IllegalArgumentException(String.format("%s Primary Key needs to appear in the Select clause", key));
-        }
+    final HashSet<String> cols = new HashSet<>();
+    final Iterator<FieldAlias> aliasIterator = config.getFieldAlias();
+    while (aliasIterator.hasNext()) {
+      cols.add(aliasIterator.next().getAlias());
+    }
+
+    for (String key : pks) {
+      if (!cols.contains(key) && !config.includeAllFields) {
+        throw new IllegalArgumentException(String.format("%s Primary Key needs to appear in the Select clause", key));
       }
     }
+
     return config;
   }
 

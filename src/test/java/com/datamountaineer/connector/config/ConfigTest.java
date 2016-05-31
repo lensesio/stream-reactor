@@ -350,4 +350,11 @@ public class ConfigTest {
     String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f2 as col2, col3 FROM %s AUTOCREATE PK col1,colX", table, topic);
     Config.parse(syntax);
   }
+
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwsErrorWhenThePKIsNotPresentInTheSelectClauseSinglePK() {
+    String syntax = "INSERT INTO someTable SELECT lastName as surname, firstName FROM someTable PK IamABadPersonAndIHateYou";
+    Config.parse(syntax);
+  }
 }
