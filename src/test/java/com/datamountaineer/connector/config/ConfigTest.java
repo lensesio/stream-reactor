@@ -78,7 +78,7 @@ public class ConfigTest {
 
   @Test
   public void parseAnInsertWithFieldAliasAndSettingTheBatchSize() {
-    String topic = "TOPIC_A";
+    String topic = "TOPIC-A";
     String table = "TABLE_A";
     String batchSize = "500";
     String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f2 as col2 FROM %s BATCH = %s", table, topic, batchSize);
@@ -102,7 +102,7 @@ public class ConfigTest {
 
   @Test
   public void parseAnInsertWithFieldAliasMixedWithNoAliasing() {
-    String topic = "TOPIC_A";
+    String topic = "TOPIC.A";
     String table = "TABLE_A";
     String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f3, f2 as col2,f4 FROM %s", table, topic);
     Config config = Config.parse(syntax);
@@ -128,7 +128,7 @@ public class ConfigTest {
 
   @Test
   public void parseAnInsertWithFieldAliasMixedWithAllFieldsTheAsterixAtTheEnd() {
-    String topic = "TOPIC_A";
+    String topic = "TOPIC+A";
     String table = "TABLE_A";
     String syntax = String.format("INSERT INTO %s SELECT f1 as col1, * FROM %s", table, topic);
     Config config = Config.parse(syntax);

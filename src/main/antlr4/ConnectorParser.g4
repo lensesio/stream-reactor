@@ -40,7 +40,7 @@ select_clause
    ;
 
 topic_name
-   : ID
+   : ID | TOPICNAME
    ;
 
 table_name
