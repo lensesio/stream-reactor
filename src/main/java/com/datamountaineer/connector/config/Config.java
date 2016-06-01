@@ -28,6 +28,7 @@ public class Config {
   private boolean includeAllFields;
   private boolean autoCreate;
   private boolean autoEvolve;
+  private boolean enableCapitalize;
   private WriteModeEnum writeMode;
   private String source;
   private String target;
@@ -187,6 +188,11 @@ public class Config {
       }
 
       @Override
+      public void exitCapitalize(ConnectorParser.CapitalizeContext ctx) {
+        config.setEnableCapitalize(true);
+      }
+
+      @Override
       public void exitBatch_size(ConnectorParser.Batch_sizeContext ctx) {
         final String value = ctx.getText();
         try {
@@ -258,5 +264,13 @@ public class Config {
 
   public void setBatchSize(int batchSize) {
     this.batchSize = batchSize;
+  }
+
+  public boolean isEnableCapitalize() {
+    return enableCapitalize;
+  }
+
+  public void setEnableCapitalize(boolean enableCapitalize) {
+    this.enableCapitalize = enableCapitalize;
   }
 }

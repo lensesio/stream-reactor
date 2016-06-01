@@ -45,6 +45,10 @@ BATCH
    : 'batch' | 'BATCH'
    ;
 
+CAPITALIZE
+   : 'capitalize' | 'CAPITALIZE'
+   ;
+
 PK
    : 'pk' | 'PK'
    ;

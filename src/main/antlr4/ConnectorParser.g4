@@ -36,7 +36,7 @@ schema_name
    ;
 
 select_clause
-   : sql_action table_name SELECT column_list FROM topic_name ( IGNORE ignore_clause )? ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )?
+   : sql_action table_name SELECT column_list FROM topic_name ( IGNORE ignore_clause )? ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )?
    ;
 
 topic_name
@@ -93,4 +93,8 @@ batch_size
 
 batching
    : BATCH EQUAL batch_size
+   ;
+
+capitalize
+   : CAPITALIZE
    ;

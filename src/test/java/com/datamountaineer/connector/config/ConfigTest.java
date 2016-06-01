@@ -242,6 +242,7 @@ public class ConfigTest {
 
     assertTrue(ignored.contains("col1"));
     assertTrue(ignored.contains("1col2"));
+    assertFalse(config.isEnableCapitalize());
   }
 
 
@@ -357,4 +358,27 @@ public class ConfigTest {
     String syntax = "INSERT INTO someTable SELECT lastName as surname, firstName FROM someTable PK IamABadPersonAndIHateYou";
     Config.parse(syntax);
   }
+
+  @Test
+  public void parseAnUpsertWithSelectAllFieldsWithIgnoredColumnsWithCapitalization() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT * FROM %s IGNORE col1, 1col2 CAPITALIZE  ", table, topic);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getSource());
+    assertEquals(table, config.getTarget());
+    assertFalse(config.getFieldAlias().hasNext());
+    assertTrue(config.isIncludeAllFields());
+    assertEquals(WriteModeEnum.UPSERT, config.getWriteMode());
+    Set<String> ignored = new HashSet<>();
+    Iterator<String> iter = config.getIgnoredField();
+    while (iter.hasNext()) {
+      ignored.add(iter.next());
+    }
+
+    assertTrue(ignored.contains("col1"));
+    assertTrue(ignored.contains("1col2"));
+    assertTrue(config.isEnableCapitalize());
+  }
+
 }
