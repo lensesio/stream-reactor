@@ -34,6 +34,8 @@ Kafka topics (with Avro records) and external systems as _sinks_ or _sources_.
 ### Future options
 
     .. NOOP | THROW | RETRY                          // Define the error policy 
+    .. WHERE ..                                      // Add filtering rules
+    .. CAPITALIZE | TOLOWER                          // Forces TABLE names and COLUMN names to CAPITAL or _lowercase_
     
 ## Building
 
