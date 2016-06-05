@@ -14,15 +14,15 @@ Kafka Connect Common is in Maven, include it in your connector.
 #maven
 <dependency>
 	<groupId>com.datamountaineer</groupId>
-	<artifactId>kafka-connect-query-language</artifactId>
+	<artifactId>kcql</artifactId>
 	<version>0.1</version>
 </dependency>
 
 #sbt
-libraryDependencies += "com.datamountaineer" % "kafka-connect-query-language" % "0.1"
+libraryDependencies += "com.datamountaineer" % "kcql % "0.1"
 
 #gradle
-'com.datamountaineer:kafka-connect-query-language:0.1'
+'com.datamountaineer:kcql:0.1'
 ```
 
 # Why ?
