@@ -1,5 +1,5 @@
-[![Build Status](https://travis-ci.org/datamountaineer/kafka-connector-query-language.svg?branch=master)](https://travis-ci.org/datamountaineer/kafka-connector-query-language)
-[<img src="https://img.shields.io/badge/latest%20release-v0.1-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22%20AND%20a%3A%22kafka-connector-query-language%22)
+[![Build Status](https://travis-ci.org/datamountaineer/kafka-connect-query-language.svg?branch=master)](https://travis-ci.org/datamountaineer/kafka-connect-query-language)
+[<img src="https://img.shields.io/badge/latest%20release-v0.1-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22%20AND%20a%3A%22kafka-connect-query-language%22)
 
 
 # Kafka Connect Query Language
