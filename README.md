@@ -8,6 +8,23 @@ The **Kafka Connect Query Language** is implemented in `antlr4` grammar files.
 
 You can find example grammars <a href="https://github.com/antlr/grammars-v4">here</a>
 
+Kafka Connect Common is in Maven, include it in your connector.
+
+```bash
+#maven
+<dependency>
+	<groupId>com.datamountaineer</groupId>
+	<artifactId>kafka-connect-query-language</artifactId>
+	<version>0.1</version>
+</dependency>
+
+#sbt
+libraryDependencies += "com.datamountaineer" % "kafka-connect-query-language" % "0.1"
+
+#gradle
+'com.datamountaineer:kafka-connect-query-language:0.1'
+```
+
 # Why ?
 
 A Kafka Connect **KCQL** (**K**afka **C**onnect **Q**uery **L**anguages) makes a lot of sense when you need to define mappings between 
