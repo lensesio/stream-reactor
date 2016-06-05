@@ -1,0 +1,8 @@
+language: scala
+scala: 2.11.7
+jdk: oraclejdk8
+before_script: ulimit -u 30000
+install: gradle check
+script: gradle fatJar
+notifications:
+  slack: datamountaineers:gpg5e7VabFjAT1gQZqwxgsqP
