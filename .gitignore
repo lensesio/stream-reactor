@@ -9,7 +9,6 @@
 *.class
 *.log
 temp
-src/main/java
 
 # sbt specific
 .cache
