@@ -36,7 +36,7 @@ gradle fatJarNoTest
 ```
 
 
-## Perquisites
+## Prerequisites
 * Confluent 2.0
 * Java 1.8 
 * Scala 2.11

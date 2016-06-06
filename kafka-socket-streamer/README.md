@@ -30,7 +30,7 @@ gradle fatJar
 gradle fatJarNoTest
 ```
 
-## Perquisites
+## Prerequisites
 
 * Confluent 2.0
 

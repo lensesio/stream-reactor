@@ -8,7 +8,7 @@ PLACEHOLDER --NOT COMPLETE---- VOLUNTEERS!
 
 WORK IN PROGRESS
 
-## Perquisites
+## Prerequisites
 
 * Confluent 2.0
 * Druid Tranquility 0.7.4
