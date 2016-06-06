@@ -1,6 +1,6 @@
 package com.datamountaineer.streamreactor.connect.hbase.writers
 
-import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
+import com.datamountaineer.streamreactor.connect.schemas.BytesHelper._
 import com.datamountaineer.streamreactor.connect.hbase.HbaseHelper
 import org.apache.hadoop.hbase.client.{Connection, ConnectionFactory, Scan}
 import org.apache.hadoop.hbase.util.Bytes
@@ -28,6 +28,5 @@ object HbaseReaderHelper {
   }
 
 }
-
 
 case class HbaseRowData(key: Array[Byte], cells: Map[String, Array[Byte]])

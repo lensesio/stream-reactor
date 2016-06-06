@@ -1,5 +1,7 @@
 package com.datamountaineer.streamreactor.connect.elastic
 
+import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSinkConfig
+
 import scala.collection.JavaConverters._
 
 class TestElasticsSinkConnector extends TestElasticBase {

@@ -85,16 +85,6 @@ object CassandraConfigConstants {
   val IMPORT_MODE = "connect.cassandra.import.mode"
   val IMPORT_MODE_DOC =s"Import mode for the tables. Either $BULK or $INCREMENTAL"
 
-  val IMPORT_TABLE_TOPIC_MAP = "connect.cassandra.import.map"
-  val IMPORT_TABLE_TOPIC_MAP_DOC ="Table to Topic map for import in format table1=topic1,table2=topic2, if the topic left blank table name is used."
-
-  val EXPORT_TABLE_TOPIC_MAP = "connect.cassandra.export.map"
-  val EXPORT_TABLE_TOPIC_MAP_DOC = "Topic to Table map for import in format topic1:table1, if the table left blank topic name is used."
-
-  val TABLE_TIMESTAMP_COL_MAP = "connect.cassandra.import.timestamp.column"
-  val TABLE_TIMESTAMP_COL_MAP_DOC =
-    "Name of the timestamp column in the cassandra table to use identify deltas. table1:col,table2:col."
-
   val BATCH_SIZE = "connect.cassandra.source.task.batch.size"
   val BATCH_SIZE_DOC ="The number of records the source task should drain from the reader queue."
   val BATCH_SIZE_DEFAULT = 100
@@ -115,12 +105,28 @@ object CassandraConfigConstants {
   val ASSIGNED_TABLES = "connect.cassandra.assigned.tables"
   val ASSIGNED_TABLES_DOC = "The tables a task has been assigned."
 
-  val EMPTY_EXPORT_MAP_MESSAGE = s"$EXPORT_TABLE_TOPIC_MAP can not be empty."
-  val MISSING_ASSIGNED_TOPIC_IN_MAP_MESSAGE = s"Assigned topics for this task not in $EXPORT_TABLE_TOPIC_MAP."
-
-  val EMPTY_IMPORT_MAP_MESSAGE = s"$IMPORT_TABLE_TOPIC_MAP can not be empty."
-  val MISSING_ASSIGNED_TABLE_IN_MAP_MESSAGE = s"Assigned tables for this task not in $IMPORT_TABLE_TOPIC_MAP."
-
   val MISSING_KEY_SPACE_MESSAGE = s"$KEY_SPACE must be provided."
   val SELECT_OFFSET_COLUMN = "___kafka_connect_offset_col"
+
+  val ERROR_POLICY = "connect.cassandra.error.policy"
+  val ERROR_POLICY_DOC = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
+    "There are two available options: \n" + "NOOP - the error is swallowed \n" +
+    "THROW - the error is allowed to propagate. \n" +
+    "RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on \n" +
+    "The error will be logged automatically";
+  val ERROR_POLICY_DEFAULT = "THROW"
+
+  val ERROR_RETRY_INTERVAL = "connect.cassandra.retry.interval"
+  val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
+  val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
+  val NBR_OF_RETRIES = "connect.cassandra.max.retires"
+  val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
+  val NBR_OF_RETIRES_DEFAULT = 20
+
+
+  val EXPORT_ROUTE_QUERY = "connect.cassandra.export.route.query"
+  val EXPORT_ROUTE_QUERY_DOC = ""
+
+  val IMPORT_ROUTE_QUERY = "connect.cassandra.import.route.query"
+  val IMPORT_ROUTE_QUERY_DOC = ""
 }

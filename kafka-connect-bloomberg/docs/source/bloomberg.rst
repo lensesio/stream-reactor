@@ -1,3 +1,6 @@
+**WORKING IN PROGRESS**
+
+
 Kafka Connect Bloomberg
 =======================
 

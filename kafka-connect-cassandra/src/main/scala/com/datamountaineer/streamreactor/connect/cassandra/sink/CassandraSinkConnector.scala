@@ -17,9 +17,13 @@
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import java.util
+
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfig, CassandraConfigSink, CassandraSettings}
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
+
 import scala.collection.JavaConverters.seqAsJavaListConverter
 
 /**
@@ -28,9 +32,9 @@ import scala.collection.JavaConverters.seqAsJavaListConverter
   *
   * Sets up CassandraSinkTask and configurations for the tasks.
   * */
-class CassandraSinkConnector extends SinkConnector with StrictLogging {
-  //???
+class CassandraSinkConnector extends SinkConnector with StrictLogging with CassandraConfigSink {
   private var configProps : Option[util.Map[String, String]] = None
+  private var connConfigDef : Option[ConfigDef] = None
 
   /**
     * States which SinkTask class to use
@@ -56,8 +60,11 @@ class CassandraSinkConnector extends SinkConnector with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Cassandra sink task with ${props.toString}.")
     configProps = Some(props)
+    connConfigDef = Some(sinkConfig)
   }
 
   override def stop(): Unit = {}
   override def version(): String = getClass.getPackage.getImplementationVersion
+
+  //override def config(): ConfigDef = connConfigDef.get
 }

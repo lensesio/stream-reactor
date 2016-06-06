@@ -30,22 +30,15 @@ import org.apache.kafka.common.config.AbstractConfig
 
 object CassandraConnection extends StrictLogging {
   def apply(connectorConfig: AbstractConfig) : CassandraConnection = {
-      val session = getSession(connectorConfig)
-      new CassandraConnection(session)
-    }
+    val cluster = getCluster(connectorConfig)
+    val keySpace = connectorConfig.getString(CassandraConfigConstants.KEY_SPACE)
+    val session = getSession(keySpace, cluster)
+    new CassandraConnection(cluster = cluster, session = session)
+  }
 
-  /**
-    * Get a Cassandra session
-    *
-    * @param connectorConfig A configuration to build the setting from
-    * */
-  def getSession(connectorConfig: AbstractConfig) : Session = {
+  def getCluster(connectorConfig: AbstractConfig) : Cluster = {
     val contactPoints: String = connectorConfig.getString(CassandraConfigConstants.CONTACT_POINTS)
     val port = connectorConfig.getInt(CassandraConfigConstants.PORT)
-    val keySpace = connectorConfig.getString(CassandraConfigConstants.KEY_SPACE)
-
-    logger.info(s"Attempting to connect to Cassandra cluster at $contactPoints and create keyspace $keySpace.")
-
     val builder: Builder = Cluster
       .builder()
       .addContactPoints(contactPoints)
@@ -62,8 +55,16 @@ object CassandraConnection extends StrictLogging {
 
     //is ssl enable
     addSSL(connectorConfig, builder)
+    builder.build()
+  }
 
-    val cluster = builder.build()
+  /**
+    * Get a Cassandra session
+    *
+    * @param keySpace A configuration to build the setting from
+    * @param cluster The cluster the get the session for
+    * */
+  def getSession(keySpace: String, cluster: Cluster) : Session = {
     cluster.connect(keySpace)
   }
 
@@ -96,7 +97,7 @@ object CassandraConnection extends StrictLogging {
     * @return The builder with SSL added.
     * */
   private def addSSL(connectorConfig: AbstractConfig, builder: Builder) : Builder = {
-    val ssl = connectorConfig.getBoolean(CassandraConfigConstants.SSL_ENABLED)
+    val ssl = connectorConfig.getBoolean(CassandraConfigConstants.SSL_ENABLED).asInstanceOf[Boolean]
     ssl match {
       case true =>
         logger.info("Setting up SSL context.")
@@ -124,4 +125,4 @@ object CassandraConnection extends StrictLogging {
   *
   * Case class to hold a Cassandra cluster and session connection
   * */
-case class CassandraConnection(session: Session)
+case class CassandraConnection(cluster: Cluster, session: Session)

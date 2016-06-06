@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.bloomberg
 import java.util
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceConnector
@@ -78,4 +79,6 @@ class BloombergSourceConnector extends SourceConnector with StrictLogging {
     * @return
     */
   override def version(): String = getClass.getPackage.getImplementationVersion
+
+  //override def config(): ConfigDef = ???
 }

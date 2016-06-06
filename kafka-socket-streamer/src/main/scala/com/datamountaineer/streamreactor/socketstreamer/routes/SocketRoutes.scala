@@ -16,18 +16,13 @@
 
 package com.datamountaineer.streamreactor.socketstreamer.routes
 
-import akka.http.scaladsl.server.Directives._
 import com.datamountaineer.streamreactor.socketstreamer.domain.KafkaRequestProps
 import com.datamountaineer.streamreactor.socketstreamer.flows.KafkaFlow
 import akka.http.scaladsl.server.{Directives, Route}
 import de.heikoseeberger.akkasse.EventStreamMarshalling
-import scala.concurrent.ExecutionContextExecutor
 import Directives._
 import EventStreamMarshalling._
 
-/**
-  * Created by andrew@datamountaineer.com on 11/03/16.
-  */
 
 trait SocketRoutes extends KafkaFlow {
   val topicsString = "topics"
@@ -37,25 +32,11 @@ trait SocketRoutes extends KafkaFlow {
 
   def mainFlow() : Route = {
 
-    /**
-      * Upgrade to websocket and set up a flow from the specified topic
-      *
-      * @param kafkaRequestProps A KafkaRequestProps to use to create a KafkaConsumer
-      * @return A route
-      * */
     def webSocketStream(kafkaRequestProps: KafkaRequestProps) : Route  = {
       handleWebSocketMessages(webSocketFlow(kafkaRequestProps))
     }
 
-
-    /**
-      * Create a flow for SendServerEvents
-      *
-      * @param kafkaRequestProps A KafkaRequestProps to use to create a KafkaConsumer
-      * @return A route
-      * */
     def serverSendEvent(kafkaRequestProps: KafkaRequestProps) : Route = {
-
       complete(serverSendFlow(kafkaRequestProps))
     }
 
@@ -67,7 +48,6 @@ trait SocketRoutes extends KafkaFlow {
         }
       }
     } ~
-    //Server send event route
     pathPrefix(serverSendEventsPathString) {
       pathPrefix(topicsString) {
         get {

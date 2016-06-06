@@ -16,9 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.elastic
 
+import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticSettings, ElasticSinkConfig}
 import com.sksamuel.elastic4s.{ElasticClient, ElasticsearchClientUri}
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.elasticsearch.common.settings.Settings
+
+import scala.collection.JavaConverters._
 
 object  ElasticWriter {
   /**
@@ -38,6 +41,9 @@ object  ElasticWriter {
               .build()
     val uri = ElasticsearchClientUri(s"$esPrefix://$hostNames")
     val client = ElasticClient.transport(essettings, uri)
-    new ElasticJsonWriter(client = client, context = context)
+
+    val topics = context.assignment().asScala.map(c=>c.topic()).toList
+    val settings = ElasticSettings(config, topics)
+    new ElasticJsonWriter(client = client, settings = settings)
   }
 }

@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.hbase
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.hbase.config.{HbaseSettings, HbaseSinkConfig}
 import com.datamountaineer.streamreactor.connect.hbase.writers.{HbaseWriter, WriterFactoryFn}
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -25,6 +26,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
+import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
 
 /**
@@ -58,7 +60,14 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
 
     HbaseSinkConfig.config.parse(props)
     val sinkConfig = new HbaseSinkConfig(props)
-    val hbaseSettings = HbaseSettings(sinkConfig)
+    val topics = context.assignment().asScala.map(c=>c.topic()).toList
+    val hbaseSettings = HbaseSettings(sinkConfig, topics)
+
+    //if error policy is retry set retry interval
+    if (hbaseSettings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
+      context.timeout(sinkConfig.getInt(HbaseSinkConfig.ERROR_RETRY_INTERVAL).toLong)
+    }
+
     logger.info(
       s"""Settings:
           |$hbaseSettings

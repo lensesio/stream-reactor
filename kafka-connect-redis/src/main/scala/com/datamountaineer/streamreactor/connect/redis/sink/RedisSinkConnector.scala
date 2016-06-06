@@ -20,6 +20,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkConnector
@@ -37,6 +38,7 @@ import scala.util.{Failure, Try}
 class RedisSinkConnector extends SinkConnector with StrictLogging {
   //???
   private var configProps: util.Map[String, String] = null
+  private var connConfigDef : Option[ConfigDef] = null
 
   /**
     * States which SinkTask class to use
@@ -62,13 +64,12 @@ class RedisSinkConnector extends SinkConnector with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Hbase sink task with ${props.toString}.")
     configProps = props
-    Try(new RedisSinkConfig(props)) match {
-      case Failure(f) => throw new ConnectException("Couldn't start Hbase Sink due to configuration error.", f)
-      case _ =>
-    }
+    connConfigDef = Some(RedisSinkConfig.config)
   }
 
   override def stop(): Unit = {}
 
   override def version(): String = getClass.getPackage.getImplementationVersion
+
+  //override def config(): ConfigDef = ???
 }

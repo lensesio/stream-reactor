@@ -1,54 +1,198 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.config
 
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkConfig._
-import org.apache.kafka.common.config.ConfigException
+import com.datamountaineer.streamreactor.connect.rowkeys.{StringGenericRowKeyBuilder, StringStructFieldsStringKeyBuilder}
+
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
+import scala.collection.JavaConverters._
 
 class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
-  "RedisSinkSettings" should {
-    "raise a configuration exception if key mode is not valid" in {
-      intercept[ConfigException] {
-        val config = mock[RedisSinkConfig]
-        when(config.getString(REDIS_HOST)).thenReturn("localhost")
-        when(config.getInt(REDIS_PORT)).thenReturn(8453)
-        when(config.getString(REDIS_PASSWORD)).thenReturn("secret")
-        when(config.getString(ROW_KEY_MODE)).thenReturn("wrong")
-        RedisSinkSettings(config)
-      }
-    }
 
-    "raise a configuration exception if key mode is set to FIELDS but no fields are provided" in {
-      intercept[ConfigException] {
-        val config = mock[RedisSinkConfig]
-        when(config.getString(REDIS_HOST)).thenReturn("localhost")
-        when(config.getInt(REDIS_PORT)).thenReturn(8453)
-        when(config.getString(REDIS_PASSWORD)).thenReturn("secret")
-        when(config.getString(ROW_KEY_MODE)).thenReturn("FIELDS")
-        RedisSinkSettings(config)
-      }
-    }
-    "create a instance of RedisSinkSettings with FIELDS key mode and payload fields mappings" in {
+  val TABLE_NAME_RAW = "someTable"
+  val QUERY_ALL = s"INSERT INTO $TABLE_NAME_RAW SELECT * FROM $TABLE_NAME_RAW"
+  val QUERY_ALL_KEYS = s"INSERT INTO $TABLE_NAME_RAW SELECT * FROM $TABLE_NAME_RAW PK lastName"
+  val QUERY_SELECT = s"INSERT INTO $TABLE_NAME_RAW SELECT lastName as surname, firstName FROM $TABLE_NAME_RAW"
+  val QUERY_SELECT_KEYS = s"INSERT INTO $TABLE_NAME_RAW SELECT lastName as surname, firstName FROM $TABLE_NAME_RAW " +
+    s"PK surname"
+  val QUERY_SELECT_KEYS_BAD = s"INSERT INTO $TABLE_NAME_RAW SELECT lastName as surname, firstName FROM $TABLE_NAME_RAW " +
+    s"PK IamABadPersonAndIHateYou"
+
+  "raise a configuration exception if the export map is empty" in {
+    intercept[IllegalArgumentException] {
       val config = mock[RedisSinkConfig]
       when(config.getString(REDIS_HOST)).thenReturn("localhost")
       when(config.getInt(REDIS_PORT)).thenReturn(8453)
       when(config.getString(REDIS_PASSWORD)).thenReturn("secret")
-      when(config.getString(ROW_KEY_MODE)).thenReturn("FIELDS")
-      when(config.getString(ROW_KEYS)).thenReturn("field1,field2")
-      when(config.getString(FIELDS)).thenReturn("*, field1=someAlias")
-      val settings = RedisSinkSettings(config)
-
-      settings.connection.host shouldBe "localhost"
-      settings.connection.port shouldBe 8453
-      settings.connection.password.get shouldBe "secret"
-
-      settings.key.mode shouldBe "FIELDS"
-      settings.key.fields shouldBe Seq("field1", "field2")
-
-      settings.fields.includeAllFields shouldBe true
-      settings.fields.fieldsMappings.size shouldBe 1
-      settings.fields.fieldsMappings.get("field1").get shouldBe "someAlias"
+      when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
+      RedisSinkSettings(config, List(""))
     }
   }
+
+  "correctly create a RedisSettings when fields are row keys are provided" in {
+    val config = mock[RedisSinkConfig]
+
+    when(config.getString(REDIS_HOST)).thenReturn("localhost")
+    when(config.getInt(REDIS_PORT)).thenReturn(8453)
+    when(config.getString(REDIS_PASSWORD)).thenReturn("secret")
+    when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL_KEYS)
+    when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
+
+    val settings = RedisSinkSettings(config, List(TABLE_NAME_RAW))
+    val route = settings.routes.head
+
+    settings.rowKeyModeMap.get(TABLE_NAME_RAW).get.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
+
+    route.isIncludeAllFields shouldBe true
+    route.getTarget shouldBe TABLE_NAME_RAW
+    route.getSource shouldBe TABLE_NAME_RAW
+  }
+
+  "correctly create a RedisSettings when no row fields are provided" in {
+    val config = mock[RedisSinkConfig]
+
+    when(config.getString(REDIS_HOST)).thenReturn("localhost")
+    when(config.getInt(REDIS_PORT)).thenReturn(8453)
+    when(config.getString(REDIS_PASSWORD)).thenReturn("secret")
+    when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL)
+    when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
+
+    val settings = RedisSinkSettings(config, List(TABLE_NAME_RAW))
+
+    settings.rowKeyModeMap.get(TABLE_NAME_RAW).get.isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
+    val route = settings.routes.head
+
+    route.isIncludeAllFields shouldBe true
+    route.getSource shouldBe TABLE_NAME_RAW
+    route.getTarget shouldBe TABLE_NAME_RAW
+  }
+
+  "correctly create a RedisSettings when no row fields are provided and selection" in {
+    val config = mock[RedisSinkConfig]
+
+    when(config.getString(REDIS_HOST)).thenReturn("localhost")
+    when(config.getInt(REDIS_PORT)).thenReturn(8453)
+    when(config.getString(REDIS_PASSWORD)).thenReturn("secret")
+    when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_SELECT)
+    when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
+
+    val settings = RedisSinkSettings(config, List(TABLE_NAME_RAW))
+    val route = settings.routes.head
+    val fields = route.getFieldAlias.asScala.toList
+
+    settings.rowKeyModeMap.get(TABLE_NAME_RAW).get.isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
+
+    route.isIncludeAllFields shouldBe false
+    route.getSource shouldBe TABLE_NAME_RAW
+    route.getTarget shouldBe TABLE_NAME_RAW
+    fields.head.getField shouldBe "lastName"
+    fields.head.getAlias shouldBe "surname"
+    fields.last.getField shouldBe "firstName"
+    fields.last.getAlias shouldBe "firstName"
+  }
+
+  "correctly create a RedisSettings when row fields are provided and selection" in {
+    val config = mock[RedisSinkConfig]
+
+    when(config.getString(REDIS_HOST)).thenReturn("localhost")
+    when(config.getInt(REDIS_PORT)).thenReturn(8453)
+    when(config.getString(REDIS_PASSWORD)).thenReturn("secret")
+    when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_SELECT_KEYS)
+    when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
+
+    val settings = RedisSinkSettings(config, List(TABLE_NAME_RAW))
+    val route = settings.routes.head
+    val fields = route.getFieldAlias.asScala.toList
+
+    settings.rowKeyModeMap.get(TABLE_NAME_RAW).get.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
+
+    route.isIncludeAllFields shouldBe false
+    route.getSource shouldBe TABLE_NAME_RAW
+    route.getTarget shouldBe TABLE_NAME_RAW
+    fields.head.getField shouldBe "lastName"
+    fields.head.getAlias shouldBe "surname"
+    fields.last.getField shouldBe "firstName"
+    fields.last.getAlias shouldBe "firstName"
+  }
+
+  "raise an exception when the row key builder is set to FIELDS but pks not in query map" in {
+    intercept[java.lang.IllegalArgumentException] {
+      val config = mock[RedisSinkConfig]
+      when(config.getString(REDIS_HOST)).thenReturn("localhost")
+      when(config.getInt(REDIS_PORT)).thenReturn(8453)
+      when(config.getString(REDIS_PASSWORD)).thenReturn("secret")
+      when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_SELECT_KEYS_BAD) //set keys in select
+      when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
+      RedisSinkSettings(config, List(TABLE_NAME_RAW))
+    }
+  }
+
+//  val TABLE_NAME_RAW = "someTable"
+//  val QUERY_ALL = s"INSERT INTO $TABLE_NAME_RAW SELECT * FROM $TABLE_NAME_RAW"
+//  val QUERY_ALL_KEYS = s"INSERT INTO $TABLE_NAME_RAW SELECT * FROM $TABLE_NAME_RAW PK lastName"
+//  val QUERY_SELECT = s"INSERT INTO $TABLE_NAME_RAW SELECT lastName as surname, firstName FROM $TABLE_NAME_RAW"
+//  val QUERY_SELECT_KEYS = s"INSERT INTO $TABLE_NAME_RAW SELECT lastName as surname, firstName FROM $TABLE_NAME_RAW " +
+//    s"PK surname"
+//  val QUERY_SELECT_KEYS_BAD = s"INSERT INTO $TABLE_NAME_RAW SELECT lastName as surname, firstName FROM $TABLE_NAME_RAW " +
+//    s"PK IamABadPersonAndIHateYou"
+//
+//
+//
+//    "create a instance of RedisSinkSettings with FIELDS key mode and payload fields mappings" in {
+//      val config = mock[RedisSinkConfig]
+//      when(config.getString(REDIS_HOST)).thenReturn("localhost")
+//      when(config.getInt(REDIS_PORT)).thenReturn(8453)
+//      when(config.getString(REDIS_PASSWORD)).thenReturn("secret")
+//      when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(s"{someTable:someTable;*}")
+//      when(config.getString(ERROR_POLICY)).thenReturn("THROW")
+//      val settings = RedisSinkSettings(config, List("someTable"))
+//
+//      settings.connection.host shouldBe "localhost"
+//      settings.connection.port shouldBe 8453
+//      settings.connection.password.get shouldBe "secret"
+//
+//      settings.rowKeyModeMap.get("someTable").get.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
+//      settings.routes.size shouldBe 1
+//      settings.routes(0).allFields shouldBe true
+//      settings.routes(0).fieldMappings(0).name shouldBe "field1"
+//      settings.routes(0).fieldMappings(0).isPrimaryKey shouldBe true
+//      settings.routes(0).fieldMappings(1).name shouldBe "field2"
+//      settings.routes(0).fieldMappings(1).isPrimaryKey shouldBe true
+//    }
+//
+//    "create a instance of RedisSinkSettings with Generic key mode and payload fields mappings" in {
+//      val config = mock[RedisSinkConfig]
+//      when(config.getString(REDIS_HOST)).thenReturn("localhost")
+//      when(config.getInt(REDIS_PORT)).thenReturn(8453)
+//      when(config.getString(REDIS_PASSWORD)).thenReturn("secret")
+//      when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(s"{someTable:someTable;*}")
+//      when(config.getString(ERROR_POLICY)).thenReturn("THROW")
+//      val settings = RedisSinkSettings(config, List("someTable"))
+//
+//      settings.connection.host shouldBe "localhost"
+//      settings.connection.port shouldBe 8453
+//      settings.connection.password.get shouldBe "secret"
+//
+//      settings.rowKeyModeMap.get("someTable").get.isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
+//      settings.routes.size shouldBe 1
+//      settings.routes(0).allFields shouldBe true
+//      settings.routes(0).fieldMappings(0).name shouldBe "field1"
+//      settings.routes(0).fieldMappings(0).isPrimaryKey shouldBe true
+//      settings.routes(0).fieldMappings(1).name shouldBe "field2"
+//      settings.routes(0).fieldMappings(1).isPrimaryKey shouldBe true
+//    }
+//
+//    "should throw with FIELDS key mode and pk specified which is not in the payload fields mappings" in {
+//      intercept[ConfigException] {
+//        val config = mock[RedisSinkConfig]
+//        when(config.getString(REDIS_HOST)).thenReturn("localhost")
+//        when(config.getInt(REDIS_PORT)).thenReturn(8453)
+//        when(config.getString(REDIS_PASSWORD)).thenReturn("secret")
+//        when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(s"{someTable:someTable;field1}")
+//        when(config.getString(ERROR_POLICY)).thenReturn("THROW")
+//        RedisSinkSettings(config, List("someTable"))
+//      }
+//    }
+//  }
 }

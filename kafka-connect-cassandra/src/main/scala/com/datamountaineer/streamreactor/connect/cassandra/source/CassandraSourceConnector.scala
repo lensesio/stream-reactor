@@ -16,19 +16,15 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
-/**
-  * Created by andrew@datamountaineer.com on 14/04/16.
-  * stream-reactor
-  */
-
 import java.util
 
+import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
+
 import scala.collection.JavaConverters._
 
 /**
@@ -55,14 +51,16 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
     * @return a List of configuration properties per worker.
     * */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
-    val tablesStr = configProps.get.get(CassandraConfigConstants.IMPORT_TABLE_TOPIC_MAP)
-    val tablesTopicMap = CassandraUtils.tableTopicParser(tablesStr)
-    val tables = tablesTopicMap.map({case (table, topic)=>table}).toList
+    val raw = configProps.get.get(CassandraConfigConstants.IMPORT_ROUTE_QUERY).split(";")
+
+    val tables = raw.map({
+      r => Config.parse(r).getSource
+    }).toList
 
     val numGroups = Math.min(tables.size, maxTasks)
 
     logger.info(s"Setting task configurations for $numGroups workers.")
-    val groups = ConnectorUtils.groupPartitions(tables.asJava, numGroups).asScala
+    val groups = ConnectorUtils.groupPartitions(tables.asJava, maxTasks).asScala
 
     //setup the config for each task and set assigned tables
     groups
@@ -92,4 +90,6 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
     * @return
     */
   override def version(): String = getClass.getPackage.getImplementationVersion
+
+  //override def config(): ConfigDef = ???
 }

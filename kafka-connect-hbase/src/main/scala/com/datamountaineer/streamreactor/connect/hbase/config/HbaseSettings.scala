@@ -16,27 +16,22 @@
 
 package com.datamountaineer.streamreactor.connect.hbase.config
 
+import com.datamountaineer.connector.config.Config
+import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.hbase.config.HbaseSinkConfig._
+import com.datamountaineer.streamreactor.connect.rowkeys._
 import org.apache.kafka.common.config.ConfigException
-import scala.util.{Failure, Success, Try}
+import scala.collection.JavaConverters._
 
-case class HbaseSettings(tableName: String,
-                         columnFamily: String,
-                         rowKey: HbaseRowKey,
-                         fields: HbaseFields)
-
-case class HbaseRowKey(mode: String, keys: Seq[String])
-
-case class HbaseFields(includeAllFields: Boolean,
-                       fieldsMappings: Map[String, String])
+case class HbaseSettings(columnFamilyMap: String,
+                         rowKeyModeMap : Map[String, RowKeyBuilderBytes],
+                         routes: List[Config],
+                         errorPolicy : ErrorPolicy = new ThrowErrorPolicy,
+                         maxRetries : Int = HbaseSinkConfig.NBR_OF_RETIRES_DEFAULT
+                        )
 
 
 object HbaseSettings {
-
-  val FieldsRowKeyMode = "FIELDS"
-  val SinkRecordRowKeyMode = "SINK_RECORD"
-  val GenericRowKeyMode = "GENERIC"
-
 
   /**
     * Creates an instance of HbaseSettings from a HbaseSinkConfig
@@ -44,83 +39,41 @@ object HbaseSettings {
     * @param config : The map of all provided configurations
     * @return An instance of HbaseSettings
     */
-  def apply(config: HbaseSinkConfig): HbaseSettings = {
-    val tableName = config.getString(TABLE_NAME)
-    if (tableName.trim.length == 0) {
-      throw new ConfigException(s"$TABLE_NAME is not set correctly.")
-    }
+  def apply(config: HbaseSinkConfig, assigned : List[String]): HbaseSettings = {
 
     val columnFamily = config.getString(COLUMN_FAMILY)
     if (columnFamily.trim.length == 0) {
       throw new ConfigException(s"$COLUMN_FAMILY is not set correctly")
     }
 
-    val rowKeyMode = config.getString(ROW_KEY_MODE)
-    val allRowKeyModes = Set(FieldsRowKeyMode, SinkRecordRowKeyMode, GenericRowKeyMode)
-    if (!allRowKeyModes.contains(rowKeyMode)) {
-      throw new ConfigException(s"$rowKeyMode is not recognized. Available modes are ${allRowKeyModes.mkString(",")}.")
+    val raw = config.getString(HbaseSinkConfig.EXPORT_ROUTE_QUERY)
+    require((raw != null && !raw.isEmpty),  s"No ${HbaseSinkConfig.EXPORT_ROUTE_QUERY} provided!")
+
+    //parse query
+    val routes: Set[Config] = raw.split(";").map(r => Config.parse(r)).toSet.filter(f=>assigned.contains(f.getSource))
+
+    if (routes.size == 0) {
+      throw new ConfigException(s"No routes for for assigned topics in "
+        + s"${HbaseSinkConfig.EXPORT_ROUTE_QUERY}")
     }
 
-    HbaseSettings(tableName,
-      columnFamily,
-      HbaseRowKey(rowKeyMode, getRowKeys(rowKeyMode, config)),
-      HbaseFields(Try(config.getString(FIELDS)).toOption.flatMap(v => Option(v))))
+    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(HbaseSinkConfig.ERROR_POLICY).toUpperCase)
+    val errorPolicy = ErrorPolicy(errorPolicyE)
+    val nbrOfRetries = config.getInt(HbaseSinkConfig.NBR_OF_RETRIES)
 
-  }
+    val rowKeyModeMap = routes.map(
+      r=> {
+        val keys = r.getPrimaryKeys.asScala.toList
 
-  /**
-    * Returns a sequence of fields making the Hbase row key.
-    *
-    * @param rowKeyMode RowKeyMode  FIELDS, SINK_RECORD, GENERIC
-    * @param config HBaseSinkConfig for the connector
-    * @return A sequence of fields if the row key mode is set to FIELDS, empty otherwise
-    */
-  private def getRowKeys(rowKeyMode: String, config: HbaseSinkConfig): Seq[String] = {
-    if (rowKeyMode == FieldsRowKeyMode) {
-      val rowKeys = Try(config.getString(ROW_KEYS)) match {
-        case Failure(t) => Seq.empty[String]
-        case Success(null) => Seq.empty[String]
-        case Success(value) => value.split(",").map(_.trim).toSeq
+        if (keys.size != 0) {
+          (r.getSource, StructFieldsRowKeyBuilderBytes(keys))
+        } else {
+          (r.getSource, new GenericRowKeyBuilderBytes())
+        }
+
       }
-      if (rowKeys.isEmpty) {
-        throw new ConfigException("Fields defining the row key are required.")
-      }
+    ).toMap
 
-      rowKeys
-    }
-    else {
-      Seq.empty
-    }
-  }
-
-}
-
-object HbaseFields {
-  /**
-    * Works out the fields and their mappings to be used when inserting a new Hbase row
-    *
-    * @param setting - The configuration specifing the fields and their mappings
-    * @return A dictionary of fields and their mappings alongside a flag specifying if all fields should be used.
-    *         If no mapping has been specified the field name is considered to be the mapping
-    */
-  def apply(setting: Option[String]): HbaseFields = {
-    setting match {
-      case None =>
-        HbaseFields(includeAllFields = true, Map.empty[String, String])
-      case Some(c) =>
-
-        val mappings = c.split(",").map { case f =>
-          f.trim.split("=").toSeq match {
-            case Seq(field) =>
-              field -> field
-            case Seq(field, alias) =>
-              field -> alias
-            case _ => throw new ConfigException(s"$c is not valid. Need to set the fields and mappings like: " +
-              s"field1,field2,field3=alias3,[field4, field5=alias5]")
-          }
-        }.toMap
-
-        HbaseFields(mappings.contains("*"), mappings - "*")
-    }
+    new HbaseSettings(columnFamily, rowKeyModeMap, routes.toList, errorPolicy, nbrOfRetries)
   }
 }

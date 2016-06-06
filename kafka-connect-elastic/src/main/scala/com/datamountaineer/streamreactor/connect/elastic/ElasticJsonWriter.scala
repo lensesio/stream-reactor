@@ -16,22 +16,34 @@
 
 package com.datamountaineer.streamreactor.connect.elastic
 
+import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSettings
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.source.Indexable
-import com.sksamuel.elastic4s.{ElasticClient, IndexDefinition}
+import com.sksamuel.elastic4s.ElasticClient
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
+import org.apache.kafka.connect.sink.SinkRecord
 import org.elasticsearch.action.bulk.BulkResponse
-import scala.collection.JavaConverters._
+
+import scala.collection.immutable.Iterable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.collection.JavaConverters._
 
-class ElasticJsonWriter(client: ElasticClient, context: SinkTaskContext) extends StrictLogging with ConverterUtil {
+class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extends StrictLogging with ConverterUtil {
   logger.info("Initialising Elastic Json writer")
-  val topics = context.assignment().asScala.map(c=>c.topic()).toList
-  logger.info(s"Assigned $topics topics.")
-  createIndexes(topics)
+
+  val routeMappings = settings.routes
+  val map = routeMappings.map(rm=>(rm.getSource, rm.getTarget)).toMap
+
+  private val fields = routeMappings.map({
+    rm=>(rm.getSource,
+      rm.getFieldAlias.asScala.map({
+        fa=>(fa.getField,fa.getAlias)
+      }).toMap)
+  }).toMap
+
+  createIndexes()
   configureConverter(jsonConverter)
 
   implicit object SinkRecordIndexable extends Indexable[SinkRecord] {
@@ -41,10 +53,9 @@ class ElasticJsonWriter(client: ElasticClient, context: SinkTaskContext) extends
   /**
     * Create indexes for the topics
     *
-    * @param topics A list of topics to create indexes for
     * */
-  private def createIndexes(topics: List[String]) : Unit = {
-    topics.foreach( t => client.execute( { create index t }))
+  private def createIndexes() : Unit = {
+   routeMappings.map(s => client.execute( { create index s.getTarget }))
   }
 
   /**
@@ -60,7 +71,10 @@ class ElasticJsonWriter(client: ElasticClient, context: SinkTaskContext) extends
     * @param records A list of SinkRecords
     * */
   def write(records: List[SinkRecord]) : Unit = {
-    if (records.isEmpty) logger.info("No records received.") else insert(records)
+    if (records.isEmpty) logger.info("No records received.") else {
+      val grouped = records.groupBy(_.topic())
+      insert(grouped)
+    }
   }
 
   /**
@@ -68,18 +82,44 @@ class ElasticJsonWriter(client: ElasticClient, context: SinkTaskContext) extends
     *
     * @param records A list of SinkRecords
     * */
-  def insert(records: List[SinkRecord]) : Future[BulkResponse] = {
+  def insert(records: Map[String, List[SinkRecord]]) : Iterable[Future[BulkResponse]] = {
+    logger.info(s"Processing ${records.size} records.")
 
-    val indexes: List[IndexDefinition] = records.map(r => index into r.topic() / r.topic() source r)
-    val ret = client.execute(bulk(indexes).refresh(true))
+    val ret: Iterable[Future[BulkResponse]] = records.map({
+      case (topic, sinkRecords) => {
+        val extracted = extractFields(sinkRecords)
+        val indexes = extracted.map(r => {
+          //lookup mapping
+          val i = map.get(r.topic()).get
+          index into i / i source r
+        })
+        val ret = client.execute(bulk(indexes).refresh(true))
 
-    ret.onSuccess({
-      case s => logger.info(s"Elastic write successful for ${records.size} records!")
+        ret.onSuccess({
+          case s => logger.debug(s"Elastic write successful for ${records.size} records!")
+        })
+
+        ret.onFailure( {
+          case f:Throwable => logger.info(f.toString)
+        })
+        ret
+      }
     })
 
-    ret.onFailure( {
-      case f:Throwable => logger.info(f.toString)
-    })
     ret
+  }
+
+  /**
+    * Extract a subset of fields from the sink records
+    *
+    * @param records A list of records to extract fields from.
+    * @return A new list of sink records with the fields.
+  **/
+  def extractFields(records: List[SinkRecord]) = {
+    if (!fields.isEmpty) {
+      records.map(r => extractSinkFields(r, fields.get(r.topic()).get))
+    } else {
+      records
+    }
   }
 }

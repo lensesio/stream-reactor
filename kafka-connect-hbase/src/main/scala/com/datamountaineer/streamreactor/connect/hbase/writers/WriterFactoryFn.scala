@@ -17,7 +17,6 @@
 package com.datamountaineer.streamreactor.connect.hbase.writers
 
 import com.datamountaineer.streamreactor.connect.hbase.config.HbaseSettings
-import com.datamountaineer.streamreactor.connect.hbase.{GenericRowKeyBuilder, SinkRecordKeyRowKeyBuilder, StructFieldsExtractor, StructFieldsRowKeyBuilder}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 
 /**
@@ -32,24 +31,6 @@ object WriterFactoryFn extends StrictLogging {
     * @return
     */
   def apply(settings: HbaseSettings): HbaseWriter = {
-    val rowKeyBuilder = settings.rowKey.mode match {
-      case HbaseSettings.FieldsRowKeyMode =>
-        require(settings.rowKey.keys.nonEmpty, "The fields making up the Hbase row key are missing.")
-
-        new StructFieldsRowKeyBuilder(settings.rowKey.keys)
-
-      case "DEFAULT" =>
-        new GenericRowKeyBuilder()
-      case "SINK_RECORD" =>
-        new SinkRecordKeyRowKeyBuilder()
-
-      case unknown => throw new IllegalArgumentException(s"$unknown is not a recognized running mode.")
-    }
-
-    new HbaseWriter(
-      settings.columnFamily,
-      settings.tableName,
-      StructFieldsExtractor(settings.fields.includeAllFields, settings.fields.fieldsMappings),
-      rowKeyBuilder)
+    new HbaseWriter(settings)
   }
 }

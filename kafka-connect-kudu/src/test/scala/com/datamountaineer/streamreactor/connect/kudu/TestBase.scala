@@ -5,8 +5,10 @@ package com.datamountaineer.streamreactor.connect.kudu
   * stream-reactor
   */
 
+import java.nio.ByteBuffer
 import java.util
 
+import com.datamountaineer.streamreactor.connect.config.KuduSinkConfig
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
@@ -17,7 +19,9 @@ import scala.collection.mutable
 
 trait TestBase extends FunSuite with BeforeAndAfter with Matchers {
   val TOPIC = "sink_test"
+  val TABLE = "table1"
   val KUDU_MASTER = "127.0.0.1"
+  val EXPORT_MAP=s"INSERT INTO $TABLE SELECT * FROM $TOPIC"
 
   protected val PARTITION: Int = 12
   protected val PARTITION2: Int = 13
@@ -36,7 +40,10 @@ trait TestBase extends FunSuite with BeforeAndAfter with Matchers {
   }
 
   def getConfig = {
-    Map(KuduSinkConfig.KUDU_MASTER->KUDU_MASTER).asJava
+    Map(KuduSinkConfig.KUDU_MASTER->KUDU_MASTER,
+      KuduSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP,
+      KuduSinkConfig.ERROR_POLICY->"THROW"
+    ).asJava
   }
 
   //get the assignment of topic partitions for the sinkTask
@@ -52,6 +59,10 @@ trait TestBase extends FunSuite with BeforeAndAfter with Matchers {
       .field("int_field", Schema.INT32_SCHEMA)
       .field("long_field", Schema.INT64_SCHEMA)
       .field("string_field", Schema.STRING_SCHEMA)
+      .field("float_field", Schema.FLOAT32_SCHEMA)
+      .field("float64_field", Schema.FLOAT64_SCHEMA)
+      .field("boolean_field", Schema.BOOLEAN_SCHEMA)
+      .field("byte_field", Schema.BYTES_SCHEMA)
       .build
   }
 
@@ -62,6 +73,10 @@ trait TestBase extends FunSuite with BeforeAndAfter with Matchers {
       .put("int_field", 12)
       .put("long_field", 12L)
       .put("string_field", "foo")
+      .put("float_field", 0.1.toFloat)
+      .put("float64_field", 0.199999)
+      .put("boolean_field", true)
+      .put("byte_field", ByteBuffer.wrap("bytes".getBytes))
   }
 
   //generate some test records

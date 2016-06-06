@@ -17,13 +17,17 @@
 package com.datamountaineer.streamreactor.connect.redis.sink
 
 import java.util
+
+import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisSinkConfig, RedisSinkSettings}
-import com.datamountaineer.streamreactor.connect.redis.sink.writer.RedisDbWriter
+import com.datamountaineer.streamreactor.connect.redis.sink.writer.{RedisDbWriter, RedisDbWriterFactory}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * <h1>RedisSinkTask</h1>
@@ -59,12 +63,19 @@ class RedisSinkTask extends SinkTask with StrictLogging {
 
     RedisSinkConfig.config.parse(props)
     val sinkConfig = new RedisSinkConfig(props)
-    val settings = RedisSinkSettings(sinkConfig)
+    val topics = context.assignment().asScala.map(c=>c.topic()).toList
+    val settings = RedisSinkSettings(sinkConfig, topics)
+
+    //if error policy is retry set retry interval
+    if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
+      context.timeout(sinkConfig.getInt(RedisSinkConfig.ERROR_RETRY_INTERVAL).toLong)
+    }
+
     logger.info(
       s"""Settings:
           |$settings
       """.stripMargin)
-    writer = Some(RedisDbWriter(settings))
+    writer = Some(RedisDbWriterFactory(settings))
   }
 
   /**

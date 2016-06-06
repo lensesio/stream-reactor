@@ -21,7 +21,7 @@ import java.util.{Collections, Date}
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.LinkedBlockingQueue
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSetting}
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSetting, CassandraSourceSetting}
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraResultSetWrapper.resultSetFutureToScala
 import com.datamountaineer.streamreactor.connect.offsets.OffsetHandler
@@ -35,13 +35,14 @@ import scala.collection.JavaConverters.{mapAsJavaMapConverter, seqAsJavaListConv
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
+import scala.collection.JavaConversions._
 
 /**
   * Created by andrew@datamountaineer.com on 20/04/16.
   * stream-reactor
   */
 class CassandraTableReader(private val session: Session,
-                           private val setting: CassandraSetting,
+                           private val setting: CassandraSourceSetting,
                            private val context : SourceTaskContext,
                            var queue: LinkedBlockingQueue[SourceRecord]) extends StrictLogging {
 
@@ -49,12 +50,17 @@ class CassandraTableReader(private val session: Session,
   private val defaultTimestamp = "1900-01-01 00:00:00.0000000Z"
   private val dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'")
   private val timestampCol = setting.timestampColumn.getOrElse("")
-  private val preparedStatement = getPreparedStatements(setting)
-  private var tableOffset: Option[Date] = buildOffsetMap(context)
-  private val partition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, setting.table)
   private val querying = new AtomicBoolean(false)
   private val stop = new AtomicBoolean(false)
   private var lastPoll = 0.toLong
+  private val table = setting.routes.getSource
+  private val topic = setting.routes.getTarget
+  private val keySpace = setting.keySpace
+  private val preparedStatement = getPreparedStatements()
+  private var tableOffset: Option[Date] = buildOffsetMap(context)
+  private val partition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
+  private val routeMapping = setting.routes
+  private val fields = routeMapping.getFieldAlias.map({fa=>(fa.getField,"'" + fa.getAlias + "'")}).toMap
 
   /**
     * Build a map of table to offset.
@@ -64,28 +70,27 @@ class CassandraTableReader(private val session: Session,
     * */
   private def buildOffsetMap(context: SourceTaskContext) : Option[Date] = {
     val offsetStorageKey = CassandraConfigConstants.ASSIGNED_TABLES
-    val tables = List(setting.table)
+    val tables = List(topic)
     val recoveredOffsets = OffsetHandler.recoverOffsets(offsetStorageKey, tables.asJava, context)
-    val offset = OffsetHandler.recoverOffset[String](recoveredOffsets,offsetStorageKey, setting.table, timestampCol)
+    val offset = OffsetHandler.recoverOffset[String](recoveredOffsets,offsetStorageKey, table, timestampCol)
     Some(dateFormatter.parse(offset.getOrElse(defaultTimestamp)))
   }
 
   /**
     * Build a preparedStatement for the given table.
     *
-    * @param setting Cassandra settings for this task.
     * @return A map of table -> prepared statements..
     * */
-  private def getPreparedStatements(setting: CassandraSetting) : PreparedStatement = {
+  private def getPreparedStatements() : PreparedStatement = {
     //if no columns set then select the whole table
+    val f = if (fields == null || fields.isEmpty) "*" else fields.mkString(",")
 
     val selectStatement = if (setting.bulkImportMode) {
-      s"SELECT * FROM ${setting.keySpace}.${setting.table}"
+      s"SELECT $f FROM $keySpace.$table"
     } else {
-      s"SELECT * " +
-      s"FROM ${setting.keySpace}.${setting.table} " +
-      s"WHERE ${setting.timestampColumn.get} > maxTimeuuid(?) AND ${setting.timestampColumn.get} <= minTimeuuid(?) " +
-        (if (setting.allowFiltering.get) " ALLOW FILTERING" else "")
+      s"SELECT $f " +
+      s"FROM $keySpace.$table " +
+      s"WHERE $timestampCol > maxTimeuuid(?) AND $timestampCol <= minTimeuuid(?) " + " ALLOW FILTERING"
     }
     session.prepare(selectStatement)
   }
@@ -98,7 +103,7 @@ class CassandraTableReader(private val session: Session,
     if (!stop.get()) {
 
       if (setting.bulkImportMode & !queue.isEmpty) {
-        logger.info(s"Entries still pending drainage from the queue for ${setting.keySpace}.${setting.table}!" +
+        logger.info(s"Entries still pending drainage from the queue for $keySpace.$table!" +
           s" Not submitting query till empty.")
       }
 
@@ -107,7 +112,7 @@ class CassandraTableReader(private val session: Session,
       if (querying.get()) {
         //checking we are querying here,don't issue another query for the table if we querying,
         // maintain incremental order
-        logger.debug(s"Still querying for ${setting.keySpace}.${setting.table}. Current queue size in ${queue.size()}.")
+        logger.debug(s"Still querying for $keySpace.$table. Current queue size in ${queue.size()}.")
       }
       //wait for next poll interval to expire
       else if (lastPoll + setting.pollInterval < newPollTime) {
@@ -116,7 +121,7 @@ class CassandraTableReader(private val session: Session,
       }
     }
     else {
-      logger.info(s"Told to stop for ${setting.keySpace}.${setting.table}.")
+      logger.info(s"Told to stop for $keySpace.$table.")
     }
   }
 
@@ -182,7 +187,7 @@ class CassandraTableReader(private val session: Session,
     //on success start writing the row to the queue
     f.onSuccess({
       case rs:ResultSet =>
-        logger.info(s"Querying returning results for ${setting.keySpace}.${setting.table}.")
+        logger.info(s"Querying returning results for $keySpace.$table.")
         val iter = rs.iterator()
         var counter = 0
 
@@ -199,11 +204,11 @@ class CassandraTableReader(private val session: Session,
           }) match {
             case Failure(e) =>
               reset(tableOffset)
-              throw new ConnectException(s"Error processing row ${row.toString} for table ${setting.table}.", e)
+              throw new ConnectException(s"Error processing row ${row.toString} for table $table.", e)
             case Success(s) => logger.debug(s"Processed row ${row.toString}")
           }
         }
-        logger.info(s"Processed $counter rows for table ${setting.topic}.${setting.table}")
+        logger.info(s"Processed $counter rows for table $topic.$table")
         reset(maxOffset) //set the as the new high watermark.
     })
 
@@ -211,7 +216,7 @@ class CassandraTableReader(private val session: Session,
     f.onFailure({
       case t:Throwable =>
         reset(tableOffset)
-        throw new ConnectException(s"Error will querying ${setting.table}.", t)
+        throw new ConnectException(s"Error will querying $table.", t)
     })
   }
 
@@ -232,14 +237,14 @@ class CassandraTableReader(private val session: Session,
     logger.info(s"Storing offset $offset")
 
     //create source record
-    val record = new SourceRecord(partition, Map(timestampCol -> offset).asJava, setting.topic, struct.schema(), struct)
+    val record = new SourceRecord(partition, Map(timestampCol -> offset).asJava, topic, struct.schema(), struct)
 
     //add to queue
-    logger.debug(s"Attempting to put SourceRecord ${record.toString} on queue for ${setting.keySpace}.${setting.table}.")
+    logger.debug(s"Attempting to put SourceRecord ${record.toString} on queue for $keySpace.$table.")
     if (queue.offer(record)) {
       logger.debug(s"Successfully enqueued SourceRecord ${record.toString}.")
     } else {
-      logger.error(s"Failed to put ${record.toString} on to the queue for ${setting.keySpace}.${setting.table}.")
+      logger.error(s"Failed to put ${record.toString} on to the queue for $keySpace.$table.")
     }
   }
 
@@ -260,10 +265,11 @@ class CassandraTableReader(private val session: Session,
     * */
   private def reset(offset : Option[Date]) = {
     //set the offset to the 'now' bind value
-    logger.debug(s"Setting offset for ${setting.keySpace}.${setting.table} to $offset.")
+    val table = setting.routes.getTarget
+    logger.debug(s"Setting offset for $keySpace.$table to $offset.")
     tableOffset = offset.orElse(tableOffset)
     //switch to not querying
-    logger.debug(s"Setting querying for ${setting.keySpace}.${setting.table} to false.")
+    logger.debug(s"Setting querying for $keySpace.$table to false.")
     querying.set(false)
   }
 
@@ -280,11 +286,12 @@ class CassandraTableReader(private val session: Session,
     * Tell me to stop processing.
     * */
   def stopQuerying() : Unit = {
+    val table = setting.routes.getTarget
     stop.set(true)
     while (querying.get()) {
-      logger.info(s"Waiting for querying to stop for ${setting.keySpace}.${setting.table}.")
+      logger.info(s"Waiting for querying to stop for $keySpace.$table.")
     }
-    logger.info(s"Querying stopped for ${setting.keySpace}.${setting.table}.")
+    logger.info(s"Querying stopped for $keySpace.$table.")
   }
 
   /**
@@ -297,7 +304,7 @@ class CassandraTableReader(private val session: Session,
 
 object CassandraTableReader {
   def apply(session: Session,
-            setting: CassandraSetting,
+            setting: CassandraSourceSetting,
             context: SourceTaskContext,
             queue: LinkedBlockingQueue[SourceRecord]): CassandraTableReader = {
     //return a reader

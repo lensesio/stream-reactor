@@ -18,41 +18,44 @@ package com.datamountaineer.streamreactor.connect
 
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.avro.generic.GenericRecord
-import org.apache.kafka.connect.data.Field
 import org.apache.kafka.connect.data.Schema.Type
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import org.kududb.ColumnSchema.ColumnSchemaBuilder
-import org.kududb.{ColumnSchema, Schema}
+import org.kududb.ColumnSchema
 import org.kududb.client.Insert
 
 import scala.collection.JavaConverters._
-//import org.kududb.Type
 import org.kududb.client.{KuduTable, PartialRow}
 
 trait KuduConverter extends ConverterUtil {
+
 
   /**
     * Convert SinkRecord type to Kudu and add the column to the Kudu row
     *
     * @param field SinkRecord Field
-    * @param avroRecord Avro record
+    * @param record Sink record
     * @param row The Kudu row to add the field to
     * @return the updated Kudu row
     **/
-   private def addFieldToRow(field: Field, avroRecord: GenericRecord, row: PartialRow): PartialRow = {
+   private def addFieldToRow( record: SinkRecord,
+                              field: org.apache.kafka.connect.data.Field,
+                              row: PartialRow): PartialRow = {
     val fieldType = field.schema().`type`()
     val fieldName = field.name()
-    val avro = avroRecord.get(fieldName)
+    val struct = record.value().asInstanceOf[Struct]
 
     fieldType match {
-      case Type.STRING => row.addString(fieldName, avro.toString)
-      case Type.INT8 => row.addByte(fieldName, avro.asInstanceOf[Byte])
-      case Type.INT16 => row.addShort(fieldName, avro.asInstanceOf[Short])
-      case Type.INT32 => row.addInt(fieldName, avro.asInstanceOf[Int])
-      case Type.INT64 => row.addLong(fieldName, avro.asInstanceOf[Long])
-      case Type.BOOLEAN => row.addBoolean(fieldName, avro.asInstanceOf[Boolean])
-      case Type.FLOAT32 | Type.FLOAT64 => row.addFloat(fieldName, avro.asInstanceOf[Float])
-      case Type.BYTES => row.addBinary(fieldName, avro.asInstanceOf[Array[Byte]])
+      case Type.STRING => row.addString(fieldName, struct.getString(fieldName))
+      case Type.INT8 => row.addByte(fieldName, struct.getInt8(fieldName).asInstanceOf[Byte])
+      case Type.INT16 => row.addShort(fieldName, struct.getInt16(fieldName))
+      case Type.INT32 => row.addInt(fieldName, struct.getInt32(fieldName))
+      case Type.INT64 => row.addLong(fieldName, struct.getInt64(fieldName))
+      case Type.BOOLEAN => row.addBoolean(fieldName, struct.get(fieldName).asInstanceOf[Boolean])
+      case Type.FLOAT32 => row.addFloat(fieldName, struct.getFloat32(fieldName))
+      case Type.FLOAT64 => row.addFloat(fieldName, struct.getFloat64(fieldName).toFloat)
+      case Type.BYTES => row.addBinary(fieldName, struct.getBytes(fieldName))
       case _ => throw new UnsupportedOperationException(s"Unknown type $fieldType")
     }
     row
@@ -60,30 +63,31 @@ trait KuduConverter extends ConverterUtil {
 
   /**
     * Convert a SinkRecord to a Kudu row insert for a Kudu Table
- *
+    *
     * @param record A SinkRecord to convert
     * @param table A Kudu table to create a row insert for
     * @return A Kudu insert operation
     * */
-  def convert(record: SinkRecord, table: KuduTable) : Insert = {
-    val avro = convertToGenericAvro(record)
-    val fields = record.valueSchema().fields().asScala
+  def convert(record: SinkRecord, table: KuduTable, extractFields : Map[String, String]) : Insert = {
+    //extract the fields set in the mapping
+    val converted = extractSinkFields(record, extractFields)
+   // val avro = convertValueToGenericAvro(converted)
+    val recordFields = converted.valueSchema().fields().asScala
     val insert = table.newInsert()
     val row = insert.getRow
-    fields.map(f=>addFieldToRow(f, avro, row))
+    recordFields.map(f=>addFieldToRow(converted, f, row))
     insert
   }
-
 
   /**
     * Convert Connect Schema to Kudu
     *
     * @param record A sinkRecord to get the value schema from
     * */
-  def convertToKuduSchema(record: SinkRecord)  : Schema = {
+  def convertToKuduSchema(record: SinkRecord)  : org.kududb.Schema = {
     val connectFields = record.valueSchema().fields().asScala
     val kuduFields = connectFields.map(cf=>convertConnectField(cf)).asJava
-    val schema = new Schema(kuduFields)
+    val schema = new org.kududb.Schema(kuduFields)
     schema
   }
 
@@ -93,7 +97,7 @@ trait KuduConverter extends ConverterUtil {
     * @param field The Connect field to convert
     * @return The equivalent Kudu type
     * */
-  def convertConnectField(field: Field) : ColumnSchema = {
+  def convertConnectField(field: org.apache.kafka.connect.data.Field) : ColumnSchema = {
     val fieldType = field.schema().`type`()
     val fieldName = field.name()
     val kudu = fieldType match {
@@ -107,6 +111,63 @@ trait KuduConverter extends ConverterUtil {
         case Type.BYTES => new ColumnSchemaBuilder(fieldName, org.kududb.Type.BINARY)
         case _ => throw new UnsupportedOperationException(s"Unknown type $fieldType")
       }
+    val default = field.schema().defaultValue()
+    if (default != null) kudu.defaultValue(default)
     kudu.build()
   }
+
+  /**
+    * Convert an Avro schema
+    *
+    * @param schema The avro field schema to convert
+    * @param fieldName The fieldName to use for the Kudu column
+    * @return A Kudu ColumnSchemaBuilder
+    * */
+  def fromAvro(schema:  org.apache.avro.Schema, fieldName: String): ColumnSchemaBuilder = {
+    schema.getType match {
+      case org.apache.avro.Schema.Type.RECORD =>
+        throw new RuntimeException("Avro type RECORD not supported")
+      case org.apache.avro.Schema.Type.ARRAY => throw new RuntimeException("Avro type ARRAY not supported")
+      case org.apache.avro.Schema.Type.MAP => throw new RuntimeException("Avro type MAP not supported")
+      case org.apache.avro.Schema.Type.UNION =>
+        val union = getNonNull(schema)
+        fromAvro(union, fieldName)
+      case org.apache.avro.Schema.Type.FIXED => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.BINARY)
+      case org.apache.avro.Schema.Type.STRING => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.STRING)
+      case org.apache.avro.Schema.Type.BYTES => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.BINARY)
+      case org.apache.avro.Schema.Type.INT => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.INT32)
+      case org.apache.avro.Schema.Type.LONG => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.INT64)
+      case org.apache.avro.Schema.Type.FLOAT => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.FLOAT)
+      case org.apache.avro.Schema.Type.DOUBLE => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.FLOAT)
+      case org.apache.avro.Schema.Type.BOOLEAN =>new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.BOOL)
+      case org.apache.avro.Schema.Type.NULL => throw new RuntimeException("Avro type NULL not supported")
+      case _ => throw new RuntimeException("Avro type not supported")
+    }
+  }
+
+  /**
+    * Resolve unions
+    *
+    * @param schema
+    * @return An Avro schema for the data type from the union
+    * */
+  private def getNonNull(schema: org.apache.avro.Schema): org.apache.avro.Schema =
+  {
+    val unionTypes = schema.getTypes
+    if (unionTypes.size == 2) {
+      if (unionTypes.get(0).getType == org.apache.avro.Schema.Type.NULL) {
+        unionTypes.get(1)
+      }
+      else if (unionTypes.get(1).getType == org.apache.avro.Schema.Type.NULL) {
+        unionTypes.get(0)
+      }
+      else {
+        schema
+      }
+    }
+    else {
+      schema
+    }
+  }
 }
+

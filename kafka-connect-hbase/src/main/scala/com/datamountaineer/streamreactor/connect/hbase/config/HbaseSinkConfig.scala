@@ -25,43 +25,30 @@ object HbaseSinkConfig {
   val COLUMN_FAMILY = "connect.hbase.sink.column.family"
   val COLUMN_FAMILY_DOC = "The hbase column family."
 
-  val TABLE_NAME = "connect.hbase.sink.table.name"
-  val TABLE_NAME_DOC = "The hbase table to store the data to"
+  val EXPORT_ROUTE_QUERY = "connect.hbase.export.route.query"
+  val EXPORT_ROUTE_QUERY_DOC = ""
 
+  val ERROR_POLICY = "connect.hbase.error.policy"
+  val ERROR_POLICY_DOC = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
+    "There are two available options: \n" + "NOOP - the error is swallowed \n" +
+    "THROW - the error is allowed to propagate. \n" +
+    "RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on \n" +
+    "The error will be logged automatically";
+  val ERROR_POLICY_DEFAULT = "THROW"
 
-  val ROW_KEYS = "connect.hbase.sink.key"
-  val ROW_KEYS_DOC =
-    """
-      |Specifies which of the payload fields make up the Hbase row key. Multiple fields can be specified by separating them via a comma;
-      | The fields are combined using a key separator by default is set to <\\n>.
-    """.stripMargin
-
-  val FIELDS = "connect.hbase.sink.fields"
-  val FIELDS_DOC =
-    """
-      |Specifies which fields to consider when inserting the new Hbase entry. If is not set it will use insert all the payload fields present in the payload.
-      |Field mapping is supported; this way an avro record field can be inserted into a 'mapped' column.
-      |Examples:
-      |* fields to be used:field1,field2,field3
-      |** fields with mapping: field1=alias1,field2,field3=alias3"
-    """.stripMargin
-
-  val ROW_KEY_MODE = "connect.hbase.sink.rowkey.mode"
-  val ROW_KEY_MODE_DOC =
-    """
-      |There are three available modes: SINK_RECORD, GENERIC and FIELDS.
-      |SINK_RECORD - uses the SinkRecord.keyValue as the Hbase row key;
-      |FIELDS - combines the specified payload fields to make up the Hbase row key
-      |GENERIC- combines the kafka topic, offset and partition to build the Hbase row key."
-      |
-    """.stripMargin
+  val ERROR_RETRY_INTERVAL = "connect.hbase.retry.interval"
+  val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
+  val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
+  val NBR_OF_RETRIES = "connect.hbase.max.retires"
+  val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
+  val NBR_OF_RETIRES_DEFAULT = 20
 
   val config: ConfigDef = new ConfigDef()
     .define(COLUMN_FAMILY, Type.STRING, Importance.HIGH, COLUMN_FAMILY_DOC)
-    .define(TABLE_NAME, Type.STRING, Importance.HIGH, TABLE_NAME_DOC)
-    .define(ROW_KEY_MODE, Type.STRING, Importance.HIGH, ROW_KEY_MODE_DOC)
-    .define(FIELDS, Type.STRING, Importance.LOW, FIELDS_DOC)
-    .define(ROW_KEYS, Type.STRING, Importance.LOW, ROW_KEYS_DOC)
+    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY)
+    .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC)
+    .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC)
+    .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC)
 }
 
 /**

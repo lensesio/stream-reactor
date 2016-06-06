@@ -1,6 +1,7 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
 import com.datamountaineer.streamreactor.connect.KuduConverter
+import com.datamountaineer.streamreactor.connect.config.{KuduSettings, KuduSinkConfig}
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.kududb.client._
 import org.mockito.Mockito._
@@ -32,7 +33,9 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)
 
-    val writer = KuduWriter(config = config, context = context)
+    val settings = KuduSettings(config, List(TOPIC), true)
+
+    val writer = KuduWriter(config = config, settings = settings)
     //writer.write(getTestRecords)
     writer.close()
   }

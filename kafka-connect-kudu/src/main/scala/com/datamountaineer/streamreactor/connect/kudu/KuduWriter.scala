@@ -16,51 +16,52 @@
 
 package com.datamountaineer.streamreactor.connect.kudu
 
+import java.util
+
 import com.datamountaineer.streamreactor.connect.KuduConverter
+import com.datamountaineer.streamreactor.connect.config.{KuduSetting, KuduSinkConfig}
+import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.connect.errors.ConnectException
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.sink.SinkRecord
 import org.kududb.client._
+
+import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
+import scala.util.Try
 
 /**
   * Created by andrew@datamountaineer.com on 22/02/16. 
   * stream-reactor
   */
 object KuduWriter extends StrictLogging {
-  def apply(config: KuduSinkConfig, context: SinkTaskContext)  : KuduWriter = {
+  def apply(config: KuduSinkConfig, settings: KuduSetting)  : KuduWriter = {
     val kuduMaster = config.getString(KuduSinkConfig.KUDU_MASTER)
     logger.info(s"Connecting to Kudu Master at $kuduMaster")
     lazy val client = new KuduClient.KuduClientBuilder(kuduMaster).build()
-    new KuduWriter(client = client, context = context)
+    new KuduWriter(client, settings)
   }
 }
 
-class KuduWriter(client: KuduClient, context: SinkTaskContext) extends StrictLogging with KuduConverter {
+class KuduWriter(client: KuduClient, setting: KuduSetting) extends StrictLogging with KuduConverter with ErrorHandler {
   logger.info("Initialising Kudu writer")
-  private val topics = context.assignment().asScala.map(c=>c.topic()).toList
-  logger.info(s"Assigned topics ${topics.mkString(",")}")
-  private lazy val kuduTableInserts = buildTableCache(topics)
+
+  DbHandler.createTables(setting, client)
+  private lazy val kuduTableInserts = DbHandler.buildTableCache(setting, client)
   private lazy val session = client.newSession()
-  session.setFlushMode(SessionConfiguration.FlushMode.AUTO_FLUSH_BACKGROUND)
+  private val routeMapping = setting.routes
+  val autoEvolve = routeMapping.map(r=>(r.getSource, r.isAutoEvolve)).toMap
+  private val fields = routeMapping.map({
+    rm=>(rm.getSource, rm.getFieldAlias.map({
+        fa=>(fa.getField,fa.getAlias)}).toMap)
+  }).toMap
+
   session.isIgnoreAllDuplicateRows
 
-  /**
-    * Build a cache of Kudu insert statements per topic and check tables exists for topics
-    *
-    * @param topics Topic list, we are expecting pre created tables in Kudu
-    * @return A Map of topic -> KuduRowInsert
-    **/
-  private def buildTableCache(topics: List[String]): Map[String, KuduTable] = {
-    val missing = topics
-                      .filter(t=> !client.tableExists(t))
-                      .map(f=>{
-                        logger.error("Missing kudu table for topic $f")
-                        f
-                      })
-    if (!missing.isEmpty) throw new ConnectException(s"No tables found in Kudu for topics ${missing.mkString(",")}")
-    topics.map(t =>(t,client.openTable(t))).toMap
-  }
+  //initialize error tracker
+  initialize(setting.maxRetries, setting.errorPolicy)
+
+  var schemaCache = Map.empty[String, Tuple2[Int, Schema]]
 
   /**
     * Write SinkRecords to Kudu
@@ -68,13 +69,17 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends StrictLog
     * @param records A list of SinkRecords to write
     * */
   def write(records: List[SinkRecord]) : Unit = {
-    //group the records by topic to get a map [string, list[sinkrecords]]
-    val grouped = records.groupBy(_.topic())
-    //for each group get a new insert, convert and apply
-    grouped.foreach {
-      case (topic, entries) => applyInsert(topic, entries, session)
+
+    if (records.isEmpty) {
+      logger.info("No records received.")
+    } else {
+      //group the records by topic to get a map [string, list[sinkrecords]] in batches
+      val grouped = records.groupBy(_.topic()).grouped(setting.batchSize)
+
+      //for each group get a new insert, convert and apply
+      grouped.foreach(g => g.foreach {case (topic, entries) => applyInsert(topic, entries, session)})
+      flush()
     }
-    flush()
   }
 
   /**
@@ -84,10 +89,36 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends StrictLog
   private def applyInsert(topic: String, records: List[SinkRecord], session: KuduSession) = {
     val table = kuduTableInserts.get(topic).get
     logger.debug(s"Preparing write for $topic.")
-    records
-      .map(r=>convert(r, table))
-      .foreach(i=>session.apply(i))
+
+    val t = Try({
+      records
+        //.map(r=>handleAlterTable(r, table.getName))
+        .map(r=>convert(r, table, fields.get(r.topic()).get))
+        .foreach(i=>session.apply(i))
+
+      flush()
+    })
+    handleTry(t)
     logger.info(s"Written ${records.size} for $topic")
+  }
+
+
+  /**
+    * Check alter table is schema has changed
+    *
+    * @param record The sinkRecord to check the schema for
+    * @param tableName The table name to alter
+    * */
+  private def handleAlterTable(record: SinkRecord, tableName : String) = {
+    val version = record.valueSchema().version()
+    if (schemaCache.contains(version) && schemaCache.get(record.topic()).get._1 > version) {
+      val old = schemaCache.get(record.topic()).get._2
+      DbHandler.alterTable(tableName, old, record.valueSchema(), client)
+      record
+    } else {
+      schemaCache.put(record.topic(), Tuple2(version, record.valueSchema()))
+      record
+    }
   }
 
   /**
@@ -105,6 +136,19 @@ class KuduWriter(client: KuduClient, context: SinkTaskContext) extends StrictLog
     *
     * */
   def flush() : Unit = {
-    session.flush()
+    if (!session.isClosed()) {
+      val responses = session.flush()
+
+      if (responses != null) {
+        responses.asScala.map(r=> {
+          //throw and let error policy handle it, don't want to throw RetriableExpection.
+          //May want to die if error policy is Throw
+          if (r.hasRowError) {
+            throw new Throwable("Failed to flush one or more changes. " +
+              "Transaction rolled back: " + r.getRowError().toString())
+          }
+        })
+      }
+    }
   }
 }

@@ -16,51 +16,68 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 
-import java.util.concurrent.atomic.AtomicLong
 
 import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
-import com.datamountaineer.streamreactor.connect.cassandra.CassandraWrapper.resultSetFutureToScala
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSettings
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSinkSetting
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
+import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import com.datastax.driver.core.{PreparedStatement, ResultSet}
+import com.datastax.driver.core.{PreparedStatement, ResultSet, Session}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.util.Try
+import scala.collection.JavaConverters._
 
 /**
   * <h1>CassandraJsonWriter</h1>
   * Cassandra Json writer for Kafka connect
   * Writes a list of Kafka connect sink records to Cassandra using the JSON support.
   */
-class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSettings)
-    extends StrictLogging with ConverterUtil {
+class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkSetting)
+    extends StrictLogging with ConverterUtil with ErrorHandler {
 
   logger.info("Initialising Cassandra writer.")
-  val insertCount = new AtomicLong()
+
+  //initialize error tracker
+  initialize(settings.taskRetries, settings.errorPolicy)
   configureConverter(jsonConverter)
+  private var session: Session = getSession().get
+  private val routeMappings = settings.routes
 
-  //get topic list from  map
-  private val topics = settings.setting.map( s=> s.topic).toSet
-  private val tables = settings.setting.map( s=> s.table).toSet
+  private val fields = routeMappings.map({
+    rm=>(rm.getSource,
+      rm.getFieldAlias.asScala.map({
+        fa=>(fa.getField,fa.getAlias)
+      }).toMap)
+  }).toMap
 
-  //check a table exists in Cassandra for the topics
-  CassandraUtils.checkCassandraTables(connection.session.getCluster, tables, connection.session.getLoggedKeyspace)
+  CassandraUtils.checkCassandraTables(session.getCluster, routeMappings, session.getLoggedKeyspace)
+  private var preparedCache: Map[String, PreparedStatement] = cachePreparedStatements
 
-  //cache for prepared statements
-  private val preparedCache: Map[String, PreparedStatement] = cachePreparedStatements(settings)
+  /**
+    * Get a connection to cassandra based on the config
+    * */
+  private def getSession() : Option[Session] = {
+    val t = Try(cassCon.cluster.connect(settings.keySpace))
+    handleTry[Session](t)
+  }
 
   /**
     * Cache the preparedStatements per topic rather than create them every time
     * Each one is an insert statement aligned to topics.
     *
-    * @param settings Settings containg the topic to table mapping.
     * @return A Map of topic->preparedStatements.
     * */
-  private def cachePreparedStatements(settings: CassandraSettings) : Map[String, PreparedStatement] = {
-    logger.info(s"Preparing statements for ${topics.mkString(",")}.")
-    settings.setting.map( s => s.topic -> getPreparedStatement(s.table)).toMap
+  private def cachePreparedStatements() : Map[String, PreparedStatement] = {
+    routeMappings.map(r => {
+      val topic = r.getSource
+      val table = r.getTarget
+      logger.info(s"Preparing statements for $topic.")
+      (topic-> getPreparedStatement(table).get)
+    }).toMap
   }
 
   /**
@@ -69,8 +86,9 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSe
     * @param table The table name to prepare the statement for.
     * @return A prepared statement for the given topic.
     * */
-  private def getPreparedStatement(table : String) : PreparedStatement = {
-    connection.session.prepare(s"INSERT INTO ${connection.session.getLoggedKeyspace}.$table JSON ?")
+  private def getPreparedStatement(table : String) : Option[PreparedStatement] = {
+    val t: Try[PreparedStatement] =  Try(session.prepare(s"INSERT INTO ${session.getLoggedKeyspace}.$table JSON ?"))
+    handleTry[PreparedStatement](t)
   }
 
   /**
@@ -82,8 +100,17 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSe
     if (records.isEmpty) {
       logger.info("No records received.")
     } else {
+      logger.info(s"Received ${records.size} records.")
+
+      //is the connection still alive
+      if (session.isClosed()) {
+        logger.error(s"Session is closed attempting to reconnect to keySpace ${settings.keySpace}")
+        session = getSession().get
+        preparedCache = cachePreparedStatements()
+      }
+
       val grouped = records.groupBy(_.topic())
-      insert(grouped, records.size)
+      insert(grouped)
     }
   }
 
@@ -93,32 +120,52 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSe
     * @param records A list of SinkRecords from Kafka Connect to write.
     * @return boolean indication successful write.
     * */
-  private[CassandraJsonWriter] def insert(records: Map[String, List[SinkRecord]], count: Long) = {
-    insertCount.addAndGet(records.size)
+  private def insert(records: Map[String, List[SinkRecord]]) = {
     records.foreach {
       case (topic, sinkRecords) =>
-        val preparedStatement = preparedCache.get(topic).get
-        sinkRecords.foreach(r=>{
-          //execute async and convert FutureResultSet to Scala future
-          val results = resultSetFutureToScala(
-            connection.session.executeAsync(preparedStatement.bind(convertValueToJson(r).toString)))
+        val preparedStatement : PreparedStatement = preparedCache.get(topic).get
+        val json = toJson(sinkRecords)
 
-          //increment latch
-          results.onSuccess({
-            case r:ResultSet =>
-              logger.debug(s"Write successful!")
-              insertCount.decrementAndGet()
-          })
-
-          //increment latch but set status to false
-          results.onFailure({
-            case t:Throwable =>
-              logger.warn(s"Write failed! ${t.getMessage}")
-              insertCount.decrementAndGet()
-          })
-        }
-      )
+        val t = Try {
+          json.foreach(j=>
+          {
+            val bound = preparedStatement.bind(j)
+            session.execute(bound)
+          }
+        )}
+        handleTry(t)
+        logger.info(s"Processed ${json.size} rows.")
     }
+  }
+
+
+
+  /**
+    * Convert sink records to json
+    *
+    * @param records A list of sink records to convert.
+    * */
+  private def toJson(records: List[SinkRecord]) : List[String] = {
+    if (!fields.isEmpty) {
+      val extracted: List[SinkRecord] = records.map(r => extractSinkFields(r, fields.get(r.topic()).get))
+      extracted.map(r => convertValueToJson(r).toString)
+    } else {
+      records.map(r => convertValueToJson(r).toString)
+    }
+  }
+
+  private def asyncWrite(results: Future[ResultSet]) = {
+    //increment latch
+    results.onSuccess({
+      case r:ResultSet =>
+        logger.debug(s"Write successful!")
+    })
+
+    //increment latch but set status to false
+    results.onFailure({
+      case t:Throwable =>
+        logger.warn(s"Write failed! ${t.getMessage}")
+    })
   }
 
   /**
@@ -126,7 +173,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSe
     * */
   def close(): Unit = {
     logger.info("Shutting down Cassandra driver session and cluster.")
-    connection.session.close()
-    connection.session.getCluster.close()
+    session.close()
+    session.getCluster.close()
   }
 }

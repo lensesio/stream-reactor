@@ -1,12 +1,13 @@
 ![](../images/DM-logo.jpg)
-[![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://streamreactor.readthedocs.io/en/latest/elastic.html#kafka-connect-elastic)
-
+[![Documentation Status](http://docs.datamountaineer.com/en/latest/badge/?version=latest)](http://docs.datamountaineer.com/en/latest/elastic.html)
 
 # Kafka Connect Elastic
 
 A Connector and Sink to write events from Kafka to Elastic Search using [Elastic4s](https://github.com/sksamuel/elastic4s) client. The connector converts the value from the Kafka Connect SinkRecords to Json and uses Elastic4s's JSON insert functionality to index.
 
 The Sink creates an Index and Type corresponding to the topic name and uses the JSON insert functionality from Elastic4s
+
+**Please go to the documentation for Usage.**
 
 ## Perquisites
 * Confluent 2.0

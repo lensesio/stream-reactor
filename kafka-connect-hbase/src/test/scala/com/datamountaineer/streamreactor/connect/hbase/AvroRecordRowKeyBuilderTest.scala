@@ -1,7 +1,8 @@
 package com.datamountaineer.streamreactor.connect.hbase
 
-import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
 import com.datamountaineer.streamreactor.connect.hbase.avro.AvroRecordFieldExtractorMapFn
+import com.datamountaineer.streamreactor.connect.rowkeys.{ AvroRecordRowKeyBuilderBytes}
+import com.datamountaineer.streamreactor.connect.schemas.BytesHelper._
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.hadoop.hbase.util.Bytes
@@ -15,7 +16,7 @@ class AvroRecordRowKeyBuilderTest extends WordSpec with Matchers with MockitoSug
   "AvroRecordRowKeyBuilder" should {
     "extract the values from the avro record and create the key" in {
       val keys = Seq("firstName", "lastName", "age")
-      val rowKeyBuilder = new AvroRecordRowKeyBuilder(AvroRecordFieldExtractorMapFn(schema, keys), keys)
+      val rowKeyBuilder = new AvroRecordRowKeyBuilderBytes(AvroRecordFieldExtractorMapFn(schema, keys), keys)
 
       val sinkRecord = mock[SinkRecord]
       val firstName = "Jack"

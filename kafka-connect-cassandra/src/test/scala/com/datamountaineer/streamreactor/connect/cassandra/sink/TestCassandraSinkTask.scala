@@ -24,7 +24,7 @@ class TestCassandraSinkTask extends WordSpec with Matchers with MockitoSugar wit
     //get test records
     val testRecords = getTestRecords(TABLE1)
     //get config
-    val config  = getCassandraConfigSinkPropsSecure
+    val config  = getCassandraConfigSinkProps
     //get task
     val task = new CassandraSinkTask()
     //initialise the tasks context

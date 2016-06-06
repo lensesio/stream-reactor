@@ -2,7 +2,7 @@ package com.datamountaineer.streamreactor.connect.druid.config
 
 import java.nio.file.Paths
 
-import io.confluent.common.config.ConfigException
+import org.apache.kafka.common.config.ConfigException
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}

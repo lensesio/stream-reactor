@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/datamountaineer/stream-reactor-gradle.svg?branch=master)](https://travis-ci.org/datamountaineer/stream-reactor-gradle)
-[![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://streamreactor.readthedocs.org/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://docs.datamountaineer.com/en/latest/)
 
 ![](images/DM-logo.jpg)
 
@@ -62,7 +62,13 @@ Kafka connect HBase sink to write Kafka topic payloads to HBase.
 
 #### [Kafka-Connect-Redis](kafka-connect-redis/README.md)
 
-Kafka connect HBase sink to write Kafka topic payloads to HBase.
+Kafka connect Redis sink to write Kafka topic payloads to Redis.
+
+#### [Kafka-Connect-Rethink](kafka-connect-redis/README.md)
+
+Kafka connect RethinkDb sink to write Kafka topic payloads to RethinkDb.
+
+NOT TESTS, UNIT TESTS PENDING
 
 #### [Kafka-Socket-Streamer](kafka-socket-streamer/README.md)
 

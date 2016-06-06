@@ -1,7 +1,8 @@
 Kafka Connect Redis
 ===================
 
-A Connector and Sink to write events from Kafka to Redis. The connector takes the value from the Kafka Connect SinkRecords and inserts a new entry to Redis.
+A Connector and Sink to write events from Kafka to Redis. The connector takes the value from the Kafka Connect
+SinkRecords and inserts a new entry to Redis.
 
 Prerequisites
 -------------
@@ -103,19 +104,15 @@ Sink Connector QuickStart
 Sink Connector Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Next we start the connector in standalone mode. This useful for testing
-and one of jobs, usually you'd run in distributed mode to get fault
-tolerance and better performance.
+Next we start the connector in standalone mode. This useful for testing and one of jobs, usually you'd run in
+distributed mode to get fault tolerance and better performance.
 
-Before we can start the connector we need to setup it's configuration.
-In standalone mode this is done by creating a properties file and
-passing this to the connector at startup. In distributed mode you can
-post in the configuration as json to the Connectors HTTP endpoint. Each
-connector exposes a rest endpoint for stopping, starting and updating the
+Before we can start the connector we need to setup it's configuration. In standalone mode this is done by creating a
+properties file and passing this to the connector at startup. In distributed mode you can post in the configuration as
+json to the Connectors HTTP endpoint. Each connector exposes a rest endpoint for stopping, starting and updating the
 configuration.
 
-Since we are in standalone mode we'll create a file called
-redis-sink.properties with the contents below:
+Since we are in standalone mode we'll create a file called ``redis-sink.properties`` with the contents below:
 
 .. code:: bash
 
@@ -132,13 +129,16 @@ redis-sink.properties with the contents below:
 This configuration defines:
 
 1.  The name of the sink.
-2.  The key mode. There are three available modes: SINK_RECORD, FIELDS and GENERIC. SINK_RECORD, uses the SinkRecord.keyValue as the redis row key, FIELDS, combines the specified payload (kafka connect Struct instance) fields to make up the redis row key ,GENERIC, combines the kafka topic, offset and partition to build the redis row key.
+2.  The key mode. There are three available modes: SINK_RECORD, FIELDS and GENERIC. SINK_RECORD, uses the
+    SinkRecord.keyValue as the redis row key, FIELDS, combines the specified payload (kafka connect Struct instance)
+    fields to make up the redis row key ,GENERIC, combines the kafka topic, offset and partition to build the redis row key.
 3.  The fields to extract from the source topics payload to form the Redis key.
 4.  The fields to extract from the source topic payload to write to Redis.
 5.  The name of the redis host to connect to.
 6.  The redis port to connect to.
 7.  The sink class.
-8.  The max number of tasks the connector is allowed to created. Should not be greater than the number of partitions in the source topicsotherwise tasks will be idle.
+8.  The max number of tasks the connector is allowed to created. Should not be greater than the number of partitions in
+    the source topicsotherwise tasks will be idle.
 9.  The source kafka topics to take events from.
 
 Starting the Sink Connector (Standalone)
@@ -146,13 +146,18 @@ Starting the Sink Connector (Standalone)
 
 Now we are ready to start the Redis sink Connector in standalone mode.
 
-.. note:: You need to add the connector to your classpath or you can create a folder in share/java like kafka-connect-myconnector and the start scripts provided by Confluent will pick it up. The start script looks for folders beginning with kafka-connect.
+.. note::
+
+    You need to add the connector to your classpath or you can create a folder in ``share/java`` of the Confluent
+    install location like, kafka-connect-myconnector and the start scripts provided by Confluent will pick it up.
+    The start script looks for folders beginning with kafka-connect.
 
 .. code:: bash
 
     #Add the Connector to the class path
     ➜  export CLASSPATH=kafka-connect-redis-0.1-all.jar
-    #Start the connector in standalone mode, passing in two properties files, the first for the schema registry, kafka and zookeeper and the second with the connector properties.
+    #Start the connector in standalone mode, passing in two properties files, the first for the schema registry, kafka
+    #and zookeeper and the second with the connector properties.
     ➜  bin/connect-standalone etc/schema-registry/connect-avro-standalone.properties redis-sink.properties
 
 We can use the CLI to check if the connector is up but you should be able to see this in logs as-well.
@@ -176,17 +181,16 @@ We can use the CLI to check if the connector is up but you should be able to see
 
     [2016-05-08 22:37:05,616] INFO
         ____        __        __  ___                  __        _
-       / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
-      / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
+/ __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
+/ / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
      / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
-    /_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
+/_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
         ____           ___      _____ _       __
-       / __ \___  ____/ (_)____/ ___/(_)___  / /__
-      / /_/ / _ \/ __  / / ___/\__ \/ / __ \/ //_/
+/ __ \___  ____/ (_)____/ ___/(_)___  / /__
+/ /_/ / _ \/ __  / / ___/\__ \/ / __ \/ //_/
      / _, _/  __/ /_/ / (__  )___/ / / / / / ,<
-    /_/ |_|\___/\__,_/_/____//____/_/_/ /_/_/|_|
+/_/ |_|\___/\__,_/_/____//____/_/_/ /_/_/|_|
 
-           (com.datamountaineer.streamreactor.connect.redis.sink.RedisSinkTask:41)
     [2016-05-08 22:37:05,617] INFO RedisSinkConfig values:
         connect.redis.connection.port = 6379
         connect.redis.sink.fields = firstName,lastName,age,salary=income
@@ -212,21 +216,24 @@ a ``lastnamme`` field of type string, an ``age`` field of type int and a ``salar
 
     bin/kafka-avro-console-producer \
       --broker-list localhost:9092 --topic person_redis \
-      --property value.schema='{"type":"record","name":"User","namespace":"com.datamountaineer.streamreactor.connect.redis","fields":[{"name":"firstName","type":"string"},{"name":"lastName","type":"string"},{"name":"age","type":"int"},{"name":"salary","type":"double"}]}'
+      --property value.schema='{"type":"record","name":"User","namespace":"com.datamountaineer.streamreactor.connect.redis" \
+      ,"fields":[{"name":"firstName","type":"string"},{"name":"lastName","type":"string"},{"name":"age","type":"int"},{"name":"salary","type":"double"}]}'
 
 Now the producer is waiting for input. Paste in the following:
 
 .. code:: bash
 
     {"firstName": "John", "lastName": "Smith", "age":30, "salary": 4830}
-    {"firstName": "Anna", "lastName": "Jones", "age":28, "salary": 5430}
 
 Check for records in Redis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now check the logs of the connector you should see this:
 
-... code:: bash
+.. code:: bash
+
+    INFO Received record from topic:person_redis partition:0 and offset:0 (com.datamountaineer.streamreactor.connect.redis.sink.writer.RedisDbWriter:48)
+    INFO Empty list of records received. (com.datamountaineer.streamreactor.connect.redis.sink.RedisSinkTask:75)
 
 Check the Redis.
 
@@ -234,14 +241,22 @@ Check the Redis.
 
     redis-cli
 
+    127.0.0.1:6379> keys *
+    1) "John.Smith"
+    2) "11"
+    3) "10"
+    127.0.0.1:6379>
+    127.0.0.1:6379> get "John.Smith"
+    "{\"firstName\":\"John\",\"lastName\":\"Smith\",\"age\":30,\"income\":4830.0}"
+
+
 Now stop the connector.
 
 Starting the Connector (Distributed)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Connectors can be deployed distributed mode. In this mode one or many
-connectors are started on the same or different hosts with the same cluster id.
-The cluster id can be found in ``etc/schema-registry/connect-avro-distributed.properties.``
+Connectors can be deployed distributed mode. In this mode one or many connectors are started on the same or different
+hosts with the same cluster id. The cluster id can be found in ``etc/schema-registry/connect-avro-distributed.properties.``
 
 .. code:: bash
 
@@ -251,9 +266,8 @@ The cluster id can be found in ``etc/schema-registry/connect-avro-distributed.pr
 
 For this quick-start we will just use one host.
 
-Now start the connector in distributed mode, this time we only give it
-one properties file for the kafka, zookeeper and schema registry
-configurations.
+Now start the connector in distributed mode, this time we only give it one properties file for the kafka, zookeeper and
+schema registry configurations.
 
 .. code:: bash
 
@@ -266,8 +280,7 @@ post in our distributed properties file.
 
     ➜  java -jar build/libs/kafka-connect-cli-0.2-all.jar create redis-sink < redis-sink.properties
 
-If you switch back to the terminal you started the Connector in you
-should see the Redis sink being accepted and the task starting.
+If you switch back to the terminal you started the Connector in you should see the Redis sink being accepted and the task starting.
 
 
 Features
@@ -279,7 +292,8 @@ The sink supports:
 
 1. Key modes - Allows for custom or automatic Redis key generation. You can specify fields in the topic payload to
    concatenate to form the key, write this a s string or Avro, or have the sink take the key value from the Kafka message.
-2. Field selection - Kafka topic payload field selection is supported, allowing you to have choose selection of fields  or all fields written to redis.
+2. Field selection - Kafka topic payload field selection is supported, allowing you to have choose selection of fields
+   or all fields written to redis.
 
 Configurations
 --------------

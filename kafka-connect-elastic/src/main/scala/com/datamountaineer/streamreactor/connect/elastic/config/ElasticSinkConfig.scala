@@ -14,11 +14,14 @@
   * limitations under the License.
   **/
 
-package com.datamountaineer.streamreactor.connect.elastic
+package com.datamountaineer.streamreactor.connect.elastic.config
 
 import java.util
-import io.confluent.common.config.ConfigDef.{Importance, Type}
-import io.confluent.common.config.{AbstractConfig, ConfigDef}
+
+import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
+import org.apache.kafka.common.config.ConfigDef.Importance
+import org.apache.kafka.common.config.ConfigDef.Type
+
 
 object ElasticSinkConfig {
   val URL = "connect.elastic.url"
@@ -30,11 +33,14 @@ object ElasticSinkConfig {
   val URL_PREFIX = "connect.elastic.url.prefix"
   val URL_PREFIX_DOC = "URL connection string prefix"
   val URL_PREFIX_DEFAULT = "elasticsearch"
+  val EXPORT_ROUTE_QUERY = "connect.elastic.export.route.query"
+  val EXPORT_ROUTE_QUERY_DOC = ""
 
   val config: ConfigDef = new ConfigDef()
     .define(URL, Type.STRING, URL_DEFAULT, Importance.HIGH, URL_DOC)
     .define(ES_CLUSTER_NAME, Type.STRING, ES_CLUSTER_NAME_DEFAULT, Importance.HIGH, ES_CLUSTER_NAME_DOC)
     .define(URL_PREFIX, Type.STRING, URL_PREFIX_DEFAULT, Importance.LOW, URL_PREFIX_DOC)
+    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY_DOC)
 }
 
 

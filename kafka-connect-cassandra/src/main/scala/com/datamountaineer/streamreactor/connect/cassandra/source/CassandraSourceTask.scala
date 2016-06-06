@@ -21,7 +21,7 @@ import java.util.Timer
 import java.util.concurrent.LinkedBlockingQueue
 
 import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource, CassandraSettings}
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource, CassandraSettings, CassandraSourceSetting}
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.AbstractConfig
@@ -42,7 +42,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging with CassandraCo
   private val readers = mutable.Map.empty[String, CassandraTableReader]
   private var taskConfig : Option[AbstractConfig] = None
   private var connection : Option[CassandraConnection] = None
-  private var settings : Option[CassandraSettings] = None
+  private var settings : Set[CassandraSourceSetting] = Set.empty
   private var bufferSize : Option[Int] = None
   private var batchSize : Option[Int] = None
 
@@ -91,15 +91,15 @@ class CassandraSourceTask extends SourceTask with StrictLogging with CassandraCo
 
     //Setup queues for readers to put records into
     assigned.map(table => queues += table-> new LinkedBlockingQueue[SourceRecord](bufferSize.get))
-    settings = Some(CassandraSettings(taskConfig.get, assigned ,sinkTask = false))
+    settings = CassandraSettings.configureSource(taskConfig.get, assigned)
 
     //set up readers
     assigned.map(table =>{
       //get settings
-      val setting = settings.get.setting.filter(s => s.table.equals(table)).head
+      val setting = settings.filter(s=>s.routes.getSource.equals(table)).head
       val session = connection.get.session
       val queue = queues.get(table).get
-      readers += table->CassandraTableReader(session = session, setting = setting, context = context, queue = queue)
+      readers += table -> CassandraTableReader(session = session, setting = setting, context = context, queue = queue)
     })
   }
 
@@ -111,7 +111,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging with CassandraCo
     * @return A util.List of SourceRecords.
     * */
   override def poll(): util.List[SourceRecord] = {
-    settings.get.setting.flatMap(s=>process(s.table)).asJava
+    settings.map(s=>s.routes).flatten(r=>process(r.getSource)).toList.asJava
   }
 
   /**
@@ -119,6 +119,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging with CassandraCo
     *
     * Get the reader can call read, if querying it will return then drain it's queue
     * else if will start a new query then drain.
+ *
     * @param table The table to query and drain
     * @return A list of Source records
     * */

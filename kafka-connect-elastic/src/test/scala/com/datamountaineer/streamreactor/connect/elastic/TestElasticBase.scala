@@ -3,6 +3,7 @@ package com.datamountaineer.streamreactor.connect.elastic
 import java.util
 import java.util.UUID
 
+import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSinkConfig
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
@@ -15,7 +16,10 @@ import scala.reflect.io.File
 trait TestElasticBase extends FunSuite with Matchers with BeforeAndAfter {
   val ELASTIC_SEARCH_HOSTNAMES = "localhost:9300"
   val TOPIC = "sink_test"
+  val INDEX = "index_andrew"
   var TMP : File = null
+  val QUERY = s"INSERT INTO $INDEX SELECT * FROM $TOPIC"
+  val QUERY_SELECTION = s"INSERT INTO $INDEX SELECT id, string_field FROM $TOPIC"
 
   protected val PARTITION: Int = 12
   protected val PARTITION2: Int = 13
@@ -77,7 +81,17 @@ trait TestElasticBase extends FunSuite with Matchers with BeforeAndAfter {
     Map (
       ElasticSinkConfig.URL->ELASTIC_SEARCH_HOSTNAMES,
       ElasticSinkConfig.ES_CLUSTER_NAME->ElasticSinkConfig.ES_CLUSTER_NAME_DEFAULT,
-      ElasticSinkConfig.URL_PREFIX->ElasticSinkConfig.URL_PREFIX_DEFAULT
+      ElasticSinkConfig.URL_PREFIX->ElasticSinkConfig.URL_PREFIX_DEFAULT,
+      ElasticSinkConfig.EXPORT_ROUTE_QUERY->QUERY
+    ).asJava
+  }
+
+  def getElasticSinkConfigPropsSelection = {
+    Map (
+      ElasticSinkConfig.URL->ELASTIC_SEARCH_HOSTNAMES,
+      ElasticSinkConfig.ES_CLUSTER_NAME->ElasticSinkConfig.ES_CLUSTER_NAME_DEFAULT,
+      ElasticSinkConfig.URL_PREFIX->ElasticSinkConfig.URL_PREFIX_DEFAULT,
+      ElasticSinkConfig.EXPORT_ROUTE_QUERY->QUERY_SELECTION
     ).asJava
   }
 

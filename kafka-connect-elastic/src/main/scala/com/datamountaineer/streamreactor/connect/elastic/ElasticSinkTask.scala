@@ -17,10 +17,13 @@
 package com.datamountaineer.streamreactor.connect.elastic
 
 import java.util
+
+import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSinkConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+
 import scala.collection.JavaConverters._
 
 class ElasticSinkTask extends SinkTask with StrictLogging {

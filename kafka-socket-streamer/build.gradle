@@ -5,6 +5,7 @@ project(":kafka-socket-streamer") {
         akkaSseVersion = "1.7.3"
         reactiveKafkaVersion = "0.10.0"
         logBackVersion = "1.1.2"
+        confluentVersion = '2.0.1'
     }
 
     tasks.withType(Jar) {

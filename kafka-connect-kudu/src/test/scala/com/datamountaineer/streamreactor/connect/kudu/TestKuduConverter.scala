@@ -32,8 +32,23 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
     when(insert.getRow).thenReturn(kuduRow)
     val table = mock[KuduTable]
     when(table.newInsert()).thenReturn(insert)
-    val kuduRecord = convert(record, table)
+    val kuduRecord = convert(record, table, Map.empty[String, String])
     //??? not really a test
     kuduRecord.getRow shouldBe kuduRow
+  }
+
+  test("Should convert a SinkRecord into a Kudu Insert operation with Field Selection") {
+    val fields = Map("id"->"id", "long_field"->"new_field_name")
+    val record = getTestRecords.head
+    val converted = extractSinkFields(record, fields)
+    val kuduSchema = convertToKuduSchema(converted)
+    val kuduRow = kuduSchema.newPartialRow()
+    val insert = mock[Insert]
+    when(insert.getRow).thenReturn(kuduRow)
+    val table = mock[KuduTable]
+    when(table.newInsert()).thenReturn(insert)
+    val kuduRecord = convert(record, table,fields)
+    //??? not really a test
+    val row = kuduRecord.getRow
   }
 }

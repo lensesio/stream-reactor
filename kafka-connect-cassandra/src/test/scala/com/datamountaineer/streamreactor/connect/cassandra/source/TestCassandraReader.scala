@@ -35,12 +35,12 @@ class TestCassandraReader extends WordSpec with Matchers with BeforeAndAfter wit
     session.execute(sql)
 
     val taskContext = getSourceTaskContextDefault
-    val taskConfig  = new AbstractConfig(sourceConfig, getCassandraConfigSourcePropsSecureBulk)
+    val taskConfig  = new AbstractConfig(sourceConfig, getCassandraConfigSourcePropsBulk)
     val assigned = List(TABLE2)
 
     //queue for reader to put records in
     val queue = new LinkedBlockingQueue[SourceRecord](100)
-    val setting = CassandraSettings(taskConfig, assigned ,false).setting.head
+    val setting = CassandraSettings.configureSource(taskConfig, assigned).head
     val reader = CassandraTableReader(session = session, setting = setting, context = taskContext, queue = queue)
     reader.read()
     //Thread.sleep(1000)// An actual sink would be calling the read repeatedly so sleep w
@@ -55,7 +55,7 @@ class TestCassandraReader extends WordSpec with Matchers with BeforeAndAfter wit
     val sourceRecords = QueueHelpers.drainQueue(queue, 1).asScala.toList
     val sourceRecord = sourceRecords.head
     //check a field
-    val json: JsonNode = convertSourceValueToJson(sourceRecord)
+    val json: JsonNode = convertValueToJson(sourceRecord)
     json.get("string_field").asText().equals("magic_string") shouldBe true
 
     //insert another two records

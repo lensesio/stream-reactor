@@ -1,9 +1,9 @@
 package com.datamountaineer.streamreactor.connect.hbase
 
+import com.datamountaineer.streamreactor.connect.schemas.StructFieldsExtractorBytes
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.{Matchers, WordSpec}
-
 
 class StructFieldsExtractorTest extends WordSpec with Matchers {
   "StructFieldsExtractor" should {
@@ -19,7 +19,7 @@ class StructFieldsExtractorTest extends WordSpec with Matchers {
         .put("lastName", "Smith")
         .put("age", 30)
 
-      val map = new StructFieldsExtractor(true, Map.empty).get(struct).toMap
+      val map = new StructFieldsExtractorBytes(true, Map.empty).get(struct).toMap
 
       Bytes.toString(map.get("firstName").get) shouldBe "Alex"
       Bytes.toString(map.get("lastName").get) shouldBe "Smith"
@@ -39,7 +39,7 @@ class StructFieldsExtractorTest extends WordSpec with Matchers {
         .put("lastName", "Smith")
         .put("age", 30)
 
-      val map = new StructFieldsExtractor(true, Map("lastName" -> "Name", "age" -> "a")).get(struct).toMap
+      val map = new StructFieldsExtractorBytes(true, Map("lastName" -> "Name", "age" -> "a")).get(struct).toMap
 
       Bytes.toString(map.get("firstName").get) shouldBe "Alex"
       Bytes.toString(map.get("Name").get) shouldBe "Smith"
@@ -59,7 +59,7 @@ class StructFieldsExtractorTest extends WordSpec with Matchers {
         .put("lastName", "Smith")
         .put("age", 30)
 
-      val map = new StructFieldsExtractor(false, Map("lastName" -> "Name", "age" -> "age")).get(struct).toMap
+      val map = new StructFieldsExtractorBytes(false, Map("lastName" -> "Name", "age" -> "age")).get(struct).toMap
 
       Bytes.toString(map.get("Name").get) shouldBe "Smith"
       Bytes.toInt(map.get("age").get) shouldBe 30

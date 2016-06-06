@@ -17,13 +17,16 @@
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import java.util
+
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
+import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.config.AbstractConfig
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -81,10 +84,10 @@ class CassandraSinkTask extends SinkTask with StrictLogging with CassandraConfig
   }
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]) : Unit = {
-    while (writer.get.insertCount.get > 0) {
-      logger.info("Waiting for writes to flush.")
-      Thread.sleep(flushSleep)
-    }
+//    //while (writer.get.insertCount.get > 0) {
+//      logger.info("Waiting for writes to flush.")
+//      Thread.sleep(flushSleep)
+//    //}
   }
 
   override def version(): String = getClass.getPackage.getImplementationVersion

@@ -17,15 +17,20 @@
 package com.datamountaineer.streamreactor.connect.elastic
 
 import java.util
+
+import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSinkConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkConnector
+
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 class ElasticSinkConnector extends SinkConnector with StrictLogging {
   private var configProps : Option[util.Map[String, String]] = None
+  private var connConfigDef: Option[ConfigDef] = None
 
   /**
     * States which SinkTask class to use
@@ -51,12 +56,10 @@ class ElasticSinkConnector extends SinkConnector with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Elastic sink task with ${props.toString}.")
     configProps = Some(props)
-    Try(new ElasticSinkConfig(props)) match {
-      case Failure(f) => throw new ConnectException("Couldn't start Elastic sink due to configuration error.", f)
-      case _ =>
-    }
+    connConfigDef = Some(ElasticSinkConfig.config)
   }
 
   override def stop(): Unit = {}
   override def version(): String = getClass.getPackage.getImplementationVersion
+  //override def config(): ConfigDef = connConfigDef.get
 }

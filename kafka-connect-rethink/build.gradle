@@ -1,0 +1,12 @@
+project(":kafka-connect-rethink") {
+    ext {
+        rethinkDbVersion = "2.2-beta-5"
+    }
+
+    dependencies {
+        compile ("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion") {
+            exclude group: "org.apache.hbase", module: "hbase-client"
+        }
+        compile "com.rethinkdb:rethinkdb-driver:$rethinkDbVersion"
+    }
+}

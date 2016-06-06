@@ -24,7 +24,7 @@ import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
   * */
 trait CassandraConfig {
 
-    val config: ConfigDef = new ConfigDef()
+    val configDef: ConfigDef = new ConfigDef()
       .define(CassandraConfigConstants.CONTACT_POINTS,
           Type.STRING,
           CassandraConfigConstants.CONTACT_POINT_DEFAULT,
@@ -103,6 +103,23 @@ trait CassandraConfig {
           CassandraConfigConstants.FETCH_SIZE_DEFAULT,
           Importance.MEDIUM,
           CassandraConfigConstants.FETCH_SIZE_DOC)
+        .define(CassandraConfigConstants.ERROR_POLICY,
+          Type.STRING,
+          CassandraConfigConstants.ERROR_POLICY_DEFAULT,
+          Importance.HIGH,
+          CassandraConfigConstants.ERROR_POLICY_DOC
+          )
+        .define(CassandraConfigConstants.NBR_OF_RETRIES,
+          Type.INT,
+          CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT,
+          Importance.MEDIUM,
+          CassandraConfigConstants.NBR_OF_RETRIES_DOC)
+        .define(CassandraConfigConstants.ERROR_RETRY_INTERVAL,
+          Type.INT,
+          CassandraConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT,
+          Importance.MEDIUM,
+          CassandraConfigConstants.ERROR_RETRY_INTERVAL_DOC)
+
 }
 
 
@@ -111,24 +128,19 @@ trait CassandraConfig {
   * the base.
   * */
 trait CassandraConfigSource extends CassandraConfig {
-      val sourceConfig = config
-            .define(CassandraConfigConstants.TABLE_TIMESTAMP_COL_MAP,
-                  Type.STRING,
-                  "",
-                  Importance.MEDIUM,
-                  CassandraConfigConstants.TABLE_TIMESTAMP_COL_MAP_DOC)
+      val sourceConfig = configDef
             .define(CassandraConfigConstants.IMPORT_MODE,
-                  Type.STRING,
-                  Importance.HIGH,
-                  CassandraConfigConstants.IMPORT_MODE_DOC)
+                    Type.STRING,
+                    Importance.HIGH,
+                    CassandraConfigConstants.IMPORT_MODE_DOC)
             .define(CassandraConfigConstants.ASSIGNED_TABLES,
                     Type.STRING,
                     Importance.HIGH,
                     CassandraConfigConstants.ASSIGNED_TABLES_DOC)
-            .define(CassandraConfigConstants.IMPORT_TABLE_TOPIC_MAP,
+          .define(CassandraConfigConstants.IMPORT_ROUTE_QUERY,
                     Type.STRING,
                     Importance.HIGH,
-                    CassandraConfigConstants.IMPORT_TABLE_TOPIC_MAP_DOC)
+                    CassandraConfigConstants.IMPORT_ROUTE_QUERY_DOC)
             .define(CassandraConfigConstants.READER_BUFFER_SIZE,
                     Type.INT,
                     CassandraConfigConstants.READER_BUFFER_SIZE_DEFAULT,
@@ -151,10 +163,10 @@ trait CassandraConfigSource extends CassandraConfig {
   * the base.
   * */
 trait CassandraConfigSink extends CassandraConfig {
-  val sinkConfig = config
-    .define(CassandraConfigConstants.EXPORT_TABLE_TOPIC_MAP,
+  val sinkConfig = configDef
+    .define(CassandraConfigConstants.EXPORT_ROUTE_QUERY,
       Type.STRING,
       Importance.HIGH,
-      CassandraConfigConstants.EXPORT_TABLE_TOPIC_MAP_DOC)
+      CassandraConfigConstants.EXPORT_ROUTE_QUERY_DOC)
 
 }

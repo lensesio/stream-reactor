@@ -35,7 +35,7 @@ with CassandraConfigSource with TestConfig with ConverterUtil {
 
     val taskContext = getSourceTaskContextDefault
     //get config
-    val config  = getCassandraConfigSourcePropsSecureBulk
+    val config  = getCassandraConfigSourcePropsBulk
     //get task
     val task = new CassandraSourceTask()
     //initialise the tasks context
@@ -57,7 +57,7 @@ with CassandraConfigSource with TestConfig with ConverterUtil {
     //records.size() shouldBe(1)
     val sourceRecord = records.asScala.head
     //check a field
-    val json: JsonNode = convertSourceValueToJson(sourceRecord)
+    val json: JsonNode = convertValueToJson(sourceRecord)
     json.get("string_field").asText().equals("magic_string") shouldBe true
     //stop task
     task.stop()

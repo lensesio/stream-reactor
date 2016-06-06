@@ -1,6 +1,7 @@
 Kafka Connect Druid
 =====================
 
+WORK IN PROGRESS NOT COMPLETE!
 
 Prerequisites
 -------------
@@ -40,7 +41,7 @@ Confluent Setup
 
 Enable topic deletion.
 
-In ``/etc/kafka/server.properties`` add the following to we can delete
+In ``/etc/kafka/server.properties`` add the following so we can delete
 topics.
 
 .. code:: bash
@@ -84,19 +85,14 @@ Sink Connector QuickStart
 Sink Connector Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Next we start the connector in standalone mode. This useful for testing
-and one of jobs, usually you'd run in distributed mode to get fault
-tolerance and better performance.
+Next we start the connector in standalone mode. This useful for testing and one of jobs, usually you'd run in distributed
+mode to get fault tolerance and better performance.
 
-Before we can start the connector we need to setup it's configuration.
-In standalone mode this is done by creating a properties file and
-passing this to the connector at startup. In distributed mode you can
-post in the configuration as json to the Connectors HTTP endpoint. Each
-connector exposes a rest endpoint for stopping, starting and updating the
-configuration.
+Before we can start the connector we need to setup it's configuration. In standalone mode this is done by creating a
+properties file and passing this to the connector at startup. In distributed mode you can post in the configuration as
+json to the Connectors HTTP endpoint. Each connector exposes a rest endpoint for stopping, starting and updating the configuration.
 
-Since we are in standalone mode we'll create a file called
-elastic-sink.properties with the contents below:
+Since we are in standalone mode we'll create a file called druid-sink.properties with the contents below:
 
 ... code:: bash
 
@@ -111,13 +107,18 @@ Starting the Sink Connector (Standalone)
 
 Now we are ready to start the Druid sink Connector in standalone mode.
 
-.. note:: You need to add the connector to your classpath or you can create a folder in ``share/java`` of the Confluent install location like, kafka-connect-myconnector and the start scripts provided by Confluent will pick it up. The start script looks for folders beginning with kafka-connect.
+.. note::
+
+    You need to add the connector to your classpath or you can create a folder in ``share/java`` of the Confluent
+    install location like, kafka-connect-myconnector and the start scripts provided by Confluent will pick it up.
+    The start script looks for folders beginning with kafka-connect.
 
 .. code:: bash
 
     #Add the Connector to the class path
     ➜  export CLASSPATH=kafka-connect-druid-0.1-all.jar
-    #Start the connector in standalone mode, passing in two properties files, the first for the schema registry, kafka and zookeeper and the second with the connector properties.
+    #Start the connector in standalone mode, passing in two properties files, the first for the schema registry, kafka
+    #and zookeeper and the second with the connector properties.
     ➜  bin/connect-standalone etc/schema-registry/connect-avro-standalone.properties druid-sink.properties
 
 We can use the CLI to check if the connector is up but you should be able to see this in logs as-well.
@@ -140,7 +141,8 @@ and a ``random_field`` of type string.
 
     bin/kafka-avro-console-producer \
     > --broker-list localhost:9092 --topic test_table \
-    > --property value.schema='{"type":"record","name":"myrecord","fields":[{"name":"id","type":"int"}, {"name":"random_field", "type": "string"}]}'
+    > --property value.schema='{"type":"record","name":"myrecord","fields":[{"name":"id","type":"int"}, \
+    {"name":"random_field", "type": "string"}]}'
 
 Now the producer is waiting for input. Paste in the following:
 
@@ -163,15 +165,11 @@ If we query Druid:
 
 ... code:: bash
 
-
-
-
 Starting the Connector (Distributed)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Connectors can be deployed distributed mode. In this mode one or many
-connectors are started on the same or different hosts with the same cluster id.
-The cluster id can be found in ``etc/schema-registry/connect-avro-distributed.properties.``
+Connectors can be deployed distributed mode. In this mode one or many connectors are started on the same or different
+hosts with the same cluster id. The cluster id can be found in ``etc/schema-registry/connect-avro-distributed.properties.``
 
 .. code:: bash
 
@@ -181,23 +179,20 @@ The cluster id can be found in ``etc/schema-registry/connect-avro-distributed.pr
 
 For this quick-start we will just use one host.
 
-Now start the connector in distributed mode, this time we only give it
-one properties file for the kafka, zookeeper and schema registry
-configurations.
+Now start the connector in distributed mode, this time we only give it one properties file for the kafka, zookeeper and
+schema registry configurations.
 
 .. code:: bash
 
     ➜  confluent-2.0.1/bin/connect-distributed confluent-2.0.1/etc/schema-registry/connect-avro-distributed.properties
 
-Once the connector has started lets use the kafka-connect-tools cli to
-post in our distributed properties file.
+Once the connector has started lets use the kafka-connect-tools cli to post in our distributed properties file.
 
 .. code:: bash
 
     ➜  java -jar build/libs/kafka-connect-cli-0.2-all.jar create druid-sink < druid-sink.properties
 
-If you switch back to the terminal you started the Connector in you
-should see the Elastic sink being accepted and the task starting.
+If you switch back to the terminal you started the Connector in you should see the Druid sink being accepted and the task starting.
 
 Insert the records as before to have them written to druid.
 

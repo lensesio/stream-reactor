@@ -17,10 +17,14 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
 import java.util
+
+import com.datamountaineer.streamreactor.connect.config.{KuduSettings, KuduSinkConfig}
+import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+
 import scala.collection.JavaConverters._
 
 /**
@@ -55,7 +59,15 @@ class KuduSinkTask extends SinkTask with StrictLogging {
 
     KuduSinkConfig.config.parse(props)
     val sinkConfig = new KuduSinkConfig(props)
-    writer = Some(KuduWriter(config = sinkConfig, context = context))
+    val topics = context.assignment().asScala.map(c=>c.topic()).toList
+    val settings = KuduSettings(sinkConfig, topics, true)
+
+    //if error policy is retry set retry interval
+    if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
+      context.timeout(sinkConfig.getInt(KuduSinkConfig.ERROR_RETRY_INTERVAL).toLong)
+    }
+
+    writer = Some(KuduWriter(sinkConfig, settings))
   }
 
   /**
@@ -79,5 +91,6 @@ class KuduSinkTask extends SinkTask with StrictLogging {
     require(writer.nonEmpty, "Writer is not set!")
     writer.foreach(w=>w.flush())
   }
+
   override def version(): String = getClass.getPackage.getImplementationVersion
 }

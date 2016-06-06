@@ -16,6 +16,7 @@
 
 package com.datamountaineer.streamreactor.socketstreamer.flows
 
+import java.io.Serializable
 import java.util.{Calendar, Properties}
 
 import akka.NotUsed
@@ -88,8 +89,8 @@ trait KafkaFlow extends KafkaConstants with ConfigurationLoader with StrictLoggi
     * */
   def convertToJsonString(consumerRecord: ConsumerRecord[Array[Byte], Array[Byte]]) : String = {
     //using confluent's decoder
-    val key = decoder.fromBytes(consumerRecord.key()).toString
-    val payload = decoder.fromBytes(consumerRecord.value()).toString
+    val key = if (consumerRecord.key() == null) None else Some(decoder.fromBytes(consumerRecord.key()).toString)
+    val payload = if (consumerRecord.value() == null) None else  Some(decoder.fromBytes(consumerRecord.value()).toString)
     StreamMessage(key, payload).toJson.compactPrint
   }
 
@@ -156,6 +157,8 @@ trait KafkaFlow extends KafkaConstants with ConfigurationLoader with StrictLoggi
 
     //if set for new consumer groups only read from the end of the stream .i.e new messages published to the topic
     if (kafkaRequestProps.readFromEnd) consumerProps.readFromEndOfStream()
+
+    consumerProps.dump
 
     //Set up kafka consumer as a publisher
     val pub: Publisher[ConsumerRecord[Array[Byte], Array[Byte]]] = new ReactiveKafka().consume(consumerProps)

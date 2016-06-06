@@ -43,40 +43,32 @@ object RedisSinkConfig {
       |Provides the password for the redis connection.
     """.stripMargin
 
-  val ROW_KEYS = "connect.redis.sink.keys"
-  val ROW_KEYS_DOC =
-    """
-      |Specifies which of the payload fields make up the Redis key. Multiple fields can be specified by separating them via a comma;
-      | The fields are combined using a key separator by default is set to <\\n>.
-    """.stripMargin
+  val EXPORT_ROUTE_QUERY = "connect.hbase.export.route.query"
+  val EXPORT_ROUTE_QUERY_DOC = ""
 
-  val FIELDS = "connect.redis.sink.fields"
-  val FIELDS_DOC =
-    """
-      |Specifies which fields to consider when inserting the new Redis entry. If is not set it will use insert all the payload fields present in the payload.
-      |Field mapping is supported; this way an avro record field can be inserted into a 'mapped' column.
-      |Examples:
-      |* fields to be used:field1,field2,field3
-      |** fields with mapping: field1=alias1,field2,field3=alias3"
-    """.stripMargin
+  val ERROR_POLICY = "connect.hbase.error.policy"
+  val ERROR_POLICY_DOC = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
+    "There are two available options: \n" + "NOOP - the error is swallowed \n" +
+    "THROW - the error is allowed to propagate. \n" +
+    "RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on \n" +
+    "The error will be logged automatically";
+  val ERROR_POLICY_DEFAULT = "THROW"
 
-  val ROW_KEY_MODE = "connect.redis.sink.key.mode"
-  val ROW_KEY_MODE_DOC =
-    """
-      |There are three available modes: SINK_RECORD, GENERIC and FIELDS.
-      |SINK_RECORD - uses the SinkRecord.keyValue as the Redis key;
-      |FIELDS - combines the specified payload fields to make up the Redis key
-      |GENERIC- combines the kafka topic, offset and partition to build the Redis key."
-      |
-    """.stripMargin
+  val ERROR_RETRY_INTERVAL = "connect.hbase.retry.interval"
+  val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
+  val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
+  val NBR_OF_RETRIES = "connect.hbase.max.retires"
+  val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
+  val NBR_OF_RETIRES_DEFAULT = 20
 
   val config: ConfigDef = new ConfigDef()
     .define(REDIS_HOST, Type.STRING, Importance.HIGH, REDIS_HOST_DOC)
     .define(REDIS_PORT, Type.INT, Importance.HIGH, REDIS_PORT_DOC)
-    //.define(REDIS_PASSWORD, Type.PASSWORD, Importance.LOW, REDIS_PASSWORD_DOC)
-    .define(ROW_KEY_MODE, Type.STRING, Importance.HIGH, ROW_KEY_MODE_DOC)
-    .define(FIELDS, Type.STRING, Importance.LOW, FIELDS_DOC)
-    .define(ROW_KEYS, Type.STRING, Importance.LOW, ROW_KEYS_DOC)
+    .define(REDIS_PASSWORD, Type.PASSWORD, Importance.LOW, REDIS_PASSWORD_DOC)
+    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY)
+    .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC)
+    .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC)
+    .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC)
 }
 
 /**

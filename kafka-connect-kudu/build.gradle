@@ -1,10 +1,13 @@
 project(":kafka-connect-kudu") {
     ext {
-        kuduVersion = "0.7.0"
+        kuduVersion = "0.8.0"
     }
 
     dependencies {
-        compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
+        compile ("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion") {
+            exclude group: "org.apache.hbase", module: "hbase-client"
+        }
         compile "org.kududb:kudu-client:$kuduVersion"
     }
+
 }

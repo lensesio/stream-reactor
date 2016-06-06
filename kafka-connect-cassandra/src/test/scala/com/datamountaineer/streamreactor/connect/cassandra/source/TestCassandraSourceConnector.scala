@@ -11,14 +11,13 @@ import scala.collection.JavaConverters._
   */
 class TestCassandraSourceConnector extends WordSpec with BeforeAndAfter with Matchers with TestConfig {
   "Should start a Cassandra Source Connector" in {
-    val props = getCassandraConfigSourcePropsSecureBulk
+    val props = getCassandraConfigSourcePropsBulk
     val connector = new CassandraSourceConnector()
     connector.start(props)
     val taskConfigs = connector.taskConfigs(1)
-    taskConfigs.asScala.head.get(CassandraConfigConstants.IMPORT_TABLE_TOPIC_MAP) shouldBe IMPORT_TABLE_TOPIC_MAP
+    taskConfigs.asScala.head.get(CassandraConfigConstants.IMPORT_ROUTE_QUERY) shouldBe IMPORT_QUERY_ALL
     taskConfigs.asScala.head.get(CassandraConfigConstants.CONTACT_POINTS) shouldBe CONTACT_POINT
     taskConfigs.asScala.head.get(CassandraConfigConstants.KEY_SPACE) shouldBe TOPIC1
-    taskConfigs.asScala.head.get(CassandraConfigConstants.IMPORT_TABLE_TOPIC_MAP) shouldBe IMPORT_TABLE_TOPIC_MAP
     taskConfigs.asScala.head.get(CassandraConfigConstants.ASSIGNED_TABLES) shouldBe ASSIGNED_TABLES
     taskConfigs.size() shouldBe 1
     connector.taskClass() shouldBe classOf[CassandraSourceTask]

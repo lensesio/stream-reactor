@@ -16,7 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.hbase.writers
 
+import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.hbase._
+import com.datamountaineer.streamreactor.connect.hbase.config.HbaseSettings
+import com.datamountaineer.streamreactor.connect.schemas.{ConverterUtil, StructFieldsExtractorBytes}
 import com.datamountaineer.streamreactor.connect.sink.DbWriter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.hadoop.hbase.client.{ConnectionFactory, Put}
@@ -26,70 +29,97 @@ import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.collection.JavaConversions._
+import scala.util.Try
 
-class HbaseWriter(val columnFamily: String,
-                  val tableName: String,
-                  val fieldsExtractor: FieldsValuesExtractor,
-                  val rowKeyBuilder: RowKeyBuilder
-                 ) extends DbWriter with StrictLogging {
-  ValidateStringParameterFn(columnFamily, "columnFamily")
-  ValidateStringParameterFn(tableName, "tableName")
+class HbaseWriter(settings: HbaseSettings
+                 ) extends DbWriter with StrictLogging with ConverterUtil with ErrorHandler {
 
-  private val columnFamilyBytes = Bytes.toBytes(columnFamily)
 
-  /**
-    * Cache for the columns as array of bytes
-    */
+  ValidateStringParameterFn(settings.columnFamilyMap, "columnFamily")
+  //ValidateStringParameterFn(tableName, "tableName")
+  private val columnFamilyBytes = Bytes.toBytes(settings.columnFamilyMap)
+  private val routeMapping = settings.routes
+
+  private val fields = routeMapping.map({
+    rm=>(rm.getSource,
+      rm.getFieldAlias.map({
+        fa=>(fa.getField,fa.getAlias)
+      }).toMap)
+  }).toMap
+
+  private val extractorFields = routeMapping.map(rm=>{
+    (rm.getSource, StructFieldsExtractorBytes(rm.isIncludeAllFields , fields.get(rm.getSource).get))
+  }).toMap
+
+  //initialize error tracker
+  initialize(settings.maxRetries, settings.errorPolicy)
+
   private var columnsBytesMap = Map.empty[String, Array[Byte]]
-
-  /**
-    * The hbase client connection
-    */
-  private lazy val connection = ConnectionFactory.createConnection(HBaseConfiguration.create())
-  private lazy val table = connection.getTable(TableName.valueOf(tableName))
-
+  private var connection = ConnectionFactory.createConnection(HBaseConfiguration.create())
+  private val tables = routeMapping.map(rm=>(rm.getSource, connection.getTable(TableName.valueOf(rm.getTarget)))).toMap
+  private val rowKeyMap = settings.rowKeyModeMap
 
   override def write(records: Seq[SinkRecord]): Unit = {
     if (records.isEmpty) {
-      logger.warn("Received empty sequence of SinkRecord")
-    }
-    else {
-      val puts = records.flatMap { record =>
+      logger.info("No records received.")
+    } else {
 
-        logger.debug(s"Received recrod from topic:${record.topic()} partition:${record.kafkaPartition()} " +
-          s"and offset:${record.kafkaOffset()}")
-        require(record.value() != null && record.value().getClass == classOf[Struct],
-          "The SinkRecord payload should be of type Struct")
-        //logger.info(s"Received record with value schema:${record.valueSchema()} and key schema:${record.keySchema()}
-        // and value:${record.value().getClass}-${record.value()}")
-
-        val fieldsAndValues = fieldsExtractor.get(record.value.asInstanceOf[Struct])
-
-        if (fieldsAndValues.nonEmpty) {
-          val put = new Put(rowKeyBuilder.build(record, null))
-          fieldsAndValues.foreach { case (fieldName, bytes) =>
-            //build the map of fields byte representation
-            if (!columnsBytesMap.contains(fieldName)) {
-              columnsBytesMap = columnsBytesMap + (fieldName -> Bytes.toBytes(fieldName))
-            }
-            put.addColumn(columnFamilyBytes, columnsBytesMap.get(fieldName).get, bytes)
-          }
-          Some(put)
-        }
-        else {
-          None
-        }
+      if (connection.isClosed) {
+        val t = Try(ConnectionFactory.createConnection(HBaseConfiguration.create()))
+        val dt = handleTry(t)
+        connection = dt.get
       }
-      logger.info(s"Writing ${puts.size} rows to Hbase...")
-      table.put(puts)
-      logger.info(s"Wrote ${puts.size} rows.")
+
+      val grouped = records.groupBy(_.topic())
+      insert(grouped)
     }
   }
 
+  /**
+    * Insert the sinkrecords into HBase.
+    *
+    * Build a put from the extracted fields and values for each record.
+    * */
+  def insert(records: Map[String, Seq[SinkRecord]]) = {
+
+    records.foreach({
+      case (topic, sinkRecords : Seq[SinkRecord]) => {
+        val table = tables.get(topic).get
+        val puts = sinkRecords.flatMap { record =>
+
+          require(record.value() != null && record.value().getClass == classOf[Struct],
+            "The SinkRecord payload should be of type Struct")
+
+          val keyBuilder = rowKeyMap.get(topic).get
+          val extractor = extractorFields.get(topic).get
+          val fieldsAndValues = extractor.get(record.value.asInstanceOf[Struct])
+
+          if (fieldsAndValues.nonEmpty) {
+            val put = new Put(keyBuilder.build(record, null))
+            fieldsAndValues.foreach { case (fieldName, bytes) =>
+              //build the map of fields byte representation
+              if (!columnsBytesMap.contains(fieldName)) {
+                columnsBytesMap = columnsBytesMap + (fieldName -> Bytes.toBytes(fieldName))
+              }
+              put.addColumn(columnFamilyBytes, columnsBytesMap.get(fieldName).get, bytes)
+            }
+            Some(put)
+          }
+          else {
+            None
+          }
+        }
+        logger.info(s"Writing ${puts.size} rows to Hbase...")
+
+        val t = Try(table.put(puts))
+        handleTry(t)
+        logger.info(s"Wrote ${puts.size} rows.")
+      }
+    })
+  }
+
   override def close(): Unit = {
-    if (table != null) {
-      table.close()
-    }
+    tables.foreach({case (source, table) => table.close()})
 
     if (connection != null) {
       connection.close()

@@ -4,7 +4,7 @@ import java.util.concurrent.LinkedBlockingQueue
 
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigSource, CassandraSettings}
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigSource, CassandraSettings, CassandraSourceSetting}
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.fasterxml.jackson.databind.JsonNode
 import org.apache.kafka.common.config.AbstractConfig
@@ -35,12 +35,12 @@ class TestCassandraReaderIncr extends WordSpec with Matchers with BeforeAndAfter
     session.execute(sql)
 
     val taskContext = getSourceTaskContextDefault
-    val taskConfig  = new AbstractConfig(sourceConfig, getCassandraConfigSourcePropsSecureIncr)
+    val taskConfig  = new AbstractConfig(sourceConfig, getCassandraConfigSourcePropsIncr)
     val assigned = List(TABLE2)
 
     //queue for reader to put records in
     val queue = new LinkedBlockingQueue[SourceRecord](100)
-    val setting = CassandraSettings(taskConfig, assigned ,false).setting.head
+    val setting = CassandraSettings.configureSource(taskConfig, assigned).head
     val reader = CassandraTableReader(session = session, setting = setting, context = taskContext, queue = queue)
     reader.read()
 
@@ -54,7 +54,7 @@ class TestCassandraReaderIncr extends WordSpec with Matchers with BeforeAndAfter
     val sourceRecords = QueueHelpers.drainQueue(queue, 1).asScala.toList
     val sourceRecord = sourceRecords.head
     //check a field
-    val json: JsonNode = convertSourceValueToJson(sourceRecord)
+    val json: JsonNode = convertValueToJson(sourceRecord)
     json.get("string_field").asText().equals("magic_string") shouldBe true
 
     //insert another two records
@@ -109,7 +109,7 @@ class TestCassandraReaderIncr extends WordSpec with Matchers with BeforeAndAfter
 
     //sleep and check queue size
     while (reader.isQuerying) {
-      Thread.sleep(1000)
+      Thread.sleep(2000)
     }
     //should be 2!!!
     queue.size() shouldBe 2

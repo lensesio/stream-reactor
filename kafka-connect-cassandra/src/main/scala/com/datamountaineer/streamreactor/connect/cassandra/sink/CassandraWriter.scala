@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSettings
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSettings}
+import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import org.apache.kafka.common.config.AbstractConfig
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkTaskContext
@@ -29,14 +30,19 @@ import scala.util.{Failure, Success, Try}
 object CassandraWriter {
   def apply(connectorConfig: AbstractConfig, context: SinkTaskContext) : CassandraJsonWriter = {
 
-    val connector = Try(CassandraConnection(connectorConfig)) match {
+    val conn = Try(CassandraConnection(connectorConfig)) match {
       case Success(s) => s
       case Failure(f) => throw new ConnectException(s"Couldn't connect to Cassandra.", f)
     }
 
     val assignedTopics = context.assignment().asScala.map(c=>c.topic()).toList
-    val settings = CassandraSettings(connectorConfig, assignedTopics, sinkTask = true)
+    val settings = CassandraSettings.configureSink(connectorConfig, assignedTopics)
 
-    new CassandraJsonWriter(connection = connector, settings = settings)
+    //if error policy is retry set retry interval
+    if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
+      context.timeout(connectorConfig.getString(CassandraConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+    }
+
+    new CassandraJsonWriter(cassCon = conn, settings = settings)
   }
 }

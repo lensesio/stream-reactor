@@ -1,5 +1,7 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
+import com.datamountaineer.streamreactor.connect.config.KuduSinkConfig
+
 import scala.collection.JavaConverters._
 /**
   * Created by andrew@datamountaineer.com on 24/02/16. 

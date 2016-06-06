@@ -46,7 +46,6 @@ case class DruidDbWriter(dataSourceName: String,
     if (records.isEmpty) {
       logger.info("Empty sequence of records received...")
     } else {
-      logger.info("asassssssssssss")
       val futures = records.flatMap { record =>
         require(record.value() != null && record.value().getClass == classOf[Struct], "The SinkRecord payload should be of type Struct")
 

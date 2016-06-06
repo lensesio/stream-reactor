@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.utils
 import java.text.SimpleDateFormat
 import java.util.Date
 
+import com.datamountaineer.connector.config.Config
 import com.datastax.driver.core.{Cluster, DataType, Row}
 import com.datastax.driver.core.ColumnDefinitions.Definition
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -33,19 +34,19 @@ import scala.collection.JavaConverters._
   */
 object CassandraUtils {
   val mapper = new ObjectMapper()
-  private val defaultTimestamp = "1900-01-01 00:00:00+0000"
   private val dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ")
 
   /**
     * Check if we have tables in Cassandra and if we have table named the same as our topic
     *
     * @param cluster A Cassandra cluster to check on
-    * @param topics A list of the assigned topics
+    * @param routes A list of route mappings
     * @param keySpace The keyspace to look in for the tables
     * */
-  def checkCassandraTables(cluster: Cluster , topics: Set[String], keySpace: String) : Unit = {
+  def checkCassandraTables(cluster: Cluster, routes: Set[Config], keySpace: String) : Unit = {
     val metaData = cluster.getMetadata.getKeyspace(keySpace).getTables.asScala
     val tables: Set[String] = metaData.map(t=>t.getName).toSet
+    val topics = routes.map(rm=>rm.getTarget)
 
     //check tables
     if (tables.isEmpty) throw new ConnectException(s"No tables found in Cassandra for keyspace $keySpace")
@@ -55,18 +56,6 @@ object CassandraUtils {
 
     if (missing.nonEmpty) throw new ConnectException(s"Not table found in Cassandra for topics ${missing.mkString(",")}")
   }
-
-
-//  def getTimeUUIDColumns(cluster: Cluster, tables: Set[String], keySpace: String) : Map[String, String] = {
-//    val metaData = cluster.getMetadata.getKeyspace(keySpace).getTables.asScala
-//    metaData.map(
-//      t=>(t.getName,
-//          t.getColumns.asScala
-//            .filter(c=>c.getType.equals(DataType.Name.TIMEUUID))
-//            .map(c=>c.getName)
-//        )
-//    ).toMap
-//  }
 
   /**
     * Convert a Cassandra row to a SourceRecord
@@ -162,34 +151,4 @@ object CassandraUtils {
       case a@_ => throw new ConnectException(s"Unsupported Cassandra type $a.")
     }
   }
-
-
-  /**
-    * Break a comma and colon separated string into a map of table to topic or topic to table
-    *
-    * If now values is found after a comma the value before the comma is used.
-    *
-    * @param input The input string to parse.
-    * @return a Map of table->topic or topic->table.
-    * */
-  def tableTopicParser(input: String) : Map[String, String] = {
-    input.split(",")
-      .toList
-      .map(c=>c.split(":"))
-      .map(a => {if (a.length == 1) (a(0), a(0)) else (a(0), a(1)) }).toMap
-  }
-
-
-//  /**
-//    * Get the current time of a cassandra database, CQL requires a table so limit by 1
-//    * Can't do select now() like a RDBMS
-//    *
-//    * @param session Cassandra session to execute the query
-//    * @param keySpace The keyspace of the table
-//    * @param table The table.
-//    * */
-//  def getNowOnDb(session: Session, keySpace: String, table: String) : Date = {
-//    val rsNow = session.execute(s"SELECT toTimestamp(now()) AS now FROM ${keySpace}.${table} LIMIT 1;")
-//    rsNow.one().getTimestamp("now")
-//  }
 }

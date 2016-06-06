@@ -39,6 +39,7 @@ case class BloombergSettings(serverHost: String,
                              authenticationMode: Option[String] = None,
                              bufferSize: Int = 2048,
                              payloadType: PayloadTye = JsonPayload) {
+
   def asMap(): java.util.Map[String, String] = {
     val map = new java.util.HashMap[String, String]()
     map.put(SERVER_HOST, serverHost)
@@ -91,6 +92,7 @@ object BloombergSettings {
         case "avro" => AvroPayload
       }
     }
+
     new BloombergSettings(serverHost,
       serverPort,
       bloombergService,

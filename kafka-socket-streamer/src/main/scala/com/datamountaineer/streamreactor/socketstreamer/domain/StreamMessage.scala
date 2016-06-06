@@ -22,7 +22,7 @@ import spray.json.DefaultJsonProtocol
   * Created by andrew@datamountaineer.com on 15/03/16. 
   * stream-reactor-websocket-feeder
   */
-case class StreamMessage(key: String, value: String)
+case class StreamMessage(key: Option[String], value: Option[String])
 
 trait StreamMessageProtocol extends DefaultJsonProtocol {
   implicit val streamMessageProtocol = jsonFormat2(StreamMessage)

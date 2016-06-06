@@ -5,6 +5,7 @@ import java.util
 import java.util.{Collections, Date}
 
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datastax.driver.core.Cluster.Builder
 import com.datastax.driver.core._
 import com.datastax.driver.core.utils.UUIDs
@@ -41,13 +42,14 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   val KEYSTORE_PATH = System.getProperty("keystore")
   val KEYSTORE_PASSWORD ="8yJQLUnGkwZxOw"
 
-  //set export topic table map
-  val EXPORT_TOPIC_TABLE_MAP = s"$TOPIC1:$TABLE1,$TOPIC2:$TABLE2"
+  val QUERY_ALL = s"INSERT INTO $TABLE1 SELECT * FROM $TOPIC1;INSERT INTO $TABLE2 SELECT * FROM $TOPIC2"
+  val QUERY_SELECTION = s"INSERT INTO $TABLE1 SELECT id, long_field FROM $TOPIC1"
 
-  val IMPORT_TABLE_TOPIC_MAP = s"$TABLE1:,$TABLE2:$TOPIC2"
+  val IMPORT_QUERY_ALL = s"INSERT INTO $TOPIC1 SELECT * FROM $TABLE1;INSERT INTO $TOPIC2 SELECT * FROM $TABLE2"
+  val IMPORT_QUERY_INCR = s"INSERT INTO $TOPIC1 SELECT * FROM $TABLE2 PK timestamp_field"
+
   val ASSIGNED_TABLES = s"$TABLE1,$TABLE2"
-  val IMPORT_MODE_MAP_BULK = s"$TABLE1,$TABLE2"
-  val TIMESTAMP_COL_MAP = s"$TABLE2:timestamp_field"
+  //val TIMESTAMP_COL_MAP = s"$TABLE2:timestamp_field"
 
   protected val PARTITION: Int = 12
   protected val PARTITION2: Int = 13
@@ -63,8 +65,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   def getCassandraConfigSinkPropsBad = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS-> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
-      CassandraConfigConstants.EXPORT_TABLE_TOPIC_MAP->""
+      CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE
     ).asJava
   }
 
@@ -75,7 +76,54 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.USERNAME_PASSWORD,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
-      CassandraConfigConstants.EXPORT_TABLE_TOPIC_MAP->EXPORT_TOPIC_TABLE_MAP
+      CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_ALL
+    ).asJava
+  }
+
+  def getCassandraConfigSinkProps = {
+    Map(
+      CassandraConfigConstants.CONTACT_POINTS-> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.NONE,
+      CassandraConfigConstants.USERNAME->USERNAME,
+      CassandraConfigConstants.PASSWD->PASSWD,
+      CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_ALL
+    ).asJava
+  }
+
+  def getCassandraConfigSinkPropsFieldSelection = {
+    Map(
+      CassandraConfigConstants.CONTACT_POINTS-> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.NONE,
+      CassandraConfigConstants.USERNAME->USERNAME,
+      CassandraConfigConstants.PASSWD->PASSWD,
+      CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_SELECTION
+    ).asJava
+  }
+
+
+  def getCassandraConfigSinkPropsRetry = {
+    Map(
+      CassandraConfigConstants.CONTACT_POINTS-> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.NONE,
+      CassandraConfigConstants.USERNAME->USERNAME,
+      CassandraConfigConstants.PASSWD->PASSWD,
+      CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_ALL,
+      CassandraConfigConstants.ERROR_POLICY->ErrorPolicyEnum.RETRY.toString
+    ).asJava
+  }
+
+  def getCassandraConfigSinkPropsNoop = {
+    Map(
+      CassandraConfigConstants.CONTACT_POINTS-> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.NONE,
+      CassandraConfigConstants.USERNAME->USERNAME,
+      CassandraConfigConstants.PASSWD->PASSWD,
+      CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_ALL,
+      CassandraConfigConstants.ERROR_POLICY->ErrorPolicyEnum.NOOP.toString
     ).asJava
   }
 
@@ -89,7 +137,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.SSL_ENABLED->"true",
       CassandraConfigConstants.TRUST_STORE_PATH->TRUST_STORE_PATH,
       CassandraConfigConstants.TRUST_STORE_PASSWD->TRUST_STORE_PASSWORD,
-      CassandraConfigConstants.EXPORT_TABLE_TOPIC_MAP->EXPORT_TOPIC_TABLE_MAP
+      CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_ALL
     ).asJava
   }
 
@@ -106,48 +154,47 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.USE_CLIENT_AUTH->"false",
       CassandraConfigConstants.KEY_STORE_PATH ->KEYSTORE_PATH,
       CassandraConfigConstants.KEY_STORE_PASSWD->KEYSTORE_PASSWORD,
-      CassandraConfigConstants.EXPORT_TABLE_TOPIC_MAP->EXPORT_TOPIC_TABLE_MAP
+      CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_ALL
     ).asJava
   }
 
 
-  def getCassandraConfigSourcePropsSecureBad = {
+  def getCassandraConfigSourcePropsBad = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS-> CONTACT_POINT,
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
-      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.USERNAME_PASSWORD,
+      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.NONE,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
-      CassandraConfigConstants.IMPORT_TABLE_TOPIC_MAP->"",
       CassandraConfigConstants.ASSIGNED_TABLES->ASSIGNED_TABLES
     ).asJava
   }
 
-  def getCassandraConfigSourcePropsSecureBulk = {
+  def getCassandraConfigSourcePropsBulk = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS-> CONTACT_POINT,
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
-      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.USERNAME_PASSWORD,
+      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.NONE,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
-      CassandraConfigConstants.IMPORT_TABLE_TOPIC_MAP->IMPORT_TABLE_TOPIC_MAP,
+      CassandraConfigConstants.IMPORT_ROUTE_QUERY ->IMPORT_QUERY_ALL,
       CassandraConfigConstants.ASSIGNED_TABLES->ASSIGNED_TABLES,
       CassandraConfigConstants.IMPORT_MODE->CassandraConfigConstants.BULK,
       CassandraConfigConstants.POLL_INTERVAL->"1000"
     ).asJava
   }
 
-  def getCassandraConfigSourcePropsSecureIncr = {
+  def getCassandraConfigSourcePropsIncr = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS-> CONTACT_POINT,
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
-      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.USERNAME_PASSWORD,
+      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.NONE,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
-      CassandraConfigConstants.IMPORT_TABLE_TOPIC_MAP->IMPORT_TABLE_TOPIC_MAP,
+      CassandraConfigConstants.IMPORT_ROUTE_QUERY->IMPORT_QUERY_INCR,
       CassandraConfigConstants.ASSIGNED_TABLES->ASSIGNED_TABLES,
-      CassandraConfigConstants.TABLE_TIMESTAMP_COL_MAP->TIMESTAMP_COL_MAP,
       CassandraConfigConstants.IMPORT_MODE->CassandraConfigConstants.INCREMENTAL,
+      //CassandraConfigConstants.TABLE_TIMESTAMP_COL_MAP->TIMESTAMP_COL_MAP,
       CassandraConfigConstants.POLL_INTERVAL->"1000"
     ).asJava
   }
@@ -257,9 +304,17 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     getSourceTaskContext(lookupPartitionKey, offsetValue,offsetColumn, table)
   }
 
-  def startEmbeddedCassandra() = {
+  def startEmbeddedCassandraSecure() = {
     EmbeddedCassandraServerHelper.startEmbeddedCassandra("cassandra-username.yaml")
     logger.info("Sleeping for Cassandra Embedded Server to wake up for secure connections. Needs magic wait of 10 seconds!")
     Thread.sleep(10000)
+  }
+
+  def startEmbeddedCassandra() = {
+    EmbeddedCassandraServerHelper.startEmbeddedCassandra("cassandra.yaml")
+  }
+
+  def stopEmbeddedCassandra() = {
+    EmbeddedCassandraServerHelper.cleanEmbeddedCassandra();
   }
 }

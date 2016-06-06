@@ -44,8 +44,7 @@ Confluent Setup
 
 Enable topic deletion.
 
-In ``/etc/kafka/server.properties`` add the following to we can delete
-topics.
+In ``/etc/kafka/server.properties`` add the following so we can delete topics.
 
 .. code:: bash
 
@@ -63,8 +62,7 @@ Start the Confluent platform.
 Build the Connector and CLI
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The prebuilt jars can be taken from here and
-`here <https://github.com/datamountaineer/kafka-connect-tools/releases>`__
+The prebuilt jars can be taken from here and `here <https://github.com/datamountaineer/kafka-connect-tools/releases>`__
 or from `Maven <http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22kafka-connect-cli%22>`__
 
 If you want to build the connector, clone the repo and build the jar.
@@ -110,15 +108,12 @@ Next we start the connector in standalone mode. This useful for testing
 and one of jobs, usually you'd run in distributed mode to get fault
 tolerance and better performance.
 
-Before we can start the connector we need to setup it's configuration.
-In standalone mode this is done by creating a properties file and
-passing this to the connector at startup. In distributed mode you can
-post in the configuration as json to the Connectors HTTP endpoint. Each
-connector exposes a rest endpoint for stopping, starting and updating the
+Before we can start the connector we need to setup it's configuration. In standalone mode this is done by creating a
+properties file and passing this to the connector at startup. In distributed mode you can post in the configuration as
+json to the Connectors HTTP endpoint. Each connector exposes a rest endpoint for stopping, starting and updating the
 configuration.
 
-Since we are in standalone mode we'll create a file called
-kudu-sink.properties with the contents below:
+Since we are in standalone mode we'll create a file called ``kudu-sink.properties`` with the contents below:
 
 .. code:: bash
 
@@ -132,7 +127,8 @@ This configuration defines:
 
 1.  The name of the sink.
 2.  The sink class.
-3.  The max number of tasks the connector is allowed to created. Should not be greater than the number of partitions in the source topics otherwise tasks will be idle.
+3.  The max number of tasks the connector is allowed to created. Should not be greater than the number of partitions in
+    the source topics otherwise tasks will be idle.
 4.  The source kafka topics to take events from.
 
 
@@ -141,13 +137,18 @@ Starting the Sink Connector (Standalone)
 
 Now we are ready to start the Kudu sink Connector in standalone mode.
 
-.. note:: You need to add the connector to your classpath or you can create a folder in share/java like kafka-connect-myconnector and the start scripts provided by Confluent will pick it up. The start script looks for folders beginning with kafka-connect.
+.. note::
+
+    You need to add the connector to your classpath or you can create a folder in ``share/java`` of the Confluent
+    install location like, kafka-connect-myconnector and the start scripts provided by Confluent will pick it up.
+    The start script looks for folders beginning with kafka-connect.
 
 .. code:: bash
 
     #Add the Connector to the class path
     ➜  export CLASSPATH=kafka-connect-Kudu-0.1-all.jar
-    #Start the connector in standalone mode, passing in two properties files, the first for the schema registry, kafka and zookeeper and the second with the connector properties.
+    #Start the connector in standalone mode, passing in two properties files, the first for the schema registry, kafka
+    #and zookeeper and the second with the connector properties.
     ➜  bin/connect-standalone etc/schema-registry/connect-avro-standalone.properties kudu-sink.properties
 
 We can use the CLI to check if the connector is up but you should be able to see this in logs as-well.
@@ -167,13 +168,13 @@ We can use the CLI to check if the connector is up but you should be able to see
 
     [2016-05-08 22:00:20,823] INFO
         ____        __        __  ___                  __        _
-       / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
-      /  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
+/ __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
+/  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
      / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
-    /_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
+/_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
            __ __          __      _____ _       __
-          / //_/_  ______/ /_  __/ ___/(_)___  / /__
-         / ,< / / / / __  / / / /\__ \/ / __ \/ //_/
+/ //_/_  ______/ /_  __/ ___/(_)___  / /__
+/ ,< / / / / __  / / / /\__ \/ / __ \/ //_/
         / /| / /_/ / /_/ / /_/ /___/ / / / / / ,<
        /_/ |_\__,_/\__,_/\__,_//____/_/_/ /_/_/|_|
 
@@ -200,7 +201,8 @@ and a ``random_field`` of type string.
 
     bin/kafka-avro-console-producer \
     > --broker-list localhost:9092 --topic kudu_test \
-    > --property value.schema='{"type":"record","name":"myrecord","fields":[{"name":"id","type":"int"}, {"name":"random_field", "type": "string"}]}'
+    > --property value.schema='{"type":"record","name":"myrecord","fields":[{"name":"id","type":"int"}, \
+    {"name":"random_field", "type": "string"}]}'
 
 Now the producer is waiting for input. Paste in the following:
 
@@ -218,13 +220,13 @@ Now check the logs of the connector you should see this:
 
     [2016-05-08 22:09:22,065] INFO
         ____        __        __  ___                  __        _
-    / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
-    / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
+/ __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
+/ / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
      / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
-    /_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
+/_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
            __ __          __      _____ _       __
-    / //_/_  ______/ /_  __/ ___/(_)___  / /__
-    / ,< / / / / __  / / / /\__ \/ / __ \/ //_/
+/ //_/_  ______/ /_  __/ ___/(_)___  / /__
+/ ,< / / / / __  / / / /\__ \/ / __ \/ //_/
         / /| / /_/ / /_/ / /_/ /___/ / / / / / ,<
        /_/ |_\__,_/\__,_/\__,_//____/_/_/ /_/_/|_|
 
@@ -267,9 +269,8 @@ Now stop the connector.
 Starting the Connector (Distributed)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Connectors can be deployed distributed mode. In this mode one or many
-connectors are started on the same or different hosts with the same cluster id.
-The cluster id can be found in ``etc/schema-registry/connect-avro-distributed.properties.``
+Connectors can be deployed distributed mode. In this mode one or many connectors are started on the same or different
+hosts with the same cluster id. The cluster id can be found in ``etc/schema-registry/connect-avro-distributed.properties.``
 
 .. code:: bash
 
@@ -279,38 +280,67 @@ The cluster id can be found in ``etc/schema-registry/connect-avro-distributed.pr
 
 For this quick-start we will just use one host.
 
-Now start the connector in distributed mode, this time we only give it
-one properties file for the kafka, zookeeper and schema registry
-configurations.
+Now start the connector in distributed mode, this time we only give it one properties file for the kafka, zookeeper and
+schema registry configurations.
 
 .. code:: bash
 
     ➜  confluent-2.0.1/bin/connect-distributed confluent-2.0.1/etc/schema-registry/connect-avro-distributed.properties
 
-Once the connector has started lets use the kafka-connect-tools cli to
-post in our distributed properties file.
+Once the connector has started lets use the kafka-connect-tools cli to post in our distributed properties file.
 
 .. code:: bash
 
     ➜  java -jar build/libs/kafka-connect-cli-0.2-all.jar create Kudu-sink < kudu-sink.properties
 
-If you switch back to the terminal you started the Connector in you
-should see the Kudu sink being accepted and the task starting.
+If you switch back to the terminal you started the Connector in you should see the Kudu sink being accepted and the task
+starting.
 
 Insert the records as before to have them written to Kudu.
 
 Features
 --------
 
+1. Auto conversion of Connect records to Kudu.
+2. Table to topic mapping.
+
+Data Type Mappings
+~~~~~~~~~~~~~~~~~~
+
++------------------+------------------+
+| Connect Type     | Kudu Data Type   |
++==================+==================+
+| INT8             | INT8             |
++------------------+------------------+
+| INT16            | INT16            |
++------------------+------------------+
+| INT32            | INT32            |
++------------------+------------------+
+| INT64            | INT64            |
++------------------+------------------+
+| BOOLEAN          | BOOLEAN          |
++------------------+------------------+
+| FLOAT32          | FLOAT            |
++------------------+------------------+
+| FLOAT64          | FLOAT            |
++------------------+------------------+
+| BYTES            | BINARY           |
++------------------+------------------+
 
 Configurations
 --------------
 
-+----------------------+-----------+----------+----------------------------+
-| name                 | data type | required | description                |
-+======================+===========+==========+============================+
-|| connect.kudu.master | String    | Yes      || Specifies the Kudu server.|
-+----------------------+-----------+----------+----------------------------+
++------------------------------+-----------+----------+----------------------------------+
+| name                         | data type | required | description                      |
++==============================+===========+==========+==================================+
+|| connect.kudu.master         | String    | Yes      || Specifies the Kudu server.      |
++------------------------------+-----------+----------+----------------------------------+
+|| connect.kudu.topic.to.table | String    | Yes      || Table to Topic map for import in|
+|| table.map                   |           |          || format table1:topic1,           |
+|                              |           |          || table2:topic2, if the topic left|
+|                              |           |          || blank table name is used.       |
++------------------------------+-----------+----------+----------------------------------+
+
 
 Example
 ~~~~~~~
@@ -321,6 +351,7 @@ Example
     connector.class=com.datamountaineer.streamreactor.connect.kudu.KuduSinkConnector
     tasks.max=1
     connect.kudu.master=quickstart
+    connect.kudu.export.map=topic1:table2
     topics=kudu_test
 
 Schema Evolution

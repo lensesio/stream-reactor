@@ -16,83 +16,60 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.config
 
+import com.datamountaineer.connector.config.Config
+import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkConfig._
-import com.datamountaineer.streamreactor.connect.schemas.PayloadFields
+import com.datamountaineer.streamreactor.connect.rowkeys._
 import org.apache.kafka.common.config.ConfigException
-import scala.util.{Failure, Success, Try}
+
+import scala.collection.JavaConverters._
+
 
 /**
   * Holds the Redis Sink settings
   */
 case class RedisSinkSettings(connection: RedisConnectionInfo,
-                             key: RedisKey,
-                             fields: PayloadFields)
-
-/**
-  * Holds the infomation on how the key is built
-  *
-  * @param mode Mode for the row key, FIELDS, SINK_RECORD, GENERIC
-  * @param fields Fields to write to the target
-  */
-case class RedisKey(mode: String, fields: Seq[String])
+                             rowKeyModeMap : Map[String, StringKeyBuilder],
+                             routes: List[Config],
+                             errorPolicy : ErrorPolicy = new ThrowErrorPolicy,
+                             taskRetries : Int = RedisSinkConfig.NBR_OF_RETIRES_DEFAULT)
 
 
 object RedisSinkSettings {
+  def apply(config: RedisSinkConfig, assigned : List[String]) = {
+    val raw = config.getString(RedisSinkConfig.EXPORT_ROUTE_QUERY)
 
-  val FieldsRowKeyMode = "FIELDS"
-  val SinkRecordRowKeyMode = "SINK_RECORD"
-  val GenericRowKeyMode = "GENERIC"
+    require((raw != null && !raw.isEmpty), s"No ${RedisSinkConfig.EXPORT_ROUTE_QUERY} provided!")
 
+    //parse query
+    val routes: Set[Config] = raw.split(";").map(r => Config.parse(r)).toSet.filter(f=>assigned.contains(f.getSource))
 
-  /**
-    * Creates an instance of RedisSinkSettings from a RedisSinkConfig
-    *
-    * @param config : The map of all provided configurations
-    * @return An instance of RedisSinkSettings
-    */
-  def apply(config: RedisSinkConfig): RedisSinkSettings = {
-
-
-    val rowKeyMode = config.getString(ROW_KEY_MODE)
-    val allRowKeyModes = Set(FieldsRowKeyMode, SinkRecordRowKeyMode, GenericRowKeyMode)
-    if (!allRowKeyModes.contains(rowKeyMode)) {
-      throw new ConfigException(s"$rowKeyMode is not recognized. Available modes are ${allRowKeyModes.mkString(",")}.")
+    if (routes.size == 0) {
+      throw new ConfigException(s"No routes for for assigned topics in "
+        + s"${RedisSinkConfig.EXPORT_ROUTE_QUERY}")
     }
 
-    RedisSinkSettings(
-      RedisConnectionInfo(config),
-      RedisKey(rowKeyMode, getRowKeys(rowKeyMode, config)),
-      PayloadFields(Try(config.getString(FIELDS)).toOption.flatMap(v => Option(v))))
+    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(RedisSinkConfig.ERROR_POLICY).toUpperCase)
+    val errorPolicy = ErrorPolicy(errorPolicyE)
+    val nbrOfRetries = config.getInt(RedisSinkConfig.NBR_OF_RETRIES)
 
-  }
+    val rowKeyModeMap = routes.map(
+      r=> {
+        val keys = r.getPrimaryKeys.asScala.toList
 
-  /**
-    * Returns a sequence of fields making the Redis key.
-    *
-    * @param rowKeyMode RowKeyMode
-    * @param config A Redis Sink configuration for the connector
-    * @return A sequence of fields if the row key mode is set to FIELDS, empty otherwise
-    */
-  private def getRowKeys(rowKeyMode: String, config: RedisSinkConfig): Seq[String] = {
-    if (rowKeyMode == FieldsRowKeyMode) {
-      val rowKeys = Try(config.getString(ROW_KEYS)) match {
-        case Failure(t) => Seq.empty[String]
-        case Success(null) => Seq.empty[String]
-        case Success(value) => value.split(",").map(_.trim).toSeq
+        if (keys.size != 0) {
+          (r.getSource, StringStructFieldsStringKeyBuilder(keys))
+        } else {
+          (r.getSource, new StringGenericRowKeyBuilder())
+        }
+
       }
-      if (rowKeys.isEmpty) {
-        throw new ConfigException("Fields defining the row key are required.")
-      }
+    ).toMap
 
-      rowKeys
-    }
-    else {
-      Seq.empty
-    }
+    val conn = RedisConnectionInfo(config)
+    new RedisSinkSettings(conn, rowKeyModeMap, routes.toList, errorPolicy, nbrOfRetries)
   }
-
 }
-
 
 object RedisConnectionInfo {
   def apply(config: RedisSinkConfig): RedisConnectionInfo = {
@@ -101,12 +78,13 @@ object RedisConnectionInfo {
       throw new ConfigException(s"$REDIS_HOST is not set correctly")
     }
 
-    val passw = Try(config.getString(REDIS_PASSWORD)).toOption
+    val passw = config.getString(REDIS_PASSWORD)
+    val pass = if (passw.isEmpty) None else Some(passw)
 
     new RedisConnectionInfo(
       host,
       config.getInt(REDIS_PORT),
-      passw)
+      pass)
   }
 }
 
