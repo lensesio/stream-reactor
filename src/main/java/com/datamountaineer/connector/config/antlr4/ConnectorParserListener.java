@@ -247,4 +247,34 @@ public interface ConnectorParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitCapitalize(ConnectorParser.CapitalizeContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#partition_name}.
+	 * @param ctx the parse tree
+	 */
+	void enterPartition_name(ConnectorParser.Partition_nameContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#partition_name}.
+	 * @param ctx the parse tree
+	 */
+	void exitPartition_name(ConnectorParser.Partition_nameContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#partition_list}.
+	 * @param ctx the parse tree
+	 */
+	void enterPartition_list(ConnectorParser.Partition_listContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#partition_list}.
+	 * @param ctx the parse tree
+	 */
+	void exitPartition_list(ConnectorParser.Partition_listContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#partitionby}.
+	 * @param ctx the parse tree
+	 */
+	void enterPartitionby(ConnectorParser.PartitionbyContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#partitionby}.
+	 * @param ctx the parse tree
+	 */
+	void exitPartitionby(ConnectorParser.PartitionbyContext ctx);
 }

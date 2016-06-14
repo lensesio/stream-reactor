@@ -36,7 +36,7 @@ schema_name
    ;
 
 select_clause
-   : sql_action table_name SELECT column_list FROM topic_name ( IGNORE ignore_clause )? ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )?
+   : sql_action table_name SELECT column_list FROM topic_name ( IGNORE ignore_clause )? ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? (partitionby)?
    ;
 
 topic_name
@@ -97,4 +97,16 @@ batching
 
 capitalize
    : CAPITALIZE
+   ;
+
+partition_name
+   : ID
+   ;
+
+partition_list
+   : partition_name ( COMMA partition_name)*
+   ;
+
+partitionby
+   : PARTITIONBY partition_list
    ;

@@ -49,6 +49,10 @@ CAPITALIZE
    : 'capitalize' | 'CAPITALIZE'
    ;
 
+PARTITIONBY
+   : 'partitionby' | 'PARTITIONBY'
+   ;
+
 PK
    : 'pk' | 'PK'
    ;

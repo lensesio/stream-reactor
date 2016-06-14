@@ -381,4 +381,63 @@ public class ConfigTest {
     assertTrue(config.isEnableCapitalize());
   }
 
+  @Test
+  public void handlerPartitionByWhenAllFieldsAreIncluded() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT * FROM %s IGNORE col1, 1col2 PARTITIONBY col1,col2  ", table, topic);
+    Config config = Config.parse(syntax);
+
+    Set<String> partitionBy = new HashSet<>();
+    Iterator<String> iter = config.getPartitionBy();
+    while (iter.hasNext()) {
+      partitionBy.add(iter.next());
+    }
+
+    assertTrue(partitionBy.contains("col1"));
+    assertTrue(partitionBy.contains("col2"));
+  }
+
+  @Test
+  public void handlerPartitionByWhenSpecificFieldsAreIncluded() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT col1, col2, col3 FROM %s IGNORE col1, 1col2 PARTITIONBY col1,col2  ", table, topic);
+    Config config = Config.parse(syntax);
+
+    Set<String> partitionBy = new HashSet<>();
+    Iterator<String> iter = config.getPartitionBy();
+    while (iter.hasNext()) {
+      partitionBy.add(iter.next());
+    }
+
+    assertTrue(partitionBy.contains("col1"));
+    assertTrue(partitionBy.contains("col2"));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwsAnExceptionIfThePartitionByFieldIsNotPresentInTheListOfField() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT col1, col3 FROM %s IGNORE col1, 1col2 PARTITIONBY col1,col2  ", table, topic);
+    Config.parse(syntax);
+  }
+
+  @Test
+  public void handlerPartitionByWhenSpecificFieldsAreIncludedAndAliasingIsPresent() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT col1, col2 as colABC, col3 FROM %s IGNORE col1, 1col2 PARTITIONBY col1,colABC ", table, topic);
+    Config config = Config.parse(syntax);
+
+    Set<String> partitionBy = new HashSet<>();
+    Iterator<String> iter = config.getPartitionBy();
+    while (iter.hasNext()) {
+      partitionBy.add(iter.next());
+    }
+
+    assertTrue(partitionBy.contains("col1"));
+    assertTrue(partitionBy.contains("colABC"));
+  }
+
 }

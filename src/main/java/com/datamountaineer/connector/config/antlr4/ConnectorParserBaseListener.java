@@ -299,6 +299,42 @@ public class ConnectorParserBaseListener implements ConnectorParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitCapitalize(ConnectorParser.CapitalizeContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterPartition_name(ConnectorParser.Partition_nameContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitPartition_name(ConnectorParser.Partition_nameContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterPartition_list(ConnectorParser.Partition_listContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitPartition_list(ConnectorParser.Partition_listContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterPartitionby(ConnectorParser.PartitionbyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitPartitionby(ConnectorParser.PartitionbyContext ctx) { }
 
 	/**
 	 * {@inheritDoc}

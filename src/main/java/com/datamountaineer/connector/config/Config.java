@@ -9,9 +9,11 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -35,6 +37,7 @@ public class Config {
   private Map<String, FieldAlias> fields = new HashMap<>();
   private Set<String> ignoredFields = new HashSet<>();
   private Set<String> primaryKeys = new HashSet<>();
+  private List<String> partitionBy = new ArrayList<>();
   private int retries = 1;
   private int batchSize = DEFAULT_BATCH_SIZE;
 
@@ -57,6 +60,18 @@ public class Config {
       throw new IllegalArgumentException("Invalid primaryKey.");
     }
     primaryKeys.add(primaryKey);
+  }
+
+  public void addPartitionByField(final String field) {
+    if (field == null || field.trim().length() == 0) {
+      throw new IllegalArgumentException("Invalid partition by field");
+    }
+    for (final String f : partitionBy) {
+      if (f.compareToIgnoreCase(field.trim()) == 0) {
+        throw new IllegalArgumentException(String.format("The field %s appears twice", field));
+      }
+    }
+    partitionBy.add(field.trim());
   }
 
   public String getSource() {
@@ -148,6 +163,11 @@ public class Config {
       }
 
       @Override
+      public void exitPartition_name(ConnectorParser.Partition_nameContext ctx) {
+        config.addPartitionByField(ctx.getText());
+      }
+
+      @Override
       public void exitTable_name(ConnectorParser.Table_nameContext ctx) {
         config.setTarget(ctx.getText());
       }
@@ -205,6 +225,7 @@ public class Config {
           throw new IllegalArgumentException(value + " is not a valid number for a batch Size.");
         }
       }
+
     });
 
     try {
@@ -231,6 +252,15 @@ public class Config {
       }
     }
 
+    if (!config.includeAllFields) {
+      final Iterator<String> iterPartitionBy = config.getPartitionBy();
+      while (iterPartitionBy.hasNext()) {
+        final String field = iterPartitionBy.next();
+        if (!cols.contains(field)) {
+          throw new IllegalArgumentException(String.format("Partition by field %s is not present in the list of columns specified.", field));
+        }
+      }
+    }
     return config;
   }
 
@@ -272,5 +302,9 @@ public class Config {
 
   public void setEnableCapitalize(boolean enableCapitalize) {
     this.enableCapitalize = enableCapitalize;
+  }
+
+  public Iterator<String> getPartitionBy() {
+    return partitionBy.iterator();
   }
 }

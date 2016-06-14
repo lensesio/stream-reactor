@@ -28,11 +28,11 @@ allprojects {
     targetCompatibility = 1.8
 
     ext {
-        antlrVersion="4.5.3"
-        confluentVersion="2.0.1"
-        guavaVersion="19.0"
-        junitVersion="4.12"
-        mockitoVersion="1.10.19"
+        antlrVersion = "4.5.3"
+        confluentVersion = "2.0.1"
+        guavaVersion = "19.0"
+        junitVersion = "4.12"
+        mockitoVersion = "1.10.19"
     }
 
     repositories {
@@ -51,7 +51,8 @@ allprojects {
     }
 
     generateGrammarSource {
-        outputDirectory = new File("${project.buildDir}/src/main/java/com/datamountaineer/connector/config/antlr4".toString())
+        arguments << "-package" << "com.datamountaineer.connector.config.antlr4"
+        outputDirectory = new File("${project.projectDir}/src/main/java/com/datamountaineer/connector/config/antlr4")
     }
 
     test {
@@ -89,9 +90,11 @@ allprojects {
         archives javadocJar, sourcesJar
     }
 
+    compileJava.dependsOn generateGrammarSource
+
     task compile(dependsOn: 'compileJava')
-    task fatJar(dependsOn : ['test', 'shadowJar'])
-    task fatJarNoTest(dependsOn : 'shadowJar')
+    task fatJar(dependsOn: ['test', 'shadowJar'])
+    task fatJarNoTest(dependsOn: 'shadowJar')
 
     signing {
         sign configurations.archives
