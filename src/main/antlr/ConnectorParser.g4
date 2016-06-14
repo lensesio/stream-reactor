@@ -44,7 +44,7 @@ topic_name
    ;
 
 table_name
-   : ID
+   : ID | TOPICNAME
    ;
 
 column_name

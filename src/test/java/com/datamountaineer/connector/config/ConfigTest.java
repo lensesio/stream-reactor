@@ -54,6 +54,32 @@ public class ConfigTest {
   }
 
   @Test
+  public void handleTargetAndSourceContainingDot() {
+    String topic = "TOPIC.A";
+    String table = "TABLE.A";
+    String syntax = String.format("INSERT INTO %s SELECT * FROM %s", table, topic);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getSource());
+    assertEquals(table, config.getTarget());
+    assertFalse(config.getFieldAlias().hasNext());
+    assertTrue(config.isIncludeAllFields());
+    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+  }
+
+  @Test
+  public void handleTargetAndSourceContainingDash() {
+    String topic = "TOPIC-A";
+    String table = "TABLE-A";
+    String syntax = String.format("INSERT INTO %s SELECT * FROM %s", table, topic);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getSource());
+    assertEquals(table, config.getTarget());
+    assertFalse(config.getFieldAlias().hasNext());
+    assertTrue(config.isIncludeAllFields());
+    assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+  }
+
+  @Test
   public void parseAnInsertWithFieldAlias() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";

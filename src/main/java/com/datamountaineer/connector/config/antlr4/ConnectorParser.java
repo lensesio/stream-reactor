@@ -643,6 +643,7 @@ public class ConnectorParser extends Parser {
 
 	public static class Table_nameContext extends ParserRuleContext {
 		public TerminalNode ID() { return getToken(ConnectorParser.ID, 0); }
+		public TerminalNode TOPICNAME() { return getToken(ConnectorParser.TOPICNAME, 0); }
 		public Table_nameContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
 		}
@@ -660,11 +661,17 @@ public class ConnectorParser extends Parser {
 	public final Table_nameContext table_name() throws RecognitionException {
 		Table_nameContext _localctx = new Table_nameContext(_ctx, getState());
 		enterRule(_localctx, 20, RULE_table_name);
+		int _la;
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(109);
-			match(ID);
+			_la = _input.LA(1);
+			if ( !(_la==ID || _la==TOPICNAME) ) {
+			_errHandler.recoverInline(this);
+			} else {
+				consume();
+			}
 			}
 		}
 		catch (RecognitionException re) {
@@ -1453,11 +1460,11 @@ public class ConnectorParser extends Parser {
 		"\2\2\\_\3\2\2\2]^\7\17\2\2^`\5&\24\2_]\3\2\2\2_`\3\2\2\2`b\3\2\2\2ac\5"+
 		"*\26\2ba\3\2\2\2bc\3\2\2\2ce\3\2\2\2df\5.\30\2ed\3\2\2\2ef\3\2\2\2fh\3"+
 		"\2\2\2gi\5\60\31\2hg\3\2\2\2hi\3\2\2\2ik\3\2\2\2jl\5\66\34\2kj\3\2\2\2"+
-		"kl\3\2\2\2l\23\3\2\2\2mn\t\2\2\2n\25\3\2\2\2op\7\24\2\2p\27\3\2\2\2qt"+
-		"\7\24\2\2rs\7\t\2\2su\5\32\16\2tr\3\2\2\2tu\3\2\2\2ux\3\2\2\2vx\7\21\2"+
-		"\2wq\3\2\2\2wv\3\2\2\2x\31\3\2\2\2yz\7\24\2\2z\33\3\2\2\2{\u0080\5\30"+
-		"\r\2|}\7\22\2\2}\177\5\30\r\2~|\3\2\2\2\177\u0082\3\2\2\2\u0080~\3\2\2"+
-		"\2\u0080\u0081\3\2\2\2\u0081\35\3\2\2\2\u0082\u0080\3\2\2\2\u0083\u0084"+
+		"kl\3\2\2\2l\23\3\2\2\2mn\t\2\2\2n\25\3\2\2\2op\t\2\2\2p\27\3\2\2\2qt\7"+
+		"\24\2\2rs\7\t\2\2su\5\32\16\2tr\3\2\2\2tu\3\2\2\2ux\3\2\2\2vx\7\21\2\2"+
+		"wq\3\2\2\2wv\3\2\2\2x\31\3\2\2\2yz\7\24\2\2z\33\3\2\2\2{\u0080\5\30\r"+
+		"\2|}\7\22\2\2}\177\5\30\r\2~|\3\2\2\2\177\u0082\3\2\2\2\u0080~\3\2\2\2"+
+		"\u0080\u0081\3\2\2\2\u0081\35\3\2\2\2\u0082\u0080\3\2\2\2\u0083\u0084"+
 		"\7\7\2\2\u0084\u0085\5\26\f\2\u0085\37\3\2\2\2\u0086\u0087\7\24\2\2\u0087"+
 		"!\3\2\2\2\u0088\u008d\5 \21\2\u0089\u008a\7\22\2\2\u008a\u008c\5 \21\2"+
 		"\u008b\u0089\3\2\2\2\u008c\u008f\3\2\2\2\u008d\u008b\3\2\2\2\u008d\u008e"+
