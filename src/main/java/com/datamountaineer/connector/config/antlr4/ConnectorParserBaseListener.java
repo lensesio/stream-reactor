@@ -335,6 +335,54 @@ public class ConnectorParserBaseListener implements ConnectorParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitPartitionby(ConnectorParser.PartitionbyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterBuckets_number(ConnectorParser.Buckets_numberContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitBuckets_number(ConnectorParser.Buckets_numberContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterClusterby_name(ConnectorParser.Clusterby_nameContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitClusterby_name(ConnectorParser.Clusterby_nameContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterClusterby_list(ConnectorParser.Clusterby_listContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitClusterby_list(ConnectorParser.Clusterby_listContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterClusterby(ConnectorParser.ClusterbyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitClusterby(ConnectorParser.ClusterbyContext ctx) { }
 
 	/**
 	 * {@inheritDoc}

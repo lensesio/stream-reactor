@@ -277,4 +277,44 @@ public interface ConnectorParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitPartitionby(ConnectorParser.PartitionbyContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#buckets_number}.
+	 * @param ctx the parse tree
+	 */
+	void enterBuckets_number(ConnectorParser.Buckets_numberContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#buckets_number}.
+	 * @param ctx the parse tree
+	 */
+	void exitBuckets_number(ConnectorParser.Buckets_numberContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#clusterby_name}.
+	 * @param ctx the parse tree
+	 */
+	void enterClusterby_name(ConnectorParser.Clusterby_nameContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#clusterby_name}.
+	 * @param ctx the parse tree
+	 */
+	void exitClusterby_name(ConnectorParser.Clusterby_nameContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#clusterby_list}.
+	 * @param ctx the parse tree
+	 */
+	void enterClusterby_list(ConnectorParser.Clusterby_listContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#clusterby_list}.
+	 * @param ctx the parse tree
+	 */
+	void exitClusterby_list(ConnectorParser.Clusterby_listContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#clusterby}.
+	 * @param ctx the parse tree
+	 */
+	void enterClusterby(ConnectorParser.ClusterbyContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#clusterby}.
+	 * @param ctx the parse tree
+	 */
+	void exitClusterby(ConnectorParser.ClusterbyContext ctx);
 }

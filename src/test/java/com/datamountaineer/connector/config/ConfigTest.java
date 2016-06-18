@@ -12,6 +12,7 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -466,4 +467,66 @@ public class ConfigTest {
     assertTrue(partitionBy.contains("colABC"));
   }
 
+  @Test
+  public void handlerBucketingWithAllColumnsSelected() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT * FROM %s PARTITIONBY col1,colABC CLUSTERBY col2 INTO 256 BUCKETS", table, topic);
+    Config config = Config.parse(syntax);
+
+    Bucketing bucketing = config.getBucketing();
+    assertNotNull(bucketing);
+    HashSet<String> bucketNames = new HashSet<>();
+    Iterator<String> iter = bucketing.getBucketNames();
+    while (iter.hasNext()) {
+      bucketNames.add(iter.next());
+    }
+    assertEquals(1, bucketNames.size());
+    assertTrue(bucketNames.contains("col2"));
+    assertEquals(256, bucketing.getBucketsNumber());
+  }
+
+  @Test
+  public void handlerBucketingWithSpecificColumnsSpecified() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT col1,col2 FROM %s CLUSTERBY col2 INTO 256 BUCKETS", table, topic);
+    Config config = Config.parse(syntax);
+
+    Bucketing bucketing = config.getBucketing();
+    assertNotNull(bucketing);
+    HashSet<String> bucketNames = new HashSet<>();
+    Iterator<String> iter = bucketing.getBucketNames();
+    while (iter.hasNext()) {
+      bucketNames.add(iter.next());
+    }
+    assertEquals(1, bucketNames.size());
+    assertTrue(bucketNames.contains("col2"));
+    assertEquals(256, bucketing.getBucketsNumber());
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwExceptionIfTheBucketsIsZero() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT col1,col2 FROM %s CLUSTERBY col2 INTO 0 BUCKETS", table, topic);
+    Config.parse(syntax);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwExceptionIfTheBucketsNumberIsNotProvided() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT col1,col2 FROM %s CLUSTERBY col2", table, topic);
+    Config.parse(syntax);
+  }
+
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwExceptionIfTheBucketNamesAreMissing() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT col1,col2 FROM %s CLUSTERBY  INTO 12 BUCKETS", table, topic);
+    Config.parse(syntax);
+  }
 }

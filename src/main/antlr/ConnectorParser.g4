@@ -36,7 +36,7 @@ schema_name
    ;
 
 select_clause
-   : sql_action table_name SELECT column_list FROM topic_name ( IGNORE ignore_clause )? ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? (partitionby)?
+   : sql_action table_name SELECT column_list FROM topic_name ( IGNORE ignore_clause )? ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? (partitionby)? (clusterby)?
    ;
 
 topic_name
@@ -110,3 +110,19 @@ partition_list
 partitionby
    : PARTITIONBY partition_list
    ;
+
+buckets_number
+    : INT
+    ;
+
+clusterby_name
+    : ID
+    ;
+
+clusterby_list
+    :  clusterby_name ( COMMA clusterby_name)*
+    ;
+
+clusterby
+    : CLUSTERBY clusterby_list INTO buckets_number BUCKETS
+    ;

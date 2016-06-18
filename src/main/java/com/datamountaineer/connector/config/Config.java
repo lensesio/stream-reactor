@@ -40,6 +40,7 @@ public class Config {
   private List<String> partitionBy = new ArrayList<>();
   private int retries = 1;
   private int batchSize = DEFAULT_BATCH_SIZE;
+  private Bucketing bucketing;
 
   public void addIgnoredField(final String ignoredField) {
     if (ignoredField == null || ignoredField.trim().length() == 0) {
@@ -118,11 +119,20 @@ public class Config {
     return primaryKeys.iterator();
   }
 
+  public Bucketing getBucketing() {
+    return bucketing;
+  }
+
+  private void setBucketing(final Bucketing bucketing) {
+    this.bucketing = bucketing;
+  }
+
   public static Config parse(final String syntax) {
     final ConnectorLexer lexer = new ConnectorLexer(new ANTLRInputStream(syntax));
     final CommonTokenStream tokens = new CommonTokenStream(lexer);
     final ConnectorParser parser = new ConnectorParser(tokens);
-
+    final ArrayList<String> bucketNames = new ArrayList<>();
+    final Integer[] bucketsNumber = {null};
     final Config config = new Config();
     parser.addErrorListener(new BaseErrorListener() {
       @Override
@@ -213,6 +223,16 @@ public class Config {
       }
 
       @Override
+      public void exitBuckets_number(ConnectorParser.Buckets_numberContext ctx) {
+        bucketsNumber[0] = Integer.parseInt(ctx.getText());
+      }
+
+      @Override
+      public void exitClusterby_name(ConnectorParser.Clusterby_nameContext ctx) {
+        bucketNames.add(ctx.getText());
+      }
+
+      @Override
       public void exitBatch_size(ConnectorParser.Batch_sizeContext ctx) {
         final String value = ctx.getText();
         try {
@@ -261,6 +281,28 @@ public class Config {
         }
       }
     }
+
+    if (bucketNames.size() > 0 && (bucketsNumber[0] == null || bucketsNumber[0] == 0)) {
+      throw new IllegalArgumentException("Invalid bucketing information. Missing the buckets number");
+    }
+    if (bucketsNumber[0] != null && bucketsNumber[0] > 0 && bucketNames.size() == 0) {
+      throw new IllegalArgumentException("Missing bucket columns.");
+    }
+    if (bucketsNumber[0] != null) {
+      final Bucketing bucketing = new Bucketing(bucketNames);
+      bucketing.setBucketsNumber(bucketsNumber[0]);
+
+      if (!config.includeAllFields) {
+        for (final String bucketName : bucketNames) {
+          if (!cols.contains(bucketName)) {
+            throw new IllegalArgumentException(
+                    String.format("Bucketing field %s is not present in the selected columns", bucketName));
+          }
+        }
+      }
+      config.setBucketing(bucketing);
+    }
+
     return config;
   }
 
