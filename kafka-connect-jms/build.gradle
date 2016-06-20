@@ -1,0 +1,14 @@
+project(":kafka-connect-jms") {
+    dependencies {
+        compile("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
+        compile group: 'javax.jms', name: 'jms-api', version: '1.1-rev-1'
+
+        testCompile("org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion")
+        testCompile("com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion")
+        testCompile("com.sksamuel.avro4s:avro4s-macros_$scalaMajorVersion:$avro4sVersion")
+        testCompile("com.sksamuel.avro4s:avro4s-generator_$scalaMajorVersion:$avro4sVersion")
+        testCompile("org.apache.activemq:activemq-core:5.7.0")
+    }
+}
