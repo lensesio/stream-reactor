@@ -38,6 +38,7 @@ public class Config {
   private Set<String> ignoredFields = new HashSet<>();
   private Set<String> primaryKeys = new HashSet<>();
   private List<String> partitionBy = new ArrayList<>();
+  private List<String> distributeBy = new ArrayList<>();
   private int retries = 1;
   private int batchSize = DEFAULT_BATCH_SIZE;
   private Bucketing bucketing;
@@ -73,6 +74,18 @@ public class Config {
       }
     }
     partitionBy.add(field.trim());
+  }
+
+  public void addDistributeByField(final String field) {
+    if (field == null || field.trim().length() == 0) {
+      throw new IllegalArgumentException("Invalid distribute by field");
+    }
+    for (final String f : distributeBy) {
+      if (f.compareToIgnoreCase(field.trim()) == 0) {
+        throw new IllegalArgumentException(String.format("The field %s appears twice", field));
+      }
+    }
+    distributeBy.add(field.trim());
   }
 
   public String getSource() {
@@ -175,6 +188,11 @@ public class Config {
       @Override
       public void exitPartition_name(ConnectorParser.Partition_nameContext ctx) {
         config.addPartitionByField(ctx.getText());
+      }
+
+      @Override
+      public void exitDistribute_name(ConnectorParser.Distribute_nameContext ctx) {
+        config.addDistributeByField(ctx.getText());
       }
 
       @Override
@@ -282,6 +300,16 @@ public class Config {
       }
     }
 
+    if (!config.includeAllFields) {
+      final Iterator<String> iterDistributeBy = config.getDistributeBy();
+      while (iterDistributeBy.hasNext()) {
+        final String field = iterDistributeBy.next();
+        if (!cols.contains(field)) {
+          throw new IllegalArgumentException(String.format("Distribute by field %s is not present in the list of columns specified.", field));
+        }
+      }
+    }
+
     if (bucketNames.size() > 0 && (bucketsNumber[0] == null || bucketsNumber[0] == 0)) {
       throw new IllegalArgumentException("Invalid bucketing information. Missing the buckets number");
     }
@@ -348,5 +376,9 @@ public class Config {
 
   public Iterator<String> getPartitionBy() {
     return partitionBy.iterator();
+  }
+
+  public Iterator<String> getDistributeBy() {
+    return distributeBy.iterator();
   }
 }

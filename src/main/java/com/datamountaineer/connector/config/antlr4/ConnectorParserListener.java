@@ -278,6 +278,36 @@ public interface ConnectorParserListener extends ParseTreeListener {
 	 */
 	void exitPartitionby(ConnectorParser.PartitionbyContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#distribute_name}.
+	 * @param ctx the parse tree
+	 */
+	void enterDistribute_name(ConnectorParser.Distribute_nameContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#distribute_name}.
+	 * @param ctx the parse tree
+	 */
+	void exitDistribute_name(ConnectorParser.Distribute_nameContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#distribute_list}.
+	 * @param ctx the parse tree
+	 */
+	void enterDistribute_list(ConnectorParser.Distribute_listContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#distribute_list}.
+	 * @param ctx the parse tree
+	 */
+	void exitDistribute_list(ConnectorParser.Distribute_listContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#distributeby}.
+	 * @param ctx the parse tree
+	 */
+	void enterDistributeby(ConnectorParser.DistributebyContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#distributeby}.
+	 * @param ctx the parse tree
+	 */
+	void exitDistributeby(ConnectorParser.DistributebyContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link ConnectorParser#buckets_number}.
 	 * @param ctx the parse tree
 	 */

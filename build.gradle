@@ -20,7 +20,7 @@ apply plugin: 'antlr'
 allprojects {
     group = 'com.datamountaineer'
     version = version
-    description = "kafka-connect-query-language"
+    description = "kcql"
     apply plugin: 'java'
     apply plugin: 'maven'
     apply plugin: 'com.github.johnrengelman.shadow'
@@ -43,10 +43,10 @@ allprojects {
     }
 
     dependencies {
-        antlr "org.antlr:antlr4:4.5.3"
-        compile("org.antlr:antlr4-maven-plugin:$antlrVersion")
-        compile("org.antlr:antlr4-runtime:$antlrVersion")
-        compile("org.testng:testng:6.9.9")
+        antlr "org.antlr:antlr4:$antlrVersion"
+        testCompile "org.antlr:antlr4-maven-plugin:$antlrVersion"
+        compile "org.antlr:antlr4-runtime:$antlrVersion"
+        testCompile "org.testng:testng:6.9.9"
 
     }
 
@@ -113,7 +113,7 @@ allprojects {
                     }
                     pom.project {
                         name project.name
-                        artifactId = "kcql"
+                        artifactId "kcql"
                         description project.description
                         packaging 'jar'
                         url 'https://github.com/datamountaineer/kafka-connector-query-langauge'

@@ -468,6 +468,65 @@ public class ConfigTest {
   }
 
   @Test
+  public void handlerDistributeWhenAllFieldsAreIncluded() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT * FROM %s IGNORE col1, 1col2 DISTRIBUTEBY col1,col2  ", table, topic);
+    Config config = Config.parse(syntax);
+
+    Set<String> distributeBy = new HashSet<>();
+    Iterator<String> iter = config.getDistributeBy();
+    while (iter.hasNext()) {
+      distributeBy.add(iter.next());
+    }
+
+    assertTrue(distributeBy.contains("col1"));
+    assertTrue(distributeBy.contains("col2"));
+  }
+
+  @Test
+  public void handlerDistributeWhenSpecificFieldsAreIncluded() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT col1, col2, col3 FROM %s IGNORE col1, 1col2 DISTRIBUTEBY col1,col2  ", table, topic);
+    Config config = Config.parse(syntax);
+
+    Set<String> distributeBy = new HashSet<>();
+    Iterator<String> iter = config.getDistributeBy();
+    while (iter.hasNext()) {
+      distributeBy.add(iter.next());
+    }
+
+    assertTrue(distributeBy.contains("col1"));
+    assertTrue(distributeBy.contains("col2"));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwsAnExceptionIfTheDistributeByFieldIsNotPresentInTheListOfField() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT col1, col3 FROM %s IGNORE col1, 1col2 DISTRIBUTEBY col1,col2  ", table, topic);
+    Config.parse(syntax);
+  }
+
+  @Test
+  public void handlerDistributeByWhenSpecificFieldsAreIncludedAndAliasingIsPresent() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT col1, col2 as colABC, col3 FROM %s IGNORE col1, 1col2 DISTRIBUTEBY col1,colABC ", table, topic);
+    Config config = Config.parse(syntax);
+
+    Set<String> distributeBy = new HashSet<>();
+    Iterator<String> iter = config.getDistributeBy();
+    while (iter.hasNext()) {
+      distributeBy.add(iter.next());
+    }
+
+    assertTrue(distributeBy.contains("col1"));
+    assertTrue(distributeBy.contains("colABC"));
+  }
+
+  @Test
   public void handlerBucketingWithAllColumnsSelected() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";

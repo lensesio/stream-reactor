@@ -62,6 +62,6 @@ Kafka topics (with Avro records) and external systems as _sinks_ or _sources_.
 
 Get this repository and run:
 
-    mvn clean compile test
+    gradle clean compile test
 
 Java files are generate under `generated-sources/antlr4` folder

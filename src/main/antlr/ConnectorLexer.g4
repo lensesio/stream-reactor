@@ -61,6 +61,10 @@ PARTITIONBY
    : 'partitionby' | 'PARTITIONBY'
    ;
 
+DISTRIBUTEBY
+   : 'distributeby' | 'DISTRIBUTEBY'
+   ;
+
 PK
    : 'pk' | 'PK'
    ;
