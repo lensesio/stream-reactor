@@ -17,7 +17,6 @@
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import java.util
-import java.util.Timer
 import java.util.concurrent.LinkedBlockingQueue
 
 import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection

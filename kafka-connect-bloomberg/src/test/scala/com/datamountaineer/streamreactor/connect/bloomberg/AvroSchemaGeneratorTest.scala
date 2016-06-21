@@ -6,6 +6,7 @@ import com.datamountaineer.streamreactor.connect.bloomberg.avro.AvroSchemaGenera
 import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericData, GenericDatumReader, GenericRecord}
 import org.apache.avro.io.DecoderFactory
+import org.codehaus.jackson.JsonNode
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
@@ -50,7 +51,7 @@ class AvroSchemaGeneratorTest extends WordSpec with Matchers {
       map.put("k2", "minime")
 
       val expectedSchema = Schema.createRecord("ConnectDefault", null, namespace, false)
-      val default: Object = null
+      val default: JsonNode = null
       val fields = Seq(
         new Schema.Field("k1", AvroSchemaGenerator.optionalSchema(Schema.Type.INT), null, default),
         new Schema.Field("k2", AvroSchemaGenerator.optionalSchema(Schema.Type.STRING), null, default)

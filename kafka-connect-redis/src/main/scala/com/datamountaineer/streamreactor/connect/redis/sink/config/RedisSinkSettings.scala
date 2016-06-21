@@ -20,8 +20,10 @@ import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkConfig._
 import com.datamountaineer.streamreactor.connect.rowkeys._
+import com.datamountaineer.streamreactor.connect.schemas.StructFieldsExtractor
 import org.apache.kafka.common.config.ConfigException
 
+import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
 
@@ -31,6 +33,7 @@ import scala.collection.JavaConverters._
 case class RedisSinkSettings(connection: RedisConnectionInfo,
                              rowKeyModeMap : Map[String, StringKeyBuilder],
                              routes: List[Config],
+                             extractorFields : Map[String, StructFieldsExtractor],
                              errorPolicy : ErrorPolicy = new ThrowErrorPolicy,
                              taskRetries : Int = RedisSinkConfig.NBR_OF_RETIRES_DEFAULT)
 
@@ -66,8 +69,19 @@ object RedisSinkSettings {
       }
     ).toMap
 
+    val fields = routes.map({
+      rm=>(rm.getSource,
+        rm.getFieldAlias.map({
+          fa=>(fa.getField,fa.getAlias)
+        }).toMap)
+    }).toMap
+
+    val extractorFields = routes.map(rm=>{
+      (rm.getSource, StructFieldsExtractor(rm.isIncludeAllFields , fields.get(rm.getSource).get))
+    }).toMap
+
     val conn = RedisConnectionInfo(config)
-    new RedisSinkSettings(conn, rowKeyModeMap, routes.toList, errorPolicy, nbrOfRetries)
+    new RedisSinkSettings(conn, rowKeyModeMap, routes.toList, extractorFields, errorPolicy, nbrOfRetries)
   }
 }
 

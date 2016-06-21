@@ -19,11 +19,12 @@ package com.datamountaineer.streamreactor.connect.bloomberg.avro
 import java.io.ByteArrayOutputStream
 
 import com.datamountaineer.streamreactor.connect.bloomberg.BloombergData
-import AvroSchemaGenerator._
+import com.datamountaineer.streamreactor.connect.bloomberg.avro.AvroSchemaGenerator._
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericData.Record
-import org.apache.avro.generic.{GenericData, GenericRecord, GenericDatumWriter}
+import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericRecord}
 import org.apache.avro.io.EncoderFactory
+
 import scala.collection.JavaConverters._
 
 object AvroSerializer {

@@ -16,17 +16,24 @@
 
 package com.datamountaineeer.streamreactor.connect.rethink.config
 
-import java.net.ConnectException
-
-import com.datamountaineer.connector.config.Config
-import com.datamountaineer.streamreactor.connect.config.{Helpers, RouteMapping}
+import com.datamountaineer.connector.config.{Config, WriteModeEnum}
+import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
 import org.apache.kafka.common.config.AbstractConfig
+
+import scala.collection.JavaConversions._
 
 /**
   * Created by andrew@datamountaineer.com on 13/05/16.
   * stream-reactor-maven
   */
-case class ReThinkSetting(routes: List[Config], conflictPolicy: Map[String, String])
+case class ReThinkSetting(routes: List[Config],
+                          topicTableMap : Map[String, String],
+                          fieldMap : Map[String, Map[String, String]],
+                          conflictPolicy: Map[String, String],
+                          errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
+                          maxRetries : Int,
+                          batchSize : Int
+                         )
 
 //case class ReThinkSettings(settings : List[ReThinkSetting])
 
@@ -39,21 +46,30 @@ object ReThinkSettings {
     //parse query
     val routes: Set[Config] = raw.split(";").map(r => Config.parse(r)).toSet.filter(f=>assigned.contains(f.getSource))
 
-    val conflict = config.getString(ReThinkSinkConfig.CONFLICT_POLICY_MAP)
-    val conflictMap: Map[String, String] = Helpers.tableTopicParser(conflict)
+    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(ReThinkSinkConfig.ERROR_POLICY).toUpperCase)
+    val errorPolicy = ErrorPolicy(errorPolicyE)
+    val maxRetries = config.getInt(ReThinkSinkConfig.NBR_OF_RETRIES)
+    val batchSize = config.getInt(ReThinkSinkConfig.BATCH_SIZE)
 
     //check conflict policy
-    conflictMap.foreach({
-      case (table, policy) => {
-         if (!policy.equals(ReThinkSinkConfig.CONFLICT_ERROR) &&
-          !policy.equals(ReThinkSinkConfig.CONFLICT_REPLACE) &&
-          !policy.equals(ReThinkSinkConfig.CONFLICT_UPDATE)) {
-          throw new ConnectException(s"Invalid conflict policy $policy set for table $table.")
-        }
-      }
-    })
+    val conflictMap = routes.map(m=>{
+      (m.getSource,
+      m.getWriteMode match {
+        case WriteModeEnum.INSERT => ReThinkSinkConfig.CONFLICT_ERROR
+        case WriteModeEnum.UPSERT => ReThinkSinkConfig.CONFLICT_REPLACE
+      })
+    }).toMap
 
-    ReThinkSetting(routes.toList, conflictMap)
+    val topicTableMap = routes.map(rm=>(rm.getSource, rm.getTarget)).toMap
+
+    val fieldMap = routes.map({
+      rm=>(rm.getSource,
+        rm.getFieldAlias.map({
+          fa=>(fa.getField,fa.getAlias)
+        }).toMap)
+    }).toMap
+
+    ReThinkSetting(routes.toList, topicTableMap, fieldMap, conflictMap, errorPolicy, maxRetries, batchSize)
   }
 }
 

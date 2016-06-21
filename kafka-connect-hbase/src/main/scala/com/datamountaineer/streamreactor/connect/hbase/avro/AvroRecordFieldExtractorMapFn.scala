@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.hbase.avro
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Type
 import scala.collection.JavaConverters._
-import com.datamountaineer.streamreactor.connect.schemas.BytesHelper._
+import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
 
 /**
   * Builds a map of functions for extracting the values from an avro record and convert them to bytes

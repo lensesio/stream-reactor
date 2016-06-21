@@ -16,8 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.bloomberg
 
+import com.datamountaineer.streamreactor.connect.bloomberg.ConnectorConfig._
+
 import scala.util.{Success, Try}
-import ConnectorConfig._
 
 /**
   * Contains all the Bloomberg connection details and the subscriptions to be created

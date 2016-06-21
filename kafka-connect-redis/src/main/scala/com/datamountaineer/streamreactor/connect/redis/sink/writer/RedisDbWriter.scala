@@ -18,7 +18,6 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
-import com.datamountaineer.streamreactor.connect.schemas.StructFieldsExtractor
 import com.datamountaineer.streamreactor.connect.sink._
 import com.google.gson.Gson
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -26,7 +25,6 @@ import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import redis.clients.jedis.Jedis
 
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import scala.util.Try
 
@@ -41,20 +39,6 @@ case class RedisDbWriter(sinkSettings: RedisSinkSettings) extends DbWriter with 
 
   //initialize error tracker
   initialize(sinkSettings.taskRetries, sinkSettings.errorPolicy)
-
-  private val routeMapping = sinkSettings.routes
-
-  private val fields = routeMapping.map({
-    rm=>(rm.getSource,
-      rm.getFieldAlias.map({
-        fa=>(fa.getField,fa.getAlias)
-      }).toMap)
-  }).toMap
-
-  private val extractorFields = routeMapping.map(rm=>{
-    (rm.getSource, StructFieldsExtractor(rm.isIncludeAllFields , fields.get(rm.getSource).get))
-  }).toMap
-
   private val rowKeyMap = sinkSettings.rowKeyModeMap
 
   /**
@@ -91,7 +75,7 @@ case class RedisDbWriter(sinkSettings: RedisSinkSettings) extends DbWriter with 
               "The SinkRecord payload should be of type Struct")
 
             val keyBuilder = rowKeyMap.get(topic).get
-            val extractor = extractorFields.get(topic).get
+            val extractor = sinkSettings.extractorFields.get(topic).get
             val fieldsAndValues = extractor.get(record.value.asInstanceOf[Struct])
 
             if (fieldsAndValues.nonEmpty) {

@@ -17,13 +17,13 @@
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import java.text.SimpleDateFormat
-import java.util.{Collections, Date}
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.{Collections, Date}
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSetting, CassandraSourceSetting}
-import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSourceSetting}
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraResultSetWrapper.resultSetFutureToScala
+import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
 import com.datamountaineer.streamreactor.connect.offsets.OffsetHandler
 import com.datastax.driver.core._
 import com.datastax.driver.core.utils.UUIDs
@@ -31,11 +31,11 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTaskContext}
 
-import scala.collection.JavaConverters.{mapAsJavaMapConverter, seqAsJavaListConverter}
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Failure, Success, Try}
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters.{mapAsJavaMapConverter, seqAsJavaListConverter}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andrew@datamountaineer.com on 20/04/16.

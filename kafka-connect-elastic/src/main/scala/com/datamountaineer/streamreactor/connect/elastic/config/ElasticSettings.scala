@@ -18,11 +18,14 @@ package com.datamountaineer.streamreactor.connect.elastic.config
 
 import com.datamountaineer.connector.config.Config
 import org.apache.kafka.common.config.ConfigException
+
+import scala.collection.JavaConverters._
+
 /**
   * Created by andrew@datamountaineer.com on 13/05/16. 
   * stream-reactor-maven
   */
-case class ElasticSettings(routes: List[Config])
+case class ElasticSettings(routes: List[Config], fields : Map[String, Map[String, String]], tableMap: Map[String, String])
 
 object ElasticSettings {
   def apply(config: ElasticSinkConfig, assigned : List[String]): ElasticSettings = {
@@ -34,6 +37,16 @@ object ElasticSettings {
     if (routes.size == 0) {
       throw new ConfigException(s"No routes for for assigned topics in ${ElasticSinkConfig.EXPORT_ROUTE_QUERY_DOC}")
     }
-    ElasticSettings(routes)
+
+    val fields = routes.map({
+      rm=>(rm.getSource,
+        rm.getFieldAlias.asScala.map({
+          fa=>(fa.getField,fa.getAlias)
+        }).toMap)
+    }).toMap
+
+    val tableMap = routes.map(rm=>(rm.getSource, rm.getTarget)).toMap
+
+    ElasticSettings(routes = routes, fields = fields, tableMap = tableMap)
   }
 }

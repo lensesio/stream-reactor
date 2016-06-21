@@ -15,9 +15,7 @@ project(":kafka-connect-elastic") {
             exclude group: "org.scala-lang", module: "scala-library"
             exclude group: "org.scalactic", module: "scalactic_2.11"
         }
-        compile ("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion") {
-            exclude group: "org.apache.hbase", module: "hbase-client"
-        }
+        compile ("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion")
         compile "com.sun.jna:jna:$jnaVersion"
         testCompile "org.elasticsearch:elasticsearch:$elasticVersion"
     }

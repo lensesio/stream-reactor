@@ -19,7 +19,6 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
-import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition

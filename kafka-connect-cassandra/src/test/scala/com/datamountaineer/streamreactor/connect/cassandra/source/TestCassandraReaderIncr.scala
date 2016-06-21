@@ -2,10 +2,10 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import java.util.concurrent.LinkedBlockingQueue
 
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigSource, CassandraSettings, CassandraSourceSetting}
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigSource, CassandraSettings}
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.fasterxml.jackson.databind.JsonNode
 import org.apache.kafka.common.config.AbstractConfig
 import org.apache.kafka.connect.source.SourceRecord

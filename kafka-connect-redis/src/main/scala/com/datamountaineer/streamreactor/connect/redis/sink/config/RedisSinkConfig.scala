@@ -18,10 +18,8 @@ package com.datamountaineer.streamreactor.connect.redis.sink.config
 
 import java.util
 
-import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
-
-import scala.collection.JavaConversions._
+import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 object RedisSinkConfig {
 

@@ -1,8 +1,8 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConnectionInfo, RedisSinkConfig, RedisSinkSettings}
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkConfig._
+import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConnectionInfo, RedisSinkConfig, RedisSinkSettings}
 import com.google.gson.Gson
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord

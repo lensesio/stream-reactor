@@ -3,7 +3,6 @@ package com.datamountaineer.streamreactor.connect.hbase
 import org.apache.hadoop.hbase.client.Connection
 import org.apache.hadoop.hbase.{HColumnDescriptor, HTableDescriptor, TableName}
 
-
 object HbaseTableHelper {
 
   def createTable(tableName: String, columnFamily: String)(implicit connection: Connection): Unit = {

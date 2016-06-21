@@ -23,7 +23,6 @@ import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 
-
 import scala.collection.JavaConverters._
 /**
   * Created by andrew@datamountaineer.com on 22/04/16. 
@@ -44,6 +43,7 @@ case class CassandraSourceSetting(routes : Config,
 
 case class CassandraSinkSetting(keySpace: String,
                                 routes: Set[Config],
+                                fields : Map[String, Map[String, String]],
                                 errorPolicy: ErrorPolicy,
                                 taskRetries: Int) extends CassandraSetting
 
@@ -132,6 +132,13 @@ object CassandraSettings {
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(CassandraConfigConstants.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
 
-    CassandraSinkSetting(keySpace, routes, errorPolicy, retries)
+    val fields = routes.map({
+      rm=>(rm.getSource,
+        rm.getFieldAlias.asScala.map({
+          fa=>(fa.getField,fa.getAlias)
+        }).toMap)
+    }).toMap
+
+    CassandraSinkSetting(keySpace, routes, fields, errorPolicy, retries)
   }
 }

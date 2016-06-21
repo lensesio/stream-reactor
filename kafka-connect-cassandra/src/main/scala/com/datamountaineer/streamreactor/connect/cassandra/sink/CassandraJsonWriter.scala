@@ -29,7 +29,6 @@ import org.apache.kafka.connect.sink.SinkRecord
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Try
-import scala.collection.JavaConverters._
 
 /**
   * <h1>CassandraJsonWriter</h1>
@@ -45,16 +44,8 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
   initialize(settings.taskRetries, settings.errorPolicy)
   configureConverter(jsonConverter)
   private var session: Session = getSession().get
-  private val routeMappings = settings.routes
 
-  private val fields = routeMappings.map({
-    rm=>(rm.getSource,
-      rm.getFieldAlias.asScala.map({
-        fa=>(fa.getField,fa.getAlias)
-      }).toMap)
-  }).toMap
-
-  CassandraUtils.checkCassandraTables(session.getCluster, routeMappings, session.getLoggedKeyspace)
+  CassandraUtils.checkCassandraTables(session.getCluster, settings.routes, session.getLoggedKeyspace)
   private var preparedCache: Map[String, PreparedStatement] = cachePreparedStatements
 
   /**
@@ -72,7 +63,7 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     * @return A Map of topic->preparedStatements.
     * */
   private def cachePreparedStatements() : Map[String, PreparedStatement] = {
-    routeMappings.map(r => {
+    settings.routes.map(r => {
       val topic = r.getSource
       val table = r.getTarget
       logger.info(s"Preparing statements for $topic.")
@@ -146,8 +137,8 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     * @param records A list of sink records to convert.
     * */
   private def toJson(records: List[SinkRecord]) : List[String] = {
-    if (!fields.isEmpty) {
-      val extracted: List[SinkRecord] = records.map(r => extractSinkFields(r, fields.get(r.topic()).get))
+    if (!settings.fields.isEmpty) {
+      val extracted = records.map(r => convert(r, settings.fields.get(r.topic()).get))
       extracted.map(r => convertValueToJson(r).toString)
     } else {
       records.map(r => convertValueToJson(r).toString)

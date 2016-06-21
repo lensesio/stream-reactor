@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.hbase.writers
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.hbase._
 import com.datamountaineer.streamreactor.connect.hbase.config.HbaseSettings
-import com.datamountaineer.streamreactor.connect.schemas.{ConverterUtil, StructFieldsExtractorBytes}
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.sink.DbWriter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.hadoop.hbase.client.{ConnectionFactory, Put}
@@ -39,17 +39,6 @@ class HbaseWriter(settings: HbaseSettings
   //ValidateStringParameterFn(tableName, "tableName")
   private val columnFamilyBytes = Bytes.toBytes(settings.columnFamilyMap)
   private val routeMapping = settings.routes
-
-  private val fields = routeMapping.map({
-    rm=>(rm.getSource,
-      rm.getFieldAlias.map({
-        fa=>(fa.getField,fa.getAlias)
-      }).toMap)
-  }).toMap
-
-  private val extractorFields = routeMapping.map(rm=>{
-    (rm.getSource, StructFieldsExtractorBytes(rm.isIncludeAllFields , fields.get(rm.getSource).get))
-  }).toMap
 
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
@@ -91,7 +80,7 @@ class HbaseWriter(settings: HbaseSettings
             "The SinkRecord payload should be of type Struct")
 
           val keyBuilder = rowKeyMap.get(topic).get
-          val extractor = extractorFields.get(topic).get
+          val extractor = settings.extractorFields.get(topic).get
           val fieldsAndValues = extractor.get(record.value.asInstanceOf[Struct])
 
           if (fieldsAndValues.nonEmpty) {

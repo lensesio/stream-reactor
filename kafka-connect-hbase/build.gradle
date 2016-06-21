@@ -1,4 +1,10 @@
 project(":kafka-connect-hbase") {
+
+    ext {
+        hbaseClientVersion = "1.2.0"
+        hbaseServerVersion = "1.2.0"
+    }
+
     dependencies {
         compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
         compile("org.apache.hbase:hbase-client:$hbaseClientVersion") {

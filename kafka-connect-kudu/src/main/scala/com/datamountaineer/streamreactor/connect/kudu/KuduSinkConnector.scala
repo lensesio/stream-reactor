@@ -22,11 +22,9 @@ import com.datamountaineer.streamreactor.connect.config.KuduSinkConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
-import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkConnector
 
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Try}
 
 /**
   * Created by andrew@datamountaineer.com on 22/02/16. 

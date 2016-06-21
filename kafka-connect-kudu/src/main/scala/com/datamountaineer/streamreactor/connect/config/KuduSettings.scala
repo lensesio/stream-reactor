@@ -20,6 +20,8 @@ import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 
+import scala.collection.JavaConversions._
+
 /**
   * Created by andrew@datamountaineer.com on 13/05/16. 
   * stream-reactor-maven
@@ -27,6 +29,7 @@ import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 case class KuduSetting(routes: List[Config],
                        allowAutoCreate: Map[String, Boolean],
                        allowAutoEvolve: Map[String, Boolean],
+                       fieldsMap : Map[String, Map[String, String]],
                        errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                        maxRetries: Int = KuduSinkConfig.NBR_OF_RETIRES_DEFAULT,
                        batchSize: Int = KuduSinkConfig.BATCH_SIZE_DEFAULT,
@@ -57,9 +60,15 @@ object KuduSettings {
 
     val schemaRegUrl = config.getString(KuduSinkConfig.SCHEMA_REGISTRY_URL)
 
+    val fieldsMap = routes.map({
+      rm=>(rm.getSource, rm.getFieldAlias.map({
+        fa=>(fa.getField,fa.getAlias)}).toMap)
+    }).toMap
+
     KuduSetting(routes = routes.toList,
                 allowAutoCreate = autoCreate,
                 allowAutoEvolve = autoEvolve,
+                fieldsMap = fieldsMap,
                 errorPolicy = errorPolicy,
                 maxRetries = maxRetries,
                 batchSize = batchSize,

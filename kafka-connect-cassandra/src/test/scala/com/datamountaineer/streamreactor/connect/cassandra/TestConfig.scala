@@ -34,6 +34,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   val TOPIC2 = "sink_test2"
   val TABLE1 = TOPIC1
   val TABLE2 = "table2"
+  val TABLE3 = TOPIC2
 
   val USERNAME = "cassandra"
   val PASSWD = "cassandra"
@@ -42,7 +43,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   val KEYSTORE_PATH = System.getProperty("keystore")
   val KEYSTORE_PASSWORD ="8yJQLUnGkwZxOw"
 
-  val QUERY_ALL = s"INSERT INTO $TABLE1 SELECT * FROM $TOPIC1;INSERT INTO $TABLE2 SELECT * FROM $TOPIC2"
+  val QUERY_ALL = s"INSERT INTO $TABLE1 SELECT * FROM $TOPIC1;INSERT INTO $TABLE3 SELECT * FROM $TOPIC2"
   val QUERY_SELECTION = s"INSERT INTO $TABLE1 SELECT id, long_field FROM $TOPIC1"
 
   val IMPORT_QUERY_ALL = s"INSERT INTO $TOPIC1 SELECT * FROM $TABLE1;INSERT INTO $TOPIC2 SELECT * FROM $TABLE2"
@@ -223,6 +224,8 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       s" string_field text,  timeuuid_field timeuuid, timestamp_field timestamp)")
     session.execute(s"CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE2 (id text, int_field int, long_field bigint," +
       s" string_field text, timestamp_field timeuuid, PRIMARY KEY (id, timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)")
+    session.execute(s"CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE3 (id text PRIMARY KEY, int_field int, long_field bigint," +
+      s" string_field text,  timeuuid_field timeuuid, timestamp_field timestamp)")
     session
   }
 

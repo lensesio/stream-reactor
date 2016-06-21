@@ -1,7 +1,6 @@
 package com.datamountaineer.streamreactor.connect.hbase
 
-import com.datamountaineer.streamreactor.connect.rowkeys.{StructFieldsRowKeyBuilderBytes}
-import com.datamountaineer.streamreactor.connect.schemas.BytesHelper._
+import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord

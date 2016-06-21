@@ -17,8 +17,9 @@
 package com.datamountaineer.streamreactor.connect.bloomberg.avro
 
 import com.datamountaineer.streamreactor.connect.bloomberg.BloombergData
+import com.datamountaineer.streamreactor.connect.bloomberg.avro.AvroSchemaGenerator._
 import org.apache.avro.Schema
-import AvroSchemaGenerator._
+import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.node.TextNode
 
 import scala.collection.JavaConverters._
@@ -29,7 +30,7 @@ import scala.collection.JavaConverters._
   * @param namespace Avro schema namespace
   */
 private[bloomberg] class AvroSchemaGenerator(namespace: String) {
-  private val defaultValue: Object = null
+  private val defaultValue: JsonNode = null
 
   /**
     * Creates an avro schema for the given input. Only a handful of types are supported given the return types from BloombergFieldValueFn

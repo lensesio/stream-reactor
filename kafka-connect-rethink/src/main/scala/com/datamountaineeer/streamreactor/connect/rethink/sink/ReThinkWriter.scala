@@ -16,54 +16,42 @@
 
 package com.datamountaineeer.streamreactor.connect.rethink.sink
 
-import com.datamountaineeer.streamreactor.connect.rethink.config.{ReThinkProps, ReThinkSetting, ReThinkSettings, ReThinkSinkConfig}
+import com.datamountaineeer.streamreactor.connect.rethink.config.{ReThinkSetting, ReThinkSettings, ReThinkSinkConfig}
 import com.datamountaineer.connector.config.Config
+import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.net.Connection
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
-import scala.collection.JavaConversions._
+
 import scala.collection.JavaConverters._
+import scala.util.Try
 
 object ReThinkWriter extends StrictLogging {
   def apply(config: ReThinkSinkConfig, context: SinkTaskContext) = {
-
     val topics = context.assignment().asScala.map(c=>c.topic()).toList
     logger.info(s"Assigned topics ${topics.mkString(",")}")
-
-    val rProps = ReThinkProps(
-      config.getString(ReThinkSinkConfig.RETHINK_DB),
-      config.getBoolean(ReThinkSinkConfig.AUTO_CREATE_DB),
-      config.getBoolean(ReThinkSinkConfig.AUTO_CREATE_TBLS))
-
     val rethinkHost = config.getString(ReThinkSinkConfig.RETHINK_HOST)
 
     //set up the connection to the host
     val settings = ReThinkSettings(config, topics, false)
     val routes = settings.routes
     lazy val r = RethinkDB.r
-    lazy val conn: Connection = initialise(r, rProps, routes).hostname(rethinkHost).connect()
-    new ReThinkWriter(r = r, conn = conn, props = rProps, settings = settings)
+    lazy val conn: Connection = initialiseReThink(r, routes, "").hostname(rethinkHost).connect()
+    new ReThinkWriter(r = r, conn = conn, setting = settings)
   }
 
   /**
     * Initialize the RethinkDb connection
     *
     * @param rethink A ReThinkDb connection instance
-    * @param rProps The connection properties
-    * @param routes Topic to table map
+    * @param config
     * @return A rethink connection
     * */
-  private def initialise(rethink : RethinkDB, rProps: ReThinkProps, routes: List[Config]) = {
-    if (rProps.autoCreateDb) {
-      rethink.dbCreate(rProps.dbName)
-    }
-
-    if (rProps.autoCreateTbls) {
-      routes.map(r => rethink.db(rProps.dbName).tableCreate(r.getTarget))
-    }
+  private def initialiseReThink(rethink : RethinkDB, config: List[Config], dbName : String) = {
+    config.filter(f=>f.isAutoCreate).map(m=>rethink.db(dbName).tableCreate(m.getTarget))
     rethink.connection()
   }
 }
@@ -72,24 +60,18 @@ object ReThinkWriter extends StrictLogging {
   * Handles writes to Rethink
   *
   */
-class ReThinkWriter(r: RethinkDB, conn : Connection, props: ReThinkProps, settings: ReThinkSetting)
-  extends StrictLogging with ConverterUtil {
+class ReThinkWriter(r: RethinkDB, conn : Connection, setting: ReThinkSetting)
+  extends StrictLogging with ConverterUtil with ErrorHandler {
 
   //configure the converters
   val objectMapper = new ObjectMapper()
   logger.info("Initialising ReThink writer")
-  private val routeMappings = settings.routes
+  private val fields = setting.fieldMap
+  private val topicTables = setting.topicTableMap
+  private val conflictMap = setting.conflictPolicy
 
-  private val routeMapping = settings.routes
-  private val fields = routeMapping.map({
-    rm=>(rm.getSource,
-      rm.getFieldAlias.map({
-        fa=>(fa.getField,fa.getAlias)
-      }).toMap)
-  }).toMap
-
-  private val topicTables = routeMappings.map(rm=>(rm.getSource, rm.getTarget)).toMap
-  private val conflictMap = routeMappings.map(rm=>(rm.getSource, rm.getTarget)).toMap
+  //initialize error tracker
+  initialize(setting.maxRetries, setting.errorPolicy)
 
   /**
     * Write a list of SinkRecords
@@ -104,16 +86,9 @@ class ReThinkWriter(r: RethinkDB, conn : Connection, props: ReThinkProps, settin
     } else {
       //Try and reconnect
       logger.info("Records received.")
-
       if (!conn.isOpen) conn.reconnect()
-
-      //group the records by topic to get a map [string, list[sinkrecords]]
-      val grouped = records.groupBy(_.topic())
-
-      //Write the records
-      grouped.map({
-        case (topic, records) => writeRecords(topic, records)
-      })
+      val grouped = records.groupBy(_.topic()).grouped(setting.batchSize)
+      grouped.foreach(g => g.foreach {case (topic, entries) => writeRecords(topic, entries)})
     }
   }
 
@@ -123,7 +98,7 @@ class ReThinkWriter(r: RethinkDB, conn : Connection, props: ReThinkProps, settin
     * @param records A list of sink records to convert.
     * */
   private def toJson(records: List[SinkRecord]) : List[String] = {
-    val extracted = records.map(r => extractSinkFields(r, fields.get(r.topic()).get))
+    val extracted = records.map(r => convert(r, fields.get(r.topic()).get))
     extracted.map(rec=>objectMapper.writeValueAsString(rec))
   }
 
@@ -137,7 +112,7 @@ class ReThinkWriter(r: RethinkDB, conn : Connection, props: ReThinkProps, settin
     val json = toJson(records)
     val table = topicTables.get(topic).get
     val conflict  = conflictMap.get(table).get
-    val write : Map[String, Object] = r.db(props.dbName)
+    val write : Map[String, Object] = r.db("")
                                       .table(table)
                                       .insert(json)
                                       .optArg("conflict", conflict.toLowerCase)
@@ -145,10 +120,12 @@ class ReThinkWriter(r: RethinkDB, conn : Connection, props: ReThinkProps, settin
                                       .run(conn)
 
     val errors = write.get("errors").asInstanceOf[Long]
-    if (errors != 0L) handleFailure()
+    if (errors != 0L) handleFailure(write)
   }
 
-  def handleFailure() = {
+  def handleFailure(write : Map[String, Object]) = {
+    val error = write.get("first_error").asInstanceOf[String]
+    handleTry(Try(new Throwable(s"Write error occurred. ${error.toString}")))
   }
 
   /**

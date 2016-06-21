@@ -33,7 +33,7 @@ object KuduSinkConfig {
   val EXPORT_ROUTE_QUERY = "connect.kudu.export.route.query"
   val EXPORT_ROUTE_QUERY_DOC = ""
 
-  val ERROR_POLICY = "connect.kudu.error.policy"
+  val ERROR_POLICY = "connect.kudu.sink.error.policy"
   val ERROR_POLICY_DOC = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
     "There are two available options: \n" + "NOOP - the error is swallowed \n" +
     "THROW - the error is allowed to propagate. \n" +
@@ -41,20 +41,24 @@ object KuduSinkConfig {
     "The error will be logged automatically";
   val ERROR_POLICY_DEFAULT = "THROW"
 
-  val ERROR_RETRY_INTERVAL = "connect.kudu.retry.interval"
+  val ERROR_RETRY_INTERVAL = "connect.kudu.sink.retry.interval"
   val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
   val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
   val NBR_OF_RETRIES = "connect.kudu.max.retires"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
-  val BATCH_SIZE = "connect.kudu.batch.size"
+  val BATCH_SIZE = "connect.kudu.sink.batch.size"
   val BATCH_SIZE_DOC = "Per topic the number of sink records to batch together and insert into Kudu"
   val BATCH_SIZE_DEFAULT = 1000
 
-  val SCHEMA_REGISTRY_URL = "connect.kudu.schema.registry.url"
+  val SCHEMA_REGISTRY_URL = "connect.kudu.sink.schema.registry.url"
   val SCHEMA_REGISTRY_URL_DOC = "Url for the schema registry"
   val SCHEMA_REGISTRY_URL_DEFAULT = "http://localhost:8081"
+
+  val BUCKET_SIZE  = "connect.kudu.sink.bucket.size"
+  val BUCKET_SIZE_DOC = "The number of buckets to use for Auto Table creation. The distribution is set to use the Hash strategy"
+  val BUCKET_SIZE_DEFAULT = 10
 
   val config: ConfigDef = new ConfigDef()
     .define(KUDU_MASTER, Type.STRING, KUDU_MASTER_DEFAULT, Importance.HIGH, KUDU_MASTER_DOC)
@@ -64,6 +68,7 @@ object KuduSinkConfig {
     .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC)
     .define(BATCH_SIZE, Type.INT, BATCH_SIZE_DEFAULT, Importance.MEDIUM, BATCH_SIZE_DOC)
     .define(SCHEMA_REGISTRY_URL, Type.STRING, SCHEMA_REGISTRY_URL_DEFAULT ,Importance.HIGH, SCHEMA_REGISTRY_URL_DOC)
+    .define(BUCKET_SIZE, Type.INT, BUCKET_SIZE_DEFAULT, Importance.MEDIUM, BUCKET_SIZE_DOC)
 }
 
 class KuduSinkConfig(props: util.Map[String, String])

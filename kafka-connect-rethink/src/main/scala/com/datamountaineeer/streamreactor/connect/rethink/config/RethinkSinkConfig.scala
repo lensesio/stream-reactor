@@ -26,17 +26,11 @@ import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
   * stream-reactor
   */
 object ReThinkSinkConfig {
-  val RETHINK_HOST = "connect.rethink.host"
+  val RETHINK_HOST = "connect.rethink.sink.host"
   val RETHINK_HOST_DOC = "Rethink server host."
   val RETHINK_HOST_DEFAULT = "localhost"
-  val RETHINK_DB = "connect.rethink.db"
+  val RETHINK_DB = "connect.rethink.sink.db"
   val RETHINK_DB_DOC = "The target database in reThink."
-  val AUTO_CREATE_DB = "connect.auto.create.db"
-  val AUTO_CREATE_DB_DOC = "Create the database is if doesn't exist"
-  val AUTO_CREATE_DB_DEFAULT = false
-  val AUTO_CREATE_TBLS = "connect.rethink.auto.create.tables"
-  val AUTO_CREATE_TBLS_DOC = "Create the tables per topic they doesn't exist"
-  val AUTO_CREATE_TBLS_DEFAULT = false
 
   val CONFLICT_POLICY_MAP = "connect.rethink.conflict.policy"
   val CONFLICT_POLICY_DOC =
@@ -53,10 +47,10 @@ object ReThinkSinkConfig {
   val CONFLICT_REPLACE = "REPLACE"
   val CONFLICT_UPDATE = "UPDATE"
 
-  val EXPORT_ROUTE_QUERY = "connect.hbase.export.route.query"
+  val EXPORT_ROUTE_QUERY = "connect.rethink.sink.export.route.query"
   val EXPORT_ROUTE_QUERY_DOC = ""
 
-  val ERROR_POLICY = "connect.hbase.error.policy"
+  val ERROR_POLICY = "connect.rethink.size.error.policy"
   val ERROR_POLICY_DOC = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
     "There are two available options: \n" + "NOOP - the error is swallowed \n" +
     "THROW - the error is allowed to propagate. \n" +
@@ -64,23 +58,32 @@ object ReThinkSinkConfig {
     "The error will be logged automatically";
   val ERROR_POLICY_DEFAULT = "THROW"
 
-  val ERROR_RETRY_INTERVAL = "connect.hbase.retry.interval"
+  val ERROR_RETRY_INTERVAL = "connect.rethink.sink.retry.interval"
   val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
   val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
-  val NBR_OF_RETRIES = "connect.hbase.max.retires"
+  val NBR_OF_RETRIES = "connect.rethink.sink.max.retires"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
+
+
+  val BATCH_SIZE = "connect.rethink.sink.batch.size"
+  val BATCH_SIZE_DOC = "Per topic the number of sink records to batch together and insert into Kudu"
+  val BATCH_SIZE_DEFAULT = 1000
+
+  val SCHEMA_REGISTRY_URL = "connect.rethink.sink.schema.registry.url"
+  val SCHEMA_REGISTRY_URL_DOC = "Url for the schema registry"
+  val SCHEMA_REGISTRY_URL_DEFAULT = "http://localhost:8081"
 
   val config: ConfigDef = new ConfigDef()
     .define(RETHINK_HOST, Type.STRING, RETHINK_HOST_DEFAULT, Importance.HIGH, RETHINK_HOST_DOC)
     .define(RETHINK_DB, Type.STRING, Importance.HIGH, RETHINK_HOST_DOC)
-    .define(AUTO_CREATE_DB, Type.BOOLEAN, AUTO_CREATE_DB_DEFAULT, Importance.MEDIUM, AUTO_CREATE_DB_DOC)
-    .define(AUTO_CREATE_TBLS, Type.BOOLEAN, AUTO_CREATE_TBLS_DEFAULT, Importance.MEDIUM, AUTO_CREATE_TBLS_DOC)
     .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY)
     .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC)
     .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC)
     .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC)
     .define(CONFLICT_POLICY_MAP, Type.STRING, CONFLICT_ERROR, Importance.HIGH, CONFLICT_POLICY_DOC)
+    .define(BATCH_SIZE, Type.INT, BATCH_SIZE_DEFAULT, Importance.MEDIUM, BATCH_SIZE_DOC)
+    .define(SCHEMA_REGISTRY_URL, Type.STRING, SCHEMA_REGISTRY_URL_DEFAULT ,Importance.HIGH, SCHEMA_REGISTRY_URL_DOC)
 }
 
 class ReThinkSinkConfig(props: util.Map[String, String])

@@ -55,8 +55,6 @@ class KuduSinkTask extends SinkTask with StrictLogging {
         |by Andrew Stevenson
       """.stripMargin)
 
-
-
     KuduSinkConfig.config.parse(props)
     val sinkConfig = new KuduSinkConfig(props)
     val topics = context.assignment().asScala.map(c=>c.topic()).toList
@@ -86,7 +84,6 @@ class KuduSinkTask extends SinkTask with StrictLogging {
     writer.foreach(w => w.close())
   }
 
-  //0.7 has
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     writer.foreach(w=>w.flush())

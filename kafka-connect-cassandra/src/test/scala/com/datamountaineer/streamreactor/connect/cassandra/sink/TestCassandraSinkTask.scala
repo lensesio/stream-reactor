@@ -1,11 +1,10 @@
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
-import org.cassandraunit.utils.EmbeddedCassandraServerHelper
+import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.Mockito._
-import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 import org.scalatest.mock.MockitoSugar
+import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
 

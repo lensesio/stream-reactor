@@ -20,8 +20,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 import com.datamountaineer.connector.config.Config
-import com.datastax.driver.core.{Cluster, DataType, Row}
 import com.datastax.driver.core.ColumnDefinitions.Definition
+import com.datastax.driver.core.{Cluster, DataType, Row}
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.ConnectException

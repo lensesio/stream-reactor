@@ -2,7 +2,6 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
-import com.datastax.driver.core.exceptions.NoHostAvailableException
 import org.apache.kafka.common.config.AbstractConfig
 import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kafka.connect.sink.SinkTaskContext

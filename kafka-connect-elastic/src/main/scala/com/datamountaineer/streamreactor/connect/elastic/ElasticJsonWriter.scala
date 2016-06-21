@@ -18,9 +18,9 @@ package com.datamountaineer.streamreactor.connect.elastic
 
 import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSettings
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.source.Indexable
-import com.sksamuel.elastic4s.ElasticClient
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 import org.elasticsearch.action.bulk.BulkResponse
@@ -28,21 +28,9 @@ import org.elasticsearch.action.bulk.BulkResponse
 import scala.collection.immutable.Iterable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.collection.JavaConverters._
 
 class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extends StrictLogging with ConverterUtil {
   logger.info("Initialising Elastic Json writer")
-
-  val routeMappings = settings.routes
-  val map = routeMappings.map(rm=>(rm.getSource, rm.getTarget)).toMap
-
-  private val fields = routeMappings.map({
-    rm=>(rm.getSource,
-      rm.getFieldAlias.asScala.map({
-        fa=>(fa.getField,fa.getAlias)
-      }).toMap)
-  }).toMap
-
   createIndexes()
   configureConverter(jsonConverter)
 
@@ -55,7 +43,7 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
     *
     * */
   private def createIndexes() : Unit = {
-   routeMappings.map(s => client.execute( { create index s.getTarget }))
+   settings.tableMap.map({ case(k,v) => client.execute( { create index v })})
   }
 
   /**
@@ -87,10 +75,10 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
 
     val ret: Iterable[Future[BulkResponse]] = records.map({
       case (topic, sinkRecords) => {
-        val extracted = extractFields(sinkRecords)
+        val extracted = sinkRecords.map(r => convert(r, settings.fields.get(r.topic()).get))
         val indexes = extracted.map(r => {
           //lookup mapping
-          val i = map.get(r.topic()).get
+          val i = settings.tableMap.get(r.topic()).get
           index into i / i source r
         })
         val ret = client.execute(bulk(indexes).refresh(true))
@@ -107,19 +95,5 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
     })
 
     ret
-  }
-
-  /**
-    * Extract a subset of fields from the sink records
-    *
-    * @param records A list of records to extract fields from.
-    * @return A new list of sink records with the fields.
-  **/
-  def extractFields(records: List[SinkRecord]) = {
-    if (!fields.isEmpty) {
-      records.map(r => extractSinkFields(r, fields.get(r.topic()).get))
-    } else {
-      records
-    }
   }
 }

@@ -32,19 +32,36 @@ gradle fatJarNoTest
 
 ## Prerequisites
 
-* Confluent 2.0
+* Confluent 2.0.1
 
-
-## Testing Server Send Events
-
-```bash
- curl 'http://localhost:8080/sse/topics?topic=_schemas&consumergroup=testcg'
-```
-
-## Testing Websocket
-
-Can be tested with Postman for example, if using postman added a extra space at the end
+##Build
 
 ```bash
- http://localhost:8080/ws/topics?topic=_schemas&consumergroup=testcg'
+gradle compile
 ```
+
+To test
+
+```bash
+gradle test
+```
+
+To create a fat jar
+
+```bash
+gradle fatJar
+```
+
+or with no tests run
+
+```
+gradle fatJarNoTest
+```
+
+You can also use the gradle wrapper
+
+```
+./gradlew fatJar
+```
+
+See the documentation for more information.

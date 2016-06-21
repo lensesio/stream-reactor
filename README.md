@@ -28,10 +28,18 @@ To create a fat jar
 
 ```bash
 gradle fatJar
+```
 
-# or with no tests run
+or with no tests run
 
+```
 gradle fatJarNoTest
+```
+
+You can also use the gradle wrapper
+
+```
+./gradlew fatJar
 ```
 
 #### [Kafka-Connect-Cassandra](kafka-connect-cassandra/README.md)
@@ -73,24 +81,3 @@ NOT TESTS, UNIT TESTS PENDING
 #### [Kafka-Socket-Streamer](kafka-socket-streamer/README.md)
 
 Test module for Akka Http and Reactive Kafka with Websocket and Server Send Event support.
-
-#### Future Work
-
-* HBase Source
-* Kudu Source
-* Redis Source
-* Druid Source
-* Elastic Source
-* OrientDb
-* Neo4j
-* Rest (spray-can post)
-* UPC Scada Source and Sink
-* MQTT Sink
-* RDBMS (Sql Server 2016 supports JSON inserts)
-* TCP sockets?
-* Solr
-* UDP
-* Websockets/Server Send Events
-* Couchbase
-* Hive
-* JMS

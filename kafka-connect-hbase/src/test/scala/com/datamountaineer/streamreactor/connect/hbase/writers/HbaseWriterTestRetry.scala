@@ -2,10 +2,9 @@ package com.datamountaineer.streamreactor.connect.hbase.writers
 
 import com.datamountaineer.streamreactor.connect.hbase.config.HbaseSinkConfig._
 import com.datamountaineer.streamreactor.connect.hbase.config.{HbaseSettings, HbaseSinkConfig}
-import com.datamountaineer.streamreactor.connect.hbase.{HbaseHelper, HbaseTableHelper}
-import com.datamountaineer.streamreactor.connect.rowkeys.{GenericRowKeyBuilderBytes, StructFieldsRowKeyBuilderBytes}
-import com.datamountaineer.streamreactor.connect.schemas.BytesHelper._
-import com.datamountaineer.streamreactor.connect.schemas.FieldsValuesExtractor
+import com.datamountaineer.streamreactor.connect.hbase.{HbaseHelper, HbaseTableHelper, StructFieldsRowKeyBuilderBytes}
+import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
+import com.datamountaineer.streamreactor.connect.hbase.FieldsValuesExtractor
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.RetriableException

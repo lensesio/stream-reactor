@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.bloomberg
 
 import java.util
 import java.util.Collections
+
 import com.bloomberglp.blpapi.Element
 import com.datamountaineer.streamreactor.connect.bloomberg.BloombergData._
 import com.datamountaineer.streamreactor.connect.bloomberg.avro.AvroSerializer._

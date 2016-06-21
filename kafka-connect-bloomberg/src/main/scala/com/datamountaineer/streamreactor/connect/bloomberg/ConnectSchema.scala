@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.bloomberg
 
-import org.apache.kafka.connect.data.{SchemaBuilder, Schema}
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
 
 import scala.collection.JavaConverters._
 

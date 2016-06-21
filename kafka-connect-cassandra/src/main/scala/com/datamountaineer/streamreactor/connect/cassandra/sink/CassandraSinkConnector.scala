@@ -18,9 +18,9 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfig, CassandraConfigSink, CassandraSettings}
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
+import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 

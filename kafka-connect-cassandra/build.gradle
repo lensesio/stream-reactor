@@ -19,20 +19,17 @@ project(":kafka-connect-cassandra") {
     }
 
     dependencies {
-        compile ("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion") {
-            exclude group: "org.apache.hbase", module: "hbase-client"
-        }
+        compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
         compile "com.datastax.cassandra:cassandra-driver-core:$cassandraDriverVersion"
-        compile "com.google.code.findbugs:jsr305:1.3.9"
+        testCompile "com.google.code.findbugs:jsr305:1.3.9"
         testCompile ("org.apache.cassandra:cassandra-all:$cassandraVersion") {
             exclude group:"org.slf4j", module: "log4j-over-slf4j"
             exclude group: "io.netty"
             exclude group:"ch.qos.logback", module: "logback-core"
             exclude group:"ch.qos.logback", module: "logback-classic"
         }
-        compile "net.jpountz.lz4:lz4:$jPountzVersion"
-        compile "org.xerial.snappy:snappy-java:$snappyVersion"
-
+        testCompile "net.jpountz.lz4:lz4:$jPountzVersion"
+        testCompile "org.xerial.snappy:snappy-java:$snappyVersion"
         testCompile ("org.cassandraunit:cassandra-unit:$cassandraUnitVersion") {
             exclude group:"org.slf4j", module: "log4j-over-slf4j"
         }

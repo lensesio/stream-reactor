@@ -1,6 +1,5 @@
 package com.datamountaineer.streamreactor.connect.hbase
 
-import com.datamountaineer.streamreactor.connect.schemas.StructFieldsExtractorBytes
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.{Matchers, WordSpec}

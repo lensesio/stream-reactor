@@ -1,8 +1,7 @@
 package com.datamountaineer.streamreactor.connect.hbase
 
 import com.datamountaineer.streamreactor.connect.hbase.avro.AvroRecordFieldExtractorMapFn
-import com.datamountaineer.streamreactor.connect.rowkeys.{ AvroRecordRowKeyBuilderBytes}
-import com.datamountaineer.streamreactor.connect.schemas.BytesHelper._
+import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.hadoop.hbase.util.Bytes

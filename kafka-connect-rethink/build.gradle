@@ -4,9 +4,7 @@ project(":kafka-connect-rethink") {
     }
 
     dependencies {
-        compile ("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion") {
-            exclude group: "org.apache.hbase", module: "hbase-client"
-        }
+        compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
         compile "com.rethinkdb:rethinkdb-driver:$rethinkDbVersion"
     }
 }

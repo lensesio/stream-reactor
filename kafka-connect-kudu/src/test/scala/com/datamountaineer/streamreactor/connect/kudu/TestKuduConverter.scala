@@ -1,17 +1,23 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.KuduConverter
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import org.apache.avro.Schema
+import org.apache.avro.Schema.Field
+import org.codehaus.jackson.node.NullNode
 import org.kududb.client.{Insert, KuduTable}
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
+
+import scala.collection.JavaConverters._
+import scala.collection.mutable.ListBuffer
 
 /**
   * Created by andrew@datamountaineer.com on 04/03/16. 
   * stream-reactor
   */
-class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil with MockitoSugar{
-  test("Should convert a SinkRecord Schema to Kudu Schema") {
+class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil with MockitoSugar {
+  "Should convert a SinkRecord Schema to Kudu Schema" in {
     val record = getTestRecords.head
     val connectSchema = record.valueSchema()
     val connectFields = connectSchema.fields()
@@ -24,31 +30,73 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
     columns.get(3).getName shouldBe connectFields.get(3).name()
   }
 
-  test("Should convert a SinkRecord into a Kudu Insert operation") {
+  "Should convert a SinkRecord into a Kudu Insert operation" in {
     val record = getTestRecords.head
+    val fields = record.valueSchema().fields().asScala.map(f=>(f.name(), f.name())).toMap
     val kuduSchema = convertToKuduSchema(record)
     val kuduRow = kuduSchema.newPartialRow()
     val insert = mock[Insert]
     when(insert.getRow).thenReturn(kuduRow)
     val table = mock[KuduTable]
     when(table.newInsert()).thenReturn(insert)
-    val kuduRecord = convert(record, table, Map.empty[String, String])
-    //??? not really a test
-    kuduRecord.getRow shouldBe kuduRow
+    val converted = convert(record, fields)
+    val kuduInsert = convertToKuduInsert(converted, table)
+    kuduRow shouldBe kuduInsert.getRow
   }
 
-  test("Should convert a SinkRecord into a Kudu Insert operation with Field Selection") {
+  "Should convert a SinkRecord into a Kudu Insert operation with Field Selection" in {
     val fields = Map("id"->"id", "long_field"->"new_field_name")
     val record = getTestRecords.head
-    val converted = extractSinkFields(record, fields)
+    val converted = convert(record, fields)
     val kuduSchema = convertToKuduSchema(converted)
     val kuduRow = kuduSchema.newPartialRow()
     val insert = mock[Insert]
     when(insert.getRow).thenReturn(kuduRow)
     val table = mock[KuduTable]
     when(table.newInsert()).thenReturn(insert)
-    val kuduRecord = convert(record, table,fields)
-    //??? not really a test
-    val row = kuduRecord.getRow
+    val kuduInsert = convertToKuduInsert(converted, table)
+    kuduRow shouldBe kuduInsert.getRow
+  }
+
+
+  "Should convert an Avro to Kudu" in {
+    var new_fields = new ListBuffer[Field]()
+    new_fields += new Field("string_field", Schema.createUnion(List(Schema.create(Schema.Type.NULL),
+      Schema.create(Schema.Type.STRING)).asJava), null, NullNode.getInstance())
+
+    new_fields += new Field("int_field", Schema.createUnion(List(Schema.create(Schema.Type.NULL),
+      Schema.create(Schema.Type.INT)).asJava), null, NullNode.getInstance())
+
+    new_fields += new Field("boolean_field", Schema.createUnion(List(Schema.create(Schema.Type.NULL),
+      Schema.create(Schema.Type.BOOLEAN)).asJava), null, NullNode.getInstance())
+
+    new_fields += new Field("double_field", Schema.createUnion(List(Schema.create(Schema.Type.NULL),
+      Schema.create(Schema.Type.DOUBLE)).asJava), null, NullNode.getInstance())
+
+    new_fields += new Field("float_field", Schema.createUnion(List(Schema.create(Schema.Type.NULL),
+      Schema.create(Schema.Type.FLOAT)).asJava), null, NullNode.getInstance())
+
+    new_fields += new Field("long_field", Schema.createUnion(List(Schema.create(Schema.Type.NULL),
+      Schema.create(Schema.Type.LONG)).asJava), null, NullNode.getInstance())
+
+    new_fields += new Field("bytes_field", Schema.createUnion(List(Schema.create(Schema.Type.NULL),
+      Schema.create(Schema.Type.BYTES)).asJava), null, NullNode.getInstance())
+
+
+    val kuduFields = new_fields.map(f=>fromAvro(f.schema(), f.name()).build())
+    kuduFields(0).getName shouldBe "string_field"
+    kuduFields(0).getType shouldBe org.kududb.Type.STRING
+    kuduFields(1).getName shouldBe "int_field"
+    kuduFields(1).getType shouldBe org.kududb.Type.INT32
+    kuduFields(2).getName shouldBe "boolean_field"
+    kuduFields(2).getType shouldBe org.kududb.Type.BOOL
+    kuduFields(3).getName shouldBe "double_field"
+    kuduFields(3).getType shouldBe org.kududb.Type.FLOAT
+    kuduFields(4).getName shouldBe "float_field"
+    kuduFields(4).getType shouldBe org.kududb.Type.FLOAT
+    kuduFields(5).getName shouldBe "long_field"
+    kuduFields(5).getType shouldBe org.kududb.Type.INT64
+    kuduFields(6).getName shouldBe "bytes_field"
+    kuduFields(6).getType shouldBe org.kududb.Type.BINARY
   }
 }

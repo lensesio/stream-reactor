@@ -4,10 +4,9 @@ project(":kafka-connect-bloomberg") {
             exclude group: "com.google.guava", module: "guava"
             exclude group: "org.mortbay.jetty", module: "jetty-util"
             exclude group: "org.mortbay.jetty", module: "jetty"
-            exclude group: "org.apache.hbase", module: "hbase-client"
         }
         compile files('lib/blpapi-3.8.8-2.jar')
-        compile "com.fasterxml.jackson.core:jackson-databind:$jacksonDatabind"
-        compile "org.apache.avro:avro:$avroVersion"
+        //runtime "com.fasterxml.jackson.core:jackson-databind:$jacksonDatabind"
+        //compile "org.apache.avro:avro:$avroVersion"
     }
 }

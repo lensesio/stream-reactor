@@ -17,19 +17,16 @@
 package com.datamountaineer.streamreactor.connect
 
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.Schema.Type
-import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.data.{Field, Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.kududb.ColumnSchema.ColumnSchemaBuilder
 import org.kududb.ColumnSchema
-import org.kududb.client.Insert
+import org.kududb.ColumnSchema.ColumnSchemaBuilder
+import org.kududb.client.{Insert, KuduTable, PartialRow}
 
 import scala.collection.JavaConverters._
-import org.kududb.client.{KuduTable, PartialRow}
 
 trait KuduConverter extends ConverterUtil {
-
 
   /**
     * Convert SinkRecord type to Kudu and add the column to the Kudu row
@@ -40,7 +37,7 @@ trait KuduConverter extends ConverterUtil {
     * @return the updated Kudu row
     **/
    private def addFieldToRow( record: SinkRecord,
-                              field: org.apache.kafka.connect.data.Field,
+                              field: Field,
                               row: PartialRow): PartialRow = {
     val fieldType = field.schema().`type`()
     val fieldName = field.name()
@@ -68,14 +65,11 @@ trait KuduConverter extends ConverterUtil {
     * @param table A Kudu table to create a row insert for
     * @return A Kudu insert operation
     * */
-  def convert(record: SinkRecord, table: KuduTable, extractFields : Map[String, String]) : Insert = {
-    //extract the fields set in the mapping
-    val converted = extractSinkFields(record, extractFields)
-   // val avro = convertValueToGenericAvro(converted)
-    val recordFields = converted.valueSchema().fields().asScala
+  def convertToKuduInsert(record: SinkRecord, table: KuduTable) : Insert = {
+    val recordFields = record.valueSchema().fields().asScala
     val insert = table.newInsert()
     val row = insert.getRow
-    recordFields.map(f=>addFieldToRow(converted, f, row))
+    recordFields.map(f=>addFieldToRow(record, f, row))
     insert
   }
 
@@ -86,9 +80,21 @@ trait KuduConverter extends ConverterUtil {
     * */
   def convertToKuduSchema(record: SinkRecord)  : org.kududb.Schema = {
     val connectFields = record.valueSchema().fields().asScala
-    val kuduFields = connectFields.map(cf=>convertConnectField(cf)).asJava
-    val schema = new org.kududb.Schema(kuduFields)
-    schema
+    val kuduFields = createKuduColumns(connectFields.toList)
+    createKuduSchema(kuduFields)
+  }
+
+  def convertToKuduSchema(schema : Schema) = {
+    val connectFields = createKuduColumns(schema.fields().asScala.toList)
+    createKuduSchema(connectFields)
+  }
+
+  def createKuduColumns(fields: List[Field]) = {
+    fields.map(cf=>convertConnectField(cf))
+  }
+
+  def createKuduSchema(fields : List[ColumnSchema]) = {
+    new org.kududb.Schema(fields.asJava)
   }
 
   /**
@@ -97,7 +103,7 @@ trait KuduConverter extends ConverterUtil {
     * @param field The Connect field to convert
     * @return The equivalent Kudu type
     * */
-  def convertConnectField(field: org.apache.kafka.connect.data.Field) : ColumnSchema = {
+  def convertConnectField(field: Field) : ColumnSchema = {
     val fieldType = field.schema().`type`()
     val fieldName = field.name()
     val kudu = fieldType match {

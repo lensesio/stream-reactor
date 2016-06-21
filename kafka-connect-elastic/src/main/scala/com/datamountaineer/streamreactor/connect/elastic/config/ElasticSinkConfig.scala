@@ -18,9 +18,8 @@ package com.datamountaineer.streamreactor.connect.elastic.config
 
 import java.util
 
+import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
-import org.apache.kafka.common.config.ConfigDef.Importance
-import org.apache.kafka.common.config.ConfigDef.Type
 
 
 object ElasticSinkConfig {
