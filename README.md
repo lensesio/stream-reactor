@@ -10,19 +10,23 @@ You can find example grammars <a href="https://github.com/antlr/grammars-v4">her
 
 Kafka Connect Common is in Maven, include it in your connector.
 
+# Build
 ```bash
-#maven
 <dependency>
 	<groupId>com.datamountaineer</groupId>
 	<artifactId>kcql</artifactId>
 	<version>0.3</version>
 </dependency>
+```
 
-#sbt
+sbt
+```bash
 libraryDependencies += "com.datamountaineer" % "kcql % "0.3"
+```
 
-#gradle
-'com.datamountaineer:kcql:0.3'
+gradle
+```bash
+com.datamountaineer:kcql:0.3'
 ```
 
 # Why ?
