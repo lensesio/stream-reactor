@@ -1,6 +1,5 @@
 ![](../images/DM-logo.jpg)
-[![Documentation Status](http://docs.datamountaineer.com/en/latest/badge/?version=latest)](http://docs.datamountaineer.com/en/latest/cassandra.html)
-
+[![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://docs.datamountaineer.com/en/latest/cassandra.html/?badge=latest)
 
 # Kafka Connect Cassandra
 

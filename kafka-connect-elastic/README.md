@@ -1,5 +1,6 @@
 ![](../images/DM-logo.jpg)
-[![Documentation Status](http://docs.datamountaineer.com/en/latest/badge/?version=latest)](http://docs.datamountaineer.com/en/latest/elastic.html)
+[![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://docs.datamountaineer.com/en/latest/elastic.html/?badge=latest)
+
 
 # Kafka Connect Elastic
 
