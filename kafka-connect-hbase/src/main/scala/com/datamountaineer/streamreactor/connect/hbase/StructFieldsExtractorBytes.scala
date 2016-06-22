@@ -65,33 +65,3 @@ case class StructFieldsExtractorBytes(includeAllFields: Boolean, fieldsAliasMap:
 }
 
 
-/**
-  * Utility class to allow easy conversion to bytes for :Boolean, Byte, Short, Int, Long, Float, Double and  String
-  */
-object BytesHelper {
-
-  /**
-    * Implicit converter to sequence of bytes
-    *
-    * @param value - The object to convert to bytes.
-    */
-  implicit class ToBytesConverter(val value: Any) extends AnyVal {
-    def fromBoolean() : Array[Byte] = Bytes.toBytes(value.asInstanceOf[Boolean])
-
-    def fromByte() : Array[Byte] = Array(value.asInstanceOf[Byte])
-
-    def fromShort() : Array[Byte] = Bytes.toBytes(value.asInstanceOf[Short])
-
-    def fromInt() : Array[Byte] = Bytes.toBytes(value.asInstanceOf[Int])
-
-    def fromLong() : Array[Byte] = Bytes.toBytes(value.asInstanceOf[Long])
-
-    def fromFloat() : Array[Byte] = Bytes.toBytes(value.asInstanceOf[Float])
-
-    def fromDouble() : Array[Byte] = Bytes.toBytes(value.asInstanceOf[Double])
-
-    def fromString() : Array[Byte] = Bytes.toBytes(value.toString)
-
-    def fromBytes() : Array[Byte] = value.asInstanceOf[Array[Byte]]
-  }
-}

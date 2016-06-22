@@ -1,7 +1,8 @@
 package com.datamountaineer.streamreactor.connect.writer.converters
 
-import javax.jms.BytesMessage
+import javax.jms.{BytesMessage, ObjectMessage}
 
+import com.datamountaineer.streamreactor.connect.IteratorToSeqFn
 import com.datamountaineer.streamreactor.connect.jms.sink.writer.converters.ObjectMessageConverter
 import com.sksamuel.scalax.io.Using
 import org.apache.activemq.ActiveMQConnectionFactory
@@ -50,7 +51,7 @@ class ObjectMessageConverterTest extends WordSpec with Matchers with Using {
             .put("mapNonStringKeys", Map(1 -> 1).asJava)
 
           val record = new SinkRecord("topic", 0, null, null, schema, struct, 1)
-          val msg = converter.convert(record, session).asInstanceOf[BytesMessage]
+          val msg = converter.convert(record, session).asInstanceOf[ObjectMessage]
 
           Option(msg).isDefined shouldBe true
 
@@ -62,7 +63,7 @@ class ObjectMessageConverterTest extends WordSpec with Matchers with Using {
           msg.getFloatProperty("float32") shouldBe 12.2f
           msg.getDoubleProperty("float64") shouldBe 12.2
           msg.getStringProperty("string") shouldBe "foo"
-          msg.getObjectProperty("bytes") shouldBe "foo".getBytes()
+          msg.getObjectProperty("bytes").asInstanceOf[java.util.List[Byte]].toArray shouldBe "foo".getBytes()
           val arr = msg.getObjectProperty("array")
           arr.asInstanceOf[java.util.List[String]].asScala.toArray shouldBe Array("a", "b", "c")
 

@@ -42,6 +42,20 @@ class JMSSinkTask extends SinkTask with StrictLogging {
     **/
   override def start(props: util.Map[String, String]): Unit = {
 
+    logger.info("""
+                  |  _____        _        __  __                   _        _
+                  | |  __ \      | |      |  \/  |                 | |      (_)
+                  | | |  | | __ _| |_ __ _| \  / | ___  _   _ _ __ | |_ __ _ _ _ __   ___  ___ _ __
+                  | | |  | |/ _` | __/ _` | |\/| |/ _ \| | | | '_ \| __/ _` | | '_ \ / _ \/ _ \ '__|
+                  | | |__| | (_| | || (_| | |  | | (_) | |_| | | | | || (_| | | | | |  __/  __/ |
+                  | |_____/ \__,_|\__\__,_|_|__|_|\___/ \__,_|_| |_|\__\__,_|_|_| |_|\___|\___|_|
+                  |      | |              / ____(_)     | |   By Stefan Bocutiu
+                  |      | |_ __ ___  ___| (___  _ _ __ | | __
+                  |  _   | | '_ ` _ \/ __|\___ \| | '_ \| |/ /
+                  | | |__| | | | | | \__ \____) | | | | |   <
+                  |  \____/|_| |_| |_|___/_____/|_|_| |_|_|\_\
+                  |.""".stripMargin)
+
     JMSSinkConfig.config.parse(props)
     val sinkConfig = new JMSSinkConfig(props)
     val topics = context.assignment().asScala.map(c => c.topic()).toSet

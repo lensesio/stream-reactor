@@ -29,6 +29,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Try
+import scala.collection.JavaConverters._
 
 /**
   * <h1>CassandraJsonWriter</h1>

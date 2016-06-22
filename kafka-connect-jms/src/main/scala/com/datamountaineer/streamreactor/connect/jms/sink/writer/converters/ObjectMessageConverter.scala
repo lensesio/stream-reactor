@@ -1,10 +1,25 @@
+/**
+  * Copyright 2016 Datamountaineer.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **/
 package com.datamountaineer.streamreactor.connect.jms.sink.writer.converters
 
 import javax.jms.{Message, ObjectMessage, Session}
 
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-
+import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
 
 class ObjectMessageConverter extends JMSMessageConverter {
@@ -28,7 +43,7 @@ class ObjectMessageConverter extends JMSMessageConverter {
 object ObjectMessageConverterFn {
   def apply(fieldName: String, value: AnyRef, schema: Schema, msg: ObjectMessage, session: Session): Unit = {
     schema.`type`() match {
-      case Schema.Type.BYTES => msg.setObjectProperty(fieldName, value.asInstanceOf[Array[Byte]])
+      case Schema.Type.BYTES => msg.setObjectProperty(fieldName, value.asInstanceOf[Array[Byte]].toList.asJava)
       case Schema.Type.BOOLEAN => msg.setBooleanProperty(fieldName, value.asInstanceOf[Boolean])
       case Schema.Type.FLOAT32 => msg.setFloatProperty(fieldName, value.asInstanceOf[Float])
       case Schema.Type.FLOAT64 => msg.setDoubleProperty(fieldName, value.asInstanceOf[Double])

@@ -16,10 +16,11 @@
 
 package com.datamountaineer.streamreactor.connect.hbase.avro
 
+import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Type
+
 import scala.collection.JavaConverters._
-import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
 
 /**
   * Builds a map of functions for extracting the values from an avro record and convert them to bytes
@@ -52,7 +53,7 @@ object AvroRecordFieldExtractorMapFn {
       case "INT" => (v: Any) => if (v == null) null else v.fromInt()
       case "LONG" => (v: Any) => if (v == null) null else v.fromLong()
       case "STRING" => (v: Any) => if (v == null) null else v.fromString()
-      case "UNION"  =>
+      case "UNION" =>
         schema.getTypes.asScala.collectFirst {
           case s if s.getType != Type.NULL => getFunc(s)
         }.getOrElse(throw new IllegalArgumentException(s"$schema is not supported."))

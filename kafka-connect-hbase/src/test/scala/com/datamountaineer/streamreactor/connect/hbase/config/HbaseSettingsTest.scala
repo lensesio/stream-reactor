@@ -1,7 +1,7 @@
 package com.datamountaineer.streamreactor.connect.hbase.config
 
-import com.datamountaineer.streamreactor.connect.hbase.{GenericRowKeyBuilderBytes, StructFieldsRowKeyBuilderBytes}
 import com.datamountaineer.streamreactor.connect.hbase.config.HbaseSinkConfig._
+import com.datamountaineer.streamreactor.connect.hbase.{GenericRowKeyBuilderBytes, StructFieldsRowKeyBuilderBytes}
 import org.apache.kafka.common.config.ConfigException
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar

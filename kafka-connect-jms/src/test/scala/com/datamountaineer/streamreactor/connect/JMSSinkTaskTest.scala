@@ -5,11 +5,13 @@ import javax.jms.{Message, MessageListener, Session, TextMessage}
 
 import com.datamountaineer.streamreactor.connect.hbase.JMSSinkTask
 import com.datamountaineer.streamreactor.connect.jms.sink.config._
+import com.fasterxml.jackson.databind.node.{ArrayNode, IntNode}
 import com.sksamuel.scalax.io.Using
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.json.JsonDeserializer
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
@@ -35,7 +37,7 @@ class JMSSinkTaskTest extends WordSpec with Matchers with Using with BeforeAndAf
   }
 
   "JMSSinkTask" should {
-    "redirect the connect records to JMS" ignore {
+    "redirect the connect records to JMS" in {
 
       val kafkaTopic1 = "kafkaTopic1"
       val kafkaTopic2 = "kafkaTopic2"
@@ -143,11 +145,52 @@ class JMSSinkTaskTest extends WordSpec with Matchers with Using with BeforeAndAf
           queueMessage != null shouldBe true
           topicMessage != null shouldBe true
 
-          val expectedJsonMessageQueue ="""{"int8":12,"int16":12,"int":12,"long":12,"float32":12.2,"float64":12.2,"boolean":true,"string":"foo","bytes":"Zm9v","array":["a","b","c"],"map":{"field":1},"mapNonStringKeys":[[1,1]]}"""
-          val expectedJsonMessageTopic ="""{"byte":12,"short":12,"int32":12,"int64":12,"float32":12.2,"float64":12.2,"boolean":true,"string":"foo","bytes":"Zm9v","array":["a","b","c"],"map":{"field":1},"mapNonStringKeys":[[1,1]]}"""
+          //can not do json text comparison because fields order is not guaranteed
+          val deserializer = new JsonDeserializer()
+          val queueJson = deserializer.deserialize("", queueMessage.getText.getBytes)
+          queueJson.get("byte").asInt() shouldBe 12
+          queueJson.get("short").asInt() shouldBe 12
+          queueJson.get("int32").asInt() shouldBe 12
+          queueJson.get("int64").asInt() shouldBe 12
+          queueJson.get("float32").asDouble() shouldBe 12.2
+          queueJson.get("float64").asDouble() shouldBe 12.2
+          queueJson.get("boolean").asBoolean() shouldBe true
+          queueJson.get("string").asText() shouldBe "foo"
+          queueJson.get("bytes").asText() shouldBe "Zm9v"
+          IteratorToSeqFn(queueJson.get("array").asInstanceOf[ArrayNode].iterator()).map {
+            _.asText()
+          }.toSet shouldBe Set("a", "b", "c")
+          IteratorToSeqFn(queueJson.get("map").fields()).map { t =>
+            t.getKey -> t.getValue.asInstanceOf[IntNode].asInt()
+          }.toMap shouldBe Map("field" -> 1)
 
-          queueMessage.getText shouldBe expectedJsonMessageQueue
-          topicMessage.getText shouldBe expectedJsonMessageTopic
+          IteratorToSeqFn(queueJson.get("mapNonStringKeys").asInstanceOf[ArrayNode].iterator()).flatMap { t =>
+            IteratorToSeqFn(queueJson.get("mapNonStringKeys").asInstanceOf[ArrayNode].iterator().next().asInstanceOf[ArrayNode].iterator())
+              .map(_.asInt())
+          }.toVector shouldBe Vector(1, 1)
+
+          val topicJson = deserializer.deserialize("", topicMessage.getText.getBytes)
+          topicJson.get("int8").asInt() shouldBe 12
+          topicJson.get("int16").asInt() shouldBe 12
+          topicJson.get("int").asInt() shouldBe 12
+          topicJson.get("long").asInt() shouldBe 12
+          topicJson.get("float32").asDouble() shouldBe 12.2
+          topicJson.get("float64").asDouble() shouldBe 12.2
+          topicJson.get("boolean").asBoolean() shouldBe true
+          topicJson.get("string").asText() shouldBe "foo"
+          topicJson.get("bytes").asText() shouldBe "Zm9v"
+          IteratorToSeqFn(topicJson.get("array").asInstanceOf[ArrayNode].iterator()).map {
+            _.asText()
+          }.toSet shouldBe Set("a", "b", "c")
+
+          IteratorToSeqFn(topicJson.get("map").fields()).map { t =>
+            t.getKey -> t.getValue.asInstanceOf[IntNode].asInt()
+          }.toMap shouldBe Map("field" -> 1)
+
+          IteratorToSeqFn(topicJson.get("mapNonStringKeys").asInstanceOf[ArrayNode].iterator()).flatMap { t =>
+            IteratorToSeqFn(topicJson.get("mapNonStringKeys").asInstanceOf[ArrayNode].iterator().next().asInstanceOf[ArrayNode].iterator())
+              .map(_.asInt())
+          }.toVector shouldBe Vector(1, 1)
         }
       }
     }
