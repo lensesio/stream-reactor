@@ -26,12 +26,10 @@ import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
 import com.datamountaineer.streamreactor.connect.concurrent.FutureAwaitWithFailFastFn
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import com.datastax.driver.core.{PreparedStatement, ResultSet, Session}
+import com.datastax.driver.core.{PreparedStatement, Session}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
@@ -160,20 +158,6 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     } else {
       records.map(r => convertValueToJson(r).toString)
     }
-  }
-
-  private def asyncWrite(results: Future[ResultSet]) = {
-    //increment latch
-    results.onSuccess({
-      case r: ResultSet =>
-        logger.debug(s"Write successful!")
-    })
-
-    //increment latch but set status to false
-    results.onFailure({
-      case t: Throwable =>
-        logger.warn(s"Write failed! ${t.getMessage}")
-    })
   }
 
   /**
