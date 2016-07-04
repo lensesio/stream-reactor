@@ -8,11 +8,8 @@ import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
   * Created by andrew@datamountaineer.com on 14/04/16.
   * stream-reactor
   */
-class TestCassandraConnectionSecure extends WordSpec with BeforeAndAfter with Matchers with TestConfig {
+class TestCassandraConnectionSecure extends WordSpec with Matchers with TestConfig {
 
-  before {
-    startEmbeddedCassandraSecure()
-  }
 
   "should return a secured session" in {
     createTableAndKeySpace(secure = true, ssl = false)

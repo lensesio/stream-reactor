@@ -17,6 +17,7 @@ import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper
 import org.mockito.Mockito._
+import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
 
 import scala.collection.JavaConverters._

@@ -7,7 +7,6 @@
 //import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 //import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 //import com.fasterxml.jackson.databind.JsonNode
-//import org.apache.kafka.common.config.AbstractConfig
 //import org.apache.kafka.connect.source.SourceRecord
 //import org.scalatest.mock.MockitoSugar
 //import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}

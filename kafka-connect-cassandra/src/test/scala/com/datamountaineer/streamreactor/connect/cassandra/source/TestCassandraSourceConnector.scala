@@ -9,7 +9,7 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 20/04/16.
   * stream-reactor
   */
-class TestCassandraSourceConnector extends WordSpec with BeforeAndAfter with Matchers with TestConfig {
+class TestCassandraSourceConnector extends WordSpec with Matchers with TestConfig {
   "Should start a Cassandra Source Connector" in {
     val props = getCassandraConfigSourcePropsBulk
     val connector = new CassandraSourceConnector()
