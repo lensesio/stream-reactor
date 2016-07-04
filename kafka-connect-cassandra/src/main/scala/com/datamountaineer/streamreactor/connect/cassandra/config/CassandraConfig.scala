@@ -16,13 +16,15 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.config
 
-import org.apache.kafka.common.config.ConfigDef
+import java.util
+
+import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
 /**
   *Holds the base configuration.
   * */
-trait CassandraConfig {
+case class CassandraConfig() {
 
     val configDef: ConfigDef = new ConfigDef()
       .define(CassandraConfigConstants.CONTACT_POINTS,
@@ -51,12 +53,6 @@ trait CassandraConfig {
           Type.PASSWORD, "",
           Importance.LOW,
           CassandraConfigConstants.PASSWD_DOC)
-
-      .define(CassandraConfigConstants.AUTHENTICATION_MODE,
-          Type.STRING,
-          CassandraConfigConstants.AUTHENTICATION_MODE_DEFAULT,
-          Importance.HIGH,
-          CassandraConfigConstants.AUTHENTICATION_MODE_DOC)
 
       .define(CassandraConfigConstants.SSL_ENABLED,
           Type.BOOLEAN,
@@ -127,8 +123,9 @@ trait CassandraConfig {
   * Holds the extra configurations for the source on top of
   * the base.
   * */
-trait CassandraConfigSource extends CassandraConfig {
-      val sourceConfig = configDef
+object CassandraConfigSource {
+      val base = CassandraConfig().configDef
+      val sourceConfig = base
             .define(CassandraConfigConstants.IMPORT_MODE,
                     Type.STRING,
                     Importance.HIGH,
@@ -158,15 +155,21 @@ trait CassandraConfigSource extends CassandraConfig {
                     CassandraConfigConstants.POLL_INTERVAL_DOC)
         }
 
+case class CassandraConfigSource(props: util.Map[String, String])
+  extends AbstractConfig(CassandraConfigSource.sourceConfig, props)
+
 /**
   * Holds the extra configurations for the sink on top of
   * the base.
   * */
-trait CassandraConfigSink extends CassandraConfig {
-  val sinkConfig = configDef
+object CassandraConfigSink {
+  val base = CassandraConfig().configDef
+  val sinkConfig = base
     .define(CassandraConfigConstants.EXPORT_ROUTE_QUERY,
       Type.STRING,
       Importance.HIGH,
       CassandraConfigConstants.EXPORT_ROUTE_QUERY_DOC)
-
 }
+
+case class CassandraConfigSink(props: util.Map[String, String])
+  extends AbstractConfig(CassandraConfigSink.sinkConfig, props)

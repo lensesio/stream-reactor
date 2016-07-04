@@ -10,12 +10,12 @@ import org.scalatest.mock.MockitoSugar
 
 
 class TestElasticWriter extends TestElasticBase with MockitoSugar {
-  test("A ElasticWriter should insert into Elastic Search a number of records") {
+  "A ElasticWriter should insert into Elastic Search a number of records" in {
     //mock the context to return our assignment when called
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)
     //get test records
-    val testRecords: List[SinkRecord] = getTestRecords
+    val testRecords = getTestRecords
     //get config
     val config  = new ElasticSinkConfig(getElasticSinkConfigProps)
 

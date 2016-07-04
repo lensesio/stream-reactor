@@ -57,18 +57,18 @@ object ConnectorConfig {
   val EXPORT_ROUTE_QUERY = "connect.hbase.export.route.query"
   val EXPORT_ROUTE_QUERY_DOC = ""
 
-  val ERROR_POLICY = "connect.hbase.error.policy"
+  val ERROR_POLICY = "connect.bloomberg.error.policy"
   val ERROR_POLICY_DOC = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
     "There are two available options: \n" + "NOOP - the error is swallowed \n" +
     "THROW - the error is allowed to propagate. \n" +
     "RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on \n" +
-    "The error will be logged automatically";
+    "The error will be logged automatically"
   val ERROR_POLICY_DEFAULT = "THROW"
 
-  val ERROR_RETRY_INTERVAL = "connect.hbase.retry.interval"
+  val ERROR_RETRY_INTERVAL = "connect.bloomberg.retry.interval"
   val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
   val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
-  val NBR_OF_RETRIES = "connect.hbase.max.retires"
+  val NBR_OF_RETRIES = "connect.bloomberg.max.retires"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 

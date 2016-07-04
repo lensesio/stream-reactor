@@ -12,8 +12,7 @@ import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
   * Created by andrew@datamountaineer.com on 04/05/16. 
   * stream-reactor
   */
-class TestCassandraJsonWriterNoop extends WordSpec with Matchers with MockitoSugar with BeforeAndAfter with TestConfig
-  with CassandraConfigSink {
+class TestCassandraJsonWriterNoop extends WordSpec with Matchers with MockitoSugar with BeforeAndAfter with TestConfig {
   before {
     startEmbeddedCassandra()
   }
@@ -27,7 +26,7 @@ class TestCassandraJsonWriterNoop extends WordSpec with Matchers with MockitoSug
     val testRecords = getTestRecords(TABLE1)
     //get config
     val props  = getCassandraConfigSinkPropsNoop
-    val taskConfig = new AbstractConfig(sinkConfig, props)
+    val taskConfig = new CassandraConfigSink(props)
     val writer = CassandraWriter(taskConfig, context)
 
     //drop table in cassandra

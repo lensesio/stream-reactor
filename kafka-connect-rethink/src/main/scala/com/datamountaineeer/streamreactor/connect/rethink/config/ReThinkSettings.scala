@@ -18,33 +18,43 @@ package com.datamountaineeer.streamreactor.connect.rethink.config
 
 import com.datamountaineer.connector.config.{Config, WriteModeEnum}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
-import org.apache.kafka.common.config.AbstractConfig
+import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 13/05/16.
   * stream-reactor-maven
   */
-case class ReThinkSetting(routes: List[Config],
+case class ReThinkSetting(db : String,
+                          routes: Set[Config],
                           topicTableMap : Map[String, String],
                           fieldMap : Map[String, Map[String, String]],
+                          ignoreFields: Map[String, Set[String]],
+                          pks : Map[String, Set[String]],
                           conflictPolicy: Map[String, String],
                           errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                           maxRetries : Int,
                           batchSize : Int
                          )
 
-//case class ReThinkSettings(settings : List[ReThinkSetting])
-
 object ReThinkSettings {
-  def apply(config: AbstractConfig, assigned: List[String], sinkTask: Boolean) : ReThinkSetting = {
+  def apply(config: ReThinkSinkConfig, assigned: Set[String]) : ReThinkSetting = {
 
     val raw = config.getString(ReThinkSinkConfig.EXPORT_ROUTE_QUERY)
-    require((raw != null && !raw.isEmpty),  s"No ${ReThinkSinkConfig.EXPORT_ROUTE_QUERY} provided!")
+    require(raw != null && !raw.isEmpty,  s"No ${ReThinkSinkConfig.EXPORT_ROUTE_QUERY} provided!")
 
     //parse query
-    val routes: Set[Config] = raw.split(";").map(r => Config.parse(r)).toSet.filter(f=>assigned.contains(f.getSource))
+    val routes = raw.split(";")
+                  .map(r => Config.parse(r)).toSet
+                  .filter(f => assigned.contains(f.getSource))
+
+    //only allow on primary key for rethink.
+    routes
+      .filter(r => r.getPrimaryKeys.asScala.size > 1)
+      .foreach(r => new ConnectException(s"More than one primary key found in ${ReThinkSinkConfig.EXPORT_ROUTE_QUERY}." +
+        s" Only one field can be set."))
 
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(ReThinkSinkConfig.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
@@ -53,23 +63,33 @@ object ReThinkSettings {
 
     //check conflict policy
     val conflictMap = routes.map(m=>{
-      (m.getSource,
-      m.getWriteMode match {
+      (m.getTarget, m.getWriteMode match {
         case WriteModeEnum.INSERT => ReThinkSinkConfig.CONFLICT_ERROR
         case WriteModeEnum.UPSERT => ReThinkSinkConfig.CONFLICT_REPLACE
       })
     }).toMap
 
-    val topicTableMap = routes.map(rm=>(rm.getSource, rm.getTarget)).toMap
+    val topicTableMap = routes.map(rm => (rm.getSource, rm.getTarget)).toMap
 
-    val fieldMap = routes.map({
-      rm=>(rm.getSource,
-        rm.getFieldAlias.map({
-          fa=>(fa.getField,fa.getAlias)
-        }).toMap)
-    }).toMap
+    val fieldMap = routes.map(
+      rm => (rm.getSource, rm.getFieldAlias.map( fa => (fa.getField,fa.getAlias)).toMap)
+    ).toMap
 
-    ReThinkSetting(routes.toList, topicTableMap, fieldMap, conflictMap, errorPolicy, maxRetries, batchSize)
+    val db = config.getString(ReThinkSinkConfig.RETHINK_DB)
+    val p = routes.map(r => (r.getSource, r.getPrimaryKeys.toSet)).toMap
+
+    //get the field expected in the sink record which maps to a primary key
+    val pks = fieldMap.map({
+      case (topic, fieldList) =>
+        (topic,
+        fieldList
+          .filter({ case (f,a) => p.contains(a) })
+          .map({ case (f, a) => f })
+            .toSet)
+    })
+    val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.asScala.toSet)).toMap
+
+    ReThinkSetting(db, routes, topicTableMap, fieldMap, ignoreFields ,pks, conflictMap, errorPolicy, maxRetries, batchSize)
   }
 }
 

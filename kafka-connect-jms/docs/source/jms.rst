@@ -1,5 +1,5 @@
 Kafka Connect JMS
-===================
+=================
 
 A Connector and Sink to write events from Kafka to JMS. The connector takes the value from the Kafka Connect SinkRecords
 and pushes them to a JMS topic/queuea.
@@ -146,7 +146,7 @@ Now the producer is waiting for input. Paste in the following:
     {"firstName": "Anna", "lastName": "Jones", "age":28, "salary": 5430}
 
 Check for records in your JMS system
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now check the logs of the connector you should see this
 

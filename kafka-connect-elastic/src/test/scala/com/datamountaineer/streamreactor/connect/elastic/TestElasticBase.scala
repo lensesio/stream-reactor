@@ -7,13 +7,13 @@ import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSinkConfi
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
+import org.scalatest.{BeforeAndAfter, FunSuite, Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.reflect.io.File
 
-trait TestElasticBase extends FunSuite with Matchers with BeforeAndAfter {
+trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
   val ELASTIC_SEARCH_HOSTNAMES = "localhost:9300"
   val TOPIC = "sink_test"
   val INDEX = "index_andrew"
@@ -65,7 +65,7 @@ trait TestElasticBase extends FunSuite with Matchers with BeforeAndAfter {
   }
 
   //generate some test records
-  def getTestRecords: List[SinkRecord]= {
+  def getTestRecords: Set[SinkRecord]= {
     val schema = createSchema
     val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
 
@@ -74,7 +74,7 @@ trait TestElasticBase extends FunSuite with Matchers with BeforeAndAfter {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
         new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i)
       })
-    }).toList
+    }).toSet
   }
 
   def getElasticSinkConfigProps = {

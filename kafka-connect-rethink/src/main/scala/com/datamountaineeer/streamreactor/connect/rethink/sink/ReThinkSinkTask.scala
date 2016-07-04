@@ -1,5 +1,5 @@
 /**
-  * Copyright 2015 Datamountaineer.
+  * Copyright 2016 Datamountaineer.
   *
   * Licensed under the Apache License, Version 2.0 (the "License");
   * you may not use this file except in compliance with the License.
@@ -53,10 +53,7 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
         |by Andrew Stevenson
       """.stripMargin)
 
-
-    //validate the config
-    ReThinkSinkConfig.config.parse(props)
-    val sinkConfig = new ReThinkSinkConfig(props)
+    val sinkConfig = ReThinkSinkConfig(props)
     writer = Some(ReThinkWriter(config = sinkConfig, context = context))
   }
 
@@ -65,25 +62,18 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
     * */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.foreach(w=>w.write(records.asScala.toList))
+    writer.foreach(w => w.write(records.asScala.toList))
   }
 
   /**
     * Clean up writer
     * */
   override def stop(): Unit = {
-    logger.info("Stopping Kudu sink.")
-    writer.foreach(w => {
-      w.sync()
-      w.close()
-    })
+    logger.info("Stopping Rethink sink.")
+    writer.foreach(w => w.close())
   }
 
-  override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {
-      require(writer.nonEmpty, "Writer is not set!")
-      writer.map(w=>w.sync())
-  }
-
+  override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
   override def version(): String = getClass.getPackage.getImplementationVersion
 
 }

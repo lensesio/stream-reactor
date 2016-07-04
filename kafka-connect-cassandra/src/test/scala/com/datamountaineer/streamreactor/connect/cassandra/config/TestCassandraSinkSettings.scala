@@ -15,13 +15,12 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 28/04/16. 
   * stream-reactor
   */
-class
-TestCassandraSinkSettings extends WordSpec with Matchers  with MockitoSugar with CassandraConfigSink with TestConfig {
+class TestCassandraSinkSettings extends WordSpec with Matchers  with MockitoSugar with TestConfig {
   "CassandraSettings should return setting for a sink" in {
     val context = mock[SinkTaskContext]
     //mock the assignment to simulate getting a list of assigned topics
     when(context.assignment()).thenReturn(getAssignment)
-    val taskConfig  = new AbstractConfig(sinkConfig, getCassandraConfigSinkPropsRetry)
+    val taskConfig  = CassandraConfigSink(getCassandraConfigSinkPropsRetry)
     val assigned = context.assignment().asScala.map(c=>c.topic()).toList
     val settings = CassandraSettings.configureSink(taskConfig, assigned)
 

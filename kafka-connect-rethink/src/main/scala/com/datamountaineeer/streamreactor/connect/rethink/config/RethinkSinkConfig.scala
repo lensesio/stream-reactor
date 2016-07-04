@@ -30,18 +30,10 @@ object ReThinkSinkConfig {
   val RETHINK_HOST_DOC = "Rethink server host."
   val RETHINK_HOST_DEFAULT = "localhost"
   val RETHINK_DB = "connect.rethink.sink.db"
-  val RETHINK_DB_DOC = "The target database in reThink."
-
-  val CONFLICT_POLICY_MAP = "connect.rethink.conflict.policy"
-  val CONFLICT_POLICY_DOC =
-    """
-      |The ReThinkDB conflict resolution policy on insert conflicts. Available options are ERROR, REPLACE and UPDATE.
-      |ERROR will cause the SinkRecord not to be insert, this is the default.
-      |REPLACE will replace completely the existing record with the new SinkRecord.
-      |UPDATE will replace any values that have changed.
-      |
-      |The policy can be set per target table. For example table1:ERROR,table2:REPLACE,table3:UPDATE
-    """.stripMargin
+  val RETHINK_DB_DOC = "The reThink database to write to and create tables in."
+  val RETHINK_PORT = "connect.rethink.sink.port"
+  val RETHINK_PORT_DEFAULT = "28015"
+  val RETHINK_PORT_DOC = "Client port of rethink server to connect to."
 
   val CONFLICT_ERROR = "ERROR"
   val CONFLICT_REPLACE = "REPLACE"
@@ -55,7 +47,7 @@ object ReThinkSinkConfig {
     "There are two available options: \n" + "NOOP - the error is swallowed \n" +
     "THROW - the error is allowed to propagate. \n" +
     "RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on \n" +
-    "The error will be logged automatically";
+    "The error will be logged automatically"
   val ERROR_POLICY_DEFAULT = "THROW"
 
   val ERROR_RETRY_INTERVAL = "connect.rethink.sink.retry.interval"
@@ -64,7 +56,6 @@ object ReThinkSinkConfig {
   val NBR_OF_RETRIES = "connect.rethink.sink.max.retires"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
-
 
   val BATCH_SIZE = "connect.rethink.sink.batch.size"
   val BATCH_SIZE_DOC = "Per topic the number of sink records to batch together and insert into Kudu"
@@ -77,15 +68,14 @@ object ReThinkSinkConfig {
   val config: ConfigDef = new ConfigDef()
     .define(RETHINK_HOST, Type.STRING, RETHINK_HOST_DEFAULT, Importance.HIGH, RETHINK_HOST_DOC)
     .define(RETHINK_DB, Type.STRING, Importance.HIGH, RETHINK_HOST_DOC)
+    .define(RETHINK_PORT, Type.INT, RETHINK_PORT_DEFAULT, Importance.MEDIUM, RETHINK_PORT_DOC)
     .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY)
     .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC)
     .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC)
     .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC)
-    .define(CONFLICT_POLICY_MAP, Type.STRING, CONFLICT_ERROR, Importance.HIGH, CONFLICT_POLICY_DOC)
     .define(BATCH_SIZE, Type.INT, BATCH_SIZE_DEFAULT, Importance.MEDIUM, BATCH_SIZE_DOC)
     .define(SCHEMA_REGISTRY_URL, Type.STRING, SCHEMA_REGISTRY_URL_DEFAULT ,Importance.HIGH, SCHEMA_REGISTRY_URL_DOC)
 }
 
-class ReThinkSinkConfig(props: util.Map[String, String])
-  extends AbstractConfig(ReThinkSinkConfig.config, props) {
-}
+case class ReThinkSinkConfig(props: util.Map[String, String])
+  extends AbstractConfig(ReThinkSinkConfig.config, props)

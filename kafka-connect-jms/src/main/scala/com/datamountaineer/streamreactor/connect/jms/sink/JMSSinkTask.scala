@@ -14,7 +14,7 @@
   * limitations under the License.
   **/
 
-package com.datamountaineer.streamreactor.connect.hbase
+package com.datamountaineer.streamreactor.connect.jms
 
 import java.util
 

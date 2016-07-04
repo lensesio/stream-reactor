@@ -35,9 +35,9 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     diff.size shouldBe 0
   }
 
-  "Should throw because auto create with no primary keys" in {
+  "Should throw because auto create with no distribute by keys" in {
     val config = new KuduSinkConfig(getConfig)
-    val settings = KuduSettings(config, List(TOPIC), true)
+    val settings = KuduSettings(config, List(TOPIC), sinkTask = true)
     val schema =
       """
         |{ "type": "record",
@@ -65,7 +65,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val settings = KuduSettings(config, List(TOPIC), true)
 
     val creates = settings.routes.map(r=>DbHandler.getKuduSchema(r, schema))
-    val create = creates(0)
+    val create = creates.head
     create.getColumnCount shouldBe 8
     create.getPrimaryKeyColumnCount shouldBe 2
     val cols = create.getColumns
@@ -85,7 +85,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val settings = KuduSettings(config, List(TOPIC), true)
 
     val creates = settings.routes.map(r=>DbHandler.getKuduSchema(r, schemaDefaults))
-    val create = creates(0)
+    val create = creates.head
     create.getColumnCount shouldBe 8
     create.getPrimaryKeyColumnCount shouldBe 2
     val cols = create.getColumns
@@ -139,7 +139,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val port: Int = InstanceSpec.getRandomPort
     val cluster: EmbeddedSingleNodeKafkaCluster = new EmbeddedSingleNodeKafkaCluster
     val registry: RestApp = new RestApp(port, cluster.zookeeperConnect, "test")
-    registry.start
+    registry.start()
     val schemaClient: RestService = registry.restClient
 
     val rawSchema: String =
@@ -170,7 +170,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val client = mock[KuduClient]
 
     val kuduSchemas = DbHandler.createTableProps(
-      List(rawSchema),
+      Set(rawSchema),
       settings.routes.head,
       config.getString(KuduSinkConfig.SCHEMA_REGISTRY_URL),
       client)

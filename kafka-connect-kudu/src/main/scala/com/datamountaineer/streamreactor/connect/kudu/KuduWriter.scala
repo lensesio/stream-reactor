@@ -16,6 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.kudu
 
+import com.datamountaineer.connector.config.WriteModeEnum
 import com.datamountaineer.streamreactor.connect.KuduConverter
 import com.datamountaineer.streamreactor.connect.config.{KuduSetting, KuduSinkConfig}
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
@@ -52,17 +53,13 @@ class KuduWriter(client: KuduClient, setting: KuduSetting) extends StrictLogging
   private lazy val kuduTablesCache = collection.mutable.Map(DbHandler.buildTableCache(setting, client).toSeq:_*)
   private lazy val session = client.newSession()
 
-  //get mapping routes
-  private val topicTables = setting.routes.map(r=>(r.getSource, r.getTarget)).toMap
-  private val autoEvolve = setting.allowAutoEvolve
-  private val fields = setting.fieldsMap
-
   //ignore duplicate in case of redelivery
   session.isIgnoreAllDuplicateRows
 
   //initialize error tracker
   initialize(setting.maxRetries, setting.errorPolicy)
 
+  //schema cache
   val schemaCache = mutable.Map.empty[String, SchemaMap]
 
   /**
@@ -70,16 +67,19 @@ class KuduWriter(client: KuduClient, setting: KuduSetting) extends StrictLogging
     *
     * @param records A list of SinkRecords to write
     * */
-  def write(records: List[SinkRecord]) : Unit = {
-
+  def write(records: Set[SinkRecord]) : Unit = {
     if (records.isEmpty) {
-      logger.info("No records received.")
+      logger.debug("No records received.")
     } else {
-      //group the records by topic to get a map [string, list[sinkrecords]] in batches
-      val grouped = records.groupBy(_.topic()).grouped(setting.batchSize)
+      logger.info(s"Received ${records.size} records.")
 
-      //for each group get a new insert, convert and apply
-      grouped.foreach(g => g.foreach {case (topic, entries) => applyInsert(topic, entries, session)})
+      //if error occurred rebuild cache in case of change on target tables
+      if (errored()) {
+        kuduTablesCache.empty
+        DbHandler.buildTableCache(setting, client).map({ case (topic, table) => kuduTablesCache.put(topic, table)})
+      }
+
+      applyInsert(records, session)
     }
   }
 
@@ -87,36 +87,35 @@ class KuduWriter(client: KuduClient, setting: KuduSetting) extends StrictLogging
     * Per topic, build an new Kudu insert. Per insert build a Kudu row per SinkRecord.
     * Apply the insert per topic for the rows
     * */
-  private def applyInsert(topic: String, records: List[SinkRecord], session: KuduSession) = {
-    logger.debug(s"Preparing write for $topic.")
-
+  private def applyInsert(records: Set[SinkRecord], session: KuduSession) = {
     val t = Try({
       records
-        .map(r=>getKuduTable(r))
-        .map(r=>convert(r, fields.get(r.topic()).get)) //extract fields
-        .map(r=>handleAlterTable(r)) // Handle an changes in the upstream schema
-        .map(r=>convertToKuduInsert(r, kuduTablesCache.get(r.topic()).get)) //convert the event to a kudu insert
-        .foreach(i=>session.apply(i)) //apply the insert
-      flush() //flush and handle any errors
+        .map(r => convert(r, setting.fieldsMap.get(r.topic).get, setting.ignoreFields.get(r.topic).get))
+        .map(r => applyDDLs(r))
+        .map(r => convertToKuduUpsert(r, kuduTablesCache.get(r.topic).get))
+        .foreach(i => session.apply(i))
+      flush()
     })
     handleTry(t)
-    logger.info(s"Written ${records.size} for $topic")
+    logger.info(s"Written ${records.size}")
   }
 
   /**
-    * Get the Kudu table from the cache or create one
+    * Create the Kudu table if not already done and alter table if required
     *
     * @param record The sink record to create a table for
     * @return A KuduTable
     * */
-  private def getKuduTable(record: SinkRecord) : SinkRecord = {
-    kuduTablesCache.getOrElse(record.topic(), {
-      val mapping = setting.routes.filter(f=>f.getSource.equals(record.topic())).head
+  private def applyDDLs(record: SinkRecord) : SinkRecord = {
+    if (!kuduTablesCache.contains(record.topic())) {
+      val mapping = setting.routes.filter(f => f.getSource.equals(record.topic())).head
       val table = DbHandler.createTableFromSinkRecord(mapping, record.valueSchema(), client).get
       logger.info(s"Adding table ${mapping.getTarget} to the table cache")
       kuduTablesCache.put(mapping.getSource, table)
-    })
-   record
+    } else {
+      handleAlterTable(record)
+    }
+    record
   }
 
 
@@ -129,39 +128,27 @@ class KuduWriter(client: KuduClient, setting: KuduSetting) extends StrictLogging
     val schema = record.valueSchema()
     val version = schema.version()
     val topic = record.topic()
-    val table = topicTables.get(topic).get
-    val old = schemaCache.getOrElse(topic, SchemaMap(version, schema))
+    val table = setting.topicTables.get(topic).get
+    val cachedSchema = schemaCache.getOrElse(topic, SchemaMap(version, schema))
 
     //allow evolution
-    val evolving = if (autoEvolve.getOrElse(topic, false)) {
-      shouldAlter(cachedVersion = old.version, newVersion = version)
+    val evolving = if (setting.allowAutoEvolve.getOrElse(topic, false)) {
+      cachedSchema.version < version
     } else {
       false
     }
 
-    evolving match {
-      case true => {
-        logger.info(s"Schema change detected for ${topic} mapped to table $table. Old schema version " +
-          s"${old.version} new version ${version}")
-        val kuduTable = DbHandler.alterTable(table, old.schema, schema, client)
-        kuduTablesCache.update(topic, kuduTable)
-        schemaCache.update(topic, SchemaMap(version, schema))
-      }
-      case _ => schemaCache.update(topic, SchemaMap(version, schema))
+    //if table is allowed to evolve all the table
+    if (evolving) {
+      logger.info(s"Schema change detected for $topic mapped to table $table. Old schema version " +
+        s"${cachedSchema.version} new version $version")
+      val kuduTable = DbHandler.alterTable(table, cachedSchema.schema, schema, client)
+      kuduTablesCache.update(topic, kuduTable)
+      schemaCache.update(topic, SchemaMap(version, schema))
+    } else {
+      schemaCache.update(topic, SchemaMap(version, schema))
     }
     record
-  }
-
-
-  /**
-    * Checks if the topic of the record has changed schemas
-    *
-    * @param cachedVersion The cached version
-    * @param newVersion The new schema version from the sinkrecord
-    * @return A boolean indicating if the schema of the target table should change
-    * */
-  def shouldAlter(cachedVersion : Int, newVersion: Int) : Boolean = {
-    cachedVersion < newVersion
   }
 
   /**
@@ -179,14 +166,14 @@ class KuduWriter(client: KuduClient, setting: KuduSetting) extends StrictLogging
     *
     * */
   def flush() : Unit = {
-    if (!session.isClosed()) {
+    if (!session.isClosed) {
 
       //throw and let error policy handle it, don't want to throw RetriableExpection.
       //May want to die if error policy is Throw
       val responses = session.flush().asScala
       responses
         .filter(r=>r.hasRowError)
-        .map(e=>throw new Throwable("Failed to flush one or more changes: " + e.getRowError().toString()))
+        .map(e=>throw new Throwable("Failed to flush one or more changes: " + e.getRowError.toString))
     }
   }
 }

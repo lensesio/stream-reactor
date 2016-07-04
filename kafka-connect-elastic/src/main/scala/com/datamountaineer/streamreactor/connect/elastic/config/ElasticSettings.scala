@@ -1,5 +1,5 @@
 /**
-  * Copyright 2015 Datamountaineer.
+  * Copyright 2016 Datamountaineer.
   *
   * Licensed under the Apache License, Version 2.0 (the "License");
   * you may not use this file except in compliance with the License.
@@ -25,7 +25,10 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 13/05/16. 
   * stream-reactor-maven
   */
-case class ElasticSettings(routes: List[Config], fields : Map[String, Map[String, String]], tableMap: Map[String, String])
+case class ElasticSettings(routes: List[Config],
+                           fields : Map[String, Map[String, String]],
+                           ignoreFields: Map[String, Set[String]],
+                           tableMap: Map[String, String])
 
 object ElasticSettings {
   def apply(config: ElasticSinkConfig, assigned : List[String]): ElasticSettings = {
@@ -34,19 +37,17 @@ object ElasticSettings {
 
     val routes = raw.split(";").map(r=>Config.parse(r)).toList
 
-    if (routes.size == 0) {
+    if (routes.isEmpty) {
       throw new ConfigException(s"No routes for for assigned topics in ${ElasticSinkConfig.EXPORT_ROUTE_QUERY_DOC}")
     }
 
-    val fields = routes.map({
-      rm=>(rm.getSource,
-        rm.getFieldAlias.asScala.map({
-          fa=>(fa.getField,fa.getAlias)
-        }).toMap)
-    }).toMap
+    val fields = routes.map(
+      rm => (rm.getSource, rm.getFieldAlias.asScala.map(fa=>(fa.getField,fa.getAlias)).toMap)
+    ).toMap
 
-    val tableMap = routes.map(rm=>(rm.getSource, rm.getTarget)).toMap
+    val tableMap = routes.map(rm => (rm.getSource, rm.getTarget)).toMap
+    val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.asScala.toSet)).toMap
 
-    ElasticSettings(routes = routes, fields = fields, tableMap = tableMap)
+    ElasticSettings(routes = routes, fields = fields,ignoreFields = ignoreFields, tableMap = tableMap)
   }
 }

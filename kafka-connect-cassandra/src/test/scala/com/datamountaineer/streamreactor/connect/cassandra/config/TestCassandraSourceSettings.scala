@@ -1,16 +1,15 @@
 package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import org.apache.kafka.common.config.AbstractConfig
 import org.scalatest.{Matchers, WordSpec}
 
 /**
   * Created by andrew@datamountaineer.com on 28/04/16. 
   * stream-reactor
   */
-class TestCassandraSourceSettings extends WordSpec with Matchers with CassandraConfigSource with TestConfig {
+class TestCassandraSourceSettings extends WordSpec with Matchers with TestConfig {
   "CassandraSettings should return setting for a source" in {
-    val taskConfig  = new AbstractConfig(sourceConfig, getCassandraConfigSourcePropsBulk)
+    val taskConfig  = CassandraConfigSource(getCassandraConfigSourcePropsBulk)
     val assigned = List(TABLE1, TABLE2)
     val settings = CassandraSettings.configureSource(taskConfig, assigned).toList
     settings.size shouldBe 2

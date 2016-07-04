@@ -54,7 +54,7 @@ object CassandraUtils {
     //check we have a table for all topics
     val missing = topics.diff(tables)
 
-    if (missing.nonEmpty) throw new ConnectException(s"Not table found in Cassandra for topics ${missing.mkString(",")}")
+    if (missing.nonEmpty) throw new ConnectException(s"No tables found in Cassandra for topics ${missing.mkString(",")}")
   }
 
   /**

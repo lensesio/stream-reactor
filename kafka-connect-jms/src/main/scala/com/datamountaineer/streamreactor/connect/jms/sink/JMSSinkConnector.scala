@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.jms.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.hbase.JMSSinkTask
+import com.datamountaineer.streamreactor.connect.jms.JMSSinkTask
 import com.datamountaineer.streamreactor.connect.jms.sink.config.JMSSinkConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef

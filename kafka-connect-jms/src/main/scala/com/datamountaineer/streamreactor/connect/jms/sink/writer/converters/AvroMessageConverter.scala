@@ -23,7 +23,6 @@ import org.apache.avro.generic.{GenericDatumWriter, GenericRecord}
 import org.apache.avro.io.EncoderFactory
 import org.apache.kafka.connect.sink.SinkRecord
 
-
 class AvroMessageConverter extends JMSMessageConverter {
   private lazy val avroData = new AvroData(128)
 

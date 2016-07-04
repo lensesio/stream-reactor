@@ -14,8 +14,8 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 28/04/16.
   * stream-reactor
   */
-class TestCassandraSourceTask extends WordSpec with Matchers with BeforeAndAfter with MockitoSugar
-with CassandraConfigSource with TestConfig with ConverterUtil {
+class TestCassandraSourceTask extends WordSpec with Matchers with BeforeAndAfter with MockitoSugar with TestConfig
+  with ConverterUtil {
 
   before {
     startEmbeddedCassandra()

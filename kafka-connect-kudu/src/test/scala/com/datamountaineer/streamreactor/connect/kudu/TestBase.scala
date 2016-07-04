@@ -22,7 +22,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   val TABLE = "table1"
   val KUDU_MASTER = "127.0.0.1"
   val EXPORT_MAP=s"INSERT INTO $TABLE SELECT * FROM $TOPIC"
-  val EXPORT_MAP_AUTOCREATE = EXPORT_MAP + " AUTOCREATE PK name, adult"
+  val EXPORT_MAP_AUTOCREATE = EXPORT_MAP + " AUTOCREATE DISTRIBUTEBY name,adult INTO 10 BUCKETS"
   val EXPORT_MAP_AUTOCREATE_AUTOEVOLVE = EXPORT_MAP_AUTOCREATE + " AUTOEVOLVE"
 
   protected val PARTITION: Int = 12
@@ -221,7 +221,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   }
 
   //generate some test records
-  def getTestRecords: List[SinkRecord]= {
+  def getTestRecords: Set[SinkRecord]= {
     val schema = createSchema
     val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
 
@@ -230,7 +230,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
         new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i)
       })
-    }).toList
+    }).toSet
   }
 }
 

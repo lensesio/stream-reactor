@@ -21,6 +21,7 @@ import java.net.ConnectException
 
 import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
+import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 
 import scala.collection.JavaConverters._
@@ -38,23 +39,24 @@ case class CassandraSourceSetting(routes : Config,
                                   pollInterval : Long = CassandraConfigConstants.DEFAULT_POLL_INTERVAL,
                                   config: AbstractConfig,
                                   errorPolicy : ErrorPolicy = new ThrowErrorPolicy,
-                                  taskRetires : Int = 10
+                                  taskRetires : Int = CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT
                                ) extends CassandraSetting
 
 case class CassandraSinkSetting(keySpace: String,
                                 routes: Set[Config],
                                 fields : Map[String, Map[String, String]],
+                                ignoreField : Map[String, Set[String]],
                                 errorPolicy: ErrorPolicy,
-                                taskRetries: Int) extends CassandraSetting
+                                taskRetries: Int = CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT) extends CassandraSetting
 
 /**
   * Cassandra Setting used for both Readers and writers
   * Holds the table, topic, import mode and timestamp columns
   * Import mode and timestamp columns are only applicable for the source.
   * */
-object CassandraSettings {
+object CassandraSettings extends StrictLogging {
 
-  def configureSource(config: AbstractConfig, assigned: List[String]) = {
+  def configureSource(config: AbstractConfig, assigned: List[String]): Set[CassandraSourceSetting] = {
     //get keyspace
     val keySpace = config.getString(CassandraConfigConstants.KEY_SPACE)
     require(!keySpace.isEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
@@ -64,8 +66,8 @@ object CassandraSettings {
     //parse query
     val routes: Set[Config] = raw.split(";").map(r => Config.parse(r)).toSet.filter(f=>assigned.contains(f.getSource))
 
-    if (routes.size == 0) {
-      throw new ConfigException(s"No routes for for assigned topics in "
+    if (routes.isEmpty) {
+      throw new ConfigException(s"No routes for assigned topics in "
         + s"${CassandraConfigConstants.EXPORT_ROUTE_QUERY}")
     }
 
@@ -79,20 +81,15 @@ object CassandraSettings {
 
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(CassandraConfigConstants.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
-
-    //get timestamp cols
-    //val timestampColumnsRaw = config.getString(CassandraConfigConstants.TABLE_TIMESTAMP_COL_MAP)
-    //val timestampCols: Map[String, String] = Helpers.buildRouteMaps(timestampColumnsRaw, assigned)
     val timestampCols = routes.map(r=>(r.getSource, r.getPrimaryKeys.asScala.toList)).toMap
 
-    if (routes.size == 0) {
+    if (routes.isEmpty) {
       throw new ConfigException(s"No routes for for assigned topics in "
         + s"${CassandraConfigConstants.IMPORT_ROUTE_QUERY}")
     }
 
     routes.map({
       r => {
-
         val tCols = timestampCols.get(r.getSource).get
         if (!bulk && tCols.size != 1) {
           throw new ConfigException("Only one timestamp column is allowed to be specified in Incremental mode. " +
@@ -112,18 +109,19 @@ object CassandraSettings {
     })
   }
 
-  def configureSink(config: AbstractConfig, assigned: List[String]) = {
+  def configureSink(config: AbstractConfig, assigned: List[String]): CassandraSinkSetting = {
     //get keyspace
     val keySpace = config.getString(CassandraConfigConstants.KEY_SPACE)
     require(!keySpace.isEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
     val raw = config.getString(CassandraConfigConstants.EXPORT_ROUTE_QUERY)
     require(!raw.isEmpty, s"${CassandraConfigConstants.EXPORT_ROUTE_QUERY} is empty.")
 
-    //parse query
-    val routes = raw.split(";").map(r => Config.parse(r)).toSet.filter(f=>assigned.contains(f.getSource))
+    logger.info(s"Assigned is ${assigned.mkString(",")}")
 
-    if (routes.size == 0) {
-      throw new ConfigException(s"No routes for for assigned topics in "
+    val routes = raw.split(";").map(r => Config.parse(r)).toSet.filter(f => assigned.contains(f.getSource))
+
+    if (routes.isEmpty) {
+      throw new ConfigException(s"No routes for assigned topics in "
         + s"${CassandraConfigConstants.EXPORT_ROUTE_QUERY}")
     }
 
@@ -132,13 +130,11 @@ object CassandraSettings {
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(CassandraConfigConstants.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
 
-    val fields = routes.map({
-      rm=>(rm.getSource,
-        rm.getFieldAlias.asScala.map({
-          fa=>(fa.getField,fa.getAlias)
-        }).toMap)
-    }).toMap
+    val fields = routes.map(rm =>
+      (rm.getSource, rm.getFieldAlias.asScala.map(fa => (fa.getField,fa.getAlias)).toMap)
+    ).toMap
 
-    CassandraSinkSetting(keySpace, routes, fields, errorPolicy, retries)
+    val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.asScala.toSet)).toMap
+    CassandraSinkSetting(keySpace, routes, fields, ignoreFields, errorPolicy, retries)
   }
 }

@@ -5,7 +5,7 @@ import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Field
 import org.codehaus.jackson.node.NullNode
-import org.kududb.client.{Insert, KuduTable}
+import org.kududb.client.{Insert, KuduTable, Upsert}
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 
@@ -24,10 +24,7 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
     val kuduSchema = convertToKuduSchema(record)
 
     val columns = kuduSchema.getColumns
-    columns.get(0).getName shouldBe connectFields.get(0).name()
-    columns.get(1).getName shouldBe connectFields.get(1).name()
-    columns.get(2).getName shouldBe connectFields.get(2).name()
-    columns.get(3).getName shouldBe connectFields.get(3).name()
+    columns.size() shouldBe connectFields.size()
   }
 
   "Should convert a SinkRecord into a Kudu Insert operation" in {
@@ -35,12 +32,13 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
     val fields = record.valueSchema().fields().asScala.map(f=>(f.name(), f.name())).toMap
     val kuduSchema = convertToKuduSchema(record)
     val kuduRow = kuduSchema.newPartialRow()
-    val insert = mock[Insert]
+    val insert = mock[Upsert]
     when(insert.getRow).thenReturn(kuduRow)
     val table = mock[KuduTable]
-    when(table.newInsert()).thenReturn(insert)
+    when(table.newUpsert()).thenReturn(insert)
+    when(table.getSchema).thenReturn(kuduSchema)
     val converted = convert(record, fields)
-    val kuduInsert = convertToKuduInsert(converted, table)
+    val kuduInsert = convertToKuduUpsert(converted, table)
     kuduRow shouldBe kuduInsert.getRow
   }
 
@@ -50,11 +48,12 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
     val converted = convert(record, fields)
     val kuduSchema = convertToKuduSchema(converted)
     val kuduRow = kuduSchema.newPartialRow()
-    val insert = mock[Insert]
+    val insert = mock[Upsert]
     when(insert.getRow).thenReturn(kuduRow)
     val table = mock[KuduTable]
-    when(table.newInsert()).thenReturn(insert)
-    val kuduInsert = convertToKuduInsert(converted, table)
+    when(table.newUpsert()).thenReturn(insert)
+    when(table.getSchema).thenReturn(kuduSchema)
+    val kuduInsert = convertToKuduUpsert(converted, table)
     kuduRow shouldBe kuduInsert.getRow
   }
 
@@ -84,8 +83,8 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
 
 
     val kuduFields = new_fields.map(f=>fromAvro(f.schema(), f.name()).build())
-    kuduFields(0).getName shouldBe "string_field"
-    kuduFields(0).getType shouldBe org.kududb.Type.STRING
+    kuduFields.head.getName shouldBe "string_field"
+    kuduFields.head.getType shouldBe org.kududb.Type.STRING
     kuduFields(1).getName shouldBe "int_field"
     kuduFields(1).getType shouldBe org.kududb.Type.INT32
     kuduFields(2).getName shouldBe "boolean_field"

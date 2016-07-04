@@ -1,5 +1,5 @@
 /**
-  * Copyright 2015 Datamountaineer.
+  * Copyright 2016 Datamountaineer.
   *
   * Licensed under the Apache License, Version 2.0 (the "License");
   * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ object KuduSinkConfig {
     "There are two available options: \n" + "NOOP - the error is swallowed \n" +
     "THROW - the error is allowed to propagate. \n" +
     "RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on \n" +
-    "The error will be logged automatically";
+    "The error will be logged automatically"
   val ERROR_POLICY_DEFAULT = "THROW"
 
   val ERROR_RETRY_INTERVAL = "connect.kudu.sink.retry.interval"

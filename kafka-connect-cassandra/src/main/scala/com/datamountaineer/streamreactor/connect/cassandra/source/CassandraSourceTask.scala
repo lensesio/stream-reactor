@@ -36,7 +36,7 @@ import scala.util.{Failure, Success, Try}
   * Created by andrew@datamountaineer.com on 14/04/16.
   * stream-reactor
   */
-class CassandraSourceTask extends SourceTask with StrictLogging with CassandraConfigSource {
+class CassandraSourceTask extends SourceTask with StrictLogging {
   private var queues = mutable.Map.empty[String, LinkedBlockingQueue[SourceRecord]]
   private val readers = mutable.Map.empty[String, CassandraTableReader]
   private var taskConfig : Option[AbstractConfig] = None
@@ -54,7 +54,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging with CassandraCo
   override def start(props: util.Map[String, String]): Unit = {
 
     //get configuration for this task
-    taskConfig = Try(new AbstractConfig(sourceConfig, props)) match {
+    taskConfig = Try(new CassandraConfigSource(props)) match {
       case Failure(f) => throw new ConnectException("Couldn't start CassandraSource due to configuration error.", f)
       case Success(s) => Some(s)
     }

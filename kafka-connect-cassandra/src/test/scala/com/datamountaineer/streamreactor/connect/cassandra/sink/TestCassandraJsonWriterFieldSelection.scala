@@ -14,8 +14,9 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 04/05/16. 
   * stream-reactor
   */
-class TestCassandraJsonWriterFieldSelection extends WordSpec with Matchers with MockitoSugar with BeforeAndAfter with TestConfig
-  with CassandraConfigSink {
+class TestCassandraJsonWriterFieldSelection extends WordSpec with Matchers with MockitoSugar with BeforeAndAfter
+  with TestConfig {
+
   before {
     startEmbeddedCassandra()
   }
@@ -29,7 +30,7 @@ class TestCassandraJsonWriterFieldSelection extends WordSpec with Matchers with 
     val testRecords = getTestRecords(TABLE1)
     //get config
     val props  = getCassandraConfigSinkPropsFieldSelection
-    val taskConfig = new AbstractConfig(sinkConfig, props)
+    val taskConfig = new CassandraConfigSink(props)
 
     val writer = CassandraWriter(taskConfig, context)
     writer.write(testRecords)

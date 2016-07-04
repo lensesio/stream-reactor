@@ -46,7 +46,7 @@ class CassandraTableReader(private val session: Session,
                            private val context : SourceTaskContext,
                            var queue: LinkedBlockingQueue[SourceRecord]) extends StrictLogging {
 
-  logger.info(s"Received setting:\n ${setting.toString()}")
+  logger.info(s"Received setting:\n ${setting.toString}")
   private val defaultTimestamp = "1900-01-01 00:00:00.0000000Z"
   private val dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'")
   private val timestampCol = setting.timestampColumn.getOrElse("")
@@ -56,7 +56,7 @@ class CassandraTableReader(private val session: Session,
   private val table = setting.routes.getSource
   private val topic = setting.routes.getTarget
   private val keySpace = setting.keySpace
-  private val preparedStatement = getPreparedStatements()
+  private val preparedStatement = getPreparedStatements
   private var tableOffset: Option[Date] = buildOffsetMap(context)
   private val partition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
   private val routeMapping = setting.routes
@@ -81,7 +81,7 @@ class CassandraTableReader(private val session: Session,
     *
     * @return A map of table -> prepared statements..
     * */
-  private def getPreparedStatements() : PreparedStatement = {
+  private def getPreparedStatements: PreparedStatement = {
     //if no columns set then select the whole table
     val f = if (fields == null || fields.isEmpty) "*" else fields.mkString(",")
 

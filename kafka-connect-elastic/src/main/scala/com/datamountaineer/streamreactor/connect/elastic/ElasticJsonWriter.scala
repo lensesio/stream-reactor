@@ -49,17 +49,18 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
   /**
     * Close elastic4s client
     * */
-  def close() : Unit = {
-    client.close()
-  }
+  def close() : Unit = client.close()
 
   /**
     * Write SinkRecords to Elastic Search if list is not empty
     *
     * @param records A list of SinkRecords
     * */
-  def write(records: List[SinkRecord]) : Unit = {
-    if (records.isEmpty) logger.info("No records received.") else {
+  def write(records: Set[SinkRecord]) : Unit = {
+    if (records.isEmpty) {
+      logger.debug("No records received.")
+    } else {
+      logger.info(s"Received ${records.size} records.")
       val grouped = records.groupBy(_.topic())
       insert(grouped)
     }
@@ -70,17 +71,17 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
     *
     * @param records A list of SinkRecords
     * */
-  def insert(records: Map[String, List[SinkRecord]]) : Iterable[Future[BulkResponse]] = {
-    logger.info(s"Processing ${records.size} records.")
+  def insert(records: Map[String, Set[SinkRecord]]) : Iterable[Future[BulkResponse]] = {
+    val ret = records.map({
+      case (topic, sinkRecords) =>
+        val fields = settings.fields.get(topic).get
+        val ignoreFields = settings.ignoreFields.get(topic).get
+        val i = settings.tableMap.get(topic).get
 
-    val ret: Iterable[Future[BulkResponse]] = records.map({
-      case (topic, sinkRecords) => {
-        val extracted = sinkRecords.map(r => convert(r, settings.fields.get(r.topic()).get))
-        val indexes = extracted.map(r => {
-          //lookup mapping
-          val i = settings.tableMap.get(r.topic()).get
-          index into i / i source r
-        })
+        val indexes = sinkRecords
+                        .map(r => convert(r, fields, ignoreFields))
+                        .map(r => index into i / i source r)
+
         val ret = client.execute(bulk(indexes).refresh(true))
 
         ret.onSuccess({
@@ -91,9 +92,7 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
           case f:Throwable => logger.info(f.toString)
         })
         ret
-      }
     })
-
     ret
   }
 }

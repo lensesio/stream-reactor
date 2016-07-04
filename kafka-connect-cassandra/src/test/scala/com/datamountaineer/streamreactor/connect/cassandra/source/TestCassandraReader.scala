@@ -19,7 +19,7 @@ import scala.collection.JavaConverters._
   * stream-reactor
   */
 class TestCassandraReader extends WordSpec with Matchers with BeforeAndAfter with MockitoSugar
-  with CassandraConfigSource with TestConfig with ConverterUtil {
+  with TestConfig with ConverterUtil {
 
   before {
     startEmbeddedCassandra()
@@ -35,7 +35,7 @@ class TestCassandraReader extends WordSpec with Matchers with BeforeAndAfter wit
     session.execute(sql)
 
     val taskContext = getSourceTaskContextDefault
-    val taskConfig  = new AbstractConfig(sourceConfig, getCassandraConfigSourcePropsBulk)
+    val taskConfig  = new CassandraConfigSource(getCassandraConfigSourcePropsBulk)
     val assigned = List(TABLE2)
 
     //queue for reader to put records in

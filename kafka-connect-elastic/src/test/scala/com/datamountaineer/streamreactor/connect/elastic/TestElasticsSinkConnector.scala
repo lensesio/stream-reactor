@@ -5,7 +5,7 @@ import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSinkConfi
 import scala.collection.JavaConverters._
 
 class TestElasticsSinkConnector extends TestElasticBase {
-  test("Should start a Elastic Search Connector") {
+  "Should start a Elastic Search Connector" in {
     //get config
     val config = getElasticSinkConfigProps
     //get connector

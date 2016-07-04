@@ -44,7 +44,7 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
   //initialize error tracker
   initialize(settings.taskRetries, settings.errorPolicy)
   configureConverter(jsonConverter)
-  private var session: Session = getSession().get
+  private var session: Session = getSession.get
 
   CassandraUtils.checkCassandraTables(session.getCluster, settings.routes, session.getLoggedKeyspace)
   private var preparedCache: Map[String, PreparedStatement] = cachePreparedStatements
@@ -52,7 +52,7 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
   /**
     * Get a connection to cassandra based on the config
     * */
-  private def getSession() : Option[Session] = {
+  private def getSession: Option[Session] = {
     val t = Try(cassCon.cluster.connect(settings.keySpace))
     handleTry[Session](t)
   }
@@ -63,12 +63,12 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     *
     * @return A Map of topic->preparedStatements.
     * */
-  private def cachePreparedStatements() : Map[String, PreparedStatement] = {
+  private def cachePreparedStatements : Map[String, PreparedStatement] = {
     settings.routes.map(r => {
       val topic = r.getSource
       val table = r.getTarget
       logger.info(s"Preparing statements for $topic.")
-      (topic-> getPreparedStatement(table).get)
+      topic -> getPreparedStatement(table).get
     }).toMap
   }
 
@@ -88,17 +88,17 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     *
     * @param records A list of SinkRecords from Kafka Connect to write.
     * */
-  def write(records : List[SinkRecord]) : Unit = {
+  def write(records : Set[SinkRecord]) : Unit = {
     if (records.isEmpty) {
-      logger.info("No records received.")
+      logger.debug("No records received.")
     } else {
       logger.info(s"Received ${records.size} records.")
 
       //is the connection still alive
-      if (session.isClosed()) {
+      if (session.isClosed) {
         logger.error(s"Session is closed attempting to reconnect to keySpace ${settings.keySpace}")
-        session = getSession().get
-        preparedCache = cachePreparedStatements()
+        session = getSession.get
+        preparedCache = cachePreparedStatements
       }
 
       val grouped = records.groupBy(_.topic())
@@ -112,7 +112,7 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     * @param records A list of SinkRecords from Kafka Connect to write.
     * @return boolean indication successful write.
     * */
-  private def insert(records: Map[String, List[SinkRecord]]) = {
+  private def insert(records: Map[String, Set[SinkRecord]]) = {
     records.foreach {
       case (topic, sinkRecords) =>
         val preparedStatement : PreparedStatement = preparedCache.get(topic).get
@@ -130,20 +130,14 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     }
   }
 
-
-
   /**
     * Convert sink records to json
     *
     * @param records A list of sink records to convert.
     * */
-  private def toJson(records: List[SinkRecord]) : List[String] = {
-    if (!settings.fields.isEmpty) {
-      val extracted = records.map(r => convert(r, settings.fields.get(r.topic()).get))
-      extracted.map(r => convertValueToJson(r).toString)
-    } else {
-      records.map(r => convertValueToJson(r).toString)
-    }
+  private def toJson(records: Set[SinkRecord]) : Set[String] = {
+    val extracted = records.map(r => convert(r, settings.fields.get(r.topic()).get, settings.ignoreField.get(r.topic()).get))
+    extracted.map(r => convertValueToJson(r).toString)
   }
 
   private def asyncWrite(results: Future[ResultSet]) = {

@@ -3,7 +3,7 @@ package com.datamountaineer.streamreactor.connect
 import java.util
 import javax.jms.{Message, MessageListener, Session, TextMessage}
 
-import com.datamountaineer.streamreactor.connect.hbase.JMSSinkTask
+import com.datamountaineer.streamreactor.connect.jms.JMSSinkTask
 import com.datamountaineer.streamreactor.connect.jms.sink.config._
 import com.fasterxml.jackson.databind.node.{ArrayNode, IntNode}
 import com.sksamuel.scalax.io.Using

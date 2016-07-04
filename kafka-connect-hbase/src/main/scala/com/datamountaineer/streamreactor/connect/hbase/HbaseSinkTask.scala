@@ -59,7 +59,7 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
       |By Stefan Bocutiu""".stripMargin)
 
     HbaseSinkConfig.config.parse(props)
-    val sinkConfig = new HbaseSinkConfig(props)
+    val sinkConfig = HbaseSinkConfig(props)
     val topics = context.assignment().asScala.map(c=>c.topic()).toList
     val hbaseSettings = HbaseSettings(sinkConfig, topics)
 

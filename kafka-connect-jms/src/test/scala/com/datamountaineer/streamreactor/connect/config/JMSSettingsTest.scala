@@ -1,6 +1,6 @@
 package com.datamountaineer.streamreactor.connect.config
 
-import com.datamountaineer.streamreactor.connect.hbase.JMSSinkTask
+import com.datamountaineer.streamreactor.connect.jms.JMSSinkTask
 import com.datamountaineer.streamreactor.connect.jms.sink.config._
 import io.confluent.common.config.ConfigException
 import org.apache.activemq.ActiveMQConnectionFactory

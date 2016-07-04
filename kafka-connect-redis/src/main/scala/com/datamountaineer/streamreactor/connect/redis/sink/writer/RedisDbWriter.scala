@@ -18,27 +18,24 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.sink._
-import com.google.gson.Gson
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import redis.clients.jedis.Jedis
-
-import scala.collection.JavaConverters._
 import scala.util.Try
 
 /**
   * Responsible for taking a sequence of SinkRecord and write them to Redis
   */
-case class RedisDbWriter(sinkSettings: RedisSinkSettings) extends DbWriter with StrictLogging with ErrorHandler {
-  val gson = new Gson()
+case class RedisDbWriter(sinkSettings: RedisSinkSettings) extends DbWriter with StrictLogging with ConverterUtil with ErrorHandler {
   private val connection = sinkSettings.connection
   private val jedis = new Jedis(connection.host, connection.port)
   connection.password.foreach(jedis.auth)
 
   //initialize error tracker
   initialize(sinkSettings.taskRetries, sinkSettings.errorPolicy)
+  configureConverter(jsonConverter)
   private val rowKeyMap = sinkSettings.rowKeyModeMap
 
   /**
@@ -49,8 +46,9 @@ case class RedisDbWriter(sinkSettings: RedisSinkSettings) extends DbWriter with 
     * */
   override def write(records: Seq[SinkRecord]): Unit = {
     if (records.isEmpty) {
-      logger.info("No records received.")
+      logger.debug("No records received.")
     } else {
+      logger.info(s"Received ${records.size} records.")
       val grouped = records.groupBy(_.topic())
       insert(grouped)
     }
@@ -69,24 +67,13 @@ case class RedisDbWriter(sinkSettings: RedisSinkSettings) extends DbWriter with 
       val t = Try(
         {
           sinkRecords.foreach { record =>
-            logger.info(s"Received recrod from topic:${record.topic()} partition:${record.kafkaPartition()} " +
-              s"and offset:${record.kafkaOffset()}")
-            require(record.value() != null && record.value().getClass == classOf[Struct],
-              "The SinkRecord payload should be of type Struct")
-
             val keyBuilder = rowKeyMap.get(topic).get
-            val extractor = sinkSettings.extractorFields.get(topic).get
-            val fieldsAndValues = extractor.get(record.value.asInstanceOf[Struct])
-
-            if (fieldsAndValues.nonEmpty) {
-              val map = fieldsAndValues.toMap.asJava
-              val key = keyBuilder.build(record)
-              val payload: String = gson.toJson(map)
-              jedis.set(key, payload)
-            }
-            else {
-              None
-            }
+            val fields = sinkSettings.fields.get(record.topic()).get
+            val ignored = sinkSettings.ignoreFields.get(record.topic()).get
+            val extracted = convert(record, fields, ignored)
+            val key = keyBuilder.build(extracted)
+            val payload = convertValueToJson(extracted).toString
+            jedis.set(key, payload)
           }
        })
        handleTry(t)
@@ -108,6 +95,6 @@ case class RedisDbWriter(sinkSettings: RedisSinkSettings) extends DbWriter with 
 
 object RedisDbWriterFactory {
   def apply(settings: RedisSinkSettings): RedisDbWriter = {
-    new RedisDbWriter(settings)
+    RedisDbWriter(settings)
   }
 }

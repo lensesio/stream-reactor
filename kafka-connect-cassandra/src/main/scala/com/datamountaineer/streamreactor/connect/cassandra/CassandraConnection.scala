@@ -23,6 +23,7 @@ import com.datastax.driver.core.policies.{DCAwareRoundRobinPolicy, TokenAwarePol
 import com.datastax.driver.core.{Cluster, JdkSSLOptions, QueryOptions, Session}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.AbstractConfig
+import org.apache.kafka.connect.errors.ConnectException
 
 /**
   * Set up a Casssandra connection
@@ -76,16 +77,13 @@ object CassandraConnection extends StrictLogging {
     * @return The builder with authentication added.
     * */
   private def addAuthMode(connectorConfig: AbstractConfig, builder: Builder) : Builder = {
-    val authMode = connectorConfig.getString(CassandraConfigConstants.AUTHENTICATION_MODE).toLowerCase()
-    authMode match {
-      case CassandraConfigConstants.USERNAME_PASSWORD =>
-        logger.info(s"Using ${CassandraConfigConstants.USERNAME_PASSWORD}.")
-        val username = connectorConfig.getString(CassandraConfigConstants.USERNAME)
-        val password = connectorConfig.getPassword(CassandraConfigConstants.PASSWD).value
-        require(username.nonEmpty, s"Authentication mode set to $CassandraConfigConstants.USERNAME_PASSWORD but no username supplied.")
+    val username = connectorConfig.getString(CassandraConfigConstants.USERNAME)
+    val password = connectorConfig.getPassword(CassandraConfigConstants.PASSWD).value
 
-        builder.withCredentials(username.trim, password.toString.trim)
-      case CassandraConfigConstants.AUTHENTICATION_MODE_DEFAULT =>
+    if (username.length > 0 && password.length > 0) {
+      builder.withCredentials(username.trim, password.toString.trim)
+    } else {
+      logger.warn("Username and password not set.")
     }
     builder
   }
@@ -97,7 +95,7 @@ object CassandraConnection extends StrictLogging {
     * @return The builder with SSL added.
     * */
   private def addSSL(connectorConfig: AbstractConfig, builder: Builder) : Builder = {
-    val ssl = connectorConfig.getBoolean(CassandraConfigConstants.SSL_ENABLED).asInstanceOf[Boolean]
+    val ssl = connectorConfig.getBoolean(CassandraConfigConstants.SSL_ENABLED)
     ssl match {
       case true =>
         logger.info("Setting up SSL context.")

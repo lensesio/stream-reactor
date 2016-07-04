@@ -21,19 +21,20 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     val kuduRow = kuduSchema.newPartialRow()
 
     //mock out kudu client
-    val insert = mock[Insert]
+    val insert = mock[Upsert]
     val table = mock[KuduTable]
     val client = mock[KuduClient]
     val kuduSession = mock[KuduSession]
 
     val config = new KuduSinkConfig(getConfigAutoCreate(8081))
-    val settings = KuduSettings(config, List(TOPIC), true)
+    val settings = KuduSettings(config, List(TOPIC), sinkTask = true)
 
     when(client.newSession()).thenReturn(kuduSession)
     when(client.tableExists(TABLE)).thenReturn(true)
     when(client.openTable(TABLE)).thenReturn(table)
-    when(table.newInsert()).thenReturn(insert)
+    when(table.newUpsert()).thenReturn(insert)
     when(insert.getRow).thenReturn(kuduRow)
+    when(table.getSchema).thenReturn(kuduSchema)
 
     val writer = new KuduWriter(client, settings)
     writer.write(getTestRecords)
@@ -46,7 +47,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     val kuduRow = kuduSchema.newPartialRow()
 
     //mock out kudu client
-    val insert = mock[Insert]
+    val insert = mock[Upsert]
     val table = mock[KuduTable]
     val client = mock[KuduClient]
     val kuduSession = mock[KuduSession]
@@ -57,8 +58,9 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     when(client.newSession()).thenReturn(kuduSession)
     when(client.tableExists(TABLE)).thenReturn(false)
     when(client.openTable(TABLE)).thenReturn(table)
-    when(table.newInsert()).thenReturn(insert)
+    when(table.newUpsert()).thenReturn(insert)
     when(insert.getRow).thenReturn(kuduRow)
+    when(table.getSchema).thenReturn(kuduSchema)
 
     val writer = new KuduWriter(client, settings)
     writer.write(getTestRecords)
@@ -71,6 +73,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
 
     val rec1 = createSinkRecord(createRecord(schema1, "1"), TOPIC, 1)
     val rec2 = createSinkRecord(createRecord5(schema2, "2"), TOPIC, 2)
+    val kuduSchema = convertToKuduSchema(rec1)
 
     val kuduSchema2 = convertToKuduSchema(rec2.valueSchema())
     val kuduRow2 = kuduSchema2.newPartialRow()
@@ -79,7 +82,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     val client = mock[KuduClient]
     val kuduSession = mock[KuduSession]
     val table = mock[KuduTable]
-    val insert = mock[Insert]
+    val insert = mock[Upsert]
     val atrm = mock[AlterTableResponse]
 
     val config = new KuduSinkConfig(getConfigAutoCreateAndEvolve(8081))
@@ -88,14 +91,15 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     when(client.newSession()).thenReturn(kuduSession)
     when(client.tableExists(TABLE)).thenReturn(false)
     when(client.openTable(TABLE)).thenReturn(table)
-    when(table.newInsert()).thenReturn(insert)
+    when(table.newUpsert()).thenReturn(insert)
+    when(table.getSchema).thenReturn(kuduSchema)
     when(insert.getRow).thenReturn(kuduRow2)
     when(client.alterTable(mockEq(TABLE), any[AlterTableOptions])).thenReturn(atrm)
     when(client.isAlterTableDone(TABLE)).thenReturn(true)
     val writer = new KuduWriter(client, settings)
 
-    writer.write(List(rec1))
-    writer.write(List(rec2))
+    writer.write(Set(rec1))
+    writer.write(Set(rec2))
   }
 
   "A Kudu Writer should throw retry on flush errors" in {
@@ -104,7 +108,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
       val kuduRow = kuduSchema.newPartialRow()
 
       //mock out kudu client
-      val insert = mock[Insert]
+      val insert = mock[Upsert]
       val table = mock[KuduTable]
       val client = mock[KuduClient]
       val kuduSession = mock[KuduSession]
@@ -117,7 +121,8 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
       when(client.newSession()).thenReturn(kuduSession)
       when(client.tableExists(TABLE)).thenReturn(true)
       when(client.openTable(TABLE)).thenReturn(table)
-      when(table.newInsert()).thenReturn(insert)
+      when(table.newUpsert()).thenReturn(insert)
+      when(table.getSchema).thenReturn(kuduSchema)
       when(insert.getRow).thenReturn(kuduRow)
       when(resp.hasRowError).thenReturn(true)
       when(errorRow.toString).thenReturn("Test error string")

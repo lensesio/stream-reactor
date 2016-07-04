@@ -16,15 +16,21 @@
 
 package com.datamountaineer.streamreactor.connect
 
+import com.datamountaineer.streamreactor.connect.KuduOperation.KuduOperation
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.kafka.connect.data.Schema.Type
 import org.apache.kafka.connect.data.{Field, Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.kududb.ColumnSchema
 import org.kududb.ColumnSchema.ColumnSchemaBuilder
-import org.kududb.client.{Insert, KuduTable, PartialRow}
+import org.kududb.client.{Insert, KuduTable, PartialRow, Upsert}
 
 import scala.collection.JavaConverters._
+
+object KuduOperation extends Enumeration {
+  type KuduOperation = Value
+  val INSERT, UPDATE, UPSERT = Value
+}
 
 trait KuduConverter extends ConverterUtil {
 
@@ -59,18 +65,21 @@ trait KuduConverter extends ConverterUtil {
   }
 
   /**
-    * Convert a SinkRecord to a Kudu row insert for a Kudu Table
+    * Convert a SinkRecord to a Kudu row upsert for a Kudu Table
     *
     * @param record A SinkRecord to convert
     * @param table A Kudu table to create a row insert for
-    * @return A Kudu insert operation
+    * @return A Kudu upsert operation
     * */
-  def convertToKuduInsert(record: SinkRecord, table: KuduTable) : Insert = {
+  def convertToKuduUpsert(record: SinkRecord, table: KuduTable): Upsert = {
     val recordFields = record.valueSchema().fields().asScala
-    val insert = table.newInsert()
-    val row = insert.getRow
-    recordFields.map(f=>addFieldToRow(record, f, row))
-    insert
+    val kuduColNames = table.getSchema.getColumns.asScala.map(c => c.getName)
+    val upsert = table.newUpsert()
+    val row = upsert.getRow
+    recordFields
+      .filter(f => kuduColNames.contains(f)) //handle missing fields in target (maybe dropped)
+      .map(f => addFieldToRow(record, f, row))
+    upsert
   }
 
   /**
@@ -78,23 +87,19 @@ trait KuduConverter extends ConverterUtil {
     *
     * @param record A sinkRecord to get the value schema from
     * */
-  def convertToKuduSchema(record: SinkRecord)  : org.kududb.Schema = {
+  def convertToKuduSchema(record: SinkRecord) : org.kududb.Schema = {
     val connectFields = record.valueSchema().fields().asScala
-    val kuduFields = createKuduColumns(connectFields.toList)
-    createKuduSchema(kuduFields)
+    val kuduFields = createKuduColumns(connectFields.toSet)
+    new org.kududb.Schema(kuduFields.toList.asJava)
   }
 
-  def convertToKuduSchema(schema : Schema) = {
-    val connectFields = createKuduColumns(schema.fields().asScala.toList)
-    createKuduSchema(connectFields)
+  def convertToKuduSchema(schema : Schema) : org.kududb.Schema = {
+    val connectFields = createKuduColumns(schema.fields().asScala.toSet)
+    new org.kududb.Schema(connectFields.toList.asJava)
   }
 
-  def createKuduColumns(fields: List[Field]) = {
+  def createKuduColumns(fields: Set[Field]): Set[ColumnSchema] = {
     fields.map(cf=>convertConnectField(cf))
-  }
-
-  def createKuduSchema(fields : List[ColumnSchema]) = {
-    new org.kududb.Schema(fields.asJava)
   }
 
   /**
@@ -154,7 +159,7 @@ trait KuduConverter extends ConverterUtil {
   /**
     * Resolve unions
     *
-    * @param schema
+    * @param schema The schema to resolve the union for
     * @return An Avro schema for the data type from the union
     * */
   private def getNonNull(schema: org.apache.avro.Schema): org.apache.avro.Schema =

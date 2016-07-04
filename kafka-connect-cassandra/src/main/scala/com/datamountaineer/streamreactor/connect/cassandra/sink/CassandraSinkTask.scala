@@ -35,16 +35,17 @@ import scala.util.{Failure, Success, Try}
   * Kafka Connect Cassandra sink task. Called by framework to put records to the
   * target sink
   * */
-class CassandraSinkTask extends SinkTask with StrictLogging with CassandraConfigSink {
+class CassandraSinkTask extends SinkTask with StrictLogging {
   private var writer : Option[CassandraJsonWriter] = None
-  private val flushSleep = 10
+  logger.info("Task initialising")
 
   /**
     * Parse the configurations and setup the writer
     * */
   override def start(props: util.Map[String, String]): Unit = {
+    logger.info(s"Received props ${props.asScala.mkString(",")}")
 
-    val taskConfig = Try(new AbstractConfig(sinkConfig, props)) match {
+    val taskConfig = Try(new CassandraConfigSink(props)) match {
       case Failure(f) => throw new ConnectException("Couldn't start CassandraSink due to configuration error.", f)
       case Success(s) => s
     }
@@ -71,7 +72,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging with CassandraConfig
     * */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.foreach(w => w.write(records.asScala.toList))
+    writer.foreach(w => w.write(records.asScala.toSet))
   }
 
   /**
@@ -89,5 +90,5 @@ class CassandraSinkTask extends SinkTask with StrictLogging with CassandraConfig
 //    //}
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version(): String = "1"
 }

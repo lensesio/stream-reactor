@@ -45,13 +45,14 @@ class HbaseWriter(settings: HbaseSettings
 
   private var columnsBytesMap = Map.empty[String, Array[Byte]]
   private var connection = ConnectionFactory.createConnection(HBaseConfiguration.create())
-  private val tables = routeMapping.map(rm=>(rm.getSource, connection.getTable(TableName.valueOf(rm.getTarget)))).toMap
+  private val tables = routeMapping.map(rm => (rm.getSource, connection.getTable(TableName.valueOf(rm.getTarget)))).toMap
   private val rowKeyMap = settings.rowKeyModeMap
 
   override def write(records: Seq[SinkRecord]): Unit = {
     if (records.isEmpty) {
-      logger.info("No records received.")
+      logger.debug("No records received.")
     } else {
+      logger.info(s"Received ${records.size} records.")
 
       if (connection.isClosed) {
         val t = Try(ConnectionFactory.createConnection(HBaseConfiguration.create()))
@@ -69,10 +70,10 @@ class HbaseWriter(settings: HbaseSettings
     *
     * Build a put from the extracted fields and values for each record.
     * */
-  def insert(records: Map[String, Seq[SinkRecord]]) = {
+  def insert(records: Map[String, Seq[SinkRecord]]): Unit = {
 
     records.foreach({
-      case (topic, sinkRecords : Seq[SinkRecord]) => {
+      case (topic, sinkRecords : Seq[SinkRecord]) =>
         val table = tables.get(topic).get
         val puts = sinkRecords.flatMap { record =>
 
@@ -103,7 +104,6 @@ class HbaseWriter(settings: HbaseSettings
         val t = Try(table.put(puts))
         handleTry(t)
         logger.info(s"Wrote ${puts.size} rows.")
-      }
     })
   }
 

@@ -17,8 +17,9 @@
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSettings}
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSink, CassandraSettings}
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
+import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.AbstractConfig
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkTaskContext
@@ -27,8 +28,8 @@ import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 //Factory to build
-object CassandraWriter {
-  def apply(connectorConfig: AbstractConfig, context: SinkTaskContext) : CassandraJsonWriter = {
+object CassandraWriter extends StrictLogging {
+  def apply(connectorConfig: CassandraConfigSink, context: SinkTaskContext) : CassandraJsonWriter = {
 
     val conn = Try(CassandraConnection(connectorConfig)) match {
       case Success(s) => s

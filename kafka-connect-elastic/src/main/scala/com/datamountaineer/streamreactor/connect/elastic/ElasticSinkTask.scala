@@ -52,7 +52,7 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
       """.stripMargin)
 
     ElasticSinkConfig.config.parse(props)
-    val sinkConfig = new ElasticSinkConfig(props)
+    val sinkConfig = ElasticSinkConfig(props)
     writer = Some(ElasticWriter(config = sinkConfig, context = context))
   }
 
@@ -61,7 +61,7 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
     * */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.foreach(w=>w.write(records.asScala.toList))
+    writer.foreach(w=>w.write(records.asScala.toSet))
   }
 
   /**

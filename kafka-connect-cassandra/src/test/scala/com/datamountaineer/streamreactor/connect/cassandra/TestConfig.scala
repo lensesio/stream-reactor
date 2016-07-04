@@ -74,7 +74,6 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     Map(
       CassandraConfigConstants.CONTACT_POINTS-> CONTACT_POINT,
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
-      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.USERNAME_PASSWORD,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
       CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_ALL
@@ -85,7 +84,6 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     Map(
       CassandraConfigConstants.CONTACT_POINTS-> CONTACT_POINT,
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
-      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.NONE,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
       CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_ALL
@@ -96,7 +94,6 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     Map(
       CassandraConfigConstants.CONTACT_POINTS-> CONTACT_POINT,
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
-      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.NONE,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
       CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_SELECTION
@@ -108,7 +105,6 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     Map(
       CassandraConfigConstants.CONTACT_POINTS-> CONTACT_POINT,
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
-      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.NONE,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
       CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_ALL,
@@ -120,7 +116,6 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     Map(
       CassandraConfigConstants.CONTACT_POINTS-> CONTACT_POINT,
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
-      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.NONE,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
       CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_ALL,
@@ -132,7 +127,6 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     Map(
       CassandraConfigConstants.CONTACT_POINTS-> CONTACT_POINT,
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
-      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.USERNAME_PASSWORD,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
       CassandraConfigConstants.SSL_ENABLED->"true",
@@ -146,7 +140,6 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     Map(
       CassandraConfigConstants.CONTACT_POINTS-> CONTACT_POINT,
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
-      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.USERNAME_PASSWORD,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
       CassandraConfigConstants.SSL_ENABLED->"true",
@@ -164,7 +157,6 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     Map(
       CassandraConfigConstants.CONTACT_POINTS-> CONTACT_POINT,
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
-      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.NONE,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
       CassandraConfigConstants.ASSIGNED_TABLES->ASSIGNED_TABLES
@@ -175,7 +167,6 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     Map(
       CassandraConfigConstants.CONTACT_POINTS-> CONTACT_POINT,
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
-      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.NONE,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
       CassandraConfigConstants.IMPORT_ROUTE_QUERY ->IMPORT_QUERY_ALL,
@@ -189,7 +180,6 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     Map(
       CassandraConfigConstants.CONTACT_POINTS-> CONTACT_POINT,
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
-      CassandraConfigConstants.AUTHENTICATION_MODE->CassandraConfigConstants.NONE,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
       CassandraConfigConstants.IMPORT_ROUTE_QUERY->IMPORT_QUERY_INCR,
@@ -261,7 +251,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   }
 
   //generate some test records
-  def getTestRecords(table: String) : List[SinkRecord]= {
+  def getTestRecords(table: String) : Set[SinkRecord]= {
     val schema = createSchema
     val assignment: mutable.Set[TopicPartition] = getAssignment.asScala.filter(tp=>tp.topic().equals(table))
 
@@ -270,7 +260,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
         new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i)
       })
-    }).toList
+    }).toSet
   }
 
 

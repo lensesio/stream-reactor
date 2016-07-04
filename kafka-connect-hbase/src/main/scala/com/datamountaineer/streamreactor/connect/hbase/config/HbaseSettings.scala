@@ -33,7 +33,6 @@ case class HbaseSettings(columnFamilyMap: String,
                          maxRetries : Int = HbaseSinkConfig.NBR_OF_RETIRES_DEFAULT
                         )
 
-
 object HbaseSettings {
 
   /**
@@ -43,49 +42,30 @@ object HbaseSettings {
     * @return An instance of HbaseSettings
     */
   def apply(config: HbaseSinkConfig, assigned : List[String]): HbaseSettings = {
-
     val columnFamily = config.getString(COLUMN_FAMILY)
-    if (columnFamily.trim.length == 0) {
-      throw new ConfigException(s"$COLUMN_FAMILY is not set correctly")
-    }
+    if (columnFamily.trim.length == 0) throw new ConfigException(s"$COLUMN_FAMILY is not set correctly")
 
     val raw = config.getString(HbaseSinkConfig.EXPORT_ROUTE_QUERY)
-    require((raw != null && !raw.isEmpty),  s"No ${HbaseSinkConfig.EXPORT_ROUTE_QUERY} provided!")
+    require(raw != null && !raw.isEmpty,  s"No ${HbaseSinkConfig.EXPORT_ROUTE_QUERY} provided!")
 
     //parse query
     val routes: Set[Config] = raw.split(";").map(r => Config.parse(r)).toSet.filter(f=>assigned.contains(f.getSource))
 
-    if (routes.size == 0) {
-      throw new ConfigException(s"No routes for for assigned topics in "
-        + s"${HbaseSinkConfig.EXPORT_ROUTE_QUERY}")
-    }
+    if (routes.isEmpty) throw new ConfigException(s"No routes for for assigned topics in ${HbaseSinkConfig.EXPORT_ROUTE_QUERY}")
 
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(HbaseSinkConfig.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
     val nbrOfRetries = config.getInt(HbaseSinkConfig.NBR_OF_RETRIES)
 
-    val rowKeyModeMap = routes.map(
-      r=> {
+    val rowKeyModeMap = routes.map(r=> {
         val keys = r.getPrimaryKeys.asScala.toList
-
-        if (keys.size != 0) {
-          (r.getSource, StructFieldsRowKeyBuilderBytes(keys))
-        } else {
-          (r.getSource, new GenericRowKeyBuilderBytes())
-        }
-
+        if (keys.nonEmpty) (r.getSource, StructFieldsRowKeyBuilderBytes(keys)) else (r.getSource, new GenericRowKeyBuilderBytes())
       }
     ).toMap
 
+    val fields = routes.map(rm => (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField,fa.getAlias)).toMap)).toMap
 
-    val fields = routes.map({
-      rm=>(rm.getSource,
-        rm.getFieldAlias.map({
-          fa=>(fa.getField,fa.getAlias)
-        }).toMap)
-    }).toMap
-
-    val extractorFields = routes.map(rm=>{
+    val extractorFields = routes.map(rm => {
       (rm.getSource, StructFieldsExtractorBytes(rm.isIncludeAllFields , fields.get(rm.getSource).get))
     }).toMap
 

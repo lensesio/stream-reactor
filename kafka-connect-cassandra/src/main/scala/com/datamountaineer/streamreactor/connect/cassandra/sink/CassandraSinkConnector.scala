@@ -20,11 +20,11 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.connect.connector.Task
-import org.apache.kafka.connect.sink.SinkConnector
+import org.apache.kafka.connect.connector.{Connector, Task}
+import org.apache.kafka.connect.errors.ConnectException
 
-import scala.collection.JavaConverters.seqAsJavaListConverter
+import scala.collection.JavaConverters._
+import scala.util.{Failure, Try}
 
 /**
   * <h1>CassandraSinkConnector</h1>
@@ -32,9 +32,8 @@ import scala.collection.JavaConverters.seqAsJavaListConverter
   *
   * Sets up CassandraSinkTask and configurations for the tasks.
   * */
-class CassandraSinkConnector extends SinkConnector with StrictLogging with CassandraConfigSink {
-  private var configProps : Option[util.Map[String, String]] = None
-  private var connConfigDef : Option[ConfigDef] = None
+class CassandraSinkConnector extends Connector with StrictLogging {
+  private var configProps : util.Map[String, String] = null
 
   /**
     * States which SinkTask class to use
@@ -49,8 +48,14 @@ class CassandraSinkConnector extends SinkConnector with StrictLogging with Cassa
     * */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
-    (1 to maxTasks).map(c => configProps.get).toList.asJava
+    (1 to maxTasks).map(c=>configProps).toList.asJava
   }
+
+//  override def reconfigure(props: util.Map[String, String]) = {
+//    logger.info(s"Reconfiguring ${props.asScala.mkString(",")}")
+//    stop
+//    start(props)
+//  }
 
   /**
     * Start the sink and set to configuration
@@ -59,12 +64,16 @@ class CassandraSinkConnector extends SinkConnector with StrictLogging with Cassa
     * */
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Cassandra sink task with ${props.toString}.")
-    configProps = Some(props)
-    connConfigDef = Some(sinkConfig)
+    configProps = props
+    Try(new CassandraConfigSink(props)) match {
+      case Failure(f) =>
+        throw new ConnectException(s"Couldn't start Cassandra source due to configuration error: ${f.getMessage}", f)
+      case _ =>
+    }
   }
 
   override def stop(): Unit = {}
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version(): String = "1"
 
   //override def config(): ConfigDef = connConfigDef.get
 }

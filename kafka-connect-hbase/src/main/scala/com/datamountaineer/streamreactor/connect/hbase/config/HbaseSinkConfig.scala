@@ -33,7 +33,7 @@ object HbaseSinkConfig {
     "There are two available options: \n" + "NOOP - the error is swallowed \n" +
     "THROW - the error is allowed to propagate. \n" +
     "RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on \n" +
-    "The error will be logged automatically";
+    "The error will be logged automatically"
   val ERROR_POLICY_DEFAULT = "THROW"
 
   val ERROR_RETRY_INTERVAL = "connect.hbase.retry.interval"
@@ -56,5 +56,5 @@ object HbaseSinkConfig {
   *
   * Holds config, extends AbstractConfig.
   **/
-class HbaseSinkConfig(props: util.Map[String, String])
+case class HbaseSinkConfig(props: util.Map[String, String])
   extends AbstractConfig(HbaseSinkConfig.config, props)

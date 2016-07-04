@@ -48,5 +48,5 @@ object ElasticSinkConfig {
   *
   * Holds config, extends AbstractConfig.
   * */
-class ElasticSinkConfig(props: util.Map[String, String])
+case class ElasticSinkConfig(props: util.Map[String, String])
   extends AbstractConfig(ElasticSinkConfig.config, props)

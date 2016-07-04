@@ -1,6 +1,6 @@
 package com.datamountaineer.streamreactor.connect.cassandra
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfig
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfig, CassandraConfigSink, CassandraConfigSource}
 import org.apache.kafka.common.config.AbstractConfig
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
@@ -8,7 +8,7 @@ import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
   * Created by andrew@datamountaineer.com on 14/04/16.
   * stream-reactor
   */
-class TestCassandraConnectionSecure extends WordSpec with BeforeAndAfter with Matchers with TestConfig with CassandraConfig {
+class TestCassandraConnectionSecure extends WordSpec with BeforeAndAfter with Matchers with TestConfig {
 
   before {
     startEmbeddedCassandraSecure()
@@ -16,7 +16,7 @@ class TestCassandraConnectionSecure extends WordSpec with BeforeAndAfter with Ma
 
   "should return a secured session" in {
     createTableAndKeySpace(secure = true, ssl = false)
-    val taskConfig  = new AbstractConfig(configDef, getCassandraConfigSinkPropsSecure)
+    val taskConfig = CassandraConfigSink(getCassandraConfigSinkPropsSecure)
     val conn = CassandraConnection(taskConfig)
     val session = conn.session
     session should not be null

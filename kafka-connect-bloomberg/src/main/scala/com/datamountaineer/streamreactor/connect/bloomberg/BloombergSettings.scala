@@ -111,9 +111,9 @@ object BloombergSettings {
 sealed trait PayloadTye
 
 case object JsonPayload extends PayloadTye {
-  override def toString = "json"
+  override def toString: String = "json"
 }
 
 case object AvroPayload extends PayloadTye {
-  override def toString = "avro"
+  override def toString: String = "avro"
 }

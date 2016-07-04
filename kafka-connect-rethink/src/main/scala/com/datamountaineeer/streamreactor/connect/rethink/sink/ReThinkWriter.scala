@@ -1,5 +1,5 @@
 /**
-  * Copyright 2015 Datamountaineer.
+  * Copyright 2016 Datamountaineer.
   *
   * Licensed under the Apache License, Version 2.0 (the "License");
   * you may not use this file except in compliance with the License.
@@ -17,61 +17,42 @@
 package com.datamountaineeer.streamreactor.connect.rethink.sink
 
 import com.datamountaineeer.streamreactor.connect.rethink.config.{ReThinkSetting, ReThinkSettings, ReThinkSinkConfig}
-import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.net.Connection
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 
 import scala.collection.JavaConverters._
-import scala.util.Try
+import scala.util.Failure
 
 object ReThinkWriter extends StrictLogging {
-  def apply(config: ReThinkSinkConfig, context: SinkTaskContext) = {
-    val topics = context.assignment().asScala.map(c=>c.topic()).toList
+  def apply(config: ReThinkSinkConfig, context: SinkTaskContext) : ReThinkWriter = {
+    val topics = context.assignment().asScala.map(c => c.topic()).toSet
     logger.info(s"Assigned topics ${topics.mkString(",")}")
     val rethinkHost = config.getString(ReThinkSinkConfig.RETHINK_HOST)
 
     //set up the connection to the host
-    val settings = ReThinkSettings(config, topics, false)
-    val routes = settings.routes
+    val settings = ReThinkSettings(config, topics)
+    val port = config.getInt(ReThinkSinkConfig.RETHINK_PORT)
     lazy val r = RethinkDB.r
-    lazy val conn: Connection = initialiseReThink(r, routes, "").hostname(rethinkHost).connect()
-    new ReThinkWriter(r = r, conn = conn, setting = settings)
-  }
-
-  /**
-    * Initialize the RethinkDb connection
-    *
-    * @param rethink A ReThinkDb connection instance
-    * @param config
-    * @return A rethink connection
-    * */
-  private def initialiseReThink(rethink : RethinkDB, config: List[Config], dbName : String) = {
-    config.filter(f=>f.isAutoCreate).map(m=>rethink.db(dbName).tableCreate(m.getTarget))
-    rethink.connection()
+    lazy val conn: Connection = r.connection().hostname(rethinkHost).port(port).connect()
+    new ReThinkWriter(r, conn = conn, setting = settings)
   }
 }
-
 /***
   * Handles writes to Rethink
   *
   */
-class ReThinkWriter(r: RethinkDB, conn : Connection, setting: ReThinkSetting)
+class ReThinkWriter(rethink : RethinkDB, conn : Connection, setting: ReThinkSetting)
   extends StrictLogging with ConverterUtil with ErrorHandler {
 
-  //configure the converters
-  val objectMapper = new ObjectMapper()
   logger.info("Initialising ReThink writer")
-  private val fields = setting.fieldMap
-  private val topicTables = setting.topicTableMap
-  private val conflictMap = setting.conflictPolicy
-
   //initialize error tracker
   initialize(setting.maxRetries, setting.errorPolicy)
+  //check tables exist or are marked for auto create
+  ReThinkSinkConverter.checkAndCreateTables(rethink, setting, conn)
 
   /**
     * Write a list of SinkRecords
@@ -79,27 +60,16 @@ class ReThinkWriter(r: RethinkDB, conn : Connection, setting: ReThinkSetting)
     *
     * @param records A list of SinkRecords to write.
     * */
-  def write(records: List[SinkRecord]) = {
+  def write(records: List[SinkRecord]) : Unit = {
 
     if (records.isEmpty) {
-      logger.info("No records received.")
+      logger.debug("No records received.")
     } else {
-      //Try and reconnect
-      logger.info("Records received.")
+      logger.info(s"Received ${records.size} records.")
       if (!conn.isOpen) conn.reconnect()
       val grouped = records.groupBy(_.topic()).grouped(setting.batchSize)
       grouped.foreach(g => g.foreach {case (topic, entries) => writeRecords(topic, entries)})
     }
-  }
-
-  /**
-    * Convert sink records to json
-    *
-    * @param records A list of sink records to convert.
-    * */
-  private def toJson(records: List[SinkRecord]) : List[String] = {
-    val extracted = records.map(r => convert(r, fields.get(r.topic()).get))
-    extracted.map(rec=>objectMapper.writeValueAsString(rec))
   }
 
   /**
@@ -109,40 +79,47 @@ class ReThinkWriter(r: RethinkDB, conn : Connection, setting: ReThinkSetting)
     * @param records The list of sink records to write.
     * */
   private def writeRecords(topic: String, records: List[SinkRecord]) = {
-    val json = toJson(records)
-    val table = topicTables.get(topic).get
-    val conflict  = conflictMap.get(table).get
-    val write : Map[String, Object] = r.db("")
-                                      .table(table)
-                                      .insert(json)
-                                      .optArg("conflict", conflict.toLowerCase)
-                                      .optArg("return_changes", true)
-                                      .run(conn)
+    logger.info(s"Handling records for $topic")
+    val table = setting.topicTableMap.get(topic).get
+    val conflict  = setting.conflictPolicy.get(table).get
+    val pks = setting.pks.get(topic).get
 
-    val errors = write.get("errors").asInstanceOf[Long]
-    if (errors != 0L) handleFailure(write)
-  }
+    val writes = records.map(r => {
+      val extracted = convert(r, setting.fieldMap.get(r.topic()).get, setting.ignoreFields.get(r.topic()).get)
+      val hm = ReThinkSinkConverter.convertToReThink(rethink, extracted, pks)
 
-  def handleFailure(write : Map[String, Object]) = {
-    val error = write.get("first_error").asInstanceOf[String]
-    handleTry(Try(new Throwable(s"Write error occurred. ${error.toString}")))
-  }
-
-  /**
-    * Ensure that writes on a given table are written to permanent storage. Queries that specify soft durability
-    * do not wait for writes to be committed to disk; a call to sync on a table will not return until all previous
-    * writes to the table are completed, guaranteeing the data’s persistence
-    * */
-  def sync() = {
-    topicTables.foreach({
-      case (topic, table) => r.table(table).sync().run(conn)
+      val x : java.util.Map[String, Object] =
+        rethink
+        .db(setting.db)
+        .table(table)
+        .insert(hm)
+        .optArg("conflict", conflict.toLowerCase)
+        .optArg("return_changes", true)
+        .run(conn)
+      x
     })
+
+    //handle errors
+    writes.foreach(w => handleFailure(w.asScala.toMap))
   }
 
   /**
-    * Clean up connections
+    * Handle any write failures. If errors > 0 handle error
+    * according to the policy
+    *
+    * @param write The write result changes return from rethink
     * */
-  def close() = {
-    conn.close(true)
+  private def handleFailure(write : Map[String, Object]) = {
+    val errors = write.getOrElse("errors", 0).toString
+    logger.info(s"Result of write: ${write.mkString(",")}")
+
+    if (!errors.equals("0")) {
+      val error = write.getOrElse("first_error","Unknown error")
+      val message = s"Write error occurred. ${error.toString}"
+      val failure = Failure({new Throwable(message)})
+      handleTry(failure)
+    }
   }
+
+  def close() : Unit = conn.close(true)
 }

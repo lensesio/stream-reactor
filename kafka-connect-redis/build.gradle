@@ -8,7 +8,7 @@ project(':kafka-connect-redis') {
     dependencies {
         compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
         compile "redis.clients:jedis:$jedisVersion"
-        compile "com.google.code.gson:gson:$gsonVersion"
+        testCompile "com.google.code.gson:gson:$gsonVersion"
         testCompile "com.orange.redis-embedded:embedded-redis:$embeddedRedisVersion"
     }
 }
