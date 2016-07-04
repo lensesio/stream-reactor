@@ -138,7 +138,7 @@ allprojects {
 
     // OSSRH publication
     if (project.hasProperty('release')) {
-        uploadShadow {
+        uploadArchives {
             repositories {
                 mavenDeployer {
                     // POM signature

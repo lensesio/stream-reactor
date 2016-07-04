@@ -3,7 +3,7 @@
 
 ## Kafka Connect JMS Sink
 
-A Connector and Sink to write events from Kafka to JMS. The connector takes the value from the Kafka Connect SinkRecor and
+A Kafka Sink Connector to write the records to JMS queue or topic. The connector takes the value from the Kafka Connect SinkRecor and
 puts it on the JMS topic/queue.
 
 ## Prerequisites
@@ -28,7 +28,6 @@ In addition to the default topics configuration the following options are added:
 | connect.jms.sink.export.route.queues| String | Yes| Specifies the JMS queues. The KCQL target points to the JMS destination. If the destintion is meant to a queue then it should be present in this list|
 | connect.jms.sink.message.type| String | Yes| Specifies the JMS payload. If JSON is chosen it will send a TextMessage; if AVRO is chosen it will send a BytesMessage;if MAP is chosen it will send a MapMessage;if OBJECT is chosend it will send an ObjectMessage|
 | connect.jms.error.policy| String | Yes| There are two available options: NOOP - the error is swallowed ;THROW - the error is allowed to propagate. RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on the error will be logged automatically|
-| connect.jms.sink.export.route.topics | String | Yes| Specifies the JMS topics. The KCQL target points to the JMS destination. If the destintion is meant to a topic then it should be present in this list|
 | connect.jms.retry.interval | INT | | The time elapsed between retring to send the messages to the JMS in case of a previous error|
 
 Example jms.properties file
@@ -39,6 +38,14 @@ connector.class=com.datamountaineer.streamreactor.connect.jms.sink.JMSSinkConnec
 tasks.max=1
 topics=person_jms
 name=person-jms-test
+
+connect.jms.sink.url=tcp://somehost:61616
+connect.jms.sink.connection.factory=org.apache.activemq.ActiveMQConnectionFactory
+connect.jms.sink.export.route.query=INSERT INTO topic_1 SELECT * FROM person_jms
+connect.jms.sink.message.type=AVRO
+connect.jms.sink.export.route.topics=person_jms
+connect.jms.sink.export.route.queues=
+connect.jms.error.policy=THROW
 ```
 
 ## Setup
@@ -79,8 +86,8 @@ $CONFLUENT_HOME/bin/connect-standalone ../etc/schema-registry/connect-avro-stand
 
 ```bash
 $CONFLUENT_HOME/bin/kafka-avro-console-producer \
-  --broker-list localhost:9092 --topic person_hbase \
-  --property value.schema='{"type":"record","name":"User","namespace":"com.datamountaineer.streamreactor.connect.hbase","fields":[{"name":"firstName","type":"string"},{"name":"lastName","type":"string"},{"name":"age","type":"int"},{"name":"salary","type":"double"}]}'
+  --broker-list localhost:9092 --topic person_jms\
+  --property value.schema='{"type":"record","name":"User","namespace":"com.datamountaineer.streamreactor.connect.jms","fields":[{"name":"firstName","type":"string"},{"name":"lastName","type":"string"},{"name":"age","type":"int"},{"name":"salary","type":"double"}]}'
 ```
 
 ```bash
