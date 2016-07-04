@@ -90,7 +90,7 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     *
     * @param records A list of SinkRecords from Kafka Connect to write.
     **/
-  def write(records : List[SinkRecord]) : Unit = {
+  def write(records : Set[SinkRecord]) : Unit = {
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
@@ -103,7 +103,7 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
         preparedCache = cachePreparedStatements
       }
 
-      val grouped = records.groupBy(_.topic()).toSet
+      val grouped = records.groupBy(_.topic())
       insert(grouped)
     }
   }
