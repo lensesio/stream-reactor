@@ -58,7 +58,10 @@ object ReThinkSinkConverter extends StrictLogging {
 
         val create = rethink.db(setting.db).tableCreate(r.getTarget)
         //set primary keys if we have them
-        r.getPrimaryKeys.asScala.map(pk => create.optArg("primary_key", pk))
+        val pk = r.getPrimaryKeys.asScala.toSet
+        val pkName = if (pk.isEmpty) "id" else pk.head
+        logger.info(s"Setting primary as first field found: ${pkName}")
+        create.optArg("primary_key", pkName)
         create.run(conn)
         logger.info(s"Table ${r.getTarget} created.")
       })
@@ -79,7 +82,7 @@ object ReThinkSinkConverter extends StrictLogging {
 
     //set id field
     if (primaryKeys.nonEmpty) {
-      mo.`with`("id", concatPrimaryKeys(primaryKeys, s))
+      mo.`with`(primaryKeys.head, concatPrimaryKeys(primaryKeys, s))
     } else {
       mo.`with`("id", connectKey)
     }

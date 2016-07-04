@@ -1,5 +1,5 @@
 [![Stories in Ready](https://badge.waffle.io/datamountaineer/stream-reactor.png?label=ready&title=Ready)](https://waffle.io/datamountaineer/stream-reactor)
-[![Build Status](https://travis-ci.org/datamountaineer/stream-reactor-gradle.svg?branch=master)](https://travis-ci.org/datamountaineer/stream-reactor-gradle)
+[![Build Status](https://travis-ci.org/datamountaineer/stream-reactor.svg?branch=master)](https://travis-ci.org/datamountaineer/stream-reactor)
 [![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://docs.datamountaineer.com/en/latest/?badge=latest)
 
 ![](images/DM-logo.jpg)
@@ -76,8 +76,6 @@ Kafka connect Redis sink to write Kafka topic payloads to Redis.
 #### [Kafka-Connect-Rethink](kafka-connect-redis/README.md)
 
 Kafka connect RethinkDb sink to write Kafka topic payloads to RethinkDb.
-
-NOT TESTS, UNIT TESTS PENDING
 
 #### [Kafka-Socket-Streamer](kafka-socket-streamer/README.md)
 

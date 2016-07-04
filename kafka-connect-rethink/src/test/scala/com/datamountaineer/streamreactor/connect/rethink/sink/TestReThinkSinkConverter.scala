@@ -25,8 +25,6 @@ class TestReThinkSinkConverter extends TestBase with MockitoSugar {
     val rethink = RethinkDB.r
     val pks = Set("string_id", "int_field")
     val mo = ReThinkSinkConverter.convertToReThink(rethink, records.head, pks)
-    mo.containsKey("id") shouldBe true
-    mo.get("id") shouldBe "rethink_topic-12-1-12"
     mo.containsKey("string_id") shouldBe true
     mo.get("string_id") shouldBe "rethink_topic-12-1"
     mo.containsKey("int_field") shouldBe true
