@@ -89,7 +89,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     }
 
     //Setup queues for readers to put records into
-    assigned.map(table => queues += table-> new LinkedBlockingQueue[SourceRecord](bufferSize.get))
+    assigned.map(table => queues += table -> new LinkedBlockingQueue[SourceRecord](bufferSize.get))
     settings = CassandraSettings.configureSource(taskConfig.get, assigned)
 
     //set up readers
