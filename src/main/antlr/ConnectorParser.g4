@@ -120,7 +120,7 @@ distribute_list
    ;
 
 distributeby
-   : DISTRIBUTEBY distribute_list
+   : DISTRIBUTEBY distribute_list INTO buckets_number BUCKETS
    ;
 
 buckets_number

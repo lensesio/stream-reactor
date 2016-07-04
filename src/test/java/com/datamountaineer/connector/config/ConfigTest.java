@@ -471,41 +471,46 @@ public class ConfigTest {
   public void handlerDistributeWhenAllFieldsAreIncluded() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
-    String syntax = String.format("UPSERT INTO %s SELECT * FROM %s IGNORE col1, 1col2 DISTRIBUTEBY col1,col2  ", table, topic);
+    String syntax = String.format("UPSERT INTO %s SELECT * FROM %s IGNORE col1, 1col2 DISTRIBUTEBY col1,col2 INTO 10 BUCKETS", table, topic);
     Config config = Config.parse(syntax);
 
-    Set<String> distributeBy = new HashSet<>();
-    Iterator<String> iter = config.getDistributeBy();
+    Bucketing bucketing = config.getBucketing();
+    assertNotNull(bucketing);
+    HashSet<String> bucketNames = new HashSet<>();
+    Iterator<String> iter = bucketing.getBucketNames();
     while (iter.hasNext()) {
-      distributeBy.add(iter.next());
+      bucketNames.add(iter.next());
     }
-
-    assertTrue(distributeBy.contains("col1"));
-    assertTrue(distributeBy.contains("col2"));
+    assertEquals(2, bucketNames.size());
+    assertTrue(bucketNames.contains("col2"));
+    assertEquals(10, bucketing.getBucketsNumber());
   }
 
   @Test
   public void handlerDistributeWhenSpecificFieldsAreIncluded() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
-    String syntax = String.format("UPSERT INTO %s SELECT col1, col2, col3 FROM %s IGNORE col1, 1col2 DISTRIBUTEBY col1,col2  ", table, topic);
+    String syntax = String.format("UPSERT INTO %s SELECT col1, col2, col3 FROM %s IGNORE col1, 1col2 DISTRIBUTEBY col1,col2 INTO 10 BUCKETS", table, topic);
     Config config = Config.parse(syntax);
 
-    Set<String> distributeBy = new HashSet<>();
-    Iterator<String> iter = config.getDistributeBy();
-    while (iter.hasNext()) {
-      distributeBy.add(iter.next());
-    }
 
-    assertTrue(distributeBy.contains("col1"));
-    assertTrue(distributeBy.contains("col2"));
+    Bucketing bucketing = config.getBucketing();
+    assertNotNull(bucketing);
+    HashSet<String> bucketNames = new HashSet<>();
+    Iterator<String> iter = bucketing.getBucketNames();
+    while (iter.hasNext()) {
+      bucketNames.add(iter.next());
+    }
+    assertEquals(2, bucketNames.size());
+    assertTrue(bucketNames.contains("col2"));
+    assertEquals(10, bucketing.getBucketsNumber());
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void throwsAnExceptionIfTheDistributeByFieldIsNotPresentInTheListOfField() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
-    String syntax = String.format("UPSERT INTO %s SELECT col1, col3 FROM %s IGNORE col1, 1col2 DISTRIBUTEBY col1,col2  ", table, topic);
+    String syntax = String.format("UPSERT INTO %s SELECT col1, col3 FROM %s IGNORE col1, 1col2 DISTRIBUTEBY col1,col2 INTO 10 BUCKETS ", table, topic);
     Config.parse(syntax);
   }
 
@@ -513,17 +518,19 @@ public class ConfigTest {
   public void handlerDistributeByWhenSpecificFieldsAreIncludedAndAliasingIsPresent() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
-    String syntax = String.format("UPSERT INTO %s SELECT col1, col2 as colABC, col3 FROM %s IGNORE col1, 1col2 DISTRIBUTEBY col1,colABC ", table, topic);
+    String syntax = String.format("UPSERT INTO %s SELECT col1, col2 as colABC, col3 FROM %s IGNORE col1, 1col2 DISTRIBUTEBY col1,colABC INTO 10 BUCKETS ", table, topic);
     Config config = Config.parse(syntax);
 
-    Set<String> distributeBy = new HashSet<>();
-    Iterator<String> iter = config.getDistributeBy();
+    Bucketing bucketing = config.getBucketing();
+    assertNotNull(bucketing);
+    HashSet<String> bucketNames = new HashSet<>();
+    Iterator<String> iter = bucketing.getBucketNames();
     while (iter.hasNext()) {
-      distributeBy.add(iter.next());
+      bucketNames.add(iter.next());
     }
-
-    assertTrue(distributeBy.contains("col1"));
-    assertTrue(distributeBy.contains("colABC"));
+    assertEquals(2, bucketNames.size());
+    assertTrue(bucketNames.contains("colABC"));
+    assertEquals(10, bucketing.getBucketsNumber());
   }
 
   @Test
