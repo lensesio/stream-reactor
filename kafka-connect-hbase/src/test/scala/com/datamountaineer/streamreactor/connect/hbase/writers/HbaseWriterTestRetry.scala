@@ -56,7 +56,7 @@ class HbaseWriterTestRetry extends WordSpec with Matchers with MockitoSugar with
       when(config.getString(HbaseSinkConfig.ERROR_POLICY)).thenReturn("RETRY")
       when(config.getInt(HbaseSinkConfig.NBR_OF_RETRIES)).thenReturn(HbaseSinkConfig.NBR_OF_RETIRES_DEFAULT)
 
-      val settings = HbaseSettings(config, List(topic))
+      val settings = HbaseSettings(config)
 
       val writer = new HbaseWriter(settings)
 

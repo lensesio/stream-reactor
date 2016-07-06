@@ -99,7 +99,7 @@ class TestReThinkSinkConverter extends TestBase with MockitoSugar {
   "should check and create tables" in {
     val props = getPropsUpsertSelectRetry
     val config = new ReThinkSinkConfig(props = props)
-    val settings = ReThinkSettings(config, Set(TOPIC))
+    val settings = ReThinkSettings(config)
     val r = mock[RethinkDB]
     val conn = mock[Connection]
     val db =  mock[Db]

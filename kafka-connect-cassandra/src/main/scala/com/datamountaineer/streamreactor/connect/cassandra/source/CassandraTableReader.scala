@@ -60,7 +60,7 @@ class CassandraTableReader(private val session: Session,
   private var tableOffset: Option[Date] = buildOffsetMap(context)
   private val partition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
   private val routeMapping = setting.routes
-  private val fields = routeMapping.getFieldAlias.map({fa=>(fa.getField,"'" + fa.getAlias + "'")}).toMap
+  private val fields = routeMapping.getFieldAlias.map(fa => (fa.getField,"'" + fa.getAlias + "'")).toMap
 
   /**
     * Build a map of table to offset.

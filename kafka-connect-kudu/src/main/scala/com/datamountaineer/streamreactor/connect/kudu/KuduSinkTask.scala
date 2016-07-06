@@ -57,8 +57,7 @@ class KuduSinkTask extends SinkTask with StrictLogging {
 
     KuduSinkConfig.config.parse(props)
     val sinkConfig = new KuduSinkConfig(props)
-    val topics = context.assignment().asScala.map(c=>c.topic()).toList
-    val settings = KuduSettings(sinkConfig, topics, true)
+    val settings = KuduSettings(sinkConfig)
 
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {

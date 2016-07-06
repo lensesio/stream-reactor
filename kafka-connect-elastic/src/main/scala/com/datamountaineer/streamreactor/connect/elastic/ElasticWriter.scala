@@ -28,10 +28,9 @@ object  ElasticWriter {
     * Construct a JSONWriter.
     *
     * @param config An elasticSinkConfig to extract settings from.
-    * @param context A sink context.
     * @return An ElasticJsonWriter to write records from Kafka to ElasticSearch.
     * */
-  def apply(config: ElasticSinkConfig, context: SinkTaskContext) : ElasticJsonWriter = {
+  def apply(config: ElasticSinkConfig) : ElasticJsonWriter = {
     val hostNames = config.getString(ElasticSinkConfig.URL)
     val esClusterName = config.getString(ElasticSinkConfig.ES_CLUSTER_NAME)
     val esPrefix = config.getString(ElasticSinkConfig.URL_PREFIX)
@@ -42,8 +41,7 @@ object  ElasticWriter {
     val uri = ElasticsearchClientUri(s"$esPrefix://$hostNames")
     val client = ElasticClient.transport(essettings, uri)
 
-    val topics = context.assignment().asScala.map(c=>c.topic()).toList
-    val settings = ElasticSettings(config, topics)
+    val settings = ElasticSettings(config)
     new ElasticJsonWriter(client = client, settings = settings)
   }
 }

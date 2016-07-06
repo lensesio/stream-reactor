@@ -93,7 +93,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     settings = CassandraSettings.configureSource(taskConfig.get, assigned)
 
     //set up readers
-    assigned.map(table =>{
+    assigned.map(table => {
       //get settings
       val setting = settings.filter(s=>s.routes.getSource.equals(table)).head
       val session = connection.get.session

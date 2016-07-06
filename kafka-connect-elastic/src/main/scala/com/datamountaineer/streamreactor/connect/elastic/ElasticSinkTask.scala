@@ -53,7 +53,7 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
 
     ElasticSinkConfig.config.parse(props)
     val sinkConfig = ElasticSinkConfig(props)
-    writer = Some(ElasticWriter(config = sinkConfig, context = context))
+    writer = Some(ElasticWriter(config = sinkConfig))
   }
 
   /**

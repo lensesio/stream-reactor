@@ -40,15 +40,10 @@ case class ReThinkSetting(db : String,
                          )
 
 object ReThinkSettings {
-  def apply(config: ReThinkSinkConfig, assigned: Set[String]) : ReThinkSetting = {
-
+  def apply(config: ReThinkSinkConfig) : ReThinkSetting = {
     val raw = config.getString(ReThinkSinkConfig.EXPORT_ROUTE_QUERY)
     require(raw != null && !raw.isEmpty,  s"No ${ReThinkSinkConfig.EXPORT_ROUTE_QUERY} provided!")
-
-    //parse query
-    val routes = raw.split(";")
-                  .map(r => Config.parse(r)).toSet
-                  .filter(f => assigned.contains(f.getSource))
+    val routes = raw.split(";").map(r => Config.parse(r)).toSet
 
     //only allow on primary key for rethink.
     routes

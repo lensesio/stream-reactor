@@ -63,8 +63,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
 
     RedisSinkConfig.config.parse(props)
     val sinkConfig = new RedisSinkConfig(props)
-    val topics = context.assignment().asScala.map(c=>c.topic()).toList
-    val settings = RedisSinkSettings(sinkConfig, topics)
+    val settings = RedisSinkSettings(sinkConfig)
 
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {

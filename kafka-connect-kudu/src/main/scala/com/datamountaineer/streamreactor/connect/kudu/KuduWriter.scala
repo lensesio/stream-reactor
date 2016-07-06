@@ -36,7 +36,7 @@ case class SchemaMap(version: Int, schema: Schema)
   * stream-reactor
   */
 object KuduWriter extends StrictLogging {
-  def apply(config: KuduSinkConfig, settings: KuduSetting)  : KuduWriter = {
+  def apply(config: KuduSinkConfig, settings: KuduSetting) : KuduWriter = {
     val kuduMaster = config.getString(KuduSinkConfig.KUDU_MASTER)
     logger.info(s"Connecting to Kudu Master at $kuduMaster")
     lazy val client = new KuduClient.KuduClientBuilder(kuduMaster).build()

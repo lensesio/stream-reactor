@@ -26,7 +26,7 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
       when(config.getInt(REDIS_PORT)).thenReturn(8453)
       when(config.getString(REDIS_PASSWORD)).thenReturn("secret")
       when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
-      RedisSinkSettings(config, List(""))
+      RedisSinkSettings(config)
     }
   }
 
@@ -39,7 +39,7 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
     when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL_KEYS)
     when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
 
-    val settings = RedisSinkSettings(config, List(TABLE_NAME_RAW))
+    val settings = RedisSinkSettings(config)
     val route = settings.routes.head
 
     settings.rowKeyModeMap.get(TABLE_NAME_RAW).get.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
@@ -58,7 +58,7 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
     when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL)
     when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
 
-    val settings = RedisSinkSettings(config, List(TABLE_NAME_RAW))
+    val settings = RedisSinkSettings(config)
 
     settings.rowKeyModeMap.get(TABLE_NAME_RAW).get.isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
     val route = settings.routes.head
@@ -77,7 +77,7 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
     when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_SELECT)
     when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
 
-    val settings = RedisSinkSettings(config, List(TABLE_NAME_RAW))
+    val settings = RedisSinkSettings(config)
     val route = settings.routes.head
     val fields = route.getFieldAlias.asScala.toList
 
@@ -101,7 +101,7 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
     when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_SELECT_KEYS)
     when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
 
-    val settings = RedisSinkSettings(config, List(TABLE_NAME_RAW))
+    val settings = RedisSinkSettings(config)
     val route = settings.routes.head
     val fields = route.getFieldAlias.asScala.toList
 
@@ -124,7 +124,7 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
       when(config.getString(REDIS_PASSWORD)).thenReturn("secret")
       when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_SELECT_KEYS_BAD) //set keys in select
       when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
-      RedisSinkSettings(config, List(TABLE_NAME_RAW))
+      RedisSinkSettings(config)
     }
   }
 }

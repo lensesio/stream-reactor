@@ -8,14 +8,10 @@ buildscript {
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
         classpath 'com.github.maiflai:gradle-scalatest:0.9'
-        classpath 'io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.5.1'
         classpath 'net.researchgate:gradle-release:2.3.4'
         classpath "org.github.ngbinh.scalastyle:gradle-scalastyle-plugin_2.11:0.8.2"
     }
 }
-
-apply plugin: 'signing'
-apply plugin: 'io.codearte.nexus-staging'
 
 allprojects {
     group = 'com.datamountaineer'
@@ -79,6 +75,7 @@ allprojects {
         testRuntime 'org.pegdown:pegdown:1.1.0'
     }
 
+
     test {
         maxParallelForks = 1
         minHeapSize '256m'
@@ -88,10 +85,6 @@ allprojects {
     task testJar(type: Jar, dependsOn: testClasses) {
         baseName = "test-${project.archivesBaseName}"
         from sourceSets.test.output
-    }
-
-    configurations {
-        tests
     }
 
     task sourcesJar(type: Jar) {
@@ -109,10 +102,6 @@ allprojects {
         classifier = 'scaladoc'
         from '../LICENSE'
         from scaladoc
-    }
-
-    artifacts {
-        archives javadocJar, scaladocJar, sourcesJar
     }
 
     tasks.withType(Tar) {
@@ -135,69 +124,6 @@ allprojects {
     task compile(dependsOn: 'compileScala')
     task fatJar(dependsOn : ['test', 'shadowJar'])
     task fatJarNoTest(dependsOn : 'shadowJar')
-
-    // OSSRH publication
-    if (project.hasProperty('release')) {
-        uploadArchives {
-            repositories {
-                mavenDeployer {
-                    // POM signature
-                    beforeDeployment {
-                        MavenDeployment deployment -> signing.signPom(deployment)
-                    }
-                    // Target repository
-                    repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                        authentication(userName: ossrhUsername, password: ossrhPassword)
-                    }
-                    pom.project {
-                        name project.name
-                        description project.description
-                        packaging 'jar'
-                        url 'https://github.com/datamountaineer/stream-reactor'
-
-                        scm {
-                            connection 'scm:git:https://github.com/datamountaineer/stream-reactor.git'
-                            developerConnection 'scm:git:git@github.com:datamountaineer/stream-reactor.git'
-                            url 'https://github.com/datamountaineer/stream-reactor.git'
-                        }
-
-                        licenses {
-                            license {
-                                name 'Apache License 2.0'
-                                url 'http://www.apache.org/licenses/LICENSE-2.0.html'
-                                distribution 'repo'
-                            }
-                        }
-
-                        developers {
-                            developer {
-                                id = 'andrewstevenson'
-                                name = 'Andrew Stevenson'
-                                email = 'andrew@datamountaineer.com'
-                            }
-                            developer {
-                                id = 'stheppi'
-                                name = 'Stefan Bocutiu'
-                                email = 'stefan@datamountaineer.com'
-                            }
-                            developer {
-                                id = 'Antwnis'
-                                name = 'Antonios Chalkiopoulos'
-                                email = 'antonios@datamountaineer.com'
-                            }
-                        }
-                    }
-                }
-
-            }
-        }
-    }
-
-    nexusStaging {
-        packageGroup = project.getGroup()
-        username = ossrhUsername
-        password = ossrhPassword
-    }
 
     scalaStyle {
         configLocation = "${project.projectDir}/../style/scalastyle_config.xml"

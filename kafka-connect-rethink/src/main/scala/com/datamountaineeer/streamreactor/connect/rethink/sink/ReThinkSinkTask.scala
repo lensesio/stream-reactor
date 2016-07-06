@@ -54,7 +54,7 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
       """.stripMargin)
 
     val sinkConfig = ReThinkSinkConfig(props)
-    writer = Some(ReThinkWriter(config = sinkConfig, context = context))
+    writer = Some(ReThinkWriter(config = sinkConfig))
   }
 
   /**

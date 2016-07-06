@@ -28,13 +28,11 @@ import scala.collection.JavaConverters._
 import scala.util.Failure
 
 object ReThinkWriter extends StrictLogging {
-  def apply(config: ReThinkSinkConfig, context: SinkTaskContext) : ReThinkWriter = {
-    val topics = context.assignment().asScala.map(c => c.topic()).toSet
-    logger.info(s"Assigned topics ${topics.mkString(",")}")
+  def apply(config: ReThinkSinkConfig) : ReThinkWriter = {
     val rethinkHost = config.getString(ReThinkSinkConfig.RETHINK_HOST)
 
     //set up the connection to the host
-    val settings = ReThinkSettings(config, topics)
+    val settings = ReThinkSettings(config)
     val port = config.getInt(ReThinkSinkConfig.RETHINK_PORT)
     lazy val r = RethinkDB.r
     lazy val conn: Connection = r.connection().hostname(rethinkHost).port(port).connect()

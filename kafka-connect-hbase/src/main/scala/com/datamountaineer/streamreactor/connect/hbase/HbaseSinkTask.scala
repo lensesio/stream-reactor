@@ -60,8 +60,7 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
 
     HbaseSinkConfig.config.parse(props)
     val sinkConfig = HbaseSinkConfig(props)
-    val topics = context.assignment().asScala.map(c=>c.topic()).toList
-    val hbaseSettings = HbaseSettings(sinkConfig, topics)
+    val hbaseSettings = HbaseSettings(sinkConfig)
 
     //if error policy is retry set retry interval
     if (hbaseSettings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {

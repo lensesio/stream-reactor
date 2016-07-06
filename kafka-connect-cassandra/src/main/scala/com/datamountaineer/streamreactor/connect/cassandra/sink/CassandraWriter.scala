@@ -36,8 +36,7 @@ object CassandraWriter extends StrictLogging {
       case Failure(f) => throw new ConnectException(s"Couldn't connect to Cassandra.", f)
     }
 
-    val assignedTopics = context.assignment().asScala.map(c=>c.topic()).toList
-    val settings = CassandraSettings.configureSink(connectorConfig, assignedTopics)
+    val settings = CassandraSettings.configureSink(connectorConfig)
 
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {

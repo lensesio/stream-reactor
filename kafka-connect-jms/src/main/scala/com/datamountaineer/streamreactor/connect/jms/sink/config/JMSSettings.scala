@@ -46,26 +46,14 @@ object JMSSettings {
     * @param config : The map of all provided configurations
     * @return An instance of JmsSettings
     */
-  def apply(config: JMSSinkConfig, kafkaTopics: Set[String]): JMSSettings = {
+  def apply(config: JMSSinkConfig): JMSSettings = {
 
     val raw = config.getString(JMSSinkConfig.EXPORT_ROUTE_QUERY)
     require(raw != null && !raw.isEmpty, s"No ${JMSSinkConfig.EXPORT_ROUTE_QUERY} provided!")
 
     val topics = config.getList(JMSSinkConfig.TOPICS_LIST).toSet
     val queues = config.getList(JMSSinkConfig.QUEUES_LIST).toSet
-
-    //parse query
-    val routes = raw.split(";").map { r =>
-      val config = Config.parse(r)
-      if (!kafkaTopics.contains(config.getSource)) {
-        throw new ConfigException(
-          s"${config.getSource} doesn't appear in the list of configured Kafka source topics:${kafkaTopics.mkString(",")}")
-      }
-      JMSConfig(config, topics, queues)
-    }
-    if (routes.isEmpty) {
-      throw new ConfigException(s"No routes for for assigned topics in ${JMSSinkConfig.EXPORT_ROUTE_QUERY}")
-    }
+    val routes = raw.split(";").map(r => JMSConfig(Config.parse(r), topics, queues))
 
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(JMSSinkConfig.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
