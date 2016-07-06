@@ -63,7 +63,6 @@ class CassandraSinkConnector extends Connector with StrictLogging {
     * @param props A map of properties for the connector and worker
     * */
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(s"Starting Cassandra sink task with ${props.toString}.")
     configProps = props
     Try(new CassandraConfigSink(props)) match {
       case Failure(f) =>

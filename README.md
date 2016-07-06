@@ -1,7 +1,8 @@
 [![Stories in Ready](https://badge.waffle.io/datamountaineer/stream-reactor.png?label=ready&title=Ready)](https://waffle.io/datamountaineer/stream-reactor)
-[![Build Status](https://travis-ci.org/datamountaineer/stream-reactor.svg?branch=master)](https://travis-ci.org/datamountaineer/stream-reactor)
+[![Build Status](https://datamountaineer.ci.landoop.com/buildStatus/icon?job=stream-reactor&style=flat&.png)](https://datamountaineer.ci.landoop.com/job/stream-reactor/)
 [![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://docs.datamountaineer.com/en/latest/?badge=latest)
 
+<!--[![Build Status](https://travis-ci.org/datamountaineer/stream-reactor.svg?branch=master)](https://travis-ci.org/datamountaineer/stream-reactor)--> 
 ![](images/DM-logo.jpg)
 
 # Stream Reactor
