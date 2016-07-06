@@ -62,15 +62,7 @@ object CassandraSettings extends StrictLogging {
     require(!keySpace.isEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
     val raw = config.getString(CassandraConfigConstants.IMPORT_ROUTE_QUERY)
     require(!raw.isEmpty, s"${CassandraConfigConstants.IMPORT_ROUTE_QUERY} is empty.")
-
-    //parse query
-    val routes: Set[Config] = raw.split(";").map(r => Config.parse(r)).toSet.filter(f=>assigned.contains(f.getSource))
-
-    if (routes.isEmpty) {
-      throw new ConfigException(s"No routes for assigned topics in "
-        + s"${CassandraConfigConstants.EXPORT_ROUTE_QUERY}")
-    }
-
+    val routes = raw.split(";").map(r => Config.parse(r)).toSet
     val pollInterval = config.getLong(CassandraConfigConstants.POLL_INTERVAL)
 
     val bulk = config.getString(CassandraConfigConstants.IMPORT_MODE).toLowerCase() match {
@@ -82,11 +74,6 @@ object CassandraSettings extends StrictLogging {
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(CassandraConfigConstants.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
     val timestampCols = routes.map(r=>(r.getSource, r.getPrimaryKeys.asScala.toList)).toMap
-
-    if (routes.isEmpty) {
-      throw new ConfigException(s"No routes for for assigned topics in "
-        + s"${CassandraConfigConstants.IMPORT_ROUTE_QUERY}")
-    }
 
     routes.map({
       r => {
@@ -109,23 +96,13 @@ object CassandraSettings extends StrictLogging {
     })
   }
 
-  def configureSink(config: AbstractConfig, assigned: List[String]): CassandraSinkSetting = {
+  def configureSink(config: CassandraConfigSink): CassandraSinkSetting = {
     //get keyspace
     val keySpace = config.getString(CassandraConfigConstants.KEY_SPACE)
     require(!keySpace.isEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
     val raw = config.getString(CassandraConfigConstants.EXPORT_ROUTE_QUERY)
     require(!raw.isEmpty, s"${CassandraConfigConstants.EXPORT_ROUTE_QUERY} is empty.")
-
-    logger.info(s"Assigned is ${assigned.mkString(",")}")
-
-    val routes = raw.split(";").map(r => Config.parse(r)).toSet.filter(f => assigned.contains(f.getSource))
-
-    if (routes.isEmpty) {
-      throw new ConfigException(s"No routes for assigned topics in "
-        + s"${CassandraConfigConstants.EXPORT_ROUTE_QUERY}")
-    }
-
-    //get task specific config
+    val routes = raw.split(";").map(r => Config.parse(r)).toSet
     val retries = config.getInt(CassandraConfigConstants.NBR_OF_RETRIES)
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(CassandraConfigConstants.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)

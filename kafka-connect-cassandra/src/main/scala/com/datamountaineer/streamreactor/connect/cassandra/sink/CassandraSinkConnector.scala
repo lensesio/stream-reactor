@@ -51,12 +51,6 @@ class CassandraSinkConnector extends Connector with StrictLogging {
     (1 to maxTasks).map(c=>configProps).toList.asJava
   }
 
-//  override def reconfigure(props: util.Map[String, String]) = {
-//    logger.info(s"Reconfiguring ${props.asScala.mkString(",")}")
-//    stop
-//    start(props)
-//  }
-
   /**
     * Start the sink and set to configuration
     *

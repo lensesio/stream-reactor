@@ -27,7 +27,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     val kuduSession = mock[KuduSession]
 
     val config = new KuduSinkConfig(getConfigAutoCreate(8081))
-    val settings = KuduSettings(config, List(TOPIC), sinkTask = true)
+    val settings = KuduSettings(config)
 
     when(client.newSession()).thenReturn(kuduSession)
     when(client.tableExists(TABLE)).thenReturn(true)
@@ -53,7 +53,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     val kuduSession = mock[KuduSession]
 
     val config = new KuduSinkConfig(getConfigAutoCreate(8081))
-    val settings = KuduSettings(config, List(TOPIC), true)
+    val settings = KuduSettings(config)
 
     when(client.newSession()).thenReturn(kuduSession)
     when(client.tableExists(TABLE)).thenReturn(false)
@@ -86,7 +86,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     val atrm = mock[AlterTableResponse]
 
     val config = new KuduSinkConfig(getConfigAutoCreateAndEvolve(8081))
-    val settings = KuduSettings(config, List(TOPIC), true)
+    val settings = KuduSettings(config)
 
     when(client.newSession()).thenReturn(kuduSession)
     when(client.tableExists(TABLE)).thenReturn(false)
@@ -116,7 +116,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
       val errorRow = mock[RowError]
 
       val config = new KuduSinkConfig(getConfigAutoCreateRetry(8081))
-      val settings = KuduSettings(config, List(TOPIC), true)
+      val settings = KuduSettings(config)
 
       when(client.newSession()).thenReturn(kuduSession)
       when(client.tableExists(TABLE)).thenReturn(true)

@@ -40,16 +40,10 @@ case class RedisSinkSettings(connection: RedisConnectionInfo,
 
 
 object RedisSinkSettings {
-  def apply(config: RedisSinkConfig, assigned : List[String]): RedisSinkSettings = {
+  def apply(config: RedisSinkConfig): RedisSinkSettings = {
     val raw = config.getString(RedisSinkConfig.EXPORT_ROUTE_QUERY)
-
     require(raw != null && !raw.isEmpty, s"No ${RedisSinkConfig.EXPORT_ROUTE_QUERY} provided!")
-
-    //parse query
-    val routes: Set[Config] = raw.split(";").map(r => Config.parse(r)).toSet.filter(f => assigned.contains(f.getSource))
-
-    if (routes.isEmpty) throw new ConfigException(s"No routes for for assigned topics in ${RedisSinkConfig.EXPORT_ROUTE_QUERY}")
-
+    val routes = raw.split(";").map(r => Config.parse(r)).toSet
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(RedisSinkConfig.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
     val nbrOfRetries = config.getInt(RedisSinkConfig.NBR_OF_RETRIES)

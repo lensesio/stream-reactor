@@ -25,7 +25,7 @@ class TestReThinkWriter extends TestBase with MockitoSugar with ConverterUtil {
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)
     val config = new ReThinkSinkConfig(getProps)
-    val settings = ReThinkSettings(config, Set(TOPIC))
+    val settings = ReThinkSettings(config)
     val records = getTestRecords
 
     val conflict = settings.conflictPolicy.get(TABLE).get
@@ -66,7 +66,7 @@ class TestReThinkWriter extends TestBase with MockitoSugar with ConverterUtil {
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)
     val config = new ReThinkSinkConfig(getPropsUpsertSelectRetry)
-    val settings = ReThinkSettings(config, Set(TOPIC))
+    val settings = ReThinkSettings(config)
     val records = getTestRecords
     val conflict = settings.conflictPolicy.get(TABLE).get
 

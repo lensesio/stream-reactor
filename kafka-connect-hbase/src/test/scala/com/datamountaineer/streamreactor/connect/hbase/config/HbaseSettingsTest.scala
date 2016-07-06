@@ -25,7 +25,7 @@ class HbaseSettingsTest extends WordSpec with Matchers with MockitoSugar {
       val config = mock[HbaseSinkConfig]
       when(config.getString(COLUMN_FAMILY)).thenReturn("")
       when(config.getString(HbaseSinkConfig.ERROR_POLICY)).thenReturn("THROW")
-      HbaseSettings(config, List(""))
+      HbaseSettings(config)
     }
   }
 
@@ -37,7 +37,7 @@ class HbaseSettingsTest extends WordSpec with Matchers with MockitoSugar {
     when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL_KEYS)
     when(config.getString(HbaseSinkConfig.ERROR_POLICY)).thenReturn("THROW")
 
-    val settings = HbaseSettings(config, List(TABLE_NAME_RAW))
+    val settings = HbaseSettings(config)
     val route = settings.routes.head
 
     settings.rowKeyModeMap.get(TABLE_NAME_RAW).get.isInstanceOf[StructFieldsRowKeyBuilderBytes] shouldBe true
@@ -55,7 +55,7 @@ class HbaseSettingsTest extends WordSpec with Matchers with MockitoSugar {
     when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL)
     when(config.getString(HbaseSinkConfig.ERROR_POLICY)).thenReturn("THROW")
 
-    val settings = HbaseSettings(config, List(TABLE_NAME_RAW))
+    val settings = HbaseSettings(config)
 
     settings.rowKeyModeMap.get(TABLE_NAME_RAW).get.isInstanceOf[GenericRowKeyBuilderBytes] shouldBe true
     val route = settings.routes.head
@@ -73,7 +73,7 @@ class HbaseSettingsTest extends WordSpec with Matchers with MockitoSugar {
     when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_SELECT)
     when(config.getString(HbaseSinkConfig.ERROR_POLICY)).thenReturn("THROW")
 
-    val settings = HbaseSettings(config, List(TABLE_NAME_RAW))
+    val settings = HbaseSettings(config)
     val route = settings.routes.head
     val fields = route.getFieldAlias.asScala.toList
 
@@ -96,7 +96,7 @@ class HbaseSettingsTest extends WordSpec with Matchers with MockitoSugar {
     when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_SELECT_KEYS)
     when(config.getString(HbaseSinkConfig.ERROR_POLICY)).thenReturn("THROW")
 
-    val settings = HbaseSettings(config, List(TABLE_NAME_RAW))
+    val settings = HbaseSettings(config)
     val route = settings.routes.head
     val fields = route.getFieldAlias.asScala.toList
 
@@ -118,7 +118,7 @@ class HbaseSettingsTest extends WordSpec with Matchers with MockitoSugar {
       when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_SELECT_KEYS_BAD) //set keys in select
       when(config.getString(COLUMN_FAMILY)).thenReturn(columnFamily)
       when(config.getString(HbaseSinkConfig.ERROR_POLICY)).thenReturn("THROW")
-      HbaseSettings(config, List(TABLE_NAME_RAW))
+      HbaseSettings(config)
     }
   }
 }

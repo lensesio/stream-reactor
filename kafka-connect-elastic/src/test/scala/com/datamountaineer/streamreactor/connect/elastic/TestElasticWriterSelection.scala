@@ -26,7 +26,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
 
     //get writer
 
-    val settings = ElasticSettings(config, List(TOPIC))
+    val settings = ElasticSettings(config)
     val writer = new ElasticJsonWriter(client = client, settings = settings)
     //write records to elastic
     writer.write(testRecords)

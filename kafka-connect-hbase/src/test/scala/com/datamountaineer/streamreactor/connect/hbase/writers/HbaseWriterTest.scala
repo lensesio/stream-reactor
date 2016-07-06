@@ -55,7 +55,7 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
       when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL)
       when(config.getString(HbaseSinkConfig.ERROR_POLICY)).thenReturn("THROW")
 
-      val settings = HbaseSettings(config, List(topic))
+      val settings = HbaseSettings(config)
 
       val writer = new HbaseWriter(settings)
 
@@ -122,7 +122,7 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
       when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL)
       when(config.getString(HbaseSinkConfig.ERROR_POLICY)).thenReturn("THROW")
 
-      val settings = HbaseSettings(config, List(topic))
+      val settings = HbaseSettings(config)
 
       val writer = new HbaseWriter(settings)
 

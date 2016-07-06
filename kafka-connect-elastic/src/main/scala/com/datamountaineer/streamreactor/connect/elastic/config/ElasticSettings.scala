@@ -31,18 +31,13 @@ case class ElasticSettings(routes: List[Config],
                            tableMap: Map[String, String])
 
 object ElasticSettings {
-  def apply(config: ElasticSinkConfig, assigned : List[String]): ElasticSettings = {
+  def apply(config: ElasticSinkConfig): ElasticSettings = {
     val raw = config.getString(ElasticSinkConfig.EXPORT_ROUTE_QUERY)
     require(!raw.isEmpty,s"Empty ${ElasticSinkConfig.EXPORT_ROUTE_QUERY_DOC}")
-
-    val routes = raw.split(";").map(r=>Config.parse(r)).toList
-
-    if (routes.isEmpty) {
-      throw new ConfigException(s"No routes for for assigned topics in ${ElasticSinkConfig.EXPORT_ROUTE_QUERY_DOC}")
-    }
+    val routes = raw.split(";").map(r => Config.parse(r)).toList
 
     val fields = routes.map(
-      rm => (rm.getSource, rm.getFieldAlias.asScala.map(fa=>(fa.getField,fa.getAlias)).toMap)
+      rm => (rm.getSource, rm.getFieldAlias.asScala.map(fa => (fa.getField,fa.getAlias)).toMap)
     ).toMap
 
     val tableMap = routes.map(rm => (rm.getSource, rm.getTarget)).toMap

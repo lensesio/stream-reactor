@@ -37,7 +37,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
 
   "Should throw because auto create with no distribute by keys" in {
     val config = new KuduSinkConfig(getConfig)
-    val settings = KuduSettings(config, List(TOPIC), sinkTask = true)
+    val settings = KuduSettings(config)
     val schema =
       """
         |{ "type": "record",
@@ -62,7 +62,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
 
   "Should return a Kudu create schema" in {
     val config = new KuduSinkConfig(getConfigAutoCreate(8081))
-    val settings = KuduSettings(config, List(TOPIC), true)
+    val settings = KuduSettings(config)
 
     val creates = settings.routes.map(r=>DbHandler.getKuduSchema(r, schema))
     val create = creates.head
@@ -82,7 +82,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
 
   "Should return a Kudu Create schema with default" in {
     val config = new KuduSinkConfig(getConfigAutoCreate(8081))
-    val settings = KuduSettings(config, List(TOPIC), true)
+    val settings = KuduSettings(config)
 
     val creates = settings.routes.map(r=>DbHandler.getKuduSchema(r, schemaDefaults))
     val create = creates.head
@@ -112,7 +112,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     when(client.newSession()).thenReturn(kuduSession)
 
     val config = new KuduSinkConfig(getConfigAutoCreate(9999))
-    val settings = KuduSettings(config, List(TOPIC), true)
+    val settings = KuduSettings(config)
     val cache = DbHandler.buildTableCache(settings, client)
     cache.get(TOPIC).get shouldBe table
   }
@@ -129,7 +129,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     when(client.newSession()).thenReturn(kuduSession)
 
     val config = new KuduSinkConfig(getConfig)
-    val settings = KuduSettings(config, List(TOPIC), true)
+    val settings = KuduSettings(config)
     intercept[ConnectException] {
       DbHandler.buildTableCache(settings, client)
     }
@@ -163,7 +163,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
 
     //set up configs
     val config = new KuduSinkConfig(getConfigAutoCreate(port))
-    val settings = KuduSettings(config, List(TOPIC), true)
+    val settings = KuduSettings(config)
 
     //mock out kudu client
     val table = mock[KuduTable]
@@ -203,7 +203,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val client = mock[KuduClient]
     val record: SinkRecord = getTestRecords.head
     val config = new KuduSinkConfig(getConfigAutoCreate(9999))
-    val settings = KuduSettings(config, List(TOPIC), true)
+    val settings = KuduSettings(config)
     val ret = DbHandler.createTableFromSinkRecord( settings.routes.head, record.valueSchema(), client)
     ret.isInstanceOf[Try[KuduTable]] shouldBe true
   }

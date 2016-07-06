@@ -41,18 +41,14 @@ object HbaseSettings {
     * @param config : The map of all provided configurations
     * @return An instance of HbaseSettings
     */
-  def apply(config: HbaseSinkConfig, assigned : List[String]): HbaseSettings = {
+  def apply(config: HbaseSinkConfig): HbaseSettings = {
     val columnFamily = config.getString(COLUMN_FAMILY)
+
     if (columnFamily.trim.length == 0) throw new ConfigException(s"$COLUMN_FAMILY is not set correctly")
 
     val raw = config.getString(HbaseSinkConfig.EXPORT_ROUTE_QUERY)
     require(raw != null && !raw.isEmpty,  s"No ${HbaseSinkConfig.EXPORT_ROUTE_QUERY} provided!")
-
-    //parse query
-    val routes: Set[Config] = raw.split(";").map(r => Config.parse(r)).toSet.filter(f=>assigned.contains(f.getSource))
-
-    if (routes.isEmpty) throw new ConfigException(s"No routes for for assigned topics in ${HbaseSinkConfig.EXPORT_ROUTE_QUERY}")
-
+    val routes = raw.split(";").map(r => Config.parse(r)).toSet
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(HbaseSinkConfig.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
     val nbrOfRetries = config.getInt(HbaseSinkConfig.NBR_OF_RETRIES)

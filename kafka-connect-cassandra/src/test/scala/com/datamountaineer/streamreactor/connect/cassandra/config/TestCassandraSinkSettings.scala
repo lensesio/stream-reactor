@@ -21,8 +21,7 @@ class TestCassandraSinkSettings extends WordSpec with Matchers  with MockitoSuga
     //mock the assignment to simulate getting a list of assigned topics
     when(context.assignment()).thenReturn(getAssignment)
     val taskConfig  = CassandraConfigSink(getCassandraConfigSinkPropsRetry)
-    val assigned = context.assignment().asScala.map(c=>c.topic()).toList
-    val settings = CassandraSettings.configureSink(taskConfig, assigned)
+    val settings = CassandraSettings.configureSink(taskConfig)
 
     val parsedConf: List[Config] = settings.routes.toList
     parsedConf.size shouldBe 2
