@@ -46,7 +46,7 @@ private[bloomberg] class ConnectSchema(namespace: String) {
         val firstItemSchema = if (list.isEmpty) Schema.OPTIONAL_STRING_SCHEMA else createSchema(name, list.get(0))
         SchemaBuilder.array(firstItemSchema).build()
 
-      case map: java.util.LinkedHashMap[String, _] =>
+      case map: java.util.LinkedHashMap[String @unchecked, _] =>
         val recordBuilder = SchemaBuilder.struct()
         recordBuilder.name(name)
         map.entrySet().asScala.foreach { case kvp =>
