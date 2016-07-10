@@ -1,0 +1,23 @@
+project(":kafka-connect-yahoo") {
+
+    ext {
+        snappyVersion = "1.1.2.1"
+        yahooVersion = "1.3.0"
+    }
+
+    test {
+        //for casssandra unit, add to classpath the cassandra yaml files
+        classpath = project.sourceSets.test.runtimeClasspath + files("${projectDir}/src/test/resources")
+        classpath = project.sourceSets.test.runtimeClasspath + files("${projectDir.getCanonicalPath()}/src/test/resources/log4j.properties")
+        systemProperty 'log4j.configuration', "file:${projectDir.canonicalPath}/src/test/resources/log4j.properties"
+        //dependsOn copyResources
+    }
+
+    dependencies {
+        compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
+        compile "com.yahoofinance-api:YahooFinanceAPI:$yahooVersion"
+        compile 'joda-time:joda-time:2.9.4'
+        testCompile "com.google.code.findbugs:jsr305:1.3.9"
+
+    }
+}

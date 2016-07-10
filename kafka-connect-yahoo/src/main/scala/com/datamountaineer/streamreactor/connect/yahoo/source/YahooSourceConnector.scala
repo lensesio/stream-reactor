@@ -14,69 +14,48 @@
   * limitations under the License.
   **/
 
-package com.datamountaineer.streamreactor.connect.cassandra.source
+package com.datamountaineer.streamreactor.connect.yahoo.source
 
 import java.util
 
-import com.datamountaineer.connector.config.Config
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
-import org.apache.kafka.connect.util.ConnectorUtils
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 
 /**
-  * <h1>CassandraSourceConnector</h1>
-  * Kafka connect Cassandra Source connector
+  * <h1>YahooSourceConnector</h1>
+  * Kafka connect Yahoo Source connector
   *
-  * Sets up CassandraSourceTask and configurations for the tasks.
+  * Sets up YahooSourceTask and configurations for the tasks.
   */
-class CassandraSourceConnector extends SourceConnector with StrictLogging {
+class YahooSourceConnector extends SourceConnector with StrictLogging {
 
-  private var configProps : Option[util.Map[String, String]] = None
+  private var configProps: Option[util.Map[String, String]] = None
 
   /**
     * Defines the sink class to use
     *
     * @return
     */
-  override def taskClass(): Class[_ <: Task] = classOf[CassandraSourceTask]
+  override def taskClass(): Class[_ <: Task] = classOf[YahooSourceTask]
 
   /**
     * Set the configuration for each work and determine the split.
     *
     * @param maxTasks The max number of task workers be can spawn.
     * @return a List of configuration properties per worker.
-    * */
+    **/
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
-    val raw = configProps.get.get(CassandraConfigConstants.IMPORT_ROUTE_QUERY).split(";")
-
-    val tables = raw.map({
-      r => Config.parse(r).getSource
-    }).toList
-
-    val numGroups = Math.min(tables.size, maxTasks)
-
-    logger.info(s"Setting task configurations for $numGroups workers.")
-    val groups = ConnectorUtils.groupPartitions(tables.asJava, maxTasks).asScala
-
-    //setup the config for each task and set assigned tables
-    groups
-      .map(g=> {
-        val taskConfigs:java.util.Map[String, String] = new java.util.HashMap[String,String]
-        taskConfigs.put(CassandraConfigConstants.ASSIGNED_TABLES, g.asScala.mkString(","))
-        taskConfigs.putAll(configProps.get)
-        taskConfigs
-      }).asJava
+    Seq(configProps.get)
   }
 
   /**
     * Start the sink and set to configuration.
     *
     * @param props A map of properties for the connector and worker.
-    * */
+    **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Cassandra source task with ${props.toString}.")
     configProps = Some(props)
@@ -90,6 +69,4 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
     * @return
     */
   override def version(): String = getClass.getPackage.getImplementationVersion
-
-  //override def config(): ConfigDef = ???
 }
