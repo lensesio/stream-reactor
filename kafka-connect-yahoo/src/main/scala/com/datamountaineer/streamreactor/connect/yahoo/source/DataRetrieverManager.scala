@@ -7,17 +7,17 @@ import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
 import com.datamountaineer.streamreactor.connect.yahoo.source.StockHelper._
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord
+import yahoofinance.Stock
 import yahoofinance.quotes.fx.FxQuote
-import yahoofinance.{Stock, YahooFinance}
 
-import scala.collection.JavaConversions._
 import scala.util.Try
 
-case class YahooDataRetriever(fx: Array[String],
-                              fxKafka: Option[String],
-                              stocks: Array[String],
-                              stocksKafkaTopic: Option[String],
-                              queryInterval: Long) extends AutoCloseable with StrictLogging {
+case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
+                                fx: Array[String],
+                                fxKafka: Option[String],
+                                stocks: Array[String],
+                                stocksKafkaTopic: Option[String],
+                                queryInterval: Long) extends AutoCloseable with StrictLogging {
 
   private val queue = new LinkedBlockingQueue[SourceRecord]()
   private val latch = new CountDownLatch(1)
@@ -35,10 +35,10 @@ case class YahooDataRetriever(fx: Array[String],
       while (poll) {
         try {
           if (fx.length > 0) {
-            addFx(YahooFinance.getFx(fx).values().toSeq)
+            addFx(dataRetriever.getFx(fx))
           }
           if (stocks.nonEmpty) {
-            addStocks(YahooFinance.get(stocks).values().toSeq)
+            addStocks(dataRetriever.getStocks(stocks))
           }
         } catch {
           case t: Throwable =>

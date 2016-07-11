@@ -28,7 +28,7 @@ import scala.util.{Failure, Success, Try}
 
 class YahooSourceTask extends SourceTask with StrictLogging with YahooSourceConfig {
   private var taskConfig: Option[AbstractConfig] = None
-  private var yahooDataRetriever: Option[YahooDataRetriever] = None
+  private var dataManager: Option[DataRetrieverManager] = None
 
   /**
     * Starts the Yahoo source, parsing the options and setting up the reader.
@@ -45,13 +45,15 @@ class YahooSourceTask extends SourceTask with StrictLogging with YahooSourceConf
 
     val settings = YahooSettings(taskConfig.get)
 
-    yahooDataRetriever = Some(YahooDataRetriever(settings.fxQuotes.toArray,
+    dataManager = Some(DataRetrieverManager(
+      YahooDataRetriever,
+      settings.fxQuotes.toArray,
       settings.fxKafkaTopic,
       settings.stocks.toArray,
       settings.stocksKafkaTopic,
       settings.pollInterval))
 
-    yahooDataRetriever.foreach(_.start())
+    dataManager.foreach(_.start())
   }
 
   /**
@@ -61,7 +63,7 @@ class YahooSourceTask extends SourceTask with StrictLogging with YahooSourceConf
     *
     * @return A util.List of SourceRecords.
     **/
-  override def poll(): util.List[SourceRecord] = yahooDataRetriever.map(_.getRecords()).orNull
+  override def poll(): util.List[SourceRecord] = dataManager.map(_.getRecords()).orNull
 
   /**
     * Stop the task and close readers.
@@ -69,7 +71,7 @@ class YahooSourceTask extends SourceTask with StrictLogging with YahooSourceConf
     **/
   override def stop(): Unit = {
     logger.info("Stopping Yahoo source...")
-    yahooDataRetriever.foreach(_.close())
+    dataManager.foreach(_.close())
     logger.info("Yahoo data retriever stopped.")
   }
 
