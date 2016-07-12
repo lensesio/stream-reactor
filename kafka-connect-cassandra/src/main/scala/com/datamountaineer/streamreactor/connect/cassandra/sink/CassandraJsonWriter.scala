@@ -90,7 +90,7 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     *
     * @param records A list of SinkRecords from Kafka Connect to write.
     **/
-  def write(records : Set[SinkRecord]) : Unit = {
+  def write(records : Seq[SinkRecord]) : Unit = {
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
@@ -114,7 +114,7 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     * @param records A list of SinkRecords from Kafka Connect to write.
     * @return boolean indication successful write.
     **/
-  private def insert(records: Map[String, Set[SinkRecord]]) = {
+  private def insert(records: Map[String, Seq[SinkRecord]]) = {
     val processors = Runtime.getRuntime.availableProcessors()
     val executor = Executors.newFixedThreadPool(2 * processors)
     try {
@@ -151,7 +151,7 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     *
     * @param records A list of sink records to convert.
     * */
-  private def toJson(records: Set[SinkRecord]) : Set[String] = {
+  private def toJson(records: Seq[SinkRecord]) : Seq[String] = {
     val extracted = records.map(r => convert(r, settings.fields.get(r.topic()).get, settings.ignoreField.get(r.topic()).get))
     extracted.map(r => convertValueToJson(r).toString)
   }

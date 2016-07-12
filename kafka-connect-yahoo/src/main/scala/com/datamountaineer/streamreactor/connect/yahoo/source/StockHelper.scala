@@ -1,5 +1,6 @@
 package com.datamountaineer.streamreactor.connect.yahoo.source
 
+import java.util
 import java.util.Collections
 
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -46,10 +47,11 @@ object StockHelper {
         .put("stock_exchange", stock.getStockExchange)
 
       val structWithDividend = Option(stock.getDividend(false)).foldLeft(struct) { (s, d) =>
-        s.put("annual_yield", d.getAnnualYield.doubleValue())
-          .put("annual_yield_percentage", d.getAnnualYieldPercent.doubleValue())
-          .put("ex_date", d.getExDate.getTimeInMillis)
-          .put("pay_date", d.getPayDate.getTimeInMillis)
+        if (d.getAnnualYield != null) s.put("annual_yield", d.getAnnualYield.doubleValue())
+        if (d.getAnnualYieldPercent != null) s.put("annual_yield_percentage", d.getAnnualYieldPercent.doubleValue())
+        if (d.getExDate != null) s.put("ex_date", d.getExDate.getTimeInMillis)
+        if (d.getPayDate != null) s.put("pay_date", d.getPayDate.getTimeInMillis)
+        s
       }
 
       val structWithQuote = Option(stock.getQuote(false)).foldLeft(structWithDividend) { (s, q) =>
@@ -83,8 +85,10 @@ object StockHelper {
       if (includeHistory) {
         val historicalValues = stock.getHistory()
         if (historicalValues != null && historicalValues.size() > 0) {
-          val quotes = historicalValues.map { q =>
-            new Struct(getStockHistoricalSchema())
+
+          val linkedList = new util.LinkedList[Struct]
+          val quotes = historicalValues.foreach { q =>
+            val structHistory = new Struct(getStockHistoricalSchema())
               .put("adj_close", q.getAdjClose.doubleValue())
               .put("close", q.getAdjClose.doubleValue())
               .put("date", q.getDate.getTimeInMillis)
@@ -92,9 +96,11 @@ object StockHelper {
               .put("low", q.getLow.doubleValue())
               .put("open", q.getOpen.doubleValue())
               .put("volume", q.getVolume)
+
+            linkedList.add(structHistory)
           }
 
-          structWithDividend.put("history", quotes.toArray)
+          structWithDividend.put("history", linkedList)
         }
       }
       else structWithDividend
