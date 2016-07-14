@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/datamountaineer/kafka-connect-query-language.svg?branch=master)](https://travis-ci.org/datamountaineer/kafka-connect-query-language)
-[<img src="https://img.shields.io/badge/latest%20release-v0.3-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22%20AND%20a%3A%22kafka-connect-query-language%22)
+[<img src="https://img.shields.io/badge/latest%20release-v0.4-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22%20AND%20a%3A%22kafka-connect-query-language%22)
 
 
 # Kafka Connect Query Language
@@ -15,18 +15,18 @@ Kafka Connect Common is in Maven, include it in your connector.
 <dependency>
 	<groupId>com.datamountaineer</groupId>
 	<artifactId>kcql</artifactId>
-	<version>0.3</version>
+	<version>0.4</version>
 </dependency>
 ```
 
 sbt
 ```bash
-libraryDependencies += "com.datamountaineer" % "kcql % "0.3"
+libraryDependencies += "com.datamountaineer" % "kcql % "0.4"
 ```
 
 gradle
 ```bash
-com.datamountaineer:kcql:0.3'
+com.datamountaineer:kcql:0.4'
 ```
 
 # Why ?
