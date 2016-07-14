@@ -101,7 +101,7 @@ object AvroSerializer {
             record.put(fieldName, items)
           }
 
-        case map: java.util.LinkedHashMap[String, _] =>
+        case map: java.util.LinkedHashMap[String @unchecked, _] =>
           //record schema
           val fieldSchema = schema.getField(fieldName).schema()
           val nestedSchema = if (fieldSchema.getType == Schema.Type.UNION) fieldSchema.getTypes.get(1) else fieldSchema
