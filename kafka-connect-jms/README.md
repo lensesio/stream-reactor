@@ -3,7 +3,7 @@
 
 ## Kafka Connect JMS Sink
 
-A Kafka Sink Connector to write the records to JMS queue or topic. The connector takes the value from the Kafka Connect SinkRecor and
+A Kafka Sink Connector to write the records to JMS queue or topic. The connector takes the value from the Kafka Connect SinkRecord and
 puts it on the JMS topic/queue.
 
 ## Prerequisites
@@ -24,11 +24,11 @@ In addition to the default topics configuration the following options are added:
 | connect.jms.sink.password | String | | Specifies the password for the user to connect to the JMS endpoint. |
 | connect.jms.sink.connection.factory | String | Yes| Specifies the JMS connection factory class |
 | connect.jms.sink.export.route.query | String | Yes| The KCQL expressing what gets sourced from Kafka and where it lands in JMS. Check: https://github.com/datamountaineer/kafka-connect-query-language for details|
-| connect.jms.sink.export.route.topics | String | Yes| Specifies the JMS topics. The KCQL target points to the JMS destination. If the destintion is meant to a topic then it should be present in this list|
-| connect.jms.sink.export.route.queues| String | Yes| Specifies the JMS queues. The KCQL target points to the JMS destination. If the destintion is meant to a queue then it should be present in this list|
-| connect.jms.sink.message.type| String | Yes| Specifies the JMS payload. If JSON is chosen it will send a TextMessage; if AVRO is chosen it will send a BytesMessage;if MAP is chosen it will send a MapMessage;if OBJECT is chosend it will send an ObjectMessage|
+| connect.jms.sink.export.route.topics | String | Yes| Specifies the JMS topics. The KCQL target points to the JMS destination. If the destination is meant to a topic then it should be present in this list|
+| connect.jms.sink.export.route.queues| String | Yes| Specifies the JMS queues. The KCQL target points to the JMS destination. If the destination is meant to a queue then it should be present in this list|
+| connect.jms.sink.message.type| String | Yes| Specifies the JMS payload. If JSON is chosen it will send a TextMessage; if AVRO is chosen it will send a BytesMessage;if MAP is chosen it will send a MapMessage;if OBJECT is chosen it will send an ObjectMessage|
 | connect.jms.error.policy| String | Yes| There are two available options: NOOP - the error is swallowed ;THROW - the error is allowed to propagate. RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on the error will be logged automatically|
-| connect.jms.retry.interval | INT | | The time elapsed between retring to send the messages to the JMS in case of a previous error|
+| connect.jms.retry.interval | INT | | The time elapsed between retrying to send the messages to the JMS in case of a previous error|
 
 Example jms.properties file
 
@@ -62,7 +62,7 @@ gradle fatJar
 * Copy the JMS sink jar from your build location to `$CONFLUENT_HOME/share/java/kafka-connect-jms`
 
 ```bash
-mkdir $CONFLUENT_HOME/share/java/kafka-connect-jms
+mkdir ${CONFLUENT_HOME}/share/java/kafka-connect-jms
 cp target/kafka-connect-jms-0.1-all.jar  $CONFLUENT_HOME/share/java/kafka-connect-jms/
 ```
 

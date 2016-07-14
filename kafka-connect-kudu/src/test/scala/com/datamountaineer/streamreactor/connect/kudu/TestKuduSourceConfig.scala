@@ -1,7 +1,6 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
-import com.datamountaineer.streamreactor.connect.config.KuduSinkConfig
-
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduSinkConfig
 
 /**
   * Created by andrew@datamountaineer.com on 24/02/16. 

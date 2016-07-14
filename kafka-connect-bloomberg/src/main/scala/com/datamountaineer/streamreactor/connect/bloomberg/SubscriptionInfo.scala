@@ -34,7 +34,7 @@ case class SubscriptionInfo(ticket: String, fields: Seq[String]) {
 object SubscriptionInfoExtractFn {
   def apply(source: String): Seq[SubscriptionInfo] = {
     require(source != null && source.trim.nonEmpty, "Invalid subscription setting.The format is <Ticker:Field1,Field2[;Ticker2:field1,field2;...]")
-    source.split(";").map { case subscription =>
+    source.split(";").map { subscription =>
       val index = subscription.indexOf(":")
       if (index < 0) {
         throw new IllegalArgumentException("Invalid configuration. Missing \":\". The format is <Ticker:Field1,Field2[;Ticker2:field1,field2;...]")

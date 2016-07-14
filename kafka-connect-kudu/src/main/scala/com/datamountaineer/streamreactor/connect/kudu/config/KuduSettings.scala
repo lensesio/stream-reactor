@@ -14,35 +14,34 @@
   * limitations under the License.
   **/
 
-package com.datamountaineer.streamreactor.connect.config
+package com.datamountaineer.streamreactor.connect.kudu.config
 
 import com.datamountaineer.connector.config.{Config, WriteModeEnum}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
-import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
-
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 13/05/16. 
   * stream-reactor-maven
   */
-case class KuduSetting(routes: List[Config],
-                       topicTables : Map[String, String],
-                       allowAutoCreate: Map[String, Boolean],
-                       allowAutoEvolve: Map[String, Boolean],
-                       fieldsMap : Map[String, Map[String, String]],
-                       ignoreFields: Map[String, Set[String]],
-                       writeModeMap : Map[String, WriteModeEnum],
-                       errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                       maxRetries: Int = KuduSinkConfig.NBR_OF_RETIRES_DEFAULT,
-                       batchSize: Int = KuduSinkConfig.BATCH_SIZE_DEFAULT,
-                       schemaRegistryUrl: String)
+case class KuduSettings(routes: List[Config],
+                        topicTables : Map[String, String],
+                        allowAutoCreate: Map[String, Boolean],
+                        allowAutoEvolve: Map[String, Boolean],
+                        fieldsMap : Map[String, Map[String, String]],
+                        ignoreFields: Map[String, Set[String]],
+                        writeModeMap : Map[String, WriteModeEnum],
+                        errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
+                        maxRetries: Int = KuduSinkConfig.NBR_OF_RETIRES_DEFAULT,
+                        batchSize: Int = KuduSinkConfig.BATCH_SIZE_DEFAULT,
+                        schemaRegistryUrl: String)
 
 object KuduSettings {
-  def apply(config: KuduSinkConfig, sinkTask: Boolean = true) : KuduSetting = {
+
+  def apply(config: KuduSinkConfig) : KuduSettings = {
+
     val raw = config.getString(KuduSinkConfig.EXPORT_ROUTE_QUERY)
-    require(raw != null && !raw.isEmpty,  s"No ${KuduSinkConfig.EXPORT_ROUTE_QUERY} provided!")
+    require(raw.nonEmpty,  s"No ${KuduSinkConfig.EXPORT_ROUTE_QUERY} provided!")
     val routes = raw.split(";").map(r => Config.parse(r)).toSet
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(KuduSinkConfig.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
@@ -56,11 +55,11 @@ object KuduSettings {
       rm => (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField,fa.getAlias)).toMap)
     ).toMap
 
-    val ignoreFields = routes.map(r => (r.getSource, r.getIgnoredField.asScala.toSet)).toMap
+    val ignoreFields = routes.map(r => (r.getSource, r.getIgnoredField.toSet)).toMap
     val writeModeMap = routes.map(r => (r.getSource, r.getWriteMode)).toMap
     val topicTables = routes.map(r => (r.getSource, r.getTarget)).toMap
 
-    KuduSetting(routes = routes.toList,
+    new KuduSettings(routes = routes.toList,
                 topicTables = topicTables,
                 allowAutoCreate = autoCreate,
                 allowAutoEvolve = autoEvolve,

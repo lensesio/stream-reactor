@@ -14,14 +14,14 @@
   * limitations under the License.
   **/
 
-package com.datamountaineer.streamreactor.connect.kudu
+package com.datamountaineer.streamreactor.connect.kudu.sink
 
 import java.util
 
 import com.datamountaineer.connector.config.Config
-import com.datamountaineer.streamreactor.connect.KuduConverter
-import com.datamountaineer.streamreactor.connect.config.KuduSetting
-import com.datamountaineer.streamreactor.connect.kudu.DbHandler.kuduSchema
+import com.datamountaineer.streamreactor.connect.kudu.KuduConverter
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduSettings
+import com.datamountaineer.streamreactor.connect.kudu.sink.DbHandler.kuduSchema
 import com.datamountaineer.streamreactor.connect.schemas.SchemaRegistry
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.avro.Schema
@@ -30,7 +30,6 @@ import org.kududb.ColumnSchema
 import org.kududb.client._
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -54,11 +53,8 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @param settings Settings containing the mapping of topic to table
     * @return A Map of topic -> KuduRowInsert
     **/
-  def buildTableCache(settings: KuduSetting,
-                      client : KuduClient): Map[String, KuduTable] = {
-
+  def buildTableCache(settings: KuduSettings, client : KuduClient): Map[String, KuduTable] = {
     createTables(settings, client)
-
     val tables = settings.routes.map(s => s.getTarget).toSet
     val missing = tables.filterNot(t => client.tableExists(t))
     val finalList = missing.flatMap(m => settings.routes.filter(f => f.getTarget.equals(m) && !f.isAutoCreate))
@@ -78,7 +74,7 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @param setting A kuduSetting with the list of tables to create
     * @param client A Kudu Client to execute the DDL
     * */
-  def createTables(setting: KuduSetting,
+  def createTables(setting: KuduSettings,
                    client : KuduClient) : Set[KuduTable] = {
 
     //check the schema registry for the a schema for this topic
@@ -154,13 +150,13 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @return A list of Kudu Columns
     * */
   private def getKuduCols(config : Config, avroFields : avroSchema) : util.List[ColumnSchema] = {
-    logger.info(config.getFieldAlias.asScala.mkString(","))
+    logger.info(config.getFieldAlias.mkString(","))
     val mappingFields = config.getFieldAlias.map(f => (f.getField,f.getAlias)).toMap
-    val ignored = config.getIgnoredField.asScala.toSet
-    val fields = avroFields.getFields.asScala.filterNot(f => ignored.contains(f.name()))
+    val ignored = config.getIgnoredField.toSet
+    val fields = avroFields.getFields.filterNot(f => ignored.contains(f.name()))
 
     //only allow auto creation if distribute by and bucketing are specified
-    val pks = Try(config.getBucketing.getBucketNames.asScala.toSet) match {
+    val pks = Try(config.getBucketing.getBucketNames.toSet) match {
       case Success(s) => s
       case Failure(f) => throw new ConnectException("DISTRIBUTEBY columns INTO BUCKETS n must be specified for table " +
         "auto creation!")
@@ -168,7 +164,7 @@ object DbHandler extends StrictLogging with KuduConverter {
 
     val cols = fields.map(f => {
       val fieldName = f.name()
-      val alias = if (mappingFields.contains(fieldName)) mappingFields.get(fieldName).get else fieldName
+      val alias = if (mappingFields.contains(fieldName)) mappingFields(fieldName) else fieldName
       val col = fromAvro(f.schema(), alias)
       val default = if (f.defaultValue() != null) f.defaultValue() else null
 
@@ -180,7 +176,7 @@ object DbHandler extends StrictLogging with KuduConverter {
         if (default != null) col.defaultValue(default)
       }
       col.build()
-    }).toList.asJava
+    }).toList
 
     logger.info(s"Setting columns as ${cols.mkString(",")} for ${config.getTarget}")
     cols

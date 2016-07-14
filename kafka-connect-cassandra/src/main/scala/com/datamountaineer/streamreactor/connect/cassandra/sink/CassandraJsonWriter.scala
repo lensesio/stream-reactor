@@ -16,7 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 
-
 import java.util.concurrent.Executors
 
 import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
@@ -102,9 +101,7 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
         session = getSession.get
         preparedCache = cachePreparedStatements
       }
-
-      val grouped = records.groupBy(_.topic())
-      insert(grouped)
+      insert(records)
     }
   }
 
@@ -114,24 +111,23 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     * @param records A list of SinkRecords from Kafka Connect to write.
     * @return boolean indication successful write.
     **/
-  private def insert(records: Map[String, Set[SinkRecord]]) = {
+  private def insert(records: Set[SinkRecord]) = {
     val processors = Runtime.getRuntime.availableProcessors()
     val executor = Executors.newFixedThreadPool(2 * processors)
     try {
+      val futures =
+        records.map(
+          record => {
+            val preparedStatement: PreparedStatement = preparedCache(record.topic())
+            val json = toJson(record)
 
-      val futures = records.flatMap {
-        case (topic, sinkRecords) =>
-          val preparedStatement: PreparedStatement = preparedCache.get(topic).get
-          val json = toJson(sinkRecords)
-
-
-          json.map(j => executor.submit {
-            val bound = preparedStatement.bind(j)
-            session.execute(bound)
-            //we don't care about the ResultSet here
-            ()
-          })
-      }.toSeq
+            executor.submit {
+              val bound = preparedStatement.bind(json)
+              session.execute(bound)
+              //we don't care about the ResultSet here
+            }
+          }
+        ).toSeq
 
       //when the call returns the pool is shutdown
       FutureAwaitWithFailFastFn(executor, futures, 1.hours)
@@ -145,15 +141,16 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     }
   }
 
-
   /**
     * Convert sink records to json
     *
-    * @param records A list of sink records to convert.
+    * @param record A sink records to convert.
     * */
-  private def toJson(records: Set[SinkRecord]) : Set[String] = {
-    val extracted = records.map(r => convert(r, settings.fields.get(r.topic()).get, settings.ignoreField.get(r.topic()).get))
-    extracted.map(r => convertValueToJson(r).toString)
+  private def toJson(record: SinkRecord) : String = {
+    val extracted = convert(record,
+                            settings.fields(record.topic()),
+                            settings.ignoreField(record.topic()))
+    convertValueToJson(extracted).toString
   }
 
   /**

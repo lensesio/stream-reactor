@@ -24,7 +24,7 @@ import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolic
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 /**
   * Created by andrew@datamountaineer.com on 22/04/16. 
   * stream-reactor
@@ -56,7 +56,7 @@ case class CassandraSinkSetting(keySpace: String,
   * */
 object CassandraSettings extends StrictLogging {
 
-  def configureSource(config: AbstractConfig, assigned: List[String]): Set[CassandraSourceSetting] = {
+  def configureSource(config: AbstractConfig): Set[CassandraSourceSetting] = {
     //get keyspace
     val keySpace = config.getString(CassandraConfigConstants.KEY_SPACE)
     require(!keySpace.isEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
@@ -73,17 +73,17 @@ object CassandraSettings extends StrictLogging {
 
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(CassandraConfigConstants.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
-    val timestampCols = routes.map(r=>(r.getSource, r.getPrimaryKeys.asScala.toList)).toMap
+    val timestampCols = routes.map(r=>(r.getSource, r.getPrimaryKeys.toList)).toMap
 
     routes.map({
       r => {
-        val tCols = timestampCols.get(r.getSource).get
+        val tCols = timestampCols(r.getSource)
         if (!bulk && tCols.size != 1) {
           throw new ConfigException("Only one timestamp column is allowed to be specified in Incremental mode. " +
             s"Received ${tCols.mkString(",")} for source ${r.getSource}")
         }
 
-        new CassandraSourceSetting(
+        CassandraSourceSetting(
           routes = r,
           keySpace = keySpace,
           timestampColumn = if (bulk) None else Some(tCols.head),
@@ -108,10 +108,10 @@ object CassandraSettings extends StrictLogging {
     val errorPolicy = ErrorPolicy(errorPolicyE)
 
     val fields = routes.map(rm =>
-      (rm.getSource, rm.getFieldAlias.asScala.map(fa => (fa.getField,fa.getAlias)).toMap)
+      (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField,fa.getAlias)).toMap)
     ).toMap
 
-    val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.asScala.toSet)).toMap
+    val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
     CassandraSinkSetting(keySpace, routes, fields, ignoreFields, errorPolicy, retries)
   }
 }

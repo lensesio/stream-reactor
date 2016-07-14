@@ -18,10 +18,10 @@ package com.datamountaineer.streamreactor.connect.elastic
 
 import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticSettings, ElasticSinkConfig}
 import com.sksamuel.elastic4s.{ElasticClient, ElasticsearchClientUri}
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.elasticsearch.common.settings.Settings
-
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 
 object  ElasticWriter {
   /**
@@ -30,7 +30,7 @@ object  ElasticWriter {
     * @param config An elasticSinkConfig to extract settings from.
     * @return An ElasticJsonWriter to write records from Kafka to ElasticSearch.
     * */
-  def apply(config: ElasticSinkConfig) : ElasticJsonWriter = {
+  def apply(config: ElasticSinkConfig, context: SinkTaskContext) : ElasticJsonWriter = {
     val hostNames = config.getString(ElasticSinkConfig.URL)
     val esClusterName = config.getString(ElasticSinkConfig.ES_CLUSTER_NAME)
     val esPrefix = config.getString(ElasticSinkConfig.URL_PREFIX)
@@ -42,6 +42,9 @@ object  ElasticWriter {
     val client = ElasticClient.transport(essettings, uri)
 
     val settings = ElasticSettings(config)
+    val assigned = context.assignment().map(a => a.topic()).toList
+    if (assigned.isEmpty) throw new ConnectException("No topics have been assigned to this task!")
+
     new ElasticJsonWriter(client = client, settings = settings)
   }
 }

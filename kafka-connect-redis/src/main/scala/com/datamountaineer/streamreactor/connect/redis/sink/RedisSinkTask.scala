@@ -24,6 +24,7 @@ import com.datamountaineer.streamreactor.connect.redis.sink.writer.{RedisDbWrite
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
@@ -64,6 +65,9 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     RedisSinkConfig.config.parse(props)
     val sinkConfig = new RedisSinkConfig(props)
     val settings = RedisSinkSettings(sinkConfig)
+
+    val assigned = context.assignment().map(a => a.topic()).toList
+    if (assigned.isEmpty) throw new ConnectException("No topics have been assigned to this task!")
 
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {

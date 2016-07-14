@@ -26,11 +26,11 @@ class TestCassandraSinkSettings extends WordSpec with Matchers  with MockitoSuga
     val parsedConf: List[Config] = settings.routes.toList
     parsedConf.size shouldBe 2
 
-    parsedConf(0).getTarget shouldBe TABLE1
-    parsedConf(0).getSource shouldBe TOPIC1 //no table mapping provide so should be the table
+    parsedConf.head.getTarget shouldBe TABLE1
+    parsedConf.head.getSource shouldBe TOPIC1 //no table mapping provide so should be the table
     parsedConf(1).getTarget shouldBe TOPIC2
     parsedConf(1).getSource shouldBe TOPIC2
 
-    settings.errorPolicy.isInstanceOf[RetryErrorPolicy] shouldBe (true)
+    settings.errorPolicy.isInstanceOf[RetryErrorPolicy] shouldBe true
   }
 }

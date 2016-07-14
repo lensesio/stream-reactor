@@ -18,11 +18,11 @@ class StructFieldsExtractorTest extends WordSpec with Matchers {
         .put("lastName", "Smith")
         .put("age", 30)
 
-      val map = new StructFieldsExtractorBytes(true, Map.empty).get(struct).toMap
+      val map = StructFieldsExtractorBytes(true, Map.empty).get(struct).toMap
 
-      Bytes.toString(map.get("firstName").get) shouldBe "Alex"
-      Bytes.toString(map.get("lastName").get) shouldBe "Smith"
-      Bytes.toInt(map.get("age").get) shouldBe 30
+      Bytes.toString(map("firstName")) shouldBe "Alex"
+      Bytes.toString(map("lastName")) shouldBe "Smith"
+      Bytes.toInt(map("age")) shouldBe 30
 
     }
 
@@ -38,11 +38,11 @@ class StructFieldsExtractorTest extends WordSpec with Matchers {
         .put("lastName", "Smith")
         .put("age", 30)
 
-      val map = new StructFieldsExtractorBytes(true, Map("lastName" -> "Name", "age" -> "a")).get(struct).toMap
+      val map = StructFieldsExtractorBytes(true, Map("lastName" -> "Name", "age" -> "a")).get(struct).toMap
 
-      Bytes.toString(map.get("firstName").get) shouldBe "Alex"
-      Bytes.toString(map.get("Name").get) shouldBe "Smith"
-      Bytes.toInt(map.get("a").get) shouldBe 30
+      Bytes.toString(map("firstName")) shouldBe "Alex"
+      Bytes.toString(map("Name")) shouldBe "Smith"
+      Bytes.toInt(map("a")) shouldBe 30
 
     }
 
@@ -58,10 +58,10 @@ class StructFieldsExtractorTest extends WordSpec with Matchers {
         .put("lastName", "Smith")
         .put("age", 30)
 
-      val map = new StructFieldsExtractorBytes(false, Map("lastName" -> "Name", "age" -> "age")).get(struct).toMap
+      val map = StructFieldsExtractorBytes(false, Map("lastName" -> "Name", "age" -> "age")).get(struct).toMap
 
-      Bytes.toString(map.get("Name").get) shouldBe "Smith"
-      Bytes.toInt(map.get("age").get) shouldBe 30
+      Bytes.toString(map("Name")) shouldBe "Smith"
+      Bytes.toInt(map("age")) shouldBe 30
 
       map.size shouldBe 2
     }

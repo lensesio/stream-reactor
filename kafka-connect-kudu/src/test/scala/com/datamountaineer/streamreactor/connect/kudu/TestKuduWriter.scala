@@ -1,14 +1,14 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
-import com.datamountaineer.streamreactor.connect.KuduConverter
-import com.datamountaineer.streamreactor.connect.config.{KuduSettings, KuduSinkConfig}
+import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig}
+import com.datamountaineer.streamreactor.connect.kudu.sink.KuduWriter
 import org.apache.kafka.connect.errors.RetriableException
 import org.kududb.client._
 import org.mockito.Matchers.{any, eq => mockEq}
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 
 /**
   * Created by andrew@datamountaineer.com on 04/03/16. 
@@ -127,7 +127,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
       when(resp.hasRowError).thenReturn(true)
       when(errorRow.toString).thenReturn("Test error string")
       when(resp.getRowError).thenReturn(errorRow)
-      when(kuduSession.flush()).thenReturn(List(resp).asJava)
+      when(kuduSession.flush()).thenReturn(List(resp))
 
       val writer = new KuduWriter(client, settings)
 

@@ -67,9 +67,9 @@ case class RedisDbWriter(sinkSettings: RedisSinkSettings) extends DbWriter with 
       val t = Try(
         {
           sinkRecords.foreach { record =>
-            val keyBuilder = rowKeyMap.get(topic).get
-            val fields = sinkSettings.fields.get(record.topic()).get
-            val ignored = sinkSettings.ignoreFields.get(record.topic()).get
+            val keyBuilder = rowKeyMap(topic)
+            val fields = sinkSettings.fields(record.topic())
+            val ignored = sinkSettings.ignoreFields(record.topic())
             val extracted = convert(record, fields, ignored)
             val key = keyBuilder.build(extracted)
             val payload = convertValueToJson(extracted).toString

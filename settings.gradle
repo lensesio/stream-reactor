@@ -8,3 +8,4 @@ include 'kafka-socket-streamer',
         'kafka-connect-redis',
         'kafka-connect-rethink',
         'kafka-connect-jms'
+

@@ -26,7 +26,7 @@ class AvroRecordRowKeyBuilderTest extends WordSpec with Matchers with MockitoSug
 
         val values: Map[String, AnyRef] = Map("firstName" -> firstName, "lastName" -> lastName, "age" -> Int.box(age))
 
-        override def get(key: String): AnyRef = values.get(key).get
+        override def get(key: String): AnyRef = values(key)
 
         override def put(key: String, v: scala.Any): Unit = sys.error("not supported")
 

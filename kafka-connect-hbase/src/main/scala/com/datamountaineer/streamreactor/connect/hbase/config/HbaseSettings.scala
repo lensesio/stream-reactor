@@ -62,7 +62,7 @@ object HbaseSettings {
     val fields = routes.map(rm => (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField,fa.getAlias)).toMap)).toMap
 
     val extractorFields = routes.map(rm => {
-      (rm.getSource, StructFieldsExtractorBytes(rm.isIncludeAllFields , fields.get(rm.getSource).get))
+      (rm.getSource, StructFieldsExtractorBytes(rm.isIncludeAllFields , fields(rm.getSource)))
     }).toMap
 
     new HbaseSettings(columnFamily, rowKeyModeMap, routes.toList, extractorFields, errorPolicy, nbrOfRetries)

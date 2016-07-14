@@ -32,7 +32,7 @@ import scala.collection.JavaConverters._
   * stream-reactor
   */
 class ReThinkSinkConnector extends SinkConnector with StrictLogging {
-  private var configProps: util.Map[String, String] = null
+  private var configProps: util.Map[String, String] = _
   private var connConfigDef : Option[ConfigDef] = None
 
   /**

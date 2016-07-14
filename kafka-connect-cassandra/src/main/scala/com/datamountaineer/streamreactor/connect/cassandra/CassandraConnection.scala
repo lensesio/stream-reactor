@@ -23,7 +23,6 @@ import com.datastax.driver.core.policies.{DCAwareRoundRobinPolicy, TokenAwarePol
 import com.datastax.driver.core.{Cluster, JdkSSLOptions, QueryOptions, Session}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.AbstractConfig
-import org.apache.kafka.connect.errors.ConnectException
 
 /**
   * Set up a Casssandra connection

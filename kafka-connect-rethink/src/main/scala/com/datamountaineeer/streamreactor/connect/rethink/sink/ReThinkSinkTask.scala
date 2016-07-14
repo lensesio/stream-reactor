@@ -24,7 +24,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 
 /**
   * Created by andrew@datamountaineer.com on 24/03/16. 
@@ -54,7 +54,7 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
       """.stripMargin)
 
     val sinkConfig = ReThinkSinkConfig(props)
-    writer = Some(ReThinkWriter(config = sinkConfig))
+    writer = Some(ReThinkWriter(config = sinkConfig, context = context))
   }
 
   /**
@@ -62,7 +62,7 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
     * */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.foreach(w => w.write(records.asScala.toList))
+    writer.foreach(w => w.write(records.toList))
   }
 
   /**

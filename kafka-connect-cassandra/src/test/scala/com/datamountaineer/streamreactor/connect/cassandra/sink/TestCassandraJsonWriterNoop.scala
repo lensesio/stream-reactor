@@ -17,7 +17,7 @@ class TestCassandraJsonWriterNoop extends WordSpec with Matchers with MockitoSug
     startEmbeddedCassandra()
   }
 
-  "Cassandra JsonWriter with Noop should throw Cassandra expection and keep going" in {
+  "Cassandra JsonWriter with Noop should throw Cassandra exception and keep going" in {
     val session = createTableAndKeySpace(secure = true, ssl = false)
     val context = mock[SinkTaskContext]
     val assignment = getAssignment

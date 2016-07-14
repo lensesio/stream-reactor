@@ -14,17 +14,17 @@
   * limitations under the License.
   **/
 
-package com.datamountaineer.streamreactor.connect.kudu
+package com.datamountaineer.streamreactor.connect.kudu.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.config.KuduSinkConfig
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduSinkConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 
 /**
   * Created by andrew@datamountaineer.com on 22/02/16. 
@@ -47,7 +47,7 @@ class KuduSinkConnector extends SinkConnector with StrictLogging {
     * */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
-    (1 to maxTasks).map(c => configProps.get).toList.asJava
+    (1 to maxTasks).map(c => configProps.get).toList
   }
 
   /**

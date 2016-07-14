@@ -89,7 +89,7 @@ class JMSSinkTaskTest extends WordSpec with Matchers with Using with BeforeAndAf
           val topicConsumer = session.createConsumer(topic)
 
           val topicMsgListener = new MessageListener {
-            @volatile var msg: Message = null
+            @volatile var msg: Message = _
 
             override def onMessage(message: Message): Unit = {
               msg = message
@@ -101,7 +101,7 @@ class JMSSinkTaskTest extends WordSpec with Matchers with Using with BeforeAndAf
           val consumerQueue = session.createConsumer(queue)
 
           val queueMsgListener = new MessageListener {
-            @volatile var msg: Message = null
+            @volatile var msg: Message = _
 
             override def onMessage(message: Message): Unit = {
               msg = message

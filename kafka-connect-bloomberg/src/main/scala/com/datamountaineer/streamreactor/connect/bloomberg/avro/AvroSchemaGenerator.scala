@@ -58,7 +58,7 @@ private[bloomberg] class AvroSchemaGenerator(namespace: String) {
       case map: java.util.LinkedHashMap[String, _] =>
         val record = Schema.createRecord(name, null, namespace, false)
         val fields = new java.util.ArrayList[Schema.Field](map.size())
-        map.entrySet().asScala.foreach { case kvp =>
+        map.entrySet().asScala.foreach { kvp =>
           val field = new Schema.Field(kvp.getKey, create(kvp.getKey, kvp.getValue, allowOptional = true), null, defaultValue)
           fields.add(field)
         }

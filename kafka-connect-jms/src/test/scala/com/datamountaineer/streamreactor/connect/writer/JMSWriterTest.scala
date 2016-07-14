@@ -86,7 +86,7 @@ class JMSWriterTest extends WordSpec with Matchers with Using with BeforeAndAfte
           val topicConsumer = session.createConsumer(topic)
 
           val topicMsgListener = new MessageListener {
-            @volatile var msg: Message = null
+            @volatile var msg: Message = _
 
             override def onMessage(message: Message): Unit = {
               msg = message
@@ -98,7 +98,7 @@ class JMSWriterTest extends WordSpec with Matchers with Using with BeforeAndAfte
           val consumerQueue = session.createConsumer(queue)
 
           val queueMsgListener = new MessageListener {
-            @volatile var msg: Message = null
+            @volatile var msg: Message = _
 
             override def onMessage(message: Message): Unit = {
               msg = message
@@ -112,8 +112,8 @@ class JMSWriterTest extends WordSpec with Matchers with Using with BeforeAndAfte
                 brokerUrl,
                 classOf[ActiveMQConnectionFactory],
                 List(
-                  JMSConfig(TopicDestination, kafkaTopic1, jmsTopic, true, Map("int8" -> "byte", "int16" -> "short")),
-                  JMSConfig(QueueDestination, kafkaTopic2, jmsQueue, true, Map("int32" -> "int", "int64" -> "long"))),
+                  JMSConfig(TopicDestination, kafkaTopic1, jmsTopic, includeAllFields = true, Map("int8" -> "byte", "int16" -> "short")),
+                  JMSConfig(QueueDestination, kafkaTopic2, jmsQueue, includeAllFields = true, Map("int32" -> "int", "int64" -> "long"))),
                 None,
                 None,
                 MessageType.JSON,

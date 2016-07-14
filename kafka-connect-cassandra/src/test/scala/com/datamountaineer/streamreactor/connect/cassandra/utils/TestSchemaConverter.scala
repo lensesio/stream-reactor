@@ -25,21 +25,21 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     val cols: ColumnDefinitions = TestUtils.getColumnDefs
     val schema = CassandraUtils.convertToConnectSchema(cols.asScala.toList)
     val schemaFields = schema.fields().asScala
-    schemaFields.size shouldBe(cols.asList().size())
+    schemaFields.size shouldBe cols.asList().size()
     checkCols(schema)
   }
 
   "should convert a Cassandra row to a SourceRecord" in {
     val row = mock[Row]
     val cols = TestUtils.getColumnDefs
-    when(row.getColumnDefinitions()).thenReturn(cols)
+    when(row.getColumnDefinitions).thenReturn(cols)
     mockRow(row)
     val sr: Struct = CassandraUtils.convert(row)
     val schema = sr.schema()
     checkCols(schema)
-    sr.get("timeuuidCol").toString shouldBe(uuid.toString)
-    sr.get("intCol") shouldBe(0)
-    sr.get("mapCol") shouldBe("{}")
+    sr.get("timeuuidCol").toString shouldBe uuid.toString
+    sr.get("intCol") shouldBe 0
+    sr.get("mapCol") shouldBe "{}"
   }
 
 
@@ -71,24 +71,24 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
   }
 
   def checkCols(schema :Schema) = {
-    schema.field("uuidCol").schema().`type`() shouldBe(Schema.OPTIONAL_STRING_SCHEMA.`type`())
-    schema.field("inetCol").schema().`type`() shouldBe(Schema.OPTIONAL_STRING_SCHEMA.`type`())
-    schema.field("asciiCol").schema().`type`() shouldBe(Schema.OPTIONAL_STRING_SCHEMA.`type`())
-    schema.field("textCol").schema().`type`() shouldBe(Schema.OPTIONAL_STRING_SCHEMA.`type`())
-    schema.field("varcharCol").schema().`type`() shouldBe(Schema.OPTIONAL_STRING_SCHEMA.`type`())
-    schema.field("booleanCol").schema().`type`() shouldBe(Schema.OPTIONAL_BOOLEAN_SCHEMA.`type`())
-    schema.field("smallintCol").schema().`type`() shouldBe(Schema.INT16_SCHEMA.`type`())
-    schema.field("intCol").schema().`type`() shouldBe(Schema.OPTIONAL_INT32_SCHEMA.`type`())
-    schema.field("decimalCol").schema().`type`() shouldBe(Schema.OPTIONAL_STRING_SCHEMA.`type`())
-    schema.field("floatCol").schema().`type`() shouldBe(Schema.OPTIONAL_FLOAT32_SCHEMA.`type`())
-    schema.field("counterCol").schema().`type`() shouldBe(Schema.OPTIONAL_INT64_SCHEMA.`type`())
-    schema.field("bigintCol").schema().`type`() shouldBe(Schema.OPTIONAL_INT64_SCHEMA.`type`())
-    schema.field("varintCol").schema().`type`() shouldBe(Schema.OPTIONAL_INT64_SCHEMA.`type`())
-    schema.field("doubleCol").schema().`type`() shouldBe(Schema.OPTIONAL_INT64_SCHEMA.`type`())
-    schema.field("timeuuidCol").schema().`type`() shouldBe(Schema.OPTIONAL_STRING_SCHEMA.`type`())
-    schema.field("blobCol").schema().`type`() shouldBe(Schema.OPTIONAL_BYTES_SCHEMA.`type`())
-    schema.field("timeCol").schema().`type`() shouldBe(Schema.OPTIONAL_INT64_SCHEMA.`type`())
-    schema.field("timestampCol").schema().`type`() shouldBe(Schema.OPTIONAL_STRING_SCHEMA.`type`())
-    schema.field("dateCol").schema().`type`() shouldBe(Schema.OPTIONAL_STRING_SCHEMA.`type`())
+    schema.field("uuidCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
+    schema.field("inetCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
+    schema.field("asciiCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
+    schema.field("textCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
+    schema.field("varcharCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
+    schema.field("booleanCol").schema().`type`() shouldBe Schema.OPTIONAL_BOOLEAN_SCHEMA.`type`()
+    schema.field("smallintCol").schema().`type`() shouldBe Schema.INT16_SCHEMA.`type`()
+    schema.field("intCol").schema().`type`() shouldBe Schema.OPTIONAL_INT32_SCHEMA.`type`()
+    schema.field("decimalCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
+    schema.field("floatCol").schema().`type`() shouldBe Schema.OPTIONAL_FLOAT32_SCHEMA.`type`()
+    schema.field("counterCol").schema().`type`() shouldBe Schema.OPTIONAL_INT64_SCHEMA.`type`()
+    schema.field("bigintCol").schema().`type`() shouldBe Schema.OPTIONAL_INT64_SCHEMA.`type`()
+    schema.field("varintCol").schema().`type`() shouldBe Schema.OPTIONAL_INT64_SCHEMA.`type`()
+    schema.field("doubleCol").schema().`type`() shouldBe Schema.OPTIONAL_INT64_SCHEMA.`type`()
+    schema.field("timeuuidCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
+    schema.field("blobCol").schema().`type`() shouldBe Schema.OPTIONAL_BYTES_SCHEMA.`type`()
+    schema.field("timeCol").schema().`type`() shouldBe Schema.OPTIONAL_INT64_SCHEMA.`type`()
+    schema.field("timestampCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
+    schema.field("dateCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
   }
 }

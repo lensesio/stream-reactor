@@ -14,18 +14,19 @@
   * limitations under the License.
   **/
 
-package com.datamountaineer.streamreactor.connect.kudu
+package com.datamountaineer.streamreactor.connect.kudu.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.config.{KuduSettings, KuduSinkConfig}
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
+import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 
 /**
   * Created by andrew@datamountaineer.com on 22/02/16. 
@@ -59,6 +60,10 @@ class KuduSinkTask extends SinkTask with StrictLogging {
     val sinkConfig = new KuduSinkConfig(props)
     val settings = KuduSettings(sinkConfig)
 
+    val assigned = context.assignment().map(a => a.topic()).toList
+    if (assigned.isEmpty) throw new ConnectException("No topics have been assigned to this task!")
+
+
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
       context.timeout(sinkConfig.getInt(KuduSinkConfig.ERROR_RETRY_INTERVAL).toLong)
@@ -72,7 +77,7 @@ class KuduSinkTask extends SinkTask with StrictLogging {
     * */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.foreach(w=>w.write(records.asScala.toSet))
+    writer.foreach(w=>w.write(records.toSet))
   }
 
   /**

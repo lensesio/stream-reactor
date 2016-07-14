@@ -112,7 +112,7 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
     * @return A list of records as a result of Bloomberg updates since the previous call.
     */
   override def poll(): util.List[SourceRecord] = {
-    subscriptionManager.get.getData.map { case d =>
+    subscriptionManager.get.getData.map { d =>
       val list = new util.ArrayList[SourceRecord](d.size())
       d.asScala.foreach { d =>
         list.add(d.toSourceRecord(settings.get))

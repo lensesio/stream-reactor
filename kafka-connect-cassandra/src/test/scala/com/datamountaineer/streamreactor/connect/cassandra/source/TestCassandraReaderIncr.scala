@@ -39,7 +39,7 @@ class TestCassandraReaderIncr extends WordSpec with Matchers with BeforeAndAfter
 
     //queue for reader to put records in
     val queue = new LinkedBlockingQueue[SourceRecord](100)
-    val setting = CassandraSettings.configureSource(taskConfig, assigned).head
+    val setting = CassandraSettings.configureSource(taskConfig).head
     val reader = CassandraTableReader(session = session, setting = setting, context = taskContext, queue = queue)
     reader.read()
 

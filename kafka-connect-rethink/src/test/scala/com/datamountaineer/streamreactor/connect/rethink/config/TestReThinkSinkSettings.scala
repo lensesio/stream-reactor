@@ -22,7 +22,7 @@ class TestReThinkSinkSettings extends TestBase with MockitoSugar {
     routes.getSource shouldBe TOPIC
     routes.getTarget shouldBe TABLE
     routes.getWriteMode shouldBe WriteModeEnum.INSERT
-    val conflict = settings.conflictPolicy.get(TABLE).get
+    val conflict = settings.conflictPolicy(TABLE)
     conflict shouldBe ReThinkSinkConfig.CONFLICT_ERROR
     routes.isIncludeAllFields shouldBe true
   }
@@ -36,7 +36,7 @@ class TestReThinkSinkSettings extends TestBase with MockitoSugar {
     routes.getSource shouldBe TOPIC
     routes.getTarget shouldBe TABLE
     routes.getWriteMode shouldBe WriteModeEnum.UPSERT
-    val conflict = settings.conflictPolicy.get(TABLE).get
+    val conflict = settings.conflictPolicy(TABLE)
     conflict shouldBe ReThinkSinkConfig.CONFLICT_REPLACE
     routes.isIncludeAllFields shouldBe false
     val fields = routes.getFieldAlias.asScala.toList

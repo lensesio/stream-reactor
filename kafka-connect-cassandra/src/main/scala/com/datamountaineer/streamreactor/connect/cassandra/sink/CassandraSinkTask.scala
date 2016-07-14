@@ -22,18 +22,17 @@ import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfi
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.common.config.AbstractConfig
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
 
 /**
   * <h1>CassandraSinkTask</h1>
   *
-  * Kafka Connect Cassandra sink task. Called by framework to put records to the
-  * target sink
+  * Kafka Connect Cassandra sink task. Called by
+  * framework to put records to the target sink
   * */
 class CassandraSinkTask extends SinkTask with StrictLogging {
   private var writer : Option[CassandraJsonWriter] = None
@@ -61,7 +60,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
                |    \____/\__,_/____/____/\__,_/_/ /_/\__,_/_/   \__,_//____/_/_/ /_/_/|_|
                |
                | By Andrew Stevenson.""".stripMargin)
-
+    logger.info(s"Using config ${taskConfig.toString}")
     writer = Some(CassandraWriter(connectorConfig = taskConfig, context = context))
   }
 
@@ -70,7 +69,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
     * */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.foreach(w => w.write(records.asScala.toSet))
+    writer.foreach(w => w.write(records.toSet))
   }
 
   /**
@@ -81,12 +80,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
     writer.foreach(w => w.close())
   }
 
-  override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]) : Unit = {
-//    //while (writer.get.insertCount.get > 0) {
-//      logger.info("Waiting for writes to flush.")
-//      Thread.sleep(flushSleep)
-//    //}
-  }
+  override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]) : Unit = {}
 
   override def version(): String = "1"
 }

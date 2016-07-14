@@ -89,16 +89,16 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
           val row1 = data.filter { r => Bytes.toString(r.key) == "Alex" }.head
           row1.cells.size shouldBe 2
 
-          Bytes.toString(row1.cells.get("firstName").get) shouldBe "Alex"
-          Bytes.toInt(row1.cells.get("age").get) shouldBe 30
+          Bytes.toString(row1.cells("firstName")) shouldBe "Alex"
+          Bytes.toInt(row1.cells("age")) shouldBe 30
 
 
           val row2 = data.filter { r => Bytes.toString(r.key) == "Mara" }.head
           row2.cells.size shouldBe 3
 
-          Bytes.toString(row2.cells.get("firstName").get) shouldBe "Mara"
-          Bytes.toInt(row2.cells.get("age").get) shouldBe 22
-          Bytes.toDouble(row2.cells.get("threshold").get) shouldBe 12.4
+          Bytes.toString(row2.cells("firstName")) shouldBe "Mara"
+          Bytes.toInt(row2.cells("age")) shouldBe 22
+          Bytes.toDouble(row2.cells("threshold")) shouldBe 12.4
 
         }
         finally {
@@ -153,16 +153,16 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
           val row1 = data.filter { r => Bytes.toString(r.key).equals(s"$topic|1|0") }.head
           row1.cells.size shouldBe 2
 
-          Bytes.toString(row1.cells.get("firstName").get) shouldBe "Alex"
-          Bytes.toInt(row1.cells.get("age").get) shouldBe 30
+          Bytes.toString(row1.cells("firstName")) shouldBe "Alex"
+          Bytes.toInt(row1.cells("age")) shouldBe 30
 
 
           val row2 = data.filter { r => Bytes.toString(r.key).equals(s"$topic|1|1") }.head
           row2.cells.size shouldBe 3
 
-          Bytes.toString(row2.cells.get("firstName").get) shouldBe "Mara"
-          Bytes.toInt(row2.cells.get("age").get) shouldBe 22
-          Bytes.toDouble(row2.cells.get("threshold").get) shouldBe 12.4
+          Bytes.toString(row2.cells("firstName")) shouldBe "Mara"
+          Bytes.toInt(row2.cells("age")) shouldBe 22
+          Bytes.toDouble(row2.cells("threshold")) shouldBe 12.4
 
         }
         finally {

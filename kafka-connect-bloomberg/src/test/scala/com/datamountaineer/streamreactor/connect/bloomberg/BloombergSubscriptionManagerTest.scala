@@ -31,7 +31,7 @@ class BloombergSubscriptionManagerTest extends WordSpec with Matchers with Mocki
         EventType.TOPIC_STATUS,
         EventType.TOKEN_STATUS)
 
-      events.map { case et =>
+      events.map { et =>
         val ev = mock[Event]
         when(ev.eventType()).thenReturn(et)
         when(ev.iterator()).thenReturn(Seq.empty[Message].iterator.asJava)

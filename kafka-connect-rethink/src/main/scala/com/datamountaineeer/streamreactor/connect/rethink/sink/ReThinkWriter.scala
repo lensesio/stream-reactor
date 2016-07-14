@@ -22,17 +22,22 @@ import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.net.Connection
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 import scala.util.Failure
 
 object ReThinkWriter extends StrictLogging {
-  def apply(config: ReThinkSinkConfig) : ReThinkWriter = {
+  def apply(config: ReThinkSinkConfig, context: SinkTaskContext) : ReThinkWriter = {
     val rethinkHost = config.getString(ReThinkSinkConfig.RETHINK_HOST)
 
     //set up the connection to the host
     val settings = ReThinkSettings(config)
+
+    val assigned = context.assignment().map(a => a.topic()).toList
+    if (assigned.isEmpty) throw new ConnectException("No topics have been assigned to this task!")
+
     val port = config.getInt(ReThinkSinkConfig.RETHINK_PORT)
     lazy val r = RethinkDB.r
     lazy val conn: Connection = r.connection().hostname(rethinkHost).port(port).connect()
@@ -78,12 +83,12 @@ class ReThinkWriter(rethink : RethinkDB, conn : Connection, setting: ReThinkSett
     * */
   private def writeRecords(topic: String, records: List[SinkRecord]) = {
     logger.info(s"Handling records for $topic")
-    val table = setting.topicTableMap.get(topic).get
-    val conflict  = setting.conflictPolicy.get(table).get
-    val pks = setting.pks.get(topic).get
+    val table = setting.topicTableMap(topic)
+    val conflict  = setting.conflictPolicy(table)
+    val pks = setting.pks(topic)
 
     val writes = records.map(r => {
-      val extracted = convert(r, setting.fieldMap.get(r.topic()).get, setting.ignoreFields.get(r.topic()).get)
+      val extracted = convert(r, setting.fieldMap(r.topic()), setting.ignoreFields(r.topic()))
       val hm = ReThinkSinkConverter.convertToReThink(rethink, extracted, pks)
 
       val x : java.util.Map[String, Object] =
@@ -98,7 +103,7 @@ class ReThinkWriter(rethink : RethinkDB, conn : Connection, setting: ReThinkSett
     })
 
     //handle errors
-    writes.foreach(w => handleFailure(w.asScala.toMap))
+    writes.foreach(w => handleFailure(w.toMap))
   }
 
   /**

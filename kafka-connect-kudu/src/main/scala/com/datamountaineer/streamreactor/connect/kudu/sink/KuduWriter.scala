@@ -14,18 +14,17 @@
   * limitations under the License.
   **/
 
-package com.datamountaineer.streamreactor.connect.kudu
+package com.datamountaineer.streamreactor.connect.kudu.sink
 
-import com.datamountaineer.connector.config.WriteModeEnum
-import com.datamountaineer.streamreactor.connect.KuduConverter
-import com.datamountaineer.streamreactor.connect.config.{KuduSetting, KuduSinkConfig}
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
+import com.datamountaineer.streamreactor.connect.kudu.KuduConverter
+import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.kududb.client._
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.util.Try
 
@@ -36,7 +35,7 @@ case class SchemaMap(version: Int, schema: Schema)
   * stream-reactor
   */
 object KuduWriter extends StrictLogging {
-  def apply(config: KuduSinkConfig, settings: KuduSetting) : KuduWriter = {
+  def apply(config: KuduSinkConfig, settings: KuduSettings) : KuduWriter = {
     val kuduMaster = config.getString(KuduSinkConfig.KUDU_MASTER)
     logger.info(s"Connecting to Kudu Master at $kuduMaster")
     lazy val client = new KuduClient.KuduClientBuilder(kuduMaster).build()
@@ -44,7 +43,7 @@ object KuduWriter extends StrictLogging {
   }
 }
 
-class KuduWriter(client: KuduClient, setting: KuduSetting) extends StrictLogging with KuduConverter with ErrorHandler {
+class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLogging with KuduConverter with ErrorHandler {
   logger.info("Initialising Kudu writer")
 
   //pre create tables
@@ -90,9 +89,9 @@ class KuduWriter(client: KuduClient, setting: KuduSetting) extends StrictLogging
   private def applyInsert(records: Set[SinkRecord], session: KuduSession) = {
     val t = Try({
       records
-        .map(r => convert(r, setting.fieldsMap.get(r.topic).get, setting.ignoreFields.get(r.topic).get))
+        .map(r => convert(r, setting.fieldsMap(r.topic), setting.ignoreFields(r.topic)))
         .map(r => applyDDLs(r))
-        .map(r => convertToKuduUpsert(r, kuduTablesCache.get(r.topic).get))
+        .map(r => convertToKuduUpsert(r, kuduTablesCache(r.topic)))
         .foreach(i => session.apply(i))
       flush()
     })
@@ -128,7 +127,7 @@ class KuduWriter(client: KuduClient, setting: KuduSetting) extends StrictLogging
     val schema = record.valueSchema()
     val version = schema.version()
     val topic = record.topic()
-    val table = setting.topicTables.get(topic).get
+    val table = setting.topicTables(topic)
     val cachedSchema = schemaCache.getOrElse(topic, SchemaMap(version, schema))
 
     //allow evolution
@@ -170,7 +169,7 @@ class KuduWriter(client: KuduClient, setting: KuduSetting) extends StrictLogging
 
       //throw and let error policy handle it, don't want to throw RetriableExpection.
       //May want to die if error policy is Throw
-      val responses = session.flush().asScala
+      val responses = session.flush()
       responses
         .filter(r=>r.hasRowError)
         .map(e=>throw new Throwable("Failed to flush one or more changes: " + e.getRowError.toString))
