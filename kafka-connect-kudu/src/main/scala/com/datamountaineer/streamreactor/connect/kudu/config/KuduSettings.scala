@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.kudu.config
 
 import com.datamountaineer.connector.config.{Config, WriteModeEnum}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
+
 import scala.collection.JavaConversions._
 
 /**

@@ -3,6 +3,7 @@ package com.datamountaineer.streamreactor.connect.rethink.sink
 import com.datamountaineeer.streamreactor.connect.rethink.config.ReThinkSinkConfig
 import com.datamountaineeer.streamreactor.connect.rethink.sink.{ReThinkSinkConnector, ReThinkSinkTask}
 import com.datamountaineer.streamreactor.connect.rethink.TestBase
+
 import scala.collection.JavaConverters._
 
 /**

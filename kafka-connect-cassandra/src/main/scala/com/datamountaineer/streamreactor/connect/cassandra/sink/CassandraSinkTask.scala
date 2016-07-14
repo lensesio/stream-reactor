@@ -60,7 +60,6 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
                |    \____/\__,_/____/____/\__,_/_/ /_/\__,_/_/   \__,_//____/_/_/ /_/_/|_|
                |
                | By Andrew Stevenson.""".stripMargin)
-    logger.info(s"Using config ${taskConfig.toString}")
     writer = Some(CassandraWriter(connectorConfig = taskConfig, context = context))
   }
 

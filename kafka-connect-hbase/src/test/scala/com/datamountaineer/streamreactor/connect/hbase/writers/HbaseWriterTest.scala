@@ -1,18 +1,17 @@
 package com.datamountaineer.streamreactor.connect.hbase.writers
 
-import com.datamountaineer.streamreactor.connect.hbase.config.{HbaseSettings, HbaseSinkConfig}
-import com.datamountaineer.streamreactor.connect.hbase.config.HbaseSinkConfig._
 import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
-import com.datamountaineer.streamreactor.connect.hbase.FieldsValuesExtractor
+import com.datamountaineer.streamreactor.connect.hbase.config.HbaseSinkConfig._
+import com.datamountaineer.streamreactor.connect.hbase.config.{HbaseSettings, HbaseSinkConfig}
+import com.datamountaineer.streamreactor.connect.hbase.{FieldsValuesExtractor, HbaseHelper, HbaseTableHelper, StructFieldsRowKeyBuilderBytes}
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.json4s.DefaultFormats
+import org.kitesdk.minicluster._
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
-import com.datamountaineer.streamreactor.connect.hbase.{HbaseHelper, HbaseTableHelper, StructFieldsRowKeyBuilderBytes}
-import org.kitesdk.minicluster._
 
 class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with BeforeAndAfter {
 

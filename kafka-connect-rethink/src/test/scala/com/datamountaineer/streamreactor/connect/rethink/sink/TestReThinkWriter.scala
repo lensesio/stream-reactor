@@ -10,9 +10,9 @@ import com.rethinkdb.model.MapObject
 import com.rethinkdb.net.Connection
 import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kafka.connect.sink.SinkTaskContext
+import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
-import org.mockito.Matchers._
 
 import scala.collection.JavaConverters._
 

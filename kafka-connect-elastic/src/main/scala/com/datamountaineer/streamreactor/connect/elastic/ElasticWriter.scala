@@ -21,6 +21,7 @@ import com.sksamuel.elastic4s.{ElasticClient, ElasticsearchClientUri}
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.elasticsearch.common.settings.Settings
+
 import scala.collection.JavaConversions._
 
 object  ElasticWriter {

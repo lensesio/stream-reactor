@@ -16,9 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.hbase
 
-import org.apache.hadoop.hbase.util.Bytes
+import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
 import org.apache.kafka.connect.data.{Field, Schema, Struct}
-import BytesHelper._
 
 import scala.collection.JavaConversions._
 

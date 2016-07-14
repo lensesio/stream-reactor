@@ -23,6 +23,7 @@ import com.datamountaineer.streamreactor.connect.sink._
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 import redis.clients.jedis.Jedis
+
 import scala.util.Try
 
 /**

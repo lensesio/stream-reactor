@@ -3,13 +3,10 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.errors.RetryErrorPolicy
-import org.apache.kafka.common.config.AbstractConfig
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
-
-import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 28/04/16. 

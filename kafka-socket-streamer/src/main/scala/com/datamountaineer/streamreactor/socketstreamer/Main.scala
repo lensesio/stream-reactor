@@ -18,11 +18,12 @@ package com.datamountaineer.streamreactor.socketstreamer
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.server.RouteResult.route2HandlerFlow
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.datamountaineer.streamreactor.socketstreamer.routes.SocketRoutes
+
 import scala.concurrent.duration.DurationInt
-import akka.http.scaladsl.server.RouteResult.route2HandlerFlow
 
 object Main extends App with SocketRoutes {
   implicit val system = ActorSystem()

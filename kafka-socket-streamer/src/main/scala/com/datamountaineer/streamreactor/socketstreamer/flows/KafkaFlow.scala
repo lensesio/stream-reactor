@@ -16,13 +16,11 @@
 
 package com.datamountaineer.streamreactor.socketstreamer.flows
 
-import java.io.Serializable
 import java.util.{Calendar, Properties}
 
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.ws.TextMessage.Strict
-import spray.json._
 import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
@@ -30,16 +28,16 @@ import com.datamountaineer.streamreactor.socketstreamer.ConfigurationLoader
 import com.datamountaineer.streamreactor.socketstreamer.domain._
 import com.softwaremill.react.kafka.{ConsumerProperties, ReactiveKafka}
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import de.heikoseeberger.akkasse.ServerSentEvent
 import io.confluent.kafka.serializers.KafkaAvroDecoder
 import kafka.utils.VerifiableProperties
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.reactivestreams.Publisher
+import spray.json._
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
-import de.heikoseeberger.akkasse.ServerSentEvent
-
 import scala.language.postfixOps
 
 trait KafkaFlow extends KafkaConstants with ConfigurationLoader with StrictLogging with Protocols {

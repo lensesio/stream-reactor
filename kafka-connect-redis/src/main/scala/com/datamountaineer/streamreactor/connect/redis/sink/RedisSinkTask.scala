@@ -28,7 +28,6 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 
 /**
   * <h1>RedisSinkTask</h1>

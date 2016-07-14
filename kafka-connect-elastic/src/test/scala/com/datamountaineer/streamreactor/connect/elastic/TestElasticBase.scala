@@ -7,7 +7,7 @@ import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSinkConfi
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{BeforeAndAfter, FunSuite, Matchers, WordSpec}
+import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
