@@ -33,53 +33,54 @@ import scala.util.{Failure, Success, Try}
   *
   * Kafka Connect Cassandra sink task. Called by
   * framework to put records to the target sink
-  * */
+  **/
 class CassandraSinkTask extends SinkTask with StrictLogging {
-  private var writer : Option[CassandraJsonWriter] = None
+  private var writer: Option[CassandraJsonWriter] = None
   logger.info("Task initialising")
 
   /**
     * Parse the configurations and setup the writer
-    * */
+    **/
   override def start(props: util.Map[String, String]): Unit = {
     val taskConfig = Try(new CassandraConfigSink(props)) match {
       case Failure(f) => throw new ConnectException("Couldn't start CassandraSink due to configuration error.", f)
       case Success(s) => s
     }
 
-    logger.info("""
-               |    ____        __        __  ___                  __        _
-               |   / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
-               |  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
-               | / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
-               |/_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
-               |       ______                                __           _____ _       __
-               |      / ____/___ _______________ _____  ____/ /________ _/ ___/(_)___  / /__
-               |     / /   / __ `/ ___/ ___/ __ `/ __ \/ __  / ___/ __ `/\__ \/ / __ \/ //_/
-               |    / /___/ /_/ (__  |__  ) /_/ / / / / /_/ / /  / /_/ /___/ / / / / / ,<
-               |    \____/\__,_/____/____/\__,_/_/ /_/\__,_/_/   \__,_//____/_/_/ /_/_/|_|
-               |
-               | By Andrew Stevenson.""".stripMargin)
+    logger.info(
+      """
+        |    ____        __        __  ___                  __        _
+        |   / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
+        |  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
+        | / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
+        |/_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
+        |       ______                                __           _____ _       __
+        |      / ____/___ _______________ _____  ____/ /________ _/ ___/(_)___  / /__
+        |     / /   / __ `/ ___/ ___/ __ `/ __ \/ __  / ___/ __ `/\__ \/ / __ \/ //_/
+        |    / /___/ /_/ (__  |__  ) /_/ / / / / /_/ / /  / /_/ /___/ / / / / / ,<
+        |    \____/\__,_/____/____/\__,_/_/ /_/\__,_/_/   \__,_//____/_/_/ /_/_/|_|
+        |
+        | By Andrew Stevenson.""".stripMargin)
     writer = Some(CassandraWriter(connectorConfig = taskConfig, context = context))
   }
 
   /**
     * Pass the SinkRecords to the writer for Writing
-    * */
+    **/
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.foreach(w => w.write(records.toSet))
+    writer.foreach(w => w.write(records.toSeq))
   }
 
   /**
     * Clean up Cassandra connections
-    * */
+    **/
   override def stop(): Unit = {
     logger.info("Stopping Cassandra sink.")
     writer.foreach(w => w.close())
   }
 
-  override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]) : Unit = {}
+  override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
 
   override def version(): String = "1"
 }
