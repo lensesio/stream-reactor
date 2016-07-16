@@ -18,11 +18,13 @@ package com.datamountaineer.streamreactor.connect.yahoo.source
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.yahoo.config.DistributeConfigurationFn
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * <h1>YahooSourceConnector</h1>
@@ -48,7 +50,7 @@ class YahooSourceConnector extends SourceConnector with StrictLogging {
     * @return a List of configuration properties per worker.
     **/
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
-    Seq(configProps.get)
+    DistributeConfigurationFn(maxTasks, configProps.get.asScala.toMap).map(_.asJava).asJava
   }
 
   /**
