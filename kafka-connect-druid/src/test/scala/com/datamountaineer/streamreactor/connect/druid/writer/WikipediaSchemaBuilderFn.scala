@@ -1,5 +1,7 @@
 package com.datamountaineer.streamreactor.connect.druid.writer
 
+import org.apache.kafka.connect.data.{ Schema, SchemaBuilder }
+
 object WikipediaSchemaBuilderFn {
   def apply(): Schema = {
     val schema = SchemaBuilder.struct().name("com.example.Wikipedia")
