@@ -121,13 +121,15 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
       //If the error occurs it would be down to the error handler to do its thing.
       // NOOP should never be used!! otherwise data could be lost
       val futures = records.map { record =>
-        val preparedStatement: PreparedStatement = preparedCache(record.topic())
-        val json = toJson(record)
 
         executor.submit {
+          val preparedStatement: PreparedStatement = preparedCache(record.topic())
+          val json = toJson(record)
+
           val bound = preparedStatement.bind(json)
           session.execute(bound)
           //we don't care about the ResultSet here
+          ()
         }
       }
 
@@ -152,6 +154,7 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     val extracted = convert(record,
       settings.fields(record.topic()),
       settings.ignoreField(record.topic()))
+
     convertValueToJson(extracted).toString
   }
 

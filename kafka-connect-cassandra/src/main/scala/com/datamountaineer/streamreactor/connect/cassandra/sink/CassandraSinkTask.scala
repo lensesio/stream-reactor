@@ -69,7 +69,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
     **/
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.foreach(w => w.write(records.toSeq))
+    writer.foreach(w => w.write(records.toVector))
   }
 
   /**
