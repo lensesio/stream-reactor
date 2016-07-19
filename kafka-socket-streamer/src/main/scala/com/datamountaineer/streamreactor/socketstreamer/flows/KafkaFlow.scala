@@ -18,22 +18,22 @@ package com.datamountaineer.streamreactor.socketstreamer.flows
 
 import java.util.{Calendar, Properties}
 
-import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.ws.TextMessage.Strict
 import akka.http.scaladsl.model.ws.{Message, TextMessage}
+import akka.kafka.scaladsl.Consumer
+import akka.kafka.scaladsl.Consumer.Control
+import akka.kafka.{ConsumerSettings, Subscriptions}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.datamountaineer.streamreactor.socketstreamer.ConfigurationLoader
 import com.datamountaineer.streamreactor.socketstreamer.domain._
-import com.softwaremill.react.kafka.{ConsumerProperties, ReactiveKafka}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import de.heikoseeberger.akkasse.ServerSentEvent
 import io.confluent.kafka.serializers.KafkaAvroDecoder
 import kafka.utils.VerifiableProperties
-import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
-import org.reactivestreams.Publisher
 import spray.json._
 
 import scala.concurrent.ExecutionContextExecutor
@@ -59,12 +59,13 @@ trait KafkaFlow extends KafkaConstants with ConfigurationLoader with StrictLoggi
     *  @param kafkaRequestProps A KafkaRequestProps to use to create a KafkaConsumer
     *  @return a Flow with a null inbound sink and a ReactiveKafka publisher source
     * */
-  def webSocketFlow(kafkaRequestProps: KafkaRequestProps) : Flow[Message, Message, Any] = {
+  def webSocketFlow(system: ActorSystem, kafkaRequestProps: KafkaRequestProps) : Flow[Message, Message, Any] = {
     implicit val actorSystem = ActorSystem(systemName)
-    val kafkaSource = createKafkaSource(kafkaRequestProps)
+    val kafkaSource = createKafkaSource(system, kafkaRequestProps)
     logger.info("Establishing flow")
-    val flow = Flow.fromSinkAndSource(Sink.ignore, kafkaSource map toWSMessage)
-                    .keepAlive(1.second, () => TextMessage.Strict(""))
+    val flow : Flow[Message, Message, Any] = Flow
+      .fromSinkAndSource(Sink.ignore, kafkaSource map toWSMessage)
+      .keepAlive(1.second, () => TextMessage.Strict(""))
     flow
   }
 
@@ -98,17 +99,17 @@ trait KafkaFlow extends KafkaConstants with ConfigurationLoader with StrictLoggi
     *  @param kafkaRequestProps A KafkaRequestProps to use to create a KafkaConsumer
     *  @return a ReactiveKafka publisher source
     * */
-  def serverSendFlow(kafkaRequestProps: KafkaRequestProps) = {
+  def serverSendFlow(system: ActorSystem, kafkaRequestProps: KafkaRequestProps) = {
     implicit val actorSystem = ActorSystem(systemName)
     implicit val mat = ActorMaterializer()
 
     //get the kafka source
-    val kafkaSource = createKafkaSource(kafkaRequestProps)
+    val kafkaSource = createKafkaSource(system, kafkaRequestProps)
     logger.info("Establishing Send Server Event stream.")
 
     //establish the kafka stream
     val source = kafkaSource
-                  .map(m=> toSSEMessage(m))
+                  .map(m => toSSEMessage(m))
                   .keepAlive(1.second, () => ServerSentEvent(heartBeatMessage))
 
     //complete the request to start the stream
@@ -142,24 +143,17 @@ trait KafkaFlow extends KafkaConstants with ConfigurationLoader with StrictLoggi
     * @param kafkaRequestProps A KafkaRequestProps to use to create a KafkaConsumer
     * @return A Source of [ConsumerRecord, Unit]
     * */
-  def createKafkaSource(kafkaRequestProps: KafkaRequestProps) : Source[ConsumerRecord[Array[Byte], Array[Byte]], NotUsed] = {
+  def createKafkaSource(system: ActorSystem, kafkaRequestProps: KafkaRequestProps) : Source[ConsumerRecord[Array[Byte], Array[Byte]], Control] = {
     implicit val actorSystem = ActorSystem(systemName)
     implicit val mat = ActorMaterializer()
     logger.info(s"Setting up Kafka consumer properties for topic ${kafkaRequestProps.topic}")
-    val consumerProps = ConsumerProperties(bootstrapServers = kafkaBootstrapServers,
-      topic = kafkaRequestProps.topic,
-      groupId = kafkaRequestProps.consumerGroup,
-      keyDeserializer = new ByteArrayDeserializer,
-      valueDeserializer = new ByteArrayDeserializer
-    ).commitInterval(600 milliseconds)
+    val consumerSettings =  ConsumerSettings(system, new ByteArrayDeserializer, new ByteArrayDeserializer)
+                              .withBootstrapServers(kafkaBootstrapServers)
+                              .withGroupId(kafkaRequestProps.consumerGroup)
 
     //if set for new consumer groups only read from the end of the stream .i.e new messages published to the topic
-    if (kafkaRequestProps.readFromEnd) consumerProps.readFromEndOfStream()
+    if (!kafkaRequestProps.readFromEnd) consumerSettings.withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
 
-    consumerProps.dump
-
-    //Set up kafka consumer as a publisher
-    val pub: Publisher[ConsumerRecord[Array[Byte], Array[Byte]]] = new ReactiveKafka().consume(consumerProps)
-    Source.fromPublisher(pub)
+    Consumer.plainSource(consumerSettings, Subscriptions.topics(kafkaRequestProps.topic))
   }
 }

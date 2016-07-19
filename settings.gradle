@@ -1,7 +1,7 @@
 include 'kafka-socket-streamer',
         'kafka-connect-bloomberg',
         'kafka-connect-elastic',
-        //'kafka-connect-druid',
+        'kafka-connect-druid',
         'kafka-connect-kudu',
         'kafka-connect-cassandra',
         'kafka-connect-yahoo',

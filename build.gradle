@@ -35,7 +35,7 @@ allprojects {
         scalaTest = '2.2.6'
         junit = '4.11'
         scalaLoggingVersion = '2.1.2'
-        kafkaVersion = '0.9.0.1'
+        kafkaVersion = '0.10.0.0'
         mockitoVersion = '1.10.19'
         jacksonDatabind = '2.7.0'
         avroVersion = '1.8.0'
@@ -47,7 +47,7 @@ allprojects {
         kiteMiniClusterVersion = "1.1.0"
         gsonVersion = "2.6.2"
         dataMountaineerCQLVersion = "0.4"
-        confluentVersion = '2.0.1'
+        confluentVersion = '3.0.0'
     }
 
     repositories {

@@ -41,7 +41,7 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
       Thread.sleep(250)
       dataManager.close()
 
-      val records = dataManager.getRecords()
+      val records = dataManager.getRecords
       (records != null) shouldBe true
       records.size() shouldBe 1
       val record = records.get(0)
@@ -71,7 +71,7 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
       Thread.sleep(750)
       dataManager.close()
 
-      val records = dataManager.getRecords()
+      val records = dataManager.getRecords
       (records != null) shouldBe true
       records.size() shouldBe 2
       var record = records.get(0)
@@ -87,7 +87,7 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
       struct = record.value().asInstanceOf[Struct]
       struct.get("symbol") shouldBe gbpEurQuote2.getSymbol
       struct.get("price") shouldBe gbpEurQuote2.getPrice().doubleValue()
-      dataManager.getRecords() shouldBe null
+      dataManager.getRecords shouldBe null
     }
   }
 
@@ -109,7 +109,7 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
     Thread.sleep(250)
     dataManager.close()
 
-    val records = dataManager.getRecords()
+    val records = dataManager.getRecords
     (records != null) shouldBe true
     records.size() shouldBe 1
     val record = records.get(0)
@@ -142,7 +142,7 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
     Thread.sleep(750)
     dataManager.close()
 
-    val records = dataManager.getRecords()
+    val records = dataManager.getRecords
     (records != null) shouldBe true
     records.size() shouldBe 2
     val record = records.get(0)
@@ -155,7 +155,7 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
 
     val record1 = records.get(1)
     record1.topic() shouldBe "topicStocks"
-    record1.valueSchema() shouldBe StockHelper.getStockSchema()
+    record1.valueSchema() shouldBe StockHelper.getStockSchema
     val struct1 = record1.value().asInstanceOf[Struct]
     struct1.get("symbol") shouldBe msft.getSymbol
     struct1.get("ask") shouldBe msft2.getQuote(false).getAsk.doubleValue()

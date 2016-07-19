@@ -56,5 +56,5 @@ object Main extends App with SocketRoutes {
       |Listening on port : $port
     """.stripMargin)
 
-  val serverBinding = Http().bindAndHandle(interface = "0.0.0.0", port = port, handler = route2HandlerFlow(mainFlow()))
+  val serverBinding = Http().bindAndHandle(interface = "0.0.0.0", port = port, handler = route2HandlerFlow(mainFlow(system)))
 }

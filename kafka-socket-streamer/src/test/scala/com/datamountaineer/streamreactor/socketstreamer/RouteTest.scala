@@ -1,5 +1,6 @@
 package com.datamountaineer.streamreactor.socketstreamer
 
+import akka.actor.ActorSystem
 import akka.http.scaladsl.testkit.{ScalatestRouteTest, WSProbe}
 import com.datamountaineer.streamreactor.socketstreamer.routes.SocketRoutes
 import org.scalatest._
@@ -10,9 +11,9 @@ import org.scalatest._
   */
 class RouteTest extends FlatSpec with Matchers with ScalatestRouteTest with SocketRoutes {
   it should "handle websocket requests for topics" in {
-
+    implicit val system = ActorSystem()
     val wsClient = WSProbe()
-    WS("/ws/topics?topic=test&consumergroup=123", wsClient.flow) ~> mainFlow() ~> check {
+    WS("/ws/topics?topic=test&consumergroup=123", wsClient.flow) ~> mainFlow(system) ~> check {
       isWebSocketUpgrade shouldEqual true
       wsClient.expectMessage("")
     }

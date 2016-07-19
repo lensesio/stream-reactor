@@ -22,6 +22,7 @@ import akka.http.scaladsl.server.{Directives, Route}
 import de.heikoseeberger.akkasse.EventStreamMarshalling
 import Directives._
 import EventStreamMarshalling._
+import akka.actor.ActorSystem
 
 
 trait SocketRoutes extends KafkaFlow {
@@ -30,14 +31,14 @@ trait SocketRoutes extends KafkaFlow {
   val serverSendEventsPathString = "sse"
   val params = parameters('topic.as[String], 'consumergroup.as[String], 'readfromend.as[String] ? false).as(KafkaRequestProps)
 
-  def mainFlow() : Route = {
+  def mainFlow(system: ActorSystem) : Route = {
 
     def webSocketStream(kafkaRequestProps: KafkaRequestProps) : Route  = {
-      handleWebSocketMessages(webSocketFlow(kafkaRequestProps))
+      handleWebSocketMessages(webSocketFlow(system, kafkaRequestProps))
     }
 
     def serverSendEvent(kafkaRequestProps: KafkaRequestProps) : Route = {
-      complete(serverSendFlow(kafkaRequestProps))
+      complete(serverSendFlow(system, kafkaRequestProps))
     }
 
     //Web socket route
