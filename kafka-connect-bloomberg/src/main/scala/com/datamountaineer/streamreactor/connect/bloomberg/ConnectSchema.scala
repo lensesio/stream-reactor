@@ -49,9 +49,8 @@ private[bloomberg] class ConnectSchema(namespace: String) {
       case map: java.util.LinkedHashMap[String @unchecked, _] =>
         val recordBuilder = SchemaBuilder.struct()
         recordBuilder.name(name)
-        map.entrySet().asScala.foreach { case kvp =>
-          recordBuilder.field(kvp.getKey, createSchema(kvp.getKey, kvp.getValue))
-        }
+        map.entrySet().asScala.foreach(kvp =>
+          recordBuilder.field(kvp.getKey, createSchema(kvp.getKey, kvp.getValue)))
         recordBuilder.build()
       case v => sys.error(s"${v.getClass} is not handled.")
     }

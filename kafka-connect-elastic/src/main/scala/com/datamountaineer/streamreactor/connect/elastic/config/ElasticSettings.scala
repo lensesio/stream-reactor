@@ -17,9 +17,8 @@
 package com.datamountaineer.streamreactor.connect.elastic.config
 
 import com.datamountaineer.connector.config.Config
-import org.apache.kafka.common.config.ConfigException
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 
 /**
   * Created by andrew@datamountaineer.com on 13/05/16. 
@@ -37,11 +36,11 @@ object ElasticSettings {
     val routes = raw.split(";").map(r => Config.parse(r)).toList
 
     val fields = routes.map(
-      rm => (rm.getSource, rm.getFieldAlias.asScala.map(fa => (fa.getField,fa.getAlias)).toMap)
+      rm => (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField,fa.getAlias)).toMap)
     ).toMap
 
     val tableMap = routes.map(rm => (rm.getSource, rm.getTarget)).toMap
-    val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.asScala.toSet)).toMap
+    val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
 
     ElasticSettings(routes = routes, fields = fields,ignoreFields = ignoreFields, tableMap = tableMap)
   }

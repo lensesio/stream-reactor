@@ -62,16 +62,16 @@ class RedisDbWriterTest extends WordSpec with Matchers with BeforeAndAfterAll wi
       val1 should not be null
 
       val map1 = gson.fromJson(val1, classOf[java.util.Map[String, AnyRef]]).asScala
-      map1.get("firstName").get.toString shouldBe "Alex"
-      map1.get("age").get.toString shouldBe "30.0" //it gets back a java double!?
+      map1("firstName").toString shouldBe "Alex"
+      map1("age").toString shouldBe "30.0" //it gets back a java double!?
 
       val val2 = jedis.get(s"$TOPIC|1|1")
       val2 should not be null
 
       val map2 = gson.fromJson(val2, classOf[java.util.Map[String, AnyRef]]).asScala
-      map2.get("firstName").get shouldBe "Mara"
-      map2.get("age").get.toString shouldBe "22.0"
-      map2.get("threshold").get.toString shouldBe "12.4"
+      map2("firstName") shouldBe "Mara"
+      map2("age").toString shouldBe "22.0"
+      map2("threshold").toString shouldBe "12.4"
     }
 
     "write the given SinkRecords to the redis database with mode FIELDS" in {
@@ -110,16 +110,16 @@ class RedisDbWriterTest extends WordSpec with Matchers with BeforeAndAfterAll wi
       val1 should not be null
 
       val map1 = gson.fromJson(val1, classOf[java.util.Map[String, AnyRef]]).asScala
-      map1.get("firstName").get.toString shouldBe "Alex"
-      map1.get("age").get.toString shouldBe "30.0" //it gets back a java double!?
+      map1("firstName").toString shouldBe "Alex"
+      map1("age").toString shouldBe "30.0" //it gets back a java double!?
 
       val val2 = jedis.get("Mara")
       val2 should not be null
 
       val map2 = gson.fromJson(val2, classOf[java.util.Map[String, AnyRef]]).asScala
-      map2.get("firstName").get shouldBe "Mara"
-      map2.get("age").get.toString shouldBe "22.0"
-      map2.get("threshold").get.toString shouldBe "12.4"
+      map2("firstName") shouldBe "Mara"
+      map2("age").toString shouldBe "22.0"
+      map2("threshold").toString shouldBe "12.4"
     }
   }
 }

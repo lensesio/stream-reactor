@@ -17,17 +17,17 @@
 package com.datamountaineer.streamreactor.connect.druid.writer
 
 import java.io.ByteArrayInputStream
-import com.datamountaineer.streamreactor.connect.schemas.StructFieldsExtractor
-import com.datamountaineer.streamreactor.connect.druid.config.DruidSinkSettings
-import com.datamountaineer.streamreactor.connect.sink.DbWriter
-import com.metamx.tranquility.config.{PropertiesBasedConfig, TranquilityConfig}
-import com.metamx.tranquility.druid.DruidBeams
-import com.twitter.util.{Await, Future}
+import collection.JavaConversions._
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.twitter.util.{ Future, Await }
+import com.github.nscala_time.time.Imports._
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
-import org.joda.time.DateTime
-import scala.collection.JavaConversions._
+import com.datamountaineer.streamreactor.connect.schemas.StructFieldsExtractor
+import com.datamountaineer.streamreactor.connect.sink.DbWriter
+import com.metamx.tranquility.config.{ TranquilityConfig, PropertiesBasedConfig }
+import com.metamx.tranquility.druid.DruidBeams
+import com.datamountaineer.streamreactor.connect.druid.config.DruidSinkSettings
 
 /**
   * Responsible for writing the SinkRecord payload to Druid.

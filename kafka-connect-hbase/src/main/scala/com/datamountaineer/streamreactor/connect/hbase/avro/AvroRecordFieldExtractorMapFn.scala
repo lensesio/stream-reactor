@@ -33,7 +33,7 @@ object AvroRecordFieldExtractorMapFn {
     * @return A map of functions converting the avro field value to bytes depending on the avro field type
     */
   def apply(schema: Schema, fields: Seq[String]): Map[String, (Any) => Array[Byte]] = {
-    fields.map { case fn =>
+    fields.map { fn =>
       val f = schema.getField(fn)
       if (f == null) {
         throw new IllegalArgumentException(s"$fn does not exist in the given schema.")

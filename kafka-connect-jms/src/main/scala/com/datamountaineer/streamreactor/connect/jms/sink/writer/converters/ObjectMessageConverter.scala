@@ -19,8 +19,9 @@ import javax.jms.{Message, ObjectMessage, Session}
 
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import scala.collection.JavaConverters._
+
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 class ObjectMessageConverter extends JMSMessageConverter {
   override def convert(record: SinkRecord, session: Session): Message = {

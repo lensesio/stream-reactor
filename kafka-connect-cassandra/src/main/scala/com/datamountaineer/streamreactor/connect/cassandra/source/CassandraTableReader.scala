@@ -32,7 +32,6 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTaskContext}
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters.{mapAsJavaMapConverter, seqAsJavaListConverter}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
@@ -71,7 +70,7 @@ class CassandraTableReader(private val session: Session,
   private def buildOffsetMap(context: SourceTaskContext) : Option[Date] = {
     val offsetStorageKey = CassandraConfigConstants.ASSIGNED_TABLES
     val tables = List(topic)
-    val recoveredOffsets = OffsetHandler.recoverOffsets(offsetStorageKey, tables.asJava, context)
+    val recoveredOffsets = OffsetHandler.recoverOffsets(offsetStorageKey, tables, context)
     val offset = OffsetHandler.recoverOffset[String](recoveredOffsets,offsetStorageKey, table, timestampCol)
     Some(dateFormatter.parse(offset.getOrElse(defaultTimestamp)))
   }
@@ -237,7 +236,7 @@ class CassandraTableReader(private val session: Session,
     logger.info(s"Storing offset $offset")
 
     //create source record
-    val record = new SourceRecord(partition, Map(timestampCol -> offset).asJava, topic, struct.schema(), struct)
+    val record = new SourceRecord(partition, Map(timestampCol -> offset), topic, struct.schema(), struct)
 
     //add to queue
     logger.debug(s"Attempting to put SourceRecord ${record.toString} on queue for $keySpace.$table.")

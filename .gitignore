@@ -24,3 +24,5 @@ target/
 /kafka-connect-cassandra/docs/build
 /.gradle
 /rethinkdb_data/
+/.ensime
+/.ensime_cache.d/

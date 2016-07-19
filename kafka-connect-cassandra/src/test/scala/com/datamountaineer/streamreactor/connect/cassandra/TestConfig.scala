@@ -17,7 +17,6 @@ import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper
 import org.mockito.Mockito._
-import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
 
 import scala.collection.JavaConverters._
@@ -252,7 +251,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   }
 
   //generate some test records
-  def getTestRecords(table: String) : Set[SinkRecord]= {
+  def getTestRecords(table: String) : Seq[SinkRecord]= {
     val schema = createSchema
     val assignment: mutable.Set[TopicPartition] = getAssignment.asScala.filter(tp=>tp.topic().equals(table))
 
@@ -261,7 +260,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
         new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i)
       })
-    }).toSet
+    }).toSeq
   }
 
 
@@ -309,6 +308,6 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   }
 
   def stopEmbeddedCassandra() = {
-    EmbeddedCassandraServerHelper.cleanEmbeddedCassandra();
+    EmbeddedCassandraServerHelper.cleanEmbeddedCassandra()
   }
 }

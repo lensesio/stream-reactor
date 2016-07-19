@@ -1,8 +1,8 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
-import com.datamountaineer.streamreactor.connect.KuduConverter
-import com.datamountaineer.streamreactor.connect.config.{KuduSettings, KuduSinkConfig}
+import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig}
 import com.datamountaineer.streamreactor.connect.kudu.services.{EmbeddedSingleNodeKafkaCluster, RestApp}
+import com.datamountaineer.streamreactor.connect.kudu.sink.{CreateTableProps, DbHandler}
 import io.confluent.kafka.schemaregistry.client.rest.RestService
 import org.apache.curator.test.InstanceSpec
 import org.apache.kafka.connect.errors.ConnectException
@@ -114,7 +114,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val config = new KuduSinkConfig(getConfigAutoCreate(9999))
     val settings = KuduSettings(config)
     val cache = DbHandler.buildTableCache(settings, client)
-    cache.get(TOPIC).get shouldBe table
+    cache(TOPIC) shouldBe table
   }
 
   "Should throw table not found when building insert cache" in {

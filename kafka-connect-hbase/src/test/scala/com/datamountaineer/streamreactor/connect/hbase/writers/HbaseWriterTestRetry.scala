@@ -1,10 +1,9 @@
 package com.datamountaineer.streamreactor.connect.hbase.writers
 
+import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
 import com.datamountaineer.streamreactor.connect.hbase.config.HbaseSinkConfig._
 import com.datamountaineer.streamreactor.connect.hbase.config.{HbaseSettings, HbaseSinkConfig}
-import com.datamountaineer.streamreactor.connect.hbase.{HbaseHelper, HbaseTableHelper, StructFieldsRowKeyBuilderBytes}
-import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
-import com.datamountaineer.streamreactor.connect.hbase.FieldsValuesExtractor
+import com.datamountaineer.streamreactor.connect.hbase.{FieldsValuesExtractor, HbaseHelper, HbaseTableHelper, StructFieldsRowKeyBuilderBytes}
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.RetriableException
@@ -100,16 +99,16 @@ class HbaseWriterTestRetry extends WordSpec with Matchers with MockitoSugar with
           val row1 = data.filter { r => Bytes.toString(r.key) == "Alex" }.head
           row1.cells.size shouldBe 2
 
-          Bytes.toString(row1.cells.get("firstName").get) shouldBe "Alex"
-          Bytes.toInt(row1.cells.get("age").get) shouldBe 30
+          Bytes.toString(row1.cells("firstName")) shouldBe "Alex"
+          Bytes.toInt(row1.cells("age")) shouldBe 30
 
 
           val row2 = data.filter { r => Bytes.toString(r.key) == "Mara" }.head
           row2.cells.size shouldBe 3
 
-          Bytes.toString(row2.cells.get("firstName").get) shouldBe "Mara"
-          Bytes.toInt(row2.cells.get("age").get) shouldBe 22
-          Bytes.toDouble(row2.cells.get("threshold").get) shouldBe 12.4
+          Bytes.toString(row2.cells("firstName")) shouldBe "Mara"
+          Bytes.toInt(row2.cells("age")) shouldBe 22
+          Bytes.toDouble(row2.cells("threshold")) shouldBe 12.4
 
         }
         finally {

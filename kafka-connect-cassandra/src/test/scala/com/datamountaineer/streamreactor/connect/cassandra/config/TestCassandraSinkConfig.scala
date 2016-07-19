@@ -1,7 +1,6 @@
 package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import org.apache.kafka.common.config.AbstractConfig
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
 class TestCassandraSinkConfig extends WordSpec with BeforeAndAfter with Matchers with TestConfig {

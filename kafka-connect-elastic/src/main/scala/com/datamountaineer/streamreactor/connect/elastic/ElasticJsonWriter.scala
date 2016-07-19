@@ -74,9 +74,9 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
   def insert(records: Map[String, Set[SinkRecord]]) : Iterable[Future[BulkResponse]] = {
     val ret = records.map({
       case (topic, sinkRecords) =>
-        val fields = settings.fields.get(topic).get
-        val ignoreFields = settings.ignoreFields.get(topic).get
-        val i = settings.tableMap.get(topic).get
+        val fields = settings.fields(topic)
+        val ignoreFields = settings.ignoreFields(topic)
+        val i = settings.tableMap(topic)
 
         val indexes = sinkRecords
                         .map(r => convert(r, fields, ignoreFields))

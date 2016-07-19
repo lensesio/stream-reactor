@@ -33,7 +33,7 @@ object ElasticSinkConfig {
   val URL_PREFIX_DOC = "URL connection string prefix"
   val URL_PREFIX_DEFAULT = "elasticsearch"
   val EXPORT_ROUTE_QUERY = "connect.elastic.export.route.query"
-  val EXPORT_ROUTE_QUERY_DOC = ""
+  val EXPORT_ROUTE_QUERY_DOC =  "KCQL expression describing field selection and routes."
 
   val config: ConfigDef = new ConfigDef()
     .define(URL, Type.STRING, URL_DEFAULT, Importance.HIGH, URL_DOC)

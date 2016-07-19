@@ -1,13 +1,11 @@
 package com.datamountaineer.streamreactor.connect.druid.config
 
 import java.nio.file.Paths
-
-import org.apache.kafka.common.config.ConfigException
-import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
-
 import scala.collection.JavaConversions._
+import org.scalatest._
+import org.scalatest.mock.MockitoSugar
+import org.mockito.Mockito._
+import io.confluent.common.config.ConfigException
 
 class DruidSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
   "DruidSinkSettings" should {

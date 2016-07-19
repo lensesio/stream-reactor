@@ -2,7 +2,6 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
-import org.apache.kafka.common.config.AbstractConfig
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
@@ -17,7 +16,7 @@ class TestCassandraJsonWriterNoop extends WordSpec with Matchers with MockitoSug
     startEmbeddedCassandra()
   }
 
-  "Cassandra JsonWriter with Noop should throw Cassandra expection and keep going" in {
+  "Cassandra JsonWriter with Noop should throw Cassandra exception and keep going" in {
     val session = createTableAndKeySpace(secure = true, ssl = false)
     val context = mock[SinkTaskContext]
     val assignment = getAssignment

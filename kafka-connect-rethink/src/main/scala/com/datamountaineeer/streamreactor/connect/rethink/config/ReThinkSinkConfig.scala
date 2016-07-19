@@ -14,7 +14,7 @@
   * limitations under the License.
   **/
 
-package com.datamountaineer.streamreactor.connect.config
+package com.datamountaineeer.streamreactor.connect.rethink.config
 
 import java.util
 
@@ -22,18 +22,27 @@ import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 /**
-  * Created by andrew@datamountaineer.com on 22/02/16. 
+  * Created by andrew@datamountaineer.com on 24/03/16. 
   * stream-reactor
   */
+object ReThinkSinkConfig {
+  val RETHINK_HOST = "connect.rethink.sink.host"
+  val RETHINK_HOST_DOC = "Rethink server host."
+  val RETHINK_HOST_DEFAULT = "localhost"
+  val RETHINK_DB = "connect.rethink.sink.db"
+  val RETHINK_DB_DOC = "The reThink database to write to and create tables in."
+  val RETHINK_PORT = "connect.rethink.sink.port"
+  val RETHINK_PORT_DEFAULT = "28015"
+  val RETHINK_PORT_DOC = "Client port of rethink server to connect to."
 
-object KuduSinkConfig {
-  val KUDU_MASTER = "connect.kudu.master"
-  val KUDU_MASTER_DOC = "Kudu master cluster."
-  val KUDU_MASTER_DEFAULT = "localhost"
-  val EXPORT_ROUTE_QUERY = "connect.kudu.export.route.query"
-  val EXPORT_ROUTE_QUERY_DOC = ""
+  val CONFLICT_ERROR = "ERROR"
+  val CONFLICT_REPLACE = "REPLACE"
+  val CONFLICT_UPDATE = "UPDATE"
 
-  val ERROR_POLICY = "connect.kudu.sink.error.policy"
+  val EXPORT_ROUTE_QUERY = "connect.rethink.sink.export.route.query"
+  val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
+
+  val ERROR_POLICY = "connect.rethink.size.error.policy"
   val ERROR_POLICY_DOC = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
     "There are two available options: \n" + "NOOP - the error is swallowed \n" +
     "THROW - the error is allowed to propagate. \n" +
@@ -41,35 +50,32 @@ object KuduSinkConfig {
     "The error will be logged automatically"
   val ERROR_POLICY_DEFAULT = "THROW"
 
-  val ERROR_RETRY_INTERVAL = "connect.kudu.sink.retry.interval"
+  val ERROR_RETRY_INTERVAL = "connect.rethink.sink.retry.interval"
   val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
   val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
-  val NBR_OF_RETRIES = "connect.kudu.max.retires"
+  val NBR_OF_RETRIES = "connect.rethink.sink.max.retires"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
-  val BATCH_SIZE = "connect.kudu.sink.batch.size"
+  val BATCH_SIZE = "connect.rethink.sink.batch.size"
   val BATCH_SIZE_DOC = "Per topic the number of sink records to batch together and insert into Kudu"
   val BATCH_SIZE_DEFAULT = 1000
 
-  val SCHEMA_REGISTRY_URL = "connect.kudu.sink.schema.registry.url"
+  val SCHEMA_REGISTRY_URL = "connect.rethink.sink.schema.registry.url"
   val SCHEMA_REGISTRY_URL_DOC = "Url for the schema registry"
   val SCHEMA_REGISTRY_URL_DEFAULT = "http://localhost:8081"
 
-  val BUCKET_SIZE  = "connect.kudu.sink.bucket.size"
-  val BUCKET_SIZE_DOC = "The number of buckets to use for Auto Table creation. The distribution is set to use the Hash strategy"
-  val BUCKET_SIZE_DEFAULT = 10
-
   val config: ConfigDef = new ConfigDef()
-    .define(KUDU_MASTER, Type.STRING, KUDU_MASTER_DEFAULT, Importance.HIGH, KUDU_MASTER_DOC)
+    .define(RETHINK_HOST, Type.STRING, RETHINK_HOST_DEFAULT, Importance.HIGH, RETHINK_HOST_DOC)
+    .define(RETHINK_DB, Type.STRING, Importance.HIGH, RETHINK_HOST_DOC)
+    .define(RETHINK_PORT, Type.INT, RETHINK_PORT_DEFAULT, Importance.MEDIUM, RETHINK_PORT_DOC)
     .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY)
     .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC)
     .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC)
     .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC)
     .define(BATCH_SIZE, Type.INT, BATCH_SIZE_DEFAULT, Importance.MEDIUM, BATCH_SIZE_DOC)
     .define(SCHEMA_REGISTRY_URL, Type.STRING, SCHEMA_REGISTRY_URL_DEFAULT ,Importance.HIGH, SCHEMA_REGISTRY_URL_DOC)
-    .define(BUCKET_SIZE, Type.INT, BUCKET_SIZE_DEFAULT, Importance.MEDIUM, BUCKET_SIZE_DOC)
 }
 
-class KuduSinkConfig(props: util.Map[String, String])
-  extends AbstractConfig(KuduSinkConfig.config, props)
+case class ReThinkSinkConfig(props: util.Map[String, String])
+  extends AbstractConfig(ReThinkSinkConfig.config, props)

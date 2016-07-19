@@ -17,10 +17,10 @@
 package com.datamountaineer.streamreactor.connect.druid.config
 
 import java.io.File
-import com.datamountaineer.streamreactor.connect.druid.config.DruidSinkConfig._
-import com.datamountaineer.streamreactor.connect.schemas.PayloadFields
-import io.confluent.common.config.ConfigException
 import scala.util.Try
+import io.confluent.common.config.ConfigException
+import com.datamountaineer.streamreactor.connect.schemas.PayloadFields
+import DruidSinkConfig._
 
 case class DruidSinkSettings(datasourceName: String,
                              tranquilityConfig: String,

@@ -30,7 +30,6 @@ object WriterFactoryFn extends StrictLogging {
     * @param settings HbaseSetting for the writer
     * @return
     */
-  def apply(settings: HbaseSettings): HbaseWriter = {
-    new HbaseWriter(settings)
-  }
+  def apply(settings: HbaseSettings): HbaseWriter = new HbaseWriter(settings)
+
 }

@@ -16,9 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.hbase
 
-import org.apache.hadoop.hbase.util.Bytes
+import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
 import org.apache.kafka.connect.data.{Field, Schema, Struct}
-import BytesHelper._
 
 import scala.collection.JavaConversions._
 
@@ -37,9 +36,8 @@ case class StructFieldsExtractorBytes(includeAllFields: Boolean, fieldsAliasMap:
       schema.fields().filter(f => fieldsAliasMap.contains(f.name()))
     }
 
-    val fieldsAndValues = fields.flatMap { case field =>
-      getFieldBytes(field, struct).map(bytes => fieldsAliasMap.getOrElse(field.name(), field.name()) -> bytes)
-    }
+    val fieldsAndValues = fields.flatMap(field =>
+      getFieldBytes(field, struct).map(bytes => fieldsAliasMap.getOrElse(field.name(), field.name()) -> bytes))
 
     fieldsAndValues
   }

@@ -24,7 +24,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 
 class ElasticSinkTask extends SinkTask with StrictLogging {
   private var writer : Option[ElasticJsonWriter] = None
@@ -53,7 +53,7 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
 
     ElasticSinkConfig.config.parse(props)
     val sinkConfig = ElasticSinkConfig(props)
-    writer = Some(ElasticWriter(config = sinkConfig))
+    writer = Some(ElasticWriter(config = sinkConfig, context = context))
   }
 
   /**
@@ -61,7 +61,7 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
     * */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.foreach(w=>w.write(records.asScala.toSet))
+    writer.foreach(w=>w.write(records.toSet))
   }
 
   /**

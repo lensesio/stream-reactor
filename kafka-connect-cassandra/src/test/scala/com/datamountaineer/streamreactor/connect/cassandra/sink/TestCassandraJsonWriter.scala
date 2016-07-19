@@ -2,8 +2,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
-import org.apache.kafka.common.config.AbstractConfig
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
+import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}

@@ -27,7 +27,7 @@ import org.apache.kafka.common.config.AbstractConfig
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
@@ -90,14 +90,14 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
 
     //Setup queues for readers to put records into
     assigned.map(table => queues += table -> new LinkedBlockingQueue[SourceRecord](bufferSize.get))
-    settings = CassandraSettings.configureSource(taskConfig.get, assigned)
+    settings = CassandraSettings.configureSource(taskConfig.get)
 
     //set up readers
     assigned.map(table => {
       //get settings
       val setting = settings.filter(s=>s.routes.getSource.equals(table)).head
       val session = connection.get.session
-      val queue = queues.get(table).get
+      val queue = queues(table)
       readers += table -> CassandraTableReader(session = session, setting = setting, context = context, queue = queue)
     })
   }
@@ -110,7 +110,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     * @return A util.List of SourceRecords.
     * */
   override def poll(): util.List[SourceRecord] = {
-    settings.map(s=>s.routes).flatten(r=>process(r.getSource)).toList.asJava
+    settings.map(s=>s.routes).flatten(r=>process(r.getSource)).toList
   }
 
   /**
@@ -123,11 +123,11 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     * @return A list of Source records
     * */
   def process(table: String) : List[SourceRecord]= {
-    val reader = readers.get(table).get
+    val reader = readers(table)
     reader.read()
-    val queue = queues.get(table).get
+    val queue = queues(table)
     if (!queue.isEmpty) {
-      QueueHelpers.drainQueue(queues.get(table).get, batchSize.get).asScala.toList
+      QueueHelpers.drainQueue(queues(table), batchSize.get).toList
     } else {
       List[SourceRecord]()
     }
@@ -161,7 +161,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     * @return A boolean indicating if querying is in progress.
     * */
   private[datamountaineer] def isReaderQuerying(table: String) : Boolean = {
-    readers.get(table).get.isQuerying
+    readers(table).isQuerying
   }
 
   /**
@@ -171,6 +171,6 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     * @return The size of the queue.
     * */
   private[datamountaineer] def queueSize(table: String) : Int = {
-    queues.get(table).get.size()
+    queues(table).size()
   }
 }

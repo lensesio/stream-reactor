@@ -22,11 +22,11 @@ import com.rethinkdb.model.MapObject
 import com.rethinkdb.net.Connection
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.Schema.Type
-import org.apache.kafka.connect.data.{Field, Schema, Struct}
+import org.apache.kafka.connect.data.{Field, Struct}
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 
 /**
   * Created by andrew@datamountaineer.com on 24/06/16. 
@@ -58,9 +58,9 @@ object ReThinkSinkConverter extends StrictLogging {
 
         val create = rethink.db(setting.db).tableCreate(r.getTarget)
         //set primary keys if we have them
-        val pk = r.getPrimaryKeys.asScala.toSet
+        val pk = r.getPrimaryKeys.toSet
         val pkName = if (pk.isEmpty) "id" else pk.head
-        logger.info(s"Setting primary as first field found: ${pkName}")
+        logger.info(s"Setting primary as first field found: $pkName")
         create.optArg("primary_key", pkName)
         create.run(conn)
         logger.info(s"Table ${r.getTarget} created.")
@@ -88,7 +88,7 @@ object ReThinkSinkConverter extends StrictLogging {
     }
 
     //add the sinkrecord fields to the MapObject
-    fields.asScala.map(f => buildField(rethink, f, s, mo))
+    fields.map(f => buildField(rethink, f, s, mo))
     mo
   }
 
@@ -108,7 +108,7 @@ object ReThinkSinkConverter extends StrictLogging {
       case Type.STRUCT =>
         val nested = struct.getStruct(field.name())
         val schema = nested.schema()
-        val fields = schema.fields().asScala
+        val fields = schema.fields()
         val mo = rethink.hashMap()
         fields.map(f => buildField(rethink, f, nested, mo))
         hm.`with`(field.name, mo)

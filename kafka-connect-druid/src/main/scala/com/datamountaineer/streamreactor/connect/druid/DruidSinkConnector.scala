@@ -17,15 +17,12 @@
 package com.datamountaineer.streamreactor.connect.druid
 
 import java.util
-
-import com.datamountaineer.streamreactor.connect.druid.config.DruidSinkConfig
+import scala.collection.JavaConverters._
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.ConfigDef
+import io.confluent.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
-
-import scala.collection.JavaConverters._
-import scala.util.{Failure, Try}
+import com.datamountaineer.streamreactor.connect.druid.config._
 
 /**
   *

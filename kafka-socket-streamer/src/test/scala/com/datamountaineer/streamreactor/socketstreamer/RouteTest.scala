@@ -1,15 +1,8 @@
 package com.datamountaineer.streamreactor.socketstreamer
 
-import akka.http.scaladsl.server.{Directives, StandardRoute}
-import akka.http.scaladsl.testkit.ScalatestRouteTest
+import akka.http.scaladsl.testkit.{ScalatestRouteTest, WSProbe}
 import com.datamountaineer.streamreactor.socketstreamer.routes.SocketRoutes
 import org.scalatest._
-import akka.http.scaladsl.testkit.{RouteTestTimeout, WSProbe}
-import akka.stream.ActorMaterializer
-import akka.http.scaladsl.server.Directives._
-import com.datamountaineer.streamreactor.socketstreamer.domain.KafkaRequestProps
-import de.heikoseeberger.akkasse.EventStreamMarshalling
-import scala.concurrent.duration._
 
 /**
   * Created by andrew@datamountaineer.com on 16/03/16. 

@@ -74,14 +74,14 @@ class HbaseWriter(settings: HbaseSettings
 
     records.foreach({
       case (topic, sinkRecords : Seq[SinkRecord]) =>
-        val table = tables.get(topic).get
+        val table = tables(topic)
         val puts = sinkRecords.flatMap { record =>
 
           require(record.value() != null && record.value().getClass == classOf[Struct],
             "The SinkRecord payload should be of type Struct")
 
-          val keyBuilder = rowKeyMap.get(topic).get
-          val extractor = settings.extractorFields.get(topic).get
+          val keyBuilder = rowKeyMap(topic)
+          val extractor = settings.extractorFields(topic)
           val fieldsAndValues = extractor.get(record.value.asInstanceOf[Struct])
 
           if (fieldsAndValues.nonEmpty) {
@@ -91,7 +91,7 @@ class HbaseWriter(settings: HbaseSettings
               if (!columnsBytesMap.contains(fieldName)) {
                 columnsBytesMap = columnsBytesMap + (fieldName -> Bytes.toBytes(fieldName))
               }
-              put.addColumn(columnFamilyBytes, columnsBytesMap.get(fieldName).get, bytes)
+              put.addColumn(columnFamilyBytes, columnsBytesMap(fieldName), bytes)
             }
             Some(put)
           }

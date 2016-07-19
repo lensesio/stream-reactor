@@ -18,7 +18,7 @@ object HbaseReaderHelper {
       val scan = new Scan()
       scan.addFamily(columnFamily.fromString())
       val scanner = tbl.getScanner(scan)
-      scanner.map { case rs =>
+      scanner.map { rs =>
         val cells = rs.rawCells().map { cell =>
           Bytes.toString(CellUtil.cloneQualifier(cell)) -> CellUtil.cloneValue(cell)
         }.toMap

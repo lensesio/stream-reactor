@@ -14,18 +14,17 @@
   * limitations under the License.
   **/
 
-package com.datamountaineer.streamreactor.connect
+package com.datamountaineer.streamreactor.connect.kudu
 
-import com.datamountaineer.streamreactor.connect.KuduOperation.KuduOperation
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.kafka.connect.data.Schema.Type
 import org.apache.kafka.connect.data.{Field, Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.kududb.ColumnSchema
 import org.kududb.ColumnSchema.ColumnSchemaBuilder
-import org.kududb.client.{Insert, KuduTable, PartialRow, Upsert}
+import org.kududb.client.{KuduTable, PartialRow, Upsert}
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 
 object KuduOperation extends Enumeration {
   type KuduOperation = Value
@@ -72,12 +71,12 @@ trait KuduConverter extends ConverterUtil {
     * @return A Kudu upsert operation
     * */
   def convertToKuduUpsert(record: SinkRecord, table: KuduTable): Upsert = {
-    val recordFields = record.valueSchema().fields().asScala
-    val kuduColNames = table.getSchema.getColumns.asScala.map(c => c.getName)
+    val recordFields = record.valueSchema().fields()
+    val kuduColNames = table.getSchema.getColumns.map(c => c.getName)
     val upsert = table.newUpsert()
     val row = upsert.getRow
     recordFields
-      .filter(f => kuduColNames.contains(f)) //handle missing fields in target (maybe dropped)
+      .filter(f => kuduColNames.contains(f.name())) //handle missing fields in target (maybe dropped)
       .map(f => addFieldToRow(record, f, row))
     upsert
   }
@@ -88,14 +87,14 @@ trait KuduConverter extends ConverterUtil {
     * @param record A sinkRecord to get the value schema from
     * */
   def convertToKuduSchema(record: SinkRecord) : org.kududb.Schema = {
-    val connectFields = record.valueSchema().fields().asScala
+    val connectFields = record.valueSchema().fields()
     val kuduFields = createKuduColumns(connectFields.toSet)
-    new org.kududb.Schema(kuduFields.toList.asJava)
+    new org.kududb.Schema(kuduFields.toList)
   }
 
   def convertToKuduSchema(schema : Schema) : org.kududb.Schema = {
-    val connectFields = createKuduColumns(schema.fields().asScala.toSet)
-    new org.kududb.Schema(connectFields.toList.asJava)
+    val connectFields = createKuduColumns(schema.fields().toSet)
+    new org.kududb.Schema(connectFields.toList)
   }
 
   def createKuduColumns(fields: Set[Field]): Set[ColumnSchema] = {

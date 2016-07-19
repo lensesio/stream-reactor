@@ -40,7 +40,7 @@ class HbaseSettingsTest extends WordSpec with Matchers with MockitoSugar {
     val settings = HbaseSettings(config)
     val route = settings.routes.head
 
-    settings.rowKeyModeMap.get(TABLE_NAME_RAW).get.isInstanceOf[StructFieldsRowKeyBuilderBytes] shouldBe true
+    settings.rowKeyModeMap(TABLE_NAME_RAW).isInstanceOf[StructFieldsRowKeyBuilderBytes] shouldBe true
 
     route.isIncludeAllFields shouldBe true
     route.getTarget shouldBe TABLE_NAME_RAW
@@ -57,7 +57,7 @@ class HbaseSettingsTest extends WordSpec with Matchers with MockitoSugar {
 
     val settings = HbaseSettings(config)
 
-    settings.rowKeyModeMap.get(TABLE_NAME_RAW).get.isInstanceOf[GenericRowKeyBuilderBytes] shouldBe true
+    settings.rowKeyModeMap(TABLE_NAME_RAW).isInstanceOf[GenericRowKeyBuilderBytes] shouldBe true
     val route = settings.routes.head
 
     route.isIncludeAllFields shouldBe true
@@ -77,7 +77,7 @@ class HbaseSettingsTest extends WordSpec with Matchers with MockitoSugar {
     val route = settings.routes.head
     val fields = route.getFieldAlias.asScala.toList
 
-    settings.rowKeyModeMap.get(TABLE_NAME_RAW).get.isInstanceOf[GenericRowKeyBuilderBytes] shouldBe true
+    settings.rowKeyModeMap(TABLE_NAME_RAW).isInstanceOf[GenericRowKeyBuilderBytes] shouldBe true
 
     route.isIncludeAllFields shouldBe false
     route.getSource shouldBe TABLE_NAME_RAW
@@ -100,7 +100,7 @@ class HbaseSettingsTest extends WordSpec with Matchers with MockitoSugar {
     val route = settings.routes.head
     val fields = route.getFieldAlias.asScala.toList
 
-    settings.rowKeyModeMap.get(TABLE_NAME_RAW).get.isInstanceOf[StructFieldsRowKeyBuilderBytes] shouldBe true
+    settings.rowKeyModeMap(TABLE_NAME_RAW).isInstanceOf[StructFieldsRowKeyBuilderBytes] shouldBe true
 
     route.isIncludeAllFields shouldBe false
     route.getSource shouldBe TABLE_NAME_RAW

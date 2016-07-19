@@ -3,7 +3,7 @@ package com.datamountaineer.streamreactor.connect.elastic
 import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticSettings, ElasticSinkConfig}
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
+import org.apache.kafka.connect.sink.SinkTaskContext
 import org.elasticsearch.common.settings.Settings
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar

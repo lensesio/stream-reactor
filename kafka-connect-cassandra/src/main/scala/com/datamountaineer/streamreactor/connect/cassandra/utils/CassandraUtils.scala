@@ -26,7 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.ConnectException
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 
 /**
   * Created by andrew@datamountaineer.com on 21/04/16.
@@ -44,9 +44,9 @@ object CassandraUtils {
     * @param keySpace The keyspace to look in for the tables
     * */
   def checkCassandraTables(cluster: Cluster, routes: Set[Config], keySpace: String) : Unit = {
-    val metaData = cluster.getMetadata.getKeyspace(keySpace).getTables.asScala
-    val tables: Set[String] = metaData.map(t=>t.getName).toSet
-    val topics = routes.map(rm=>rm.getTarget)
+    val metaData = cluster.getMetadata.getKeyspace(keySpace).getTables
+    val tables: Set[String] = metaData.map(t => t.getName).toSet
+    val topics = routes.map(rm => rm.getTarget)
 
     //check tables
     if (tables.isEmpty) throw new ConnectException(s"No tables found in Cassandra for keyspace $keySpace")
@@ -66,7 +66,7 @@ object CassandraUtils {
   def convert(row: Row) : Struct = {
     //TODO do we need to get the list of columns everytime?
 
-    val cols = row.getColumnDefinitions.asScala
+    val cols = row.getColumnDefinitions
     val connectSchema = convertToConnectSchema(cols.toList)
     val struct = new Struct(connectSchema)
 
@@ -119,7 +119,7 @@ object CassandraUtils {
     * */
   def convertToConnectSchema(cols: List[Definition]) : Schema = {
     val builder = SchemaBuilder.struct
-    cols.map(c=>builder.field(c.getName, typeMapToConnect(c)))
+    cols.map(c => builder.field(c.getName, typeMapToConnect(c)))
     builder.build()
   }
 

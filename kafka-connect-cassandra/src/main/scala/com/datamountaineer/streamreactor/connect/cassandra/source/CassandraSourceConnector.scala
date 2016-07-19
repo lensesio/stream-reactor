@@ -25,6 +25,7 @@ import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 
+import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
 /**
@@ -60,16 +61,16 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
     val numGroups = Math.min(tables.size, maxTasks)
 
     logger.info(s"Setting task configurations for $numGroups workers.")
-    val groups = ConnectorUtils.groupPartitions(tables.asJava, maxTasks).asScala
+    val groups = ConnectorUtils.groupPartitions(tables, maxTasks)
 
     //setup the config for each task and set assigned tables
     groups
       .map(g=> {
         val taskConfigs = new java.util.HashMap[String,String]
-        taskConfigs.put(CassandraConfigConstants.ASSIGNED_TABLES, g.asScala.mkString(","))
+        taskConfigs.put(CassandraConfigConstants.ASSIGNED_TABLES, g.mkString(","))
         taskConfigs.putAll(configProps.get)
-        taskConfigs.asScala.toMap.asJava
-      }).asJava
+        taskConfigs.toMap.asJava
+      })
   }
 
   /**
