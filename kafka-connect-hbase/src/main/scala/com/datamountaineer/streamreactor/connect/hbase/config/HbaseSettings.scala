@@ -18,12 +18,12 @@ package com.datamountaineer.streamreactor.connect.hbase.config
 
 import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
-import com.datamountaineer.streamreactor.connect.hbase.{GenericRowKeyBuilderBytes, RowKeyBuilderBytes, StructFieldsExtractorBytes, StructFieldsRowKeyBuilderBytes}
 import com.datamountaineer.streamreactor.connect.hbase.config.HbaseSinkConfig._
+import com.datamountaineer.streamreactor.connect.hbase.{GenericRowKeyBuilderBytes, RowKeyBuilderBytes, StructFieldsExtractorBytes, StructFieldsRowKeyBuilderBytes}
 import org.apache.kafka.common.config.ConfigException
 
-import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 case class HbaseSettings(columnFamilyMap: String,
                          rowKeyModeMap : Map[String, RowKeyBuilderBytes],
@@ -62,7 +62,7 @@ object HbaseSettings {
     val fields = routes.map(rm => (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField,fa.getAlias)).toMap)).toMap
 
     val extractorFields = routes.map(rm => {
-      (rm.getSource, StructFieldsExtractorBytes(rm.isIncludeAllFields , fields.get(rm.getSource).get))
+      (rm.getSource, StructFieldsExtractorBytes(rm.isIncludeAllFields , fields(rm.getSource)))
     }).toMap
 
     new HbaseSettings(columnFamily, rowKeyModeMap, routes.toList, extractorFields, errorPolicy, nbrOfRetries)

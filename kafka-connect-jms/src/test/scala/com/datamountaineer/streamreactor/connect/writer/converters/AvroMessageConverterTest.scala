@@ -8,12 +8,11 @@ import com.datamountaineer.streamreactor.connect.jms.sink.writer.converters.Avro
 import com.sksamuel.scalax.io.Using
 import io.confluent.connect.avro.AvroData
 import org.apache.activemq.ActiveMQConnectionFactory
-import org.apache.activemq.broker.BrokerService
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
+import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
 

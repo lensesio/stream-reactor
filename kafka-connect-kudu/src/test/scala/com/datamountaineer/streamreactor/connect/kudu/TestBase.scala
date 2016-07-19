@@ -8,7 +8,7 @@ package com.datamountaineer.streamreactor.connect.kudu
 import java.nio.ByteBuffer
 import java.util
 
-import com.datamountaineer.streamreactor.connect.config.KuduSinkConfig
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduSinkConfig
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord

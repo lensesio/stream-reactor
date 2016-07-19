@@ -60,7 +60,7 @@ private[bloomberg] object BloombergFieldValueFn {
         offsetDateTime(dt)
 
       case 258 | 259 /*Schema.Datatype.SEQUENCE | Schema.Datatype.CHOICE*/ =>
-        element.elementIterator().asScala.foldLeft(new java.util.LinkedHashMap[String, Any]) { case (map, element) =>
+        element.elementIterator().asScala.foldLeft(new java.util.LinkedHashMap[String, Any]) { case (map, `element`) =>
           map.put(element.name().toString, BloombergFieldValueFn(element))
           map
         } //needs to be a java map because of json serialization

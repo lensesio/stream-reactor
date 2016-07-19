@@ -121,8 +121,8 @@ object CassandraConfigConstants {
 
 
   val EXPORT_ROUTE_QUERY = "connect.cassandra.export.route.query"
-  val EXPORT_ROUTE_QUERY_DOC = ""
+  val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
 
   val IMPORT_ROUTE_QUERY = "connect.cassandra.import.route.query"
-  val IMPORT_ROUTE_QUERY_DOC = ""
+  val IMPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
 }

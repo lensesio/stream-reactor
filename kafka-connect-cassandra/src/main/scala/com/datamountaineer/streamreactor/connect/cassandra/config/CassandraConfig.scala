@@ -18,8 +18,8 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import java.util
 
-import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
+import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 /**
   *Holds the base configuration.

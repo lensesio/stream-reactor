@@ -9,9 +9,9 @@ project(":kafka-connect-druid") {
     }
 
     dependencies {
+        compile "com.github.nscala-time:nscala-time_$scalaMajorVersion:2.12.0"
         compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
         compile "io.druid:tranquility-core_$scalaMajorVersion:$tranquilityCoreVersion"
         testCompile("org.kitesdk:kite-minicluster:$kiteMiniClusterVersion")
-        testCompile("org.apache.hbase:hbase-server:$hbaseServerVersion")
     }
 }

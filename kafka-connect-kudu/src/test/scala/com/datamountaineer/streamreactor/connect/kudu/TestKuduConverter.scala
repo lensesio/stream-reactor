@@ -1,11 +1,10 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
-import com.datamountaineer.streamreactor.connect.KuduConverter
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Field
 import org.codehaus.jackson.node.NullNode
-import org.kududb.client.{Insert, KuduTable, Upsert}
+import org.kududb.client.{KuduTable, Upsert}
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 

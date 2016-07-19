@@ -5,10 +5,9 @@ import javax.jms.TextMessage
 import com.datamountaineer.streamreactor.connect.jms.sink.writer.converters.JsonMessageConverter
 import com.sksamuel.scalax.io.Using
 import org.apache.activemq.ActiveMQConnectionFactory
-import org.apache.activemq.broker.BrokerService
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
+import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
 

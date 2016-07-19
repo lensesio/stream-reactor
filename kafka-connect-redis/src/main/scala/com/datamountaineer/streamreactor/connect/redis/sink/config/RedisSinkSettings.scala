@@ -20,7 +20,6 @@ import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkConfig._
 import com.datamountaineer.streamreactor.connect.rowkeys._
-import com.datamountaineer.streamreactor.connect.schemas.StructFieldsExtractor
 import org.apache.kafka.common.config.ConfigException
 
 import scala.collection.JavaConversions._

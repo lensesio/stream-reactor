@@ -35,8 +35,8 @@ import scala.collection.JavaConverters._
   **/
 class RedisSinkConnector extends SinkConnector with StrictLogging {
   //???
-  private var configProps: util.Map[String, String] = null
-  private var connConfigDef : Option[ConfigDef] = null
+  private var configProps: util.Map[String, String] = _
+  private var connConfigDef : Option[ConfigDef] = _
 
   /**
     * States which SinkTask class to use

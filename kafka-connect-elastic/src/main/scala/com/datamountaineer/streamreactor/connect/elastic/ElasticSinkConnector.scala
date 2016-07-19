@@ -24,7 +24,7 @@ import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 
 class ElasticSinkConnector extends SinkConnector with StrictLogging {
   private var configProps : Option[util.Map[String, String]] = None
@@ -43,7 +43,7 @@ class ElasticSinkConnector extends SinkConnector with StrictLogging {
     * */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
-    (1 to maxTasks).map(c => configProps.get).toList.asJava
+    (1 to maxTasks).map(c => configProps.get).toList
   }
 
   /**

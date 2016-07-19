@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.connector.{Connector, Task}
 import org.apache.kafka.connect.errors.ConnectException
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 import scala.util.{Failure, Try}
 
 /**
@@ -33,7 +33,7 @@ import scala.util.{Failure, Try}
   * Sets up CassandraSinkTask and configurations for the tasks.
   * */
 class CassandraSinkConnector extends Connector with StrictLogging {
-  private var configProps : util.Map[String, String] = null
+  private var configProps : util.Map[String, String] = _
 
   /**
     * States which SinkTask class to use
@@ -48,7 +48,7 @@ class CassandraSinkConnector extends Connector with StrictLogging {
     * */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
-    (1 to maxTasks).map(c=>configProps).toList.asJava
+    (1 to maxTasks).map(c => configProps).toList
   }
 
   /**

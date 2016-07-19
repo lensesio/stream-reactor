@@ -8,8 +8,8 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
-import scala.collection.mutable
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 /**
   * Created by andrew@datamountaineer.com on 21/06/16. 

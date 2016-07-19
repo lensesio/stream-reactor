@@ -36,7 +36,7 @@ object JMSSinkConfig {
   private val CONNECTION_FACTORY_DOC = "Provides the full class name for the ConnectionFactory implementation to use."
 
   val EXPORT_ROUTE_QUERY = "connect.jms.sink.export.route.query"
-  val EXPORT_ROUTE_QUERY_DOC = ""
+  val EXPORT_ROUTE_QUERY_DOC =  "KCQL expression describing field selection and routes."
 
   val TOPICS_LIST = "connect.jms.sink.export.route.topics"
   private val TOPICS_LIST_DOC = "Lists all the jms target topics"
@@ -50,7 +50,7 @@ object JMSSinkConfig {
       |Specifies the JMS payload. If JSON is chosen it will send a TextMessage;
       |if AVRO is chosen it will send a BytesMessage;
       |if MAP is chosen it will send a MapMessage
-      |if OBJECT is chosend it will send an ObjectMessage""".stripMargin
+      |if OBJECT is chosen it will send an ObjectMessage""".stripMargin
 
   val ERROR_POLICY = "connect.jms.error.policy"
   val ERROR_POLICY_DOC = "Specifies the action to be taken if an error occurs while inserting the data.\n" +

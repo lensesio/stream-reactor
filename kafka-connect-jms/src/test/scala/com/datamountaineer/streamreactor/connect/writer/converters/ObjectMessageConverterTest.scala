@@ -1,8 +1,7 @@
 package com.datamountaineer.streamreactor.connect.writer.converters
 
-import javax.jms.{BytesMessage, ObjectMessage}
+import javax.jms.ObjectMessage
 
-import com.datamountaineer.streamreactor.connect.IteratorToSeqFn
 import com.datamountaineer.streamreactor.connect.jms.sink.writer.converters.ObjectMessageConverter
 import com.sksamuel.scalax.io.Using
 import org.apache.activemq.ActiveMQConnectionFactory

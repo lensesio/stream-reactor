@@ -21,7 +21,6 @@ import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolic
 import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 13/05/16.
@@ -47,7 +46,7 @@ object ReThinkSettings {
 
     //only allow on primary key for rethink.
     routes
-      .filter(r => r.getPrimaryKeys.asScala.size > 1)
+      .filter(r => r.getPrimaryKeys.size > 1)
       .foreach(r => new ConnectException(s"More than one primary key found in ${ReThinkSinkConfig.EXPORT_ROUTE_QUERY}." +
         s" Only one field can be set."))
 
@@ -82,7 +81,7 @@ object ReThinkSettings {
           .map({ case (f, a) => f })
             .toSet)
     })
-    val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.asScala.toSet)).toMap
+    val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
 
     ReThinkSetting(db, routes, topicTableMap, fieldMap, ignoreFields ,pks, conflictMap, errorPolicy, maxRetries, batchSize)
   }

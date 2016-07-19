@@ -42,7 +42,7 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
     val settings = RedisSinkSettings(config)
     val route = settings.routes.head
 
-    settings.rowKeyModeMap.get(TABLE_NAME_RAW).get.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
+    settings.rowKeyModeMap(TABLE_NAME_RAW).isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
 
     route.isIncludeAllFields shouldBe true
     route.getTarget shouldBe TABLE_NAME_RAW
@@ -60,7 +60,7 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
 
     val settings = RedisSinkSettings(config)
 
-    settings.rowKeyModeMap.get(TABLE_NAME_RAW).get.isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
+    settings.rowKeyModeMap(TABLE_NAME_RAW).isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
     val route = settings.routes.head
 
     route.isIncludeAllFields shouldBe true
@@ -81,7 +81,7 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
     val route = settings.routes.head
     val fields = route.getFieldAlias.asScala.toList
 
-    settings.rowKeyModeMap.get(TABLE_NAME_RAW).get.isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
+    settings.rowKeyModeMap(TABLE_NAME_RAW).isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
 
     route.isIncludeAllFields shouldBe false
     route.getSource shouldBe TABLE_NAME_RAW
@@ -105,7 +105,7 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
     val route = settings.routes.head
     val fields = route.getFieldAlias.asScala.toList
 
-    settings.rowKeyModeMap.get(TABLE_NAME_RAW).get.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
+    settings.rowKeyModeMap(TABLE_NAME_RAW).isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
 
     route.isIncludeAllFields shouldBe false
     route.getSource shouldBe TABLE_NAME_RAW

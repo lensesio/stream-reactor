@@ -7,7 +7,7 @@ import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSinkConfi
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{BeforeAndAfter, FunSuite, Matchers, WordSpec}
+import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -17,7 +17,7 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
   val ELASTIC_SEARCH_HOSTNAMES = "localhost:9300"
   val TOPIC = "sink_test"
   val INDEX = "index_andrew"
-  var TMP : File = null
+  var TMP : File = _
   val QUERY = s"INSERT INTO $INDEX SELECT * FROM $TOPIC"
   val QUERY_SELECTION = s"INSERT INTO $INDEX SELECT id, string_field FROM $TOPIC"
 

@@ -23,7 +23,7 @@ import org.apache.avro.{AvroRuntimeException, Schema}
   */
 object AvroSchemaFieldsExistFn {
   def apply(schema: Schema, fields: Seq[String]) : Unit = {
-    fields.foreach { case field =>
+    fields.foreach { field =>
       try {
         if (Option(schema.getField(field)).isEmpty) {
           throw new IllegalArgumentException(s"[$field] is not found in the schema fields")

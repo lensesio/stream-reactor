@@ -99,7 +99,7 @@ class AvroRecordRowKeyBuilderBytes(valuesExtractorsMap: Map[String, (Any) => Arr
     */
   override def build(record: SinkRecord, payload: Any): Array[Byte] = {
     val avroRecord = payload.asInstanceOf[GenericRecord]
-    val key = keys.map { case k =>
+    val key = keys.map { k =>
       val fn = valuesExtractorsMap.getOrElse(k, throw new IllegalArgumentException(s"Could not handle key builder for field:$k"))
       fn(avroRecord.get(k))
     }.flatMap(arr => Seq(delimBytes, arr))
@@ -121,7 +121,7 @@ case class StructFieldsRowKeyBuilderBytes(fm : List[String],
     val missingKeys = fm.filterNot(p => availableFields.contains(p))
     require(missingKeys.isEmpty, s"${missingKeys.mkString(",")} keys are not present in the SinkRecord payload:${availableFields.mkString(",")}")
 
-    val keyBytes = fm.map { case key =>
+    val keyBytes = fm.map { key =>
       val field = schema.field(key)
       val value = struct.get(field)
       require(value != null, s"$key field value is null. Non null value is required for the fileds creating the row key")

@@ -1,7 +1,6 @@
 package com.datamountaineer.streamreactor.connect.cassandra
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfig, CassandraConfigSink, CassandraConfigSource}
-import org.apache.kafka.common.config.AbstractConfig
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
 /**

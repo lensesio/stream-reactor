@@ -10,9 +10,9 @@ import com.rethinkdb.model.MapObject
 import com.rethinkdb.net.Connection
 import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kafka.connect.sink.SinkTaskContext
+import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
-import org.mockito.Matchers._
 
 import scala.collection.JavaConverters._
 
@@ -28,7 +28,7 @@ class TestReThinkWriter extends TestBase with MockitoSugar with ConverterUtil {
     val settings = ReThinkSettings(config)
     val records = getTestRecords
 
-    val conflict = settings.conflictPolicy.get(TABLE).get
+    val conflict = settings.conflictPolicy(TABLE)
 
     val r = mock[RethinkDB]
     val connBuilder = mock[Connection.Builder]
@@ -68,7 +68,7 @@ class TestReThinkWriter extends TestBase with MockitoSugar with ConverterUtil {
     val config = new ReThinkSinkConfig(getPropsUpsertSelectRetry)
     val settings = ReThinkSettings(config)
     val records = getTestRecords
-    val conflict = settings.conflictPolicy.get(TABLE).get
+    val conflict = settings.conflictPolicy(TABLE)
 
     val r = mock[RethinkDB]
     val connBuilder = mock[Connection.Builder]

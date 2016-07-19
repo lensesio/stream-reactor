@@ -106,9 +106,8 @@ object AvroSerializer {
           val fieldSchema = schema.getField(fieldName).schema()
           val nestedSchema = if (fieldSchema.getType == Schema.Type.UNION) fieldSchema.getTypes.get(1) else fieldSchema
           val nestedRecord = new Record(nestedSchema)
-          map.entrySet().asScala.foreach { case e =>
-            recursive(nestedRecord, nestedSchema, e.getKey, e.getValue)
-          }
+          map.entrySet().asScala.foreach(e =>
+            recursive(nestedRecord, nestedSchema, e.getKey, e.getValue))
           record.put(fieldName, nestedRecord)
       }
     }
