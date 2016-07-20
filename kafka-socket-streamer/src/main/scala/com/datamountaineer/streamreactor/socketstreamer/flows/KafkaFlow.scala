@@ -99,7 +99,7 @@ trait KafkaFlow extends KafkaConstants with ConfigurationLoader with StrictLoggi
     *  @param kafkaRequestProps A KafkaRequestProps to use to create a KafkaConsumer
     *  @return a ReactiveKafka publisher source
     * */
-  def serverSendFlow(system: ActorSystem, kafkaRequestProps: KafkaRequestProps) = {
+  def serverSendFlow(system: ActorSystem, kafkaRequestProps: KafkaRequestProps) : Source[ServerSentEvent, Control] = {
     implicit val actorSystem = ActorSystem(systemName)
     implicit val mat = ActorMaterializer()
 

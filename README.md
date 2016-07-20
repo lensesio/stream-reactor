@@ -78,6 +78,10 @@ Kafka connect Redis sink to write Kafka topic payloads to Redis.
 
 Kafka connect RethinkDb sink to write Kafka topic payloads to RethinkDb.
 
+#### [Kafka-Connect-Yahoo](kafka-connect-yahoo/README.md)
+
+Kafka connect Yahoo Finance source to write to Kafka
+
 #### [Kafka-Socket-Streamer](kafka-socket-streamer/README.md)
 
 Test module for Akka Http and Reactive Kafka with Websocket and Server Send Event support.

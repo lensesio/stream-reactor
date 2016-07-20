@@ -41,7 +41,8 @@ allprojects {
         avroVersion = '1.8.0'
         jacksonxmlVersion = '2.6.5'
         slf4jVersion = "1.7.7"
-        dataMountaineerCommonVersion = "0.3.5"
+        dataMountaineerCommonVersion = "0.3.7"
+        dataMountaineerTestKitVersion = "0.2"
         avro4sVersion = "1.3.2"
         json4sVersion = "3.3.0"
         kiteMiniClusterVersion = "1.1.0"
@@ -66,12 +67,10 @@ allprojects {
         compile ("com.datamountaineer:kcql:$dataMountaineerCQLVersion") {
            exclude group: "com.google.guava", module: "guava"
         }
-
         testCompile "org.mockito:mockito-all:$mockitoVersion"
         testCompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
         testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
         testCompile "junit:junit:$junit"
-        testCompile "org.apache.curator:curator-test:3.1.0"
         testRuntime 'org.pegdown:pegdown:1.1.0'
     }
 
