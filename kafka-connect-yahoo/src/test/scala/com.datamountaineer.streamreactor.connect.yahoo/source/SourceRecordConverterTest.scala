@@ -50,7 +50,7 @@ class SourceRecordConverterTest extends WordSpec {
         "SPY"
       )
 
-      YahooFinance.get(stocks, true).values().foreach(_.toSourceRecord("topicStocks", true))
+      YahooFinance.get(stocks, true).values().foreach(_.toSourceRecord("topicStocks", includeHistory = true))
     }
   }
 

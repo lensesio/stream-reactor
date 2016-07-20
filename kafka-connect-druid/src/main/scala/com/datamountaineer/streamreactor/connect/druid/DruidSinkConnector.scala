@@ -17,12 +17,13 @@
 package com.datamountaineer.streamreactor.connect.druid
 
 import java.util
+
 import scala.collection.JavaConverters._
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import io.confluent.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 import com.datamountaineer.streamreactor.connect.druid.config._
+import org.apache.kafka.common.config.ConfigDef
 
 /**
   *
@@ -30,7 +31,7 @@ import com.datamountaineer.streamreactor.connect.druid.config._
   */
 class DruidSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: Option[util.Map[String, String]] = None
-  private var connConfigDef : Option[ConfigDef] = None
+  private val configDef = DruidSinkConfig.config
 
   /**
     * States which SinkTask class to use
@@ -54,14 +55,13 @@ class DruidSinkConnector extends SinkConnector with StrictLogging {
     * @param props A map of properties for the connector and worker
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(s"Starting Hbase sink task with ${props.toString}.")
+    logger.info(s"Starting Druid sink task with ${props.toString}.")
     configProps = Some(props)
-    connConfigDef = Some(DruidSinkConfig.config)
   }
 
   override def stop(): Unit = {}
 
   override def version(): String = getClass.getPackage.getImplementationVersion
 
-  //override def config(): ConfigDef = connConfigDef
+  override def config(): ConfigDef = configDef
 }

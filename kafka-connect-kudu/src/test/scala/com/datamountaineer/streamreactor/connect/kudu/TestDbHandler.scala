@@ -1,10 +1,8 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
+import com.datamountaineer.kafka.EmbeddedSingleNodeKafkaCluster
 import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig}
-import com.datamountaineer.streamreactor.connect.kudu.services.{EmbeddedSingleNodeKafkaCluster, RestApp}
 import com.datamountaineer.streamreactor.connect.kudu.sink.{CreateTableProps, DbHandler}
-import io.confluent.kafka.schemaregistry.client.rest.RestService
-import org.apache.curator.test.InstanceSpec
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.kududb.client._
@@ -61,7 +59,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
   }
 
   "Should return a Kudu create schema" in {
-    val config = new KuduSinkConfig(getConfigAutoCreate(8081))
+    val config = new KuduSinkConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
 
     val creates = settings.routes.map(r=>DbHandler.getKuduSchema(r, schema))
@@ -81,7 +79,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
   }
 
   "Should return a Kudu Create schema with default" in {
-    val config = new KuduSinkConfig(getConfigAutoCreate(8081))
+    val config = new KuduSinkConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
 
     val creates = settings.routes.map(r=>DbHandler.getKuduSchema(r, schemaDefaults))
@@ -111,7 +109,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     when(client.openTable(TABLE)).thenReturn(table)
     when(client.newSession()).thenReturn(kuduSession)
 
-    val config = new KuduSinkConfig(getConfigAutoCreate(9999))
+    val config = new KuduSinkConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
     val cache = DbHandler.buildTableCache(settings, client)
     cache(TOPIC) shouldBe table
@@ -136,11 +134,9 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
   }
 
   "Should create table" in {
-    val port: Int = InstanceSpec.getRandomPort
-    val cluster: EmbeddedSingleNodeKafkaCluster = new EmbeddedSingleNodeKafkaCluster
-    val registry: RestApp = new RestApp(port, cluster.zookeeperConnect, "test")
-    registry.start()
-    val schemaClient: RestService = registry.restClient
+    val cluster = new EmbeddedSingleNodeKafkaCluster
+    cluster.start()
+    val schemaClient = cluster.getSchemaRegistry.restClient
 
     val rawSchema: String =
       """
@@ -162,7 +158,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     schemaClient.registerSchema(rawSchema, TOPIC)
 
     //set up configs
-    val config = new KuduSinkConfig(getConfigAutoCreate(port))
+    val config = new KuduSinkConfig(getConfigAutoCreate(cluster.schemaRegistryUrl()))
     val settings = KuduSettings(config)
 
     //mock out kudu client
@@ -202,7 +198,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
   "should create table from sinkRecord" in {
     val client = mock[KuduClient]
     val record: SinkRecord = getTestRecords.head
-    val config = new KuduSinkConfig(getConfigAutoCreate(9999))
+    val config = new KuduSinkConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
     val ret = DbHandler.createTableFromSinkRecord( settings.routes.head, record.valueSchema(), client)
     ret.isInstanceOf[Try[KuduTable]] shouldBe true

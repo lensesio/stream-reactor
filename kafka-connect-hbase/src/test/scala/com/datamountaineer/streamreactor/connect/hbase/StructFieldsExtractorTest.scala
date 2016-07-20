@@ -58,7 +58,7 @@ class StructFieldsExtractorTest extends WordSpec with Matchers {
         .put("lastName", "Smith")
         .put("age", 30)
 
-      val map = StructFieldsExtractorBytes(false, Map("lastName" -> "Name", "age" -> "age")).get(struct).toMap
+      val map = StructFieldsExtractorBytes(includeAllFields = false, Map("lastName" -> "Name", "age" -> "age")).get(struct).toMap
 
       Bytes.toString(map("Name")) shouldBe "Smith"
       Bytes.toInt(map("age")) shouldBe 30

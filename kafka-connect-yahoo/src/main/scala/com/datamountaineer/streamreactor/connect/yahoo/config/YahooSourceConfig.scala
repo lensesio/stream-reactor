@@ -16,8 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.yahoo.config
 
-import io.confluent.common.config.ConfigDef
-import io.confluent.common.config.ConfigDef.{Importance, Type}
+import org.apache.kafka.common.config.ConfigDef
+import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
 
 /**

@@ -17,8 +17,9 @@
 package com.datamountaineer.streamreactor.connect.druid.config
 
 import java.util
-import io.confluent.common.config.{ ConfigDef, AbstractConfig }
-import ConfigDef.{ Type, Importance }
+
+import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
+import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
 object DruidSinkConfig {
   val DATASOURCE_NAME = "connect.druid.sink.datasource.name"

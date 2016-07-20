@@ -20,6 +20,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.{Connector, Task}
 import org.apache.kafka.connect.errors.ConnectException
 
@@ -34,6 +35,7 @@ import scala.util.{Failure, Try}
   * */
 class CassandraSinkConnector extends Connector with StrictLogging {
   private var configProps : util.Map[String, String] = _
+  private val configDef = CassandraConfigSink.sinkConfig
 
   /**
     * States which SinkTask class to use
@@ -67,6 +69,5 @@ class CassandraSinkConnector extends Connector with StrictLogging {
 
   override def stop(): Unit = {}
   override def version(): String = "1"
-
-  //override def config(): ConfigDef = connConfigDef.get
+  override def config(): ConfigDef = configDef
 }

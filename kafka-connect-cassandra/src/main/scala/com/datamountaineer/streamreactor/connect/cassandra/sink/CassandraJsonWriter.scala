@@ -116,7 +116,7 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     val executor = Executors.newFixedThreadPool(2 * processors)
     try {
 
-      //This is a conscious descion to use a thread pool here in order to have more control. As we create multiple
+      //This is a conscious decision to use a thread pool here in order to have more control. As we create multiple
       //futures to insert a record in Cassandra we want to fail immediately rather than waiting on all to finish.
       //If the error occurs it would be down to the error handler to do its thing.
       // NOOP should never be used!! otherwise data could be lost

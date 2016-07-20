@@ -26,7 +26,6 @@ import org.apache.kafka.connect.sink.SinkConnector
 
 import scala.collection.JavaConverters._
 
-
 /**
   * <h1>RedisSinkConnector</h1>
   * Kafka connect Redis Sink connector
@@ -34,9 +33,8 @@ import scala.collection.JavaConverters._
   * Sets up RedisSinkTask and configurations for the tasks.
   **/
 class RedisSinkConnector extends SinkConnector with StrictLogging {
-  //???
   private var configProps: util.Map[String, String] = _
-  private var connConfigDef : Option[ConfigDef] = _
+  private var configDef = RedisSinkConfig.config
 
   /**
     * States which SinkTask class to use
@@ -62,12 +60,11 @@ class RedisSinkConnector extends SinkConnector with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Hbase sink task with ${props.toString}.")
     configProps = props
-    connConfigDef = Some(RedisSinkConfig.config)
   }
 
   override def stop(): Unit = {}
 
   override def version(): String = getClass.getPackage.getImplementationVersion
 
-  //override def config(): ConfigDef = ???
+  override def config(): ConfigDef = configDef
 }

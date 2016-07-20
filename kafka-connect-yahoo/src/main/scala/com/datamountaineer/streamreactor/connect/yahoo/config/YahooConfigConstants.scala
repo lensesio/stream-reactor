@@ -31,9 +31,9 @@ object YahooConfigConstants {
   val POLL_INTERVAL_DOC = "Specifies how often if polls Yahoo services for new data"
 
   val STOCKS = "connect.yahoo.source.stocks.subscriptions"
-  val STOCKS_DOC = "Sets the financials stocks to query from Yahoo finance."
+  val STOCKS_DOC = "Sets the financial's stocks to query from Yahoo finance."
   val STOCKS_KAFKA_TOPIC = "connect.yahoo.source.stocks.topic"
-  val STOCKS_KAFKA_TOPIC_DOC = "Specifies which kafka topic will receive the the stock informations"
+  val STOCKS_KAFKA_TOPIC_DOC = "Specifies which kafka topic will receive the the stock information"
 
   val FX = "connect.yahoo.source.fx.subscriptions"
   val FX_DOC = "Sets the foreign exchange values to retrieve from Yahoo finance"

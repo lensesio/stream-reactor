@@ -20,8 +20,9 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.yahoo.config.{YahooSettings, YahooSourceConfig}
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import io.confluent.common.config.{AbstractConfig, ConfigException}
+import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
+
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -68,7 +69,7 @@ class YahooSourceTask extends SourceTask with StrictLogging with YahooSourceConf
     *
     * @return A util.List of SourceRecords.
     **/
-  override def poll(): util.List[SourceRecord] = dataManager.map(_.getRecords()).orNull
+  override def poll(): util.List[SourceRecord] = dataManager.map(_.getRecords).orNull
 
   /**
     * Stop the task and close readers.

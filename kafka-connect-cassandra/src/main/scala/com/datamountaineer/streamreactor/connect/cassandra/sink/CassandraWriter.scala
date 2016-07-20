@@ -36,13 +36,6 @@ object CassandraWriter extends StrictLogging {
     }
 
     val settings = CassandraSettings.configureSink(connectorConfig)
-    val assigned = context.assignment().map(a => a.topic()).toList
-    if (assigned.isEmpty) throw new ConnectException("No topics have been assigned to this task!")
-
-    settings.routes
-      .filterNot(t => assigned.contains(t.getSource))
-      .foreach(e => throw new ConnectException(s"No topic found in supplied list for route mapping from ${e.getSource} to ${e.getTarget}"))
-
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
       context.timeout(connectorConfig.getString(CassandraConfigConstants.ERROR_RETRY_INTERVAL).toLong)

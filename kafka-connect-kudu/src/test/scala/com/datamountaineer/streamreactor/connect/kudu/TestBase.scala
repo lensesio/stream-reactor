@@ -83,27 +83,27 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
     ).asJava
   }
 
-  def getConfigAutoCreate(port : Int) = {
+  def getConfigAutoCreate(url : String) = {
     Map(KuduSinkConfig.KUDU_MASTER->KUDU_MASTER,
       KuduSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_AUTOCREATE,
       KuduSinkConfig.ERROR_POLICY->"THROW",
-      KuduSinkConfig.SCHEMA_REGISTRY_URL->s"http://localhost:$port"
+      KuduSinkConfig.SCHEMA_REGISTRY_URL->url
     ).asJava
   }
 
-  def getConfigAutoCreateAndEvolve(port : Int) = {
+  def getConfigAutoCreateAndEvolve(url : String) = {
     Map(KuduSinkConfig.KUDU_MASTER->KUDU_MASTER,
       KuduSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_AUTOCREATE_AUTOEVOLVE,
       KuduSinkConfig.ERROR_POLICY->"THROW",
-      KuduSinkConfig.SCHEMA_REGISTRY_URL->s"http://localhost:$port"
+      KuduSinkConfig.SCHEMA_REGISTRY_URL->url
     ).asJava
   }
 
-  def getConfigAutoCreateRetry(port : Int) = {
+  def getConfigAutoCreateRetry(url : String) = {
     Map(KuduSinkConfig.KUDU_MASTER->KUDU_MASTER,
       KuduSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_AUTOCREATE,
       KuduSinkConfig.ERROR_POLICY->"RETRY",
-      KuduSinkConfig.SCHEMA_REGISTRY_URL->s"http://localhost:$port"
+      KuduSinkConfig.SCHEMA_REGISTRY_URL->url
     ).asJava
   }
 

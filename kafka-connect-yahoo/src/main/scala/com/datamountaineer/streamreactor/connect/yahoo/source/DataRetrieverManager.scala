@@ -1,3 +1,19 @@
+/**
+  * Copyright 2016 Datamountaineer.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **/
+
 package com.datamountaineer.streamreactor.connect.yahoo.source
 
 import java.util
@@ -29,13 +45,16 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
   @volatile private var poll = true
   private val threadPool = Executors.newFixedThreadPool(workers)
 
-  def getRecords(): java.util.List[SourceRecord] = {
+  def getRecords: java.util.List[SourceRecord] = {
     val recs = new util.LinkedList[SourceRecord]()
-    if (queue.drainTo(recs) > 0) recs
-    else null
+    if (queue.drainTo(recs) > 0) {
+      recs
+    } else {
+      null
+    }
   }
 
-  def start() = {
+  def start(): Unit = {
     if (fx.nonEmpty) {
       startQuotesWorker()
     } else {
@@ -80,7 +99,7 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
           addFx(data)
         } catch {
           case t: Throwable =>
-            logger.error("An error occured trying to get the Yahoo data." + t.getMessage, t)
+            logger.error("An error occurred trying to get the Yahoo data." + t.getMessage, t)
         }
 
         Thread.sleep(queryInterval)
@@ -99,7 +118,7 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
           addStocks(data)
         } catch {
           case t: Throwable =>
-            logger.error("An error occured trying to get the Yahoo data." + t.getMessage, t)
+            logger.error("An error occurred trying to get the Yahoo data." + t.getMessage, t)
         }
 
         Thread.sleep(queryInterval)

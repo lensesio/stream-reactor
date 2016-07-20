@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.yahoo.config
 
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
-import io.confluent.common.config.{AbstractConfig, ConfigException}
+import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 
 
 case class YahooSourceSetting(stocks: Set[String],
@@ -30,7 +30,7 @@ case class YahooSourceSetting(stocks: Set[String],
                               taskRetires: Int = 10)
 
 object YahooSettings {
-  def apply(config: AbstractConfig) = {
+  def apply(config: AbstractConfig): YahooSourceSetting = {
 
     val stocks = Option(config.getString(YahooConfigConstants.STOCKS))
       .map(v => v.split(",").map(_.trim.toUpperCase()).toSet)
@@ -56,6 +56,6 @@ object YahooSettings {
     val errorPolicyValue = ErrorPolicyEnum.withName(config.getString(YahooConfigConstants.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyValue)
 
-    new YahooSourceSetting(stocks, Option(topicStocks), fx, Option(topicFx), config, pollInterval, errorPolicy)
+    YahooSourceSetting(stocks, Option(topicStocks), fx, Option(topicFx), config, pollInterval, errorPolicy)
   }
 }

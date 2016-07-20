@@ -46,7 +46,7 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
       records.size() shouldBe 1
       val record = records.get(0)
       record.topic() shouldBe "topicFX"
-      record.valueSchema() shouldBe StockHelper.getFxSchema()
+      record.valueSchema() shouldBe StockHelper.getFxSchema
       val struct = record.value().asInstanceOf[Struct]
       struct.get("symbol") shouldBe gbpEurQuote1.getSymbol
       struct.get("price") shouldBe gbpEurQuote1.getPrice().doubleValue()
@@ -76,14 +76,14 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
       records.size() shouldBe 2
       var record = records.get(0)
       record.topic() shouldBe "topicFX"
-      record.valueSchema() shouldBe StockHelper.getFxSchema()
+      record.valueSchema() shouldBe StockHelper.getFxSchema
       var struct = record.value().asInstanceOf[Struct]
       struct.get("symbol") shouldBe gbpEurQuote1.getSymbol
       struct.get("price") shouldBe gbpEurQuote1.getPrice().doubleValue()
 
       record = records.get(1)
       record.topic() shouldBe "topicFX"
-      record.valueSchema() shouldBe StockHelper.getFxSchema()
+      record.valueSchema() shouldBe StockHelper.getFxSchema
       struct = record.value().asInstanceOf[Struct]
       struct.get("symbol") shouldBe gbpEurQuote2.getSymbol
       struct.get("price") shouldBe gbpEurQuote2.getPrice().doubleValue()
@@ -102,7 +102,7 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
       Some("topicStocks"),
       500)
 
-    val msft = getMSFTStock()
+    val msft = getMSFTStock
 
     when(dataRetriever.getStocks(stocks)).thenReturn(Seq(msft))
     dataManager.start()
@@ -114,7 +114,7 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
     records.size() shouldBe 1
     val record = records.get(0)
     record.topic() shouldBe "topicStocks"
-    record.valueSchema() shouldBe StockHelper.getStockSchema()
+    record.valueSchema() shouldBe StockHelper.getStockSchema
     val struct = record.value().asInstanceOf[Struct]
     struct.get("symbol") shouldBe msft.getSymbol
     struct.get("ask") shouldBe msft.getQuote(false).getAsk.doubleValue()
@@ -132,8 +132,8 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
       Some("topicStocks"),
       500)
 
-    val msft = getMSFTStock()
-    val msft2 = getMSFTStock()
+    val msft = getMSFTStock
+    val msft2 = getMSFTStock
     msft2.getQuote(false).setAsk(new BigDecimal("1.811"))
     msft2.getQuote(false).setBid(new BigDecimal("1.411"))
 
@@ -147,7 +147,7 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
     records.size() shouldBe 2
     val record = records.get(0)
     record.topic() shouldBe "topicStocks"
-    record.valueSchema() shouldBe StockHelper.getStockSchema()
+    record.valueSchema() shouldBe StockHelper.getStockSchema
     val struct = record.value().asInstanceOf[Struct]
     struct.get("symbol") shouldBe msft.getSymbol
     struct.get("ask") shouldBe msft.getQuote(false).getAsk.doubleValue()
@@ -162,7 +162,7 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
     struct1.get("bid") shouldBe msft2.getQuote(false).getBid.doubleValue()
   }
 
-  private def getMSFTStock() = {
+  private def getMSFTStock = {
     val stock = new Stock("MSFT")
     val calendar = Calendar.getInstance()
     val dividend = new StockDividend("MSF", calendar, calendar, new java.math.BigDecimal("100.191"), new BigDecimal("7.1"))
