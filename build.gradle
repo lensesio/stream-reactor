@@ -96,7 +96,6 @@ allprojects {
         from javadoc
     }
 
-
     task scaladocJar(type: Jar) {
         classifier = 'scaladoc'
         from '../LICENSE'
@@ -123,6 +122,11 @@ allprojects {
     task compile(dependsOn: 'compileScala')
     task fatJar(dependsOn : ['test', 'shadowJar'])
     task fatJarNoTest(dependsOn : 'shadowJar')
+
+    task collectJars(type: Copy){
+        into "$buildDir/libs-dependencies"
+        from configurations.runtime
+    }
 
     scalaStyle {
         configLocation = "${project.projectDir}/../style/scalastyle_config.xml"
