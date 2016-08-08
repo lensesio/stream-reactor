@@ -68,7 +68,7 @@ object CassandraSettings extends StrictLogging {
     val bulk = config.getString(CassandraConfigConstants.IMPORT_MODE).toLowerCase() match {
       case CassandraConfigConstants.BULK => true
       case CassandraConfigConstants.INCREMENTAL => false
-      case _@e => throw new ConnectException(s"Unsupported import mode $e.")
+      case e => throw new ConnectException(s"Unsupported import mode $e.")
     }
 
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(CassandraConfigConstants.ERROR_POLICY).toUpperCase)

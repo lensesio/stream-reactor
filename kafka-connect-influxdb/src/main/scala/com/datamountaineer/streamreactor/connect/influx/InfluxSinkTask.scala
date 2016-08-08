@@ -14,13 +14,13 @@
   * limitations under the License.
   **/
 
-package com.datamountaineer.streamreactor.connect.hbase
+package com.datamountaineer.streamreactor.connect.influx
 
 import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.hbase.config.{HbaseSettings, HbaseSinkConfig}
-import com.datamountaineer.streamreactor.connect.hbase.writers.{HbaseWriter, WriterFactoryFn}
+import com.datamountaineer.streamreactor.connect.influx.config.{InfluxSettings, InfluxSinkConfig}
+import com.datamountaineer.streamreactor.connect.influx.writers.{InfluxDbWriter, WriterFactoryFn}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -30,14 +30,13 @@ import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 import scala.collection.JavaConversions._
 
 /**
-  * <h1>HbaseSinkTask</h1>
+  * <h1>InfluxSinkTask</h1>
   *
-  * Kafka Connect Cassandra sink task. Called by framework to put records to the
-  * target sink
+  * Kafka Connect InfluxDb sink task. Called by framework to put records to the target database
   **/
-class HbaseSinkTask extends SinkTask with StrictLogging {
+class InfluxSinkTask extends SinkTask with StrictLogging {
 
-  var writer: Option[HbaseWriter] = None
+  var writer: Option[InfluxDbWriter] = None
 
   /**
     * Parse the configurations and setup the writer
@@ -46,36 +45,33 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
     logger.info(
 
       """
-      |    ____        __        __  ___                  __        _
-      |   / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
-      |  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
-      | / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
-      |/_____/\\_,\\\\\\\__,_/_/  /_/\___\\\\\,\/_/ /_/\\_/\__,_/_/_/ /_/\___/\___/_/
-      |      / / / / __ )____ _________ / ___/(_)___  / /__
-      |     / /_/ / __  / __ `/ ___/ _ \\__ \/ / __ \/ //_/
-      |    / __  / /_/ / /_/ (__  )  __/__/ / / / / / ,<
-      |   /_/ /_/_____/\__,_/____/\___/____/_/_/ /_/_/|_|
-      |
-      |By Stefan Bocutiu""".stripMargin)
+        |  ____        _        __  __                   _        _
+        | |  _ \  __ _| |_ __ _|  \/  | ___  _   _ _ __ | |_ __ _(_)_ __   ___  ___ _ __
+        | | | | |/ _` | __/ _` | |\/| |/ _ \| | | | '_ \| __/ _` | | '_ \ / _ \/ _ \ '__|
+        | | |_| | (_| | || (_| | |  | | (_) | |_| | | | | || (_| | | | | |  __/  __/ |
+        | |____/ \__,_|\__\__,_|_|  |_|\___/ \__,_|_| |_|\__\__,_|_|_| |_|\___|\___|_|
+        |  ___        __ _            ____  _       ____  _       _ by Stefan Bocutiu
+        | |_ _|_ __  / _| |_   ___  _|  _ \| |__   / ___|(_)_ __ | | __
+        |  | || '_ \| |_| | | | \ \/ / | | | '_ \  \___ \| | '_ \| |/ /
+        |  | || | | |  _| | |_| |>  <| |_| | |_) |  ___) | | | | |   <
+        | |___|_| |_|_| |_|\__,_/_/\_\____/|_.__/  |____/|_|_| |_|_|\_\
+        | """.stripMargin)
 
-    HbaseSinkConfig.config.parse(props)
-    val sinkConfig = HbaseSinkConfig(props)
-    val hbaseSettings = HbaseSettings(sinkConfig)
+    InfluxSinkConfig.config.parse(props)
+    val sinkConfig = InfluxSinkConfig(props)
+    val influxSettings = InfluxSettings(sinkConfig)
 
     val assigned = context.assignment().map(a => a.topic()).toList
     if (assigned.isEmpty) throw new ConnectException("No topics have been assigned to this task!")
 
 
     //if error policy is retry set retry interval
-    if (hbaseSettings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getInt(HbaseSinkConfig.ERROR_RETRY_INTERVAL).toLong)
+    if (influxSettings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
+      context.timeout(sinkConfig.getInt(InfluxSinkConfig.ERROR_RETRY_INTERVAL_CONFIG).toLong)
     }
 
-    logger.info(
-      s"""Settings:
-          |$hbaseSettings
-      """.stripMargin)
-    writer = Some(WriterFactoryFn(hbaseSettings))
+    logger.info(s"Settings:$influxSettings")
+    writer = Some(WriterFactoryFn(influxSettings))
   }
 
   /**
@@ -92,7 +88,7 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
   }
 
   /**
-    * Clean up Hbase connections
+    * Clean up Influx connections
     **/
   override def stop(): Unit = {
     logger.info("Stopping Hbase sink.")
@@ -101,7 +97,5 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
 
   override def version(): String = getClass.getPackage.getImplementationVersion
 
-  override def flush(offsets: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {
-
-  }
+  override def flush(offsets: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
 }
