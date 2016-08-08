@@ -43,7 +43,7 @@ case class CreateTableProps(name : String, schema: kuduSchema, cto : CreateTable
 object DbHandler extends StrictLogging with KuduConverter {
 
   type kuduSchema = org.kududb.Schema
-  override type avroSchema = org.apache.avro.Schema
+  type avroSchema = org.apache.avro.Schema
   type avroField = org.apache.avro.Schema.Field
   type connectSchema = org.apache.kafka.connect.data.Schema
 
@@ -106,6 +106,7 @@ object DbHandler extends StrictLogging with KuduConverter {
     var  lkTopic = mapping.getSource
 
     //the schema registry
+    //console producer tags -value on end of topic name so check for it
     if (!schemas.contains(lkTopic)) {
       if (schemas.contains(lkTopic + "-value")) {
         lkTopic = lkTopic + "-value"

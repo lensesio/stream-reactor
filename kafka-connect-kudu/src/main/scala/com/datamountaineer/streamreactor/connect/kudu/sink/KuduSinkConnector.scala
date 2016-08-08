@@ -32,7 +32,7 @@ import scala.collection.JavaConversions._
   */
 class KuduSinkConnector extends SinkConnector with StrictLogging {
   private var configProps : Option[util.Map[String, String]] = None
-  private var configDef = KuduSinkConfig.config
+  private val configDef = KuduSinkConfig.config
 
   /**
     * States which SinkTask class to use
@@ -56,7 +56,7 @@ class KuduSinkConnector extends SinkConnector with StrictLogging {
     * @param props A map of properties for the connector and worker
     * */
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(s"Starting Kudu sink task with ${props.toString}.")
+    logger.info(s"Starting Kudu sink task.")
     configProps = Some(props)
   }
 

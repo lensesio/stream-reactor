@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.kudu.sink
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.kudu.KuduConverter
 import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig}
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
@@ -26,7 +27,7 @@ import org.kududb.client._
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 case class SchemaMap(version: Int, schema: Schema)
 
@@ -43,11 +44,15 @@ object KuduWriter extends StrictLogging {
   }
 }
 
-class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLogging with KuduConverter with ErrorHandler {
+class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLogging with KuduConverter
+  with ErrorHandler with ConverterUtil {
   logger.info("Initialising Kudu writer")
 
   //pre create tables
-  DbHandler.createTables(setting, client)
+  Try(DbHandler.createTables(setting, client)) match {
+    case Success(s) =>
+    case Failure(f) => logger.warn("Unable to create tables at startup! Tables will be created on delivery of the first record", f)
+  }
   //cache tables
   private lazy val kuduTablesCache = collection.mutable.Map(DbHandler.buildTableCache(setting, client).toSeq:_*)
   private lazy val session = client.newSession()
@@ -75,9 +80,9 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
       //if error occurred rebuild cache in case of change on target tables
       if (errored()) {
         kuduTablesCache.empty
-        DbHandler.buildTableCache(setting, client).map({ case (topic, table) => kuduTablesCache.put(topic, table)})
+        DbHandler.buildTableCache(setting, client)
+          .map({ case (topic, table) => kuduTablesCache.put(topic, table) })
       }
-
       applyInsert(records, session)
     }
   }
@@ -124,29 +129,30 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
     * @param record The sinkRecord to check the schema for
     * */
   def handleAlterTable(record: SinkRecord) : SinkRecord = {
-    val schema = record.valueSchema()
-    val version = schema.version()
     val topic = record.topic()
-    val table = setting.topicTables(topic)
-    val cachedSchema = schemaCache.getOrElse(topic, SchemaMap(version, schema))
+    val allowEvo = setting.allowAutoEvolve.getOrElse(topic, false)
 
-    //allow evolution
-    val evolving = if (setting.allowAutoEvolve.getOrElse(topic, false)) {
-      cachedSchema.version < version
-    } else {
-      false
+    if (allowEvo) {
+      val schema = record.valueSchema()
+      val version = schema.version()
+      val table = setting.topicTables(topic)
+      val cachedSchema = schemaCache.getOrElse(topic, SchemaMap(version, schema))
+
+      //allow evolution
+      val evolving = cachedSchema.version < version
+
+      //if table is allowed to evolve all the table
+      if (evolving) {
+        logger.info(s"Schema change detected for $topic mapped to table $table. Old schema version " +
+          s"${cachedSchema.version} new version $version")
+        val kuduTable = DbHandler.alterTable(table, cachedSchema.schema, schema, client)
+        kuduTablesCache.update(topic, kuduTable)
+        schemaCache.update(topic, SchemaMap(version, schema))
+      } else {
+        schemaCache.update(topic, SchemaMap(version, schema))
+      }
     }
 
-    //if table is allowed to evolve all the table
-    if (evolving) {
-      logger.info(s"Schema change detected for $topic mapped to table $table. Old schema version " +
-        s"${cachedSchema.version} new version $version")
-      val kuduTable = DbHandler.alterTable(table, cachedSchema.schema, schema, client)
-      kuduTablesCache.update(topic, kuduTable)
-      schemaCache.update(topic, SchemaMap(version, schema))
-    } else {
-      schemaCache.update(topic, SchemaMap(version, schema))
-    }
     record
   }
 
