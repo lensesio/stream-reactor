@@ -10,7 +10,7 @@ Assumes SinkRecord schema matches Kudu table schema. Kudu tables must be precrea
 Writing with the same primary key twice will result in a Kudu write failure. See [this](http://getkudu.io/docs/kudu_impala_integration.html#impala_insertion_caveat)
 
 ## Prerequisites
-* Confluent 2.0.1
+* Confluent 3.0.0
 * Kudu 0.9
 * Java 1.8 
 * Scala 2.11
