@@ -91,7 +91,7 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
     * Clean up Influx connections
     **/
   override def stop(): Unit = {
-    logger.info("Stopping Hbase sink.")
+    logger.info("Stopping InfluxDb sink.")
     writer.foreach(w => w.close())
   }
 

@@ -44,14 +44,14 @@ object InfluxSettings {
   def apply(config: InfluxSinkConfig): InfluxSettings = {
     val url = config.getString(INFLUX_URL_CONFIG)
 
-    if (url.trim.length == 0)
+    if (url == null || url.trim.length == 0)
       throw new ConfigException(s"${InfluxSinkConfig.INFLUX_URL_CONFIG} is not set correctly")
 
     val user = config.getString(INFLUX_CONNECTION_USER_CONFIG)
-    if (user.trim.length == 0)
+    if (user == null || user.trim.length == 0)
       throw new ConfigException(s"${InfluxSinkConfig.INFLUX_CONNECTION_USER_CONFIG} is not set correctly")
 
-    val password = config.getPassword(INFLUX_CONNECTION_PASSWORD_CONFIG)
+    val password = Option(config.getPassword(INFLUX_CONNECTION_PASSWORD_CONFIG))
 
     val database = config.getString(INFLUX_DATABASE_CONFIG)
     if (database == null || database.trim.isEmpty) {
@@ -72,7 +72,7 @@ object InfluxSettings {
 
     new InfluxSettings(url,
       user,
-      password.value(),
+      password.map(_.value()).orNull,
       database,
       routes.map(r => r.getSource -> r.getTarget).toMap,
       extractorFields,
