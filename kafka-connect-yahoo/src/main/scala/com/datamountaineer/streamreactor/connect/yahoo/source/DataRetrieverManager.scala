@@ -46,10 +46,14 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
   private val threadPool = Executors.newFixedThreadPool(workers)
 
   def getRecords: java.util.List[SourceRecord] = {
-    val recs = new util.LinkedList[SourceRecord]()
-    if (queue.drainTo(recs) > 0) {
+    val recs = new util.ArrayList[SourceRecord](queue.size())
+    val count = queue.drainTo(recs)
+    if (count > 0) {
+      logger.info(s"$count records are returned")
       recs
-    } else {
+    }
+    else {
+      logger.info("No records are returned")
       null
     }
   }
@@ -66,7 +70,9 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
     } else {
       logger.warn("No STOCKS requested. The Yahoo connector won't poll for stocks data.")
     }
+    logger.info("Awaiting for the DataRetrieverManager to start...")
     latchStart.await()
+    logger.info("DataRetrieverManager started")
   }
 
   override def close(): Unit = {
@@ -96,7 +102,9 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
       while (poll) {
         try {
           val data = dataRetriever.getFx(fx)
+          logger.info(s"Returned ${data.size} fx data points. Adding them to the buffer...")
           addFx(data)
+          logger.info(s"Finished adding ${data.size} fx data points to the buffer")
         } catch {
           case t: Throwable =>
             logger.error("An error occurred trying to get the Yahoo data." + t.getMessage, t)
@@ -115,7 +123,9 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
       while (poll) {
         try {
           val data = dataRetriever.getStocks(stocks)
+          logger.info(s"Returned ${data.size} stocks data points.Adding them to the buffer ...")
           addStocks(data)
+          logger.info(s"Finished adding ${data.size} stock data points to the buffer")
         } catch {
           case t: Throwable =>
             logger.error("An error occurred trying to get the Yahoo data." + t.getMessage, t)
