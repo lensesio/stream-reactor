@@ -65,9 +65,18 @@ DISTRIBUTEBY
    : 'distributeby' | 'DISTRIBUTEBY'
    ;
 
+TIMESTAMP
+    : 'withtimestamp' | 'WITHTIMESTAMP'
+    ;
+
+SYS_TIME
+    : 'sys_time()' | 'SYS_TIME()'
+    ;
+
 PK
    : 'pk' | 'PK'
    ;
+
 
 INT
    : '0' .. '9'+

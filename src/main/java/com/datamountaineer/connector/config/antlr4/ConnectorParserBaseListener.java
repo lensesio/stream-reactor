@@ -376,6 +376,30 @@ public class ConnectorParserBaseListener implements ConnectorParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterTimestamp_clause(ConnectorParser.Timestamp_clauseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitTimestamp_clause(ConnectorParser.Timestamp_clauseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterTimestamp_value(ConnectorParser.Timestamp_valueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitTimestamp_value(ConnectorParser.Timestamp_valueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterBuckets_number(ConnectorParser.Buckets_numberContext ctx) { }
 	/**
 	 * {@inheritDoc}

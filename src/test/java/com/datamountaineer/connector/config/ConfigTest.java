@@ -614,4 +614,48 @@ public class ConfigTest {
     String syntax = String.format("UPSERT INTO %s SELECT col1,col2 FROM %s CLUSTERBY  INTO 12 BUCKETS", table, topic);
     Config.parse(syntax);
   }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwExceptionIfTheTimestampIsNotInTheSelectedFields() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITHTIMESTAMP notpresent", table, topic);
+    Config.parse(syntax);
+  }
+
+  @Test
+  public void handleTimestampAsOneOfTheFields() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITHTIMESTAMP col1", table, topic);
+    Config c = Config.parse(syntax);
+    assertEquals(c.getTimestamp(), "col1");
+  }
+
+  @Test
+  public void handleTimestampWhenAllFieldIncluded() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT * FROM %s WITHTIMESTAMP col1", table, topic);
+    Config c = Config.parse(syntax);
+    assertEquals(c.getTimestamp(), "col1");
+  }
+
+  @Test
+  public void handleTimestampSetAsCurrentSysWhenAllFieldsIncluded() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT * FROM %s WITHTIMESTAMP " + Config.TIMESTAMP, table, topic);
+    Config c = Config.parse(syntax);
+    assertEquals(c.getTimestamp(), Config.TIMESTAMP);
+  }
+
+  @Test
+  public void handleTimestampSetAsCurrentSysWhenSelectedFieldsIncluded() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1, col2,col3 FROM %s WITHTIMESTAMP " + Config.TIMESTAMP, table, topic);
+    Config c = Config.parse(syntax);
+    assertEquals(c.getTimestamp(), Config.TIMESTAMP);
+  }
 }

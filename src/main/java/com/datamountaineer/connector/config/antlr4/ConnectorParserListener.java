@@ -308,6 +308,26 @@ public interface ConnectorParserListener extends ParseTreeListener {
 	 */
 	void exitDistributeby(ConnectorParser.DistributebyContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#timestamp_clause}.
+	 * @param ctx the parse tree
+	 */
+	void enterTimestamp_clause(ConnectorParser.Timestamp_clauseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#timestamp_clause}.
+	 * @param ctx the parse tree
+	 */
+	void exitTimestamp_clause(ConnectorParser.Timestamp_clauseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#timestamp_value}.
+	 * @param ctx the parse tree
+	 */
+	void enterTimestamp_value(ConnectorParser.Timestamp_valueContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#timestamp_value}.
+	 * @param ctx the parse tree
+	 */
+	void exitTimestamp_value(ConnectorParser.Timestamp_valueContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link ConnectorParser#buckets_number}.
 	 * @param ctx the parse tree
 	 */

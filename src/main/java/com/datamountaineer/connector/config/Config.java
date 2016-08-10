@@ -23,6 +23,7 @@ import java.util.Set;
  */
 public class Config {
 
+  public final static String TIMESTAMP = "sys_time()";
   public final static int DEFAULT_BATCH_SIZE = 3000;
   /**
    * Returns true if all payload fields should be included; false - otherwise
@@ -41,6 +42,7 @@ public class Config {
   private int retries = 1;
   private int batchSize = DEFAULT_BATCH_SIZE;
   private Bucketing bucketing;
+  private String timestamp;
 
   public void addIgnoredField(final String ignoredField) {
     if (ignoredField == null || ignoredField.trim().length() == 0) {
@@ -127,6 +129,14 @@ public class Config {
     this.bucketing = bucketing;
   }
 
+  public String getTimestamp() {
+    return this.timestamp;
+  }
+
+  private void setTimestamp(final String value) {
+    this.timestamp = value;
+  }
+
   public static Config parse(final String syntax) {
     final ConnectorLexer lexer = new ConnectorLexer(new ANTLRInputStream(syntax));
     final CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -178,7 +188,9 @@ public class Config {
       }
 
       @Override
-      public void exitDistribute_name(ConnectorParser.Distribute_nameContext ctx) {bucketNames.add(ctx.getText());}
+      public void exitDistribute_name(ConnectorParser.Distribute_nameContext ctx) {
+        bucketNames.add(ctx.getText());
+      }
 
       @Override
       public void exitTable_name(ConnectorParser.Table_nameContext ctx) {
@@ -249,6 +261,11 @@ public class Config {
         }
       }
 
+      @Override
+      public void exitTimestamp_value(ConnectorParser.Timestamp_valueContext ctx) {
+        final String value = ctx.getText();
+        config.setTimestamp(value);
+      }
     });
 
     try {
@@ -304,6 +321,17 @@ public class Config {
         }
       }
       config.setBucketing(bucketing);
+    }
+
+    String ts = config.getTimestamp();
+    if(ts!=null) {
+      if (TIMESTAMP.compareToIgnoreCase(ts) == 0) {
+        config.setTimestamp(ts.toLowerCase());
+      } else {
+        if (!config.includeAllFields && !config.fields.containsKey(ts)) {
+          throw new IllegalArgumentException(ts + " needs to be set to " + TIMESTAMP + " or be part of selected fields");
+        }
+      }
     }
 
     return config;
