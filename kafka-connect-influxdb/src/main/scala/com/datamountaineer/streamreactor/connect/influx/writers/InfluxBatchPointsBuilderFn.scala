@@ -1,3 +1,19 @@
+/**
+  * Copyright 2016 Datamountaineer.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **/
+
 package com.datamountaineer.streamreactor.connect.influx.writers
 
 import java.util.concurrent.TimeUnit
@@ -32,8 +48,9 @@ object InfluxBatchPointsBuilderFn {
     val extractor = settings.fieldsExtractorMap(record.topic())
     val fieldsAndValues = extractor.get(record.value.asInstanceOf[Struct])
     if (fieldsAndValues.nonEmpty) {
-      val pointBuilder = Point.measurement(settings.topicToMeasurementMap.getOrElse(record.topic(), throw new ConfigException(s"No matching measurement for topic ${record.topic}")))
-        .time(System.currentTimeMillis(), TimeUnit.MILLISECONDS)
+      val pointBuilder = Point.measurement(settings.topicToMeasurementMap.getOrElse(record.topic(),
+        throw new ConfigException(s"No matching measurement for topic ${record.topic}"))).time(System.currentTimeMillis(),
+        TimeUnit.MILLISECONDS)
 
       fieldsAndValues.foldLeft(pointBuilder) {
         case (builder, (field, value: Long)) => builder.addField(field, value)
@@ -48,8 +65,9 @@ object InfluxBatchPointsBuilderFn {
         case (builder, (field, value)) => sys.error(s"$value is not a valid type for InfluxDb.Allowed types:Boolean, Long, String, Double and Number")
       }
       Some(pointBuilder.build())
+    } else {
+      None
     }
-    else None
 
   }
 }
