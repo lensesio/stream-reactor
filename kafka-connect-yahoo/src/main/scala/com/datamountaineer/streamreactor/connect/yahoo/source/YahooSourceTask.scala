@@ -17,7 +17,9 @@
 package com.datamountaineer.streamreactor.connect.yahoo.source
 
 import java.util
+import java.util.logging.Logger
 
+import com.datamountaineer.streamreactor.connect.yahoo.config.YahooSettings._
 import com.datamountaineer.streamreactor.connect.yahoo.config.{YahooSettings, YahooSourceConfig}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
@@ -27,7 +29,9 @@ import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 
-class YahooSourceTask extends SourceTask with StrictLogging with YahooSourceConfig {
+class YahooSourceTask extends SourceTask  with YahooSourceConfig {
+  val logger: Logger = Logger.getLogger(getClass.getName)
+
   private var taskConfig: Option[AbstractConfig] = None
   private var dataManager: Option[DataRetrieverManager] = None
 
