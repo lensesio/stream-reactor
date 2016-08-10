@@ -39,6 +39,7 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
   private val workers = {
     (if (fx.nonEmpty) 1 else 0) + (if (stocks.nonEmpty) 1 else 0)
   }
+  logger.info(s"Latch count is $workers")
   private val queue = new LinkedBlockingQueue[SourceRecord]()
   private val latch = new CountDownLatch(workers)
   private val latchStart = new CountDownLatch(workers)
