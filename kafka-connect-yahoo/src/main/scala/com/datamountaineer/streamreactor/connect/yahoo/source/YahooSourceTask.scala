@@ -19,9 +19,7 @@ package com.datamountaineer.streamreactor.connect.yahoo.source
 import java.util
 import java.util.logging.Logger
 
-import com.datamountaineer.streamreactor.connect.yahoo.config.YahooSettings._
 import com.datamountaineer.streamreactor.connect.yahoo.config.{YahooSettings, YahooSourceConfig}
-import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
@@ -29,7 +27,7 @@ import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 
-class YahooSourceTask extends SourceTask  with YahooSourceConfig {
+class YahooSourceTask extends SourceTask with YahooSourceConfig {
   val logger: Logger = Logger.getLogger(getClass.getName)
 
   private var taskConfig: Option[AbstractConfig] = None
@@ -77,11 +75,11 @@ class YahooSourceTask extends SourceTask  with YahooSourceConfig {
     **/
   override def poll(): util.List[SourceRecord] = {
     logger.info(s"Polling for data. DataManager initialized:${dataManager.isDefined}")
-    dataManager.map(_.getRecords) match{
-      case Some(records)=>
+    dataManager.flatMap(d => Option(d.getRecords)) match {
+      case Some(records) =>
         logger.info(s"Returning ${records.size()} records to connect")
         records
-      case None=>
+      case None =>
         logger.info("No records returned")
         new util.ArrayList[SourceRecord]()
     }
