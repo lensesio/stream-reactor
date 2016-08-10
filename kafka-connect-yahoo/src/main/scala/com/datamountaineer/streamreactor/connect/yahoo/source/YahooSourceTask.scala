@@ -59,7 +59,9 @@ class YahooSourceTask extends SourceTask with StrictLogging with YahooSourceConf
       settings.stocksKafkaTopic,
       settings.pollInterval))
 
+    logger.info("Starting the data manager ...")
     dataManager.foreach(_.start())
+    logger.info("Data manager started")
   }
 
   /**
