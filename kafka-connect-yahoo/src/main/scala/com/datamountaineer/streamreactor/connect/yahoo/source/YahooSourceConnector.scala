@@ -59,7 +59,7 @@ class YahooSourceConnector extends SourceConnector with YahooSourceConfig {
     * @param props A map of properties for the connector and worker.
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(s"Starting Cassandra source task with ${props.toString}.")
+    logger.info(s"Starting Yahoo source task with ${props.toString}.")
     configProps = Some(props)
   }
 
