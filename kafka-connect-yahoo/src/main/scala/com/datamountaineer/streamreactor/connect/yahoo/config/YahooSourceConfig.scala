@@ -66,10 +66,9 @@ trait YahooSourceConfig {
       Importance.HIGH,
       YahooConfigConstants.POLL_INTERVAL_DOC)
 
-  /*.define(YahooConfigConstants.ERROR_RETRY_INTERVAL,
-    Type.INT,
-    YahooConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT,
-    Importance.MEDIUM,
-    YahooConfigConstants.ERROR_RETRY_INTERVAL_DOC)
-*/
+    .define(YahooConfigConstants.BUFFER_SIZE,
+      Type.INT,
+      YahooConfigConstants.DEFAULT_BUFFER_SIZE,
+      Importance.MEDIUM,
+      YahooConfigConstants.BUFFER_SIZE_DOC)
 }
