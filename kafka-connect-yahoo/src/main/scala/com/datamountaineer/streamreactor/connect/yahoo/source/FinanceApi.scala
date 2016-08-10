@@ -28,7 +28,7 @@ trait FinanceDataRetriever {
 }
 
 case object YahooDataRetriever extends FinanceDataRetriever {
-  override def getFx(fx: Array[String]): Seq[FxQuote] = YahooFinance.getFx(fx).values().toSeq
+  override def getFx(fx: Array[String]): Seq[FxQuote] = YahooFinance.getFx(fx).values().toVector
 
-  override def getStocks(symbols: Array[String]): Seq[Stock] = YahooFinance.get(symbols).values.toSeq
+  override def getStocks(symbols: Array[String]): Seq[Stock] = YahooFinance.get(symbols).values.toVector
 }

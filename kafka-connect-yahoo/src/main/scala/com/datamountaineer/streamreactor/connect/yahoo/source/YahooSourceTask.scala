@@ -69,7 +69,10 @@ class YahooSourceTask extends SourceTask with StrictLogging with YahooSourceConf
     *
     * @return A util.List of SourceRecords.
     **/
-  override def poll(): util.List[SourceRecord] = dataManager.map(_.getRecords).orNull
+  override def poll(): util.List[SourceRecord] = {
+    val records = dataManager.map(_.getRecords).orNull
+    records
+  }
 
   /**
     * Stop the task and close readers.
