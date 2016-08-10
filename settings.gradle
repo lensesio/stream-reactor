@@ -9,6 +9,5 @@ include 'kafka-socket-streamer',
         'kafka-connect-redis',
         'kafka-connect-rethink',
         'kafka-connect-jms',
-        'kafka-connect-influxdb',
-        'kafka-connect-voltdb'
+        'kafka-connect-hazelcast'
 
