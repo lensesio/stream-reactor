@@ -16,8 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.yahoo.config
 
+import java.util.logging.Logger
+
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
-import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 
 
@@ -30,7 +31,9 @@ case class YahooSourceSetting(stocks: Set[String],
                               errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                               taskRetires: Int = 10)
 
-object YahooSettings extends StrictLogging {
+object YahooSettings {
+  val logger: Logger = Logger.getLogger(getClass.getName)
+
   def apply(config: AbstractConfig): YahooSourceSetting = {
 
     val stocks = Option(config.getString(YahooConfigConstants.STOCKS))
