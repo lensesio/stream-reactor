@@ -89,14 +89,14 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
   private def addFx(fx: Seq[FxQuote]) = {
     fx.foreach { q =>
       val record = q.toSourceRecord(fxKafkaTopic.get)
-      queue.add(record)
+      queue.put(record)
     }
   }
 
   private def addStocks(stocks: Seq[Stock]) = {
     stocks.foreach { s =>
       val sourceRecord = s.toSourceRecord(stocksKafkaTopic.get)
-      queue.add(sourceRecord)
+      queue.put(sourceRecord)
     }
   }
 
