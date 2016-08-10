@@ -27,7 +27,7 @@ object YahooConfigConstants {
   val DEFAULT_ERROR_POLICY = "THROW"
   val DEFAULT_RETRIES = 10
 
-  val POLL_INTERVAL = "connect.yahoo,source.poll.interval"
+  val POLL_INTERVAL = "connect.yahoo.source.poll.interval"
   val POLL_INTERVAL_DOC = "Specifies how often if polls Yahoo services for new data"
 
   val STOCKS = "connect.yahoo.source.stocks.subscriptions"
