@@ -71,8 +71,14 @@ class YahooSourceTask extends SourceTask with StrictLogging with YahooSourceConf
     **/
   override def poll(): util.List[SourceRecord] = {
     logger.info(s"Polling for data. DataManager initialized:${dataManager.isDefined}")
-    val records = dataManager.map(_.getRecords).orNull
-    records
+    dataManager.map(_.getRecords) match{
+      case Some(records)=>
+        logger.info(s"Returning ${records.size()} records to connect")
+        records
+      case None=>
+        logger.info("No records returned")
+        null
+    }
   }
 
   /**
