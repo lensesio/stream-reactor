@@ -59,7 +59,8 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
       settings.fxKafkaTopic,
       settings.stocks.toArray,
       settings.stocksKafkaTopic,
-      settings.pollInterval))
+      settings.pollInterval,
+      settings.bufferSize))
 
     logger.info("Starting the data manager ...")
     dataManager.foreach(_.start())

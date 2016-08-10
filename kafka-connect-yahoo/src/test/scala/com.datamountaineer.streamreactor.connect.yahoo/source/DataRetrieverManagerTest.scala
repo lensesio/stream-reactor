@@ -20,7 +20,8 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
           Some("Some"),
           Array.empty[String],
           Some("topic1"),
-          1500)
+          1500,
+          100)
       }
     }
 
@@ -33,7 +34,8 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
         Some("topicFX"),
         Array.empty[String],
         Some("topic1"),
-        500)
+        500,
+        100)
 
       val gbpEurQuote1 = new FxQuote("GBPEUR=", new BigDecimal("1.18"))
       when(dataRetriever.getFx(quotes)).thenReturn(Seq(gbpEurQuote1))
@@ -61,7 +63,8 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
         Some("topicFX"),
         Array.empty[String],
         Some("topic1"),
-        500)
+        500,
+        100)
 
       val gbpEurQuote1 = new FxQuote("GBPEUR=", new BigDecimal("1.18"))
       val gbpEurQuote2 = new FxQuote("GBPUSD=", new BigDecimal("1.32"))
@@ -100,7 +103,8 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
       None,
       stocks,
       Some("topicStocks"),
-      500)
+      500,
+      100)
 
     val msft = getMSFTStock
 
@@ -130,7 +134,8 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
       None,
       stocks,
       Some("topicStocks"),
-      500)
+      500,
+      100)
 
     val msft = getMSFTStock
     val msft2 = getMSFTStock

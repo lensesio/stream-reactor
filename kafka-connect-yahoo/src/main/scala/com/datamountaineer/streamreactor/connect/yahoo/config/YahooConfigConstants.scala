@@ -45,4 +45,8 @@ object YahooConfigConstants {
 
   val NBR_OF_RETRIES = "connect.yahoo.source.retries"
   val NBR_OF_RETRIES_DOC = ""
+
+  val BUFFER_SIZE = "connect.yahoo.source.buffer.size"
+  val BUFFER_SIZE_DOC = "How many records it should buffer as it gets more data from yahoo"
+  val DEFAULT_BUFFER_SIZE = 10000
 }
