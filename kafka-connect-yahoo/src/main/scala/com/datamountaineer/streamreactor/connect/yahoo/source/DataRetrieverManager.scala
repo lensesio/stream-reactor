@@ -50,8 +50,8 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
   private val threadPool = Executors.newFixedThreadPool(workers)
 
   def getRecords: java.util.List[SourceRecord] = {
-    val recs = new util.ArrayList[SourceRecord]()
-    val count = queue.drainTo(recs)
+    val recs = new util.ArrayList[SourceRecord](1024)
+    val count = queue.drainTo(recs, 1000)
     if (count > 0) {
       logger.info(s"$count records are returned")
       recs
