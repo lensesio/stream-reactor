@@ -18,10 +18,10 @@ package com.datamountaineer.streamreactor.connect.yahoo.source
 
 import java.util
 import java.util.concurrent.{CountDownLatch, Executors, LinkedBlockingQueue, TimeUnit}
+import java.util.logging.{Level, Logger}
 
 import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
 import com.datamountaineer.streamreactor.connect.yahoo.source.StockHelper._
-import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord
 import yahoofinance.Stock
 import yahoofinance.quotes.fx.FxQuote
@@ -33,8 +33,10 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
                                 fxKafkaTopic: Option[String],
                                 stocks: Array[String],
                                 stocksKafkaTopic: Option[String],
-                                queryInterval: Long) extends AutoCloseable with StrictLogging {
+                                queryInterval: Long) extends AutoCloseable {
   require(fx.nonEmpty || stocks.nonEmpty, "Need to provide at least one quote or stock")
+
+  val logger: Logger = Logger.getLogger(getClass.getName)
 
   private val workers = {
     (if (fx.nonEmpty) 1 else 0) + (if (stocks.nonEmpty) 1 else 0)
@@ -63,13 +65,13 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
     if (fx.nonEmpty) {
       startQuotesWorker()
     } else {
-      logger.warn("No FX quotes requested. The Yahoo connector won't poll for quotes data.")
+      logger.warning("No FX quotes requested. The Yahoo connector won't poll for quotes data.")
     }
 
     if (stocks.nonEmpty) {
       startStocksWorker()
     } else {
-      logger.warn("No STOCKS requested. The Yahoo connector won't poll for stocks data.")
+      logger.warning("No STOCKS requested. The Yahoo connector won't poll for stocks data.")
     }
     logger.info("Awaiting for the DataRetrieverManager to start...")
     latchStart.await()
@@ -108,7 +110,7 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
           logger.info(s"Finished adding ${data.size} fx data points to the buffer")
         } catch {
           case t: Throwable =>
-            logger.error("An error occurred trying to get the Yahoo data." + t.getMessage, t)
+            logger.log(Level.SEVERE, "An error occurred trying to get the Yahoo data." + t.getMessage, t)
         }
 
         Thread.sleep(queryInterval)
@@ -129,7 +131,7 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
           logger.info(s"Finished adding ${data.size} stock data points to the buffer")
         } catch {
           case t: Throwable =>
-            logger.error("An error occurred trying to get the Yahoo data." + t.getMessage, t)
+            logger.log(Level.SEVERE, "An error occurred trying to get the Yahoo data." + t.getMessage, t)
         }
 
         Thread.sleep(queryInterval)
