@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.yahoo.source
 
 import java.util
-import java.util.concurrent.{CountDownLatch, Executors, LinkedBlockingQueue, TimeUnit}
+import java.util.concurrent._
 import java.util.logging.{Level, Logger}
 
 import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
@@ -33,7 +33,8 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
                                 fxKafkaTopic: Option[String],
                                 stocks: Array[String],
                                 stocksKafkaTopic: Option[String],
-                                queryInterval: Long) extends AutoCloseable {
+                                queryInterval: Long,
+                                bufferSize:Int) extends AutoCloseable {
   require(fx.nonEmpty || stocks.nonEmpty, "Need to provide at least one quote or stock")
 
   val logger: Logger = Logger.getLogger(getClass.getName)
@@ -42,21 +43,21 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
     (if (fx.nonEmpty) 1 else 0) + (if (stocks.nonEmpty) 1 else 0)
   }
   logger.info(s"Latch count is $workers")
-  private val queue = new LinkedBlockingQueue[SourceRecord]()
+  private val queue = new ArrayBlockingQueue[SourceRecord](bufferSize, true)
   private val latch = new CountDownLatch(workers)
   private val latchStart = new CountDownLatch(workers)
   @volatile private var poll = true
   private val threadPool = Executors.newFixedThreadPool(workers)
 
   def getRecords: java.util.List[SourceRecord] = {
-    val recs = new util.ArrayList[SourceRecord](queue.size())
+    val recs = new util.ArrayList[SourceRecord]()
     val count = queue.drainTo(recs)
     if (count > 0) {
       logger.info(s"$count records are returned")
       recs
     }
     else {
-      logger.info("No records are returned")
+      logger.info(s"No records are returned[${recs.size()}]")
       null
     }
   }

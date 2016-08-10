@@ -29,7 +29,8 @@ case class YahooSourceSetting(stocks: Set[String],
                               config: AbstractConfig,
                               pollInterval: Long = YahooConfigConstants.DEFAULT_POLL_INTERVAL,
                               errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                              taskRetires: Int = 10)
+                              taskRetires: Int = 10,
+                              bufferSize: Int = YahooConfigConstants.DEFAULT_BUFFER_SIZE)
 
 object YahooSettings {
   val logger: Logger = Logger.getLogger(getClass.getName)
@@ -60,7 +61,9 @@ object YahooSettings {
     val errorPolicyValue = ErrorPolicyEnum.withName(config.getString(YahooConfigConstants.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyValue)
 
-    val settings = YahooSourceSetting(stocks, Option(topicStocks), fx, Option(topicFx), config, pollInterval, errorPolicy)
+    val bufferSize = config.getInt(YahooConfigConstants.BUFFER_SIZE)
+
+    val settings = YahooSourceSetting(stocks, Option(topicStocks), fx, Option(topicFx), config, pollInterval, errorPolicy, bufferSize)
     logger.info(
       s"""
          |Yahoo Source settings
