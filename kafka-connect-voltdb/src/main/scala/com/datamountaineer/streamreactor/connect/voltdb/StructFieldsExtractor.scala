@@ -32,8 +32,11 @@ case class StructFieldsExtractor(targetTable: String,
   def get(struct: Struct): Map[String, Any] = {
     val schema = struct.schema()
     val fields: Seq[Field] = {
-      if (includeAllFields) schema.fields()
-      else schema.fields().filter(f => fieldsAliasMap.contains(f.name()))
+      if (includeAllFields) {
+        schema.fields()
+      } else {
+        schema.fields().filter(f => fieldsAliasMap.contains(f.name()))
+      }
     }
 
     fields.flatMap { field =>
