@@ -83,7 +83,7 @@ class YahooSourceTask extends SourceTask  with YahooSourceConfig {
         records
       case None=>
         logger.info("No records returned")
-        null
+        new util.ArrayList[SourceRecord]()
     }
   }
 
