@@ -74,6 +74,7 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
     * @return A util.List of SourceRecords.
     **/
   override def poll(): util.List[SourceRecord] = {
+    logger.info("Polling for Yahoo records...")
     val records = dataManager.map(_.getRecords).getOrElse(new util.ArrayList[SourceRecord]())
     logger.info(s"Returning ${records.size()} record(-s) from Yahoo source")
     records
