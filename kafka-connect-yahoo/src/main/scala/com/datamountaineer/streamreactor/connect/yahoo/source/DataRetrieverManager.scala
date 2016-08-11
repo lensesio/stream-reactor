@@ -22,13 +22,10 @@ import java.util.logging.{Level, Logger}
 
 import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
 import com.datamountaineer.streamreactor.connect.yahoo.source.StockHelper._
-import io.confluent.connect.avro.AvroConverter
-import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig
 import org.apache.kafka.connect.source.SourceRecord
 import yahoofinance.Stock
 import yahoofinance.quotes.fx.FxQuote
 
-import scala.collection.JavaConversions._
 import scala.util.Try
 
 case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
@@ -51,11 +48,8 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
   private val latchStart = new CountDownLatch(workers)
   @volatile private var poll = true
   private val threadPool = Executors.newFixedThreadPool(workers)
-  val avroConverter = new AvroConverter()
-  avroConverter.configure(Map(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG -> "https://schema-registry.demo.landoop.com"), false)
 
   def getRecords: java.util.List[SourceRecord] = {
-    logger.info("Retrieving Yahoo records...")
     val recs = new util.ArrayList[SourceRecord]()
     if (queue.isEmpty) {
       Option(queue.poll(1000, TimeUnit.MILLISECONDS))
@@ -66,7 +60,6 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
         logger.info(s"$count records are returned")
       }
     }
-    logger.info(s"Returning ${recs.size} Yahoo records")
     recs
   }
 
@@ -97,29 +90,14 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
   private def addFx(fx: Seq[FxQuote]) = {
     fx.foreach { q =>
       val record = q.toSourceRecord(fxKafkaTopic.get)
-      try {
-        avroConverter.fromConnectData(fxKafkaTopic.get, record.valueSchema(), record.value())
-        queue.put(record)
-      }
-      catch {
-        case t: Throwable =>
-          logger.log(Level.SEVERE, t.getMessage + s" ${fxKafkaTopic.get}=> $q", t)
-      }
+      queue.put(record)
     }
   }
 
   private def addStocks(stocks: Seq[Stock]) = {
     stocks.foreach { s =>
       val record = s.toSourceRecord(stocksKafkaTopic.get)
-      try {
-        avroConverter.fromConnectData(stocksKafkaTopic.get, record.valueSchema(), record.value())
-        queue.put(record)
-      }
-      catch {
-        case t: Throwable =>
-          logger.log(Level.SEVERE, t.getMessage + s" ${stocksKafkaTopic.get}=> $s", t)
-      }
-
+      queue.put(record)
     }
   }
 
