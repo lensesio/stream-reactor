@@ -150,6 +150,7 @@ object StockHelper {
     val builder = SchemaBuilder.struct
     builder
       .name("yahooStock")
+      .doc("Avro record for Yahoo stocks.")
       .field("currency", Schema.OPTIONAL_STRING_SCHEMA)
       .field("name", Schema.OPTIONAL_STRING_SCHEMA)
       .field("stock_exchange", Schema.OPTIONAL_STRING_SCHEMA)
@@ -190,6 +191,7 @@ object StockHelper {
   def getFxSchema: Schema = {
     SchemaBuilder.struct()
       .name("yahooFX")
+      .doc("Avro record for Yahoo FX.")
       .field("symbol", Schema.OPTIONAL_STRING_SCHEMA)
       .field("price", Schema.OPTIONAL_FLOAT64_SCHEMA)
       .build()
