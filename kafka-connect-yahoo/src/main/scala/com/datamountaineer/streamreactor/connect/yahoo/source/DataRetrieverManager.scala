@@ -34,7 +34,7 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
                                 stocks: Array[String],
                                 stocksKafkaTopic: Option[String],
                                 queryInterval: Long,
-                                bufferSize:Int) extends AutoCloseable {
+                                bufferSize: Int) extends AutoCloseable {
   require(fx.nonEmpty || stocks.nonEmpty, "Need to provide at least one quote or stock")
 
   val logger: Logger = Logger.getLogger(getClass.getName)
@@ -50,16 +50,17 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
   private val threadPool = Executors.newFixedThreadPool(workers)
 
   def getRecords: java.util.List[SourceRecord] = {
-    val recs = new util.ArrayList[SourceRecord](8)
-    val count = queue.drainTo(recs, 8)
-    if (count > 0) {
-      logger.info(s"$count records are returned")
-      recs
+    val recs = new util.ArrayList[SourceRecord]()
+    if (queue.isEmpty) {
+      Option(queue.poll(1000, TimeUnit.MILLISECONDS))
+        .foreach(recs.add)
+    } else {
+      val count = queue.drainTo(recs)
+      if (count > 0) {
+        logger.info(s"$count records are returned")
+      }
     }
-    else {
-      logger.info(s"No records are returned[${recs.size()}]")
-      null
-    }
+    recs
   }
 
   def start(): Unit = {
