@@ -134,6 +134,7 @@ object StockHelper {
   def getStockHistoricalSchema: Schema = {
     val builderHistory = SchemaBuilder.struct
     builderHistory
+      .name("yahooStockHistory")
       .field("adj_close", Schema.OPTIONAL_FLOAT64_SCHEMA)
       .field("close", Schema.OPTIONAL_FLOAT64_SCHEMA)
       .field("date", Schema.OPTIONAL_INT64_SCHEMA)
@@ -147,7 +148,9 @@ object StockHelper {
   def getStockSchema: Schema = {
 
     val builder = SchemaBuilder.struct
-    builder.field("currency", Schema.OPTIONAL_STRING_SCHEMA)
+    builder
+      .name("yahooStock")
+      .field("currency", Schema.OPTIONAL_STRING_SCHEMA)
       .field("name", Schema.OPTIONAL_STRING_SCHEMA)
       .field("stock_exchange", Schema.OPTIONAL_STRING_SCHEMA)
       .field("symbol", Schema.OPTIONAL_STRING_SCHEMA)
@@ -186,6 +189,7 @@ object StockHelper {
 
   def getFxSchema: Schema = {
     SchemaBuilder.struct()
+      .name("yahooFX")
       .field("symbol", Schema.OPTIONAL_STRING_SCHEMA)
       .field("price", Schema.OPTIONAL_FLOAT64_SCHEMA)
       .build()
