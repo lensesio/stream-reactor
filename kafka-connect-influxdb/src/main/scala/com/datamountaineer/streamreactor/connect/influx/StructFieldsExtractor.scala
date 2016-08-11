@@ -40,7 +40,7 @@ case class StructFieldsExtractor(includeAllFields: Boolean,
     }
 
     val timestamp = timestampField
-      .map(schema.field)
+      .map(t=>Option(schema.field(t)).getOrElse(throw new ConfigException(s"$t is not a valid field.")))
       .map(struct.get)
       .map { value =>
         value.asInstanceOf[Any] match {

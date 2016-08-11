@@ -1,7 +1,7 @@
 package com.datamountaineer.streamreactor.connect.influx
 
+import io.confluent.common.config.ConfigException
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
-import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 import org.scalatest.{Matchers, WordSpec}
 
 class StructFieldsExtractorTest extends WordSpec with Matchers {
