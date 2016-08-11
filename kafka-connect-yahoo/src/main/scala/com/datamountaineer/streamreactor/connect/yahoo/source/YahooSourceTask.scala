@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.yahoo.source
 
 import java.util
-import java.util.logging.{Level, Logger}
+import java.util.logging.Logger
 
 import com.datamountaineer.streamreactor.connect.yahoo.config.{YahooSettings, YahooSourceConfig}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
@@ -76,20 +76,9 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
     **/
   override def poll(): util.List[SourceRecord] = {
     logger.info(s"Polling for data. DataManager initialized:${dataManager.isDefined}")
-    Try(
-      dataManager.flatMap(d => Option(d.getRecords)) match {
-        case Some(records) =>
-          logger.info(s"Returning ${records.size()} records to connect")
-          records
-        case None =>
-          logger.info("No records returned")
-          new util.ArrayList[SourceRecord]()
-      }) match {
-      case Success(r) => r
-      case Failure(t) =>
-        logger.log(Level.SEVERE, t.getMessage, t)
-        new util.ArrayList[SourceRecord]()
-    }
+    val records = dataManager.map(_.getRecords).getOrElse(new util.ArrayList[SourceRecord]())
+    logger.info(s"Returning ${records.size()} from Yahoo source")
+    records
   }
 
   /**

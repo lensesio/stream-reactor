@@ -11,6 +11,8 @@ import yahoofinance.Stock
 import yahoofinance.quotes.fx.FxQuote
 import yahoofinance.quotes.stock.{StockDividend, StockQuote}
 
+import scala.util.Random
+
 class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar {
   "DataRetriever" should {
     "throw an exception if no fx and stocks have been provided" in {
@@ -195,5 +197,72 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
     quote.setYearLow(new BigDecimal("39.85"))
     stock.setQuote(quote)
     stock
+  }
+
+  "run when polled for stocks data" ignore {
+    val yahooFinance = YahooDataRetriever
+
+    val stocks = Array("MSFT")
+    val dataRetriever = DataRetrieverManager(yahooFinance,
+      Array.empty[String],
+      None,
+      stocks,
+      Some("topicStocks"),
+      5000,
+      100)
+
+    dataRetriever.start
+    var i = 100
+    while(i > 0){
+      i -= 1
+      val records = dataRetriever.getRecords
+      println(s"i=$i => Records ${records.size()}")
+      Thread.sleep(Random.nextInt(1000))
+    }
+  }
+
+  "run when polled for fx data" ignore {
+    val yahooFinance = YahooDataRetriever
+
+    val fx = Array("USDGBP=X", "EURGBP=X")
+    val dataRetriever = DataRetrieverManager(yahooFinance,
+      fx,
+      Some("topicFX"),
+      Array.empty,
+      None,
+      5000,
+      100)
+
+    dataRetriever.start
+    var i = 100
+    while(i > 0){
+      i -= 1
+      val records = dataRetriever.getRecords
+      println(s"i=$i => Records ${records.size()}")
+      Thread.sleep(Random.nextInt(1000))
+    }
+  }
+
+  "run when polled for fx data and stock data" ignore {
+    val yahooFinance = YahooDataRetriever
+
+    val fx = Array("USDGBP=X", "EURGBP=X")
+    val stocks = Array("MSFT")
+    val dataRetriever = DataRetrieverManager(yahooFinance,
+      fx,
+      Some("topicFX"),
+      stocks,
+      Some("topicStocks"),
+      5000,
+      100)
+
+    dataRetriever.start
+    var i = 100
+    while(i > 0){
+      i -= 1
+      val records = dataRetriever.getRecords
+      println(s"i=$i => Records ${records.size()}")
+      Thread.sleep(Random.nextInt(1000))
+    }
   }
 }
