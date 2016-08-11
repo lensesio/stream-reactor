@@ -23,10 +23,12 @@ import java.util.logging.{Level, Logger}
 import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
 import com.datamountaineer.streamreactor.connect.yahoo.source.StockHelper._
 import io.confluent.connect.avro.AvroConverter
+import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig
 import org.apache.kafka.connect.source.SourceRecord
 import yahoofinance.Stock
 import yahoofinance.quotes.fx.FxQuote
 
+import scala.collection.JavaConversions._
 import scala.util.Try
 
 case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
@@ -50,6 +52,7 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
   @volatile private var poll = true
   private val threadPool = Executors.newFixedThreadPool(workers)
   val avroConverter = new AvroConverter()
+  avroConverter.configure(Map(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG -> "https://schema-registry.demo.landoop.com"), false)
 
   def getRecords: java.util.List[SourceRecord] = {
     logger.info("Retrieving Yahoo records...")
