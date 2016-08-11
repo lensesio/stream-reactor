@@ -103,7 +103,7 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
       }
       catch {
         case t: Throwable =>
-          logger.log(Level.SEVERE, t.getMessage + s"=> $q", t)
+          logger.log(Level.SEVERE, t.getMessage + s" ${fxKafkaTopic.get}=> $q", t)
       }
     }
   }
@@ -117,7 +117,7 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
       }
       catch {
         case t: Throwable =>
-          logger.log(Level.SEVERE, t.getMessage + s"=> $s", t)
+          logger.log(Level.SEVERE, t.getMessage + s" ${stocksKafkaTopic.get}=> $s", t)
       }
 
     }
