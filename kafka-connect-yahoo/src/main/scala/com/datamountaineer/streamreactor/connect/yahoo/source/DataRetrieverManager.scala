@@ -22,6 +22,7 @@ import java.util.logging.{Level, Logger}
 
 import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
 import com.datamountaineer.streamreactor.connect.yahoo.source.StockHelper._
+import io.confluent.connect.avro.AvroConverter
 import org.apache.kafka.connect.source.SourceRecord
 import yahoofinance.Stock
 import yahoofinance.quotes.fx.FxQuote
@@ -48,6 +49,7 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
   private val latchStart = new CountDownLatch(workers)
   @volatile private var poll = true
   private val threadPool = Executors.newFixedThreadPool(workers)
+  val avroConverter = new AvroConverter()
 
   def getRecords: java.util.List[SourceRecord] = {
     logger.info("Retrieving Yahoo records...")
@@ -92,14 +94,29 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
   private def addFx(fx: Seq[FxQuote]) = {
     fx.foreach { q =>
       val record = q.toSourceRecord(fxKafkaTopic.get)
-      queue.put(record)
+      try {
+        avroConverter.fromConnectData(fxKafkaTopic.get, record.valueSchema(), record)
+        queue.put(record)
+      }
+      catch {
+        case t: Throwable =>
+          logger.log(Level.SEVERE, t.getMessage + s"=> $q", t)
+      }
     }
   }
 
   private def addStocks(stocks: Seq[Stock]) = {
     stocks.foreach { s =>
-      val sourceRecord = s.toSourceRecord(stocksKafkaTopic.get)
-      queue.put(sourceRecord)
+      val record = s.toSourceRecord(stocksKafkaTopic.get)
+      try {
+        avroConverter.fromConnectData(fxKafkaTopic.get, record.valueSchema(), record)
+        queue.put(record)
+      }
+      catch {
+        case t: Throwable =>
+          logger.log(Level.SEVERE, t.getMessage + s"=> $s", t)
+      }
+
     }
   }
 
