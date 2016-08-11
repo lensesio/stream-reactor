@@ -20,7 +20,7 @@ class StockHelperTest extends WordSpec with Matchers {
     val record = quote.toSourceRecord("topic_fx")
     record.topic() shouldBe "topic_fx"
     record.sourcePartition() shouldBe Collections.singletonMap("Yahoo", "GBPEUR=")
-    record.sourceOffset() shouldBe null
+    Option(record.sourceOffset()).isDefined shouldBe true
     record.key() shouldBe null
     record.keySchema() shouldBe null
 
@@ -67,7 +67,7 @@ class StockHelperTest extends WordSpec with Matchers {
     record.topic() shouldBe "topic_stocks"
     record.sourcePartition() shouldBe Collections.singletonMap("Yahoo", "MSFT")
 
-    record.sourceOffset() shouldBe null
+    Option(record.sourceOffset()).isDefined shouldBe true
 
     record.key() shouldBe null
     record.keySchema() shouldBe null
@@ -108,7 +108,7 @@ class StockHelperTest extends WordSpec with Matchers {
     fields.get("volume") shouldBe Schema.OPTIONAL_INT64_SCHEMA
     fields.get("year_high") shouldBe Schema.OPTIONAL_FLOAT64_SCHEMA
     fields.get("year_low") shouldBe Schema.OPTIONAL_FLOAT64_SCHEMA
-    fields.get("history") shouldBe SchemaBuilder.array(StockHelper.getStockHistoricalSchema).build()
+    fields.get("history") shouldBe SchemaBuilder.array(StockHelper.getStockHistoricalSchema).optional().build()
 
     val struct = record.value().asInstanceOf[Struct]
     val history = struct.getArray("history")
@@ -179,7 +179,7 @@ class StockHelperTest extends WordSpec with Matchers {
     record.topic() shouldBe "topic_stocks"
     record.sourcePartition() shouldBe Collections.singletonMap("Yahoo", "MSFT")
 
-    record.sourceOffset() shouldBe null
+    Option(record.sourceOffset()).isDefined shouldBe true
 
     record.key() shouldBe null
     record.keySchema() shouldBe null
@@ -220,7 +220,7 @@ class StockHelperTest extends WordSpec with Matchers {
     fields.get("volume") shouldBe Schema.OPTIONAL_INT64_SCHEMA
     fields.get("year_high") shouldBe Schema.OPTIONAL_FLOAT64_SCHEMA
     fields.get("year_low") shouldBe Schema.OPTIONAL_FLOAT64_SCHEMA
-    fields.get("history") shouldBe SchemaBuilder.array(StockHelper.getStockHistoricalSchema).build()
+    fields.get("history") shouldBe SchemaBuilder.array(StockHelper.getStockHistoricalSchema).optional().build()
 
     val struct = record.value().asInstanceOf[Struct]
     val history = struct.getArray("history")

@@ -92,7 +92,7 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
       struct = record.value().asInstanceOf[Struct]
       struct.get("symbol") shouldBe gbpEurQuote2.getSymbol
       struct.get("price") shouldBe gbpEurQuote2.getPrice().doubleValue()
-      dataManager.getRecords shouldBe null
+      dataManager.getRecords.size() shouldBe 0
     }
   }
 
