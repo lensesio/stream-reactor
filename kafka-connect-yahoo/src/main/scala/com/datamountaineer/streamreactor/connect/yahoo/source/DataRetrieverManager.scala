@@ -50,6 +50,7 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
   private val threadPool = Executors.newFixedThreadPool(workers)
 
   def getRecords: java.util.List[SourceRecord] = {
+    logger.info("Retrieving Yahoo records...")
     val recs = new util.ArrayList[SourceRecord]()
     if (queue.isEmpty) {
       Option(queue.poll(1000, TimeUnit.MILLISECONDS))
@@ -60,6 +61,7 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
         logger.info(s"$count records are returned")
       }
     }
+    logger.info(s"Returning ${recs.size} Yahoo records")
     recs
   }
 
