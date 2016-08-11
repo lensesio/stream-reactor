@@ -98,7 +98,7 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
     fx.foreach { q =>
       val record = q.toSourceRecord(fxKafkaTopic.get)
       try {
-        avroConverter.fromConnectData(fxKafkaTopic.get, record.valueSchema(), record)
+        avroConverter.fromConnectData(fxKafkaTopic.get, record.valueSchema(), record.value())
         queue.put(record)
       }
       catch {
@@ -112,7 +112,7 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
     stocks.foreach { s =>
       val record = s.toSourceRecord(stocksKafkaTopic.get)
       try {
-        avroConverter.fromConnectData(fxKafkaTopic.get, record.valueSchema(), record)
+        avroConverter.fromConnectData(fxKafkaTopic.get, record.valueSchema(), record.value())
         queue.put(record)
       }
       catch {
