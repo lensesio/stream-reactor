@@ -16,25 +16,43 @@
 
 package com.datamountaineer.streamreactor.connect.influx
 
+import io.confluent.common.config.ConfigException
 import org.apache.kafka.connect.data.{Field, Schema, Struct}
 
 import scala.collection.JavaConversions._
 
+case class RecordData(timestamp: Long, fields: Seq[(String, Any)])
+
 trait FieldsValuesExtractor {
-  def get(struct: Struct): Seq[(String, Any)]
+  def get(struct: Struct): RecordData
+
 }
 
 case class StructFieldsExtractor(includeAllFields: Boolean,
-                                 fieldsAliasMap: Map[String, String]) extends FieldsValuesExtractor {
+                                 fieldsAliasMap: Map[String, String],
+                                 timestampField: Option[String]) extends FieldsValuesExtractor {
 
-  def get(struct: Struct): Seq[(String, Any)] = {
+  def get(struct: Struct): RecordData = {
     val schema = struct.schema()
     val fields: Seq[Field] = {
       if (includeAllFields) schema.fields()
       else schema.fields().filter(f => fieldsAliasMap.contains(f.name()))
     }
 
-    fields.flatMap { field =>
+    val timestamp = timestampField
+      .map(schema.field)
+      .map(struct.get)
+      .map { value =>
+        value.asInstanceOf[Any] match {
+          case b: Byte => b.toLong
+          case s: Short => s.toLong
+          case i: Int => i.toLong
+          case l: Long => l
+          case _ => throw new ConfigException(s"${timestampField.get} is not a valid field for the timestamp")
+        }
+      }.getOrElse(System.currentTimeMillis())
+
+    val fieldsAndValues = fields.flatMap { field =>
       Option(struct.get(field))
         .map { value =>
           val schema = field.schema()
@@ -44,8 +62,9 @@ case class StructFieldsExtractor(includeAllFields: Boolean,
           fieldsAliasMap.getOrElse(field.name(), field.name()) -> value
         }
     }
-  }
 
+    RecordData(timestamp, fieldsAndValues)
+  }
 }
 
 

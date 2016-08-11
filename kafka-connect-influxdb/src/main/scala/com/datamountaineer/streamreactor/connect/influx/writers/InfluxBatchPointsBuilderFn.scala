@@ -30,26 +30,26 @@ object InfluxBatchPointsBuilderFn {
 
     //we want to error if the topic hasn;t been
     val extractor = settings.fieldsExtractorMap(record.topic())
-    val fieldsAndValues = extractor.get(record.value.asInstanceOf[Struct])
-    if (fieldsAndValues.nonEmpty) {
+    val recordData = extractor.get(record.value.asInstanceOf[Struct])
+    if (recordData.fields.nonEmpty) {
       val pointBuilder = Point.measurement(settings.topicToMeasurementMap.getOrElse(record.topic(), throw new ConfigException(s"No matching measurement for topic ${record.topic}")))
-        .time(System.currentTimeMillis(), TimeUnit.MILLISECONDS)
+        .time(recordData.timestamp, TimeUnit.MILLISECONDS)
 
-      fieldsAndValues.foldLeft(pointBuilder) {
-        case (builder, (field, value: Long)) => builder.addField(field, value)
-        case (builder, (field, value: Int)) => builder.addField(field, value)
-        case (builder, (field, value: Byte)) => builder.addField(field, value)
-        case (builder, (field, value: Short)) => builder.addField(field, value)
-        case (builder, (field, value: Double)) => builder.addField(field, value)
-        case (builder, (field, value: Float)) => builder.addField(field, value)
-        case (builder, (field, value: Boolean)) => builder.addField(field, value)
-        case (builder, (field, value: String)) => builder.addField(field, value)
-        //we should never reach this since the extractor should not allow it
-        case (builder, (field, value)) => sys.error(s"$value is not a valid type for InfluxDb.Allowed types:Boolean, Long, String, Double and Number")
-      }
+      recordData.fields
+        .foldLeft(pointBuilder) {
+          case (builder, (field, value: Long)) => builder.addField(field, value)
+          case (builder, (field, value: Int)) => builder.addField(field, value)
+          case (builder, (field, value: Byte)) => builder.addField(field, value)
+          case (builder, (field, value: Short)) => builder.addField(field, value)
+          case (builder, (field, value: Double)) => builder.addField(field, value)
+          case (builder, (field, value: Float)) => builder.addField(field, value)
+          case (builder, (field, value: Boolean)) => builder.addField(field, value)
+          case (builder, (field, value: String)) => builder.addField(field, value)
+          //we should never reach this since the extractor should not allow it
+          case (builder, (field, value)) => sys.error(s"$value is not a valid type for InfluxDb.Allowed types:Boolean, Long, String, Double and Number")
+        }
       Some(pointBuilder.build())
     }
     else None
-
   }
 }
