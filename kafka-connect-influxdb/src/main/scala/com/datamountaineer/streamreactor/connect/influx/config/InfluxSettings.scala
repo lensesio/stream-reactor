@@ -66,9 +66,13 @@ object InfluxSettings {
 
     val fields = routes.map(rm => (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)).toMap
 
-    val extractorFields = routes.map(rm =>
-      (rm.getSource, StructFieldsExtractor(rm.isIncludeAllFields, fields(rm.getSource)))
-    ).toMap
+    val extractorFields = routes.map { rm =>
+      val timestampField = Option(rm.getTimestamp) match {
+        case Some(Config.TIMESTAMP) => None
+        case other => other
+      }
+      (rm.getSource, StructFieldsExtractor(rm.isIncludeAllFields, fields(rm.getSource), timestampField))
+    }.toMap
 
     new InfluxSettings(url,
       user,
