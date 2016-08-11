@@ -180,7 +180,7 @@ object StockHelper {
       .field("volume", Schema.OPTIONAL_INT64_SCHEMA)
       .field("year_high", Schema.OPTIONAL_FLOAT64_SCHEMA)
       .field("year_low", Schema.OPTIONAL_FLOAT64_SCHEMA)
-      .field("history",   SchemaBuilder.array(getStockHistoricalSchema).build())
+      .field("history", SchemaBuilder.array(getStockHistoricalSchema).optional().build())
     builder.build()
   }
 
