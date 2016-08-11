@@ -28,10 +28,12 @@ import scala.collection.JavaConversions._
 
 object StockHelper {
 
+  val TIMESTAMP_FIELD = "timestamp"
+
   implicit class FxQuoteToSourceRecordConverter(val fx: FxQuote) extends AnyVal {
     def toSourceRecord(topic: String): SourceRecord = {
       new SourceRecord(Collections.singletonMap("Yahoo", fx.getSymbol),
-        null,
+        getOffset(),
         topic,
         getFxSchema,
         getFxStruct)
@@ -44,10 +46,15 @@ object StockHelper {
     }
   }
 
+  private def getOffset() = {
+    Map(TIMESTAMP_FIELD, System.currentTimeMillis())
+  }
+
   implicit class StockToSourceRecordConverter(val stock: Stock) extends AnyVal {
     def toSourceRecord(topic: String, includeHistory: Boolean = false): SourceRecord = {
+
       val record = new SourceRecord(Collections.singletonMap("Yahoo", stock.getSymbol),
-        null,
+        getOffset(),
         topic,
         getStockSchema,
         getStruct(includeHistory)

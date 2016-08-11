@@ -62,7 +62,6 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
       settings.pollInterval,
       settings.bufferSize))
 
-    logger.info("Starting the data manager ...")
     dataManager.foreach(_.start())
     logger.info("Data manager started")
   }
@@ -75,9 +74,8 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
     * @return A util.List of SourceRecords.
     **/
   override def poll(): util.List[SourceRecord] = {
-    logger.info(s"Polling for data. DataManager initialized:${dataManager.isDefined}")
     val records = dataManager.map(_.getRecords).getOrElse(new util.ArrayList[SourceRecord]())
-    logger.info(s"Returning ${records.size()} from Yahoo source")
+    logger.info(s"Returning ${records.size()} record(-s) from Yahoo source")
     records
   }
 
