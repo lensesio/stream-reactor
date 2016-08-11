@@ -46,11 +46,8 @@ object StockHelper {
     }
   }
 
-  private def getOffset() = {
-    val map = new util.HashMap[String, Any]()
-    map.put(TIMESTAMP_FIELD, System.currentTimeMillis())
-    map
-  }
+  private def getOffset() = Collections.singletonMap("position", System.currentTimeMillis())
+
 
   implicit class StockToSourceRecordConverter(val stock: Stock) extends AnyVal {
     def toSourceRecord(topic: String, includeHistory: Boolean = false): SourceRecord = {
