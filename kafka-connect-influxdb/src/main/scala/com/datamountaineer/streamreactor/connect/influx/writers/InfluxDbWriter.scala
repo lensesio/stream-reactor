@@ -42,7 +42,9 @@ class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLoggi
       logger.debug("No records received.")
     } else {
       val batchPoints = InfluxBatchPointsBuilderFn(records, settings)
+      logger.info("Writing ${batchPoints.getPoints.size()} to the database...")
       val t = Try(influxDB.write(batchPoints))
+      t.foreach(_ => logger.info("Writing complete"))
       handleTry(t)
     }
   }

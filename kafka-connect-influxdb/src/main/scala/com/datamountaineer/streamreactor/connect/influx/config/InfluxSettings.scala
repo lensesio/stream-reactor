@@ -51,7 +51,7 @@ object InfluxSettings {
     if (user == null || user.trim.length == 0)
       throw new ConfigException(s"${InfluxSinkConfig.INFLUX_CONNECTION_USER_CONFIG} is not set correctly")
 
-    val password = Option(config.getPassword(INFLUX_CONNECTION_PASSWORD_CONFIG))
+    val password = config.getString(INFLUX_CONNECTION_PASSWORD_CONFIG)
 
     val database = config.getString(INFLUX_DATABASE_CONFIG)
     if (database == null || database.trim.isEmpty) {
@@ -76,7 +76,7 @@ object InfluxSettings {
 
     new InfluxSettings(url,
       user,
-      password.map(_.value()).orNull,
+      password,
       database,
       routes.map(r => r.getSource -> r.getTarget).toMap,
       extractorFields,
