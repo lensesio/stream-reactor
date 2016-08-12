@@ -40,13 +40,13 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   var instance : Option[HazelcastInstance] = None
 
 
-  before {
+  def start {
     val configApp1 = new Config()
     configApp1.getGroupConfig().setName(GROUP_NAME).setPassword(HazelCastSinkConfig.SINK_GROUP_PASSWORD_DEFAULT)
     instance = Some(Hazelcast.newHazelcastInstance(configApp1))
   }
 
-  after {
+  def stop {
     instance.get.shutdown()
   }
 

@@ -12,6 +12,7 @@ import scala.collection.JavaConversions._
   */
 class TestHazelCastConnection extends TestBase {
   "should connect to a Hazelcast cluster" in {
+    start
     val props = getProps
     val config = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
@@ -21,5 +22,6 @@ class TestHazelCastConnection extends TestBase {
     connectedClients.size shouldBe 1
     connectedClients.head.getSocketAddress.getHostName shouldBe "localhost"
     conn.shutdown()
+    stop
   }
 }

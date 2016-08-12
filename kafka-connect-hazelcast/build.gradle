@@ -9,6 +9,5 @@ project(":kafka-connect-hazelcast") {
             exclude group: "com.google.guava", module: "guava"
         }
         compile "com.hazelcast:hazelcast-all:$hazelCastVersion"
-
     }
 }
