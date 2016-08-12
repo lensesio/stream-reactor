@@ -12,17 +12,14 @@ import scala.collection.JavaConversions._
   */
 class TestHazelCastConnection extends TestBase {
   "should connect to a Hazelcast cluster" in {
-    val configApp1 = new Config()
-    configApp1.getGroupConfig().setName(GROUP_NAME).setPassword(HazelCastSinkConfig.SINK_GROUP_PASSWORD_DEFAULT)
-    val instance = Hazelcast.newHazelcastInstance(configApp1)
-    val props = getConfig
+    val props = getProps
     val config = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
     val conn = HazelCastConnection(settings.connConfig)
     conn.isInstanceOf[HazelcastInstance] shouldBe true
-    val connectedClients = instance.getClientService.getConnectedClients.toSet
+    val connectedClients = instance.get.getClientService.getConnectedClients.toSet
     connectedClients.size shouldBe 1
     connectedClients.head.getSocketAddress.getHostName shouldBe "localhost"
-    Hazelcast.shutdownAll()
+    conn.shutdown()
   }
 }

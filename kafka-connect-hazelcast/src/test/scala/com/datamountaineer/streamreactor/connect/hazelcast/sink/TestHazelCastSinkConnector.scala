@@ -11,7 +11,7 @@ import scala.collection.JavaConverters._
   */
 class TestHazelCastSinkConnector extends TestBase {
   "should start a Hazelcast sink connector" in {
-    val props = getConfig
+    val props = getProps
     val connector = new HazelCastSinkConnector
     connector.start(props)
     val taskConfigs = connector.taskConfigs(1)
