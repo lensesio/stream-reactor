@@ -400,6 +400,30 @@ public class ConnectorParserBaseListener implements ConnectorParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterStoredas_name(ConnectorParser.Storedas_nameContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitStoredas_name(ConnectorParser.Storedas_nameContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterStoredas_value(ConnectorParser.Storedas_valueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitStoredas_value(ConnectorParser.Storedas_valueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterBuckets_number(ConnectorParser.Buckets_numberContext ctx) { }
 	/**
 	 * {@inheritDoc}

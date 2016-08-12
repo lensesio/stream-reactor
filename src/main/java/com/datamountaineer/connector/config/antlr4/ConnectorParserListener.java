@@ -328,6 +328,26 @@ public interface ConnectorParserListener extends ParseTreeListener {
 	 */
 	void exitTimestamp_value(ConnectorParser.Timestamp_valueContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#storedas_name}.
+	 * @param ctx the parse tree
+	 */
+	void enterStoredas_name(ConnectorParser.Storedas_nameContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#storedas_name}.
+	 * @param ctx the parse tree
+	 */
+	void exitStoredas_name(ConnectorParser.Storedas_nameContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#storedas_value}.
+	 * @param ctx the parse tree
+	 */
+	void enterStoredas_value(ConnectorParser.Storedas_valueContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#storedas_value}.
+	 * @param ctx the parse tree
+	 */
+	void exitStoredas_value(ConnectorParser.Storedas_valueContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link ConnectorParser#buckets_number}.
 	 * @param ctx the parse tree
 	 */

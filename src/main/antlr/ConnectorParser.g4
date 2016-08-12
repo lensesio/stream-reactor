@@ -36,7 +36,7 @@ schema_name
    ;
 
 select_clause
-   : sql_action table_name SELECT column_list FROM topic_name ( IGNORE ignore_clause )? ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)?
+   : sql_action table_name SELECT column_list FROM topic_name ( IGNORE ignore_clause )? ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( storedas_name )?
    ;
 
 topic_name
@@ -129,6 +129,14 @@ timestamp_clause
 
 timestamp_value
    : ID | SYS_TIME
+   ;
+
+storedas_name
+   : STOREDAS storedas_value
+   ;
+
+storedas_value
+   : ID
    ;
 
 buckets_number

@@ -658,4 +658,17 @@ public class ConfigTest {
     Config c = Config.parse(syntax);
     assertEquals(c.getTimestamp(), Config.TIMESTAMP);
   }
+
+  @Test
+  public void handleStoredAs() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT * FROM %s STOREDAS x ", table, topic);
+    Config c = Config.parse(syntax);
+    assertEquals(c.getStoredAs(), "x");
+
+    String syntax2 = String.format("INSERT INTO %s SELECT * FROM %s storedas x ", table, topic);
+    Config c2 = Config.parse(syntax2);
+    assertEquals(c2.getStoredAs(), "x");
+  }
 }

@@ -43,6 +43,7 @@ public class Config {
   private int batchSize = DEFAULT_BATCH_SIZE;
   private Bucketing bucketing;
   private String timestamp;
+  private String storedAs;
 
   public void addIgnoredField(final String ignoredField) {
     if (ignoredField == null || ignoredField.trim().length() == 0) {
@@ -135,6 +136,14 @@ public class Config {
 
   private void setTimestamp(final String value) {
     this.timestamp = value;
+  }
+
+  public String getStoredAs() {
+    return storedAs;
+  }
+
+  public void setStoredAs(String format) {
+    this.storedAs = format;
   }
 
   public static Config parse(final String syntax) {
@@ -233,6 +242,12 @@ public class Config {
       }
 
       @Override
+      public void exitStoredas_value(ConnectorParser.Storedas_valueContext ctx) {
+        final String value = ctx.getText();
+        config.setStoredAs(value);
+      }
+
+      @Override
       public void exitCapitalize(ConnectorParser.CapitalizeContext ctx) {
         config.setEnableCapitalize(true);
       }
@@ -266,6 +281,7 @@ public class Config {
         final String value = ctx.getText();
         config.setTimestamp(value);
       }
+
     });
 
     try {
