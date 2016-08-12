@@ -1,12 +1,35 @@
+/**
+  * Copyright 2016 Datamountaineer.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **/
+
 package com.datamountaineer.streamreactor.connect.hazelcast.config
 
 import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.connect.hazelcast.config.StoredAs.StoredAs
+import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConversions._
 
+object StoredAs extends Enumeration {
+  type StoredAs = Value
+  val JSON, AVRO = Value
+}
+
 /**
-  * Created by andrew@datamountaineer.com on 08/08/16. 
+  * Created by andrew@datamountaineer.com on 08/08/16.
   * stream-reactor
   */
 case class HazelCastSinkSettings(groupName : String,
@@ -17,7 +40,8 @@ case class HazelCastSinkSettings(groupName : String,
                                  ignoreFields: Map[String, Set[String]],
                                  errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                                  maxRetries: Int = HazelCastSinkConfig.NBR_OF_RETIRES_DEFAULT,
-                                 batchSize: Int = HazelCastSinkConfig.BATCH_SIZE_DEFAULT)
+                                 batchSize: Int = HazelCastSinkConfig.BATCH_SIZE_DEFAULT,
+                                 storeAs: Map[String, StoredAs.Value])
 
 object HazelCastSinkSettings {
   def apply(config: HazelCastSinkConfig): HazelCastSinkSettings = {
@@ -38,6 +62,7 @@ object HazelCastSinkSettings {
     val groupName = config.getString(HazelCastSinkConfig.SINK_GROUP_NAME)
     require(groupName.nonEmpty,  s"No ${HazelCastSinkConfig.SINK_GROUP_NAME} provided!")
     val connConfig = HazelCastConnectionConfig(config)
+    val storedas = routes.map(r => (r.getSource, getStoredAs(Option(r.getStoredAs)))).toMap
 
     new HazelCastSinkSettings(groupName,
                               connConfig,
@@ -47,7 +72,17 @@ object HazelCastSinkSettings {
                               ignoreFields,
                               errorPolicy,
                               maxRetries,
-                              batchSize)
+                              batchSize,
+                              storedas)
+  }
+
+
+  def getStoredAs(storedAs: Option[String])  = {
+    storedAs.getOrElse("JSON").toUpperCase() match {
+      case "JSON" => StoredAs.JSON
+      case "AVRO" => StoredAs.AVRO
+      case _ => throw new ConnectException(s"Unknown STORED AS type $storedAs")
+    }
   }
 }
 

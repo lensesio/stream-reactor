@@ -11,7 +11,7 @@ import scala.collection.JavaConverters._
   */
 class TestHazelCastSinkSettings extends TestBase {
   "Should build settings object from a config" in {
-    val props = getConfig
+    val props = getProps
     val config = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
 
@@ -22,7 +22,7 @@ class TestHazelCastSinkSettings extends TestBase {
   }
 
   "Should build settings object from a config with selection" in {
-    val props = getConfigSelection
+    val props = getPropsSelection
     val config = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
 
@@ -38,7 +38,7 @@ class TestHazelCastSinkSettings extends TestBase {
   }
 
   "Should build settings object from a config with ignore" in {
-    val props = getConfigIgnored
+    val props = getPropsIgnored
     val config = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
 
