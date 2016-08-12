@@ -61,9 +61,6 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
     val sinkConfig = InfluxSinkConfig(props)
     val influxSettings = InfluxSettings(sinkConfig)
 
-    val assigned = context.assignment().map(a => a.topic()).toList
-    if (assigned.isEmpty) throw new ConnectException("No topics have been assigned to this task!")
-
 
     //if error policy is retry set retry interval
     if (influxSettings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
@@ -83,7 +80,9 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
     }
     else {
       require(writer.nonEmpty, "Writer is not set!")
+      logger.info(s"Received ${records.size()} record(-s)")
       writer.foreach(w => w.write(records.toSeq))
+      logger.info("Records handled")
     }
   }
 
