@@ -24,6 +24,7 @@ import com.datamountaineer.streamreactor.connect.hazelcast.{HazelCastConnection,
 import com.hazelcast.core.ITopic
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.Mockito._
+import org.scalatest.BeforeAndAfter
 import org.scalatest.mock.MockitoSugar
 
 import scala.collection.JavaConverters._
@@ -32,7 +33,16 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 12/08/16. 
   * stream-reactor
   */
-class TestHazelCastSinkTask extends TestBase with MockitoSugar {
+class TestHazelCastSinkTask extends TestBase with MockitoSugar with BeforeAndAfter {
+
+  before {
+    start
+  }
+
+  after {
+    stop
+  }
+
   "should start SinkTask and write json" in {
     val props = getPropsJson
     val context = mock[SinkTaskContext]
@@ -65,4 +75,6 @@ class TestHazelCastSinkTask extends TestBase with MockitoSugar {
     message.toString shouldBe json
     conn.shutdown()
   }
+
+
 }

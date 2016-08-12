@@ -29,12 +29,22 @@ import com.hazelcast.client.proxy.ClientReliableTopicProxy
 import com.hazelcast.core.{ITopic, Message, MessageListener}
 import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
 import org.apache.avro.io.DecoderFactory
+import org.scalatest.BeforeAndAfter
 
 /**
   * Created by andrew@datamountaineer.com on 11/08/16. 
   * stream-reactor
   */
-class TestHazelCastWriter extends TestBase {
+class TestHazelCastWriter extends TestBase with BeforeAndAfter {
+
+  before {
+    start
+  }
+
+  after {
+    stop
+  }
+
    "should write avro to hazelcast reliable topic" in {
      val props = getProps
      val config = new HazelCastSinkConfig(props)
