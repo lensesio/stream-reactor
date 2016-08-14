@@ -44,6 +44,8 @@ public class Config {
   private Bucketing bucketing;
   private String timestamp;
   private String storedAs;
+  private String consumerGroup;
+  private String fromOffset;
 
   public void addIgnoredField(final String ignoredField) {
     if (ignoredField == null || ignoredField.trim().length() == 0) {
@@ -144,6 +146,22 @@ public class Config {
 
   public void setStoredAs(String format) {
     this.storedAs = format;
+  }
+
+  public void setConsumerGroup(String consumerGroup) {
+    this.consumerGroup = consumerGroup;
+  }
+
+  public String getConsumerGroup() {
+    return consumerGroup;
+  }
+
+  public void setFromOffset(String fromOffset) {
+    this.fromOffset = fromOffset;
+  }
+
+  public String getFromOffset() {
+    return fromOffset;
   }
 
   public static Config parse(final String syntax) {
@@ -278,10 +296,18 @@ public class Config {
 
       @Override
       public void exitTimestamp_value(ConnectorParser.Timestamp_valueContext ctx) {
-        final String value = ctx.getText();
-        config.setTimestamp(value);
+        config.setTimestamp(ctx.getText());
       }
 
+      @Override
+      public void exitWith_consumer_group_value(ConnectorParser.With_consumer_group_valueContext ctx) {
+        config.setConsumerGroup(ctx.getText());
+      }
+
+      @Override
+      public void exitWith_from_offset_value(ConnectorParser.With_from_offset_valueContext ctx) {
+        config.setFromOffset(ctx.getText());
+      }
     });
 
     try {
@@ -340,7 +366,7 @@ public class Config {
     }
 
     String ts = config.getTimestamp();
-    if(ts!=null) {
+    if (ts != null) {
       if (TIMESTAMP.compareToIgnoreCase(ts) == 0) {
         config.setTimestamp(ts.toLowerCase());
       } else {

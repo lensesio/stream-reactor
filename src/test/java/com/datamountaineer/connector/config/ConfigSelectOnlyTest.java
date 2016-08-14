@@ -36,6 +36,83 @@ public class ConfigSelectOnlyTest {
       pks.add(iter.next());
     }
     assertEquals(0, pks.size());
+    assertNull(config.getConsumerGroup());
+  }
+
+  @Test
+  public void parseASelectAllFromTopicWithAConsumerGroup() {
+    String topic = "TOPIC_A";
+    String expectedConsumerGroup = "myconsumer-group";
+    String syntax = String.format("SELECT * FROM %s WITHGROUP %s", topic, expectedConsumerGroup);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getSource());
+    assertNull(config.getTarget());
+    assertFalse(config.getFieldAlias().hasNext());
+    assertTrue(config.isIncludeAllFields());
+    HashSet<String> pks = new HashSet<>();
+    Iterator<String> iter = config.getPrimaryKeys();
+    while (iter.hasNext()) {
+      pks.add(iter.next());
+    }
+    assertEquals(0, pks.size());
+    assertEquals(expectedConsumerGroup, config.getConsumerGroup());
+  }
+
+  @Test
+  public void parseASelectAllFromTopicWithEarliestOffset() {
+    String topic = "TOPIC_A";
+    String expectedOffset = "earliest";
+    String syntax = String.format("SELECT * FROM %s FROMOFFSET %s", topic, expectedOffset);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getSource());
+    assertNull(config.getTarget());
+    assertFalse(config.getFieldAlias().hasNext());
+    assertTrue(config.isIncludeAllFields());
+    HashSet<String> pks = new HashSet<>();
+    Iterator<String> iter = config.getPrimaryKeys();
+    while (iter.hasNext()) {
+      pks.add(iter.next());
+    }
+    assertEquals(0, pks.size());
+    assertEquals(expectedOffset, config.getFromOffset());
+  }
+
+  @Test
+  public void parseASelectAllFromTopicWithLatestOffset() {
+    String topic = "TOPIC_A";
+    String expectedOffset = "LATEST";
+    String syntax = String.format("SELECT * FROM %s FROMOFFSET %s", topic, expectedOffset);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getSource());
+    assertNull(config.getTarget());
+    assertFalse(config.getFieldAlias().hasNext());
+    assertTrue(config.isIncludeAllFields());
+    HashSet<String> pks = new HashSet<>();
+    Iterator<String> iter = config.getPrimaryKeys();
+    while (iter.hasNext()) {
+      pks.add(iter.next());
+    }
+    assertEquals(0, pks.size());
+    assertEquals(expectedOffset, config.getFromOffset());
+  }
+
+  @Test
+  public void parseASelectAllFromTopicWithASpecificLatestOffset() {
+    String topic = "TOPIC_A";
+    String expectedOffset = "1456";
+    String syntax = String.format("SELECT * FROM %s FROMOFFSET %s", topic, expectedOffset);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getSource());
+    assertNull(config.getTarget());
+    assertFalse(config.getFieldAlias().hasNext());
+    assertTrue(config.isIncludeAllFields());
+    HashSet<String> pks = new HashSet<>();
+    Iterator<String> iter = config.getPrimaryKeys();
+    while (iter.hasNext()) {
+      pks.add(iter.next());
+    }
+    assertEquals(0, pks.size());
+    assertEquals(expectedOffset, config.getFromOffset());
   }
 
   @Test
@@ -62,11 +139,10 @@ public class ConfigSelectOnlyTest {
   @Test
   public void parseASelectWithAMixOfAliasing() {
     String topic = "TOPIC.A";
-    String table = "TABLE_A";
-    String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f3, f2 as col2,f4 FROM %s", table, topic);
+    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s", topic);
     Config config = Config.parse(syntax);
     assertEquals(topic, config.getSource());
-    assertEquals(table, config.getTarget());
+    assertNull(config.getTarget());
     List<FieldAlias> fa = Lists.newArrayList(config.getFieldAlias());
     Map<String, FieldAlias> map = new HashMap<>();
     for (FieldAlias alias : fa) {
@@ -84,5 +160,10 @@ public class ConfigSelectOnlyTest {
     assertFalse(config.isIncludeAllFields());
   }
 
-
+  @Test(expected = IllegalArgumentException.class)
+  public void throwAnExceptionIfTheFromOffsetIsNotAValidNumber() {
+    String topic = "TOPIC.A";
+    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s FROMOFFSET 11a1", topic);
+    Config.parse(syntax);
+  }
 }

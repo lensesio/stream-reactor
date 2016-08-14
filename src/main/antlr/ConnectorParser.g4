@@ -36,10 +36,14 @@ schema_name
    ;
 
 insert_from_clause
-   : sql_action table_name select_clause ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( storedas_name )?
+   : sql_action table_name select_clause_basic ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( storedas_name )?
    ;
 
 select_clause
+   : select_clause_basic (with_consumer_group)? (with_from_offset)?
+   ;
+
+select_clause_basic
    : SELECT column_list FROM topic_name ( IGNORE ignore_clause )?
    ;
 
@@ -157,4 +161,20 @@ clusterby_list
 
 clusterby
     : CLUSTERBY clusterby_list INTO buckets_number BUCKETS
+    ;
+
+with_consumer_group
+    :  WITHGROUP with_consumer_group_value
+    ;
+
+with_consumer_group_value
+    :  TOPICNAME
+    ;
+
+with_from_offset
+    : FROMOFFSET with_from_offset_value
+    ;
+
+with_from_offset_value
+    : LATEST|EARLIEST|INT
     ;

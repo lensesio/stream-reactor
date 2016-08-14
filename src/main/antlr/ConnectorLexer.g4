@@ -77,6 +77,22 @@ SYS_TIME
     : 'sys_time()' | 'SYS_TIME()'
     ;
 
+WITHGROUP
+    : 'withgroup' | 'WITHGROUP'
+    ;
+
+FROMOFFSET
+    :  'fromoffset' | 'FROMOFFSET'
+    ;
+
+LATEST
+    : 'latest' | 'LATEST'
+    ;
+
+EARLIEST
+    : 'earliest'|'EARLIEST'
+    ;
+
 PK
    : 'pk' | 'PK'
    ;

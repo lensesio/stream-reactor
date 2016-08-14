@@ -108,6 +108,16 @@ public interface ConnectorParserListener extends ParseTreeListener {
 	 */
 	void exitSelect_clause(ConnectorParser.Select_clauseContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#select_clause_basic}.
+	 * @param ctx the parse tree
+	 */
+	void enterSelect_clause_basic(ConnectorParser.Select_clause_basicContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#select_clause_basic}.
+	 * @param ctx the parse tree
+	 */
+	void exitSelect_clause_basic(ConnectorParser.Select_clause_basicContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link ConnectorParser#topic_name}.
 	 * @param ctx the parse tree
 	 */
@@ -397,4 +407,44 @@ public interface ConnectorParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitClusterby(ConnectorParser.ClusterbyContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#with_consumer_group}.
+	 * @param ctx the parse tree
+	 */
+	void enterWith_consumer_group(ConnectorParser.With_consumer_groupContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#with_consumer_group}.
+	 * @param ctx the parse tree
+	 */
+	void exitWith_consumer_group(ConnectorParser.With_consumer_groupContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#with_consumer_group_value}.
+	 * @param ctx the parse tree
+	 */
+	void enterWith_consumer_group_value(ConnectorParser.With_consumer_group_valueContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#with_consumer_group_value}.
+	 * @param ctx the parse tree
+	 */
+	void exitWith_consumer_group_value(ConnectorParser.With_consumer_group_valueContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#with_from_offset}.
+	 * @param ctx the parse tree
+	 */
+	void enterWith_from_offset(ConnectorParser.With_from_offsetContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#with_from_offset}.
+	 * @param ctx the parse tree
+	 */
+	void exitWith_from_offset(ConnectorParser.With_from_offsetContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#with_from_offset_value}.
+	 * @param ctx the parse tree
+	 */
+	void enterWith_from_offset_value(ConnectorParser.With_from_offset_valueContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#with_from_offset_value}.
+	 * @param ctx the parse tree
+	 */
+	void exitWith_from_offset_value(ConnectorParser.With_from_offset_valueContext ctx);
 }
