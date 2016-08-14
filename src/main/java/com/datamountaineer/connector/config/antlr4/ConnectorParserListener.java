@@ -88,6 +88,16 @@ public interface ConnectorParserListener extends ParseTreeListener {
 	 */
 	void exitSchema_name(ConnectorParser.Schema_nameContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#insert_from_clause}.
+	 * @param ctx the parse tree
+	 */
+	void enterInsert_from_clause(ConnectorParser.Insert_from_clauseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#insert_from_clause}.
+	 * @param ctx the parse tree
+	 */
+	void exitInsert_from_clause(ConnectorParser.Insert_from_clauseContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link ConnectorParser#select_clause}.
 	 * @param ctx the parse tree
 	 */

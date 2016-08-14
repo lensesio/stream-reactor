@@ -112,6 +112,18 @@ public class ConnectorParserBaseListener implements ConnectorParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterInsert_from_clause(ConnectorParser.Insert_from_clauseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitInsert_from_clause(ConnectorParser.Insert_from_clauseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSelect_clause(ConnectorParser.Select_clauseContext ctx) { }
 	/**
 	 * {@inheritDoc}
