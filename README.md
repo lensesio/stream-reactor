@@ -82,6 +82,14 @@ Kafka connect RethinkDb sink to write Kafka topic payloads to RethinkDb.
 
 Kafka connect Yahoo Finance source to write to Kafka
 
+### [Kafka-Connect-InfluxDb](kafka-connect-influxdb/README.md)
+
+Kafka connect InfluxDb sink to write Kafka topic payloads to InfluxDb.
+
+### [Kafka-Connect-Voltdb](kafka-connect-voltdb/README.md)
+
+Kafka connect Voltdb sink to write Kafka topic payloads to Votldb.
+
 #### [Kafka-Socket-Streamer](kafka-socket-streamer/README.md)
 
 Test module for Akka Http and Reactive Kafka with Websocket and Server Send Event support.
