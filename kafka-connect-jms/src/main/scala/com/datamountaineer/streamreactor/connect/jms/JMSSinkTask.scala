@@ -62,9 +62,6 @@ class JMSSinkTask extends SinkTask with StrictLogging {
     val sinkConfig = new JMSSinkConfig(props)
     val settings = JMSSettings(sinkConfig)
 
-    val assigned = context.assignment().map(a => a.topic()).toList
-    if (assigned.isEmpty) throw new ConnectException("No topics have been assigned to this task!")
-
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
       context.timeout(sinkConfig.getInt(JMSSinkConfig.ERROR_RETRY_INTERVAL).toLong)

@@ -65,9 +65,6 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     val sinkConfig = new RedisSinkConfig(props)
     val settings = RedisSinkSettings(sinkConfig)
 
-    val assigned = context.assignment().map(a => a.topic()).toList
-    if (assigned.isEmpty) throw new ConnectException("No topics have been assigned to this task!")
-
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
       context.timeout(sinkConfig.getInt(RedisSinkConfig.ERROR_RETRY_INTERVAL).toLong)
