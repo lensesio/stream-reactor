@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -59,10 +58,16 @@ public class ConfigSelectOnlyTest {
   }
 
   @Test
-  public void parseASelectAllFromTopicWithEarliestOffset() {
+  public void parseASelectAllFromTopicWithMultiplePartitionsAndOffset() {
     String topic = "TOPIC_A";
-    String expectedOffset = "earliest";
-    String syntax = String.format("SELECT * FROM %s FROMOFFSET %s", topic, expectedOffset);
+    Long expectedOffset1 = 1L;
+    int partition1 = 2;
+
+    Long expectedOffset2 = 1252L;
+    int partition2 = 0;
+
+    String syntax = String.format("SELECT * FROM %s FROMOFFSET %d=%d, %d=%d",
+            topic, partition1, expectedOffset1, partition2, expectedOffset2);
     Config config = Config.parse(syntax);
     assertEquals(topic, config.getSource());
     assertNull(config.getTarget());
@@ -74,14 +79,27 @@ public class ConfigSelectOnlyTest {
       pks.add(iter.next());
     }
     assertEquals(0, pks.size());
-    assertEquals(expectedOffset, config.getFromOffset());
+
+    List<PartitionOffset> partitionOffsets = config.getPartitonOffset();
+    assertNotNull(partitionOffsets);
+    assertEquals(2, partitionOffsets.size());
+
+    PartitionOffset po1 = partitionOffsets.get(0);
+
+    assertEquals(partition1, po1.getPartition());
+    assertEquals(expectedOffset1, po1.getOffset());
+
+    PartitionOffset po2 = partitionOffsets.get(1);
+    assertEquals(partition2, po2.getPartition());
+    assertEquals(expectedOffset2, po2.getOffset());
+
   }
 
   @Test
   public void parseASelectAllFromTopicWithLatestOffset() {
     String topic = "TOPIC_A";
-    String expectedOffset = "LATEST";
-    String syntax = String.format("SELECT * FROM %s FROMOFFSET %s", topic, expectedOffset);
+    Long expectedOffset = 1455L;
+    String syntax = String.format("SELECT * FROM %s FROMOFFSET  0 = %d", topic, expectedOffset);
     Config config = Config.parse(syntax);
     assertEquals(topic, config.getSource());
     assertNull(config.getTarget());
@@ -93,27 +111,12 @@ public class ConfigSelectOnlyTest {
       pks.add(iter.next());
     }
     assertEquals(0, pks.size());
-    assertEquals(expectedOffset, config.getFromOffset());
+    assertEquals(1, config.getPartitonOffset().size());
+    PartitionOffset po = config.getPartitonOffset().get(0);
+    assertEquals(0, po.getPartition());
+    assertEquals(expectedOffset, po.getOffset());
   }
 
-  @Test
-  public void parseASelectAllFromTopicWithASpecificLatestOffset() {
-    String topic = "TOPIC_A";
-    String expectedOffset = "1456";
-    String syntax = String.format("SELECT * FROM %s FROMOFFSET %s", topic, expectedOffset);
-    Config config = Config.parse(syntax);
-    assertEquals(topic, config.getSource());
-    assertNull(config.getTarget());
-    assertFalse(config.getFieldAlias().hasNext());
-    assertTrue(config.isIncludeAllFields());
-    HashSet<String> pks = new HashSet<>();
-    Iterator<String> iter = config.getPrimaryKeys();
-    while (iter.hasNext()) {
-      pks.add(iter.next());
-    }
-    assertEquals(0, pks.size());
-    assertEquals(expectedOffset, config.getFromOffset());
-  }
 
   @Test
   public void parseASelectWithAliasingFields() {

@@ -45,7 +45,7 @@ public class Config {
   private String timestamp;
   private String storedAs;
   private String consumerGroup;
-  private String fromOffset;
+  private List<PartitionOffset> partitons = null;
 
   public void addIgnoredField(final String ignoredField) {
     if (ignoredField == null || ignoredField.trim().length() == 0) {
@@ -156,12 +156,8 @@ public class Config {
     return consumerGroup;
   }
 
-  public void setFromOffset(String fromOffset) {
-    this.fromOffset = fromOffset;
-  }
-
-  public String getFromOffset() {
-    return fromOffset;
+  public List<PartitionOffset> getPartitonOffset() {
+    return partitons;
   }
 
   public static Config parse(final String syntax) {
@@ -305,8 +301,22 @@ public class Config {
       }
 
       @Override
-      public void exitWith_from_offset_value(ConnectorParser.With_from_offset_valueContext ctx) {
-        config.setFromOffset(ctx.getText());
+      public void exitFrom_offset_list(ConnectorParser.From_offset_listContext ctx) {
+        String value = ctx.getText();
+        String[] split = value.split("=");
+
+        if (config.partitons == null) {
+          config.partitons = new ArrayList<PartitionOffset>();
+        }
+
+
+        int partition = Integer.parseInt(split[0]);
+        if (split.length == 1) {
+          config.partitons.add(new PartitionOffset(partition));
+        } else {
+          long offset = Long.parseLong(split[1]);
+          config.partitons.add(new PartitionOffset(partition, offset));
+        }
       }
     });
 

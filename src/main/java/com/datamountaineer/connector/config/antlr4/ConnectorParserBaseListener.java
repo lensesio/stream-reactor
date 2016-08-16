@@ -520,25 +520,49 @@ public class ConnectorParserBaseListener implements ConnectorParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterWith_from_offset(ConnectorParser.With_from_offsetContext ctx) { }
+	@Override public void enterOffset_partition(ConnectorParser.Offset_partitionContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitWith_from_offset(ConnectorParser.With_from_offsetContext ctx) { }
+	@Override public void exitOffset_partition(ConnectorParser.Offset_partitionContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterWith_from_offset_value(ConnectorParser.With_from_offset_valueContext ctx) { }
+	@Override public void enterPartition_value(ConnectorParser.Partition_valueContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitWith_from_offset_value(ConnectorParser.With_from_offset_valueContext ctx) { }
+	@Override public void exitPartition_value(ConnectorParser.Partition_valueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterOffset_value(ConnectorParser.Offset_valueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitOffset_value(ConnectorParser.Offset_valueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterFrom_offset_list(ConnectorParser.From_offset_listContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitFrom_offset_list(ConnectorParser.From_offset_listContext ctx) { }
 
 	/**
 	 * {@inheritDoc}

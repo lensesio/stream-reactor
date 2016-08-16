@@ -40,7 +40,7 @@ insert_from_clause
    ;
 
 select_clause
-   : select_clause_basic (with_consumer_group)? (with_from_offset)?
+   : select_clause_basic (with_consumer_group)? (from_offset_list)?
    ;
 
 select_clause_basic
@@ -119,6 +119,7 @@ partitionby
    : PARTITIONBY partition_list
    ;
 
+
 distribute_name
    : ID
    ;
@@ -171,10 +172,18 @@ with_consumer_group_value
     :  TOPICNAME
     ;
 
-with_from_offset
-    : FROMOFFSET with_from_offset_value
+offset_partition
+    : WS+partition_value EQUAL offset_value
     ;
 
-with_from_offset_value
-    : LATEST|EARLIEST|INT
+partition_value
+    : INT
+    ;
+
+offset_value
+    : INT
+    ;
+
+from_offset_list
+    : FROMOFFSET offset_partition ( COMMA offset_partition )*
     ;
