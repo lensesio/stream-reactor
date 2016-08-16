@@ -66,7 +66,7 @@ public class ConfigSelectOnlyTest {
     Long expectedOffset2 = 1252L;
     int partition2 = 0;
 
-    String syntax = String.format("SELECT * FROM %s FROMOFFSET %d=%d, %d=%d",
+    String syntax = String.format("SELECT * FROM %s WITHOFFSET (%d,%d), (%d,%d)",
             topic, partition1, expectedOffset1, partition2, expectedOffset2);
     Config config = Config.parse(syntax);
     assertEquals(topic, config.getSource());
@@ -96,10 +96,10 @@ public class ConfigSelectOnlyTest {
   }
 
   @Test
-  public void parseASelectAllFromTopicWithLatestOffset() {
+  public void parseASelectAllFromTopicWithJustPartitionNoOffset() {
     String topic = "TOPIC_A";
-    Long expectedOffset = 1455L;
-    String syntax = String.format("SELECT * FROM %s FROMOFFSET  0 = %d", topic, expectedOffset);
+
+    String syntax = String.format("SELECT * FROM %s WITHOFFSET (0)", topic);
     Config config = Config.parse(syntax);
     assertEquals(topic, config.getSource());
     assertNull(config.getTarget());
@@ -111,10 +111,11 @@ public class ConfigSelectOnlyTest {
       pks.add(iter.next());
     }
     assertEquals(0, pks.size());
+    assertNotNull(config.getPartitonOffset());
     assertEquals(1, config.getPartitonOffset().size());
     PartitionOffset po = config.getPartitonOffset().get(0);
     assertEquals(0, po.getPartition());
-    assertEquals(expectedOffset, po.getOffset());
+    assertNull(po.getOffset());
   }
 
 
@@ -166,7 +167,7 @@ public class ConfigSelectOnlyTest {
   @Test(expected = IllegalArgumentException.class)
   public void throwAnExceptionIfTheFromOffsetIsNotAValidNumber() {
     String topic = "TOPIC.A";
-    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s FROMOFFSET 11a1", topic);
+    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s WITHOFFSET 11a1", topic);
     Config.parse(syntax);
   }
 }

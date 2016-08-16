@@ -520,6 +520,18 @@ public class ConnectorParserBaseListener implements ConnectorParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterOffset_partition_inner(ConnectorParser.Offset_partition_innerContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitOffset_partition_inner(ConnectorParser.Offset_partition_innerContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterOffset_partition(ConnectorParser.Offset_partitionContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -532,37 +544,25 @@ public class ConnectorParserBaseListener implements ConnectorParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterPartition_value(ConnectorParser.Partition_valueContext ctx) { }
+	@Override public void enterPartition_offset_list(ConnectorParser.Partition_offset_listContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitPartition_value(ConnectorParser.Partition_valueContext ctx) { }
+	@Override public void exitPartition_offset_list(ConnectorParser.Partition_offset_listContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterOffset_value(ConnectorParser.Offset_valueContext ctx) { }
+	@Override public void enterWith_offset_list(ConnectorParser.With_offset_listContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitOffset_value(ConnectorParser.Offset_valueContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterFrom_offset_list(ConnectorParser.From_offset_listContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitFrom_offset_list(ConnectorParser.From_offset_listContext ctx) { }
+	@Override public void exitWith_offset_list(ConnectorParser.With_offset_listContext ctx) { }
 
 	/**
 	 * {@inheritDoc}

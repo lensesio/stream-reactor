@@ -81,16 +81,8 @@ WITHGROUP
     : 'withgroup' | 'WITHGROUP'
     ;
 
-FROMOFFSET
-    :  'fromoffset' | 'FROMOFFSET'
-    ;
-
-LATEST
-    : 'latest' | 'LATEST'
-    ;
-
-EARLIEST
-    : 'earliest'|'EARLIEST'
+WITHOFFSET
+    :  'withoffset' | 'WITHOFFSET'
     ;
 
 PK
@@ -116,6 +108,14 @@ COMMA
 DOT
    : '.'
    ;
+
+LEFT_PARAN
+    : '('
+    ;
+
+RIGHT_PARAN
+    : ')'
+    ;
 
 
 ID

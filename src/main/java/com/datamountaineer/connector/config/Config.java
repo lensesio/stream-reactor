@@ -301,9 +301,9 @@ public class Config {
       }
 
       @Override
-      public void exitFrom_offset_list(ConnectorParser.From_offset_listContext ctx) {
+      public void exitOffset_partition_inner(ConnectorParser.Offset_partition_innerContext ctx) {
         String value = ctx.getText();
-        String[] split = value.split("=");
+        String[] split = value.split(",");
 
         if (config.partitons == null) {
           config.partitons = new ArrayList<PartitionOffset>();
