@@ -37,18 +37,6 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   protected val ASSIGNMENT: util.Set[TopicPartition] =  new util.HashSet[TopicPartition]
   //Set topic assignments
   ASSIGNMENT.add(TOPIC_PARTITION)
-  var instance : Option[HazelcastInstance] = None
-
-
-  def start {
-    val configApp1 = new Config()
-    configApp1.getGroupConfig().setName(GROUP_NAME).setPassword(HazelCastSinkConfig.SINK_GROUP_PASSWORD_DEFAULT)
-    instance = Some(Hazelcast.newHazelcastInstance(configApp1))
-  }
-
-  def stop {
-    instance.get.shutdown()
-  }
 
   def getProps = {
     Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP,

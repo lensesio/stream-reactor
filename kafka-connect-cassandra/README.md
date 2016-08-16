@@ -9,7 +9,7 @@ A Connector and Sink to write events from Kafka to Cassandra.
 
 ## Perquisites
 * Cassandra 2.2.4
-* Confluent 2.0.1
+* Confluent 3.0.0
 * Java 1.8 
 * Scala 2.11
 

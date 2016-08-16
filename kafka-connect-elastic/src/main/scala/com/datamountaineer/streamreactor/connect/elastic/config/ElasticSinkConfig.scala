@@ -42,7 +42,6 @@ object ElasticSinkConfig {
     .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY_DOC)
 }
 
-
 /**
   * <h1>ElasticSinkConfig</h1>
   *

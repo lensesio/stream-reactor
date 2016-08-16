@@ -67,7 +67,7 @@ object HazelCastSinkConfig {
   val TCP_NO_DELAY_DEFAULT = true
 
   val REUSE_ADDRESS = "connect.hazelcast.connection.reuse.address"
-  val REUSE_ADDRESS_DOC = """ Enables/disables the SO_REUSEADDR socket option. The default value is true.""".stripMargin
+  val REUSE_ADDRESS_DOC = """Enables/disables the SO_REUSEADDR socket option. The default value is true.""".stripMargin
   val REUSE_ADDRESS_DEFAULT = true
 
   val LINGER_SECONDS = "connect.hazelcast.connection.linger.seconds"

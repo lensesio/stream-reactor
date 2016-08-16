@@ -61,10 +61,6 @@ object ReThinkSinkConfig {
   val BATCH_SIZE_DOC = "Per topic the number of sink records to batch together and insert into Kudu"
   val BATCH_SIZE_DEFAULT = 1000
 
-  val SCHEMA_REGISTRY_URL = "connect.rethink.sink.schema.registry.url"
-  val SCHEMA_REGISTRY_URL_DOC = "Url for the schema registry"
-  val SCHEMA_REGISTRY_URL_DEFAULT = "http://localhost:8081"
-
   val config: ConfigDef = new ConfigDef()
     .define(RETHINK_HOST, Type.STRING, RETHINK_HOST_DEFAULT, Importance.HIGH, RETHINK_HOST_DOC)
     .define(RETHINK_DB, Type.STRING, Importance.HIGH, RETHINK_HOST_DOC)
@@ -74,7 +70,6 @@ object ReThinkSinkConfig {
     .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC)
     .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC)
     .define(BATCH_SIZE, Type.INT, BATCH_SIZE_DEFAULT, Importance.MEDIUM, BATCH_SIZE_DOC)
-    .define(SCHEMA_REGISTRY_URL, Type.STRING, SCHEMA_REGISTRY_URL_DEFAULT ,Importance.HIGH, SCHEMA_REGISTRY_URL_DOC)
 }
 
 case class ReThinkSinkConfig(props: util.Map[String, String])

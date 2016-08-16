@@ -26,7 +26,8 @@ import java.io.{ByteArrayInputStream, ObjectInputStream}
 import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkConfig, HazelCastSinkSettings}
 import com.datamountaineer.streamreactor.connect.hazelcast.{HazelCastConnection, MessageListenerImplAvro, MessageListenerImplJson, TestBase}
 import com.hazelcast.client.proxy.ClientReliableTopicProxy
-import com.hazelcast.core.{ITopic, Message, MessageListener}
+import com.hazelcast.config.Config
+import com.hazelcast.core.{Hazelcast, ITopic, Message, MessageListener}
 import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
 import org.apache.avro.io.DecoderFactory
 import org.scalatest.BeforeAndAfter
@@ -35,17 +36,12 @@ import org.scalatest.BeforeAndAfter
   * Created by andrew@datamountaineer.com on 11/08/16. 
   * stream-reactor
   */
-class TestHazelCastWriter extends TestBase with BeforeAndAfter {
-
-  before {
-    start
-  }
-
-  after {
-    stop
-  }
+class TestHazelCastWriter extends TestBase {
 
    "should write avro to hazelcast reliable topic" in {
+     val configApp1 = new Config()
+     configApp1.getGroupConfig().setName(GROUP_NAME).setPassword(HazelCastSinkConfig.SINK_GROUP_PASSWORD_DEFAULT)
+     val instance = Hazelcast.newHazelcastInstance(configApp1)
      val props = getProps
      val config = new HazelCastSinkConfig(props)
      val settings = HazelCastSinkSettings(config)
@@ -71,10 +67,15 @@ class TestHazelCastWriter extends TestBase with BeforeAndAfter {
      message.isInstanceOf[GenericRecord] shouldBe true
      message.get("int_field") shouldBe 12
      message.get("string_field").toString shouldBe "foo"
+     conn.shutdown()
+     instance.shutdown()
    }
 
 
   "should write json to hazelcast reliable topic" in {
+    val configApp1 = new Config()
+    configApp1.getGroupConfig().setName(GROUP_NAME).setPassword(HazelCastSinkConfig.SINK_GROUP_PASSWORD_DEFAULT)
+    val instance = Hazelcast.newHazelcastInstance(configApp1)
     val props = getPropsJson
     val config = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
@@ -99,6 +100,7 @@ class TestHazelCastWriter extends TestBase with BeforeAndAfter {
     val message = listener.message.get
     message.toString shouldBe json
     conn.shutdown()
+    instance.shutdown()
   }
 }
 

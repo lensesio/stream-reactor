@@ -21,7 +21,8 @@ package com.datamountaineer.streamreactor.connect.hazelcast.sink
 
 import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkConfig, HazelCastSinkSettings}
 import com.datamountaineer.streamreactor.connect.hazelcast.{HazelCastConnection, MessageListenerImplJson, TestBase}
-import com.hazelcast.core.ITopic
+import com.hazelcast.config.Config
+import com.hazelcast.core.{Hazelcast, ITopic}
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
@@ -33,17 +34,15 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 12/08/16. 
   * stream-reactor
   */
-class TestHazelCastSinkTask extends TestBase with MockitoSugar with BeforeAndAfter {
-
-  before {
-    start
-  }
-
-  after {
-    stop
-  }
+class TestHazelCastSinkTask extends TestBase with MockitoSugar {
 
   "should start SinkTask and write json" in {
+    val configApp1 = new Config()
+    configApp1.setProperty( "hazelcast.logging.type", "log4j" )
+    configApp1.getGroupConfig().setName(GROUP_NAME).setPassword(HazelCastSinkConfig.SINK_GROUP_PASSWORD_DEFAULT)
+    val instance = Hazelcast.newHazelcastInstance(configApp1)
+
+
     val props = getPropsJson
     val context = mock[SinkTaskContext]
     val assignment = getAssignment
@@ -65,7 +64,7 @@ class TestHazelCastSinkTask extends TestBase with MockitoSugar with BeforeAndAft
 
     //write
     task.put(records.asJava)
-    task.stop()
+    //task.stop()
 
     while (!listener.gotMessage) {
       Thread.sleep(1000)
@@ -74,7 +73,7 @@ class TestHazelCastSinkTask extends TestBase with MockitoSugar with BeforeAndAft
     val message = listener.message.get
     message.toString shouldBe json
     conn.shutdown()
+    task.stop()
+    instance.shutdown()
   }
-
-
 }
