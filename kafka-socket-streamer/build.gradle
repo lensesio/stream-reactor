@@ -6,6 +6,7 @@ project(":kafka-socket-streamer") {
         akkaKafkaVersion = "0.11-M4"
         logBackVersion = "1.1.2"
         confluentVersion = '3.0.0'
+        jacksonVersion = "3.4.0"
     }
 
     tasks.withType(Jar) {
@@ -15,24 +16,24 @@ project(":kafka-socket-streamer") {
     }
 
     dependencies {
-        compile ("io.confluent:kafka-connect-avro-converter:$confluentVersion") {
+        compile("io.confluent:kafka-connect-avro-converter:$confluentVersion") {
             exclude group: "org.slf4j"
         }
         //akka
         compile "com.typesafe.akka:akka-actor_$scalaMajorVersion:$akkaVersion"
         compile "com.typesafe.akka:akka-stream_$scalaMajorVersion:$akkaVersion"
-        compile ("com.typesafe.akka:akka-stream-kafka_$scalaMajorVersion:$akkaKafkaVersion") {
+        compile("com.typesafe.akka:akka-stream-kafka_$scalaMajorVersion:$akkaKafkaVersion") {
             exclude group: "org.slf4j", module: "log4j-over-slf4j"
         }
         compile "com.typesafe.akka:akka-http-experimental_$scalaMajorVersion:$akkaVersion"
         compile "com.typesafe.akka:akka-http-spray-json-experimental_$scalaMajorVersion:$akkaVersion"
-        compile ("de.heikoseeberger:akka-sse_$scalaMajorVersion:$akkaSseVersion") {
+        compile("de.heikoseeberger:akka-sse_$scalaMajorVersion:$akkaSseVersion") {
             exclude group: "org.scala-lang", module: "scala-library"
         }
 
         //kafka
         compile "org.apache.kafka:kafka-clients:$kafkaVersion"
-        compile ("org.apache.kafka:kafka_$scalaMajorVersion:$kafkaVersion") {
+        compile("org.apache.kafka:kafka_$scalaMajorVersion:$kafkaVersion") {
             exclude group: "org.slf4j"
         }
 
@@ -43,5 +44,7 @@ project(":kafka-socket-streamer") {
         //test deps
         testCompile "com.typesafe.akka:akka-http-testkit_$scalaMajorVersion:$akkaVersion"
         testCompile "com.typesafe.akka:akka-stream-testkit_$scalaMajorVersion:$akkaVersion"
+
+        compile "org.json4s:json4s-jackson_$scalaMajorVersion:$jacksonVersion"
     }
 }
