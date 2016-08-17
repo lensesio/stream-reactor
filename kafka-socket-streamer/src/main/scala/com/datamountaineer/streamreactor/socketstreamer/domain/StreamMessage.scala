@@ -24,6 +24,7 @@ import spray.json.DefaultJsonProtocol
   */
 case class StreamMessage(key: Option[String], value: Option[String])
 
+
 trait StreamMessageProtocol extends DefaultJsonProtocol {
   implicit val streamMessageProtocol = jsonFormat2(StreamMessage)
 }
