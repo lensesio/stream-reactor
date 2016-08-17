@@ -58,6 +58,25 @@ public class ConfigSelectOnlyTest {
   }
 
   @Test
+  public void parseASelectAllFromTopicWithAConsumerGroup123() {
+    String topic = "TOPIC_A";
+    String expectedConsumerGroup = "123";
+    String syntax = String.format("SELECT * FROM %s WITHGROUP %s", topic, expectedConsumerGroup);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getSource());
+    assertNull(config.getTarget());
+    assertFalse(config.getFieldAlias().hasNext());
+    assertTrue(config.isIncludeAllFields());
+    HashSet<String> pks = new HashSet<>();
+    Iterator<String> iter = config.getPrimaryKeys();
+    while (iter.hasNext()) {
+      pks.add(iter.next());
+    }
+    assertEquals(0, pks.size());
+    assertEquals(expectedConsumerGroup, config.getConsumerGroup());
+  }
+
+  @Test
   public void parseASelectAllFromTopicWithMultiplePartitionsAndOffset() {
     String topic = "TOPIC_A";
     Long expectedOffset1 = 1L;

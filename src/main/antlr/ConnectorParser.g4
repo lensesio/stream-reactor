@@ -169,7 +169,7 @@ with_consumer_group
     ;
 
 with_consumer_group_value
-    :  TOPICNAME
+    :  INT|ID|TOPICNAME
     ;
 
 
