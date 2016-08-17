@@ -62,10 +62,6 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
     val sinkConfig = HbaseSinkConfig(props)
     val hbaseSettings = HbaseSettings(sinkConfig)
 
-    val assigned = context.assignment().map(a => a.topic()).toList
-    if (assigned.isEmpty) throw new ConnectException("No topics have been assigned to this task!")
-
-
     //if error policy is retry set retry interval
     if (hbaseSettings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
       context.timeout(sinkConfig.getInt(HbaseSinkConfig.ERROR_RETRY_INTERVAL).toLong)

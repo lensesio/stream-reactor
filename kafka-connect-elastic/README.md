@@ -9,7 +9,7 @@ A Connector and Sink to write events from Kafka to Elastic Search using [Elastic
 The Sink creates an Index and Type corresponding to the topic name and uses the JSON insert functionality from Elastic4s
 
 ## Prerequisites
-* Confluent 2.0.1
+* Confluent 3.0.0
 * Elastic Search 2.2
 * Java 1.8 
 * Scala 2.11

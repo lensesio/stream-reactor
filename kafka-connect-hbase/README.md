@@ -15,7 +15,7 @@ The task expects the table in HBase to exist. By default all the fields in the r
 ## Prerequisites
 
 * Hbase 1.2.0
-* Confluent 2.0
+* Confluent 3.0.0
 * Java 1.8 
 * Scala 2.11
 

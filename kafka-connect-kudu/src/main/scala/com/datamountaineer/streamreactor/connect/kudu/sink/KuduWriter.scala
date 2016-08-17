@@ -152,7 +152,6 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
         schemaCache.update(topic, SchemaMap(version, schema))
       }
     }
-
     record
   }
 

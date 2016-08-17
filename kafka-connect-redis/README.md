@@ -9,7 +9,7 @@ A Connector and Sink to write events from Kafka to Redis. The connector takes th
 ## Prerequisites
 
 * Jedis 2.8.1
-* Confluent 2.0.1
+* Confluent 3.0.0
 * Java 1.8 
 * Scala 2.11
 

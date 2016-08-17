@@ -10,7 +10,7 @@ WORK IN PROGRESS
 
 ## Prerequisites
 
-* Confluent 2.0
+* Confluent 3.0.0
 * Druid Tranquility 0.7.4
 * Java 1.8 
 * Scala 2.11

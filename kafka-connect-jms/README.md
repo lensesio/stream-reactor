@@ -9,7 +9,7 @@ puts it on the JMS topic/queue.
 ## Prerequisites
 
 * Any JMS framework (i.e. ActiveMQ)
-* Confluent 2.0
+* Confluent 3.0.0
 * Java 1.8 
 * Scala 2.11
 
