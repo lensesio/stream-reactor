@@ -26,10 +26,6 @@ import spray.json.DefaultJsonProtocol
   */
 case class HeartBeatMessage(timestamp: String, system: String, message: String)
 
-trait HeartBeatMessageFormat extends DefaultJsonProtocol {
-  implicit val heartBeatFormat = jsonFormat3(HeartBeatMessage.apply)
-}
-
 object HeartBeatMessage {
   def apply(system: String): HeartBeatMessage = HeartBeatMessage(Calendar.getInstance.getTime.toString, system, "heartbeat")
 }

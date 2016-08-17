@@ -6,7 +6,7 @@ project(":kafka-socket-streamer") {
         akkaKafkaVersion = "0.11-M4"
         logBackVersion = "1.1.2"
         confluentVersion = '3.0.0'
-        jacksonVersion = "3.4.0"
+        jacksonVersion = "2.7.5"
     }
 
     tasks.withType(Jar) {
@@ -41,10 +41,12 @@ project(":kafka-socket-streamer") {
         compile "ch.qos.logback:logback-classic:$logBackVersion"
         compile "com.typesafe.akka:akka-slf4j_$scalaMajorVersion:$akkaVersion"
 
+        compile "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+        compile "com.fasterxml.jackson.module:jackson-module-scala_$scalaMajorVersion:$jacksonVersion"
+
         //test deps
         testCompile "com.typesafe.akka:akka-http-testkit_$scalaMajorVersion:$akkaVersion"
         testCompile "com.typesafe.akka:akka-stream-testkit_$scalaMajorVersion:$akkaVersion"
 
-        compile "org.json4s:json4s-jackson_$scalaMajorVersion:$jacksonVersion"
     }
 }

@@ -21,17 +21,16 @@ import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import akka.kafka.scaladsl.Consumer.Control
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import com.datamountaineer.streamreactor.socketstreamer.ConsumerRecordHelper._
-import com.datamountaineer.streamreactor.socketstreamer.SocketStreamerConfig
+import com.datamountaineer.streamreactor.socketstreamer.{JacksonJson, SocketStreamerConfig}
 import com.datamountaineer.streamreactor.socketstreamer.domain._
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import de.heikoseeberger.akkasse.ServerSentEvent
 import io.confluent.kafka.serializers.KafkaAvroDecoder
-import spray.json._
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-object KafkaFlow extends StrictLogging with HeartBeatMessageFormat {
+object KafkaFlow extends StrictLogging {
 
   /**
     * Create a flow with a null sink (don't accept incoming websocket data) and a source from Kafka out to the websocket
@@ -66,7 +65,7 @@ object KafkaFlow extends StrictLogging with HeartBeatMessageFormat {
         val sse = record.toSSEMessage
         sse
       }
-      .keepAlive(1.second, () => ServerSentEvent(HeartBeatMessage(system.name).toJson.compactPrint))
+      .keepAlive(1.second, () => ServerSentEvent(JacksonJson.toJson(HeartBeatMessage(system.name))))
 
     source
   }
