@@ -8,12 +8,9 @@ import de.heikoseeberger.akkasse.ServerSentEvent
 import io.confluent.kafka.serializers.KafkaAvroDecoder
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.json4s.DefaultFormats
-import org.json4s.jackson.Serialization
 
 object ConsumerRecordHelper {
 
-  implicit val formats = DefaultFormats
 
   implicit class ConsumerRecordConverter(val consumerRecord: ConsumerRecord[Array[Byte], Array[Byte]]) {
 
@@ -34,13 +31,12 @@ object ConsumerRecordHelper {
 
       val payload = Option(consumerRecord.value)
         .map(value => decoder.fromBytes(value).asInstanceOf[GenericRecord])
-
         .map(fieldsValuesExtractor.get)
-        .map {m=>
-          Serialization.write(m)
+        .map { m =>
+          JacksonJson.toJson(m)
         }
 
-      Serialization.write(StreamMessage(key, payload))
+      JacksonJson.toJson(StreamMessage(key, payload))
     }
 
     /**

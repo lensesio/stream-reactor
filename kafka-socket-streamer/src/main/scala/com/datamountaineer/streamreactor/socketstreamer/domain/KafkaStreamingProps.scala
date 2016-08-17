@@ -17,7 +17,7 @@ object KafkaStreamingProps {
     val config = Config.parse(query)
 
     val extractor = GenericRecordFieldsValuesExtractor(config.isIncludeAllFields,
-      config.getFieldAlias.map(fa => fa.getField -> fa.getAlias).toMap)
+      config.getFieldAlias.map(fa => fa.getField.toUpperCase -> fa.getAlias).toMap)
 
     val kqlPartitionOffset = config.getPartitonOffset
     val partitionOffsets = if (kqlPartitionOffset == null) {
