@@ -36,6 +36,8 @@ public class ConfigSelectOnlyTest {
     }
     assertEquals(0, pks.size());
     assertNull(config.getConsumerGroup());
+    assertNull(config.getSampleCount());
+    assertNull(config.getSampleRate());
   }
 
   @Test
@@ -55,6 +57,8 @@ public class ConfigSelectOnlyTest {
     }
     assertEquals(0, pks.size());
     assertEquals(expectedConsumerGroup, config.getConsumerGroup());
+    assertNull(config.getSampleCount());
+    assertNull(config.getSampleRate());
   }
 
   @Test
@@ -112,6 +116,8 @@ public class ConfigSelectOnlyTest {
     assertEquals(partition2, po2.getPartition());
     assertEquals(expectedOffset2, po2.getOffset());
 
+    assertNull(config.getSampleCount());
+    assertNull(config.getSampleRate());
   }
 
   @Test
@@ -135,6 +141,9 @@ public class ConfigSelectOnlyTest {
     PartitionOffset po = config.getPartitonOffset().get(0);
     assertEquals(0, po.getPartition());
     assertNull(po.getOffset());
+
+    assertNull(config.getSampleCount());
+    assertNull(config.getSampleRate());
   }
 
 
@@ -181,12 +190,72 @@ public class ConfigSelectOnlyTest {
     assertTrue(map.containsKey("f4"));
     assertEquals("f4", map.get("f4").getAlias());
     assertFalse(config.isIncludeAllFields());
+    assertNull(config.getSampleCount());
+    assertNull(config.getSampleRate());
+  }
+
+  @Test
+  public void parseASelectWithSampleRateAndSampleCount() {
+    String topic = "TOPIC.A";
+    Integer expectedSampleCount = 100;
+    Integer expectedSampleRate = 1500;
+    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s SAMPLE %d EVERY %d",
+            topic, expectedSampleCount, expectedSampleRate);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getSource());
+    assertNull(config.getTarget());
+    List<FieldAlias> fa = Lists.newArrayList(config.getFieldAlias());
+    Map<String, FieldAlias> map = new HashMap<>();
+    for (FieldAlias alias : fa) {
+      map.put(alias.getField(), alias);
+    }
+    assertEquals(4, fa.size());
+    assertTrue(map.containsKey("f1"));
+    assertEquals("col1", map.get("f1").getAlias());
+    assertTrue(map.containsKey("f2"));
+    assertEquals("col2", map.get("f2").getAlias());
+    assertTrue(map.containsKey("f3"));
+    assertEquals("f3", map.get("f3").getAlias());
+    assertTrue(map.containsKey("f4"));
+    assertEquals("f4", map.get("f4").getAlias());
+    assertFalse(config.isIncludeAllFields());
+
+    assertEquals(expectedSampleCount, config.getSampleCount());
+    assertEquals(expectedSampleRate, config.getSampleRate());
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void throwAnExceptionIfTheFromOffsetIsNotAValidNumber() {
     String topic = "TOPIC.A";
     String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s WITHOFFSET 11a1", topic);
+    Config.parse(syntax);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwAnExceptionIfTheSampleCountIsNotANumber() {
+    String topic = "TOPIC.A";
+    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s SAMPLE a EVERY 10000", topic);
+    Config.parse(syntax);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwAnExceptionIfTheSampleCountIsZero() {
+    String topic = "TOPIC.A";
+    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s SAMPLE 0 EVERY 10000", topic);
+    Config.parse(syntax);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwAnExceptionIfTheSampleRateIsNotANumber() {
+    String topic = "TOPIC.A";
+    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s SAMPLE 10 EVERY a91", topic);
+    Config.parse(syntax);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwAnExceptionIfTheSampleRateIsZero() {
+    String topic = "TOPIC.A";
+    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s SAMPLE 10 EVERY 0", topic);
     Config.parse(syntax);
   }
 }

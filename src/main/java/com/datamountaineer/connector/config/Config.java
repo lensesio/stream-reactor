@@ -8,6 +8,7 @@ import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.misc.IntegerList;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,29 +47,31 @@ public class Config {
   private String storedAs;
   private String consumerGroup;
   private List<PartitionOffset> partitons = null;
+  private Integer sampleCount;
+  private Integer sampleRate;
 
-  public void addIgnoredField(final String ignoredField) {
+  private void addIgnoredField(final String ignoredField) {
     if (ignoredField == null || ignoredField.trim().length() == 0) {
       throw new IllegalArgumentException("Invalid ignoredField");
     }
     ignoredFields.add(ignoredField);
   }
 
-  public void addFieldAlias(final FieldAlias fieldAlias) {
+  private void addFieldAlias(final FieldAlias fieldAlias) {
     if (fieldAlias == null) {
       throw new IllegalArgumentException("Illegal fieldAlias.");
     }
     fields.put(fieldAlias.getField(), fieldAlias);
   }
 
-  public void addPrimaryKey(final String primaryKey) {
+  private void addPrimaryKey(final String primaryKey) {
     if (primaryKey == null || primaryKey.trim().length() == 0) {
       throw new IllegalArgumentException("Invalid primaryKey.");
     }
     primaryKeys.add(primaryKey);
   }
 
-  public void addPartitionByField(final String field) {
+  private void addPartitionByField(final String field) {
     if (field == null || field.trim().length() == 0) {
       throw new IllegalArgumentException("Invalid partition by field");
     }
@@ -84,7 +87,7 @@ public class Config {
     return source;
   }
 
-  public void setSource(String source) {
+  private void setSource(String source) {
     this.source = source;
   }
 
@@ -92,7 +95,7 @@ public class Config {
     return target;
   }
 
-  public void setTarget(String target) {
+  private void setTarget(String target) {
     this.target = target;
   }
 
@@ -108,7 +111,7 @@ public class Config {
     return includeAllFields;
   }
 
-  public void setIncludeAllFields(boolean includeAllFields) {
+  private void setIncludeAllFields(boolean includeAllFields) {
     this.includeAllFields = includeAllFields;
   }
 
@@ -116,7 +119,7 @@ public class Config {
     return writeMode;
   }
 
-  public void setWriteMode(WriteModeEnum writeMode) {
+  private void setWriteMode(WriteModeEnum writeMode) {
     this.writeMode = writeMode;
   }
 
@@ -144,11 +147,11 @@ public class Config {
     return storedAs;
   }
 
-  public void setStoredAs(String format) {
+  private void setStoredAs(String format) {
     this.storedAs = format;
   }
 
-  public void setConsumerGroup(String consumerGroup) {
+  private void setConsumerGroup(String consumerGroup) {
     this.consumerGroup = consumerGroup;
   }
 
@@ -158,6 +161,22 @@ public class Config {
 
   public List<PartitionOffset> getPartitonOffset() {
     return partitons;
+  }
+
+  public Integer getSampleCount() {
+    return sampleCount;
+  }
+
+  private void setSampleCount(Integer sampleCount) {
+    this.sampleCount = sampleCount;
+  }
+
+  public Integer getSampleRate() {
+    return sampleRate;
+  }
+
+  private void setSampleRate(Integer sampleRate) {
+    this.sampleRate = sampleRate;
   }
 
   public static Config parse(final String syntax) {
@@ -318,6 +337,18 @@ public class Config {
           config.partitons.add(new PartitionOffset(partition, offset));
         }
       }
+
+      @Override
+      public void exitSample_value(ConnectorParser.Sample_valueContext ctx) {
+        Integer value = Integer.parseInt(ctx.getText());
+        config.setSampleCount(value);
+      }
+
+      @Override
+      public void exitSample_period(ConnectorParser.Sample_periodContext ctx) {
+        Integer value = Integer.parseInt(ctx.getText());
+        config.setSampleRate(value);
+      }
     });
 
     try {
@@ -375,7 +406,7 @@ public class Config {
       config.setBucketing(bucketing);
     }
 
-    String ts = config.getTimestamp();
+    String ts = config.timestamp;
     if (ts != null) {
       if (TIMESTAMP.compareToIgnoreCase(ts) == 0) {
         config.setTimestamp(ts.toLowerCase());
@@ -386,6 +417,13 @@ public class Config {
       }
     }
 
+    if (config.sampleCount != null && config.sampleCount == 0) {
+      throw new IllegalArgumentException("Sample count needs to be a positive number greater than zero");
+    }
+
+    if (config.sampleRate != null && config.sampleRate == 0){
+      throw new IllegalArgumentException("Sample rate should be a positive number greater than zero");
+    }
     return config;
   }
 

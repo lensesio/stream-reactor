@@ -40,7 +40,7 @@ insert_from_clause
    ;
 
 select_clause
-   : select_clause_basic (with_consumer_group)? (with_offset_list)?
+   : select_clause_basic (with_consumer_group)? (with_offset_list)? (sample_clause)?
    ;
 
 select_clause_basic
@@ -187,4 +187,17 @@ partition_offset_list
 
 with_offset_list
     : WITHOFFSET partition_offset_list
+    ;
+
+
+sample_clause
+    : SAMPLE sample_value EVERY sample_period
+    ;
+
+sample_value
+    : INT
+    ;
+
+sample_period
+    : INT
     ;

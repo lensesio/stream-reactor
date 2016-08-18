@@ -467,4 +467,34 @@ public interface ConnectorParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitWith_offset_list(ConnectorParser.With_offset_listContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#sample_clause}.
+	 * @param ctx the parse tree
+	 */
+	void enterSample_clause(ConnectorParser.Sample_clauseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#sample_clause}.
+	 * @param ctx the parse tree
+	 */
+	void exitSample_clause(ConnectorParser.Sample_clauseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#sample_value}.
+	 * @param ctx the parse tree
+	 */
+	void enterSample_value(ConnectorParser.Sample_valueContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#sample_value}.
+	 * @param ctx the parse tree
+	 */
+	void exitSample_value(ConnectorParser.Sample_valueContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#sample_period}.
+	 * @param ctx the parse tree
+	 */
+	void enterSample_period(ConnectorParser.Sample_periodContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#sample_period}.
+	 * @param ctx the parse tree
+	 */
+	void exitSample_period(ConnectorParser.Sample_periodContext ctx);
 }

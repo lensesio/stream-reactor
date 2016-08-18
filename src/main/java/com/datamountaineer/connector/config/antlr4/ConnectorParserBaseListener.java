@@ -563,6 +563,42 @@ public class ConnectorParserBaseListener implements ConnectorParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitWith_offset_list(ConnectorParser.With_offset_listContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSample_clause(ConnectorParser.Sample_clauseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSample_clause(ConnectorParser.Sample_clauseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSample_value(ConnectorParser.Sample_valueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSample_value(ConnectorParser.Sample_valueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSample_period(ConnectorParser.Sample_periodContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSample_period(ConnectorParser.Sample_periodContext ctx) { }
 
 	/**
 	 * {@inheritDoc}
