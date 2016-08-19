@@ -20,4 +20,6 @@ package com.datamountaineer.streamreactor.socketstreamer.domain
   * Created by andrew@datamountaineer.com on 15/03/16. 
   * stream-reactor-websocket-feeder
   */
-case class KafkaRequestProps(topic: String, consumerGroup: String, readFromEnd: Boolean)
+case class KafkaClientProps(topic: String,
+                            consumerGroup: String,
+                            parititionAndOffset: Seq[PartitionOffset] = Nil)

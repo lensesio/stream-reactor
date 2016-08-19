@@ -20,7 +20,7 @@ package com.datamountaineer.streamreactor.socketstreamer.flows
   * Created by andrew@datamountaineer.com on 11/03/16. 
   * stream-reactor-websocket-feeder
   */
-trait KafkaConstants {
-  val ZOOKEEPER_KEY="zookeeper.connect"
-  val SCHEMA_REGISTRY_URL="schema.registry.url"
+object KafkaConstants {
+  val ZOOKEEPER_KEY = "zookeeper.connect"
+  val SCHEMA_REGISTRY_URL = "schema.registry.url"
 }
