@@ -74,7 +74,7 @@ javadoc {
 }
 
 dependencies {
-  compile group: 'com.google.cloud', name: 'gcloud-java', version: '0.2.3'
+  compile group: 'com.google.cloud', name: 'gcloud-java', version: '0.2.7'
 
   compile group: 'io.confluent', name: 'kafka-connect-avro-converter', version: '3.0.0'
   compile group: 'io.confluent', name: 'kafka-schema-registry', version: '3.0.0'
