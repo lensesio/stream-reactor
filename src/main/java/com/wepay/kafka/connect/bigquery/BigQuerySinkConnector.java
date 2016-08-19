@@ -19,15 +19,11 @@ package com.wepay.kafka.connect.bigquery;
 
 
 import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
 
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConnectorConfig;
 
-import com.wepay.kafka.connect.bigquery.convert.BigQuerySchemaConverter;
 
-import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
-import com.wepay.kafka.connect.bigquery.convert.kafkadata.KafkaDataBQSchemaConverter;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
 
@@ -106,7 +102,6 @@ public class BigQuerySinkConnector extends SinkConnector {
     return new SchemaManager(
         tablesToTopics,
         new CachedSchemaRegistryClient(config.getString(config.REGISTRY_CONFIG), 0),
-        new org.apache.avro.Schema.Parser(),
         new AvroData(config.getInt(config.AVRO_DATA_CACHE_SIZE_CONFIG)),
         config.getSchemaConverter(),
         bigQuery

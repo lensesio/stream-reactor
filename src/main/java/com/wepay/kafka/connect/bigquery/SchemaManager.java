@@ -53,7 +53,6 @@ public class SchemaManager {
 
   private final Map<TableId, String> tablesToTopics;
   private final SchemaRegistryClient schemaRegistryClient;
-  private final org.apache.avro.Schema.Parser avroParser;
   private final AvroData avroData;
   private final SchemaConverter<Schema> schemaConverter;
   private final BigQuery bigQuery;
@@ -63,7 +62,6 @@ public class SchemaManager {
    * @param schemaRegistryClient A client for accessing the Schema Registry. Used to retrieve schema
    *                             information from the registry when creating new tables or when
    *                             attempting to update existing tables.
-   * @param avroParser A parser used to translate raw Strings into Avro schemas.
    * @param avroData An AvroData object for converting between Avro schemas and Kafka Connect
    *                 schemas.
    * @param schemaConverter A converter used to convert Kafka Connect schemas to BigQuery schemas.
@@ -73,13 +71,11 @@ public class SchemaManager {
   public SchemaManager(
       Map<TableId, String> tablesToTopics,
       SchemaRegistryClient schemaRegistryClient,
-      Parser avroParser,
       AvroData avroData,
       SchemaConverter<Schema> schemaConverter,
       BigQuery bigQuery) {
     this.tablesToTopics = tablesToTopics;
     this.schemaRegistryClient = schemaRegistryClient;
-    this.avroParser = avroParser;
     this.avroData = avroData;
     this.schemaConverter = schemaConverter;
     this.bigQuery = bigQuery;
@@ -144,7 +140,7 @@ public class SchemaManager {
         schemaRegistryClient.getLatestSchemaMetadata(schemaName);
 
     logger.trace("Parsing and converting schema from Avro string to BigQuery Schema");
-    org.apache.avro.Schema avroSchema = avroParser.parse(latestSchemaMetadata.getSchema());
+    org.apache.avro.Schema avroSchema = new Parser().parse(latestSchemaMetadata.getSchema());
     org.apache.kafka.connect.data.Schema kafkaConnectSchema;
     // Synchronize to avoid issues with caching performed by the avroData object
     synchronized (avroData) {

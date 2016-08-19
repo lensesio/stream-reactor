@@ -274,7 +274,6 @@ public class BigQuerySinkTask extends SinkTask {
     return new SchemaManager(
         tablesToTopics,
         new CachedSchemaRegistryClient(config.getString(config.REGISTRY_CONFIG), 0),
-        new org.apache.avro.Schema.Parser(),
         new AvroData(config.getInt(config.AVRO_DATA_CACHE_SIZE_CONFIG)),
         config.getSchemaConverter(),
         bigQuery
