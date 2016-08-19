@@ -32,6 +32,7 @@ RUN ["mkdir", "/usr/logs"]
 RUN ["chmod", "a+rwx", "/usr/logs"]
 
 RUN ["mkdir", "/usr/share/java/kafka-connect-bigquery"]
+RUN ["chmod", "a+rwx", "/usr/share/java/kafka-connect-bigquery"]
 
 USER confluent
 ENTRYPOINT ["/usr/local/bin/connect-docker.sh"]

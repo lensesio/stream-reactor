@@ -33,14 +33,15 @@ save the properties file.
 Once you get more familiar with the connector, you might want to revisit the connector.properties
 file and experiment with tweaking its settings.
 
-### Building a Fat Jar
+### Building and extracting a Tarball
 
-Begin by creating a fat Jar file of the connector, so that all of the necessary dependencies can be
-found in one place:
+Begin by creating a tarball of the connector:
 
-`$ ./gradlew fatJar` (Linux/Mac)
+`$ ./gradlew tarBall`
 
-`$ gradlew fatJar` (Windows)
+And then extract its contents:
+
+`$ tar -C build/distributions/ -xvf build/distributions/kafka-connect-bigquery-dist-0.2.tar`
 
 ### Setting up background processes
 
@@ -75,6 +76,10 @@ Next, initialize the avro console producer (also in its own terminal):
 
 `$ ./avro-console-producer.sh`
 
+Give it some data to start off with (type directly into the avro-console-producer instance):
+
+`{"f1":"Testing the Kafka-BigQuery Connector!"}`
+
 ### Running the Connector
 
 Finally, initialize the BigQuery connector (also in its own terminal):
@@ -84,8 +89,8 @@ Finally, initialize the BigQuery connector (also in its own terminal):
 ### Piping data Through the Connector
 
 Now you can enter Avro messages of the schema `{"f1":"$SOME_STRING"}` into
-the avro console producer instance, and the pipeline instance will attempt to
-write them to BigQuery.
+the avro console producer instance, and the pipeline instance should write
+them to BigQuery.
 
 If/when you want to get more adventurous, you can experiment with different
 schemas and/or topics by adjusting flags given to the avro-console-producer

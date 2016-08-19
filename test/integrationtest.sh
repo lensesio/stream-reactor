@@ -193,19 +193,17 @@ docker start -a "$POPULATE_DOCKER_NAME"
 # Deleting existing BigQuery tables
 warn 'Deleting existing BigQuery test tables'
 
-gradle -q -p "$BASE_DIR/.." integrationTestJar
-
-java -cp "$BASE_DIR/../build/libs/*" com.wepay.kafka.connect.bigquery.it.utils.TableClearer \
-     "$KCBQ_TEST_KEYFILE" "$KCBQ_TEST_PROJECT" "$KCBQ_TEST_DATASET" \
-     `basename "$BASE_DIR"/resources/test_schemas/* \
-      | sed -E -e 's/[^a-zA-Z0-9_]/_/g' -e 's/^(.*)$/kcbq_test_\1/' \
-      | xargs echo -n`
+gradle -Pkcbq_test_keyfile="$KCBQ_TEST_KEYFILE" \
+       -Pkcbq_test_project="$KCBQ_TEST_PROJECT" \
+       -Pkcbq_test_dataset="$KCBQ_TEST_DATASET" \
+       -Pkcbq_test_tables="`basename "$BASE_DIR"/resources/test_schemas/* | sed -E -e 's/[^a-zA-Z0-9_]/_/g' -e 's/^(.*)$/kcbq_test_\1/' | xargs echo -n`" \
+       integrationTestPrep
 
 ####################################################################################################
 # Executing connector in standalone mode (this is the execution portion of the actual test)
 statusupdate 'Executing Kafka Connect in Docker'
 
-gradle -q -p "$BASE_DIR/.." fatJar
+gradle -q -p "$BASE_DIR/.." tar
 
 [[ ! -e "$DOCKER_DIR/connect/properties" ]] && mkdir "$DOCKER_DIR/connect/properties"
 RESOURCES_DIR="$BASE_DIR/resources"
@@ -231,7 +229,7 @@ echo >> "$CONNECTOR_PROPS"
 CONNECT_DOCKER_IMAGE='kcbq/connect'
 CONNECT_DOCKER_NAME='kcbq_test_connect'
 
-cp "$BASE_DIR/../build/libs/kafka-connect-bigquery-all-0.1.jar" "$DOCKER_DIR/connect/kcbq.jar"
+cp "$BASE_DIR/../build/distributions/kafka-connect-bigquery-dist-0.2.tar" "$DOCKER_DIR/connect/kcbq.tar"
 cp "$KCBQ_TEST_KEYFILE" "$DOCKER_DIR/connect/key.json"
 
 if ! dockerimageexists "$CONNECT_DOCKER_IMAGE"; then
@@ -240,7 +238,7 @@ fi
 docker create --name "$CONNECT_DOCKER_NAME" \
               --link "$KAFKA_DOCKER_NAME:kafka" --link "$SCHEMA_REGISTRY_DOCKER_NAME:schema-registry" \
               -t "$CONNECT_DOCKER_IMAGE"
-docker cp "$DOCKER_DIR/connect/kcbq.jar" "$CONNECT_DOCKER_NAME:/usr/share/java/kafka-connect-bigquery/kcbq.jar"
+docker cp "$DOCKER_DIR/connect/kcbq.tar" "$CONNECT_DOCKER_NAME:/usr/share/java/kafka-connect-bigquery/kcbq.tar"
 docker cp "$DOCKER_DIR/connect/properties/" "$CONNECT_DOCKER_NAME:/etc/kafka-connect-bigquery/"
 docker cp "$DOCKER_DIR/connect/key.json" "$CONNECT_DOCKER_NAME:/tmp/key.json"
 docker start -a "$CONNECT_DOCKER_NAME"

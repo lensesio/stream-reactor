@@ -20,7 +20,7 @@ if [ -z $CONFLUENT_DIR ]; then
   CONFLUENT_DIR="$BASE_DIR/../../confluent-3.0.0"
 fi
 
-export CLASSPATH="$CLASSPATH:$BASE_DIR/../build/libs/*"
+export CLASSPATH="$CLASSPATH:$BASE_DIR/../build/distributions/*"
 
 STANDALONE_PROPS="$BASE_DIR/properties/standalone.properties"
 CONNECTOR_PROPS="$BASE_DIR/properties/connector.properties"

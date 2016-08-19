@@ -1,6 +1,7 @@
 build/
 *.class
 *.jar
+*.tar
 
 .gradle
 .idea

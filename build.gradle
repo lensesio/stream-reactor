@@ -5,7 +5,7 @@ apply plugin: 'findbugs'
 apply plugin: 'jacoco'
 
 sourceCompatibility = 1.8
-version = '0.1'
+version = '0.2'
 
 jar {
   manifest {
@@ -14,15 +14,10 @@ jar {
   }
 }
 
-// Copied from http://stackoverflow.com/questions/4871656/using-gradle-to-build-a-jar-with-dependencies
-task fatJar(type: Jar) {
-  baseName = project.name + '-all'
-  from {
-    (configurations.runtime).collect {
-      it.isDirectory() ? it : zipTree(it)
-    }
-  }
-  with jar
+task tarBall(type: Tar) {
+  baseName = project.name + '-dist'
+  from configurations.runtime
+  from jar
 }
 
 jacocoTestReport {
@@ -50,10 +45,14 @@ sourceSets {
   }
 }
 
-task integrationTestJar(type: Jar, dependsOn: compileIntegrationTestJava) {
-  baseName = 'integration-test'
-  from sourceSets.integrationTest.runtimeClasspath
-  with fatJar
+task integrationTestPrep(type: JavaExec) {
+  main = 'com.wepay.kafka.connect.bigquery.it.utils.TableClearer'
+  classpath = sourceSets.integrationTest.runtimeClasspath
+  args findProperty('kcbq_test_keyfile') ?: ''
+  args findProperty('kcbq_test_project') ?: ''
+  args findProperty('kcbq_test_dataset') ?: ''
+  if (findProperty('kcbq_test_tables') != null)
+    args findProperty('kcbq_test_tables').split(' ')
 }
 
 task integrationTest(type: Test) {
