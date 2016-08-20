@@ -23,6 +23,8 @@ import com.hazelcast.client.HazelcastClient
 import com.hazelcast.client.config.{ClientConfig, ClientNetworkConfig, SocketOptions}
 import com.hazelcast.config.GroupConfig
 import com.hazelcast.core.HazelcastInstance
+
+import scala.collection.JavaConversions._
 /**
   * Created by andrew@datamountaineer.com on 10/08/16. 
   * stream-reactor
@@ -31,6 +33,7 @@ object HazelCastConnection {
  def apply(config: HazelCastConnectionConfig): HazelcastInstance = {
    val clientConfig = new ClientConfig
    val networkConfig = clientConfig.getNetworkConfig
+   networkConfig.setAddresses(config.members.toList)
    val groupConfig = new GroupConfig(config.group, config.pass)
    clientConfig.setGroupConfig(groupConfig)
    buildSocketOptions(networkConfig, config.socketConfig)
