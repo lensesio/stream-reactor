@@ -26,20 +26,24 @@ import de.heikoseeberger.akkasse.EventStreamMarshalling
 import Directives._
 import EventStreamMarshalling._
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import kafka.serializer.Decoder
 
 import scala.util.{Failure, Success, Try}
 
 
-object KafkaSocketRoutes extends StrictLogging{
+object KafkaSocketRoutes extends StrictLogging {
 
-  def apply()(implicit system: ActorSystem, config: SocketStreamerConfig, kafkaDecoder: KafkaAvroDecoder): Route = {
+  def apply()(implicit system: ActorSystem,
+              config: SocketStreamerConfig,
+              kafkaDecoder: KafkaAvroDecoder): Route = {
 
     pathPrefix("api" / "kafka") {
       pathPrefix("ws") {
         get {
           parameter('query) { query =>
+            implicit val decoder:Decoder[AnyRef] = kafkaDecoder
             withKafkaStreamingProps(query) { props =>
-                handleWebSocketMessages(KafkaFlow.createWebSocketFlow(props))
+              handleWebSocketMessages(KafkaFlow.createWebSocketFlow(props))
             }
           }
         }
@@ -47,6 +51,7 @@ object KafkaSocketRoutes extends StrictLogging{
         path("sse") {
           get {
             parameter('query) { query =>
+              implicit val decoder:Decoder[AnyRef] = kafkaDecoder
               withKafkaStreamingProps(query) { props =>
                 complete(KafkaFlow.createServerSendFlow(props))
               }
