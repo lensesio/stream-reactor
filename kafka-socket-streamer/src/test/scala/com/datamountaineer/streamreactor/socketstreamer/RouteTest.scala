@@ -2,6 +2,7 @@ package com.datamountaineer.streamreactor.socketstreamer
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.testkit.{ScalatestRouteTest, WSProbe}
+import com.datamountaineer.streamreactor.socketstreamer.avro.{BinaryDecoder, StringDecoder}
 import com.datamountaineer.streamreactor.socketstreamer.routes.KafkaSocketRoutes
 import org.scalatest._
 
@@ -15,7 +16,7 @@ class RouteTest extends FlatSpec with Matchers with ScalatestRouteTest {
     implicit val config = SocketStreamerConfig("bibble", "localhost:2181", "localhost:9092", "http://localhost:8081", 8787)
     implicit val kafkaAvroDecoder = KafkaAvroDecoderFn(config)
     val wsClient = WSProbe()
-    WS("/api/kafka/ws?query=SELECT+%2A+FROM+test+WITHGROUP+123", wsClient.flow) ~> KafkaSocketRoutes() ~> check {
+    WS("/api/kafka/ws?query=SELECT+%2A+FROM+test+WITHFORMAT+AVRO+WITHGROUP+123", wsClient.flow) ~> KafkaSocketRoutes(system, config, kafkaAvroDecoder, StringDecoder, BinaryDecoder).routes ~> check {
       isWebSocketUpgrade shouldEqual true
       wsClient.expectMessage("")
     }

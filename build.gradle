@@ -47,7 +47,7 @@ allprojects {
         json4sVersion = "3.3.0"
         kiteMiniClusterVersion = "1.1.0"
         gsonVersion = "2.6.2"
-        dataMountaineerCQLVersion = "0.8.1"
+        dataMountaineerCQLVersion = "0.8.2"
         confluentVersion = '3.0.0'
     }
 

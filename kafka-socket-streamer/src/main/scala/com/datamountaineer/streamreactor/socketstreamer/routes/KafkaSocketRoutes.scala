@@ -17,31 +17,35 @@
 package com.datamountaineer.streamreactor.socketstreamer.routes
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.server.{Directives, Route, ValidationRejection}
+import akka.http.scaladsl.server.{Route, ValidationRejection}
 import com.datamountaineer.streamreactor.socketstreamer.SocketStreamerConfig
 import com.datamountaineer.streamreactor.socketstreamer.domain.KafkaStreamingProps
 import com.datamountaineer.streamreactor.socketstreamer.flows.KafkaFlow
-import io.confluent.kafka.serializers.KafkaAvroDecoder
-import de.heikoseeberger.akkasse.EventStreamMarshalling
-import Directives._
-import EventStreamMarshalling._
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import io.confluent.kafka.serializers.KafkaAvroDecoder
 import kafka.serializer.Decoder
+import de.heikoseeberger.akkasse.EventStreamMarshalling
+import akka.http.scaladsl.server.Directives._
+import EventStreamMarshalling._
 
 import scala.util.{Failure, Success, Try}
 
 
-object KafkaSocketRoutes extends StrictLogging {
+case class KafkaSocketRoutes(system: ActorSystem,
+                             config: SocketStreamerConfig,
+                             kafkaDecoder: KafkaAvroDecoder,
+                             textDcoder: Decoder[AnyRef],
+                             binaryDecoder: Decoder[AnyRef]) extends StrictLogging {
 
-  def apply()(implicit system: ActorSystem,
-              config: SocketStreamerConfig,
-              kafkaDecoder: KafkaAvroDecoder): Route = {
+  val routes: Route = {
 
     pathPrefix("api" / "kafka") {
       pathPrefix("ws") {
         get {
           parameter('query) { query =>
-            implicit val decoder:Decoder[AnyRef] = kafkaDecoder
+            implicit val decoder: Decoder[AnyRef] = kafkaDecoder
+            implicit val actorSystem = system
+            implicit val socketStreamConfig = config
             withKafkaStreamingProps(query) { props =>
               handleWebSocketMessages(KafkaFlow.createWebSocketFlow(props))
             }
@@ -51,7 +55,9 @@ object KafkaSocketRoutes extends StrictLogging {
         path("sse") {
           get {
             parameter('query) { query =>
-              implicit val decoder:Decoder[AnyRef] = kafkaDecoder
+              implicit val decoder: Decoder[AnyRef] = kafkaDecoder
+              implicit val actorSystem = system
+              implicit val socketStreamConfig = config
               withKafkaStreamingProps(query) { props =>
                 complete(KafkaFlow.createServerSendFlow(props))
               }
@@ -62,7 +68,7 @@ object KafkaSocketRoutes extends StrictLogging {
   }
 
   private def withKafkaStreamingProps(query: String)(thunk: KafkaStreamingProps => Route) = {
-    Try(KafkaStreamingProps(query)) match {
+    Try(KafkaStreamingProps(query)(kafkaDecoder, textDcoder, binaryDecoder)) match {
       case Failure(t) =>
         reject(ValidationRejection(s"Invalid query:$query. ${t.getMessage}"))
       case Success(prop) => thunk(prop)

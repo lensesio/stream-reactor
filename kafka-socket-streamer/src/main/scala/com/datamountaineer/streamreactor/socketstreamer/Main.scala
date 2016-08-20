@@ -21,8 +21,10 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.RouteResult.route2HandlerFlow
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
+import com.datamountaineer.streamreactor.socketstreamer.avro.{BinaryDecoder, StringDecoder}
 import com.datamountaineer.streamreactor.socketstreamer.routes.KafkaSocketRoutes
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.common.serialization.StringDeserializer
 
 import scala.concurrent.duration.DurationInt
 
@@ -60,6 +62,6 @@ object Main extends App with StrictLogging {
     """.stripMargin)
 
   implicit val kafkaAvroDecoder = KafkaAvroDecoderFn(configuration)
-  val flowRoute = KafkaSocketRoutes()
-  val serverBinding = Http().bindAndHandle(interface = "0.0.0.0", port = configuration.port, handler = flowRoute)
+  val flowRoute = new KafkaSocketRoutes(system, configuration, kafkaAvroDecoder, StringDecoder, BinaryDecoder)
+  val serverBinding = Http().bindAndHandle(interface = "0.0.0.0", port = configuration.port, handler = flowRoute.routes)
 }

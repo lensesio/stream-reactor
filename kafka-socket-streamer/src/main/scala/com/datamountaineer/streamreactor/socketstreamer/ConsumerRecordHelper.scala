@@ -1,11 +1,12 @@
 package com.datamountaineer.streamreactor.socketstreamer
 
+import java.util.Base64
+
 import akka.http.scaladsl.model.ws.TextMessage
 import com.datamountaineer.streamreactor.socketstreamer.avro.AvroJsonSerializer._
 import com.datamountaineer.streamreactor.socketstreamer.avro.FieldsValuesExtractor
 import com.datamountaineer.streamreactor.socketstreamer.domain.StreamMessage
 import de.heikoseeberger.akkasse.ServerSentEvent
-import io.confluent.kafka.serializers.KafkaAvroDecoder
 import kafka.serializer.Decoder
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -28,6 +29,7 @@ object ConsumerRecordHelper {
         .map {
           case r: GenericRecord => r.toJson()
           case s: String => s
+          case b: Array[Byte] => Base64.getEncoder.encodeToString(b)
           case other => other.toString
         }
 
@@ -36,10 +38,16 @@ object ConsumerRecordHelper {
         .map {
           case g: GenericRecord => JacksonJson.toJson(fieldsValuesExtractor.get(g))
           case s: String => s
+          case b: Array[Byte] => Base64.getEncoder.encodeToString(b)
           case other => other.toString
         }
 
-      val msg = StreamMessage(record.topic(), record.partition(), record.timestamp(), record.timestampType().toString, key, payload)
+      val msg = StreamMessage(record.topic(),
+        record.partition(),
+        record.timestamp(),
+        record.timestampType().toString,
+        key,
+        payload)
       JacksonJson.toJson(msg)
     }
 
