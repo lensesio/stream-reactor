@@ -497,4 +497,24 @@ public interface ConnectorParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitSample_period(ConnectorParser.Sample_periodContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#with_format_clause}.
+	 * @param ctx the parse tree
+	 */
+	void enterWith_format_clause(ConnectorParser.With_format_clauseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#with_format_clause}.
+	 * @param ctx the parse tree
+	 */
+	void exitWith_format_clause(ConnectorParser.With_format_clauseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#with_format}.
+	 * @param ctx the parse tree
+	 */
+	void enterWith_format(ConnectorParser.With_formatContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#with_format}.
+	 * @param ctx the parse tree
+	 */
+	void exitWith_format(ConnectorParser.With_formatContext ctx);
 }

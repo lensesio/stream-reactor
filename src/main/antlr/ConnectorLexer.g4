@@ -97,6 +97,14 @@ EVERY
     : 'every'|'EVERY'
     ;
 
+WITHFORMAT
+    : 'WITHFORMAT'|'withformat'
+    ;
+
+FORMAT
+    : 'avro'|'AVRO'|'text'|'TEXT'|'binary'|'BINARY'
+    ;
+
 EQUAL
    : '='
    ;

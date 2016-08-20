@@ -40,7 +40,7 @@ insert_from_clause
    ;
 
 select_clause
-   : select_clause_basic (with_consumer_group)? (with_offset_list)? (sample_clause)?
+   : select_clause_basic with_format_clause (with_consumer_group)? (with_offset_list)? (sample_clause)?
    ;
 
 select_clause_basic
@@ -200,4 +200,12 @@ sample_value
 
 sample_period
     : INT
+    ;
+
+with_format_clause
+    : WITHFORMAT with_format
+    ;
+
+with_format
+    : FORMAT
     ;

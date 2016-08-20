@@ -3,6 +3,7 @@ package com.datamountaineer.connector.config;
 import com.google.common.collect.Lists;
 import org.junit.Test;
 
+import java.text.Format;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -23,7 +24,7 @@ public class ConfigSelectOnlyTest {
   @Test
   public void parseASelectAllFromTopic() {
     String topic = "TOPIC_A";
-    String syntax = String.format("SELECT * FROM %s", topic);
+    String syntax = String.format("SELECT * FROM %s withformat text", topic);
     Config config = Config.parse(syntax);
     assertEquals(topic, config.getSource());
     assertNull(config.getTarget());
@@ -38,13 +39,14 @@ public class ConfigSelectOnlyTest {
     assertNull(config.getConsumerGroup());
     assertNull(config.getSampleCount());
     assertNull(config.getSampleRate());
+    assertEquals(FormatType.TEXT, config.getFormatType());
   }
 
   @Test
   public void parseASelectAllFromTopicWithAConsumerGroup() {
     String topic = "TOPIC_A";
     String expectedConsumerGroup = "myconsumer-group";
-    String syntax = String.format("SELECT * FROM %s WITHGROUP %s", topic, expectedConsumerGroup);
+    String syntax = String.format("SELECT * FROM %s withformat binary WITHGROUP %s", topic, expectedConsumerGroup);
     Config config = Config.parse(syntax);
     assertEquals(topic, config.getSource());
     assertNull(config.getTarget());
@@ -59,13 +61,14 @@ public class ConfigSelectOnlyTest {
     assertEquals(expectedConsumerGroup, config.getConsumerGroup());
     assertNull(config.getSampleCount());
     assertNull(config.getSampleRate());
+    assertEquals(FormatType.BINARY, config.getFormatType());
   }
 
   @Test
   public void parseASelectAllFromTopicWithAConsumerGroup123() {
     String topic = "TOPIC_A";
     String expectedConsumerGroup = "123";
-    String syntax = String.format("SELECT * FROM %s WITHGROUP %s", topic, expectedConsumerGroup);
+    String syntax = String.format("SELECT * FROM %s withformat avro WITHGROUP %s", topic, expectedConsumerGroup);
     Config config = Config.parse(syntax);
     assertEquals(topic, config.getSource());
     assertNull(config.getTarget());
@@ -78,6 +81,7 @@ public class ConfigSelectOnlyTest {
     }
     assertEquals(0, pks.size());
     assertEquals(expectedConsumerGroup, config.getConsumerGroup());
+    assertEquals(FormatType.AVRO, config.getFormatType());
   }
 
   @Test
@@ -89,7 +93,7 @@ public class ConfigSelectOnlyTest {
     Long expectedOffset2 = 1252L;
     int partition2 = 0;
 
-    String syntax = String.format("SELECT * FROM %s WITHOFFSET (%d,%d), (%d,%d)",
+    String syntax = String.format("SELECT * FROM %s WITHFORMAT AVRO WITHOFFSET (%d,%d), (%d,%d)",
             topic, partition1, expectedOffset1, partition2, expectedOffset2);
     Config config = Config.parse(syntax);
     assertEquals(topic, config.getSource());
@@ -118,13 +122,14 @@ public class ConfigSelectOnlyTest {
 
     assertNull(config.getSampleCount());
     assertNull(config.getSampleRate());
+    assertEquals(FormatType.AVRO, config.getFormatType());
   }
 
   @Test
   public void parseASelectAllFromTopicWithJustPartitionNoOffset() {
     String topic = "TOPIC_A";
 
-    String syntax = String.format("SELECT * FROM %s WITHOFFSET (0)", topic);
+    String syntax = String.format("SELECT * FROM %s withformat text WITHOFFSET (0)", topic);
     Config config = Config.parse(syntax);
     assertEquals(topic, config.getSource());
     assertNull(config.getTarget());
@@ -150,7 +155,7 @@ public class ConfigSelectOnlyTest {
   @Test
   public void parseASelectWithAliasingFields() {
     String topic = "TOPIC-A";
-    String syntax = String.format("SELECT f1 as col1, f2 as col2 FROM %s", topic);
+    String syntax = String.format("SELECT f1 as col1, f2 as col2 FROM %s withformat binary", topic);
     Config config = Config.parse(syntax);
     assertEquals(topic, config.getSource());
     assertNull(config.getTarget());
@@ -171,7 +176,7 @@ public class ConfigSelectOnlyTest {
   @Test
   public void parseASelectWithAMixOfAliasing() {
     String topic = "TOPIC.A";
-    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s", topic);
+    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s withformat text", topic);
     Config config = Config.parse(syntax);
     assertEquals(topic, config.getSource());
     assertNull(config.getTarget());
@@ -199,7 +204,7 @@ public class ConfigSelectOnlyTest {
     String topic = "TOPIC.A";
     Integer expectedSampleCount = 100;
     Integer expectedSampleRate = 1500;
-    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s SAMPLE %d EVERY %d",
+    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s withformat binary SAMPLE %d EVERY %d",
             topic, expectedSampleCount, expectedSampleRate);
     Config config = Config.parse(syntax);
     assertEquals(topic, config.getSource());
@@ -227,35 +232,42 @@ public class ConfigSelectOnlyTest {
   @Test(expected = IllegalArgumentException.class)
   public void throwAnExceptionIfTheFromOffsetIsNotAValidNumber() {
     String topic = "TOPIC.A";
-    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s WITHOFFSET 11a1", topic);
+    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s WITHFORMAT AVRO WITHOFFSET 11a1", topic);
     Config.parse(syntax);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void throwAnExceptionIfTheSampleCountIsNotANumber() {
     String topic = "TOPIC.A";
-    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s SAMPLE a EVERY 10000", topic);
+    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s  WITHFORMAT AVRO SAMPLE a EVERY 10000", topic);
     Config.parse(syntax);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void throwAnExceptionIfTheSampleCountIsZero() {
     String topic = "TOPIC.A";
-    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s SAMPLE 0 EVERY 10000", topic);
+    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s WITHFORMAT AVRO SAMPLE 0 EVERY 10000", topic);
     Config.parse(syntax);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void throwAnExceptionIfTheSampleRateIsNotANumber() {
     String topic = "TOPIC.A";
-    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s SAMPLE 10 EVERY a91", topic);
+    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s WITHFORMAT AVRO SAMPLE 10 EVERY a91", topic);
     Config.parse(syntax);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void throwAnExceptionIfTheSampleRateIsZero() {
     String topic = "TOPIC.A";
-    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s SAMPLE 10 EVERY 0", topic);
+    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s WITHFORMAT AVRO SAMPLE 10 EVERY 0", topic);
+    Config.parse(syntax);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwAnExceptionIfTheFormatIsNotCorrect() {
+    String topic = "TOPIC.A";
+    String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s WITHFORMAT ARO SAMPLE 10 EVERY 0", topic);
     Config.parse(syntax);
   }
 }

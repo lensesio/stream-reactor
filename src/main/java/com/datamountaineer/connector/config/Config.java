@@ -49,6 +49,7 @@ public class Config {
   private List<PartitionOffset> partitons = null;
   private Integer sampleCount;
   private Integer sampleRate;
+  private FormatType formatType = null;
 
   private void addIgnoredField(final String ignoredField) {
     if (ignoredField == null || ignoredField.trim().length() == 0) {
@@ -177,6 +178,14 @@ public class Config {
 
   private void setSampleRate(Integer sampleRate) {
     this.sampleRate = sampleRate;
+  }
+
+  public FormatType getFormatType() {
+    return formatType;
+  }
+
+  private void setFormatType(FormatType type) {
+    formatType = type;
   }
 
   public static Config parse(final String syntax) {
@@ -349,6 +358,12 @@ public class Config {
         Integer value = Integer.parseInt(ctx.getText());
         config.setSampleRate(value);
       }
+
+      @Override
+      public void exitWith_format(ConnectorParser.With_formatContext ctx) {
+        FormatType formatType = FormatType.valueOf(ctx.getText().toUpperCase());
+        config.setFormatType(formatType);
+      }
     });
 
     try {
@@ -421,7 +436,7 @@ public class Config {
       throw new IllegalArgumentException("Sample count needs to be a positive number greater than zero");
     }
 
-    if (config.sampleRate != null && config.sampleRate == 0){
+    if (config.sampleRate != null && config.sampleRate == 0) {
       throw new IllegalArgumentException("Sample rate should be a positive number greater than zero");
     }
     return config;
