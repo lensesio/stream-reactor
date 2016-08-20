@@ -26,6 +26,7 @@ import com.datamountaineer.streamreactor.socketstreamer.domain._
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import de.heikoseeberger.akkasse.ServerSentEvent
 import io.confluent.kafka.serializers.KafkaAvroDecoder
+import kafka.serializer.Decoder
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -39,7 +40,7 @@ object KafkaFlow extends StrictLogging {
     * @return a Flow with a null inbound sink and a ReactiveKafka publisher source
     **/
   def createWebSocketFlow(props: KafkaStreamingProps)
-                         (implicit system: ActorSystem, config: SocketStreamerConfig, kafkaAvroDecoder: KafkaAvroDecoder): Flow[Message, Message, Any] = {
+                         (implicit system: ActorSystem, config: SocketStreamerConfig, decoder: Decoder[AnyRef]): Flow[Message, Message, Any] = {
     logger.info("Establishing flow")
     val kafkaSource = KafkaSourceCreateFn(props)
     implicit val extractor = props.fieldsValuesExtractor
@@ -56,7 +57,7 @@ object KafkaFlow extends StrictLogging {
     * @return a ReactiveKafka publisher source
     **/
   def createServerSendFlow(props: KafkaStreamingProps)
-                          (implicit system: ActorSystem, config: SocketStreamerConfig, kafkaAvroDecoder: KafkaAvroDecoder): Source[ServerSentEvent, Control] = {
+                          (implicit system: ActorSystem, config: SocketStreamerConfig, decoder: Decoder[AnyRef]): Source[ServerSentEvent, Control] = {
     logger.info("Establishing Send Server Event stream.")
     implicit val extractor = props.fieldsValuesExtractor
     //get the kafka source
