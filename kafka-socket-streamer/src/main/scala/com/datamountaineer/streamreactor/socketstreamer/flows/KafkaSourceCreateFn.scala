@@ -7,12 +7,11 @@ import akka.kafka.{ConsumerSettings, Subscriptions}
 import akka.stream.scaladsl.Source
 import com.datamountaineer.streamreactor.socketstreamer.SocketStreamerConfig
 import com.datamountaineer.streamreactor.socketstreamer.domain.KafkaClientProps
+import com.datamountaineer.streamreactor.socketstreamer.flows.SourceExtension._
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
-
-import SourceExtension._
 
 object KafkaSourceCreateFn extends StrictLogging {
 
@@ -32,10 +31,13 @@ object KafkaSourceCreateFn extends StrictLogging {
       //if an offset is out of range or the offset doesn't exist yet default to earliest available
       .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
 
+    val kafkaClientSettings = (config.consumerProperties - ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)
+      .foldLeft(consumerSettings) { case (settings, (k, v)) => settings.withProperty(k, v) }
+
     val source = if (kafkaRequestProps.parititionAndOffset.isEmpty) {
-      Consumer.plainSource(consumerSettings, Subscriptions.topics(kafkaRequestProps.topic))
+      Consumer.plainSource(kafkaClientSettings, Subscriptions.topics(kafkaRequestProps.topic))
     } else {
-      buildMergedSources(consumerSettings, kafkaRequestProps)
+      buildMergedSources(kafkaClientSettings, kafkaRequestProps)
     }
 
     kafkaRequestProps.sample.fold(source) { p => source.withSampling(p.count, p.rate) }

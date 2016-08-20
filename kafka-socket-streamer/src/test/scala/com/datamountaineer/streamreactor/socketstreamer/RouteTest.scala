@@ -13,7 +13,7 @@ import org.scalatest._
 class RouteTest extends FlatSpec with Matchers with ScalatestRouteTest {
   it should "handle websocket requests for topics" in {
     implicit val system = ActorSystem("bibble")
-    implicit val config = SocketStreamerConfig("bibble", "localhost:2181", "localhost:9092", "http://localhost:8081", 8787)
+    implicit val config = SocketStreamerConfig("bibble", "localhost:2181", "localhost:9092", "http://localhost:8081", 8787, Map.empty)
     implicit val kafkaAvroDecoder = KafkaAvroDecoderFn(config)
     val wsClient = WSProbe()
     WS("/api/kafka/ws?query=SELECT+%2A+FROM+test+WITHFORMAT+AVRO+WITHGROUP+123", wsClient.flow) ~> KafkaSocketRoutes(system, config, kafkaAvroDecoder, StringDecoder, BinaryDecoder).routes ~> check {
