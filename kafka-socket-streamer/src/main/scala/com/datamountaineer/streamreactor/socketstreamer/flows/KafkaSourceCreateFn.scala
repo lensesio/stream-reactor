@@ -12,6 +12,7 @@ import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 
+import SourceExtension._
 
 object KafkaSourceCreateFn extends StrictLogging {
 
@@ -31,32 +32,38 @@ object KafkaSourceCreateFn extends StrictLogging {
       //if an offset is out of range or the offset doesn't exist yet default to earliest available
       .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
 
-    if (kafkaRequestProps.parititionAndOffset.isEmpty) {
+    val source = if (kafkaRequestProps.parititionAndOffset.isEmpty) {
       Consumer.plainSource(consumerSettings, Subscriptions.topics(kafkaRequestProps.topic))
     } else {
+      buildMergedSources(consumerSettings, kafkaRequestProps)
+    }
 
-      //we could have scenarios where the user selects some partitions from a given offset whereas for the others they don't
-      val (withOffset, withoutOffset) = kafkaRequestProps.parititionAndOffset.span(_.offset.isDefined)
+    kafkaRequestProps.sample.fold(source) { p => source.withSampling(p.count, p.rate) }
+  }
 
-      val sourceWithOffset = withOffset.headOption
-        .map { _ =>
-          val offsetsMap = withOffset.map { tp =>
-            new TopicPartition(kafkaRequestProps.topic, tp.partition) -> tp.offset.get
-          }.toMap
+  def buildMergedSources(consumerSettings: ConsumerSettings[Array[Byte], Array[Byte]], kafkaRequestProps: KafkaClientProps) = {
+    //we could have scenarios where the user selects some partitions from a given offset whereas for the others they don't
+    val (withOffset, withoutOffset) = kafkaRequestProps.parititionAndOffset.span(_.offset.isDefined)
 
-          Consumer.plainSource(consumerSettings, Subscriptions.assignmentWithOffset(offsetsMap))
-        }
+    val sourceWithOffset = withOffset.headOption
+      .map { _ =>
+        val offsetsMap = withOffset.map { tp =>
+          new TopicPartition(kafkaRequestProps.topic, tp.partition) -> tp.offset.get
+        }.toMap
 
-      val sourceWithoutOffset = withoutOffset.headOption
-        .map { _ =>
-          val assignments = withoutOffset.map { tp => new TopicPartition(kafkaRequestProps.topic, tp.partition) }
-          Consumer.plainSource(consumerSettings, Subscriptions.assignment(assignments: _*))
-        }
-
-      Seq(sourceWithOffset, sourceWithoutOffset).flatten match {
-        case Seq(source1, source2) => source1.merge(source2)
-        case Seq(source) => source
+        Consumer.plainSource(consumerSettings, Subscriptions.assignmentWithOffset(offsetsMap))
       }
+
+    val sourceWithoutOffset = withoutOffset.headOption
+      .map { _ =>
+        val assignments = withoutOffset.map { tp => new TopicPartition(kafkaRequestProps.topic, tp.partition) }
+        Consumer.plainSource(consumerSettings, Subscriptions.assignment(assignments: _*))
+      }
+
+    Seq(sourceWithOffset, sourceWithoutOffset).flatten match {
+      case Seq(source1, source2) => source1.merge(source2)
+      case Seq(source) => source
     }
   }
+
 }

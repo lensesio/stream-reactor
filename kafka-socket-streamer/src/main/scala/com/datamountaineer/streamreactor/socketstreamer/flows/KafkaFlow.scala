@@ -71,6 +71,6 @@ object KafkaFlow extends StrictLogging {
   }
 
   implicit def convert(props: KafkaStreamingProps): KafkaClientProps = {
-    KafkaClientProps(props.topic, props.group, props.partitionOffset)
+    KafkaClientProps(props.topic, props.group, props.partitionOffset, props.sampleProps)
   }
 }

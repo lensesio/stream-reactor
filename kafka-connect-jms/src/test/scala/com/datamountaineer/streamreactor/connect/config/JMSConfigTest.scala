@@ -10,8 +10,7 @@ class JMSConfigTest extends WordSpec with Matchers {
   "JMSConfig" should {
     "should create a setting for JMS queue" in {
       val queue = "queue1"
-      val config = new Config()
-      config.setTarget(queue)
+      val config = Config.parse(s"INSERT INTO $queue SELECT * FROM topica")
       val jms = JMSConfig(config, Set.empty[String], Set(queue))
       jms.destinationType shouldBe QueueDestination
     }
@@ -19,8 +18,7 @@ class JMSConfigTest extends WordSpec with Matchers {
     "should create a setting for JMS topics" in {
       val queue = "queue1"
       val topic = "topic1"
-      val config = new Config()
-      config.setTarget(topic)
+      val config = Config.parse(s"INSERT INTO $topic SELECT * FROM $topic")
       val jms = JMSConfig(config, Set(topic), Set(queue))
       jms.destinationType shouldBe TopicDestination
     }
@@ -29,8 +27,7 @@ class JMSConfigTest extends WordSpec with Matchers {
       intercept[ConfigException] {
         val queue = "queue1"
         val topic = "topic1"
-        val config = new Config()
-        config.setTarget("notfound")
+        val config = Config.parse(s"INSERT INTO notfound SELECT * FROM $topic")
         val jms = JMSConfig(config, Set(topic), Set(queue))
         jms.destinationType shouldBe TopicDestination
       }
@@ -40,12 +37,7 @@ class JMSConfigTest extends WordSpec with Matchers {
       val queue = "queue1"
       val topic = "topic1"
       val source = "source1Topic"
-      val config = new Config()
-      config.setTarget(topic)
-      config.setSource(source)
-      config.setAutoCreate(true)
-      config.setIncludeAllFields(true)
-      config.setRetries(100)
+      val config = Config.parse(s"INSERT INTO $topic SELECT * FROM $source AUTOCREATE")
       val jms = JMSConfig(config, Set(topic), Set(queue))
       jms.destinationType shouldBe TopicDestination
       jms.fieldsAlias shouldBe Map.empty
