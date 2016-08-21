@@ -66,6 +66,8 @@ Kafka connect Bloomberg source to subscribe to Bloomberg streams via the open AP
 
 Kafka connect Druid sink to write Kafka topic payloads to Druid.
 
+WORK IN PROGRESS
+
 #### [Kafka-Connect-HBase](kafka-connect-hbase/README.md)
 
 Kafka connect HBase sink to write Kafka topic payloads to HBase.

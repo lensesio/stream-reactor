@@ -47,12 +47,12 @@ allprojects {
         json4sVersion = "3.3.0"
         kiteMiniClusterVersion = "1.1.0"
         gsonVersion = "2.6.2"
-        dataMountaineerCQLVersion = "0.8.2"
+        dataMountaineerCQLVersion = "0.8.3"
         confluentVersion = '3.0.0'
     }
 
     repositories {
-        mavenLocal()
+        //mavenLocal()
         mavenCentral()
         maven { url "http://packages.confluent.io/maven/" }
         maven { url "http://repo.typesafe.com/typesafe/releases/" }

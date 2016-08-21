@@ -18,15 +18,17 @@ package com.datamountaineer.streamreactor.connect.hazelcast.sink
 
 import java.io.ByteArrayOutputStream
 
+import com.datamountaineer.connector.config.FormatType
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
-import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkSettings, StoredAs}
+import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.hazelcast.core.{HazelcastInstance, ITopic}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.avro.Schema
 import org.apache.avro.io.EncoderFactory
 import org.apache.avro.reflect.ReflectDatumWriter
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.util.Try
@@ -55,7 +57,12 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
     case (t, o) => (t, client.getReliableTopic(o).asInstanceOf[ITopic[Object]])
   })
 
-  def write(records: Set[SinkRecord]) = {
+  /**
+    * Write records to Hazelcast
+    *
+    * @param records The sink records to write.
+    * */
+  def write(records: Set[SinkRecord]): Unit = {
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
@@ -72,18 +79,32 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
     }
   }
 
-  def convert(record: SinkRecord): Array[Byte] = {
-    val storedAs = settings.storeAs.get(record.topic()).get
+  /**
+    * Convert a sink record to avro or Json string bytes
+    *
+    * @param record The sinkrecord to convert
+    * @return an array of bytes
+    * */
+  private def convert(record: SinkRecord): Array[Byte] = {
+    val storedAs = settings.format.get(record.topic()).get
     storedAs match {
-      case StoredAs.AVRO => {
+      case FormatType.AVRO => {
         val avro = toAvro(record)
         serializeAvro(avro, avro.getSchema)
       }
-      case StoredAs.JSON => toJson(record).toString.getBytes
+      case FormatType.JSON | FormatType.TEXT => toJson(record).toString.getBytes
+      case _ => throw new ConnectException(s"Unknown STORED AS type ${storedAs.toString}")
     }
   }
 
-  def serializeAvro(datum: Object, schema: Schema): Array[Byte] = {
+  /**
+    * Serialize an object to a avro encoded byte array
+    *
+    * @param datum The object to serialize
+    * @param schema The avro schema for the object
+    * @return Avro encoded byte array.
+    * */
+  private def serializeAvro(datum: Object, schema: Schema): Array[Byte] = {
     val out = new ByteArrayOutputStream()
     val writer = new ReflectDatumWriter[Object](schema)
     val encoder = EncoderFactory.get().binaryEncoder(out, null)
@@ -113,10 +134,10 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
     convertValueToGenericAvro(extracted)
   }
 
-  def close = {
+  def close: Unit = {
     logger.info("Shutting down Hazelcast client.")
     client.shutdown()
   }
 
-  def flush = {}
+  def flush: Unit = {}
 }

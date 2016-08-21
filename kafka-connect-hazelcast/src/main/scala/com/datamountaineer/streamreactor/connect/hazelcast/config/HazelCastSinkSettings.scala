@@ -16,17 +16,11 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.config
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.connector.config.{Config, FormatType}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
-import com.datamountaineer.streamreactor.connect.hazelcast.config.StoredAs.StoredAs
 import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConversions._
-
-object StoredAs extends Enumeration {
-  type StoredAs = Value
-  val JSON, AVRO = Value
-}
 
 /**
   * Created by andrew@datamountaineer.com on 08/08/16.
@@ -41,7 +35,7 @@ case class HazelCastSinkSettings(groupName : String,
                                  errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                                  maxRetries: Int = HazelCastSinkConfig.NBR_OF_RETIRES_DEFAULT,
                                  batchSize: Int = HazelCastSinkConfig.BATCH_SIZE_DEFAULT,
-                                 storeAs: Map[String, StoredAs.Value])
+                                 format: Map[String, FormatType])
 
 object HazelCastSinkSettings {
   def apply(config: HazelCastSinkConfig): HazelCastSinkSettings = {
@@ -62,7 +56,7 @@ object HazelCastSinkSettings {
     val groupName = config.getString(HazelCastSinkConfig.SINK_GROUP_NAME)
     require(groupName.nonEmpty,  s"No ${HazelCastSinkConfig.SINK_GROUP_NAME} provided!")
     val connConfig = HazelCastConnectionConfig(config)
-    val storedas = routes.map(r => (r.getSource, getStoredAs(Option(r.getStoredAs)))).toMap
+    val format = routes.map(r => (r.getSource, getFormatType(r.getFormatType))).toMap
 
     new HazelCastSinkSettings(groupName,
                               connConfig,
@@ -73,15 +67,19 @@ object HazelCastSinkSettings {
                               errorPolicy,
                               maxRetries,
                               batchSize,
-                              storedas)
+                              format)
   }
 
 
-  def getStoredAs(storedAs: Option[String])  = {
-    storedAs.getOrElse("JSON").toUpperCase() match {
-      case "JSON" => StoredAs.JSON
-      case "AVRO" => StoredAs.AVRO
-      case _ => throw new ConnectException(s"Unknown STORED AS type $storedAs")
+  private def getFormatType(format: FormatType) = {
+    if (format == null) {
+      FormatType.JSON
+    } else {
+      format match {
+        case FormatType.AVRO | FormatType.JSON | FormatType.TEXT =>
+        case _ => throw new ConnectException(s"Unknown STORED AS type")
+      }
+      format
     }
   }
 }

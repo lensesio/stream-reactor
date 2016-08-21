@@ -25,8 +25,8 @@ import scala.collection.JavaConverters._
 trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   val TOPIC = "sink_test"
   val TABLE = "table1"
-  val EXPORT_MAP=s"INSERT INTO $TABLE SELECT * FROM $TOPIC STOREDAS avro"
-  val EXPORT_MAP_JSON=s"INSERT INTO $TABLE SELECT * FROM $TOPIC STOREDAS json"
+  val EXPORT_MAP=s"INSERT INTO $TABLE SELECT * FROM $TOPIC WITHFORMAT avro"
+  val EXPORT_MAP_JSON=s"INSERT INTO $TABLE SELECT * FROM $TOPIC WITHFORMAT json"
   val EXPORT_MAP_SELECTION = s"INSERT INTO $TABLE SELECT a, b, c FROM $TOPIC"
   val EXPORT_MAP_IGNORED = s"INSERT INTO $TABLE SELECT * FROM $TOPIC IGNORE a"
   val GROUP_NAME = "unittest"
