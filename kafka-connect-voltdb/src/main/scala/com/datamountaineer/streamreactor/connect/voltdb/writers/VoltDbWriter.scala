@@ -16,6 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.voltdb.writers
 
+import java.util
+
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.sink.DbWriter
@@ -31,8 +33,8 @@ import scala.util.Try
 
 class VoltDbWriter(settings: VoltSettings) extends DbWriter with StrictLogging with ConverterUtil with ErrorHandler {
 
-  ValidateStringParameterFn(settings.servers, "settings")
-  ValidateStringParameterFn(settings.user, "settings")
+  //ValidateStringParameterFn(settings.servers, "settings")
+  //ValidateStringParameterFn(settings.user, "settings")
 
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
@@ -44,7 +46,7 @@ class VoltDbWriter(settings: VoltSettings) extends DbWriter with StrictLogging w
   private val proceduresMap = settings.fieldsExtractorMap.values.map { extract =>
     val procName = s"${extract.targetTable}.${if (extract.isUpsert) "upsert" else "insert"}"
     logger.info(s"Retrieving the metadata for $procName ...")
-    val fields = VoltDbMetadataReader.getProcedureParameters(client, procName).map(_.toUpperCase)
+    val fields = VoltDbMetadataReader.getProcedureParameters(client, extract.targetTable).map(_.toUpperCase)
     logger.info(s"$procName expected arguments are: ${fields.mkString(",")}")
     extract.targetTable -> ProcAndFields(procName, fields)
   }.toMap
@@ -73,13 +75,15 @@ class VoltDbWriter(settings: VoltSettings) extends DbWriter with StrictLogging w
       throw new ConfigException(s"${record.topic()} is not handled by the configuration:${settings.fieldsExtractorMap.keys.mkString(",")}"))
 
     val fieldsAndValuesMap = extractor.get(record.value().asInstanceOf[Struct]).map { case (k, v) => (k.toUpperCase, v) }
-
-    val procAndFields = proceduresMap(extractor.targetTable)
+    logger.info(fieldsAndValuesMap.mkString(","))
+    val procAndFields: ProcAndFields = proceduresMap(extractor.targetTable)
+    logger.info(procAndFields.toString)
     //get the list of arguments to pass to the table insert/upsert procedure. if the procedure expects a field and is
     //not present in the incoming SinkRecord it would use null
     //No table evolution is supported yet
-    val arguments = PrepareProcedureFieldsFn(procAndFields.fields, fieldsAndValuesMap)
-    client.callProcedure(procAndFields.procName, arguments)
+
+    val arguments: Array[String] = PrepareProcedureFieldsFn(procAndFields.fields, fieldsAndValuesMap).toArray
+    client.callProcedure(procAndFields.procName, arguments:_*)
   }
 
 

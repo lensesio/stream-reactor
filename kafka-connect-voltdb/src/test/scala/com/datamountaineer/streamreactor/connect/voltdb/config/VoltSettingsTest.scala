@@ -19,25 +19,25 @@ class VoltSettingsTest extends WordSpec with Matchers with MockitoSugar {
   "raise a configuration exception if the connection servers is missing" in {
     intercept[ConfigException] {
       val config = mock[VoltSinkConfig]
-      when(config.getString(VoltSinkConfig.USER_CONFIG)).thenReturn("myuser")
-      when(config.getString(VoltSinkConfig.PASSWORD_CONFIG)).thenReturn("apass")
+     // when(config.getString(VoltSinkConfig.USER_CONFIG)).thenReturn("myuser")
+     // when(config.getString(VoltSinkConfig.PASSWORD_CONFIG)).thenReturn("apass")
       when(config.getString(VoltSinkConfig.ERROR_POLICY_CONFIG)).thenReturn("THROW")
       when(config.getString(VoltSinkConfig.EXPORT_ROUTE_QUERY_CONFIG)).thenReturn(QUERY_ALL)
       VoltSettings(config)
     }
   }
 
-  "raise a configuration exception if the user is not set" in {
-    intercept[ConfigException] {
-      val config = mock[VoltSinkConfig]
-      when(config.getString(VoltSinkConfig.SERVERS_CONFIG)).thenReturn("localhost:8081")
-      when(config.getString(VoltSinkConfig.USER_CONFIG)).thenReturn("")
-      when(config.getString(VoltSinkConfig.PASSWORD_CONFIG)).thenReturn("apass")
-      when(config.getString(VoltSinkConfig.ERROR_POLICY_CONFIG)).thenReturn("THROW")
-      when(config.getString(VoltSinkConfig.EXPORT_ROUTE_QUERY_CONFIG)).thenReturn(QUERY_ALL)
-      VoltSettings(config)
-    }
-  }
+//  "raise a configuration exception if the user is not set" in {
+//    intercept[ConfigException] {
+//      val config = mock[VoltSinkConfig]
+//      when(config.getString(VoltSinkConfig.SERVERS_CONFIG)).thenReturn("localhost:8081")
+//      //when(config.getString(VoltSinkConfig.USER_CONFIG)).thenReturn("")
+//      //when(config.getString(VoltSinkConfig.PASSWORD_CONFIG)).thenReturn("apass")
+//      when(config.getString(VoltSinkConfig.ERROR_POLICY_CONFIG)).thenReturn("THROW")
+//      when(config.getString(VoltSinkConfig.EXPORT_ROUTE_QUERY_CONFIG)).thenReturn(QUERY_ALL)
+//      VoltSettings(config)
+//    }
+//  }
 
   "create a settings with all fields" in {
     val servers = "localhost:8081"
@@ -45,14 +45,14 @@ class VoltSettingsTest extends WordSpec with Matchers with MockitoSugar {
     val user = "myuser"
     val config = mock[VoltSinkConfig]
     when(config.getString(VoltSinkConfig.SERVERS_CONFIG)).thenReturn(servers)
-    when(config.getString(VoltSinkConfig.USER_CONFIG)).thenReturn(user)
-    when(config.getString(VoltSinkConfig.PASSWORD_CONFIG)).thenReturn(null)
+   // when(config.getString(VoltSinkConfig.USER_CONFIG)).thenReturn(user)
+    //when(config.getString(VoltSinkConfig.PASSWORD_CONFIG)).thenReturn(null)
     when(config.getString(VoltSinkConfig.ERROR_POLICY_CONFIG)).thenReturn("THROW")
     when(config.getString(VoltSinkConfig.EXPORT_ROUTE_QUERY_CONFIG)).thenReturn(QUERY_ALL)
     val settings = VoltSettings(config)
     settings.servers shouldBe servers
-    settings.user shouldBe user
-    settings.password shouldBe null
+    //settings.user shouldBe user
+    //settings.password shouldBe null
     settings.errorPolicy shouldBe ThrowErrorPolicy()
     settings.fieldsExtractorMap.size shouldBe 1
     settings.fieldsExtractorMap(TOPIC_NAME).includeAllFields shouldBe true
@@ -71,8 +71,8 @@ class VoltSettingsTest extends WordSpec with Matchers with MockitoSugar {
     when(config.getString(VoltSinkConfig.EXPORT_ROUTE_QUERY_CONFIG)).thenReturn(QUERY_SELECT)
     val settings = VoltSettings(config)
     settings.servers shouldBe servers
-    settings.user shouldBe user
-    settings.password shouldBe "mememe"
+    //settings.user shouldBe user
+    //settings.password shouldBe "mememe"
     settings.errorPolicy shouldBe ThrowErrorPolicy()
     settings.fieldsExtractorMap.size shouldBe 1
     settings.fieldsExtractorMap(TOPIC_NAME).includeAllFields shouldBe false
@@ -91,8 +91,8 @@ class VoltSettingsTest extends WordSpec with Matchers with MockitoSugar {
     when(config.getString(VoltSinkConfig.EXPORT_ROUTE_QUERY_CONFIG)).thenReturn(QUERY_SELECT_AND_TIMESTAMP)
     val settings = VoltSettings(config)
     settings.servers shouldBe servers
-    settings.user shouldBe user
-    settings.password shouldBe "mememe"
+   // settings.user shouldBe user
+   // settings.password shouldBe "mememe"
     settings.errorPolicy shouldBe ThrowErrorPolicy()
     settings.fieldsExtractorMap.size shouldBe 1
     settings.fieldsExtractorMap(TOPIC_NAME).includeAllFields shouldBe true
@@ -111,8 +111,8 @@ class VoltSettingsTest extends WordSpec with Matchers with MockitoSugar {
     when(config.getString(VoltSinkConfig.EXPORT_ROUTE_QUERY_CONFIG)).thenReturn(QUERY_SELECT_AND_TIMESTAMP_SYSTEM)
     val settings = VoltSettings(config)
     settings.servers shouldBe servers
-    settings.user shouldBe user
-    settings.password shouldBe "mememe"
+   // settings.user shouldBe user
+    //settings.password shouldBe "mememe"
     settings.errorPolicy shouldBe ThrowErrorPolicy()
     settings.fieldsExtractorMap.size shouldBe 1
     settings.fieldsExtractorMap(TOPIC_NAME).includeAllFields shouldBe true
