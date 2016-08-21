@@ -69,10 +69,6 @@ TIMESTAMP
     : 'withtimestamp' | 'WITHTIMESTAMP'
     ;
 
-STOREDAS
-    : 'storedas' | 'STOREDAS'
-    ;
-
 SYS_TIME
     : 'sys_time()' | 'SYS_TIME()'
     ;
@@ -102,7 +98,7 @@ WITHFORMAT
     ;
 
 FORMAT
-    : 'avro'|'AVRO'|'text'|'TEXT'|'binary'|'BINARY'
+    : 'avro'|'AVRO'|'text'|'TEXT'|'binary'|'BINARY'|'json'|'JSON'
     ;
 
 EQUAL

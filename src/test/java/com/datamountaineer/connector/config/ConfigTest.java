@@ -663,12 +663,12 @@ public class ConfigTest {
   public void handleStoredAs() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
-    String syntax = String.format("INSERT INTO %s SELECT * FROM %s STOREDAS x ", table, topic);
+    String syntax = String.format("INSERT INTO %s SELECT * FROM %s WITHFORMAT avro", table, topic);
     Config c = Config.parse(syntax);
-    assertEquals(c.getStoredAs(), "x");
+    assertEquals(c.getFormatType().toString(), "AVRO");
 
-    String syntax2 = String.format("INSERT INTO %s SELECT * FROM %s storedas x ", table, topic);
+    String syntax2 = String.format("INSERT INTO %s SELECT * FROM %s WITHFORMAT json", table, topic);
     Config c2 = Config.parse(syntax2);
-    assertEquals(c2.getStoredAs(), "x");
+    assertEquals(c2.getFormatType().toString(), "JSON");
   }
 }

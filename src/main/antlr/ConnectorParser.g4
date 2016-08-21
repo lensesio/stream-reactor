@@ -36,7 +36,7 @@ schema_name
    ;
 
 insert_from_clause
-   : sql_action table_name select_clause_basic ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( storedas_name )?
+   : sql_action table_name select_clause_basic ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( with_format_clause )?
    ;
 
 select_clause
@@ -138,14 +138,6 @@ timestamp_clause
 
 timestamp_value
    : ID | SYS_TIME
-   ;
-
-storedas_name
-   : STOREDAS storedas_value
-   ;
-
-storedas_value
-   : ID
    ;
 
 buckets_number

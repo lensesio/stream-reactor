@@ -144,13 +144,13 @@ public class Config {
     this.timestamp = value;
   }
 
-  public String getStoredAs() {
-    return storedAs;
-  }
-
-  private void setStoredAs(String format) {
-    this.storedAs = format;
-  }
+//  public String getStoredAs() {
+//    return storedAs;
+//  }
+//
+//  private void setStoredAs(String format) {
+//    this.storedAs = format;
+//  }
 
   private void setConsumerGroup(String consumerGroup) {
     this.consumerGroup = consumerGroup;
@@ -283,11 +283,11 @@ public class Config {
         config.setAutoEvolve(true);
       }
 
-      @Override
-      public void exitStoredas_value(ConnectorParser.Storedas_valueContext ctx) {
-        final String value = ctx.getText();
-        config.setStoredAs(value);
-      }
+//      @Override
+//      public void exitStoredas_value(ConnectorParser.Storedas_valueContext ctx) {
+//        final String value = ctx.getText();
+//        config.setStoredAs(value);
+//      }
 
       @Override
       public void exitCapitalize(ConnectorParser.CapitalizeContext ctx) {
