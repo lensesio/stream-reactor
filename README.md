@@ -15,18 +15,18 @@ Kafka Connect Common is in Maven, include it in your connector.
 <dependency>
 	<groupId>com.datamountaineer</groupId>
 	<artifactId>kcql</artifactId>
-	<version>0.7</version>
+	<version>0.8.2</version>
 </dependency>
 ```
 
 sbt
 ```bash
-libraryDependencies += "com.datamountaineer" % "kcql % "0.7"
+libraryDependencies += "com.datamountaineer" % "kcql % "0.8.2"
 ```
 
 gradle
 ```bash
-com.datamountaineer:kcql:0.7'
+com.datamountaineer:kcql:0.8.2'
 ```
 
 # Why ?
