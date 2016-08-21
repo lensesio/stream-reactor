@@ -61,7 +61,8 @@ object Main extends App with StrictLogging {
        |Listening on port : ${configuration.port}
     """.stripMargin)
 
-  implicit val kafkaAvroDecoder = KafkaAvroDecoderFn(configuration)
+  val kafkaAvroDecoder = KafkaAvroDecoderFn(configuration)
   val flowRoute = new KafkaSocketRoutes(system, configuration, kafkaAvroDecoder, StringDecoder, BinaryDecoder)
   val serverBinding = Http().bindAndHandle(interface = "0.0.0.0", port = configuration.port, handler = flowRoute.routes)
+  println("Started")
 }
