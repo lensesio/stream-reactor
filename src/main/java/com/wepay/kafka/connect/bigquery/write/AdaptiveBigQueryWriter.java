@@ -45,6 +45,8 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
   /**
    * @param bigQuery Used to send write requests to BigQuery.
    * @param schemaManager Used to update BigQuery tables.
+   * @param retry How many retries to make in the event of a 500/503 error.
+   * @param retryWait How long to wait in between retries.
    */
   public AdaptiveBigQueryWriter(BigQuery bigQuery,
                                 SchemaManager schemaManager,

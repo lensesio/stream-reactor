@@ -3,21 +3,98 @@ apply plugin: 'idea'
 apply plugin: 'checkstyle'
 apply plugin: 'findbugs'
 apply plugin: 'jacoco'
+apply plugin: 'maven'
+apply plugin: 'signing'
 
 sourceCompatibility = 1.8
-version = '0.2'
+
+archivesBaseName = 'kafka-connect-bigquery'
+
+task javadocJar(type: Jar) {
+  classifier = 'javadoc'
+  from javadoc
+}
+
+task sourcesJar(type: Jar) {
+  classifier = 'sources'
+  from sourceSets.main.allSource
+}
+
+task tarBall(type: Tar) {
+  classifier = 'dist'
+  baseName = project.name + '-dist'
+  from configurations.runtime
+  from jar
+}
+
+artifacts {
+  archives javadocJar, sourcesJar, tarBall
+}
+
+signing {
+  sign configurations.archives
+  required {
+    gradle.taskGraph.hasTask("uploadArchives")
+  }
+}
+
+uploadArchives {
+  repositories {
+    mavenDeployer {
+      beforeDeployment {
+        MavenDeployment deployment -> signing.signPom(deployment)
+      }
+
+      repository(url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2') {
+        authentication(userName: findProperty('ossrhUsername') ?: '', password: findProperty('ossrhPassword') ?: '')
+      }
+
+      snapshotRepository(url: 'https://oss.sonatype.org/content/repositories/snapshots') {
+        authentication(userName: findProperty('ossrhUsername') ?: '', password: findProperty('ossrhPassword') ?: '')
+      }
+
+      pom.project {
+        name 'Kafka-Connect-BigQuery'
+        packaging 'jar'
+        description 'A Kafka Connector used to load data into BigQuery'
+        url 'https://github.com/wepay/kafka-connect-bigquery'
+
+        licenses {
+          license {
+            name 'The Apache License, Version 2.0'
+            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+          }
+        }
+
+        scm {
+          connection 'scm:git:git://github.com/wepay/kafka-connect-bigquery.git'
+          developerConnection 'scm:git:ssh://github.com:wepay/kafka-connect-bigquery.git'
+          url 'https://github.com/wepay/kafka-connect-bigquery'
+        }
+
+        developers {
+          developer {
+            id 'C0urante'
+            name 'Chris Egerton'
+            email 'chrise@wepay.com'
+          }
+
+          developer {
+            id 'moirat'
+            name 'Moira Tagle'
+            email 'moirat@wepay.com'
+          }
+        }
+      }
+    }
+  }
+}
 
 jar {
   manifest {
     attributes  'Implementation-Title': 'Kafka-Connect-BigQuery',
                 'Implementation-Version': version
   }
-}
-
-task tarBall(type: Tar) {
-  baseName = project.name + '-dist'
-  from configurations.runtime
-  from jar
 }
 
 jacocoTestReport {

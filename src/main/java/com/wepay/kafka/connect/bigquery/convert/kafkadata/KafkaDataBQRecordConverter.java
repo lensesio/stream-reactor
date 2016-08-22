@@ -39,8 +39,9 @@ public class KafkaDataBQRecordConverter extends BigQueryRecordConverter {
    * Convert the kafka {@link SinkRecord} to a BigQuery record, with the addition of extra kafka
    * data.
    *
-   * @param kafkaConnectRecord The Kafka Connect record to convert. Must be of type {@link Struct},
-   *                           in order to translate into a row format that requires each field to
+   * @param kafkaConnectRecord The Kafka Connect record to convert. Must be of type
+   *                           {@link org.apache.kafka.connect.data.Struct}, in order
+   *                           to translate into a row format that requires each field to
    *                           consist of both a name and a value.
    * @return converted BigQuery record including the kafka topic, partition, and offset.
    */
