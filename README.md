@@ -1,20 +1,26 @@
-# kafka-connect-bigquery
+# Kafka Connect BigQuery Connector
 
-This is an implementation of a sink connector from [Apache Kafka](http://kafka.apache.org/) to
-[Google BigQuery](https://cloud.google.com/bigquery/), built on top of
-[Apache Kafka Connect](http://docs.confluent.io/3.0.0/connect/).
+[![Source](https://img.shields.io/badge/source-wepay/kafka–connect–bigquery-blue.svg?style=flat-square)](https://github.com/wepay/kafka-connect-bigquery)
+[![Release](https://img.shields.io/github/release/wepay/kafka-connect-bigquery.svg?style=flat-square)](https://travis-ci.org/wepay/kafka-connect-bigquery)
+[![Open Issues](https://img.shields.io/github/issues/wepay/kafka-connect-bigquery.svg?style=flat-square)](https://github.com/wepay/kafka-connect-bigquery/issues)
+[![Pull Requests](https://img.shields.io/github/issues-pr/wepay/kafka-connect-bigquery.svg?style=flat-square)](https://github.com/wepay/kafka-connect-bigquery/pulls)
+[![Build Status](https://img.shields.io/travis/wepay/kafka-connect-bigquery.svg?style=flat-square)](https://travis-ci.org/wepay/kafka-connect-bigquery)
+[![License](https://img.shields.io/github/license/wepay/kafka-connect-bigquery.svg)](https://github.com/wepay/kafka-connect-bigquery/blob/master/LICENSE.md)
+[![Author](http://img.shields.io/badge/author-C0urante-blue.svg?style=flat-square)](https://github.com/C0urante)
+
+This is an implementation of a sink connector from [Apache Kafka] to [Google BigQuery], built on top 
+of [Apache Kafka Connect].
 
 ## Standalone Quickstart
 
-**NOTE**: You must have the [Confluent Platform](http://docs.confluent.io/3.0.0/installation.html)
-installed in order to run the example.
+> **NOTE**: You must have the [Confluent Platform] installed in order to run the example.
 
 ### Configuration Basics
 
-First of all, you need to specify a few configuration settings for your connector. These can be
-found in the quickstart/properties/connector.properties file. Look for this section:
+Firstly, you need to specify configuration settings for your connector. These can be found in the 
+`quickstart/properties/connector.properties` file. Look for this section:
 
-```
+```plain
 ########################################### Fill me in! ###########################################
 # The name of the BigQuery project to write to
 project=
@@ -25,160 +31,214 @@ datasets=.*=
 keyfile=
 ```
 
-You'll need to pick a BigQuery project to write to, a dataset to write to in that project, and
+You'll need to choose a BigQuery project to write to, a dataset from that project to write to, and
 provide the location of a JSON key file that can be used to access a BigQuery service account that
 can write to the project/dataset pair. Once you've decided on these properties, fill them in and
 save the properties file.
 
-Once you get more familiar with the connector, you might want to revisit the connector.properties
+Once you get more familiar with the connector, you might want to revisit the `connector.properties`
 file and experiment with tweaking its settings.
 
-### Cherry-picking Schema Registry patches
+### Cherry-Picking Schema Registry Patches
 
-**NOTE: You can skip this step if you don't plan on using multiple topics with different names but
-identical schemas, or the Avro bytes type**
+> **NOTE:** You can skip this step if you don't plan on using multiple topics with different names 
+but identical schemas, or the [Avro] bytes type.
 
-The connector depends on some commits in Confluent's 
-[schema-registry](https://github.com/confluentinc/schema-registry) that have not yet been included
-in a released version. As a result, there is some external work involved in building the connector.
-Here is what you need to do before building:
+The connector depends on some commits in Confluent's [Schema Registry] that have not yet been 
+included in a released version. As a result, there is some external work involved in building the 
+connector. Here is what you need to do before building:
 
-1. Checkout [confluentinc/schema-registry](https://github.com/confluentinc/schema-registry)
-   locally.
-2. Checkout the v3.0.0 release tag: `git checkout v3.0.0`
-3. Cherry-pick the following two commits:
-     1. `git cherry-pick -m 1 f835af3a2fd97911c633c0a13c72c1d6f91dc1eb`
-     2. `git cherry-pick -m 1 b3fba7f9f8cc2a117aafa9aff8ac2f50c8dc38e9`
-4. Run `mvn install` in your local schema-registry to install a modified schema-registry 3.0.0 into
-   your local maven repository
+1. Checkout Schema Registry locally.
+
+1. Checkout the `v3.0.0` release tag:
+
+   ```bash
+   git checkout v3.0.0
+   ```
+
+1. Cherry-pick the following two commits:
+
+   ```bash
+   git cherry-pick -m 1 f835af3a2fd97911c633c0a13c72c1d6f91dc1eb
+   git cherry-pick -m 1 b3fba7f9f8cc2a117aafa9aff8ac2f50c8dc38e9
+   ```
+
+1. Run `mvn install` in your local `schema-registry` directory to install a modified 
+   Schema Registry 3.0.0 into your local [Maven] repository.
    
-Once a new version of Schema Registry is released, these steps should no loger be required.
+Once a new version of Schema Registry is released, these steps should no longer be required.
    
-### Building and extracting a tarball
+### Building and Extracting a Tarball
 
 Begin by creating a tarball of the connector:
 
-`$ ./gradlew clean tarBall`
+```bash
+$ ./gradlew tarBall
+```
 
 And then extract its contents:
 
-`$ tar -C build/distributions/ -xvf build/distributions/kafka-connect-bigquery-*-dist.tar`
+```bash
+$ tar -C build/distributions/ -xvf build/distributions/kafka-connect-bigquery-dist-0.2.tar
+```
 
-### Setting up background processes
+### Setting-Up Background Processes
 
-Then move into the quickstart directory:
+Then move into the `quickstart` directory:
 
-`$ cd quickstart`
+```bash
+$ cd quickstart
+```
 
-After that, if your confluent installation isn't in a sibling directory to
-the connector, specify its location (and do so before starting each of the
-subsequent processes in their own terminal):
+After that, if your Confluent Platform installation isn't in a sibling directory to the connector, 
+specify its location (and do so before starting each of the subsequent processes in their own 
+terminal):
 
-`$ export CONFLUENT_DIR=/path/to/confluent`
+```bash
+$ export CONFLUENT_DIR=/path/to/confluent
+```
 
 Then, initialize the background processes necessary for Kafka Connect (one terminal per script):
 (Taken from http://docs.confluent.io/3.0.0/quickstart.html)
 
-`$ ./zookeeper.sh`
+```bash
+$ ./zookeeper.sh
+```
 
 (wait a little while for it to get on its feet)
 
-`$ ./kafka.sh`
+```bash
+$ ./kafka.sh
+```
 
 (wait a little while for it to get on its feet)
 
-`$ ./schema-registry.sh`
+```bash
+$ ./schema-registry.sh
+```
 
 (wait a little while for it to get on its feet)
 
 ### Initializing the Avro Console Producer
 
-Next, initialize the avro console producer (also in its own terminal):
+Next, initialize the Avro Console Producer (also in its own terminal):
 
-`$ ./avro-console-producer.sh`
+```bash
+$ ./avro-console-producer.sh
+```
 
-Give it some data to start off with (type directly into the avro-console-producer instance):
+Give it some data to start off with (type directly into the Avro Console Producer instance):
 
-`{"f1":"Testing the Kafka-BigQuery Connector!"}`
+```json
+{"f1":"Testing the Kafka-BigQuery Connector!"}
+```
 
 ### Running the Connector
 
 Finally, initialize the BigQuery connector (also in its own terminal):
 
-`$ ./connector.sh`
+```bash
+$ ./connector.sh
+```
 
-### Piping data Through the Connector
+### Piping Data Through the Connector
 
-Now you can enter Avro messages of the schema `{"f1":"$SOME_STRING"}` into
-the avro console producer instance, and the pipeline instance should write
-them to BigQuery.
+Now you can enter Avro messages of the schema `{"f1": "$SOME_STRING"}` into the Avro Console 
+Producer instance, and the pipeline instance should write them to BigQuery.
 
-If/when you want to get more adventurous, you can experiment with different
-schemas and/or topics by adjusting flags given to the avro-console-producer
-and tweaking the config settings found in the quickstart/properties directory.
+If you want to get more adventurous, you can experiment with different schemas or topics by 
+adjusting flags given to the Avro Console Producer and tweaking the config settings found in the 
+`quickstart/properties` directory.
 
 ## Integration Testing
 
-**NOTE**: You must have Docker installed and running on your machine in order to run integration
+> **NOTE**: You must have [Docker] installed and running on your machine in order to run integration
 tests for the connector.
 
 ### How Integration Testing Works
 
-Integration tests run by creating Docker instances for Zookeeper, Kafka, Schema Registry, and the
-Kafka-BigQuery connector itself, then verifying the results using a Junit test.
+Integration tests run by creating [Docker] instances for [Zookeeper], [Kafka], [Schema Registry], 
+and the BigQuery Connector itself, then verifying the results using a [JUnit] test.
 
-They use schemas and data that can be found in the test/docker/populate/test_schemas/ directory, and
-rely on a user-provided JSON key file (like in the quickstart example) to access BigQuery.
+They use schemas and data that can be found in the `test/docker/populate/test_schemas/` directory, 
+and rely on a user-provided JSON key file (like in the `quickstart` example) to access BigQuery.
 
 The project and dataset they write to, as well as the specific JSON key file they use, can be
-specified by command-line flag, environment variable, or configuration file--the exact details of
-each can be found by running the integration test script with the '-?' flag.
+specified by command-line flag, environment variable, or configuration file — the exact details of
+each can be found by running the integration test script with the `-?` flag.
 
 ### Data Corruption Concerns
 
 In order to ensure the validity of each test, any table that will be written to in the course of
 integration testing is preemptively deleted before the connector is run. This will only be an issue
-if you have any tables in your dataset whose names begin with 'kcbq_test_' and match the sanitized
-name of any of the test_schema subdirectories. If that is the case, you should probably consider
+if you have any tables in your dataset whose names begin with `kcbq_test_` and match the sanitized
+name of any of the `test_schema` subdirectories. If that is the case, you should probably consider
 writing to a different project/dataset.
 
-Because Kafka and Schema Registry are run in Docker, there is no risk that running integration tests
-will corrupt any existing Kafka/Schema Registry data that is already on your machine, and there is
-also no need to free up any of your ports that might currently be in use by real instances of the
-programs that are faked in the process of testing.
+Because Kafka and Schema Registry are run in Docker, there is no risk that running integration 
+tests will corrupt any existing data that is already on your machine, and there is also no need to 
+free up any of your ports that might currently be in use by real instances of the programs that are 
+faked in the process of testing.
 
 ### Running the Integration Tests
 
 Running the series of integration tests is easy:
 
-`$ test/integrationtest.sh` (assuming project, dataset, and key file have been specified by variable
-and/or configuration file--for more information on how to specify these, run the test script with
-the `--usage` flag)
+```bash
+$ test/integrationtest.sh
+```
 
-NOTE: You must have a recent version of boot2docker, docker-machine, docker, etc installed. Older
-versions will hang when cleaning containers, and linking doesn't work properly.
+This assumes that the project, dataset, and key file have been specified by variable or 
+configuration file. For more information on how to specify these, run the test script with
+the `--usage` flag.
 
-### Adding new Integration Tests
+> **NOTE:** You must have a recent version of [boot2docker], [Docker Machine], [Docker], etc.
+installed. Older versions will hang when cleaning containers, and linking doesn't work properly.
+
+### Adding New Integration Tests
 
 Adding an integration test is a little more involved, and consists of two major steps: specifying
-Avro data to be sent to Kafka, and specifying via Junit test how to verify that such data made it
-to BigQuery as expected.
+Avro data to be sent to Kafka, and specifying via JUnit test how to verify that such data made 
+it to BigQuery as expected.
 
-To specify input data, you must create a new directory in the test/resources/test_schemas/
-directory with whatever name you want the Kafka topic of your test to be named, and whatever string
-you want the name of your test's BigQuery table to be derived from. Then, create two files in that
-directory: *schema.json* will contain the Avro schema of the type of data the new test will send
-through the connector, and *data.json* will contain a series of JSON objects, each of which should
-represent an Avro record that matches the specified schema. **Each JSON object must occupy its own
-line, and each object cannot occupy more than one line** (this inconvenience is due to limitations
-in the Kafka Avro console producer, and may be addressed in future commits).
+To specify input data, you must create a new directory in the `test/resources/test_schemas/`
+directory with whatever name you want the Kafka topic of your test to be named, and whatever 
+string you want the name of your test's BigQuery table to be derived from. Then, create two files 
+in that directory:
 
-To specify data verification, add a new Junit test to the file
-src/integration-test/java/com/wepay/kafka/connect/bigquery/it/BigQueryConnectorIntegrationTest.java.
-Rows that are retrieved from BigQuery in the test are only returned as lists of Objects--the names
-of their columns are not tracked. Construct a List of the Objects that you expect to be stored in
-the test's BigQuery table, retrieve the actual List of Objects stored via a call to readAllRows(),
-and then compare the two via a call to testRows(). **NOTE: Because the order of rows is not
-guaranteed when reading test results from BigQuery, you must include a row number as the first field
-of any of your test schemas, and every row of test data must have a unique value for its row number
-(row numbers are one-indexed).**
+* `schema.json` will contain the Avro schema of the type of data the new test will send
+through the connector.
+
+* `data.json` will contain a series of JSON objects, each of which should represent an [Avro] record 
+that matches the specified schema. **Each JSON object must occupy its own line, and each object 
+cannot occupy more than one line** (this inconvenience is due to limitations in the Avro 
+Console Producer, and may be addressed in future commits).
+
+To specify data verification, add a new JUnit test to the file 
+`src/integration-test/java/com/wepay/kafka/connect/bigquery/it/BigQueryConnectorIntegrationTest.java`.
+Rows that are retrieved from BigQuery in the test are only returned as _Lists_ of _Objects_. The 
+names of their columns are not tracked. Construct a _List_ of the _Objects_ that you expect to be 
+stored in the test's BigQuery table, retrieve the actual _List_ of _Objects_ stored via a call to 
+`readAllRows()`, and then compare the two via a call to `testRows()`.
+
+> **NOTE**: Because the order of rows is not guaranteed when reading test results from BigQuery, 
+you must include a row number as the first field of any of your test schemas, and every row of test 
+data must have a unique value for its row number (row numbers are one-indexed).
+
+  [Apache Avro]: https://avro.apache.org
+  [Apache Kafka Connect]: http://docs.confluent.io/3.0.0/connect/
+  [Apache Kafka]: http://kafka.apache.org
+  [Apache Maven]: https://maven.apache.org
+  [Avro]: https://avro.apache.org
+  [BigQuery]: https://cloud.google.com/bigquery/
+  [boot2docker]: http://boot2docker.io
+  [Confluent Platform]: http://docs.confluent.io/3.0.0/installation.html
+  [Docker Machine]: https://docs.docker.com/machine/
+  [Docker]: https://www.docker.com
+  [Google BigQuery]: https://cloud.google.com/bigquery/
+  [JUnit]: http://junit.org
+  [Kafka Connect]: http://docs.confluent.io/3.0.0/connect/
+  [Kafka]: http://kafka.apache.org
+  [Maven]: https://maven.apache.org
+  [Schema Registry]: https://github.com/confluentinc/schema-registry
+  [Zookeeper]: https://zookeeper.apache.org
