@@ -1,12 +1,16 @@
 # Kafka Connect BigQuery Connector
 
 [![Source](https://img.shields.io/badge/source-wepay/kafka–connect–bigquery-blue.svg?style=flat-square)](https://github.com/wepay/kafka-connect-bigquery)
-[![Release](https://img.shields.io/github/release/wepay/kafka-connect-bigquery.svg?style=flat-square)](https://travis-ci.org/wepay/kafka-connect-bigquery)
+[![Release](https://img.shields.io/github/release/wepay/kafka-connect-bigquery.svg?style=flat-square)](https://github.com/wepay/kafka-connect-bigquery/releases)
+[![Maven Central](https://img.shields.io/maven-central/v/com.wepay/kafka-connect-bigquery.svg?style=flat-square)](http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22com.wepay%22%20AND%20a%3A%22kafka-connect-bigquery%22)
 [![Open Issues](https://img.shields.io/github/issues/wepay/kafka-connect-bigquery.svg?style=flat-square)](https://github.com/wepay/kafka-connect-bigquery/issues)
 [![Pull Requests](https://img.shields.io/github/issues-pr/wepay/kafka-connect-bigquery.svg?style=flat-square)](https://github.com/wepay/kafka-connect-bigquery/pulls)
 [![Build Status](https://img.shields.io/travis/wepay/kafka-connect-bigquery.svg?style=flat-square)](https://travis-ci.org/wepay/kafka-connect-bigquery)
+[![Code Coverage](https://img.shields.io/codecov/c/github/wepay/kafka-connect-bigquery.svg?style=flat-square)](https://codecov.io/gh/wepay/kafka-connect-bigquery)
+[![Code Quality](https://img.shields.io/codacy/grade/547616ddaf5141bc9b10cd48fa9e0acb.svg?style=flat-square)](https://www.codacy.com/app/skyzyx/kafka-connect-bigquery/dashboard)
 [![License](https://img.shields.io/github/license/wepay/kafka-connect-bigquery.svg)](https://github.com/wepay/kafka-connect-bigquery/blob/master/LICENSE.md)
 [![Author](http://img.shields.io/badge/author-C0urante-blue.svg?style=flat-square)](https://github.com/C0urante)
+[![Author](http://img.shields.io/badge/author-mtagle-blue.svg?style=flat-square)](https://github.com/mtagle)
 
 This is an implementation of a sink connector from [Apache Kafka] to [Google BigQuery], built on top 
 of [Apache Kafka Connect].

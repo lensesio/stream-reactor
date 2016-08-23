@@ -99,6 +99,7 @@ jar {
 jacocoTestReport {
   reports {
     html.destination "$buildDir/reports/jacoco/"
+    xml.enabled true
   }
 }
 
