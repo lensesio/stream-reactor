@@ -22,7 +22,6 @@ task sourcesJar(type: Jar) {
 
 task tarBall(type: Tar) {
   classifier = 'dist'
-  baseName = project.name + '-dist'
   from configurations.runtime
   from jar
 }
