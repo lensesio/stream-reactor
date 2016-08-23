@@ -58,11 +58,11 @@ Once a new version of Schema Registry is released, these steps should no loger b
 
 Begin by creating a tarball of the connector:
 
-`$ ./gradlew tarBall`
+`$ ./gradlew clean tarBall`
 
 And then extract its contents:
 
-`$ tar -C build/distributions/ -xvf build/distributions/kafka-connect-bigquery-dist-0.2.tar`
+`$ tar -C build/distributions/ -xvf build/distributions/kafka-connect-bigquery-*-dist.tar`
 
 ### Setting up background processes
 
