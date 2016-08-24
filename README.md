@@ -44,54 +44,65 @@ You can also use the gradle wrapper
 ./gradlew fatJar
 ```
 
-#### [Kafka-Connect-Cassandra](kafka-connect-cassandra/README.md)
-
-Kafka connect Cassandra source to read Cassandra and write to Kafka
-
-Kafka connect Cassandra sink task to write Kafka topic payloads to Cassandra.
-
-#### [Kafka-Connect-Elastic](kafka-connect-elastic/README.md)
-
-Kafka connect Elastic Search sink to write Kafka topic payloads to Elastic Search.
-
-#### [Kafka-Connect-Kudu](kafka-connect-kudu/README.md)
-
-Kafka connect Kudu sink to write Kafka topic payloads to Kudu.
-
-#### [Kafka-Connect-Bloomberg](kafka-connect-bloomberg/README.md)
+#### [Kafka-Connect-Bloomberg](http://docs.datamountaineer.com/en/latest/bloomberg.html)
 
 Kafka connect Bloomberg source to subscribe to Bloomberg streams via the open API and write to Kafka.
 
-#### [Kafka-Connect-Druid](kafka-connect-druid/README.md)
+#### [Kafka-Connect-Cassandra-Source](http://docs.datamountaineer.com/en/latest/cassandra-sink.html)
+
+Kafka connect Cassandra source to read Cassandra and write to Kafka.
+
+#### [Kafka-Connect-Cassandra-Sink](http://docs.datamountaineer.com/en/latest/cassandra-sink.html)
+
+Kafka connect Cassandra sink task to write Kafka topic payloads to Cassandra.
+
+#### [Kafka-Connect-Druid](http://docs.datamountaineer.com/en/latest/druid.html)
 
 Kafka connect Druid sink to write Kafka topic payloads to Druid.
 
 WORK IN PROGRESS
 
-#### [Kafka-Connect-HBase](kafka-connect-hbase/README.md)
+#### [Kafka-Connect-Elastic](http://docs.datamountaineer.com/en/latest/elastic.html)
+
+Kafka connect Elastic Search sink to write Kafka topic payloads to Elastic Search.
+
+#### [Kafka-Connect-HBase](http://docs.datamountaineer.com/en/latest/hbase.html)
 
 Kafka connect HBase sink to write Kafka topic payloads to HBase.
 
-#### [Kafka-Connect-Redis](kafka-connect-redis/README.md)
+#### [Kafka-Connect-Hazelcast](http://docs.datamountaineer.com/en/latest/hazelcast.html)
 
-Kafka connect Redis sink to write Kafka topic payloads to Redis.
+Kafka connect HBase sink to write Kafka topic payloads to Hazelcast.
 
-#### [Kafka-Connect-Rethink](kafka-connect-redis/README.md)
+#### [Kafka-Connect-Kudu](http://docs.datamountaineer.com/en/latest/kudu.html)
 
-Kafka connect RethinkDb sink to write Kafka topic payloads to RethinkDb.
+Kafka connect Kudu sink to write Kafka topic payloads to Kudu.
 
-#### [Kafka-Connect-Yahoo](kafka-connect-yahoo/README.md)
-
-Kafka connect Yahoo Finance source to write to Kafka
-
-#### [Kafka-Connect-InfluxDb](kafka-connect-influxdb/README.md)
+#### [Kafka-Connect-InfluxDb](http://docs.datamountaineer.com/en/latest/influx.html)
 
 Kafka connect InfluxDb sink to write Kafka topic payloads to InfluxDb.
 
-#### [Kafka-Connect-Voltdb](kafka-connect-voltdb/README.md)
+#### [Kafka-Connect-JMS](http://docs.datamountaineer.com/en/latest/jms.html)
+
+Kafka connect JMS sink to write Kafka topic payloads to JMS.
+
+#### [Kafka-Connect-Redis](http://docs.datamountaineer.com/en/latest/redis.html)
+
+Kafka connect Redis sink to write Kafka topic payloads to Redis.
+
+#### [Kafka-Connect-Rethink](http://docs.datamountaineer.com/en/latest/rethink.html)
+
+Kafka connect RethinkDb sink to write Kafka topic payloads to RethinkDb.
+
+#### [Kafka-Connect-Yahoo](http://docs.datamountaineer.com/en/latest/yahoo.html)
+
+Kafka connect Yahoo Finance source to write to Kafka
+
+#### [Kafka-Connect-Voltdb](http://docs.datamountaineer.com/en/latest/voltdb.html)
 
 Kafka connect Voltdb sink to write Kafka topic payloads to Votldb.
 
 #### [Kafka-Socket-Streamer](kafka-socket-streamer/README.md)
 
-Test module for Akka Http and Reactive Kafka with Websocket and Server Send Event support.
+Akka Http and Reactive Kafka with Websocket and Server Send Event support.
+Supports limited SQL statements to stream and select from Kafka topics.
