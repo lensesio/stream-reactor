@@ -60,7 +60,7 @@ case class RedisDbWriter(sinkSettings: RedisSinkSettings) extends DbWriter with 
     *
     * @param records A map of topic and sinkrecords to  insert
     * */
-  def insert(records: Map[String, Seq[SinkRecord]]) = {
+  def insert(records: Map[String, Seq[SinkRecord]]): Unit = {
     records.foreach({
       case (topic, sinkRecords: Seq[SinkRecord]) => {
 

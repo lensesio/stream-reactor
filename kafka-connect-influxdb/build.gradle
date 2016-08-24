@@ -1,0 +1,17 @@
+project(":kafka-connect-influxdb") {
+
+    ext {
+        influxDbVersion = "2.2"
+    }
+
+    dependencies {
+
+        compile ("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
+        compile "org.influxdb:influxdb-java:$influxDbVersion"
+
+        testCompile("org.kitesdk:kite-minicluster:$kiteMiniClusterVersion")
+
+    }
+}

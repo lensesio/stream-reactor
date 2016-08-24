@@ -34,9 +34,8 @@ import scala.collection.JavaConverters._
   * Sets up JmsSinkTask and configurations for the tasks.
   **/
 class JMSSinkConnector extends SinkConnector with StrictLogging {
-
   private var configProps: Option[util.Map[String, String]] = None
-  private var connConfigDef: Option[ConfigDef] = None
+  private var configDef = JMSSinkConfig.config
 
   /**
     * States which SinkTask class to use
@@ -62,11 +61,11 @@ class JMSSinkConnector extends SinkConnector with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Jms sink task with ${props.toString}.")
     configProps = Some(props)
-    connConfigDef = Some(JMSSinkConfig.config)
   }
 
   override def stop(): Unit = {}
 
   override def version(): String = getClass.getPackage.getImplementationVersion
 
+  override def config(): ConfigDef = configDef
 }

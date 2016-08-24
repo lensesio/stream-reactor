@@ -6,7 +6,7 @@
 //import com.datamountaineer.streamreactor.connect.druid.config.DruidSinkSettings
 //import org.apache.kafka.connect.data.Struct
 //import org.apache.kafka.connect.sink.SinkRecord
-//import org.kitesdk.minicluster.{HBaseService, HdfsService, MiniCluster, ZookeeperService}
+//import org.kitesdk.minicluster.{MiniCluster, ZookeeperService}
 //import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 //
 //

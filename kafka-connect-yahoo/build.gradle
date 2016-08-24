@@ -6,7 +6,6 @@ project(":kafka-connect-yahoo") {
     }
 
     test {
-        //for casssandra unit, add to classpath the cassandra yaml files
         classpath = project.sourceSets.test.runtimeClasspath + files("${projectDir}/src/test/resources")
         classpath = project.sourceSets.test.runtimeClasspath + files("${projectDir.getCanonicalPath()}/src/test/resources/log4j.properties")
         systemProperty 'log4j.configuration', "file:${projectDir.canonicalPath}/src/test/resources/log4j.properties"

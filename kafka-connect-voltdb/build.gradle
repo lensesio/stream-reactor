@@ -1,0 +1,14 @@
+project(":kafka-connect-voltdb") {
+
+    ext {
+        voltVersion = "6.4"
+    }
+
+    dependencies {
+
+        compile("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
+        compile "org.voltdb:voltdbclient:$voltVersion"
+    }
+}

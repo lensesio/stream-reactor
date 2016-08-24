@@ -17,7 +17,7 @@ class TestCassandraJsonWriterRetry extends WordSpec with Matchers with MockitoSu
     startEmbeddedCassandra()
   }
 
-  "Cassandra JsonWriter with Retry should throw RetriableExecption" in {
+  "Cassandra JsonWriter with Retry should throw Retriable Exception" in {
     val session = createTableAndKeySpace(secure = true, ssl = false)
     val context = mock[SinkTaskContext]
     val assignment = getAssignment

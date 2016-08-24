@@ -25,6 +25,11 @@ import io.confluent.common.config.ConfigException
 import scala.collection.JavaConversions._
 import scala.util.Try
 
+object StoredAs extends Enumeration {
+  type StoredAs = Value
+  val JSON, AVRO, TEXT = Value
+}
+
 case class JMSSettings(connectionURL: String,
                        connectionFactoryClass: Class[_ <: ConnectionFactory with QueueConnectionFactory with TopicConnectionFactory],
                        routes: List[JMSConfig],
@@ -53,7 +58,7 @@ object JMSSettings {
 
     val topics = config.getList(JMSSinkConfig.TOPICS_LIST).toSet
     val queues = config.getList(JMSSinkConfig.QUEUES_LIST).toSet
-    val routes = raw.split(";").map(r => JMSConfig(Config.parse(r), topics, queues))
+    val routes: Array[JMSConfig] = raw.split(";").map(r => JMSConfig(Config.parse(r), topics, queues))
 
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(JMSSinkConfig.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)

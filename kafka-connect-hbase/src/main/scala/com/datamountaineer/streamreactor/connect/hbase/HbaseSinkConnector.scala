@@ -33,9 +33,8 @@ import scala.collection.JavaConverters._
   * Sets up HbaseSinkTask and configurations for the tasks.
   * */
 class HbaseSinkConnector extends SinkConnector with StrictLogging {
-  //???
   private var configProps : Option[util.Map[String, String]] = None
-  private var connConfigDef : Option[ConfigDef] = None
+  private var configDef = HbaseSinkConfig.config
 
   /**
     * States which SinkTask class to use
@@ -61,12 +60,9 @@ class HbaseSinkConnector extends SinkConnector with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Hbase sink task with ${props.toString}.")
     configProps = Some(props)
-    connConfigDef = Some(HbaseSinkConfig.config)
-
   }
 
   override def stop(): Unit = {}
   override def version(): String = getClass.getPackage.getImplementationVersion
-
-  //override def config(): ConfigDef = connConfigDef.get
+  override def config(): ConfigDef = configDef
 }

@@ -17,13 +17,13 @@
 package com.datamountaineer.streamreactor.connect.yahoo.source
 
 import java.util
+import java.util.logging.Logger
 
-import com.datamountaineer.streamreactor.connect.yahoo.config.DistributeConfigurationFn
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.datamountaineer.streamreactor.connect.yahoo.config.{DistributeConfigurationFn, YahooSourceConfig}
+import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
 /**
@@ -32,8 +32,8 @@ import scala.collection.JavaConverters._
   *
   * Sets up YahooSourceTask and configurations for the tasks.
   */
-class YahooSourceConnector extends SourceConnector with StrictLogging {
-
+class YahooSourceConnector extends SourceConnector with YahooSourceConfig {
+  val logger: Logger = Logger.getLogger(getClass.getName)
   private var configProps: Option[util.Map[String, String]] = None
 
   /**
@@ -59,7 +59,7 @@ class YahooSourceConnector extends SourceConnector with StrictLogging {
     * @param props A map of properties for the connector and worker.
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(s"Starting Cassandra source task with ${props.toString}.")
+    logger.info(s"Starting Yahoo source task with ${props.toString}.")
     configProps = Some(props)
   }
 
@@ -71,4 +71,6 @@ class YahooSourceConnector extends SourceConnector with StrictLogging {
     * @return
     */
   override def version(): String = getClass.getPackage.getImplementationVersion
+
+  override def config(): ConfigDef = configDef
 }

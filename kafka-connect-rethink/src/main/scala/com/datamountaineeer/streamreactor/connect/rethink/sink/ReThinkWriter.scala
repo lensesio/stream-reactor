@@ -34,10 +34,6 @@ object ReThinkWriter extends StrictLogging {
 
     //set up the connection to the host
     val settings = ReThinkSettings(config)
-
-    val assigned = context.assignment().map(a => a.topic()).toList
-    if (assigned.isEmpty) throw new ConnectException("No topics have been assigned to this task!")
-
     val port = config.getInt(ReThinkSinkConfig.RETHINK_PORT)
     lazy val r = RethinkDB.r
     lazy val conn: Connection = r.connection().hostname(rethinkHost).port(port).connect()

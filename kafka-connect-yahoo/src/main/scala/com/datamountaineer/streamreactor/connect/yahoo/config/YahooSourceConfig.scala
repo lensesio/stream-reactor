@@ -16,8 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.yahoo.config
 
-import io.confluent.common.config.ConfigDef
-import io.confluent.common.config.ConfigDef.{Importance, Type}
+import org.apache.kafka.common.config.ConfigDef
+import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
 
 /**
@@ -66,10 +66,9 @@ trait YahooSourceConfig {
       Importance.HIGH,
       YahooConfigConstants.POLL_INTERVAL_DOC)
 
-  /*.define(YahooConfigConstants.ERROR_RETRY_INTERVAL,
-    Type.INT,
-    YahooConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT,
-    Importance.MEDIUM,
-    YahooConfigConstants.ERROR_RETRY_INTERVAL_DOC)
-*/
+    .define(YahooConfigConstants.BUFFER_SIZE,
+      Type.INT,
+      YahooConfigConstants.DEFAULT_BUFFER_SIZE,
+      Importance.MEDIUM,
+      YahooConfigConstants.BUFFER_SIZE_DOC)
 }

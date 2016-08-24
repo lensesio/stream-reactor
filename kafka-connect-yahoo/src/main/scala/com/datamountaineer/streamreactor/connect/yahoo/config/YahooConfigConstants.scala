@@ -27,13 +27,13 @@ object YahooConfigConstants {
   val DEFAULT_ERROR_POLICY = "THROW"
   val DEFAULT_RETRIES = 10
 
-  val POLL_INTERVAL = "connect.yahoo,source.poll.interval"
+  val POLL_INTERVAL = "connect.yahoo.source.poll.interval"
   val POLL_INTERVAL_DOC = "Specifies how often if polls Yahoo services for new data"
 
   val STOCKS = "connect.yahoo.source.stocks.subscriptions"
-  val STOCKS_DOC = "Sets the financials stocks to query from Yahoo finance."
+  val STOCKS_DOC = "Sets the financial's stocks to query from Yahoo finance."
   val STOCKS_KAFKA_TOPIC = "connect.yahoo.source.stocks.topic"
-  val STOCKS_KAFKA_TOPIC_DOC = "Specifies which kafka topic will receive the the stock informations"
+  val STOCKS_KAFKA_TOPIC_DOC = "Specifies which kafka topic will receive the the stock information"
 
   val FX = "connect.yahoo.source.fx.subscriptions"
   val FX_DOC = "Sets the foreign exchange values to retrieve from Yahoo finance"
@@ -45,4 +45,8 @@ object YahooConfigConstants {
 
   val NBR_OF_RETRIES = "connect.yahoo.source.retries"
   val NBR_OF_RETRIES_DOC = ""
+
+  val BUFFER_SIZE = "connect.yahoo.source.buffer.size"
+  val BUFFER_SIZE_DOC = "How many records it should buffer as it gets more data from yahoo"
+  val DEFAULT_BUFFER_SIZE = 10000
 }

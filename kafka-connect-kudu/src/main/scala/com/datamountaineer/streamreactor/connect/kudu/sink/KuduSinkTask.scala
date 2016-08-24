@@ -60,10 +60,6 @@ class KuduSinkTask extends SinkTask with StrictLogging {
     val sinkConfig = new KuduSinkConfig(props)
     val settings = KuduSettings(sinkConfig)
 
-    val assigned = context.assignment().map(a => a.topic()).toList
-    if (assigned.isEmpty) throw new ConnectException("No topics have been assigned to this task!")
-
-
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
       context.timeout(sinkConfig.getInt(KuduSinkConfig.ERROR_RETRY_INTERVAL).toLong)
@@ -77,7 +73,7 @@ class KuduSinkTask extends SinkTask with StrictLogging {
     * */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.foreach(w=>w.write(records.toSet))
+    writer.foreach(w => w.write(records.toSet))
   }
 
   /**
@@ -90,7 +86,7 @@ class KuduSinkTask extends SinkTask with StrictLogging {
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.foreach(w=>w.flush())
+    writer.foreach(w => w.flush())
   }
 
   override def version(): String = getClass.getPackage.getImplementationVersion

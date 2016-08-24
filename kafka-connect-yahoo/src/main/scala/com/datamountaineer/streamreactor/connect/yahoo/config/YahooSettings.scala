@@ -16,8 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.yahoo.config
 
+import java.util.logging.Logger
+
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
-import io.confluent.common.config.{AbstractConfig, ConfigException}
+import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 
 
 case class YahooSourceSetting(stocks: Set[String],
@@ -27,10 +29,13 @@ case class YahooSourceSetting(stocks: Set[String],
                               config: AbstractConfig,
                               pollInterval: Long = YahooConfigConstants.DEFAULT_POLL_INTERVAL,
                               errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                              taskRetires: Int = 10)
+                              taskRetires: Int = 10,
+                              bufferSize: Int = YahooConfigConstants.DEFAULT_BUFFER_SIZE)
 
 object YahooSettings {
-  def apply(config: AbstractConfig) = {
+  val logger: Logger = Logger.getLogger(getClass.getName)
+
+  def apply(config: AbstractConfig): YahooSourceSetting = {
 
     val stocks = Option(config.getString(YahooConfigConstants.STOCKS))
       .map(v => v.split(",").map(_.trim.toUpperCase()).toSet)
@@ -56,6 +61,14 @@ object YahooSettings {
     val errorPolicyValue = ErrorPolicyEnum.withName(config.getString(YahooConfigConstants.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyValue)
 
-    new YahooSourceSetting(stocks, Option(topicStocks), fx, Option(topicFx), config, pollInterval, errorPolicy)
+    val bufferSize = config.getInt(YahooConfigConstants.BUFFER_SIZE)
+
+    val settings = YahooSourceSetting(stocks, Option(topicStocks), fx, Option(topicFx), config, pollInterval, errorPolicy, bufferSize)
+    logger.info(
+      s"""
+         |Yahoo Source settings
+         |$settings
+      """.stripMargin)
+    settings
   }
 }

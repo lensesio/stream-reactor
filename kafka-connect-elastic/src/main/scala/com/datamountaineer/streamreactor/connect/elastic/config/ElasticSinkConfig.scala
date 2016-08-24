@@ -42,11 +42,9 @@ object ElasticSinkConfig {
     .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY_DOC)
 }
 
-
 /**
   * <h1>ElasticSinkConfig</h1>
   *
   * Holds config, extends AbstractConfig.
   * */
-case class ElasticSinkConfig(props: util.Map[String, String])
-  extends AbstractConfig(ElasticSinkConfig.config, props)
+case class ElasticSinkConfig(props: util.Map[String, String]) extends AbstractConfig(ElasticSinkConfig.config, props)

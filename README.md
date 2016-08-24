@@ -66,6 +66,8 @@ Kafka connect Bloomberg source to subscribe to Bloomberg streams via the open AP
 
 Kafka connect Druid sink to write Kafka topic payloads to Druid.
 
+WORK IN PROGRESS
+
 #### [Kafka-Connect-HBase](kafka-connect-hbase/README.md)
 
 Kafka connect HBase sink to write Kafka topic payloads to HBase.
@@ -77,6 +79,18 @@ Kafka connect Redis sink to write Kafka topic payloads to Redis.
 #### [Kafka-Connect-Rethink](kafka-connect-redis/README.md)
 
 Kafka connect RethinkDb sink to write Kafka topic payloads to RethinkDb.
+
+#### [Kafka-Connect-Yahoo](kafka-connect-yahoo/README.md)
+
+Kafka connect Yahoo Finance source to write to Kafka
+
+#### [Kafka-Connect-InfluxDb](kafka-connect-influxdb/README.md)
+
+Kafka connect InfluxDb sink to write Kafka topic payloads to InfluxDb.
+
+#### [Kafka-Connect-Voltdb](kafka-connect-voltdb/README.md)
+
+Kafka connect Voltdb sink to write Kafka topic payloads to Votldb.
 
 #### [Kafka-Socket-Streamer](kafka-socket-streamer/README.md)
 

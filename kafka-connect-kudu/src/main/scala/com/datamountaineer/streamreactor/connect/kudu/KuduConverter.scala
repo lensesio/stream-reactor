@@ -16,7 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.kudu
 
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.kafka.connect.data.Schema.Type
 import org.apache.kafka.connect.data.{Field, Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
@@ -26,12 +25,7 @@ import org.kududb.client.{KuduTable, PartialRow, Upsert}
 
 import scala.collection.JavaConversions._
 
-object KuduOperation extends Enumeration {
-  type KuduOperation = Value
-  val INSERT, UPDATE, UPSERT = Value
-}
-
-trait KuduConverter extends ConverterUtil {
+trait KuduConverter {
 
   /**
     * Convert SinkRecord type to Kudu and add the column to the Kudu row
@@ -97,9 +91,8 @@ trait KuduConverter extends ConverterUtil {
     new org.kududb.Schema(connectFields.toList)
   }
 
-  def createKuduColumns(fields: Set[Field]): Set[ColumnSchema] = {
-    fields.map(cf=>convertConnectField(cf))
-  }
+  def createKuduColumns(fields: Set[Field]): Set[ColumnSchema] = fields.map(cf=>convertConnectField(cf))
+
 
   /**
     * Convert a connect schema field to a Kudu field

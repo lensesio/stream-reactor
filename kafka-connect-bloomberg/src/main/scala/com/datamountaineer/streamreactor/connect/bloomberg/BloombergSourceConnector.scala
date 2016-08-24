@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.bloomberg
 import java.util
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceConnector
@@ -33,9 +34,8 @@ import scala.collection.JavaConverters._
   * Sets up BloombergSourceTask and configurations for the tasks.
   */
 class BloombergSourceConnector extends SourceConnector with StrictLogging {
-  //var configProps: util.Map[String, String]
-
-  var bloombergSettings: Option[BloombergSettings] = None
+  private var bloombergSettings: Option[BloombergSettings] = None
+  private val configDef = ConnectorConfig.config
 
   /**
     * Defines the sink class to use
@@ -79,5 +79,5 @@ class BloombergSourceConnector extends SourceConnector with StrictLogging {
     */
   override def version(): String = getClass.getPackage.getImplementationVersion
 
-  //override def config(): ConfigDef = ???
+  override def config(): ConfigDef = configDef
 }

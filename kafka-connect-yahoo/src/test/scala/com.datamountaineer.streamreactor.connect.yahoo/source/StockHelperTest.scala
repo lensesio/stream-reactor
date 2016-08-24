@@ -20,7 +20,7 @@ class StockHelperTest extends WordSpec with Matchers {
     val record = quote.toSourceRecord("topic_fx")
     record.topic() shouldBe "topic_fx"
     record.sourcePartition() shouldBe Collections.singletonMap("Yahoo", "GBPEUR=")
-    record.sourceOffset() shouldBe null
+    Option(record.sourceOffset()).isDefined shouldBe true
     record.key() shouldBe null
     record.keySchema() shouldBe null
 
@@ -67,7 +67,7 @@ class StockHelperTest extends WordSpec with Matchers {
     record.topic() shouldBe "topic_stocks"
     record.sourcePartition() shouldBe Collections.singletonMap("Yahoo", "MSFT")
 
-    record.sourceOffset() shouldBe null
+    Option(record.sourceOffset()).isDefined shouldBe true
 
     record.key() shouldBe null
     record.keySchema() shouldBe null
@@ -85,7 +85,7 @@ class StockHelperTest extends WordSpec with Matchers {
     fields.get("pay_date") shouldBe Schema.OPTIONAL_INT64_SCHEMA
     fields.get("ask") shouldBe Schema.OPTIONAL_FLOAT64_SCHEMA
     fields.get("ask_size") shouldBe Schema.OPTIONAL_INT32_SCHEMA
-    fields.get("ask_avg_volumne") shouldBe Schema.OPTIONAL_INT64_SCHEMA
+    fields.get("ask_avg_volume") shouldBe Schema.OPTIONAL_INT64_SCHEMA
     fields.get("bid") shouldBe Schema.OPTIONAL_FLOAT64_SCHEMA
     fields.get("bid_size") shouldBe Schema.OPTIONAL_INT32_SCHEMA
     fields.get("change") shouldBe Schema.OPTIONAL_FLOAT64_SCHEMA
@@ -108,7 +108,7 @@ class StockHelperTest extends WordSpec with Matchers {
     fields.get("volume") shouldBe Schema.OPTIONAL_INT64_SCHEMA
     fields.get("year_high") shouldBe Schema.OPTIONAL_FLOAT64_SCHEMA
     fields.get("year_low") shouldBe Schema.OPTIONAL_FLOAT64_SCHEMA
-    fields.get("history") shouldBe SchemaBuilder.array(StockHelper.getStockHistoricalSchema()).build()
+    fields.get("history") shouldBe SchemaBuilder.array(StockHelper.getStockHistoricalSchema).optional().build()
 
     val struct = record.value().asInstanceOf[Struct]
     val history = struct.getArray("history")
@@ -124,7 +124,7 @@ class StockHelperTest extends WordSpec with Matchers {
     struct.getInt64("pay_date") shouldBe calendar.getTimeInMillis
     struct.getFloat64("ask") shouldBe 52.29
     struct.getInt32("ask_size") shouldBe 1000
-    struct.getInt64("ask_avg_volumne") shouldBe 189
+    struct.getInt64("ask_avg_volume") shouldBe 189
     struct.getFloat64("bid") shouldBe 52.21
     struct.getInt32("bid_size") shouldBe 1259
     struct.getFloat64("change") shouldBe 0.92
@@ -175,11 +175,11 @@ class StockHelperTest extends WordSpec with Matchers {
     quote.setYearLow(new BigDecimal("39.85"))
     stock.setQuote(quote)
 
-    val record = stock.toSourceRecord("topic_stocks", false)
+    val record = stock.toSourceRecord("topic_stocks", includeHistory = false)
     record.topic() shouldBe "topic_stocks"
     record.sourcePartition() shouldBe Collections.singletonMap("Yahoo", "MSFT")
 
-    record.sourceOffset() shouldBe null
+    Option(record.sourceOffset()).isDefined shouldBe true
 
     record.key() shouldBe null
     record.keySchema() shouldBe null
@@ -197,7 +197,7 @@ class StockHelperTest extends WordSpec with Matchers {
     fields.get("pay_date") shouldBe Schema.OPTIONAL_INT64_SCHEMA
     fields.get("ask") shouldBe Schema.OPTIONAL_FLOAT64_SCHEMA
     fields.get("ask_size") shouldBe Schema.OPTIONAL_INT32_SCHEMA
-    fields.get("ask_avg_volumne") shouldBe Schema.OPTIONAL_INT64_SCHEMA
+    fields.get("ask_avg_volume") shouldBe Schema.OPTIONAL_INT64_SCHEMA
     fields.get("bid") shouldBe Schema.OPTIONAL_FLOAT64_SCHEMA
     fields.get("bid_size") shouldBe Schema.OPTIONAL_INT32_SCHEMA
     fields.get("change") shouldBe Schema.OPTIONAL_FLOAT64_SCHEMA
@@ -220,7 +220,7 @@ class StockHelperTest extends WordSpec with Matchers {
     fields.get("volume") shouldBe Schema.OPTIONAL_INT64_SCHEMA
     fields.get("year_high") shouldBe Schema.OPTIONAL_FLOAT64_SCHEMA
     fields.get("year_low") shouldBe Schema.OPTIONAL_FLOAT64_SCHEMA
-    fields.get("history") shouldBe SchemaBuilder.array(StockHelper.getStockHistoricalSchema()).build()
+    fields.get("history") shouldBe SchemaBuilder.array(StockHelper.getStockHistoricalSchema).optional().build()
 
     val struct = record.value().asInstanceOf[Struct]
     val history = struct.getArray("history")
@@ -236,7 +236,7 @@ class StockHelperTest extends WordSpec with Matchers {
     struct.getInt64("pay_date") shouldBe null
     struct.getFloat64("ask") shouldBe 52.29
     struct.getInt32("ask_size") shouldBe 1000
-    struct.getInt64("ask_avg_volumne") shouldBe 189
+    struct.getInt64("ask_avg_volume") shouldBe 189
     struct.getFloat64("bid") shouldBe 52.21
     struct.getInt32("bid_size") shouldBe 1259
     struct.getFloat64("change") shouldBe 0.92

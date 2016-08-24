@@ -43,9 +43,6 @@ object  ElasticWriter {
     val client = ElasticClient.transport(essettings, uri)
 
     val settings = ElasticSettings(config)
-    val assigned = context.assignment().map(a => a.topic()).toList
-    if (assigned.isEmpty) throw new ConnectException("No topics have been assigned to this task!")
-
     new ElasticJsonWriter(client = client, settings = settings)
   }
 }

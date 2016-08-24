@@ -15,10 +15,10 @@ class DistributeConfigurationFnTest extends WordSpec with Matchers {
       val result = DistributeConfigurationFn(3, map)
       result.size shouldBe 1
 
-      val s1 = result.head.get(YahooConfigConstants.STOCKS).get.split(',')
+      val s1 = result.head(YahooConfigConstants.STOCKS).split(',')
       s1.length shouldBe 1
       s1 shouldBe Array("s1")
-      result.head.get(key1).get shouldBe value1
+      result.head(key1) shouldBe value1
       result.head.size shouldBe 2
     }
 
@@ -29,10 +29,10 @@ class DistributeConfigurationFnTest extends WordSpec with Matchers {
       val result = DistributeConfigurationFn(3, map)
       result.size shouldBe 1
 
-      val s1 = result.head.get(YahooConfigConstants.FX).get.split(',')
+      val s1 = result.head(YahooConfigConstants.FX).split(',')
       s1.length shouldBe 1
       s1 shouldBe Array("s1")
-      result.head.get(key1).get shouldBe value1
+      result.head(key1) shouldBe value1
       result.head.size shouldBe 2
     }
 
@@ -43,22 +43,22 @@ class DistributeConfigurationFnTest extends WordSpec with Matchers {
       val result = DistributeConfigurationFn(3, map)
       result.size shouldBe 3
 
-      val s1 = result.head.get(YahooConfigConstants.STOCKS).get.split(',')
+      val s1 = result.head(YahooConfigConstants.STOCKS).split(',')
       s1.length shouldBe 1
       s1 shouldBe Array("s1")
-      result.head.get(key1).get shouldBe value1
+      result.head(key1) shouldBe value1
       result.head.size shouldBe 2
 
-      val s2 = result(1).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s2 = result(1)(YahooConfigConstants.STOCKS).split(',')
       s2.length shouldBe 1
       s2 shouldBe Array("s2")
-      result.head.get(key1).get shouldBe value1
+      result.head(key1) shouldBe value1
       result.head.size shouldBe 2
 
-      val s3 = result(2).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s3 = result(2)(YahooConfigConstants.STOCKS).split(',')
       s3.length shouldBe 1
       s3 shouldBe Array("s3")
-      result.head.get(key1).get shouldBe value1
+      result.head(key1) shouldBe value1
       result.head.size shouldBe 2
     }
 
@@ -69,22 +69,22 @@ class DistributeConfigurationFnTest extends WordSpec with Matchers {
       val result = DistributeConfigurationFn(3, map)
       result.size shouldBe 3
 
-      val s1 = result.head.get(YahooConfigConstants.STOCKS).get.split(',')
+      val s1 = result.head(YahooConfigConstants.STOCKS).split(',')
       s1.length shouldBe 1
       s1 shouldBe Array("s1")
-      result.head.get(key1).get shouldBe value1
+      result.head(key1) shouldBe value1
       result.head.size shouldBe 2
 
-      val s2 = result(1).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s2 = result(1)(YahooConfigConstants.STOCKS).split(',')
       s2.length shouldBe 1
       s2 shouldBe Array("s2")
-      result.head.get(key1).get shouldBe value1
+      result.head(key1) shouldBe value1
       result.head.size shouldBe 2
 
-      val s3 = result(2).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s3 = result(2)(YahooConfigConstants.STOCKS).split(',')
       s3.length shouldBe 1
       s3 shouldBe Array("s3")
-      result.head.get(key1).get shouldBe value1
+      result.head(key1) shouldBe value1
       result.head.size shouldBe 2
     }
 
@@ -97,23 +97,23 @@ class DistributeConfigurationFnTest extends WordSpec with Matchers {
       val result = DistributeConfigurationFn(3, map)
       result.size shouldBe 3
 
-      val s1 = result.head.get(YahooConfigConstants.STOCKS).get.split(',')
+      val s1 = result.head(YahooConfigConstants.STOCKS).split(',')
       s1.length shouldBe 2
       s1 shouldBe Array("s1", "s2")
-      result.head.get(key1).get shouldBe value1
+      result.head(key1) shouldBe value1
       result.head.size shouldBe 2
 
       result(1).size shouldBe 2
-      val s2 = result(1).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s2 = result(1)(YahooConfigConstants.STOCKS).split(',')
       s2.length shouldBe 2
       s2 shouldBe Array("s3", "s4")
-      result(1).get(key1).get shouldBe value1
+      result(1)(key1) shouldBe value1
 
       result(2).size shouldBe 2
-      val s3 = result(2).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s3 = result(2)(YahooConfigConstants.STOCKS).split(',')
       s3.length shouldBe 1
       s3 shouldBe Array("s5")
-      result(2).get(key1).get shouldBe value1
+      result(2)(key1) shouldBe value1
     }
 
     "5 stocks and 3 fx by 3 partitions" in {
@@ -127,28 +127,28 @@ class DistributeConfigurationFnTest extends WordSpec with Matchers {
       result.size shouldBe 3
 
       result.head.size shouldBe 3
-      val s1 = result.head.get(YahooConfigConstants.STOCKS).get.split(',')
+      val s1 = result.head(YahooConfigConstants.STOCKS).split(',')
       s1 shouldBe Array("s1", "s2")
 
-      result.head.get(key1).get shouldBe value1
+      result.head(key1) shouldBe value1
       result.head.size shouldBe 3
 
-      val s2 = result.head.get(YahooConfigConstants.FX).get.split(',')
+      val s2 = result.head(YahooConfigConstants.FX).split(',')
       s2 shouldBe Array("s1")
 
       result(1).size shouldBe 3
-      val s3 = result(1).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s3 = result(1)(YahooConfigConstants.STOCKS).split(',')
       s3 shouldBe Array("s3", "s4")
-      result(1).get(key1).get shouldBe value1
+      result(1)(key1) shouldBe value1
 
-      val s4 = result(1).get(YahooConfigConstants.FX).get.split(',')
+      val s4 = result(1)(YahooConfigConstants.FX).split(',')
       s4 shouldBe Array("s2")
 
       result(2).size shouldBe 3
-      val s5 = result(2).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s5 = result(2)(YahooConfigConstants.STOCKS).split(',')
       s5 shouldBe Array("s5")
-      result(2).get(key1).get shouldBe value1
-      val s6 = result(2).get(YahooConfigConstants.FX).get.split(',')
+      result(2)(key1) shouldBe value1
+      val s6 = result(2)(YahooConfigConstants.FX).split(',')
       s6 shouldBe Array("s3")
     }
 
@@ -163,27 +163,27 @@ class DistributeConfigurationFnTest extends WordSpec with Matchers {
       result.size shouldBe 3
 
       result.head.size shouldBe 3
-      val s1 = result.head.get(YahooConfigConstants.STOCKS).get.split(',')
+      val s1 = result.head(YahooConfigConstants.STOCKS).split(',')
       s1 shouldBe Array("s1", "s2")
 
-      result.head.get(key1).get shouldBe value1
+      result.head(key1) shouldBe value1
       result.head.size shouldBe 3
 
-      val s2 = result.head.get(YahooConfigConstants.FX).get.split(',')
+      val s2 = result.head(YahooConfigConstants.FX).split(',')
       s2 shouldBe Array("s1", "s2")
 
       result(1).size shouldBe 3
-      val s3 = result(1).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s3 = result(1)(YahooConfigConstants.STOCKS).split(',')
       s3 shouldBe Array("s3", "s4")
-      result(1).get(key1).get shouldBe value1
+      result(1)(key1) shouldBe value1
 
-      val s4 = result(1).get(YahooConfigConstants.FX).get.split(',')
+      val s4 = result(1)(YahooConfigConstants.FX).split(',')
       s4 shouldBe Array("s3", "s4")
 
       result(2).size shouldBe 2
-      val s5 = result(2).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s5 = result(2)(YahooConfigConstants.STOCKS).split(',')
       s5 shouldBe Array("s5")
-      result(2).get(key1).get shouldBe value1
+      result(2)(key1) shouldBe value1
     }
 
     "5 stocks and 1 fx by 3 partitions" in {
@@ -197,24 +197,24 @@ class DistributeConfigurationFnTest extends WordSpec with Matchers {
       result.size shouldBe 3
 
       result.head.size shouldBe 3
-      val s1 = result.head.get(YahooConfigConstants.STOCKS).get.split(',')
+      val s1 = result.head(YahooConfigConstants.STOCKS).split(',')
       s1 shouldBe Array("s1", "s2")
 
-      result.head.get(key1).get shouldBe value1
+      result.head(key1) shouldBe value1
       result.head.size shouldBe 3
 
-      val s2 = result.head.get(YahooConfigConstants.FX).get.split(',')
+      val s2 = result.head(YahooConfigConstants.FX).split(',')
       s2 shouldBe Array("s1")
 
       result(1).size shouldBe 2
-      val s3 = result(1).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s3 = result(1)(YahooConfigConstants.STOCKS).split(',')
       s3 shouldBe Array("s3", "s4")
-      result(1).get(key1).get shouldBe value1
+      result(1)(key1) shouldBe value1
 
       result(2).size shouldBe 2
-      val s5 = result(2).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s5 = result(2)(YahooConfigConstants.STOCKS).split(',')
       s5 shouldBe Array("s5")
-      result(2).get(key1).get shouldBe value1
+      result(2)(key1) shouldBe value1
     }
 
     "5 stocks and 2 fx by 3 partitions" in {
@@ -228,25 +228,25 @@ class DistributeConfigurationFnTest extends WordSpec with Matchers {
       result.size shouldBe 3
 
       result.head.size shouldBe 3
-      val s1 = result.head.get(YahooConfigConstants.STOCKS).get.split(',')
+      val s1 = result.head(YahooConfigConstants.STOCKS).split(',')
       s1 shouldBe Array("s1", "s2")
 
-      result.head.get(key1).get shouldBe value1
+      result.head(key1) shouldBe value1
       result.head.size shouldBe 3
 
-      val s2 = result.head.get(YahooConfigConstants.FX).get.split(',')
+      val s2 = result.head(YahooConfigConstants.FX).split(',')
       s2 shouldBe Array("s1")
 
       result(1).size shouldBe 3
-      val s3 = result(1).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s3 = result(1)(YahooConfigConstants.STOCKS).split(',')
       s3 shouldBe Array("s3", "s4")
-      result(1).get(key1).get shouldBe value1
-      result(1).get(YahooConfigConstants.FX).get.split(',') shouldBe Array("s2")
+      result(1)(key1) shouldBe value1
+      result(1)(YahooConfigConstants.FX).split(',') shouldBe Array("s2")
 
       result(2).size shouldBe 2
-      val s5 = result(2).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s5 = result(2)(YahooConfigConstants.STOCKS).split(',')
       s5 shouldBe Array("s5")
-      result(2).get(key1).get shouldBe value1
+      result(2)(key1) shouldBe value1
     }
 
     "5 stocks and 5 fx by 3 partitions" in {
@@ -260,28 +260,28 @@ class DistributeConfigurationFnTest extends WordSpec with Matchers {
       result.size shouldBe 3
 
       result.head.size shouldBe 3
-      val s1 = result.head.get(YahooConfigConstants.STOCKS).get.split(',')
+      val s1 = result.head(YahooConfigConstants.STOCKS).split(',')
       s1 shouldBe Array("s1", "s2")
 
-      result.head.get(key1).get shouldBe value1
+      result.head(key1) shouldBe value1
       result.head.size shouldBe 3
 
-      val s2 = result.head.get(YahooConfigConstants.FX).get.split(',')
+      val s2 = result.head(YahooConfigConstants.FX).split(',')
       s2 shouldBe Array("s1", "s2")
 
       result(1).size shouldBe 3
-      val s3 = result(1).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s3 = result(1)(YahooConfigConstants.STOCKS).split(',')
       s3 shouldBe Array("s3", "s4")
-      result(1).get(key1).get shouldBe value1
+      result(1)(key1) shouldBe value1
 
-      val s4 = result(1).get(YahooConfigConstants.FX).get.split(',')
+      val s4 = result(1)(YahooConfigConstants.FX).split(',')
       s4 shouldBe Array("s3", "s4")
 
       result(2).size shouldBe 3
-      val s5 = result(2).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s5 = result(2)(YahooConfigConstants.STOCKS).split(',')
       s5 shouldBe Array("s5")
-      result(2).get(key1).get shouldBe value1
-      result(2).get(YahooConfigConstants.FX).get.split(',') shouldBe Array("s5")
+      result(2)(key1) shouldBe value1
+      result(2)(YahooConfigConstants.FX).split(',') shouldBe Array("s5")
     }
 
 
@@ -296,28 +296,28 @@ class DistributeConfigurationFnTest extends WordSpec with Matchers {
       result.size shouldBe 3
 
       result.head.size shouldBe 3
-      val s1 = result.head.get(YahooConfigConstants.STOCKS).get.split(',')
+      val s1 = result.head(YahooConfigConstants.STOCKS).split(',')
       s1 shouldBe Array("s1", "s2")
 
-      result.head.get(key1).get shouldBe value1
+      result.head(key1) shouldBe value1
       result.head.size shouldBe 3
 
-      val s2 = result.head.get(YahooConfigConstants.FX).get.split(',')
+      val s2 = result.head(YahooConfigConstants.FX).split(',')
       s2 shouldBe Array("s1", "s2")
 
       result(1).size shouldBe 3
-      val s3 = result(1).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s3 = result(1)(YahooConfigConstants.STOCKS).split(',')
       s3 shouldBe Array("s3", "s4")
-      result(1).get(key1).get shouldBe value1
+      result(1)(key1) shouldBe value1
 
-      val s4 = result(1).get(YahooConfigConstants.FX).get.split(',')
+      val s4 = result(1)(YahooConfigConstants.FX).split(',')
       s4 shouldBe Array("s3", "s4")
 
       result(2).size shouldBe 3
-      val s5 = result(2).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s5 = result(2)(YahooConfigConstants.STOCKS).split(',')
       s5 shouldBe Array("s5")
-      result(2).get(key1).get shouldBe value1
-      result(2).get(YahooConfigConstants.FX).get.split(',') shouldBe Array("s5", "s6")
+      result(2)(key1) shouldBe value1
+      result(2)(YahooConfigConstants.FX).split(',') shouldBe Array("s5", "s6")
     }
 
 
@@ -332,28 +332,28 @@ class DistributeConfigurationFnTest extends WordSpec with Matchers {
       result.size shouldBe 3
 
       result.head.size shouldBe 3
-      val s1 = result.head.get(YahooConfigConstants.STOCKS).get.split(',')
+      val s1 = result.head(YahooConfigConstants.STOCKS).split(',')
       s1 shouldBe Array("s1", "s2")
 
-      result.head.get(key1).get shouldBe value1
+      result.head(key1) shouldBe value1
       result.head.size shouldBe 3
 
-      val s2 = result.head.get(YahooConfigConstants.FX).get.split(',')
+      val s2 = result.head(YahooConfigConstants.FX).split(',')
       s2 shouldBe Array("s1", "s2", "s3")
 
       result(1).size shouldBe 3
-      val s3 = result(1).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s3 = result(1)(YahooConfigConstants.STOCKS).split(',')
       s3 shouldBe Array("s3", "s4")
-      result(1).get(key1).get shouldBe value1
+      result(1)(key1) shouldBe value1
 
-      val s4 = result(1).get(YahooConfigConstants.FX).get.split(',')
+      val s4 = result(1)(YahooConfigConstants.FX).split(',')
       s4 shouldBe Array("s4", "s5", "s6")
 
       result(2).size shouldBe 3
-      val s5 = result(2).get(YahooConfigConstants.STOCKS).get.split(',')
+      val s5 = result(2)(YahooConfigConstants.STOCKS).split(',')
       s5 shouldBe Array("s5")
-      result(2).get(key1).get shouldBe value1
-      result(2).get(YahooConfigConstants.FX).get.split(',') shouldBe Array("s7")
+      result(2)(key1) shouldBe value1
+      result(2)(YahooConfigConstants.FX).split(',') shouldBe Array("s7")
     }
 
     "4 stocks and 8 fx by 4 partitions" in {
@@ -367,29 +367,29 @@ class DistributeConfigurationFnTest extends WordSpec with Matchers {
       result.size shouldBe 4
 
       result.head.size shouldBe 3
-      val s1 = result.head.get(YahooConfigConstants.STOCKS).get.split(',')
+      val s1 = result.head(YahooConfigConstants.STOCKS).split(',')
       s1 shouldBe Array("s1")
 
-      result.head.get(key1).get shouldBe value1
+      result.head(key1) shouldBe value1
       result.head.size shouldBe 3
 
-      val s2 = result.head.get(YahooConfigConstants.FX).get.split(',')
+      val s2 = result.head(YahooConfigConstants.FX).split(',')
       s2 shouldBe Array("s1", "s2")
 
       result(1).size shouldBe 3
-      result(1).get(YahooConfigConstants.STOCKS).get.split(',') shouldBe Array("s2")
-      result(1).get(key1).get shouldBe value1
-      result(1).get(YahooConfigConstants.FX).get.split(',') shouldBe Array("s3", "s4")
+      result(1)(YahooConfigConstants.STOCKS).split(',') shouldBe Array("s2")
+      result(1)(key1) shouldBe value1
+      result(1)(YahooConfigConstants.FX).split(',') shouldBe Array("s3", "s4")
 
       result(2).size shouldBe 3
-      result(2).get(YahooConfigConstants.STOCKS).get.split(',') shouldBe Array("s3")
-      result(2).get(key1).get shouldBe value1
-      result(2).get(YahooConfigConstants.FX).get.split(',') shouldBe Array("s5", "s6")
+      result(2)(YahooConfigConstants.STOCKS).split(',') shouldBe Array("s3")
+      result(2)(key1) shouldBe value1
+      result(2)(YahooConfigConstants.FX).split(',') shouldBe Array("s5", "s6")
 
       result(3).size shouldBe 3
-      result(3).get(YahooConfigConstants.STOCKS).get.split(',') shouldBe Array("s4")
-      result(3).get(key1).get shouldBe value1
-      result(3).get(YahooConfigConstants.FX).get.split(',') shouldBe Array("s7", "s8")
+      result(3)(YahooConfigConstants.STOCKS).split(',') shouldBe Array("s4")
+      result(3)(key1) shouldBe value1
+      result(3)(YahooConfigConstants.FX).split(',') shouldBe Array("s7", "s8")
     }
 
     "5 fx with 3 partitions" in {
@@ -401,23 +401,23 @@ class DistributeConfigurationFnTest extends WordSpec with Matchers {
       val result = DistributeConfigurationFn(3, map)
       result.size shouldBe 3
 
-      val s1 = result.head.get(YahooConfigConstants.FX).get.split(',')
+      val s1 = result.head(YahooConfigConstants.FX).split(',')
       s1.length shouldBe 2
       s1 shouldBe Array("s1", "s2")
-      result.head.get(key1).get shouldBe value1
+      result.head(key1) shouldBe value1
       result.head.size shouldBe 2
 
       result(1).size shouldBe 2
-      val s2 = result(1).get(YahooConfigConstants.FX).get.split(',')
+      val s2 = result(1)(YahooConfigConstants.FX).split(',')
       s2.length shouldBe 2
       s2 shouldBe Array("s3", "s4")
-      result(1).get(key1).get shouldBe value1
+      result(1)(key1) shouldBe value1
 
       result(2).size shouldBe 2
-      val s3 = result(2).get(YahooConfigConstants.FX).get.split(',')
+      val s3 = result(2)(YahooConfigConstants.FX).split(',')
       s3.length shouldBe 1
       s3 shouldBe Array("s5")
-      result(2).get(key1).get shouldBe value1
+      result(2)(key1) shouldBe value1
     }
   }
 }

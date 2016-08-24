@@ -17,16 +17,19 @@
 package com.datamountaineer.streamreactor.connect.yahoo.source
 
 import java.util
+import java.util.logging.Logger
 
 import com.datamountaineer.streamreactor.connect.yahoo.config.{YahooSettings, YahooSourceConfig}
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import io.confluent.common.config.{AbstractConfig, ConfigException}
+import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
+
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 
-class YahooSourceTask extends SourceTask with StrictLogging with YahooSourceConfig {
+class YahooSourceTask extends SourceTask with YahooSourceConfig {
+  val logger: Logger = Logger.getLogger(getClass.getName)
+
   private var taskConfig: Option[AbstractConfig] = None
   private var dataManager: Option[DataRetrieverManager] = None
 
@@ -56,9 +59,11 @@ class YahooSourceTask extends SourceTask with StrictLogging with YahooSourceConf
       settings.fxKafkaTopic,
       settings.stocks.toArray,
       settings.stocksKafkaTopic,
-      settings.pollInterval))
+      settings.pollInterval,
+      settings.bufferSize))
 
     dataManager.foreach(_.start())
+    logger.info("Data manager started")
   }
 
   /**
@@ -68,7 +73,12 @@ class YahooSourceTask extends SourceTask with StrictLogging with YahooSourceConf
     *
     * @return A util.List of SourceRecords.
     **/
-  override def poll(): util.List[SourceRecord] = dataManager.map(_.getRecords()).orNull
+  override def poll(): util.List[SourceRecord] = {
+    logger.info("Polling for Yahoo records...")
+    val records = dataManager.map(_.getRecords).getOrElse(new util.ArrayList[SourceRecord]())
+    logger.info(s"Returning ${records.size()} record(-s) from Yahoo source")
+    records
+  }
 
   /**
     * Stop the task and close readers.

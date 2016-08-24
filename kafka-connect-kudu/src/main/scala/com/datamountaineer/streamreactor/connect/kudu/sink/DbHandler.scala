@@ -106,6 +106,7 @@ object DbHandler extends StrictLogging with KuduConverter {
     var  lkTopic = mapping.getSource
 
     //the schema registry
+    //console producer tags -value on end of topic name so check for it
     if (!schemas.contains(lkTopic)) {
       if (schemas.contains(lkTopic + "-value")) {
         lkTopic = lkTopic + "-value"

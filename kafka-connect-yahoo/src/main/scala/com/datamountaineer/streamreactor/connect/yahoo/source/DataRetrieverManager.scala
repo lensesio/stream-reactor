@@ -1,11 +1,27 @@
+/**
+  * Copyright 2016 Datamountaineer.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **/
+
 package com.datamountaineer.streamreactor.connect.yahoo.source
 
 import java.util
-import java.util.concurrent.{CountDownLatch, Executors, LinkedBlockingQueue, TimeUnit}
+import java.util.concurrent._
+import java.util.logging.{Level, Logger}
 
 import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
 import com.datamountaineer.streamreactor.connect.yahoo.source.StockHelper._
-import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord
 import yahoofinance.Stock
 import yahoofinance.quotes.fx.FxQuote
@@ -17,37 +33,51 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
                                 fxKafkaTopic: Option[String],
                                 stocks: Array[String],
                                 stocksKafkaTopic: Option[String],
-                                queryInterval: Long) extends AutoCloseable with StrictLogging {
+                                queryInterval: Long,
+                                bufferSize: Int) extends AutoCloseable {
   require(fx.nonEmpty || stocks.nonEmpty, "Need to provide at least one quote or stock")
+
+  val logger: Logger = Logger.getLogger(getClass.getName)
 
   private val workers = {
     (if (fx.nonEmpty) 1 else 0) + (if (stocks.nonEmpty) 1 else 0)
   }
-  private val queue = new LinkedBlockingQueue[SourceRecord]()
+  logger.info(s"Latch count is $workers")
+  private val queue = new ArrayBlockingQueue[SourceRecord](bufferSize, true)
   private val latch = new CountDownLatch(workers)
   private val latchStart = new CountDownLatch(workers)
   @volatile private var poll = true
   private val threadPool = Executors.newFixedThreadPool(workers)
 
-  def getRecords(): java.util.List[SourceRecord] = {
-    val recs = new util.LinkedList[SourceRecord]()
-    if (queue.drainTo(recs) > 0) recs
-    else null
+  def getRecords: java.util.List[SourceRecord] = {
+    val recs = new util.ArrayList[SourceRecord]()
+    if (queue.isEmpty) {
+      Option(queue.poll(1000, TimeUnit.MILLISECONDS))
+        .foreach(recs.add)
+    } else {
+      val count = queue.drainTo(recs)
+      if (count > 0) {
+        logger.info(s"$count records are returned")
+      }
+    }
+    recs
   }
 
-  def start() = {
+  def start(): Unit = {
     if (fx.nonEmpty) {
       startQuotesWorker()
     } else {
-      logger.warn("No FX quotes requested. The Yahoo connector won't poll for quotes data.")
+      logger.warning("No FX quotes requested. The Yahoo connector won't poll for quotes data.")
     }
 
     if (stocks.nonEmpty) {
       startStocksWorker()
     } else {
-      logger.warn("No STOCKS requested. The Yahoo connector won't poll for stocks data.")
+      logger.warning("No STOCKS requested. The Yahoo connector won't poll for stocks data.")
     }
+    logger.info("Awaiting for the DataRetrieverManager to start...")
     latchStart.await()
+    logger.info("DataRetrieverManager started")
   }
 
   override def close(): Unit = {
@@ -60,14 +90,14 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
   private def addFx(fx: Seq[FxQuote]) = {
     fx.foreach { q =>
       val record = q.toSourceRecord(fxKafkaTopic.get)
-      queue.add(record)
+      queue.put(record)
     }
   }
 
   private def addStocks(stocks: Seq[Stock]) = {
     stocks.foreach { s =>
-      val sourceRecord = s.toSourceRecord(stocksKafkaTopic.get)
-      queue.add(sourceRecord)
+      val record = s.toSourceRecord(stocksKafkaTopic.get)
+      queue.put(record)
     }
   }
 
@@ -77,10 +107,12 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
       while (poll) {
         try {
           val data = dataRetriever.getFx(fx)
+          logger.info(s"Returned ${data.size} fx data points. Adding them to the buffer...")
           addFx(data)
+          logger.info(s"Finished adding ${data.size} fx data points to the buffer")
         } catch {
           case t: Throwable =>
-            logger.error("An error occured trying to get the Yahoo data." + t.getMessage, t)
+            logger.log(Level.SEVERE, "An error occurred trying to get the Yahoo data." + t.getMessage, t)
         }
 
         Thread.sleep(queryInterval)
@@ -96,10 +128,12 @@ case class DataRetrieverManager(dataRetriever: FinanceDataRetriever,
       while (poll) {
         try {
           val data = dataRetriever.getStocks(stocks)
+          logger.info(s"Returned ${data.size} stocks data points.Adding them to the buffer ...")
           addStocks(data)
+          logger.info(s"Finished adding ${data.size} stock data points to the buffer")
         } catch {
           case t: Throwable =>
-            logger.error("An error occured trying to get the Yahoo data." + t.getMessage, t)
+            logger.log(Level.SEVERE, "An error occurred trying to get the Yahoo data." + t.getMessage, t)
         }
 
         Thread.sleep(queryInterval)

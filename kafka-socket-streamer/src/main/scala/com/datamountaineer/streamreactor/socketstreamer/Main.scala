@@ -21,14 +21,17 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.RouteResult.route2HandlerFlow
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import com.datamountaineer.streamreactor.socketstreamer.routes.SocketRoutes
+import com.datamountaineer.streamreactor.socketstreamer.avro.{BinaryDecoder, StringDecoder}
+import com.datamountaineer.streamreactor.socketstreamer.routes.KafkaSocketRoutes
+import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.common.serialization.StringDeserializer
 
 import scala.concurrent.duration.DurationInt
 
-object Main extends App with SocketRoutes {
+object Main extends App with StrictLogging {
   implicit val system = ActorSystem()
   implicit val executor = system.dispatcher
-  implicit val mat = ActorMaterializer()
+  implicit val materializer = ActorMaterializer()
   implicit val timeout = Timeout(1000.millis)
   logger.info(
     """
@@ -47,14 +50,19 @@ object Main extends App with SocketRoutes {
       |by Andrew Stevenson
     """.stripMargin)
 
+  implicit val configuration = SocketStreamerConfig()
+
   logger.info(
     s"""
-      |System name      : $systemName
-      |Kafka brokers    : $kafkaBootstrapServers
-      |Zookeepers       : $zookeepers
-      |Schema registry  : $schemaRegistryUrl
-      |Listening on port : $port
+       |System name      : ${configuration.actorSystemName}
+       |Kafka brokers    : ${configuration.kafkaBrokers}
+       |Zookeepers       : ${configuration.zookeeper}
+       |Schema registry  : ${configuration.schemaRegistryUrl}
+       |Listening on port : ${configuration.port}
     """.stripMargin)
 
-  val serverBinding = Http().bindAndHandle(interface = "0.0.0.0", port = port, handler = route2HandlerFlow(mainFlow()))
+  val kafkaAvroDecoder = KafkaAvroDecoderFn(configuration)
+  val flowRoute = new KafkaSocketRoutes(system, configuration, kafkaAvroDecoder, StringDecoder, BinaryDecoder)
+  val serverBinding = Http().bindAndHandle(interface = "0.0.0.0", port = configuration.port, handler = flowRoute.routes)
+  println("Started")
 }

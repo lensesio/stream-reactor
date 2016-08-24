@@ -94,7 +94,7 @@ object CassandraConnection extends StrictLogging {
     * @return The builder with SSL added.
     * */
   private def addSSL(connectorConfig: AbstractConfig, builder: Builder) : Builder = {
-    val ssl = connectorConfig.getBoolean(CassandraConfigConstants.SSL_ENABLED)
+    val ssl = connectorConfig.getBoolean(CassandraConfigConstants.SSL_ENABLED).asInstanceOf[Boolean]
     ssl match {
       case true =>
         logger.info("Setting up SSL context.")

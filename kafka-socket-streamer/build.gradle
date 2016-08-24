@@ -1,11 +1,12 @@
 project(":kafka-socket-streamer") {
 
     ext {
-        akkaVersion = "2.4.4"
-        akkaSseVersion = "1.7.3"
-        reactiveKafkaVersion = "0.10.0"
+        akkaVersion = "2.4.8"
+        akkaSseVersion = "1.8.1"
+        akkaKafkaVersion = "0.11-M4"
         logBackVersion = "1.1.2"
-        confluentVersion = '2.0.1'
+        confluentVersion = '3.0.0'
+        jacksonVersion = "2.7.5"
     }
 
     tasks.withType(Jar) {
@@ -15,33 +16,37 @@ project(":kafka-socket-streamer") {
     }
 
     dependencies {
-        compile ("io.confluent:kafka-connect-avro-converter:$confluentVersion") {
+        compile("io.confluent:kafka-connect-avro-converter:$confluentVersion") {
             exclude group: "org.slf4j"
         }
         //akka
         compile "com.typesafe.akka:akka-actor_$scalaMajorVersion:$akkaVersion"
         compile "com.typesafe.akka:akka-stream_$scalaMajorVersion:$akkaVersion"
+        compile("com.typesafe.akka:akka-stream-kafka_$scalaMajorVersion:$akkaKafkaVersion") {
+            exclude group: "org.slf4j", module: "log4j-over-slf4j"
+        }
         compile "com.typesafe.akka:akka-http-experimental_$scalaMajorVersion:$akkaVersion"
         compile "com.typesafe.akka:akka-http-spray-json-experimental_$scalaMajorVersion:$akkaVersion"
-        compile ("de.heikoseeberger:akka-sse_$scalaMajorVersion:$akkaSseVersion") {
+        compile("de.heikoseeberger:akka-sse_$scalaMajorVersion:$akkaSseVersion") {
             exclude group: "org.scala-lang", module: "scala-library"
         }
 
         //kafka
         compile "org.apache.kafka:kafka-clients:$kafkaVersion"
-        compile ("org.apache.kafka:kafka_$scalaMajorVersion:$kafkaVersion") {
+        compile("org.apache.kafka:kafka_$scalaMajorVersion:$kafkaVersion") {
             exclude group: "org.slf4j"
-        }
-        compile ("com.softwaremill.reactivekafka:reactive-kafka-core_$scalaMajorVersion:$reactiveKafkaVersion") {
-            exclude group: "org.slf4j", module: "log4j-over-slf4j"
         }
 
         //logging
         compile "ch.qos.logback:logback-classic:$logBackVersion"
         compile "com.typesafe.akka:akka-slf4j_$scalaMajorVersion:$akkaVersion"
 
+        compile "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+        compile "com.fasterxml.jackson.module:jackson-module-scala_$scalaMajorVersion:$jacksonVersion"
+
         //test deps
         testCompile "com.typesafe.akka:akka-http-testkit_$scalaMajorVersion:$akkaVersion"
         testCompile "com.typesafe.akka:akka-stream-testkit_$scalaMajorVersion:$akkaVersion"
+
     }
 }

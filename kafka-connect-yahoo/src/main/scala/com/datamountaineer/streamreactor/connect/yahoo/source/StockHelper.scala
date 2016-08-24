@@ -1,3 +1,19 @@
+/**
+  * Copyright 2016 Datamountaineer.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **/
+
 package com.datamountaineer.streamreactor.connect.yahoo.source
 
 import java.util
@@ -12,35 +28,41 @@ import scala.collection.JavaConversions._
 
 object StockHelper {
 
+  val TIMESTAMP_FIELD = "timestamp"
+
   implicit class FxQuoteToSourceRecordConverter(val fx: FxQuote) extends AnyVal {
-    def toSourceRecord(topic: String) = {
+    def toSourceRecord(topic: String): SourceRecord = {
       new SourceRecord(Collections.singletonMap("Yahoo", fx.getSymbol),
-        null,
+        getOffset(),
         topic,
         getFxSchema,
         getFxStruct)
     }
 
-    def getFxStruct() = {
-      new Struct(getFxSchema())
+    def getFxStruct: Struct = {
+      new Struct(getFxSchema)
         .put("symbol", fx.getSymbol)
         .put("price", fx.getPrice(false).doubleValue())
     }
   }
 
+  private def getOffset() = Collections.singletonMap("position", System.currentTimeMillis())
+
+
   implicit class StockToSourceRecordConverter(val stock: Stock) extends AnyVal {
-    def toSourceRecord(topic: String, includeHistory: Boolean = false) = {
+    def toSourceRecord(topic: String, includeHistory: Boolean = false): SourceRecord = {
+
       val record = new SourceRecord(Collections.singletonMap("Yahoo", stock.getSymbol),
-        null,
+        getOffset(),
         topic,
-        getStockSchema(),
+        getStockSchema,
         getStruct(includeHistory)
       )
       record
     }
 
-    private def getStruct(includeHistory: Boolean) = {
-      val struct = new Struct(getStockSchema())
+    private def getStruct(includeHistory: Boolean): Any = {
+      val struct = new Struct(getStockSchema)
         .put("currency", stock.getCurrency)
         .put("name", stock.getName)
         .put("symbol", stock.getSymbol)
@@ -57,7 +79,7 @@ object StockHelper {
       val structWithQuote = Option(stock.getQuote(false)).foldLeft(structWithDividend) { (s, q) =>
         s.put("ask", q.getAsk.doubleValue())
           .put("ask_size", q.getAskSize)
-          .put("ask_avg_volumne", q.getAvgVolume)
+          .put("ask_avg_volume", q.getAvgVolume)
           .put("bid", q.getBid.doubleValue())
           .put("bid_size", q.getBidSize)
           .put("change", q.getChange.doubleValue())
@@ -88,7 +110,7 @@ object StockHelper {
 
           val linkedList = new util.LinkedList[Struct]
           val quotes = historicalValues.foreach { q =>
-            val structHistory = new Struct(getStockHistoricalSchema())
+            val structHistory = new Struct(getStockHistoricalSchema)
               .put("adj_close", q.getAdjClose.doubleValue())
               .put("close", q.getAdjClose.doubleValue())
               .put("date", q.getDate.getTimeInMillis)
@@ -103,13 +125,16 @@ object StockHelper {
           structWithDividend.put("history", linkedList)
         }
       }
-      else structWithDividend
+      else {
+        structWithDividend
+      }
     }
   }
 
-  def getStockHistoricalSchema() = {
+  def getStockHistoricalSchema: Schema = {
     val builderHistory = SchemaBuilder.struct
     builderHistory
+      .name("yahooStockHistory")
       .field("adj_close", Schema.OPTIONAL_FLOAT64_SCHEMA)
       .field("close", Schema.OPTIONAL_FLOAT64_SCHEMA)
       .field("date", Schema.OPTIONAL_INT64_SCHEMA)
@@ -120,10 +145,13 @@ object StockHelper {
     builderHistory.build()
   }
 
-  def getStockSchema() = {
+  def getStockSchema: Schema = {
 
     val builder = SchemaBuilder.struct
-    builder.field("currency", Schema.OPTIONAL_STRING_SCHEMA)
+    builder
+      .name("yahooStock")
+      .doc("Avro record for Yahoo stocks.")
+      .field("currency", Schema.OPTIONAL_STRING_SCHEMA)
       .field("name", Schema.OPTIONAL_STRING_SCHEMA)
       .field("stock_exchange", Schema.OPTIONAL_STRING_SCHEMA)
       .field("symbol", Schema.OPTIONAL_STRING_SCHEMA)
@@ -133,7 +161,7 @@ object StockHelper {
       .field("pay_date", Schema.OPTIONAL_INT64_SCHEMA)
       .field("ask", Schema.OPTIONAL_FLOAT64_SCHEMA)
       .field("ask_size", Schema.OPTIONAL_INT32_SCHEMA)
-      .field("ask_avg_volumne", Schema.OPTIONAL_INT64_SCHEMA)
+      .field("ask_avg_volume", Schema.OPTIONAL_INT64_SCHEMA)
       .field("bid", Schema.OPTIONAL_FLOAT64_SCHEMA)
       .field("bid_size", Schema.OPTIONAL_INT32_SCHEMA)
       .field("change", Schema.OPTIONAL_FLOAT64_SCHEMA)
@@ -156,12 +184,14 @@ object StockHelper {
       .field("volume", Schema.OPTIONAL_INT64_SCHEMA)
       .field("year_high", Schema.OPTIONAL_FLOAT64_SCHEMA)
       .field("year_low", Schema.OPTIONAL_FLOAT64_SCHEMA)
-      .field("history", SchemaBuilder.array(getStockHistoricalSchema()).build())
+      .field("history", SchemaBuilder.array(getStockHistoricalSchema).optional().build())
     builder.build()
   }
 
-  def getFxSchema() = {
+  def getFxSchema: Schema = {
     SchemaBuilder.struct()
+      .name("yahooFX")
+      .doc("Avro record for Yahoo FX.")
       .field("symbol", Schema.OPTIONAL_STRING_SCHEMA)
       .field("price", Schema.OPTIONAL_FLOAT64_SCHEMA)
       .build()

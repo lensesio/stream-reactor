@@ -1,11 +1,13 @@
 package com.datamountaineer.streamreactor.connect.druid.config
 
 import java.nio.file.Paths
+
+import org.apache.kafka.common.config.ConfigException
+
 import scala.collection.JavaConversions._
 import org.scalatest._
 import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
-import io.confluent.common.config.ConfigException
 
 class DruidSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
   "DruidSinkSettings" should {
@@ -34,9 +36,9 @@ class DruidSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
       settings.datasourceName shouldBe "wikipedia"
       settings.tranquilityConfig shouldBe scala.io.Source.fromFile(Paths.get(getClass.getResource(s"/example.json").toURI).toFile).mkString
       settings.payloadFields.includeAllFields shouldBe false
-      settings.payloadFields.fieldsMappings.get("page").get shouldBe "url"
-      settings.payloadFields.fieldsMappings.get("robot").get shouldBe "robot"
-      settings.payloadFields.fieldsMappings.get("country").get shouldBe "country"
+      settings.payloadFields.fieldsMappings("page") shouldBe "url"
+      settings.payloadFields.fieldsMappings("robot") shouldBe "robot"
+      settings.payloadFields.fieldsMappings("country") shouldBe "country"
     }
 
   }

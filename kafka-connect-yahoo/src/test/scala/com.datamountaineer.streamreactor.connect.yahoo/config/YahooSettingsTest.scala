@@ -1,7 +1,7 @@
 package com.datamountaineer.streamreactor.connect.yahoo.config
 
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicyEnum, ThrowErrorPolicy}
-import io.confluent.common.config.{AbstractConfig, ConfigException}
+import com.datamountaineer.streamreactor.connect.errors.ThrowErrorPolicy
+import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConversions._
