@@ -48,7 +48,7 @@ You can also use the gradle wrapper
 
 Kafka connect Bloomberg source to subscribe to Bloomberg streams via the open API and write to Kafka.
 
-#### [Kafka-Connect-Cassandra-Source](http://docs.datamountaineer.com/en/latest/cassandra-sink.html)
+#### [Kafka-Connect-Cassandra-Source](http://docs.datamountaineer.com/en/latest/cassandra-source.html)
 
 Kafka connect Cassandra source to read Cassandra and write to Kafka.
 
