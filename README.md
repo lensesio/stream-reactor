@@ -29,19 +29,13 @@ gradle test
 To create a fat jar
 
 ```bash
-gradle fatJar
-```
-
-or with no tests run
-
-```
-gradle fatJarNoTest
+gradle jar
 ```
 
 You can also use the gradle wrapper
 
 ```
-./gradlew fatJar
+./gradlew jar
 ```
 
 #### [Kafka-Connect-Bloomberg](http://docs.datamountaineer.com/en/latest/bloomberg.html)
