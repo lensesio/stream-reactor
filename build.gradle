@@ -1,3 +1,5 @@
+apply plugin: 'java'
+
 subprojects { subproject ->
 
     apply plugin: 'java'
@@ -106,7 +108,8 @@ project(':kcbq-connector') {
     jar {
         manifest {
             attributes  'Implementation-Title': 'Kafka Connect BigQuery Connector',
-                    'Implementation-Version': version
+                        'Implementation-Version': version
+
         }
     }
 
@@ -198,7 +201,7 @@ project('kcbq-api') {
     jar {
         manifest {
             attributes  'Implementation-Title': 'Kafka Connect BigQuery API',
-                    'Implementation-Version': version
+                        'Implementation-Version': version
         }
     }
 
@@ -238,7 +241,7 @@ project('kcbq-confluent') {
     jar {
         manifest {
             attributes  'Implementation-Title': 'Kafka Connect BigQuery Schema Registry Schema Retriever',
-                    'Implementation-Version': version
+                        'Implementation-Version': version
         }
     }
 
@@ -287,4 +290,26 @@ project('kcbq-confluent') {
             }
         }
     }
+}
+
+task tarBall(type: Tar) {
+    destinationDir = file("${rootDir}/bin/tar/")
+    baseName = 'kcbq-connector'
+    classifier = 'dist'
+    version = project(':kcbq-connector').version
+    with project(':kcbq-connector').tarBall
+}
+
+task confluentTarBall(type: Tar) {
+    destinationDir = file("${rootDir}/bin/tar/")
+    baseName = 'kcbq-connector'
+    classifier = 'confluent-dist'
+    version = project(':kcbq-connector').version
+    with project(':kcbq-connector').tarBall
+    with project(':kcbq-confluent').tarBall
+    exclude 'jackson-core-2.1.3.jar' // Runtime conflicts occur if this is left in; thankfully, 2.5.4 is compatible
+}
+
+clean {
+    delete "${rootDir}/bin/"
 }

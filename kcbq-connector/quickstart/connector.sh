@@ -20,9 +20,12 @@ if [ -z $CONFLUENT_DIR ]; then
   CONFLUENT_DIR="$BASE_DIR/../../confluent-3.0.0"
 fi
 
-export CLASSPATH="$CLASSPATH:$BASE_DIR/../build/distributions/*"
+export CLASSPATH="$CLASSPATH:$BASE_DIR/../bin/jar/*"
 
 STANDALONE_PROPS="$BASE_DIR/properties/standalone.properties"
 CONNECTOR_PROPS="$BASE_DIR/properties/connector.properties"
 
 exec "$CONFLUENT_DIR/bin/connect-standalone" "$STANDALONE_PROPS" "$CONNECTOR_PROPS"
+
+# RIGHT WAY
+# examine dependencies, see who's pulling in what

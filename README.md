@@ -73,16 +73,22 @@ Once a new version of Schema Registry is released, these steps should no longer 
    
 ### Building and Extracting a Tarball
 
-Begin by creating a tarball of the connector:
+If you haven't already, move into the repository's top-level directory:
 
 ```bash
-$ ./gradlew tarBall
+$ cd /path/to/kafka-connect-bigquery/
+```
+
+Begin by creating a tarball of the connector with the Confluent Schema Retriever included:
+
+```bash
+$ ./gradlew clean confluentTarBall
 ```
 
 And then extract its contents:
 
 ```bash
-$ tar -C build/distributions/ -xvf build/distributions/kafka-connect-bigquery-dist-0.2.tar
+$ mkdir bin/jar/ && tar -C bin/jar/ -xf bin/tar/kcbq-connector-*-confluent-dist.tar
 ```
 
 ### Setting-Up Background Processes
@@ -90,7 +96,7 @@ $ tar -C build/distributions/ -xvf build/distributions/kafka-connect-bigquery-di
 Then move into the `quickstart` directory:
 
 ```bash
-$ cd quickstart
+$ cd quickstart/
 ```
 
 After that, if your Confluent Platform installation isn't in a sibling directory to the connector, 
@@ -153,10 +159,12 @@ If you want to get more adventurous, you can experiment with different schemas o
 adjusting flags given to the Avro Console Producer and tweaking the config settings found in the 
 `quickstart/properties` directory.
 
-## Integration Testing
+## Integration Testing the Connector
 
 > **NOTE**: You must have [Docker] installed and running on your machine in order to run integration
 tests for the connector.
+
+This all takes place in the `kcbq-connector` directory.
 
 ### How Integration Testing Works
 
