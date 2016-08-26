@@ -1,177 +1,290 @@
-apply plugin: 'java'
-apply plugin: 'idea'
-apply plugin: 'checkstyle'
-apply plugin: 'findbugs'
-apply plugin: 'jacoco'
-apply plugin: 'maven'
-apply plugin: 'signing'
+subprojects { subproject ->
 
-sourceCompatibility = 1.8
+    apply plugin: 'java'
+    apply plugin: 'maven'
+    apply plugin: 'signing'
+    apply plugin: 'checkstyle'
+    apply plugin: 'findbugs'
+    apply plugin: 'idea'
 
-archivesBaseName = 'kafka-connect-bigquery'
+    group = 'com.wepay.kcbq'
 
-task javadocJar(type: Jar) {
-  classifier = 'javadoc'
-  from javadoc
-}
+    jar.baseName = subproject.name
 
-task sourcesJar(type: Jar) {
-  classifier = 'sources'
-  from sourceSets.main.allSource
-}
-
-task tarBall(type: Tar) {
-  classifier = 'dist'
-  from configurations.runtime
-  from jar
-}
-
-artifacts {
-  archives javadocJar, sourcesJar, tarBall
-}
-
-signing {
-  sign configurations.archives
-  required {
-    gradle.taskGraph.hasTask("uploadArchives")
-  }
-}
-
-uploadArchives {
-  repositories {
-    mavenDeployer {
-      beforeDeployment {
-        MavenDeployment deployment -> signing.signPom(deployment)
-      }
-
-      repository(url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2') {
-        authentication(userName: findProperty('ossrhUsername') ?: '', password: findProperty('ossrhPassword') ?: '')
-      }
-
-      snapshotRepository(url: 'https://oss.sonatype.org/content/repositories/snapshots') {
-        authentication(userName: findProperty('ossrhUsername') ?: '', password: findProperty('ossrhPassword') ?: '')
-      }
-
-      pom.project {
-        name 'Kafka-Connect-BigQuery'
-        packaging 'jar'
-        description 'A Kafka Connector used to load data into BigQuery'
-        url 'https://github.com/wepay/kafka-connect-bigquery'
-
-        licenses {
-          license {
-            name 'The Apache License, Version 2.0'
-            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-          }
-        }
-
-        scm {
-          connection 'scm:git:git://github.com/wepay/kafka-connect-bigquery.git'
-          developerConnection 'scm:git:ssh://github.com:wepay/kafka-connect-bigquery.git'
-          url 'https://github.com/wepay/kafka-connect-bigquery'
-        }
-
-        developers {
-          developer {
-            id 'C0urante'
-            name 'Chris Egerton'
-            email 'chrise@wepay.com'
-          }
-
-          developer {
-            id 'moirat'
-            name 'Moira Tagle'
-            email 'moirat@wepay.com'
-          }
-        }
-      }
+    [compileJava, compileTestJava].each {
+        it.options.compilerArgs << '-Xlint:unchecked'
     }
-  }
-}
 
-jar {
-  manifest {
-    attributes  'Implementation-Title': 'Kafka-Connect-BigQuery',
-                'Implementation-Version': version
-  }
-}
-
-jacocoTestReport {
-  reports {
-    html.destination "$buildDir/reports/jacoco/"
-    xml.enabled true
-  }
-}
-
-repositories {
-  mavenLocal()
-  mavenCentral()
-  maven {
-    url 'http://packages.confluent.io/maven'
-  }
-  jcenter()
-}
-
-sourceSets {
-  integrationTest {
-    java {
-      compileClasspath += main.output
-      runtimeClasspath += main.output
-      srcDir file('src/integration-test/java')
+    checkstyle {
+        configFile = file("${rootDir}/config/checkstyle/google_checks.xml")
+        toolVersion = '6.18'
     }
-    resources.srcDir file('src/integration-test/resources')
-  }
+
+    task javadocJar(type: Jar) {
+        classifier = 'javadoc'
+        from javadoc
+    }
+
+    task sourcesJar(type: Jar) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    task tarBall(type: Tar) {
+        classifier = 'dist'
+        baseName = subproject.name
+        from subproject.configurations.runtime
+        from jar
+    }
+
+    artifacts {
+        archives javadocJar, sourcesJar, tarBall
+    }
+
+    signing {
+        sign configurations.archives
+        required {
+            gradle.taskGraph.hasTask('uploadArchives')
+        }
+    }
+
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                beforeDeployment {
+                    MavenDeployment deployment -> signing.signPom(deployment)
+                }
+
+                repository(url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2') {
+                    authentication(userName: findProperty('ossrhUsername') ?: '', password: findProperty('ossrhPassword') ?: '')
+                }
+
+                snapshotRepository(url: 'https://oss.sonatype.org/content/repositories/snapshots') {
+                    authentication(userName: findProperty('ossrhUsername') ?: '', password: findProperty('ossrhPassword') ?: '')
+                }
+
+                pom.project {
+
+                    licenses {
+                        license {
+                            name 'The Apache License, Version 2.0'
+                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+
+                    scm {
+                        connection 'scm:git:git://github.com/wepay/kafka-connect-bigquery.git'
+                        developerConnection 'scm:git:ssh://github.com:wepay/kafka-connect-bigquery.git'
+                        url 'https://github.com/wepay/kafka-connect-bigquery'
+                    }
+
+                    developers {
+                        developer {
+                            id 'C0urante'
+                            name 'Chris Egerton'
+                            email 'chrise@wepay.com'
+                        }
+
+                        developer {
+                            id 'moirat'
+                            name 'Moira Tagle'
+                            email 'moirat@wepay.com'
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
-task integrationTestPrep(type: JavaExec) {
-  main = 'com.wepay.kafka.connect.bigquery.it.utils.TableClearer'
-  classpath = sourceSets.integrationTest.runtimeClasspath
-  args findProperty('kcbq_test_keyfile') ?: ''
-  args findProperty('kcbq_test_project') ?: ''
-  args findProperty('kcbq_test_dataset') ?: ''
-  if (findProperty('kcbq_test_tables') != null)
-    args findProperty('kcbq_test_tables').split(' ')
+project(':kcbq-connector') {
+    apply plugin: 'jacoco'
+
+    sourceCompatibility = 1.8
+    version = '0.3.0-SNAPSHOT'
+
+    jar {
+        manifest {
+            attributes  'Implementation-Title': 'Kafka Connect BigQuery Connector',
+                    'Implementation-Version': version
+        }
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    sourceSets {
+        integrationTest {
+            java {
+                compileClasspath += main.output
+                runtimeClasspath += main.output
+                srcDir file('src/integration-test/java')
+            }
+            resources.srcDir file('src/integration-test/resources')
+        }
+    }
+
+    task integrationTestPrep(type: JavaExec) {
+        main = 'com.wepay.kafka.connect.bigquery.it.utils.TableClearer'
+        classpath = sourceSets.integrationTest.runtimeClasspath
+        args findProperty('kcbq_test_keyfile') ?: ''
+        args findProperty('kcbq_test_project') ?: ''
+        args findProperty('kcbq_test_dataset') ?: ''
+        if (findProperty('kcbq_test_tables') != null)
+            args findProperty('kcbq_test_tables').split(' ')
+    }
+
+    task integrationTest(type: Test) {
+        testClassesDir = sourceSets.integrationTest.output.classesDir
+        classpath = sourceSets.integrationTest.runtimeClasspath
+    }
+
+    compileIntegrationTestJava.options.compilerArgs << '-Xlint:unchecked'
+
+    configurations {
+        integrationTestCompile.extendsFrom testCompile
+        integrationTestRuntime.extendsFrom testRuntime
+    }
+
+    javadoc {
+        options.links 'http://docs.oracle.com/javase/8/docs/api/'
+        options.links 'http://docs.confluent.io/3.0.0/connect/javadocs/'
+        options.links 'http://googlecloudplatform.github.io/gcloud-java/0.2.7/apidocs/'
+        options.links 'https://kafka.apache.org/0100/javadoc/'
+        options.links 'https://avro.apache.org/docs/1.8.1/api/java/'
+    }
+
+    jacocoTestReport {
+        reports {
+            html.destination "${buildDir}/reports/jacoco/"
+            xml.enabled true
+        }
+    }
+
+    dependencies {
+        compile project(':kcbq-api')
+
+        compile group: 'com.google.cloud', name: 'gcloud-java', version: '0.2.7'
+
+        compile group: 'org.apache.kafka', name: 'connect-api', version: '0.10.0.0'
+        compile group: 'org.apache.kafka', name: 'kafka-clients', version: '0.10.0.0'
+
+        compile group: 'org.slf4j', name: 'slf4j-api', version: '1.6.1'
+        compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.6.1'
+
+        testCompile group: 'junit', name: 'junit', version: '4.12'
+        testCompile group: 'org.mockito', name: 'mockito-core', version: '1.10.19'
+    }
+
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                pom.project {
+                    name 'Kafka Connect BigQuery Connector'
+                    packaging 'jar'
+                    description 'A Kafka Connector used to load data into BigQuery'
+                    url 'https://github.com/wepay/kafka-connect-bigquery'
+                }
+            }
+        }
+    }
 }
 
-task integrationTest(type: Test) {
-  testClassesDir = sourceSets.integrationTest.output.classesDir
-  classpath = sourceSets.integrationTest.runtimeClasspath
+project('kcbq-api') {
+    sourceCompatibility = 1.8
+    version = '0.1.0-SNAPSHOT'
+
+    jar {
+        manifest {
+            attributes  'Implementation-Title': 'Kafka Connect BigQuery API',
+                    'Implementation-Version': version
+        }
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    javadoc {
+        options.links 'http://docs.oracle.com/javase/8/docs/api/'
+        options.links 'http://docs.confluent.io/3.0.0/connect/javadocs/'
+    }
+
+    dependencies {
+        compile group: 'com.google.cloud', name: 'gcloud-java', version: '0.2.7'
+
+        compile group: 'org.apache.kafka', name: 'connect-api', version: '0.10.0.0'
+    }
+
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                pom.project {
+                    name 'Kafka Connect BigQuery Connector API'
+                    packaging 'jar'
+                    description 'A small API for the Kafka Connector used to load data into BigQuery'
+                    url 'https://github.com/wepay/kafka-connect-bigquery'
+                }
+            }
+        }
+    }
 }
 
-configurations {
-  integrationTestCompile.extendsFrom testCompile
-  integrationTestRuntime.extendsFrom testRuntime
-}
+project('kcbq-confluent') {
+    sourceCompatibility = 1.8
+    version = '0.1.0-SNAPSHOT'
 
-javadoc {
-  options.links 'http://docs.oracle.com/javase/8/docs/api/'
-  options.links 'http://docs.confluent.io/3.0.0/connect/javadocs/'
-  options.links 'http://googlecloudplatform.github.io/gcloud-java/0.2.7/apidocs/'
-  options.links 'https://kafka.apache.org/0100/javadoc/'
-  options.links 'https://avro.apache.org/docs/1.8.1/api/java/'
-}
+    jar {
+        manifest {
+            attributes  'Implementation-Title': 'Kafka Connect BigQuery Schema Registry Schema Retriever',
+                    'Implementation-Version': version
+        }
+    }
 
-dependencies {
-  compile group: 'com.google.cloud', name: 'gcloud-java', version: '0.2.7'
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven {
+            url 'http://packages.confluent.io/maven'
+        }
+        jcenter()
+    }
 
-  compile group: 'io.confluent', name: 'kafka-connect-avro-converter', version: '3.0.0'
-  compile group: 'io.confluent', name: 'kafka-avro-serializer', version: '3.0.0'
-  compile group: 'io.confluent', name: 'kafka-schema-registry', version: '3.0.0'
+    javadoc {
+        options.links 'http://docs.oracle.com/javase/8/docs/api/'
+        options.links 'http://docs.confluent.io/3.0.0/connect/javadocs/'
+    }
 
-  compile group: 'org.apache.avro', name: 'avro', version: '1.8.1'
-  compile group: 'org.apache.kafka', name: 'connect-api', version: '0.10.0.0'
+    dependencies {
+        compile project(':kcbq-api')
 
-  compile group: 'org.slf4j', name: 'slf4j-api', version: '1.6.1'
+        compile group: 'com.google.cloud', name: 'gcloud-java', version: '0.2.7'
 
-  testCompile group: 'junit', name: 'junit', version: '4.12'
-  testCompile group: 'org.mockito', name: 'mockito-core', version: '1.10.19'
-}
+        compile group: 'io.confluent', name: 'kafka-connect-avro-converter', version: '3.0.0'
+        compile group: 'io.confluent', name: 'kafka-schema-registry-client', version: '3.0.0'
 
-[compileJava, compileTestJava, compileIntegrationTestJava].each {
-  it.options.compilerArgs << '-Xlint:unchecked'
-}
+        compile group: 'org.apache.avro', name: 'avro', version: '1.8.1'
 
-checkstyle {
-  configFile = file("${project.rootDir}/config/checkstyle/google_checks.xml")
-  toolVersion = '6.18'
+        compile group: 'org.apache.kafka', name: 'connect-api', version: '0.10.0.0'
+        compile group: 'org.apache.kafka', name: 'kafka-clients', version: '0.10.0.0'
+
+        compile group: 'org.slf4j', name: 'slf4j-api', version: '1.6.1'
+
+        testCompile group: 'junit', name: 'junit', version: '4.12'
+        testCompile group: 'org.mockito', name: 'mockito-core', version: '1.10.19'
+    }
+
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                pom.project {
+                    name 'Kafka Connect BigQuery Connector Schema Registry Schema Retriever'
+                    packaging 'jar'
+                    description 'A Schema Registry-based schema retriever for the Kafka Connector used to load data into BigQuery'
+                    url 'https://github.com/wepay/kafka-connect-bigquery'
+                }
+            }
+        }
+    }
 }

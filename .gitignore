@@ -12,5 +12,5 @@ build/
 key.json
 
 test.conf
-src/integration-test/resources/test.properties
-test/docker/connect/properties/
+kcbq-connector/src/integration-test/resources/test.properties
+kcbq-connector/test/docker/connect/properties/
