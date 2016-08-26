@@ -42,7 +42,7 @@ object ReThinkSinkConverter extends StrictLogging {
     val isAutoCreate = setting.routes.map(r => (r.getTarget, r.isAutoCreate)).toMap
     val tables : java.util.List[String] = rethink.db(setting.db).tableList().run(conn)
     setting.topicTableMap
-      .filter({ case (topic, table) => !tables.contains(table) && isAutoCreate.get(table).equals(false) })
+      .filter({ case (topic, table) => !tables.contains(table) && isAutoCreate(table).equals(false) })
       .foreach({
         case (topic, table) => throw new ConnectException(s"No table called $table found in database ${setting.db} and" +
           s" it's not set for AUTOCREATE")

@@ -70,10 +70,9 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
       val batched = records.sliding(settings.batchSize)
       val converted = batched.flatMap(b => b.map(r => (r.topic, convert(r)))).toMap
       converted.foreach({
-        case (topic, payload) => {
-          val t = Try(reliableTopics.get(topic).get.publish(payload))
+        case (topic, payload) =>
+          val t = Try(reliableTopics(topic).publish(payload))
           handleTry(t)
-        }
       })
       logger.info(s"Written ${records.size}")
     }
@@ -86,12 +85,11 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
     * @return an array of bytes
     * */
   private def convert(record: SinkRecord): Array[Byte] = {
-    val storedAs = settings.format.get(record.topic()).get
+    val storedAs = settings.format(record.topic())
     storedAs match {
-      case FormatType.AVRO => {
+      case FormatType.AVRO =>
         val avro = toAvro(record)
         serializeAvro(avro, avro.getSchema)
-      }
       case FormatType.JSON | FormatType.TEXT => toJson(record).toString.getBytes
       case _ => throw new ConnectException(s"Unknown STORED AS type ${storedAs.toString}")
     }
@@ -134,10 +132,10 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
     convertValueToGenericAvro(extracted)
   }
 
-  def close: Unit = {
+  def close(): Unit = {
     logger.info("Shutting down Hazelcast client.")
     client.shutdown()
   }
 
-  def flush: Unit = {}
+  def flush(): Unit = {}
 }

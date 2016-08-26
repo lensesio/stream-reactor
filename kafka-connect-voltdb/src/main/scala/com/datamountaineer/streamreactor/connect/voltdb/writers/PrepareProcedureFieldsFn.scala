@@ -24,6 +24,6 @@ object PrepareProcedureFieldsFn {
     * @param fieldsAndValuesMap Map of fields and values
     */
   def apply(fields: Seq[String], fieldsAndValuesMap: Map[String, Any]): Seq[String] = {
-    fields.map { field => fieldsAndValuesMap.get(field).get.toString }
+    fields.map { field => fieldsAndValuesMap(field).toString }
   }
 }

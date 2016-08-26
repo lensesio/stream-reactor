@@ -20,7 +20,7 @@ class StructFieldsExtractorTest extends WordSpec with Matchers {
 
       val min = System.currentTimeMillis()
       val record = StructFieldsExtractor("table", true, Map.empty).get(struct)
-      val map = record.toMap
+      val map = record
       map("firstName") shouldBe "Alex"
       map("lastName") shouldBe "Smith"
       map("age") shouldBe 30
@@ -38,7 +38,7 @@ class StructFieldsExtractorTest extends WordSpec with Matchers {
         .put("lastName", "Smith")
         .put("age", 30)
 
-      val map = StructFieldsExtractor("table", true, Map("lastName" -> "Name", "age" -> "a")).get(struct)
+      val map = StructFieldsExtractor("table", includeAllFields = true, Map("lastName" -> "Name", "age" -> "a")).get(struct)
       map("firstName") shouldBe "Alex"
       map("Name") shouldBe "Smith"
       map("a") shouldBe 30
@@ -57,7 +57,7 @@ class StructFieldsExtractorTest extends WordSpec with Matchers {
         .put("lastName", "Smith")
         .put("age", 30)
 
-      val map = StructFieldsExtractor("table", false, Map("lastName" -> "Name", "age" -> "age")).get(struct)
+      val map = StructFieldsExtractor("table", includeAllFields = false, Map("lastName" -> "Name", "age" -> "age")).get(struct)
       map("Name") shouldBe "Smith"
       map("age") shouldBe 30
       map.size shouldBe 2

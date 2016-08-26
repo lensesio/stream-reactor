@@ -98,7 +98,7 @@ class StructFieldsExtractorTest extends WordSpec with Matchers {
         .put("lastName", "Smith")
         .put("age", 30)
 
-      val map = StructFieldsExtractor(true, Map("lastName" -> "Name", "age" -> "a"), None).get(struct).fields.toMap
+      val map = StructFieldsExtractor(includeAllFields = true, Map("lastName" -> "Name", "age" -> "a"), None).get(struct).fields.toMap
       map("firstName") shouldBe "Alex"
       map("Name") shouldBe "Smith"
       map("a") shouldBe 30

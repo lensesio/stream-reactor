@@ -211,7 +211,7 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
       5000,
       100)
 
-    dataRetriever.start
+    dataRetriever.start()
     var i = 100
     while(i > 0){
       i -= 1
@@ -233,7 +233,7 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
       5000,
       100)
 
-    dataRetriever.start
+    dataRetriever.start()
     var i = 100
     while(i > 0){
       i -= 1
@@ -256,7 +256,7 @@ class DataRetrieverManagerTest extends WordSpec with Matchers with MockitoSugar 
       5000,
       100)
 
-    dataRetriever.start
+    dataRetriever.start()
     var i = 100
     while(i > 0){
       i -= 1

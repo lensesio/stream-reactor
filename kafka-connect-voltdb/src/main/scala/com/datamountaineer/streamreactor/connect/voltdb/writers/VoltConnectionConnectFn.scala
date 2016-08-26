@@ -40,7 +40,7 @@ object VoltConnectionConnectFn extends Retries {
 
   private def connectWithRetries(client: Client, server: String, maxRetries: Int) = {
     var retryInterval = 1000
-    withRetries(maxRetries, retryInterval, Some(s"Connection failer. Retrying in $retryInterval")) {
+    withRetries(maxRetries, retryInterval, Some(s"Connection failure. Retrying in $retryInterval")) {
       client.createConnection(server)
     }
     logger.info(s"Connected to VoltDB node at: $server")

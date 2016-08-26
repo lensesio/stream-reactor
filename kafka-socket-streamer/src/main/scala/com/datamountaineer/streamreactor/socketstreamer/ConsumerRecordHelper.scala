@@ -27,7 +27,7 @@ object ConsumerRecordHelper {
       val key = Option(record.key())
         .map(key => decoder.fromBytes(key))
         .map {
-          case r: GenericRecord => r.toJson()
+          case r: GenericRecord => r.toJson
           case s: String => s
           case b: Array[Byte] => Base64.getEncoder.encodeToString(b)
           case other => other.toString

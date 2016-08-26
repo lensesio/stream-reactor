@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.bloomberg.avro
 import com.datamountaineer.streamreactor.connect.bloomberg.BloombergData
 import com.datamountaineer.streamreactor.connect.bloomberg.avro.AvroSchemaGenerator._
 import org.apache.avro.Schema
+import org.apache.avro.Schema.Field
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.node.TextNode
 
@@ -59,7 +60,7 @@ private[bloomberg] class AvroSchemaGenerator(namespace: String) {
         val record = Schema.createRecord(name, null, namespace, false)
         val fields = new java.util.ArrayList[Schema.Field](map.size())
         map.entrySet().asScala.foreach { kvp =>
-          val field = new Schema.Field(kvp.getKey, create(kvp.getKey, kvp.getValue, allowOptional = true), null, defaultValue)
+          val field = new Field(kvp.getKey, create(kvp.getKey, kvp.getValue, allowOptional = true), null, defaultValue)
           fields.add(field)
         }
         record.setFields(fields)

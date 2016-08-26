@@ -40,7 +40,7 @@ class TestHazelCastWriter extends TestBase {
 
    "should write avro to hazelcast reliable topic" in {
      val configApp1 = new Config()
-     configApp1.getGroupConfig().setName(GROUP_NAME).setPassword(HazelCastSinkConfig.SINK_GROUP_PASSWORD_DEFAULT)
+     configApp1.getGroupConfig.setName(GROUP_NAME).setPassword(HazelCastSinkConfig.SINK_GROUP_PASSWORD_DEFAULT)
      val instance = Hazelcast.newHazelcastInstance(configApp1)
      val props = getProps
      val config = new HazelCastSinkConfig(props)
@@ -74,7 +74,7 @@ class TestHazelCastWriter extends TestBase {
 
   "should write json to hazelcast reliable topic" in {
     val configApp1 = new Config()
-    configApp1.getGroupConfig().setName(GROUP_NAME).setPassword(HazelCastSinkConfig.SINK_GROUP_PASSWORD_DEFAULT)
+    configApp1.getGroupConfig.setName(GROUP_NAME).setPassword(HazelCastSinkConfig.SINK_GROUP_PASSWORD_DEFAULT)
     val instance = Hazelcast.newHazelcastInstance(configApp1)
     val props = getPropsJson
     val config = new HazelCastSinkConfig(props)

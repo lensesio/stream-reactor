@@ -10,7 +10,7 @@ import org.apache.avro.io.EncoderFactory
 object AvroJsonSerializer {
 
   implicit class GenericRecordToJsonConverter(val record: GenericRecord) extends AnyVal {
-    def toJson() = {
+    def toJson = {
       val jsonOutputStream = new ByteArrayOutputStream()
       val jsonEncoder = EncoderFactory.get().jsonEncoder(record.getSchema, jsonOutputStream)
 

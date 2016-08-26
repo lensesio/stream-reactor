@@ -13,7 +13,7 @@ import scala.collection.JavaConversions._
 class TestHazelCastConnection extends TestBase {
   "should connect to a Hazelcast cluster" in {
     val configApp1 = new Config()
-    configApp1.getGroupConfig().setName(GROUP_NAME).setPassword(HazelCastSinkConfig.SINK_GROUP_PASSWORD_DEFAULT)
+    configApp1.getGroupConfig.setName(GROUP_NAME).setPassword(HazelCastSinkConfig.SINK_GROUP_PASSWORD_DEFAULT)
     val instance = Hazelcast.newHazelcastInstance(configApp1)
     val props = getProps
     val config = new HazelCastSinkConfig(props)

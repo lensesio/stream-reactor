@@ -100,7 +100,7 @@ Kafka connect Yahoo Finance source to write to Kafka
 
 #### [Kafka-Connect-Voltdb](http://docs.datamountaineer.com/en/latest/voltdb.html)
 
-Kafka connect Voltdb sink to write Kafka topic payloads to Votldb.
+Kafka connect Voltdb sink to write Kafka topic payloads to Voltdb.
 
 #### [Kafka-Socket-Streamer](kafka-socket-streamer/README.md)
 

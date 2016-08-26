@@ -6,10 +6,6 @@ project(":kafka-connect-elastic") {
         jnaVersion = '3.0.9'
     }
 
-    shadowJar {
-        mergeServiceFiles()
-    }
-
     dependencies {
         compile("com.sksamuel.elastic4s:elastic4s-core_$scalaMajorVersion:$elastic4sVersion") {
             exclude group: "org.scala-lang", module: "scala-library"

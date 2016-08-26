@@ -32,7 +32,7 @@ object VoltDbMetadataReader extends StrictLogging {
         vt.advanceRow()
         val nbrRows = vt.getRowCount
 
-        (0 to nbrRows -1).map( i => {
+        (0 until nbrRows).map(i => {
           val row = vt.fetchRow(i)
           (row.getString("TABLE_NAME") ->
             (row.getString("COLUMN_NAME") -> row.get("ORDINAL_POSITION", VoltType.INTEGER).asInstanceOf[Int]))

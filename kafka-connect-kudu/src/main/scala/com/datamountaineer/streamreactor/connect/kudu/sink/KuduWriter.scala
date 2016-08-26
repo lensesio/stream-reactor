@@ -172,7 +172,7 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
   def flush() : Unit = {
     if (!session.isClosed) {
 
-      //throw and let error policy handle it, don't want to throw RetriableExpection.
+      //throw and let error policy handle it, don't want to throw RetriableException.
       //May want to die if error policy is Throw
       val responses = session.flush()
       responses

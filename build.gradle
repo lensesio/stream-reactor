@@ -6,7 +6,6 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
         classpath 'com.github.maiflai:gradle-scalatest:0.9'
         classpath 'net.researchgate:gradle-release:2.3.4'
         classpath "org.github.ngbinh.scalastyle:gradle-scalastyle-plugin_2.11:0.8.2"
@@ -21,7 +20,6 @@ allprojects {
     apply plugin: 'scala'
     apply plugin: 'maven'
     apply plugin: 'com.github.maiflai.scalatest'
-    apply plugin: 'com.github.johnrengelman.shadow'
     apply plugin: 'net.researchgate.release'
     apply plugin: 'scalaStyle'
 
@@ -38,7 +36,7 @@ allprojects {
         kafkaVersion = '0.10.0.0'
         mockitoVersion = '1.10.19'
         jacksonDatabind = '2.7.0'
-        avroVersion = '1.8.0'
+        avroVersion = '1.7.7'
         jacksonxmlVersion = '2.6.5'
         slf4jVersion = "1.7.7"
         dataMountaineerCommonVersion = "0.3.7"
@@ -52,7 +50,7 @@ allprojects {
     }
 
     repositories {
-        //mavenLocal()
+        mavenLocal()
         mavenCentral()
         maven { url "http://packages.confluent.io/maven/" }
         maven { url "http://repo.typesafe.com/typesafe/releases/" }
@@ -60,20 +58,47 @@ allprojects {
         maven { url "http://conjars.org/repo" }
     }
 
+    configurations {
+        provided
+        compile.extendsFrom provided
+    }
+
+    jar {
+        dependsOn configurations.runtime
+        from {
+            (configurations.runtime - configurations.provided).collect {
+                it.isDirectory() ? it : zipTree(it)
+            }
+        } {
+            exclude "META-INF/*.SF"
+            exclude "META-INF/*.DSA"
+            exclude "META-INF/*.RSA"
+        }
+
+        zip64 true
+        jar.archiveName = "$project.name-$project.version-$confluentVersion-all.jar"
+    }
+
     dependencies {
         compile "org.scala-lang:scala-library:$scala"
         compile "org.scala-lang:scala-compiler:$scala"
         compile "com.typesafe.scala-logging:scala-logging-slf4j_$scalaMajorVersion:$scalaLoggingVersion"
         compile ("com.datamountaineer:kcql:$dataMountaineerCQLVersion") {
-           exclude group: "com.google.guava", module: "guava"
+            exclude group: "com.google.guava", module: "guava"
         }
+
+        provided "org.apache.kafka:connect-json:$kafkaVersion"
+        provided "io.confluent:kafka-connect-avro-converter:$confluentVersion"
+        provided "io.confluent:kafka-schema-registry:$confluentVersion"
+        provided "org.apache.avro:avro:$avroVersion"
+
         testCompile "org.mockito:mockito-all:$mockitoVersion"
         testCompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
         testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
         testCompile "junit:junit:$junit"
+
         testRuntime 'org.pegdown:pegdown:1.1.0'
     }
-
 
     test {
         maxParallelForks = 1
@@ -107,21 +132,7 @@ allprojects {
         extension = 'tgz'
     }
 
-    shadowJar {
-        transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer) {
-            resource = 'reference.conf'
-        }
-        version = "$project.version-$confluentVersion"
-        zip64 true
-    }
-
-    jar {
-        version =  "$project.version-$confluentVersion"
-    }
-
     task compile(dependsOn: 'compileScala')
-    task fatJar(dependsOn : ['test', 'shadowJar'])
-    task fatJarNoTest(dependsOn : 'shadowJar')
 
     task collectJars(type: Copy){
         into "$buildDir/libs-dependencies"

@@ -159,7 +159,7 @@ class MessageListenerImplAvro extends MessageListener[Object] {
 
 
   def onMessage(m : Message[Object]) {
-    System.out.println("Received: " + m.getMessageObject())
+    System.out.println("Received: " + m.getMessageObject)
     val bytes = m.getMessageObject.asInstanceOf[Array[Byte]]
     message = Some(deserializeFromAvro(bytes))
     gotMessage = true
@@ -180,7 +180,7 @@ class MessageListenerImplJson extends MessageListener[Object] {
   var message : Option[String] = None
 
   def onMessage(m : Message[Object]) {
-    System.out.println("Received: " + m.getMessageObject())
+    System.out.println("Received: " + m.getMessageObject)
     message = Some(new String(m.getMessageObject.asInstanceOf[Array[Byte]]))
     gotMessage = true
   }
