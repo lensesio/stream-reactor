@@ -1,15 +1,18 @@
-apply plugin: 'java'
+// BEGIN ALL PROJECTS //
+allprojects {
+    apply plugin: 'java'
+    version = '0.3.0-SNAPSHOT'
+}
+// END ALL PROJECTS
 
+// BEGIN SUBPROJECTS //
 subprojects { subproject ->
 
-    apply plugin: 'java'
     apply plugin: 'maven'
     apply plugin: 'signing'
     apply plugin: 'checkstyle'
     apply plugin: 'findbugs'
     apply plugin: 'idea'
-
-    group = 'com.wepay.kcbq'
 
     jar.baseName = subproject.name
 
@@ -37,10 +40,6 @@ subprojects { subproject ->
         baseName = subproject.name
         from subproject.configurations.runtime
         from jar
-    }
-
-    artifacts {
-        archives javadocJar, sourcesJar, tarBall
     }
 
     signing {
@@ -98,12 +97,26 @@ subprojects { subproject ->
         }
     }
 }
+// END SUBPROJECTS
 
+// BEGIN ROOT PROJECT
+task confluentTarBall(type: Tar) {
+    destinationDir = file("${rootDir}/bin/tar/")
+    baseName = 'kcbq-connector'
+    classifier = 'confluent-dist'
+    with project(':kcbq-connector').tarBall
+    with project(':kcbq-confluent').tarBall
+    exclude 'jackson-core-2.1.3.jar' // Runtime conflicts occur if this is left in; thankfully, 2.5.4 is compatible
+}
+
+clean {
+    delete "${rootDir}/bin/"
+}
+// END ROOT PROJECT
+
+// BEGIN INDIVIDUAL PROJECTS
 project(':kcbq-connector') {
     apply plugin: 'jacoco'
-
-    sourceCompatibility = 1.8
-    version = '0.3.0-SNAPSHOT'
 
     jar {
         manifest {
@@ -180,6 +193,10 @@ project(':kcbq-connector') {
         testCompile group: 'org.mockito', name: 'mockito-core', version: '1.10.19'
     }
 
+    artifacts {
+        archives javadocJar, sourcesJar, tarBall, rootProject.confluentTarBall
+    }
+
     uploadArchives {
         repositories {
             mavenDeployer {
@@ -195,9 +212,6 @@ project(':kcbq-connector') {
 }
 
 project('kcbq-api') {
-    sourceCompatibility = 1.8
-    version = '0.1.0-SNAPSHOT'
-
     jar {
         manifest {
             attributes  'Implementation-Title': 'Kafka Connect BigQuery API',
@@ -220,6 +234,10 @@ project('kcbq-api') {
         compile group: 'org.apache.kafka', name: 'connect-api', version: '0.10.0.0'
     }
 
+    artifacts {
+        archives javadocJar, sourcesJar
+    }
+
     uploadArchives {
         repositories {
             mavenDeployer {
@@ -235,9 +253,6 @@ project('kcbq-api') {
 }
 
 project('kcbq-confluent') {
-    sourceCompatibility = 1.8
-    version = '0.1.0-SNAPSHOT'
-
     jar {
         manifest {
             attributes  'Implementation-Title': 'Kafka Connect BigQuery Schema Registry Schema Retriever',
@@ -278,6 +293,10 @@ project('kcbq-confluent') {
         testCompile group: 'org.mockito', name: 'mockito-core', version: '1.10.19'
     }
 
+    artifacts {
+        archives javadocJar, sourcesJar
+    }
+
     uploadArchives {
         repositories {
             mavenDeployer {
@@ -291,25 +310,4 @@ project('kcbq-confluent') {
         }
     }
 }
-
-task tarBall(type: Tar) {
-    destinationDir = file("${rootDir}/bin/tar/")
-    baseName = 'kcbq-connector'
-    classifier = 'dist'
-    version = project(':kcbq-connector').version
-    with project(':kcbq-connector').tarBall
-}
-
-task confluentTarBall(type: Tar) {
-    destinationDir = file("${rootDir}/bin/tar/")
-    baseName = 'kcbq-connector'
-    classifier = 'confluent-dist'
-    version = project(':kcbq-connector').version
-    with project(':kcbq-connector').tarBall
-    with project(':kcbq-confluent').tarBall
-    exclude 'jackson-core-2.1.3.jar' // Runtime conflicts occur if this is left in; thankfully, 2.5.4 is compatible
-}
-
-clean {
-    delete "${rootDir}/bin/"
-}
+// END INDIVIDUAL PROJECTS
