@@ -83,7 +83,7 @@ subprojects { subproject ->
                         developer {
                             id 'C0urante'
                             name 'Chris Egerton'
-                            email 'chrise@wepay.com'
+                            email 'fearthecellos@gmail.comw'
                         }
 
                         developer {
