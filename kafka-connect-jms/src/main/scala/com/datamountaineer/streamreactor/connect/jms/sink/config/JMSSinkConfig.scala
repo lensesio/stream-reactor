@@ -68,17 +68,28 @@ object JMSSinkConfig {
   val NBR_OF_RETIRES_DEFAULT = 20
 
   val config: ConfigDef = new ConfigDef()
-    .define(JMS_URL, Type.STRING, Importance.HIGH, JMS_URL_DOC)
-    .define(CONNECTION_FACTORY, Type.STRING, Importance.HIGH, CONNECTION_FACTORY_DOC)
-    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY)
-    .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC)
-    .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC)
-    .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC)
-    .define(TOPICS_LIST, Type.LIST, new util.ArrayList[String], Importance.HIGH, TOPICS_LIST_DOC)
-    .define(QUEUES_LIST, Type.LIST, new util.ArrayList[String], Importance.HIGH, QUEUE_LIST_DOC)
-    .define(JMS_PASSWORD, Type.STRING, null, Importance.HIGH, JMS_PASSWORD_DOC)
-    .define(JMS_USER, Type.STRING, null, Importance.HIGH, JMS_USER_DOC)
-    .define(MESSAGE_TYPE, Type.STRING, MessageType.AVRO.toString, Importance.HIGH, MESSAGE_TYPE_DOC)
+    .define(JMS_URL, Type.STRING, Importance.HIGH, JMS_URL_DOC,
+      "Connection", 1, ConfigDef.Width.MEDIUM, JMS_URL)
+    .define(CONNECTION_FACTORY, Type.STRING, Importance.HIGH, CONNECTION_FACTORY_DOC,
+      "Connection", 2, ConfigDef.Width.MEDIUM, CONNECTION_FACTORY)
+    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY,
+      "Connection", 3, ConfigDef.Width.MEDIUM, EXPORT_ROUTE_QUERY)
+    .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC,
+      "Connection", 4, ConfigDef.Width.MEDIUM, ERROR_POLICY)
+    .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC,
+      "Connection", 5, ConfigDef.Width.MEDIUM, ERROR_RETRY_INTERVAL)
+    .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC,
+      "Connection", 6, ConfigDef.Width.MEDIUM, NBR_OF_RETRIES)
+    .define(TOPICS_LIST, Type.LIST, new util.ArrayList[String], Importance.HIGH, TOPICS_LIST_DOC,
+      "Connection", 7, ConfigDef.Width.MEDIUM, TOPICS_LIST)
+    .define(QUEUES_LIST, Type.LIST, new util.ArrayList[String], Importance.HIGH, QUEUE_LIST_DOC,
+      "Connection", 8, ConfigDef.Width.MEDIUM, QUEUES_LIST)
+    .define(JMS_PASSWORD, Type.STRING, null, Importance.HIGH, JMS_PASSWORD_DOC,
+      "Connection", 9, ConfigDef.Width.MEDIUM, JMS_PASSWORD)
+    .define(JMS_USER, Type.STRING, null, Importance.HIGH, JMS_USER_DOC,
+      "Connection", 10, ConfigDef.Width.MEDIUM, JMS_USER)
+    .define(MESSAGE_TYPE, Type.STRING, MessageType.AVRO.toString, Importance.HIGH, MESSAGE_TYPE_DOC,
+      "Connection", 11, ConfigDef.Width.MEDIUM, MESSAGE_TYPE)
 }
 
 /**

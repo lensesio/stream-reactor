@@ -44,11 +44,16 @@ object HbaseSinkConfig {
   val NBR_OF_RETIRES_DEFAULT = 20
 
   val config: ConfigDef = new ConfigDef()
-    .define(COLUMN_FAMILY, Type.STRING, Importance.HIGH, COLUMN_FAMILY_DOC)
-    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY)
-    .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC)
-    .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC)
-    .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC)
+    .define(COLUMN_FAMILY, Type.STRING, Importance.HIGH, COLUMN_FAMILY_DOC,
+      "Connection", 1, ConfigDef.Width.MEDIUM, COLUMN_FAMILY)
+    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY,
+      "Connection", 2, ConfigDef.Width.MEDIUM, EXPORT_ROUTE_QUERY)
+    .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC,
+      "Connection", 3, ConfigDef.Width.MEDIUM, ERROR_POLICY)
+    .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC,
+      "Connection", 4, ConfigDef.Width.MEDIUM, ERROR_RETRY_INTERVAL)
+    .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC,
+      "Connection", 5, ConfigDef.Width.MEDIUM, NBR_OF_RETRIES)
 }
 
 /**

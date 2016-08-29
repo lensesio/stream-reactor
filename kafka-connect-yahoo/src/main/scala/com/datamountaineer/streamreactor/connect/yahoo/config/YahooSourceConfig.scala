@@ -29,46 +29,52 @@ trait YahooSourceConfig {
     .define(YahooConfigConstants.FX,
       Type.STRING,
       Importance.HIGH,
-      YahooConfigConstants.FX_DOC)
+      YahooConfigConstants.FX_DOC,
+      "Connection", 1, ConfigDef.Width.MEDIUM, YahooConfigConstants.FX)
 
     .define(YahooConfigConstants.FX_KAFKA_TOPIC,
       Type.STRING,
       Importance.HIGH,
-      YahooConfigConstants.FX_KAFKA_TOPIC_DOC)
+      YahooConfigConstants.FX_KAFKA_TOPIC_DOC,
+      "Connection", 2, ConfigDef.Width.MEDIUM, YahooConfigConstants.FX_KAFKA_TOPIC)
 
     .define(YahooConfigConstants.STOCKS,
       Type.STRING,
       Importance.HIGH,
-      YahooConfigConstants.STOCKS_DOC)
+      YahooConfigConstants.STOCKS_DOC,
+      "Connection", 3, ConfigDef.Width.MEDIUM, YahooConfigConstants.STOCKS)
 
     .define(YahooConfigConstants.STOCKS_KAFKA_TOPIC,
       Type.STRING,
       Importance.HIGH,
-      YahooConfigConstants.STOCKS_KAFKA_TOPIC_DOC)
+      YahooConfigConstants.STOCKS_KAFKA_TOPIC_DOC,
+      "Connection", 4, ConfigDef.Width.MEDIUM, YahooConfigConstants.STOCKS_KAFKA_TOPIC)
 
     .define(YahooConfigConstants.ERROR_POLICY,
       Type.STRING,
       YahooConfigConstants.DEFAULT_ERROR_POLICY,
       Importance.HIGH,
-      YahooConfigConstants.ERROR_POLICY_DOC
-    )
+      YahooConfigConstants.ERROR_POLICY_DOC,
+      "Connection", 5, ConfigDef.Width.MEDIUM, YahooConfigConstants.ERROR_POLICY)
 
     .define(YahooConfigConstants.NBR_OF_RETRIES,
       Type.INT,
       YahooConfigConstants.DEFAULT_RETRIES,
       Importance.MEDIUM,
-      YahooConfigConstants.NBR_OF_RETRIES_DOC)
-
+      YahooConfigConstants.NBR_OF_RETRIES_DOC,
+      "Connection", 6, ConfigDef.Width.MEDIUM, YahooConfigConstants.NBR_OF_RETRIES)
 
     .define(YahooConfigConstants.POLL_INTERVAL,
       Type.LONG,
       YahooConfigConstants.DEFAULT_POLL_INTERVAL,
       Importance.HIGH,
-      YahooConfigConstants.POLL_INTERVAL_DOC)
+      YahooConfigConstants.POLL_INTERVAL_DOC,
+      "Connection", 7, ConfigDef.Width.MEDIUM, YahooConfigConstants.POLL_INTERVAL)
 
     .define(YahooConfigConstants.BUFFER_SIZE,
       Type.INT,
       YahooConfigConstants.DEFAULT_BUFFER_SIZE,
       Importance.MEDIUM,
-      YahooConfigConstants.BUFFER_SIZE_DOC)
+      YahooConfigConstants.BUFFER_SIZE_DOC,
+      "Connection", 8, ConfigDef.Width.MEDIUM, YahooConfigConstants.BUFFER_SIZE)
 }

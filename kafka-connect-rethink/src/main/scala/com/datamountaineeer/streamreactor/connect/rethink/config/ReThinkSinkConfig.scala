@@ -62,14 +62,22 @@ object ReThinkSinkConfig {
   val BATCH_SIZE_DEFAULT = 1000
 
   val config: ConfigDef = new ConfigDef()
-    .define(RETHINK_HOST, Type.STRING, RETHINK_HOST_DEFAULT, Importance.HIGH, RETHINK_HOST_DOC)
-    .define(RETHINK_DB, Type.STRING, Importance.HIGH, RETHINK_HOST_DOC)
-    .define(RETHINK_PORT, Type.INT, RETHINK_PORT_DEFAULT, Importance.MEDIUM, RETHINK_PORT_DOC)
-    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY)
-    .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC)
-    .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC)
-    .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC)
-    .define(BATCH_SIZE, Type.INT, BATCH_SIZE_DEFAULT, Importance.MEDIUM, BATCH_SIZE_DOC)
+    .define(RETHINK_HOST, Type.STRING, RETHINK_HOST_DEFAULT, Importance.HIGH, RETHINK_HOST_DOC,
+      "Connection", 1, ConfigDef.Width.MEDIUM, RETHINK_HOST)
+    .define(RETHINK_DB, Type.STRING, Importance.HIGH, RETHINK_DB_DOC,
+      "Connection", 2, ConfigDef.Width.MEDIUM, RETHINK_DB)
+    .define(RETHINK_PORT, Type.INT, RETHINK_PORT_DEFAULT, Importance.MEDIUM, RETHINK_PORT_DOC,
+      "Connection", 3, ConfigDef.Width.MEDIUM, RETHINK_PORT)
+    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY,
+      "Connection", 4, ConfigDef.Width.MEDIUM, EXPORT_ROUTE_QUERY)
+    .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC,
+      "Connection", 5, ConfigDef.Width.MEDIUM, ERROR_POLICY)
+    .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC,
+      "Connection", 6, ConfigDef.Width.MEDIUM, ERROR_RETRY_INTERVAL)
+    .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC,
+      "Connection", 7, ConfigDef.Width.MEDIUM, NBR_OF_RETRIES)
+    .define(BATCH_SIZE, Type.INT, BATCH_SIZE_DEFAULT, Importance.MEDIUM, BATCH_SIZE_DOC,
+      "Connection", 8, ConfigDef.Width.MEDIUM, BATCH_SIZE)
 }
 
 case class ReThinkSinkConfig(props: util.Map[String, String])

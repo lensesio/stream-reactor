@@ -61,14 +61,22 @@ object KuduSinkConfig {
   val BUCKET_SIZE_DEFAULT = 10
 
   val config: ConfigDef = new ConfigDef()
-    .define(KUDU_MASTER, Type.STRING, KUDU_MASTER_DEFAULT, Importance.HIGH, KUDU_MASTER_DOC)
-    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY)
-    .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC)
-    .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC)
-    .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC)
-    .define(BATCH_SIZE, Type.INT, BATCH_SIZE_DEFAULT, Importance.MEDIUM, BATCH_SIZE_DOC)
-    .define(SCHEMA_REGISTRY_URL, Type.STRING, SCHEMA_REGISTRY_URL_DEFAULT ,Importance.HIGH, SCHEMA_REGISTRY_URL_DOC)
-    .define(BUCKET_SIZE, Type.INT, BUCKET_SIZE_DEFAULT, Importance.MEDIUM, BUCKET_SIZE_DOC)
+    .define(KUDU_MASTER, Type.STRING, KUDU_MASTER_DEFAULT, Importance.HIGH, KUDU_MASTER_DOC,
+      "Connection", 1, ConfigDef.Width.MEDIUM, KUDU_MASTER)
+    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY,
+      "Connection", 2, ConfigDef.Width.MEDIUM, EXPORT_ROUTE_QUERY)
+    .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC,
+      "Connection", 3, ConfigDef.Width.MEDIUM, ERROR_POLICY)
+    .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC,
+      "Connection", 4, ConfigDef.Width.MEDIUM, ERROR_RETRY_INTERVAL)
+    .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC,
+      "Connection", 5, ConfigDef.Width.MEDIUM, NBR_OF_RETRIES)
+    .define(BATCH_SIZE, Type.INT, BATCH_SIZE_DEFAULT, Importance.MEDIUM, BATCH_SIZE_DOC,
+      "Connection", 6, ConfigDef.Width.MEDIUM, BATCH_SIZE)
+    .define(SCHEMA_REGISTRY_URL, Type.STRING, SCHEMA_REGISTRY_URL_DEFAULT ,Importance.HIGH, SCHEMA_REGISTRY_URL_DOC,
+      "Connection", 7, ConfigDef.Width.MEDIUM, SCHEMA_REGISTRY_URL)
+    .define(BUCKET_SIZE, Type.INT, BUCKET_SIZE_DEFAULT, Importance.MEDIUM, BUCKET_SIZE_DOC,
+      "Connection", 8, ConfigDef.Width.MEDIUM, BUCKET_SIZE)
 }
 
 class KuduSinkConfig(props: util.Map[String, String])

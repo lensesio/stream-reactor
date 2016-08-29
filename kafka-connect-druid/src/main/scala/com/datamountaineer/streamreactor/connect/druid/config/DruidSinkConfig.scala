@@ -47,10 +47,10 @@ object DruidSinkConfig {
     """.stripMargin
 
   val config: ConfigDef = new ConfigDef()
-    .define(DATASOURCE_NAME, Type.STRING, Importance.HIGH, DATASOURCE_NAME_DOC)
-    .define(CONFIG_FILE, Type.STRING, Importance.HIGH, CONFIG_FILE_DOC)
-    .define(FIELDS, Type.STRING, Importance.LOW, FIELDS_DOC)
-    .define(TIMEOUT, Type.INT, Importance.LOW, TIMEOUT_DOC)
+    .define(DATASOURCE_NAME, Type.STRING, Importance.HIGH, DATASOURCE_NAME_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, DATASOURCE_NAME)
+    .define(CONFIG_FILE, Type.STRING, Importance.HIGH, CONFIG_FILE_DOC, "Connection", 2, ConfigDef.Width.LONG, CONFIG_FILE)
+    .define(FIELDS, Type.STRING, Importance.LOW, FIELDS_DOC, "Target", 1, ConfigDef.Width.MEDIUM, FIELDS)
+    .define(TIMEOUT, Type.INT, Importance.LOW, TIMEOUT_DOC, "Connection", 3, ConfigDef.Width.SHORT, TIMEOUT)
 }
 
 /**

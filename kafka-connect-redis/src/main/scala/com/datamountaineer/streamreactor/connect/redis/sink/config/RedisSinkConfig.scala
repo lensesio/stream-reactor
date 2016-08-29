@@ -60,13 +60,20 @@ object RedisSinkConfig {
   val NBR_OF_RETIRES_DEFAULT = 20
 
   val config: ConfigDef = new ConfigDef()
-    .define(REDIS_HOST, Type.STRING, Importance.HIGH, REDIS_HOST_DOC)
-    .define(REDIS_PORT, Type.INT, Importance.HIGH, REDIS_PORT_DOC)
-    .define(REDIS_PASSWORD, Type.PASSWORD, Importance.LOW, REDIS_PASSWORD_DOC)
-    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY)
-    .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC)
-    .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC)
-    .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC)
+    .define(REDIS_HOST, Type.STRING, Importance.HIGH, REDIS_HOST_DOC,
+      "Connection", 1, ConfigDef.Width.MEDIUM, REDIS_HOST)
+    .define(REDIS_PORT, Type.INT, Importance.HIGH, REDIS_PORT_DOC,
+      "Connection", 2, ConfigDef.Width.MEDIUM, REDIS_PORT)
+    .define(REDIS_PASSWORD, Type.PASSWORD, Importance.LOW, REDIS_PASSWORD_DOC,
+      "Connection", 3, ConfigDef.Width.MEDIUM, REDIS_PASSWORD)
+    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY,
+      "Connection", 4, ConfigDef.Width.MEDIUM, EXPORT_ROUTE_QUERY)
+    .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC,
+      "Connection", 5, ConfigDef.Width.MEDIUM, ERROR_POLICY)
+    .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC,
+      "Connection", 6, ConfigDef.Width.MEDIUM, ERROR_RETRY_INTERVAL)
+    .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC,
+      "Connection", 7, ConfigDef.Width.MEDIUM, NBR_OF_RETRIES)
 }
 
 /**

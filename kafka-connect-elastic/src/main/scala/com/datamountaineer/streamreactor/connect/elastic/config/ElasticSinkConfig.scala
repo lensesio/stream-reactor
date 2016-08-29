@@ -36,10 +36,13 @@ object ElasticSinkConfig {
   val EXPORT_ROUTE_QUERY_DOC =  "KCQL expression describing field selection and routes."
 
   val config: ConfigDef = new ConfigDef()
-    .define(URL, Type.STRING, URL_DEFAULT, Importance.HIGH, URL_DOC)
-    .define(ES_CLUSTER_NAME, Type.STRING, ES_CLUSTER_NAME_DEFAULT, Importance.HIGH, ES_CLUSTER_NAME_DOC)
-    .define(URL_PREFIX, Type.STRING, URL_PREFIX_DEFAULT, Importance.LOW, URL_PREFIX_DOC)
-    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY_DOC)
+    .define(URL, Type.STRING, URL_DEFAULT, Importance.HIGH, URL_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, URL)
+    .define(ES_CLUSTER_NAME, Type.STRING, ES_CLUSTER_NAME_DEFAULT, Importance.HIGH, ES_CLUSTER_NAME_DOC,
+      "Connection", 2, ConfigDef.Width.MEDIUM, ES_CLUSTER_NAME)
+    .define(URL_PREFIX, Type.STRING, URL_PREFIX_DEFAULT, Importance.LOW, URL_PREFIX_DOC, "Connection", 3,
+      ConfigDef.Width.MEDIUM, URL_PREFIX)
+    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY_DOC, "Target", 1,
+      ConfigDef.Width.LONG, EXPORT_ROUTE_QUERY)
 }
 
 /**

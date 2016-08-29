@@ -38,17 +38,12 @@ object CassandraConnection extends StrictLogging {
 
   def getCluster(connectorConfig: AbstractConfig) : Cluster = {
     val contactPoints: String = connectorConfig.getString(CassandraConfigConstants.CONTACT_POINTS)
-    val port = connectorConfig.getInt(CassandraConfigConstants.PORT)
+    val port = connectorConfig.getString(CassandraConfigConstants.PORT).toInt
     val builder: Builder = Cluster
       .builder()
       .addContactPoints(contactPoints)
       .withPort(port)
       .withLoadBalancingPolicy(new TokenAwarePolicy(DCAwareRoundRobinPolicy.builder().build()))
-
-    //set query options
-    val queryOptions = new QueryOptions
-    queryOptions.setFetchSize(connectorConfig.getInt(CassandraConfigConstants.FETCH_SIZE))
-    builder.withQueryOptions(queryOptions)
 
     //get authentication mode, only support NONE and USERNAME_PASSWORD for now
     addAuthMode(connectorConfig, builder)

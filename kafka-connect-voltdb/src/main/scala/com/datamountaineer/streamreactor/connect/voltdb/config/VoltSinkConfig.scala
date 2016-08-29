@@ -49,13 +49,20 @@ object VoltSinkConfig {
   val NBR_OF_RETIRES_DEFAULT = 20
 
   val config: ConfigDef = new ConfigDef()
-    .define(SERVERS_CONFIG, Type.STRING, Importance.HIGH, SERVERS_DOC)
-    .define(USER_CONFIG, Type.STRING, Importance.HIGH, USER_DOC)
-    .define(PASSWORD_CONFIG, Type.STRING, Importance.HIGH, PASSWORD_DOC)
-    .define(EXPORT_ROUTE_QUERY_CONFIG, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY_DOC)
-    .define(ERROR_POLICY_CONFIG, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC)
-    .define(ERROR_RETRY_INTERVAL_CONFIG, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC)
-    .define(NBR_OF_RETRIES_CONFIG, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC)
+    .define(SERVERS_CONFIG, Type.STRING, Importance.HIGH, SERVERS_DOC,
+      "Connection", 1, ConfigDef.Width.MEDIUM, SERVERS_CONFIG)
+    .define(USER_CONFIG, Type.STRING, Importance.HIGH, USER_DOC,
+      "Connection", 2, ConfigDef.Width.MEDIUM, USER_CONFIG)
+    .define(PASSWORD_CONFIG, Type.STRING, Importance.HIGH, PASSWORD_DOC,
+      "Connection", 3, ConfigDef.Width.MEDIUM, PASSWORD_CONFIG)
+    .define(EXPORT_ROUTE_QUERY_CONFIG, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY_DOC,
+      "Connection", 4, ConfigDef.Width.MEDIUM, EXPORT_ROUTE_QUERY_CONFIG)
+    .define(ERROR_POLICY_CONFIG, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC,
+      "Connection", 5, ConfigDef.Width.MEDIUM, ERROR_POLICY_CONFIG)
+    .define(ERROR_RETRY_INTERVAL_CONFIG, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM,
+      ERROR_RETRY_INTERVAL_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, ERROR_RETRY_INTERVAL_CONFIG)
+    .define(NBR_OF_RETRIES_CONFIG, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC,
+      "Connection", 6, ConfigDef.Width.MEDIUM, NBR_OF_RETRIES_CONFIG)
 }
 
 /**

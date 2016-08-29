@@ -48,7 +48,8 @@ object ConnectorConfig {
     "it won't accept new items until it is drained."
 
   val PAYLOAD_TYPE = "connect.bloomberg.payload.type"
-  val PAYLOAD_TYPE_DOC = "Specifies the way the information is serialized and sent over kafka. There are two modes supported: json(default) and avro."
+  val PAYLOAD_TYPE_DOC = "Specifies the way the information is serialized and sent over kafka. " +
+    "There are two modes supported: json(default) and avro."
 
   val BloombergServicesUris = Set("//blp/mkdata", "//blp/refdata")
   val PayloadTypes = Set("json", "avro")
@@ -73,12 +74,12 @@ object ConnectorConfig {
   val NBR_OF_RETIRES_DEFAULT = 20
 
   lazy val config = new ConfigDef()
-    .define(SERVER_HOST, Type.STRING, Importance.HIGH, SERVER_HOST_DOC)
-    .define(SERVER_PORT, Type.INT, Importance.HIGH, SERVER_PORT_DOC)
-    .define(SERVICE_URI, Type.STRING, Importance.HIGH, SERVICE_URI_DOC)
-    .define(SUBSCRIPTIONS, Type.STRING, Importance.HIGH, SUBSCRIPTION_DOC)
-    .define(AUTHENTICATION_MODE, Type.STRING, Importance.LOW, AUTHENTICATION_MODE_DOC)
-    .define(KAFKA_TOPIC, Type.STRING, Importance.HIGH, KAFKA_TOPIC_DOC)
-    .define(BUFFER_SIZE, Type.INT, Importance.MEDIUM, BUFFER_SIZE_DOC)
-    .define(PAYLOAD_TYPE, Type.STRING, Importance.MEDIUM, PAYLOAD_TYPE_DOC)
+    .define(SERVER_HOST, Type.STRING, Importance.HIGH, SERVER_HOST_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, SERVER_HOST)
+    .define(SERVER_PORT, Type.INT, Importance.HIGH, SERVER_PORT_DOC, "Connection", 2, ConfigDef.Width.MEDIUM, SERVER_PORT)
+    .define(SERVICE_URI, Type.STRING, Importance.HIGH, SERVICE_URI_DOC,  "Connection", 3, ConfigDef.Width.MEDIUM, SERVICE_URI)
+    .define(SUBSCRIPTIONS, Type.STRING, Importance.HIGH, SUBSCRIPTION_DOC,  "Subscription", 1, ConfigDef.Width.MEDIUM, SUBSCRIPTIONS)
+    .define(AUTHENTICATION_MODE, Type.STRING, Importance.LOW, AUTHENTICATION_MODE_DOC, "Connection", 4, ConfigDef.Width.MEDIUM, AUTHENTICATION_MODE)
+    .define(KAFKA_TOPIC, Type.STRING, Importance.HIGH, KAFKA_TOPIC_DOC, "Subscription", 1, ConfigDef.Width.MEDIUM, KAFKA_TOPIC)
+    .define(BUFFER_SIZE, Type.INT, Importance.MEDIUM, BUFFER_SIZE_DOC, "Connection", 4, ConfigDef.Width.SHORT, BUFFER_SIZE)
+    .define(PAYLOAD_TYPE, Type.STRING, Importance.MEDIUM, PAYLOAD_TYPE_DOC, "Subscription", 2, ConfigDef.Width.SHORT, PAYLOAD_TYPE)
 }
