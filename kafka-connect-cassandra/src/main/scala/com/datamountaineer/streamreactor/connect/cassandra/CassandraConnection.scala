@@ -38,7 +38,7 @@ object CassandraConnection extends StrictLogging {
 
   def getCluster(connectorConfig: AbstractConfig) : Cluster = {
     val contactPoints: String = connectorConfig.getString(CassandraConfigConstants.CONTACT_POINTS)
-    val port = connectorConfig.getString(CassandraConfigConstants.PORT).toInt
+    val port = connectorConfig.getInt(CassandraConfigConstants.PORT)
     val builder: Builder = Cluster
       .builder()
       .addContactPoints(contactPoints)

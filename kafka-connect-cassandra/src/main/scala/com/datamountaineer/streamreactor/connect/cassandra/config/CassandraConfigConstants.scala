@@ -41,7 +41,7 @@ object CassandraConfigConstants {
 
   val CONTACT_POINTS = "connect.cassandra.contact.points"
   val CONTACT_POINT_DOC ="Initial contact point host for Cassandra including port."
-  val CONTACT_POINT_DEFAULT = "cassandra.localhost"
+  val CONTACT_POINT_DEFAULT = "localhost"
 
   val PORT = "connect.cassandra.port"
   val PORT_DEFAULT = "9042"

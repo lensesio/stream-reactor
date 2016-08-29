@@ -34,18 +34,18 @@ case class CassandraConfig() {
           CassandraConfigConstants.CONTACT_POINT_DOC,
           "Connection",
           1,
-          ConfigDef.Width.MEDIUM,
+          ConfigDef.Width.LONG,
           CassandraConfigConstants.CONTACT_POINTS
       )
 
       .define(CassandraConfigConstants.PORT,
-        Type.STRING,
+        Type.INT,
         CassandraConfigConstants.PORT_DEFAULT,
         Importance.HIGH,
         CassandraConfigConstants.PORT_DOC,
         "Connection",
         2,
-        ConfigDef.Width.MEDIUM,
+        ConfigDef.Width.LONG,
         CassandraConfigConstants.PORT)
 
       .define(CassandraConfigConstants.KEY_SPACE,
@@ -54,16 +54,16 @@ case class CassandraConfig() {
           CassandraConfigConstants.KEY_SPACE_DOC,
           "Connection",
           3,
-          ConfigDef.Width.MEDIUM,
+          ConfigDef.Width.LONG,
           CassandraConfigConstants.KEY_SPACE)
 
       .define(CassandraConfigConstants.USERNAME,
           Type.STRING, "",
-          Importance.LOW,
+          Importance.HIGH,
           CassandraConfigConstants.USERNAME_DOC,
           "Connection",
           4,
-          ConfigDef.Width.MEDIUM,
+          ConfigDef.Width.LONG,
           CassandraConfigConstants.USERNAME)
 
       .define(CassandraConfigConstants.PASSWD,
@@ -72,7 +72,7 @@ case class CassandraConfig() {
           CassandraConfigConstants.PASSWD_DOC,
           "Connection",
           5,
-          ConfigDef.Width.MEDIUM,
+          ConfigDef.Width.LONG,
           CassandraConfigConstants.PASSWD
       )
 
@@ -83,7 +83,7 @@ case class CassandraConfig() {
           CassandraConfigConstants.SSL_ENABLED_DOC,
           "Connection",
           6,
-          ConfigDef.Width.SHORT,
+          ConfigDef.Width.LONG,
           CassandraConfigConstants.SSL_ENABLED)
 
       .define(CassandraConfigConstants.TRUST_STORE_PATH,
@@ -93,7 +93,7 @@ case class CassandraConfig() {
           CassandraConfigConstants.TRUST_STORE_PATH_DOC,
           "Connection",
           7,
-          ConfigDef.Width.SHORT,
+          ConfigDef.Width.LONG,
           CassandraConfigConstants.TRUST_STORE_PATH)
 
       .define(CassandraConfigConstants.TRUST_STORE_PASSWD,
@@ -113,7 +113,7 @@ case class CassandraConfig() {
           CassandraConfigConstants.USE_CLIENT_AUTH_DOC,
           "Connection",
           9,
-          ConfigDef.Width.SHORT,
+          ConfigDef.Width.LONG,
           CassandraConfigConstants.USE_CLIENT_AUTH)
 
       .define(CassandraConfigConstants.KEY_STORE_PATH,
@@ -143,7 +143,7 @@ case class CassandraConfig() {
           CassandraConfigConstants.ERROR_POLICY_DOC,
           "Error",
           1,
-          ConfigDef.Width.SHORT,
+          ConfigDef.Width.LONG,
           CassandraConfigConstants.ERROR_POLICY)
 
         .define(CassandraConfigConstants.NBR_OF_RETRIES,
@@ -153,7 +153,7 @@ case class CassandraConfig() {
           CassandraConfigConstants.NBR_OF_RETRIES_DOC,
           "Error",
           2,
-          ConfigDef.Width.SHORT,
+          ConfigDef.Width.LONG,
           CassandraConfigConstants.NBR_OF_RETRIES)
 
         .define(CassandraConfigConstants.ERROR_RETRY_INTERVAL,
@@ -163,7 +163,7 @@ case class CassandraConfig() {
           CassandraConfigConstants.ERROR_RETRY_INTERVAL_DOC,
           "Error",
           3,
-          ConfigDef.Width.SHORT,
+          ConfigDef.Width.LONG,
           CassandraConfigConstants.ERROR_RETRY_INTERVAL)
 
 }
@@ -182,7 +182,7 @@ object CassandraConfigSource {
                     CassandraConfigConstants.IMPORT_MODE_DOC,
                     "Import",
                     1,
-                    ConfigDef.Width.SHORT,
+                    ConfigDef.Width.LONG,
                     CassandraConfigConstants.IMPORT_MODE)
 
             .define(CassandraConfigConstants.ASSIGNED_TABLES,
@@ -191,7 +191,7 @@ object CassandraConfigSource {
                     CassandraConfigConstants.ASSIGNED_TABLES_DOC,
                     "Import",
                     4,
-                    ConfigDef.Width.SHORT,
+                    ConfigDef.Width.LONG,
                     CassandraConfigConstants.ASSIGNED_TABLES)
 
             .define(CassandraConfigConstants.IMPORT_ROUTE_QUERY,
@@ -211,7 +211,7 @@ object CassandraConfigSource {
                     CassandraConfigConstants.READER_BUFFER_SIZE_DOC,
                     "Import",
                     3,
-                    ConfigDef.Width.SHORT,
+                    ConfigDef.Width.LONG,
                     CassandraConfigConstants.READER_BUFFER_SIZE)
 
 
@@ -222,7 +222,7 @@ object CassandraConfigSource {
                     CassandraConfigConstants.BATCH_SIZE_DOC,
                     "Import",
                     5,
-                    ConfigDef.Width.SHORT,
+                    ConfigDef.Width.LONG,
                     CassandraConfigConstants.BATCH_SIZE)
 
             .define(CassandraConfigConstants.POLL_INTERVAL,
@@ -232,7 +232,7 @@ object CassandraConfigSource {
                     CassandraConfigConstants.POLL_INTERVAL_DOC,
                     "Import",
                     6,
-                    ConfigDef.Width.SHORT,
+                    ConfigDef.Width.LONG,
                     CassandraConfigConstants.POLL_INTERVAL)
 
 
@@ -243,7 +243,7 @@ object CassandraConfigSource {
                   CassandraConfigConstants.ALLOW_FILTERING_DOC,
                   "Import",
                   7,
-                  ConfigDef.Width.SHORT,
+                  ConfigDef.Width.LONG,
                   CassandraConfigConstants.ALLOW_FILTERING)
         }
 
