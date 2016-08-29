@@ -14,6 +14,18 @@
 This is an implementation of a sink connector from [Apache Kafka] to [Google BigQuery], built on top 
 of [Apache Kafka Connect].
 
+## Semantic Versioning
+
+This project follows the versioning guidelines described by [Semantic Versioning].
+
+> Given a version number MAJOR.MINOR.PATCH, increment the:
+> 
+> * MAJOR version when you make incompatible API changes,
+> * MINOR version when you add functionality in a backwards-compatible manner, and
+> * PATCH version when you make backwards-compatible bug fixes.
+
+<http://semver.org/#faq>
+
 ## Standalone Quickstart
 
 > **NOTE**: You must have the [Confluent Platform] installed in order to run the example.
@@ -252,4 +264,5 @@ data must have a unique value for its row number (row numbers are one-indexed).
   [Kafka]: http://kafka.apache.org
   [Maven]: https://maven.apache.org
   [Schema Registry]: https://github.com/confluentinc/schema-registry
+  [Semantic Versioning]: http://semver.org
   [Zookeeper]: https://zookeeper.apache.org
