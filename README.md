@@ -8,10 +8,7 @@ The **KCQL** (**K**afka **C**onnect **Q**uery **L**anguages) is a SQL like synta
 
 # Why ?
 
-While working on our sink/sources we ended up producing quite complex configuration in order to support the functionality required. Imagine a sink where you source from different topics
-and from each topic you want to cherry pick the payload fields or even rename them. Furthermore you might want the storage structure to be automatically created and/or even evolve or you 
-might add new support for the likes of bucketing (Riak TS has one such scenario). Imagine the JDBC sink with a table which needs to be linked to two different topics and the fields in there 
-need to be aligned with the table column names and the complex configuration involved ...or you can just write this
+While working on our sink/sources we ended up producing quite complex configuration in order to support the functionality required. Imagine a sink where you source from different topics and from each topic you want to cherry pick the payload fields or even rename them. Furthermore, you might want the storage structure to be automatically created and/or even evolve or you might add new support for the likes of bucketing (Riak TS has one such scenario). Imagine the JDBC sink with a table which needs to be linked to two different topics and the fields in there need to be aligned with the table column names and the complex configuration involved ...or you can just write this
 
 ```bash
 routes.query = "INSERT INTO transactions SELECT field1 as column1, field2 as column2, field3 FROM topic_A;
@@ -69,7 +66,7 @@ FROM   $TOPIC_NAME
        [DISTRIBUTEBY cola[,colb]]
        [CLUSTERBY cola[,colb]]
        [TIMESTAMP cola|sys_current]
-       [STOREAS AVRO|JSON|BYTE}       
+       [WITHFORMAT TEXT|AVRO|JSON|BINARY}       
 ```
 If you follow our connectors @Datamountaineer you will find depending on the Connect Sink only some of the the options are used.
 You will find all our documentation <a href="https://github.com/datamountaineer/docs/tree/master/source">here</a>
@@ -80,7 +77,7 @@ peek into KAFKA via websocket and receive the payloads in real time!
 SELECT *|columns 
 FROM   $TOPIC_NAME 
        [IGNORE columns] 
-       WITHFORMAT  JSON|AVRO|BYTE
+       WITHFORMAT  JSON|AVRO|BINARY
        [WITHGROUP $YOUR_CONSUMER_GROUP] 
        [WITHPARTITION (partition),[(partition, offset)]
        [SAMPLE $RECORDS_NUMBER EVERY $SLIDE_WINDOW
