@@ -80,12 +80,21 @@ object JMSSettings {
     if (url == null || url.trim.length == 0) {
       throw new ConfigException(s"${JMSSinkConfig.JMS_URL} has not been set")
     }
+
+    val passwordRaw = config.getPassword(JMSSinkConfig.JMS_PASSWORD)
+
+    val password = passwordRaw match {
+      case null => null
+      case _ => passwordRaw.value()
+    }
+
+
     new JMSSettings(
       url,
       connectionFactoryClass.asInstanceOf[Class[_ <: ConnectionFactory with QueueConnectionFactory with TopicConnectionFactory]],
       routes.toList,
       Option(config.getString(JMSSinkConfig.JMS_USER)),
-      Option(config.getString(JMSSinkConfig.JMS_PASSWORD)),
+      Option(password),
       msgType,
       errorPolicy,
       nbrOfRetries)

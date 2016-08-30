@@ -53,7 +53,7 @@ object VoltSinkConfig {
       "Connection", 1, ConfigDef.Width.MEDIUM, SERVERS_CONFIG)
     .define(USER_CONFIG, Type.STRING, Importance.HIGH, USER_DOC,
       "Connection", 2, ConfigDef.Width.MEDIUM, USER_CONFIG)
-    .define(PASSWORD_CONFIG, Type.STRING, Importance.HIGH, PASSWORD_DOC,
+    .define(PASSWORD_CONFIG, Type.PASSWORD, Importance.HIGH, PASSWORD_DOC,
       "Connection", 3, ConfigDef.Width.MEDIUM, PASSWORD_CONFIG)
     .define(EXPORT_ROUTE_QUERY_CONFIG, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY_DOC,
       "Connection", 4, ConfigDef.Width.MEDIUM, EXPORT_ROUTE_QUERY_CONFIG)

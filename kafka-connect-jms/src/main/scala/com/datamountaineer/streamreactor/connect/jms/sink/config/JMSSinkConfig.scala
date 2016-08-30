@@ -84,7 +84,7 @@ object JMSSinkConfig {
       "Connection", 7, ConfigDef.Width.MEDIUM, TOPICS_LIST)
     .define(QUEUES_LIST, Type.LIST, new util.ArrayList[String], Importance.HIGH, QUEUE_LIST_DOC,
       "Connection", 8, ConfigDef.Width.MEDIUM, QUEUES_LIST)
-    .define(JMS_PASSWORD, Type.STRING, null, Importance.HIGH, JMS_PASSWORD_DOC,
+    .define(JMS_PASSWORD, Type.PASSWORD, null, Importance.HIGH, JMS_PASSWORD_DOC,
       "Connection", 9, ConfigDef.Width.MEDIUM, JMS_PASSWORD)
     .define(JMS_USER, Type.STRING, null, Importance.HIGH, JMS_USER_DOC,
       "Connection", 10, ConfigDef.Width.MEDIUM, JMS_USER)

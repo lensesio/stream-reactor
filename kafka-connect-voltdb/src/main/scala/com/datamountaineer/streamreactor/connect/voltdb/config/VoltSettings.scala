@@ -48,7 +48,12 @@ object VoltSettings {
 //    if (user == null || user.trim.length == 0)
 //      throw new ConfigException(s"${VoltSinkConfig.USER_CONFIG} is not set correctly")
 
-    val password = config.getString(VoltSinkConfig.PASSWORD_CONFIG)
+    val passwordRaw = config.getPassword(VoltSinkConfig.PASSWORD_CONFIG)
+
+    val password = passwordRaw match {
+      case null => null
+      case _ => passwordRaw.value()
+    }
 
     val raw = config.getString(VoltSinkConfig.EXPORT_ROUTE_QUERY_CONFIG)
     require(raw != null && !raw.isEmpty, s"No ${VoltSinkConfig.EXPORT_ROUTE_QUERY_CONFIG} provided!")

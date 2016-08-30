@@ -53,7 +53,12 @@ object InfluxSettings {
       throw new ConfigException(s"${InfluxSinkConfig.INFLUX_CONNECTION_USER_CONFIG} is not set correctly")
     }
 
-    val password = config.getString(INFLUX_CONNECTION_PASSWORD_CONFIG)
+    val passwordRaw = config.getPassword(INFLUX_CONNECTION_PASSWORD_CONFIG)
+
+    val password = passwordRaw match {
+      case null => null
+      case _ => passwordRaw.value()
+    }
 
     val database = config.getString(INFLUX_DATABASE_CONFIG)
     if (database == null || database.trim.isEmpty) {

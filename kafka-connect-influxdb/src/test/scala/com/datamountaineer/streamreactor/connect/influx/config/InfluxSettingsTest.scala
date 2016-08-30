@@ -84,10 +84,12 @@ class InfluxSettingsTest extends WordSpec with Matchers with MockitoSugar {
     val database = "mydatabase"
     val user = "myuser"
     val config = mock[InfluxSinkConfig]
+    val pass = mock[Password]
     when(config.getString(InfluxSinkConfig.INFLUX_URL_CONFIG)).thenReturn(url)
     when(config.getString(InfluxSinkConfig.INFLUX_DATABASE_CONFIG)).thenReturn(database)
     when(config.getString(InfluxSinkConfig.INFLUX_CONNECTION_USER_CONFIG)).thenReturn(user)
-    when(config.getString(InfluxSinkConfig.INFLUX_CONNECTION_PASSWORD_CONFIG)).thenReturn("mememe")
+    when(config.getPassword(InfluxSinkConfig.INFLUX_CONNECTION_PASSWORD_CONFIG)).thenReturn(pass)
+    when(pass.value()).thenReturn("mememe")
     when(config.getString(InfluxSinkConfig.ERROR_POLICY_CONFIG)).thenReturn("THROW")
     when(config.getString(InfluxSinkConfig.EXPORT_ROUTE_QUERY_CONFIG)).thenReturn(QUERY_SELECT)
     val settings = InfluxSettings(config)
@@ -108,10 +110,12 @@ class InfluxSettingsTest extends WordSpec with Matchers with MockitoSugar {
     val database = "mydatabase"
     val user = "myuser"
     val config = mock[InfluxSinkConfig]
+    val pass = mock[Password]
     when(config.getString(InfluxSinkConfig.INFLUX_URL_CONFIG)).thenReturn(url)
     when(config.getString(InfluxSinkConfig.INFLUX_DATABASE_CONFIG)).thenReturn(database)
     when(config.getString(InfluxSinkConfig.INFLUX_CONNECTION_USER_CONFIG)).thenReturn(user)
-    when(config.getString(InfluxSinkConfig.INFLUX_CONNECTION_PASSWORD_CONFIG)).thenReturn("mememe")
+    when(config.getPassword(InfluxSinkConfig.INFLUX_CONNECTION_PASSWORD_CONFIG)).thenReturn(pass)
+    when(pass.value()).thenReturn("mememe")
     when(config.getString(InfluxSinkConfig.ERROR_POLICY_CONFIG)).thenReturn("THROW")
     when(config.getString(InfluxSinkConfig.EXPORT_ROUTE_QUERY_CONFIG)).thenReturn(QUERY_SELECT_AND_TIMESTAMP)
     val settings = InfluxSettings(config)
@@ -132,10 +136,12 @@ class InfluxSettingsTest extends WordSpec with Matchers with MockitoSugar {
     val database = "mydatabase"
     val user = "myuser"
     val config = mock[InfluxSinkConfig]
+    val pass = mock[Password]
     when(config.getString(InfluxSinkConfig.INFLUX_URL_CONFIG)).thenReturn(url)
     when(config.getString(InfluxSinkConfig.INFLUX_DATABASE_CONFIG)).thenReturn(database)
     when(config.getString(InfluxSinkConfig.INFLUX_CONNECTION_USER_CONFIG)).thenReturn(user)
-    when(config.getString(InfluxSinkConfig.INFLUX_CONNECTION_PASSWORD_CONFIG)).thenReturn("mememe")
+    when(config.getPassword(InfluxSinkConfig.INFLUX_CONNECTION_PASSWORD_CONFIG)).thenReturn(pass)
+    when(pass.value()).thenReturn("mememe")
     when(config.getString(InfluxSinkConfig.ERROR_POLICY_CONFIG)).thenReturn("THROW")
     when(config.getString(InfluxSinkConfig.EXPORT_ROUTE_QUERY_CONFIG)).thenReturn(QUERY_SELECT_AND_TIMESTAMP_SYSTEM)
     val settings = InfluxSettings(config)
