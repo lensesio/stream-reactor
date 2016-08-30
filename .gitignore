@@ -27,3 +27,4 @@ target/
 /.ensime
 /.ensime_cache.d/
 *.tar.gz
+/stream-reactor-release-0.2-3.0.0/
