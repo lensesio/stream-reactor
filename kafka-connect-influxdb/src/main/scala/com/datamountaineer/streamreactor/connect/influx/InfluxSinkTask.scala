@@ -61,13 +61,11 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
     val sinkConfig = InfluxSinkConfig(props)
     val influxSettings = InfluxSettings(sinkConfig)
 
-
     //if error policy is retry set retry interval
     if (influxSettings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
       context.timeout(sinkConfig.getInt(InfluxSinkConfig.ERROR_RETRY_INTERVAL_CONFIG).toLong)
     }
 
-    logger.info(s"Settings:$influxSettings")
     writer = Some(WriterFactoryFn(influxSettings))
   }
 

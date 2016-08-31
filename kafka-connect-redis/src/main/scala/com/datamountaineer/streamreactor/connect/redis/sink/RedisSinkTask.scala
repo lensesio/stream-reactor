@@ -70,10 +70,6 @@ class RedisSinkTask extends SinkTask with StrictLogging {
       context.timeout(sinkConfig.getInt(RedisSinkConfig.ERROR_RETRY_INTERVAL).toLong)
     }
 
-    logger.info(
-      s"""Settings:
-          |$settings
-      """.stripMargin)
     writer = Some(RedisDbWriterFactory(settings))
   }
 

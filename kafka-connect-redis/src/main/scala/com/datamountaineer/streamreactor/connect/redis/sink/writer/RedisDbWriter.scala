@@ -32,7 +32,7 @@ import scala.util.Try
 case class RedisDbWriter(sinkSettings: RedisSinkSettings) extends DbWriter with StrictLogging with ConverterUtil with ErrorHandler {
   private val connection = sinkSettings.connection
   private val jedis = new Jedis(connection.host, connection.port)
-  connection.password.foreach(jedis.auth)
+  connection.password.foreach(p => jedis.auth(p))
 
   //initialize error tracker
   initialize(sinkSettings.taskRetries, sinkSettings.errorPolicy)

@@ -67,10 +67,6 @@ class JMSSinkTask extends SinkTask with StrictLogging {
       context.timeout(sinkConfig.getInt(JMSSinkConfig.ERROR_RETRY_INTERVAL).toLong)
     }
 
-    logger.info(
-      s"""Settings:
-          |$settings
-      """.stripMargin)
     writer = Some(JMSWriter(settings))
   }
 
