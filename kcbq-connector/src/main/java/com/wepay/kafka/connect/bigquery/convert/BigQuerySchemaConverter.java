@@ -147,6 +147,9 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
       }
     }
     setNullability(kafkaConnectSchema, result);
+    if (kafkaConnectSchema.doc() != null) {
+      result.description(kafkaConnectSchema.doc());
+    }
     return result;
   }
 

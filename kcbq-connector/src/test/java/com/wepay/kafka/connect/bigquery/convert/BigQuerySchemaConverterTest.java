@@ -492,4 +492,28 @@ public class BigQuerySchemaConverterTest {
         new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
   }
+
+  @Test
+  public void testDescription() {
+    final String fieldName = "WithDoc";
+    final String fieldDoc = "test documentation";
+
+    com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
+      com.google.cloud.bigquery.Schema.of(
+        com.google.cloud.bigquery.Field.builder(fieldName,
+          com.google.cloud.bigquery.Field.Type.string())
+          .mode(com.google.cloud.bigquery.Field.Mode.REQUIRED)
+          .description(fieldDoc)
+          .build()
+      );
+
+    Schema kafkaConnectTestSchema = SchemaBuilder
+      .struct()
+      .field(fieldName, SchemaBuilder.string().doc(fieldDoc).build())
+      .build();
+
+    com.google.cloud.bigquery.Schema bigQueryTestSchema =
+      new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+    assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
+  }
 }

@@ -56,9 +56,14 @@ public class SchemaManager {
     bigQuery.update(constructTableInfo(table, kafkaConnectSchema));
   }
 
-  private TableInfo constructTableInfo(TableId table, Schema kafkaConnectSchema) {
+  // package private for testing.
+  TableInfo constructTableInfo(TableId table, Schema kafkaConnectSchema) {
     com.google.cloud.bigquery.Schema bigQuerySchema =
         schemaConverter.convertSchema(kafkaConnectSchema);
-    return TableInfo.of(table, StandardTableDefinition.of(bigQuerySchema));
+    TableInfo.Builder tableInfoBuilder = TableInfo.builder(table, StandardTableDefinition.of(bigQuerySchema));
+    if (kafkaConnectSchema.doc() != null) {
+      tableInfoBuilder.description(kafkaConnectSchema.doc());
+    }
+    return tableInfoBuilder.build();
   }
 }
