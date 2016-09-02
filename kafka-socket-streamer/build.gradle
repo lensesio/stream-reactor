@@ -9,13 +9,33 @@ project(":kafka-socket-streamer") {
         jacksonVersion = "2.7.5"
     }
 
-    tasks.withType(Jar) {
-        manifest {
-            attributes 'Main-Class': 'com.datamountaineer.streamreactor.socketstreamer.Main'
+    jar {
+        dependsOn configurations.runtime
+        from {
+            (configurations.runtime).collect {
+                it.isDirectory() ? it : zipTree(it)
+            }
+        } {
+            exclude "META-INF/*.SF"
+            exclude "META-INF/*.DSA"
+            exclude "META-INF/*.RSA"
         }
+
+        zip64 true
+        jar.archiveName = "$project.name-$project.version-$confluentVersion-all.jar"
     }
 
+
+    jar {
+        jar.archiveName = "$project.name-$project.version-$confluentVersion-all.jar"
+    }
+
+
     dependencies {
+
+        compile "org.scala-lang:scala-library:$scala"
+        compile "org.scala-lang:scala-compiler:$scala"
+
         compile("io.confluent:kafka-connect-avro-converter:$confluentVersion") {
             exclude group: "org.slf4j"
         }
