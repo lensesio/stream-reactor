@@ -437,8 +437,8 @@ public class BigQueryRecordConverterTest {
 
   @Test
   public void testNullable() {
-    final String nullableFieldName = "Nullable";
-    final String requiredFieldName = "Required";
+    final String nullableFieldName = "nullable";
+    final String requiredFieldName = "required";
     final Integer nullableFieldValue = null;
     final Integer requiredFieldValue = 42;
 
@@ -458,6 +458,29 @@ public class BigQueryRecordConverterTest {
 
     Map<String, Object> bigQueryTestRecord =
         new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+    assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
+  }
+
+  @Test
+  public void testNullableStruct() {
+    final String nullableFieldName = "nullableStruct";
+
+    final Map<String, Object> bigQueryExpectedRecord = new HashMap<>();
+
+    Schema kafkaConnectSchema = SchemaBuilder
+      .struct()
+      .field(nullableFieldName,
+             SchemaBuilder.struct().field("foobar",
+                                          SchemaBuilder.bool().build()).optional().build())
+      .build();
+
+    Struct kafkaConnectStruct = new Struct(kafkaConnectSchema);
+    kafkaConnectStruct.put(nullableFieldName, null);
+
+    SinkRecord kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
+
+    Map<String, Object> bigQueryTestRecord =
+      new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
   }
 
