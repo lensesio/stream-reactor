@@ -24,9 +24,9 @@ import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.InsertAllResponse;
 
 import com.wepay.kafka.connect.bigquery.SchemaManager;
-
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.Schema;
 
 import org.slf4j.Logger;
@@ -50,13 +50,14 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
    * @param schemaManager Used to update BigQuery tables.
    * @param retry How many retries to make in the event of a 500/503 error.
    * @param retryWait How long to wait in between retries.
+   * @param metrics Metrics for kcbq.
    */
-  public AdaptiveBigQueryWriter(
-      BigQuery bigQuery,
-      SchemaManager schemaManager,
-      int retry,
-      long retryWait) {
-    super(retry, retryWait);
+  public AdaptiveBigQueryWriter(BigQuery bigQuery,
+                                SchemaManager schemaManager,
+                                int retry,
+                                long retryWait,
+                                Metrics metrics) {
+    super(retry, retryWait, metrics);
     this.bigQuery = bigQuery;
     this.schemaManager = schemaManager;
   }
