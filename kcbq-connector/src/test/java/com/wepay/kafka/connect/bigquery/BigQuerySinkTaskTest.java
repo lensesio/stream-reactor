@@ -101,6 +101,25 @@ public class BigQuerySinkTaskTest {
   }
 
   @Test
+  public void testEmptyRecordPut() {
+    final String topic = "test_topic";
+    final Schema simpleSchema = SchemaBuilder
+        .struct()
+        .field("aField", Schema.STRING_SCHEMA)
+        .build();
+
+    Map<String, String> properties = propertiesFactory.getProperties();
+    BigQuery bigQuery = mock(BigQuery.class);
+
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery);
+    testTask.start(properties);
+
+    SinkRecord emptyRecord = spoofSinkRecord(topic, simpleSchema, null);
+
+    testTask.put(Collections.singletonList(emptyRecord));
+  }
+
+  @Test
   public void testPartitioning() {
     final String dataset = "scratch";
     final String topic = "test_topic";
