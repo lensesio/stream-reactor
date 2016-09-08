@@ -1,6 +1,5 @@
 package com.datamountaineer.streamreactor.connect.rethink.config
 
-import com.datamountaineeer.streamreactor.connect.rethink.config.{ReThinkSettings, ReThinkSinkConfig}
 import com.datamountaineer.connector.config.WriteModeEnum
 import com.datamountaineer.streamreactor.connect.rethink.TestBase
 import org.apache.kafka.connect.sink.SinkTaskContext

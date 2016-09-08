@@ -5,7 +5,6 @@ project(":kafka-socket-streamer") {
         akkaSseVersion = "1.8.1"
         akkaKafkaVersion = "0.11-M4"
         logBackVersion = "1.1.2"
-        confluentVersion = '3.0.0'
         jacksonVersion = "2.7.5"
     }
 

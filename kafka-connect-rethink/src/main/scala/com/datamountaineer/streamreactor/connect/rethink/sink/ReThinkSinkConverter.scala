@@ -14,9 +14,9 @@
   * limitations under the License.
   **/
 
-package com.datamountaineeer.streamreactor.connect.rethink.sink
+package com.datamountaineer.streamreactor.connect.rethink.sink
 
-import com.datamountaineeer.streamreactor.connect.rethink.config.ReThinkSetting
+import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkSetting
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.model.MapObject
 import com.rethinkdb.net.Connection
@@ -25,8 +25,10 @@ import org.apache.kafka.connect.data.Schema.Type
 import org.apache.kafka.connect.data.{Field, Struct}
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
+import org.junit.internal.runners.statements.Fail
 
 import scala.collection.JavaConversions._
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andrew@datamountaineer.com on 24/06/16. 
@@ -41,6 +43,7 @@ object ReThinkSinkConverter extends StrictLogging {
   def checkAndCreateTables(rethink: RethinkDB, setting : ReThinkSetting, conn: Connection) : Unit = {
     val isAutoCreate = setting.routes.map(r => (r.getTarget, r.isAutoCreate)).toMap
     val tables : java.util.List[String] = rethink.db(setting.db).tableList().run(conn)
+
     setting.topicTableMap
       .filter({ case (topic, table) => !tables.contains(table) && isAutoCreate(table).equals(false) })
       .foreach({
@@ -61,8 +64,13 @@ object ReThinkSinkConverter extends StrictLogging {
         val pk = r.getPrimaryKeys.toSet
         val pkName = if (pk.isEmpty) "id" else pk.head
         logger.info(s"Setting primary as first field found: $pkName")
-        create.optArg("primary_key", pkName)
-        create.run(conn)
+        create.optArg("primaryKey", pkName)
+
+        Try(create.run(conn)) match {
+          case Success(s) => logger.info(s"Created table ${r.getTarget}")
+          case Failure(f) => logger.error(s"Failed to create table ${r.getTarget}. Error message ${f.getMessage}")
+        }
+
         logger.info(s"Table ${r.getTarget} created.")
       })
   }
@@ -112,6 +120,10 @@ object ReThinkSinkConverter extends StrictLogging {
         val mo = rethink.hashMap()
         fields.map(f => buildField(rethink, f, nested, mo))
         hm.`with`(field.name, mo)
+      case Type.BYTES => {
+        logger.warn(s"Discarding binary field ${field.name()}")
+        hm
+      }
       case _ => hm.`with`(field.name(), struct.get(field.name()))
     }
   }

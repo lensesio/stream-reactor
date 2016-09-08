@@ -14,7 +14,7 @@
   * limitations under the License.
   **/
 
-package com.datamountaineeer.streamreactor.connect.rethink.config
+package com.datamountaineer.streamreactor.connect.rethink.config
 
 import com.datamountaineer.connector.config.{Config, WriteModeEnum}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}

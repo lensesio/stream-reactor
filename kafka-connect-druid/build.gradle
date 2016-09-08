@@ -10,8 +10,12 @@ project(":kafka-connect-druid") {
 
     dependencies {
         compile "com.github.nscala-time:nscala-time_$scalaMajorVersion:2.12.0"
-        compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
-        compile "io.druid:tranquility-core_$scalaMajorVersion:$tranquilityCoreVersion"
+        compile ("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
+        compile ("io.druid:tranquility-core_$scalaMajorVersion:$tranquilityCoreVersion") {
+            exclude group : "com.sun.jersey"
+        }
         testCompile("org.kitesdk:kite-minicluster:$kiteMiniClusterVersion")
     }
 }

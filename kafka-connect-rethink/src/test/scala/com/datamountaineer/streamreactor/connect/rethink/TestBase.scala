@@ -2,7 +2,7 @@ package com.datamountaineer.streamreactor.connect.rethink
 
 import java.util
 
-import com.datamountaineeer.streamreactor.connect.rethink.config.ReThinkSinkConfig
+import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkSinkConfig
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord

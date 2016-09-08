@@ -1,3 +1,5 @@
+import java.util.concurrent.CopyOnWriteArrayList
+
 buildscript {
     repositories {
         jcenter()
@@ -6,11 +8,13 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.github.maiflai:gradle-scalatest:0.9'
+        classpath 'com.github.maiflai:gradle-scalatest:0.14'
         classpath 'net.researchgate:gradle-release:2.3.4'
         classpath "org.github.ngbinh.scalastyle:gradle-scalastyle-plugin_2.11:0.8.2"
     }
 }
+
+
 
 allprojects {
     group = 'com.datamountaineer'
@@ -76,7 +80,7 @@ allprojects {
         }
 
         zip64 true
-        jar.archiveName = "$project.name-$project.version-$confluentVersion-all.jar"
+        jar.archiveName = "${project.name}-${project.version}-${confluentVersion}-all.jar"
     }
 
     dependencies {
@@ -135,7 +139,7 @@ allprojects {
     task compile(dependsOn: 'compileScala')
 
     task collectJars(type: Copy){
-        into "$buildDir/libs-dependencies"
+        into "${buildDir}/libs-dependencies"
         from configurations.runtime
     }
 
@@ -144,5 +148,27 @@ allprojects {
         includeTestSourceDirectory = false
         source = "src/main/scala"
         testSource = "src/test/scala"
+    }
+
+    task collectBin(type: Copy) {
+        delete "${project.rootDir}/release/${project.description}-${project.version}-${confluentVersion}/bin"
+        from "${project.rootDir}/bin"
+        into "${project.rootDir}/release/${project.description}-${project.version}-${confluentVersion}/bin"
+    }
+
+    task collectFatJar (type: Copy, dependsOn: jar){
+        delete "${project.rootDir}/release/${project.description}-${project.version}-${confluentVersion}/libs"
+        from "${buildDir}/libs"
+        into "${project.rootDir}/release/${project.description}-${project.version}-${confluentVersion}/libs"
+    }
+
+    task tar(type: Tar, dependsOn: [collectFatJar, collectBin]) {
+        delete "${project.rootDir}/release/${project.description}-${project.version}-${confluentVersion}.tar.gz"
+        from "${project.rootDir}/release/"
+        exclude "**.gz"
+        archiveName = "${project.description}-${project.version}-${confluentVersion}.tar.gz"
+        destinationDir = file("${project.rootDir}/release")
+        compression = Compression.GZIP
+        delete "${project.rootDir}/release/${project.description}-${project.version}-${confluentVersion}"
     }
 }

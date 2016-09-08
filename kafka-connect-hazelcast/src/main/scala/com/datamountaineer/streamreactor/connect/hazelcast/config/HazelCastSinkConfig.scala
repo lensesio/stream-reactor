@@ -105,7 +105,7 @@ object HazelCastSinkConfig {
   val BATCH_SIZE_DEFAULT = 1000
 
   val config: ConfigDef = new ConfigDef()
-    .define(CLUSTER_SINK_MEMBERS, Type.LIST, CLUSTER_MEMBERS_DEFAULT, Importance.HIGH, CLUSTER_MEMBERS_DOC,
+    .define(CLUSTER_SINK_MEMBERS, Type.LIST, Importance.HIGH, CLUSTER_MEMBERS_DOC,
       "Connection", 1, ConfigDef.Width.MEDIUM, CLUSTER_SINK_MEMBERS)
     .define(CONNECTION_TIMEOUT, Type.LONG, CONNECTION_TIMEOUT_DEFAULT, Importance.LOW, CONNECTION_TIMEOUT_DOC,
       "Connection", 2, ConfigDef.Width.MEDIUM, CONNECTION_TIMEOUT)

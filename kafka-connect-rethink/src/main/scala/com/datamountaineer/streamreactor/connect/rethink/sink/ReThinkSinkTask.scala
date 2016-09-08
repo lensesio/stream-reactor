@@ -14,11 +14,11 @@
   * limitations under the License.
   **/
 
-package com.datamountaineeer.streamreactor.connect.rethink.sink
+package com.datamountaineer.streamreactor.connect.rethink.sink
 
 import java.util
 
-import com.datamountaineeer.streamreactor.connect.rethink.config.ReThinkSinkConfig
+import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkSinkConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition

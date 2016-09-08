@@ -6,9 +6,8 @@ project(":kafka-connect-hbase") {
     }
 
     dependencies {
-        compile 'javax.ws.rs:javax.ws.rs-api:2.0.1'
         compile("org.apache.hbase:hbase-client:$hbaseClientVersion") {
-            exclude group: "javax.ws.rs", module: "jsr311-api"
+            exclude group : "com.sun.jersey"
         }
 
         compile ("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion") {

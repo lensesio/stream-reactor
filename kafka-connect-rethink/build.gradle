@@ -1,6 +1,6 @@
 project(":kafka-connect-rethink") {
     ext {
-        rethinkDbVersion = "2.3.0"
+        rethinkDbVersion = "2.3.3"
     }
 
     dependencies {

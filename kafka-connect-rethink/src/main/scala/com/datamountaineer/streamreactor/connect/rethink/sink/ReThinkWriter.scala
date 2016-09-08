@@ -14,27 +14,27 @@
   * limitations under the License.
   **/
 
-package com.datamountaineeer.streamreactor.connect.rethink.sink
+package com.datamountaineer.streamreactor.connect.rethink.sink
 
-import com.datamountaineeer.streamreactor.connect.rethink.config.{ReThinkSetting, ReThinkSettings, ReThinkSinkConfig}
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
+import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSetting, ReThinkSettings, ReThinkSinkConfig}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.rethinkdb.RethinkDB
+import com.rethinkdb.model.MapObject
 import com.rethinkdb.net.Connection
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
-
-import scala.collection.JavaConversions._
 import scala.util.Failure
+import scala.collection.JavaConverters._
+
 
 object ReThinkWriter extends StrictLogging {
   def apply(config: ReThinkSinkConfig, context: SinkTaskContext) : ReThinkWriter = {
     val rethinkHost = config.getString(ReThinkSinkConfig.RETHINK_HOST)
+    val port = config.getInt(ReThinkSinkConfig.RETHINK_PORT)
 
     //set up the connection to the host
     val settings = ReThinkSettings(config)
-    val port = config.getInt(ReThinkSinkConfig.RETHINK_PORT)
     lazy val r = RethinkDB.r
     lazy val conn: Connection = r.connection().hostname(rethinkHost).port(port).connect()
     new ReThinkWriter(r, conn = conn, setting = settings)
@@ -50,8 +50,6 @@ class ReThinkWriter(rethink : RethinkDB, conn : Connection, setting: ReThinkSett
   logger.info("Initialising ReThink writer")
   //initialize error tracker
   initialize(setting.maxRetries, setting.errorPolicy)
-  //check tables exist or are marked for auto create
-  ReThinkSinkConverter.checkAndCreateTables(rethink, setting, conn)
 
   /**
     * Write a list of SinkRecords
@@ -83,23 +81,21 @@ class ReThinkWriter(rethink : RethinkDB, conn : Connection, setting: ReThinkSett
     val conflict  = setting.conflictPolicy(table)
     val pks = setting.pks(topic)
 
-    val writes = records.map(r => {
+    val writes: List[MapObject] = records.map(r => {
       val extracted = convert(r, setting.fieldMap(r.topic()), setting.ignoreFields(r.topic()))
-      val hm = ReThinkSinkConverter.convertToReThink(rethink, extracted, pks)
+      ReThinkSinkConverter.convertToReThink(rethink, extracted, pks)
+    } )
 
-      val x : java.util.Map[String, Object] =
-        rethink
-        .db(setting.db)
-        .table(table)
-        .insert(hm)
-        .optArg("conflict", conflict.toLowerCase)
-        .optArg("return_changes", true)
-        .run(conn)
-      x
-    })
+    val x : java.util.Map[String, Object] = rethink
+                                              .db(setting.db)
+                                              .table(table)
+                                              .insert(writes)
+                                              .optArg("conflict", conflict.toString.toLowerCase)
+                                              .optArg("return_changes", true)
+                                              .run(conn)
 
-    //handle errors
-    writes.foreach(w => handleFailure(w.toMap))
+    handleFailure(x.asScala.toMap)
+    logger.info(s"Wrote ${writes.size} to rethink.")
   }
 
   /**
@@ -109,8 +105,8 @@ class ReThinkWriter(rethink : RethinkDB, conn : Connection, setting: ReThinkSett
     * @param write The write result changes return from rethink
     * */
   private def handleFailure(write : Map[String, Object]) = {
+
     val errors = write.getOrElse("errors", 0).toString
-    logger.info(s"Result of write: ${write.mkString(",")}")
 
     if (!errors.equals("0")) {
       val error = write.getOrElse("first_error","Unknown error")

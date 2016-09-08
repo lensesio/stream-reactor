@@ -14,7 +14,7 @@
   * limitations under the License.
   **/
 
-package com.datamountaineeer.streamreactor.connect.rethink.config
+package com.datamountaineer.streamreactor.connect.rethink.config
 
 import java.util
 
@@ -30,14 +30,15 @@ object ReThinkSinkConfig {
   val RETHINK_HOST_DOC = "Rethink server host."
   val RETHINK_HOST_DEFAULT = "localhost"
   val RETHINK_DB = "connect.rethink.sink.db"
+  val RETHINK_DB_DEFAULT = "connect_rethink_sink"
   val RETHINK_DB_DOC = "The reThink database to write to and create tables in."
   val RETHINK_PORT = "connect.rethink.sink.port"
   val RETHINK_PORT_DEFAULT = "28015"
   val RETHINK_PORT_DOC = "Client port of rethink server to connect to."
 
-  val CONFLICT_ERROR = "ERROR"
-  val CONFLICT_REPLACE = "REPLACE"
-  val CONFLICT_UPDATE = "UPDATE"
+  val CONFLICT_ERROR = "error"
+  val CONFLICT_REPLACE = "replace"
+  val CONFLICT_UPDATE = "update"
 
   val EXPORT_ROUTE_QUERY = "connect.rethink.sink.export.route.query"
   val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
@@ -64,7 +65,7 @@ object ReThinkSinkConfig {
   val config: ConfigDef = new ConfigDef()
     .define(RETHINK_HOST, Type.STRING, RETHINK_HOST_DEFAULT, Importance.HIGH, RETHINK_HOST_DOC,
       "Connection", 1, ConfigDef.Width.MEDIUM, RETHINK_HOST)
-    .define(RETHINK_DB, Type.STRING, Importance.HIGH, RETHINK_DB_DOC,
+    .define(RETHINK_DB, Type.STRING, RETHINK_DB_DEFAULT, Importance.HIGH, RETHINK_DB_DOC,
       "Connection", 2, ConfigDef.Width.MEDIUM, RETHINK_DB)
     .define(RETHINK_PORT, Type.INT, RETHINK_PORT_DEFAULT, Importance.MEDIUM, RETHINK_PORT_DOC,
       "Connection", 3, ConfigDef.Width.MEDIUM, RETHINK_PORT)

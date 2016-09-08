@@ -6,8 +6,6 @@
 //import org.mockito.Mockito._
 //import org.scalatest.mock.MockitoSugar
 //
-//import scala.collection.JavaConverters._
-//
 ///**
 //  * Created by andrew@datamountaineer.com on 22/06/16.
 //  * stream-reactor-maven

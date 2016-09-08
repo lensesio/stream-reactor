@@ -1,8 +1,7 @@
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
-import com.datamountaineeer.streamreactor.connect.rethink.config.{ReThinkSettings, ReThinkSinkConfig}
-import com.datamountaineeer.streamreactor.connect.rethink.sink.ReThinkWriter
 import com.datamountaineer.streamreactor.connect.rethink.TestBase
+import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSettings, ReThinkSinkConfig}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.gen.ast._
