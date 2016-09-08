@@ -11,7 +11,7 @@ Streaming reference architecture built around Kafka.
 
 A collection of components to build a real time ingestion pipeline.
 
-Publication to Maven coming soon.
+Requires gradle 3.0 to build.
 
 To build
 
