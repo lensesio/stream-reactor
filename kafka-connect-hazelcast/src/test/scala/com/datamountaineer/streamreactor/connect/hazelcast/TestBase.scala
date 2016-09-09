@@ -5,9 +5,8 @@ import java.nio.ByteBuffer
 import java.util
 
 import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkConfig
-import com.hazelcast.config.Config
-import com.hazelcast.core.{Hazelcast, HazelcastInstance, Message, MessageListener}
-import com.sun.xml.internal.ws.encoding.MtomCodec.ByteArrayBuffer
+
+import com.hazelcast.core.{Message, MessageListener}
 import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
 import org.apache.avro.io.DecoderFactory
 import org.apache.kafka.common.TopicPartition
@@ -40,25 +39,31 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
 
   def getProps = {
     Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP,
-      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME
+      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJson = {
     Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON,
-      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME
+      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+
     ).asJava
   }
 
   def getPropsSelection = {
     Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_SELECTION,
-      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME
+      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
+        HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+
     ).asJava
   }
 
   def getPropsIgnored = {
     Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_IGNORED,
-      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME
+      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
     ).asJava
   }
 
