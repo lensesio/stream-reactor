@@ -37,6 +37,11 @@ You can also use the gradle wrapper
 ./gradlew jar
 ```
 
+#### [Kafka-Connect-Blockchain](http://docs.datamountaineer.com/en/latest/blockchain.html)
+
+Kafka connect Blockchain source to subscribe to Blockchain streams and write to Kafka.
+
+
 #### [Kafka-Connect-Bloomberg](http://docs.datamountaineer.com/en/latest/bloomberg.html)
 
 Kafka connect Bloomberg source to subscribe to Bloomberg streams via the open API and write to Kafka.

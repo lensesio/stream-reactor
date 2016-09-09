@@ -7,8 +7,8 @@ import org.scalatest.{Matchers, WordSpec}
 class BlockchainMessageTest extends WordSpec with Matchers {
   "BlockChainMessage" should {
     "be parseable for a status message" in {
-      val msg = JacksonJson.mapper.readValue("{\"op\":\"status\", \"msg\", \"Connected, Subscribed, Welcome etc...\"}", classOf[BlockchainMessage])
-      msg.msg shouldBe Some("{\"op\":\"status\", \"msg\", \"Connected, Subscribed, Welcome etc...\"}")
+      val msg = JacksonJson.mapper.readValue("{\"op\":\"status\", \"msg\": \"Connected, Subscribed, Welcome etc...\"}", classOf[BlockchainMessage])
+      msg.msg shouldBe Some("Connected, Subscribed, Welcome etc...")
       msg.op shouldBe "status"
     }
   }
