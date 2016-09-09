@@ -27,6 +27,7 @@ class BlockchainManager(settings: BlockchainSettings) extends AutoCloseable with
   private val bufferActorRef = BufferActor()
   private var cancelFlow: Option[Promise[Option[Message]]] = None
 
+  import system._
 
   def start() = {
     try {
@@ -55,7 +56,6 @@ class BlockchainManager(settings: BlockchainSettings) extends AutoCloseable with
 
   def get(): util.ArrayList[SourceRecord] = {
     implicit val timeout = akka.util.Timeout(10.seconds)
-    import scala.concurrent.ExecutionContext.Implicits.global
     Await.result((bufferActorRef ? BufferActor.DataRequest)
       .map(_.asInstanceOf[util.ArrayList[SourceRecord]])
       .recoverWith { case t =>
@@ -65,31 +65,35 @@ class BlockchainManager(settings: BlockchainSettings) extends AutoCloseable with
   }
 
   private def createFlow(buffer: ActorRef) = {
-    val incoming: Sink[Message, Future[Done]] = {
-      Sink.foreach[Message] {
-        case message: TextMessage.Strict =>
-          Try(JacksonJson.mapper.readValue(message.text, classOf[BlockchainMessage]))
-            .map(_.x) match {
-            case Success(transaction) =>
-              transaction.foreach { tx =>
-                val sourceRecord = tx.toSourceRecord(settings.kafkaTopic, 0, None)
-                buffer ! sourceRecord
-              }
-            case Failure(t) =>
-              logger.warn(s"Could not process message ${message.text}", t)
-          }
+    val incoming: Sink[String, Future[Done]] = {
 
-        case other => logger.warn(s"Unrecognized message type:$other.")
+      Sink.foreach[String] { case msg =>
+        Try(JacksonJson.mapper.readValue(msg, classOf[BlockchainMessage]))
+          .map(_.x) match {
+          case Success(transaction) =>
+            transaction.foreach { tx =>
+              val sourceRecord = tx.toSourceRecord(settings.kafkaTopic, 0, None)
+              buffer ! sourceRecord
+            }
+          case Failure(t) =>
+            logger.warn(s"Could not process message $msg", t)
+        }
       }
     }
 
-    val outgoing = Source.single(TextMessage("{\"op\":\"unconfirmed_sub\"}"))
+    val outgoing = Source.single(TextMessage.Strict("{\"op\":\"unconfirmed_sub\"}"))
+      .concatMat(Source.maybe[Message])(Keep.right)
     val webSocketFlow = Http().webSocketClientFlow(WebSocketRequest(settings.url))
-    val ((upgradeResponse, cancellable), closed) =
+    val (((s, upgradeResponse), cancellable), closed) =
       outgoing
         .keepAlive(settings.keepAlive, () => TextMessage.Strict("{\"op\":\"ping\"}"))
-        .viaMat(webSocketFlow)(Keep.right)
+        .viaMat(webSocketFlow)(Keep.both)
         .concatMat(Source.maybe[Message])(Keep.both)
+        .collect {
+          case message: TextMessage.Strict => Future.successful(message.text)
+          case stream: TextMessage.Streamed => stream.textStream.runFold("")(_ + _).flatMap(c => Future.successful(c))
+        }
+        .mapAsync(4)(identity)
         .toMat(incoming)(Keep.both)
         .run()
 

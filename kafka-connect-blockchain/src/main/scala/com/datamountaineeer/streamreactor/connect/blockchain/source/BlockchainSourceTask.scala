@@ -11,7 +11,7 @@ import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
-class BlockchainsourceTask extends SourceTask with StrictLogging {
+class BlockchainSourceTask extends SourceTask with StrictLogging {
 
   private var taskConfig: Option[AbstractConfig] = None
   private var blockchainManager: Option[BlockchainManager] = None
@@ -22,21 +22,9 @@ class BlockchainsourceTask extends SourceTask with StrictLogging {
     * @param props A map of supplied properties.
     **/
   override def start(props: util.Map[String, String]): Unit = {
-
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/ascii.txt")).mkString)
     logger.info(
       s"""
-         |  ____        _        __  __                   _        _
-         | |  _ \  __ _| |_ __ _|  \/  | ___  _   _ _ __ | |_ __ _(_)_ __   ___  ___ _ __
-         | | | | |/ _` | __/ _` | |\/| |/ _ \| | | | '_ \| __/ _` | | '_ \ / _ \/ _ \ '__|
-         | | |_| | (_| | || (_| | |  | | (_) | |_| | | | | || (_| | | | | |  __/  __/ |
-         | |____/ \__,_|\__\__,_|_|  |_|\___/ \__,_|_| |_|\__\__,_|_|_| |_|\___|\___|_|
-         |  ____  _            _     ____ _           _         ____ by Stefan Bocutiu
-         | | __ )| | ___   ___| | __/ ___| |__   __ _(_)_ __   / ___|  ___  _   _ _ __ ___ ___
-         | |  _ \| |/ _ \ / __| |/ / |   | '_ \ / _` | | '_ \  \___ \ / _ \| | | | '__/ __/ _ \
-         | | |_) | | (_) | (__|   <| |___| | | | (_| | | | | |  ___) | (_) | |_| | | | (_|  __/
-         | |____/|_|\___/ \___|_|\_\\____|_| |_|\__,_|_|_| |_| |____/ \___/ \__,_|_|  \___\___|
-         |
-         |
          |Configuration for task
          |${props.asScala}
       """.stripMargin)

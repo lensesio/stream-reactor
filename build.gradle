@@ -11,6 +11,7 @@ buildscript {
         classpath 'com.github.maiflai:gradle-scalatest:0.14'
         classpath 'net.researchgate:gradle-release:2.3.4'
         classpath "org.github.ngbinh.scalastyle:gradle-scalastyle-plugin_2.11:0.8.2"
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
     }
 }
 
@@ -26,6 +27,7 @@ allprojects {
     apply plugin: 'com.github.maiflai.scalatest'
     apply plugin: 'net.researchgate.release'
     apply plugin: 'scalaStyle'
+    apply plugin: 'com.github.johnrengelman.shadow'
 
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
@@ -77,10 +79,35 @@ allprojects {
             exclude "META-INF/*.SF"
             exclude "META-INF/*.DSA"
             exclude "META-INF/*.RSA"
+            include "*.conf"
         }
 
         zip64 true
         jar.archiveName = "${project.name}-${project.version}-${confluentVersion}-all.jar"
+    }
+
+    shadowJar {
+        configurations = [project.configurations.runtime]
+        baseName = "${project.name}-${project.version}-${confluentVersion}-all"
+        classifier = null
+        version = null
+
+        zip64 true
+
+        mergeServiceFiles{
+            exclude "META-INF/*.SF"
+            exclude "META-INF/*.DSA"
+            exclude "META-INF/*.RSA"
+        }
+
+        transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer) {
+            resource = 'reference.conf'
+        }
+        dependencies{
+            exclude(dependency("org.apache.avro:.*"))
+            exclude(dependency("org.apache.kafka:.*"))
+            exclude(dependency("io.confluent:.*"))
+        }
     }
 
     dependencies {
@@ -156,7 +183,7 @@ allprojects {
         into "${project.rootDir}/release/${project.description}-${project.version}-${confluentVersion}/bin"
     }
 
-    task collectFatJar (type: Copy, dependsOn: jar){
+    task collectFatJar (type: Copy, dependsOn: shadowJar){
         delete "${project.rootDir}/release/${project.description}-${project.version}-${confluentVersion}/libs"
         from "${buildDir}/libs"
         into "${project.rootDir}/release/${project.description}-${project.version}-${confluentVersion}/libs"

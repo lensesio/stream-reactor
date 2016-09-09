@@ -18,7 +18,7 @@ class BlockchainSourceConnector extends SourceConnector with StrictLogging {
     *
     * @return
     */
-  override def taskClass(): Class[_ <: Task] = classOf[BlockchainsourceTask]
+  override def taskClass(): Class[_ <: Task] = classOf[BlockchainSourceTask]
 
   /**
     * Set the configuration for each work and determine the split.

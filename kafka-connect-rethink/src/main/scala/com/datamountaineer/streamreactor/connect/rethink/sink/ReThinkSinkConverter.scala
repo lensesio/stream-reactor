@@ -73,7 +73,7 @@ object ReThinkSinkConverter extends StrictLogging {
 
         Try(create) match {
           case Success(s) => {
-            logger.info(create.mkString(","))
+            //logger.info(create.mkString(","))
             logger.info(s"Created table ${r.getTarget}.")
           }
           case Failure(f) => {
