@@ -16,12 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.voltdb.writers
 
-import java.util
-
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.sink.DbWriter
-import com.datamountaineer.streamreactor.connect.voltdb.ValidateStringParameterFn
 import com.datamountaineer.streamreactor.connect.voltdb.config.VoltSettings
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.Struct
@@ -77,13 +74,14 @@ class VoltDbWriter(settings: VoltSettings) extends DbWriter with StrictLogging w
     val fieldsAndValuesMap = extractor.get(record.value().asInstanceOf[Struct]).map { case (k, v) => (k.toUpperCase, v) }
     logger.info(fieldsAndValuesMap.mkString(","))
     val procAndFields: ProcAndFields = proceduresMap(extractor.targetTable)
-    logger.info(procAndFields.toString)
     //get the list of arguments to pass to the table insert/upsert procedure. if the procedure expects a field and is
     //not present in the incoming SinkRecord it would use null
     //No table evolution is supported yet
 
     val arguments: Array[String] = PrepareProcedureFieldsFn(procAndFields.fields, fieldsAndValuesMap).toArray
-    client.callProcedure(procAndFields.procName, arguments:_*)
+    logger.info(s"Calling procedure:${procAndFields.procName} with parameters:${procAndFields.fields.mkString(",")} with arguments:${arguments.mkString(",")}")
+
+    client.callProcedure(procAndFields.procName, arguments: _*)
   }
 
 
