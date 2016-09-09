@@ -37,7 +37,7 @@ class YahooSourceConnector extends SourceConnector with YahooSourceConfig {
   private var configProps: Option[util.Map[String, String]] = None
 
   /**
-    * Defines the sink class to use
+    * Defines the source class to use
     *
     * @return
     */

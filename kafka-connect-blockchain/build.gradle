@@ -1,0 +1,36 @@
+project(":kafka-connect-blockchain") {
+
+
+    ext {
+        snappyVersion = "1.1.2.1"
+        avro4sVersion = "1.6.0"
+        akkaVersion = "2.4.9"
+        jacksonVersion = "2.7.5"
+    }
+
+    test {
+        classpath = project.sourceSets.test.runtimeClasspath + files("${projectDir}/src/test/resources")
+        classpath = project.sourceSets.test.runtimeClasspath + files("${projectDir.getCanonicalPath()}/src/test/resources/log4j.properties")
+        systemProperty 'log4j.configuration', "file:${projectDir.canonicalPath}/src/test/resources/log4j.properties"
+        //dependsOn copyResources
+    }
+
+    dependencies {
+        compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
+        compile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
+        //akka
+        compile "com.typesafe.akka:akka-actor_$scalaMajorVersion:$akkaVersion"
+        compile "com.typesafe.akka:akka-stream_$scalaMajorVersion:$akkaVersion"
+
+        compile "com.typesafe.akka:akka-http-experimental_$scalaMajorVersion:$akkaVersion"
+
+        compile "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+        compile "com.fasterxml.jackson.module:jackson-module-scala_$scalaMajorVersion:$jacksonVersion"
+
+        //test deps
+        testCompile "com.typesafe.akka:akka-http-testkit_$scalaMajorVersion:$akkaVersion"
+        testCompile "com.typesafe.akka:akka-stream-testkit_$scalaMajorVersion:$akkaVersion"
+        testCompile "com.google.code.findbugs:jsr305:1.3.9"
+
+    }
+}
