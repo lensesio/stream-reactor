@@ -25,7 +25,6 @@ import org.apache.kafka.connect.data.Schema.Type
 import org.apache.kafka.connect.data.{Field, Struct}
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
-import org.junit.internal.runners.statements.Fail
 
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
@@ -39,10 +38,10 @@ object ReThinkSinkConverter extends StrictLogging {
 
   /**
     * check tables exist or are marked for auto create
-    * */
-  def checkAndCreateTables(rethink: RethinkDB, setting : ReThinkSetting, conn: Connection) : Unit = {
+    **/
+  def checkAndCreateTables(rethink: RethinkDB, setting: ReThinkSetting, conn: Connection): Unit = {
     val isAutoCreate = setting.routes.map(r => (r.getTarget, r.isAutoCreate)).toMap
-    val tables : java.util.List[String] = rethink.db(setting.db).tableList().run(conn)
+    val tables: java.util.List[String] = rethink.db(setting.db).tableList().run(conn)
 
     setting.topicTableMap
       .filter({ case (topic, table) => !tables.contains(table) && isAutoCreate(table).equals(false) })
@@ -65,21 +64,22 @@ object ReThinkSinkConverter extends StrictLogging {
         val pkName: String = if (pk.isEmpty) "id" else pk.head
         logger.info(s"Setting primary as first field found: $pkName")
 
-        val create : java.util.Map[String, Object]  = rethink
-                                                      .db(setting.db)
-                                                      .tableCreate(r.getTarget)
-                                                      .optArg("primary_key", pkName)
-                                                      .run(conn)
+        val createTableFn = () => {
+          val create: java.util.Map[String, Object] = rethink
+            .db(setting.db)
+            .tableCreate(r.getTarget)
+            .optArg("primary_key", pkName)
+            .run(conn)
+          create
+        }
 
-        Try(create) match {
-          case Success(s) => {
-            logger.info(create.mkString(","))
+        Try(createTableFn()) match {
+          case Success(s) =>
+            Option(s).foreach(map => logger.info(map.mkString(",")))
             logger.info(s"Created table ${r.getTarget}.")
-          }
-          case Failure(f) => {
-            logger.error(s"Failed to create table ${r.getTarget}." +
-              s" Error message  ${create.mkString(",")}, ${f.getMessage}")
-          }
+
+          case Failure(f) =>
+            logger.error(s"Failed to create table ${r.getTarget}.Error message ${f.getMessage}", f)
         }
       })
   }
@@ -89,13 +89,13 @@ object ReThinkSinkConverter extends StrictLogging {
     *
     * @param record The sinkRecord to convert
     * @return A List of MapObjects to insert
-    * */
-  def convertToReThink(rethink: RethinkDB, record: SinkRecord, primaryKeys : Set[String]): MapObject = {
+    **/
+  def convertToReThink(rethink: RethinkDB, record: SinkRecord, primaryKeys: Set[String]): MapObject = {
     val s = record.value().asInstanceOf[Struct]
     val schema = record.valueSchema()
     val fields = schema.fields()
     val mo = rethink.hashMap()
-    val connectKey =  s"${record.topic()}-${record.kafkaPartition().toString}-${record.kafkaOffset().toString}"
+    val connectKey = s"${record.topic()}-${record.kafkaPartition().toString}-${record.kafkaOffset().toString}"
 
     //set id field
     if (primaryKeys.nonEmpty) {
@@ -109,21 +109,21 @@ object ReThinkSinkConverter extends StrictLogging {
     mo
   }
 
-//  private def concatPrimaryKeys(keys :St, struct: Struct) = {
-//    logger.info("Concat key")
-//    keys.map(k => {
-//      logger.info(s"Concat key $k")
-//      struct.get(k)
-//    }).mkString("-")
-//  }
+  //  private def concatPrimaryKeys(keys :St, struct: Struct) = {
+  //    logger.info("Concat key")
+  //    keys.map(k => {
+  //      logger.info(s"Concat key $k")
+  //      struct.get(k)
+  //    }).mkString("-")
+  //  }
 
   /**
     * Recursively build a MapObject to represent a field
     *
-    * @param field The field schema to add
+    * @param field  The field schema to add
     * @param struct The struct to extract the value from
-    * @param hm The HashMap
-    * */
+    * @param hm     The HashMap
+    **/
   private def buildField(rethink: RethinkDB, field: Field, struct: Struct, hm: MapObject): MapObject = {
     field.schema().`type`() match {
       case Type.STRUCT =>
