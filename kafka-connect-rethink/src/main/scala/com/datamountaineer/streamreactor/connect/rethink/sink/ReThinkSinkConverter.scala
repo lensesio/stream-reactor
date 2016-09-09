@@ -59,19 +59,28 @@ object ReThinkSinkConverter extends StrictLogging {
       .foreach(r => {
         logger.info(s"Creating table ${r.getTarget}")
 
-        val create = rethink.db(setting.db).tableCreate(r.getTarget)
+
         //set primary keys if we have them
         val pk = r.getPrimaryKeys.toSet
-        val pkName = if (pk.isEmpty) "id" else pk.head
+        val pkName: String = if (pk.isEmpty) "id" else pk.head
         logger.info(s"Setting primary as first field found: $pkName")
-        create.optArg("primaryKey", pkName)
 
-        Try(create.run(conn)) match {
-          case Success(s) => logger.info(s"Created table ${r.getTarget}")
-          case Failure(f) => logger.error(s"Failed to create table ${r.getTarget}. Error message ${f.getMessage}")
+        val create : java.util.Map[String, Object]  = rethink
+                                                      .db(setting.db)
+                                                      .tableCreate(r.getTarget)
+                                                      .optArg("primary_key", pkName)
+                                                      .run(conn)
+
+        Try(create) match {
+          case Success(s) => {
+            logger.info(create.mkString(","))
+            logger.info(s"Created table ${r.getTarget}.")
+          }
+          case Failure(f) => {
+            logger.error(s"Failed to create table ${r.getTarget}." +
+              s" Error message  ${create.mkString(",")}, ${f.getMessage}")
+          }
         }
-
-        logger.info(s"Table ${r.getTarget} created.")
       })
   }
 
@@ -90,7 +99,7 @@ object ReThinkSinkConverter extends StrictLogging {
 
     //set id field
     if (primaryKeys.nonEmpty) {
-      mo.`with`(primaryKeys.head, concatPrimaryKeys(primaryKeys, s))
+      mo.`with`(primaryKeys.head, s.get(primaryKeys.head).toString)
     } else {
       mo.`with`("id", connectKey)
     }
@@ -100,9 +109,13 @@ object ReThinkSinkConverter extends StrictLogging {
     mo
   }
 
-  private def concatPrimaryKeys(keys :Set[String], struct: Struct) = {
-    keys.map(k => struct.get(k)).mkString("-")
-  }
+//  private def concatPrimaryKeys(keys :St, struct: Struct) = {
+//    logger.info("Concat key")
+//    keys.map(k => {
+//      logger.info(s"Concat key $k")
+//      struct.get(k)
+//    }).mkString("-")
+//  }
 
   /**
     * Recursively build a MapObject to represent a field

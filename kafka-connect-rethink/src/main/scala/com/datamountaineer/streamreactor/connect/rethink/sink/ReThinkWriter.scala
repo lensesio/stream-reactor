@@ -81,10 +81,10 @@ class ReThinkWriter(rethink : RethinkDB, conn : Connection, setting: ReThinkSett
     val conflict  = setting.conflictPolicy(table)
     val pks = setting.pks(topic)
 
-    val writes: List[MapObject] = records.map(r => {
+    val writes: Array[MapObject] = records.map(r => {
       val extracted = convert(r, setting.fieldMap(r.topic()), setting.ignoreFields(r.topic()))
       ReThinkSinkConverter.convertToReThink(rethink, extracted, pks)
-    } )
+    } ).toArray
 
     val x : java.util.Map[String, Object] = rethink
                                               .db(setting.db)
