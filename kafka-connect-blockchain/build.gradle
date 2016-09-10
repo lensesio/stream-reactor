@@ -4,8 +4,8 @@ project(":kafka-connect-blockchain") {
     ext {
         snappyVersion = "1.1.2.1"
         avro4sVersion = "1.6.0"
-        akkaVersion = "2.4.9"
-        jacksonVersion = "2.7.5"
+        akkaVersion = "2.4.10"
+        jacksonVersion = "2.8.2"
     }
 
     test {
@@ -15,17 +15,22 @@ project(":kafka-connect-blockchain") {
         //dependsOn copyResources
     }
 
+
     dependencies {
-        compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
-        compile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
+        /*compile ("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"){
+            exclude()
+        }*/
+        //compile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
         //akka
         compile "com.typesafe.akka:akka-actor_$scalaMajorVersion:$akkaVersion"
         compile "com.typesafe.akka:akka-stream_$scalaMajorVersion:$akkaVersion"
 
         compile "com.typesafe.akka:akka-http-experimental_$scalaMajorVersion:$akkaVersion"
 
-        compile "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
-        compile "com.fasterxml.jackson.module:jackson-module-scala_$scalaMajorVersion:$jacksonVersion"
+        //compile "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+        //compile "com.fasterxml.jackson.module:jackson-module-scala_$scalaMajorVersion:$jacksonVersion"
+
+        compile "org.json4s:json4s-native_$scalaMajorVersion:3.4.0"
 
         //test deps
         testCompile "com.typesafe.akka:akka-http-testkit_$scalaMajorVersion:$akkaVersion"

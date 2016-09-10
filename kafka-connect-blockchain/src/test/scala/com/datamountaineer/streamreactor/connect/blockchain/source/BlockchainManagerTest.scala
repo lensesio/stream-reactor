@@ -11,7 +11,7 @@ import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.testkit.TestPublisher
 import com.datamountaineeer.streamreactor.connect.blockchain.config.BlockchainSettings
 import com.datamountaineeer.streamreactor.connect.blockchain.data.{BlockchainMessage, Transaction}
-import com.datamountaineeer.streamreactor.connect.blockchain.json.JacksonJson
+import com.datamountaineeer.streamreactor.connect.blockchain.json.Json
 import com.datamountaineeer.streamreactor.connect.blockchain.source.BlockchainManager
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.{Matchers, WordSpec}
@@ -116,7 +116,7 @@ class BlockchainManagerTest extends WordSpec with Matchers {
       json = scala.io.Source.fromFile(getClass.getResource(s"/transactions/transaction$i.json").toURI.getPath).mkString
     } yield {
       source.sendNext(TextMessage.Strict(json))
-      JacksonJson.mapper.readValue(json, classOf[BlockchainMessage]).x.map(_.toStruct()).get
+      Json.fromJson[BlockchainMessage](json).x.map(_.toStruct()).get
     }
     source.sendComplete()
 

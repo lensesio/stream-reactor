@@ -12,7 +12,7 @@ import akka.stream.scaladsl.{Keep, Sink, Source}
 import akka.stream.{ActorMaterializer, StreamTcpException}
 import com.datamountaineeer.streamreactor.connect.blockchain.config.BlockchainSettings
 import com.datamountaineeer.streamreactor.connect.blockchain.data.BlockchainMessage
-import com.datamountaineeer.streamreactor.connect.blockchain.json.JacksonJson
+import com.datamountaineeer.streamreactor.connect.blockchain.json.Json
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord
 
@@ -67,8 +67,8 @@ class BlockchainManager(settings: BlockchainSettings) extends AutoCloseable with
   private def createFlow(buffer: ActorRef) = {
     val incoming: Sink[String, Future[Done]] = {
 
-      Sink.foreach[String] { case msg =>
-        Try(JacksonJson.mapper.readValue(msg, classOf[BlockchainMessage]))
+      Sink.foreach[String] { msg =>
+        Try(Json.fromJson[BlockchainMessage](msg))
           .map(_.x) match {
           case Success(transaction) =>
             transaction.foreach { tx =>

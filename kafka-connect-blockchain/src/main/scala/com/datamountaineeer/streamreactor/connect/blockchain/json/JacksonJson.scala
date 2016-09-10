@@ -16,18 +16,12 @@
 
 package com.datamountaineeer.streamreactor.connect.blockchain.json
 
-import com.fasterxml.jackson.annotation.JsonInclude.Include
-import com.fasterxml.jackson.databind.{DeserializationFeature, ObjectMapper}
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import com.fasterxml.jackson.module.scala.experimental.ScalaObjectMapper
-
-import scala.reflect.ClassTag
-
+/*
 object JacksonJson {
   val mapper = {
     (new ObjectMapper() with ScalaObjectMapper)
       .registerModule(DefaultScalaModule)
-      .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true)
+      .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
       .setSerializationInclusion(Include.NON_NULL)
       .setSerializationInclusion(Include.NON_EMPTY)
 
@@ -37,4 +31,16 @@ object JacksonJson {
     def to[T: ClassTag](): T = mapper.readValue(json, implicitly[ClassTag[T]].runtimeClass).asInstanceOf[T]
   }
 
+}
+*/
+
+import org.json4s._
+import org.json4s.native.JsonMethods._
+
+object Json {
+  implicit val formats = DefaultFormats
+
+  def fromJson[T <: Product:Manifest](json: String): T = {
+    parse(json).extract[T]
+  }
 }

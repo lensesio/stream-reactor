@@ -32,7 +32,6 @@ object Output {
 
   val ConnectSchema: Schema = SchemaBuilder.struct
     .name("datamountaineer.blockchain.output")
-    .version(1)
     .doc("The output instance part of a transaction.")
     .field("addr_tag_link", Schema.OPTIONAL_STRING_SCHEMA)
     .field("addr_tag", Schema.OPTIONAL_STRING_SCHEMA)

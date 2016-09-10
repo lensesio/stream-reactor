@@ -42,7 +42,6 @@ case class Transaction(lock_time: Long,
 object Transaction {
   val ConnectSchema = SchemaBuilder.struct
     .name("datamountaineer.blockchain.transaction")
-    .version(1)
     .field("lock_time", Schema.INT64_SCHEMA)
     .field("ver", Schema.INT32_SCHEMA)
     .field("size", Schema.INT64_SCHEMA)
@@ -60,7 +59,7 @@ object Transaction {
   implicit class TransactionToSourceRecordConverter(val tx: Transaction) extends AnyVal {
     def toSourceRecord(topic: String, partition: Int, key: Option[String]) = {
       new SourceRecord(Option(key).map(Collections.singletonMap("Blockchain", _)).orNull,
-        null,
+        getOffset(),
         topic,
         partition,
         key.map(_=>Schema.STRING_SCHEMA).orNull,
@@ -69,6 +68,8 @@ object Transaction {
         tx.toStruct()
       )
     }
+
+    private def getOffset() = Collections.singletonMap("position", System.currentTimeMillis())
 
     def toStruct(): Struct = {
       val struct = new Struct(ConnectSchema)

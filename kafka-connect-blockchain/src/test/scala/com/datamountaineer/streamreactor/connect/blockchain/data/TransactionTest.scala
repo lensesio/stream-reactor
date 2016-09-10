@@ -1,9 +1,12 @@
 package com.datamountaineer.streamreactor.connect.blockchain.data
 
+import java.util
+
 import com.datamountaineeer.streamreactor.connect.blockchain.Using
 import com.datamountaineeer.streamreactor.connect.blockchain.data.BlockchainMessage
-import com.datamountaineeer.streamreactor.connect.blockchain.json.JacksonJson
+import com.datamountaineeer.streamreactor.connect.blockchain.json.Json
 import com.datamountaineer.streamreactor.connect.blockchain.GetResourcesFromDirectoryFn
+import org.apache.kafka.connect.json.{JsonConverter, JsonDeserializer}
 import org.scalatest.{Matchers, WordSpec}
 
 class TransactionTest extends WordSpec with Matchers with Using {
@@ -11,9 +14,9 @@ class TransactionTest extends WordSpec with Matchers with Using {
     "be initialized from json" in {
       GetResourcesFromDirectoryFn("/transactions").foreach { file =>
         val json = scala.io.Source.fromFile(file).mkString
-        val message = JacksonJson.mapper.readValue(json, classOf[BlockchainMessage])
+        val message = Json.fromJson[BlockchainMessage](json)
         message.x.isDefined shouldBe true
-        message.x.get.toSourceRecord("test", 0, None)
+        val sr = message.x.get.toSourceRecord("test", 0, None)
       }
     }
     "be return from a list of json objects" in {
@@ -21,7 +24,7 @@ class TransactionTest extends WordSpec with Matchers with Using {
         .mkString
         .split(';')
         .foreach { json =>
-          val msg = JacksonJson.mapper.readValue(json, classOf[BlockchainMessage])
+          val msg = Json.fromJson[BlockchainMessage](json)
           msg.x.isDefined shouldBe true
           msg.x.get.toSourceRecord("test", 0, None)
         }
