@@ -28,13 +28,13 @@ gradle test
 To create a fat jar
 
 ```bash
-gradle jar
+gradle shadowJar
 ```
 
 You can also use the gradle wrapper
 
 ```
-./gradlew jar
+./gradlew shadowJar
 ```
 
 #### [Kafka-Connect-Blockchain](http://docs.datamountaineer.com/en/latest/blockchain.html)
@@ -103,4 +103,4 @@ Kafka connect Voltdb sink to write Kafka topic payloads to Voltdb.
 #### [Kafka-Socket-Streamer](kafka-socket-streamer/README.md)
 
 Akka Http and Reactive Kafka with Websocket and Server Send Event support.
-Supports limited SQL statements to stream and select from Kafka topics.
+Supports limited SQL statements to stream and select from Kafka topics in real time.
