@@ -165,6 +165,8 @@ allprojects {
 
     task compile(dependsOn: 'compileScala')
 
+    task fatJar(dependsOn: [test, shadowJar])
+
     task collectJars(type: Copy){
         into "${buildDir}/libs-dependencies"
         from configurations.runtime

@@ -134,8 +134,8 @@ object ReThinkSinkConverter extends StrictLogging {
         fields.map(f => buildField(rethink, f, nested, mo))
         hm.`with`(field.name, mo)
       case Type.BYTES => {
-        logger.warn(s"Discarding binary field ${field.name()}")
-        hm
+        val str = new String(struct.getBytes(field.name()), "utf-8")
+        hm.`with`(field.name(), str)
       }
       case _ => hm.`with`(field.name(), struct.get(field.name()))
     }
