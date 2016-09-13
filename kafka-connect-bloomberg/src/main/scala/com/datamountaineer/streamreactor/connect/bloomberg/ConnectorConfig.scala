@@ -54,7 +54,7 @@ object ConnectorConfig {
   val PayloadTypes = Set("json", "avro")
 
 
-  val EXPORT_ROUTE_QUERY = "connect.hbase.export.route.query"
+  val EXPORT_ROUTE_QUERY = "connect.bloomberg.export.route.query"
   val EXPORT_ROUTE_QUERY_DOC = ""
 
   val ERROR_POLICY = "connect.bloomberg.error.policy"
