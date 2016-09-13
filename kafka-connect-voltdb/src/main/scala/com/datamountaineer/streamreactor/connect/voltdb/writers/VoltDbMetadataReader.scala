@@ -17,8 +17,8 @@
 package com.datamountaineer.streamreactor.connect.voltdb.writers
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.voltdb.{VoltTable, VoltType}
 import org.voltdb.client.Client
+import org.voltdb.{VoltTable, VoltType}
 
 object VoltDbMetadataReader extends StrictLogging {
 
@@ -28,19 +28,15 @@ object VoltDbMetadataReader extends StrictLogging {
 
   def getProcedureParameters(client: Client, tableName: String): List[String] = {
     val rs = getMetadata(client, "COLUMNS")
-    rs.map { vt =>
-        vt.advanceRow()
-        val nbrRows = vt.getRowCount
-
-        (0 until nbrRows).map(i => {
-          val row = vt.fetchRow(i)
-          (row.getString("TABLE_NAME") ->
-            (row.getString("COLUMN_NAME") -> row.get("ORDINAL_POSITION", VoltType.INTEGER).asInstanceOf[Int]))
-        }).filter( {case (k,v) => k.equals(tableName)})
-
-      }.flatMap( t => t.map(s => s._2))
-        .sortBy(_._2)
-        .map(_._1)
-        .toList
+    rs.flatMap { vt =>
+      vt.advanceRow()
+      val nbrRows = vt.getRowCount
+      (0 until nbrRows).map(vt.fetchRow)
+        .filter(_.getString("TABLE_NAME") == tableName)
+        .map(row => row.getString("COLUMN_NAME") -> row.get("ORDINAL_POSITION", VoltType.INTEGER).asInstanceOf[Int])
+    }
+      .sortBy { case (_, ordinal) => ordinal }
+      .map { case (column, _) => column }
+      .toList
   }
 }
