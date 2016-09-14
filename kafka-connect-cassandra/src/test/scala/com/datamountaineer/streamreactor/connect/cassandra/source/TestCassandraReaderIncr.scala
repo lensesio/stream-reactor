@@ -26,7 +26,6 @@ class TestCassandraReaderIncr extends WordSpec with Matchers with BeforeAndAfter
 
   "CassandraReader should read a tables records in incremental mode" in {
     val session =  createTableAndKeySpace(secure = true, ssl = false)
-    configureConverter(jsonConverter)
 
     val sql = s"INSERT INTO $CASSANDRA_KEYSPACE.$TABLE2" +
       "(id, int_field, long_field, string_field, timestamp_field) " +

@@ -22,7 +22,6 @@ class TestCassandraSourceTask extends WordSpec with Matchers with BeforeAndAfter
 
   "A Cassandra SourceTask should start and read records from Cassandra" in {
     val session = createTableAndKeySpace(secure = true, ssl = false)
-    configureConverter(jsonConverter)
 
     val sql = s"INSERT INTO $CASSANDRA_KEYSPACE.$TABLE2" +
       "(id, int_field, long_field, string_field, timestamp_field) " +

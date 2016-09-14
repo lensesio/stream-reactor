@@ -32,7 +32,6 @@ import scala.concurrent.Future
 class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extends StrictLogging with ConverterUtil {
   logger.info("Initialising Elastic Json writer")
   createIndexes()
-  configureConverter(jsonConverter)
 
   implicit object SinkRecordIndexable extends Indexable[SinkRecord] {
     override def json(t: SinkRecord): String = convertValueToJson(t).toString

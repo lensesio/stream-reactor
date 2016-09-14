@@ -51,7 +51,6 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
 
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
-  configureConverter(jsonConverter)
 
   val reliableTopics = settings.topicObject.map({
     case (t, o) => (t, client.getReliableTopic(o).asInstanceOf[ITopic[Object]])
