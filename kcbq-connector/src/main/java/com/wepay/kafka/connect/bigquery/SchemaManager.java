@@ -60,7 +60,8 @@ public class SchemaManager {
   TableInfo constructTableInfo(TableId table, Schema kafkaConnectSchema) {
     com.google.cloud.bigquery.Schema bigQuerySchema =
         schemaConverter.convertSchema(kafkaConnectSchema);
-    TableInfo.Builder tableInfoBuilder = TableInfo.builder(table, StandardTableDefinition.of(bigQuerySchema));
+    TableInfo.Builder tableInfoBuilder =
+        TableInfo.builder(table, StandardTableDefinition.of(bigQuerySchema));
     if (kafkaConnectSchema.doc() != null) {
       tableInfoBuilder.description(kafkaConnectSchema.doc());
     }

@@ -18,7 +18,7 @@ package com.wepay.kafka.connect.bigquery.utils;
  */
 
 /**
- * Class for metric-related constants
+ * Class for metric-related constants.
  */
 public class MetricsConstants {
   public static final String groupName = "kcbq";

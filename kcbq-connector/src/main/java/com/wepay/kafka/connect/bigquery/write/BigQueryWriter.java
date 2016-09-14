@@ -28,16 +28,17 @@ import com.wepay.kafka.connect.bigquery.utils.MetricsConstants;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Avg;
+import org.apache.kafka.common.metrics.stats.Count;
 import org.apache.kafka.common.metrics.stats.Max;
 import org.apache.kafka.common.metrics.stats.Rate;
 
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.errors.ConnectException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 /**
@@ -45,16 +46,30 @@ import java.util.Set;
  */
 public abstract class BigQueryWriter {
 
+  private static final int FORBIDDEN = 403;
   private static final int INTERNAL_SERVICE_ERROR = 500;
   private static final int SERVICE_UNAVAILABLE = 503;
+  private static final String QUOTA_EXCEEDED_REASON = "quotaExceeded";
+
+  public static final int WAIT_MAX_JITTER = 1000;
 
   private static final Logger logger = LoggerFactory.getLogger(BigQueryWriter.class);
 
+  private static final Random random = new Random();
+
   public final Sensor rowsWritten;
+  public final Sensor requestRetries;
 
   private int retries;
   private long retryWaitMs;
 
+  /**
+   * @param retries the number of times to retry a request if BQ returns an internal service error
+   *                or a service unavailable error.
+   * @param retryWaitMs the amount of time to wait in between reattempting a request if BQ returns
+   *                    an internal service error or a service unavailable error.
+   * @param metrics kafka {@link Metrics}.
+   */
   public BigQueryWriter(int retries, long retryWaitMs, Metrics metrics) {
     this.retries = retries;
     this.retryWaitMs = retryWaitMs;
@@ -72,6 +87,21 @@ public abstract class BigQueryWriter {
                                        MetricsConstants.groupName,
                                        "The average number of rows written per second"),
                     new Rate());
+
+    requestRetries = metrics.sensor("request-retries");
+    requestRetries.add(metrics.metricName("request-retries-avg",
+                                          MetricsConstants.groupName,
+                                          "The average number of retries per request"),
+                       new Avg());
+    requestRetries.add(metrics.metricName("request-retries-max",
+                                          MetricsConstants.groupName,
+                                          "The maximum number of retry attempts made for a single "
+                                          + "request"),
+                       new Max());
+    requestRetries.add(metrics.metricName("request-retries-count",
+                                          MetricsConstants.groupName,
+                                          "The total number of retry attempts made"),
+                       new Count());
   }
 
   /**
@@ -92,22 +122,20 @@ public abstract class BigQueryWriter {
    * @param rows The rows to write.
    * @param topic The Kafka topic that the row data came from.
    * @param schemas The unique Schemas for the row data.
+   * @throws InterruptedException if interrupted.
    */
   public void writeRows(
       TableId table,
       List<InsertAllRequest.RowToInsert> rows,
       String topic,
-      Set<Schema> schemas) {
+      Set<Schema> schemas) throws InterruptedException {
     logger.debug("writing {} row{} to table {}", rows.size(), rows.size() != 1 ? "s" : "", table);
+    rowsWritten.record(rows.size());
 
     int retryCount = 0;
     do {
       if (retryCount > 0) {
-        try {
-          Thread.sleep(retryWaitMs);
-        } catch (InterruptedException err) {
-          throw new ConnectException("Interrupted while waiting for BigQuery retry", err);
-        }
+        waitRandomTime();
       }
       try {
         performWriteRequest(
@@ -123,10 +151,26 @@ public abstract class BigQueryWriter {
         if (err.code() == INTERNAL_SERVICE_ERROR || err.code() == SERVICE_UNAVAILABLE) {
           // backend error: https://cloud.google.com/bigquery/troubleshooting-errors
           retryCount++;
+        } else if (err.code() == FORBIDDEN
+                   && err.error() != null
+                   && QUOTA_EXCEEDED_REASON.equals(err.error().reason())) {
+          // quota exceeded error
+          logger.warn("Quota exceeded for table {}", table);
+          retryCount++;
         } else {
           throw new BigQueryConnectException("Failed to write to BigQuery table " + table, err);
         }
       }
     } while (retryCount <= retries);
+    requestRetries.record(retryCount);
+  }
+
+  /**
+   * Wait at least {@link #retryWaitMs}, with up to an additional 1 second of random jitter.
+   * @throws InterruptedException if interrupted.
+   */
+  public void waitRandomTime() throws InterruptedException {
+    // wait
+    Thread.sleep(retryWaitMs + random.nextInt(WAIT_MAX_JITTER));
   }
 }

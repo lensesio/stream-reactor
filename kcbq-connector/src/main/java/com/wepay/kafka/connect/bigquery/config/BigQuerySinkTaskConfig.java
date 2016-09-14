@@ -53,10 +53,11 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
   private static final ConfigDef.Type BIGQUERY_RETRY_TYPE =             ConfigDef.Type.INT;
   public static final Integer BIGQUERY_RETRY_DEFAULT =                  0;
   private static final ConfigDef.Validator BIGQUERY_RETRY_VALIDATOR =   ConfigDef.Range.atLeast(0);
-  private static final ConfigDef.Importance BIGQUERY_RETRY_IMPORTANCE = ConfigDef.Importance.MEDIUM;
+  private static final ConfigDef.Importance BIGQUERY_RETRY_IMPORTANCE =
+      ConfigDef.Importance.MEDIUM;
   private static final String BIGQUERY_RETRY_DOC =
       "The number of retry attempts that will be made per BigQuery request that fails with a "
-      + "backend error.";
+      + "backend error or a quota exceeded error";
 
   public static final String BIGQUERY_RETRY_WAIT_CONFIG =               "bigQueryRetryWait";
   private static final ConfigDef.Type BIGQUERY_RETRY_WAIT_CONFIG_TYPE = ConfigDef.Type.LONG;
@@ -66,7 +67,8 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
   private static final ConfigDef.Importance BIGQUERY_RETRY_WAIT_IMPORTANCE =
       ConfigDef.Importance.MEDIUM;
   private static final String BIGQUERY_RETRY_WAIT_DOC =
-      "The amount of time, in milliseconds to wait between BigQuery backend error retries.";
+      "The minimum amount of time, in milliseconds, to wait between BigQuery backend or quota "
+      +  "exceeded error retry attempts.";
 
   static {
     config = BigQuerySinkConfig.getConfig()

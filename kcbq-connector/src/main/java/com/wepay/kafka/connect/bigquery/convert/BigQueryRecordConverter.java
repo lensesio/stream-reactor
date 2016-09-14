@@ -73,7 +73,7 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
   @SuppressWarnings("unchecked")
   private Object convertObject(Object kafkaConnectObject, Schema kafkaConnectSchema) {
     if (kafkaConnectObject == null) {
-      if (kafkaConnectSchema.isOptional()){
+      if (kafkaConnectSchema.isOptional()) {
         // short circuit converting the object
         return null;
       } else {

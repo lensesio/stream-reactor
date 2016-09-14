@@ -468,11 +468,11 @@ public class BigQueryRecordConverterTest {
     final Map<String, Object> bigQueryExpectedRecord = new HashMap<>();
 
     Schema kafkaConnectSchema = SchemaBuilder
-      .struct()
-      .field(nullableFieldName,
-             SchemaBuilder.struct().field("foobar",
-                                          SchemaBuilder.bool().build()).optional().build())
-      .build();
+        .struct()
+        .field(nullableFieldName,
+               SchemaBuilder.struct().field("foobar",
+                                            SchemaBuilder.bool().build()).optional().build())
+        .build();
 
     Struct kafkaConnectStruct = new Struct(kafkaConnectSchema);
     kafkaConnectStruct.put(nullableFieldName, null);
@@ -480,7 +480,7 @@ public class BigQueryRecordConverterTest {
     SinkRecord kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
 
     Map<String, Object> bigQueryTestRecord =
-      new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+        new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
   }
 

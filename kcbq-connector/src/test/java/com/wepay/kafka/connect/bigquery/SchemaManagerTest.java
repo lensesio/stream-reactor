@@ -18,18 +18,21 @@ package com.wepay.kafka.connect.bigquery;
  */
 
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
+
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
+
 import org.apache.kafka.connect.data.Schema;
+
 import org.junit.Assert;
 import org.junit.Test;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class SchemaManagerTest {
 
@@ -43,7 +46,7 @@ public class SchemaManagerTest {
     SchemaRetriever mockSchemaRetriever = mock(SchemaRetriever.class);
     @SuppressWarnings("unchecked")
     SchemaConverter<com.google.cloud.bigquery.Schema> mockSchemaConverter =
-      (SchemaConverter<com.google.cloud.bigquery.Schema>) mock(SchemaConverter.class);
+        (SchemaConverter<com.google.cloud.bigquery.Schema>) mock(SchemaConverter.class);
     BigQuery mockBigQuery = mock(BigQuery.class);
 
     SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever,
@@ -53,7 +56,7 @@ public class SchemaManagerTest {
     Schema mockKafkaSchema = mock(Schema.class);
     // we would prefer to mock this class, but it is final.
     com.google.cloud.bigquery.Schema fakeBigQuerySchema =
-      com.google.cloud.bigquery.Schema.of(Field.of("mock field", Field.Type.string()));
+        com.google.cloud.bigquery.Schema.of(Field.of("mock field", Field.Type.string()));
 
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);

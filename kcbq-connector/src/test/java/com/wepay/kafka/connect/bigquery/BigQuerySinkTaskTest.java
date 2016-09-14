@@ -31,6 +31,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.InsertAllResponse;
@@ -222,7 +223,7 @@ public class BigQuerySinkTaskTest {
   }
 
   @Test
-  public void testBigQueryRetry() {
+  public void testBigQuery5XXRetry() {
     final String topic = "test_topic";
     final String dataset = "scratch";
 
@@ -236,7 +237,40 @@ public class BigQuerySinkTaskTest {
 
     InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
     when(bigQuery.insertAll(anyObject()))
-      .thenThrow(new BigQueryException(500, "mock 500")).thenReturn(insertAllResponse);
+        .thenThrow(new BigQueryException(500, "mock 500"))
+        .thenReturn(insertAllResponse);
+    when(insertAllResponse.hasErrors()).thenReturn(false);
+
+    SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
+    when(sinkTaskContext.assignment()).thenReturn(Collections.emptySet());
+
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery);
+    testTask.initialize(sinkTaskContext);
+    testTask.start(properties);
+    testTask.put(Collections.singletonList(spoofSinkRecord(topic)));
+    testTask.flush(Collections.emptyMap());
+
+    verify(bigQuery, times(2)).insertAll(anyObject());
+  }
+
+  @Test
+  public void testBigQuery403Retry() {
+    final String topic = "test_topic";
+    final String dataset = "scratch";
+
+    Map<String, String> properties = propertiesFactory.getProperties();
+    properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_CONFIG, "1");
+    properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_WAIT_CONFIG, "2000");
+    properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
+    properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
+
+    BigQuery bigQuery = mock(BigQuery.class);
+
+    InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
+    BigQueryError quotaExceededError = new BigQueryError("quotaExceeded", null, null);
+    when(bigQuery.insertAll(anyObject()))
+        .thenThrow(new BigQueryException(403, "mock quota exceeded", quotaExceededError))
+        .thenReturn(insertAllResponse);
     when(insertAllResponse.hasErrors()).thenReturn(false);
 
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
