@@ -49,9 +49,8 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
     * @return A util.List of SourceRecords.
     **/
   override def poll(): util.List[SourceRecord] = {
-    logger.info("Polling for Blockchain records...")
     val records = blockchainManager.map(_.get()).getOrElse(new util.ArrayList[SourceRecord]())
-    logger.info(s"Returning ${records.size()} record(-s) from Blockchain source")
+    logger.debug(s"Returning ${records.size()} record(-s) from Blockchain source")
     records
   }
 
