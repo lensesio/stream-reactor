@@ -28,22 +28,25 @@ object BytesHelper {
     * @param value - The object to convert to bytes.
     */
   implicit class ToBytesConverter(val value: Any) extends AnyVal {
-    def fromBoolean() : Array[Byte] = Bytes.toBytes(value.asInstanceOf[Boolean])
+    def fromBoolean(): Array[Byte] = Bytes.toBytes(value.asInstanceOf[Boolean])
 
-    def fromByte() : Array[Byte] = Array(value.asInstanceOf[Byte])
+    def fromByte(): Array[Byte] = Array(value.asInstanceOf[Byte])
 
-    def fromShort() : Array[Byte] = Bytes.toBytes(value.asInstanceOf[Short])
+    def fromShort(): Array[Byte] = Bytes.toBytes(value.asInstanceOf[Short])
 
-    def fromInt() : Array[Byte] = Bytes.toBytes(value.asInstanceOf[Int])
+    def fromInt(): Array[Byte] = Bytes.toBytes(value.asInstanceOf[Int])
 
-    def fromLong() : Array[Byte] = Bytes.toBytes(value.asInstanceOf[Long])
+    def fromLong(): Array[Byte] = Bytes.toBytes(value.asInstanceOf[Long])
 
-    def fromFloat() : Array[Byte] = Bytes.toBytes(value.asInstanceOf[Float])
+    def fromFloat(): Array[Byte] = Bytes.toBytes(value.asInstanceOf[Float])
 
-    def fromDouble() : Array[Byte] = Bytes.toBytes(value.asInstanceOf[Double])
+    def fromDouble(): Array[Byte] = Bytes.toBytes(value.asInstanceOf[Double])
 
-    def fromString() : Array[Byte] = Bytes.toBytes(value.toString)
+    def fromString(): Array[Byte] = Bytes.toBytes(value.toString)
 
-    def fromBytes() : Array[Byte] = value.asInstanceOf[Array[Byte]]
+    def fromBytes(): Array[Byte] = value.asInstanceOf[Array[Byte]]
+
+    def fromBigDecimal(): Array[Byte] = Bytes.toBytes(value.asInstanceOf[java.math.BigDecimal])
   }
+
 }
