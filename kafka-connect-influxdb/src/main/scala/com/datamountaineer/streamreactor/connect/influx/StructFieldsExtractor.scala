@@ -16,8 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.influx
 
+import java.text.SimpleDateFormat
+import java.util.TimeZone
+
+import com.typesafe.scalalogging.slf4j.StrictLogging
 import io.confluent.common.config.ConfigException
-import org.apache.kafka.connect.data.{Field, Schema, Struct}
+import org.apache.kafka.connect.data._
 
 import scala.collection.JavaConversions._
 
@@ -30,7 +34,7 @@ trait FieldsValuesExtractor {
 
 case class StructFieldsExtractor(includeAllFields: Boolean,
                                  fieldsAliasMap: Map[String, String],
-                                 timestampField: Option[String]) extends FieldsValuesExtractor {
+                                 timestampField: Option[String]) extends FieldsValuesExtractor with StrictLogging {
 
   def get(struct: Struct): RecordData = {
     val schema = struct.schema()
@@ -40,11 +44,19 @@ case class StructFieldsExtractor(includeAllFields: Boolean,
       }
       else {
         schema.fields().filter(f => fieldsAliasMap.contains(f.name()))
+        val selectedFields = schema.fields().filter(f => fieldsAliasMap.contains(f.name()))
+        val diffSet = fieldsAliasMap.keySet.diff(selectedFields.map(_.name()).toSet)
+        if (diffSet.nonEmpty) {
+          val errMsg = s"Following columns ${diffSet.mkString(",")} have not been found. Available columns:${fieldsAliasMap.keys.mkString(",")}"
+          logger.error(errMsg)
+          sys.error(errMsg)
+        }
+        selectedFields
       }
     }
 
     val timestamp = timestampField
-      .map(t=>Option(schema.field(t)).getOrElse(throw new ConfigException(s"$t is not a valid field.")))
+      .map(t => Option(schema.field(t)).getOrElse(throw new ConfigException(s"$t is not a valid field.")))
       .map(struct.get)
       .map { value =>
         value.asInstanceOf[Any] match {
@@ -60,9 +72,20 @@ case class StructFieldsExtractor(includeAllFields: Boolean,
       Option(struct.get(field))
         .map { value =>
           val schema = field.schema()
-          if (schema == Schema.BYTES_SCHEMA || schema == Schema.OPTIONAL_BYTES_SCHEMA) {
-            throw new RuntimeException("BYTES is not supported by InfluxDb")
+
+          //decimal info comes as a logical schema. so if it's bytes and not a decimal throw an error because influxdb doesn't have
+          //support bytes
+          if ((schema == Schema.BYTES_SCHEMA || schema == Schema.OPTIONAL_BYTES_SCHEMA) && !Decimal.LOGICAL_NAME.equals(schema.name())) {
+            throw new RuntimeException("BYTES schema is not supported. Cannot store bytes in InfluxDb")
           }
+
+          schema.name() match {
+            case Decimal.LOGICAL_NAME => Decimal.toLogical(schema, value.asInstanceOf[Array[Byte]])
+            case Date.LOGICAL_NAME => StructFieldsExtractor.DateFormat.format(Date.toLogical(schema, value.asInstanceOf[Int]))
+            case Time.LOGICAL_NAME => StructFieldsExtractor.TimeFormat.format(Time.toLogical(schema, value.asInstanceOf[Int]))
+            case _ => value
+          }
+
           fieldsAliasMap.getOrElse(field.name(), field.name()) -> value
         }
     }
@@ -72,3 +95,8 @@ case class StructFieldsExtractor(includeAllFields: Boolean,
 }
 
 
+object StructFieldsExtractor {
+  val DateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+  val TimeFormat: SimpleDateFormat = new SimpleDateFormat("HH:mm:ss.SSSZ")
+  DateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
+}
