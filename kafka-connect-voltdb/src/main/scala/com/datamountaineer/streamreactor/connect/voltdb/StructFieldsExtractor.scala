@@ -15,6 +15,8 @@
   **/
 package com.datamountaineer.streamreactor.connect.voltdb
 
+import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.connect.data.{Field, Struct}
 import org.apache.kafka.connect.data._
 
 import scala.collection.JavaConversions._
@@ -26,7 +28,7 @@ trait FieldsValuesExtractor {
 case class StructFieldsExtractor(targetTable: String,
                                  includeAllFields: Boolean,
                                  fieldsAliasMap: Map[String, String],
-                                 isUpsert: Boolean = false) extends FieldsValuesExtractor {
+                                 isUpsert: Boolean = false) extends FieldsValuesExtractor with StrictLogging {
   require(targetTable != null && targetTable.trim.length > 0)
 
   def get(struct: Struct): Map[String, Any] = {
@@ -35,26 +37,34 @@ case class StructFieldsExtractor(targetTable: String,
       if (includeAllFields) {
         schema.fields()
       } else {
-        schema.fields().filter(f => fieldsAliasMap.contains(f.name()))
+        val selectedFields = schema.fields().filter(f => fieldsAliasMap.contains(f.name()))
+        val diffSet = fieldsAliasMap.keySet.diff(selectedFields.map(_.name()).toSet)
+        if (diffSet.nonEmpty) {
+          val errMsg = s"Following columns ${diffSet.mkString(",")} have not been found. Available columns:${fieldsAliasMap.keys.mkString(",")}"
+          logger.error(errMsg)
+          sys.error(errMsg)
+        }
+        selectedFields
       }
     }
 
-    fields.flatMap { field =>
-      Option(struct.get(field))
+    //need to select all fields including null. the stored proc needs a fixed set of params
+    fields.map { field =>
+      val schema = field.schema()
+      val value =  Option(struct.get(field))
         .map { value =>
-          val schema = field.schema()
           //handle specific schema
-          val fieldValue = schema.name() match {
+          schema.name() match {
             case Decimal.LOGICAL_NAME => Decimal.toLogical(schema, value.asInstanceOf[Array[Byte]])
             case Date.LOGICAL_NAME => Date.toLogical(schema, value.asInstanceOf[Int])
             case Time.LOGICAL_NAME => Time.toLogical(schema, value.asInstanceOf[Int])
             case Timestamp.LOGICAL_NAME => Timestamp.toLogical(schema, value.asInstanceOf[Long])
             case _ => value
           }
-          fieldsAliasMap.getOrElse(field.name(), field.name()) -> fieldValue
-        }
-    }.toMap
+        }.orNull
 
+      fieldsAliasMap.getOrElse(field.name(), field.name()) -> value
+    }.toMap
   }
 }
 
