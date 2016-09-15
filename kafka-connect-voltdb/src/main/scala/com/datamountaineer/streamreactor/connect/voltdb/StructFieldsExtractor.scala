@@ -15,7 +15,7 @@
   **/
 package com.datamountaineer.streamreactor.connect.voltdb
 
-import org.apache.kafka.connect.data.{Field, Struct}
+import org.apache.kafka.connect.data._
 
 import scala.collection.JavaConversions._
 
@@ -43,7 +43,15 @@ case class StructFieldsExtractor(targetTable: String,
       Option(struct.get(field))
         .map { value =>
           val schema = field.schema()
-          fieldsAliasMap.getOrElse(field.name(), field.name()) -> value
+          //handle specific schema
+          val fieldValue = schema.name() match {
+            case Decimal.LOGICAL_NAME => Decimal.toLogical(schema, value.asInstanceOf[Array[Byte]])
+            case Date.LOGICAL_NAME => Date.toLogical(schema, value.asInstanceOf[Int])
+            case Time.LOGICAL_NAME => Time.toLogical(schema, value.asInstanceOf[Int])
+            case Timestamp.LOGICAL_NAME => Timestamp.toLogical(schema, value.asInstanceOf[Long])
+            case _ => value
+          }
+          fieldsAliasMap.getOrElse(field.name(), field.name()) -> fieldValue
         }
     }.toMap
 

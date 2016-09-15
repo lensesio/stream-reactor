@@ -39,7 +39,7 @@ object VoltConnectionConnectFn extends Retries {
   }
 
   private def connectWithRetries(client: Client, server: String, maxRetries: Int) = {
-    var retryInterval = 1000
+    val retryInterval = 1000
     withRetries(maxRetries, retryInterval, Some(s"Connection failure. Retrying in $retryInterval")) {
       client.createConnection(server)
     }
