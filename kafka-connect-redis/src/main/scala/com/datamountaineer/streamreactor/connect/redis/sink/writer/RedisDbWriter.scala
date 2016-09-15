@@ -36,7 +36,7 @@ case class RedisDbWriter(sinkSettings: RedisSinkSettings) extends DbWriter with 
 
   //initialize error tracker
   initialize(sinkSettings.taskRetries, sinkSettings.errorPolicy)
-  configureConverter(jsonConverter)
+
   private val rowKeyMap = sinkSettings.rowKeyModeMap
 
   /**

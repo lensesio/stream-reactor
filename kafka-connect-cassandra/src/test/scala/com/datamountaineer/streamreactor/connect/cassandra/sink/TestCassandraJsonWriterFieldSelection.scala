@@ -1,8 +1,13 @@
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 
+import java.nio.ByteBuffer
+
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
-import org.apache.kafka.connect.sink.SinkTaskContext
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.datastax.driver.core.utils.UUIDs
+import org.apache.kafka.connect.data.{Decimal, Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
@@ -28,7 +33,7 @@ class TestCassandraJsonWriterFieldSelection extends WordSpec with Matchers with 
     //get test records
     val testRecords = getTestRecords(TABLE1)
     //get config
-    val props  = getCassandraConfigSinkPropsFieldSelection
+    val props = getCassandraConfigSinkPropsFieldSelection
     val taskConfig = new CassandraConfigSink(props)
 
     val writer = CassandraWriter(taskConfig, context)
@@ -41,14 +46,77 @@ class TestCassandraJsonWriterFieldSelection extends WordSpec with Matchers with 
 
     //check we the columns we wanted
     rs.foreach({
-      r=>{
+      r => {
         r.getString("id")
         r.getInt("int_field")
         r.getLong("long_field")
-        intercept[IllegalArgumentException] { r.getString("float_field") }
+        intercept[IllegalArgumentException] {
+          r.getString("float_field")
+        }
       }
     })
 
     rs.size shouldBe testRecords.size
+  }
+  "should handle incoming decimal fields" in {
+    val schema = SchemaBuilder.struct.name("com.data.mountaineer.cassandra.sink,json.decimaltest")
+      .version(1)
+      .field("id", Schema.INT32_SCHEMA)
+      .field("int_field", Schema.INT32_SCHEMA)
+      .field("long_field", Schema.INT64_SCHEMA)
+      .field("string_field", Schema.STRING_SCHEMA)
+      .field("timeuuid_field", Schema.STRING_SCHEMA)
+      .field("decimal_field", Decimal.schema(4))
+      .build
+
+    val dec = new java.math.BigDecimal("1373563.1563")
+    val struct = new Struct(schema)
+      .put("id", 1)
+      .put("int_field", 12)
+      .put("long_field", 12L)
+      .put("string_field", "foo")
+      .put("timeuuid_field", UUIDs.timeBased().toString)
+      .put("decimal_field", dec)
+
+    val sinkRecord = new SinkRecord("topica", 0, null, null, schema, struct, 1)
+    val convertUtil = new AnyRef with ConverterUtil
+    val json = convertUtil.convertValueToJson(convertR(sinkRecord, Map.empty)).toString
+    val str = json.toString
+    str.contains("\"decimal_field\":1373563.1563")
+
+  }
+
+  def convertR(record: SinkRecord,
+              fields: Map[String, String],
+              ignoreFields: Set[String] = Set.empty[String],
+              key: Boolean = false) : SinkRecord = {
+    val value : Struct = if (key) record.key().asInstanceOf[Struct] else record.value.asInstanceOf[Struct]
+
+    if (fields.isEmpty && ignoreFields.isEmpty) {
+      record
+    } else {
+      val currentSchema = if (key) record.keySchema() else record.valueSchema()
+      val builder: SchemaBuilder = SchemaBuilder.struct.name(record.topic() + "_extracted")
+
+      //build a new schema for the fields
+      if (fields.nonEmpty) {
+        fields.foreach({ case (name, alias) =>
+          val extractedSchema = currentSchema.field(name)
+          builder.field(alias, extractedSchema.schema())
+        })
+      } else if (ignoreFields.nonEmpty) {
+        val ignored = currentSchema.fields().asScala.filterNot(f => ignoreFields.contains(f.name()))
+        ignored.foreach(i => builder.field(i.name, i.schema))
+      } else {
+        currentSchema.fields().asScala.foreach(f => builder.field(f.name(), f.schema()))
+      }
+
+      val extractedSchema = builder.build()
+      val newStruct = new Struct(extractedSchema)
+      fields.foreach({ case (name, alias) => newStruct.put(alias, value.get(name)) })
+
+      new SinkRecord(record.topic(), record.kafkaPartition(), Schema.STRING_SCHEMA, "key", extractedSchema, newStruct,
+        record.kafkaOffset())
+    }
   }
 }

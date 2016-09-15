@@ -44,7 +44,7 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
 
   //initialize error tracker
   initialize(settings.taskRetries, settings.errorPolicy)
-  configureConverter(jsonConverter)
+
   private var session: Session = getSession.get
 
   CassandraUtils.checkCassandraTables(session.getCluster, settings.routes, session.getLoggedKeyspace)
