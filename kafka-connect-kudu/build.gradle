@@ -4,7 +4,6 @@ project(":kafka-connect-kudu") {
     }
 
     dependencies {
-        compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
         compile "org.kududb:kudu-client:$kuduVersion"
         testCompile "com.datamountaineer:kafka-testkit:$dataMountaineerTestKitVersion"
     }

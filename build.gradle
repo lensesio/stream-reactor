@@ -64,28 +64,6 @@ allprojects {
         maven { url "http://conjars.org/repo" }
     }
 
-    configurations {
-        provided
-        compile.extendsFrom provided
-    }
-
-    jar {
-        dependsOn configurations.runtime
-        from {
-            (configurations.runtime - configurations.provided).collect {
-                it.isDirectory() ? it : zipTree(it)
-            }
-        } {
-            exclude "META-INF/*.SF"
-            exclude "META-INF/*.DSA"
-            exclude "META-INF/*.RSA"
-            include "*.conf"
-        }
-
-        zip64 true
-        jar.archiveName = "${project.name}-${project.version}-${confluentVersion}-all.jar"
-    }
-
     shadowJar {
         configurations = [project.configurations.runtime]
         baseName = "${project.name}-${project.version}-${confluentVersion}-all"
@@ -104,9 +82,13 @@ allprojects {
             resource = 'reference.conf'
         }
         dependencies{
-            exclude(dependency("org.apache.avro:.*"))
-            exclude(dependency("org.apache.kafka:.*"))
-            exclude(dependency("io.confluent:.*"))
+            if (project.name != "kafka-socket-streamer") {
+                exclude(dependency("org.apache.avro:.*"))
+                exclude(dependency("org.apache.kafka:.*"))
+                exclude(dependency("io.confluent:.*"))
+                exclude(dependency("org.apache.kafka:.*"))
+                exclude(dependency("org.apache.zookeeper:.*"))
+            }
         }
     }
 
@@ -117,11 +99,12 @@ allprojects {
         compile ("com.datamountaineer:kcql:$dataMountaineerCQLVersion") {
             exclude group: "com.google.guava", module: "guava"
         }
+        compile ("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion")
 
-        provided "org.apache.kafka:connect-json:$kafkaVersion"
-        provided "io.confluent:kafka-connect-avro-converter:$confluentVersion"
-        provided "io.confluent:kafka-schema-registry:$confluentVersion"
-        provided "org.apache.avro:avro:$avroVersion"
+        compile "org.apache.kafka:connect-json:$kafkaVersion"
+        compile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
+        compile "io.confluent:kafka-schema-registry:$confluentVersion"
+        compile "org.apache.avro:avro:$avroVersion"
 
         testCompile "org.mockito:mockito-all:$mockitoVersion"
         testCompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"

@@ -4,7 +4,6 @@ project(":kafka-connect-rethink") {
     }
 
     dependencies {
-        provided "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
         compile "com.rethinkdb:rethinkdb-driver:$rethinkDbVersion"
     }
 }
