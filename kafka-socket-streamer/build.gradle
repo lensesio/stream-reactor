@@ -20,6 +20,10 @@ project(":kafka-socket-streamer") {
             exclude "META-INF/*.RSA"
         }
 
+        manifest {
+            attributes 'Main-Class': 'com.datamountaineer.streamreactor.socketstreamer.Main'
+        }
+
         zip64 true
         jar.archiveName = "$project.name-$project.version-$confluentVersion-all.jar"
     }

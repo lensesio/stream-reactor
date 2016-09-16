@@ -93,7 +93,7 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
-      logger.info(s"Received ${records.size} records.")
+      logger.debug(s"Received ${records.size} records.")
 
       //is the connection still alive
       if (session.isClosed) {
@@ -135,8 +135,8 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
 
       //when the call returns the pool is shutdown
       FutureAwaitWithFailFastFn(executor, futures, 1.hours)
-      logger.info(s"Processed ${futures.size} records.")
       handleTry(Success(()))
+      logger.debug(s"Processed ${futures.size} records.")
     }
     catch {
       case t: Throwable =>
