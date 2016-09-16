@@ -2,6 +2,7 @@ package com.datamountaineer.streamreactor.connect.redis.sink.config
 
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkConfig._
 import com.datamountaineer.streamreactor.connect.rowkeys.{StringGenericRowKeyBuilder, StringStructFieldsStringKeyBuilder}
+import org.apache.kafka.common.config.types.Password
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
@@ -30,6 +31,18 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
     }
   }
 
+  "correctly create a RedisSettings when password is not provided" in {
+    val config = mock[RedisSinkConfig]
+
+    when(config.getString(REDIS_HOST)).thenReturn("localhost")
+    when(config.getInt(REDIS_PORT)).thenReturn(8453)
+    when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL_KEYS)
+    when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
+
+    val settings = RedisSinkSettings(config)
+    settings.connection.password shouldBe None
+  }
+
   "correctly create a RedisSettings when fields are row keys are provided" in {
     val config = mock[RedisSinkConfig]
 
@@ -54,18 +67,20 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
 
     when(config.getString(REDIS_HOST)).thenReturn("localhost")
     when(config.getInt(REDIS_PORT)).thenReturn(8453)
-    when(config.getString(REDIS_PASSWORD)).thenReturn("secret")
+    when(config.getPassword(REDIS_PASSWORD)).thenReturn(new Password("secret"))
     when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL)
     when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
 
     val settings = RedisSinkSettings(config)
 
+    settings.connection.password shouldBe Some("secret")
     settings.rowKeyModeMap(TABLE_NAME_RAW).isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
     val route = settings.routes.head
 
     route.isIncludeAllFields shouldBe true
     route.getSource shouldBe TABLE_NAME_RAW
     route.getTarget shouldBe TABLE_NAME_RAW
+
   }
 
   "correctly create a RedisSettings when no row fields are provided and selection" in {

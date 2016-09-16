@@ -64,7 +64,7 @@ object RedisSinkConfig {
       "Connection", 2, ConfigDef.Width.MEDIUM, REDIS_HOST)
     .define(REDIS_PORT, Type.INT, Importance.HIGH, REDIS_PORT_DOC,
       "Connection", 3, ConfigDef.Width.MEDIUM, REDIS_PORT)
-    .define(REDIS_PASSWORD, Type.PASSWORD, Importance.LOW, REDIS_PASSWORD_DOC,
+    .define(REDIS_PASSWORD, Type.PASSWORD, null, Importance.LOW, REDIS_PASSWORD_DOC,
       "Connection", 4, ConfigDef.Width.MEDIUM, REDIS_PASSWORD)
     .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY,
       "Connection", 1, ConfigDef.Width.MEDIUM, EXPORT_ROUTE_QUERY)

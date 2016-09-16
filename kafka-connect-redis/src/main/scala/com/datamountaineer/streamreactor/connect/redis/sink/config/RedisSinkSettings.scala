@@ -68,12 +68,7 @@ object RedisConnectionInfo {
     val host = config.getString(REDIS_HOST)
     if (host.isEmpty) new ConfigException(s"$REDIS_HOST is not set correctly")
 
-    val passwordRaw = config.getPassword(REDIS_PASSWORD)
-
-    val password = passwordRaw match {
-      case null => None
-      case _ => Some(passwordRaw.value())
-    }
+    val password = Option(config.getPassword(REDIS_PASSWORD)).map(_.value())
 
     new RedisConnectionInfo(
       host,
