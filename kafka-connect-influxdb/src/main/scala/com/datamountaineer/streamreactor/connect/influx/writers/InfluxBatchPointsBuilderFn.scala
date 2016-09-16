@@ -61,6 +61,7 @@ object InfluxBatchPointsBuilderFn {
           case (builder, (field, value: Double)) => builder.addField(field, value)
           case (builder, (field, value: Float)) => builder.addField(field, value)
           case (builder, (field, value: Boolean)) => builder.addField(field, value)
+          case (builder, (field, value: java.math.BigDecimal)) => builder.addField(field, value)
           case (builder, (field, value: String)) => builder.addField(field, value)
           //we should never reach this since the extractor should not allow it
           case (builder, (field, value)) => sys.error(s"$value is not a valid type for InfluxDb.Allowed types:Boolean, " +
