@@ -130,7 +130,6 @@ public abstract class BigQueryWriter {
       String topic,
       Set<Schema> schemas) throws InterruptedException {
     logger.debug("writing {} row{} to table {}", rows.size(), rows.size() != 1 ? "s" : "", table);
-    rowsWritten.record(rows.size());
 
     int retryCount = 0;
     do {
@@ -146,6 +145,8 @@ public abstract class BigQueryWriter {
             topic,
             schemas
         );
+        requestRetries.record(retryCount);
+        rowsWritten.record(rows.size());
         return;
       } catch (BigQueryException err) {
         if (err.code() == INTERNAL_SERVICE_ERROR || err.code() == SERVICE_UNAVAILABLE) {
@@ -153,7 +154,7 @@ public abstract class BigQueryWriter {
           retryCount++;
         } else if (err.code() == FORBIDDEN
                    && err.error() != null
-                   && QUOTA_EXCEEDED_REASON.equals(err.error().reason())) {
+                   && QUOTA_EXCEEDED_REASON.equals(err.reason())) {
           // quota exceeded error
           logger.warn("Quota exceeded for table {}", table);
           retryCount++;
@@ -163,13 +164,14 @@ public abstract class BigQueryWriter {
       }
     } while (retryCount <= retries);
     requestRetries.record(retryCount);
+    throw new BigQueryConnectException(String.format("Exceeded configured %d retry attempts for write request", retryCount));
   }
 
   /**
    * Wait at least {@link #retryWaitMs}, with up to an additional 1 second of random jitter.
    * @throws InterruptedException if interrupted.
    */
-  public void waitRandomTime() throws InterruptedException {
+  private void waitRandomTime() throws InterruptedException {
     // wait
     Thread.sleep(retryWaitMs + random.nextInt(WAIT_MAX_JITTER));
   }

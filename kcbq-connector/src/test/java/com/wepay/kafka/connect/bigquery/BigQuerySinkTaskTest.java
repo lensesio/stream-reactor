@@ -285,6 +285,35 @@ public class BigQuerySinkTaskTest {
     verify(bigQuery, times(2)).insertAll(anyObject());
   }
 
+  @Test(expected = BigQueryConnectException.class)
+  public void testBigQueryRetryExceeded() {
+    final String topic = "test_topic";
+    final String dataset = "scratch";
+
+    Map<String, String> properties = propertiesFactory.getProperties();
+    properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_CONFIG, "1");
+    properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_WAIT_CONFIG, "2000");
+    properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
+    properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
+
+    BigQuery bigQuery = mock(BigQuery.class);
+
+    InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
+    BigQueryError quotaExceededError = new BigQueryError("quotaExceeded", null, null);
+    when(bigQuery.insertAll(anyObject()))
+      .thenThrow(new BigQueryException(403, "mock quota exceeded", quotaExceededError));
+    when(insertAllResponse.hasErrors()).thenReturn(false);
+
+    SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
+    when(sinkTaskContext.assignment()).thenReturn(Collections.emptySet());
+
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery);
+    testTask.initialize(sinkTaskContext);
+    testTask.start(properties);
+    testTask.put(Collections.singletonList(spoofSinkRecord(topic)));
+    testTask.flush(Collections.emptyMap());
+  }
+
   // Make sure that an InterruptedException is properly translated into a ConnectException
   @Test(expected = ConnectException.class)
   public void testInterruptedException() {
