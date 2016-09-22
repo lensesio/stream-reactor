@@ -26,20 +26,20 @@ import scala.collection.JavaConversions._
   * Created by andrew@datamountaineer.com on 13/05/16.
   * stream-reactor-maven
   */
-case class ReThinkSetting(db : String,
-                          routes: Set[Config],
-                          topicTableMap : Map[String, String],
-                          fieldMap : Map[String, Map[String, String]],
-                          ignoreFields: Map[String, Set[String]],
-                          pks : Map[String, Set[String]],
-                          conflictPolicy: Map[String, String],
-                          errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                          maxRetries : Int,
-                          batchSize : Int
+case class ReThinkSinkSetting(db : String,
+                              routes: Set[Config],
+                              topicTableMap : Map[String, String],
+                              fieldMap : Map[String, Map[String, String]],
+                              ignoreFields: Map[String, Set[String]],
+                              pks : Map[String, Set[String]],
+                              conflictPolicy: Map[String, String],
+                              errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
+                              maxRetries : Int,
+                              batchSize : Int
                          )
 
-object ReThinkSettings {
-  def apply(config: ReThinkSinkConfig) : ReThinkSetting = {
+object ReThinkSinkSettings {
+  def apply(config: ReThinkSinkConfig) : ReThinkSinkSetting = {
     val raw = config.getString(ReThinkSinkConfig.EXPORT_ROUTE_QUERY)
     require(raw != null && !raw.isEmpty,  s"No ${ReThinkSinkConfig.EXPORT_ROUTE_QUERY} provided!")
     val routes = raw.split(";").map(r => Config.parse(r)).toSet
@@ -83,7 +83,7 @@ object ReThinkSettings {
     })
     val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
 
-    ReThinkSetting(db, routes, topicTableMap, fieldMap, ignoreFields ,pks, conflictMap, errorPolicy, maxRetries, batchSize)
+    ReThinkSinkSetting(db, routes, topicTableMap, fieldMap, ignoreFields ,pks, conflictMap, errorPolicy, maxRetries, batchSize)
   }
 }
 
