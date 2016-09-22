@@ -17,7 +17,7 @@ class TestReThinkSinkSettings extends TestBase with MockitoSugar {
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)
     val config = ReThinkSinkConfig(getProps)
-    val settings = ReThinkSettings(config)
+    val settings = ReThinkSinkSettings(config)
     val routes = settings.routes.head
     routes.getSource shouldBe TOPIC
     routes.getTarget shouldBe TABLE
@@ -31,7 +31,7 @@ class TestReThinkSinkSettings extends TestBase with MockitoSugar {
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)
     val config = ReThinkSinkConfig(getPropsUpsertSelectRetry)
-    val settings = ReThinkSettings(config)
+    val settings = ReThinkSinkSettings(config)
     val routes = settings.routes.head
     routes.getSource shouldBe TOPIC
     routes.getTarget shouldBe TABLE

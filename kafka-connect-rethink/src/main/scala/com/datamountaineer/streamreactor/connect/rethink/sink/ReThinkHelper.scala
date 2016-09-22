@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
-import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkSetting
+import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkSinkSetting
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.model.MapObject
 import com.rethinkdb.net.Connection
@@ -39,7 +39,7 @@ object ReThinkHelper extends StrictLogging {
   /**
     * check tables exist or are marked for auto create
     **/
-  def checkAndCreateTables(rethink: RethinkDB, setting: ReThinkSetting, conn: Connection): Unit = {
+  def checkAndCreateTables(rethink: RethinkDB, setting: ReThinkSinkSetting, conn: Connection): Unit = {
     val isAutoCreate = setting.routes.map(r => (r.getTarget, r.isAutoCreate)).toMap
     val tables: java.util.List[String] = rethink.db(setting.db).tableList().run(conn)
 
