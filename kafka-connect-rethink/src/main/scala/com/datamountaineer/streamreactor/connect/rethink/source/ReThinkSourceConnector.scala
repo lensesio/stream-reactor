@@ -76,7 +76,7 @@ class ReThinkSourceConnector extends SourceConnector with StrictLogging {
     configProps = props
   }
 
-  override def stop(): Unit = {}
+  override def stop(): Unit = ???
 
   override def config(): ConfigDef = configDef
 
