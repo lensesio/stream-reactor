@@ -39,6 +39,21 @@ object ReThinkSourceConfig {
   val IMPORT_ROUTE_QUERY = "connect.rethink.import.route.query"
 
 
+  val ERROR_POLICY = "connect.rethink.size.error.policy"
+  val ERROR_POLICY_DOC = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
+    "There are two available options: \n" + "NOOP - the error is swallowed \n" +
+    "THROW - the error is allowed to propagate. \n" +
+    "RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on \n" +
+    "The error will be logged automatically"
+  val ERROR_POLICY_DEFAULT = "THROW"
+
+  val ERROR_RETRY_INTERVAL = "connect.rethink.sink.retry.interval"
+  val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
+  val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
+  val NBR_OF_RETRIES = "connect.rethink.sink.max.retires"
+  val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
+  val NBR_OF_RETIRES_DEFAULT = 20
+
   val config = new ConfigDef()
     .define(RETHINK_HOST, Type.STRING, RETHINK_HOST_DEFAULT, Importance.HIGH, RETHINK_HOST_DOC,
       "Connection", 1, ConfigDef.Width.MEDIUM, RETHINK_HOST)
@@ -48,7 +63,12 @@ object ReThinkSourceConfig {
       "Connection", 3, ConfigDef.Width.MEDIUM, RETHINK_PORT)
     .define(IMPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, IMPORT_ROUTE_QUERY,
       "Connection", 4, ConfigDef.Width.MEDIUM, IMPORT_ROUTE_QUERY)
-
+    .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC,
+      "Connection", 5, ConfigDef.Width.MEDIUM, ERROR_POLICY)
+    .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC,
+      "Connection", 6, ConfigDef.Width.MEDIUM, ERROR_RETRY_INTERVAL)
+    .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC,
+      "Connection", 7, ConfigDef.Width.MEDIUM, NBR_OF_RETRIES)
 }
 
 case class ReThinkSourceConfig(props: util.Map[String, String])
