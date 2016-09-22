@@ -1,7 +1,7 @@
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
 import com.datamountaineer.streamreactor.connect.rethink.TestBase
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSettings, ReThinkSinkConfig}
+import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkSettings, ReThinkSinkConfig}
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.gen.ast.{Db, TableCreate, TableList}
 import com.rethinkdb.model.MapObject
@@ -98,7 +98,7 @@ class TestReThinkSinkConverter extends TestBase with MockitoSugar {
   "should check and create tables" in {
     val props = getPropsUpsertSelectRetry
     val config = new ReThinkSinkConfig(props = props)
-    val settings = ReThinkSettings(config)
+    val settings = ReThinkSinkSettings(config)
     val r = mock[RethinkDB]
     val conn = mock[Connection]
     val db =  mock[Db]
