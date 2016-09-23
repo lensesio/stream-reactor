@@ -272,6 +272,23 @@ public class ConfigTest {
     assertFalse(config.isEnableCapitalize());
   }
 
+  @Test
+  public void parseWithInitialize() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT * FROM %s IGNORE col1, 1col2 initialize ", table, topic);
+    Config config = Config.parse(syntax);
+    assertTrue(config.isEnableCapitalize());
+  }
+
+  @Test
+  public void parseWithWithOutInitialize() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT * FROM %s IGNORE col1, 1col2 ", table, topic);
+    Config config = Config.parse(syntax);
+    assertFalse(config.isEnableCapitalize());
+  }
 
   @Test
   public void parseAnInsertWithFieldAliasAndAutocreateNoPKs() {

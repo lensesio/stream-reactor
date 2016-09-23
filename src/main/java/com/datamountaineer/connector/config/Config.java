@@ -8,7 +8,6 @@ import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
-import org.antlr.v4.runtime.misc.IntegerList;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,12 +43,12 @@ public class Config {
   private int batchSize = DEFAULT_BATCH_SIZE;
   private Bucketing bucketing;
   private String timestamp;
-  private String storedAs;
   private String consumerGroup;
-  private List<PartitionOffset> partitons = null;
+  private List<PartitionOffset> partitions = null;
   private Integer sampleCount;
   private Integer sampleRate;
   private FormatType formatType = null;
+  private boolean initialize;
 
   private void addIgnoredField(final String ignoredField) {
     if (ignoredField == null || ignoredField.trim().length() == 0) {
@@ -144,14 +143,6 @@ public class Config {
     this.timestamp = value;
   }
 
-//  public String getStoredAs() {
-//    return storedAs;
-//  }
-//
-//  private void setStoredAs(String format) {
-//    this.storedAs = format;
-//  }
-
   private void setConsumerGroup(String consumerGroup) {
     this.consumerGroup = consumerGroup;
   }
@@ -161,7 +152,7 @@ public class Config {
   }
 
   public List<PartitionOffset> getPartitonOffset() {
-    return partitons;
+    return partitions;
   }
 
   public Integer getSampleCount() {
@@ -283,15 +274,14 @@ public class Config {
         config.setAutoEvolve(true);
       }
 
-//      @Override
-//      public void exitStoredas_value(ConnectorParser.Storedas_valueContext ctx) {
-//        final String value = ctx.getText();
-//        config.setStoredAs(value);
-//      }
-
       @Override
       public void exitCapitalize(ConnectorParser.CapitalizeContext ctx) {
         config.setEnableCapitalize(true);
+      }
+
+     // @Override
+      public void exitInitialize(ConnectorParser.InitializeContext ctx) {
+        config.setEnableInitialize(true);
       }
 
       @Override
@@ -333,17 +323,17 @@ public class Config {
         String value = ctx.getText();
         String[] split = value.split(",");
 
-        if (config.partitons == null) {
-          config.partitons = new ArrayList<PartitionOffset>();
+        if (config.partitions == null) {
+          config.partitions = new ArrayList<PartitionOffset>();
         }
 
 
         int partition = Integer.parseInt(split[0]);
         if (split.length == 1) {
-          config.partitons.add(new PartitionOffset(partition));
+          config.partitions.add(new PartitionOffset(partition));
         } else {
           long offset = Long.parseLong(split[1]);
-          config.partitons.add(new PartitionOffset(partition, offset));
+          config.partitions.add(new PartitionOffset(partition, offset));
         }
       }
 
@@ -481,6 +471,12 @@ public class Config {
   public void setEnableCapitalize(boolean enableCapitalize) {
     this.enableCapitalize = enableCapitalize;
   }
+
+  public void setEnableInitialize(boolean enableInitialize) {
+    this.initialize = enableInitialize;
+  }
+
+  public boolean isInitialize() {return initialize;}
 
   public Iterator<String> getPartitionBy() {
     return partitionBy.iterator();

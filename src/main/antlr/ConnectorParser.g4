@@ -36,7 +36,7 @@ schema_name
    ;
 
 insert_from_clause
-   : sql_action table_name select_clause_basic ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( with_format_clause )?
+   : sql_action table_name select_clause_basic ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( with_format_clause )?
    ;
 
 select_clause
@@ -105,6 +105,10 @@ batching
 
 capitalize
    : CAPITALIZE
+   ;
+
+initialize
+   : INITIALIZE
    ;
 
 partition_name
