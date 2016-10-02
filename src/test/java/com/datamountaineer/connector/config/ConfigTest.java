@@ -276,9 +276,9 @@ public class ConfigTest {
   public void parseWithInitialize() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
-    String syntax = String.format("UPSERT INTO %s SELECT * FROM %s IGNORE col1, 1col2 initialize ", table, topic);
+    String syntax = String.format("INSERT INTO %s SELECT * FROM %s initialize batch = 100", table, topic);
     Config config = Config.parse(syntax);
-    assertTrue(config.isEnableCapitalize());
+    assertTrue(config.isInitialize());
   }
 
   @Test
@@ -287,8 +287,18 @@ public class ConfigTest {
     String table = "TABLE_A";
     String syntax = String.format("UPSERT INTO %s SELECT * FROM %s IGNORE col1, 1col2 ", table, topic);
     Config config = Config.parse(syntax);
-    assertFalse(config.isEnableCapitalize());
+    assertFalse(config.isInitialize());
   }
+
+  @Test
+  public void parseWithProject() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT * FROM %s projectTo 1 initialize batch = 100", table, topic);
+    Config config = Config.parse(syntax);
+    assertTrue(config.getProjectTo().equals(1));
+  }
+
 
   @Test
   public void parseAnInsertWithFieldAliasAndAutocreateNoPKs() {

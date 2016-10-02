@@ -49,6 +49,7 @@ public class Config {
   private Integer sampleRate;
   private FormatType formatType = null;
   private boolean initialize;
+  private Integer projectTo;
 
   private void addIgnoredField(final String ignoredField) {
     if (ignoredField == null || ignoredField.trim().length() == 0) {
@@ -179,6 +180,62 @@ public class Config {
     formatType = type;
   }
 
+  public Integer getProjectTo() { return projectTo;}
+
+  private void setProjectTo(Integer version) {
+    this.projectTo = version;
+  }
+
+  public boolean isAutoCreate() {
+    return autoCreate;
+  }
+
+  public void setAutoCreate(boolean autoCreate) {
+    this.autoCreate = autoCreate;
+  }
+
+  public int getRetries() {
+    return retries;
+  }
+
+  public void setRetries(int retries) {
+    this.retries = retries;
+  }
+
+  public boolean isAutoEvolve() {
+    return autoEvolve;
+  }
+
+  public void setAutoEvolve(boolean autoEvolve) {
+    this.autoEvolve = autoEvolve;
+  }
+
+  public int getBatchSize() {
+    return batchSize;
+  }
+
+  public void setBatchSize(int batchSize) {
+    this.batchSize = batchSize;
+  }
+
+  public boolean isEnableCapitalize() {
+    return enableCapitalize;
+  }
+
+  public void setEnableCapitalize(boolean enableCapitalize) {
+    this.enableCapitalize = enableCapitalize;
+  }
+
+  public void setEnableInitialize(boolean enableInitialize) {
+    this.initialize = enableInitialize;
+  }
+
+  public boolean isInitialize() {return initialize;}
+
+  public Iterator<String> getPartitionBy() {
+    return partitionBy.iterator();
+  }
+
   public static Config parse(final String syntax) {
     final ConnectorLexer lexer = new ConnectorLexer(new ANTLRInputStream(syntax));
     final CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -279,9 +336,24 @@ public class Config {
         config.setEnableCapitalize(true);
       }
 
-     // @Override
+      @Override
       public void exitInitialize(ConnectorParser.InitializeContext ctx) {
         config.setEnableInitialize(true);
+      }
+
+      @Override
+      public void exitVersion_number(ConnectorParser.Version_numberContext ctx) {
+
+        final String value = ctx.getText();
+        try {
+          int version = Integer.parseInt(value);
+          if (version <= 0) {
+            throw new IllegalArgumentException(value + " is not a valid number for a version.");
+          }
+          config.setProjectTo(version);
+        } catch (NumberFormatException ex) {
+          throw new IllegalArgumentException(value + " is not a valid number for a version.");
+        }
       }
 
       @Override
@@ -324,7 +396,7 @@ public class Config {
         String[] split = value.split(",");
 
         if (config.partitions == null) {
-          config.partitions = new ArrayList<PartitionOffset>();
+          config.partitions = new ArrayList<>();
         }
 
 
@@ -430,56 +502,6 @@ public class Config {
       throw new IllegalArgumentException("Sample rate should be a positive number greater than zero");
     }
     return config;
-  }
-
-  public boolean isAutoCreate() {
-    return autoCreate;
-  }
-
-  public void setAutoCreate(boolean autoCreate) {
-    this.autoCreate = autoCreate;
-  }
-
-  public int getRetries() {
-    return retries;
-  }
-
-  public void setRetries(int retries) {
-    this.retries = retries;
-  }
-
-  public boolean isAutoEvolve() {
-    return autoEvolve;
-  }
-
-  public void setAutoEvolve(boolean autoEvolve) {
-    this.autoEvolve = autoEvolve;
-  }
-
-  public int getBatchSize() {
-    return batchSize;
-  }
-
-  public void setBatchSize(int batchSize) {
-    this.batchSize = batchSize;
-  }
-
-  public boolean isEnableCapitalize() {
-    return enableCapitalize;
-  }
-
-  public void setEnableCapitalize(boolean enableCapitalize) {
-    this.enableCapitalize = enableCapitalize;
-  }
-
-  public void setEnableInitialize(boolean enableInitialize) {
-    this.initialize = enableInitialize;
-  }
-
-  public boolean isInitialize() {return initialize;}
-
-  public Iterator<String> getPartitionBy() {
-    return partitionBy.iterator();
   }
 
 }

@@ -36,7 +36,7 @@ schema_name
    ;
 
 insert_from_clause
-   : sql_action table_name select_clause_basic ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( with_format_clause )?
+   : sql_action table_name select_clause_basic ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? ( project_to )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( with_format_clause )?
    ;
 
 select_clause
@@ -204,4 +204,12 @@ with_format_clause
 
 with_format
     : FORMAT
+    ;
+
+project_to
+    : PROJECTTO version_number
+    ;
+
+version_number
+    : INT
     ;

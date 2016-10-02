@@ -105,6 +105,13 @@ FORMAT
     : 'avro'|'AVRO'|'text'|'TEXT'|'binary'|'BINARY'|'json'|'JSON'
     ;
 
+PROJECTTO
+    : 'projectTo'|'PROJECTTO'|'projectto'
+    ;
+
+DATABASE
+    : ''
+
 EQUAL
    : '='
    ;
