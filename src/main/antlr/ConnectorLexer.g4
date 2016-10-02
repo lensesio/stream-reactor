@@ -109,9 +109,6 @@ PROJECTTO
     : 'projectTo'|'PROJECTTO'|'projectto'
     ;
 
-DATABASE
-    : ''
-
 EQUAL
    : '='
    ;
