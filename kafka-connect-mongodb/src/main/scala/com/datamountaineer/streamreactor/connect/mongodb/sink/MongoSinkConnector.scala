@@ -14,11 +14,11 @@
   * limitations under the License.
   **/
 
-package com.datamountaineer.streamreactor.connect.cassandra.sink
+package com.datamountaineer.streamreactor.connect.mongodb.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
+import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.{Connector, Task}
@@ -28,46 +28,62 @@ import scala.collection.JavaConversions._
 import scala.util.{Failure, Try}
 
 /**
-  * <h1>CassandraSinkConnector</h1>
-  * Kafka connect Cassandra Sink connector
+  * <h1>MongonSinkConnector</h1>
+  * Kafka connect Mongo Sink connector
   *
-  * Sets up CassandraSinkTask and configurations for the tasks.
-  * */
-class CassandraSinkConnector extends Connector with StrictLogging {
-  private var configProps : util.Map[String, String] = _
-  private val configDef = CassandraConfigSink.sinkConfig
+  * Sets up MongoSinkTask and configurations for the tasks.
+  **/
+class MongoSinkConnector extends Connector with StrictLogging {
+  private var configProps: util.Map[String, String] = _
+
 
   /**
     * States which SinkTask class to use
-    * */
-  override def taskClass(): Class[_ <: Task] = classOf[CassandraSinkTask]
+    **/
+  override def taskClass(): Class[_ <: Task] = classOf[MongoSinkTask]
 
   /**
     * Set the configuration for each work and determine the split
     *
     * @param maxTasks The max number of task workers be can spawn
     * @return a List of configuration properties per worker
-    * */
+    **/
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
-    (1 to maxTasks).map(c => configProps).toList
+
+    val kcql = configProps.get(MongoConfig.KCQL_CONFIG).split(";")
+    if (maxTasks == 1 || kcql.length == 1) {
+      List(configProps)
+    }
+    else {
+      val groups = kcql.length / maxTasks + kcql.length % maxTasks
+      kcql.grouped(groups)
+        .map(_.mkString(";"))
+        .map { routes =>
+          val taskProps = new util.HashMap[String, String](configProps)
+          taskProps.put(MongoConfig.KCQL_CONFIG, routes)
+          taskProps
+        }.toList
+    }
   }
 
   /**
     * Start the sink and set to configuration
     *
     * @param props A map of properties for the connector and worker
-    * */
+    **/
   override def start(props: util.Map[String, String]): Unit = {
-    configProps = props
-    Try(new CassandraConfigSink(props)) match {
-      case Failure(f) =>
-        throw new ConnectException(s"Couldn't start Cassandra sink due to configuration error: ${f.getMessage}", f)
+    Try(MongoConfig(props)) match {
+      case Failure(f) => throw new ConnectException(s"Couldn't start Mongo sink due to configuration error: ${f.getMessage}", f)
       case _ =>
     }
+
+    configProps = props
   }
 
   override def stop(): Unit = {}
-  override def version(): String = "1"
-  override def config(): ConfigDef = configDef
+
+  override def version(): String = getClass.getPackage.getImplementationVersion
+
+  override def config(): ConfigDef = MongoConfig.configDef
 }
