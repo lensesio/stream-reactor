@@ -18,29 +18,35 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.source
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+
 
 /**
   * Created by andrew@datamountaineer.com on 22/09/16. 
   * stream-reactor
   */
-case class ChangeFeed(state: Option[String], oldVal: Option[String], newVal: Option[String], `type` : Option[String])
 
+object ChangeFeedStructBuilder extends StrictLogging {
 
-object ChangeFeedStructBuilder {
+  val mapper = new ObjectMapper()
+  val oldVal = "old_val"
+  val newVal = "new_val"
+  val state = "state"
+  val `type` = "type"
+
   val schema = SchemaBuilder.struct.name("ReThinkChangeFeed")
     .version(1)
-    .field("state", Schema.OPTIONAL_STRING_SCHEMA)
-    .field("oldVal", Schema.OPTIONAL_STRING_SCHEMA)
-    .field("newVal", Schema.OPTIONAL_STRING_SCHEMA)
-    .field("type", Schema.OPTIONAL_STRING_SCHEMA)
+    .field(state, Schema.OPTIONAL_STRING_SCHEMA)
+    .field(oldVal, Schema.OPTIONAL_STRING_SCHEMA)
+    .field(newVal, Schema.OPTIONAL_STRING_SCHEMA)
+    .field(`type`, Schema.OPTIONAL_STRING_SCHEMA)
     .build
 
-  def apply(changeFeed: ChangeFeed) : Struct = {
-    new Struct(schema)
-      .put("state", changeFeed.state)
-      .put("oldVal", changeFeed.oldVal)
-      .put("newVal", changeFeed.newVal)
-      .put("type", changeFeed.`type`)
+  def apply(hm: Map[String, Object]) : Struct = {
+    val struct = new Struct(schema)
+    hm.foreach({ case (k, v) => if (v != null) struct.put(k, v.toString)})
+    struct
   }
 }

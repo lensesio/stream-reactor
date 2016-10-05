@@ -55,7 +55,7 @@ class VoltDbWriter(settings: VoltSettings) extends DbWriter with StrictLogging w
       val t = Try {
         records.withFilter(_.value() != null).foreach(insert)
       }
-      t.foreach(_ => logger.info("Writing complete"))
+      t.foreach(_ => logger.debug("Writing complete"))
       handleTry(t)
     }
   }
