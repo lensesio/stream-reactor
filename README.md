@@ -54,7 +54,7 @@ You can also use the gradle wrapper
 | InfluxDb | Sink | Kafka connect InfluxDb sink to write Kafka topic payloads to InfluxDb. | [Docs](http://docs.datamountaineer.com/en/latest/influx.html) |
 | JMS | Sink | Kafka connect JMS sink to write Kafka topic payloads to JMS. | [Docs](http://docs.datamountaineer.com/en/latest/jms.html) |
 | Redis | Sink | Kafka connect Redis sink to write Kafka topic payloads to Redis. | [Docs](http://docs.datamountaineer.com/en/latest/redis.html) |
-| ReThinkDB | Source | Kafka connect RethinkDb source subscribe to ReThinkDB changefeeds and write to Kafka. | [Docs](http://docs.datamountaineer.com/en/latest/rethink-source.html) |
+| ReThinkDB | Source | Kafka connect RethinkDb source subscribe to ReThinkDB changefeeds and write to Kafka. | [Docs](http://docs.datamountaineer.com/en/latest/rethink_source.html) |
 | ReThinkDB | Sink | Kafka connect RethinkDb sink to write Kafka topic payloads to RethinkDb. | [Docs](http://docs.datamountaineer.com/en/latest/rethink.html) |
 | Yahoo Finance | Source | Kafka connect Yahoo Finance source to write to Kafka. | [Docs](http://docs.datamountaineer.com/en/latest/yahoo.html) |
 | VoltDB | Sink | Kafka connect Voltdb sink to write Kafka topic payloads to Voltdb. | [Docs](http://docs.datamountaineer.com/en/latest/voltdb.html) |
