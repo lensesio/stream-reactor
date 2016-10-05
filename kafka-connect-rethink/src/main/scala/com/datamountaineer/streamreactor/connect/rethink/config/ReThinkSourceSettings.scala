@@ -27,9 +27,7 @@ import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolic
   */
 case class ReThinkSourceSettings (db : String,
                                   routes: Set[Config],
-                                  tableTopicMap : Map[String, String],
-                                  errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                                  maxRetries : Int)
+                                  tableTopicMap : Map[String, String])
 
 
 object ReThinkSourceSettings {
@@ -38,10 +36,7 @@ object ReThinkSourceSettings {
     require(raw != null && !raw.isEmpty,  s"No ${ReThinkSourceConfig.IMPORT_ROUTE_QUERY} provided!")
     val routes = raw.split(";").map(r => Config.parse(r)).toSet
     val tableTopicMap = routes.map(rm => (rm.getSource, rm.getTarget)).toMap
-    val db = config.getString(ReThinkSinkConfig.RETHINK_DB)
-    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(ReThinkSinkConfig.ERROR_POLICY).toUpperCase)
-    val errorPolicy = ErrorPolicy(errorPolicyE)
-    val maxRetries = config.getInt(ReThinkSinkConfig.NBR_OF_RETRIES)
-    ReThinkSourceSettings(db, routes, tableTopicMap, errorPolicy, maxRetries)
+    val db = config.getString(ReThinkSourceConfig.RETHINK_DB)
+    ReThinkSourceSettings(db, routes, tableTopicMap)
   }
 }
