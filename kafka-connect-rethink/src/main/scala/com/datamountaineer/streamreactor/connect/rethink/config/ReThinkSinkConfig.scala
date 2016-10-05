@@ -69,7 +69,7 @@ object ReThinkSinkConfig {
       "Connection", 2, ConfigDef.Width.MEDIUM, RETHINK_DB)
     .define(RETHINK_PORT, Type.INT, RETHINK_PORT_DEFAULT, Importance.MEDIUM, RETHINK_PORT_DOC,
       "Connection", 3, ConfigDef.Width.MEDIUM, RETHINK_PORT)
-    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY,
+    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY_DOC,
       "Connection", 4, ConfigDef.Width.MEDIUM, EXPORT_ROUTE_QUERY)
     .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC,
       "Connection", 5, ConfigDef.Width.MEDIUM, ERROR_POLICY)

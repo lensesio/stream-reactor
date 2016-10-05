@@ -49,7 +49,7 @@ case class RedisDbWriter(sinkSettings: RedisSinkSettings) extends DbWriter with 
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
-      logger.info(s"Received ${records.size} records.")
+      logger.debug(s"Received ${records.size} records.")
       val grouped = records.groupBy(_.topic())
       insert(grouped)
     }
@@ -79,7 +79,7 @@ case class RedisDbWriter(sinkSettings: RedisSinkSettings) extends DbWriter with 
        })
        handleTry(t)
       }
-      logger.info(s"Wrote ${sinkRecords.size} rows for topic $topic")
+      logger.debug(s"Wrote ${sinkRecords.size} rows for topic $topic")
     })
   }
 

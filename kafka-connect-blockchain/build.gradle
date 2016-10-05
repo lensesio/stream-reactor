@@ -4,7 +4,6 @@ project(":kafka-connect-blockchain") {
     ext {
         snappyVersion = "1.1.2.1"
         avro4sVersion = "1.6.0"
-        akkaVersion = "2.4.10"
         jacksonVersion = "2.8.2"
     }
 
