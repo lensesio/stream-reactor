@@ -2,7 +2,7 @@ package com.datamountaineer.streamreactor.connect.rethink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkSinkConfig
+import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSourceConfig}
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
@@ -19,8 +19,12 @@ trait TestBase  extends WordSpec with Matchers with BeforeAndAfter {
   val TABLE = "rethink_table"
   val TOPIC = "rethink_topic"
   val ROUTE = s"INSERT INTO $TABLE SELECT * FROM $TOPIC"
-  val DB = "test_db"
+  val DB = "test"
   val ROUTE_SELECT_UPSERT = s"UPSERT INTO $TABLE SELECT string_id, int_field FROM $TOPIC AUTOCREATE"
+  val IMPORT_ROUTE = s"INSERT INTO $TOPIC SELECT * FROM $TABLE initialize BATCH = 1000"
+  val IMPORT_ROUTE_DELTA = s"INSERT INTO $TOPIC SELECT * FROM $TABLE BATCH = 1000"
+  val IMPORT_ROUTE_2 = s"INSERT INTO $TOPIC SELECT * FROM $TABLE initialize BATCH = 1000;" +
+    s"INSERT INTO ${TOPIC}_2 SELECT * FROM ${TABLE}_2 initialize BATCH = 1000"
 
   protected val PARTITION: Int = 12
   protected val PARTITION2: Int = 13
@@ -34,6 +38,24 @@ trait TestBase  extends WordSpec with Matchers with BeforeAndAfter {
     Map(ReThinkSinkConfig.EXPORT_ROUTE_QUERY->ROUTE,
       ReThinkSinkConfig.RETHINK_HOST->"localhost",
       ReThinkSinkConfig.RETHINK_DB->DB).asJava
+  }
+
+  def getPropsSource = {
+    Map(ReThinkSourceConfig.IMPORT_ROUTE_QUERY->IMPORT_ROUTE,
+      ReThinkSourceConfig.RETHINK_HOST->"localhost",
+      ReThinkSourceConfig.RETHINK_DB->DB).asJava
+  }
+
+  def getPropsSourceDelta = {
+    Map(ReThinkSourceConfig.IMPORT_ROUTE_QUERY->IMPORT_ROUTE_DELTA,
+      ReThinkSourceConfig.RETHINK_HOST->"localhost",
+      ReThinkSourceConfig.RETHINK_DB->DB).asJava
+  }
+
+  def getPropsSource2 = {
+    Map(ReThinkSourceConfig.IMPORT_ROUTE_QUERY->IMPORT_ROUTE_2,
+      ReThinkSourceConfig.RETHINK_HOST->"localhost",
+      ReThinkSourceConfig.RETHINK_DB->DB).asJava
   }
 
   def getPropsUpsertSelectRetry = {

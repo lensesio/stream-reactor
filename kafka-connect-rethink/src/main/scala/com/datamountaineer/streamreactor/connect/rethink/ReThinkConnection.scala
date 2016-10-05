@@ -16,19 +16,17 @@
  *   *
  */
 
-package com.datamountaineer.streamreactor.connect.rethink.json
+package com.datamountaineer.streamreactor.connect.rethink
+
+import com.rethinkdb.RethinkDB
+import com.rethinkdb.net.Connection
 
 /**
-  * Created by andrew@datamountaineer.com on 22/09/16. 
+  * Created by andrew@datamountaineer.com on 27/09/16. 
   * stream-reactor
   */
-import org.json4s.{DefaultFormats, _}
-import org.json4s.native.JsonMethods._
-
-object Json {
-  implicit val formats = DefaultFormats
-
-  def fromJson[T <: Product:Manifest](json: String): T = {
-    parse(json).extract[T]
+object ReThinkConnection {
+  def apply(host: String, port: Int, r: RethinkDB): Connection = {
+    r.connection().hostname(host).port(port).connect()
   }
 }

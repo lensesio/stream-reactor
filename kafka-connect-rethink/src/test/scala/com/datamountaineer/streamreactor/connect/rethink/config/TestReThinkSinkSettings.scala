@@ -14,8 +14,6 @@ import scala.collection.JavaConverters._
   */
 class TestReThinkSinkSettings extends TestBase with MockitoSugar {
   "should create a RethinkSetting for INSERT with all fields" in {
-    val context = mock[SinkTaskContext]
-    when(context.assignment()).thenReturn(getAssignment)
     val config = ReThinkSinkConfig(getProps)
     val settings = ReThinkSinkSettings(config)
     val routes = settings.routes.head
@@ -28,8 +26,6 @@ class TestReThinkSinkSettings extends TestBase with MockitoSugar {
   }
 
   "should create a RethinkSetting for UPSERT with fields selection with RETRY" in {
-    val context = mock[SinkTaskContext]
-    when(context.assignment()).thenReturn(getAssignment)
     val config = ReThinkSinkConfig(getPropsUpsertSelectRetry)
     val settings = ReThinkSinkSettings(config)
     val routes = settings.routes.head

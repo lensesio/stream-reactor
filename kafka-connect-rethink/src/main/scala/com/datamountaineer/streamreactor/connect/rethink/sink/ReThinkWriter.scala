@@ -17,13 +17,15 @@
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkSetting, ReThinkSinkSettings, ReThinkSinkConfig}
+import com.datamountaineer.streamreactor.connect.rethink.ReThinkConnection
+import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSinkSetting, ReThinkSinkSettings}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.model.MapObject
 import com.rethinkdb.net.Connection
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
+
 import scala.util.Failure
 import scala.collection.JavaConverters._
 
@@ -36,7 +38,7 @@ object ReThinkWriter extends StrictLogging {
     //set up the connection to the host
     val settings = ReThinkSinkSettings(config)
     lazy val r = RethinkDB.r
-    lazy val conn: Connection = r.connection().hostname(rethinkHost).port(port).connect()
+    lazy val conn = ReThinkConnection(rethinkHost, port, r)
     new ReThinkWriter(r, conn = conn, setting = settings)
   }
 }

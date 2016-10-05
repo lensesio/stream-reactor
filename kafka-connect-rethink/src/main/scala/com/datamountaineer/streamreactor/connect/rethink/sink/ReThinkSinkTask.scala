@@ -37,22 +37,7 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     * */
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(
-      """
-        |    ____        __        __  ___                  __        _
-        |   / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
-        |  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
-        | / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
-        |/_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
-        |       ____     ________    _       __   ____  ____ _____ _       __
-        |      / __ \___/_  __/ /_  (_)___  / /__/ __ \/ __ ) ___/(_)___  / /__
-        |     / /_/ / _ \/ / / __ \/ / __ \/ //_/ / / / __  \__ \/ / __ \/ //_/
-        |    / _, _/  __/ / / / / / / / / / ,< / /_/ / /_/ /__/ / / / / / ,<
-        |   /_/ |_|\___/_/ /_/ /_/_/_/ /_/_/|_/_____/_____/____/_/_/ /_/_/|_|
-        |
-        |by Andrew Stevenson
-      """.stripMargin)
-
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/rethink-sink-ascii.txt")).mkString)
     val sinkConfig = ReThinkSinkConfig(props)
     writer = Some(ReThinkWriter(config = sinkConfig, context = context))
   }
