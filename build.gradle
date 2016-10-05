@@ -1,5 +1,3 @@
-import java.util.concurrent.CopyOnWriteArrayList
-
 buildscript {
     repositories {
         jcenter()
@@ -15,6 +13,11 @@ buildscript {
     }
 }
 
+// gradle 3.0 intellj fixes
+ScalaCompileOptions.metaClass.daemonServer = true
+ScalaCompileOptions.metaClass.fork = true
+ScalaCompileOptions.metaClass.useAnt = false
+ScalaCompileOptions.metaClass.useCompileDaemon = false
 
 
 allprojects {
@@ -45,14 +48,15 @@ allprojects {
         avroVersion = '1.7.7'
         jacksonxmlVersion = '2.6.5'
         slf4jVersion = "1.7.7"
-        dataMountaineerCommonVersion = "0.5"
+        dataMountaineerCommonVersion = "0.4.2"
         dataMountaineerTestKitVersion = "0.2"
-        avro4sVersion = "1.6.0"
+        avro4sVersion = "1.3.2"
         json4sVersion = "3.3.0"
         kiteMiniClusterVersion = "1.1.0"
         gsonVersion = "2.6.2"
-        dataMountaineerCQLVersion = "0.8.3"
+        dataMountaineerCQLVersion = "0.8.4"
         confluentVersion = '3.0.1'
+        akkaVersion = "2.4.10"
     }
 
     repositories {

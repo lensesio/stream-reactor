@@ -78,7 +78,7 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
-      logger.info(s"Received ${records.size} records.")
+      logger.debug(s"Received ${records.size} records.")
 
       //if error occurred rebuild cache in case of change on target tables
       if (errored()) {
@@ -104,7 +104,7 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
       flush()
     })
     handleTry(t)
-    logger.info(s"Written ${records.size}")
+    logger.debug(s"Written ${records.size}")
   }
 
   /**
