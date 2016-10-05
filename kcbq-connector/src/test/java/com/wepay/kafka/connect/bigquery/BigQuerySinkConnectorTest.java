@@ -177,8 +177,6 @@ public class BigQuerySinkConnectorTest {
   @Test
   public void testTaskConfigs() {
     Map<String, String> properties = propertiesFactory.getProperties();
-    int maxTotalWrite = 5000;
-    properties.put(BigQuerySinkConfig.MAX_WRITE_CONFIG, Integer.toString(maxTotalWrite));
 
     Table fakeTable = mock(Table.class);
 
@@ -192,13 +190,11 @@ public class BigQuerySinkConnectorTest {
 
     for (int i : new int[] { 1, 2, 10, 100 }) {
       Map<String, String> expectedProperties = new HashMap<>(properties);
-      int maxTaskWrite = maxTotalWrite / i;
-      expectedProperties.put(BigQuerySinkConfig.MAX_WRITE_CONFIG, Integer.toString(maxTaskWrite));
       List<Map<String, String>> taskConfigs = testConnector.taskConfigs(i);
       assertEquals(i, taskConfigs.size());
       for (int j = 0; j < i; j++) {
         assertEquals(
-            "Connector properties should match task configs, with exception of maxWrite property",
+            "Connector properties should match task configs",
             expectedProperties,
             taskConfigs.get(j)
         );

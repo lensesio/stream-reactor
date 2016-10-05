@@ -43,12 +43,7 @@ import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
 
-import com.wepay.kafka.connect.bigquery.write.BigQueryWriter;
-
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-
-import org.apache.kafka.common.TopicPartition;
-
+import com.wepay.kafka.connect.bigquery.write.batch.SingleBatchWriter;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -61,7 +56,6 @@ import org.apache.kafka.connect.sink.SinkTaskContext;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 
@@ -120,60 +114,6 @@ public class BigQuerySinkTaskTest {
     testTask.put(Collections.singletonList(emptyRecord));
   }
 
-  @Test
-  public void testPartitioning() {
-    final String dataset = "scratch";
-    final String topic = "test_topic";
-    final TableId table = TableId.of(dataset, "test_topic");
-    final String field = "partition_test_field";
-    final String value = "partition test row";
-    final String rowId = String.format("%s-%d-%d", topic, 0, 0);
-
-    Map<String, String> properties = propertiesFactory.getProperties();
-    properties.put(BigQuerySinkTaskConfig.BUFFER_SIZE_CONFIG, "-1");
-    properties.put(BigQuerySinkTaskConfig.MAX_WRITE_CONFIG, "7");
-    properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
-    properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
-    properties.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "false");
-
-    BigQuery bigQuery = mock(BigQuery.class);
-    InsertAllResponse fakeResponse = mock(InsertAllResponse.class);
-    when(fakeResponse.hasErrors()).thenReturn(false);
-    when(fakeResponse.insertErrors()).thenReturn(Collections.emptyMap());
-    when(bigQuery.insertAll(any(InsertAllRequest.class))).thenReturn(fakeResponse);
-
-    SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
-    when(sinkTaskContext.assignment()).thenReturn(Collections.emptySet());
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery);
-    testTask.initialize(sinkTaskContext);
-    testTask.start(properties);
-
-    testTask.put(Collections.nCopies(38, spoofSinkRecord(topic, field, value)));
-    testTask.flush(Collections.emptyMap());
-
-    InsertAllRequest largerRequest = buildExpectedInsertAllRequest(
-        table,
-        Collections.nCopies(
-            7,
-            InsertAllRequest.RowToInsert.of(rowId, Collections.singletonMap(field, value))
-        ).toArray(
-            new InsertAllRequest.RowToInsert[7]
-        )
-    );
-    InsertAllRequest smallerRequest = buildExpectedInsertAllRequest(
-        table,
-        Collections.nCopies(
-            6,
-            InsertAllRequest.RowToInsert.of(rowId, Collections.singletonMap(field, value))
-        ).toArray(
-            new InsertAllRequest.RowToInsert[6]
-        )
-    );
-
-    verify(bigQuery, times(2)).insertAll(largerRequest);
-    verify(bigQuery, times(4)).insertAll(smallerRequest);
-  }
-
   // It's important that the buffer be completely wiped after a call to flush, since any execption
   // thrown during flush causes Kafka Connect to not commit the offsets for any records sent to the
   // task since the last flush
@@ -184,7 +124,8 @@ public class BigQuerySinkTaskTest {
 
     Map<String, String> properties = propertiesFactory.getProperties();
     properties.put(BigQuerySinkTaskConfig.BUFFER_SIZE_CONFIG, "-1");
-    properties.put(BigQuerySinkTaskConfig.MAX_WRITE_CONFIG, "-1");
+    properties.put(BigQuerySinkTaskConfig.BATCH_WRITER_CONFIG,
+                   SingleBatchWriter.class.getCanonicalName());
     properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
     properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
 
@@ -322,7 +263,8 @@ public class BigQuerySinkTaskTest {
 
     Map<String, String> properties = propertiesFactory.getProperties();
     properties.put(BigQuerySinkTaskConfig.BUFFER_SIZE_CONFIG, "-1");
-    properties.put(BigQuerySinkTaskConfig.MAX_WRITE_CONFIG, "-1");
+    properties.put(BigQuerySinkTaskConfig.BATCH_WRITER_CONFIG,
+                   SingleBatchWriter.class.getCanonicalName());
     properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
     properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
 

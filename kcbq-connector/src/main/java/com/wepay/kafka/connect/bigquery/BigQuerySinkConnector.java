@@ -174,12 +174,12 @@ public class BigQuerySinkConnector extends SinkConnector {
   @Override
   public List<Map<String, String>> taskConfigs(int maxTasks) {
     logger.trace("connector.taskConfigs()");
-    int maxWritePerTask = config.getInt(config.MAX_WRITE_CONFIG) / maxTasks;
     List<Map<String, String>> taskConfigs = new ArrayList<>();
     for (int i = 0; i < maxTasks; i++) {
       // Copy configProperties so that tasks can't interfere with each others' configurations
       HashMap<String, String> taskConfig = new HashMap<>(configProperties);
-      taskConfig.put(config.MAX_WRITE_CONFIG, Integer.toString(maxWritePerTask));
+      taskConfig.put(config.BATCH_WRITER_CONFIG,
+                     config.getClass(config.BATCH_WRITER_CONFIG).getCanonicalName());
       taskConfigs.add(taskConfig);
     }
     return taskConfigs;

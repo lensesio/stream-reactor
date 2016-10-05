@@ -48,6 +48,10 @@ subprojects { subproject ->
         }
     }
 
+    findbugs {
+        excludeFilter = file("${rootDir}/config/findbugs/exclude.xml")
+    }
+
     uploadArchives {
         repositories {
             mavenDeployer {

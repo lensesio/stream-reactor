@@ -1,4 +1,4 @@
-package com.wepay.kafka.connect.bigquery.write;
+package com.wepay.kafka.connect.bigquery.write.row;
 
 /*
  * Copyright 2016 WePay, Inc.

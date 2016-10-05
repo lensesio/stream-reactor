@@ -19,6 +19,7 @@ package com.wepay.kafka.connect.bigquery;
 
 
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.InsertAllRequest.RowToInsert;
 import com.google.cloud.bigquery.TableId;
 
@@ -37,16 +38,14 @@ import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
 
-import com.wepay.kafka.connect.bigquery.partition.EqualPartitioner;
-import com.wepay.kafka.connect.bigquery.partition.Partitioner;
-import com.wepay.kafka.connect.bigquery.partition.SinglePartitioner;
-
 import com.wepay.kafka.connect.bigquery.utils.MetricsConstants;
 import com.wepay.kafka.connect.bigquery.utils.Version;
 
-import com.wepay.kafka.connect.bigquery.write.AdaptiveBigQueryWriter;
-import com.wepay.kafka.connect.bigquery.write.BigQueryWriter;
-import com.wepay.kafka.connect.bigquery.write.SimpleBigQueryWriter;
+import com.wepay.kafka.connect.bigquery.write.batch.BatchWriter;
+
+import com.wepay.kafka.connect.bigquery.write.row.AdaptiveBigQueryWriter;
+import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
+import com.wepay.kafka.connect.bigquery.write.row.SimpleBigQueryWriter;
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 
@@ -67,6 +66,8 @@ import org.apache.kafka.connect.sink.SinkTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -76,6 +77,7 @@ import java.util.Map;
 import java.util.Set;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -97,10 +99,9 @@ public class BigQuerySinkTask extends SinkTask {
   private RecordConverter<Map<String, Object>> recordConverter;
   private Map<TableId, Buffer<RowToInsert>> tableBuffers;
   private Map<TableId, Set<Schema>> tableSchemas;
-  private Partitioner<RowToInsert> rowPartitioner;
+  private BatchWriterManager batchWriterManager;
   private Map<String, String> topicsToDatasets;
   private Map<TableId, String> tablesToTopics;
-  private BigQueryWriter bigQueryWriter;
   private Metrics metrics;
   private Sensor rowsRead;
 
@@ -135,28 +136,69 @@ public class BigQuerySinkTask extends SinkTask {
     private final Map<TopicPartition, OffsetAndMetadata> offsets;
     private final String topic;
     private final Set<Schema> schemas;
+    private final BatchWriter<RowToInsert> batchWriter;
 
-    public TableWriter(
-        TableId table,
-        List<RowToInsert> rows,
-        Map<TopicPartition, OffsetAndMetadata> offsets,
-        String topic,
-        Set<Schema> schemas) {
+    public TableWriter(TableId table,
+                       List<RowToInsert> rows,
+                       Map<TopicPartition, OffsetAndMetadata> offsets,
+                       String topic,
+                       Set<Schema> schemas) {
       this.table = table;
       this.rows = rows;
       this.offsets = offsets;
       this.topic = topic;
       this.schemas = schemas;
+      this.batchWriter = batchWriterManager.getBatchWriter(table);
     }
 
     @Override
     public Void call() throws InterruptedException {
-      List<List<RowToInsert>> partitions = rowPartitioner.partition(rows);
-      for (List<RowToInsert> partition : partitions) {
-        bigQueryWriter.writeRows(table, partition, topic, schemas);
-      }
+      batchWriter.writeAll(table, rows, topic, schemas);
       updateAllPartitions(tablesToTopics.get(table), offsets);
       return null;
+    }
+  }
+
+  /**
+   * A class for keeping track of the BatchWriters for each table.
+   */
+  private static class BatchWriterManager {
+    private final BigQueryWriter bigQueryWriter;
+    private final Class<BatchWriter<InsertAllRequest.RowToInsert>> batchWriterClass;
+    private Map<TableId, BatchWriter<RowToInsert>> batchWriterMap;
+
+    /**
+     * @param bigQueryWriter the {@link BigQueryWriter} to use to call BigQuery.
+     * @param batchWriterClass the class of the BatchWriter to use
+     * @param numTables the number of tables we are expecting to write to.
+     */
+    public BatchWriterManager(BigQueryWriter bigQueryWriter,
+                              Class<BatchWriter<InsertAllRequest.RowToInsert>> batchWriterClass,
+                              int numTables) {
+      this.bigQueryWriter = bigQueryWriter;
+      this.batchWriterClass = batchWriterClass;
+      batchWriterMap = new HashMap<>(numTables);
+    }
+
+    public synchronized BatchWriter<RowToInsert> getBatchWriter(TableId tableId) {
+      if (!batchWriterMap.containsKey(tableId)) {
+        addNewBatchWriter(tableId);
+      }
+      return batchWriterMap.get(tableId);
+    }
+
+    private void addNewBatchWriter(TableId tableId) {
+      BatchWriter<RowToInsert> batchWriter;
+      try {
+        batchWriter = batchWriterClass.newInstance();
+        batchWriter.init(bigQueryWriter);
+      } catch (InstantiationException
+        | IllegalAccessException
+        exception) {
+        throw new ConfigException("Failed to instantiate class specified for BatchWriter",
+          exception);
+      }
+      batchWriterMap.put(tableId, batchWriter);
     }
   }
 
@@ -301,13 +343,12 @@ public class BigQuerySinkTask extends SinkTask {
     return config.getRecordConverter();
   }
 
-  private Partitioner<RowToInsert> getPartitioner() {
-    int maxWriteSize = config.getInt(config.MAX_WRITE_CONFIG);
-    if (maxWriteSize == -1) {
-      return new SinglePartitioner<>();
-    } else {
-      return new EqualPartitioner<>(maxWriteSize);
-    }
+  private BatchWriterManager getBatchWriterManager() {
+    @SuppressWarnings("unchecked")
+    Class<BatchWriter<InsertAllRequest.RowToInsert>> batchWriterClass =
+        (Class<BatchWriter<RowToInsert>>) config.getClass(config.BATCH_WRITER_CONFIG);
+
+    return new BatchWriterManager(getBigQueryWriter(), batchWriterClass, tableSchemas.size());
   }
 
   private BigQuery getBigQuery() {
@@ -326,7 +367,7 @@ public class BigQuerySinkTask extends SinkTask {
     return new SchemaManager(schemaRetriever, schemaConverter, bigQuery);
   }
 
-  private BigQueryWriter getWriter() {
+  private BigQueryWriter getBigQueryWriter() {
     boolean updateSchemas = config.getBoolean(config.SCHEMA_UPDATE_CONFIG);
     int retry = config.getInt(config.BIGQUERY_RETRY_CONFIG);
     long retryWait = config.getLong(config.BIGQUERY_RETRY_WAIT_CONFIG);
@@ -379,8 +420,8 @@ public class BigQuerySinkTask extends SinkTask {
     recordConverter = getConverter();
     tableBuffers = new HashMap<>();
     tableSchemas = new HashMap<>();
-    rowPartitioner = getPartitioner();
-    bigQueryWriter = getWriter();
+
+    batchWriterManager = getBatchWriterManager();
   }
 
   @Override

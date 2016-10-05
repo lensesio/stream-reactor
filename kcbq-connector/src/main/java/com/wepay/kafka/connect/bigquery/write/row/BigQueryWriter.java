@@ -1,4 +1,4 @@
-package com.wepay.kafka.connect.bigquery.write;
+package com.wepay.kafka.connect.bigquery.write.row;
 
 /*
  * Copyright 2016 WePay, Inc.
@@ -51,14 +51,14 @@ public abstract class BigQueryWriter {
   private static final int SERVICE_UNAVAILABLE = 503;
   private static final String QUOTA_EXCEEDED_REASON = "quotaExceeded";
 
-  public static final int WAIT_MAX_JITTER = 1000;
+  private static final int WAIT_MAX_JITTER = 1000;
 
   private static final Logger logger = LoggerFactory.getLogger(BigQueryWriter.class);
 
   private static final Random random = new Random();
 
-  public final Sensor rowsWritten;
-  public final Sensor requestRetries;
+  private final Sensor rowsWritten;
+  private final Sensor requestRetries;
 
   private int retries;
   private long retryWaitMs;
@@ -124,11 +124,11 @@ public abstract class BigQueryWriter {
    * @param schemas The unique Schemas for the row data.
    * @throws InterruptedException if interrupted.
    */
-  public void writeRows(
-      TableId table,
-      List<InsertAllRequest.RowToInsert> rows,
-      String topic,
-      Set<Schema> schemas) throws InterruptedException {
+  public void writeRows(TableId table,
+                        List<InsertAllRequest.RowToInsert> rows,
+                        String topic,
+                        Set<Schema> schemas)
+      throws BigQueryConnectException, BigQueryException, InterruptedException {
     logger.debug("writing {} row{} to table {}", rows.size(), rows.size() != 1 ? "s" : "", table);
 
     int retryCount = 0;
@@ -159,12 +159,13 @@ public abstract class BigQueryWriter {
           logger.warn("Quota exceeded for table {}", table);
           retryCount++;
         } else {
-          throw new BigQueryConnectException("Failed to write to BigQuery table " + table, err);
+          throw err;
         }
       }
     } while (retryCount <= retries);
     requestRetries.record(retryCount);
-    throw new BigQueryConnectException(String.format("Exceeded configured %d retry attempts for write request", retryCount));
+    throw new BigQueryConnectException(
+        String.format("Exceeded configured %d attempts for write request", retryCount));
   }
 
   /**

@@ -30,6 +30,8 @@ import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 import com.wepay.kafka.connect.bigquery.convert.kafkadata.KafkaDataBQRecordConverter;
 import com.wepay.kafka.connect.bigquery.convert.kafkadata.KafkaDataBQSchemaConverter;
 
+import com.wepay.kafka.connect.bigquery.write.batch.BatchWriter;
+import com.wepay.kafka.connect.bigquery.write.batch.DynamicBatchWriter;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
@@ -90,14 +92,15 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final String KEYFILE_DOC =
       "The file containing a JSON key with BigQuery service account credentials";
 
-  public static final String MAX_WRITE_CONFIG =                     "maxWriteSize";
-  private static final ConfigDef.Type MAX_WRITE_TYPE =              ConfigDef.Type.INT;
-  public static final Integer MAX_WRITE_DEFAULT =                   100000;
-  private static final ConfigDef.Validator MAX_WRITE_VALIDATOR =    ConfigDef.Range.atLeast(-1);
-  private static final ConfigDef.Importance MAX_WRITE_IMPORTANCE =  ConfigDef.Importance.MEDIUM;
-  private static final String MAX_WRITE_DOC =
-      "The maxiumum number of records to write at once to BigQuery, or -1 for no limit "
-          + "(cannot be zero)";
+  public static final String BATCH_WRITER_CONFIG = "batchWriter";
+  private static final ConfigDef.Type BATCH_WRITER_TYPE = ConfigDef.Type.CLASS;
+  public static final Class<? extends BatchWriter> BATCH_WRITER_DEFAULT = DynamicBatchWriter.class;
+  private static final ConfigDef.Importance BATCH_WRITER_IMPORTANCE = ConfigDef.Importance.HIGH;
+  private static final String BATCH_WRITER_DOC =
+      "The batch writer class to be used. At the moment there are only two options: "
+      + "com.wepay.kafka.connect.bigquery.write.batch.DynamicBatchWriter and "
+      + "com.wepay.kafka.connect.bigquery.write.batch.SingleBatchWriter. See these classes for "
+      + "documentation.";
 
   public static final String SANITIZE_TOPICS_CONFIG =                     "sanitizeTopics";
   private static final ConfigDef.Type SANITIZE_TOPICS_TYPE =              ConfigDef.Type.BOOLEAN;
@@ -159,12 +162,11 @@ public class BigQuerySinkConfig extends AbstractConfig {
             KEYFILE_IMPORTANCE,
             KEYFILE_DOC
         ).define(
-            MAX_WRITE_CONFIG,
-            MAX_WRITE_TYPE,
-            MAX_WRITE_DEFAULT,
-            MAX_WRITE_VALIDATOR,
-            MAX_WRITE_IMPORTANCE,
-            MAX_WRITE_DOC
+            BATCH_WRITER_CONFIG,
+            BATCH_WRITER_TYPE,
+            BATCH_WRITER_DEFAULT,
+            BATCH_WRITER_IMPORTANCE,
+            BATCH_WRITER_DOC
         ).define(
             SANITIZE_TOPICS_CONFIG,
             SANITIZE_TOPICS_TYPE,
