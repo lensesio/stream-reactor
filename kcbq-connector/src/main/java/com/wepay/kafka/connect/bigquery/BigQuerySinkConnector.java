@@ -30,6 +30,7 @@ import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
 
+import com.wepay.kafka.connect.bigquery.utils.TopicToTableResolver;
 import com.wepay.kafka.connect.bigquery.utils.Version;
 
 import org.apache.kafka.common.config.ConfigDef;
@@ -103,10 +104,11 @@ public class BigQuerySinkConnector extends SinkConnector {
   private void ensureExistingTables(
       BigQuery bigQuery,
       SchemaManager schemaManager,
-      Map<String, String> topicsToDatasets) {
+      Map<String, String> topicsToDatasets,
+      Map<String, String> topicsToTables) {
     for (Map.Entry<String, String> topicDataset : topicsToDatasets.entrySet()) {
       String topic = topicDataset.getKey();
-      String table = config.getTableFromTopic(topic);
+      String table = topicsToTables.get(topic);
       String dataset = topicDataset.getValue();
       TableId tableId = TableId.of(dataset, table);
       if (bigQuery.getTable(tableId) == null) {
@@ -116,10 +118,13 @@ public class BigQuerySinkConnector extends SinkConnector {
     }
   }
 
-  private void ensureExistingTables(BigQuery bigQuery, Map<String, String> topicsToDatasets) {
+  private void ensureExistingTables(
+      BigQuery bigQuery,
+      Map<String, String> topicsToDatasets,
+      Map<String, String> topicsToTables) {
     for (Map.Entry<String, String> topicDataset : topicsToDatasets.entrySet()) {
       String topic = topicDataset.getKey();
-      String table = config.getTableFromTopic(topic);
+      String table = topicsToTables.get(topic);
       String dataset = topicDataset.getValue();
       TableId tableId = TableId.of(dataset, table);
       if (bigQuery.getTable(tableId) == null) {
@@ -136,11 +141,12 @@ public class BigQuerySinkConnector extends SinkConnector {
   private void ensureExistingTables() {
     BigQuery bigQuery = getBigQuery();
     Map<String, String> topicsToDatasets = config.getTopicsToDatasets();
+    Map<String, String> topicsToTables = TopicToTableResolver.getTopicsToTables(config);
     if (config.getBoolean(config.TABLE_CREATE_CONFIG)) {
       SchemaManager schemaManager = getSchemaManager(bigQuery);
-      ensureExistingTables(bigQuery, schemaManager, topicsToDatasets);
+      ensureExistingTables(bigQuery, schemaManager, topicsToDatasets, topicsToTables);
     } else {
-      ensureExistingTables(bigQuery, topicsToDatasets);
+      ensureExistingTables(bigQuery, topicsToDatasets, topicsToTables);
     }
   }
 
