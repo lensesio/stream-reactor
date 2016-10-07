@@ -27,8 +27,8 @@ import static org.mockito.Mockito.verify;
 
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest;
-
 import com.google.cloud.bigquery.TableId;
+
 import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
 
 import org.junit.Assert;

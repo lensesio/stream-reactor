@@ -63,7 +63,8 @@ public class BigQuerySinkConfig extends AbstractConfig {
 
   public static final String TOPICS_TO_TABLES_CONFIG =                     "topicsToTables";
   private static final ConfigDef.Type TOPICS_TO_TABLES_TYPE =              ConfigDef.Type.LIST;
-  private static final ConfigDef.Importance TOPICS_TO_TABLES_IMPORTANCE =  ConfigDef.Importance.MEDIUM;
+  private static final ConfigDef.Importance TOPICS_TO_TABLES_IMPORTANCE =
+      ConfigDef.Importance.MEDIUM;
   public static final Object TOPICS_TO_TABLES_DEFAULT =                    null;
   private static final String TOPICS_TO_TABLES_DOC =
       "A list of mappings from topic regexes to table names. Note the regex must include "
@@ -286,6 +287,13 @@ public class BigQuerySinkConfig extends AbstractConfig {
     return configMap;
   }
 
+  /**
+   * Given a config property that contains a list of [regex]=[string] mappings, returns a map from
+   * the regex patterns to the strings.
+   *
+   * @param property The config name containing regex pattern key/value pairs.
+   * @return A map of regex patterns to strings.
+   */
   public List<Map.Entry<Pattern, String>> getSinglePatterns(String property) {
     List<String> propList = getList(property);
     List<Map.Entry<Pattern, String>> patternList = new ArrayList<>();

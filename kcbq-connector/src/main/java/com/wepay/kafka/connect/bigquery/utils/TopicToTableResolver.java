@@ -17,6 +17,9 @@ package com.wepay.kafka.connect.bigquery.utils;
  * under the License.
  */
 
+
+import com.google.cloud.bigquery.TableId;
+
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import org.apache.kafka.common.config.ConfigException;
 
@@ -34,38 +37,18 @@ public class TopicToTableResolver {
 
   /**
    * Return a Map detailing which BigQuery table each topic should write to.
+   *
    * @param config Config that contains properties used to generate the map
    * @return A Map associating Kafka topic names to BigQuery table names.
    */
-  public static Map<String, String> getTopicsToTables(BigQuerySinkConfig config) {
-      return getMatchesForTableNames(
-          config.getSinglePatterns(config.TOPICS_TO_TABLES_CONFIG),
-          config.getList(config.TOPICS_CONFIG),
-          config.TOPICS_CONFIG,
-          config.TOPICS_TO_TABLES_CONFIG,
-          config.getBoolean(config.SANITIZE_TOPICS_CONFIG)
-      );
-  }
-
-  /**
-   * Takes a list of topic names and for each finds a matching regex pattern. If there is a match,
-   * take the capture groups and arrange them according to the format string for the corresponding
-   * regex pattern. If not, use the topic name (potentially sanitized).
-   *
-   * @param patterns List of mappings from regex patterns to a format string
-   * @param values List of values to format using matching regex patterns
-   * @param valueProperty Name of the property containing the list of values
-   * @param patternProperty Name of the property containing maps of regex patterns to format strings
-   * @return a map from topic names to table names.
-   */
-  private static Map<String, String> getMatchesForTableNames(
-      List<Map.Entry<Pattern, String>> patterns,
-      List<String> values,
-      String valueProperty,
-      String patternProperty,
-      Boolean sanitize) {
-    Map<String, String> matches = new HashMap<>();
-    for (String value : values) {
+  public static Map<String, TableId> getTopicsToTables(BigQuerySinkConfig config) {
+    Map<String, String> topicsToDatasets = config.getTopicsToDatasets();
+    List<Map.Entry<Pattern, String>> patterns = config.getSinglePatterns(
+        BigQuerySinkConfig.TOPICS_TO_TABLES_CONFIG);
+    List<String> topics = config.getList(BigQuerySinkConfig.TOPICS_CONFIG);
+    Boolean sanitize = config.getBoolean(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG);
+    Map<String, TableId> matches = new HashMap<>();
+    for (String value : topics) {
       String match = null;
       String previousPattern = null;
       for (Map.Entry<Pattern, String> pattern : patterns) {
@@ -73,36 +56,60 @@ public class TopicToTableResolver {
         if (patternMatcher.matches()) {
           if (match != null) {
             String secondMatch = pattern.getKey().toString();
-            throw new ConfigException(
-                "Value '" + value
-                    + "' for property '" + valueProperty
-                    + "' matches " + patternProperty
-                    + " regexes for both '" + previousPattern
-                    + "' and '" + secondMatch + "'"
+            throw new ConfigException("Value '" + value
+              + "' for property '" + BigQuerySinkConfig.TOPICS_CONFIG
+              + "' matches " + BigQuerySinkConfig.TOPICS_TO_TABLES_CONFIG
+              + " regexes for both '" + previousPattern
+              + "' and '" + secondMatch + "'"
             );
           }
           String formatString = pattern.getValue();
           try {
             match = patternMatcher.replaceAll(formatString);
             previousPattern = pattern.getKey().toString();
-          } catch (IndexOutOfBoundsException e) {
-            throw new ConfigException(
-                "Format string '" + formatString
-                    + "' is invalid in property '" + patternProperty
-                    + "'", e);
+          } catch (IndexOutOfBoundsException err) {
+            throw new ConfigException("Format string '" + formatString
+              + "' is invalid in property '" + BigQuerySinkConfig.TOPICS_TO_TABLES_CONFIG
+              + "'", err);
           }
         }
       }
       if (match == null) {
         match = (sanitize) ? sanitizeTableName(value) : value;
       }
-      matches.put(value, match);
+      String dataset = topicsToDatasets.get(value);
+      matches.put(value, TableId.of(dataset, match));
     }
     return matches;
   }
 
+  /**
+   * Return a Map detailing which topic each table corresponds to. If sanitization has been enabled,
+   * there is a possibility that there are multiple possible schemas a table could correspond to. In
+   * that case, each table must only be written to by one topic, or an exception is thrown.
+   *
+   * @param config Config that contains properties used to generate the map
+   * @return The resulting Map from TableId to topic name.
+   */
+  public static Map<TableId, String> getTablesToTopics(BigQuerySinkConfig config) {
+    Map<String, TableId> topicsToTableIds = getTopicsToTables(config);
+    Map<TableId, String> tableIdsToTopics = new HashMap<>();
+    for (Map.Entry<String, TableId> topicToTableId : topicsToTableIds.entrySet()) {
+      if (tableIdsToTopics.put(topicToTableId.getValue(), topicToTableId.getKey()) != null) {
+        throw new ConfigException("Cannot have multiple topics writing to the same table");
+      }
+    }
+    return tableIdsToTopics;
+  }
+
+  /**
+   * Strips illegal characters from a table name. BigQuery only allows alpha-numeric and
+   * underscore. Everything illegal is converted to an underscore.
+   *
+   * @param tableName The table name to sanitize.
+   * @return A clean table name with only alpha-numerics and underscores.
+   */
   private static String sanitizeTableName(String tableName) {
-    // Take anything that isn't valid in a table name and turn it into an underscore.
     return tableName.replaceAll("[^a-zA-Z0-9_]", "_");
   }
 }

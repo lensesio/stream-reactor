@@ -98,9 +98,8 @@ public class BigQuerySinkTask extends SinkTask {
   private Map<TableId, Buffer<RowToInsert>> tableBuffers;
   private Map<TableId, Set<Schema>> tableSchemas;
   private BatchWriterManager batchWriterManager;
-  private Map<String, String> topicsToDatasets;
-  private Map<TableId, String> tablesToTopics;
-  private Map<String, String> topicsToTables;
+  private Map<TableId, String> tableIdsToTopics;
+  private Map<String, TableId> topicsToTableIds;
   private Metrics metrics;
   private Sensor rowsRead;
 
@@ -153,7 +152,7 @@ public class BigQuerySinkTask extends SinkTask {
     @Override
     public Void call() throws InterruptedException {
       batchWriter.writeAll(table, rows, topic, schemas);
-      updateAllPartitions(tablesToTopics.get(table), offsets);
+      updateAllPartitions(tableIdsToTopics.get(table), offsets);
       return null;
     }
   }
@@ -221,7 +220,7 @@ public class BigQuerySinkTask extends SinkTask {
                 table,
                 buffer.getAll(),
                 offsets,
-                tablesToTopics.get(table),
+                tableIdsToTopics.get(table),
                 tableSchemas.get(table)
             )
         );
@@ -243,10 +242,7 @@ public class BigQuerySinkTask extends SinkTask {
   }
 
   private TableId getRecordTable(SinkRecord record) {
-    String topic = record.topic();
-    String dataset = topicsToDatasets.get(topic);
-    String tableFromTopic = topicsToTables.get(topic);
-    return TableId.of(dataset, tableFromTopic);
+    return topicsToTableIds.get(record.topic());
   }
 
   private String getRowId(SinkRecord record) {
@@ -255,8 +251,8 @@ public class BigQuerySinkTask extends SinkTask {
 
   private RowToInsert getRecordRow(SinkRecord record) {
     return RowToInsert.of(
-        getRowId(record),
-        recordConverter.convertRecord(record)
+      getRowId(record),
+      recordConverter.convertRecord(record)
     );
   }
 
@@ -323,7 +319,7 @@ public class BigQuerySinkTask extends SinkTask {
 
       buffer.buffer(tableRows);
       if (buffer.hasExcess()) {
-        pauseAllPartitions(tablesToTopics.get(table));
+        pauseAllPartitions(tableIdsToTopics.get(table));
       }
     }
     rowsRead.record(records.size());
@@ -399,26 +395,7 @@ public class BigQuerySinkTask extends SinkTask {
                  new Rate());
   }
 
-  /**
-   * Return a Map detailing which topic each table corresponds to. If sanitization has been enabled,
-   * there is a possibility that there are multiple possible schemas a table could correspond to. In
-   * that case, each table must only be written to by one topic, or an exception is thrown.
-   *
-   * @param topicsToDatasets A Map detailing which topics belong to which datasets.
-   * @return The resulting Map from TableId to topic name.
-   */
-  public Map<TableId, String> getTablesToTopics(Map<String, String> topicsToDatasets) {
-    Map<TableId, String> tablesToTopics = new HashMap<>();
-    for (Map.Entry<String, String> topicDataset : topicsToDatasets.entrySet()) {
-      String topic = topicDataset.getKey();
-      String tableName = topicsToTables.get(topic);
-      TableId tableId = TableId.of(topicDataset.getValue(), tableName);
-      if (tablesToTopics.put(tableId, topic) != null) {
-        throw new ConfigException("Cannot have multiple topics writing to the same table");
-      }
-    }
-    return tablesToTopics;
-  }
+
 
   @Override
   public void start(Map<String, String> properties) {
@@ -434,14 +411,11 @@ public class BigQuerySinkTask extends SinkTask {
 
     configureMetrics();
 
-    topicsToDatasets = config.getTopicsToDatasets();
-    topicsToTables = TopicToTableResolver.getTopicsToTables(config);
-    tablesToTopics = getTablesToTopics(topicsToDatasets);
-
+    topicsToTableIds = TopicToTableResolver.getTopicsToTables(config);
+    tableIdsToTopics = TopicToTableResolver.getTablesToTopics(config);
     recordConverter = getConverter();
     tableBuffers = new HashMap<>();
     tableSchemas = new HashMap<>();
-
     batchWriterManager = getBatchWriterManager();
   }
 

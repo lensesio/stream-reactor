@@ -17,16 +17,19 @@ package com.wepay.kafka.connect.bigquery.utils;
  * under the License.
  */
 
+import static org.junit.Assert.assertEquals;
+
+import com.google.cloud.bigquery.TableId;
+
 import com.wepay.kafka.connect.bigquery.SinkPropertiesFactory;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
+
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
 
 public class TopicToTableResolverTest {
 
@@ -53,18 +56,18 @@ public class TopicToTableResolverTest {
         BigQuerySinkConfig.TOPICS_TO_TABLES_CONFIG,
         "db_debezium_identity_profiles_(.*)=$1,db\\.(.*)\\.(.*)\\.(.*)=$1_$3"
     );
-    Map<String, String> expectedTopicsToTables = new HashMap<>();
-    expectedTopicsToTables.put("sanitize-me", "sanitize_me");
-    expectedTopicsToTables.put("db_debezium_identity_profiles_info", "info");
-    expectedTopicsToTables.put("db.core.cluster-0.users", "core_users");
+    Map<String, TableId> expectedTopicsToTables = new HashMap<>();
+    expectedTopicsToTables.put("sanitize-me", TableId.of("scratch", "sanitize_me"));
+    expectedTopicsToTables.put("db_debezium_identity_profiles_info", TableId.of("scratch", "info"));
+    expectedTopicsToTables.put("db.core.cluster-0.users", TableId.of("scratch", "core_users"));
 
     BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
-    Map<String, String> topicsToTables = TopicToTableResolver.getTopicsToTables(testConfig);
+    Map<String, TableId> topicsToTableIds = TopicToTableResolver.getTopicsToTables(testConfig);
 
-    assertEquals(expectedTopicsToTables, topicsToTables);
+    assertEquals(expectedTopicsToTables, topicsToTableIds);
   }
 
-  @Test(expected=ConfigException.class)
+  @Test(expected = ConfigException.class)
   public void testTopicsToTablesInvalidRegex() {
     Map<String, String> configProperties = propertiesFactory.getProperties();
     configProperties.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "true");
@@ -84,7 +87,7 @@ public class TopicToTableResolverTest {
     TopicToTableResolver.getTopicsToTables(testConfig);
   }
 
-  @Test(expected=ConfigException.class)
+  @Test(expected = ConfigException.class)
   public void testTopicsToTablesMultipleMatches() {
     Map<String, String> configProperties = propertiesFactory.getProperties();
     configProperties.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "true");
@@ -102,5 +105,19 @@ public class TopicToTableResolverTest {
     );
     BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
     TopicToTableResolver.getTopicsToTables(testConfig);
+  }
+
+  @Test
+  public void testTablesToTopics() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "true");
+    configProperties.put(BigQuerySinkConfig.DATASETS_CONFIG, ".*=scratch");
+    configProperties.put(BigQuerySinkConfig.TOPICS_CONFIG, "sanitize-me,leave_me_alone");
+    BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
+    Map<TableId, String> testTablesToSchemas = TopicToTableResolver.getTablesToTopics(testConfig);
+    Map<TableId, String> expectedTablesToSchemas = new HashMap<>();
+    expectedTablesToSchemas.put(TableId.of("scratch", "sanitize_me"), "sanitize-me");
+    expectedTablesToSchemas.put(TableId.of("scratch", "leave_me_alone"), "leave_me_alone");
+    assertEquals(expectedTablesToSchemas, testTablesToSchemas);
   }
 }

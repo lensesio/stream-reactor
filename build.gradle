@@ -169,7 +169,7 @@ project(':kcbq-connector') {
     javadoc {
         options.links 'http://docs.oracle.com/javase/8/docs/api/'
         options.links 'http://docs.confluent.io/3.0.0/connect/javadocs/'
-        options.links 'http://googlecloudplatform.github.io/gcloud-java/0.2.7/apidocs/'
+        options.links 'http://googlecloudplatform.github.io/google-cloud-java/0.2.7/apidocs/'
         options.links 'https://kafka.apache.org/0100/javadoc/'
         options.links 'https://avro.apache.org/docs/1.8.1/api/java/'
     }

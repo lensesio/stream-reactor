@@ -18,7 +18,6 @@ package com.wepay.kafka.connect.bigquery;
  */
 
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
@@ -58,7 +57,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 public class BigQuerySinkTaskTest {
@@ -299,33 +297,6 @@ public class BigQuerySinkTaskTest {
 
     BigQuerySinkTask testTask = new BigQuerySinkTask(mock(BigQuery.class));
     testTask.start(badProperties);
-  }
-
-  @Test
-  public void testTablesToTopics() {
-    BigQuery bigQuery  = mock(BigQuery.class);
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery);
-    Map<String, String> configProperties = propertiesFactory.getProperties();
-    configProperties.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "true");
-    configProperties.put(
-        BigQuerySinkConfig.DATASETS_CONFIG,
-        ".*=scratch"
-    );
-    configProperties.put(
-        BigQuerySinkConfig.TOPICS_CONFIG,
-        "sanitize-me,leave_me_alone"
-    );
-    testTask.start(configProperties);
-
-    Map<TableId, String> expectedTablesToSchemas = new HashMap<>();
-    expectedTablesToSchemas.put(TableId.of("scratch", "sanitize_me"), "sanitize-me");
-    expectedTablesToSchemas.put(TableId.of("scratch", "leave_me_alone"), "leave_me_alone");
-
-    BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
-    Map<String, String> topicsToDatasets = testConfig.getTopicsToDatasets();
-    Map<TableId, String> testTablesToSchemas = testTask.getTablesToTopics(topicsToDatasets);
-
-    assertEquals(expectedTablesToSchemas, testTablesToSchemas);
   }
 
   @Test
