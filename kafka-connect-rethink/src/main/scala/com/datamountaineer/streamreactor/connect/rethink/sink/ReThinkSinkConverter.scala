@@ -119,9 +119,9 @@ object ReThinkSinkConverter extends StrictLogging {
     val mo = rethink.hashMap()
 
     value match {
-      case map:java.util.Map =>
+      case map:java.util.Map[_, _] =>
         for (entry <- map.entrySet())
-          mo.put(entry.getKey, entry.getValue)
+          mo.`with`(entry.getKey, entry.getValue)
       case _ => logger.error(s"Failed to convert value ${value.toString}.")
     }
 
