@@ -108,13 +108,25 @@ object ReThinkSinkConverter extends StrictLogging {
     mo
   }
 
-  //  private def concatPrimaryKeys(keys :St, struct: Struct) = {
-  //    logger.info("Concat key")
-  //    keys.map(k => {
-  //      logger.info(s"Concat key $k")
-  //      struct.get(k)
-  //    }).mkString("-")
-  //  }
+  /**
+    * Convert a SinkRecord to a ReThink MapObject when no schema
+    *
+    * @param record The sinkRecord to convert
+    * @return A List of MapObjects to insert
+    **/
+  def convertToReThinkSchemaless(rethink: RethinkDB, record: SinkRecord): MapObject = {
+    val value = record.value()
+    val mo = rethink.hashMap()
+
+    value match {
+      case map:java.util.Map[_, _] =>
+        for (entry <- map.entrySet())
+          mo.`with`(entry.getKey, entry.getValue)
+      case _ => logger.error(s"Failed to convert value ${value.toString}.")
+    }
+
+    mo
+  }
 
   /**
     * Recursively build a MapObject to represent a field

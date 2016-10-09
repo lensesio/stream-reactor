@@ -82,8 +82,14 @@ class ReThinkWriter(rethink : RethinkDB, conn : Connection, setting: ReThinkSett
     val pks = setting.pks(topic)
 
     val writes: Array[MapObject] = records.map(r => {
-      val extracted = convert(r, setting.fieldMap(r.topic()), setting.ignoreFields(r.topic()))
-      ReThinkSinkConverter.convertToReThink(rethink, extracted, pks)
+      val valueSchema = Option(r.valueSchema())
+      valueSchema match {
+        case Some(_) => {
+          val extracted = convert(r, setting.fieldMap(r.topic()), setting.ignoreFields(r.topic()))
+          ReThinkSinkConverter.convertToReThink(rethink, extracted, pks)
+        }
+        case None => ReThinkSinkConverter.convertToReThinkSchemaless(rethink, r)
+      }
     } ).toArray
 
     val x : java.util.Map[String, Object] = rethink
