@@ -37,7 +37,7 @@ object  ElasticWriter {
     val esPrefix = config.getString(ElasticSinkConfig.URL_PREFIX)
     val essettings = Settings
               .settingsBuilder()
-              .put(s"${ElasticSinkConfig.ES_CLUSTER_NAME}", esClusterName)
+              .put("cluster.name", esClusterName)
               .build()
     val uri = ElasticsearchClientUri(s"$esPrefix://$hostNames")
     val client = ElasticClient.transport(essettings, uri)
