@@ -64,23 +64,34 @@ trait TestBase  extends WordSpec with Matchers with BeforeAndAfter {
       .put("string_field", "foo")
   }
 
+  def createMapPOJORecord(schema: Schema, id: String): java.util.Map[String, Object] = {
+    val v = new util.HashMap[String, Object]()
+    v.put("string_id", id)
+    v.put("int_field", new java.lang.Integer(12))
+    v.put("long_field", new java.lang.Long("12"))
+    v
+  }
+
   //get the assignment of topic partitions for the sinkTask
   def getAssignment: util.Set[TopicPartition] = {
     ASSIGNMENT
   }
 
 
-  //generate some test records
-  def getTestRecords: List[SinkRecord]= {
-    val schema = createSchema
+  def generateTestRecords(schema: Schema, recordFn: (Schema, String) => Object): List[SinkRecord]= {
     val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
 
     assignment.flatMap(a => {
       (1 to 1).map(i => {
-        val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
+        val record = recordFn(schema, a.topic() + "-" + a.partition() + "-" + i)
         new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i)
       })
     }).toList
   }
+
+  //generate some test records
+  def getTestRecords = generateTestRecords(createSchema, createRecord)
+  def getMapPOJOTestRecords = generateTestRecords(null, createMapPOJORecord)
+
 
 }

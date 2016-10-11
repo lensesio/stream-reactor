@@ -19,6 +19,18 @@ import scala.collection.JavaConverters._
   * stream-reactor-maven
   */
 class TestReThinkSinkConverter extends TestBase with MockitoSugar {
+  "should convert a Java Map POJO into a ReThink MapObject" in {
+    val records = getMapPOJOTestRecords
+    val rethink = RethinkDB.r
+    val mo = ReThinkSinkConverter.convertToReThinkSchemaless(rethink, records.head)
+    mo.containsKey("string_id") shouldBe true
+    mo.get("string_id") shouldBe "rethink_topic-12-1"
+    mo.containsKey("int_field") shouldBe true
+    mo.get("int_field") shouldBe new java.lang.Integer(12)
+    mo.containsKey("long_field") shouldBe true
+    mo.get("long_field") shouldBe new java.lang.Long("12")
+  }
+
   "should convert a SinkRecord to a ReThink MapObject" in {
     val records = getTestRecords
     val rethink = RethinkDB.r
