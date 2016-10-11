@@ -77,7 +77,7 @@ class ReThinkSinkConnector extends SinkConnector with StrictLogging {
     val port = config.getInt(ReThinkSinkConfig.RETHINK_PORT)
 
     val conn = rethink.connection().hostname(rethinkHost).port(port).connect()
-    ReThinkSinkConverter.checkAndCreateTables(rethink, settings, conn)
+    ReThinkHelper.checkAndCreateTables(rethink, settings, conn)
     conn.close()
   }
 
