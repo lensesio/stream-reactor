@@ -92,6 +92,4 @@ trait TestBase  extends WordSpec with Matchers with BeforeAndAfter {
   //generate some test records
   def getTestRecords = generateTestRecords(createSchema, createRecord)
   def getMapPOJOTestRecords = generateTestRecords(null, createMapPOJORecord)
-
-
 }
