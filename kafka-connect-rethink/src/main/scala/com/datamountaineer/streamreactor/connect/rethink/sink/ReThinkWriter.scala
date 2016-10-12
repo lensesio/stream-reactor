@@ -104,7 +104,7 @@ class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSettin
     if (schema == null) {
       //try to take it as string
       value match {
-        case map: java.util.Map[String, Any] =>
+        case map: java.util.Map[_, _] =>
           val extracted = convertSchemalessJson(record, setting.fieldMap(record.topic()), setting.ignoreFields(record.topic()))
           //not ideal; but the implementation is hashmap anyway
           SinkRecordConversion.fromMap(record, extracted.asInstanceOf[java.util.HashMap[String, Any]], pks)

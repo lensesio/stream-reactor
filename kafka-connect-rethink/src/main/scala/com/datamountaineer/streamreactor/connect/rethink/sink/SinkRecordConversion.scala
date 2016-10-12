@@ -138,17 +138,20 @@ object SinkRecordConversion {
     */
   private def buildField(key: String, value: Any, hm: java.util.HashMap[String, Any]): java.util.HashMap[String, Any] = {
     value match {
-      case map: Map[String, Any] =>
+      case map: Map[_, _] =>
         val mo = new util.HashMap[String, Any]()
-        map.foreach { case (k, v) => buildField(k, v, mo) }
+        map.asInstanceOf[Map[String, Any]].foreach { case (k, v) => buildField(k, v, mo) }
         hm.put(key, mo)
 
-      case lst: List[Map[String, Any]] =>
-        val list = new util.ArrayList[java.util.HashMap[String, Any]]()
-        lst.foreach { m =>
-          val nestedMap = new util.HashMap[String, Any]()
-          m.foreach { case (k, v) => buildField(k, v, nestedMap) }
-          list.add(nestedMap)
+      case lst: List[_] =>
+        val list = new util.ArrayList[Any]()
+        lst.foreach {
+          case m: Map[_, _] =>
+            val nestedMap = new util.HashMap[String, Any]()
+            m.asInstanceOf[Map[String, Any]].foreach { case (k, v) => buildField(k, v, nestedMap) }
+            list.add(nestedMap)
+
+          case m => list.add(m)
         }
         hm.put(key, list)
       case _ =>
