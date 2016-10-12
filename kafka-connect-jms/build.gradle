@@ -6,5 +6,7 @@ project(":kafka-connect-jms") {
         testCompile("com.sksamuel.avro4s:avro4s-macros_$scalaMajorVersion:$avro4sVersion")
         testCompile("com.sksamuel.avro4s:avro4s-generator_$scalaMajorVersion:$avro4sVersion")
         testCompile("org.apache.activemq:activemq-core:5.7.0")
+        testCompile group: 'com.sksamuel.scalax', name: 'scalax_2.11', version: '1.26.0'
+
     }
 }

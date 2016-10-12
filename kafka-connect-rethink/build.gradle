@@ -5,5 +5,7 @@ project(":kafka-connect-rethink") {
 
     dependencies {
         compile "com.rethinkdb:rethinkdb-driver:$rethinkDbVersion"
+        compile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
+        compile "com.sksamuel.avro4s:avro4s-json_$scalaMajorVersion:$avro4sVersion"
     }
 }
