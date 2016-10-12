@@ -8,7 +8,7 @@ import org.scalatest.{Matchers, WordSpec}
 
 class BlockchainSourceTaskTest extends WordSpec with Matchers {
   "BlockchainSourceTask" should {
-    "start and stop on request" in {
+    "start and stop on request" ignore {
       val task = new BlockchainSourceTask()
       val map = new util.HashMap[String, String]
       map.put(BlockchainConfig.KAFKA_TOPIC, "sometopic")
