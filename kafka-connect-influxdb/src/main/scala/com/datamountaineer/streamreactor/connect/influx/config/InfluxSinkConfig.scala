@@ -34,6 +34,22 @@ object InfluxSinkConfig {
   val INFLUX_CONNECTION_PASSWORD_CONFIG = "connect.influx.connection.password"
   val INFLUX_CONNECTION_PASSWORD_DOC = "The password for the influxdb user."
 
+
+  val RETENTION_POLICY_CONFIG = "connect.influx.retention.policy"
+  val RETENTION_POLICY_DOC =
+    """
+      |Determines how long InfluxDB keeps the data - the options for specifying the duration of the retention policy are listed below.
+      |Note that the minimum retention period is one hour.
+      |DURATION determines how long InfluxDB keeps the data - the options for specifying the duration of the retention policy are listed below. Note that the minimum retention period is one hour.
+      |m minutes
+      |h hours
+      |d days
+      |w weeks
+      |INF infinite
+      |
+      |Default retention is `autogen` from 1.0 onwards or `default` for any previous version""".stripMargin
+  val RETENTION_POLICY_DEFAULT = "autogen"
+
   val EXPORT_ROUTE_QUERY_CONFIG = "connect.influx.sink.route.query"
   val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
 
@@ -69,6 +85,8 @@ object InfluxSinkConfig {
       "Connection", 7, ConfigDef.Width.MEDIUM, ERROR_RETRY_INTERVAL_CONFIG)
     .define(NBR_OF_RETRIES_CONFIG, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC,
       "Connection", 8, ConfigDef.Width.MEDIUM, NBR_OF_RETRIES_CONFIG)
+    .define(RETENTION_POLICY_CONFIG, Type.STRING, RETENTION_POLICY_DEFAULT, Importance.HIGH, RETENTION_POLICY_DOC,
+      "Connection", 9, ConfigDef.Width.MEDIUM, RETENTION_POLICY_DOC)
 }
 
 /**

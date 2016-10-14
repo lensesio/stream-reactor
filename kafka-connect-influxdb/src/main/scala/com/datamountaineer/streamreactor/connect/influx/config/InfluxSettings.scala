@@ -28,6 +28,7 @@ case class InfluxSettings(connectionUrl: String,
                           user: String,
                           password: String,
                           database: String,
+                          retentionPolicy: String,
                           topicToMeasurementMap: Map[String, String],
                           fieldsExtractorMap: Map[String, StructFieldsExtractor],
                           errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
@@ -78,13 +79,15 @@ object InfluxSettings {
         case Some(Config.TIMESTAMP) => None
         case other => other
       }
-      (rm.getSource, StructFieldsExtractor(rm.isIncludeAllFields, fields(rm.getSource), timestampField))
+      (rm.getSource, StructFieldsExtractor(rm.isIncludeAllFields, fields(rm.getSource), timestampField, rm.getIgnoredField.toSet))
     }.toMap
 
+    val retentionPolicy = config.getString(RETENTION_POLICY_CONFIG)
     new InfluxSettings(url,
       user,
       password,
       database,
+      retentionPolicy,
       routes.map(r => r.getSource -> r.getTarget).toMap,
       extractorFields,
       errorPolicy,

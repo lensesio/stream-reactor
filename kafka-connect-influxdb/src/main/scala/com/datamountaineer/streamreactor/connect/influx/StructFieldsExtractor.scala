@@ -34,7 +34,8 @@ trait FieldsValuesExtractor {
 
 case class StructFieldsExtractor(includeAllFields: Boolean,
                                  fieldsAliasMap: Map[String, String],
-                                 timestampField: Option[String]) extends FieldsValuesExtractor with StrictLogging {
+                                 timestampField: Option[String],
+                                 ignoredFields:Set[String]) extends FieldsValuesExtractor with StrictLogging {
 
   def get(struct: Struct): RecordData = {
     val schema = struct.schema()

@@ -141,7 +141,7 @@ class TestReThinkSinkConverter extends TestBase with MockitoSugar {
 
       implicit val formats = DefaultFormats
 
-      val record = new SinkRecord("topic", 0, null, null, Schema.STRING_SCHEMA, json, 0)
+      val record = new SinkRecord("topic", 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
       val actual = SinkRecordConversion.fromJson(record, json, Set.empty)
       actual.containsKey("id") shouldBe true
