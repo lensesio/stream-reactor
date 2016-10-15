@@ -1,7 +1,7 @@
 project(":kafka-connect-influxdb") {
 
     ext {
-        influxDbVersion = "2.2"
+        influxDbVersion = "2.3"
     }
 
     dependencies {

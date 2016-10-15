@@ -27,7 +27,7 @@ import org.influxdb.InfluxDBFactory
 
 import scala.util.Try
 
-class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLogging with ConverterUtil with ErrorHandler {
+class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLogging with ErrorHandler {
 
   ValidateStringParameterFn(settings.connectionUrl, "settings")
   ValidateStringParameterFn(settings.user, "settings")
