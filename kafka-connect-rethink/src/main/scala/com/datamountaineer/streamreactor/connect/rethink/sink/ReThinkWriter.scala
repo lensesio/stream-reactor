@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSetting, ReThinkSettings, ReThinkSinkConfig}
+import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSinkSetting, ReThinkSinkSettings}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.net.Connection
@@ -34,7 +34,7 @@ object ReThinkWriter extends StrictLogging {
     val port = config.getInt(ReThinkSinkConfig.RETHINK_PORT)
 
     //set up the connection to the host
-    val settings = ReThinkSettings(config)
+    val settings = ReThinkSinkSettings(config)
     lazy val r = RethinkDB.r
     lazy val conn: Connection = r.connection().hostname(rethinkHost).port(port).connect()
     new ReThinkWriter(r, conn = conn, setting = settings)
@@ -45,7 +45,7 @@ object ReThinkWriter extends StrictLogging {
   * Handles writes to Rethink
   *
   */
-class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSetting)
+class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSinkSetting)
   extends StrictLogging with ConverterUtil with ErrorHandler {
 
   logger.info("Initialising ReThink writer")
