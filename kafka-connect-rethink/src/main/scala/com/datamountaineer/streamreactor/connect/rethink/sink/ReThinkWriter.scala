@@ -17,36 +17,35 @@
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
-import com.datamountaineer.streamreactor.connect.rethink.ReThinkConnection
 import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSinkSetting, ReThinkSinkSettings}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.rethinkdb.RethinkDB
-import com.rethinkdb.model.MapObject
 import com.rethinkdb.net.Connection
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 
-import scala.util.Failure
-import scala.collection.JavaConverters._
+import scala.util.{Failure, Try}
 
 
 object ReThinkWriter extends StrictLogging {
-  def apply(config: ReThinkSinkConfig, context: SinkTaskContext) : ReThinkWriter = {
+  def apply(config: ReThinkSinkConfig, context: SinkTaskContext): ReThinkWriter = {
     val rethinkHost = config.getString(ReThinkSinkConfig.RETHINK_HOST)
     val port = config.getInt(ReThinkSinkConfig.RETHINK_PORT)
 
     //set up the connection to the host
     val settings = ReThinkSinkSettings(config)
     lazy val r = RethinkDB.r
-    lazy val conn = ReThinkConnection(rethinkHost, port, r)
+    lazy val conn: Connection = r.connection().hostname(rethinkHost).port(port).connect()
     new ReThinkWriter(r, conn = conn, setting = settings)
   }
 }
-/***
+
+/** *
   * Handles writes to Rethink
   *
   */
-class ReThinkWriter(rethink : RethinkDB, conn : Connection, setting: ReThinkSinkSetting)
+class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSinkSetting)
   extends StrictLogging with ConverterUtil with ErrorHandler {
 
   logger.info("Initialising ReThink writer")
@@ -58,8 +57,8 @@ class ReThinkWriter(rethink : RethinkDB, conn : Connection, setting: ReThinkSink
     * to rethink
     *
     * @param records A list of SinkRecords to write.
-    * */
-  def write(records: List[SinkRecord]) : Unit = {
+    **/
+  def write(records: List[SinkRecord]): Unit = {
 
     if (records.isEmpty) {
       logger.debug("No records received.")
@@ -67,43 +66,62 @@ class ReThinkWriter(rethink : RethinkDB, conn : Connection, setting: ReThinkSink
       logger.info(s"Received ${records.size} records.")
       if (!conn.isOpen) conn.reconnect()
       val grouped = records.groupBy(_.topic()).grouped(setting.batchSize)
-      grouped.foreach(g => g.foreach {case (topic, entries) => writeRecords(topic, entries)})
+      grouped.foreach(g => g.foreach { case (topic, entries) => writeRecords(topic, entries) })
     }
   }
 
   /**
     * Write a list of sink records to Rethink
     *
-    * @param topic The source topic
+    * @param topic   The source topic
     * @param records The list of sink records to write.
-    * */
+    **/
   private def writeRecords(topic: String, records: List[SinkRecord]) = {
-    logger.info(s"Handling records for $topic")
+    logger.debug(s"Handling records for $topic")
     val table = setting.topicTableMap(topic)
-    val conflict  = setting.conflictPolicy(table)
+    val conflict = setting.conflictPolicy(table)
     val pks = setting.pks(topic)
 
-    val writes: Array[MapObject] = records.map(r => {
-      val valueSchema = Option(r.valueSchema())
-      valueSchema match {
-        case Some(_) => {
-          val extracted = convert(r, setting.fieldMap(r.topic()), setting.ignoreFields(r.topic()))
-          ReThinkSinkConverter.convertToReThink(rethink, extracted, pks)
-        }
-        case None => ReThinkSinkConverter.convertToReThinkSchemaless(rethink, r)
+    val writes = records.map(handleSinkRecord).toArray
+
+    val x: java.util.Map[String, Object] = rethink
+      .db(setting.db)
+      .table(table)
+      .insert(writes)
+      .optArg("conflict", conflict.toString.toLowerCase)
+      .optArg("return_changes", true)
+      .run(conn)
+
+    handleFailure(x)
+    logger.info(s"Wrote ${writes.length} to rethink.")
+  }
+
+  private def handleSinkRecord(record: SinkRecord): java.util.HashMap[String, Any] = {
+    val schema = record.valueSchema()
+    val value = record.value()
+    val pks = setting.pks(record.topic)
+
+    if (schema == null) {
+      //try to take it as string
+      value match {
+        case map: java.util.Map[_, _] =>
+          val extracted = convertSchemalessJson(record, setting.fieldMap(record.topic()), setting.ignoreFields(record.topic()))
+          //not ideal; but the implementation is hashmap anyway
+          SinkRecordConversion.fromMap(record, extracted.asInstanceOf[java.util.HashMap[String, Any]], pks)
+        case _ => sys.error("For schemaless record only String and Map types are supported")
       }
-    } ).toArray
+    } else {
+      schema.`type`() match {
+        case Schema.Type.STRING =>
+          val extracted = convertStringSchemaAndJson(record, setting.fieldMap(record.topic()), setting.ignoreFields(record.topic()))
+          SinkRecordConversion.fromJson(record, extracted, pks)
 
-    val x : java.util.Map[String, Object] = rethink
-                                              .db(setting.db)
-                                              .table(table)
-                                              .insert(writes)
-                                              .optArg("conflict", conflict.toString.toLowerCase)
-                                              .optArg("return_changes", true)
-                                              .run(conn)
-
-    handleFailure(x.asScala.toMap)
-    logger.info(s"Wrote ${writes.size} to rethink.")
+        case Schema.Type.STRUCT =>
+          val extracted = convert(record, setting.fieldMap(record.topic()), setting.ignoreFields(record.topic()))
+          SinkRecordConversion.fromStruct(extracted, pks)
+        case other => sys.error(s"$other schema is not supported")
+      }
+    }
   }
 
   /**
@@ -111,18 +129,20 @@ class ReThinkWriter(rethink : RethinkDB, conn : Connection, setting: ReThinkSink
     * according to the policy
     *
     * @param write The write result changes return from rethink
-    * */
-  private def handleFailure(write : Map[String, Object]) = {
+    **/
+  private def handleFailure(write: java.util.Map[String, Object]) = {
 
-    val errors = write.getOrElse("errors", 0).toString
+    val errors = Try(Option(write.get("errors")).getOrElse("0")).getOrElse(0).toString
 
     if (!errors.equals("0")) {
-      val error = write.getOrElse("first_error","Unknown error")
+      val error = Try(Option(write.get("first_error")).getOrElse("Unknown error")).getOrElse("Unknown error")
       val message = s"Write error occurred. ${error.toString}"
-      val failure = Failure({new Throwable(message)})
+      val failure = Failure({
+        new Throwable(message)
+      })
       handleTry(failure)
     }
   }
 
-  def close() : Unit = conn.close(true)
+  def close(): Unit = conn.close(true)
 }
