@@ -25,9 +25,13 @@ import com.wepay.kafka.connect.bigquery.SinkPropertiesFactory;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 
 import org.apache.kafka.common.config.ConfigException;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.time.LocalDate;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -105,6 +109,21 @@ public class TopicToTableResolverTest {
     );
     BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
     TopicToTableResolver.getTopicsToTables(testConfig);
+  }
+
+  @Test
+  public void testGetPartitionedTableNames() {
+    TableId baseTableId = TableId.of("dataset", "table");
+
+    LocalDate localDate = LocalDate.of(2016, 10, 14);
+
+    TableId partitionedTableId = TopicToTableResolver.getPartitionedTableName(baseTableId,
+                                                                              localDate);
+
+    String expectedTableName = "table" + "$" + "2016" + "10" + "14";
+    Assert.assertEquals(baseTableId.project(), partitionedTableId.project());
+    Assert.assertEquals(baseTableId.dataset(), partitionedTableId.dataset());
+    Assert.assertEquals(expectedTableName, partitionedTableId.table());
   }
 
   @Test

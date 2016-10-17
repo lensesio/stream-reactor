@@ -23,6 +23,8 @@ import com.google.cloud.bigquery.TableId;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import org.apache.kafka.common.config.ConfigException;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,6 +83,39 @@ public class TopicToTableResolver {
       matches.put(value, TableId.of(dataset, match));
     }
     return matches;
+  }
+
+  // package private for testing
+  static TableId getPartitionedTableName(TableId baseTableId, LocalDate localDate) {
+    StringBuilder sb = new StringBuilder();
+    String baseTableName = baseTableId.table();
+    sb.append(baseTableName);
+    sb.append("$");
+
+    int year = localDate.getYear();
+    int month = localDate.getMonthValue();
+    int day = localDate.getDayOfMonth();
+    sb.append(year);
+    sb.append(month);
+    sb.append(day);
+    String partitionedTableName = sb.toString();
+    if (baseTableId.project() == null) {
+      return TableId.of(baseTableId.dataset(), partitionedTableName);
+    } else {
+      return TableId.of(baseTableId.project(), baseTableId.dataset(), partitionedTableName);
+    }
+  }
+
+  private static final Clock UTC_CLOCK = Clock.systemUTC();
+
+  /**
+   * Create and return a TableId containing partition data for the current UTC date.
+   * 
+   * @param baseTableId The tableId with no partition info.
+   * @return the tableId with the partition data for the current UTC date.
+   */
+  public static TableId getPartitionedTableName(TableId baseTableId) {
+    return getPartitionedTableName(baseTableId, LocalDate.now(UTC_CLOCK));
   }
 
   /**

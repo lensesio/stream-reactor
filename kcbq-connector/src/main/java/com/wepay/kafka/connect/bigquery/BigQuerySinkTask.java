@@ -242,7 +242,7 @@ public class BigQuerySinkTask extends SinkTask {
   }
 
   private TableId getRecordTable(SinkRecord record) {
-    return topicsToTableIds.get(record.topic());
+    return TopicToTableResolver.getPartitionedTableName(topicsToTableIds.get(record.topic()));
   }
 
   private String getRowId(SinkRecord record) {

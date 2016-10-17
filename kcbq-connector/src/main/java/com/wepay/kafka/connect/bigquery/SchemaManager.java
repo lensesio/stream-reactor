@@ -4,6 +4,7 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.TimePartitioning;
 
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
@@ -60,8 +61,12 @@ public class SchemaManager {
   TableInfo constructTableInfo(TableId table, Schema kafkaConnectSchema) {
     com.google.cloud.bigquery.Schema bigQuerySchema =
         schemaConverter.convertSchema(kafkaConnectSchema);
+    StandardTableDefinition tableDefinition = StandardTableDefinition.builder()
+        .schema(bigQuerySchema)
+        .timePartitioning(TimePartitioning.of(TimePartitioning.Type.DAY))
+        .build();
     TableInfo.Builder tableInfoBuilder =
-        TableInfo.builder(table, StandardTableDefinition.of(bigQuerySchema));
+        TableInfo.builder(table, tableDefinition);
     if (kafkaConnectSchema.doc() != null) {
       tableInfoBuilder.description(kafkaConnectSchema.doc());
     }
