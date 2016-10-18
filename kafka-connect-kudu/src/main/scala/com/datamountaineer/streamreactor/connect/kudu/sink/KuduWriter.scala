@@ -16,6 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.kudu.sink
 
+import java.util
+
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.kudu.KuduConverter
 import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig}
@@ -26,6 +28,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.kududb.client._
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
@@ -54,8 +57,8 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
     case Failure(f) => logger.warn("Unable to create tables at startup! Tables will be created on delivery of the first record", f)
   }
   //cache tables
-  private lazy val kuduTablesCache = collection.mutable.Map(DbHandler.buildTableCache(setting, client).toSeq:_*)
-  private lazy val session = client.newSession()
+  private val kuduTablesCache = collection.mutable.Map(DbHandler.buildTableCache(setting, client).toSeq:_*)
+  private val session = client.newSession()
 
   //ignore duplicate in case of redelivery
   session.isIgnoreAllDuplicateRows
@@ -174,10 +177,10 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
 
       //throw and let error policy handle it, don't want to throw RetriableException.
       //May want to die if error policy is Throw
-      val responses = session.flush()
+      val responses = session.flush().asScala
       responses
-        .filter(r=>r.hasRowError)
-        .map(e=>throw new Throwable("Failed to flush one or more changes: " + e.getRowError.toString))
+        .filter(r => r.hasRowError)
+        .foreach(e => throw new Throwable(s"Failed to flush one or more changes: ${e.getRowError.toString}"))
     }
   }
 }
