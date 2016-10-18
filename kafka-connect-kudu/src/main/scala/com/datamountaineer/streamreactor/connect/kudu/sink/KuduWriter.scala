@@ -179,7 +179,7 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
       //May want to die if error policy is Throw
       val responses = session.flush().asScala
       responses
-        .filter(r => r.hasRowError)
+        .filter(r => (r == null) || r.hasRowError)
         .foreach(e => throw new Throwable(s"Failed to flush one or more changes: ${e.getRowError.toString}"))
     }
   }
