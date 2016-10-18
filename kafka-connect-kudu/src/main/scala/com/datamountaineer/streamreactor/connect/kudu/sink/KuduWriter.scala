@@ -57,8 +57,8 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
     case Failure(f) => logger.warn("Unable to create tables at startup! Tables will be created on delivery of the first record", f)
   }
   //cache tables
-  private val kuduTablesCache = collection.mutable.Map(DbHandler.buildTableCache(setting, client).toSeq:_*)
-  private val session = client.newSession()
+  private lazy val kuduTablesCache = collection.mutable.Map(DbHandler.buildTableCache(setting, client).toSeq:_*)
+  private lazy val session = client.newSession()
 
   //ignore duplicate in case of redelivery
   session.isIgnoreAllDuplicateRows
@@ -179,7 +179,7 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
       //May want to die if error policy is Throw
       val responses = session.flush().asScala
       responses
-        .filter(r => (r != null) && r.hasRowError)
+        .filter(r => (r == null) || r.hasRowError)
         .foreach(e => {
           throw new Throwable(s"Failed to flush one or more changes: ${e.getRowError.toString}")
         })
