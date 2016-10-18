@@ -52,19 +52,13 @@ class VoltDbWriter(settings: VoltSettings) extends DbWriter with StrictLogging w
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
-      val t = Try {
-        records.withFilter(_.value() != null).foreach(insert)
-      }
+      val t = Try (records.withFilter(_.value() != null).foreach(insert))
       t.foreach(_ => logger.info("Writing complete"))
       handleTry(t)
     }
   }
 
-  override def close(): Unit = {
-    Try {
-      client.close()
-    }
-  }
+  override def close(): Unit = client.close()
 
   private def insert(record: SinkRecord) = {
     require(record.value().getClass == classOf[Struct], "Only Struct payloads are handled")
