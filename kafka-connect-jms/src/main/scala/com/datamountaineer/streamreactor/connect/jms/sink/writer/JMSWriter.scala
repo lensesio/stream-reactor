@@ -82,7 +82,7 @@ case class JMSWriter(context: InitialContext,
         //(total + 1, writeRecord(record, map))
         (total + 1, writeRecord(record, map))
       }
-      logger.info(s"Writing ${count + 1} records to JMS...")
+      logger.debug(s"Writing ${count + 1} records to JMS...")
       session.commit()
     }
     catch {

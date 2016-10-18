@@ -65,7 +65,7 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
-      logger.info(s"Received ${records.size} records.")
+      logger.debug(s"Received ${records.size} records.")
       val batched = records.sliding(settings.batchSize)
       val converted = batched.flatMap(b => b.map(r => (r.topic, convert(r)))).toMap
       converted.foreach({
@@ -73,7 +73,7 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
           val t = Try(reliableTopics(topic).publish(payload))
           handleTry(t)
       })
-      logger.info(s"Written ${records.size}")
+      logger.debug(s"Written ${records.size}")
     }
   }
 

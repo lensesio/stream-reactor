@@ -1,7 +1,7 @@
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
 import com.datamountaineer.streamreactor.connect.rethink.TestBase
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSettings, ReThinkSinkConfig}
+import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkSettings, ReThinkSinkConfig}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.gen.ast._
@@ -24,7 +24,7 @@ class TestReThinkWriter extends TestBase with MockitoSugar with ConverterUtil {
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)
     val config = new ReThinkSinkConfig(getProps)
-    val settings = ReThinkSettings(config)
+    val settings = ReThinkSinkSettings(config)
     val records = getTestRecords
 
     val conflict = settings.conflictPolicy(TABLE)
@@ -65,7 +65,7 @@ class TestReThinkWriter extends TestBase with MockitoSugar with ConverterUtil {
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)
     val config = new ReThinkSinkConfig(getPropsUpsertSelectRetry)
-    val settings = ReThinkSettings(config)
+    val settings = ReThinkSinkSettings(config)
     val records = getTestRecords
     val conflict = settings.conflictPolicy(TABLE)
 

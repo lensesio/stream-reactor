@@ -59,7 +59,7 @@ object ReThinkSinkConfig {
   val NBR_OF_RETIRES_DEFAULT = 20
 
   val BATCH_SIZE = "connect.rethink.sink.batch.size"
-  val BATCH_SIZE_DOC = "Per topic the number of sink records to batch together and insert into Kudu"
+  val BATCH_SIZE_DOC = "Per topic the number of sink records to batch together and insert into ReThinkDB."
   val BATCH_SIZE_DEFAULT = 1000
 
   val config: ConfigDef = new ConfigDef()
@@ -69,7 +69,7 @@ object ReThinkSinkConfig {
       "Connection", 2, ConfigDef.Width.MEDIUM, RETHINK_DB)
     .define(RETHINK_PORT, Type.INT, RETHINK_PORT_DEFAULT, Importance.MEDIUM, RETHINK_PORT_DOC,
       "Connection", 3, ConfigDef.Width.MEDIUM, RETHINK_PORT)
-    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY,
+    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY_DOC,
       "Connection", 4, ConfigDef.Width.MEDIUM, EXPORT_ROUTE_QUERY)
     .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC,
       "Connection", 5, ConfigDef.Width.MEDIUM, ERROR_POLICY)

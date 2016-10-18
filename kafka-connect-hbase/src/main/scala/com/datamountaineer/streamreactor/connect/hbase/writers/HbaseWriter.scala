@@ -52,7 +52,7 @@ class HbaseWriter(settings: HbaseSettings
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
-      logger.info(s"Received ${records.size} records.")
+      logger.debug(s"Received ${records.size} records.")
 
       if (connection.isClosed) {
         val t = Try(ConnectionFactory.createConnection(HBaseConfiguration.create()))
@@ -99,11 +99,11 @@ class HbaseWriter(settings: HbaseSettings
             None
           }
         }
-        logger.info(s"Writing ${puts.size} rows to Hbase...")
+        logger.debug(s"Writing ${puts.size} rows to Hbase...")
 
         val t = Try(table.put(puts))
         handleTry(t)
-        logger.info(s"Wrote ${puts.size} rows.")
+        logger.debug(s"Wrote ${puts.size} rows.")
     })
   }
 
