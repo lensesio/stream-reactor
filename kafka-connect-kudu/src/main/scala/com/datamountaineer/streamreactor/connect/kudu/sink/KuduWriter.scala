@@ -101,7 +101,7 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
         .map(r => applyDDLs(r))
         .map(r => convertToKuduUpsert(r, kuduTablesCache(r.topic)))
         .foreach(i => session.apply(i))
-      flush()
+      //flush()
     })
     handleTry(t)
     logger.info(s"Written ${records.size}")
