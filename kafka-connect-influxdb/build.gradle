@@ -5,6 +5,9 @@ project(":kafka-connect-influxdb") {
     }
 
     dependencies {
-        compile "org.influxdb:influxdb-java:$influxDbVersion"
+        compile ("org.influxdb:influxdb-java:$influxDbVersion") {
+            exclude group: 'com.squareup.okhttp', module: 'okhttp'
+        }
+        compile group: 'com.squareup.okhttp', name: 'okhttp', version: '2.7.5'
     }
 }

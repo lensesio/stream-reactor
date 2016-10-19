@@ -12,8 +12,10 @@ project(":kafka-connect-druid") {
         compile "com.github.nscala-time:nscala-time_$scalaMajorVersion:2.12.0"
         compile ("io.druid:tranquility-core_$scalaMajorVersion:$tranquilityCoreVersion") {
             exclude group : "com.sun.jersey"
+            exclude group: 'com.squareup.okhttp', module: 'okhttp'
             exclude group: 'com.google.guava', module: 'guava'
         }
+        compile group: 'com.squareup.okhttp', name: 'okhttp', version: '2.7.5'
         compile group: 'com.google.guava', name: 'guava', version: '19.0'
         testCompile("org.kitesdk:kite-minicluster:$kiteMiniClusterVersion")
     }
