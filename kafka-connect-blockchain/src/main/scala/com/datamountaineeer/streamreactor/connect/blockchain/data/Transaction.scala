@@ -57,12 +57,12 @@ object Transaction {
     .build()
 
   implicit class TransactionToSourceRecordConverter(val tx: Transaction) extends AnyVal {
-    def toSourceRecord(topic: String, partition: Int, key: Option[String]) = {
+    def toSourceRecord(topic: String, partition: Int, key: Option[String]): SourceRecord = {
       new SourceRecord(Option(key).map(Collections.singletonMap("Blockchain", _)).orNull,
         getOffset(),
         topic,
         partition,
-        key.map(_=>Schema.STRING_SCHEMA).orNull,
+        key.map(_ => Schema.STRING_SCHEMA).orNull,
         key.orNull,
         ConnectSchema,
         tx.toStruct()
@@ -101,5 +101,4 @@ object Transaction {
       struct
     }
   }
-
 }

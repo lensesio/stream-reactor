@@ -72,7 +72,7 @@ class ReThinkSourceConnector extends SourceConnector with StrictLogging {
     *
     * @param props A map of properties for the connector and worker
     **/
-  override def start(props: util.Map[String, String]) = {
+  override def start(props: util.Map[String, String]): Unit = {
     configProps = props
   }
 

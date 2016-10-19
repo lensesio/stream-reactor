@@ -1,9 +1,25 @@
+/**
+  * Copyright 2016 Datamountaineer.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **/
+
 package com.datamountaineeer.streamreactor.connect.blockchain.source
 
 import java.util
 
 import akka.Done
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props, Terminated}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.ws.{Message, TextMessage, WebSocketRequest}
@@ -29,7 +45,7 @@ class BlockchainManager(settings: BlockchainSettings) extends AutoCloseable with
 
   import system._
 
-  def start() = {
+  def start(): Future[Done] = {
     try {
       createFlow(bufferActorRef)
     }
@@ -45,14 +61,14 @@ class BlockchainManager(settings: BlockchainSettings) extends AutoCloseable with
     }
   }
 
-  def stop() = {
+  def stop(): Future[Terminated] = {
     require(cancelFlow.isDefined, "The blockchain manager hasn't been started yet")
     cancelFlow.foreach(_.success(None))
 
     Await.ready(system.terminate(), 1.minute)
   }
 
-  def close() = stop()
+  def close(): Unit = stop()
 
   def get(): util.ArrayList[SourceRecord] = {
     implicit val timeout = akka.util.Timeout(10.seconds)

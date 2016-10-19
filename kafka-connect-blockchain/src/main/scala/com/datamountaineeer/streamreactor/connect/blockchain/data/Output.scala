@@ -45,7 +45,7 @@ object Output {
     .build()
 
   implicit class OutputToStructConverter(val output: Output) extends AnyVal {
-    def toStruct() = {
+    def toStruct(): Struct = {
       val struct = new Struct(ConnectSchema)
         .put("spent", output.spent)
         .put("tx_index", output.tx_index)

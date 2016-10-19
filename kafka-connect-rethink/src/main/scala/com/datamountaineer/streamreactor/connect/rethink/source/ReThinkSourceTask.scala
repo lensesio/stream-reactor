@@ -45,7 +45,7 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
     override def run(): Unit = logCounts()
   }
 
-  override def start(props: util.Map[String, String]) = {
+  override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/rethink-source-ascii.txt")).mkString)
     val config = ReThinkSourceConfig(props)
     lazy val r = RethinkDB.r
@@ -53,13 +53,13 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
     timer.schedule(new LoggerTask, 0, 60000)
   }
 
-  def startReaders(config: ReThinkSourceConfig, rethinkDB: RethinkDB) = {
+  def startReaders(config: ReThinkSourceConfig, rethinkDB: RethinkDB): Unit = {
     val actorProps = ReThinkSourceReader(config, rethinkDB)
     readers = actorProps.map({ case (source, prop) => system.actorOf(prop, source) }).toSet
     readers.foreach( _ ! StartChangeFeed)
   }
 
-  def logCounts() = {
+  def logCounts(): mutable.Map[String, Long] = {
     counter.foreach( { case (k,v) => logger.info(s"Delivered $v records for $k.") })
     counter.empty
   }

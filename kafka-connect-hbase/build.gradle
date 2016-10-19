@@ -8,15 +8,12 @@ project(":kafka-connect-hbase") {
     dependencies {
         compile("org.apache.hbase:hbase-client:$hbaseClientVersion") {
             exclude group : "com.sun.jersey"
-            exclude group: 'com.google.guava', module: 'guava'
+          //  exclude group: 'com.google.guava', module: 'guava'
         }
-        compile group: 'com.google.guava', name: 'guava', version: '19.0'
+        //compile group: 'com.google.guava', name: 'guava', version: '19.0'
 
         testCompile("org.kitesdk:kite-minicluster:$kiteMiniClusterVersion")
         testCompile("org.apache.hbase:hbase-server:$hbaseServerVersion")
         testCompile("org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion")
-        testCompile("com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion")
-        testCompile("com.sksamuel.avro4s:avro4s-macros_$scalaMajorVersion:$avro4sVersion")
-        testCompile("com.sksamuel.avro4s:avro4s-generator_$scalaMajorVersion:$avro4sVersion")
     }
 }
