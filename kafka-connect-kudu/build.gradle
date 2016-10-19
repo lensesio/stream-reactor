@@ -5,7 +5,9 @@ project(":kafka-connect-kudu") {
 
     dependencies {
         compile "org.kududb:kudu-client:$kuduVersion"
-        testCompile "com.datamountaineer:kafka-testkit:$dataMountaineerTestKitVersion"
+        testCompile("com.datamountaineer:kafka-testkit:$dataMountaineerTestKitVersion") {
+            exclude group: 'com.google.guava', module: 'guava'
+        }
+        testCompile group: 'com.google.guava', name: 'guava', version: '19.0'
     }
-
 }
