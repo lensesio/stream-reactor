@@ -1,9 +1,6 @@
 [![Build Status](https://datamountaineer.ci.landoop.com/buildStatus/icon?job=stream-reactor&style=flat&.png)](https://datamountaineer.ci.landoop.com/job/stream-reactor/)
 [![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://docs.datamountaineer.com/en/latest/?badge=latest)
 
-<!--[![Build Status](https://travis-ci.org/datamountaineer/stream-reactor.svg?branch=master)](https://travis-ci.org/datamountaineer/stream-reactor)--> 
-![](images/DM-logo.jpg)
-
 # Stream Reactor
 Streaming reference architecture built around Kafka. 
 
