@@ -30,7 +30,7 @@ object Input {
     .build()
 
   implicit class InputToStructConverter(val input: Input) extends AnyVal {
-    def toStruct() = {
+    def toStruct(): Struct = {
       val struct = new Struct(ConnectSchema)
         .put("sequence", input.sequence)
         .put("script", input.script)

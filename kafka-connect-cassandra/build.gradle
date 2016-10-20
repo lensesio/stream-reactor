@@ -11,7 +11,7 @@ project(":kafka-connect-cassandra") {
     test {
         //for casssandra unit, add to classpath the cassandra yaml files
         classpath = project.sourceSets.test.runtimeClasspath + files("${projectDir}/src/test/resources")
-        classpath = project.sourceSets.test.runtimeClasspath + files("${projectDir.getCanonicalPath()}/src/test/resources/log4j.properties")
+        //classpath = project.sourceSets.test.runtimeClasspath + files("${projectDir.getCanonicalPath()}/src/test/resources/log4j.properties")
         systemProperty 'truststore',  "${projectDir.canonicalPath}/src/test/resources/stc_truststore.jks"
         systemProperty 'keystore', "${projectDir.canonicalPath}/src/test/resources/stc_keystore.jks"
         systemProperty 'log4j.configuration', "file:${projectDir.canonicalPath}/src/test/resources/log4j.properties"
@@ -19,10 +19,7 @@ project(":kafka-connect-cassandra") {
     }
 
     dependencies {
-        compile ("com.datastax.cassandra:cassandra-driver-core:$cassandraDriverVersion") {
-            exclude group: 'com.google.guava', module: 'guava'
-        }
-        compile group: 'com.google.guava', name: 'guava', version: '19.0'
+        compile ("com.datastax.cassandra:cassandra-driver-core:$cassandraDriverVersion")
 
         testCompile "com.google.code.findbugs:jsr305:1.3.9"
         testCompile ("org.apache.cassandra:cassandra-all:$cassandraVersion") {
