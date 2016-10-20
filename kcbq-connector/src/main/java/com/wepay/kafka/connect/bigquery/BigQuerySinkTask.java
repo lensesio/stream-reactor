@@ -25,11 +25,6 @@ import com.google.cloud.bigquery.TableId;
 
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 
-import com.wepay.kafka.connect.bigquery.buffer.Buffer;
-import com.wepay.kafka.connect.bigquery.buffer.EmptyBuffer;
-import com.wepay.kafka.connect.bigquery.buffer.LimitedBuffer;
-import com.wepay.kafka.connect.bigquery.buffer.UnlimitedBuffer;
-
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 
 import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
@@ -71,6 +66,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -95,7 +91,7 @@ public class BigQuerySinkTask extends SinkTask {
   private final BigQuery testBigQuery;
   private BigQuerySinkTaskConfig config;
   private RecordConverter<Map<String, Object>> recordConverter;
-  private Map<TableId, Buffer<RowToInsert>> tableBuffers;
+  private Map<TableId, List<RowToInsert>> tableBuffers;
   private Map<TableId, Set<Schema>> tableSchemas;
   private BatchWriterManager batchWriterManager;
   private Map<TableId, String> tableIdsToTopics;
@@ -211,19 +207,21 @@ public class BigQuerySinkTask extends SinkTask {
   @Override
   public void flush(Map<TopicPartition, OffsetAndMetadata> offsets) {
     List<TableWriter> tableWriters = new ArrayList<>();
-    for (Map.Entry<TableId, Buffer<RowToInsert>> bufferEntry : tableBuffers.entrySet()) {
+    for (Map.Entry<TableId, List<RowToInsert>> bufferEntry : tableBuffers.entrySet()) {
       TableId table = bufferEntry.getKey();
-      Buffer<RowToInsert> buffer = bufferEntry.getValue();
-      if (buffer.hasAny()) {
+      List<RowToInsert> buffer = bufferEntry.getValue();
+      if (!buffer.isEmpty()) {
         tableWriters.add(
             new TableWriter(
                 table,
-                buffer.getAll(),
+                buffer,
                 offsets,
                 tableIdsToTopics.get(table),
                 tableSchemas.get(table)
             )
         );
+        // wipe buffer
+        tableBuffers.put(table, getNewBuffer());
       }
       tableSchemas.put(table, new HashSet<>());
     }
@@ -256,15 +254,23 @@ public class BigQuerySinkTask extends SinkTask {
     );
   }
 
-  private Buffer<RowToInsert> getNewBuffer() {
-    long bufferSize = config.getLong(config.BUFFER_SIZE_CONFIG);
+  // method for initializing the "buffer" to the buffer size.
+  private List<RowToInsert> getNewBuffer() {
+    Long bufferSize = config.getLong(config.BUFFER_SIZE_CONFIG);
     if (bufferSize == -1) {
-      return new UnlimitedBuffer<>();
-    } else if (bufferSize == 0) {
-      return new EmptyBuffer<>();
+      return new LinkedList<>();
     } else {
-      return new LimitedBuffer<>(bufferSize);
+      return new ArrayList<>(bufferSize.intValue());
     }
+  }
+
+  // return true if the given buffer size is larger than or equal to the configured buffer size.
+  private boolean bufferFull(int currentBufferSize) {
+    Long bufferSize = config.getLong(config.BUFFER_SIZE_CONFIG);
+    if (bufferSize == -1) {
+      return false;
+    }
+    return currentBufferSize >= bufferSize;
   }
 
   private Map<TableId, List<SinkRecord>> partitionRecordsByTable(Collection<SinkRecord> records) {
@@ -286,7 +292,7 @@ public class BigQuerySinkTask extends SinkTask {
 
   // Called synchronously in put(); no synchronization on context needed
   private void pauseAllPartitions(String topic) {
-    logger.debug("Pausing all partitions for topic: " + topic);
+    logger.info("Pausing all partitions for topic: {}", topic);
     for (TopicPartition topicPartition : context.assignment()) {
       if (topicPartition.topic().equals(topic)) {
         context.pause(topicPartition);
@@ -308,7 +314,7 @@ public class BigQuerySinkTask extends SinkTask {
         tableSchemas.put(table, new HashSet<>());
       }
 
-      Buffer<RowToInsert> buffer = tableBuffers.get(table);
+      List<RowToInsert> buffer = tableBuffers.get(table);
       Set<Schema> schemas = tableSchemas.get(table);
 
       List<RowToInsert> tableRows = new ArrayList<>();
@@ -317,8 +323,8 @@ public class BigQuerySinkTask extends SinkTask {
         tableRows.add(getRecordRow(record));
       }
 
-      buffer.buffer(tableRows);
-      if (buffer.hasExcess()) {
+      buffer.addAll(tableRows);
+      if (bufferFull(buffer.size())) {
         pauseAllPartitions(tableIdsToTopics.get(table));
       }
     }
