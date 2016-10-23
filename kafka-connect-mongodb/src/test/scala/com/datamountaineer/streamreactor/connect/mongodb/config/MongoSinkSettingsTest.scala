@@ -21,10 +21,10 @@ class MongoSinkSettingsTest extends WordSpec with Matchers {
       settings.database shouldBe "database1"
       settings.hosts shouldBe Seq(MongoConfig.HOSTS_DEFAULT)
       settings.batchSize shouldBe MongoConfig.BATCH_SIZE_CONFIG_DEFAULT
-      settings.keyBuilderMap.size shouldBe 1
+      settings.keyBuilderMap.size shouldBe 0
       settings.routes.size shouldBe 1
       settings.errorPolicy shouldBe ThrowErrorPolicy()
-      settings.ignoreField shouldBe Map("topic1" -> Set.empty)
+      settings.ignoredField shouldBe Map("topic1" -> Set.empty)
     }
 
     "handle two topics" in {
@@ -38,10 +38,10 @@ class MongoSinkSettingsTest extends WordSpec with Matchers {
       settings.database shouldBe "database1"
       settings.hosts shouldBe Seq(MongoConfig.HOSTS_DEFAULT)
       settings.batchSize shouldBe MongoConfig.BATCH_SIZE_CONFIG_DEFAULT
-      settings.keyBuilderMap.size shouldBe 2
+      settings.keyBuilderMap.size shouldBe 0
       settings.routes.size shouldBe 2
       settings.errorPolicy shouldBe ThrowErrorPolicy()
-      settings.ignoreField shouldBe Map("topic1" -> Set.empty, "topic2" -> Set.empty)
+      settings.ignoredField shouldBe Map("topic1" -> Set.empty, "topic2" -> Set.empty)
     }
 
     "handle ingore fields" in {
@@ -55,11 +55,11 @@ class MongoSinkSettingsTest extends WordSpec with Matchers {
       settings.database shouldBe "database1"
       settings.hosts shouldBe Seq(MongoConfig.HOSTS_DEFAULT)
       settings.batchSize shouldBe MongoConfig.BATCH_SIZE_CONFIG_DEFAULT
-      settings.keyBuilderMap.size shouldBe 1
+      settings.keyBuilderMap.size shouldBe 0
       settings.routes.size shouldBe 1
-      settings.keyBuilderMap.head._2.isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
+      settings.keyBuilderMap.size shouldBe 0
       settings.errorPolicy shouldBe ThrowErrorPolicy()
-      settings.ignoreField shouldBe Map("topic1" -> Set("a", "b", "c"))
+      settings.ignoredField shouldBe Map("topic1" -> Set("a", "b", "c"))
     }
 
     "handle primary key fields" in {
@@ -73,13 +73,11 @@ class MongoSinkSettingsTest extends WordSpec with Matchers {
       settings.database shouldBe "database1"
       settings.hosts shouldBe Seq(MongoConfig.HOSTS_DEFAULT)
       settings.batchSize shouldBe MongoConfig.BATCH_SIZE_CONFIG_DEFAULT
-      settings.keyBuilderMap.size shouldBe 1
+      settings.keyBuilderMap.size shouldBe 0
       settings.routes.size shouldBe 1
-      settings.keyBuilderMap.head._2.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
-      val keyBuilder = settings.keyBuilderMap.head._2.asInstanceOf[StringStructFieldsStringKeyBuilder]
-      keyBuilder shouldBe StringStructFieldsStringKeyBuilder(Seq("a", "b"))
+      settings.keyBuilderMap.size shouldBe 0
       settings.errorPolicy shouldBe ThrowErrorPolicy()
-      settings.ignoreField shouldBe Map("topic1" -> Set.empty)
+      settings.ignoredField shouldBe Map("topic1" -> Set.empty)
     }
 
     "throw an exception if the kqcl is not valid" in {

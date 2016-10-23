@@ -16,9 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.mongodb.config
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.connector.config.{Config, WriteModeEnum}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum}
-import com.datamountaineer.streamreactor.connect.rowkeys.{StringGenericRowKeyBuilder, StringKeyBuilder, StringStructFieldsStringKeyBuilder}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 
@@ -29,9 +28,9 @@ import scala.util.{Failure, Success, Try}
 case class MongoSinkSettings(hosts: Seq[String],
                              database: String,
                              routes: Seq[Config],
-                             keyBuilderMap: Map[String, StringKeyBuilder],
+                             keyBuilderMap: Map[String, Set[String]],
                              fields: Map[String, Map[String, String]],
-                             ignoreField: Map[String, Set[String]],
+                             ignoredField: Map[String, Set[String]],
                              errorPolicy: ErrorPolicy,
                              taskRetries: Int = MongoConfig.NBR_OF_RETIRES_DEFAULT,
                              batchSize: Int = MongoConfig.BATCH_SIZE_CONFIG_DEFAULT)
@@ -66,11 +65,13 @@ object MongoSinkSettings extends StrictLogging {
     val errorPolicy = ErrorPolicy(errorPolicyE)
     val retries = config.getInt(MongoConfig.NBR_OF_RETRIES_CONFIG)
 
-    val rowKeyBuilderMap = routes.map { r =>
-      val keys = r.getPrimaryKeys.toList
-      if (keys.nonEmpty) (r.getSource, StringStructFieldsStringKeyBuilder(keys))
-      else (r.getSource, new StringGenericRowKeyBuilder())
-    }.toMap
+    val rowKeyBuilderMap = routes
+      .filter(c => c.getWriteMode == WriteModeEnum.UPSERT)
+      .map { r =>
+        val keys = r.getPrimaryKeys.toSet
+        if (keys.isEmpty) throw new ConfigException(s"${r.getTarget} is set up with upsert, you need primary keys setup")
+        (r.getSource, keys)
+      }.toMap
 
 
     val fieldsMap = routes.map { rm =>

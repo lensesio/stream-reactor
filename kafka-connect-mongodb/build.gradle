@@ -7,9 +7,9 @@ project(":kafka-connect-mongodb") {
         // https://mvnrepository.com/artifact/org.mongodb/mongo-java-driver
         compile "org.mongodb:mongo-java-driver:$mongoVersion"
         testCompile "com.datamountaineer:kafka-testkit:$dataMountaineerTestKitVersion"
-        testCompile "de.flapdoodle.embed:de.flapdoodle.embed.mongo:1.50.5"
         testCompile "org.json4s:json4s-native_$scalaMajorVersion:3.4.0"
-
+        testCompile "de.flapdoodle.embed:de.flapdoodle.embed.mongo:1.50.5"
+        testCompile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
     }
 
 }

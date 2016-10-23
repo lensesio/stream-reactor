@@ -16,9 +16,19 @@
 
 package com.datamountaineer.streamreactor.connect.mongodb
 
+import java.util
+
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 
-case class Input(sequence: Long, prev_out: Option[Output], script: String)
+case class Input(sequence: Long, prev_out: Option[Output], script: String) {
+  def toHashMap: util.HashMap[String, Any] = {
+    val map = new util.HashMap[String, Any]()
+    map.put("sequence", sequence)
+    prev_out.foreach(p => map.put("prev_out", p.toHashMap))
+    map.put("script", script)
+    map
+  }
+}
 
 object Input {
   val ConnectSchema = SchemaBuilder.struct
@@ -35,7 +45,7 @@ object Input {
         .put("sequence", input.sequence)
         .put("script", input.script)
 
-      input.prev_out.foreach(po=>struct.put("prev_out", po.toStruct()))
+      input.prev_out.foreach(po => struct.put("prev_out", po.toStruct()))
       struct
     }
   }

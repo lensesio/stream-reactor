@@ -33,7 +33,29 @@ case class Transaction(lock_time: Long,
                        hash: String,
                        vout_sz: Int,
                        relayed_by: String,
-                       out: Seq[Output])
+                       out: Seq[Output]) {
+  def toHashMap: util.HashMap[String, Any] = {
+    val map = new util.HashMap[String, Any]()
+    map.put("lock_time", lock_time)
+    map.put("ver", ver)
+    map.put("size", size)
+    val inputsArr = new util.ArrayList[Any]()
+    inputs.foreach(i=>inputsArr.add(i.toHashMap))
+    map.put("inputs", inputsArr)
+    rbf.foreach(map.put("rbf", _))
+    map.put("time", time)
+    map.put("tx_index", tx_index)
+    map.put("vin_sz", vin_sz)
+    map.put("hash", hash)
+    map.put("vout_sz", vout_sz)
+    map.put("relayed_by", relayed_by)
+
+    val outArr = new util.ArrayList[Any]()
+    out.foreach(o => outArr.add(o.toHashMap))
+    map.put("out", outArr)
+    map
+  }
+}
 
 
 object Transaction {
@@ -59,7 +81,7 @@ object Transaction {
         getOffset(),
         topic,
         partition,
-        key.map(_=>Schema.STRING_SCHEMA).orNull,
+        key.map(_ => Schema.STRING_SCHEMA).orNull,
         key.orNull,
         ConnectSchema,
         tx.toStruct()
@@ -80,10 +102,10 @@ object Transaction {
         .put("vout_sz", tx.vout_sz)
         .put("relayed_by", tx.relayed_by)
 
-        tx.out.headOption.foreach { _ =>
-          import scala.collection.JavaConverters._
-          struct.put("out", tx.out.map(_.toStruct()).asJava)
-        }
+      tx.out.headOption.foreach { _ =>
+        import scala.collection.JavaConverters._
+        struct.put("out", tx.out.map(_.toStruct()).asJava)
+      }
       tx.rbf.foreach(struct.put("rbf", _))
       tx.inputs.headOption.foreach { _ =>
         val inputs = new util.ArrayList[Struct]
