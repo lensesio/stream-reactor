@@ -18,10 +18,8 @@ package com.datamountaineer.streamreactor.connect.mongodb.sink
 
 import com.datamountaineer.connector.config.WriteModeEnum
 import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
-import com.datamountaineer.streamreactor.connect.mongodb.JsonNodeToMongoDocument
 import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoSinkSettings}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import com.fasterxml.jackson.databind.JsonNode
 import com.mongodb.client.model.{Filters, InsertOneModel, UpdateOneModel, UpdateOptions}
 import com.mongodb.{MongoClient, MongoClientURI}
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -36,18 +34,16 @@ import scala.util.Failure
   * Mongo Json writer for Kafka connect
   * Writes a list of Kafka connect sink records to Mongo using the JSON support.
   */
-class MongoWriter(settings: MongoSinkSettings) extends StrictLogging with ConverterUtil with ErrorHandler {
-  private val connectionString = new MongoClientURI(s"mongodb://${settings.hosts.mkString(",")}")
-
-  logger.info(s"Initialising Mongo writer.Connection to ${connectionString.toString}")
-
-  private val mongoClient = new MongoClient(connectionString)
-
+class MongoWriter(settings: MongoSinkSettings, mongoClient: MongoClient) extends StrictLogging with ConverterUtil with ErrorHandler {
   logger.info(s"Obtaining the database information for ${settings.database}")
   private val database = mongoClient.getDatabase(settings.database)
 
-  private val collectionMap = settings.routes.map(c => c.getTarget)
-    .map(targetCollection => targetCollection -> database.getCollection(targetCollection))
+  private val collectionMap = settings.routes
+    .map(c=> c.getSource -> Option(database.getCollection(c.getTarget)).getOrElse {
+      logger.info(s"Collection not found. Creating collection ${c.getTarget}")
+      database.createCollection(c.getTarget)
+      database.getCollection(c.getTarget)
+    })
     .toMap
 
   private val configMap = settings.routes.map(c => c.getSource -> c).toMap
@@ -76,26 +72,22 @@ class MongoWriter(settings: MongoSinkSettings) extends StrictLogging with Conver
     **/
   private def insert(records: Seq[SinkRecord]) = {
     try {
-
       records.groupBy(_.topic()).foreach { case (topic, groupedRecords) =>
         val collection = collectionMap(topic)
         groupedRecords.map { record =>
-          val json = toJson(record)
-
-          val keyBuilder = settings.keyBuilderMap.getOrElse(record.topic(), sys.error(s"${record.topic()} is not handled by the config"))
-          val key = keyBuilder.build(record)
-          val document = JsonNodeToMongoDocument(json, key)
+          val (document, keysAndValues) = SinkRecordToDocument(record)(settings)
 
           val config = configMap.getOrElse(record.topic(), sys.error(s"${record.topic()} is not handled by the configuration."))
           config.getWriteMode match {
             case WriteModeEnum.INSERT => new InsertOneModel[Document](document)
-            case WriteModeEnum.UPSERT => new UpdateOneModel[Document](Filters.eq("_id", key), document, MongoWriter.UpdateOptions)
+            case WriteModeEnum.UPSERT =>
+              val filter = Filters.and(keysAndValues.map{case (k,v)=> Filters.eq(k,v)}.toList:_*)
+              new UpdateOneModel[Document](filter, document, MongoWriter.UpdateOptions)
           }
         }.grouped(settings.batchSize)
           .foreach { batch =>
             collection.bulkWrite(batch.toList)
           }
-
       }
     }
     catch {
@@ -103,19 +95,6 @@ class MongoWriter(settings: MongoSinkSettings) extends StrictLogging with Conver
         logger.error(s"There was an error inserting the records ${t.getMessage}", t)
         handleTry(Failure(t))
     }
-  }
-
-  /**
-    * Convert sink records to json
-    *
-    * @param record A sink records to convert.
-    **/
-  private def toJson(record: SinkRecord): JsonNode = {
-    val extracted = convert(record,
-      settings.fields(record.topic()),
-      settings.ignoreField(record.topic()))
-
-    convertValueToJson(extracted)
   }
 
   def close(): Unit = {
@@ -136,6 +115,9 @@ object MongoWriter extends StrictLogging {
       context.timeout(connectorConfig.getLong(MongoConfig.ERROR_RETRY_INTERVAL_CONFIG))
     }
 
-    new MongoWriter(settings)
+    val connectionString = new MongoClientURI(s"mongodb://${settings.hosts.mkString(",")}")
+    logger.info(s"Initialising Mongo writer.Connection to ${connectionString.toString}")
+    val mongoClient = new MongoClient(connectionString)
+    new MongoWriter(settings, mongoClient)
   }
 }
