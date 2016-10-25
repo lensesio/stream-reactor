@@ -66,18 +66,22 @@ object KeysExtractor {
   }
 
   def fromJson(jvalue: JValue, keys: Set[String]) = {
-    jvalue.children.collect {
-      case JField(name, value) if keys.contains(name) =>
-        val v = value match {
-          case JBool(b) => b
-          case JDecimal(d) => d.toDouble //need to do this because of mong
-          case JDouble(d) => d
-          case JInt(i) => i.toLong //need to do this because of mongo
-          case JLong(l) => l
-          case JString(s) => s
-          case other => throw new ConfigException(s"Field $name is not handled as a key (${other.getClass}). it needs to be a int, long, string, double or decimal")
+    jvalue match {
+      case JObject(children) =>
+        children.collect {
+          case JField(name, value) if keys.contains(name) =>
+            val v = value match {
+              case JBool(b) => b
+              case JDecimal(d) => d.toDouble //need to do this because of mong
+              case JDouble(d) => d
+              case JInt(i) => i.toLong //need to do this because of mongo
+              case JLong(l) => l
+              case JString(s) => s
+              case other => throw new ConfigException(s"Field $name is not handled as a key (${other.getClass}). it needs to be a int, long, string, double or decimal")
+            }
+            name -> v
         }
-        name -> v
+      case other => throw new ConfigException(s"${other.getClass} is not supported")
     }
   }
 }

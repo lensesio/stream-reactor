@@ -8,7 +8,11 @@ import org.json4s.native.JsonMethods._
 object Json {
   implicit val formats = DefaultFormats
 
-  def fromJson[T <: Product:Manifest](json: String): T = {
+  def parseJson(json: String): JValue = {
+    parse(json)
+  }
+
+  def fromJson[T <: Product : Manifest](json: String): T = {
     parse(json).extract[T]
   }
 }
