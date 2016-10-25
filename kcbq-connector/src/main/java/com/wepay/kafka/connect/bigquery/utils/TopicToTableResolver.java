@@ -23,8 +23,6 @@ import com.google.cloud.bigquery.TableId;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import org.apache.kafka.common.config.ConfigException;
 
-import java.time.Clock;
-import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -85,48 +83,16 @@ public class TopicToTableResolver {
     return matches;
   }
 
-  // package private for testing
-  static TableId getPartitionedTableName(TableId baseTableId, LocalDate localDate) {
-    StringBuilder sb = new StringBuilder();
-    String baseTableName = baseTableId.table();
-    sb.append(baseTableName);
-    sb.append("$");
-
-    int year = localDate.getYear();
-    int month = localDate.getMonthValue();
-    int day = localDate.getDayOfMonth();
-    sb.append(year);
-    sb.append(month);
-    sb.append(day);
-    String partitionedTableName = sb.toString();
-    if (baseTableId.project() == null) {
-      return TableId.of(baseTableId.dataset(), partitionedTableName);
-    } else {
-      return TableId.of(baseTableId.project(), baseTableId.dataset(), partitionedTableName);
-    }
-  }
-
-  private static final Clock UTC_CLOCK = Clock.systemUTC();
-
   /**
-   * Create and return a TableId containing partition data for the current UTC date.
-   * 
-   * @param baseTableId The tableId with no partition info.
-   * @return the tableId with the partition data for the current UTC date.
-   */
-  public static TableId getPartitionedTableName(TableId baseTableId) {
-    return getPartitionedTableName(baseTableId, LocalDate.now(UTC_CLOCK));
-  }
-
-  /**
-   * Return a Map detailing which topic each table corresponds to. If sanitization has been enabled,
-   * there is a possibility that there are multiple possible schemas a table could correspond to. In
-   * that case, each table must only be written to by one topic, or an exception is thrown.
+   * Return a Map detailing which topic each base table corresponds to. If sanitization has been
+   * enabled, there is a possibility that there are multiple possible schemas a table could
+   * correspond to. In that case, each table must only be written to by one topic, or an exception
+   * is thrown.
    *
    * @param config Config that contains properties used to generate the map
    * @return The resulting Map from TableId to topic name.
    */
-  public static Map<TableId, String> getTablesToTopics(BigQuerySinkConfig config) {
+  public static Map<TableId, String> getBaseTablesToTopics(BigQuerySinkConfig config) {
     Map<String, TableId> topicsToTableIds = getTopicsToTables(config);
     Map<TableId, String> tableIdsToTopics = new HashMap<>();
     for (Map.Entry<String, TableId> topicToTableId : topicsToTableIds.entrySet()) {

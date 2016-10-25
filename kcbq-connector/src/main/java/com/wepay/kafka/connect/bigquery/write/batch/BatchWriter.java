@@ -21,6 +21,7 @@ package com.wepay.kafka.connect.bigquery.write.batch;
 import com.google.cloud.bigquery.TableId;
 
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
+import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
 import org.apache.kafka.connect.data.Schema;
 

@@ -34,6 +34,7 @@ import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
 
 import com.wepay.kafka.connect.bigquery.utils.MetricsConstants;
+import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import com.wepay.kafka.connect.bigquery.utils.TopicToTableResolver;
 import com.wepay.kafka.connect.bigquery.utils.Version;
 
@@ -91,11 +92,11 @@ public class BigQuerySinkTask extends SinkTask {
   private final BigQuery testBigQuery;
   private BigQuerySinkTaskConfig config;
   private RecordConverter<Map<String, Object>> recordConverter;
-  private Map<TableId, List<RowToInsert>> tableBuffers;
+  private Map<PartitionedTableId, List<RowToInsert>> tableBuffers;
   private Map<TableId, Set<Schema>> tableSchemas;
   private BatchWriterManager batchWriterManager;
-  private Map<TableId, String> tableIdsToTopics;
-  private Map<String, TableId> topicsToTableIds;
+  private Map<TableId, String> baseTableIdsToTopics;
+  private Map<String, TableId> topicsToBaseTableIds;
   private Metrics metrics;
   private Sensor rowsRead;
 
@@ -125,41 +126,42 @@ public class BigQuerySinkTask extends SinkTask {
   }
 
   private class TableWriter implements Callable<Void> {
-    private final TableId table;
+    private final PartitionedTableId partitionedTableId;
     private final List<RowToInsert> rows;
     private final Map<TopicPartition, OffsetAndMetadata> offsets;
     private final String topic;
     private final Set<Schema> schemas;
     private final BatchWriter<RowToInsert> batchWriter;
 
-    public TableWriter(TableId table,
+    public TableWriter(PartitionedTableId partitionedTableId,
                        List<RowToInsert> rows,
                        Map<TopicPartition, OffsetAndMetadata> offsets,
                        String topic,
                        Set<Schema> schemas) {
-      this.table = table;
+      this.partitionedTableId = partitionedTableId;
       this.rows = rows;
       this.offsets = offsets;
       this.topic = topic;
       this.schemas = schemas;
-      this.batchWriter = batchWriterManager.getBatchWriter(table);
+      this.batchWriter = batchWriterManager.getBatchWriter(partitionedTableId.getBaseTableId());
     }
 
     @Override
     public Void call() throws InterruptedException {
-      batchWriter.writeAll(table, rows, topic, schemas);
-      updateAllPartitions(tableIdsToTopics.get(table), offsets);
+      batchWriter.writeAll(partitionedTableId.getFullTableId(), rows, topic, schemas);
+      updateAllPartitions(baseTableIdsToTopics.get(partitionedTableId.getBaseTableId()), offsets);
       return null;
     }
   }
 
   /**
-   * A class for keeping track of the BatchWriters for each table.
+   * A class for keeping track of the BatchWriters for each base table.
    */
   private static class BatchWriterManager {
     private final BigQueryWriter bigQueryWriter;
     private final Class<BatchWriter<InsertAllRequest.RowToInsert>> batchWriterClass;
-    private Map<TableId, BatchWriter<RowToInsert>> batchWriterMap;
+    // map from base TableId to the batchWriter for that base table
+    private Map<TableId, BatchWriter<RowToInsert>> baseTableBatchWriterMap;
 
     /**
      * @param bigQueryWriter the {@link BigQueryWriter} to use to call BigQuery.
@@ -171,17 +173,17 @@ public class BigQuerySinkTask extends SinkTask {
                               int numTables) {
       this.bigQueryWriter = bigQueryWriter;
       this.batchWriterClass = batchWriterClass;
-      batchWriterMap = new HashMap<>(numTables);
+      baseTableBatchWriterMap = new HashMap<>(numTables);
     }
 
-    public synchronized BatchWriter<RowToInsert> getBatchWriter(TableId tableId) {
-      if (!batchWriterMap.containsKey(tableId)) {
-        addNewBatchWriter(tableId);
+    public synchronized BatchWriter<RowToInsert> getBatchWriter(TableId baseTableId) {
+      if (!baseTableBatchWriterMap.containsKey(baseTableId)) {
+        addNewBatchWriter(baseTableId);
       }
-      return batchWriterMap.get(tableId);
+      return baseTableBatchWriterMap.get(baseTableId);
     }
 
-    private void addNewBatchWriter(TableId tableId) {
+    private void addNewBatchWriter(TableId baseTableId) {
       BatchWriter<RowToInsert> batchWriter;
       try {
         batchWriter = batchWriterClass.newInstance();
@@ -192,7 +194,7 @@ public class BigQuerySinkTask extends SinkTask {
         throw new ConfigException("Failed to instantiate class specified for BatchWriter",
           exception);
       }
-      batchWriterMap.put(tableId, batchWriter);
+      baseTableBatchWriterMap.put(baseTableId, batchWriter);
     }
   }
 
@@ -207,8 +209,8 @@ public class BigQuerySinkTask extends SinkTask {
   @Override
   public void flush(Map<TopicPartition, OffsetAndMetadata> offsets) {
     List<TableWriter> tableWriters = new ArrayList<>();
-    for (Map.Entry<TableId, List<RowToInsert>> bufferEntry : tableBuffers.entrySet()) {
-      TableId table = bufferEntry.getKey();
+    for (Map.Entry<PartitionedTableId, List<RowToInsert>> bufferEntry : tableBuffers.entrySet()) {
+      PartitionedTableId table = bufferEntry.getKey();
       List<RowToInsert> buffer = bufferEntry.getValue();
       if (!buffer.isEmpty()) {
         tableWriters.add(
@@ -216,14 +218,14 @@ public class BigQuerySinkTask extends SinkTask {
                 table,
                 buffer,
                 offsets,
-                tableIdsToTopics.get(table),
-                tableSchemas.get(table)
+                baseTableIdsToTopics.get(table.getBaseTableId()),
+                tableSchemas.get(table.getBaseTableId())
             )
         );
         // wipe buffer
-        tableBuffers.put(table, getNewBuffer());
+        tableBuffers.remove(table);
       }
-      tableSchemas.put(table, new HashSet<>());
+      tableSchemas.put(table.getBaseTableId(), new HashSet<>());
     }
     if (!tableWriters.isEmpty()) {
       try {
@@ -233,18 +235,23 @@ public class BigQuerySinkTask extends SinkTask {
       } catch (InterruptedException err) {
         throw new ConnectException("Interrupted while scheduling/executing write threads", err);
       } catch (ExecutionException err) {
-        throw new BigQueryConnectException("Exception occurred while executing write threads", err);
+        throw new BigQueryConnectException("Exception occurred while executing write threads",
+                                           err);
       }
     }
     resumeAllPartitions();
   }
 
-  private TableId getRecordTable(SinkRecord record) {
-    return TopicToTableResolver.getPartitionedTableName(topicsToTableIds.get(record.topic()));
+  private PartitionedTableId getRecordTable(SinkRecord record) {
+    TableId baseTableId = topicsToBaseTableIds.get(record.topic());
+    return new PartitionedTableId.Builder(baseTableId).setDayPartitionForNow().build();
   }
 
   private String getRowId(SinkRecord record) {
-    return String.format("%s-%d-%d", record.topic(), record.kafkaPartition(), record.kafkaOffset());
+    return String.format("%s-%d-%d",
+                         record.topic(),
+                         record.kafkaPartition(),
+                         record.kafkaOffset());
   }
 
   private RowToInsert getRecordRow(SinkRecord record) {
@@ -273,15 +280,16 @@ public class BigQuerySinkTask extends SinkTask {
     return currentBufferSize >= bufferSize;
   }
 
-  private Map<TableId, List<SinkRecord>> partitionRecordsByTable(Collection<SinkRecord> records) {
-    Map<TableId, List<SinkRecord>> tableRecords = new HashMap<>();
+  private Map<PartitionedTableId, List<SinkRecord>>
+      getRecordsByTable(Collection<SinkRecord> records) {
+    Map<PartitionedTableId, List<SinkRecord>> tableRecords = new HashMap<>();
     for (SinkRecord record : records) {
       if (recordEmpty(record)) {
         // ignore it
         logger.debug("ignoring empty record value for topic: " + record.topic());
         continue;
       }
-      TableId tableId = getRecordTable(record);
+      PartitionedTableId tableId = getRecordTable(record);
       if (!tableRecords.containsKey(tableId)) {
         tableRecords.put(tableId, new ArrayList<>());
       }
@@ -302,20 +310,20 @@ public class BigQuerySinkTask extends SinkTask {
 
   @Override
   public void put(Collection<SinkRecord> records) {
-    Map<TableId, List<SinkRecord>> partitionedRecords = partitionRecordsByTable(records);
-    for (Map.Entry<TableId, List<SinkRecord>> tableRecords : partitionedRecords.entrySet()) {
-      TableId table = tableRecords.getKey();
+    Map<PartitionedTableId, List<SinkRecord>> recordsMap = getRecordsByTable(records);
+    for (Map.Entry<PartitionedTableId, List<SinkRecord>> tableRecords : recordsMap.entrySet()) {
+      PartitionedTableId partitionedTableId = tableRecords.getKey();
 
-      if (!tableBuffers.containsKey(table)) {
-        tableBuffers.put(table, getNewBuffer());
+      if (!tableBuffers.containsKey(partitionedTableId)) {
+        tableBuffers.put(partitionedTableId, getNewBuffer());
       }
 
-      if (!tableSchemas.containsKey(table)) {
-        tableSchemas.put(table, new HashSet<>());
+      if (!tableSchemas.containsKey(partitionedTableId.getBaseTableId())) {
+        tableSchemas.put(partitionedTableId.getBaseTableId(), new HashSet<>());
       }
 
-      List<RowToInsert> buffer = tableBuffers.get(table);
-      Set<Schema> schemas = tableSchemas.get(table);
+      List<RowToInsert> buffer = tableBuffers.get(partitionedTableId);
+      Set<Schema> schemas = tableSchemas.get(partitionedTableId.getBaseTableId());
 
       List<RowToInsert> tableRows = new ArrayList<>();
       for (SinkRecord record : tableRecords.getValue()) {
@@ -325,10 +333,10 @@ public class BigQuerySinkTask extends SinkTask {
 
       buffer.addAll(tableRows);
       if (bufferFull(buffer.size())) {
-        pauseAllPartitions(tableIdsToTopics.get(table));
+        pauseAllPartitions(baseTableIdsToTopics.get(partitionedTableId.getBaseTableId()));
       }
     }
-    rowsRead.record(records.size());
+    rowsRead.record(recordsMap.size());
   }
 
   /**
@@ -417,8 +425,8 @@ public class BigQuerySinkTask extends SinkTask {
 
     configureMetrics();
 
-    topicsToTableIds = TopicToTableResolver.getTopicsToTables(config);
-    tableIdsToTopics = TopicToTableResolver.getTablesToTopics(config);
+    topicsToBaseTableIds = TopicToTableResolver.getTopicsToTables(config);
+    baseTableIdsToTopics = TopicToTableResolver.getBaseTablesToTopics(config);
     recordConverter = getConverter();
     tableBuffers = new HashMap<>();
     tableSchemas = new HashMap<>();
