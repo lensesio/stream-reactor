@@ -20,7 +20,7 @@ import com.datamountaineer.connector.config.WriteModeEnum
 import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
 import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoSinkSettings}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import com.mongodb.client.model.{Filters, InsertOneModel, UpdateOneModel, UpdateOptions}
+import com.mongodb.client.model._
 import com.mongodb.{MongoClient, MongoClientURI}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
@@ -39,7 +39,7 @@ class MongoWriter(settings: MongoSinkSettings, mongoClient: MongoClient) extends
   private val database = mongoClient.getDatabase(settings.database)
 
   private val collectionMap = settings.routes
-    .map(c=> c.getSource -> Option(database.getCollection(c.getTarget)).getOrElse {
+    .map(c => c.getSource -> Option(database.getCollection(c.getTarget)).getOrElse {
       logger.info(s"Collection not found. Creating collection ${c.getTarget}")
       database.createCollection(c.getTarget)
       database.getCollection(c.getTarget)
@@ -75,14 +75,21 @@ class MongoWriter(settings: MongoSinkSettings, mongoClient: MongoClient) extends
       records.groupBy(_.topic()).foreach { case (topic, groupedRecords) =>
         val collection = collectionMap(topic)
         groupedRecords.map { record =>
-          val (document, keysAndValues) = SinkRecordToDocument(record)(settings)
+          val (document, keysAndValues) = SinkRecordToDocument(
+            record,
+            settings.keyBuilderMap.getOrElse(record.topic(), Set.empty)
+          )(settings)
 
           val config = configMap.getOrElse(record.topic(), sys.error(s"${record.topic()} is not handled by the configuration."))
           config.getWriteMode match {
             case WriteModeEnum.INSERT => new InsertOneModel[Document](document)
             case WriteModeEnum.UPSERT =>
-              val filter = Filters.and(keysAndValues.map{case (k,v)=> Filters.eq(k,v)}.toList:_*)
-              new UpdateOneModel[Document](filter, document, MongoWriter.UpdateOptions)
+              require(keysAndValues.nonEmpty, "Need to provide keys and values to identify the record to upsert")
+              val filter = Filters.and(keysAndValues.map { case (k, v) => Filters.eq(k, v) }.toList: _*)
+              new ReplaceOneModel[Document](
+                filter,
+                document,
+                MongoWriter.UpdateOptions.upsert(true))
           }
         }.grouped(settings.batchSize)
           .foreach { batch =>

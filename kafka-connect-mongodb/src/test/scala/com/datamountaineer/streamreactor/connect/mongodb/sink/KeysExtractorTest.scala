@@ -2,6 +2,7 @@ package com.datamountaineer.streamreactor.connect.mongodb.sink
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.mongodb.{Json, Transaction}
 import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.common.config.ConfigException
@@ -18,6 +19,23 @@ class KeysExtractorTest extends WordSpec with Matchers {
   case class SomeTest(name: String, value: Double, flags: Seq[Int], map: Map[String, String])
 
   "KeysExtractor" should {
+    "extract keys from JSON" in {
+      val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
+      val jvalue = Json.parseJson(json)
+
+      val actual = KeysExtractor.fromJson(jvalue, Set("lock_time", "rbf"))
+      actual shouldBe List("lock_time" -> 9223372036854775807L, "rbf" -> true)
+    }
+
+    "throw exception when extracting the keys from JSON" in {
+      val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
+      val jvalue = Json.parseJson(json)
+      intercept[ConfigException] {
+        val actual = KeysExtractor.fromJson(jvalue, Set("inputs"))
+      }
+    }
+
+
     "extract keys from a Map" in {
       val actual = KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> "tripple"), Set("key1", "key3"))
       actual shouldBe Set("key1" -> 12, "key3" -> "tripple")
