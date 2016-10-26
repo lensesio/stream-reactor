@@ -22,6 +22,7 @@ A collection of components to build a real time ingestion pipeline.
 | HBase | Sink | Kafka connect HBase sink to write Kafka topic payloads to HBase. | [Docs](http://docs.datamountaineer.com/en/latest/hbase.html)
 | Hazelcast | Sink | Kafka connect Hazelcast sink to write Kafka topic payloads to Hazelcast. | [Docs](http://docs.datamountaineer.com/en/latest/hazelcast.html) |
 | Kudu | Sink | Kafka connect Kudu sink to write Kafka topic payloads to Kudu. | [Docs](http://docs.datamountaineer.com/en/latest/kudu.html) |
+| MongoDB | Sink | Kafka connect Kudu sink to write Kafka topic payloads to MongoDB. | [Docs](http://docs.datamountaineer.com/en/latest/mongo.html) |
 | InfluxDb | Sink | Kafka connect InfluxDb sink to write Kafka topic payloads to InfluxDb. | [Docs](http://docs.datamountaineer.com/en/latest/influx.html) |
 | JMS | Sink | Kafka connect JMS sink to write Kafka topic payloads to JMS. | [Docs](http://docs.datamountaineer.com/en/latest/jms.html) |
 | Redis | Sink | Kafka connect Redis sink to write Kafka topic payloads to Redis. | [Docs](http://docs.datamountaineer.com/en/latest/redis.html) |
