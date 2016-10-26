@@ -69,7 +69,7 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
   }
 
   /**
-    * Pass the SinkRecords to the writer for Writing
+    * Pass the SinkRecords to the writer
     * */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")

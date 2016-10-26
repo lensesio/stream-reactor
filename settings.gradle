@@ -12,5 +12,5 @@ include 'kafka-socket-streamer',
         'kafka-connect-influxdb',
         'kafka-connect-hazelcast',
         'kafka-connect-voltdb',
-        'kafka-connect-blockchain'
-
+        'kafka-connect-blockchain',
+        'kafka-connect-mongodb'

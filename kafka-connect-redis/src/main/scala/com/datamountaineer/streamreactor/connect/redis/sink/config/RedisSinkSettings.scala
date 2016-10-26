@@ -47,15 +47,14 @@ object RedisSinkSettings {
     val errorPolicy = ErrorPolicy(errorPolicyE)
     val nbrOfRetries = config.getInt(RedisSinkConfig.NBR_OF_RETRIES)
 
-    val rowKeyModeMap = routes.map(r => {
+    val rowKeyModeMap = routes.map{r =>
         val keys = r.getPrimaryKeys.asScala.toList
         if (keys.nonEmpty) (r.getSource, StringStructFieldsStringKeyBuilder(keys)) else (r.getSource, new StringGenericRowKeyBuilder())
-      }
-    ).toMap
+      }.toMap
 
-    val fieldsMap = routes.map(
-      rm => (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField,fa.getAlias)).toMap)
-    ).toMap
+    val fieldsMap = routes.map { rm =>
+      (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)
+    }.toMap
 
     val ignoreFields = routes.map(r => (r.getSource, r.getIgnoredField.asScala.toSet)).toMap
     val conn = RedisConnectionInfo(config)
