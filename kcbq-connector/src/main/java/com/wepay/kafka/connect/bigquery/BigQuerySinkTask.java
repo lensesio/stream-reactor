@@ -222,11 +222,11 @@ public class BigQuerySinkTask extends SinkTask {
                 tableSchemas.get(table.getBaseTableId())
             )
         );
-        // wipe buffer
-        tableBuffers.remove(table);
       }
       tableSchemas.put(table.getBaseTableId(), new HashSet<>());
     }
+    // now that we are done, wipe all buffers.
+    tableBuffers.clear();
     if (!tableWriters.isEmpty()) {
       try {
         for (Future<Void> tableWriteResult : executorService.invokeAll(tableWriters)) {
