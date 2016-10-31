@@ -1,6 +1,5 @@
 [![Build Status](https://datamountaineer.ci.landoop.com/buildStatus/icon?job=stream-reactor&style=flat&.png)](https://datamountaineer.ci.landoop.com/job/stream-reactor/)
 [![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://docs.datamountaineer.com/en/latest/?badge=latest)
-
 [![Alt text](images/slack.jpeg)](http://datamountaineer.com/contact/)
 
 # Stream Reactor
