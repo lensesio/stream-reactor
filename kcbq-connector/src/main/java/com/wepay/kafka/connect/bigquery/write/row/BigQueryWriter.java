@@ -131,6 +131,8 @@ public abstract class BigQueryWriter {
       throws BigQueryConnectException, BigQueryException, InterruptedException {
     logger.debug("writing {} row{} to table {}", rows.size(), rows.size() != 1 ? "s" : "", table);
 
+    Exception mostRecentException = null;
+
     int retryCount = 0;
     do {
       if (retryCount > 0) {
@@ -149,6 +151,7 @@ public abstract class BigQueryWriter {
         rowsWritten.record(rows.size());
         return;
       } catch (BigQueryException err) {
+        mostRecentException = err;
         if (err.code() == INTERNAL_SERVICE_ERROR || err.code() == SERVICE_UNAVAILABLE) {
           // backend error: https://cloud.google.com/bigquery/troubleshooting-errors
           retryCount++;
@@ -165,7 +168,8 @@ public abstract class BigQueryWriter {
     } while (retryCount <= retries);
     requestRetries.record(retryCount);
     throw new BigQueryConnectException(
-        String.format("Exceeded configured %d attempts for write request", retryCount));
+        String.format("Exceeded configured %d attempts for write request", retries),
+        mostRecentException);
   }
 
   /**
