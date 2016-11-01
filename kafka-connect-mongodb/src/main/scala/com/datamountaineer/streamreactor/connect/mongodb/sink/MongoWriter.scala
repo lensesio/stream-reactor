@@ -38,7 +38,7 @@ class MongoWriter(settings: MongoSinkSettings, mongoClient: MongoClient) extends
   logger.info(s"Obtaining the database information for ${settings.database}")
   private val database = mongoClient.getDatabase(settings.database)
 
-  private val collectionMap = settings.routes
+  private val collectionMap = settings.kcql
     .map(c => c.getSource -> Option(database.getCollection(c.getTarget)).getOrElse {
       logger.info(s"Collection not found. Creating collection ${c.getTarget}")
       database.createCollection(c.getTarget)
@@ -46,7 +46,7 @@ class MongoWriter(settings: MongoSinkSettings, mongoClient: MongoClient) extends
     })
     .toMap
 
-  private val configMap = settings.routes.map(c => c.getSource -> c).toMap
+  private val configMap = settings.kcql.map(c => c.getSource -> c).toMap
   //initialize error tracker
   initialize(settings.taskRetries, settings.errorPolicy)
 
@@ -122,8 +122,8 @@ object MongoWriter extends StrictLogging {
       context.timeout(connectorConfig.getLong(MongoConfig.ERROR_RETRY_INTERVAL_CONFIG))
     }
 
-    val connectionString = new MongoClientURI(s"mongodb://${settings.hosts.mkString(",")}")
-    logger.info(s"Initialising Mongo writer.Connection to ${connectionString.toString}")
+    val connectionString = new MongoClientURI(settings.connection)
+    logger.info(s"Initialising Mongo writer.Connection to $connectionString")
     val mongoClient = new MongoClient(connectionString)
     new MongoWriter(settings, mongoClient)
   }

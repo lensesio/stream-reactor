@@ -25,9 +25,9 @@ import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
 
 
-case class MongoSinkSettings(hosts: Seq[String],
+case class MongoSinkSettings(connection: String,
                              database: String,
-                             routes: Seq[Config],
+                             kcql: Seq[Config],
                              keyBuilderMap: Map[String, Set[String]],
                              fields: Map[String, Map[String, String]],
                              ignoredField: Map[String, Set[String]],
@@ -39,16 +39,9 @@ case class MongoSinkSettings(hosts: Seq[String],
 object MongoSinkSettings extends StrictLogging {
 
   def apply(config: AbstractConfig): MongoSinkSettings = {
-    val hostsConfig = config.getString(MongoConfig.HOSTS_CONFIG)
-    require(hostsConfig.nonEmpty, s"Invalid hosts provided.${MongoConfig.HOSTS_CONFIG_DOC}")
+    val hostsConfig = config.getString(MongoConfig.CONNECTION_CONFIG)
+    require(hostsConfig.nonEmpty, s"Invalid hosts provided.${MongoConfig.CONNECTION_CONFIG_DOC}")
 
-    val hosts = hostsConfig.split(",").map(_.trim).map { h =>
-      h.split(":") match {
-        case Array(hostname: String, port: String) if Try(port.toInt).isSuccess =>
-        case _ => throw new ConfigException(s"Invalid ${MongoConfig.HOSTS_CONFIG}. ${MongoConfig.HOSTS_CONFIG_DOC}")
-      }
-      h
-    }
     val database = config.getString(MongoConfig.DATABASE_CONFIG)
     if (database == null || database.trim.length == 0)
       throw new ConfigException(s"Invalid ${MongoConfig.DATABASE_CONFIG}")
@@ -80,7 +73,7 @@ object MongoSinkSettings extends StrictLogging {
 
     val ignoreFields = routes.map(r => (r.getSource, r.getIgnoredField.toSet)).toMap
 
-    new MongoSinkSettings(hosts,
+    new MongoSinkSettings(hostsConfig,
       database,
       routes,
       rowKeyBuilderMap,

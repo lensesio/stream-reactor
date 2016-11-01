@@ -25,9 +25,9 @@ object MongoConfig {
   val DATABASE_CONFIG = "connect.mongo.database"
   val DATABASE_CONFIG_DOC = "The mongodb target database."
 
-  val HOSTS_CONFIG = "connect.mongo.hosts"
-  val HOSTS_CONFIG_DOC = "The mongodb endpoints connections in the format HOST1:PORT,HOST2:PORT."
-  val HOSTS_DEFAULT = "localhost:27017"
+
+  val CONNECTION_CONFIG = "connect.mongo.connection"
+  val CONNECTION_CONFIG_DOC = "The mongodb connection in the format mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]][/[database][?options]]."
 
   val BATCH_SIZE_CONFIG = "connect.mongo.sink.batch.size"
   val BATCH_SIZE_DOC = "The number of records the sink would push to mongo at once."
@@ -54,7 +54,7 @@ object MongoConfig {
 
 
   val configDef = new ConfigDef()
-    .define(HOSTS_CONFIG, Type.STRING, HOSTS_DEFAULT, Importance.HIGH, HOSTS_CONFIG_DOC, "Connection", 1, ConfigDef.Width.LONG, HOSTS_CONFIG)
+    .define(CONNECTION_CONFIG, Type.STRING, Importance.HIGH, CONNECTION_CONFIG_DOC, "Connection", 1, ConfigDef.Width.LONG, CONNECTION_CONFIG)
     .define(DATABASE_CONFIG, Type.STRING, Importance.HIGH, DATABASE_CONFIG_DOC, "Connection", 2, ConfigDef.Width.MEDIUM, DATABASE_CONFIG)
     .define(KCQL_CONFIG, Type.STRING, Importance.HIGH, KCQL_DOC, "Mappings", 1, ConfigDef.Width.LONG, KCQL_CONFIG)
     .define(BATCH_SIZE_CONFIG, Type.INT, BATCH_SIZE_CONFIG_DEFAULT, Importance.MEDIUM, BATCH_SIZE_DOC, "Mappings", 2, ConfigDef.Width.MEDIUM, BATCH_SIZE_CONFIG)
