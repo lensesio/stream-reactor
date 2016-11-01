@@ -20,7 +20,7 @@ class SinkRecordToDocumentTest extends WordSpec with Matchers with ConverterUtil
         val record = new SinkRecord("topic1", 0, null, null, Transaction.ConnectSchema, tx.toStruct(), 0)
 
         implicit val settings = MongoSinkSettings(
-          Seq(""),
+          "",
           "database",
           Seq.empty,
           Map("topic1" -> Set.empty),
@@ -42,7 +42,7 @@ class SinkRecordToDocumentTest extends WordSpec with Matchers with ConverterUtil
         val record = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
         implicit val settings = MongoSinkSettings(
-          Seq(""),
+          "",
           "database",
           Seq.empty,
           Map("topic1" -> Set.empty),
@@ -65,7 +65,7 @@ class SinkRecordToDocumentTest extends WordSpec with Matchers with ConverterUtil
         val record = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
         implicit val settings = MongoSinkSettings(
-          Seq(""),
+          "",
           "database",
           Seq.empty,
           Map("topic1" -> Set.empty),

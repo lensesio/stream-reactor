@@ -43,7 +43,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
   "MongoWriter" should {
     "insert records into the target Mongo collection with Schema.String and payload json" in {
-      val settings = MongoSinkSettings(Seq("localhost"),
+      val settings = MongoSinkSettings("localhost",
         "local",
         Seq(Config.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
         Map.empty,
@@ -60,7 +60,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
     }
 
     "upsert records into the target Mongo collection with Schema.String and payload json" in {
-      val settings = MongoSinkSettings(Seq("localhost"),
+      val settings = MongoSinkSettings("localhost",
         "local",
         Seq(Config.parse("UPSERT INTO upsert_string_json SELECT * FROM topicA PK lock_time")),
         Map("topicA" -> Set("lock_time")),
@@ -80,7 +80,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
 
     "insert records into the target Mongo collection with Schema.Struct and payload Struct" in {
-      val settings = MongoSinkSettings(Seq("localhost"),
+      val settings = MongoSinkSettings("localhost",
         "local",
         Seq(Config.parse("INSERT INTO insert_struct SELECT * FROM topicA")),
         Map.empty,
@@ -98,7 +98,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
     }
 
     "upsert records into the target Mongo collection with Schema.Struct and payload Struct" in {
-      val settings = MongoSinkSettings(Seq("localhost"),
+      val settings = MongoSinkSettings("localhost",
         "local",
         Seq(Config.parse("UPSERT INTO upsert_struct SELECT * FROM topicA PK lock_time")),
         Map("topicA" -> Set("lock_time")),
@@ -116,7 +116,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
     }
 
     "insert records into the target Mongo collection with schemaless records and payload as json" in {
-      val settings = MongoSinkSettings(Seq("localhost"),
+      val settings = MongoSinkSettings("localhost",
         "local",
         Seq(Config.parse("INSERT INTO insert_schemaless_json SELECT * FROM topicA")),
         Map.empty,
@@ -134,7 +134,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
     }
 
     "upsert records into the target Mongo collection with schemaless records and payload as json" in {
-      val settings = MongoSinkSettings(Seq("localhost"),
+      val settings = MongoSinkSettings("localhost",
         "local",
         Seq(Config.parse("INSERT INTO upsert_schemaless_json SELECT * FROM topicA")),
         Map("topicA" -> Set("lock_time")),
@@ -162,7 +162,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
     val collections = MongoIterableFn(mongoClient.get.getDatabase(settings.database).listCollectionNames())
       .toSet
 
-    val collectionName = settings.routes.head.getTarget
+    val collectionName = settings.kcql.head.getTarget
     collections.contains(collectionName) shouldBe true
 
     val actualCollection = mongoClient.get
@@ -179,11 +179,11 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
 
   private def runUpserts(records: Seq[SinkRecord], settings: MongoSinkSettings) = {
-    require(settings.routes.size == 1)
-    require(settings.routes.head.getWriteMode == WriteModeEnum.UPSERT)
+    require(settings.kcql.size == 1)
+    require(settings.kcql.head.getWriteMode == WriteModeEnum.UPSERT)
     val db = mongoClient.get.getDatabase(settings.database)
-    db.createCollection(settings.routes.head.getTarget)
-    val collection = db.getCollection(settings.routes.head.getTarget)
+    db.createCollection(settings.kcql.head.getTarget)
+    val collection = db.getCollection(settings.kcql.head.getTarget)
     val inserts = for (i <- 1 to 4) yield {
       val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath).mkString
       val tx = Json.fromJson[Transaction](json)
@@ -201,7 +201,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
     val collections = MongoIterableFn(mongoClient.get.getDatabase(settings.database).listCollectionNames())
       .toSet
 
-    val collectionName = settings.routes.head.getTarget
+    val collectionName = settings.kcql.head.getTarget
     collections.contains(collectionName) shouldBe true
 
     val actualCollection = mongoClient.get
