@@ -22,6 +22,7 @@ import com.google.cloud.bigquery.TableId;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 /**
  * A TableId with separate base table name and partition information.
@@ -210,7 +211,7 @@ public class PartitionedTableId {
      * @return The String representation of the partition.
      */
     private static String dateToDayPartition(LocalDate localDate) {
-      return "" + localDate.getYear() + localDate.getMonthValue() + localDate.getDayOfMonth();
+      return localDate.format(DateTimeFormatter.BASIC_ISO_DATE);
     }
 
     /**
