@@ -48,6 +48,7 @@ public abstract class BigQueryWriter {
 
   private static final int FORBIDDEN = 403;
   private static final int INTERNAL_SERVICE_ERROR = 500;
+  private static final int BAD_GATEWAY = 502;
   private static final int SERVICE_UNAVAILABLE = 503;
   private static final String QUOTA_EXCEEDED_REASON = "quotaExceeded";
 
@@ -115,7 +116,7 @@ public abstract class BigQueryWriter {
       InsertAllRequest request,
       String topic,
       Set<Schema> schemas
-  );
+  ) throws BigQueryException, BigQueryConnectException;
 
   /**
    * @param table The BigQuery table to write the rows to.
@@ -152,8 +153,14 @@ public abstract class BigQueryWriter {
         return;
       } catch (BigQueryException err) {
         mostRecentException = err;
-        if (err.code() == INTERNAL_SERVICE_ERROR || err.code() == SERVICE_UNAVAILABLE) {
+        if (err.code() == INTERNAL_SERVICE_ERROR
+            || err.code() == SERVICE_UNAVAILABLE
+            || err.code() == BAD_GATEWAY) {
           // backend error: https://cloud.google.com/bigquery/troubleshooting-errors
+          /* for BAD_GATEWAY: https://cloud.google.com/storage/docs/json_api/v1/status-codes
+             todo possibly this page is inaccurate for bigquery, but the message we are getting
+             suggest it's an internal backend error and we should retry, so lets take that at face
+             value. */
           retryCount++;
         } else if (err.code() == FORBIDDEN
                    && err.error() != null

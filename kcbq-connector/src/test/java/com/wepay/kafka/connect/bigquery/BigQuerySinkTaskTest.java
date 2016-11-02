@@ -30,6 +30,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
+import com.google.api.client.http.HttpHeaders;
+import com.google.api.client.http.HttpResponseException;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
@@ -170,7 +173,7 @@ public class BigQuerySinkTaskTest {
     final String dataset = "scratch";
 
     Map<String, String> properties = propertiesFactory.getProperties();
-    properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_CONFIG, "1");
+    properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_CONFIG, "3");
     properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_WAIT_CONFIG, "2000");
     properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
     properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
@@ -180,6 +183,8 @@ public class BigQuerySinkTaskTest {
     InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
     when(bigQuery.insertAll(anyObject()))
         .thenThrow(new BigQueryException(500, "mock 500"))
+        .thenThrow(new BigQueryException(502, "mock 502"))
+        .thenThrow(new BigQueryException(503, "mock 503"))
         .thenReturn(insertAllResponse);
     when(insertAllResponse.hasErrors()).thenReturn(false);
 
@@ -192,7 +197,7 @@ public class BigQuerySinkTaskTest {
     testTask.put(Collections.singletonList(spoofSinkRecord(topic)));
     testTask.flush(Collections.emptyMap());
 
-    verify(bigQuery, times(2)).insertAll(anyObject());
+    verify(bigQuery, times(4)).insertAll(anyObject());
   }
 
   @Test
