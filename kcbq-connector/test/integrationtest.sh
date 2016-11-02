@@ -233,6 +233,7 @@ CONNECT_DOCKER_IMAGE='kcbq/connect'
 CONNECT_DOCKER_NAME='kcbq_test_connect'
 
 cp "$BASE_DIR"/../../bin/tar/kcbq-connector-*-confluent-dist.tar "$DOCKER_DIR/connect/kcbq.tar"
+cp "$BASE_DIR"/../../bin/tar/kcbq-connector-*-confluent-dist.tar "$DOCKER_DIR/connect/retriever.tar"
 cp "$KCBQ_TEST_KEYFILE" "$DOCKER_DIR/connect/key.json"
 
 if ! dockerimageexists "$CONNECT_DOCKER_IMAGE"; then
