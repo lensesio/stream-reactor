@@ -149,7 +149,7 @@ public class DynamicBatchWriter implements BatchWriter<InsertAllRequest.RowToIns
       } catch (BigQueryException exception) {
         // failure
         if (isBatchSizeError(exception)) {
-          decreaseBatchSize(table);
+          decreaseBatchSize(table, exception);
           // if we've had at least 1 successful call we'll assume this is a good batch size.
           if (successfulCallCount > 0) {
             seeking = false; // case 1
@@ -220,7 +220,7 @@ public class DynamicBatchWriter implements BatchWriter<InsertAllRequest.RowToIns
         if (isBatchSizeError(exception)) {
           // immediately decrease batch size and try again with remaining elements.
           logger.debug("Batch size error during establishedWriteAll, reducing batch size.");
-          decreaseBatchSize(table);
+          decreaseBatchSize(table, exception);
           contSuccessCount = 0;
         } else {
           throw new BigQueryConnectException(
@@ -268,10 +268,11 @@ public class DynamicBatchWriter implements BatchWriter<InsertAllRequest.RowToIns
     logger.info("Increased batch size to {} for {}", currentBatchSize, tableId.toString());
   }
 
-  private void decreaseBatchSize(TableId tableId) {
+  private void decreaseBatchSize(TableId tableId, Exception reason) {
+    logger.debug("Decreasing batch size due to error: {}", reason.getMessage());
     if (currentBatchSize <= 1) {
       // kafka source must have a huge row in it; we can't get past it, just error.
-      throw new BigQueryConnectException("Attempted to decrease batchSize below 1");
+      throw new BigQueryConnectException("Attempted to decrease batchSize below 1", reason);
     }
     currentBatchSize = (int)Math.ceil(currentBatchSize / 2.0);
     logger.info("Decreased batch size to {} for {}", currentBatchSize, tableId.toString());
