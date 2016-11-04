@@ -25,12 +25,14 @@ import com.google.cloud.bigquery.InsertAllResponse;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 
+import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.Schema;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Set;
 
 
@@ -57,12 +59,17 @@ public class SimpleBigQueryWriter extends BigQueryWriter {
   /**
    * Sends the request to BigQuery, and throws an exception if any errors occur as a result of doing
    * so.
-   * @param request The request to send to BigQuery.
+   * @param tableId The PartitionedTableId.
+   * @param rows The rows to write.
    * @param topic The Kafka topic that the row data came from (ignored).
    * @param schemas The unique Schemas for the row data (ignored).
    */
   @Override
-  public void performWriteRequest(InsertAllRequest request, String topic, Set<Schema> schemas) {
+  public void performWriteRequest(PartitionedTableId tableId,
+                                  List<InsertAllRequest.RowToInsert> rows,
+                                  String topic,
+                                  Set<Schema> schemas) {
+    InsertAllRequest request = createInsertAllRequest(tableId, rows);
     InsertAllResponse writeResponse = bigQuery.insertAll(request);
     if (writeResponse.hasErrors()) {
       logger.warn(

@@ -27,8 +27,8 @@ import static org.mockito.Mockito.verify;
 
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest;
-import com.google.cloud.bigquery.TableId;
 
+import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
 
 import org.junit.Assert;
@@ -264,7 +264,8 @@ public class DynamicBatchWriterTest {
    */
   private void writeAll(DynamicBatchWriter dynamicBatchWriter, int numElements)
       throws InterruptedException {
-    TableId tableId = TableId.of("test_dataset", "test_table");
+    PartitionedTableId tableId =
+        new PartitionedTableId.Builder("test_dataset", "test_table").build();
     List<InsertAllRequest.RowToInsert> elements = new ArrayList<>();
     for (int i = 0; i < numElements; i++) {
       elements.add(null);

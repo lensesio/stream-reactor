@@ -20,9 +20,9 @@ package com.wepay.kafka.connect.bigquery.write.batch;
 
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest;
-import com.google.cloud.bigquery.TableId;
 
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
+import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
 
 import org.apache.kafka.connect.data.Schema;
@@ -92,7 +92,7 @@ public class DynamicBatchWriter implements BatchWriter<InsertAllRequest.RowToIns
   }
 
   @Override
-  public synchronized void writeAll(TableId table,
+  public synchronized void writeAll(PartitionedTableId table,
                                     List<InsertAllRequest.RowToInsert> elements,
                                     String topic,
                                     Set<Schema> schemas) throws BigQueryConnectException,
@@ -115,7 +115,7 @@ public class DynamicBatchWriter implements BatchWriter<InsertAllRequest.RowToIns
    *   2. we write all the given elements in one batch request without error.
    *   3. we write MAXIMUM_BATCH_SIZE elements in one batch request without error. (unlikely)
    */
-  private void seekingWriteAll(TableId table,
+  private void seekingWriteAll(PartitionedTableId table,
                                List<InsertAllRequest.RowToInsert> elements,
                                String topic,
                                Set<Schema> schemas) throws BigQueryConnectException,
@@ -187,7 +187,7 @@ public class DynamicBatchWriter implements BatchWriter<InsertAllRequest.RowToIns
    * <p>Every {@link #CONT_SUCCESS_COUNT_BUMP} calls, if there have been no errors, we will bump up
    * the batch size.
    */
-  private void establishedWriteAll(TableId table,
+  private void establishedWriteAll(PartitionedTableId table,
                                    List<InsertAllRequest.RowToInsert> elements,
                                    String topic,
                                    Set<Schema> schemas) throws BigQueryConnectException,
@@ -263,12 +263,12 @@ public class DynamicBatchWriter implements BatchWriter<InsertAllRequest.RowToIns
     return false;
   }
 
-  private void increaseBatchSize(TableId tableId) {
+  private void increaseBatchSize(PartitionedTableId tableId) {
     currentBatchSize = Math.min(currentBatchSize * 2, MAXIMUM_BATCH_SIZE);
     logger.info("Increased batch size to {} for {}", currentBatchSize, tableId.toString());
   }
 
-  private void decreaseBatchSize(TableId tableId, Exception reason) {
+  private void decreaseBatchSize(PartitionedTableId tableId, Exception reason) {
     logger.debug("Decreasing batch size due to error: {}", reason.getMessage());
     if (currentBatchSize <= 1) {
       // kafka source must have a huge row in it; we can't get past it, just error.

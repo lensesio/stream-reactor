@@ -18,8 +18,6 @@ package com.wepay.kafka.connect.bigquery.write.batch;
  */
 
 
-import com.google.cloud.bigquery.TableId;
-
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
@@ -37,7 +35,7 @@ public interface BatchWriter<E> {
 
   /**
    * Initialize this BatchWriter. Necessary before calling
-   * {@link #writeAll(TableId, List, String, Set)}
+   * {@link #writeAll(PartitionedTableId, List, String, Set)}
    *
    * @param writer the writer to use to write BigQuery requests.
    */
@@ -51,6 +49,6 @@ public interface BatchWriter<E> {
    * @throws BigQueryConnectException if we are unable to write to BigQuery
    * @throws InterruptedException if writing is interrupted
    */
-  void writeAll(TableId table, List<E> elements, String topic, Set<Schema> schemas)
+  void writeAll(PartitionedTableId table, List<E> elements, String topic, Set<Schema> schemas)
       throws BigQueryConnectException, InterruptedException;
 }

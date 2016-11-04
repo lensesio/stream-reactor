@@ -20,9 +20,9 @@ package com.wepay.kafka.connect.bigquery.write.batch;
 
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest;
-import com.google.cloud.bigquery.TableId;
 
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
+import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
 
 import org.apache.kafka.connect.data.Schema;
@@ -45,7 +45,7 @@ public class SingleBatchWriter implements BatchWriter<InsertAllRequest.RowToInse
    * @param elements The list of elements to write in a single batch.
    */
   @Override
-  public void writeAll(TableId table,
+  public void writeAll(PartitionedTableId table,
                        List<InsertAllRequest.RowToInsert> elements,
                        String topic,
                        Set<Schema> schemas)

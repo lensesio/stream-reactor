@@ -148,7 +148,7 @@ public class BigQuerySinkTask extends SinkTask {
 
     @Override
     public Void call() throws InterruptedException {
-      batchWriter.writeAll(partitionedTableId.getFullTableId(), rows, topic, schemas);
+      batchWriter.writeAll(partitionedTableId, rows, topic, schemas);
       updateAllPartitions(baseTableIdsToTopics.get(partitionedTableId.getBaseTableId()), offsets);
       return null;
     }

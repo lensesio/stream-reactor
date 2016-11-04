@@ -20,11 +20,11 @@ package com.wepay.kafka.connect.bigquery.write.row;
 
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest;
-import com.google.cloud.bigquery.TableId;
 
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 
 import com.wepay.kafka.connect.bigquery.utils.MetricsConstants;
+import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Avg;
@@ -108,15 +108,30 @@ public abstract class BigQueryWriter {
   /**
    * Handle the actual transmission of the write request to BigQuery, including any exceptions or
    * errors that happen as a result.
-   * @param request The request to send to BigQuery.
+   * @param tableId The PartitionedTableId.
+   * @param rows The rows to write.
    * @param topic The Kafka topic that the row data came from.
    * @param schemas The unique Schemas for the row data.
    */
-  protected abstract void performWriteRequest(
-      InsertAllRequest request,
-      String topic,
-      Set<Schema> schemas
-  ) throws BigQueryException, BigQueryConnectException;
+  protected abstract void performWriteRequest(PartitionedTableId tableId,
+                                              List<InsertAllRequest.RowToInsert> rows,
+                                              String topic,
+                                              Set<Schema> schemas)
+      throws BigQueryException, BigQueryConnectException;
+
+  /**
+   * Create an InsertAllRequest.
+   * @param tableId the table to insert into.
+   * @param rows the rows to insert.
+   * @return the InsertAllRequest.
+   */
+  protected InsertAllRequest createInsertAllRequest(PartitionedTableId tableId,
+                                                    List<InsertAllRequest.RowToInsert> rows) {
+    return InsertAllRequest.builder(tableId.getFullTableId(), rows)
+        .ignoreUnknownValues(false)
+        .skipInvalidRows(false)
+        .build();
+  }
 
   /**
    * @param table The BigQuery table to write the rows to.
@@ -125,7 +140,7 @@ public abstract class BigQueryWriter {
    * @param schemas The unique Schemas for the row data.
    * @throws InterruptedException if interrupted.
    */
-  public void writeRows(TableId table,
+  public void writeRows(PartitionedTableId table,
                         List<InsertAllRequest.RowToInsert> rows,
                         String topic,
                         Set<Schema> schemas)
@@ -140,14 +155,7 @@ public abstract class BigQueryWriter {
         waitRandomTime();
       }
       try {
-        performWriteRequest(
-            InsertAllRequest.builder(table, rows)
-                .ignoreUnknownValues(false)
-                .skipInvalidRows(false)
-                .build(),
-            topic,
-            schemas
-        );
+        performWriteRequest(table, rows, topic, schemas);
         requestRetries.record(retryCount);
         rowsWritten.record(rows.size());
         return;

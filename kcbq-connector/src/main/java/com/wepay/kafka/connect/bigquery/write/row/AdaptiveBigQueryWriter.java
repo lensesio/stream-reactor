@@ -26,6 +26,7 @@ import com.google.cloud.bigquery.InsertAllResponse;
 import com.wepay.kafka.connect.bigquery.SchemaManager;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 
+import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.Schema;
 
@@ -66,18 +67,23 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
    * Sends the request to BigQuery, then checks the response to see if any errors have occurred. If
    * any have, and all errors can be blamed upon invalid columns in the rows sent, attempts to
    * update the schema of the table in BigQuery and then performs the same write request.
-   * @param request The request to send to BigQuery.
+   * @param tableId The PartitionedTableId.
+   * @param rows The rows to write.
    * @param topic The Kafka topic that the row data came from.
    * @param schemas The unique Schemas for the row data.
    */
   @Override
-  public void performWriteRequest(InsertAllRequest request, String topic, Set<Schema> schemas) {
+  public void performWriteRequest(PartitionedTableId tableId,
+                                  List<InsertAllRequest.RowToInsert> rows,
+                                  String topic,
+                                  Set<Schema> schemas) {
+    InsertAllRequest request = createInsertAllRequest(tableId, rows);
     InsertAllResponse writeResponse = bigQuery.insertAll(request);
     // Should only perform one schema update attempt; may have to continue insert attempts due to
     // BigQuery schema updates taking up to two minutes to take effect
     if (writeResponse.hasErrors()
         && onlyContainsInvalidSchemaErrors(writeResponse.insertErrors())) {
-      schemaManager.updateSchema(request.table(), topic, schemas);
+      schemaManager.updateSchema(tableId.getBaseTableId(), topic, schemas);
     }
 
     // Schema update might be delayed, so multiple insertion attempts may be necessary
