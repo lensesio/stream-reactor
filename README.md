@@ -6,6 +6,10 @@
 This is an implementation of a sink connector from [Apache Kafka] to [Google BigQuery], built on top 
 of [Apache Kafka Connect].
 
+## Download
+
+The latest releases are available in the GitHub release tab, or via [tarballs in Maven central](http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22kcbq-connector%22).
+
 ## Standalone Quickstart
 
 > **NOTE**: You must have the [Confluent Platform] installed in order to run the example.
