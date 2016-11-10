@@ -29,3 +29,5 @@ target/
 *.tar.gz
 /stream-reactor-release-0.2-3.0.0/
 /release/
+/style/
+/gradle/

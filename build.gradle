@@ -1,3 +1,5 @@
+import de.undercouch.gradle.tasks.download.Download
+
 buildscript {
     repositories {
         jcenter()
@@ -10,6 +12,7 @@ buildscript {
         classpath 'net.researchgate:gradle-release:2.3.4'
         classpath "org.github.ngbinh.scalastyle:gradle-scalastyle-plugin_2.11:0.8.2"
         classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+        classpath 'de.undercouch:gradle-download-task:3.1.2'
     }
 }
 
@@ -22,7 +25,7 @@ ScalaCompileOptions.metaClass.useCompileDaemon = false
 
 allprojects {
     group = 'com.datamountaineer'
-    version =  version
+    version =  project.version
     description = "stream-reactor"
     apply plugin: 'java'
     apply plugin: 'scala'
@@ -31,6 +34,7 @@ allprojects {
     apply plugin: 'net.researchgate.release'
     apply plugin: 'scalaStyle'
     apply plugin: 'com.github.johnrengelman.shadow'
+    apply plugin: 'de.undercouch.download'
 
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
@@ -57,6 +61,18 @@ allprojects {
         dataMountaineerCQLVersion = "0.8.4"
         confluentVersion = '3.0.1'
         akkaVersion = "2.4.10"
+        connectCLIVersion = "0.5"
+
+        //release
+        rootRelease = "${project.rootDir}/release/"
+        versionDir = "${rootRelease}/${project.description}-${project.version}-${confluentVersion}"
+        binDir = "${versionDir}/bin"
+        confDir = "${versionDir}/conf"
+        libsDir = "${versionDir}/libs"
+        tarName = "${project.description}-${project.version}-${confluentVersion}.tar.gz"
+        cliUrl = "https://github.com/datamountaineer/kafka-connect-tools/releases/download/v${connectCLIVersion}/kafka-connect-cli-${connectCLIVersion}-all.jar"
+        srCliUrlDarwin = "https://github.com/datamountaineer/schema-registry/releases/download/0.0.1/sr-cli-osx"
+        srCliUrlLinux = "https://github.com/datamountaineer/schema-registry/releases/download/0.0.1/sr-cli-linux"
     }
 
     repositories {
@@ -152,7 +168,7 @@ allprojects {
 
     task compile(dependsOn: 'compileScala')
 
-    task fatJar(dependsOn: [test, shadowJar])
+    task fatJar(dependsOn: [clean, test, shadowJar])
 
     task collectJars(type: Copy){
         into "${buildDir}/libs-dependencies"
@@ -166,25 +182,72 @@ allprojects {
         testSource = "src/test/scala"
     }
 
-    task collectBin(type: Copy) {
-        delete "${project.rootDir}/release/${project.description}-${project.version}-${confluentVersion}/bin"
-        from "${project.rootDir}/bin"
-        into "${project.rootDir}/release/${project.description}-${project.version}-${confluentVersion}/bin"
-    }
-
-    task collectFatJar (type: Copy, dependsOn: shadowJar){
-        delete "${project.rootDir}/release/${project.description}-${project.version}-${confluentVersion}/libs"
+    task collectFatJar (type: Copy, dependsOn: [fatJar]){
         from "${buildDir}/libs"
-        into "${project.rootDir}/release/${project.description}-${project.version}-${confluentVersion}/libs"
+        into libsDir
     }
+}
 
-    task tar(type: Tar, dependsOn: [collectFatJar, collectBin]) {
-        delete "${project.rootDir}/release/${project.description}-${project.version}-${confluentVersion}.tar.gz"
-        from "${project.rootDir}/release/"
-        exclude "**.gz"
-        archiveName = "${project.description}-${project.version}-${confluentVersion}.tar.gz"
-        destinationDir = file("${project.rootDir}/release")
-        compression = Compression.GZIP
-        delete "${project.rootDir}/release/${project.description}-${project.version}-${confluentVersion}"
+task prepareReleaseDir(type: Copy) {
+    doFirst {
+        def root = new File(rootRelease)
+        def version = new File(versionDir)
+        def bin = new File(binDir)
+        def libs = new File(libsDir)
+        def conf = new File(confDir)
+
+        root.deleteDir()
+        root.mkdirs()
+        version.mkdirs()
+        libs.mkdirs()
+        conf.mkdirs()
+        bin.mkdirs()
     }
+    from ("${project.rootDir}") {
+        include "README.md"
+        include "LICENSE"
+    }
+    into versionDir
+}
+
+task downloadCli(type: Download,  dependsOn: prepareReleaseDir) {
+    overwrite false
+    src cliUrl
+    dest libsDir
+}
+
+task downloadSchemaCli(type: Download, dependsOn: prepareReleaseDir) {
+    overwrite false
+    src ([srCliUrlDarwin, srCliUrlLinux])
+    dest binDir
+}
+
+
+task collectConfs(type: Copy, dependsOn: prepareReleaseDir) {
+    from "${project.rootDir}/conf"
+    into confDir
+}
+
+task collectBin(type: Copy, dependsOn: prepareReleaseDir) {
+    from "${project.rootDir}/bin"
+    into binDir
+}
+
+task prepareRelease(dependsOn: [downloadCli, downloadSchemaCli, collectConfs, collectBin]) {
+    dependsOn subprojects.collectFatJar
+
+    doLast {
+        exec {
+            commandLine "chmod", "+x", "${binDir}/sr-cli-osx"
+            commandLine "chmod", "+x", "${binDir}/sr-cli-linux"
+        }
+    }
+}
+
+task tar(type: Tar, dependsOn: prepareRelease) {
+    from rootRelease
+    exclude "**.gz"
+    archiveName = tarName
+    destinationDir = file(rootRelease)
+    compression = Compression.GZIP
 }

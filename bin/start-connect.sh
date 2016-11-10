@@ -12,7 +12,6 @@ for jar in ${DIR}/../libs/*; do
   CLASSPATH=${CLASSPATH}:${jar}
 done
 
-echo $CLASSPATH
 export CLASSPATH
 
 ${CONFLUENT_HOME}/bin/connect-distributed ${CONFLUENT_HOME}/etc/schema-registry/connect-avro-distributed.properties
