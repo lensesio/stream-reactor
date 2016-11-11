@@ -49,7 +49,7 @@ object MongoConfig {
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
-  val KCQL_CONFIG = "connect.mongo.sink.kqcl"
+  val KCQL_CONFIG = "connect.mongo.sink.kcql"
   val KCQL_DOC = "KCQL expression describing field selection and data routing to the target mongo db."
 
 
