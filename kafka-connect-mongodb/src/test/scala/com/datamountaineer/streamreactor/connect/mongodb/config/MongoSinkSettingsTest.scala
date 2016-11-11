@@ -83,7 +83,7 @@ class MongoSinkSettingsTest extends WordSpec with Matchers {
       settings.ignoredField shouldBe Map("topic1" -> Set.empty)
     }
 
-    "throw an exception if the kqcl is not valid" in {
+    "throw an exception if the kcql is not valid" in {
       val map = Map(
         MongoConfig.DATABASE_CONFIG -> "database1",
         MongoConfig.CONNECTION_CONFIG -> "mongodb://localhost:27017",
