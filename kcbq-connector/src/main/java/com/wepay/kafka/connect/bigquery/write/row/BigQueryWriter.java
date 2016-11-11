@@ -51,6 +51,7 @@ public abstract class BigQueryWriter {
   private static final int BAD_GATEWAY = 502;
   private static final int SERVICE_UNAVAILABLE = 503;
   private static final String QUOTA_EXCEEDED_REASON = "quotaExceeded";
+  private static final String RATE_LIMIT_EXCEEDED_REASON = "rateLimitExceeded";
 
   private static final int WAIT_MAX_JITTER = 1000;
 
@@ -169,12 +170,19 @@ public abstract class BigQueryWriter {
              todo possibly this page is inaccurate for bigquery, but the message we are getting
              suggest it's an internal backend error and we should retry, so lets take that at face
              value. */
+          logger.warn("BQ backend error: {}, attempting retry", err.code());
           retryCount++;
         } else if (err.code() == FORBIDDEN
                    && err.error() != null
                    && QUOTA_EXCEEDED_REASON.equals(err.reason())) {
           // quota exceeded error
-          logger.warn("Quota exceeded for table {}", table);
+          logger.warn("Quota exceeded for table {}, attempting retry", table);
+          retryCount++;
+        } else if (err.code() == FORBIDDEN
+                   && err.error() != null
+                   && RATE_LIMIT_EXCEEDED_REASON.equals(err.reason())) {
+          // rate limit exceeded error
+          logger.warn("Rate limit exceeded for table {}, attempting retry", table);
           retryCount++;
         } else {
           throw err;

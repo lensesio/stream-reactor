@@ -206,7 +206,7 @@ public class BigQuerySinkTaskTest {
     final String dataset = "scratch";
 
     Map<String, String> properties = propertiesFactory.getProperties();
-    properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_CONFIG, "1");
+    properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_CONFIG, "2");
     properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_WAIT_CONFIG, "2000");
     properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
     properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
@@ -215,8 +215,10 @@ public class BigQuerySinkTaskTest {
 
     InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
     BigQueryError quotaExceededError = new BigQueryError("quotaExceeded", null, null);
+    BigQueryError rateLimitExceededError = new BigQueryError("rateLimitExceeded", null, null);
     when(bigQuery.insertAll(anyObject()))
         .thenThrow(new BigQueryException(403, "mock quota exceeded", quotaExceededError))
+        .thenThrow(new BigQueryException(403, "mock rate limit exceeded", rateLimitExceededError))
         .thenReturn(insertAllResponse);
     when(insertAllResponse.hasErrors()).thenReturn(false);
 
@@ -229,7 +231,7 @@ public class BigQuerySinkTaskTest {
     testTask.put(Collections.singletonList(spoofSinkRecord(topic)));
     testTask.flush(Collections.emptyMap());
 
-    verify(bigQuery, times(2)).insertAll(anyObject());
+    verify(bigQuery, times(3)).insertAll(anyObject());
   }
 
   @Test(expected = BigQueryConnectException.class)
