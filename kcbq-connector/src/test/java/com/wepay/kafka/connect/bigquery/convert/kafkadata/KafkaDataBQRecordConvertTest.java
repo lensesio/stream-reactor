@@ -88,7 +88,7 @@ public class KafkaDataBQRecordConvertTest {
     @SuppressWarnings("unchecked")
     Map<String, Object> kafkaDataMap = (Map<String, Object>) actualRecord.get(kafkaDataFieldName);
     assertTrue(kafkaDataMap.containsKey(kafkaDataInsertTimeName));
-    assertTrue(kafkaDataMap.get(kafkaDataInsertTimeName) instanceof Long);
+    assertTrue(kafkaDataMap.get(kafkaDataInsertTimeName) instanceof Double);
     kafkaDataMap.remove(kafkaDataInsertTimeName);
     actualRecord.put(kafkaDataFieldName, kafkaDataMap);
     assertEquals(partialExpectedRecord, actualRecord);
