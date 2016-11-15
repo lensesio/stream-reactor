@@ -56,7 +56,7 @@ public class KafkaDataBQRecordConverter extends BigQueryRecordConverter {
     kafkaData.put(KafkaDataBQSchemaConverter.KAFKA_DATA_OFFSET_FIELD_NAME,
                   kafkaConnectRecord.kafkaOffset());
     kafkaData.put(KafkaDataBQSchemaConverter.KAFKA_DATA_INSERT_TIME_FIELD_NAME,
-                  System.currentTimeMillis());
+                  System.currentTimeMillis() / 1000.0);
     return record;
   }
 }
