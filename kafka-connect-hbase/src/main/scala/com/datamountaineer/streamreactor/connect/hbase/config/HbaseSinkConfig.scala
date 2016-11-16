@@ -25,7 +25,7 @@ object HbaseSinkConfig {
   val COLUMN_FAMILY = "connect.hbase.sink.column.family"
   val COLUMN_FAMILY_DOC = "The hbase column family."
 
-  val EXPORT_ROUTE_QUERY = "connect.hbase.export.route.query"
+  val EXPORT_ROUTE_QUERY = "connect.hbase.sink.kcql"
   val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
 
   val ERROR_POLICY = "connect.hbase.sink.error.policy"

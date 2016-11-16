@@ -82,7 +82,7 @@ object HazelCastSinkConfig {
       |The default value is 32.""".stripMargin
   val BUFFER_SIZE_DEFAULT = 32
 
-  val EXPORT_ROUTE_QUERY = "connect.hazelcast.export.route.query"
+  val EXPORT_ROUTE_QUERY = "connect.hazelcast.sink.kcql"
   val EXPORT_ROUTE_QUERY_DOC =  "KCQL expression describing field selection and routes."
 
   val ERROR_POLICY = "connect.hazelcast.sink.error.policy"

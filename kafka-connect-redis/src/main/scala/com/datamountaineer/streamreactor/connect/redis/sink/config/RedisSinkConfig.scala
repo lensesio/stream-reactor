@@ -41,7 +41,7 @@ object RedisSinkConfig {
       |Provides the password for the redis connection.
     """.stripMargin
 
-  val EXPORT_ROUTE_QUERY = "connect.redis.export.route.query"
+  val EXPORT_ROUTE_QUERY = "connect.redis.sink.kcql"
   val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
 
   val ERROR_POLICY = "connect.redis.error.policy"

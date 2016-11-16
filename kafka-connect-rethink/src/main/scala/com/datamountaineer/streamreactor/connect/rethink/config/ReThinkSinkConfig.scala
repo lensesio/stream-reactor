@@ -40,7 +40,7 @@ object ReThinkSinkConfig {
   val CONFLICT_REPLACE = "replace"
   val CONFLICT_UPDATE = "update"
 
-  val EXPORT_ROUTE_QUERY = "connect.rethink.sink.export.route.query"
+  val EXPORT_ROUTE_QUERY = "connect.rethink.sink.sink.kcql"
   val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
 
   val ERROR_POLICY = "connect.rethink.size.error.policy"

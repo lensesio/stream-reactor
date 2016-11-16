@@ -30,7 +30,7 @@ object KuduSinkConfig {
   val KUDU_MASTER = "connect.kudu.master"
   val KUDU_MASTER_DOC = "Kudu master cluster."
   val KUDU_MASTER_DEFAULT = "localhost"
-  val EXPORT_ROUTE_QUERY = "connect.kudu.export.route.query"
+  val EXPORT_ROUTE_QUERY = "connect.kudu.sink.kcql"
   val EXPORT_ROUTE_QUERY_DOC =  "KCQL expression describing field selection and routes."
 
   val ERROR_POLICY = "connect.kudu.sink.error.policy"
