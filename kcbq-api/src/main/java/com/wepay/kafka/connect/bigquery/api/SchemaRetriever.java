@@ -20,18 +20,7 @@ public interface SchemaRetriever {
   public void configure(Map<String, String> properties);
 
   /**
-   * Retrieve the most current schema for the given topic, in order to perform an update in
-   * BigQuery.
-   * @param table The table that will be updated.
-   * @param topic The topic to retrieve a schema for.
-   * @param schemas The set of unique Schemas for the data that caused the insert failure.
-   * @return The Schema for the given table.
-   */
-  public Schema retrieveSchema(TableId table, String topic, Set<Schema> schemas);
-
-  /**
-   * Retrieve the most current schema for the given topic, in order to create a new table in
-   * BigQuery.
+   * Retrieve the most current schema for the given topic.
    * @param table The table that will be created.
    * @param topic The topic to retrieve a schema for.
    * @return The Schema for the given table.

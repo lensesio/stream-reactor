@@ -50,10 +50,9 @@ public class SchemaManager {
    * Update an existing table in BigQuery.
    * @param table The BigQuery table to update.
    * @param topic The Kafka topic used to determine the schema.
-   * @param schemas The Kafka Connect schemas recently used in an attempt to write to BigQuery.
    */
-  public void updateSchema(TableId table, String topic, Set<Schema> schemas) {
-    Schema kafkaConnectSchema = schemaRetriever.retrieveSchema(table, topic, schemas);
+  public void updateSchema(TableId table, String topic) {
+    Schema kafkaConnectSchema = schemaRetriever.retrieveSchema(table, topic);
     bigQuery.update(constructTableInfo(table, kafkaConnectSchema));
   }
 

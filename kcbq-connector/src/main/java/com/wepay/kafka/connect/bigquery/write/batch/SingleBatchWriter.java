@@ -47,11 +47,10 @@ public class SingleBatchWriter implements BatchWriter<InsertAllRequest.RowToInse
   @Override
   public void writeAll(PartitionedTableId table,
                        List<InsertAllRequest.RowToInsert> elements,
-                       String topic,
-                       Set<Schema> schemas)
+                       String topic)
       throws BigQueryConnectException, InterruptedException {
     try {
-      writer.writeRows(table, elements, topic, schemas);
+      writer.writeRows(table, elements, topic);
     } catch (BigQueryException err) {
       throw new BigQueryConnectException(
           String.format("Failed to write to BigQuery table %s", table),

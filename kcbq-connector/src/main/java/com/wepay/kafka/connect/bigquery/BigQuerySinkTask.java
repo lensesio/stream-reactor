@@ -94,7 +94,6 @@ public class BigQuerySinkTask extends SinkTask {
   private BigQuerySinkTaskConfig config;
   private RecordConverter<Map<String, Object>> recordConverter;
   private Map<PartitionedTableId, List<RowToInsert>> tableBuffers;
-  private Map<TableId, Set<Schema>> tableSchemas;
   private BatchWriterManager batchWriterManager;
   private Map<TableId, String> baseTableIdsToTopics;
   private Map<String, TableId> topicsToBaseTableIds;
@@ -134,25 +133,22 @@ public class BigQuerySinkTask extends SinkTask {
     private final List<RowToInsert> rows;
     private final Map<TopicPartition, OffsetAndMetadata> offsets;
     private final String topic;
-    private final Set<Schema> schemas;
     private final BatchWriter<RowToInsert> batchWriter;
 
     public TableWriter(PartitionedTableId partitionedTableId,
                        List<RowToInsert> rows,
                        Map<TopicPartition, OffsetAndMetadata> offsets,
-                       String topic,
-                       Set<Schema> schemas) {
+                       String topic) {
       this.partitionedTableId = partitionedTableId;
       this.rows = rows;
       this.offsets = offsets;
       this.topic = topic;
-      this.schemas = schemas;
       this.batchWriter = batchWriterManager.getBatchWriter(partitionedTableId.getBaseTableId());
     }
 
     @Override
     public Void call() throws InterruptedException {
-      batchWriter.writeAll(partitionedTableId, rows, topic, schemas);
+      batchWriter.writeAll(partitionedTableId, rows, topic);
       updateAllPartitions(baseTableIdsToTopics.get(partitionedTableId.getBaseTableId()), offsets);
       return null;
     }
@@ -214,12 +210,10 @@ public class BigQuerySinkTask extends SinkTask {
                 table,
                 buffer,
                 offsets,
-                baseTableIdsToTopics.get(table.getBaseTableId()),
-                tableSchemas.get(table.getBaseTableId())
+                baseTableIdsToTopics.get(table.getBaseTableId())
             )
         );
       }
-      tableSchemas.put(table.getBaseTableId(), new HashSet<>());
     }
     // now that we are done, wipe all buffers.
     tableBuffers.clear();
@@ -304,17 +298,12 @@ public class BigQuerySinkTask extends SinkTask {
         tableBuffers.put(partitionedTableId, getNewBuffer());
       }
 
-      if (!tableSchemas.containsKey(partitionedTableId.getBaseTableId())) {
-        tableSchemas.put(partitionedTableId.getBaseTableId(), new HashSet<>());
-      }
-
       List<RowToInsert> buffer = tableBuffers.get(partitionedTableId);
-      Set<Schema> schemas = tableSchemas.get(partitionedTableId.getBaseTableId());
 
       List<RowToInsert> tableRows = new ArrayList<>();
       for (SinkRecord record : tableRecords.getValue()) {
-        schemas.add(record.valueSchema());
-        tableRows.add(getRecordRow(record));
+        RowToInsert recordRow = getRecordRow(record);
+        tableRows.add(recordRow);
       }
 
       buffer.addAll(tableRows);
@@ -346,7 +335,9 @@ public class BigQuerySinkTask extends SinkTask {
     Class<BatchWriter<InsertAllRequest.RowToInsert>> batchWriterClass =
         (Class<BatchWriter<RowToInsert>>) config.getClass(config.BATCH_WRITER_CONFIG);
 
-    return new BatchWriterManager(getBigQueryWriter(), batchWriterClass, tableSchemas.size());
+    return new BatchWriterManager(getBigQueryWriter(),
+                                  batchWriterClass,
+                                  baseTableIdsToTopics.size());
   }
 
   private BigQuery getBigQuery() {
@@ -418,7 +409,6 @@ public class BigQuerySinkTask extends SinkTask {
     baseTableIdsToTopics = TopicToTableResolver.getBaseTablesToTopics(config);
     recordConverter = getConverter();
     tableBuffers = new HashMap<>();
-    tableSchemas = new HashMap<>();
     batchWriterManager = getBatchWriterManager();
     topicPartitionManager = new TopicPartitionManager();
   }

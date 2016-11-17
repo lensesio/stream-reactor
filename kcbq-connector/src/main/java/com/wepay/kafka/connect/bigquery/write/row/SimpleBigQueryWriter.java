@@ -62,13 +62,11 @@ public class SimpleBigQueryWriter extends BigQueryWriter {
    * @param tableId The PartitionedTableId.
    * @param rows The rows to write.
    * @param topic The Kafka topic that the row data came from (ignored).
-   * @param schemas The unique Schemas for the row data (ignored).
    */
   @Override
   public void performWriteRequest(PartitionedTableId tableId,
                                   List<InsertAllRequest.RowToInsert> rows,
-                                  String topic,
-                                  Set<Schema> schemas) {
+                                  String topic) {
     InsertAllRequest request = createInsertAllRequest(tableId, rows);
     InsertAllResponse writeResponse = bigQuery.insertAll(request);
     if (writeResponse.hasErrors()) {

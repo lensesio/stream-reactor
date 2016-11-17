@@ -112,12 +112,10 @@ public abstract class BigQueryWriter {
    * @param tableId The PartitionedTableId.
    * @param rows The rows to write.
    * @param topic The Kafka topic that the row data came from.
-   * @param schemas The unique Schemas for the row data.
    */
   protected abstract void performWriteRequest(PartitionedTableId tableId,
                                               List<InsertAllRequest.RowToInsert> rows,
-                                              String topic,
-                                              Set<Schema> schemas)
+                                              String topic)
       throws BigQueryException, BigQueryConnectException;
 
   /**
@@ -138,13 +136,11 @@ public abstract class BigQueryWriter {
    * @param table The BigQuery table to write the rows to.
    * @param rows The rows to write.
    * @param topic The Kafka topic that the row data came from.
-   * @param schemas The unique Schemas for the row data.
    * @throws InterruptedException if interrupted.
    */
   public void writeRows(PartitionedTableId table,
                         List<InsertAllRequest.RowToInsert> rows,
-                        String topic,
-                        Set<Schema> schemas)
+                        String topic)
       throws BigQueryConnectException, BigQueryException, InterruptedException {
     logger.debug("writing {} row{} to table {}", rows.size(), rows.size() != 1 ? "s" : "", table);
 
@@ -156,7 +152,7 @@ public abstract class BigQueryWriter {
         waitRandomTime();
       }
       try {
-        performWriteRequest(table, rows, topic, schemas);
+        performWriteRequest(table, rows, topic);
         requestRetries.record(retryCount);
         rowsWritten.record(rows.size());
         return;

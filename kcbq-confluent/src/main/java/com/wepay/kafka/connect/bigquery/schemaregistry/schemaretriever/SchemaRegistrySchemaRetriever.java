@@ -72,13 +72,6 @@ public class SchemaRegistrySchemaRetriever implements SchemaRetriever {
     }
   }
 
-  @Override
-  public Schema retrieveSchema(TableId table, String topic, Set<Schema> schemas) {
-    // Don't care about the records' schemas, Schema Registry can let us request the most recent
-    // Schema
-    return retrieveSchema(table, topic);
-  }
-
   private String getSubject(String topic) {
     return topic + "-value";
   }

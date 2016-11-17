@@ -70,20 +70,18 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
    * @param tableId The PartitionedTableId.
    * @param rows The rows to write.
    * @param topic The Kafka topic that the row data came from.
-   * @param schemas The unique Schemas for the row data.
    */
   @Override
   public void performWriteRequest(PartitionedTableId tableId,
                                   List<InsertAllRequest.RowToInsert> rows,
-                                  String topic,
-                                  Set<Schema> schemas) {
+                                  String topic) {
     InsertAllRequest request = createInsertAllRequest(tableId, rows);
     InsertAllResponse writeResponse = bigQuery.insertAll(request);
     // Should only perform one schema update attempt; may have to continue insert attempts due to
     // BigQuery schema updates taking up to two minutes to take effect
     if (writeResponse.hasErrors()
         && onlyContainsInvalidSchemaErrors(writeResponse.insertErrors())) {
-      schemaManager.updateSchema(tableId.getBaseTableId(), topic, schemas);
+      schemaManager.updateSchema(tableId.getBaseTableId(), topic);
     }
 
     // Schema update might be delayed, so multiple insertion attempts may be necessary

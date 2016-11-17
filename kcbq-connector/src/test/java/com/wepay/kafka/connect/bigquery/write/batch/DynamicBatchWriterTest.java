@@ -59,7 +59,6 @@ public class DynamicBatchWriterTest {
     writeAll(dynamicBatchWriter, 1200);
     verify(mockWriter, times(2)).writeRows(anyObject(),
                                            argThat(new ListIsExactly(600)),
-                                           anyObject(),
                                            anyObject());
   }
 
@@ -92,7 +91,6 @@ public class DynamicBatchWriterTest {
     writeAll(dynamicBatchWriter, 1600);
     verify(mockWriter, times(2)).writeRows(anyObject(),
                                            argThat(new ListIsExactly(800)),
-                                           anyObject(),
                                            anyObject());
   }
 
@@ -123,7 +121,6 @@ public class DynamicBatchWriterTest {
     writeAll(dynamicBatchWriter, 400);
     verify(mockWriter, times(2)).writeRows(anyObject(),
                                            argThat(new ListIsExactly(200)),
-                                           anyObject(),
                                            anyObject());
   }
 
@@ -175,11 +172,9 @@ public class DynamicBatchWriterTest {
     // 250 (success)
     verify(mockWriter, times(1)).writeRows(anyObject(),
                                            argThat(new ListIsExactly(500)),
-                                           anyObject(),
                                            anyObject());
     verify(mockWriter, times(2)).writeRows(anyObject(),
                                            argThat(new ListIsExactly(250)),
-                                           anyObject(),
                                            anyObject());
     Assert.assertEquals(250, dynamicBatchWriter.getCurrentBatchSize());
   }
@@ -201,7 +196,6 @@ public class DynamicBatchWriterTest {
     }
     verify(mockWriter, times(30)).writeRows(anyObject(),
                                            argThat(new ListIsExactly(400)),
-                                           anyObject(),
                                            anyObject());
     // verify we got up to 100 batch size
     Assert.assertEquals(1000, dynamicBatchWriter.getCurrentBatchSize());
@@ -210,7 +204,6 @@ public class DynamicBatchWriterTest {
     writeAll(dynamicBatchWriter, 1200);
     verify(mockWriter, times(2)).writeRows(anyObject(),
                                            argThat(new ListIsExactly(600)),
-                                           anyObject(),
                                            anyObject());
     // verify batch size hasn't changed
     Assert.assertEquals(1000, dynamicBatchWriter.getCurrentBatchSize());
@@ -231,11 +224,9 @@ public class DynamicBatchWriterTest {
     // expect batch sizes of 300, 301
     verify(mockWriter, times(1)).writeRows(anyObject(),
                                            argThat(new ListIsExactly(300)),
-                                                   anyObject(),
                                                    anyObject());
     verify(mockWriter, times(1)).writeRows(anyObject(),
                                            argThat(new ListIsExactly(301)),
-                                                   anyObject(),
                                                    anyObject());
   }
 
@@ -251,7 +242,6 @@ public class DynamicBatchWriterTest {
     doThrow(new BigQueryException(400, null)).when(mockWriter)
         .writeRows(anyObject(),
                    argThat(new ListIsAtLeast(maxSize + 1)),
-                   anyObject(),
                    anyObject());
 
     return mockWriter;
@@ -270,7 +260,7 @@ public class DynamicBatchWriterTest {
     for (int i = 0; i < numElements; i++) {
       elements.add(null);
     }
-    dynamicBatchWriter.writeAll(tableId, elements, null, null);
+    dynamicBatchWriter.writeAll(tableId, elements, null);
   }
 
   private static class ListIsAtLeast extends ArgumentMatcher<List> {
