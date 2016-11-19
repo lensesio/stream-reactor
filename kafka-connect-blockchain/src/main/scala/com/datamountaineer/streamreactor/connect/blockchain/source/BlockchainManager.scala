@@ -14,7 +14,7 @@
   * limitations under the License.
   **/
 
-package com.datamountaineeer.streamreactor.connect.blockchain.source
+package com.datamountaineer.streamreactor.connect.blockchain.source
 
 import java.util
 
@@ -26,9 +26,9 @@ import akka.http.scaladsl.model.ws.{Message, TextMessage, WebSocketRequest}
 import akka.pattern.ask
 import akka.stream.scaladsl.{Keep, Sink, Source}
 import akka.stream.{ActorMaterializer, StreamTcpException}
-import com.datamountaineeer.streamreactor.connect.blockchain.config.BlockchainSettings
-import com.datamountaineeer.streamreactor.connect.blockchain.data.BlockchainMessage
-import com.datamountaineeer.streamreactor.connect.blockchain.json.Json
+import com.datamountaineer.streamreactor.connect.blockchain.config.BlockchainSettings
+import com.datamountaineer.streamreactor.connect.blockchain.data.BlockchainMessage
+import com.datamountaineer.streamreactor.connect.blockchain.json.Json
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord
 

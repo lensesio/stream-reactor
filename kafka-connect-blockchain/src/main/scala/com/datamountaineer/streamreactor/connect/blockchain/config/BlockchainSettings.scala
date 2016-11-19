@@ -14,7 +14,7 @@
   * limitations under the License.
   **/
 
-package com.datamountaineeer.streamreactor.connect.blockchain.config
+package com.datamountaineer.streamreactor.connect.blockchain.config
 
 import org.apache.kafka.common.config.AbstractConfig
 

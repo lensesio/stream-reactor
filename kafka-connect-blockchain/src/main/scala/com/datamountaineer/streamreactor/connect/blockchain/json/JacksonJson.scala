@@ -14,7 +14,7 @@
   * limitations under the License.
   **/
 
-package com.datamountaineeer.streamreactor.connect.blockchain.json
+package com.datamountaineer.streamreactor.connect.blockchain.json
 
 /*
 object JacksonJson {
