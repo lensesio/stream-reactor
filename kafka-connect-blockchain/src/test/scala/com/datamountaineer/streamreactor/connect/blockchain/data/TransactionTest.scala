@@ -1,12 +1,8 @@
 package com.datamountaineer.streamreactor.connect.blockchain.data
 
-import java.util
-
-import com.datamountaineeer.streamreactor.connect.blockchain.Using
-import com.datamountaineeer.streamreactor.connect.blockchain.data.BlockchainMessage
-import com.datamountaineeer.streamreactor.connect.blockchain.json.Json
+import com.datamountaineer.streamreactor.connect.blockchain.Using
+import com.datamountaineer.streamreactor.connect.blockchain.json.Json
 import com.datamountaineer.streamreactor.connect.blockchain.GetResourcesFromDirectoryFn
-import org.apache.kafka.connect.json.{JsonConverter, JsonDeserializer}
 import org.scalatest.{Matchers, WordSpec}
 
 class TransactionTest extends WordSpec with Matchers with Using {

@@ -14,7 +14,7 @@
   * limitations under the License.
   **/
 
-package com.datamountaineeer.streamreactor.connect.blockchain.data
+package com.datamountaineer.streamreactor.connect.blockchain.data
 
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 
