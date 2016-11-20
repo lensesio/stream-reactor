@@ -25,7 +25,6 @@ import org.apache.kafka.common.config.ConfigException
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
-
 /**
   * Holds the Redis Sink settings
   */
@@ -40,8 +39,8 @@ case class RedisSinkSettings(connection: RedisConnectionInfo,
 
 object RedisSinkSettings {
   def apply(config: RedisSinkConfig): RedisSinkSettings = {
-    val raw = config.getString(RedisSinkConfig.EXPORT_ROUTE_QUERY)
-    require(raw != null && !raw.isEmpty, s"No ${RedisSinkConfig.EXPORT_ROUTE_QUERY} provided!")
+    val raw = config.getString(RedisSinkConfig.KCQL_CONFIG)
+    require(raw != null && !raw.isEmpty, s"No ${RedisSinkConfig.KCQL_CONFIG} provided!")
     val routes = raw.split(";").map(r => Config.parse(r)).toSet
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(RedisSinkConfig.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)

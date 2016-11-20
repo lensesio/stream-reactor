@@ -11,135 +11,102 @@ import scala.collection.JavaConverters._
 
 class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
 
-  val TABLE_NAME_RAW = "someTable"
-  val QUERY_ALL = s"INSERT INTO $TABLE_NAME_RAW SELECT * FROM $TABLE_NAME_RAW"
-  val QUERY_ALL_KEYS = s"INSERT INTO $TABLE_NAME_RAW SELECT * FROM $TABLE_NAME_RAW PK lastName"
-  val QUERY_SELECT = s"INSERT INTO $TABLE_NAME_RAW SELECT lastName as surname, firstName FROM $TABLE_NAME_RAW"
-  val QUERY_SELECT_KEYS = s"INSERT INTO $TABLE_NAME_RAW SELECT lastName as surname, firstName FROM $TABLE_NAME_RAW " +
-    s"PK surname"
-  val QUERY_SELECT_KEYS_BAD = s"INSERT INTO $TABLE_NAME_RAW SELECT lastName as surname, firstName FROM $TABLE_NAME_RAW " +
-    s"PK IamABadPersonAndIHateYou"
-
-  "raise a configuration exception if the export map is empty" in {
+  "throw [config exception] if NO KCQL is provided" in {
     intercept[IllegalArgumentException] {
-      val config = mock[RedisSinkConfig]
-      when(config.getString(REDIS_HOST)).thenReturn("localhost")
-      when(config.getInt(REDIS_PORT)).thenReturn(8453)
-      when(config.getString(REDIS_PASSWORD)).thenReturn("secret")
-      when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
-      RedisSinkSettings(config)
+      RedisSinkSettings(getMockRedisSinkConfig(password = true, KCQL = None))
     }
   }
 
-  "correctly create a RedisSettings when password is not provided" in {
-    val config = mock[RedisSinkConfig]
-
-    when(config.getString(REDIS_HOST)).thenReturn("localhost")
-    when(config.getInt(REDIS_PORT)).thenReturn(8453)
-    when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL_KEYS)
-    when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
-
-    val settings = RedisSinkSettings(config)
+  "work without a <password>" in {
+    val KCQL = s"INSERT INTO xx SELECT * FROM topicA PK lastName"
+    val settings = RedisSinkSettings(getMockRedisSinkConfig(password = false, KCQL = Option(KCQL)))
     settings.connection.password shouldBe None
   }
 
-  "correctly create a RedisSettings when fields are row keys are provided" in {
-    val config = mock[RedisSinkConfig]
-
-    when(config.getString(REDIS_HOST)).thenReturn("localhost")
-    when(config.getInt(REDIS_PORT)).thenReturn(8453)
-    when(config.getPassword(REDIS_PASSWORD)).thenReturn(new Password("secret"))
-    when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL_KEYS)
-    when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
-
-    val settings = RedisSinkSettings(config)
-    val route = settings.routes.head
-
-    settings.rowKeyModeMap(TABLE_NAME_RAW).isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
-
-    route.isIncludeAllFields shouldBe true
-    route.getTarget shouldBe TABLE_NAME_RAW
-    route.getSource shouldBe TABLE_NAME_RAW
-  }
-
-  "correctly create a RedisSettings when no row fields are provided" in {
-    val config = mock[RedisSinkConfig]
-
-    when(config.getString(REDIS_HOST)).thenReturn("localhost")
-    when(config.getInt(REDIS_PORT)).thenReturn(8453)
-    when(config.getPassword(REDIS_PASSWORD)).thenReturn(new Password("secret"))
-    when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL)
-    when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
-
+  "work with KCQL : SELECT * FROM topicA" in {
+    val QUERY_ALL = s"INSERT INTO xx SELECT * FROM topicA"
+    val config = getMockRedisSinkConfig(password = true, KCQL = Option(QUERY_ALL))
     val settings = RedisSinkSettings(config)
 
     settings.connection.password shouldBe Some("secret")
-    settings.rowKeyModeMap(TABLE_NAME_RAW).isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
+    settings.rowKeyModeMap("topicA").isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
     val route = settings.routes.head
 
     route.isIncludeAllFields shouldBe true
-    route.getSource shouldBe TABLE_NAME_RAW
-    route.getTarget shouldBe TABLE_NAME_RAW
-
+    route.getSource shouldBe "topicA"
+    route.getTarget shouldBe "xx"
   }
 
-  "correctly create a RedisSettings when no row fields are provided and selection" in {
-    val config = mock[RedisSinkConfig]
+  "work with KCQL : SELECT * FROM topicA PK lastName" in {
+    val KCQL = s"INSERT INTO xx SELECT * FROM topicA PK lastName"
+    val config = getMockRedisSinkConfig(password = true, KCQL = Option(KCQL))
+    val settings = RedisSinkSettings(config)
+    val route = settings.routes.head
 
-    when(config.getString(REDIS_HOST)).thenReturn("localhost")
-    when(config.getInt(REDIS_PORT)).thenReturn(8453)
-    when(config.getPassword(REDIS_PASSWORD)).thenReturn(new Password("secret"))
-    when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_SELECT)
-    when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
+    settings.rowKeyModeMap("topicA").isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
 
+    route.isIncludeAllFields shouldBe true
+    route.getTarget shouldBe "xx"
+    route.getSource shouldBe "topicA"
+  }
+
+  "work with KCQL : SELECT firstName, lastName as surname FROM topicA" in {
+    val KCQL = s"INSERT INTO xx SELECT firstName, lastName as surname FROM topicA"
+    val config = getMockRedisSinkConfig(password = true, KCQL = Option(KCQL))
     val settings = RedisSinkSettings(config)
     val route = settings.routes.head
     val fields = route.getFieldAlias.asScala.toList
 
-    settings.rowKeyModeMap(TABLE_NAME_RAW).isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
+    settings.rowKeyModeMap("topicA").isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
 
     route.isIncludeAllFields shouldBe false
-    route.getSource shouldBe TABLE_NAME_RAW
-    route.getTarget shouldBe TABLE_NAME_RAW
-    fields.head.getField shouldBe "lastName"
-    fields.head.getAlias shouldBe "surname"
-    fields.last.getField shouldBe "firstName"
-    fields.last.getAlias shouldBe "firstName"
+    route.getSource shouldBe "topicA"
+    route.getTarget shouldBe "xx"
+    fields.head.getField shouldBe "firstName"
+    fields.head.getAlias shouldBe "firstName"
+    fields.last.getField shouldBe "lastName"
+    fields.last.getAlias shouldBe "surname"
   }
 
-  "correctly create a RedisSettings when row fields are provided and selection" in {
-    val config = mock[RedisSinkConfig]
-
-    when(config.getString(REDIS_HOST)).thenReturn("localhost")
-    when(config.getInt(REDIS_PORT)).thenReturn(8453)
-    when(config.getPassword(REDIS_PASSWORD)).thenReturn(new Password("secret"))
-    when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_SELECT_KEYS)
-    when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
-
+  "work with KCQL : SELECT firstName, lastName as surname FROM topicA PK surname" in {
+    val KCQL = s"INSERT INTO xx SELECT firstName, lastName as surname FROM topicA PK surname"
+    val config = getMockRedisSinkConfig(password = true, KCQL = Option(KCQL))
     val settings = RedisSinkSettings(config)
     val route = settings.routes.head
     val fields = route.getFieldAlias.asScala.toList
 
-    settings.rowKeyModeMap(TABLE_NAME_RAW).isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
+    settings.rowKeyModeMap("topicA").isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
 
     route.isIncludeAllFields shouldBe false
-    route.getSource shouldBe TABLE_NAME_RAW
-    route.getTarget shouldBe TABLE_NAME_RAW
-    fields.head.getField shouldBe "lastName"
-    fields.head.getAlias shouldBe "surname"
-    fields.last.getField shouldBe "firstName"
-    fields.last.getAlias shouldBe "firstName"
+    route.getSource shouldBe "topicA"
+    route.getTarget shouldBe "xx"
+    fields.head.getField shouldBe "firstName"
+    fields.head.getAlias shouldBe "firstName"
+    fields.last.getField shouldBe "lastName"
+    fields.last.getAlias shouldBe "surname"
   }
 
-//  "raise an exception when the row key builder is set to FIELDS but pks not in query map" in {
-//    intercept[java.lang.IllegalArgumentException] {
-//      val config = mock[RedisSinkConfig]
-//      when(config.getString(REDIS_HOST)).thenReturn("localhost")
-//      when(config.getInt(REDIS_PORT)).thenReturn(8453)
-//      when(config.getPassword(REDIS_PASSWORD)).thenReturn(new Password("secret"))
-//      when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_SELECT_KEYS_BAD) //set keys in select
-//      when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
-//      RedisSinkSettings(config)
-//    }
-//  }
+  // throw when PK in KCQL does not exist in the message selection
+  "throw KCQL exception : SELECT lastName as surname, firstName FROM topicA PK missingField" in {
+    intercept[java.lang.IllegalArgumentException] {
+      val KCQL_BAD_PK = s"INSERT INTO xx SELECT lastName as surname, firstName FROM topicA PK missingField"
+      RedisSinkSettings(getMockRedisSinkConfig(password = true, KCQL = Option(KCQL_BAD_PK)))
+    }
+  }
+
+  /** Helper methods **/
+  def getMockRedisSinkConfig(password: Boolean, KCQL: Option[String]) = {
+    val config = mock[RedisSinkConfig]
+    when(config.getString(REDIS_HOST)).thenReturn("localhost")
+    when(config.getInt(REDIS_PORT)).thenReturn(8453)
+    when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
+    if (password) {
+      when(config.getPassword(REDIS_PASSWORD)).thenReturn(new Password("secret"))
+      when(config.getString(REDIS_PASSWORD)).thenReturn("secret")
+    }
+    if (KCQL.isDefined)
+      when(config.getString(KCQL_CONFIG)).thenReturn(KCQL.get)
+    config
+  }
+
 }

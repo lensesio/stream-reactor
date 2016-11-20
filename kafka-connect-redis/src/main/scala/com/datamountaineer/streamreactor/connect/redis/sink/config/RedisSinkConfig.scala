@@ -41,8 +41,8 @@ object RedisSinkConfig {
       |Provides the password for the redis connection.
     """.stripMargin
 
-  val EXPORT_ROUTE_QUERY = "connect.redis.sink.kcql"
-  val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
+  val KCQL_CONFIG = "connect.redis.sink.kcql"
+  val KCQL_DOC = "KCQL expression describing field selection and routes."
 
   val ERROR_POLICY = "connect.redis.error.policy"
   val ERROR_POLICY_DOC = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
@@ -66,8 +66,8 @@ object RedisSinkConfig {
       "Connection", 3, ConfigDef.Width.MEDIUM, REDIS_PORT)
     .define(REDIS_PASSWORD, Type.PASSWORD, null, Importance.LOW, REDIS_PASSWORD_DOC,
       "Connection", 4, ConfigDef.Width.MEDIUM, REDIS_PASSWORD)
-    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY,
-      "Connection", 1, ConfigDef.Width.MEDIUM, EXPORT_ROUTE_QUERY)
+    .define(KCQL_CONFIG, Type.STRING, Importance.HIGH, KCQL_CONFIG,
+      "Connection", 1, ConfigDef.Width.MEDIUM, KCQL_CONFIG)
     .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC,
       "Connection", 5, ConfigDef.Width.MEDIUM, ERROR_POLICY)
     .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC,
