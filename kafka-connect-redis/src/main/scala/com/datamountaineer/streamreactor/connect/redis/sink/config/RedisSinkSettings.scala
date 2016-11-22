@@ -28,36 +28,51 @@ import scala.collection.JavaConverters._
 /**
   * Holds the Redis Sink settings
   */
-case class RedisSinkSettings(connection: RedisConnectionInfo,
-                             rowKeyModeMap : Map[String, StringKeyBuilder],
-                             routes: List[Config],
-                             fields: Map[String, Map[String, String]],
-                             ignoreFields : Map[String, Set[String]],
-                             errorPolicy : ErrorPolicy = new ThrowErrorPolicy,
-                             taskRetries : Int = RedisSinkConfig.NBR_OF_RETIRES_DEFAULT)
+case class RedisKCQLSetting(topic: String,
+                            kcqlConfig: Config,
+                            builder: StringKeyBuilder,
+                            aliases: Map[String, String],
+                            ignoredFields: Set[String])
 
+case class RedisSinkSettings(connectionInfo: RedisConnectionInfo,
+                             allKCQLSettings: Set[RedisKCQLSetting],
+                             errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
+                             taskRetries: Int = RedisSinkConfig.NBR_OF_RETIRES_DEFAULT)
 
 object RedisSinkSettings {
   def apply(config: RedisSinkConfig): RedisSinkSettings = {
-    val raw = config.getString(RedisSinkConfig.KCQL_CONFIG)
-    require(raw != null && !raw.isEmpty, s"No ${RedisSinkConfig.KCQL_CONFIG} provided!")
-    val routes = raw.split(";").map(r => Config.parse(r)).toSet
-    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(RedisSinkConfig.ERROR_POLICY).toUpperCase)
-    val errorPolicy = ErrorPolicy(errorPolicyE)
+
+    // Get the error-policy, num-of-retries, redis-connection-info
+    val errorPolicy = ErrorPolicy(ErrorPolicyEnum.withName(config.getString(RedisSinkConfig.ERROR_POLICY).toUpperCase))
     val nbrOfRetries = config.getInt(RedisSinkConfig.NBR_OF_RETRIES)
+    val connectionInfo = RedisConnectionInfo(config)
 
-    val rowKeyModeMap = routes.map{r =>
-        val keys = r.getPrimaryKeys.asScala.toList
-        if (keys.nonEmpty) (r.getSource, StringStructFieldsStringKeyBuilder(keys)) else (r.getSource, new StringGenericRowKeyBuilder())
-      }.toMap
+    // Ensure KCQL command/s are provided
+    val kcqlCommands = config.getString(RedisSinkConfig.KCQL_CONFIG)
+    require(kcqlCommands != null && kcqlCommands.nonEmpty, s"No ${RedisSinkConfig.KCQL_CONFIG} provided!")
 
-    val fieldsMap = routes.map { rm =>
-      (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)
-    }.toMap
+    // Get per KCQL : kcqlConfig, key-builder, aliases, ignored-fields
+    val kcqlConfigs = kcqlCommands.split(';').map(r => Config.parse(r)).toList.distinct
 
-    val ignoreFields = routes.map(r => (r.getSource, r.getIgnoredField.asScala.toSet)).toMap
-    val conn = RedisConnectionInfo(config)
-    new RedisSinkSettings(conn, rowKeyModeMap, routes.toList, fieldsMap, ignoreFields, errorPolicy, nbrOfRetries)
+    // Get the builders
+    val builders = kcqlConfigs.map { k =>
+      val keys = k.getPrimaryKeys.asScala.toList
+      // No PK => 'topic|par|offset' builder else generic-builder
+      if (keys.nonEmpty) StringStructFieldsStringKeyBuilder(keys) else new StringGenericRowKeyBuilder()
+    }
+
+    // Get the aliases
+    val aliases = kcqlConfigs.map { k => k.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap }
+
+    // Get the ignored fields
+    val ignoredFields = kcqlConfigs.map(r => r.getIgnoredField.asScala.toSet)
+
+    val size = kcqlConfigs.length
+    val allRedisKCQLSettings = (0 to size).map { i =>
+      RedisKCQLSetting(kcqlConfigs.get(i).getSource, kcqlConfigs(i), builders(i), aliases(i), ignoredFields(i))
+    }.toSet
+
+    RedisSinkSettings(connectionInfo, allRedisKCQLSettings, errorPolicy, nbrOfRetries)
   }
 }
 
@@ -78,4 +93,4 @@ object RedisConnectionInfo {
 /**
   * Holds the Redis connection details.
   */
-case class RedisConnectionInfo(host:String, port:Int, password:Option[String])
+case class RedisConnectionInfo(host: String, port: Int, password: Option[String])
