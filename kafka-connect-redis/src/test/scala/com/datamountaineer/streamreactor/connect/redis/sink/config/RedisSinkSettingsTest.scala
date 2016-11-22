@@ -20,7 +20,7 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
   "work without a <password>" in {
     val KCQL = s"INSERT INTO xx SELECT * FROM topicA PK lastName"
     val settings = RedisSinkSettings(getMockRedisSinkConfig(password = false, KCQL = Option(KCQL)))
-    settings.connection.password shouldBe None
+    settings.connectionInfo.password shouldBe None
   }
 
   "work with KCQL : SELECT * FROM topicA" in {
@@ -28,9 +28,9 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
     val config = getMockRedisSinkConfig(password = true, KCQL = Option(QUERY_ALL))
     val settings = RedisSinkSettings(config)
 
-    settings.connection.password shouldBe Some("secret")
-    settings.rowKeyModeMap("topicA").isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
-    val route = settings.routes.head
+    settings.connectionInfo.password shouldBe Some("secret")
+    settings.allKCQLSettings.head.builder.isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
+    val route = settings.allKCQLSettings.head.kcqlConfig
 
     route.isIncludeAllFields shouldBe true
     route.getSource shouldBe "topicA"
@@ -41,9 +41,9 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
     val KCQL = s"INSERT INTO xx SELECT * FROM topicA PK lastName"
     val config = getMockRedisSinkConfig(password = true, KCQL = Option(KCQL))
     val settings = RedisSinkSettings(config)
-    val route = settings.routes.head
+    val route = settings.allKCQLSettings.head.kcqlConfig
 
-    settings.rowKeyModeMap("topicA").isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
+    settings.allKCQLSettings.head.builder.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
 
     route.isIncludeAllFields shouldBe true
     route.getTarget shouldBe "xx"
@@ -53,11 +53,11 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
   "work with KCQL : SELECT firstName, lastName as surname FROM topicA" in {
     val KCQL = s"INSERT INTO xx SELECT firstName, lastName as surname FROM topicA"
     val config = getMockRedisSinkConfig(password = true, KCQL = Option(KCQL))
-    val settings = RedisSinkSettings(config)
-    val route = settings.routes.head
+    val settings = RedisSinkSettings(config).allKCQLSettings.head
+    val route = settings.kcqlConfig
     val fields = route.getFieldAlias.asScala.toList
 
-    settings.rowKeyModeMap("topicA").isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
+    settings.builder.isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
 
     route.isIncludeAllFields shouldBe false
     route.getSource shouldBe "topicA"
@@ -72,10 +72,10 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
     val KCQL = s"INSERT INTO xx SELECT firstName, lastName as surname FROM topicA PK surname"
     val config = getMockRedisSinkConfig(password = true, KCQL = Option(KCQL))
     val settings = RedisSinkSettings(config)
-    val route = settings.routes.head
+    val route = settings.allKCQLSettings.head.kcqlConfig
     val fields = route.getFieldAlias.asScala.toList
 
-    settings.rowKeyModeMap("topicA").isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
+    settings.allKCQLSettings.head.builder.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
 
     route.isIncludeAllFields shouldBe false
     route.getSource shouldBe "topicA"

@@ -68,7 +68,7 @@ object RedisSinkSettings {
     val ignoredFields = kcqlConfigs.map(r => r.getIgnoredField.asScala.toSet)
 
     val size = kcqlConfigs.length
-    val allRedisKCQLSettings = (0 to size).map { i =>
+    val allRedisKCQLSettings = (0 until size).map { i =>
       RedisKCQLSetting(kcqlConfigs.get(i).getSource, kcqlConfigs(i), builders(i), aliases(i), ignoredFields(i))
     }.toSet
 

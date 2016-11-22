@@ -35,7 +35,7 @@ class RedisDbWriterTest extends WordSpec with Matchers with BeforeAndAfterAll wi
       when(config.getString(REDIS_HOST)).thenReturn("localhost")
       when(config.getInt(REDIS_PORT)).thenReturn(6379)
       when(config.getString(REDIS_PASSWORD)).thenReturn("")
-      when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL)
+      when(config.getString(KCQL_CONFIG)).thenReturn(QUERY_ALL)
       when(config.getString(ERROR_POLICY)).thenReturn("THROW")
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
 
@@ -83,7 +83,7 @@ class RedisDbWriterTest extends WordSpec with Matchers with BeforeAndAfterAll wi
       when(config.getString(REDIS_HOST)).thenReturn("localhost")
       when(config.getInt(REDIS_PORT)).thenReturn(6379)
       when(config.getString(REDIS_PASSWORD)).thenReturn("")
-      when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL)
+      when(config.getString(KCQL_CONFIG)).thenReturn(QUERY_ALL)
       when(config.getString(ERROR_POLICY)).thenReturn("THROW")
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
 
