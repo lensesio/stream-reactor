@@ -698,4 +698,41 @@ public class ConfigTest {
     Config c2 = Config.parse(syntax2);
     assertEquals(c2.getFormatType().toString(), "JSON");
   }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwExceptionIfStoredAsTypeIsMissing() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT col1,col2 FROM %s STOREAS", table, topic);
+    Config.parse(syntax);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwAnExceptionIfStoredAsParametersIsEmpty() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT col1,col2 FROM %s STOREAS SS ()", table, topic);
+    Config config = Config.parse(syntax);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwAnExceptionIfStoredAsParameterAppersTwice() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT col1,col2 FROM %s STOREAS SS (name = something , NaMe= something)", table, topic);
+    Config.parse(syntax);
+  }
+
+  @Test
+  public void handleStoredAsClause() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s STOREAS SS (param1 = value1 , param2 = value2,param3=value3)", table, topic);
+    Config config = Config.parse(syntax);
+    assertEquals("SS",config.getStoredAs());
+    assertEquals(3, config.getStoredAsParameters().size());
+    assertEquals("value1", config.getStoredAsParameters().get("param1"));
+    assertEquals("value2", config.getStoredAsParameters().get("param2"));
+    assertEquals("value3", config.getStoredAsParameters().get("param3"));
+  }
 }

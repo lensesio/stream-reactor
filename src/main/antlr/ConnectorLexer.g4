@@ -109,6 +109,10 @@ PROJECTTO
     : 'projectTo'|'PROJECTTO'|'projectto'
     ;
 
+STOREAS
+    : 'STOREAS'|'storeas'
+    ;
+
 EQUAL
    : '='
    ;

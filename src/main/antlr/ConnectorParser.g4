@@ -36,7 +36,7 @@ schema_name
    ;
 
 insert_from_clause
-   : sql_action table_name select_clause_basic ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? ( project_to )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( with_format_clause )?
+   : sql_action table_name select_clause_basic ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? ( project_to )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( with_format_clause )?  (storeas_clause)?
    ;
 
 select_clause
@@ -212,4 +212,29 @@ project_to
 
 version_number
     : INT
+    ;
+
+storeas_clause
+    : STOREAS storeas_type (storeas_parameters)*
+    ;
+
+storeas_type
+    : ID | TOPICNAME
+    ;
+
+storeas_parameters
+    : (LEFT_PARAN storeas_parameters_tuple ( COMMA storeas_parameters_tuple)* RIGHT_PARAN)
+    ;
+
+
+storeas_parameters_tuple
+    :  storeas_parameter EQUAL storeas_value
+    ;
+
+storeas_parameter
+    : ID | TOPICNAME
+    ;
+
+storeas_value
+    : ID | TOPICNAME | INT
     ;

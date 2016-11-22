@@ -43,6 +43,8 @@ public class Config {
   private int batchSize = DEFAULT_BATCH_SIZE;
   private Bucketing bucketing;
   private String timestamp;
+  private String storedAs;
+  private Map<String, String> storedAsParameters = new HashMap<>();
   private String consumerGroup;
   private List<PartitionOffset> partitions = null;
   private Integer sampleCount;
@@ -142,6 +144,22 @@ public class Config {
 
   private void setTimestamp(final String value) {
     this.timestamp = value;
+  }
+
+  public String getStoredAs() {
+    return storedAs;
+  }
+
+  private void setStoredAs(String format) {
+    this.storedAs = format;
+  }
+
+  public Map<String, String> getStoredAsParameters() {
+    return storedAsParameters;
+  }
+
+  private void setStoredAsParameters(Map<String, String> storedAsParameters) {
+    this.storedAsParameters = storedAsParameters;
   }
 
   private void setConsumerGroup(String consumerGroup) {
@@ -256,6 +274,7 @@ public class Config {
     });
 
     final String[] columnNameAndAlias = new String[]{null, null};
+    final String[] storedAsParameter = {null};
 
     parser.addParseListener(new ConnectorParserBaseListener() {
 
@@ -329,6 +348,27 @@ public class Config {
       @Override
       public void exitAutoevolve(ConnectorParser.AutoevolveContext ctx) {
         config.setAutoEvolve(true);
+      }
+
+      @Override
+      public void exitStoreas_type(ConnectorParser.Storeas_typeContext ctx) {
+        config.setStoredAs(ctx.getText());
+      }
+
+      @Override
+      public void exitStoreas_parameter(ConnectorParser.Storeas_parameterContext ctx) {
+        String value = ctx.getText();
+        for (String key : config.getStoredAsParameters().keySet()) {
+          if (key.compareToIgnoreCase(value) == 0) {
+            throw new IllegalArgumentException(value + " is a duplicated entry in the storeAs parameters list");
+          }
+        }
+        storedAsParameter[0] = value;
+      }
+
+      @Override
+      public void exitStoreas_value(ConnectorParser.Storeas_valueContext ctx) {
+        config.getStoredAsParameters().put(storedAsParameter[0], ctx.getText());
       }
 
       @Override
