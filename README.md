@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/datamountaineer/kafka-connect-query-language.svg?branch=master)](https://travis-ci.org/datamountaineer/kafka-connect-query-language)
-[<img src="https://img.shields.io/badge/latest%20release-v0.8.4-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22%20AND%20a%3A%22kcql%22)
+[<img src="https://img.shields.io/badge/latest%20release-v0.9-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22%20AND%20a%3A%22kcql%22)
 
 
 # Kafka Connect Query Language
@@ -14,7 +14,6 @@ While working on our sink/sources we ended up producing quite complex configurat
 routes.query = "INSERT INTO transactions SELECT field1 as column1, field2 as column2, field3 FROM topic_A;
                 INSERT INTO transactions SELECT fieldA1 as column1, fieldA2 as column2, fieldC FROM topic_B;"
 ```
-
 
 # Compile and Build
 This project is using the Gradle build system. So to build you would simply do
@@ -38,12 +37,12 @@ Maven
 
 SBT
 ```bash
-libraryDependencies += "com.datamountaineer" % "kcql % "0.8.4"
+libraryDependencies += "com.datamountaineer" % "kcql % "0.9"
 ```
 
 Gradle
 ```bash
-com.datamountaineer:kcql:0.8.4'
+com.datamountaineer:kcql:0.9'
 ```
 
 Check <a href="http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22kcql%22">Maven</a> for latest release.
@@ -81,6 +80,7 @@ FROM   $TOPIC_NAME
        WITHFORMAT  JSON|AVRO|BINARY
        [WITHGROUP $YOUR_CONSUMER_GROUP] 
        [WITHPARTITION (partition),[(partition, offset)]
+       [STOREAS $YOUR_TYPE([field1, field1.....])]
        [SAMPLE $RECORDS_NUMBER EVERY $SLIDE_WINDOW
 ```
 
