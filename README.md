@@ -66,6 +66,7 @@ FROM   $TOPIC_NAME
        [DISTRIBUTEBY cola[,colb]]
        [CLUSTERBY cola[,colb]]
        [TIMESTAMP cola|sys_current]
+       [STOREAS $YOUR_TYPE([key=value, .....])]
        [WITHFORMAT TEXT|AVRO|JSON|BINARY}       
 ```
 If you follow our connectors @Datamountaineer you will find depending on the Connect Sink only some of the the options are used.
@@ -80,7 +81,7 @@ FROM   $TOPIC_NAME
        WITHFORMAT  JSON|AVRO|BINARY
        [WITHGROUP $YOUR_CONSUMER_GROUP] 
        [WITHPARTITION (partition),[(partition, offset)]
-       [STOREAS $YOUR_TYPE([field1, field1.....])]
+       [STOREAS $YOUR_TYPE([key=value, .....])]
        [SAMPLE $RECORDS_NUMBER EVERY $SLIDE_WINDOW
 ```
 
