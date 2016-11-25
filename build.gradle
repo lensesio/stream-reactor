@@ -61,7 +61,7 @@ allprojects {
         dataMountaineerCQLVersion = "0.9.5"
         confluentVersion = '3.0.1'
         akkaVersion = "2.4.10"
-        connectCLIVersion = "0.5"
+        connectCLIVersion = "0.8"
 
         //release
         rootRelease = "${project.rootDir}/release/"

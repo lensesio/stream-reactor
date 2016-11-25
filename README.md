@@ -38,6 +38,20 @@ A collection of components to build a real time ingestion pipeline.
 Akka Http and Reactive Kafka with Websocket and Server Send Event support.
 Supports limited SQL statements to stream and select from Kafka topics in real time.
 
+## Release Notes
+
+**0.2.2**
+
+*   Added MongoDB Sink.
+*   Added start scripts.
+*   Added Kafka Connect and Schema Registry CLI.
+*   Kafka Connect CLI now supports pause/restart/resume; checking connectors on the classpath and validating configuration of connectors.
+*   Fixes to Kudu flush calls.
+*   Support for ``Struct``, ``Schema.STRING`` and ``Json`` with schema in the ReThinkDB, InfluxDB and MongoDB sinks.
+*   Rename ``export.query.route`` to ``sink.kcql``.
+*   Rename ``import.query.route`` to ``source.kcql``.
+*   Upgrade to KCQL 0.9 - Add support for `STOREAS` so specify target sink types, e.g. Redis Sorted Sets, Hazelcast map, queues, ringbuffers.
+
 
 ### Building
 
