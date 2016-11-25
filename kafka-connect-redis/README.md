@@ -39,7 +39,7 @@ This will result into a [Key-Value] pair:
 
 Redis can be used for time-series and IoT use-cases using the **Sorted Set** Data structure.
 
-Sorted Sets (SS) cann effectively store unique `values` sorted on a `score`. This can be exploited
+Sorted Sets (SS) can effectively store unique `values` sorted on a `score`. This can be exploited
 by i.e. creating a SS `USD2GBP` and storing
 i) the timestamp in millis as the `score` and
 ii) encode both the actual value/s & the timestamp as the `value`, in a flat or Json structure
@@ -49,8 +49,9 @@ json-example:
 ZADD EUR2GBP 1392141527298 '{"timestamp":1392141527245,"price":0.8562}'
 ZADD EUR2GBP 1392141529299 '{"timestamp":1392141529245,"price":0.8603}'
 ZRANGE EUR2GBP 0 -1
+```
 
-Once information are stored inside a SS - we can query for the i.e. 1 day worth of data via:
+Once information is stored inside a SS - we can query for i.e. yesterday with:
 
 ```
 zrangebyscore USD2GBP <currentTimeInMillis - 86400000> <currentTimeInMillis>
