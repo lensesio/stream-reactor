@@ -4,12 +4,12 @@ The DM Redis Kafka (sink) connector supports at the moment two modes the **cache
 
 ## Redis mode : Cache
 
-Purpose is to *cache* in Redis <Key-Value> pais. Imagine having in a topic Yahoo FX Rates messages:
+Purpose is to *cache* in Redis [Key-Value] pais. Imagine having in a topic Yahoo FX Rates messages:
 
     { "symbol": "USDGBP" , "price": 0.7943 }
     { "symbol": "EURGBP" , "price": 0.8597 }
 
-And you want to store in Redis the symbols as <Keys> and the price as <Value>
+And you want to store in Redis the symbols as `Key` and the price as `Value`
 
     SELECT price from yahoo-fx PK symbol
 
