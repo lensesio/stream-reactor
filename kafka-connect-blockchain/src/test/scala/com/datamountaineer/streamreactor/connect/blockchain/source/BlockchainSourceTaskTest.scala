@@ -2,8 +2,7 @@ package com.datamountaineer.streamreactor.connect.blockchain.source
 
 import java.util
 
-import com.datamountaineeer.streamreactor.connect.blockchain.config.BlockchainConfig
-import com.datamountaineeer.streamreactor.connect.blockchain.source.BlockchainSourceTask
+import com.datamountaineer.streamreactor.connect.blockchain.config.BlockchainConfig
 import org.scalatest.{Matchers, WordSpec}
 
 class BlockchainSourceTaskTest extends WordSpec with Matchers {
