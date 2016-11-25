@@ -4,7 +4,7 @@ The DM Redis Kafka (sink) connector supports at the moment two modes the **cache
 
 ## Redis mode : Cache
 
-Purpose is to *cache* in Redis [Key-Value] pais. Imagine having a topic with Yahoo FX Rates messages:
+Purpose is to *cache* in Redis [Key-Value] pairs. Imagine having a topic with Yahoo FX Rates messages:
 
     { "symbol": "USDGBP" , "price": 0.7943 }
     { "symbol": "EURGBP" , "price": 0.8597 }
@@ -23,15 +23,15 @@ We can prefix the name of the `Key` using the INSERT statement:
 
 This will create key with names `FX-USDGBP` , `FX-EURGBP` etc
 
-We can **extract** the value of the `price` using WITHEXTRACT:
+We can **extract** the value of the `price` using `WITHEXTRACT`
 
     SELECT price from yahoo-fx PK symbol WITHEXTRACT
 
-And result into Key/Values like:
+This will result into a [Key-Value] pair:
 
     Key=EURGBP  Value=0.7943
 
-* The extraction works only when a single field is selected, and it's value is of primitive type: String | Int | Double | Char | Boolean
+> Extraction works only i) when a single field is selected, and ii) it's value is of primitive type: String | Int | Double | Char | Boolean
 
 ## Redis mode : Sorted Set
 
