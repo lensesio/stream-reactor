@@ -31,18 +31,18 @@ Maven
 <dependency>
 	<groupId>com.datamountaineer</groupId>
 	<artifactId>kcql</artifactId>
-	<version>0.8.4</version>
+	<version>0.9.1</version>
 </dependency>
 ```
 
 SBT
 ```bash
-libraryDependencies += "com.datamountaineer" % "kcql % "0.9"
+libraryDependencies += "com.datamountaineer" % "kcql % "0.9.1"
 ```
 
 Gradle
 ```bash
-com.datamountaineer:kcql:0.9'
+com.datamountaineer:kcql:0.9.1'
 ```
 
 Check <a href="http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22kcql%22">Maven</a> for latest release.
@@ -50,52 +50,57 @@ Check <a href="http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22kcql%22">Maven<
 
 # Kafka Connect Query Language 
 
-There are two paths supported by this DSL. One is the INSERT and take the following form: 
+There are three modes in the DSL : INSERT, UPSERT and SELECT.
+
+The *INSERT* and *UPSERT* queries, support some of the following configurations:
+
 ```bash
 INSERT INTO $TARGET 
 SELECT *|columns 
 FROM   $TOPIC_NAME 
-       [IGNORE columns] 
-       [AUTOCREATE] 
-       [PK columns] 
-       [AUTOEVOLVE] 
-       [BATCH = N]
-       [CAPITALIZE]
-       [INITIALIZE]
-       [PARTITIONBY cola[,colb]]
-       [DISTRIBUTEBY cola[,colb]]
-       [CLUSTERBY cola[,colb]]
-       [TIMESTAMP cola|sys_current]
-       [STOREAS $YOUR_TYPE([key=value, .....])]
-       [WITHFORMAT TEXT|AVRO|JSON|BINARY}       
+       [ IGNORE columns ]
+       [ AUTOCREATE ]
+       [ PK columns ]
+       [ AUTOEVOLVE ]
+       [ BATCH = N ]
+       [ CAPITALIZE ]
+       [ INITIALIZE ]
+       [ PARTITIONBY cola[,colb] ]
+       [ DISTRIBUTEBY cola[,colb] ]
+       [ CLUSTERBY cola[,colb] ]
+       [ TIMESTAMP cola|sys_current ]
+       [ STOREAS $YOUR_TYPE([key=value, .....]) ]
+       [ WITHFORMAT TEXT|AVRO|JSON|BINARY ]
 ```
-If you follow our connectors @Datamountaineer you will find depending on the Connect Sink only some of the the options are used.
-You will find all our documentation <a href="https://github.com/datamountaineer/docs/tree/master/source">here</a>
 
-The second path is SELECT only. We have the <a hred="https://github.com/datamountaineer/stream-reactor">Socket Streamer</> which allows you to
-peek into KAFKA via websocket and receive the payloads in real time!
+* To view how a sink connector (i.e. Cassandra) manage configuration options, refer to
+<a href="http://docs.datamountaineer.com/en/latest/connectors.html">documentation here</a>
+
+The *SELECT* mode is usefull for target systems that do not support the concept of <namespace> (i.e. a an in-memory
+Key-Value system does not have the concept of a <database>.<table>) and can also be utilized in the socket-streamer
+to peek into KAFKA via websockets and receive the payloads in real time.
+
 ```bash
 SELECT *|columns 
 FROM   $TOPIC_NAME 
-       [IGNORE columns] 
-       WITHFORMAT  JSON|AVRO|BINARY
-       [WITHGROUP $YOUR_CONSUMER_GROUP] 
-       [WITHPARTITION (partition),[(partition, offset)]
-       [STOREAS $YOUR_TYPE([key=value, .....])]
-       [SAMPLE $RECORDS_NUMBER EVERY $SLIDE_WINDOW
+       [ IGNORE columns ]
+       [ WITHFORMAT  JSON|AVRO|BINARY ]
+       [ WITHGROUP $YOUR_CONSUMER_GROUP ]
+       [ WITHPARTITION (partition),[(partition, offset) ]
+       [ STOREAS $YOUR_TYPE([key=value, .....]) ]
+       [ SAMPLE $RECORDS_NUMBER EVERY $SLIDE_WINDOW ]
 ```
 
 ### Examples of SELECT
 
-    .. SELECT field1 FROM mytopic                    // Project one avro field named field1
-    .. SELECT field1 AS newName                      // Project and renames a field
-    .. SELECT *  FROM mytopic                        // Select everything - perfect for avro evolution
-    .. SELECT *, field1 AS newName FROM mytopic      // Select all & rename a field - excellent for avro evolution
-    .. SELECT * FROM mytopic IGNORE badField         // Select all & ignore a field - excellent for avro evolution
-    .. SELECT * FROM mytopic PK field1,field2        //Select all & with primary keys (for the sources where primary keys are required)
-    .. SELECT * FROM mytopic AUTOCREATE              //Select all and create the target source (table for databases)
-    .. SELECT * FROM mytopic AUTOEVOLVE              //Select all & reflect the new fields added to the avro payload into the target
-
+    SELECT field1 FROM mytopic                    // Project one avro field named field1
+    SELECT field1 AS newName                      // Project and renames a field
+    SELECT * FROM mytopic                         // Select everything - perfect for avro evolution
+    SELECT *, field1 AS newName FROM mytopic      // Select all & rename a field - excellent for avro evolution
+    SELECT * FROM mytopic IGNORE badField         // Select all & ignore a field - excellent for avro evolution
+    SELECT * FROM mytopic PK field1,field2        // Select all & with primary keys (for the sources where primary keys are required)
+    SELECT * FROM mytopic AUTOCREATE              // Select all and create the target source (table for databases)
+    SELECT * FROM mytopic AUTOEVOLVE              // Select all & reflect the new fields added to the avro payload into the target
 
 ### Future options
 

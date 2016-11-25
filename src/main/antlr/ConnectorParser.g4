@@ -27,7 +27,7 @@ upsert_pk_into
    : UPSERT pk ID into
    ;
 
-sql_action
+write_mode
    : insert_into | upsert_into | upsert_pk_into
    ;
 
@@ -36,11 +36,11 @@ schema_name
    ;
 
 insert_from_clause
-   : sql_action table_name select_clause_basic ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? ( project_to )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( with_format_clause )?  (storeas_clause)?
+   : write_mode table_name select_clause_basic ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? ( project_to )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( with_format_clause )?  (storeas_clause)?
    ;
 
 select_clause
-   : select_clause_basic with_format_clause (with_consumer_group)? (with_offset_list)? (sample_clause)?
+   : select_clause_basic (with_format_clause)? (with_consumer_group)? (with_offset_list)? (sample_clause)?
    ;
 
 select_clause_basic

@@ -42,6 +42,27 @@ public class ConfigTest {
   }
 
   @Test
+  public void parseSimpleSelectCommand() {
+    String syntax = "SELECT * FROM topicA";
+    Config config = Config.parse(syntax);
+    assertEquals("topicA", config.getSource());
+  }
+
+  @Test
+  public void parseSimpleSelectCommandWithPK() {
+    String syntax = "SELECT * FROM topicA PK lastName";
+    Config config = Config.parse(syntax);
+    assertEquals("topicA", config.getSource());
+  }
+
+  @Test
+  public void parseAnotherSimpleSelectCommandWithPK() {
+    String syntax = "SELECT firstName, lastName as surname FROM topicA";
+    Config config = Config.parse(syntax);
+    assertEquals("topicA", config.getSource());
+  }
+
+  @Test
   public void parseAnInsertWithSelectAllFieldsAndNoIgnore() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
