@@ -21,7 +21,7 @@ We can prefix the name of the `Key` using the INSERT statement:
 
     INSERT INTO FX- SELECT price from yahoo-fx PK symbol
 
-This will create key with names <FX-USDGBP> , <FX-EURGBP> etc
+This will create key with names `FX-USDGBP` , `FX-EURGBP` etc
 
 We can **extract** the value of the `price` using WITHEXTRACT:
 
