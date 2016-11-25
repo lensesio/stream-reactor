@@ -9,28 +9,29 @@ Purpose is to *cache* in Redis [Key-Value] pais. Imagine having a topic with Yah
     { "symbol": "USDGBP" , "price": 0.7943 }
     { "symbol": "EURGBP" , "price": 0.8597 }
 
-And you want to store in Redis the symbols as `Key` and the price as `Value`
+And you want to store in Redis the symbols as `Key` and the price in the `Value`
 
     SELECT price from yahoo-fx PK symbol
 
-The above KCQL will insert and continiously update the keys `USDGBP` , `EURGBP` with the relavent price
-You can prefix the name of the <Key> like in the following example using INSERT
-
-    INSERT INTO FX- SELECT price from yahoo-fx PK symbol
-
-The above will store <prices> in keys names <FX-USDGBP> , <FX-EURGBP> etc
-
-The above commands would extract the `price` field of a Struct so in effect would store in Redis
+This will update the keys `USDGBP` , `EURGBP` with the relavent price using the (default) Json format:
 
     Key=EURGBP  Value={ "price": 0.7943 }
 
-If you want as a value to be the <value> of a field you can achieve that using WITHEXTRACT:
+We can prefix the name of the `Key` using the INSERT statement:
+
+    INSERT INTO FX- SELECT price from yahoo-fx PK symbol
+
+This will create key with names <FX-USDGBP> , <FX-EURGBP> etc
+
+We can **extract** the value of the `price` using WITHEXTRACT:
 
     SELECT price from yahoo-fx PK symbol WITHEXTRACT
 
-That would work only if `price` is a primitive type: String | Int | Double | Char | Boolean
+And result into Key/Values like:
 
     Key=EURGBP  Value=0.7943
+
+* The extraction works only when a single field is selected, and it's value is of primitive type: String | Int | Double | Char | Boolean
 
 ## Redis mode : Sorted Set
 
