@@ -1,6 +1,8 @@
 # Redis KCQL
 
-The DM Redis Kafka (sink) connector supports at the moment two modes the **cache** mode and the **sorted-set** mode
+The DM Redis Kafka (sink) connector supports at the moment two modes the **[cache](#cache-mode)** mode and the **[sorted-set](#sorted-set-mode)** mode
+
+Docs](http://docs.datamountaineer.com/en/latest/yahoo.html)
 
 ## Cache Mode
 
@@ -35,6 +37,26 @@ This will result into a [Key-Value] pair:
 
 ## Sorted Set mode
 
+### KCQL for Redis Sorted Set
+
+Redis SS KCQL provides 2 modes: insert into a **single** Sorted Set (SS) and **group by** the value of a field
+
+To **INSERT** all messages from a topic into 1 Sorted Set (SS)
+
+    INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS **SS**
+
+To promote the value of **1** field to a Sorted Set (SS) by making it a **PK** (primary key)
+
+    SELECT temperature, humidity FROM sensorsTopic **PK** sensorID STOREAS SS
+
+> Remember that SS require the definition of a `score`. It a field named `timestamp` exists in the source topic, it will
+automatically be used to populate the `score` (and also added inside the json message, in the `value`)
+
+To explicitly define how the message will be `scored` we can define it as a parameter of `STOREAS SS`
+
+    INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SS (score=timestamp)
+    INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SS (score=timestamp, format='YYYY-MM-DD HH:SS')
+
 ### Theory on Redis Sorted Set
 
 Redis can be used for time-series and IoT use-cases using the **Sorted Set** Data structure.
@@ -59,23 +81,3 @@ zrangebyscore USD2GBP <currentTimeInMillis - 86400000> <currentTimeInMillis>
 
 > Notice that the `timestamp` is also stored in the json in the `value` to ensure uniquenes. Otherwise the SS
 would de-deplicate if only `{ "price":0.8562 }` is given twice in a time-line
-
-### KCQL for Redis Sorted Set
-
-Redis SS KCQL provides 2 modes: insert into a **single** Sorted Set (SS) and **group by** the value of a field
-
-To **INSERT** all messages from a topic into 1 Sorted Set (SS)
-
-    INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS **SS**
-
-To promote the value of **1** field to a Sorted Set (SS) by making it a **PK** (primary key)
-
-    SELECT temperature, humidity FROM sensorsTopic **PK** sensorID STOREAS SS
-
-> Remember that SS require the definition of a `score`. It a field named `timestamp` exists in the source topic, it will
-automatically be used to populate the `score` (and also added inside the json message, in the `value`)
-
-To explicitly define how the message will be `scored` we can define it as a parameter of `STOREAS SS`
-
-    INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SS (score=timestamp)
-    INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SS (score=timestamp, format='YYYY-MM-DD HH:SS')
