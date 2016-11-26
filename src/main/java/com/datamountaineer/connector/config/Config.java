@@ -486,11 +486,14 @@ public class Config {
       cols.add(aliasIterator.next().getAlias());
     }
 
+    /*
+    // This check is necessary only for RDBMS KCQL
     for (String key : pks) {
       if (!cols.contains(key) && !config.includeAllFields) {
         throw new IllegalArgumentException(String.format("%s Primary Key needs to appear in the Select clause", key));
       }
     }
+    */
 
     if (!config.includeAllFields) {
       final Iterator<String> iterPartitionBy = config.getPartitionBy();

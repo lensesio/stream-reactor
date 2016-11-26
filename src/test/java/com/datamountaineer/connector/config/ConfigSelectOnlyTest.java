@@ -43,6 +43,14 @@ public class ConfigSelectOnlyTest {
   }
 
   @Test
+  public void parseASelectWithPkNonParticipatingInFieldSelection() {
+    // RDBMS KCQL should not allow this - but we need flexibility for other target systems
+    String KCQL = "INSERT INTO SENSOR- SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SS";
+    Config config = Config.parse(KCQL);
+    assertEquals("SS", config.getStoredAs());
+  }
+
+  @Test
   public void parseASelectAllFromTopicWithAConsumerGroup() {
     String topic = "TOPIC_A";
     String expectedConsumerGroup = "myconsumer-group";

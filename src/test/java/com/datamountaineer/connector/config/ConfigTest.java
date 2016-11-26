@@ -419,6 +419,8 @@ public class ConfigTest {
     assertTrue(config.isAutoEvolve());
   }
 
+  /*
+  // Those rules are valid for RDBMS KCQL - but we relax to support other target systems
   @Test(expected = IllegalArgumentException.class)
   public void throwsErrorWhenThePKIsNotPresentInTheSelectClause() {
     String topic = "TOPIC_A";
@@ -433,6 +435,7 @@ public class ConfigTest {
     String syntax = "INSERT INTO someTable SELECT lastName as surname, firstName FROM someTable PK IamABadPersonAndIHateYou";
     Config.parse(syntax);
   }
+  */
 
   @Test
   public void parseAnUpsertWithSelectAllFieldsWithIgnoredColumnsWithCapitalization() {
