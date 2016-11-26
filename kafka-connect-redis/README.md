@@ -1,8 +1,7 @@
 # Redis KCQL
 
-The DM Redis Kafka (sink) connector supports at the moment two modes the **[cache](#cache-mode)** mode and the **[sorted-set](#sorted-set-mode)** mode
-
-Docs](http://docs.datamountaineer.com/en/latest/yahoo.html)
+The DM Redis Kafka (sink) connector supports at the moment two modes the **[cache](#cache-mode)** mode 
+and the **[sorted-set](#sorted-set-mode)** mode
 
 ## Cache Mode
 
