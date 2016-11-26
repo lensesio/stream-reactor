@@ -65,9 +65,11 @@ would de-deplicate if only `{ "price":0.8562 }` is given twice in a time-line
 Redis SS KCQL provides 2 modes
 
 1. **INSERT** all messages from a topic into 1 Sorted Set (SS)
-2. Promote the value of **1** field to a Sorted Set (SS) by making it a **PK** (primary key)
 
     INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS **SS**
+
+2. Promote the value of **1** field to a Sorted Set (SS) by making it a **PK** (primary key)
+
     SELECT temperature, humidity FROM sensorsTopic **PK** sensorID STOREAS SS
 
 > Remember that SS require the definition of a `score`. It a field named `timestamp` exists in the source topic, it will
