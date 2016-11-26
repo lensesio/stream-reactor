@@ -62,13 +62,13 @@ would de-deplicate if only `{ "price":0.8562 }` is given twice in a time-line
 
 ### KCQL for Redis Sorted Set
 
-Redis SS KCQL provides 2 modes
+Redis SS KCQL provides 2 modes: insert into a **single** Sorted Set (SS) and **group by** the value of a field
 
-1. **INSERT** all messages from a topic into 1 Sorted Set (SS)
+To **INSERT** all messages from a topic into 1 Sorted Set (SS)
 
     INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS **SS**
 
-2. Promote the value of **1** field to a Sorted Set (SS) by making it a **PK** (primary key)
+To promote the value of **1** field to a Sorted Set (SS) by making it a **PK** (primary key)
 
     SELECT temperature, humidity FROM sensorsTopic **PK** sensorID STOREAS SS
 
