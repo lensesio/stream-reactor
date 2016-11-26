@@ -62,28 +62,18 @@ would de-deplicate if only `{ "price":0.8562 }` is given twice in a time-line
 
 ### KCQL for Redis Sorted Set
 
-To **INSERT** into 1 Sorted Set (SS) all messages from a topic:
+Redis SS KCQL provides 2 modes
 
-  INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS **SS**
+1. **INSERT** all messages from a topic into 1 Sorted Set (SS)
+2. Promote the value of **1** field to a Sorted Set (SS) by making it a **PK** (primary key)
 
-This will use the (timestamp) if it exists The above Redis KCQL will:
-i) Store all data on a Redis Sorted Set called <cpu_stats>
-ii) Automatically include <system.now> as score
-    //
-  }
-  "SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SS" in { }
-  "INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SS (score=timestamp)" in { }
-  "INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SS (score = timestamp, format='YYYY-MM-DD HH:SS')" in { }
+    INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS **SS**
+    SELECT temperature, humidity FROM sensorsTopic **PK** sensorID STOREAS SS
 
-  // This one should fail
-  // as PK results into multiple Sorted Sets - and an INSERT forces into a single Sorted Set - so they are incompatible
-  "INSERT INTO a_sorted_set SELECT … PK sensorID"
+> Remember that SS require the definition of a `score`. It a field named `timestamp` exists in the source topic, it will
+automatically be used to populate the `score` (and also added inside the json message, in the `value`)
 
-Redis provides
+To explicitly define how the message will be `scored` we can define it as a parameter of `STOREAS SS`
 
-    INSERT INTO FX- SELECT <KEY>.id from yahoo-fx PK symbol
-
-So how can we use the above capabilities using KCQL to provide solutions to:
-
-• Sell price and volume of a traded stock
-• Data gathered from sensors embedded inside IoT devices
+    INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SS (score=timestamp)
+    INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SS (score=timestamp, format='YYYY-MM-DD HH:SS')
