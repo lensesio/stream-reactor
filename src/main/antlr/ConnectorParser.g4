@@ -40,7 +40,7 @@ insert_from_clause
    ;
 
 select_clause
-   : select_clause_basic (with_format_clause)? (with_consumer_group)? (with_offset_list)? (sample_clause)?
+   : select_clause_basic ( PK primary_key_list)? (with_format_clause)? (with_consumer_group)? (with_offset_list)? (sample_clause)? (storeas_clause)?
    ;
 
 select_clause_basic

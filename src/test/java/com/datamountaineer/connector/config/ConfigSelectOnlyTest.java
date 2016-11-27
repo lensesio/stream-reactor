@@ -43,11 +43,27 @@ public class ConfigSelectOnlyTest {
   }
 
   @Test
-  public void parseASelectWithPkNonParticipatingInFieldSelection() {
+  public void parseInsertSelectWithPkNonParticipatingInFieldSelection() {
     // RDBMS KCQL should not allow this - but we need flexibility for other target systems
     String KCQL = "INSERT INTO SENSOR- SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SS";
     Config config = Config.parse(KCQL);
     assertEquals("SS", config.getStoredAs());
+  }
+
+  @Test
+  public void testSELECTwithPK() {
+    String KCQL = "SELECT temperature, humidity FROM sensorsTopic PK sensorID";
+    Config config = Config.parse(KCQL);
+    assertEquals("sensorID", config.getPrimaryKeys().next());
+  }
+
+  @Test
+  public void testSTOREAS() {
+    // RDBMS KCQL should not allow this - but we need flexibility for other target systems
+    String KCQL = "SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SS";
+    Config config = Config.parse(KCQL);
+    assertEquals("SS", config.getStoredAs());
+    assertEquals("sensorID", config.getPrimaryKeys().next());
   }
 
   @Test

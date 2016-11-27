@@ -29,8 +29,6 @@ allprojects {
 
     ext {
         antlrVersion = "4.5.3"
-        confluentVersion = "2.0.1"
-        guavaVersion = "19.0"
         junitVersion = "4.12"
         mockitoVersion = "1.10.19"
     }
@@ -146,7 +144,7 @@ allprojects {
                             developer {
                                 id = 'Antwnis'
                                 name = 'Antonios Chalkiopoulos'
-                                email = 'antonios@datamountaineer.com'
+                                email = 'antonios@landoop.com'
                             }
                         }
                     }
