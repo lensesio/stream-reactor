@@ -1,6 +1,6 @@
 # Redis KCQL
 
-The DM Redis Kafka (sink) connector supports at the moment two modes the **[cache](#cache-mode)** mode 
+The DM Redis Kafka (sink) connector supports at the moment two modes the **[cache](#cache-mode)** mode
 and the **[sorted-set](#sorted-set-mode)** mode
 
 ## Cache Mode
@@ -42,11 +42,11 @@ Redis SS KCQL provides 2 modes: insert into a **single** Sorted Set (SS) and **g
 
 To **INSERT** all messages from a topic into 1 Sorted Set (SS)
 
-    INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS **SS**
+    INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS SS
 
 To promote the value of **1** field to a Sorted Set (SS) by making it a **PK** (primary key)
 
-    SELECT temperature, humidity FROM sensorsTopic **PK** sensorID STOREAS SS
+    SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SS
 
 > Remember that SS require the definition of a `score`. It a field named `timestamp` exists in the source topic, it will
 automatically be used to populate the `score` (and also added inside the json message, in the `value`)
