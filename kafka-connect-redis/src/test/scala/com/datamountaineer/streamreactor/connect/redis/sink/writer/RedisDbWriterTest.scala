@@ -40,7 +40,7 @@ class RedisDbWriterTest extends WordSpec with Matchers with BeforeAndAfterAll wi
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
 
       val settings = RedisSinkSettings(config)
-      val writer = RedisDbWriter(settings)
+      val writer = new RedisKeyWriter(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)
@@ -88,7 +88,7 @@ class RedisDbWriterTest extends WordSpec with Matchers with BeforeAndAfterAll wi
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
 
       val settings = RedisSinkSettings(config)
-      val writer = RedisDbWriter(settings)
+      val writer = new RedisKeyWriter(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)

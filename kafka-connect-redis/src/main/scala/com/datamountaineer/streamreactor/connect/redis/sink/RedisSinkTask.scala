@@ -20,7 +20,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisSinkConfig, RedisSinkSettings}
-import com.datamountaineer.streamreactor.connect.redis.sink.writer.{RedisDbWriter, RedisDbWriterFactory}
+import com.datamountaineer.streamreactor.connect.redis.sink.writer.{RedisKeyWriter, RedisWriter}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -36,7 +36,7 @@ import scala.collection.JavaConversions._
   * target sink
   **/
 class RedisSinkTask extends SinkTask with StrictLogging {
-  var writer: Option[RedisDbWriter] = None
+  var writer: Option[RedisWriter] = None
 
   /**
     * Parse the configurations and setup the writer
@@ -70,7 +70,15 @@ class RedisSinkTask extends SinkTask with StrictLogging {
       context.timeout(sinkConfig.getInt(RedisSinkConfig.ERROR_RETRY_INTERVAL).toLong)
     }
 
-    writer = Some(RedisDbWriterFactory(settings))
+    // Get the Connector mode (cache | PK)
+    val CACHEsettings = settings.copy( allKCQLSettings = settings.allKCQLSettings.filterNot( _.kcqlConfig.getPrimaryKeys.hasNext))
+    val PKsettings = settings.copy ( allKCQLSettings = settings.allKCQLSettings.filter( _.kcqlConfig.getPrimaryKeys.hasNext))
+
+    if (CACHEsettings.allKCQLSettings.nonEmpty) {
+      logger.info("Starting " + CACHEsettings.allKCQLSettings.size + " Cache (key) writers")
+      writer = Some(new RedisKeyWriter(CACHEsettings))
+    }
+
   }
 
   /**

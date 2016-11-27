@@ -31,7 +31,7 @@ import scala.collection.JavaConverters._
 case class RedisKCQLSetting(topic: String,
                             kcqlConfig: Config,
                             builder: StringKeyBuilder,
-                            aliases: Map[String, String],
+                            fieldsAndAliases: Map[String, String],
                             ignoredFields: Set[String])
 
 case class RedisSinkSettings(connectionInfo: RedisConnectionInfo,
