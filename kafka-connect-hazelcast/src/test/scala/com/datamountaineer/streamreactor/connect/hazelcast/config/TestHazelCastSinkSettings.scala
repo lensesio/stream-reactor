@@ -15,7 +15,7 @@ class TestHazelCastSinkSettings extends TestBase {
     val config = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
 
-    settings.topicObject(TOPIC) shouldBe TABLE
+    settings.topicObject(TOPIC) shouldBe HazelCastStoreAsType(TABLE, TargetType.RELIABLE_TOPIC)
     settings.ignoreFields(TOPIC).size shouldBe 0
     settings.routes.head.isIncludeAllFields shouldBe true
     settings.errorPolicy.isInstanceOf[ThrowErrorPolicy] shouldBe true
@@ -26,7 +26,7 @@ class TestHazelCastSinkSettings extends TestBase {
     val config = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
 
-    settings.topicObject(TOPIC) shouldBe TABLE
+    settings.topicObject(TOPIC) shouldBe HazelCastStoreAsType(TABLE, TargetType.RELIABLE_TOPIC)
     settings.ignoreFields(TOPIC).size shouldBe 0
     settings.routes.head.isIncludeAllFields shouldBe false
     settings.errorPolicy.isInstanceOf[ThrowErrorPolicy] shouldBe true
@@ -42,7 +42,7 @@ class TestHazelCastSinkSettings extends TestBase {
     val config = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
 
-    settings.topicObject(TOPIC) shouldBe TABLE
+    settings.topicObject(TOPIC) shouldBe HazelCastStoreAsType(TABLE, TargetType.RELIABLE_TOPIC)
     settings.ignoreFields(TOPIC).size shouldBe 1
     settings.routes.head.getIgnoredField.asScala.toSeq.head shouldBe "a"
     settings.errorPolicy.isInstanceOf[ThrowErrorPolicy] shouldBe true
