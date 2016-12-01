@@ -21,9 +21,10 @@ import java.io.ByteArrayOutputStream
 import com.datamountaineer.connector.config.FormatType
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
-import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
+import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkSettings, TargetType}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import com.hazelcast.core.{HazelcastInstance, ITopic}
+import com.hazelcast.core.{DistributedObject, HazelcastInstance, ITopic}
+import com.hazelcast.ringbuffer.Ringbuffer
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.avro.Schema
 import org.apache.avro.io.EncoderFactory
@@ -31,6 +32,7 @@ import org.apache.avro.reflect.ReflectDatumWriter
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
+import scala.collection.immutable.Iterable
 import scala.util.Try
 
 /**
@@ -52,8 +54,14 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
 
-  val reliableTopics = settings.topicObject.map({
-    case (t, o) => (t, client.getReliableTopic(o).asInstanceOf[ITopic[Object]])
+  val hazelcastObject = settings.topicObject.map({
+    case (t, o) => {
+      val target =  o.targetType match {
+        case TargetType.RELIABLE_TOPIC => client.getReliableTopic(o.name).asInstanceOf[ITopic[Object]]
+        case TargetType.RING_BUFFER => client.getRingbuffer(o.name).asInstanceOf[Ringbuffer[Object]]
+      }
+      (t, target)
+    }
   })
 
   /**
@@ -70,7 +78,13 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
       val converted = batched.flatMap(b => b.map(r => (r.topic, convert(r)))).toMap
       converted.foreach({
         case (topic, payload) =>
-          val t = Try(reliableTopics(topic).publish(payload))
+          val hType = settings.topicObject.get(topic)
+
+          val t = Try(hType.get.targetType match {
+            case TargetType.RELIABLE_TOPIC => hazelcastObject(topic).asInstanceOf[ITopic[Object]].publish(payload)
+            case TargetType.RING_BUFFER => hazelcastObject(topic).asInstanceOf[Ringbuffer[Object]].add(payload)
+          })
+
           handleTry(t)
       })
       logger.debug(s"Written ${records.size}")
@@ -90,7 +104,7 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
         val avro = toAvro(record)
         serializeAvro(avro, avro.getSchema)
       case FormatType.JSON | FormatType.TEXT => toJson(record).toString.getBytes
-      case _ => throw new ConnectException(s"Unknown STORED AS type ${storedAs.toString}")
+      case _ => throw new ConnectException(s"Unknown WITHFORMAT type ${storedAs.toString}")
     }
   }
 

@@ -18,18 +18,29 @@ package com.datamountaineer.streamreactor.connect.hazelcast.config
 
 import com.datamountaineer.connector.config.{Config, FormatType}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.connect.hazelcast.config.TargetType.TargetType
 import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConversions._
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andrew@datamountaineer.com on 08/08/16.
   * stream-reactor
   */
+
+object TargetType extends Enumeration {
+  type TargetType = Value
+  val RELIABLE_TOPIC, RING_BUFFER = Value
+}
+
+
+case class HazelCastStoreAsType(name: String, targetType: TargetType)
+
 case class HazelCastSinkSettings(groupName : String,
                                  connConfig: HazelCastConnectionConfig,
                                  routes: Set[Config],
-                                 topicObject: Map[String, String],
+                                 topicObject: Map[String, HazelCastStoreAsType],
                                  fieldsMap : Map[String, Map[String, String]],
                                  ignoreFields: Map[String, Set[String]],
                                  errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
@@ -46,7 +57,12 @@ object HazelCastSinkSettings {
     val errorPolicy = ErrorPolicy(errorPolicyE)
     val maxRetries = config.getInt(HazelCastSinkConfig.NBR_OF_RETRIES)
     val batchSize = config.getInt(HazelCastSinkConfig.BATCH_SIZE)
-    val topicTables = routes.map(r => (r.getSource, r.getTarget)).toMap
+    val topicTables = routes.map(r => {
+      Try(TargetType.withName(r.getStoredAs)) match {
+        case Success(s) => (r.getSource, HazelCastStoreAsType(r.getTarget, TargetType.withName(r.getStoredAs)))
+        case Failure(f) => (r.getSource, HazelCastStoreAsType(r.getTarget, TargetType.RELIABLE_TOPIC))
+      }
+    }).toMap
 
     val fieldsMap = routes.map(
       rm => (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField,fa.getAlias)).toMap)
@@ -57,6 +73,9 @@ object HazelCastSinkSettings {
     require(groupName.nonEmpty,  s"No ${HazelCastSinkConfig.SINK_GROUP_NAME} provided!")
     val connConfig = HazelCastConnectionConfig(config)
     val format = routes.map(r => (r.getSource, getFormatType(r.getFormatType))).toMap
+
+    //check storedAs
+
 
     new HazelCastSinkSettings(groupName,
                               connConfig,
@@ -69,7 +88,6 @@ object HazelCastSinkSettings {
                               batchSize,
                               format)
   }
-
 
   private def getFormatType(format: FormatType) = {
     if (format == null) {
