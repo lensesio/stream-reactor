@@ -40,7 +40,7 @@ Supports limited SQL statements to stream and select from Kafka topics in real t
 
 ## Release Notes
 
-**0.2.2**
+**0.2.3**
 
 *   Added MongoDB Sink.
 *   Added start scripts.
@@ -51,7 +51,8 @@ Supports limited SQL statements to stream and select from Kafka topics in real t
 *   Rename ``export.query.route`` to ``sink.kcql``.
 *   Rename ``import.query.route`` to ``source.kcql``.
 *   Upgrade to KCQL 0.9.1 - Add support for `STOREAS` so specify target sink types, e.g. Redis Sorted Sets, Hazelcast map, queues, ringbuffers.
-
+*   Hazelcast support for ring buffers.
+*   Redis support for Sorted Sets. (Pending PR from redis branch)
 
 ### Building
 
