@@ -14,17 +14,16 @@
   * limitations under the License.
   **/
 
-package com.datamountaineer.streamreactor.connect.hazelcast.sink
+package com.datamountaineer.streamreactor.connect.hazelcast.writers
 
 import java.io.ByteArrayOutputStream
 
 import com.datamountaineer.connector.config.FormatType
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
-import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkSettings, TargetType}
+import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkSettings, HazelCastStoreAsType, TargetType}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import com.hazelcast.core.{DistributedObject, HazelcastInstance, ITopic}
-import com.hazelcast.ringbuffer.Ringbuffer
+import com.hazelcast.core.HazelcastInstance
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.avro.Schema
 import org.apache.avro.io.EncoderFactory
@@ -32,7 +31,6 @@ import org.apache.avro.reflect.ReflectDatumWriter
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.immutable.Iterable
 import scala.util.Try
 
 /**
@@ -53,16 +51,19 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
 
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
+  val writers = getWriters(settings.topicObject)
 
-  val hazelcastObject = settings.topicObject.map({
-    case (t, o) => {
-      val target =  o.targetType match {
-        case TargetType.RELIABLE_TOPIC => client.getReliableTopic(o.name).asInstanceOf[ITopic[Object]]
-        case TargetType.RING_BUFFER => client.getRingbuffer(o.name).asInstanceOf[Ringbuffer[Object]]
+  def getWriters(tp: Map[String, HazelCastStoreAsType]) : Map[String, Writer] = {
+    tp.map({
+      case (t, o) => {
+        val target = o.targetType match {
+          case TargetType.RELIABLE_TOPIC => ReliableTopicWriter(client, o.name)
+          case TargetType.RING_BUFFER => RingBufferWriter(client, o.name)
+        }
+        (t, target)
       }
-      (t, target)
-    }
-  })
+    })
+  }
 
   /**
     * Write records to Hazelcast
@@ -74,17 +75,11 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
       logger.debug("No records received.")
     } else {
       logger.debug(s"Received ${records.size} records.")
-      val batched = records.sliding(settings.batchSize)
-      val converted = batched.flatMap(b => b.map(r => (r.topic, convert(r)))).toMap
+      val converted = records.map(r => (r.topic, convert(r)))
       converted.foreach({
         case (topic, payload) =>
-          val hType = settings.topicObject.get(topic)
-
-          val t = Try(hType.get.targetType match {
-            case TargetType.RELIABLE_TOPIC => hazelcastObject(topic).asInstanceOf[ITopic[Object]].publish(payload)
-            case TargetType.RING_BUFFER => hazelcastObject(topic).asInstanceOf[Ringbuffer[Object]].add(payload)
-          })
-
+          val writer = writers.get(topic)
+          val t = Try(writer.foreach(w => w.write(payload)))
           handleTry(t)
       })
       logger.debug(s"Written ${records.size}")
