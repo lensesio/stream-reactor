@@ -102,7 +102,7 @@ WITHFORMAT
     ;
 
 FORMAT
-    : 'avro'|'AVRO'|'text'|'TEXT'|'binary'|'BINARY'|'json'|'JSON'
+    : 'avro'|'AVRO'|'text'|'TEXT'|'binary'|'BINARY'|'json'|'JSON'|'object'|'OBJECT'|'map'|'MAP'
     ;
 
 PROJECTTO

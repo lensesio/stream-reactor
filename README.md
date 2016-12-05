@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/datamountaineer/kafka-connect-query-language.svg?branch=master)](https://travis-ci.org/datamountaineer/kafka-connect-query-language)
-[<img src="https://img.shields.io/badge/latest%20release-v0.9.3-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22%20AND%20a%3A%22kcql%22)
+[<img src="https://img.shields.io/badge/latest%20release-v0.9.4-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22%20AND%20a%3A%22kcql%22)
 
 
 # Kafka Connect Query Language
@@ -31,18 +31,18 @@ Maven
 <dependency>
 	<groupId>com.datamountaineer</groupId>
 	<artifactId>kcql</artifactId>
-	<version>0.9.3</version>
+	<version>0.9.4</version>
 </dependency>
 ```
 
 SBT
 ```bash
-libraryDependencies += "com.datamountaineer" % "kcql % "0.9.3"
+libraryDependencies += "com.datamountaineer" % "kcql % "0.9.4"
 ```
 
 Gradle
 ```bash
-com.datamountaineer:kcql:0.9.3'
+com.datamountaineer:kcql:0.9.4'
 ```
 
 Check <a href="http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22kcql%22">Maven</a> for latest release.
@@ -70,7 +70,7 @@ FROM   $TOPIC_NAME
        [ CLUSTERBY cola[,colb] ]
        [ TIMESTAMP cola|sys_current ]
        [ STOREAS $YOUR_TYPE([key=value, .....]) ]
-       [ WITHFORMAT TEXT|AVRO|JSON|BINARY ]
+       [ WITHFORMAT TEXT|AVRO|JSON|BINARY|OBJECT|MAP ]
 ```
 
 * To view how a sink connector (i.e. Cassandra) manage configuration options, refer to

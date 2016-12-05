@@ -5,5 +5,7 @@ public enum FormatType {
   AVRO,
   TEXT,
   BINARY,
-  JSON
+  JSON,
+  OBJECT,
+  MAP
 }

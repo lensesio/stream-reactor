@@ -721,6 +721,14 @@ public class ConfigTest {
     String syntax2 = String.format("INSERT INTO %s SELECT * FROM %s WITHFORMAT json", table, topic);
     Config c2 = Config.parse(syntax2);
     assertEquals(c2.getFormatType().toString(), "JSON");
+
+    String syntax3 = String.format("INSERT INTO %s SELECT * FROM %s WITHFORMAT map", table, topic);
+    Config c3 = Config.parse(syntax3);
+    assertEquals(c3.getFormatType().toString(), "MAP");
+
+    String syntax4 = String.format("INSERT INTO %s SELECT * FROM %s WITHFORMAT object", table, topic);
+    Config c4 = Config.parse(syntax4);
+    assertEquals(c4.getFormatType().toString(), "OBJECT");
   }
 
   @Test(expected = IllegalArgumentException.class)
