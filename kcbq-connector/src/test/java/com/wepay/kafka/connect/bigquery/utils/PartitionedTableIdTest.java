@@ -65,12 +65,12 @@ public class PartitionedTableIdTest {
   public void testWithPartition() {
     final String dataset = "dataset";
     final String table = "table";
-    final LocalDate partitionDate = LocalDate.of(2016, 10, 21);
+    final LocalDate partitionDate = LocalDate.of(2016, 9, 21);
 
     final PartitionedTableId partitionedTableId =
         new PartitionedTableId.Builder(dataset, table).setDayPartition(partitionDate).build();
 
-    final String expectedPartition = "20161021";
+    final String expectedPartition = "20160921";
 
     Assert.assertEquals(dataset, partitionedTableId.getDataset());
     Assert.assertEquals(table, partitionedTableId.getBaseTableName());

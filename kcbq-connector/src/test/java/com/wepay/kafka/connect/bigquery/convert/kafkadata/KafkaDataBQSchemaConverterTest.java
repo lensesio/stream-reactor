@@ -50,10 +50,14 @@ public class KafkaDataBQSchemaConverterTest {
     Field topicField = Field.of("topic", Field.Type.string());
     Field partitionField = Field.of("partition", Field.Type.integer());
     Field offsetField = Field.of("offset", Field.Type.integer());
+    Field insertTimeField = Field.builder("insertTime",Field.Type.timestamp())
+                                 .mode(Field.Mode.NULLABLE)
+                                 .build();
 
     return Field.builder("kafkaData",
                          Field.Type.record(topicField,
                                            partitionField,
-                                           offsetField)).mode(Field.Mode.NULLABLE).build();
+                                           offsetField,
+                                           insertTimeField)).mode(Field.Mode.NULLABLE).build();
   }
 }

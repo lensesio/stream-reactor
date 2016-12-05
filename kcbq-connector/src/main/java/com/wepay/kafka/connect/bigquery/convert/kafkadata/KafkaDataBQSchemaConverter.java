@@ -36,6 +36,7 @@ public class KafkaDataBQSchemaConverter extends BigQuerySchemaConverter {
   /* package private */ static final String KAFKA_DATA_TOPIC_FIELD_NAME = "topic";
   /* package private */ static final String KAFKA_DATA_PARTITION_FIELD_NAME = "partition";
   /* package private */ static final String KAFKA_DATA_OFFSET_FIELD_NAME = "offset";
+  /* package private */ static final String KAFKA_DATA_INSERT_TIME_FIELD_NAME = "insertTime";
 
   /**
    * Convert the  kafka {@link Schema} to a BigQuery {@link com.google.cloud.bigquery.Schema}, with
@@ -54,11 +55,17 @@ public class KafkaDataBQSchemaConverter extends BigQuerySchemaConverter {
     Field topicField = Field.of(KAFKA_DATA_TOPIC_FIELD_NAME, Field.Type.string());
     Field partitionField = Field.of(KAFKA_DATA_PARTITION_FIELD_NAME, Field.Type.integer());
     Field offsetField = Field.of(KAFKA_DATA_OFFSET_FIELD_NAME, Field.Type.integer());
+    Field.Builder insertTimeBuilder = Field.builder(KAFKA_DATA_INSERT_TIME_FIELD_NAME,
+                                                    Field.Type.timestamp())
+                                           .mode(Field.Mode.NULLABLE);
+    Field insertTimeField = insertTimeBuilder.build();
+
     Field.Builder kafkaDataFieldBuilder =
         Field.builder(KAFKA_DATA_FIELD_NAME, Field.Type.record(topicField,
                                                                partitionField,
-                                                               offsetField));
-    kafkaDataFieldBuilder.mode(Field.Mode.NULLABLE);
+                                                               offsetField,
+                                                               insertTimeField))
+             .mode(Field.Mode.NULLABLE);
 
     schemaBuilder.addField(kafkaDataFieldBuilder.build());
 

@@ -19,6 +19,7 @@ package com.wepay.kafka.connect.bigquery.convert.kafkadata;
 
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -32,19 +33,21 @@ import java.util.Map;
 
 public class KafkaDataBQRecordConvertTest {
 
+  private static final String baseFieldName = "base";
+  private static final String kafkaDataFieldName = "kafkaData";
+
+  private static final String kafkaDataTopicName = "topic";
+  private static final String kafkaDataPartitionName = "partition";
+  private static final String kafkaDataOffsetName = "offset";
+  private static final String kafkaDataInsertTimeName = "insertTime";
+
   @Test
   public void test() {
-
-    final String baseFieldName = "base";
     final String baseFieldValue = "a value!";
 
-    final String kafkaDataTopicName = "topic";
     final String kafkaDataTopicValue = "testTopic";
-    final String kafkaDataPartitionName = "partition";
     final int kafkaDataPartitionValue = 101;
-    final String kafkaDataOffsetName = "offset";
     final long kafkaDataOffsetValue = 1337;
-    final String kafkaDataFieldName = "kafkaData";
 
     Map<String, Object> kafkaDataBQFieldValue = new HashMap<>();
     kafkaDataBQFieldValue.put(kafkaDataTopicName, kafkaDataTopicValue);
@@ -67,7 +70,7 @@ public class KafkaDataBQRecordConvertTest {
                                                     kafkaDataOffsetValue);
     Map<String, Object> bigQueryActualRecord =
         new KafkaDataBQRecordConverter().convertRecord(kafkaConnectRecord);
-    assertEquals(bigQueryExpectedRecord, bigQueryActualRecord);
+    checkRecord(bigQueryExpectedRecord, bigQueryActualRecord);
   }
 
   private static SinkRecord spoofSinkRecord(Schema valueSchema,
@@ -76,5 +79,18 @@ public class KafkaDataBQRecordConvertTest {
                                             int partition,
                                             long offset) {
     return new SinkRecord(topic, partition, null, null, valueSchema, value, offset);
+  }
+
+  private static void checkRecord(Map<String, Object> partialExpectedRecord,
+                                  Map<String, Object> actualRecord) {
+    // we can't reasonably check the value of insertTime,
+    // so we'll just check if it's there and is the correct type.
+    @SuppressWarnings("unchecked")
+    Map<String, Object> kafkaDataMap = (Map<String, Object>) actualRecord.get(kafkaDataFieldName);
+    assertTrue(kafkaDataMap.containsKey(kafkaDataInsertTimeName));
+    assertTrue(kafkaDataMap.get(kafkaDataInsertTimeName) instanceof Double);
+    kafkaDataMap.remove(kafkaDataInsertTimeName);
+    actualRecord.put(kafkaDataFieldName, kafkaDataMap);
+    assertEquals(partialExpectedRecord, actualRecord);
   }
 }

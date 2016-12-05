@@ -20,9 +20,9 @@ package com.wepay.kafka.connect.bigquery.write.batch;
 
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest;
-import com.google.cloud.bigquery.TableId;
 
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
+import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
 
 import org.apache.kafka.connect.data.Schema;
@@ -92,15 +92,14 @@ public class DynamicBatchWriter implements BatchWriter<InsertAllRequest.RowToIns
   }
 
   @Override
-  public synchronized void writeAll(TableId table,
+  public synchronized void writeAll(PartitionedTableId table,
                                     List<InsertAllRequest.RowToInsert> elements,
-                                    String topic,
-                                    Set<Schema> schemas) throws BigQueryConnectException,
-                                                                InterruptedException {
+                                    String topic) throws BigQueryConnectException,
+                                                         InterruptedException {
     if (seeking) {
-      seekingWriteAll(table, elements, topic, schemas);
+      seekingWriteAll(table, elements, topic);
     } else {
-      establishedWriteAll(table, elements, topic, schemas);
+      establishedWriteAll(table, elements, topic);
     }
   }
 
@@ -115,11 +114,10 @@ public class DynamicBatchWriter implements BatchWriter<InsertAllRequest.RowToIns
    *   2. we write all the given elements in one batch request without error.
    *   3. we write MAXIMUM_BATCH_SIZE elements in one batch request without error. (unlikely)
    */
-  private void seekingWriteAll(TableId table,
+  private void seekingWriteAll(PartitionedTableId table,
                                List<InsertAllRequest.RowToInsert> elements,
-                               String topic,
-                               Set<Schema> schemas) throws BigQueryConnectException,
-                                                           InterruptedException {
+                               String topic) throws BigQueryConnectException,
+                                                    InterruptedException {
     logger.debug("Seeking best batch size...");
     int currentIndex = 0;
     int successfulCallCount = 0;
@@ -128,7 +126,7 @@ public class DynamicBatchWriter implements BatchWriter<InsertAllRequest.RowToIns
       List<InsertAllRequest.RowToInsert> currentBatchElements =
           elements.subList(currentIndex, endIndex);
       try {
-        writer.writeRows(table, currentBatchElements, topic, schemas);
+        writer.writeRows(table, currentBatchElements, topic);
         // success
         successfulCallCount++;
         currentIndex = endIndex;
@@ -138,8 +136,7 @@ public class DynamicBatchWriter implements BatchWriter<InsertAllRequest.RowToIns
           logger.debug("Best batch size found (max): {}", currentBatchSize);
           establishedWriteAll(table,
                               elements.subList(currentIndex, elements.size()),
-                              topic,
-                              schemas);
+                              topic);
           return;
         }
         // increase the batch size if there is more to test.
@@ -149,15 +146,14 @@ public class DynamicBatchWriter implements BatchWriter<InsertAllRequest.RowToIns
       } catch (BigQueryException exception) {
         // failure
         if (isBatchSizeError(exception)) {
-          decreaseBatchSize(table);
+          decreaseBatchSize(table, exception);
           // if we've had at least 1 successful call we'll assume this is a good batch size.
           if (successfulCallCount > 0) {
             seeking = false; // case 1
             logger.debug("Best batch size found (error if higher): {}", currentBatchSize);
             establishedWriteAll(table,
                                 elements.subList(currentIndex, elements.size()),
-                                topic,
-                                schemas);
+                                topic);
             return;
           }
         } else {
@@ -187,17 +183,16 @@ public class DynamicBatchWriter implements BatchWriter<InsertAllRequest.RowToIns
    * <p>Every {@link #CONT_SUCCESS_COUNT_BUMP} calls, if there have been no errors, we will bump up
    * the batch size.
    */
-  private void establishedWriteAll(TableId table,
+  private void establishedWriteAll(PartitionedTableId table,
                                    List<InsertAllRequest.RowToInsert> elements,
-                                   String topic,
-                                   Set<Schema> schemas) throws BigQueryConnectException,
-                                                               InterruptedException {
+                                   String topic) throws BigQueryConnectException,
+                                                        InterruptedException {
     int currentIndex = 0;
     while (currentIndex < elements.size()) {
       try {
         // handle case where no splitting is necessary:
         if (elements.size() <= currentBatchSize) {
-          writer.writeRows(table, elements, topic, schemas);
+          writer.writeRows(table, elements, topic);
           currentIndex = elements.size();
           // return; don't count this as a contSuccessCount because we don't want to increase
           // the batch size forever if we aren't going to be using it.
@@ -213,14 +208,14 @@ public class DynamicBatchWriter implements BatchWriter<InsertAllRequest.RowToIns
           // the first spareRows batches have an extra row in them.
           int batchSize = batchCount < spareRows ? minBatchSize + 1 : minBatchSize;
           int endIndex = Math.min(currentIndex + batchSize, elements.size());
-          writer.writeRows(table, elements.subList(currentIndex, endIndex), topic, schemas);
+          writer.writeRows(table, elements.subList(currentIndex, endIndex), topic);
           currentIndex = endIndex;
         }
       } catch (BigQueryException exception) {
         if (isBatchSizeError(exception)) {
           // immediately decrease batch size and try again with remaining elements.
           logger.debug("Batch size error during establishedWriteAll, reducing batch size.");
-          decreaseBatchSize(table);
+          decreaseBatchSize(table, exception);
           contSuccessCount = 0;
         } else {
           throw new BigQueryConnectException(
@@ -263,15 +258,16 @@ public class DynamicBatchWriter implements BatchWriter<InsertAllRequest.RowToIns
     return false;
   }
 
-  private void increaseBatchSize(TableId tableId) {
+  private void increaseBatchSize(PartitionedTableId tableId) {
     currentBatchSize = Math.min(currentBatchSize * 2, MAXIMUM_BATCH_SIZE);
     logger.info("Increased batch size to {} for {}", currentBatchSize, tableId.toString());
   }
 
-  private void decreaseBatchSize(TableId tableId) {
+  private void decreaseBatchSize(PartitionedTableId tableId, Exception reason) {
+    logger.debug("Decreasing batch size due to error: {}", reason.getMessage());
     if (currentBatchSize <= 1) {
       // kafka source must have a huge row in it; we can't get past it, just error.
-      throw new BigQueryConnectException("Attempted to decrease batchSize below 1");
+      throw new BigQueryConnectException("Attempted to decrease batchSize below 1", reason);
     }
     currentBatchSize = (int)Math.ceil(currentBatchSize / 2.0);
     logger.info("Decreased batch size to {} for {}", currentBatchSize, tableId.toString());
