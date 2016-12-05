@@ -45,7 +45,6 @@ case class HazelCastSinkSettings(groupName : String,
                                  ignoreFields: Map[String, Set[String]],
                                  errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                                  maxRetries: Int = HazelCastSinkConfig.NBR_OF_RETIRES_DEFAULT,
-                                 batchSize: Int = HazelCastSinkConfig.BATCH_SIZE_DEFAULT,
                                  format: Map[String, FormatType])
 
 object HazelCastSinkSettings {
@@ -56,10 +55,10 @@ object HazelCastSinkSettings {
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(HazelCastSinkConfig.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
     val maxRetries = config.getInt(HazelCastSinkConfig.NBR_OF_RETRIES)
-    val batchSize = config.getInt(HazelCastSinkConfig.BATCH_SIZE)
+
     val topicTables = routes.map(r => {
-      Try(TargetType.withName(r.getStoredAs)) match {
-        case Success(s) => (r.getSource, HazelCastStoreAsType(r.getTarget, TargetType.withName(r.getStoredAs)))
+      Try(TargetType.withName(r.getStoredAs.toUpperCase)) match {
+        case Success(s) => (r.getSource, HazelCastStoreAsType(r.getTarget, TargetType.withName(r.getStoredAs.toUpperCase)))
         case Failure(f) => (r.getSource, HazelCastStoreAsType(r.getTarget, TargetType.RELIABLE_TOPIC))
       }
     }).toMap
@@ -74,9 +73,6 @@ object HazelCastSinkSettings {
     val connConfig = HazelCastConnectionConfig(config)
     val format = routes.map(r => (r.getSource, getFormatType(r.getFormatType))).toMap
 
-    //check storedAs
-
-
     new HazelCastSinkSettings(groupName,
                               connConfig,
                               routes,
@@ -85,7 +81,6 @@ object HazelCastSinkSettings {
                               ignoreFields,
                               errorPolicy,
                               maxRetries,
-                              batchSize,
                               format)
   }
 
@@ -95,7 +90,7 @@ object HazelCastSinkSettings {
     } else {
       format match {
         case FormatType.AVRO | FormatType.JSON | FormatType.TEXT =>
-        case _ => throw new ConnectException(s"Unknown STORED AS type")
+        case _ => throw new ConnectException(s"Unknown WITHFORMAT type")
       }
       format
     }

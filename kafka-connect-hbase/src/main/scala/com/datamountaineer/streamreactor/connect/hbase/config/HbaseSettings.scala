@@ -16,7 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.hbase.config
 
-import com.datamountaineer.connector.config.Config
+import java.util
+
+import com.datamountaineer.connector.config.{Config, FieldAlias}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.hbase.config.HbaseSinkConfig._
 import com.datamountaineer.streamreactor.connect.hbase.{GenericRowKeyBuilderBytes, RowKeyBuilderBytes, StructFieldsExtractorBytes, StructFieldsRowKeyBuilderBytes}
@@ -64,6 +66,16 @@ object HbaseSettings {
     val extractorFields = routes.map(rm => {
       (rm.getSource, StructFieldsExtractorBytes(rm.isIncludeAllFields , fields(rm.getSource)))
     }).toMap
+
+
+    //check primary keys are in the selected fields
+    routes.map(r => {
+      if (!r.isIncludeAllFields) {
+        val keys = r.getPrimaryKeys
+        val fields = r.getFieldAlias.asScala
+        keys.filterNot(k => fields.contains(k)).foreach(f => require(false, s"Primary key $f not found in fields selection."))
+      }
+    })
 
     new HbaseSettings(columnFamily, rowKeyModeMap, routes.toList, extractorFields, errorPolicy, nbrOfRetries)
   }

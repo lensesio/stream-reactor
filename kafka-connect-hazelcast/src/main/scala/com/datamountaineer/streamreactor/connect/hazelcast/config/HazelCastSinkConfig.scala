@@ -100,10 +100,6 @@ object HazelCastSinkConfig {
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
-  val BATCH_SIZE = "connect.hazelcast.sink.batch.size"
-  val BATCH_SIZE_DOC = "Per topic the number of sink records to batch together and insert into Hazelcast"
-  val BATCH_SIZE_DEFAULT = 1000
-
   val config: ConfigDef = new ConfigDef()
     .define(CLUSTER_SINK_MEMBERS, Type.LIST, Importance.HIGH, CLUSTER_MEMBERS_DOC,
       "Connection", 1, ConfigDef.Width.MEDIUM, CLUSTER_SINK_MEMBERS)
@@ -133,8 +129,6 @@ object HazelCastSinkConfig {
       "Target", 3, ConfigDef.Width.MEDIUM, ERROR_RETRY_INTERVAL)
     .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC,
       "Target", 4, ConfigDef.Width.MEDIUM, NBR_OF_RETRIES)
-    .define(BATCH_SIZE, Type.INT, BATCH_SIZE_DEFAULT, Importance.MEDIUM, BATCH_SIZE_DOC,
-      "Target", 5, ConfigDef.Width.MEDIUM, BATCH_SIZE)
 }
 
 class HazelCastSinkConfig(props: util.Map[String, String]) extends AbstractConfig(HazelCastSinkConfig.config, props)
