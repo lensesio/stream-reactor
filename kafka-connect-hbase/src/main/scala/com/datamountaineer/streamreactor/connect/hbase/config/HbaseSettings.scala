@@ -67,16 +67,6 @@ object HbaseSettings {
       (rm.getSource, StructFieldsExtractorBytes(rm.isIncludeAllFields , fields(rm.getSource)))
     }).toMap
 
-
-    //check primary keys are in the selected fields
-    routes.map(r => {
-      if (!r.isIncludeAllFields) {
-        val keys = r.getPrimaryKeys
-        val fields = r.getFieldAlias.asScala
-        keys.filterNot(k => fields.contains(k)).foreach(f => require(false, s"Primary key $f not found in fields selection."))
-      }
-    })
-
     new HbaseSettings(columnFamily, rowKeyModeMap, routes.toList, extractorFields, errorPolicy, nbrOfRetries)
   }
 }
