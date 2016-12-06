@@ -5,7 +5,7 @@
 # Stream Reactor
 Streaming reference architecture built around Kafka. 
 
-![Alt text](https://datamountaineer.files.wordpress.com/2016/01/stream-reactor-1.jpg?w=1320)
+![Alt text](https://datamountaineer.com/2016/01/12/fast-data-stream-reactor/?w=1320)
 
 A collection of components to build a real time ingestion pipeline.
 
@@ -50,7 +50,7 @@ Supports limited SQL statements to stream and select from Kafka topics in real t
 *   Support for ``Struct``, ``Schema.STRING`` and ``Json`` with schema in the ReThinkDB, InfluxDB and MongoDB sinks.
 *   Rename ``export.query.route`` to ``sink.kcql``.
 *   Rename ``import.query.route`` to ``source.kcql``.
-*   Upgrade to KCQL 0.9.1 - Add support for `STOREAS` so specify target sink types, e.g. Redis Sorted Sets, Hazelcast map, queues, ringbuffers.
+*   Upgrade to KCQL 0.9.4 - Add support for `STOREAS` so specify target sink types, e.g. Redis Sorted Sets, Hazelcast map, queues, ringbuffers.
 *   Hazelcast support for ring buffers.
 *   Redis support for Sorted Sets. (Pending PR from redis branch)
 

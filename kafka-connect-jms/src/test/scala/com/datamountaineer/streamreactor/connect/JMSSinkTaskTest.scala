@@ -122,7 +122,6 @@ class JMSSinkTaskTest extends WordSpec with Matchers with Using with BeforeAndAf
             Map(
               JMSSinkConfig.CONNECTION_FACTORY -> classOf[ActiveMQConnectionFactory].getCanonicalName,
               JMSSinkConfig.JMS_URL -> brokerUrl,
-              JMSSinkConfig.MESSAGE_TYPE -> "JSON",
               JMSSinkConfig.EXPORT_ROUTE_QUERY ->
                 s"""
                    |INSERT INTO $jmsQueue SELECT *,int8 as byte, int16 as short from $kafkaTopic1;

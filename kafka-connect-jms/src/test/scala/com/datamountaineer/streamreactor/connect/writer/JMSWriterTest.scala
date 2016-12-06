@@ -116,7 +116,6 @@ class JMSWriterTest extends WordSpec with Matchers with Using with BeforeAndAfte
                   JMSConfig(QueueDestination, kafkaTopic2, jmsQueue, includeAllFields = true, Map("int32" -> "int", "int64" -> "long"))),
                 None,
                 None,
-                MessageType.JSON,
                 retries = 1))
           writer.write(Seq(record1, record2))
 

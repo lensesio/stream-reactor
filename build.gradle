@@ -61,7 +61,7 @@ allprojects {
         dataMountaineerCQLVersion = "0.9.5"
         confluentVersion = '3.0.1'
         akkaVersion = "2.4.10"
-        connectCLIVersion = "0.8"
+        connectCLIVersion = "0.9"
 
         //release
         rootRelease = "${project.rootDir}/release/"
@@ -232,7 +232,9 @@ task collectConfs(type: Copy, dependsOn: prepareReleaseDir) {
 }
 
 task collectBin(type: Copy, dependsOn: prepareReleaseDir) {
-    from "${project.rootDir}/bin"
+    from ("${project.rootDir}/bin") {
+        filter{ it.replaceAll('@@CLI_VERSION@@', connectCLIVersion)}
+    }
     into binDir
 }
 

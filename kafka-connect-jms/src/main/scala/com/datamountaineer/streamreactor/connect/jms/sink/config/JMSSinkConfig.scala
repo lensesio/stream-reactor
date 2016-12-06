@@ -82,8 +82,6 @@ object JMSSinkConfig {
       "Connection", 6, ConfigDef.Width.MEDIUM, JMS_PASSWORD)
     .define(JMS_USER, Type.STRING, null, Importance.HIGH, JMS_USER_DOC,
       "Connection", 7, ConfigDef.Width.MEDIUM, JMS_USER)
-    .define(MESSAGE_TYPE, Type.STRING, MessageType.AVRO.toString, Importance.HIGH, MESSAGE_TYPE_DOC,
-      "Connection", 8, ConfigDef.Width.MEDIUM, MESSAGE_TYPE)
     .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC,
       "Connection", 9, ConfigDef.Width.MEDIUM, ERROR_POLICY)
     .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC,
