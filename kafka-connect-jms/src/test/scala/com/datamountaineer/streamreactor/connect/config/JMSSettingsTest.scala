@@ -1,5 +1,6 @@
 package com.datamountaineer.streamreactor.connect.config
 
+import com.datamountaineer.connector.config.FormatType
 import com.datamountaineer.streamreactor.connect.jms.JMSSinkTask
 import com.datamountaineer.streamreactor.connect.jms.sink.config._
 import io.confluent.common.config.ConfigException
@@ -15,16 +16,14 @@ class JMSSettingsTest extends WordSpec with Matchers {
         Map(
           JMSSinkConfig.JMS_URL -> "tcp://localhost",
           JMSSinkConfig.CONNECTION_FACTORY -> classOf[ActiveMQConnectionFactory].getCanonicalName,
-          JMSSinkConfig.EXPORT_ROUTE_QUERY -> "INSERT INTO mqtopic1 SELECT * FROM kafkaTopic1;INSERT INTO mqqueue1 SELECT c1,c2 as calias FROM kafkaTopic2",
+          JMSSinkConfig.EXPORT_ROUTE_QUERY -> "INSERT INTO mqtopic1 SELECT * FROM kafkaTopic1 WITHFORMAT AVRO;INSERT INTO mqqueue1 SELECT c1,c2 as calias FROM kafkaTopic2",
           JMSSinkConfig.TOPICS_LIST -> "mqtopic1",
           JMSSinkConfig.QUEUES_LIST -> "mqqueue1",
-          JMSSinkConfig.MESSAGE_TYPE -> "AVRO",
           JMSSinkConfig.JMS_USER -> "user1",
           JMSSinkConfig.JMS_PASSWORD -> "password1"
         ))
 
       val settings = JMSSettings(config)
-      settings.messageType shouldBe MessageType.AVRO
       settings.user shouldBe Some("user1")
       settings.password shouldBe Some("password1")
       settings.connectionFactoryClass shouldBe classOf[ActiveMQConnectionFactory]
@@ -35,12 +34,14 @@ class JMSSettingsTest extends WordSpec with Matchers {
       r1.destinationType shouldBe TopicDestination
       r1.fieldsAlias shouldBe Map.empty
       r1.source shouldBe "kafkaTopic1"
+      r1.format shouldBe FormatType.AVRO
 
       val r2 = settings.routes.tail.head
       r2.target shouldBe "mqqueue1"
       r2.destinationType shouldBe QueueDestination
       r2.fieldsAlias shouldBe Map("c1" -> "c1", "c2" -> "calias")
       r2.source shouldBe "kafkaTopic2"
+      r2.format shouldBe FormatType.JSON
 
     }
 
@@ -71,7 +72,6 @@ class JMSSettingsTest extends WordSpec with Matchers {
             JMSSinkConfig.EXPORT_ROUTE_QUERY -> "INSERT INTO mqtopic1 SELECT * FROM kafkaTopic1;INSERT INTO mqqueue1 SELECT c1,c2 as calias FROM kafkaTopic2",
             JMSSinkConfig.TOPICS_LIST -> "different topic",
             JMSSinkConfig.QUEUES_LIST -> "mqqueue1",
-            JMSSinkConfig.MESSAGE_TYPE -> "AVRO",
             JMSSinkConfig.JMS_USER -> "user1",
             JMSSinkConfig.JMS_PASSWORD -> "password1"
           ))
@@ -86,10 +86,9 @@ class JMSSettingsTest extends WordSpec with Matchers {
           Map(
             JMSSinkConfig.JMS_URL -> "tcp://localhost",
             JMSSinkConfig.CONNECTION_FACTORY -> classOf[ActiveMQConnectionFactory].getCanonicalName,
-            JMSSinkConfig.EXPORT_ROUTE_QUERY -> "INSERT INTO mqtopic1 SELECT * FROM kafkaTopic1;INSERT INTO mqqueue1 SELECT c1,c2 as calias FROM kafkaTopic2",
+            JMSSinkConfig.EXPORT_ROUTE_QUERY -> "INSERT INTO mqtopic1 SELECT * FROM kafkaTopic1 WITHFORMAT AVRO;INSERT INTO mqqueue1 SELECT c1,c2 as calias FROM kafkaTopic2",
             JMSSinkConfig.TOPICS_LIST -> "mqtopic1",
             JMSSinkConfig.QUEUES_LIST -> "mqqueueNotPresent",
-            JMSSinkConfig.MESSAGE_TYPE -> "AVRO",
             JMSSinkConfig.JMS_USER -> "user1",
             JMSSinkConfig.JMS_PASSWORD -> "password1"
           ))
@@ -107,7 +106,6 @@ class JMSSettingsTest extends WordSpec with Matchers {
             JMSSinkConfig.EXPORT_ROUTE_QUERY -> "INSERT INTO mqtopic1 SELECT * FROM kafkaTopic1;INSERT INTO mqqueue1 SELECT c1,c2 as calias FROM kafkaTopic2",
             JMSSinkConfig.TOPICS_LIST -> "mqtopic1",
             JMSSinkConfig.QUEUES_LIST -> "mqqueueNotPresent",
-            JMSSinkConfig.MESSAGE_TYPE -> "AVRO",
             JMSSinkConfig.JMS_USER -> "user1",
             JMSSinkConfig.JMS_PASSWORD -> "password1"
           ))

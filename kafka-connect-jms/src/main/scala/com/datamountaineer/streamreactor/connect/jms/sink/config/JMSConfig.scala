@@ -16,7 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.jms.sink.config
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.connector.config.{Config, FormatType}
+import com.typesafe.scalalogging.slf4j.StrictLogging
 import io.confluent.common.config.ConfigException
 
 import scala.collection.JavaConversions._
@@ -25,9 +26,11 @@ case class JMSConfig(destinationType: DestinationType,
                      source: String,
                      target: String,
                      includeAllFields: Boolean,
-                     fieldsAlias: Map[String, String])
+                     fieldsAlias: Map[String, String],
+                     format: FormatType = FormatType.JSON
+                    )
 
-object JMSConfig {
+object JMSConfig extends StrictLogging {
 
   def apply(config: Config, destinationType: DestinationType): JMSConfig = {
     new JMSConfig(
@@ -35,7 +38,8 @@ object JMSConfig {
       config.getSource,
       config.getTarget,
       config.isIncludeAllFields,
-      config.getFieldAlias.map(f => f.getField -> f.getAlias).toMap)
+      config.getFieldAlias.map(f => f.getField -> f.getAlias).toMap,
+      getFormatType(config))
   }
 
   def apply(config: Config, topics: Set[String], queues: Set[String]): JMSConfig = {
@@ -44,7 +48,13 @@ object JMSConfig {
       config.getSource,
       config.getTarget,
       config.isIncludeAllFields,
-      config.getFieldAlias.map(f => f.getField -> f.getAlias).toMap)
+      config.getFieldAlias.map(f => f.getField -> f.getAlias).toMap,
+      getFormatType(config))
+  }
+
+  def getFormatType(config: Config) : FormatType = {
+    val format = Option(config.getFormatType)
+    format.getOrElse(FormatType.JSON)
   }
 
   def getDestinationType(target: String, queues: Set[String], topics: Set[String]): DestinationType = {

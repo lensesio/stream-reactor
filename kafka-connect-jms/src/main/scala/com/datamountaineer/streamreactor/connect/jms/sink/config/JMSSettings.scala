@@ -25,17 +25,13 @@ import io.confluent.common.config.ConfigException
 import scala.collection.JavaConversions._
 import scala.util.Try
 
-object StoredAs extends Enumeration {
-  type StoredAs = Value
-  val JSON, AVRO, TEXT = Value
-}
+
 
 case class JMSSettings(connectionURL: String,
                        connectionFactoryClass: Class[_ <: ConnectionFactory with QueueConnectionFactory with TopicConnectionFactory],
                        routes: List[JMSConfig],
                        user: Option[String],
                        password: Option[String],
-                       messageType: MessageType,
                        errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                        retries: Int) {
   require(connectionURL != null && connectionURL.trim.length > 0, "Invalid connection URL")
@@ -72,10 +68,6 @@ object JMSSettings {
       throw new ConfigException("$clazz is not derived from ConnectionFactory")
     }
 
-    val msgTypeConfig = config.getString(JMSSinkConfig.MESSAGE_TYPE)
-    val msgType = Try(MessageType.valueOf(msgTypeConfig))
-      .getOrElse(throw new ConfigException(s"$msgTypeConfig is not a valid value"))
-
     val url = config.getString(JMSSinkConfig.JMS_URL)
     if (url == null || url.trim.length == 0) {
       throw new ConfigException(s"${JMSSinkConfig.JMS_URL} has not been set")
@@ -95,7 +87,6 @@ object JMSSettings {
       routes.toList,
       Option(config.getString(JMSSinkConfig.JMS_USER)),
       Option(password),
-      msgType,
       errorPolicy,
       nbrOfRetries)
   }

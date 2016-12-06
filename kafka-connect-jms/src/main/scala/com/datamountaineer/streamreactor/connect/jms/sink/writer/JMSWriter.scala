@@ -20,7 +20,7 @@ import javax.jms.{Connection, Destination}
 import javax.naming.InitialContext
 
 import com.datamountaineer.streamreactor.connect.jms.sink.config.{JMSConfig, JMSSettings, TopicDestination}
-import com.datamountaineer.streamreactor.connect.jms.sink.writer.converters.{JMSMessageConverter, JMSMessageConverterFn}
+import com.datamountaineer.streamreactor.connect.jms.sink.writer.converters.JMSMessageConverterFn
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
@@ -30,7 +30,6 @@ import scala.util.Try
 
 case class JMSWriter(context: InitialContext,
                      connection: Connection,
-                     converter: JMSMessageConverter,
                      routes: Seq[JMSConfig]) extends AutoCloseable with ConverterUtil with StrictLogging {
   val session = connection.createSession(true, 0)
 
@@ -43,6 +42,9 @@ case class JMSWriter(context: InitialContext,
     route.source ->(session.createProducer(destination), route)
   }.toMap
 
+  val converterMap = routes.map { route =>
+    route.source->JMSMessageConverterFn(route.format)
+  }.toMap
 
   def writeRecord(record: SinkRecord, cachedMappings: Map[String, Map[String, String]]): Map[String, Map[String, String]] = {
     topicsMap.get(record.topic()) match {
@@ -52,7 +54,7 @@ case class JMSWriter(context: InitialContext,
       case Some((producer, config)) =>
         val (msg, newCachedMappings) = if (config.includeAllFields) {
           if (config.fieldsAlias.isEmpty) {
-            (converter.convert(record, session), cachedMappings)
+            (converterMap(record.topic()).convert(record, session), cachedMappings)
           }
           else {
             val key = RecordKeyBuilderFn(record)
@@ -61,15 +63,15 @@ case class JMSWriter(context: InitialContext,
                 val map = record.valueSchema().fields().map(f => (f.name(), f.name())).toMap
                 val cachedMap = config.fieldsAlias.foldLeft(map) { (m, e) => m + e }
                 val newRecord = convert(record, cachedMap)
-                (converter.convert(newRecord, session), cachedMappings + (key -> cachedMap))
+                (converterMap(record.topic()).convert(newRecord, session), cachedMappings + (key -> cachedMap))
               case Some(cachedMap) =>
                 val newRecord = convert(record, cachedMap)
-                (converter.convert(newRecord, session), cachedMappings)
+                (converterMap(record.topic()).convert(newRecord, session), cachedMappings)
             }
           }
         } else {
           val newRecord = convert(record, config.fieldsAlias)
-          (converter.convert(newRecord, session), cachedMappings)
+          (converterMap(record.topic()).convert(newRecord, session), cachedMappings)
         }
         producer.send(msg)
         newCachedMappings
@@ -112,7 +114,7 @@ object JMSWriter {
       case Some(user) => connectionFactory.createConnection(user, settings.password.get)
     }
 
-    JMSWriter(context, connection, JMSMessageConverterFn(settings.messageType), settings.routes)
+    JMSWriter(context, connection, settings.routes)
   }
 }
 
