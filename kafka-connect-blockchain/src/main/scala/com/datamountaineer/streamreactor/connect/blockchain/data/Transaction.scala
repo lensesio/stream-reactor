@@ -37,8 +37,6 @@ case class Transaction(lock_time: Long,
                        out: Seq[Output])
 
 
-
-
 object Transaction {
   val ConnectSchema = SchemaBuilder.struct
     .name("datamountaineer.blockchain.transaction")
@@ -59,7 +57,7 @@ object Transaction {
   implicit class TransactionToSourceRecordConverter(val tx: Transaction) extends AnyVal {
     def toSourceRecord(topic: String, partition: Int, key: Option[String]): SourceRecord = {
       new SourceRecord(Option(key).map(Collections.singletonMap("Blockchain", _)).orNull,
-        getOffset(),
+        null,
         topic,
         partition,
         key.map(_ => Schema.STRING_SCHEMA).orNull,
@@ -69,7 +67,7 @@ object Transaction {
       )
     }
 
-    private def getOffset() = Collections.singletonMap("position", System.currentTimeMillis())
+    //private def getOffset() = Collections.singletonMap("position", System.currentTimeMillis())
 
     def toStruct(): Struct = {
       val struct = new Struct(ConnectSchema)
@@ -83,10 +81,10 @@ object Transaction {
         .put("vout_sz", tx.vout_sz)
         .put("relayed_by", tx.relayed_by)
 
-        tx.out.headOption.foreach { _ =>
-          import scala.collection.JavaConverters._
-          struct.put("out", tx.out.map(_.toStruct()).asJava)
-        }
+      tx.out.headOption.foreach { _ =>
+        import scala.collection.JavaConverters._
+        struct.put("out", tx.out.map(_.toStruct()).asJava)
+      }
       tx.rbf.foreach(struct.put("rbf", _))
       tx.inputs.headOption.foreach { _ =>
         val inputs = new util.ArrayList[Struct]
@@ -101,4 +99,5 @@ object Transaction {
       struct
     }
   }
+
 }
