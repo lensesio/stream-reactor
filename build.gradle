@@ -58,7 +58,7 @@ allprojects {
         json4sVersion = "3.3.0"
         kiteMiniClusterVersion = "1.1.0"
         gsonVersion = "2.6.2"
-        dataMountaineerCQLVersion = "0.8.4"
+        dataMountaineerCQLVersion = "0.9.5"
         confluentVersion = '3.0.1'
         akkaVersion = "2.4.10"
         connectCLIVersion = "0.5"
@@ -82,6 +82,9 @@ allprojects {
         maven { url "http://repo.typesafe.com/typesafe/releases/" }
         maven { url "https://repository.cloudera.com/artifactory/cloudera-repos/" }
         maven { url "http://conjars.org/repo" }
+        maven {
+            url 'http://dl.bintray.com/andsel/maven/'
+        }
     }
 
     shadowJar {
