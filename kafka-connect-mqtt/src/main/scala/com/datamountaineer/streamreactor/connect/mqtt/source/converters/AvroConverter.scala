@@ -74,7 +74,7 @@ object AvroConverter {
       .toString
       .split(';')
       .filter(_.trim.nonEmpty)
-      .map(_.split("->"))
+      .map(_.split("="))
       .map {
         case Array(source, path) =>
           val file = new File(path)

@@ -40,7 +40,7 @@ class AvroConverterTest extends WordSpec with Matchers with BeforeAndAfterAll {
     }
 
     converter.initialize(Map(
-      AvroConverter.SCHEMA_CONFIG -> s"$mqttSource->${writeSchema(schema)}"
+      AvroConverter.SCHEMA_CONFIG -> s"$mqttSource=${writeSchema(schema)}"
     ))
 
   }

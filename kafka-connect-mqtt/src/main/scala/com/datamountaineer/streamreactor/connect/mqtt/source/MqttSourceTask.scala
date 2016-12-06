@@ -87,7 +87,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
     **/
   override def stop(): Unit = {
     logger.info("Stopping Mqtt source.")
-
+    mqttManager.foreach(_.close())
   }
 
   override def version(): String = getClass.getPackage.getImplementationVersion

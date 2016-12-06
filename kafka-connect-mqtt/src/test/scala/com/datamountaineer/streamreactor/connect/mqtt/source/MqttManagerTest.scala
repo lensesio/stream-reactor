@@ -55,7 +55,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
 
     try {
       converter.initialize(Map(
-        AvroConverter.SCHEMA_CONFIG -> s"$mqttSource->${writeSchema(schema)}"
+        AvroConverter.SCHEMA_CONFIG -> s"$mqttSource=${writeSchema(schema)}"
       ))
     }
     finally {
