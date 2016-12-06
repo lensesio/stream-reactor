@@ -44,6 +44,12 @@ object DruidSinkSettings {
       throw new ConfigException(s"$CONFIG_FILE is not set correctly.")
     }
 
+    val fileContents = scala.io.Source.fromFile(file).mkString
+
+    if (fileContents.isEmpty) {
+      throw new ConfigException(s"Empty $CONFIG_FILE.")
+    }
+
     //val timeout = Try(config.getInt(TIMEOUT)).toOption.getOrElse(600)
 
 
