@@ -25,6 +25,9 @@ import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.source.SourceRecord
 
+/**
+  * Experimental
+  */
 class JsonConverterWithSchemaEvolution extends MqttConverter {
   private val avroData = new AvroData(4)
   implicit private var latestSchema: Option[Schema] = None
@@ -35,7 +38,7 @@ class JsonConverterWithSchemaEvolution extends MqttConverter {
   override def convert(kafkaTopic: String, mqttSource: String, messageId: Int, bytes: Array[Byte]): SourceRecord = {
     require(bytes != null, s"Invalid $bytes parameter")
     val json = new String(bytes, Charset.defaultCharset)
-    val schemaAndValue = JsonConverterWithSchemaEvolution.convert("noname", json)
+    val schemaAndValue = JsonConverterWithSchemaEvolution.convert(mqttSource, json)
     latestSchema = Some(schemaAndValue.schema())
     new SourceRecord(null,
       Collections.singletonMap(JsonConverterWithSchemaEvolution.ConfigKey, latestSchema.map(avroData.fromConnectSchema(_).toString).orNull),
