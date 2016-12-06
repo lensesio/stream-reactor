@@ -131,15 +131,15 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with MockitoSugar {
     fields.last.getAlias shouldBe "firstName"
   }
 
-  "raise an exception when the row key builder is set to FIELDS but pks not in query map" in {
-    intercept[java.lang.IllegalArgumentException] {
-      val config = mock[RedisSinkConfig]
-      when(config.getString(REDIS_HOST)).thenReturn("localhost")
-      when(config.getInt(REDIS_PORT)).thenReturn(8453)
-      when(config.getPassword(REDIS_PASSWORD)).thenReturn(new Password("secret"))
-      when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_SELECT_KEYS_BAD) //set keys in select
-      when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
-      RedisSinkSettings(config)
-    }
-  }
+//  "raise an exception when the row key builder is set to FIELDS but pks not in query map" in {
+//    intercept[java.lang.IllegalArgumentException] {
+//      val config = mock[RedisSinkConfig]
+//      when(config.getString(REDIS_HOST)).thenReturn("localhost")
+//      when(config.getInt(REDIS_PORT)).thenReturn(8453)
+//      when(config.getPassword(REDIS_PASSWORD)).thenReturn(new Password("secret"))
+//      when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_SELECT_KEYS_BAD) //set keys in select
+//      when(config.getString(RedisSinkConfig.ERROR_POLICY)).thenReturn("THROW")
+//      RedisSinkSettings(config)
+//    }
+//  }
 }

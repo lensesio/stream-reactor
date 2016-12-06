@@ -1,7 +1,6 @@
 package com.datamountaineer.streamreactor.connect.blockchain.data
 
-import com.datamountaineeer.streamreactor.connect.blockchain.data.BlockchainMessage
-import com.datamountaineeer.streamreactor.connect.blockchain.json.Json
+import com.datamountaineer.streamreactor.connect.blockchain.json.Json
 import org.scalatest.{Matchers, WordSpec}
 
 class BlockchainMessageTest extends WordSpec with Matchers {

@@ -116,9 +116,9 @@ object CassandraConfigConstants {
   val NBR_OF_RETIRES_DEFAULT = 20
 
 
-  val EXPORT_ROUTE_QUERY = "connect.cassandra.export.route.query"
+  val EXPORT_ROUTE_QUERY = "connect.cassandra.sink.kcql"
   val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
 
-  val IMPORT_ROUTE_QUERY = "connect.cassandra.import.route.query"
+  val IMPORT_ROUTE_QUERY = "connect.cassandra.source.kcql"
   val IMPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
 }

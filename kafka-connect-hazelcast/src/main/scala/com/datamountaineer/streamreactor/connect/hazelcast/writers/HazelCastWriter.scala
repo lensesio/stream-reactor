@@ -14,16 +14,16 @@
   * limitations under the License.
   **/
 
-package com.datamountaineer.streamreactor.connect.hazelcast.sink
+package com.datamountaineer.streamreactor.connect.hazelcast.writers
 
 import java.io.ByteArrayOutputStream
 
 import com.datamountaineer.connector.config.FormatType
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
-import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
+import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkSettings, HazelCastStoreAsType, TargetType}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import com.hazelcast.core.{HazelcastInstance, ITopic}
+import com.hazelcast.core.HazelcastInstance
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.avro.Schema
 import org.apache.avro.io.EncoderFactory
@@ -51,10 +51,19 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
 
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
+  val writers = getWriters(settings.topicObject)
 
-  val reliableTopics = settings.topicObject.map({
-    case (t, o) => (t, client.getReliableTopic(o).asInstanceOf[ITopic[Object]])
-  })
+  def getWriters(tp: Map[String, HazelCastStoreAsType]) : Map[String, Writer] = {
+    tp.map({
+      case (t, o) => {
+        val target = o.targetType match {
+          case TargetType.RELIABLE_TOPIC => ReliableTopicWriter(client, o.name)
+          case TargetType.RING_BUFFER => RingBufferWriter(client, o.name)
+        }
+        (t, target)
+      }
+    })
+  }
 
   /**
     * Write records to Hazelcast
@@ -66,11 +75,11 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
       logger.debug("No records received.")
     } else {
       logger.debug(s"Received ${records.size} records.")
-      val batched = records.sliding(settings.batchSize)
-      val converted = batched.flatMap(b => b.map(r => (r.topic, convert(r)))).toMap
+      val converted = records.map(r => (r.topic, convert(r)))
       converted.foreach({
         case (topic, payload) =>
-          val t = Try(reliableTopics(topic).publish(payload))
+          val writer = writers.get(topic)
+          val t = Try(writer.foreach(w => w.write(payload)))
           handleTry(t)
       })
       logger.debug(s"Written ${records.size}")
@@ -90,7 +99,7 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
         val avro = toAvro(record)
         serializeAvro(avro, avro.getSchema)
       case FormatType.JSON | FormatType.TEXT => toJson(record).toString.getBytes
-      case _ => throw new ConnectException(s"Unknown STORED AS type ${storedAs.toString}")
+      case _ => throw new ConnectException(s"Unknown WITHFORMAT type ${storedAs.toString}")
     }
   }
 

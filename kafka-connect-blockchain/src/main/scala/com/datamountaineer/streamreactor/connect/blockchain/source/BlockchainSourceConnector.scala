@@ -14,11 +14,11 @@
   * limitations under the License.
   **/
 
-package com.datamountaineeer.streamreactor.connect.blockchain.source
+package com.datamountaineer.streamreactor.connect.blockchain.source
 
 import java.util
 
-import com.datamountaineeer.streamreactor.connect.blockchain.config.BlockchainConfig
+import com.datamountaineer.streamreactor.connect.blockchain.config.BlockchainConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task

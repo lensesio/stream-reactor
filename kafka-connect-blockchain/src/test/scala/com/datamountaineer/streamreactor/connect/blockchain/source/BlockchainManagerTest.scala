@@ -9,10 +9,9 @@ import akka.http.scaladsl.settings.ServerSettings.Timeouts
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.testkit.TestPublisher
-import com.datamountaineeer.streamreactor.connect.blockchain.config.BlockchainSettings
-import com.datamountaineeer.streamreactor.connect.blockchain.data.{BlockchainMessage, Transaction}
-import com.datamountaineeer.streamreactor.connect.blockchain.json.Json
-import com.datamountaineeer.streamreactor.connect.blockchain.source.BlockchainManager
+import com.datamountaineer.streamreactor.connect.blockchain.config.BlockchainSettings
+import com.datamountaineer.streamreactor.connect.blockchain.data.{BlockchainMessage, Transaction}
+import com.datamountaineer.streamreactor.connect.blockchain.json.Json
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.{Matchers, WordSpec}
 

@@ -111,14 +111,14 @@ class HbaseSettingsTest extends WordSpec with Matchers with MockitoSugar {
     fields.last.getAlias shouldBe "firstName"
   }
 
-  "raise an exception when the row key builder is set to FIELDS but pks not in query map" in {
-    intercept[java.lang.IllegalArgumentException] {
-      val config = mock[HbaseSinkConfig]
-      val columnFamily = "somecolumnFamily"
-      when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_SELECT_KEYS_BAD) //set keys in select
-      when(config.getString(COLUMN_FAMILY)).thenReturn(columnFamily)
-      when(config.getString(HbaseSinkConfig.ERROR_POLICY)).thenReturn("THROW")
-      HbaseSettings(config)
-    }
-  }
+//  "raise an exception when the row key builder is set to FIELDS but pks not in query map" in {
+//    intercept[java.lang.IllegalArgumentException] {
+//      val config = mock[HbaseSinkConfig]
+//      val columnFamily = "somecolumnFamily"
+//      when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_SELECT_KEYS_BAD) //set keys in select
+//      when(config.getString(COLUMN_FAMILY)).thenReturn(columnFamily)
+//      when(config.getString(HbaseSinkConfig.ERROR_POLICY)).thenReturn("THROW")
+//      HbaseSettings(config)
+//    }
+//  }
 }

@@ -25,6 +25,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   val TOPIC = "sink_test"
   val TABLE = "table1"
   val EXPORT_MAP=s"INSERT INTO $TABLE SELECT * FROM $TOPIC WITHFORMAT avro"
+  val EXPORT_MAP_RB=s"INSERT INTO $TABLE SELECT * FROM $TOPIC WITHFORMAT json STOREAS RING_BUFFER"
   val EXPORT_MAP_JSON=s"INSERT INTO $TABLE SELECT * FROM $TOPIC WITHFORMAT json"
   val EXPORT_MAP_SELECTION = s"INSERT INTO $TABLE SELECT a, b, c FROM $TOPIC"
   val EXPORT_MAP_IGNORED = s"INSERT INTO $TABLE SELECT * FROM $TOPIC IGNORE a"
@@ -39,6 +40,13 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
 
   def getProps = {
     Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP,
+      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+    ).asJava
+  }
+
+  def getPropsRB = {
+    Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_RB,
       HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
       HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
     ).asJava

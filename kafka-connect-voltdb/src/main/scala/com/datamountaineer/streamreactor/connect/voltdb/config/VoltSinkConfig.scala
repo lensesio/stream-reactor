@@ -30,7 +30,7 @@ object VoltSinkConfig {
   val PASSWORD_CONFIG = "connect.volt.connection.password"
   val PASSWORD_DOC = "The password for the voltdb user."
 
-  val EXPORT_ROUTE_QUERY_CONFIG = "connect.volt.export.route.query"
+  val EXPORT_ROUTE_QUERY_CONFIG = "connect.volt.sink.kcql"
   val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
 
   val ERROR_POLICY_CONFIG = "connect.volt.error.policy"
