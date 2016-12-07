@@ -5,7 +5,19 @@ import org.apache.kafka.connect.sink.SinkRecord
 import scala.collection.JavaConversions._
 import scala.util.Try
 
-class RedisMultipleSortedSetWriter(sinkSettings: RedisSinkSettings) extends RedisWriter {
+/**
+  * The PK (Primary Key) Redis `writer` stores in 1 Sorted Set / per field value of the PK
+  *
+  * Requires KCQL syntax:
+  */
+class Redis_PK_SS(sinkSettings: RedisSinkSettings) extends RedisWriter {
+
+  val configs = sinkSettings.allKCQLSettings.map(_.kcqlConfig)
+  configs.foreach { c =>
+    assert(c.getSource.trim.length > 0, "The source topic seems to be invalid " + c.getSource.trim)
+    assert(c.getPrimaryKeys.length == 1, "The Key writer requires ONLY 1 PK (Primary Key) to be defined")
+    assert(c.getStoredAs == "SS", "This mode requires STOREAS SS")
+  }
 
   /**
     * Write a sequence of SinkRecords to Redis.
@@ -13,7 +25,7 @@ class RedisMultipleSortedSetWriter(sinkSettings: RedisSinkSettings) extends Redi
     **/
   override def write(records: Seq[SinkRecord]): Unit = {
     if (records.isEmpty) {
-      logger.debug("No records received on 'Multiple SS' Redis writer")
+      logger.debug("No records received on 'PK SS' Redis writer")
     } else {
       logger.debug(s"Received ${records.size} records.")
       val grouped = records.groupBy(_.topic())
@@ -21,9 +33,7 @@ class RedisMultipleSortedSetWriter(sinkSettings: RedisSinkSettings) extends Redi
     }
   }
 
-  /**
-    * Insert a batch of sink records
-    **/
+  // Insert a batch of sink records
   def insert(records: Map[String, Seq[SinkRecord]]): Unit = {
     records.foreach({
       case (topic, sinkRecords: Seq[SinkRecord]) => {
