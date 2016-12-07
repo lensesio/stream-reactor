@@ -22,8 +22,7 @@ class Redis_INSERT_SS_Spec extends WordSpec with Matchers with RedisMockSupport 
     val route = settings.allKCQLSettings.head.kcqlConfig
     val fields = route.getFieldAlias.asScala.toList
 
-    //settings.allKCQLSettings.head.builder.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
-
+    route.getStoredAs shouldBe "SS"
     route.isIncludeAllFields shouldBe true
     // Store all data on a Redis Sorted Set called <cpu_stats>
     route.getTarget shouldBe "cpu_stats"
@@ -48,7 +47,7 @@ class Redis_INSERT_SS_Spec extends WordSpec with Matchers with RedisMockSupport 
   }
 
   // Define the Date | DateTime format to use to parse the `score` field (store millis in redis)
-  val KCQL3 = "INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SS (score = ts , to = YYYYMMDDHHSS )"
+  val KCQL3 = "INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SS (score=ts,to=YYYYMMDDHHSS)"
   KCQL3 in {
     //(param1 = value1 , param2 = value2,param3=value3)
     val config = getMockRedisSinkConfig(password = true, KCQL = Option(KCQL3))
