@@ -22,6 +22,8 @@ import java.util.Date
   */
 class Redis_INSERT_SS(sinkSettings: RedisSinkSettings) extends RedisWriter {
 
+  apply(sinkSettings)
+
   val configs = sinkSettings.allKCQLSettings.map(_.kcqlConfig)
   var index = 1
   configs.foreach { c =>
@@ -29,7 +31,7 @@ class Redis_INSERT_SS(sinkSettings: RedisSinkSettings) extends RedisWriter {
     assert(c.getSource.trim.length == 1, "You need to define one (1) topic to source data from (" + c.getSource.trim + ")")
     assert(c.getFieldAlias.nonEmpty && !c.isIncludeAllFields, "You need to SELECT at least one field from the topic to be stored in the Redis (sorted) set. Please review the [$index] KCQL syntax of connector")
     assert(c.getPrimaryKeys.isEmpty, s"They keyword PK (Primary Key) is not supported in Redis INSERT_SS mode. Please review the [$index] KCQL syntax of connector")
-    assert(c.getStoredAs == "SS", "This mode requires the KCQL syntax: STOREAS SS ")
+    assert(c.getStoredAs == "SS", "This mode requires the KCQL syntax: STOREAS SS")
     index += 1
   }
 

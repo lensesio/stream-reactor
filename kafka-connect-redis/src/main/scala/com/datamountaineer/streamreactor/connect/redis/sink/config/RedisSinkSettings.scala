@@ -25,21 +25,24 @@ import org.apache.kafka.common.config.ConfigException
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
-/**
-  * Holds the Redis Sink settings
-  */
+// Redis connection details: host, port, password
+case class RedisConnectionInfo(host: String, port: Int, password: Option[String])
+
+// Sink settings of each Redis KCQL statement
 case class RedisKCQLSetting(topic: String,
                             kcqlConfig: Config,
                             builder: StringKeyBuilder,
                             fieldsAndAliases: Map[String, String],
                             ignoredFields: Set[String])
 
+// All the settings of the running connector
 case class RedisSinkSettings(connectionInfo: RedisConnectionInfo,
                              allKCQLSettings: Set[RedisKCQLSetting],
                              errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                              taskRetries: Int = RedisSinkConfig.NBR_OF_RETIRES_DEFAULT)
 
 object RedisSinkSettings {
+
   def apply(config: RedisSinkConfig): RedisSinkSettings = {
 
     // Get the error-policy, num-of-retries, redis-connection-info
@@ -74,6 +77,7 @@ object RedisSinkSettings {
 
     RedisSinkSettings(connectionInfo, allRedisKCQLSettings, errorPolicy, nbrOfRetries)
   }
+
 }
 
 object RedisConnectionInfo {
@@ -89,8 +93,3 @@ object RedisConnectionInfo {
       password)
   }
 }
-
-/**
-  * Holds the Redis connection details.
-  */
-case class RedisConnectionInfo(host: String, port: Int, password: Option[String])

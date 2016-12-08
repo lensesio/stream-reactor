@@ -12,7 +12,7 @@ import scala.collection.JavaConverters._
   * 2. If not, try to use the field `timestamp` (if it exists)
   * 3. If not does not exist use current time as the timestamp <system.now>
   */
-class Redis_INSERT_SS_Spec extends WordSpec with Matchers with RedisMockSupport {
+class Config_INSERT_SS_Spec extends WordSpec with Matchers with RedisMockSupport {
 
   // Insert into a Single Sorted Set
   val KCQL1 = "INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS SS"
