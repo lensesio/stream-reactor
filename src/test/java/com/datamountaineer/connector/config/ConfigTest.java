@@ -767,4 +767,13 @@ public class ConfigTest {
     assertEquals("value2", config.getStoredAsParameters().get("param2"));
     assertEquals("value3", config.getStoredAsParameters().get("param3"));
   }
+
+  @Test
+  public void handleForwardSlashInSource() {
+    String topic = "/TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s", table, topic);
+    Config config = Config.parse(syntax);
+    assertEquals(topic, config.getSource());
+  }
 }
