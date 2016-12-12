@@ -23,6 +23,7 @@ import static org.junit.Assert.assertEquals;
 import com.wepay.kafka.connect.bigquery.exception.ConversionConnectException;
 
 import org.apache.kafka.connect.data.Date;
+import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Timestamp;
@@ -456,6 +457,42 @@ public class BigQuerySchemaConverterTest {
     Schema kafkaConnectTestSchema = SchemaBuilder
         .struct()
         .field(fieldName, SchemaBuilder.int64().name(Date.LOGICAL_NAME))
+        .build();
+
+    new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+  }
+
+  @Test
+  public void testDecimal() {
+    final String fieldName = "Decimal";
+
+    com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            com.google.cloud.bigquery.Field.builder(
+                fieldName,
+                com.google.cloud.bigquery.Field.Type.floatingPoint()
+            ).mode(
+                com.google.cloud.bigquery.Field.Mode.REQUIRED
+            ).build()
+        );
+
+    Schema kafkaConnectTestSchema = SchemaBuilder
+        .struct()
+        .field(fieldName, Decimal.schema(0))
+        .build();
+
+    com.google.cloud.bigquery.Schema bigQueryTestSchema =
+        new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+    assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
+  }
+
+  @Test(expected = ConversionConnectException.class)
+  public void testBadDecimal() {
+    final String fieldName = "Decimal";
+
+    Schema kafkaConnectTestSchema = SchemaBuilder
+        .struct()
+        .field(fieldName, SchemaBuilder.bool().name(Decimal.LOGICAL_NAME))
         .build();
 
     new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
