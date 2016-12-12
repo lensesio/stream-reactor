@@ -5,7 +5,7 @@
 # Stream Reactor
 Streaming reference architecture built around Kafka. 
 
-![Alt text](https://datamountaineer.com/2016/01/12/fast-data-stream-reactor/?w=1320)
+![Alt text](https://datamountaineer.com/wp-content/uploads/2016/01/stream-reactor-1.jpg)
 
 A collection of components to build a real time ingestion pipeline.
 
