@@ -22,7 +22,7 @@ class JMSWriterTest extends WordSpec with Matchers with Using with BeforeAndAfte
   broker.setPersistent(false)
   broker.setUseJmx(false)
   broker.setDeleteAllMessagesOnStartup(true)
-  val brokerUrl = "mqtt://localhost:1883?transport.defaultKeepAlive=60000"
+  val brokerUrl = "tcp://localhost:61620"
   broker.addConnector(brokerUrl)
   broker.setUseShutdownHook(false)
 
