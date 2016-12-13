@@ -5,6 +5,7 @@ import java.nio.ByteBuffer
 import java.nio.file.Paths
 import java.util.UUID
 
+import com.datamountaineer.streamreactor.connect.mqtt.source.MqttMsgKey
 import com.sksamuel.avro4s._
 import io.confluent.connect.avro.AvroData
 import org.apache.avro.generic.GenericRecord
@@ -101,8 +102,8 @@ class AvroConverterTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
       val sourceRecord = converter.convert(topic, mqttSource, 1001, write(avro))
 
-      sourceRecord.key() shouldBe null
-      sourceRecord.keySchema() shouldBe null
+      sourceRecord.key() shouldBe MqttMsgKey.getStruct(mqttSource, 1001)
+      sourceRecord.keySchema() shouldBe MqttMsgKey.schema
 
       val avroData = new AvroData(4)
       sourceRecord.valueSchema() shouldBe avroData.toConnectSchema(avro.getSchema)

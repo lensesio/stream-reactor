@@ -1,5 +1,6 @@
 package com.datamountaineer.streamreactor.connect.mqtt.source.converters
 
+import com.datamountaineer.streamreactor.connect.mqtt.source.MqttMsgKey
 import org.apache.kafka.connect.data.Schema
 import org.scalatest.{Matchers, WordSpec}
 
@@ -11,8 +12,8 @@ class BytesConverterTest extends WordSpec with Matchers {
     "handle null payloads" in {
       val sourceRecord = converter.convert(topic, "somesource", 100, null)
 
-      sourceRecord.key() shouldBe null
-      sourceRecord.keySchema() shouldBe null
+      sourceRecord.keySchema() shouldBe MqttMsgKey.schema
+      sourceRecord.key() shouldBe MqttMsgKey.getStruct("somesource", 100)
       sourceRecord.valueSchema() shouldBe Schema.BYTES_SCHEMA
       sourceRecord.value() shouldBe null
     }
@@ -21,8 +22,8 @@ class BytesConverterTest extends WordSpec with Matchers {
       val expectedPayload: Array[Byte] = Array(245, 2, 10, 200, 22, 0, 0, 11).map(_.toByte)
       val sourceRecord = converter.convert(topic, "somesource", 1001, expectedPayload)
 
-      sourceRecord.key() shouldBe null
-      sourceRecord.keySchema() shouldBe null
+      sourceRecord.keySchema() shouldBe MqttMsgKey.schema
+      sourceRecord.key() shouldBe MqttMsgKey.getStruct("somesource", 1001)
       sourceRecord.valueSchema() shouldBe Schema.BYTES_SCHEMA
       sourceRecord.value() shouldBe expectedPayload
     }
