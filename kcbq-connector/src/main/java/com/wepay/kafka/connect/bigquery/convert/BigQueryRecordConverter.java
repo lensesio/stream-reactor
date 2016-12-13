@@ -23,6 +23,7 @@ import com.google.cloud.bigquery.InsertAllRequest.RowToInsert;
 import com.wepay.kafka.connect.bigquery.exception.ConversionConnectException;
 
 import org.apache.kafka.connect.data.Date;
+import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -51,6 +52,7 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
     LOGICAL_SCHEMA_NAMES = new HashSet<>();
     LOGICAL_SCHEMA_NAMES.add(Timestamp.LOGICAL_NAME);
     LOGICAL_SCHEMA_NAMES.add(Date.LOGICAL_NAME);
+    LOGICAL_SCHEMA_NAMES.add(Decimal.LOGICAL_NAME);
   }
 
   /**
@@ -171,6 +173,9 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
         // of milliseconds since the Unix epoch divided by 1000. (BigQuery represents dates
         // identically to timestamps.)
         return kafkaConnectDate.getTime() / 1000.0;
+      case Decimal.LOGICAL_NAME:
+        java.math.BigDecimal kafkaConnectDecimal = (java.math.BigDecimal) kafkaConnectObject;
+        return kafkaConnectDecimal;
       default:
         throw new ConversionConnectException(
             "Unaccounted-for logical schema name: " + kafkaConnectSchema.name());

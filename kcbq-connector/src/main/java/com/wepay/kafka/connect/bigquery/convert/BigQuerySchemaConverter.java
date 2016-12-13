@@ -21,6 +21,7 @@ package com.wepay.kafka.connect.bigquery.convert;
 import com.wepay.kafka.connect.bigquery.exception.ConversionConnectException;
 
 import org.apache.kafka.connect.data.Date;
+import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Timestamp;
@@ -56,6 +57,7 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
     LOGICAL_SCHEMA_NAMES = new HashSet<>();
     LOGICAL_SCHEMA_NAMES.add(Timestamp.LOGICAL_NAME);
     LOGICAL_SCHEMA_NAMES.add(Date.LOGICAL_NAME);
+    LOGICAL_SCHEMA_NAMES.add(Decimal.LOGICAL_NAME);
 
     PRIMITIVE_TYPE_MAP = new HashMap<>();
     PRIMITIVE_TYPE_MAP.put(
@@ -237,6 +239,14 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
           );
         }
         bigQueryType = com.google.cloud.bigquery.Field.Type.timestamp();
+        break;
+      case Decimal.LOGICAL_NAME:
+        if (kafkaConnectSchema.type() != Schema.Type.BYTES) {
+           throw new ConversionConnectException(
+              "Decimals must be encoded as bytes; instead, found " + kafkaConnectSchema.type()
+          );
+        }
+        bigQueryType = com.google.cloud.bigquery.Field.Type.floatingPoint();
         break;
       default:
         throw new ConversionConnectException(
