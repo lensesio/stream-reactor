@@ -31,8 +31,8 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 
 class AvroConverter extends MqttConverter {
   private val avroData = new AvroData(8)
-  private var sourceToSchemaMap: Map[String, AvroSchema] = _
-  private var avroReadersMap: Map[String, GenericDatumReader[GenericRecord]] = _
+  private var sourceToSchemaMap: Map[String, AvroSchema] = Map.empty
+  private var avroReadersMap: Map[String, GenericDatumReader[GenericRecord]] = Map.empty
 
   override def convert(kafkaTopic: String, mqttSource: String, messageId: Int, bytes: Array[Byte]): SourceRecord = {
     Option(bytes) match {
@@ -46,7 +46,7 @@ class AvroConverter extends MqttConverter {
         val reader = avroReadersMap.getOrElse(mqttSource.toLowerCase, throw new ConfigException(s"Invalid ${AvroConverter.SCHEMA_CONFIG} is not configured for $mqttSource"))
         val decoder = DecoderFactory.get().binaryDecoder(bytes, null)
         val record = reader.read(null, decoder)
-        val schemaAndValue = avroData.toConnectData(sourceToSchemaMap(mqttSource), record)
+        val schemaAndValue = avroData.toConnectData(sourceToSchemaMap(mqttSource.toLowerCase), record)
         new SourceRecord(
           Collections.singletonMap(SourceConstants.PartitionKey, mqttSource),
           null,
@@ -67,7 +67,7 @@ class AvroConverter extends MqttConverter {
 }
 
 object AvroConverter {
-  val SCHEMA_CONFIG = "connect.mqtt.source.converter.avro.schemas"
+  val SCHEMA_CONFIG = "mqtt.source.converter.avro.schemas"
 
   def getSchemas(config: Map[String, String]): Map[String, AvroSchema] = {
     config.getOrElse(SCHEMA_CONFIG, throw new ConfigException(s"$SCHEMA_CONFIG is not provided"))

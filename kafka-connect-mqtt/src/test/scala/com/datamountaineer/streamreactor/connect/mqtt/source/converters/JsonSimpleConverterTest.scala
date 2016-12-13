@@ -1,8 +1,6 @@
-package com.datamountaineer.streamreactor.connect.mqtt.source
+package com.datamountaineer.streamreactor.connect.mqtt.source.converters
 
-import java.util.Collections
-
-import com.datamountaineer.streamreactor.connect.mqtt.source.converters._
+import com.datamountaineer.streamreactor.connect.mqtt.source.MqttMsgKey
 import com.sksamuel.avro4s.{RecordFormat, SchemaFor}
 import io.confluent.connect.avro.AvroData
 import org.apache.avro.Schema

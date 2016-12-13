@@ -11,5 +11,5 @@ object MqttMsgKey {
   private val avroData = new AvroData(1)
   val schema = avroData.toConnectSchema(avroSchema)
 
-  def getStruct(topic: String, id: Int) = avroData.toConnectData(avroSchema, recordFormat.to(MqttMsgKey(topic, id)))
+  def getStruct(topic: String, id: Int) = avroData.toConnectData(avroSchema, recordFormat.to(MqttMsgKey(topic, id))).value()
 }
