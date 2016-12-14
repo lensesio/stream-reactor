@@ -8,6 +8,7 @@ import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.misc.OrderedHashSet;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,7 +38,7 @@ public class Config {
   private String target;
   private Map<String, FieldAlias> fields = new HashMap<>();
   private Set<String> ignoredFields = new HashSet<>();
-  private Set<String> primaryKeys = new HashSet<>();
+  private Set<String> primaryKeys = new OrderedHashSet<>();
   private List<String> partitionBy = new ArrayList<>();
   private int retries = 1;
   private int batchSize = DEFAULT_BATCH_SIZE;
