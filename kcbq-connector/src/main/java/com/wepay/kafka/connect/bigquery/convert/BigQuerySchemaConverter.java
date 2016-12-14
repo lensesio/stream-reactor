@@ -242,7 +242,7 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
         break;
       case Decimal.LOGICAL_NAME:
         if (kafkaConnectSchema.type() != Schema.Type.BYTES) {
-           throw new ConversionConnectException(
+          throw new ConversionConnectException(
               "Decimals must be encoded as bytes; instead, found " + kafkaConnectSchema.type()
           );
         }

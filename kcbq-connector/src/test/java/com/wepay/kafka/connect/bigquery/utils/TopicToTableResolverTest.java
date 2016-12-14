@@ -52,7 +52,7 @@ public class TopicToTableResolverTest {
     );
     configProperties.put(
         BigQuerySinkConfig.TOPICS_CONFIG,
-        "sanitize-me,db_debezium_identity_profiles_info,db.core.cluster-0.users"
+        "sanitize-me,db_debezium_identity_profiles_info.foo,db.core.cluster-0.users"
     );
     configProperties.put(
         BigQuerySinkConfig.TOPICS_TO_TABLES_CONFIG,
@@ -60,7 +60,8 @@ public class TopicToTableResolverTest {
     );
     Map<String, TableId> expectedTopicsToTables = new HashMap<>();
     expectedTopicsToTables.put("sanitize-me", TableId.of("scratch", "sanitize_me"));
-    expectedTopicsToTables.put("db_debezium_identity_profiles_info", TableId.of("scratch", "info"));
+    expectedTopicsToTables.put("db_debezium_identity_profiles_info.foo",
+        TableId.of("scratch", "info_foo"));
     expectedTopicsToTables.put("db.core.cluster-0.users", TableId.of("scratch", "core_users"));
 
     BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
