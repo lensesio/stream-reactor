@@ -17,14 +17,17 @@
 package com.datamountaineer.streamreactor.connect.druid.config
 
 import java.io.File
-import scala.util.Try
-import io.confluent.common.config.ConfigException
-import com.datamountaineer.streamreactor.connect.schemas.PayloadFields
-import DruidSinkConfig._
 
-case class DruidSinkSettings(datasourceName: String,
+import DruidSinkConfig._
+import com.datamountaineer.connector.config.Config
+import com.datamountaineer.streamreactor.connect.schemas.StructFieldsExtractor
+import org.apache.kafka.common.config.ConfigException
+
+import scala.collection.JavaConversions._
+
+case class DruidSinkSettings(datasourceNames: Map[String,String],
                              tranquilityConfig: String,
-                             payloadFields: PayloadFields
+                             extractors: Map[String, StructFieldsExtractor]
                             )
 
 object DruidSinkSettings {
@@ -35,10 +38,6 @@ object DruidSinkSettings {
     * @return An instance of DruidSinkSettings
     */
   def apply(config: DruidSinkConfig): DruidSinkSettings = {
-    val dataSource = config.getString(DATASOURCE_NAME)
-    if (dataSource.trim.length == 0) {
-      throw new ConfigException(s"$DATASOURCE_NAME is not set up correctly.")
-    }
     val file = config.getString(CONFIG_FILE)
     if (file.trim.length == 0 || !new File(file).exists()) {
       throw new ConfigException(s"$CONFIG_FILE is not set correctly.")
@@ -50,13 +49,21 @@ object DruidSinkSettings {
       throw new ConfigException(s"Empty $CONFIG_FILE.")
     }
 
-    //val timeout = Try(config.getInt(TIMEOUT)).toOption.getOrElse(600)
+    val routes = config.getString(DruidSinkConfig.KCQL).split(";").map(r => Config.parse(r)).toList
+    val dataSources = routes.map(r => (r.getSource, r.getTarget)).toMap
+    val fields = routes.map(rm =>
+      (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField,fa.getAlias)).toMap)
+    ).toMap
 
+    val extractors = routes.map(r => {
+      val ignore = if (r.getIgnoredField.size > 0) true else false
+      (r.getSource, StructFieldsExtractor(ignore, fields(r.getSource)))
+    }).toMap
 
     DruidSinkSettings(
-      dataSource,
+      dataSources,
       scala.io.Source.fromFile(file).mkString,
-      PayloadFields(Try(config.getString(FIELDS)).toOption.flatMap(v => Option(v)))
+      extractors
     )
   }
 }

@@ -17,63 +17,67 @@
 package com.datamountaineer.streamreactor.connect.druid.writer
 
 import java.io.ByteArrayInputStream
-import collection.JavaConversions._
+import java.util
+
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import com.twitter.util.{ Future, Await }
+import com.twitter.util.{Await, Future}
 import com.github.nscala_time.time.Imports._
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
-import com.datamountaineer.streamreactor.connect.schemas.StructFieldsExtractor
 import com.datamountaineer.streamreactor.connect.sink.DbWriter
-import com.metamx.tranquility.config.{ TranquilityConfig, PropertiesBasedConfig }
+import com.metamx.tranquility.config.TranquilityConfig
 import com.metamx.tranquility.druid.DruidBeams
 import com.datamountaineer.streamreactor.connect.druid.config.DruidSinkSettings
+import com.metamx.tranquility.tranquilizer.Tranquilizer
+
+import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Responsible for writing the SinkRecord payload to Druid.
   */
-case class DruidDbWriter(dataSourceName: String,
-                         config: TranquilityConfig[PropertiesBasedConfig],
-                         fieldsExtractor: StructFieldsExtractor //,
-                         //timeout: Duration = Duration.fromSeconds(600)
-                        ) extends DbWriter with StrictLogging {
-  private val dataSource = config.getDataSource(dataSourceName)
-  private val sender = DruidBeams.fromConfig(dataSource).buildTranquilizer(dataSource.tranquilizerBuilder())
+class DruidDbWriter(settings: DruidSinkSettings) extends DbWriter with StrictLogging {
+  private val tranquilityConfig =  TranquilityConfig.read(new ByteArrayInputStream(settings.tranquilityConfig.getBytes))
+  private val senders: Map[String, Tranquilizer[util.Map[String, AnyRef]]] = settings.datasourceNames.map(
+    { case(topic, ds) => {
+      val dataSource = tranquilityConfig.getDataSource(ds)
+      (topic, DruidBeams.fromConfig(dataSource).buildTranquilizer())
+    }
+  })
 
-  sender.start()
+  senders.foreach({case (topic, sender) =>
+    logger.info("Starting sender")
+    sender.start
+  })
 
   override def write(records: Seq[SinkRecord]): Unit = {
     if (records.isEmpty) {
-      logger.info("Empty sequence of records received...")
+      logger.debug("Empty sequence of records received...")
     } else {
-      val futures = records.flatMap { record =>
+      val converted = records.map { record =>
         require(record.value() != null && record.value().getClass == classOf[Struct], "The SinkRecord payload should be of type Struct")
+        val extractor = settings.extractors.get(record.topic()).get
+        val fieldsAndValues =  extractor.get(record.value.asInstanceOf[Struct]).toMap
+        (record.topic(), fieldsAndValues)
+      }.toMap
 
-        val fieldsAndValues = fieldsExtractor.get(record.value.asInstanceOf[Struct]).toMap
-
-        if (fieldsAndValues.nonEmpty) {
-          Some(fieldsAndValues)
+      val futures = senders.map({
+        case (topic, sender) => {
+          val records = converted
+                          .filter({case (maptopic, values) => maptopic.equals(topic)})
+                          .flatMap({case(fTopic, fValues) => fValues})
+          val map = records ++ Seq("timestamp"->DateTime.now.toString)
+          sender.send(map)
         }
-        else {
-          None
-        }
-      }.map { map => sender.send(map + ("timestamp" -> DateTime.now.toString())) }
-
+      }).toList.asJava
       Await.result(Future.collect(futures))
     }
   }
 
   override def close(): Unit = {
-    sender.flush()
-    sender.close()
-  }
-}
-
-
-object DruidDbWriter {
-  def apply(settings: DruidSinkSettings): DruidDbWriter = {
-    DruidDbWriter(settings.datasourceName,
-      TranquilityConfig.read(new ByteArrayInputStream(settings.tranquilityConfig.getBytes)),
-      StructFieldsExtractor(settings.payloadFields.includeAllFields, settings.payloadFields.fieldsMappings))
+    senders.foreach({ case (topic, sender) => {
+      sender.flush()
+      sender.close()
+    }})
   }
 }

@@ -22,35 +22,24 @@ import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
 object DruidSinkConfig {
-  val DATASOURCE_NAME = "connect.druid.sink.datasource.name"
-  val DATASOURCE_NAME_DOC =
-    """
-      |Specifies which datasource entry to pick from the configuration
-    """.stripMargin
+
+  val KCQL = "connect.druid.sink.kcql"
+  val KCQL_DOC = "The KCQL statement to specify field selection from topics and druid datasource targets."
 
   val CONFIG_FILE = "connect.druid.sink.config.file"
   val CONFIG_FILE_DOC = "The path to the configuration file."
 
-
-  val FIELDS = "connect.druid.sink.fields"
-  val FIELDS_DOC =
-    """
-      |Specifies which of the payload fields to consider. If the config is not specified all fields are considered.
-      |A field can be mapped to another by having: fieldName=aliasName.
-      |If all
-    """.stripMargin
-
   val TIMEOUT = "connnect.druid.sink.write.timeout"
   val TIMEOUT_DOC =
     """
-      |Specifies the number of seconds to wait for the write to Druid to happen. If the setting is not specified it defaults to 600(10minutes)
+      |Specifies the number of seconds to wait for the write to Druid to happen.
     """.stripMargin
+  val TIMEOUT_DEFAULT = 6000
 
   val config: ConfigDef = new ConfigDef()
-    .define(DATASOURCE_NAME, Type.STRING, Importance.HIGH, DATASOURCE_NAME_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, DATASOURCE_NAME)
+    .define(KCQL, Type.STRING, Importance.HIGH, KCQL_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, KCQL)
     .define(CONFIG_FILE, Type.STRING, Importance.HIGH, CONFIG_FILE_DOC, "Connection", 2, ConfigDef.Width.LONG, CONFIG_FILE)
-    .define(FIELDS, Type.STRING, Importance.LOW, FIELDS_DOC, "Target", 1, ConfigDef.Width.MEDIUM, FIELDS)
-    .define(TIMEOUT, Type.INT, Importance.LOW, TIMEOUT_DOC, "Connection", 3, ConfigDef.Width.SHORT, TIMEOUT)
+    .define(TIMEOUT, Type.INT, TIMEOUT_DEFAULT, Importance.LOW, TIMEOUT_DOC, "Connection", 3, ConfigDef.Width.SHORT, TIMEOUT)
 }
 
 /**

@@ -16,7 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 
-import java.util.TimerTask
 import java.util.concurrent.Executors
 
 import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection

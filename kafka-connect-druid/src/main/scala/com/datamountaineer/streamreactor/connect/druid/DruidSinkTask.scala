@@ -60,7 +60,7 @@ class DruidSinkTask extends SinkTask with StrictLogging {
       s"""Settings:
           |$settings
       """.stripMargin)
-    writer = Some(DruidDbWriter(settings))
+    writer = Some(new DruidDbWriter(settings))
   }
 
   /**

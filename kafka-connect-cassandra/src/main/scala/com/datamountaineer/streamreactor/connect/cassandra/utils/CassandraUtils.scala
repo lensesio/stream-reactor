@@ -63,16 +63,13 @@ object CassandraUtils {
     * @param row The Cassandra resultset row to convert
     * @return a SourceRecord
     * */
-  def convert(row: Row) : Struct = {
+  def convert(row: Row, name: String) : Struct = {
     //TODO do we need to get the list of columns everytime?
 
     val cols = row.getColumnDefinitions
-    val connectSchema = convertToConnectSchema(cols.toList)
+    val connectSchema = convertToConnectSchema(cols.toList, name)
     val struct = new Struct(connectSchema)
-
-    cols.map(c => {
-      struct.put(c.getName, mapTypes(c, row))
-    }).head
+    cols.map(c => struct.put(c.getName, mapTypes(c, row))).head
     struct
   }
 
@@ -117,8 +114,8 @@ object CassandraUtils {
     * @param cols A set of Column Definitions
     * @return a Connect Schema
     * */
-  def convertToConnectSchema(cols: List[Definition]) : Schema = {
-    val builder = SchemaBuilder.struct
+  def convertToConnectSchema(cols: List[Definition], name: String) : Schema = {
+    val builder = SchemaBuilder.struct().name(name)
     cols.map(c => builder.field(c.getName, typeMapToConnect(c)))
     builder.build()
   }

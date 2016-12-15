@@ -38,7 +38,7 @@ import scala.util.{Failure, Success, Try}
   **/
 class CassandraSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[CassandraJsonWriter] = None
-  private var counter = mutable.Map.empty[String, Long]
+  private val counter = mutable.Map.empty[String, Long]
   private val timer = new Timer()
   logger.info("Task initialising")
 

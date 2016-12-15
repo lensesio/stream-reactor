@@ -60,6 +60,7 @@ class CassandraTableReader(private val session: Session,
   private val partition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
   private val routeMapping = setting.routes
   private val fields = routeMapping.getFieldAlias.map(fa => (fa.getField,"'" + fa.getAlias + "'")).toMap
+  private val schemaName = s"$keySpace-$table"
 
   /**
     * Build a map of table to offset.
@@ -227,7 +228,7 @@ class CassandraTableReader(private val session: Session,
     * */
   private def processRow(row: Row) = {
     //convert the cassandra row to a struct
-    val struct = CassandraUtils.convert(row)
+    val struct = CassandraUtils.convert(row, schemaName)
     //get the offset for this value
 
     val rowOffset: Date = if (setting.bulkImportMode) tableOffset.get else extractTimestamp(row)

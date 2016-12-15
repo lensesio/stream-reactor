@@ -70,9 +70,6 @@
   ],
   "properties": {
     "zookeeper.connect": "localhost:2181",
-    "druid.selectors.indexing.serviceName": "overlord",
-    "druid.discovery.curator.path": "druid:discovery",
-    "druidBeam.taskLocator": "overlord",
     "druidBeam.overlordPollPeriod": "PT5S"
   }
 }

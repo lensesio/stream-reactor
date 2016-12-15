@@ -23,9 +23,10 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
 
   "should convert a Cassandra row schema to a Connect schema" in {
     val cols: ColumnDefinitions = TestUtils.getColumnDefs
-    val schema = CassandraUtils.convertToConnectSchema(cols.asScala.toList)
+    val schema = CassandraUtils.convertToConnectSchema(cols.asScala.toList, "test")
     val schemaFields = schema.fields().asScala
     schemaFields.size shouldBe cols.asList().size()
+    schema.name() shouldBe "test"
     checkCols(schema)
   }
 
@@ -34,7 +35,7 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     val cols = TestUtils.getColumnDefs
     when(row.getColumnDefinitions).thenReturn(cols)
     mockRow(row)
-    val sr: Struct = CassandraUtils.convert(row)
+    val sr: Struct = CassandraUtils.convert(row, "test")
     val schema = sr.schema()
     checkCols(schema)
     sr.get("timeuuidCol").toString shouldBe uuid.toString

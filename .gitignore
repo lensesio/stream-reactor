@@ -31,3 +31,7 @@ target/
 /release/
 /style/
 /gradle/
+!/druid/
+/druid/
+/kafka-connect-druid/var/
+/kafka-connect-druid/derby.log
