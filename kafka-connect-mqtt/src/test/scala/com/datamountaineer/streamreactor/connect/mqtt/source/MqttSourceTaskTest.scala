@@ -5,8 +5,9 @@ import java.nio.ByteBuffer
 import java.nio.file.Paths
 import java.util.UUID
 
+import com.datamountaineer.streamreactor.connect.converters.source.{AvroConverter, BytesConverter, JsonSimpleConverter, MsgKey}
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceConfig
-import com.datamountaineer.streamreactor.connect.mqtt.source.converters._
+import com.datamountaineer.streamreactor.connect.serialization.AvroSerializer
 import com.sksamuel.avro4s.{RecordFormat, SchemaFor}
 import io.confluent.connect.avro.AvroData
 import io.moquette.proto.messages.{AbstractMessage, PublishMessage}
@@ -89,7 +90,7 @@ class MqttSourceTaskTest extends WordSpec with Matchers with BeforeAndAfter {
 
     val recordFormat = RecordFormat[Student]
 
-    val message3 = AvroSerializer(recordFormat.to(student), studentSchema)
+    val message3 = AvroSerializer.getBytes(student)
 
     publishMessage(source1, message1)
     publishMessage(source2, message2)
@@ -103,7 +104,7 @@ class MqttSourceTaskTest extends WordSpec with Matchers with BeforeAndAfter {
 
     records.foreach { record =>
 
-      record.keySchema() shouldBe MqttMsgKey.schema
+      record.keySchema() shouldBe MsgKey.schema
       val source = record.key().asInstanceOf[Struct].get("topic")
       record.topic() match {
         case `target1` =>

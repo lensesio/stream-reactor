@@ -20,8 +20,8 @@ import java.io.File
 import java.util
 
 import com.datamountaineer.connector.config.Config
+import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttSourceConfig, MqttSourceSettings}
-import com.datamountaineer.streamreactor.connect.mqtt.source.converters.MqttConverter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
@@ -58,7 +58,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
     val convertersMap = settings.sourcesToConverters.map { case (topic, clazz) =>
       logger.info(s"Creating converter instance for $clazz")
       val converter = Try(getClass.getClassLoader.loadClass(clazz).newInstance()) match {
-        case Success(value) => value.asInstanceOf[MqttConverter]
+        case Success(value) => value.asInstanceOf[Converter]
         case Failure(f) => throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG} is invalid. $clazz should have an empty ctor!")
       }
       import scala.collection.JavaConverters._

@@ -19,7 +19,7 @@
 package com.datamountaineer.streamreactor.connect.mqtt.config
 
 import com.datamountaineer.connector.config.Config
-import com.datamountaineer.streamreactor.connect.mqtt.source.converters.{BytesConverter, MqttConverter}
+import com.datamountaineer.streamreactor.connect.converters.source.{BytesConverter, Converter}
 import org.apache.kafka.common.config.ConfigException
 import org.eclipse.paho.client.mqttv3.MqttClient
 
@@ -103,7 +103,7 @@ object MqttSourceSettings {
                 Try(getClass.getClassLoader.loadClass(clazz)) match {
                   case Failure(e: ClassNotFoundException) => throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG}.$clazz can't be found")
                   case Success(clz) =>
-                    if (!classOf[MqttConverter].isAssignableFrom(clz)) {
+                    if (!classOf[Converter].isAssignableFrom(clz)) {
                       throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG}. $clazz is not inheriting MqttConverter")
                     }
                 }

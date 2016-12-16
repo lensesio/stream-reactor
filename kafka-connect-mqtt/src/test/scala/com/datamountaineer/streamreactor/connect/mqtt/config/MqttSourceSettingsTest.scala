@@ -1,6 +1,6 @@
 package com.datamountaineer.streamreactor.connect.mqtt.config
 
-import com.datamountaineer.streamreactor.connect.mqtt.source.converters.{AvroConverter, BytesConverter}
+import com.datamountaineer.streamreactor.connect.converters.source.{AvroConverter, BytesConverter}
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.{Matchers, WordSpec}
 

@@ -7,8 +7,9 @@ import java.util
 import java.util.UUID
 
 import com.datamountaineer.connector.config.Config
+import com.datamountaineer.streamreactor.connect.converters.source._
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
-import com.datamountaineer.streamreactor.connect.mqtt.source.converters._
+import com.datamountaineer.streamreactor.connect.serialization.AvroSerializer
 import com.sksamuel.avro4s.{RecordFormat, SchemaFor}
 import io.confluent.connect.avro.AvroData
 import io.moquette.proto.messages.{AbstractMessage, PublishMessage}
@@ -142,7 +143,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
       val avroConverter = new AvroConverter
       val studentSchema = SchemaFor[Student]()
       initializeConverter(source3, avroConverter, studentSchema)
-      val sourcesToConvMap: Map[String, MqttConverter] = Map(source1 -> new BytesConverter,
+      val sourcesToConvMap: Map[String, Converter] = Map(source1 -> new BytesConverter,
         source2 -> new JsonSimpleConverter,
         source3 -> avroConverter)
 
@@ -179,7 +180,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
 
       val recordFormat = RecordFormat[Student]
 
-      val message3 = AvroSerializer(recordFormat.to(student), studentSchema)
+      val message3 = AvroSerializer.getBytes(student)
 
       publishMessage(source1, message1)
       publishMessage(source2, message2)
@@ -194,7 +195,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
 
       records.foreach { record =>
 
-        record.keySchema() shouldBe MqttMsgKey.schema
+        record.keySchema() shouldBe MsgKey.schema
         val source = record.key().asInstanceOf[Struct].get("topic")
         record.topic() match {
           case `target1` =>

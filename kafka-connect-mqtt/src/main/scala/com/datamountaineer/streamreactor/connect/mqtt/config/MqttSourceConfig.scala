@@ -26,45 +26,45 @@ import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
   * stream-reactor
   */
 object MqttSourceConfig {
-  val KCQL_CONFIG = "mqtt.source.kcql"
+  val KCQL_CONFIG = "connect.mqtt.source.kcql"
   private val KCQL_DOC = "Contains the Kafka Connect Query Language describing the sourced MQTT source and the target Kafka topics"
   private val KCQL_DISPLAY = "KCQL commands"
 
-  val HOSTS_CONFIG = "mqtt.hosts"
+  val HOSTS_CONFIG = "connect.mqtt.hosts"
   private val HOSTS_DOC = "Contains the MQTT connection end points."
   private val HOSTS_DISPLAY = "Mqtt connection endpoints"
 
-  val QS_CONFIG = "mqtt.service.quality"
+  val QS_CONFIG = "connect.mqtt.service.quality"
   private val QS_DOC = "Specifies the Mqtt quality of service"
   private val QS_DISPLAY = "Quality of Service. It can be 0,1 or 2.0 = At most once; 1 = At least once; 2 = Exactly once"
   private val QS_DEFAULT = 1
 
-  val USER_CONFIG = "mqtt.user"
+  val USER_CONFIG = "connect.mqtt.user"
   private val USER_DOC = "Contains the Mqtt connection user name"
   private val USER_DEFAULT = null
   private val USER_DISPLAY = "Username"
 
-  val PASSWORD_CONFIG = "mqtt.password"
+  val PASSWORD_CONFIG = "connect.mqtt.password"
   private val PASSWORD_DOC = "Contains the Mqtt connection password"
   private val PASSWORD_DISPLAY = "Password"
   private val PASSWORD_DEFAULT = null
 
-  val CLIENT_ID_CONFIG = "mqtt.client.id"
+  val CLIENT_ID_CONFIG = "connect.mqtt.client.id"
   private val CLIENT_ID_DOC = "Contains the client id for the session"
   private val CLIENT_ID_DISPLAY = "Client id"
   private val CLIENT_ID_DEFAULT = null
 
-  val CONNECTION_TIMEOUT_CONFIG = "mqtt.connection.timeout"
+  val CONNECTION_TIMEOUT_CONFIG = "connect.mqtt.connection.timeout"
   private val CONNECTION_TIMEOUT_DOC = "Provides the time interval to establish the mqtt connection"
   private val CONNECTION_TIMEOUT_DISPLAY = "Connection timeout"
   private val CONNECTION_TIMEOUT_DEFAULT = 3000
 
-  val CLEAN_SESSION_CONFIG = "mqtt.connection.clean"
+  val CLEAN_SESSION_CONFIG = "connect.mqtt.connection.clean"
   private val CLEAN_CONNECTION_DOC = ""
   private val CLEAN_CONNECTION_DISPLAY = "Clean connection"
   private val CLEAN_CONNECTION_DEFAULT = true
 
-  val KEEP_ALIVE_INTERVAL_CONFIG = "mqtt.connection.keep.alive"
+  val KEEP_ALIVE_INTERVAL_CONFIG = "connect.mqtt.connection.keep.alive"
   private val KEEP_ALIVE_INTERVAL_DOC = "A flag for the mqtt library to make sure the connection is kept alive"
   private val KEEP_ALIVE_INTERVAL_DISPLAY = "Keep alive interval"
   private val KEEP_ALIVE_INTERVAL_DEFAULT = 5000
@@ -74,17 +74,17 @@ object MqttSourceConfig {
   private val SSL_CA_CERT_DISPLAY = "CA certificate file path"
   private val SSL_CA_CERT_DEFAULT = null
 
-  val SSL_CERT_CONFIG = "mqtt.connection.ssl.cert"
+  val SSL_CERT_CONFIG = "connect.mqtt.connection.ssl.cert"
   private val SSL_CERT_DOC = "Provides the path to the certificate file to use with the Mqtt connection"
   private val SSL_CERT_DISPLAY = "Certificate key file path"
   private val SSL_CERT_DEFAULT = null
 
-  val SSL_CERT_KEY_CONFIG = "mqtt.connection.ssl.key"
+  val SSL_CERT_KEY_CONFIG = "connect.mqtt.connection.ssl.key"
   private val SSL_CERT_KEY_DOC = "Certificate private key file path."
   private val SSL_CERT_KEY_DISPLAY = "Certificate private key file path"
   private val SSL_CERT_KEY_DEFAULT = null
 
-  val CONVERTER_CONFIG = "mqtt.source.converters"
+  val CONVERTER_CONFIG = "connect.mqtt.source.converters"
   private val CONVERTER_DOC =
     """
       |Contains a tuple (source and the canonical class name for the converter of a raw Mqtt message bytes to a SourceRecord).
@@ -93,7 +93,7 @@ object MqttSourceConfig {
   private val CONVERTER_DISPLAY = "Converter class"
   private val CONVERTER_DEFAULT = null
 
-  val THROW_ON_CONVERT_ERRORS_CONFIG = "mqtt.converter.throw.on.error"
+  val THROW_ON_CONVERT_ERRORS_CONFIG = "connect.mqtt.converter.throw.on.error"
   private val THROW_ON_CONVERT_ERRORS_DOC = "If set to false it will swallow the exception and carry on; true will throw the exception.Default is false."
   private val THROW_ON_CONVERT_ERRORS_DISPLAY = "Throw error on conversion"
   private val THROW_ON_CONVERT_ERRORS_DEFAULT = false

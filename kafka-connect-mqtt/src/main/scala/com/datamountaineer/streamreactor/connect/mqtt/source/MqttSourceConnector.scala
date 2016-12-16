@@ -23,11 +23,8 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
-import org.apache.kafka.connect.util.ConnectorUtils
 
 import scala.collection.JavaConverters._
-import scala.collection.JavaConversions._
-import scala.collection.mutable
 
 class MqttSourceConnector extends SourceConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
@@ -50,7 +47,7 @@ class MqttSourceConnector extends SourceConnector with StrictLogging {
     val partitions = Math.min(settings.kcql.length, maxTasks)
     settings.kcql.grouped(partitions)
       .zipWithIndex
-      .map { case (p, index) => settings.copy(kcql = p, clientId = settings.clientId + index).asMap() }
+      .map { case (p, index) => settings.copy(kcql = p, clientId = settings.clientId + "-" + index).asMap() }
       .toList.asJava
   }
 
