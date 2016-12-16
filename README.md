@@ -23,9 +23,10 @@ A collection of components to build a real time ingestion pipeline.
 | HBase          | Sink   | Kafka connect HBase sink to write Kafka topic payloads to HBase.                            | [Docs](http://docs.datamountaineer.com/en/latest/hbase.html)             |
 | Hazelcast      | Sink   | Kafka connect Hazelcast sink to write Kafka topic payloads to Hazelcast.                    | [Docs](http://docs.datamountaineer.com/en/latest/hazelcast.html)         |
 | Kudu           | Sink   | Kafka connect Kudu sink to write Kafka topic payloads to Kudu.                              | [Docs](http://docs.datamountaineer.com/en/latest/kudu.html)              |
-| MongoDB        | Sink   | Kafka connect Kudu sink to write Kafka topic payloads to MongoDB.                           | [Docs](http://docs.datamountaineer.com/en/latest/mongo.html)             |
 | InfluxDb       | Sink   | Kafka connect InfluxDb sink to write Kafka topic payloads to InfluxDb.                      | [Docs](http://docs.datamountaineer.com/en/latest/influx.html)            |
 | JMS            | Sink   | Kafka connect JMS sink to write Kafka topic payloads to JMS.                                | [Docs](http://docs.datamountaineer.com/en/latest/jms.html)               |
+| MongoDB        | Sink   | Kafka connect Kudu sink to write Kafka topic payloads to MongoDB.                           | [Docs](http://docs.datamountaineer.com/en/latest/mongo.html)             |
+| MQTT        | Source   | Kafka connect MQTT source to write data from MQTT to Kafka.                                  | [Docs](http://docs.datamountaineer.com/en/latest/mongo.html)             |
 | Redis          | Sink   | Kafka connect Redis sink to write Kafka topic payloads to Redis.                            | [Docs](http://docs.datamountaineer.com/en/latest/redis.html)             |
 | ReThinkDB      | Source | Kafka connect RethinkDb source subscribe to ReThinkDB changefeeds and write to Kafka.       | [Docs](http://docs.datamountaineer.com/en/latest/rethink_source.html)    |
 | ReThinkDB      | Sink   | Kafka connect RethinkDb sink to write Kafka topic payloads to RethinkDb.                    | [Docs](http://docs.datamountaineer.com/en/latest/rethink.html)           |
@@ -43,16 +44,16 @@ Supports limited SQL statements to stream and select from Kafka topics in real t
 **0.2.3**
 
 *   Added MongoDB Sink.
+*   Added MQTT Source.
+*   Hazelcast support for ring buffers.
+*   Redis support for Sorted Sets. (Pending PR from redis branch)
 *   Added start scripts.
 *   Added Kafka Connect and Schema Registry CLI.
 *   Kafka Connect CLI now supports pause/restart/resume; checking connectors on the classpath and validating configuration of connectors.
-*   Fixes to Kudu flush calls.
 *   Support for ``Struct``, ``Schema.STRING`` and ``Json`` with schema in the ReThinkDB, InfluxDB and MongoDB sinks.
 *   Rename ``export.query.route`` to ``sink.kcql``.
 *   Rename ``import.query.route`` to ``source.kcql``.
 *   Upgrade to KCQL 0.9.4 - Add support for `STOREAS` so specify target sink types, e.g. Redis Sorted Sets, Hazelcast map, queues, ringbuffers.
-*   Hazelcast support for ring buffers.
-*   Redis support for Sorted Sets. (Pending PR from redis branch)
 
 ### Building
 
