@@ -20,7 +20,7 @@ import java.util.Date
   * INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS SS
   * INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SS (score=ts)
   */
-class Redis_INSERT_SS(sinkSettings: RedisSinkSettings) extends RedisWriter {
+class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter {
 
   apply(sinkSettings)
 

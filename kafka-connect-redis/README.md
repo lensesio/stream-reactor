@@ -1,16 +1,24 @@
 # Redis KCQL
 
-The DM Redis Kafka (sink) connector supports at the moment two modes the **[cache](#cache-mode)** mode
-and the **[sorted-set](#sorted-set-mode)** mode
+This Redis Kafka (sink) connector supports at the moment the modes
 
-## Cache Mode
+* **[cache](#cache-mode)** mode
+* **[insert-sorted-set](#insert-sorted-set)** mode
+* **[multiple-sorted-sets](#multiple-sorted-sets-mode)** mode
 
-Purpose is to *cache* in Redis [Key-Value] pairs. Imagine having a topic with Yahoo FX Rates messages:
+## Cache Mode
+
+Purpose is to **cache** in Redis [*Key-Value*] pairs
+> Imagine a Kafka topic with currency foreign exchange rate messages:
 
     { "symbol": "USDGBP" , "price": 0.7943 }
     { "symbol": "EURGBP" , "price": 0.8597 }
 
-And you want to store in Redis the symbols as `Key` and the price in the `Value`
+You may want to store in Redis: the **symbol** as the `Key` and the **price** as the `Value`
+
+This will effectively make Redis a **caching** system, which multiple other application can access to get the *(latest)* value
+
+To achieve that using this particular Kafka Redis Sink Connector, you need to specify the **KCQL** as:
 
     SELECT price from yahoo-fx PK symbol
 
@@ -24,41 +32,29 @@ We can prefix the name of the `Key` using the INSERT statement:
 
 This will create key with names `FX-USDGBP` , `FX-EURGBP` etc
 
-We can **extract** the value of the `price` using `WITHEXTRACT`
+## Insert sorted set
 
-    SELECT price from yahoo-fx PK symbol WITHEXTRACT
+To **insert** messages from a Kafka topic into 1 Sorted Set (SS) use the following **KCQL** syntax:
 
-This will result into a [Key-Value] pair:
+    INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS SS(score=timestamp)
 
-    Key=EURGBP  Value=0.7943
+This will create and add entries into the (sorted set) named **cpu_stats**
 
-> Extraction works only i) when a single field is selected, and ii) it's value is of primitive type: String | Int | Double | Char | Boolean
+The entries will be ordered in the Redis set based on the `score` that we define it to be the value of the `timestamp` field of the Avro message from Kafka.
 
-## Sorted Set mode
+In the above example we are selecting and storing all the fields of the Kafka message.
 
-### KCQL for Redis Sorted Set
+## Multiple sorted sets
 
-Redis SS KCQL provides 2 modes: insert into a **single** Sorted Set (SS) and **group by** the value of a field
+You can create multiple sorted sets by promoting each value of **one field** from the Kafka message into one Sorted Set (SS) and selecting which values to store into the sorted-sets.
 
-To **INSERT** all messages from a topic into 1 Sorted Set (SS)
+You can achieve that by using the KCQL synta and defining with the filed using **PK** (primary key)
 
-    INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS SS
-
-To promote the value of **1** field to a Sorted Set (SS) by making it a **PK** (primary key)
-
-    SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SS
-
-> Remember that SS require the definition of a `score`. It a field named `timestamp` exists in the source topic, it will
-automatically be used to populate the `score` (and also added inside the json message, in the `value`)
-
-To explicitly define how the message will be `scored` we can define it as a parameter of `STOREAS SS`
-
-    INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SS (score=timestamp)
-    INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SS (score=timestamp, format='YYYY-MM-DD HH:SS')
+    SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SS(score=timestamp)
 
 ### Theory on Redis Sorted Set
 
-Redis can be used for time-series and IoT use-cases using the **Sorted Set** Data structure.
+Redis can be used for to cache time-series and IoT use cases, using the **Sorted Set** data structure
 
 Sorted Sets (SS) can effectively store unique `values` sorted on a `score`. This can be exploited
 by i.e. creating a SS `USD2GBP` and storing
@@ -72,11 +68,12 @@ ZADD EUR2GBP 1392141529299 '{"timestamp":1392141529245,"price":0.8603}'
 ZRANGE EUR2GBP 0 -1
 ```
 
-Once information is stored inside a SS - we can query for i.e. yesterday with:
+If you notice that the `timestamp` is also stored in the json in the `value`, this is purposeful: to ensure uniquenes. Otherwise the SS
+would dedeplicate if `{ "price":0.8562 }` comes is twice in a time-line
+
+Once information is stored inside a Redis sorted sets - we can query for i.e. yesterday with:
 
 ```
 zrangebyscore USD2GBP <currentTimeInMillis - 86400000> <currentTimeInMillis>
 ```
 
-> Notice that the `timestamp` is also stored in the json in the `value` to ensure uniquenes. Otherwise the SS
-would de-deplicate if only `{ "price":0.8562 }` is given twice in a time-line

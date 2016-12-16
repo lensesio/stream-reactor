@@ -8,9 +8,11 @@ import scala.util.Try
 /**
   * The PK (Primary Key) Redis `writer` stores in 1 Sorted Set / per field value of the PK
   *
-  * Requires KCQL syntax:
+  * KCQL syntax requires 1 Primary Key to be defined (plus) STOREAS SS
+  *
+  *   .. PK .. STOREAS SS
   */
-class Redis_PK_SS(sinkSettings: RedisSinkSettings) extends RedisWriter {
+class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWriter {
 
   apply(sinkSettings)
 
