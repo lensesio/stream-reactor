@@ -46,8 +46,8 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
       val struct1 = new Struct(schema).put("firstName", "Alex").put("age", 30)
       val struct2 = new Struct(schema).put("firstName", "Mara").put("age", 22).put("threshold", 12.4)
 
-      val sinkRecord1 = new SinkRecord("topic", 1, null, null, schema, struct1, 0)
-      val sinkRecord2 = new SinkRecord("topic", 1, null, null, schema, struct2, 1)
+      val sinkRecord1 = new SinkRecord(TOPIC, 1, null, null, schema, struct1, 0)
+      val sinkRecord2 = new SinkRecord(TOPIC, 1, null, null, schema, struct2, 1)
 
       writer.write(Seq(sinkRecord1, sinkRecord2))
 
@@ -72,8 +72,8 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
 
     "write Kafka records to Redis using CACHE mode with explicit KEY (using INSERT)" in {
 
-      val TOPIC = "topic"
-      val KCQL = s"INSERT INTO REDIS_KEY SELECT * FROM $TOPIC PK firstName"
+      val TOPIC = "topic2"
+      val KCQL = s"INSERT INTO KEY_PREFIX_ SELECT * FROM $TOPIC PK firstName"
 
       val config = mock[RedisSinkConfig]
       when(config.getString(REDIS_HOST)).thenReturn("localhost")
@@ -94,22 +94,22 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
       val struct1 = new Struct(schema).put("firstName", "Alex").put("age", 30)
       val struct2 = new Struct(schema).put("firstName", "Mara").put("age", 22).put("threshold", 12.4)
 
-      val sinkRecord1 = new SinkRecord("topic", 1, null, null, schema, struct1, 0)
-      val sinkRecord2 = new SinkRecord("topic", 1, null, null, schema, struct2, 1)
+      val sinkRecord1 = new SinkRecord(TOPIC, 1, null, null, schema, struct1, 0)
+      val sinkRecord2 = new SinkRecord(TOPIC, 1, null, null, schema, struct2, 1)
 
       writer.write(Seq(sinkRecord1, sinkRecord2))
 
       val gson = new Gson()
       val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
 
-      val val1 = jedis.get("Alex")
+      val val1 = jedis.get("KEY_PREFIX_Alex")
       val1 should not be null
 
       val map1 = gson.fromJson(val1, classOf[java.util.Map[String, AnyRef]]).asScala
       map1("firstName").toString shouldBe "Alex"
       map1("age").toString shouldBe "30.0" //it gets back a java double!?
 
-      val val2 = jedis.get("Mara")
+      val val2 = jedis.get("KEY_PREFIX_Mara")
       val2 should not be null
 
       val map2 = gson.fromJson(val2, classOf[java.util.Map[String, AnyRef]]).asScala
