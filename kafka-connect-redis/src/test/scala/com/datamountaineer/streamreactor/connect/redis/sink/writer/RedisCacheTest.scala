@@ -73,14 +73,13 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
     "write Kafka records to Redis using CACHE mode with explicit KEY (using INSERT)" in {
 
       val TOPIC = "topic"
-      val TABLE_NAME_RAW = "someTable"
-      val QUERY_ALL = s"INSERT INTO $TABLE_NAME_RAW SELECT * FROM $TOPIC PK firstName"
+      val KCQL = s"INSERT INTO REDIS_KEY SELECT * FROM $TOPIC PK firstName"
 
       val config = mock[RedisSinkConfig]
       when(config.getString(REDIS_HOST)).thenReturn("localhost")
       when(config.getInt(REDIS_PORT)).thenReturn(6379)
       when(config.getString(REDIS_PASSWORD)).thenReturn("")
-      when(config.getString(KCQL_CONFIG)).thenReturn(QUERY_ALL)
+      when(config.getString(KCQL_CONFIG)).thenReturn(KCQL)
       when(config.getString(ERROR_POLICY)).thenReturn("THROW")
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
 
