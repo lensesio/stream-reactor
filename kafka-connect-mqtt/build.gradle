@@ -1,5 +1,3 @@
-
-
 project(":kafka-connect-mqtt") {
     ext {
         mqttVersion = "1.1.0"

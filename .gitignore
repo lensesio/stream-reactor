@@ -35,3 +35,13 @@ target/
 /druid/
 /kafka-connect-druid/var/
 /kafka-connect-druid/derby.log
+/metadata.db/
+/out/
+/kafka-connect-mqtt/moquette_store.mapdb
+/kafka-connect-mqtt/moquette_store.mapdb.p
+/kafka-connect-mqtt/moquette_store.mapdb.t
+/moquette_store.mapdb
+/derby.log
+/moquette_store.mapdb.t
+/moquette_store.mapdb.p
+/var/
