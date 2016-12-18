@@ -1,7 +1,7 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisKCQLSetting, RedisSinkSettings}
-import com.datamountaineer.streamreactor.connect.config.Field
+import com.datamountaineer.streamreactor.connect.rowkeys.StringStructFieldsStringKeyBuilder
 import org.apache.kafka.connect.sink.SinkRecord
 import scala.collection.JavaConversions._
 import scala.util.Try
@@ -25,14 +25,12 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter 
   apply(sinkSettings)
 
   val configs = sinkSettings.allKCQLSettings.map(_.kcqlConfig)
-  var index = 1
   configs.foreach { c =>
-    assert(c.getTarget.length == 1, "You need to define a target i.e. INSERT INTO x - and 'x' should be a valid redis key")
-    assert(c.getSource.trim.length == 1, "You need to define one (1) topic to source data from (" + c.getSource.trim + ")")
-    assert(c.getFieldAlias.nonEmpty && !c.isIncludeAllFields, "You need to SELECT at least one field from the topic to be stored in the Redis (sorted) set. Please review the [$index] KCQL syntax of connector")
-    assert(c.getPrimaryKeys.isEmpty, s"They keyword PK (Primary Key) is not supported in Redis INSERT_SS mode. Please review the [$index] KCQL syntax of connector")
+    assert(c.getTarget.length > 0, "Add to your KCQL systax : INSERT INTO REDIS_KEY_NAME ")
+    assert(c.getSource.trim.length > 0, "You need to define one (1) topic to source data. Add to your KCQL syntax: SELECT * FROM topicName")
+    assert(c.getFieldAlias.nonEmpty || c.isIncludeAllFields, "You need to SELECT at least one field from the topic to be stored in the Redis (sorted) set. Please review the [$index] KCQL syntax of connector")
+    assert(c.getPrimaryKeys.isEmpty, s"They keyword PK (Primary Key) is not supported in Redis INSERT_SS mode. Please review the KCQL syntax of connector")
     assert(c.getStoredAs == "SS", "This mode requires the KCQL syntax: STOREAS SS")
-    index += 1
   }
 
   // Write a sequence of SinkRecords to Redis
@@ -41,8 +39,7 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter 
       logger.debug("No records received on 'INSERT SS' Redis writer")
     else {
       logger.debug(s"'INSERT SS' Redis writer received ${records.size} records")
-      val grouped = records.groupBy(_.topic())
-      insert(grouped)
+      insert(records.groupBy(_.topic()))
     }
   }
 
@@ -63,14 +60,15 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter 
                 // We write into SS named as the target
                 val sortedSetName = KCQL.kcqlConfig.getTarget
                 val now = new Date().getTime.toDouble
-                val payload = convertValueToJson(recordToSink).toString
-
-                //?val keyBuilder = KCQL.builder
-                // If sink record contains a time-stamp use it
-                if (recordToSink.valueSchema.fields.contains { field: Field => field.name.equalsIgnoreCase("timestamp") }) {
-                  // TODO: extract automatically the timestamp to use as score
-                }
-                jedis.zadd(sortedSetName, now, payload)
+                val payload = convertValueToJson(recordToSink)
+                val score = StringStructFieldsStringKeyBuilder(Seq("ts")).build(recordToSink).toDouble
+                logger.debug(s"ZADD $sortedSetName    score = $score     payload = ${payload.toString}")
+                val response = jedis.zadd(sortedSetName, score, payload.toString)
+                if (response == 1)
+                  logger.debug("New element added")
+                else if (response == 0)
+                  logger.debug("The element was already a member of the sorted set and the score was updated")
+                response
               }
             }
           })
