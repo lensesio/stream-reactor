@@ -9,15 +9,15 @@ import scala.util.Try
 /**
   * A generic Redis `writer` that can store data into 1 Sorted Set / KCQL
   *
-  * Requires KCQL syntax:   INSERT .. SELECT .. STOREAS SS
+  * Requires KCQL syntax:   INSERT .. SELECT .. STOREAS SortedSet
   *
   * If a field <timestamp> exists it will automatically be used to `score` each value inside the (sorted) set
   * Otherwise you would need to explicitly define how the values will be scored
   *
   * Examples:
   *
-  * INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS SS
-  * INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SS (score=ts)
+  * INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS SortedSet
+  * INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SortedSet (score=ts)
   */
 class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter {
 
@@ -29,7 +29,7 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter 
     assert(c.getSource.trim.length > 0, "You need to define one (1) topic to source data. Add to your KCQL syntax: SELECT * FROM topicName")
     assert(c.getFieldAlias.nonEmpty || c.isIncludeAllFields, "You need to SELECT at least one field from the topic to be stored in the Redis (sorted) set. Please review the KCQL syntax of connector")
     assert(c.getPrimaryKeys.isEmpty, s"They keyword PK (Primary Key) is not supported in Redis INSERT_SS mode. Please review the KCQL syntax of connector")
-    assert(c.getStoredAs == "SS", "This mode requires the KCQL syntax: STOREAS SS")
+    assert(c.getStoredAs.equalsIgnoreCase("SortedSet"), "This mode requires the KCQL syntax: STOREAS SortedSet")
   }
 
   // Write a sequence of SinkRecords to Redis
@@ -56,7 +56,7 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter 
               topicSettings.map { KCQL =>
                 // Get a SinkRecord
                 val recordToSink = convert(record, fields = KCQL.fieldsAndAliases, ignoreFields = KCQL.ignoredFields)
-                // We write into SS named as the target
+                // Use the target to name the SortedSet
                 val sortedSetName = KCQL.kcqlConfig.getTarget
                 val payload = convertValueToJson(recordToSink)
                 // How to 'score' each message

@@ -70,12 +70,12 @@ class RedisSinkTask extends SinkTask with StrictLogging {
 
     //-- Find out the Connector modes (cache | INSERT (SortedSet) | PK (SortedSetS)
 
-    // Cache mode requires >= 1 PK and *NO* STOREAS SS setting
+    // Cache mode requires >= 1 PK and *NO* STOREAS SortedSet setting
     val modeCache = settings.copy(allKCQLSettings = settings.allKCQLSettings.filter(_.kcqlConfig.getStoredAs == null).filter(_.kcqlConfig.getPrimaryKeys.hasNext))
-    // Insert Sorted Set mode requires: target name of SS to be defined and STOREAS SS syntax to be provided
-    val mode_INSERT_SS = settings.copy(allKCQLSettings = settings.allKCQLSettings.filter(_.kcqlConfig.getStoredAs == "SS").filter(_.kcqlConfig.getTarget.length > 0))
-    // Multiple Sorted Sets mode requires: 1 Primary Key to be defined and STORE SS syntax to be provided
-    val mode_PK_SS = settings.copy(allKCQLSettings = settings.allKCQLSettings.filter(_.kcqlConfig.getStoredAs == "SS").filter(_.kcqlConfig.getPrimaryKeys.length == 1))
+    // Insert Sorted Set mode requires: target name of SortedSet to be defined and STOREAS SortedSet syntax to be provided
+    val mode_INSERT_SS = settings.copy(allKCQLSettings = settings.allKCQLSettings.filter(_.kcqlConfig.getStoredAs == "SortedSet").filter(_.kcqlConfig.getTarget.length > 0))
+    // Multiple Sorted Sets mode requires: 1 Primary Key to be defined and STORE SortedSet syntax to be provided
+    val mode_PK_SS = settings.copy(allKCQLSettings = settings.allKCQLSettings.filter(_.kcqlConfig.getStoredAs == "SortedSet").filter(_.kcqlConfig.getPrimaryKeys.length == 1))
 
     //-- Start as many writers as required
     writer =

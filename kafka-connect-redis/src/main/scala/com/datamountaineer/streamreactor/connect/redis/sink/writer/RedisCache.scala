@@ -24,7 +24,7 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
   configs.foreach { c =>
     assert(c.getSource.trim.length > 0, "You need to supply a valid source kafka topic to fetch records from. Review your KCQL syntax")
     assert(c.getPrimaryKeys.length == 1, "The Redis CACHE mode requires strictly 1 PK (Primary Key) to be defined")
-    assert(c.getStoredAs == null, "The Redis CACHE mode does not support STOREAS SS")
+    assert(c.getStoredAs == null, "The Redis CACHE mode does not support STOREAS")
   }
 
   // Write a sequence of SinkRecords to Redis

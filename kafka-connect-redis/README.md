@@ -36,7 +36,7 @@ This will create key with names `FX-USDGBP` , `FX-EURGBP` etc
 
 To **insert** messages from a Kafka topic into 1 Sorted Set (SS) use the following **KCQL** syntax:
 
-    INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS SS(score=timestamp)
+    INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS SortedSet(score=timestamp)
 
 This will create and add entries into the (sorted set) named **cpu_stats**
 
@@ -50,14 +50,14 @@ You can create multiple sorted sets by promoting each value of **one field** fro
 
 You can achieve that by using the KCQL synta and defining with the filed using **PK** (primary key)
 
-    SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SS(score=timestamp)
+    SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SortedSet(score=timestamp)
 
 ### Theory on Redis Sorted Set
 
 Redis can be used for to cache time-series and IoT use cases, using the **Sorted Set** data structure
 
 Sorted Sets (SS) can effectively store unique `values` sorted on a `score`. This can be exploited
-by i.e. creating a SS `USD2GBP` and storing
+by i.e. creating a SortedSet `USD2GBP` and storing
 i) the timestamp in millis as the `score` and
 ii) encode both the actual value/s & the timestamp as the `value`, in a flat or Json structure
 

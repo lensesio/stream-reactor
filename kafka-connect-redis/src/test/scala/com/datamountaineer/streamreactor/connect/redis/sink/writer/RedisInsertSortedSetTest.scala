@@ -24,7 +24,7 @@ class RedisInsertSortedSetTest extends WordSpec with Matchers with BeforeAndAfte
     "write Kafka records to a Redis Sorted Set" in {
 
       val TOPIC = "cpuTopic"
-      val KCQL = s"INSERT INTO cpu_stats SELECT * from $TOPIC STOREAS SS(score=ts)"
+      val KCQL = s"INSERT INTO cpu_stats SELECT * from $TOPIC STOREAS SortedSet(score=ts)"
       println("Testing KCQL : " + KCQL)
 
       val config = mock[RedisSinkConfig]
@@ -63,7 +63,7 @@ class RedisInsertSortedSetTest extends WordSpec with Matchers with BeforeAndAfte
 
       val allSSrecords = jedis.zrange("cpu_stats", 0, 999999999999L)
       val results = allSSrecords.asScala.toList
-      results(0) shouldBe """{"type":"Xeon","temperature":60.4,"voltage":90.1,"ts":1482180657010}"""
+      results.head shouldBe """{"type":"Xeon","temperature":60.4,"voltage":90.1,"ts":1482180657010}"""
       results(1) shouldBe """{"type":"i7","temperature":62.1,"voltage":103.3,"ts":1482180657020}"""
       results(2) shouldBe """{"type":"i7-i","temperature":64.5,"voltage":101.1,"ts":1482180657030}"""
 

@@ -9,9 +9,9 @@ import scala.util.Try
 /**
   * The PK (Primary Key) Redis `writer` stores in 1 Sorted Set / per field value of the PK
   *
-  * KCQL syntax requires 1 Primary Key to be defined (plus) STOREAS SS
+  * KCQL syntax requires 1 Primary Key to be defined (plus) STOREAS SortedSet
   *
-  * .. PK .. STOREAS SS
+  * .. PK .. STOREAS SortedSet
   */
 class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWriter {
 
@@ -20,8 +20,8 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
   val configs = sinkSettings.allKCQLSettings.map(_.kcqlConfig)
   configs.foreach { c =>
     assert(c.getSource.trim.length > 0, "You need to supply a valid source kafka topic to fetch records from. Review your KCQL syntax")
-    assert(c.getPrimaryKeys.length == 1, "The Redis PK SS mode requires strictly 1 PK (Primary Key) to be defined")
-    assert(c.getStoredAs == "SS", "The Redis PK SS mode requires STOREAS SS")
+    assert(c.getPrimaryKeys.length == 1, "The Redis MultipleSortedSets mode requires strictly 1 PK (Primary Key) to be defined")
+    assert(c.getStoredAs.equalsIgnoreCase("SortedSet"), "The Redis MultipleSortedSet mode requires the KCQL syntax: STOREAS SortedSet")
   }
 
   // Write a sequence of SinkRecords to Redis
@@ -48,7 +48,7 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
               topicSettings.map { KCQL =>
                 // Get a SinkRecord
                 val recordToSink = convert(record, fields = KCQL.fieldsAndAliases, ignoreFields = KCQL.ignoredFields)
-                // We write into SS named as the target
+                // Use the target (and optionally the prefix) to name the SortedSet
                 val optionalPrefix = KCQL.kcqlConfig.getTarget
                 val pkValue = StringStructFieldsStringKeyBuilder(Seq(KCQL.kcqlConfig.getPrimaryKeys.next)).build(recordToSink)
                 val sortedSetName = optionalPrefix + pkValue
