@@ -1,6 +1,7 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisKCQLSetting, RedisSinkSettings}
+import com.datamountaineer.streamreactor.connect.rowkeys.StringStructFieldsStringKeyBuilder
 import org.apache.kafka.connect.sink.SinkRecord
 import scala.collection.JavaConversions._
 import scala.util.Try
@@ -29,8 +30,7 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
       logger.debug("No records received on 'PK SS' Redis writer")
     else {
       logger.debug(s"'PK SS' Redis writer received ${records.size} records")
-      val grouped = records.groupBy(_.topic())
-      insert(grouped)
+      insert(records.groupBy(_.topic))
     }
   }
 
@@ -46,11 +46,30 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
           {
             sinkRecords.foreach { record =>
               topicSettings.map { KCQL =>
-                val keyBuilder = KCQL.builder
-                val extracted = convert(record, fields = KCQL.fieldsAndAliases, ignoreFields = KCQL.ignoredFields)
-                val key = keyBuilder.build(extracted)
-                val payload = convertValueToJson(extracted).toString
-                jedis.set(key, payload)
+                // Get a SinkRecord
+                val recordToSink = convert(record, fields = KCQL.fieldsAndAliases, ignoreFields = KCQL.ignoredFields)
+                // We write into SS named as the target
+                val optionalPrefix = KCQL.kcqlConfig.getTarget
+                val pkValue = StringStructFieldsStringKeyBuilder(Seq(KCQL.kcqlConfig.getPrimaryKeys.next)).build(recordToSink)
+                val sortedSetName = optionalPrefix + pkValue
+                val payload = convertValueToJson(recordToSink)
+                // How to 'score' each message
+                val ssParams = KCQL.kcqlConfig.getStoredAsParameters
+                val scoreField = if (ssParams.keys.contains("score"))
+                  ssParams.get("score")
+                else {
+                  logger.info("You have not defined how to 'score' each message. We'll try to fall back to 'timestamp' field")
+                  "timestamp"
+                }
+
+                val score = StringStructFieldsStringKeyBuilder(Seq(scoreField)).build(recordToSink).toDouble
+                logger.debug(s"ZADD $sortedSetName    score = $score     payload = ${payload.toString}")
+                val response = jedis.zadd(sortedSetName, score, payload.toString)
+                if (response == 1)
+                  logger.debug("New element added")
+                else if (response == 0)
+                  logger.debug("The element was already a member of the sorted set and the score was updated")
+                response
               }
             }
           })
