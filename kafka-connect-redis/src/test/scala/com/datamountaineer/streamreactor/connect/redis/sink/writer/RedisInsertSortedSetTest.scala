@@ -2,7 +2,6 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkConfig._
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConnectionInfo, RedisSinkConfig, RedisSinkSettings}
-import com.google.gson.Gson
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.Mockito._
@@ -10,6 +9,7 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import redis.clients.jedis.Jedis
 import redis.embedded.RedisServer
+import scala.collection.JavaConverters._
 
 class RedisInsertSortedSetTest extends WordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
 
@@ -43,24 +43,29 @@ class RedisInsertSortedSetTest extends WordSpec with Matchers with BeforeAndAfte
         .field("voltage", Schema.FLOAT64_SCHEMA)
         .field("ts", Schema.INT64_SCHEMA).build()
 
-      val struct1 = new Struct(schema).put("type", "Xeon").put("temperature", 60.4).put("voltage",  90.1).put("ts", System.currentTimeMillis)
-      val struct2 = new Struct(schema).put("type", "i7")  .put("temperature", 62.1).put("voltage", 103.3).put("ts", System.currentTimeMillis+10)
+      val struct1 = new Struct(schema).put("type", "Xeon").put("temperature", 60.4).put("voltage", 90.1).put("ts", 1482180657010L)
+      val struct2 = new Struct(schema).put("type", "i7").put("temperature", 62.1).put("voltage", 103.3).put("ts", 1482180657020L)
+      val struct3 = new Struct(schema).put("type", "i7-i").put("temperature", 64.5).put("voltage", 101.1).put("ts", 1482180657030L)
 
-      val sinkRecord1 = new SinkRecord(TOPIC, 0, null, null, schema, struct1, 0)
-      val sinkRecord2 = new SinkRecord(TOPIC, 0, null, null, schema, struct2, 1)
+      val sinkRecord1 = new SinkRecord(TOPIC, 0, null, null, schema, struct1, 1)
+      val sinkRecord2 = new SinkRecord(TOPIC, 0, null, null, schema, struct2, 2)
+      val sinkRecord3 = new SinkRecord(TOPIC, 0, null, null, schema, struct3, 3)
 
-      val gson = new Gson()
       val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
+      // Clean up in-memory jedis
+      jedis.flushAll()
 
       writer.write(Seq(sinkRecord1))
-      writer.write(Seq(sinkRecord2))
+      writer.write(Seq(sinkRecord2, sinkRecord3))
 
-      Thread.sleep(1000)
+      // Redis cardinality should now be 3
+      jedis.zcard("cpu_stats") shouldBe 3
 
-      val val1 = jedis.zrange("cpu_stats", -1, 1000000000000000L)
-      val1 should not be null
-      // TODO: There is a BUG in here. Size is 1
-      val1.size should be > 0
+      val allSSrecords = jedis.zrange("cpu_stats", 0, 999999999999L)
+      val results = allSSrecords.asScala.toList
+      results(0) shouldBe """{"type":"Xeon","temperature":60.4,"voltage":90.1,"ts":1482180657010}"""
+      results(1) shouldBe """{"type":"i7","temperature":62.1,"voltage":103.3,"ts":1482180657020}"""
+      results(2) shouldBe """{"type":"i7-i","temperature":64.5,"voltage":101.1,"ts":1482180657030}"""
 
     }
 
