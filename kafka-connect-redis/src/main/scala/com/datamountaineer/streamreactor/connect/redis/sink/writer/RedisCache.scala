@@ -39,8 +39,8 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
 
   // Insert a batch of sink records
   def insert(records: Map[String, Seq[SinkRecord]]): Unit = {
-    records.foreach({
-      case (topic, sinkRecords: Seq[SinkRecord]) => {
+    records.foreach {
+      case (topic, sinkRecords) => {
         val topicSettings: Set[RedisKCQLSetting] = sinkSettings.allKCQLSettings.filter(_.kcqlConfig.getSource == topic)
         if (topicSettings.isEmpty)
           logger.warn(s"Received a batch for topic $topic - but no KCQL supports it")
@@ -63,7 +63,7 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
         handleTry(t)
       }
         logger.debug(s"Wrote ${sinkRecords.size} rows for topic $topic")
-    })
+    }
   }
 
 }

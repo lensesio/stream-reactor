@@ -63,8 +63,8 @@ ii) encode both the actual value/s & the timestamp as the `value`, in a flat or 
 
 json-example:
 ```rediscli
-ZADD EUR2GBP 1392141527298 '{"timestamp":1392141527245,"price":0.8562}'
-ZADD EUR2GBP 1392141529299 '{"timestamp":1392141529245,"price":0.8603}'
+ZADD EUR2GBP 1392141527298 '{"timestamp":1392141527298,"price":0.8562}'
+ZADD EUR2GBP 1392141529299 '{"timestamp":1392141529299,"price":0.8603}'
 ZRANGE EUR2GBP 0 -1
 ```
 
