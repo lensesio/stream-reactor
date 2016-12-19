@@ -11,7 +11,7 @@ import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import redis.clients.jedis.Jedis
 import redis.embedded.RedisServer
 
-class RedisInsertSortedSetSpec extends WordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
+class RedisInsertSortedSetTest extends WordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
 
   val redisServer = new RedisServer(6379)
 
