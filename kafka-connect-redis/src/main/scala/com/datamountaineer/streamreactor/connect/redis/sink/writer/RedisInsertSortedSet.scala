@@ -5,7 +5,6 @@ import com.datamountaineer.streamreactor.connect.rowkeys.StringStructFieldsStrin
 import org.apache.kafka.connect.sink.SinkRecord
 import scala.collection.JavaConversions._
 import scala.util.Try
-import java.util.Date
 
 /**
   * A generic Redis `writer` that can store data into 1 Sorted Set / KCQL
@@ -39,7 +38,7 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter 
       logger.debug("No records received on 'INSERT SS' Redis writer")
     else {
       logger.debug(s"'INSERT SS' Redis writer received ${records.size} records")
-      insert(records.groupBy(_.topic()))
+      insert(records.groupBy(_.topic))
     }
   }
 
@@ -59,9 +58,17 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter 
                 val recordToSink = convert(record, fields = KCQL.fieldsAndAliases, ignoreFields = KCQL.ignoredFields)
                 // We write into SS named as the target
                 val sortedSetName = KCQL.kcqlConfig.getTarget
-                val now = new Date().getTime.toDouble
                 val payload = convertValueToJson(recordToSink)
-                val score = StringStructFieldsStringKeyBuilder(Seq("ts")).build(recordToSink).toDouble
+                // How to 'score' each message
+                val ssParams = KCQL.kcqlConfig.getStoredAsParameters
+                val scoreField = if (ssParams.keys.contains("score"))
+                  ssParams.get("score")
+                else {
+                  logger.info("You have not defined how to 'score' each message. We'll try to fall back to 'timestamp' field")
+                  "timestamp"
+                }
+
+                val score = StringStructFieldsStringKeyBuilder(Seq(scoreField)).build(recordToSink).toDouble
                 logger.debug(s"ZADD $sortedSetName    score = $score     payload = ${payload.toString}")
                 val response = jedis.zadd(sortedSetName, score, payload.toString)
                 if (response == 1)

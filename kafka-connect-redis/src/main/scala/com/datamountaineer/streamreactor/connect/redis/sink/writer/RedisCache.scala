@@ -33,7 +33,7 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
       logger.debug("No records received on 'Cache' Redis writer")
     } else {
       logger.debug(s"'Cache' Redis writer received ${records.size} records")
-      val grouped = records.groupBy(_.topic())
+      val grouped = records.groupBy(_.topic)
       insert(grouped)
     }
   }
