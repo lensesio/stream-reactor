@@ -10,7 +10,7 @@ import scala.util.Try
   *
   * KCQL syntax requires 1 Primary Key to be defined (plus) STOREAS SS
   *
-  *   .. PK .. STOREAS SS
+  * .. PK .. STOREAS SS
   */
 class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWriter {
 
@@ -18,7 +18,7 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
 
   val configs = sinkSettings.allKCQLSettings.map(_.kcqlConfig)
   configs.foreach { c =>
-    assert(c.getSource.trim.length > 0, "The source topic seems to be invalid " + c.getSource.trim)
+    assert(c.getSource.trim.length > 0, "You need to supply a valid source kafka topic to fetch records from. Review your KCQL syntax")
     assert(c.getPrimaryKeys.length == 1, "The Redis PK SS mode requires strictly 1 PK (Primary Key) to be defined")
     assert(c.getStoredAs == "SS", "The Redis PK SS mode requires STOREAS SS")
   }
