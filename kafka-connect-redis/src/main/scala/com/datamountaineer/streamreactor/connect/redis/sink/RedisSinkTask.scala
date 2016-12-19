@@ -35,7 +35,7 @@ import scala.collection.JavaConversions._
   * target sink
   **/
 class RedisSinkTask extends SinkTask with StrictLogging {
-  var writer: Option[RedisWriter] = None
+  var writer = List[RedisWriter]()
 
   /**
     * Parse the configurations and setup the writer
@@ -77,21 +77,18 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     // Multiple Sorted Sets mode requires: 1 Primary Key to be defined and STORE SS syntax to be provided
     val mode_PK_SS = settings.copy(allKCQLSettings = settings.allKCQLSettings.filter(_.kcqlConfig.getStoredAs == "SS").filter(_.kcqlConfig.getPrimaryKeys.length == 1))
 
-
     //-- Start as many writers as required
-
-    if (modeCache.allKCQLSettings.nonEmpty) {
-      logger.info("Starting " + modeCache.allKCQLSettings.size + " KCQLs with Redis Cache mode")
-      writer = Some(new RedisCache(modeCache))
-    }
-    if (mode_INSERT_SS.allKCQLSettings.nonEmpty) {
-      logger.info("Starting " + mode_INSERT_SS.allKCQLSettings.size + " KCQLs with Redis Insert Sorted Set mode")
-      writer = Some(new RedisInsertSortedSet(mode_INSERT_SS))
-    }
-    if (mode_PK_SS.allKCQLSettings.nonEmpty) {
-      logger.info("Starting " + mode_PK_SS.allKCQLSettings.size + " KCQLs with Redis Multiple Sorted Sets mode")
-      writer = Some(new RedisMultipleSortedSets(modeCache))
-    }
+    writer =
+      (modeCache.allKCQLSettings.headOption.map { _ =>
+        logger.info("Starting " + modeCache.allKCQLSettings.size + " KCQLs with Redis Cache mode")
+        List(new RedisCache(modeCache))
+      } ++ mode_INSERT_SS.allKCQLSettings.headOption.map { _ =>
+        logger.info("Starting " + mode_INSERT_SS.allKCQLSettings.size + " KCQLs with Redis Insert Sorted Set mode")
+        List(new RedisInsertSortedSet(mode_INSERT_SS))
+      } ++ mode_PK_SS.allKCQLSettings.headOption.map { _ =>
+        logger.info("Starting " + mode_PK_SS.allKCQLSettings.size + " KCQLs with Redis Multiple Sorted Sets mode")
+        List(new RedisMultipleSortedSets(modeCache))
+      }).flatten.toList
 
   }
 
