@@ -26,7 +26,7 @@ A collection of components to build a real time ingestion pipeline.
 | InfluxDb       | Sink   | Kafka connect InfluxDb sink to write Kafka topic payloads to InfluxDb.                      | [Docs](http://docs.datamountaineer.com/en/latest/influx.html)            |
 | JMS            | Sink   | Kafka connect JMS sink to write Kafka topic payloads to JMS.                                | [Docs](http://docs.datamountaineer.com/en/latest/jms.html)               |
 | MongoDB        | Sink   | Kafka connect Kudu sink to write Kafka topic payloads to MongoDB.                           | [Docs](http://docs.datamountaineer.com/en/latest/mongo.html)             |
-| MQTT        | Source   | Kafka connect MQTT source to write data from MQTT to Kafka.                                  | [Docs](http://docs.datamountaineer.com/en/latest/mongo.html)             |
+| MQTT           | Source | Kafka connect MQTT source to write data from MQTT to Kafka.                                 | [Docs](http://docs.datamountaineer.com/en/latest/mqtt.html)             |
 | Redis          | Sink   | Kafka connect Redis sink to write Kafka topic payloads to Redis.                            | [Docs](http://docs.datamountaineer.com/en/latest/redis.html)             |
 | ReThinkDB      | Source | Kafka connect RethinkDb source subscribe to ReThinkDB changefeeds and write to Kafka.       | [Docs](http://docs.datamountaineer.com/en/latest/rethink_source.html)    |
 | ReThinkDB      | Sink   | Kafka connect RethinkDb sink to write Kafka topic payloads to RethinkDb.                    | [Docs](http://docs.datamountaineer.com/en/latest/rethink.html)           |
