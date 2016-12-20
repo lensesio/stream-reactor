@@ -43,11 +43,19 @@ class MqttSourceConnector extends SourceConnector with StrictLogging {
     **/
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
 
+
     val settings = MqttSourceSettings(MqttSourceConfig(configProps))
     val partitions = Math.min(settings.kcql.length, maxTasks)
     settings.kcql.grouped(partitions)
       .zipWithIndex
-      .map { case (p, index) => settings.copy(kcql = p, clientId = settings.clientId + "-" + index).asMap() }
+      .map { case (p, index) =>
+        val map = settings.copy(kcql = p, clientId = settings.clientId + "-" + index).asMap()
+        import scala.collection.JavaConversions._
+        configProps
+          .filterNot { case (k, v) => map.containsKey(k) }
+          .foreach { case (k, v) => map.put(k, v) }
+        map
+      }
       .toList.asJava
   }
 

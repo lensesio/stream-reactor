@@ -1,4 +1,5 @@
 project(":kafka-connect-mqtt") {
+
     ext {
         mqttVersion = "1.1.0"
         bouncyCastle = "1.54"
@@ -8,7 +9,6 @@ project(":kafka-connect-mqtt") {
 
     dependencies {
         compile "org.eclipse.paho:org.eclipse.paho.client.mqttv3:$mqttVersion"
-        compile "com.typesafe.akka:akka-actor_$scalaMajorVersion:$akkaVersion"
         compile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
         compile "com.sksamuel.avro4s:avro4s-json_$scalaMajorVersion:$avro4sVersion"
 

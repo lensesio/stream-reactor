@@ -26,7 +26,6 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 
-import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
 class MqttSourceTask extends SourceTask with StrictLogging {
@@ -34,7 +33,8 @@ class MqttSourceTask extends SourceTask with StrictLogging {
   private var mqttManager: Option[MqttManager] = None
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/mqtt-source-ascii.txt")).mkString)
+
+    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/mqtt-source-ascii.txt")).mkString)
     implicit val settings = MqttSourceSettings(MqttSourceConfig(props))
 
     settings.sslCACertFile.foreach { file =>
@@ -57,7 +57,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
 
     val convertersMap = settings.sourcesToConverters.map { case (topic, clazz) =>
       logger.info(s"Creating converter instance for $clazz")
-      val converter = Try(getClass.getClassLoader.loadClass(clazz).newInstance()) match {
+      val converter = Try(this.getClass.getClassLoader.loadClass(clazz).newInstance()) match {
         case Success(value) => value.asInstanceOf[Converter]
         case Failure(f) => throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG} is invalid. $clazz should have an empty ctor!")
       }
@@ -66,7 +66,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
       topic -> converter
     }
     logger.info("Starting Mqtt source...")
-    mqttManager = Some(new MqttManager(MqttClientConnectionFn.apply, convertersMap, settings.mqttQualityOfService, settings.kcql, settings.throwOnConversion))
+    mqttManager = Some(new MqttManager(MqttClientConnectionFn.apply, convertersMap, settings.mqttQualityOfService, settings.kcql.map(Config.parse), settings.throwOnConversion))
   }
 
   /**
@@ -75,7 +75,6 @@ class MqttSourceTask extends SourceTask with StrictLogging {
   override def poll(): util.List[SourceRecord] = {
 
     mqttManager.map { manager =>
-      implicit val timeout = akka.util.Timeout(10.seconds)
       val list = new util.LinkedList[SourceRecord]()
       manager.getRecords(list)
       list

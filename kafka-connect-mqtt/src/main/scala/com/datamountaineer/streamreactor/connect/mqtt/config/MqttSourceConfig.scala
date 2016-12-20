@@ -41,18 +41,18 @@ object MqttSourceConfig {
 
   val USER_CONFIG = "connect.mqtt.user"
   private val USER_DOC = "Contains the Mqtt connection user name"
-  private val USER_DEFAULT = null
+  private val USER_DEFAULT: String = null
   private val USER_DISPLAY = "Username"
 
   val PASSWORD_CONFIG = "connect.mqtt.password"
   private val PASSWORD_DOC = "Contains the Mqtt connection password"
   private val PASSWORD_DISPLAY = "Password"
-  private val PASSWORD_DEFAULT = null
+  private val PASSWORD_DEFAULT: String = null
 
   val CLIENT_ID_CONFIG = "connect.mqtt.client.id"
   private val CLIENT_ID_DOC = "Contains the client id for the session"
   private val CLIENT_ID_DISPLAY = "Client id"
-  private val CLIENT_ID_DEFAULT = null
+  private val CLIENT_ID_DEFAULT: String = null
 
   val CONNECTION_TIMEOUT_CONFIG = "connect.mqtt.connection.timeout"
   private val CONNECTION_TIMEOUT_DOC = "Provides the time interval to establish the mqtt connection"
@@ -69,20 +69,18 @@ object MqttSourceConfig {
   private val KEEP_ALIVE_INTERVAL_DISPLAY = "Keep alive interval"
   private val KEEP_ALIVE_INTERVAL_DEFAULT = 5000
 
-  val SSL_CA_CERT_CONFIG = "mqtt.connection.ssl.ca.cert"
+  val SSL_CA_CERT_CONFIG = "connect.mqtt.connection.ssl.ca.cert"
   private val SSL_CA_CERT_DOC = "Provides the path to the CA certificate file to use with the Mqtt connection"
   private val SSL_CA_CERT_DISPLAY = "CA certificate file path"
-  private val SSL_CA_CERT_DEFAULT = null
+
 
   val SSL_CERT_CONFIG = "connect.mqtt.connection.ssl.cert"
   private val SSL_CERT_DOC = "Provides the path to the certificate file to use with the Mqtt connection"
   private val SSL_CERT_DISPLAY = "Certificate key file path"
-  private val SSL_CERT_DEFAULT = null
 
   val SSL_CERT_KEY_CONFIG = "connect.mqtt.connection.ssl.key"
   private val SSL_CERT_KEY_DOC = "Certificate private key file path."
   private val SSL_CERT_KEY_DISPLAY = "Certificate private key file path"
-  private val SSL_CERT_KEY_DEFAULT = null
 
   val CONVERTER_CONFIG = "connect.mqtt.source.converters"
   private val CONVERTER_DOC =
@@ -110,9 +108,9 @@ object MqttSourceConfig {
 
 
     //ssl
-    .define(SSL_CA_CERT_CONFIG, Type.STRING, SSL_CA_CERT_DEFAULT, Importance.MEDIUM, SSL_CA_CERT_DOC, "SSL", 1, ConfigDef.Width.MEDIUM, SSL_CA_CERT_DISPLAY)
-    .define(SSL_CERT_CONFIG, Type.STRING, SSL_CERT_DEFAULT, Importance.MEDIUM, SSL_CERT_DOC, "SSL", 2, ConfigDef.Width.MEDIUM, SSL_CERT_DISPLAY)
-    .define(SSL_CERT_KEY_CONFIG, Type.STRING, SSL_CERT_KEY_DEFAULT, Importance.MEDIUM, SSL_CERT_KEY_DOC, "SSL", 3, ConfigDef.Width.MEDIUM, SSL_CERT_KEY_DISPLAY)
+    .define(SSL_CA_CERT_CONFIG, Type.STRING, null, Importance.MEDIUM, SSL_CA_CERT_DOC, "SSL", 1, ConfigDef.Width.MEDIUM, SSL_CA_CERT_DISPLAY)
+    .define(SSL_CERT_CONFIG, Type.STRING, null, Importance.MEDIUM, SSL_CERT_DOC, "SSL", 2, ConfigDef.Width.MEDIUM, SSL_CERT_DISPLAY)
+    .define(SSL_CERT_KEY_CONFIG, Type.STRING, null, Importance.MEDIUM, SSL_CERT_KEY_DOC, "SSL", 3, ConfigDef.Width.MEDIUM, SSL_CERT_KEY_DISPLAY)
 
 
     //kcql

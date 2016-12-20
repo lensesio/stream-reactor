@@ -31,7 +31,7 @@ case class MqttSourceSettings(connection: String,
                               clientId: String,
                               sourcesToConverters: Map[String, String],
                               throwOnConversion: Boolean,
-                              kcql: Array[Config],
+                              kcql: Array[String],
                               mqttQualityOfService: Int,
                               connectionTimeout: Int,
                               cleanSession: Boolean,
@@ -39,19 +39,25 @@ case class MqttSourceSettings(connection: String,
                               sslCACertFile: Option[String],
                               sslCertFile: Option[String],
                               sslCertKeyFile: Option[String]) {
+
   def asMap(): java.util.Map[String, String] = {
     val map = new java.util.HashMap[String, String]()
     map.put(MqttSourceConfig.HOSTS_CONFIG, connection)
-    map.put(MqttSourceConfig.USER_CONFIG, user.orNull)
-    map.put(MqttSourceConfig.PASSWORD_CONFIG, password.orNull)
+    user.foreach(u => map.put(MqttSourceConfig.USER_CONFIG, u))
+    password.foreach(p => map.put(MqttSourceConfig.PASSWORD_CONFIG, p))
     map.put(MqttSourceConfig.CLIENT_ID_CONFIG, clientId)
     map.put(MqttSourceConfig.CONNECTION_TIMEOUT_CONFIG, connectionTimeout.toString)
     map.put(MqttSourceConfig.CLEAN_SESSION_CONFIG, cleanSession.toString)
     map.put(MqttSourceConfig.KEEP_ALIVE_INTERVAL_CONFIG, keepAliveInterval.toString)
-    map.put(MqttSourceConfig.SSL_CA_CERT_CONFIG, sslCertFile.orNull)
-    map.put(MqttSourceConfig.SSL_CERT_CONFIG, sslCertKeyFile.orNull)
-    map.put(MqttSourceConfig.CONVERTER_CONFIG, sourcesToConverters.map { case (k, v) => s"$k=$v" }.mkString(";"))
+    sslCACertFile.foreach(s => map.put(MqttSourceConfig.SSL_CA_CERT_CONFIG, s))
+    sslCertFile.foreach(s => map.put(MqttSourceConfig.SSL_CERT_CONFIG, s))
+    sslCertKeyFile.foreach(s => map.put(MqttSourceConfig.SSL_CERT_KEY_CONFIG, s))
+
     map.put(MqttSourceConfig.QS_CONFIG, mqttQualityOfService.toString)
+    map.put(MqttSourceConfig.KCQL_CONFIG, kcql.mkString(";"))
+
+
+    map.put(MqttSourceConfig.CONVERTER_CONFIG, kcql.map(Config.parse).map(_.getSource).map(s => s"$s=${sourcesToConverters(s)}").mkString(";"))
     map
   }
 }
@@ -59,9 +65,10 @@ case class MqttSourceSettings(connection: String,
 
 object MqttSourceSettings {
   def apply(config: MqttSourceConfig): MqttSourceSettings = {
-    val kcql = config.getString(MqttSourceConfig.KCQL_CONFIG).split(';')
-      .withFilter(_.trim.nonEmpty)
-      .map(Config.parse)
+    val kcqlStr = config.getString(MqttSourceConfig.KCQL_CONFIG).split(';')
+      .filter(_.trim.nonEmpty)
+
+    val kcql = kcqlStr.map(Config.parse)
     require(kcql.nonEmpty, s"${MqttSourceConfig.KCQL_CONFIG} provided!")
 
     val sources = kcql.map(_.getSource).toSet
@@ -101,7 +108,7 @@ object MqttSourceSettings {
                   throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG}. Source '$source' is not found in ${MqttSourceConfig.KCQL_CONFIG}. Defined sources:${sources.mkString(",")}")
                 }
                 Try(getClass.getClassLoader.loadClass(clazz)) match {
-                  case Failure(e: ClassNotFoundException) => throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG}.$clazz can't be found")
+                  case Failure(e) => throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG}.$clazz can't be found")
                   case Success(clz) =>
                     if (!classOf[Converter].isAssignableFrom(clz)) {
                       throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG}. $clazz is not inheriting MqttConverter")
@@ -129,7 +136,7 @@ object MqttSourceSettings {
       clientId,
       sourcesToConverterMap1,
       config.getBoolean(MqttSourceConfig.THROW_ON_CONVERT_ERRORS_CONFIG),
-      kcql,
+      kcqlStr,
       qs,
       config.getInt(MqttSourceConfig.CONNECTION_TIMEOUT_CONFIG),
       config.getBoolean(MqttSourceConfig.CLEAN_SESSION_CONFIG),

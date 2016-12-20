@@ -78,7 +78,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
         clientId,
         sourcesToConvMap.map { case (k, v) => k -> v.getClass.getCanonicalName },
         true,
-        Array(Config.parse(s"INSERT INTO $target SELECT * FROM $source")),
+        Array(s"INSERT INTO $target SELECT * FROM $source"),
         qs,
         connectionTimeout,
         true,
@@ -154,9 +154,9 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
         clientId,
         sourcesToConvMap.map { case (k, v) => k -> v.getClass.getCanonicalName },
         true,
-        Array(Config.parse(s"INSERT INTO $target1 SELECT * FROM $source1"),
-          Config.parse(s"INSERT INTO $target2 SELECT * FROM $source2"),
-          Config.parse(s"INSERT INTO $target3 SELECT * FROM $source3")),
+        Array(s"INSERT INTO $target1 SELECT * FROM $source1",
+          s"INSERT INTO $target2 SELECT * FROM $source2",
+          s"INSERT INTO $target3 SELECT * FROM $source3"),
         qs,
         connectionTimeout,
         true,
@@ -169,7 +169,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
       val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
         sourcesToConvMap,
         1,
-        settings.kcql,
+        settings.kcql.map(Config.parse),
         true)
 
       val message1 = "message1".getBytes()
