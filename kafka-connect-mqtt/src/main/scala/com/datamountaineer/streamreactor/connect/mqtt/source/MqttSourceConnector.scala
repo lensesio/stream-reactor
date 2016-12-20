@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import java.util
+import java.util.Collections
 
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttSourceConfig, MqttSourceSettings}
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -43,20 +44,25 @@ class MqttSourceConnector extends SourceConnector with StrictLogging {
     **/
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
 
-
     val settings = MqttSourceSettings(MqttSourceConfig(configProps))
-    val partitions = Math.min(settings.kcql.length, maxTasks)
-    settings.kcql.grouped(partitions)
-      .zipWithIndex
-      .map { case (p, index) =>
-        val map = settings.copy(kcql = p, clientId = settings.clientId + "-" + index).asMap()
-        import scala.collection.JavaConversions._
-        configProps
-          .filterNot { case (k, v) => map.containsKey(k) }
-          .foreach { case (k, v) => map.put(k, v) }
-        map
-      }
-      .toList.asJava
+    val kcql = settings.kcql
+    if (maxTasks == 1 || kcql.length == 1) {
+      Collections.singletonList(configProps)
+    } else {
+      val groups = kcql.length / maxTasks + kcql.length % maxTasks
+
+      settings.kcql.grouped(groups)
+        .zipWithIndex
+        .map { case (p, index) =>
+          val map = settings.copy(kcql = p, clientId = settings.clientId + "-" + index).asMap()
+          import scala.collection.JavaConversions._
+          configProps
+            .filterNot { case (k, v) => map.containsKey(k) }
+            .foreach { case (k, v) => map.put(k, v) }
+          map
+        }
+        .toList.asJava
+    }
   }
 
   /**

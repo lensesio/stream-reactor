@@ -20,10 +20,12 @@ import org.apache.kafka.connect.source.SourceRecord
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
 import scala.collection.JavaConversions._
+import scala.util.Try
 
 class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
 
   val classPathConfig = new ClasspathConfig()
+
 
   val connection = "tcp://0.0.0.0:1883"
   val clientId = "MqttManagerTest"
@@ -41,6 +43,9 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
     mqttBroker.foreach {
       _.stopServer()
     }
+
+    val files = Seq("moquette_store.mapdb", "moquette_store.mapdb.p", "moquette_store.mapdb.t")
+    files.map(f => new File(f)).withFilter(_.exists()).foreach { f => Try(f.delete()) }
   }
 
   private def initializeConverter(mqttSource: String, converter: AvroConverter, schema: org.apache.avro.Schema) = {
@@ -96,7 +101,6 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
       val messages = Seq("message1", "message2")
       messages.foreach { m =>
         publishMessage(source, m.getBytes())
-        Thread.sleep(50)
       }
 
       Thread.sleep(2000)
@@ -185,7 +189,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
       publishMessage(source1, message1)
       publishMessage(source2, message2)
       publishMessage(source3, message3)
-      Thread.sleep(2000)
+      Thread.sleep(3000)
       val records = new util.LinkedList[SourceRecord]()
       mqttManager.getRecords(records)
 

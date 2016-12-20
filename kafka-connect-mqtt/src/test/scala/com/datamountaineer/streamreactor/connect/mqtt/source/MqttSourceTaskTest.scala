@@ -17,6 +17,7 @@ import org.apache.kafka.connect.data.{Schema, Struct}
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
 import scala.collection.JavaConversions._
+import scala.util.Try
 
 class MqttSourceTaskTest extends WordSpec with Matchers with BeforeAndAfter {
   val classPathConfig = new ClasspathConfig()
@@ -37,6 +38,9 @@ class MqttSourceTaskTest extends WordSpec with Matchers with BeforeAndAfter {
     mqttBroker.foreach {
       _.stopServer()
     }
+
+    val files = Seq("moquette_store.mapdb", "moquette_store.mapdb.p", "moquette_store.mapdb.t")
+    files.map(f => new File(f)).withFilter(_.exists()).foreach { f => Try(f.delete()) }
   }
 
   private def getSchemaFile(mqttSource: String, schema: org.apache.avro.Schema) = {

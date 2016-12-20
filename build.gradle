@@ -52,7 +52,7 @@ allprojects {
         avroVersion = '1.7.7'
         jacksonxmlVersion = '2.6.5'
         slf4jVersion = "1.7.7"
-        dataMountaineerCommonVersion = "0.6"
+        dataMountaineerCommonVersion = "0.6.1"
         dataMountaineerTestKitVersion = "0.2"
         avro4sVersion = "1.6.0"
         json4sVersion = "3.3.0"
