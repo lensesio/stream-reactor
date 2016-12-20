@@ -36,23 +36,20 @@ object MqttSourceConfig {
 
   val QS_CONFIG = "connect.mqtt.service.quality"
   private val QS_DOC = "Specifies the Mqtt quality of service"
-  private val QS_DISPLAY = "Quality of Service. It can be 0,1 or 2.0 = At most once; 1 = At least once; 2 = Exactly once"
+  private val QS_DISPLAY = "he Quality of Service (QoS) level is an agreement between sender and receiver of a message regarding the guarantees of delivering a message. There are 3 QoS levels in MQTT: 0 = At most once; 1 = At least once; 2 = Exactly once"
   private val QS_DEFAULT = 1
 
   val USER_CONFIG = "connect.mqtt.user"
   private val USER_DOC = "Contains the Mqtt connection user name"
-  private val USER_DEFAULT: String = null
   private val USER_DISPLAY = "Username"
 
   val PASSWORD_CONFIG = "connect.mqtt.password"
   private val PASSWORD_DOC = "Contains the Mqtt connection password"
   private val PASSWORD_DISPLAY = "Password"
-  private val PASSWORD_DEFAULT: String = null
 
   val CLIENT_ID_CONFIG = "connect.mqtt.client.id"
-  private val CLIENT_ID_DOC = "Contains the client id for the session"
+  private val CLIENT_ID_DOC = "Contains the Mqtt session client id"
   private val CLIENT_ID_DISPLAY = "Client id"
-  private val CLIENT_ID_DEFAULT: String = null
 
   val CONNECTION_TIMEOUT_CONFIG = "connect.mqtt.connection.timeout"
   private val CONNECTION_TIMEOUT_DOC = "Provides the time interval to establish the mqtt connection"
@@ -60,12 +57,12 @@ object MqttSourceConfig {
   private val CONNECTION_TIMEOUT_DEFAULT = 3000
 
   val CLEAN_SESSION_CONFIG = "connect.mqtt.connection.clean"
-  private val CLEAN_CONNECTION_DOC = ""
-  private val CLEAN_CONNECTION_DISPLAY = "Clean connection"
+  private val CLEAN_CONNECTION_DOC = "The clean session flag indicates the broker, whether the client wants to establish a persistent session or not. A persistent session (CleanSession is false) means, that the broker will store all subscriptions for the client and also all missed messages, when subscribing with Quality of Service (QoS) 1 or 2. If clean session is set to true, the broker won’t store anything for the client and will also purge all information from a previous persistent session."
+  private val CLEAN_CONNECTION_DISPLAY = "Clean session"
   private val CLEAN_CONNECTION_DEFAULT = true
 
   val KEEP_ALIVE_INTERVAL_CONFIG = "connect.mqtt.connection.keep.alive"
-  private val KEEP_ALIVE_INTERVAL_DOC = "A flag for the mqtt library to make sure the connection is kept alive"
+  private val KEEP_ALIVE_INTERVAL_DOC = "The keep alive functionality assures that the connection is still open and both broker and client are connected to one another. Therefore the client specifies a time interval in seconds and communicates it to the broker during the establishment of the connection. The interval is the longest possible period of time, which broker and client can endure without sending a message."
   private val KEEP_ALIVE_INTERVAL_DISPLAY = "Keep alive interval"
   private val KEEP_ALIVE_INTERVAL_DEFAULT = 5000
 
@@ -85,26 +82,25 @@ object MqttSourceConfig {
   val CONVERTER_CONFIG = "connect.mqtt.source.converters"
   private val CONVERTER_DOC =
     """
-      |Contains a tuple (source and the canonical class name for the converter of a raw Mqtt message bytes to a SourceRecord).
+      |Contains a tuple (Mqtt source topic and the canonical class name for the converter of a raw Mqtt message bytes to a SourceRecord).
       |If the source topic is not matched it will default to the BytesConverter
       |i.e. $mqtt_source1=com.datamountaineer.streamreactor.connect.mqtt.source.converters.AvroConverter;$mqtt_source2=com.datamountaineer.streamreactor.connect.mqtt.source.converters.JsonConverter""".stripMargin
   private val CONVERTER_DISPLAY = "Converter class"
-  private val CONVERTER_DEFAULT = null
 
   val THROW_ON_CONVERT_ERRORS_CONFIG = "connect.mqtt.converter.throw.on.error"
-  private val THROW_ON_CONVERT_ERRORS_DOC = "If set to false it will swallow the exception and carry on; true will throw the exception.Default is false."
+  private val THROW_ON_CONVERT_ERRORS_DOC = "If set to false the conversion exception will be swallowed and everything carries on BUT the message is lost!!; true will throw the exception.Default is false."
   private val THROW_ON_CONVERT_ERRORS_DISPLAY = "Throw error on conversion"
   private val THROW_ON_CONVERT_ERRORS_DEFAULT = false
 
   val config = new ConfigDef()
     .define(HOSTS_CONFIG, Type.STRING, Importance.HIGH, HOSTS_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, HOSTS_DISPLAY)
-    .define(USER_CONFIG, Type.STRING, USER_DEFAULT, Importance.HIGH, USER_DOC, "Connection", 2, ConfigDef.Width.MEDIUM, USER_DISPLAY)
-    .define(PASSWORD_CONFIG, Type.PASSWORD, PASSWORD_DEFAULT, Importance.HIGH, PASSWORD_DOC, "Connection", 3, ConfigDef.Width.MEDIUM, PASSWORD_DISPLAY)
+    .define(USER_CONFIG, Type.STRING, null, Importance.HIGH, USER_DOC, "Connection", 2, ConfigDef.Width.MEDIUM, USER_DISPLAY)
+    .define(PASSWORD_CONFIG, Type.PASSWORD, null, Importance.HIGH, PASSWORD_DOC, "Connection", 3, ConfigDef.Width.MEDIUM, PASSWORD_DISPLAY)
     .define(QS_CONFIG, Type.INT, Importance.MEDIUM, QS_DOC, "Connection", 4, ConfigDef.Width.MEDIUM, QS_DISPLAY)
     .define(CONNECTION_TIMEOUT_CONFIG, Type.INT, CONNECTION_TIMEOUT_DEFAULT, Importance.LOW, CONNECTION_TIMEOUT_DOC, "Connection", 5, ConfigDef.Width.MEDIUM, CONNECTION_TIMEOUT_DISPLAY)
     .define(CLEAN_SESSION_CONFIG, Type.BOOLEAN, CLEAN_CONNECTION_DEFAULT, Importance.LOW, CLEAN_SESSION_CONFIG, "Connection", 6, ConfigDef.Width.MEDIUM, CLEAN_CONNECTION_DISPLAY)
     .define(KEEP_ALIVE_INTERVAL_CONFIG, Type.INT, KEEP_ALIVE_INTERVAL_DEFAULT, Importance.LOW, KEEP_ALIVE_INTERVAL_DOC, "Connection", 7, ConfigDef.Width.MEDIUM, KEEP_ALIVE_INTERVAL_DISPLAY)
-    .define(CLIENT_ID_CONFIG, Type.STRING, CLIENT_ID_DEFAULT, Importance.LOW, CLIENT_ID_DOC, "Connection", 8, ConfigDef.Width.MEDIUM, CLIENT_ID_DISPLAY)
+    .define(CLIENT_ID_CONFIG, Type.STRING, null, Importance.LOW, CLIENT_ID_DOC, "Connection", 8, ConfigDef.Width.MEDIUM, CLIENT_ID_DISPLAY)
 
 
     //ssl
@@ -117,7 +113,7 @@ object MqttSourceConfig {
     .define(KCQL_CONFIG, Type.STRING, Importance.HIGH, KCQL_DOC, "KCQL", 1, ConfigDef.Width.MEDIUM, KCQL_DISPLAY)
 
     //converter
-    .define(CONVERTER_CONFIG, Type.STRING, CONVERTER_DEFAULT, Importance.HIGH, CONVERTER_DOC, "Converter", 1, ConfigDef.Width.MEDIUM, CONVERTER_DISPLAY)
+    .define(CONVERTER_CONFIG, Type.STRING, null, Importance.HIGH, CONVERTER_DOC, "Converter", 1, ConfigDef.Width.MEDIUM, CONVERTER_DISPLAY)
     .define(THROW_ON_CONVERT_ERRORS_CONFIG, Type.BOOLEAN, THROW_ON_CONVERT_ERRORS_DEFAULT, Importance.HIGH, THROW_ON_CONVERT_ERRORS_DOC, "Converter", 2, ConfigDef.Width.MEDIUM, THROW_ON_CONVERT_ERRORS_DISPLAY)
 
 }
