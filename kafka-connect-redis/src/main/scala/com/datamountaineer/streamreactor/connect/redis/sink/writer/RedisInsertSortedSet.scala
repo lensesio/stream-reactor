@@ -19,7 +19,7 @@ import scala.util.Try
   * INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS SortedSet
   * INSERT INTO cpu_stats_SS SELECT * from cpuTopic STOREAS SortedSet (score=ts)
   */
-class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter {
+class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter with SortedSetSupport {
 
   apply(sinkSettings)
 
@@ -35,7 +35,7 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter 
   // Write a sequence of SinkRecords to Redis
   override def write(records: Seq[SinkRecord]): Unit = {
     if (records.isEmpty)
-      logger.debug("No records received on 'INSERT SS' Redis writer")
+      logger.debug("No records received on 'INSERT SortedSet' Redis writer")
     else {
       logger.debug(s"'INSERT SS' Redis writer received ${records.size} records")
       insert(records.groupBy(_.topic))
@@ -50,35 +50,29 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter 
         if (topicSettings.isEmpty)
           logger.warn(s"Received a batch for topic $topic - but no KCQL supports it")
         //pass try to error handler and try
-        val t = Try(
-          {
-            sinkRecords.foreach { record =>
-              topicSettings.map { KCQL =>
-                // Get a SinkRecord
-                val recordToSink = convert(record, fields = KCQL.fieldsAndAliases, ignoreFields = KCQL.ignoredFields)
-                // Use the target to name the SortedSet
-                val sortedSetName = KCQL.kcqlConfig.getTarget
-                val payload = convertValueToJson(recordToSink)
-                // How to 'score' each message
-                val ssParams = KCQL.kcqlConfig.getStoredAsParameters
-                val scoreField = if (ssParams.keys.contains("score"))
-                  ssParams.get("score")
-                else {
-                  logger.info("You have not defined how to 'score' each message. We'll try to fall back to 'timestamp' field")
-                  "timestamp"
-                }
+        val t = Try {
+          sinkRecords.foreach { record =>
+            topicSettings.map { KCQL =>
+              // Get a SinkRecord
+              val recordToSink = convert(record, fields = KCQL.fieldsAndAliases, ignoreFields = KCQL.ignoredFields)
+              // Use the target to name the SortedSet
+              val sortedSetName = KCQL.kcqlConfig.getTarget
+              val payload = convertValueToJson(recordToSink)
 
-                val score = StringStructFieldsStringKeyBuilder(Seq(scoreField)).build(recordToSink).toDouble
-                logger.debug(s"ZADD $sortedSetName    score = $score     payload = ${payload.toString}")
-                val response = jedis.zadd(sortedSetName, score, payload.toString)
-                if (response == 1)
-                  logger.debug("New element added")
-                else if (response == 0)
-                  logger.debug("The element was already a member of the sorted set and the score was updated")
-                response
-              }
+              val scoreField = getScoreField(KCQL.kcqlConfig)
+              val score = StringStructFieldsStringKeyBuilder(Seq(scoreField)).build(recordToSink).toDouble
+
+              logger.debug(s"ZADD $sortedSetName    score = $score     payload = ${payload.toString}")
+              val response = jedis.zadd(sortedSetName, score, payload.toString)
+
+              if (response == 1)
+                logger.debug("New element added")
+              else if (response == 0)
+                logger.debug("The element was already a member of the sorted set and the score was updated")
+              response
             }
-          })
+          }
+        }
         handleTry(t)
       }
         logger.debug(s"Wrote ${sinkRecords.size} rows for topic $topic")

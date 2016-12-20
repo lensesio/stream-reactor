@@ -48,4 +48,3 @@ abstract class RedisWriter extends DbWriter with StrictLogging with ConverterUti
 
 }
 
-// assert(SS.isValid, "The SortedSet definition at Redis accepts only case sensitive alphabetic characters")```
