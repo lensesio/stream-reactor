@@ -2,6 +2,8 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisKCQLSetting, RedisSinkSettings}
 import com.datamountaineer.streamreactor.connect.rowkeys.StringStructFieldsStringKeyBuilder
+import com.datamountaineer.streamreactor.connect.schemas.StructFieldsExtractor
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import scala.collection.JavaConversions._
 import scala.util.Try
@@ -36,7 +38,7 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
 
   // Insert a batch of sink records
   def insert(records: Map[String, Seq[SinkRecord]]): Unit = {
-    records.foreach({
+    records.foreach {
       case (topic, sinkRecords: Seq[SinkRecord]) => {
         val topicSettings: Set[RedisKCQLSetting] = sinkSettings.allKCQLSettings.filter(_.kcqlConfig.getSource == topic)
         if (topicSettings.isEmpty)
@@ -45,15 +47,22 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
         val t = Try {
           sinkRecords.foreach { record =>
             topicSettings.map { KCQL =>
-              // Get a SinkRecord
-              val recordToSink = convert(record, fields = KCQL.fieldsAndAliases, ignoreFields = KCQL.ignoredFields)
+
+              // Build a Struct field extractor to get the value from the PK field
+              val pkField = KCQL.kcqlConfig.getPrimaryKeys.toList.head
+              val extractor = StructFieldsExtractor(includeAllFields = false, Map(pkField -> pkField))
+              val fieldsAndValues = extractor.get(record.value.asInstanceOf[Struct]).toMap
+              val pkValue = fieldsAndValues(pkField).toString
+
               // Use the target (and optionally the prefix) to name the SortedSet
-              val optionalPrefix = KCQL.kcqlConfig.getTarget
-              val pkValue = StringStructFieldsStringKeyBuilder(Seq(KCQL.kcqlConfig.getPrimaryKeys.next)).build(recordToSink)
+              val optionalPrefix = if (Option(KCQL.kcqlConfig.getTarget).isEmpty) "" else KCQL.kcqlConfig.getTarget.trim
               val sortedSetName = optionalPrefix + pkValue
+
+              // Include the score into the payload
+              val scoreField = getScoreField(KCQL.kcqlConfig)
+              val recordToSink = convert(record, fields = KCQL.fieldsAndAliases + (scoreField -> scoreField), ignoreFields = KCQL.ignoredFields)
               val payload = convertValueToJson(recordToSink)
 
-              val scoreField = getScoreField(KCQL.kcqlConfig)
               val score = StringStructFieldsStringKeyBuilder(Seq(scoreField)).build(recordToSink).toDouble
 
               logger.debug(s"ZADD $sortedSetName    score = $score     payload = ${payload.toString}")
@@ -70,7 +79,7 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
         handleTry(t)
       }
         logger.debug(s"Wrote ${sinkRecords.size} rows for topic $topic")
-    })
+    }
   }
 
 }
