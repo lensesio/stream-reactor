@@ -6,13 +6,21 @@ import org.scalatest.{Matchers, WordSpec}
 import scala.collection.JavaConversions._
 
 class RedisSinkConfigTest extends WordSpec with Matchers {
+
   "RedisSinkConfig" should {
-    "not throw an exception if password is not provided" in {
-      val props = Map(REDIS_HOST -> "localhost",
-        REDIS_PORT -> 8453,
-        EXPORT_ROUTE_QUERY -> "INSERT INTO A SELECT * FROM topicA",
-        ERROR_POLICY -> "THROW")
-      RedisSinkConfig.config.parse(props)
+
+    "work without a <password>" in {
+      RedisSinkConfig.config.parse(propsWithoutPass)
     }
+    "work with <password>" in {
+      RedisSinkConfig.config.parse(propsWithoutPass + (REDIS_PASSWORD -> "pass"))
+    }
+
   }
+
+  val propsWithoutPass = Map(REDIS_HOST -> "localhost",
+    REDIS_PORT -> 8453,
+    KCQL_CONFIG -> "SELECT * FROM topicA",
+    ERROR_POLICY -> "THROW")
+
 }

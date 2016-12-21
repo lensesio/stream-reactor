@@ -20,11 +20,10 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisSinkConfig, RedisSinkSettings}
-import com.datamountaineer.streamreactor.connect.redis.sink.writer.{RedisDbWriter, RedisDbWriterFactory}
+import com.datamountaineer.streamreactor.connect.redis.sink.writer.{RedisCache, RedisInsertSortedSet, RedisMultipleSortedSets, RedisWriter}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
@@ -36,7 +35,7 @@ import scala.collection.JavaConversions._
   * target sink
   **/
 class RedisSinkTask extends SinkTask with StrictLogging {
-  var writer: Option[RedisDbWriter] = None
+  var writer = List[RedisWriter]()
 
   /**
     * Parse the configurations and setup the writer
@@ -57,9 +56,8 @@ class RedisSinkTask extends SinkTask with StrictLogging {
         |    / _, _/  __/ /_/ / (__  )___/ / / / / / ,<
         |   /_/ |_|\___/\__,_/_/____//____/_/_/ /_/_/|_|
         |
-        |  By Stefan Bocutiu
-      """
-      .stripMargin)
+        |  By Stefan Bocutiu & Antonios Chalkiopoulos
+      """.stripMargin)
 
     RedisSinkConfig.config.parse(props)
     val sinkConfig = new RedisSinkConfig(props)
@@ -70,7 +68,28 @@ class RedisSinkTask extends SinkTask with StrictLogging {
       context.timeout(sinkConfig.getInt(RedisSinkConfig.ERROR_RETRY_INTERVAL).toLong)
     }
 
-    writer = Some(RedisDbWriterFactory(settings))
+    //-- Find out the Connector modes (cache | INSERT (SortedSet) | PK (SortedSetS)
+
+    // Cache mode requires >= 1 PK and *NO* STOREAS SortedSet setting
+    val modeCache = settings.copy(kcqlSettings = settings.kcqlSettings.filter(_.kcqlConfig.getStoredAs == null).filter(_.kcqlConfig.getPrimaryKeys.hasNext))
+    // Insert Sorted Set mode requires: target name of SortedSet to be defined and STOREAS SortedSet syntax to be provided
+    val mode_INSERT_SS = settings.copy(kcqlSettings = settings.kcqlSettings.filter(_.kcqlConfig.getStoredAs == "SortedSet").filter(_.kcqlConfig.getTarget.length > 0))
+    // Multiple Sorted Sets mode requires: 1 Primary Key to be defined and STORE SortedSet syntax to be provided
+    val mode_PK_SS = settings.copy(kcqlSettings = settings.kcqlSettings.filter(_.kcqlConfig.getStoredAs == "SortedSet").filter(_.kcqlConfig.getPrimaryKeys.length == 1))
+
+    //-- Start as many writers as required
+    writer =
+      (modeCache.kcqlSettings.headOption.map { _ =>
+        logger.info("Starting " + modeCache.kcqlSettings.size + " KCQLs with Redis Cache mode")
+        List(new RedisCache(modeCache))
+      } ++ mode_INSERT_SS.kcqlSettings.headOption.map { _ =>
+        logger.info("Starting " + mode_INSERT_SS.kcqlSettings.size + " KCQLs with Redis Insert Sorted Set mode")
+        List(new RedisInsertSortedSet(mode_INSERT_SS))
+      } ++ mode_PK_SS.kcqlSettings.headOption.map { _ =>
+        logger.info("Starting " + mode_PK_SS.kcqlSettings.size + " KCQLs with Redis Multiple Sorted Sets mode")
+        List(new RedisMultipleSortedSets(modeCache))
+      }).flatten.toList
+
   }
 
   /**
@@ -94,7 +113,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     writer.foreach(w => w.close())
   }
 
-  override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]) : Unit = {
+  override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {
     //TODO
     //have the writer expose a is busy; can expose an await using a countdownlatch internally
   }
