@@ -46,7 +46,7 @@ Supports limited SQL statements to stream and select from Kafka topics in real t
 *   Added MongoDB Sink.
 *   Added MQTT Source.
 *   Hazelcast support for ring buffers.
-*   Redis support for Sorted Sets. (Pending PR from redis branch)
+*   Redis support for Sorted Sets.
 *   Added start scripts.
 *   Added Kafka Connect and Schema Registry CLI.
 *   Kafka Connect CLI now supports pause/restart/resume; checking connectors on the classpath and validating configuration of connectors.
