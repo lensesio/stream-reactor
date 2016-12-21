@@ -37,7 +37,7 @@ case class RedisKCQLSetting(topic: String,
 
 // All the settings of the running connector
 case class RedisSinkSettings(connectionInfo: RedisConnectionInfo,
-                             allKCQLSettings: Set[RedisKCQLSetting],
+                             kcqlSettings: Set[RedisKCQLSetting],
                              errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                              taskRetries: Int = RedisSinkConfig.NBR_OF_RETIRES_DEFAULT)
 

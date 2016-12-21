@@ -20,10 +20,10 @@ class ConfigMultipleSortedSetsTest extends WordSpec with Matchers with RedisMock
   KCQL1 in {
     val config = getMockRedisSinkConfig(password = true, KCQL = Option(KCQL1))
     val settings = RedisSinkSettings(config)
-    val route = settings.allKCQLSettings.head.kcqlConfig
+    val route = settings.kcqlSettings.head.kcqlConfig
     val fields = route.getFieldAlias.asScala.toList
 
-    settings.allKCQLSettings.head.builder.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
+    settings.kcqlSettings.head.builder.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
 
     route.getStoredAs shouldBe "SortedSet"
     route.isIncludeAllFields shouldBe false
@@ -38,7 +38,7 @@ class ConfigMultipleSortedSetsTest extends WordSpec with Matchers with RedisMock
   KCQL2 in {
     val config = getMockRedisSinkConfig(password = true, KCQL = Option(KCQL2))
     val settings = RedisSinkSettings(config)
-    val route = settings.allKCQLSettings.head.kcqlConfig
+    val route = settings.kcqlSettings.head.kcqlConfig
     val fields = route.getFieldAlias.asScala.toList
 
     route.getPrimaryKeys.next shouldBe "sensorID"
@@ -54,7 +54,7 @@ class ConfigMultipleSortedSetsTest extends WordSpec with Matchers with RedisMock
   KCQL3 in {
     val config = getMockRedisSinkConfig(password = true, KCQL = Option(KCQL3))
     val settings = RedisSinkSettings(config)
-    val route = settings.allKCQLSettings.head.kcqlConfig
+    val route = settings.kcqlSettings.head.kcqlConfig
     val fields = route.getFieldAlias.asScala.toList
 
     route.getStoredAsParameters.asScala shouldBe Map("score" -> "ts")
@@ -70,7 +70,7 @@ class ConfigMultipleSortedSetsTest extends WordSpec with Matchers with RedisMock
   KCQL4 in {
     val config = getMockRedisSinkConfig(password = true, KCQL = Option(KCQL4))
     val settings = RedisSinkSettings(config)
-    val route = settings.allKCQLSettings.head.kcqlConfig
+    val route = settings.kcqlSettings.head.kcqlConfig
     val fields = route.getFieldAlias.asScala.toList
 
     route.getPrimaryKeys.next shouldBe "sensorID"

@@ -19,7 +19,7 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
 
   apply(sinkSettings)
 
-  val configs = sinkSettings.allKCQLSettings.map(_.kcqlConfig)
+  val configs = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
     assert(c.getSource.trim.length > 0, "You need to supply a valid source kafka topic to fetch records from. Review your KCQL syntax")
     assert(c.getPrimaryKeys.length == 1, "The Redis MultipleSortedSets mode requires strictly 1 PK (Primary Key) to be defined")
@@ -40,7 +40,7 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
   def insert(records: Map[String, Seq[SinkRecord]]): Unit = {
     records.foreach {
       case (topic, sinkRecords: Seq[SinkRecord]) => {
-        val topicSettings: Set[RedisKCQLSetting] = sinkSettings.allKCQLSettings.filter(_.kcqlConfig.getSource == topic)
+        val topicSettings: Set[RedisKCQLSetting] = sinkSettings.kcqlSettings.filter(_.kcqlConfig.getSource == topic)
         if (topicSettings.isEmpty)
           logger.warn(s"Received a batch for topic $topic - but no KCQL supports it")
         //pass try to error handler and try

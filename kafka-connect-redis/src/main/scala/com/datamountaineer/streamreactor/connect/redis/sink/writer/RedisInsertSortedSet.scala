@@ -23,7 +23,7 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter 
 
   apply(sinkSettings)
 
-  val configs = sinkSettings.allKCQLSettings.map(_.kcqlConfig)
+  val configs = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
     assert(c.getTarget.length > 0, "Add to your KCQL systax : INSERT INTO REDIS_KEY_NAME ")
     assert(c.getSource.trim.length > 0, "You need to define one (1) topic to source data. Add to your KCQL syntax: SELECT * FROM topicName")
@@ -46,7 +46,7 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter 
   def insert(records: Map[String, Seq[SinkRecord]]): Unit = {
     records.foreach({
       case (topic, sinkRecords: Seq[SinkRecord]) => {
-        val topicSettings: Set[RedisKCQLSetting] = sinkSettings.allKCQLSettings.filter(_.kcqlConfig.getSource == topic)
+        val topicSettings: Set[RedisKCQLSetting] = sinkSettings.kcqlSettings.filter(_.kcqlConfig.getSource == topic)
         if (topicSettings.isEmpty)
           logger.warn(s"Received a batch for topic $topic - but no KCQL supports it")
         //pass try to error handler and try

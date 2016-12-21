@@ -25,8 +25,8 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with RedisMockSupport
     val settings = RedisSinkSettings(config)
 
     settings.connectionInfo.password shouldBe Some("secret")
-    settings.allKCQLSettings.head.builder.isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
-    val route = settings.allKCQLSettings.head.kcqlConfig
+    settings.kcqlSettings.head.builder.isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
+    val route = settings.kcqlSettings.head.kcqlConfig
 
     route.isIncludeAllFields shouldBe true
     route.getSource shouldBe "topicA"
@@ -37,9 +37,9 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with RedisMockSupport
     val KCQL = s"INSERT INTO xx SELECT * FROM topicA PK lastName"
     val config = getMockRedisSinkConfig(password = true, KCQL = Option(KCQL))
     val settings = RedisSinkSettings(config)
-    val route = settings.allKCQLSettings.head.kcqlConfig
+    val route = settings.kcqlSettings.head.kcqlConfig
 
-    settings.allKCQLSettings.head.builder.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
+    settings.kcqlSettings.head.builder.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
 
     route.isIncludeAllFields shouldBe true
     route.getTarget shouldBe "xx"
@@ -49,7 +49,7 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with RedisMockSupport
   "work with KCQL : SELECT firstName, lastName as surname FROM topicA" in {
     val KCQL = s"INSERT INTO xx SELECT firstName, lastName as surname FROM topicA"
     val config = getMockRedisSinkConfig(password = true, KCQL = Option(KCQL))
-    val settings = RedisSinkSettings(config).allKCQLSettings.head
+    val settings = RedisSinkSettings(config).kcqlSettings.head
     val route = settings.kcqlConfig
     val fields = route.getFieldAlias.asScala.toList
 
@@ -68,10 +68,10 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with RedisMockSupport
     val KCQL = s"INSERT INTO xx SELECT firstName, lastName as surname FROM topicA PK surname"
     val config = getMockRedisSinkConfig(password = true, KCQL = Option(KCQL))
     val settings = RedisSinkSettings(config)
-    val route = settings.allKCQLSettings.head.kcqlConfig
+    val route = settings.kcqlSettings.head.kcqlConfig
     val fields = route.getFieldAlias.asScala.toList
 
-    settings.allKCQLSettings.head.builder.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
+    settings.kcqlSettings.head.builder.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
 
     route.isIncludeAllFields shouldBe false
     route.getSource shouldBe "topicA"
