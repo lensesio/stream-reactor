@@ -4,7 +4,7 @@ This Redis Kafka (sink) connector supports at the moment the modes
 
 * **[cache](#cache-mode)** mode
 * **[insert-sorted-set](#insert-sorted-set)** mode
-* **[multiple-sorted-sets](#multiple-sorted-sets-mode)** mode
+* **[multiple-sorted-sets](#multiple-sorted-sets)** mode
 
 ## Cache Mode
 
