@@ -54,7 +54,7 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
     * @return a List of configuration properties per worker.
     * */
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
-    val raw = configProps.get.get(CassandraConfigConstants.IMPORT_ROUTE_QUERY).split(";")
+    val raw = configProps.get.get(CassandraConfigConstants.SOURCE_KCQL_QUERY).split(";")
 
     val tables = raw.map({
       r => Config.parse(r).getSource

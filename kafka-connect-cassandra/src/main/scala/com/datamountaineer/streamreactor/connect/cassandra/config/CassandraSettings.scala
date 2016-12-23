@@ -25,6 +25,7 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 
 import scala.collection.JavaConversions._
+
 /**
   * Created by andrew@datamountaineer.com on 22/04/16. 
   * stream-reactor
@@ -32,36 +33,37 @@ import scala.collection.JavaConversions._
 
 trait CassandraSetting
 
-case class CassandraSourceSetting(routes : Config,
+case class CassandraSourceSetting(routes: Config,
                                   keySpace: String,
                                   bulkImportMode: Boolean = true,
                                   timestampColumn: Option[String] = None,
-                                  pollInterval : Long = CassandraConfigConstants.DEFAULT_POLL_INTERVAL,
+                                  pollInterval: Long = CassandraConfigConstants.DEFAULT_POLL_INTERVAL,
                                   config: AbstractConfig,
-                                  errorPolicy : ErrorPolicy = new ThrowErrorPolicy,
-                                  taskRetires : Int = CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT
-                               ) extends CassandraSetting
+                                  errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
+                                  taskRetires: Int = CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT
+                                 ) extends CassandraSetting
 
 case class CassandraSinkSetting(keySpace: String,
                                 routes: Set[Config],
-                                fields : Map[String, Map[String, String]],
-                                ignoreField : Map[String, Set[String]],
+                                fields: Map[String, Map[String, String]],
+                                ignoreField: Map[String, Set[String]],
                                 errorPolicy: ErrorPolicy,
+                                threadPoolSize: Int,
                                 taskRetries: Int = CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT) extends CassandraSetting
 
 /**
   * Cassandra Setting used for both Readers and writers
   * Holds the table, topic, import mode and timestamp columns
   * Import mode and timestamp columns are only applicable for the source.
-  * */
+  **/
 object CassandraSettings extends StrictLogging {
 
   def configureSource(config: AbstractConfig): Set[CassandraSourceSetting] = {
     //get keyspace
     val keySpace = config.getString(CassandraConfigConstants.KEY_SPACE)
     require(!keySpace.isEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
-    val raw = config.getString(CassandraConfigConstants.IMPORT_ROUTE_QUERY)
-    require(!raw.isEmpty, s"${CassandraConfigConstants.IMPORT_ROUTE_QUERY} is empty.")
+    val raw = config.getString(CassandraConfigConstants.SOURCE_KCQL_QUERY)
+    require(!raw.isEmpty, s"${CassandraConfigConstants.SOURCE_KCQL_QUERY} is empty.")
     val routes = raw.split(";").map(r => Config.parse(r)).toSet
     val pollInterval = config.getLong(CassandraConfigConstants.POLL_INTERVAL)
 
@@ -73,7 +75,7 @@ object CassandraSettings extends StrictLogging {
 
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(CassandraConfigConstants.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
-    val timestampCols = routes.map(r=>(r.getSource, r.getPrimaryKeys.toList)).toMap
+    val timestampCols = routes.map(r => (r.getSource, r.getPrimaryKeys.toList)).toMap
 
     routes.map({
       r => {
@@ -100,16 +102,23 @@ object CassandraSettings extends StrictLogging {
     //get keyspace
     val keySpace = config.getString(CassandraConfigConstants.KEY_SPACE)
     require(!keySpace.isEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
-    val raw = config.getString(CassandraConfigConstants.EXPORT_ROUTE_QUERY)
-    require(!raw.isEmpty, s"${CassandraConfigConstants.EXPORT_ROUTE_QUERY} is empty.")
+    val raw = config.getString(CassandraConfigConstants.SINK_KCQL)
+    require(!raw.isEmpty, s"${CassandraConfigConstants.SINK_KCQL} is empty.")
     val routes = raw.split(";").map(r => Config.parse(r)).toSet
     val retries = config.getInt(CassandraConfigConstants.NBR_OF_RETRIES)
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(CassandraConfigConstants.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
 
     val fields = routes.map(rm =>
-      (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField,fa.getAlias)).toMap)
+      (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)
     ).toMap
+
+
+    val threadPoolSize = {
+      val threads = config.getInt(CassandraConfigConstants.SINK_INSERT_THREAD_POOL)
+      if (threads <= 0) 4 * Runtime.getRuntime.availableProcessors()
+      else threads
+    }
 
     val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
     CassandraSinkSetting(keySpace, routes, fields, ignoreFields, errorPolicy, retries)

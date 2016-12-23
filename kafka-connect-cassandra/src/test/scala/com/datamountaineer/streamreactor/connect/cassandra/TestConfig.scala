@@ -76,7 +76,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
-      CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_ALL
+      CassandraConfigConstants.SINK_KCQL->QUERY_ALL
     ).asJava
   }
 
@@ -86,7 +86,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
-      CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_ALL
+      CassandraConfigConstants.SINK_KCQL->QUERY_ALL
     ).asJava
   }
 
@@ -96,7 +96,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
-      CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_SELECTION
+      CassandraConfigConstants.SINK_KCQL->QUERY_SELECTION
     ).asJava
   }
 
@@ -107,7 +107,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
-      CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_ALL,
+      CassandraConfigConstants.SINK_KCQL->QUERY_ALL,
       CassandraConfigConstants.ERROR_POLICY->ErrorPolicyEnum.RETRY.toString
     ).asJava
   }
@@ -118,7 +118,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
-      CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_ALL,
+      CassandraConfigConstants.SINK_KCQL->QUERY_ALL,
       CassandraConfigConstants.ERROR_POLICY->ErrorPolicyEnum.NOOP.toString
     ).asJava
   }
@@ -132,7 +132,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.SSL_ENABLED->"true",
       CassandraConfigConstants.TRUST_STORE_PATH->TRUST_STORE_PATH,
       CassandraConfigConstants.TRUST_STORE_PASSWD->TRUST_STORE_PASSWORD,
-      CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_ALL
+      CassandraConfigConstants.SINK_KCQL->QUERY_ALL
     ).asJava
   }
 
@@ -148,7 +148,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.USE_CLIENT_AUTH->"false",
       CassandraConfigConstants.KEY_STORE_PATH ->KEYSTORE_PATH,
       CassandraConfigConstants.KEY_STORE_PASSWD->KEYSTORE_PASSWORD,
-      CassandraConfigConstants.EXPORT_ROUTE_QUERY->QUERY_ALL
+      CassandraConfigConstants.SINK_KCQL->QUERY_ALL
     ).asJava
   }
 
@@ -169,7 +169,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
-      CassandraConfigConstants.IMPORT_ROUTE_QUERY ->IMPORT_QUERY_ALL,
+      CassandraConfigConstants.SOURCE_KCQL_QUERY ->IMPORT_QUERY_ALL,
       CassandraConfigConstants.ASSIGNED_TABLES->ASSIGNED_TABLES,
       CassandraConfigConstants.IMPORT_MODE->CassandraConfigConstants.BULK,
       CassandraConfigConstants.POLL_INTERVAL->"1000"
@@ -182,7 +182,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.KEY_SPACE-> CASSANDRA_KEYSPACE,
       CassandraConfigConstants.USERNAME->USERNAME,
       CassandraConfigConstants.PASSWD->PASSWD,
-      CassandraConfigConstants.IMPORT_ROUTE_QUERY->IMPORT_QUERY_INCR,
+      CassandraConfigConstants.SOURCE_KCQL_QUERY->IMPORT_QUERY_INCR,
       CassandraConfigConstants.ASSIGNED_TABLES->ASSIGNED_TABLES,
       CassandraConfigConstants.IMPORT_MODE->CassandraConfigConstants.INCREMENTAL,
       //CassandraConfigConstants.TABLE_TIMESTAMP_COL_MAP->TIMESTAMP_COL_MAP,
