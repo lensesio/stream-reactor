@@ -14,4 +14,6 @@ include 'kafka-socket-streamer',
         'kafka-connect-voltdb',
         'kafka-connect-blockchain',
         'kafka-connect-mongodb',
-        'kafka-connect-mqtt'
+        'kafka-connect-mqtt',
+        'kafka-connect-coap'
+
