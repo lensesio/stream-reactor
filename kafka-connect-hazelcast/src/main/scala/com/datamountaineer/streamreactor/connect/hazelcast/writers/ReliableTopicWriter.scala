@@ -9,7 +9,6 @@ import com.hazelcast.core.{HazelcastInstance, ITopic}
 case class ReliableTopicWriter(client: HazelcastInstance, name: String) extends Writer {
   val reliableTopicWriter = client.getReliableTopic(name).asInstanceOf[ITopic[Object]]
 
-  override def write(record: Array[Byte]): Unit = {
-      reliableTopicWriter.publish(record)
-  }
+  override def write(record: Array[Byte]): Unit = reliableTopicWriter.publish(record)
+
 }

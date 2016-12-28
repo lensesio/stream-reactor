@@ -67,6 +67,7 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
 
     //setup the config for each task and set assigned tables
     groups
+      .filterNot(g => g.isEmpty)
       .map(g=> {
         val taskConfigs = new java.util.HashMap[String,String]
         taskConfigs.put(CassandraConfigConstants.ASSIGNED_TABLES, g.mkString(","))

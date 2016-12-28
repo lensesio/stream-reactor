@@ -45,3 +45,5 @@ target/
 /moquette_store.mapdb.t
 /moquette_store.mapdb.p
 /var/
+/kafka-connect-coap/Californium.properties
+Californium.properties

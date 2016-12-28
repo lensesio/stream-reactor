@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.rethink.source
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSourceConfig}
+import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkSourceConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -27,7 +27,6 @@ import org.apache.kafka.connect.util.ConnectorUtils
 
 import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
-import scala.collection.mutable
 
 /**
   * Created by andrew@datamountaineer.com on 22/09/16. 
@@ -59,6 +58,7 @@ class ReThinkSourceConnector extends SourceConnector with StrictLogging {
 
     //split up the kcql statement based on the number of tasks.
     groups
+      .filterNot(g => g.isEmpty)
       .map(g => {
         val taskConfigs = new java.util.HashMap[String,String]
         taskConfigs.putAll(configProps)
