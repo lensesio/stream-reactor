@@ -178,11 +178,12 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
       //throw and let error policy handle it, don't want to throw RetriableException.
       //May want to die if error policy is Throw
       val responses = session.flush().asScala
-      responses
-        .filter(r => (r == null) || r.hasRowError)
-        .foreach(e => {
-          throw new Throwable(s"Failed to flush one or more changes: ${e.getRowError.toString}")
-        })
+      if (responses.nonEmpty)
+        responses
+          .filter(r => (r == null) || r.hasRowError)
+          .foreach(e => {
+            throw new Throwable(s"Failed to flush one or more changes: ${e.getRowError.toString}")
+          })
     }
   }
 }
