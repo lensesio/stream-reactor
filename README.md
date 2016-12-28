@@ -50,7 +50,7 @@ Supports limited SQL statements to stream and select from Kafka topics in real t
 *   Added start scripts.
 *   Added Kafka Connect and Schema Registry CLI.
 *   Kafka Connect CLI now supports pause/restart/resume; checking connectors on the classpath and validating configuration of connectors.
-*   Support for ``Struct``, ``Schema.STRING`` and ``Json`` with schema in the ReThinkDB, InfluxDB and MongoDB sinks.
+*   Support for ``Struct``, ``Schema.STRING`` and ``Json`` with schema in the Cassandra, ReThinkDB, InfluxDB and MongoDB sinks.
 *   Rename ``export.query.route`` to ``sink.kcql``.
 *   Rename ``import.query.route`` to ``source.kcql``.
 *   Upgrade to KCQL 0.9.4 - Add support for `STOREAS` so specify target sink types, e.g. Redis Sorted Sets, Hazelcast map, queues, ringbuffers.
