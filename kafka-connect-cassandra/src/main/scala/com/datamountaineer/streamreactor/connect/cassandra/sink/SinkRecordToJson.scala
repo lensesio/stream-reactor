@@ -19,7 +19,9 @@ object SinkRecordToJson extends ConverterUtil {
       //try to take it as string
       value match {
         case map: java.util.Map[_, _] =>
-          val extracted = convertSchemalessJson(record, settings.fields(record.topic()), settings.ignoreField(record.topic()))
+          val extracted = convertSchemalessJson(record,
+            settings.fields.getOrElse(record.topic(), Map.empty),
+            settings.ignoreField.getOrElse(record.topic(), Set.empty))
             .asInstanceOf[java.util.Map[String, Any]]
           //not ideal; but the implementation is hashmap anyway
           mapper.writeValueAsString(extracted)
@@ -29,10 +31,14 @@ object SinkRecordToJson extends ConverterUtil {
     } else {
       schema.`type`() match {
         case Schema.Type.STRING =>
-          val extracted = convertStringSchemaAndJson(record, settings.fields(record.topic()), settings.ignoreField(record.topic()))
+          val extracted = convertStringSchemaAndJson(record,
+            settings.fields.getOrElse(record.topic(), Map.empty),
+            settings.ignoreField.getOrElse(record.topic(), Set.empty))
           compact(render(extracted))
         case Schema.Type.STRUCT =>
-          val extracted = convert(record, settings.fields(record.topic()), settings.ignoreField(record.topic()))
+          val extracted = convert(record,
+            settings.fields.getOrElse(record.topic(), Map.empty),
+            settings.ignoreField.getOrElse(record.topic(), Set.empty))
 
           simpleJsonConverter.fromConnectData(extracted.valueSchema(), extracted.value()).toString
 
