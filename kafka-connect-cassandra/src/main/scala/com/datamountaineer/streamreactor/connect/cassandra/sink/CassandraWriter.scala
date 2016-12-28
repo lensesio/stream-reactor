@@ -30,7 +30,7 @@ import scala.util.{Failure, Success, Try}
 object CassandraWriter extends StrictLogging {
   def apply(connectorConfig: CassandraConfigSink, context: SinkTaskContext) : CassandraJsonWriter = {
 
-    val conn = Try(CassandraConnection(connectorConfig)) match {
+    val connection = Try(CassandraConnection(connectorConfig)) match {
       case Success(s) => s
       case Failure(f) => throw new ConnectException(s"Couldn't connect to Cassandra.", f)
     }
@@ -41,6 +41,6 @@ object CassandraWriter extends StrictLogging {
       context.timeout(connectorConfig.getString(CassandraConfigConstants.ERROR_RETRY_INTERVAL).toLong)
     }
 
-    new CassandraJsonWriter(cassCon = conn, settings = settings)
+    new CassandraJsonWriter(connection, settings)
   }
 }

@@ -37,7 +37,7 @@ import scala.util.{Failure, Success, Try}
   * Cassandra Json writer for Kafka connect
   * Writes a list of Kafka connect sink records to Cassandra using the JSON support.
   */
-class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkSetting)
+class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSinkSetting)
   extends StrictLogging with ConverterUtil with ErrorHandler {
 
   logger.info("Initialising Cassandra writer.")
@@ -54,7 +54,7 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     * Get a connection to cassandra based on the config
     **/
   private def getSession: Option[Session] = {
-    val t = Try(cassCon.cluster.connect(settings.keySpace))
+    val t = Try(connection.cluster.connect(settings.keySpace))
     handleTry[Session](t)
   }
 
@@ -112,8 +112,7 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     * @return boolean indication successful write.
     **/
   private def insert(records: Seq[SinkRecord]) = {
-    val processors = Runtime.getRuntime.availableProcessors()
-    val executor = Executors.newFixedThreadPool(2 * processors)
+    val executor = Executors.newFixedThreadPool(settings.threadPoolSize)
     try {
 
       //This is a conscious decision to use a thread pool here in order to have more control. As we create multiple
@@ -124,7 +123,7 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
 
         executor.submit {
           val preparedStatement: PreparedStatement = preparedCache(record.topic())
-          val json = toJson(record)
+          val json = SinkRecordToJson(record)(settings)
 
           val bound = preparedStatement.bind(json)
           session.execute(bound)
@@ -145,18 +144,6 @@ class CassandraJsonWriter(cassCon: CassandraConnection, settings: CassandraSinkS
     }
   }
 
-  /**
-    * Convert sink records to json
-    *
-    * @param record A sink records to convert.
-    **/
-  private def toJson(record: SinkRecord): String = {
-    val extracted = convert(record,
-      settings.fields(record.topic()),
-      settings.ignoreField(record.topic()))
-
-    convertValueToJson(extracted).toString
-  }
 
   /**
     * Closed down the driver session and cluster.

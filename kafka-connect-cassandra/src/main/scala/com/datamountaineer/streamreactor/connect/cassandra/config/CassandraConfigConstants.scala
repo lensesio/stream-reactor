@@ -23,7 +23,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 
 /**
   * Holds the constants used in the config.
-  * */
+  **/
 
 object CassandraConfigConstants {
   val USERNAME_PASSWORD = "username_password"
@@ -37,52 +37,52 @@ object CassandraConfigConstants {
   val POLL_INTERVAL_DOC = "The polling interval between queries against tables for bulk mode."
 
   val KEY_SPACE = "connect.cassandra.key.space"
-  val KEY_SPACE_DOC ="Keyspace to write to."
+  val KEY_SPACE_DOC = "Keyspace to write to."
 
   val CONTACT_POINTS = "connect.cassandra.contact.points"
-  val CONTACT_POINT_DOC ="Initial contact point host for Cassandra including port."
+  val CONTACT_POINT_DOC = "Initial contact point host for Cassandra including port."
   val CONTACT_POINT_DEFAULT = "localhost"
 
   val PORT = "connect.cassandra.port"
   val PORT_DEFAULT = "9042"
-  val PORT_DOC ="Cassandra native port."
+  val PORT_DOC = "Cassandra native port."
 
   val INSERT_JSON_PREFIX = "INSERT INTO "
   val INSERT_JSON_POSTFIX = " JSON '?';"
 
   val USERNAME = "connect.cassandra.username"
-  val USERNAME_DOC ="Username to connect to Cassandra with."
+  val USERNAME_DOC = "Username to connect to Cassandra with."
   val USERNAME_DEFAULT = "cassandra.cassandra"
 
   val PASSWD = "connect.cassandra.password"
-  val PASSWD_DOC ="Password for the username to connect to Cassandra with."
+  val PASSWD_DOC = "Password for the username to connect to Cassandra with."
   val PASSWD_DEFAULT = "cassandra"
 
   val SSL_ENABLED = "connect.cassandra.ssl.enabled"
-  val SSL_ENABLED_DOC ="Secure Cassandra driver connection via SSL."
+  val SSL_ENABLED_DOC = "Secure Cassandra driver connection via SSL."
   val SSL_ENABLED_DEFAULT = "false"
 
   val TRUST_STORE_PATH = "connect.cassandra.trust.store.path"
-  val TRUST_STORE_PATH_DOC ="Path to the client Trust store."
+  val TRUST_STORE_PATH_DOC = "Path to the client Trust store."
 
   val TRUST_STORE_PASSWD = "connect.cassandra.trust.store.password"
-  val TRUST_STORE_PASSWD_DOC ="Password for the client Trust store."
+  val TRUST_STORE_PASSWD_DOC = "Password for the client Trust store."
 
   val USE_CLIENT_AUTH = "connect.cassandra.ssl.client.cert.auth"
   val USE_CLIENT_AUTH_DEFAULT = "false"
-  val USE_CLIENT_AUTH_DOC ="Enable client certification authentication by Cassandra. Requires KeyStore options to be set."
+  val USE_CLIENT_AUTH_DOC = "Enable client certification authentication by Cassandra. Requires KeyStore options to be set."
 
   val KEY_STORE_PATH = "connect.cassandra.key.store.path"
-  val KEY_STORE_PATH_DOC ="Path to the client Key store."
+  val KEY_STORE_PATH_DOC = "Path to the client Key store."
   val KEY_STORE_PASSWD = "connect.cassandra.key.store.password"
-  val KEY_STORE_PASSWD_DOC ="Password for the client Key Store"
+  val KEY_STORE_PASSWD_DOC = "Password for the client Key Store"
 
   //source
   val IMPORT_MODE = "connect.cassandra.import.mode"
-  val IMPORT_MODE_DOC =s"Import mode for the tables. Either $BULK or $INCREMENTAL"
+  val IMPORT_MODE_DOC = s"Import mode for the tables. Either $BULK or $INCREMENTAL"
 
   val BATCH_SIZE = "connect.cassandra.source.task.batch.size"
-  val BATCH_SIZE_DOC ="The number of records the source task should drain from the reader queue."
+  val BATCH_SIZE_DOC = "The number of records the source task should drain from the reader queue."
   val BATCH_SIZE_DEFAULT = 100
 
   val READER_BUFFER_SIZE = "connect.cassandra.source.task.buffer.size"
@@ -101,11 +101,15 @@ object CassandraConfigConstants {
   val SELECT_OFFSET_COLUMN = "___kafka_connect_offset_col"
 
   val ERROR_POLICY = "connect.cassandra.error.policy"
-  val ERROR_POLICY_DOC = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
-    "There are two available options: \n" + "NOOP - the error is swallowed \n" +
-    "THROW - the error is allowed to propagate. \n" +
-    "RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on \n" +
-    "The error will be logged automatically"
+  val ERROR_POLICY_DOC =
+    """
+      |Specifies the action to be taken if an error occurs while inserting the data.
+      | There are three available options:
+      |    NOOP - the error is swallowed
+      |    THROW - the error is allowed to propagate.
+      |    RETRY - The exception causes the Connect framework to retry the message. The number of retries is set by connect.cassandra.max.retires.
+      |All errors will be logged automatically, even if the code swallows them.
+    """.stripMargin
   val ERROR_POLICY_DEFAULT = "THROW"
 
   val ERROR_RETRY_INTERVAL = "connect.cassandra.retry.interval"
@@ -116,9 +120,18 @@ object CassandraConfigConstants {
   val NBR_OF_RETIRES_DEFAULT = 20
 
 
-  val EXPORT_ROUTE_QUERY = "connect.cassandra.sink.kcql"
-  val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
+  val SINK_KCQL = "connect.cassandra.sink.kcql"
+  val SINK_KCQL_DOC = "KCQL expression describing field selection and routes."
 
-  val IMPORT_ROUTE_QUERY = "connect.cassandra.source.kcql"
-  val IMPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
+  val SOURCE_KCQL_QUERY = "connect.cassandra.source.kcql"
+  val SOURCE_KCQL_DOC = "KCQL expression describing field selection and routes."
+
+  val SINK_INSERT_THREAD_POOL = "connect.cassandra.sink.threadpool.size"
+  val SINK_INSERT_THREAD_POOL_DOC =
+    """
+      |The sink inserts all the data concurrently. To fail fast in case of an error, the sink has its own thread pool.
+      |Set the value to zero and the threadpool will default to 4* NO_OF_CPUs. Set a value greater than 0
+      |and that would be the size of this threadpool.""".stripMargin
+  val SINK_INSERT_THREAD_POOL_DISPLAY = "Insert thread pool size"
+  val SINK_INSERT_THREAD_POOL_DEFAULT = 0
 }
