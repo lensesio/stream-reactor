@@ -82,3 +82,10 @@ You can also use the gradle wrapper
 ```
 ./gradlew shadowJar
 ```
+
+To view dependency trees
+
+```
+gradle dependencies # or
+gradle :kafka-connect-cassandra:dependencies
+```
