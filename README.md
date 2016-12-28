@@ -68,7 +68,7 @@ FROM   $TOPIC_NAME
        [ PARTITIONBY cola[,colb] ]
        [ DISTRIBUTEBY cola[,colb] ]
        [ CLUSTERBY cola[,colb] ]
-       [ WITHTIMESTAMP cola|sys_current ]
+       [ WITHTIMESTAMP cola|sys_time() ]
        [ STOREAS $YOUR_TYPE([key=value, .....]) ]
        [ WITHFORMAT TEXT|AVRO|JSON|BINARY|OBJECT|MAP ]
 ```
