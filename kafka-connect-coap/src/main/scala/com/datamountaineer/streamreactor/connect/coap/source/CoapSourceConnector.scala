@@ -30,6 +30,7 @@ class CoapSourceConnector extends SourceConnector {
 
     //split up the kcql statement based on the number of tasks.
     groups
+      .filterNot(g => g.isEmpty)
       .map(g => {
         val taskConfigs = new java.util.HashMap[String,String]
         taskConfigs.putAll(configProps)

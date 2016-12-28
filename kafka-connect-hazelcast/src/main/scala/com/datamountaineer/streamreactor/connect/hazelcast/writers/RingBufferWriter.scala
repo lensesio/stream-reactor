@@ -10,7 +10,5 @@ import com.hazelcast.ringbuffer.Ringbuffer
 case class RingBufferWriter(client: HazelcastInstance, name: String) extends Writer {
   val ringBufferWriter = client.getRingbuffer(name).asInstanceOf[Ringbuffer[Object]]
 
-  override def write(record: Array[Byte]): Unit = {
-    ringBufferWriter.add(record)
-  }
+  override def write(record: Array[Byte]): Unit = ringBufferWriter.add(record)
 }
