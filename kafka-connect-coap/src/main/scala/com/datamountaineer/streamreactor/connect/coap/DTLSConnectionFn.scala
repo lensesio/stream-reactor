@@ -26,17 +26,14 @@ object DTLSConnectionFn {
     trustStore.load(inTrust, setting.trustStorePass.value().toCharArray())
     inTrust.close()
 
-//    val certificates: Array[Certificate] = setting.certs.map(c => trustStore.getCertificate(c))
-//    val privateKey = keyStore.getKey(setting.chainKey, setting.keyStorePass.value().toCharArray).asInstanceOf[PrivateKey]
-//    val certChain = keyStore.getCertificateChain("client")
-    val trustedCertificates: Array[Certificate] = new Array[Certificate](1)
-    trustedCertificates(0) = trustStore.getCertificate("root")
-    val privateKey = keyStore.getKey("client", setting.keyStorePass.value().toCharArray()).asInstanceOf[PrivateKey]
+    val certificates: Array[Certificate] = setting.certs.map(c => trustStore.getCertificate(c))
+    val privateKey = keyStore.getKey(setting.chainKey, setting.keyStorePass.value().toCharArray).asInstanceOf[PrivateKey]
+    val certChain = keyStore.getCertificateChain(setting.chainKey)
 
     val builder = new DtlsConnectorConfig.Builder(new InetSocketAddress(0))
     //builder.setPskStore(new StaticPskStore("Client_identity", "secretPSK".getBytes()))
-    builder.setIdentity(privateKey, keyStore.getCertificateChain("client"), true)
-    builder.setTrustStore(trustedCertificates)
+    builder.setIdentity(privateKey, certChain, true)
+    builder.setTrustStore(certificates)
     builder.build()
   }
 }
