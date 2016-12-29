@@ -32,8 +32,8 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   val URI_SECURE = s"coaps://localhost:${PORT_SECURE}"
   val KEYSTORE_PASS = "endPass"
   val TRUSTSTORE_PASS = "rootPass"
-  val KEYSTORE_PATH =  getClass.getResource("/certs/keyStore.jks").getPath
-  val TRUSTSTORE_PATH = getClass.getResource("/certs/truststore.jks").getPath
+  val KEYSTORE_PATH =  getClass.getResource("/certs2/keyStore.jks").getPath
+  val TRUSTSTORE_PATH = getClass.getResource("/certs2/trustStore.jks").getPath
 
   protected val PARTITION: Int = 12
   protected val TOPIC_PARTITION: TopicPartition = new TopicPartition(TOPIC, PARTITION)
@@ -53,7 +53,8 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       CoapSourceConfig.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
       CoapSourceConfig.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
       CoapSourceConfig.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
-      CoapSourceConfig.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH
+      CoapSourceConfig.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
+      CoapSourceConfig.COAP_TRUST_CERTS->"root"
     ).asJava
   }
 

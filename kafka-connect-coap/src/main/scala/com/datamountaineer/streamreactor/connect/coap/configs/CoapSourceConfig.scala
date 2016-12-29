@@ -43,9 +43,9 @@ object CoapSourceConfig {
   val COAP_KEY_STORE_PATH_DOC = "The path to the truststore."
   val COAP_KEY_STORE_PATH_DEFAULT = ""
 
-  val COAP_KEY_STORE_CHAIN_KEY = "connect.coap.source.chain.key"
-  val COAP_KEY_STORE_CHAIN_DOC = "The key to use to get the certificate chain and private key for the keystore."
-  val COAP_KEY_STORE_CHAIN_DEFAULT = "client"
+  val COAP_CERT_CHAIN_KEY = "connect.coap.source.cert.chain.key"
+  val COAP_CERT_CHAIN_KEY_DOC = "The key to use to get the certificate chain."
+  val COAP_CERT_CHAIN_KEY_DEFUALT = "client"
 
   val config = new ConfigDef()
     .define(COAP_KCQL, Type.STRING, Importance.HIGH, COAP_KCQL_DOC,
@@ -63,8 +63,8 @@ object CoapSourceConfig {
       "Connection", 6, ConfigDef.Width.LONG, COAP_KEY_STORE_PATH)
     .define(COAP_KEY_STORE_PASS, Type.PASSWORD, COAP_KEY_STORE_PASS_DEFAULT, Importance.LOW, COAP_KEY_STORE_PASS_DOC,
       "Connection", 7, ConfigDef.Width.LONG, COAP_KEY_STORE_PASS)
-    .define(COAP_KEY_STORE_CHAIN_KEY, Type.STRING, COAP_KEY_STORE_CHAIN_DEFAULT, Importance.LOW, COAP_KEY_STORE_CHAIN_DOC,
-      "Connection", 8, ConfigDef.Width.LONG, COAP_KEY_STORE_CHAIN_KEY)
+    .define(COAP_CERT_CHAIN_KEY, Type.STRING, COAP_CERT_CHAIN_KEY_DEFUALT, Importance.LOW, COAP_CERT_CHAIN_KEY_DOC,
+      "Connection", 8, ConfigDef.Width.LONG, COAP_CERT_CHAIN_KEY)
 
 }
 

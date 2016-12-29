@@ -14,6 +14,7 @@ import org.eclipse.californium.core.coap.Request
 import org.eclipse.californium.core.{CoapClient, CoapHandler, CoapResponse}
 import org.eclipse.californium.core.network.CoapEndpoint
 import org.eclipse.californium.core.network.config.NetworkConfig
+import org.eclipse.californium.scandium.DTLSConnector
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -31,8 +32,8 @@ case object Observing
 case object Discover
 
 object CoapReader {
-  def apply(settings: CoapSourceSettings): Map[String, Props] = {
-    settings.settings.map(s => (s.kcql.getSource, Props(new CoapReader(s)))).toMap
+  def apply(settings: Set[CoapSourceSetting]): Map[String, Props] = {
+    settings.map(s => (s.kcql.getSource, Props(new CoapReader(s)))).toMap
   }
 }
 
@@ -44,9 +45,9 @@ case class CoapReader(setting: CoapSourceSetting) extends Actor with StrictLoggi
   var observing = false
 
   //Use DTLS is key stores defined
-  if (setting.keyStore.isDefined) {
+  if (setting.keyStoreLoc.nonEmpty) {
     logger.info("Creating secure client")
-    client.setEndpoint(new CoapEndpoint(DTLSConnectionFn(setting), NetworkConfig.getStandard()))
+    client.setEndpoint(new CoapEndpoint(new DTLSConnector( DTLSConnectionFn(setting)), NetworkConfig.getStandard()))
   }
 
   //discover and check the requested resources

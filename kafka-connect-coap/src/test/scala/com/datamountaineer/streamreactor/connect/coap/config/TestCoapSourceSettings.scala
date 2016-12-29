@@ -10,28 +10,28 @@ import org.scalatest.WordSpec
   * stream-reactor
   */
 class TestCoapSourceSettings extends WordSpec with TestBase {
-  "should create CoapSettings for an isecure connection" in {
+  "should create CoapSettings for an insecure connection" in {
     val props = getPropsUnsecure
     val config = CoapSourceConfig(props)
     val settings = CoapSourceSettings(config)
-    val setting = settings.settings.head
-    setting.kcql.getSource shouldBe (RESOURCE_INSECURE)
-    setting.kcql.getTarget shouldBe (TOPIC)
-    setting.uri shouldBe (URI_INSECURE)
-    setting.trustStore.isDefined shouldBe (false)
-    setting.keyStore.isDefined shouldBe (false)
+    val setting = settings.head
+    setting.kcql.getSource shouldBe RESOURCE_INSECURE
+    setting.kcql.getTarget shouldBe TOPIC
+    setting.uri shouldBe URI_INSECURE
+    setting.keyStoreLoc.nonEmpty shouldBe false
+    setting.trustStoreLoc.nonEmpty shouldBe false
   }
 
   "should create CoapSettings for an secure connection" in {
     val props = getPropsSecure
     val config = CoapSourceConfig(props)
     val settings = CoapSourceSettings(config)
-    val setting = settings.settings.head
-    setting.kcql.getSource shouldBe (RESOURCE_SECURE)
-    setting.kcql.getTarget shouldBe (TOPIC)
-    setting.uri shouldBe (URI_SECURE)
-    setting.trustStore.isDefined shouldBe (true)
-    setting.keyStore.isDefined shouldBe (true)
+    val setting = settings.head
+    setting.kcql.getSource shouldBe RESOURCE_SECURE
+    setting.kcql.getTarget shouldBe TOPIC
+    setting.uri shouldBe URI_SECURE
+    setting.keyStoreLoc.nonEmpty shouldBe true
+    setting.trustStoreLoc.nonEmpty shouldBe true
   }
 
   "should fail to create CoapSettings for an secure connection with key wrong path" in {

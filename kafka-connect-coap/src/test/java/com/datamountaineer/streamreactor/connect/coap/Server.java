@@ -7,23 +7,17 @@ import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 
 import org.eclipse.californium.core.CaliforniumLogger;
-import org.eclipse.californium.core.CoapResource;
 import org.eclipse.californium.core.CoapServer;
-import org.eclipse.californium.core.coap.CoAP.ResponseCode;
 import org.eclipse.californium.core.network.CoapEndpoint;
 import org.eclipse.californium.core.network.Endpoint;
 import org.eclipse.californium.core.network.config.NetworkConfig;
 import org.eclipse.californium.core.network.interceptors.MessageTracer;
-import org.eclipse.californium.core.server.resources.CoapExchange;
 import org.eclipse.californium.scandium.DTLSConnector;
 import org.eclipse.californium.scandium.ScandiumLogger;
 import org.eclipse.californium.scandium.config.DtlsConnectorConfig;
-import org.eclipse.californium.scandium.dtls.cipher.CipherSuite;
-import org.eclipse.californium.scandium.dtls.pskstore.InMemoryPskStore;
 
 
 public class Server {
@@ -45,8 +39,8 @@ public class Server {
 
   private static final String TRUST_STORE_PASSWORD = "rootPass";
   private final static String KEY_STORE_PASSWORD = "endPass";
-  private static final String KEY_STORE_LOCATION = "certs/keyStore.jks";
-  private static final String TRUST_STORE_LOCATION = "certs/trustStore.jks";
+  private static final String KEY_STORE_LOCATION = "certs2/keyStore.jks";
+  private static final String TRUST_STORE_LOCATION = "certs2/trustStore.jks";
 
   public Server() {
 
@@ -56,8 +50,8 @@ public class Server {
 
     try {
       // Pre-shared secrets
-//      InMemoryPskStore pskStore = new InMemoryPskStore();
-//      pskStore.setKey("password", "sesame".getBytes()); // from ETSI Plugtest test spec
+      //InMemoryPskStore pskStore = new InMemoryPskStore();
+      //pskStore.setKey("Client_identity", "secretPSK".getBytes()); // from ETSI Plugtest test spec
 
       // load the trust store
       KeyStore trustStore = KeyStore.getInstance("JKS");
@@ -74,8 +68,8 @@ public class Server {
       keyStore.load(in, KEY_STORE_PASSWORD.toCharArray());
 
       DtlsConnectorConfig.Builder config = new DtlsConnectorConfig.Builder(new InetSocketAddress(DTLS_PORT));
-//      config.setSupportedCipherSuites(new CipherSuite[]{CipherSuite.TLS_PSK_WITH_AES_128_CCM_8,
-//          CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8});
+      //config.setSupportedCipherSuites(new CipherSuite[]{CipherSuite.TLS_PSK_WITH_AES_128_CCM_8,
+      //    CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8});
       //config.setPskStore(pskStore);
       config.setIdentity((PrivateKey)keyStore.getKey("server", KEY_STORE_PASSWORD.toCharArray()),
           keyStore.getCertificateChain("server"), true);
@@ -97,18 +91,23 @@ public class Server {
     for (Endpoint ep : server.getEndpoints()) {
       ep.addInterceptor(new MessageTracer());
     }
-
-    System.out.println("Secure CoAP server powered by Scandium (Sc) is listening on port " + DTLS_PORT);
-    System.out.println("UnSecure CoAP server powered by Scandium (Sc) is listening on port " + PORT);
   }
 
 
   public void start() {
+
     server.start();
+    System.out.println("Secure CoAP server powered by Scandium (Sc) is listening on port " + DTLS_PORT);
+    System.out.println("UnSecure CoAP server powered by Scandium (Sc) is listening on port " + PORT);
   }
 
   public void stop() {
     server.stop();
+  }
+
+  public static void main(String[] args) {
+    Server server = new Server();
+    server.start();
   }
 
 }

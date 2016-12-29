@@ -1,11 +1,14 @@
 package com.datamountaineer.streamreactor.connect.coap
 
+import java.io.FileInputStream
 import java.net.InetSocketAddress
 
 import com.datamountaineer.streamreactor.connect.coap.configs.CoapSourceSetting
 import org.eclipse.californium.scandium.DTLSConnector
 import org.eclipse.californium.scandium.config.DtlsConnectorConfig
 import java.net.URI
+import java.security.cert.Certificate
+import java.security.{KeyStore, PrivateKey}
 
 /**
   * Created by andrew@datamountaineer.com on 27/12/2016. 
@@ -13,15 +16,27 @@ import java.net.URI
   */
 object DTLSConnectionFn {
   def apply(setting: CoapSourceSetting) = {
-    val uri = new URI(setting.uri)
-    val address = new InetSocketAddress(uri.getHost, uri.getPort)
-    val builder = new DtlsConnectorConfig.Builder(address)
-    builder.setClientOnly()
+    val keyStore = KeyStore.getInstance("JKS")
+    val inKey = new FileInputStream(setting.keyStoreLoc)
+    keyStore.load(inKey, setting.keyStorePass.value().toCharArray())
+    inKey.close()
+
+    val trustStore = KeyStore.getInstance("JKS")
+    val inTrust = new FileInputStream(setting.trustStoreLoc)
+    trustStore.load(inTrust, setting.trustStorePass.value().toCharArray())
+    inTrust.close()
+
+//    val certificates: Array[Certificate] = setting.certs.map(c => trustStore.getCertificate(c))
+//    val privateKey = keyStore.getKey(setting.chainKey, setting.keyStorePass.value().toCharArray).asInstanceOf[PrivateKey]
+//    val certChain = keyStore.getCertificateChain("client")
+    val trustedCertificates: Array[Certificate] = new Array[Certificate](1)
+    trustedCertificates(0) = trustStore.getCertificate("root")
+    val privateKey = keyStore.getKey("client", setting.keyStorePass.value().toCharArray()).asInstanceOf[PrivateKey]
+
+    val builder = new DtlsConnectorConfig.Builder(new InetSocketAddress(0))
     //builder.setPskStore(new StaticPskStore("Client_identity", "secretPSK".getBytes()))
-    builder.setIdentity(setting.keyStore.get.privateKey,
-                        setting.keyStore.get.store.getCertificateChain(setting.chainKey),
-                        true)
-    builder.setTrustStore(setting.trustStore.get.certs)
-    new DTLSConnector(builder.build())
+    builder.setIdentity(privateKey, keyStore.getCertificateChain("client"), true)
+    builder.setTrustStore(trustedCertificates)
+    builder.build()
   }
 }
