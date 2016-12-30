@@ -25,9 +25,11 @@ import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
 import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkSettings, HazelCastStoreAsType, TargetType}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.fasterxml.jackson.databind.JsonNode
 import com.hazelcast.core.HazelcastInstance
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.avro.Schema
+import org.apache.avro.generic.GenericRecord
 import org.apache.avro.io.EncoderFactory
 import org.apache.avro.reflect.ReflectDatumWriter
 import org.apache.kafka.connect.errors.ConnectException
@@ -55,7 +57,7 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
   initialize(settings.maxRetries, settings.errorPolicy)
   val writers: Map[String, Writer] = getWriters(settings.topicObject)
 
-  def getWriters(tp: Map[String, HazelCastStoreAsType]) : Map[String, Writer] = {
+  def getWriters(tp: Map[String, HazelCastStoreAsType]): Map[String, Writer] = {
     tp.map({
       case (t, o) =>
         val target = o.targetType match {
@@ -70,7 +72,7 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
     * Write records to Hazelcast
     *
     * @param records The sink records to write.
-    * */
+    **/
   def write(records: Set[SinkRecord]): Unit = {
     if (records.isEmpty) {
       logger.debug("No records received.")
@@ -92,7 +94,7 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
     *
     * @param record The sinkrecord to convert
     * @return an array of bytes
-    * */
+    **/
   private def convert(record: SinkRecord): Array[Byte] = {
     val storedAs = settings.format(record.topic())
     storedAs match {
@@ -107,10 +109,10 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
   /**
     * Serialize an object to a avro encoded byte array
     *
-    * @param datum The object to serialize
+    * @param datum  The object to serialize
     * @param schema The avro schema for the object
     * @return Avro encoded byte array.
-    * */
+    **/
   private def serializeAvro(datum: Object, schema: Schema): Array[Byte] = {
     val out = new ByteArrayOutputStream()
     val writer = new ReflectDatumWriter[Object](schema)
@@ -126,7 +128,7 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
     *
     * @param record A sink records to convert.
     **/
-  private def toJson(record: SinkRecord) = {
+  private def toJson(record: SinkRecord): JsonNode = {
     val extracted = convert(record, settings.fieldsMap(record.topic()), settings.ignoreFields(record.topic()))
     convertValueToJson(extracted)
   }
@@ -136,7 +138,7 @@ class HazelCastWriter(client: HazelcastInstance, settings: HazelCastSinkSettings
     *
     * @param record A sink records to convert.
     **/
-  private def toAvro(record: SinkRecord) = {
+  private def toAvro(record: SinkRecord): GenericRecord = {
     val extracted = convert(record, settings.fieldsMap(record.topic()), settings.ignoreFields(record.topic()))
     convertValueToGenericAvro(extracted)
   }
