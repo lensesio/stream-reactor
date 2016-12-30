@@ -32,11 +32,11 @@ import scala.collection.JavaConversions._
   * stream-reactor
   */
 class KuduSinkTask extends SinkTask with StrictLogging {
-  private var writer : Option[KuduWriter] = None
+  private var writer: Option[KuduWriter] = None
 
   /**
     * Parse the configurations and setup the writer
-    * */
+    **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(
       """
@@ -69,7 +69,7 @@ class KuduSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Pass the SinkRecords to the writer for Writing
-    * */
+    **/
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     writer.foreach(w => w.write(records.toSet))
@@ -77,7 +77,7 @@ class KuduSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Clean up writer
-    * */
+    **/
   override def stop(): Unit = {
     logger.info("Stopping Kudu sink.")
     writer.foreach(w => w.close())
