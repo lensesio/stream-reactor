@@ -31,4 +31,6 @@ include 'kafka-connect-bloomberg',
         'kafka-connect-mongodb',
         'kafka-connect-mqtt',
         'kafka-connect-coap',
-        'kafka-connect-ftp'
+        'kafka-connect-ftp',
+        'kafka-connect-azure-documentdb'
+
