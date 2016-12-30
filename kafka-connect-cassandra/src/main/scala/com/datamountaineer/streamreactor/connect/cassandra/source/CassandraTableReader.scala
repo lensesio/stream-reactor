@@ -62,7 +62,7 @@ class CassandraTableReader(private val session: Session,
   private val partition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
   private val routeMapping = setting.routes
   private val fields = routeMapping.getFieldAlias.map(fa => (fa.getField,"'" + fa.getAlias + "'")).toMap
-  private val schemaName = s"$keySpace-$table"
+  private val schemaName = s"$keySpace.$table".replace('-', '.')
 
   /**
     * Build a map of table to offset.
