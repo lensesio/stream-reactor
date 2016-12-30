@@ -49,6 +49,7 @@ Supports limited SQL statements to stream and select from Kafka topics in real t
 
 **0.2.3**
 
+*   Added CoAP Source and Sink
 *   Added MongoDB Sink.
 *   Added MQTT Source.
 *   Hazelcast support for ring buffers.
