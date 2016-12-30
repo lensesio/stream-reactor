@@ -1,26 +1,28 @@
-/**
-  * Copyright 2016 Datamountaineer.
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  * http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  **/
+/*
+ * *
+ *   * Copyright 2016 Datamountaineer.
+ *   *
+ *   * Licensed under the Apache License, Version 2.0 (the "License");
+ *   * you may not use this file except in compliance with the License.
+ *   * You may obtain a copy of the License at
+ *   *
+ *   * http://www.apache.org/licenses/LICENSE-2.0
+ *   *
+ *   * Unless required by applicable law or agreed to in writing, software
+ *   * distributed under the License is distributed on an "AS IS" BASIS,
+ *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   * See the License for the specific language governing permissions and
+ *   * limitations under the License.
+ *   *
+ */
 
 package com.datamountaineer.streamreactor.connect.jms.sink.writer
 
-import javax.jms.{Connection, Destination}
+import javax.jms.{Connection, Destination, MessageProducer, Session}
 import javax.naming.InitialContext
 
 import com.datamountaineer.streamreactor.connect.jms.sink.config.{JMSConfig, JMSSettings, TopicDestination}
-import com.datamountaineer.streamreactor.connect.jms.sink.writer.converters.JMSMessageConverterFn
+import com.datamountaineer.streamreactor.connect.jms.sink.writer.converters.{JMSMessageConverter, JMSMessageConverterFn}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
@@ -31,9 +33,9 @@ import scala.util.Try
 case class JMSWriter(context: InitialContext,
                      connection: Connection,
                      routes: Seq[JMSConfig]) extends AutoCloseable with ConverterUtil with StrictLogging {
-  val session = connection.createSession(true, 0)
+  val session: Session = connection.createSession(true, 0)
 
-  val topicsMap = routes.map { route =>
+  val topicsMap: Map[String, (MessageProducer, JMSConfig)] = routes.map { route =>
     val destination = if (route.destinationType == TopicDestination) {
       session.createTopic(route.target)
     } else {
@@ -42,7 +44,7 @@ case class JMSWriter(context: InitialContext,
     route.source ->(session.createProducer(destination), route)
   }.toMap
 
-  val converterMap = routes.map { route =>
+  val converterMap: Map[String, JMSMessageConverter] = routes.map { route =>
     route.source->JMSMessageConverterFn(route.format)
   }.toMap
 
@@ -88,7 +90,7 @@ case class JMSWriter(context: InitialContext,
       session.commit()
     }
     catch {
-      case t: Throwable =>
+      case _: Throwable =>
         val first = records.head
         logger.error(s"There was an error writing records from topic:${first.topic()}  partition:${first.kafkaPartition()} offset:${first.kafkaOffset()}")
         session.rollback()

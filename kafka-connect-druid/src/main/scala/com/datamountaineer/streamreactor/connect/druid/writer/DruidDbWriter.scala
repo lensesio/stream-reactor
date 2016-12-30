@@ -1,18 +1,20 @@
-/**
-  * Copyright 2016 Datamountaineer.
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  * http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  **/
+/*
+ * *
+ *   * Copyright 2016 Datamountaineer.
+ *   *
+ *   * Licensed under the Apache License, Version 2.0 (the "License");
+ *   * you may not use this file except in compliance with the License.
+ *   * You may obtain a copy of the License at
+ *   *
+ *   * http://www.apache.org/licenses/LICENSE-2.0
+ *   *
+ *   * Unless required by applicable law or agreed to in writing, software
+ *   * distributed under the License is distributed on an "AS IS" BASIS,
+ *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   * See the License for the specific language governing permissions and
+ *   * limitations under the License.
+ *   *
+ */
 
 package com.datamountaineer.streamreactor.connect.druid.writer
 
@@ -39,11 +41,10 @@ import scala.collection.JavaConverters._
 class DruidDbWriter(settings: DruidSinkSettings) extends DbWriter with StrictLogging {
   private val tranquilityConfig =  TranquilityConfig.read(new ByteArrayInputStream(settings.tranquilityConfig.getBytes))
   private val senders: Map[String, Tranquilizer[util.Map[String, AnyRef]]] = settings.datasourceNames.map(
-    { case(topic, ds) => {
+    { case(topic, ds) =>
       val dataSource = tranquilityConfig.getDataSource(ds)
       (topic, DruidBeams.fromConfig(dataSource).buildTranquilizer())
-    }
-  })
+    })
 
   senders.foreach({case (topic, sender) =>
     logger.info("Starting sender")
@@ -62,22 +63,21 @@ class DruidDbWriter(settings: DruidSinkSettings) extends DbWriter with StrictLog
       }.toMap
 
       val futures = senders.map({
-        case (topic, sender) => {
+        case (topic, sender) =>
           val records = converted
                           .filter({case (maptopic, values) => maptopic.equals(topic)})
                           .flatMap({case(fTopic, fValues) => fValues})
           val map = records ++ Seq("timestamp"->DateTime.now.toString)
           sender.send(map)
-        }
       }).toList.asJava
       Await.result(Future.collect(futures))
     }
   }
 
   override def close(): Unit = {
-    senders.foreach({ case (topic, sender) => {
+    senders.foreach({ case (topic, sender) =>
       sender.flush()
       sender.close()
-    }})
+    })
   }
 }

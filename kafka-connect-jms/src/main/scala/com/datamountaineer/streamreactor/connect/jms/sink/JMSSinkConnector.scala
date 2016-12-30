@@ -1,18 +1,20 @@
-/**
-  * Copyright 2016 Datamountaineer.
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  * http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  **/
+/*
+ * *
+ *   * Copyright 2016 Datamountaineer.
+ *   *
+ *   * Licensed under the Apache License, Version 2.0 (the "License");
+ *   * you may not use this file except in compliance with the License.
+ *   * You may obtain a copy of the License at
+ *   *
+ *   * http://www.apache.org/licenses/LICENSE-2.0
+ *   *
+ *   * Unless required by applicable law or agreed to in writing, software
+ *   * distributed under the License is distributed on an "AS IS" BASIS,
+ *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   * See the License for the specific language governing permissions and
+ *   * limitations under the License.
+ *   *
+ */
 
 package com.datamountaineer.streamreactor.connect.jms.sink
 
@@ -35,7 +37,7 @@ import scala.collection.JavaConverters._
   **/
 class JMSSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: Option[util.Map[String, String]] = None
-  private var configDef = JMSSinkConfig.config
+  private val configDef = JMSSinkConfig.config
 
   /**
     * States which SinkTask class to use
@@ -50,7 +52,7 @@ class JMSSinkConnector extends SinkConnector with StrictLogging {
     **/
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
-    (1 to maxTasks).map(c => configProps.get).toList.asJava
+    (1 to maxTasks).map(_ => configProps.get).toList.asJava
   }
 
   /**

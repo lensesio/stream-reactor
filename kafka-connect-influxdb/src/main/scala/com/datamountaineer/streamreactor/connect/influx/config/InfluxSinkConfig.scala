@@ -1,18 +1,20 @@
-/**
-  * Copyright 2016 Datamountaineer.
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  * http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  **/
+/*
+ * *
+ *   * Copyright 2016 Datamountaineer.
+ *   *
+ *   * Licensed under the Apache License, Version 2.0 (the "License");
+ *   * you may not use this file except in compliance with the License.
+ *   * You may obtain a copy of the License at
+ *   *
+ *   * http://www.apache.org/licenses/LICENSE-2.0
+ *   *
+ *   * Unless required by applicable law or agreed to in writing, software
+ *   * distributed under the License is distributed on an "AS IS" BASIS,
+ *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   * See the License for the specific language governing permissions and
+ *   * limitations under the License.
+ *   *
+ */
 
 package com.datamountaineer.streamreactor.connect.influx.config
 
@@ -36,7 +38,7 @@ object InfluxSinkConfig {
 
 
   val RETENTION_POLICY_CONFIG = "connect.influx.retention.policy"
-  val RETENTION_POLICY_DOC =
+  val RETENTION_POLICY_DOC: String =
     """
       |Determines how long InfluxDB keeps the data - the options for specifying the duration of the retention policy are listed below.
       |Note that the minimum retention period is one hour.
@@ -54,7 +56,7 @@ object InfluxSinkConfig {
   val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
 
   val ERROR_POLICY_CONFIG = "connect.influx.error.policy"
-  val ERROR_POLICY_DOC = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
+  val ERROR_POLICY_DOC: String = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
     "There are two available options: \n" + "NOOP - the error is swallowed \n" +
     "THROW - the error is allowed to propagate. \n" +
     "RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on \n" +

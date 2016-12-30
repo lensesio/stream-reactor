@@ -1,18 +1,20 @@
-/**
-  * Copyright 2016 Datamountaineer.
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  * http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  **/
+/*
+ * *
+ *   * Copyright 2016 Datamountaineer.
+ *   *
+ *   * Licensed under the Apache License, Version 2.0 (the "License");
+ *   * you may not use this file except in compliance with the License.
+ *   * You may obtain a copy of the License at
+ *   *
+ *   * http://www.apache.org/licenses/LICENSE-2.0
+ *   *
+ *   * Unless required by applicable law or agreed to in writing, software
+ *   * distributed under the License is distributed on an "AS IS" BASIS,
+ *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   * See the License for the specific language governing permissions and
+ *   * limitations under the License.
+ *   *
+ */
 
 package com.datamountaineer.streamreactor.connect.influx.writers
 
@@ -40,7 +42,7 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
         case None =>
           //try to take it as string
           record.value() match {
-            case map: java.util.Map[_, _] => buildPointFromMap(record, settings)
+            case _: java.util.Map[_, _] => buildPointFromMap(record, settings)
             case _ => sys.error("For schemaless record only String and Map types are supported")
           }
         case Some(schema: Schema) =>
@@ -82,7 +84,7 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
       }
     }.getOrElse(System.currentTimeMillis())
 
-    val convertedMap = convertSchemalessJson(record, extractor.fieldsAliasMap, extractor.ignoredFields, false, extractor.includeAllFields)
+    val convertedMap = convertSchemalessJson(record, extractor.fieldsAliasMap, extractor.ignoredFields, key = false, includeAllFields = extractor.includeAllFields)
 
     fromMapToPoint(convertedMap, timestamp, settings, record)
   }
@@ -108,7 +110,7 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
         case (field, value: java.math.BigDecimal) => builder.addField(field, value)
         case (field, value: String) => builder.addField(field, value)
         //we should never reach this since the extractor should not allow it
-        case (field, value) => sys.error(s"$value (${Option(value).map(_.getClass.getName).getOrElse("")})is not a valid type for InfluxDb. Allowed types:Boolean, " +
+        case (_, value) => sys.error(s"$value (${Option(value).map(_.getClass.getName).getOrElse("")})is not a valid type for InfluxDb. Allowed types:Boolean, " +
           s"Long, String, Double and Number")
       }
       Some(builder.build())
@@ -122,9 +124,8 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
     require(record.value() != null && record.value().getClass == classOf[String],
       "The SinkRecord payload should be of type String")
 
-    val jsonPayload = record.value().asInstanceOf[String]
     val extractor = settings.fieldsExtractorMap(record.topic())
-    val jvalue = convertStringSchemaAndJson(record, extractor.fieldsAliasMap, extractor.ignoredFields, false, extractor.includeAllFields)
+    val jvalue = convertStringSchemaAndJson(record, extractor.fieldsAliasMap, extractor.ignoredFields, key = false, includeAllFields = extractor.includeAllFields)
 
     import org.json4s._
     implicit val formats = DefaultFormats
@@ -172,7 +173,7 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
           case (builder, (field, value: java.math.BigDecimal)) => builder.addField(field, value)
           case (builder, (field, value: String)) => builder.addField(field, value)
           //we should never reach this since the extractor should not allow it
-          case (builder, (field, value)) => sys.error(s"$value is not a valid type for InfluxDb.Allowed types:Boolean, " +
+          case (_, (_, value)) => sys.error(s"$value is not a valid type for InfluxDb.Allowed types:Boolean, " +
             s"Long, String, Double and Number")
         }
       Some(pointBuilder.build())

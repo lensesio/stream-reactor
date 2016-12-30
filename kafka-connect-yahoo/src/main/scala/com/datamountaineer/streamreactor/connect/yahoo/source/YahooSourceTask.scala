@@ -1,22 +1,25 @@
-/**
-  * Copyright 2016 Datamountaineer.
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  * http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  **/
+/*
+ * *
+ *   * Copyright 2016 Datamountaineer.
+ *   *
+ *   * Licensed under the Apache License, Version 2.0 (the "License");
+ *   * you may not use this file except in compliance with the License.
+ *   * You may obtain a copy of the License at
+ *   *
+ *   * http://www.apache.org/licenses/LICENSE-2.0
+ *   *
+ *   * Unless required by applicable law or agreed to in writing, software
+ *   * distributed under the License is distributed on an "AS IS" BASIS,
+ *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   * See the License for the specific language governing permissions and
+ *   * limitations under the License.
+ *   *
+ */
 
 package com.datamountaineer.streamreactor.connect.yahoo.source
 
 import java.util
+import java.util.{Timer, TimerTask}
 import java.util.logging.Logger
 
 import com.datamountaineer.streamreactor.connect.yahoo.config.{YahooSettings, YahooSourceConfig}
@@ -24,11 +27,24 @@ import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
+import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 
 class YahooSourceTask extends SourceTask with YahooSourceConfig {
   val logger: Logger = Logger.getLogger(getClass.getName)
+  private val counter = mutable.Map.empty[String, Long]
+  private val timer = new Timer()
+
+  class LoggerTask extends TimerTask {
+    override def run(): Unit = logCounts()
+  }
+
+  def logCounts(): mutable.Map[String, Long] = {
+    counter.foreach( { case (k,v) => logger.info(s"Delivered $v records for $k.") })
+    counter.empty
+  }
 
   private var taskConfig: Option[AbstractConfig] = None
   private var dataManager: Option[DataRetrieverManager] = None
@@ -42,16 +58,20 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
     logger.info(
 
       """
-        |  ____        _        __  __                   _        _
-        | |  _ \  __ _| |_ __ _|  \/  | ___  _   _ _ __ | |_ __ _(_)_ __   ___  ___ _ __
-        | | | | |/ _` | __/ _` | |\/| |/ _ \| | | | '_ \| __/ _` | | '_ \ / _ \/ _ \ '__|
-        | | |_| | (_| | || (_| | |  | | (_) | |_| | | | | || (_| | | | | |  __/  __/ |
-        | |____/ \__,_|\__\__,_|_|  |_|\___/ \__,_|_| |_|\__\__,_|_|_| |_|\___|\___|_|
-        |  ___        __ _            ____  _       ____  _       _ by Stefan Bocutiu
-        | |_ _|_ __  / _| |_   ___  _|  _ \| |__   / ___|(_)_ __ | | __
-        |  | || '_ \| |_| | | | \ \/ / | | | '_ \  \___ \| | '_ \| |/ /
-        |  | || | | |  _| | |_| |>  <| |_| | |_) |  ___) | | | | |   <
-        | |___|_| |_|_| |_|\__,_/_/\_\____/|_.__/  |____/|_|_| |_|_|\_\
+        |
+        |    ____        __        __  ___                  __        _
+        |   / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
+        |  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
+        | / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
+        |/_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
+        |         __  __      __               _____
+        |         \ \/ /___ _/ /_  ____  ____ / ___/____  __  _______________
+        |          \  / __ `/ __ \/ __ \/ __ \\__ \/ __ \/ / / / ___/ ___/ _ \
+        |          / / /_/ / / / / /_/ / /_/ /__/ / /_/ / /_/ / /  / /__/  __/
+        |         /_/\__,_/_/ /_/\____/\____/____/\____/\__,_/_/   \___/\___/
+        |
+        | By Stefan Bocutiu
+        |
         | """.stripMargin)
 
     logger.info(
@@ -78,6 +98,7 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
 
     dataManager.foreach(_.start())
     logger.info("Data manager started")
+    timer.schedule(new LoggerTask, 0, 10000)
   }
 
   /**
@@ -91,6 +112,7 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
     logger.info("Polling for Yahoo records...")
     val records = dataManager.map(_.getRecords).getOrElse(new util.ArrayList[SourceRecord]())
     logger.info(s"Returning ${records.size()} record(-s) from Yahoo source")
+    records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
     records
   }
 
