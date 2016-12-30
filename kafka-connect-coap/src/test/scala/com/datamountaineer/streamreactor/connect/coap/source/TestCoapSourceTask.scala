@@ -46,17 +46,14 @@ import scala.collection.JavaConversions._
   */
 class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase {
   val server = new Server(SOURCE_PORT_SECURE, SOURCE_PORT_INSECURE)
-  val serverI = new Server(SINK_PORT_SECURE, SINK_PORT_INSECURE)
 
   before {
     server.start()
-    serverI.start()
     Thread.sleep(2000)
   }
 
   after {
     server.stop()
-    serverI.stop()
   }
 
   CaliforniumLogger.initialize()
