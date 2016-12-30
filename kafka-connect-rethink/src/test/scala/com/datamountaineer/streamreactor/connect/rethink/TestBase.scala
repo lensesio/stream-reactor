@@ -1,3 +1,21 @@
+/*
+ * *
+ *   * Copyright 2016 Datamountaineer.
+ *   *
+ *   * Licensed under the Apache License, Version 2.0 (the "License");
+ *   * you may not use this file except in compliance with the License.
+ *   * You may obtain a copy of the License at
+ *   *
+ *   * http://www.apache.org/licenses/LICENSE-2.0
+ *   *
+ *   * Unless required by applicable law or agreed to in writing, software
+ *   * distributed under the License is distributed on an "AS IS" BASIS,
+ *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   * See the License for the specific language governing permissions and
+ *   * limitations under the License.
+ *   *
+ */
+
 package com.datamountaineer.streamreactor.connect.rethink
 
 import java.util
@@ -23,7 +41,7 @@ trait TestBase  extends WordSpec with Matchers with BeforeAndAfter {
   val ROUTE_SELECT_UPSERT = s"UPSERT INTO $TABLE SELECT string_id, int_field FROM $TOPIC AUTOCREATE"
   val IMPORT_ROUTE = s"INSERT INTO $TOPIC SELECT * FROM $TABLE initialize BATCH = 1000"
   val IMPORT_ROUTE_DELTA = s"INSERT INTO $TOPIC SELECT * FROM $TABLE BATCH = 1000"
-  val IMPORT_ROUTE_2 = s"INSERT INTO $TOPIC SELECT * FROM $TABLE initialize BATCH = 1000;" +
+  val IMPORT_ROUTE_2: String = s"INSERT INTO $TOPIC SELECT * FROM $TABLE initialize BATCH = 1000;" +
     s"INSERT INTO ${TOPIC}_2 SELECT * FROM ${TABLE}_2 initialize BATCH = 1000"
 
   protected val PARTITION: Int = 12
@@ -34,31 +52,31 @@ trait TestBase  extends WordSpec with Matchers with BeforeAndAfter {
   //Set topic assignments
   ASSIGNMENT.add(TOPIC_PARTITION)
 
-  def getProps = {
+  def getProps: util.Map[String, String] = {
     Map(ReThinkSinkConfig.EXPORT_ROUTE_QUERY->ROUTE,
       ReThinkSinkConfig.RETHINK_HOST->"localhost",
       ReThinkSinkConfig.RETHINK_DB->DB).asJava
   }
 
-  def getPropsSource = {
+  def getPropsSource: util.Map[String, String] = {
     Map(ReThinkSourceConfig.IMPORT_ROUTE_QUERY->IMPORT_ROUTE,
       ReThinkSourceConfig.RETHINK_HOST->"localhost",
       ReThinkSourceConfig.RETHINK_DB->DB).asJava
   }
 
-  def getPropsSourceDelta = {
+  def getPropsSourceDelta: util.Map[String, String] = {
     Map(ReThinkSourceConfig.IMPORT_ROUTE_QUERY->IMPORT_ROUTE_DELTA,
       ReThinkSourceConfig.RETHINK_HOST->"localhost",
       ReThinkSourceConfig.RETHINK_DB->DB).asJava
   }
 
-  def getPropsSource2 = {
+  def getPropsSource2: util.Map[String, String] = {
     Map(ReThinkSourceConfig.IMPORT_ROUTE_QUERY->IMPORT_ROUTE_2,
       ReThinkSourceConfig.RETHINK_HOST->"localhost",
       ReThinkSourceConfig.RETHINK_DB->DB).asJava
   }
 
-  def getPropsUpsertSelectRetry = {
+  def getPropsUpsertSelectRetry: util.Map[String, String] = {
     Map(ReThinkSinkConfig.EXPORT_ROUTE_QUERY->ROUTE_SELECT_UPSERT,
       ReThinkSinkConfig.RETHINK_HOST->"localhost",
       ReThinkSinkConfig.RETHINK_DB->DB,

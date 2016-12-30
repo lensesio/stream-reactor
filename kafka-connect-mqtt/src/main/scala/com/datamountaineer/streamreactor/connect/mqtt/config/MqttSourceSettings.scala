@@ -108,7 +108,7 @@ object MqttSourceSettings {
                   throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG}. Source '$source' is not found in ${MqttSourceConfig.KCQL_CONFIG}. Defined sources:${sources.mkString(",")}")
                 }
                 Try(getClass.getClassLoader.loadClass(clazz)) match {
-                  case Failure(e) => throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG}.$clazz can't be found")
+                  case Failure(_) => throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG}.$clazz can't be found")
                   case Success(clz) =>
                     if (!classOf[Converter].isAssignableFrom(clz)) {
                       throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG}. $clazz is not inheriting MqttConverter")

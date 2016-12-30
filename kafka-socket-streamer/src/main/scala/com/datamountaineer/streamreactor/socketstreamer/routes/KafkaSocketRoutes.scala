@@ -1,18 +1,20 @@
-/**
-  * Copyright 2016 Datamountaineer.
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  * http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  **/
+/*
+ * *
+ *   * Copyright 2016 Datamountaineer.
+ *   *
+ *   * Licensed under the Apache License, Version 2.0 (the "License");
+ *   * you may not use this file except in compliance with the License.
+ *   * You may obtain a copy of the License at
+ *   *
+ *   * http://www.apache.org/licenses/LICENSE-2.0
+ *   *
+ *   * Unless required by applicable law or agreed to in writing, software
+ *   * distributed under the License is distributed on an "AS IS" BASIS,
+ *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   * See the License for the specific language governing permissions and
+ *   * limitations under the License.
+ *   *
+ */
 
 package com.datamountaineer.streamreactor.socketstreamer.routes
 
@@ -37,13 +39,15 @@ import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import EventStreamMarshalling._
+
 import scala.concurrent.duration._
+import scala.language.implicitConversions
 import scala.util.{Failure, Success, Try}
 
 case class KafkaSocketRoutes(system: ActorSystem,
                              config: SocketStreamerConfig,
                              kafkaDecoder: KafkaAvroDecoder,
-                             textDcoder: Decoder[AnyRef],
+                             textDecoder: Decoder[AnyRef],
                              binaryDecoder: Decoder[AnyRef]) extends StrictLogging {
 
   private implicit val actorSystem = system
@@ -61,16 +65,16 @@ case class KafkaSocketRoutes(system: ActorSystem,
     .plainExternalSource[Array[Byte], Array[Byte]](schemasConsumerRef, Subscriptions.assignmentWithOffset(new TopicPartition("_schemas", 0), 0))
 
   private lazy val webSocketFlowForSchemasTopic: Flow[Message, Message, Any] = {
-    implicit val extractor = GenericRecordFieldsValuesExtractor(true, Map.empty)
-    implicit val decoder = textDcoder
+    implicit val extractor = GenericRecordFieldsValuesExtractor(includeAllFields = true, Map.empty)
+    implicit val decoder = textDecoder
 
     Flow.fromSinkAndSource(Sink.ignore, schemaSource.map(_.toWSMessage()))
       .keepAlive(1.second, () => TextMessage.Strict(""))
   }
 
   private lazy val sseSocketFlowForSchemasTopic: Source[ServerSentEvent, Any] = {
-    implicit val extractor = GenericRecordFieldsValuesExtractor(true, Map.empty)
-    implicit val decoder = textDcoder
+    implicit val extractor = GenericRecordFieldsValuesExtractor(includeAllFields = true, Map.empty)
+    implicit val decoder = textDecoder
 
     schemaSource
       .map(_.toSSEMessage())
@@ -109,7 +113,7 @@ case class KafkaSocketRoutes(system: ActorSystem,
   }
 
   private def withKafkaStreamingProps(query: String)(thunk: KafkaStreamingProps => Route) = {
-    Try(KafkaStreamingProps(query)(kafkaDecoder, textDcoder, binaryDecoder)) match {
+    Try(KafkaStreamingProps(query)(kafkaDecoder, textDecoder, binaryDecoder)) match {
       case Failure(t) =>
         reject(ValidationRejection(s"Invalid query:$query. ${t.getMessage}"))
       case Success(prop) => thunk(prop)

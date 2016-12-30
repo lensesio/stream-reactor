@@ -22,7 +22,7 @@ To achieve that using this particular Kafka Redis Sink Connector, you need to sp
 
     SELECT price from yahoo-fx PK symbol
 
-This will update the keys `USDGBP` , `EURGBP` with the relavent price using the (default) Json format:
+This will update the keys `USDGBP` , `EURGBP` with the relevant price using the (default) Json format:
 
     Key=EURGBP  Value={ "price": 0.7943 }
 
@@ -48,7 +48,7 @@ In the above example we are selecting and storing all the fields of the Kafka me
 
 You can create multiple sorted sets by promoting each value of **one field** from the Kafka message into one Sorted Set (SS) and selecting which values to store into the sorted-sets.
 
-You can achieve that by using the KCQL synta and defining with the filed using **PK** (primary key)
+You can achieve that by using the KCQL syntax and defining with the filed using **PK** (primary key)
 
     SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SortedSet(score=timestamp)
 
@@ -68,8 +68,8 @@ ZADD EUR2GBP 1392141529299 '{"timestamp":1392141529299,"price":0.8603}'
 ZRANGE EUR2GBP 0 -1
 ```
 
-If you notice that the `timestamp` is also stored in the json in the `value`, this is purposeful: to ensure uniquenes. Otherwise the SS
-would dedeplicate if `{ "price":0.8562 }` comes is twice in a time-line
+If you notice that the `timestamp` is also stored in the json in the `value`, this is purposeful: to ensure uniqueness. Otherwise the SS
+would deduplicate if `{ "price":0.8562 }` comes is twice in a time-line
 
 Once information is stored inside a Redis sorted sets - we can query for i.e. yesterday with:
 

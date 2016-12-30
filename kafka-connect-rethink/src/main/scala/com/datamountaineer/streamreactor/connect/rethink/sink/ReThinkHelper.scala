@@ -1,18 +1,20 @@
-/**
-  * Copyright 2016 Datamountaineer.
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  * http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  **/
+/*
+ * *
+ *   * Copyright 2016 Datamountaineer.
+ *   *
+ *   * Licensed under the Apache License, Version 2.0 (the "License");
+ *   * you may not use this file except in compliance with the License.
+ *   * You may obtain a copy of the License at
+ *   *
+ *   * http://www.apache.org/licenses/LICENSE-2.0
+ *   *
+ *   * Unless required by applicable law or agreed to in writing, software
+ *   * distributed under the License is distributed on an "AS IS" BASIS,
+ *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   * See the License for the specific language governing permissions and
+ *   * limitations under the License.
+ *   *
+ */
 
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
@@ -44,9 +46,9 @@ object ReThinkHelper extends StrictLogging {
     val tables: java.util.List[String] = rethink.db(setting.db).tableList().run(conn)
 
     setting.topicTableMap
-      .filter({ case (topic, table) => !tables.contains(table) && isAutoCreate(table).equals(false) })
+      .filter({ case (_, table) => !tables.contains(table) && isAutoCreate(table).equals(false) })
       .foreach({
-        case (topic, table) => throw new ConnectException(s"No table called $table found in database ${setting.db} and" +
+        case (_, table) => throw new ConnectException(s"No table called $table found in database ${setting.db} and" +
           s" it's not set for AUTOCREATE")
       })
 
@@ -71,7 +73,7 @@ object ReThinkHelper extends StrictLogging {
           .run(conn)
 
         Try(create) match {
-          case Success(s) =>
+          case Success(_) =>
             //logger.info(create.mkString(","))
             logger.info(s"Created table ${r.getTarget}.")
           case Failure(f) =>

@@ -1,8 +1,26 @@
+/*
+ * *
+ *   * Copyright 2016 Datamountaineer.
+ *   *
+ *   * Licensed under the Apache License, Version 2.0 (the "License");
+ *   * you may not use this file except in compliance with the License.
+ *   * You may obtain a copy of the License at
+ *   *
+ *   * http://www.apache.org/licenses/LICENSE-2.0
+ *   *
+ *   * Unless required by applicable law or agreed to in writing, software
+ *   * distributed under the License is distributed on an "AS IS" BASIS,
+ *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   * See the License for the specific language governing permissions and
+ *   * limitations under the License.
+ *   *
+ */
+
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import java.io.FileReader
 import java.security.{KeyStore, Security}
-import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
+import javax.net.ssl.{KeyManagerFactory, SSLContext, SSLSocketFactory, TrustManagerFactory}
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.bouncycastle.cert.X509CertificateHolder
@@ -16,7 +34,7 @@ object SSLSocketFactory extends StrictLogging {
   def apply(caCrtFile: String,
             crtFile: String,
             keyFile: String,
-            password: String) = {
+            password: String): SSLSocketFactory = {
     try {
 
       /**
@@ -49,7 +67,7 @@ object SSLSocketFactory extends StrictLogging {
 
       val provider = new JcePEMDecryptorProviderBuilder().build(password.toCharArray)
       val keyConverter = new JcaPEMKeyConverter().setProvider("BC")
-      var key = keyObject match {
+      val key = keyObject match {
         case pair: PEMEncryptedKeyPair => keyConverter.getKeyPair(pair.decryptKeyPair(provider))
         case _ => keyConverter.getKeyPair(keyObject.asInstanceOf[PEMKeyPair])
       }

@@ -1,18 +1,20 @@
-/**
-  * Copyright 2016 Datamountaineer.
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  * http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  **/
+/*
+ * *
+ *   * Copyright 2016 Datamountaineer.
+ *   *
+ *   * Licensed under the Apache License, Version 2.0 (the "License");
+ *   * you may not use this file except in compliance with the License.
+ *   * You may obtain a copy of the License at
+ *   *
+ *   * http://www.apache.org/licenses/LICENSE-2.0
+ *   *
+ *   * Unless required by applicable law or agreed to in writing, software
+ *   * distributed under the License is distributed on an "AS IS" BASIS,
+ *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   * See the License for the specific language governing permissions and
+ *   * limitations under the License.
+ *   *
+ */
 
 package com.datamountaineer.streamreactor.connect.mqtt.config
 
@@ -37,7 +39,6 @@ object MqttSourceConfig {
   val QS_CONFIG = "connect.mqtt.service.quality"
   private val QS_DOC = "Specifies the Mqtt quality of service"
   private val QS_DISPLAY = "he Quality of Service (QoS) level is an agreement between sender and receiver of a message regarding the guarantees of delivering a message. There are 3 QoS levels in MQTT: 0 = At most once; 1 = At least once; 2 = Exactly once"
-  private val QS_DEFAULT = 1
 
   val USER_CONFIG = "connect.mqtt.user"
   private val USER_DOC = "Contains the Mqtt connection user name"
@@ -57,7 +58,6 @@ object MqttSourceConfig {
   private val CONNECTION_TIMEOUT_DEFAULT = 3000
 
   val CLEAN_SESSION_CONFIG = "connect.mqtt.connection.clean"
-  private val CLEAN_CONNECTION_DOC = "The clean session flag indicates the broker, whether the client wants to establish a persistent session or not. A persistent session (CleanSession is false) means, that the broker will store all subscriptions for the client and also all missed messages, when subscribing with Quality of Service (QoS) 1 or 2. If clean session is set to true, the broker won’t store anything for the client and will also purge all information from a previous persistent session."
   private val CLEAN_CONNECTION_DISPLAY = "Clean session"
   private val CLEAN_CONNECTION_DEFAULT = true
 
@@ -92,7 +92,7 @@ object MqttSourceConfig {
   private val THROW_ON_CONVERT_ERRORS_DISPLAY = "Throw error on conversion"
   private val THROW_ON_CONVERT_ERRORS_DEFAULT = false
 
-  val config = new ConfigDef()
+  val config: ConfigDef = new ConfigDef()
     .define(HOSTS_CONFIG, Type.STRING, Importance.HIGH, HOSTS_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, HOSTS_DISPLAY)
     .define(USER_CONFIG, Type.STRING, null, Importance.HIGH, USER_DOC, "Connection", 2, ConfigDef.Width.MEDIUM, USER_DISPLAY)
     .define(PASSWORD_CONFIG, Type.PASSWORD, null, Importance.HIGH, PASSWORD_DOC, "Connection", 3, ConfigDef.Width.MEDIUM, PASSWORD_DISPLAY)

@@ -1,18 +1,21 @@
-/**
-  * Copyright 2016 Datamountaineer.
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  * http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  **/
+/*
+ * *
+ *   * Copyright 2016 Datamountaineer.
+ *   *
+ *   * Licensed under the Apache License, Version 2.0 (the "License");
+ *   * you may not use this file except in compliance with the License.
+ *   * You may obtain a copy of the License at
+ *   *
+ *   * http://www.apache.org/licenses/LICENSE-2.0
+ *   *
+ *   * Unless required by applicable law or agreed to in writing, software
+ *   * distributed under the License is distributed on an "AS IS" BASIS,
+ *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   * See the License for the specific language governing permissions and
+ *   * limitations under the License.
+ *   *
+ */
+
 package com.datamountaineer.streamreactor.connect.hbase
 
 import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
@@ -36,7 +39,7 @@ trait RowKeyBuilderBytes {
   * @param keyDelimiter Delimiter to use in keys
   */
 class GenericRowKeyBuilderBytes(keyDelimiter: String = "|") extends RowKeyBuilderBytes {
-  val delimiterBytes = Bytes.toBytes(keyDelimiter)
+  val delimiterBytes: Array[Byte] = Bytes.toBytes(keyDelimiter)
 
   override def build(record: SinkRecord, payload: Any): Array[Byte] = {
     Bytes.add(
@@ -88,7 +91,7 @@ class AvroRecordRowKeyBuilderBytes(valuesExtractorsMap: Map[String, (Any) => Arr
 
   require(keys.nonEmpty, "Invalid keys provided.")
   require(keyDelimiter != null, "Invalid composite row  key delimiter specified.")
-  val delimBytes = Bytes.toBytes(keyDelimiter)
+  val delimBytes: Array[Byte] = Bytes.toBytes(keyDelimiter)
 
   /**
     * Builds the Hbase row key from the given avro record.
@@ -111,7 +114,7 @@ case class StructFieldsRowKeyBuilderBytes(fm : List[String],
                                           keyDelimiter: String = "\n") extends RowKeyBuilderBytes {
   require(fm.nonEmpty, "Invalid keys provided")
 
-  val delimBytes = Bytes.toBytes(keyDelimiter)
+  val delimBytes: Array[Byte] = Bytes.toBytes(keyDelimiter)
 
   override def build(record: SinkRecord, payload: Any): Array[Byte] = {
     val struct = record.value().asInstanceOf[Struct]

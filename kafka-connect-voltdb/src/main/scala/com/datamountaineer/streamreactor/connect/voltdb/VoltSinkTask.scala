@@ -1,22 +1,25 @@
-/**
-  * Copyright 2016 Datamountaineer.
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  * http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  **/
+/*
+ * *
+ *   * Copyright 2016 Datamountaineer.
+ *   *
+ *   * Licensed under the Apache License, Version 2.0 (the "License");
+ *   * you may not use this file except in compliance with the License.
+ *   * You may obtain a copy of the License at
+ *   *
+ *   * http://www.apache.org/licenses/LICENSE-2.0
+ *   *
+ *   * Unless required by applicable law or agreed to in writing, software
+ *   * distributed under the License is distributed on an "AS IS" BASIS,
+ *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   * See the License for the specific language governing permissions and
+ *   * limitations under the License.
+ *   *
+ */
 
 package com.datamountaineer.streamreactor.connect.voltdb
 
 import java.util
+import java.util.{Timer, TimerTask}
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.voltdb.config.{VoltSettings, VoltSinkConfig}
@@ -27,6 +30,7 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable
 
 /**
   * <h1>VoltSinkTask</h1>
@@ -36,6 +40,17 @@ import scala.collection.JavaConversions._
 class VoltSinkTask extends SinkTask with StrictLogging {
 
   var writer: Option[VoltDbWriter] = None
+  private val counter = mutable.Map.empty[String, Long]
+  private val timer = new Timer()
+
+  class LoggerTask extends TimerTask {
+    override def run(): Unit = logCounts()
+  }
+
+  def logCounts(): mutable.Map[String, Long] = {
+    counter.foreach( { case (k,v) => logger.info(s"Delivered $v records for $k.") })
+    counter.empty
+  }
 
   /**
     * Parse the configurations and setup the writer
@@ -68,6 +83,7 @@ class VoltSinkTask extends SinkTask with StrictLogging {
       context.timeout(sinkConfig.getInt(VoltSinkConfig.ERROR_RETRY_INTERVAL_CONFIG).toLong)
     }
     writer = Some(new VoltDbWriter(voltSettings))
+    timer.schedule(new LoggerTask, 0, 10000)
   }
 
   /**
@@ -82,6 +98,7 @@ class VoltSinkTask extends SinkTask with StrictLogging {
       logger.info(s"Received ${records.size()} record(-s)")
       writer.foreach(w => w.write(records.toSeq))
       logger.info("Records handled")
+      records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
     }
   }
 

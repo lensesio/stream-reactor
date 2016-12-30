@@ -1,23 +1,26 @@
-/**
-  * Copyright 2016 Datamountaineer.
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  * http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  **/
+/*
+ * *
+ *   * Copyright 2016 Datamountaineer.
+ *   *
+ *   * Licensed under the Apache License, Version 2.0 (the "License");
+ *   * you may not use this file except in compliance with the License.
+ *   * You may obtain a copy of the License at
+ *   *
+ *   * http://www.apache.org/licenses/LICENSE-2.0
+ *   *
+ *   * Unless required by applicable law or agreed to in writing, software
+ *   * distributed under the License is distributed on an "AS IS" BASIS,
+ *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   * See the License for the specific language governing permissions and
+ *   * limitations under the License.
+ *   *
+ */
 
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import java.io.File
 import java.util
+import java.util.{Timer, TimerTask}
 
 import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
@@ -26,11 +29,23 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 
+import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
+import scala.collection.JavaConversions._
 
 class MqttSourceTask extends SourceTask with StrictLogging {
-  private var configs: Array[Config] = _
   private var mqttManager: Option[MqttManager] = None
+  private val counter = mutable.Map.empty[String, Long]
+  private val timer = new Timer()
+
+  class LoggerTask extends TimerTask {
+    override def run(): Unit = logCounts()
+  }
+
+  def logCounts(): mutable.Map[String, Long] = {
+    counter.foreach( { case (k,v) => logger.info(s"Delivered $v records for $k.") })
+    counter.empty
+  }
 
   override def start(props: util.Map[String, String]): Unit = {
 
@@ -59,7 +74,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
       logger.info(s"Creating converter instance for $clazz")
       val converter = Try(this.getClass.getClassLoader.loadClass(clazz).newInstance()) match {
         case Success(value) => value.asInstanceOf[Converter]
-        case Failure(f) => throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG} is invalid. $clazz should have an empty ctor!")
+        case Failure(_) => throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG} is invalid. $clazz should have an empty ctor!")
       }
       import scala.collection.JavaConverters._
       converter.initialize(props.asScala.toMap)
@@ -67,6 +82,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
     }
     logger.info("Starting Mqtt source...")
     mqttManager = Some(new MqttManager(MqttClientConnectionFn.apply, convertersMap, settings.mqttQualityOfService, settings.kcql.map(Config.parse), settings.throwOnConversion))
+    timer.schedule(new LoggerTask, 0, 10000)
   }
 
   /**
@@ -74,11 +90,14 @@ class MqttSourceTask extends SourceTask with StrictLogging {
     **/
   override def poll(): util.List[SourceRecord] = {
 
-    mqttManager.map { manager =>
+    val records = mqttManager.map { manager =>
       val list = new util.LinkedList[SourceRecord]()
       manager.getRecords(list)
       list
     }.orNull
+
+    records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
+    records
   }
 
   /**

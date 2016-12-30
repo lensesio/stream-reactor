@@ -30,7 +30,6 @@ target/
 /stream-reactor-release-0.2-3.0.0/
 /release/
 /style/
-/gradle/
 !/druid/
 /druid/
 /kafka-connect-druid/var/
@@ -45,3 +44,6 @@ target/
 /moquette_store.mapdb.t
 /moquette_store.mapdb.p
 /var/
+/kafka-connect-coap/Californium.properties
+Californium.properties
+/gradle/wrapper/gradle-wrapper.properties

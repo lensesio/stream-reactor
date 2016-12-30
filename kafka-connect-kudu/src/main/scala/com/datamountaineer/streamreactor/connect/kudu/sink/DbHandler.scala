@@ -1,18 +1,20 @@
-/**
-  * Copyright 2016 Datamountaineer.
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  * http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  **/
+/*
+ * *
+ *   * Copyright 2016 Datamountaineer.
+ *   *
+ *   * Licensed under the Apache License, Version 2.0 (the "License");
+ *   * you may not use this file except in compliance with the License.
+ *   * You may obtain a copy of the License at
+ *   *
+ *   * http://www.apache.org/licenses/LICENSE-2.0
+ *   *
+ *   * Unless required by applicable law or agreed to in writing, software
+ *   * distributed under the License is distributed on an "AS IS" BASIS,
+ *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   * See the License for the specific language governing permissions and
+ *   * limitations under the License.
+ *   *
+ */
 
 package com.datamountaineer.streamreactor.connect.kudu.sink
 
@@ -82,7 +84,7 @@ object DbHandler extends StrictLogging with KuduConverter {
     val subjects = SchemaRegistry.getSubjects(url).toSet
 
     subjects
-      .flatMap(s => {
+      .flatMap(_ => {
         setting
             .routes
             .filter(r => r.isAutoCreate)
@@ -159,7 +161,7 @@ object DbHandler extends StrictLogging with KuduConverter {
     //only allow auto creation if distribute by and bucketing are specified
     val pks = Try(config.getBucketing.getBucketNames.toSet) match {
       case Success(s) => s
-      case Failure(f) => throw new ConnectException("DISTRIBUTEBY columns INTO BUCKETS n must be specified for table " +
+      case Failure(_) => throw new ConnectException("DISTRIBUTEBY columns INTO BUCKETS n must be specified for table " +
         "auto creation!")
     }
 
@@ -213,13 +215,13 @@ object DbHandler extends StrictLogging with KuduConverter {
   }
 
   def createTableFromSinkRecord(mapping : Config, schema: connectSchema, client: KuduClient) : Try[KuduTable] = {
-    mapping.isAutoCreate match {
-      case true =>
-        val cto = getCreateTableOptions(mapping)
-        val kuduSchema = convertToKuduSchema(schema)
-        val ctp = CreateTableProps(mapping.getTarget, kuduSchema, cto)
-        Success(executeCreateTable(ctp, client))
-      case false => Failure(new ConnectException(s"Mapping ${mapping.toString} not configured for Auto table creation"))
+    if (mapping.isAutoCreate) {
+      val cto = getCreateTableOptions(mapping)
+      val kuduSchema = convertToKuduSchema(schema)
+      val ctp = CreateTableProps(mapping.getTarget, kuduSchema, cto)
+      Success(executeCreateTable(ctp, client))
+    } else {
+      Failure(new ConnectException(s"Mapping ${mapping.toString} not configured for Auto table creation"))
     }
   }
 

@@ -1,3 +1,21 @@
+/*
+ * *
+ *   * Copyright 2016 Datamountaineer.
+ *   *
+ *   * Licensed under the Apache License, Version 2.0 (the "License");
+ *   * you may not use this file except in compliance with the License.
+ *   * You may obtain a copy of the License at
+ *   *
+ *   * http://www.apache.org/licenses/LICENSE-2.0
+ *   *
+ *   * Unless required by applicable law or agreed to in writing, software
+ *   * distributed under the License is distributed on an "AS IS" BASIS,
+ *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   * See the License for the specific language governing permissions and
+ *   * limitations under the License.
+ *   *
+ */
+
 package com.datamountaineer.streamreactor.socketstreamer.flows
 
 import akka.actor.{ActorRef, ActorSystem}
@@ -32,7 +50,7 @@ object KafkaSourceCreateFn extends StrictLogging {
       //if an offset is out of range or the offset doesn't exist yet default to earliest available
       .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
 
-    val source = if (kafkaRequestProps.parititionAndOffset.isEmpty) {
+    val source = if (kafkaRequestProps.partitionAndOffset.isEmpty) {
       Consumer.plainSource(consumerSettings, Subscriptions.topics(kafkaRequestProps.topic))
     } else {
       buildMergedSources(consumerSettings, kafkaRequestProps)
@@ -41,9 +59,9 @@ object KafkaSourceCreateFn extends StrictLogging {
     kafkaRequestProps.sample.fold(source) { p => source.withSampling(p.count, p.rate) }
   }
 
-  def buildMergedSources(consumerSettings: ConsumerSettings[Array[Byte], Array[Byte]], kafkaRequestProps: KafkaClientProps) = {
+  def buildMergedSources(consumerSettings: ConsumerSettings[Array[Byte], Array[Byte]], kafkaRequestProps: KafkaClientProps): Source[ConsumerRecord[Array[Byte], Array[Byte]], Control] = {
     //we could have scenarios where the user selects some partitions from a given offset whereas for the others they don't
-    val (withOffset, withoutOffset) = kafkaRequestProps.parititionAndOffset.span(_.offset.isDefined)
+    val (withOffset, withoutOffset) = kafkaRequestProps.partitionAndOffset.span(_.offset.isDefined)
 
     val sourceWithOffset = withOffset.headOption
       .map { _ =>

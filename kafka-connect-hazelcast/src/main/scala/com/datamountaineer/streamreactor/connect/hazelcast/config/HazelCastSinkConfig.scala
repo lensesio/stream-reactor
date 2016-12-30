@@ -1,18 +1,20 @@
-/**
-  * Copyright 2016 Datamountaineer.
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-  * you may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at
-  *
-  * http://www.apache.org/licenses/LICENSE-2.0
-  *
-  * Unless required by applicable law or agreed to in writing, software
-  * distributed under the License is distributed on an "AS IS" BASIS,
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  **/
+/*
+ * *
+ *   * Copyright 2016 Datamountaineer.
+ *   *
+ *   * Licensed under the Apache License, Version 2.0 (the "License");
+ *   * you may not use this file except in compliance with the License.
+ *   * You may obtain a copy of the License at
+ *   *
+ *   * http://www.apache.org/licenses/LICENSE-2.0
+ *   *
+ *   * Unless required by applicable law or agreed to in writing, software
+ *   * distributed under the License is distributed on an "AS IS" BASIS,
+ *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   * See the License for the specific language governing permissions and
+ *   * limitations under the License.
+ *   *
+ */
 
 package com.datamountaineer.streamreactor.connect.hazelcast.config
 
@@ -30,7 +32,7 @@ object HazelCastSinkConfig {
 
   val CLUSTER_SOURCE_MEMBERS = "connect.hazelcast.source.cluster.members"
   val CLUSTER_SINK_MEMBERS = "connect.hazelcast.sink.cluster.members"
-  val CLUSTER_MEMBERS_DOC =
+  val CLUSTER_MEMBERS_DOC: String =
     """
       |Address List is the initial list of cluster addresses to which the client will connect.
       |The client uses this list to find an alive node. Although it may be enough to give only one
@@ -44,40 +46,40 @@ object HazelCastSinkConfig {
 
 
   val SINK_GROUP_PASSWORD = "connect.hazelcast.sink.group.password"
-  val SINK_GROUP_PASSWORD_DOC = """The password for the group name.""".stripMargin
+  val SINK_GROUP_PASSWORD_DOC: String = """The password for the group name.""".stripMargin
   val SINK_GROUP_PASSWORD_DEFAULT = "dev-pass"
 
   val CONNECTION_TIMEOUT = "connect.hazelcast.connection.timeout"
-  val CONNECTION_TIMEOUT_DOC =
+  val CONNECTION_TIMEOUT_DOC: String =
     """
       |Connection timeout is the timeout value in milliseconds for nodes to
       |accept client connection requests.""".stripMargin
   val CONNECTION_TIMEOUT_DEFAULT = 5000
 
   val CONNECTION_RETRY_ATTEMPTS = "connect.hazelcast.connection.retries"
-  val CONNECTION_RETRY_ATTEMPTS_DOC = """Number of times a client will retry the connection at startup.""".stripMargin
+  val CONNECTION_RETRY_ATTEMPTS_DOC: String = """Number of times a client will retry the connection at startup.""".stripMargin
   val CONNECTION_RETRY_ATTEMPTS_DEFAULT = 2
 
   val KEEP_ALIVE = "connect.hazelcast.connection.keep.alive"
-  val KEEP_ALIVE_DOC = """Enables/disables the SO_KEEPALIVE socket option. The default value is true.""".stripMargin
+  val KEEP_ALIVE_DOC: String = """Enables/disables the SO_KEEPALIVE socket option. The default value is true.""".stripMargin
   val KEEP_ALIVE_DEFAULT = true
 
   val TCP_NO_DELAY = "connect.hazelcast.connection.tcp.no.delay"
-  val TCP_NO_DELAY_DOC = """Enables/disables the TCP_NODELAY socket option. The default value is true.""".stripMargin
+  val TCP_NO_DELAY_DOC: String = """Enables/disables the TCP_NODELAY socket option. The default value is true.""".stripMargin
   val TCP_NO_DELAY_DEFAULT = true
 
   val REUSE_ADDRESS = "connect.hazelcast.connection.reuse.address"
-  val REUSE_ADDRESS_DOC = """Enables/disables the SO_REUSEADDR socket option. The default value is true.""".stripMargin
+  val REUSE_ADDRESS_DOC: String = """Enables/disables the SO_REUSEADDR socket option. The default value is true.""".stripMargin
   val REUSE_ADDRESS_DEFAULT = true
 
   val LINGER_SECONDS = "connect.hazelcast.connection.linger.seconds"
-  val LINGER_SECONDS_DOC =
+  val LINGER_SECONDS_DOC: String =
     """Enables/disables SO_LINGER with the specified linger time in seconds.
       |The default value is 3.""".stripMargin
   val LINGER_SECONDS_DEFAULT = 3
 
   val BUFFER_SIZE = "connect.hazelcast.connection.buffer.size"
-  val BUFFER_SIZE_DOC =
+  val BUFFER_SIZE_DOC: String =
     """Sets the SO_SNDBUF and SO_RCVBUF options to the specified value in KB for this Socket.
       |The default value is 32.""".stripMargin
   val BUFFER_SIZE_DEFAULT = 32
@@ -86,7 +88,7 @@ object HazelCastSinkConfig {
   val EXPORT_ROUTE_QUERY_DOC =  "KCQL expression describing field selection and routes."
 
   val ERROR_POLICY = "connect.hazelcast.sink.error.policy"
-  val ERROR_POLICY_DOC = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
+  val ERROR_POLICY_DOC: String = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
     "There are two available options: \n" + "NOOP - the error is swallowed \n" +
     "THROW - the error is allowed to propagate. \n" +
     "RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on \n" +

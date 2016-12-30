@@ -1,5 +1,9 @@
 [![Build Status](https://datamountaineer.ci.landoop.com/buildStatus/icon?job=stream-reactor&style=flat&.png)](https://datamountaineer.ci.landoop.com/job/stream-reactor/)
 [![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://docs.datamountaineer.com/en/latest/?badge=latest)
+
+
+Join us on slack
+
 [![Alt text](images/slack.jpeg)](http://datamountaineer.com/contact/)
 
 # Stream Reactor
@@ -17,6 +21,7 @@ A collection of components to build a real time ingestion pipeline.
 | BlockChain     | Source | Kafka connect Blockchain source to subscribe to Blockchain streams and write to Kafka.      | [Docs](http://docs.datamountaineer.com/en/latest/blockchain.html)        |
 | Bloomberg      | Source | Kafka connect Blockchain source to subscribe to Blockchain streams and write to Kafka.      | [Docs](http://docs.datamountaineer.com/en/latest/bloomberg.html)         |
 | Cassandra      | Source | Kafka connect Cassandra source to read Cassandra and write to Kafka.                        | [Docs](http://docs.datamountaineer.com/en/latest/cassandra-source.html)  |
+| Coap           | Source | Kafka connect Coap source to read from IoT Coap endpoints using Californium.                | [Docs](http://docs.datamountaineer.com/en/latest/coap-source.html)     
 | *DSE Cassandra | Sink   | Certified DSE Kafka connect Cassandra sink task to write Kafka topic payloads to Cassandra. | [Docs](http://docs.datamountaineer.com/en/latest/cassandra-sink.html)    |
 | Druid          | Sink   | Kafka connect Druid sink to write Kafka topic payloads to Druid.                            | [Docs](http://docs.datamountaineer.com/en/latest/druid.html)             |
 | Elastic        | Sink   | Kafka connect Elastic Search sink to write Kafka topic payloads to Elastic Search.          | [Docs](http://docs.datamountaineer.com/en/latest/elastic.html)           |
@@ -53,7 +58,7 @@ Supports limited SQL statements to stream and select from Kafka topics in real t
 *   Support for ``Struct``, ``Schema.STRING`` and ``Json`` with schema in the Cassandra, ReThinkDB, InfluxDB and MongoDB sinks.
 *   Rename ``export.query.route`` to ``sink.kcql``.
 *   Rename ``import.query.route`` to ``source.kcql``.
-*   Upgrade to KCQL 0.9.4 - Add support for `STOREAS` so specify target sink types, e.g. Redis Sorted Sets, Hazelcast map, queues, ringbuffers.
+*   Upgrade to KCQL 0.9.5 - Add support for `STOREAS` so specify target sink types, e.g. Redis Sorted Sets, Hazelcast map, queues, ringbuffers.
 
 ### Building
 
