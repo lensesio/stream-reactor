@@ -37,7 +37,7 @@ object JMSSinkConfig {
   val CONNECTION_FACTORY = "connect.jms.sink.connection.factory"
   private val CONNECTION_FACTORY_DOC = "Provides the full class name for the ConnectionFactory implementation to use."
 
-  val EXPORT_ROUTE_QUERY = "connect.jms.sink.sink.kcql"
+  val EXPORT_ROUTE_QUERY = "connect.jms.sink.kcql"
   val EXPORT_ROUTE_QUERY_DOC =  "KCQL expression describing field selection and routes."
 
   val TOPICS_LIST = "connect.jms.sink.export.route.topics"
