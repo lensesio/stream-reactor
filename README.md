@@ -21,7 +21,8 @@ A collection of components to build a real time ingestion pipeline.
 | BlockChain     | Source | Kafka connect Blockchain source to subscribe to Blockchain streams and write to Kafka.      | [Docs](http://docs.datamountaineer.com/en/latest/blockchain.html)        |
 | Bloomberg      | Source | Kafka connect Blockchain source to subscribe to Blockchain streams and write to Kafka.      | [Docs](http://docs.datamountaineer.com/en/latest/bloomberg.html)         |
 | Cassandra      | Source | Kafka connect Cassandra source to read Cassandra and write to Kafka.                        | [Docs](http://docs.datamountaineer.com/en/latest/cassandra-source.html)  |
-| Coap           | Source | Kafka connect Coap source to read from IoT Coap endpoints using Californium.                | [Docs](http://docs.datamountaineer.com/en/latest/coap-source.html)     
+| Coap           | Source | Kafka connect Coap source to read from IoT Coap endpoints using Californium.                | [Docs](http://docs.datamountaineer.com/en/latest/coap-source.html)    
+| Coap           | Sink | Kafka connect Coap sink to write kafka topic payload to IoT Coap endpoints using Californium. | [Docs](http://docs.datamountaineer.com/en/latest/coap-sink.html)    
 | *DSE Cassandra | Sink   | Certified DSE Kafka connect Cassandra sink task to write Kafka topic payloads to Cassandra. | [Docs](http://docs.datamountaineer.com/en/latest/cassandra-sink.html)    |
 | Druid          | Sink   | Kafka connect Druid sink to write Kafka topic payloads to Druid.                            | [Docs](http://docs.datamountaineer.com/en/latest/druid.html)             |
 | Elastic        | Sink   | Kafka connect Elastic Search sink to write Kafka topic payloads to Elastic Search.          | [Docs](http://docs.datamountaineer.com/en/latest/elastic.html)           |
