@@ -24,6 +24,7 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.kududb.client._
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
@@ -173,11 +174,16 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
 
       //throw and let error policy handle it, don't want to throw RetriableException.
       //May want to die if error policy is Throw
-      session.flush().asScala
-        .filter(r => Option(r).isEmpty || r.hasRowError)
-        .foreach(e => {
-          throw new Throwable(s"Failed to flush one or more changes: ${e.getRowError.toString}")
-        })
+      val errors = Option(session.flush())
+        .flatMap(_.asScala)
+        .flatMap(r => Option(r))
+        .withFilter(_.hasRowError)
+        .map(_.getRowError.toString)
+        .mkString(";")
+
+      if (errors.nonEmpty) {
+        throw new RuntimeException(s"Failed to flush one or more changes:$errors")
+      }
     }
   }
 }
