@@ -54,8 +54,7 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
     * @param props A map of supplied properties.
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    val acsii = scala.io.Source.fromInputStream(getClass.getResourceAsStream("/ascii.txt")).mkString
-    logger.info(acsii)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/blockchain-ascii.txt")).mkString)
     logger.info("Blockchain Task configuration")
     props.foreach { case (k, v) => logger.info("   Key= " + k + "     Value=" + v) }
     //get configuration for this task
