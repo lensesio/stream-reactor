@@ -23,13 +23,10 @@ import java.net.{ConnectException, URI}
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConfig, CoapSetting}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigException
-import org.eclipse.californium.core.{CoapClient, CoapResponse}
 import org.eclipse.californium.core.network.CoapEndpoint
 import org.eclipse.californium.core.network.config.NetworkConfig
+import org.eclipse.californium.core.{CoapClient, CoapResponse}
 import org.eclipse.californium.scandium.DTLSConnector
-
-import scala.collection.JavaConversions._
-import scala.collection.mutable
 
 /**
   * Created by andrew@datamountaineer.com on 29/12/2016. 
@@ -47,16 +44,19 @@ abstract class CoapManager(setting: CoapSetting) extends StrictLogging {
 
   val client = buildClient(uri)
 
-  def buildClient(uri: URI) : CoapClient = {
+  def buildClient(uri: URI): CoapClient = {
     val client = new CoapClient(uri)
     //Use DTLS is key stores defined
     if (setting.keyStoreLoc.nonEmpty) {
       logger.info("Creating secure client")
-      client.setEndpoint(new CoapEndpoint(new DTLSConnector( DTLSConnectionFn(setting)), NetworkConfig.getStandard()))
+      client.setEndpoint(new CoapEndpoint(new DTLSConnector(DTLSConnectionFn(setting)), NetworkConfig.getStandard()))
     }
 
+    import scala.collection.JavaConverters._
     //discover and check the requested resources
-    val resources: mutable.Set[String] = client.discover().map(r => {
+    val resources = Option(client.discover())
+      .map(_.asScala)
+      .getOrElse(Set.empty).map(r => {
       logger.info(s"Discovered resources ${r.getURI}")
       r.getURI
     })
@@ -81,10 +81,10 @@ abstract class CoapManager(setting: CoapSetting) extends StrictLogging {
     * and return the first one
     *
     * @param address The multicast address (ip4 or ip6)
-    * @param oldUri The original URI
+    * @param oldUri  The original URI
     * @return A new URI of the server
-    * */
-  def discoverServer(address: String, oldUri: URI) : URI = {
+    **/
+  def discoverServer(address: String, oldUri: URI): URI = {
     val client = new CoapClient(s"${oldUri.getScheme}://$address:${oldUri.getPort.toString}/.well-known/core")
     client.useNONs()
     val response = client.get()
@@ -98,7 +98,7 @@ abstract class CoapManager(setting: CoapSetting) extends StrictLogging {
         oldUri.getPath,
         oldUri.getQuery,
         oldUri.getFragment)
-    } else  {
+    } else {
       logger.error(s"Unable to find any servers on local network with multicast address $address.")
       throw new ConnectException(s"Unable to find any servers on local network with multicast address $address.")
     }
