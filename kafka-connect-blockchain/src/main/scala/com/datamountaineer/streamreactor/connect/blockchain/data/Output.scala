@@ -39,7 +39,7 @@ object Output {
     .field("addr_tag", Schema.OPTIONAL_STRING_SCHEMA)
     .field("spent", Schema.BOOLEAN_SCHEMA)
     .field("tx_index", Schema.INT64_SCHEMA)
-    .field("type", Schema.OPTIONAL_INT32_SCHEMA)
+    .field("type", Schema.INT32_SCHEMA)
     .field("addr", Schema.OPTIONAL_STRING_SCHEMA)
     .field("value", Schema.INT64_SCHEMA)
     .field("n", Schema.INT32_SCHEMA)
