@@ -32,14 +32,11 @@ import org.apache.kafka.common.metrics.stats.Count;
 import org.apache.kafka.common.metrics.stats.Max;
 import org.apache.kafka.common.metrics.stats.Rate;
 
-import org.apache.kafka.connect.data.Schema;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 
 /**
  * A class for writing lists of rows to a BigQuery table.

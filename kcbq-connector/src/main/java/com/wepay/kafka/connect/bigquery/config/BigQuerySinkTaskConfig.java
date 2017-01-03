@@ -40,14 +40,27 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
   private static final String SCHEMA_UPDATE_DOC =
       "Whether or not to automatically update BigQuery schemas";
 
-  public static final String BUFFER_SIZE_CONFIG =                     "bufferSize";
-  private static final ConfigDef.Type BUFFER_SIZE_TYPE =              ConfigDef.Type.LONG;
-  public static final Long BUFFER_SIZE_DEFAULT =                      100000L;
-  private static final ConfigDef.Validator BUFFER_SIZE_VALIDATOR =    ConfigDef.Range.atLeast(-1);
-  private static final ConfigDef.Importance BUFFER_SIZE_IMPORTANCE =  ConfigDef.Importance.MEDIUM;
-  private static final String BUFFER_SIZE_DOC =
-      "The maxiumum number of records to buffer per table before temporarily halting the flow of "
-      + "new records, or -1 for unlimited buffering";
+  public static final String THREAD_POOL_SIZE_CONFIG =                  "threadPoolSize";
+  private static final ConfigDef.Type THREAD_POOL_SIZE_TYPE =           ConfigDef.Type.INT;
+  public static final Integer THREAD_POOL_SIZE_DEFAULT =                10;
+  private static final ConfigDef.Validator THREAD_POOL_SIZE_VALIDATOR = ConfigDef.Range.atLeast(1);
+  private static final ConfigDef.Importance THREAD_POOL_SIZE_IMPORTANCE =
+      ConfigDef.Importance.MEDIUM;
+  private static final String THREAD_POOL_SIZE_DOC =
+      "The size of the BigQuery write thread pool. This establishes the maximum number of "
+      + "concurrent writes to BigQuery.";
+
+  public static final String QUEUE_SIZE_CONFIG =                    "queueSize";
+  private static final ConfigDef.Type QUEUE_SIZE_TYPE =             ConfigDef.Type.LONG;
+  // should this even have a default?
+  public static final Long QUEUE_SIZE_DEFAULT =                     -1L;
+  private static final ConfigDef.Validator QUEUE_SIZE_VALIDATOR =   ConfigDef.Range.atLeast(-1);
+  private static final ConfigDef.Importance QUEUE_SIZE_IMPORTANCE = ConfigDef.Importance.HIGH;
+  private static final String QUEUE_SIZE_DOC =
+      "The maximum size (or -1 for no maximum size) of the worker queue for bigQuery write "
+      + "requests before all topics are paused. This is a soft limit; the size of the queue can "
+      + "go over this before topics are paused. All topics will be resumed once a flush is "
+      + "requested or the size of the queue drops under half of the maximum size.";
 
   public static final String BIGQUERY_RETRY_CONFIG =                    "bigQueryRetry";
   private static final ConfigDef.Type BIGQUERY_RETRY_TYPE =             ConfigDef.Type.INT;
@@ -79,12 +92,19 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
             SCHEMA_UPDATE_IMPORTANCE,
             SCHEMA_UPDATE_DOC
         ).define(
-            BUFFER_SIZE_CONFIG,
-            BUFFER_SIZE_TYPE,
-            BUFFER_SIZE_DEFAULT,
-            BUFFER_SIZE_VALIDATOR,
-            BUFFER_SIZE_IMPORTANCE,
-            BUFFER_SIZE_DOC
+            THREAD_POOL_SIZE_CONFIG,
+            THREAD_POOL_SIZE_TYPE,
+            THREAD_POOL_SIZE_DEFAULT,
+            THREAD_POOL_SIZE_VALIDATOR,
+            THREAD_POOL_SIZE_IMPORTANCE,
+            THREAD_POOL_SIZE_DOC
+        ).define(
+            QUEUE_SIZE_CONFIG,
+            QUEUE_SIZE_TYPE,
+            QUEUE_SIZE_DEFAULT,
+            QUEUE_SIZE_VALIDATOR,
+            QUEUE_SIZE_IMPORTANCE,
+            QUEUE_SIZE_DOC
         ).define(
             BIGQUERY_RETRY_CONFIG,
             BIGQUERY_RETRY_TYPE,

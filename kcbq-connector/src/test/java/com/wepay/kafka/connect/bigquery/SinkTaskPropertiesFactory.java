@@ -29,8 +29,6 @@ public class SinkTaskPropertiesFactory extends SinkPropertiesFactory {
 
     properties.put(BigQuerySinkTaskConfig.SCHEMA_UPDATE_CONFIG, "false");
 
-    properties.put(BigQuerySinkTaskConfig.BUFFER_SIZE_CONFIG, "100000");
-
     return properties;
   }
 
@@ -44,7 +42,5 @@ public class SinkTaskPropertiesFactory extends SinkPropertiesFactory {
     super.testProperties(config);
 
     config.getBoolean(config.SCHEMA_UPDATE_CONFIG);
-
-    config.getLong(config.BUFFER_SIZE_CONFIG);
   }
 }

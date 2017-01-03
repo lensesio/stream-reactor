@@ -27,14 +27,11 @@ import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.connect.data.Schema;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Set;
-
 
 /**
  * A simple BigQueryWriter implementation. Sends the request to BigQuery, and throws an exception if

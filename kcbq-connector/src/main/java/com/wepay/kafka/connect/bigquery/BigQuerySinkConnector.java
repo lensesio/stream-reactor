@@ -173,8 +173,6 @@ public class BigQuerySinkConnector extends SinkConnector {
     for (int i = 0; i < maxTasks; i++) {
       // Copy configProperties so that tasks can't interfere with each others' configurations
       HashMap<String, String> taskConfig = new HashMap<>(configProperties);
-      taskConfig.put(config.BATCH_WRITER_CONFIG,
-                     config.getClass(config.BATCH_WRITER_CONFIG).getCanonicalName());
       taskConfigs.add(taskConfig);
     }
     return taskConfigs;

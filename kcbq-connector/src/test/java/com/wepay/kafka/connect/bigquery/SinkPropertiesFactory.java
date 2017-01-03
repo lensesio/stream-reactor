@@ -19,7 +19,6 @@ package com.wepay.kafka.connect.bigquery;
 
 
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
-import com.wepay.kafka.connect.bigquery.write.batch.DynamicBatchWriter;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -43,8 +42,6 @@ public class SinkPropertiesFactory {
 
     properties.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "false");
     properties.put(BigQuerySinkConfig.AVRO_DATA_CACHE_SIZE_CONFIG, "10");
-    properties.put(BigQuerySinkConfig.BATCH_WRITER_CONFIG,
-                   DynamicBatchWriter.class.getCanonicalName()); // todo fix others.
 
     return properties;
   }
@@ -70,6 +67,5 @@ public class SinkPropertiesFactory {
 
     config.getBoolean(config.SANITIZE_TOPICS_CONFIG);
     config.getInt(config.AVRO_DATA_CACHE_SIZE_CONFIG);
-    config.getClass(config.BATCH_WRITER_CONFIG);
   }
 }
