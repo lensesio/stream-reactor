@@ -68,7 +68,7 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
     blockchainManager = Some(new BlockchainManager(settings))
     blockchainManager.foreach(_.start())
     logger.info("Data manager started")
-    timer.schedule(new LoggerTask, 0, 10000)
+    timer.schedule(new LoggerTask, 0, 60000)
   }
 
   /**

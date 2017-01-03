@@ -61,13 +61,7 @@ abstract class CoapManager(setting: CoapSetting) extends StrictLogging {
       r.getURI
     })
 
-    //check our resource
-    //allow sink to do a put and create the resources
-    if (!resources.contains(s"/${setting.target}") && !setting.sink) {
-      throw new ConfigException(s"Resource '${setting.target}' not discovered on ${setting.uri}!")
-    } else {
-      client.setURI(s"${setting.uri}/${setting.target}")
-    }
+    client.setURI(s"${setting.uri}/${setting.target}")
     client
   }
 

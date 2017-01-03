@@ -83,7 +83,7 @@ class VoltSinkTask extends SinkTask with StrictLogging {
       context.timeout(sinkConfig.getInt(VoltSinkConfig.ERROR_RETRY_INTERVAL_CONFIG).toLong)
     }
     writer = Some(new VoltDbWriter(voltSettings))
-    timer.schedule(new LoggerTask, 0, 10000)
+    timer.schedule(new LoggerTask, 0, 60000)
   }
 
   /**

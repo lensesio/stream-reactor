@@ -54,7 +54,7 @@ class CoapSinkTask extends SinkTask with StrictLogging {
     val sinkConfig = CoapConfig(props)
     val settings = CoapSettings(sinkConfig, sink = true)
     settings.map(s => (s.kcql.getSource, CoapWriter(s))).map({ case (k,v) => writers.put(k,v)})
-    timer.schedule(new LoggerTask, 0, 10000)
+    timer.schedule(new LoggerTask, 0, 60000)
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {

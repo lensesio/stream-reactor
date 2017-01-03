@@ -42,6 +42,8 @@ case class CoapSetting(uri: String,
                        retries: Int,
                        errorPolicy: ErrorPolicy,
                        target : String,
+                       bindHost: String,
+                       bindPort: Int,
                        sink: Boolean)
 
 object CoapSettings {
@@ -69,6 +71,8 @@ object CoapSettings {
     val retries = config.getInt(CoapConfig.NBR_OF_RETRIES)
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(CoapConfig.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
+    val bindPort = if (sink) config.getInt(CoapConfig.COAP_SINK_DTLS_BIND_PORT) else config.getInt(CoapConfig.COAP_SOURCE_DTLS_BIND_PORT)
+    val bindHost = if (sink) config.getString(CoapConfig.COAP_SINK_DTLS_BIND_HOST) else config.getString(CoapConfig.COAP_SOURCE_DTLS_BIND_HOST)
 
     routes.map(r =>
                   new CoapSetting(uri,
@@ -82,6 +86,8 @@ object CoapSettings {
                   retries,
                   errorPolicy,
                   if (sink) r.getTarget else r.getSource,
+                  bindHost,
+                  bindPort,
                   sink)
     )
   }

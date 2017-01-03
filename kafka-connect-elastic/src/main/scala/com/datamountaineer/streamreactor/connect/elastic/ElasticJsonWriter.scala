@@ -44,7 +44,7 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
     *
     * */
   private def createIndexes() : Unit = {
-   settings.tableMap.map({ case(_,v) => client.execute( { create index v })})
+   settings.tableMap.map({ case(_,v) => client.execute( { create index v.toLowerCase() })})
   }
 
   /**

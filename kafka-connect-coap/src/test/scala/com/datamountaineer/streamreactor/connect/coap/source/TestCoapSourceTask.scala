@@ -49,7 +49,7 @@ class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase {
 
   before {
     server.start()
-    Thread.sleep(2000)
+    Thread.sleep(5000)
   }
 
   after {
@@ -61,24 +61,25 @@ class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase {
   ScandiumLogger.initialize()
   ScandiumLogger.setLevel(Level.INFO)
 
-
   "should create a secure reader and read a message" in {
     implicit val system = ActorSystem()
     implicit val timeout = Timeout(60 seconds)
     val props = getPropsSecure
     val config = CoapConfig(props)
+    val producerConfig = CoapConfig(getTestSourceProps)
     val settings = CoapSettings(config, sink = false)
+    val producerSettings = CoapSettings(producerConfig, sink = false)
     val actorProps = CoapReader(settings)
     val reader = system.actorOf(actorProps.head._2, actorProps.head._1)
     //start the reader
     reader ? StartChangeFeed
 
     //get secure client to put messages in
-    val dtlsConnector = new DTLSConnector(DTLSConnectionFn(settings.head))
+    val dtlsConnector = new DTLSConnector(DTLSConnectionFn(producerSettings.head))
     val client = new CoapClient(new URI(s"$SOURCE_URI_SECURE/$RESOURCE_SECURE"))
     client.setEndpoint(new CoapEndpoint(dtlsConnector, NetworkConfig.getStandard()))
     client.post("Message1", 0)
-    Thread.sleep(3000)
+    Thread.sleep(5000)
 
     //ask for records
     val records = ActorHelper.askForRecords(reader)

@@ -78,7 +78,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
         |
         | By Andrew Stevenson.""".stripMargin)
     writer = Some(CassandraWriter(connectorConfig = taskConfig, context = context))
-    timer.schedule(new LoggerTask, 0, 10000)
+    timer.schedule(new LoggerTask, 0, 60000)
   }
 
   /**

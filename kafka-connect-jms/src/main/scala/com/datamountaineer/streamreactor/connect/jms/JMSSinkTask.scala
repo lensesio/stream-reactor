@@ -80,7 +80,7 @@ class JMSSinkTask extends SinkTask with StrictLogging {
     }
 
     writer = Some(JMSWriter(settings))
-    timer.schedule(new LoggerTask, 0, 10000)
+    timer.schedule(new LoggerTask, 0, 60000)
   }
 
   /**

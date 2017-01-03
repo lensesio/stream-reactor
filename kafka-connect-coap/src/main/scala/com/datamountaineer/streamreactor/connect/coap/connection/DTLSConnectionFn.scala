@@ -19,7 +19,7 @@
 package com.datamountaineer.streamreactor.connect.coap.connection
 
 import java.io.FileInputStream
-import java.net.InetSocketAddress
+import java.net.{InetAddress, InetSocketAddress}
 import java.security.cert.Certificate
 import java.security.{KeyStore, PrivateKey}
 
@@ -46,7 +46,8 @@ object DTLSConnectionFn {
     val privateKey = keyStore.getKey(setting.chainKey, setting.keyStorePass.value().toCharArray).asInstanceOf[PrivateKey]
     val certChain = keyStore.getCertificateChain(setting.chainKey)
 
-    val builder = new DtlsConnectorConfig.Builder(new InetSocketAddress(0))
+    val addr = new InetSocketAddress(InetAddress.getByName(setting.bindHost), setting.bindPort)
+    val builder = new DtlsConnectorConfig.Builder(addr)
     //builder.setPskStore(new StaticPskStore("Client_identity", "secretPSK".getBytes()))
     builder.setIdentity(privateKey, certChain, true)
     builder.setTrustStore(certificates)

@@ -57,7 +57,7 @@ class CoapSourceTask extends SourceTask with StrictLogging {
     val actorProps = CoapReader(settings)
     readers = actorProps.map({ case (source, prop) => system.actorOf(prop, source) }).toSet
     readers.foreach( _ ! StartChangeFeed)
-    timer.schedule(new LoggerTask, 0, 10000)
+    timer.schedule(new LoggerTask, 0, 60000)
   }
 
   override def poll(): util.List[SourceRecord] = {

@@ -55,7 +55,7 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/rethink-sink-ascii.txt")).mkString)
     val sinkConfig = ReThinkSinkConfig(props)
     writer = Some(ReThinkWriter(config = sinkConfig, context = context))
-    timer.schedule(new LoggerTask, 0, 10000)
+    timer.schedule(new LoggerTask, 0, 60000)
   }
 
   /**

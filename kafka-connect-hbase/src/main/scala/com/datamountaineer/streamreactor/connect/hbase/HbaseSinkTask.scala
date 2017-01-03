@@ -87,7 +87,7 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
           |$hbaseSettings
       """.stripMargin)
     writer = Some(WriterFactoryFn(hbaseSettings))
-    timer.schedule(new LoggerTask, 0, 10000)
+    timer.schedule(new LoggerTask, 0, 60000)
   }
 
   /**

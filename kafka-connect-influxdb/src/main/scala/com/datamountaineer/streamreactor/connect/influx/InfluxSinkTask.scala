@@ -82,7 +82,7 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
     }
 
     writer = Some(WriterFactoryFn(influxSettings))
-    timer.schedule(new LoggerTask, 0, 10000)
+    timer.schedule(new LoggerTask, 0, 60000)
   }
 
   /**

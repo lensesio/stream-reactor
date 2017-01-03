@@ -99,7 +99,20 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       CoapConfig.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
       CoapConfig.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
       CoapConfig.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
-      CoapConfig.COAP_TRUST_CERTS->"root"
+      CoapConfig.COAP_TRUST_CERTS->"root",
+      CoapConfig.COAP_SINK_DTLS_BIND_PORT->"63367"
+    ).asJava
+  }
+
+  def getTestSink: util.Map[String, String] = {
+    Map(CoapConfig.COAP_KCQL->SINK_KCQL_SECURE,
+      CoapConfig.COAP_URI->SINK_URI_SECURE,
+      CoapConfig.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
+      CoapConfig.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
+      CoapConfig.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
+      CoapConfig.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
+      CoapConfig.COAP_TRUST_CERTS->"root",
+      CoapConfig.COAP_SINK_DTLS_BIND_PORT->"63366"
     ).asJava
   }
 
@@ -110,7 +123,20 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       CoapConfig.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
       CoapConfig.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
       CoapConfig.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
-      CoapConfig.COAP_TRUST_CERTS->"root"
+      CoapConfig.COAP_TRUST_CERTS->"root",
+      CoapConfig.COAP_SOURCE_DTLS_BIND_PORT->"63368"
+    ).asJava
+  }
+
+  def getTestSourceProps: util.Map[String, String] = {
+    Map(CoapConfig.COAP_KCQL->SOURCE_KCQL_SECURE,
+      CoapConfig.COAP_URI->SOURCE_URI_SECURE,
+      CoapConfig.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
+      CoapConfig.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
+      CoapConfig.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
+      CoapConfig.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
+      CoapConfig.COAP_TRUST_CERTS->"root",
+      CoapConfig.COAP_SOURCE_DTLS_BIND_PORT->"63369"
     ).asJava
   }
 
@@ -120,7 +146,8 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       CoapConfig.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
       CoapConfig.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
       CoapConfig.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
-      CoapConfig.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH
+      CoapConfig.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
+      CoapConfig.COAP_SOURCE_DTLS_BIND_PORT->"9998"
     ).asJava
   }
 

@@ -98,7 +98,7 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
 
     dataManager.foreach(_.start())
     logger.info("Data manager started")
-    timer.schedule(new LoggerTask, 0, 10000)
+    timer.schedule(new LoggerTask, 0, 60000)
   }
 
   /**

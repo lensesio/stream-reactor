@@ -106,7 +106,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
         List(new RedisMultipleSortedSets(modeCache))
       }).flatten.toList
 
-    timer.schedule(new LoggerTask, 0, 10000)
+    timer.schedule(new LoggerTask, 0, 60000)
 
   }
 

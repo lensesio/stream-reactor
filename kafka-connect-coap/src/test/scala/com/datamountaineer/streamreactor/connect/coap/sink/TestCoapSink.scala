@@ -86,9 +86,9 @@ class TestCoapSink extends WordSpec  with BeforeAndAfter with TestBase {
     val json = records.map(r => SinkRecordToJson(r, Map.empty, Map.empty))
     task.put(records.asJava)
 
-    val config = CoapConfig(props)
-    val settings = CoapSettings(config, sink = true)
-    val dtlsConnector = new DTLSConnector(DTLSConnectionFn(settings.head))
+    val producerConfig = CoapConfig(getTestSink)
+    val producerSettings = CoapSettings(producerConfig, sink = true)
+    val dtlsConnector = new DTLSConnector(DTLSConnectionFn(producerSettings.head))
     val client = new CoapClient(s"$SINK_URI_SECURE/$RESOURCE_SECURE")
     client.setEndpoint(new CoapEndpoint(dtlsConnector, NetworkConfig.getStandard()))
 

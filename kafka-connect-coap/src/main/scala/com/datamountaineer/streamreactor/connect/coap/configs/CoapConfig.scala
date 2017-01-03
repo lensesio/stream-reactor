@@ -41,6 +41,23 @@ object CoapConfig {
   val COAP_URI_DOC = "The COAP server to connect to."
   val COAP_URI_DEFAULT = "localhost"
 
+  val COAP_SOURCE_DTLS_BIND_PORT = "connect.coap.source.bind.port"
+  val COAP_SOURCE_DTLS_BIND_PORT_DEFAULT = 0
+  val COAP_SOURCE_DTLS_BIND_PORT_DOC = "The port the DTLS connector will bind to on the Connector host."
+
+  val COAP_SOURCE_DTLS_BIND_HOST = "connect.coap.source.bind.host"
+  val COAP_SOURCE_DTLS_BIND_HOST_DEFAULT = "localhost"
+  val COAP_SOURCE_DTLS_BIND_HOST_DOC = "The hostname the DTLS connector will bind to on the Connector host."
+
+  val COAP_SINK_DTLS_BIND_PORT = "connect.coap.sink.bind.port"
+  val COAP_SINK_DTLS_BIND_PORT_DEFAULT = 0
+  val COAP_SINK_DTLS_BIND_PORT_DOC = "The port the DTLS connector will bind to on the Connector host."
+
+  val COAP_SINK_DTLS_BIND_HOST = "connect.coap.sink.bind.host"
+  val COAP_SINK_DTLS_BIND_HOST_DEFAULT = "localhost"
+  val COAP_SINK_DTLS_BIND_HOST_DOC = "The hostname the DTLS connector will bind to on the Connector host."
+
+
   //Security
   val COAP_TRUST_STORE_PASS = "connect.coap.source.truststore.pass"
   val COAP_TRUST_STORE_PASS_DOC = "The password of the trust store."
@@ -106,6 +123,14 @@ object CoapConfig {
       "Connection", 6, ConfigDef.Width.LONG, COAP_KEY_STORE_PASS)
     .define(COAP_CERT_CHAIN_KEY, Type.STRING, COAP_CERT_CHAIN_KEY_DEFAULT, Importance.LOW, COAP_CERT_CHAIN_KEY_DOC,
       "Connection", 7, ConfigDef.Width.LONG, COAP_CERT_CHAIN_KEY)
+    .define(COAP_SOURCE_DTLS_BIND_PORT, Type.INT, COAP_SOURCE_DTLS_BIND_PORT_DEFAULT, Importance.LOW, COAP_SOURCE_DTLS_BIND_PORT_DOC,
+      "Connection", 8, ConfigDef.Width.LONG, COAP_SOURCE_DTLS_BIND_PORT)
+    .define(COAP_SINK_DTLS_BIND_PORT, Type.INT, COAP_SINK_DTLS_BIND_PORT_DEFAULT, Importance.LOW, COAP_SINK_DTLS_BIND_PORT_DOC,
+      "Connection", 9, ConfigDef.Width.LONG, COAP_SINK_DTLS_BIND_PORT)
+    .define(COAP_SOURCE_DTLS_BIND_HOST, Type.STRING, COAP_SOURCE_DTLS_BIND_HOST_DEFAULT, Importance.LOW, COAP_SOURCE_DTLS_BIND_HOST_DOC,
+      "Connection", 10, ConfigDef.Width.LONG, COAP_SOURCE_DTLS_BIND_HOST)
+    .define(COAP_SINK_DTLS_BIND_HOST, Type.STRING, COAP_SINK_DTLS_BIND_HOST_DEFAULT, Importance.LOW, COAP_SINK_DTLS_BIND_HOST_DOC,
+      "Connection", 11, ConfigDef.Width.LONG, COAP_SINK_DTLS_BIND_HOST)
     .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC,
       "Error", 1, ConfigDef.Width.LONG, ERROR_POLICY)
     .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC,

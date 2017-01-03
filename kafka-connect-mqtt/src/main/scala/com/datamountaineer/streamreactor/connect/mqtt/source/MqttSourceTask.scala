@@ -82,7 +82,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
     }
     logger.info("Starting Mqtt source...")
     mqttManager = Some(new MqttManager(MqttClientConnectionFn.apply, convertersMap, settings.mqttQualityOfService, settings.kcql.map(Config.parse), settings.throwOnConversion))
-    timer.schedule(new LoggerTask, 0, 10000)
+    timer.schedule(new LoggerTask, 0, 60000)
   }
 
   /**
