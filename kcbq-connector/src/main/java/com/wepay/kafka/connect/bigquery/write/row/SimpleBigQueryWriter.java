@@ -26,7 +26,6 @@ import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
-import org.apache.kafka.common.metrics.Metrics;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,10 +45,9 @@ public class SimpleBigQueryWriter extends BigQueryWriter {
    * @param bigQuery The object used to send write requests to BigQuery.
    * @param retry How many retries to make in the event of a 500/503 error.
    * @param retryWait How long to wait in between retries.
-   * @param metrics Metrics for kcbq.
    */
-  public SimpleBigQueryWriter(BigQuery bigQuery, int retry, long retryWait, Metrics metrics) {
-    super(retry, retryWait, metrics);
+  public SimpleBigQueryWriter(BigQuery bigQuery, int retry, long retryWait) {
+    super(retry, retryWait);
     this.bigQuery = bigQuery;
   }
 

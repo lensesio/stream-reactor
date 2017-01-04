@@ -31,7 +31,6 @@ import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
 
-import com.wepay.kafka.connect.bigquery.utils.MetricsConstants;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import com.wepay.kafka.connect.bigquery.utils.TopicToTableResolver;
 import com.wepay.kafka.connect.bigquery.utils.Version;
@@ -46,12 +45,6 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.ConfigException;
-
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.Sensor;
-import org.apache.kafka.common.metrics.stats.Avg;
-import org.apache.kafka.common.metrics.stats.Max;
-import org.apache.kafka.common.metrics.stats.Rate;
 
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -83,9 +76,6 @@ public class BigQuerySinkTask extends SinkTask {
   private TopicPartitionManager topicPartitionManager;
 
   private KCBQThreadPoolExecutor executor;
-
-  private Metrics metrics;
-  private Sensor rowsRead;
 
   public BigQuerySinkTask() {
     testBigQuery = null;
@@ -202,28 +192,10 @@ public class BigQuerySinkTask extends SinkTask {
       return new AdaptiveBigQueryWriter(bigQuery,
                                         getSchemaManager(bigQuery),
                                         retry,
-                                        retryWait,
-                                        metrics);
+                                        retryWait);
     } else {
-      return new SimpleBigQueryWriter(bigQuery, retry, retryWait, metrics);
+      return new SimpleBigQueryWriter(bigQuery, retry, retryWait);
     }
-  }
-
-  private void configureMetrics() {
-    metrics = new Metrics();
-    rowsRead = metrics.sensor("rows-read");
-    rowsRead.add(metrics.metricName("rows-read-avg",
-                                    MetricsConstants.groupName,
-                                    "The average number of rows written per request"),
-                 new Avg());
-    rowsRead.add(metrics.metricName("rows-read-max",
-                                    MetricsConstants.groupName,
-                                    "The maximum number of rows written per request"),
-                 new Max());
-    rowsRead.add(metrics.metricName("rows-read-rate",
-                                    MetricsConstants.groupName,
-                                    "The average number of rows written per second"),
-                 new Rate());
   }
 
   @Override
@@ -237,8 +209,6 @@ public class BigQuerySinkTask extends SinkTask {
           err
       );
     }
-
-    configureMetrics();
 
     bigQueryWriter = getBigQueryWriter();
     topicsToBaseTableIds = TopicToTableResolver.getTopicsToTables(config);

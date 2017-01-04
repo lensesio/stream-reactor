@@ -23,14 +23,7 @@ import com.google.cloud.bigquery.InsertAllRequest;
 
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 
-import com.wepay.kafka.connect.bigquery.utils.MetricsConstants;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.Sensor;
-import org.apache.kafka.common.metrics.stats.Avg;
-import org.apache.kafka.common.metrics.stats.Count;
-import org.apache.kafka.common.metrics.stats.Max;
-import org.apache.kafka.common.metrics.stats.Rate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,9 +49,6 @@ public abstract class BigQueryWriter {
 
   private static final Random random = new Random();
 
-  private final Sensor rowsWritten;
-  private final Sensor requestRetries;
-
   private int retries;
   private long retryWaitMs;
 
@@ -67,40 +57,10 @@ public abstract class BigQueryWriter {
    *                or a service unavailable error.
    * @param retryWaitMs the amount of time to wait in between reattempting a request if BQ returns
    *                    an internal service error or a service unavailable error.
-   * @param metrics kafka {@link Metrics}.
    */
-  public BigQueryWriter(int retries, long retryWaitMs, Metrics metrics) {
+  public BigQueryWriter(int retries, long retryWaitMs) {
     this.retries = retries;
     this.retryWaitMs = retryWaitMs;
-
-    rowsWritten = metrics.sensor("rows-written");
-    rowsWritten.add(metrics.metricName("rows-written-avg",
-                                       MetricsConstants.groupName,
-                                       "The average number of rows written per request"),
-                    new Avg());
-    rowsWritten.add(metrics.metricName("rows-written-max",
-                                       MetricsConstants.groupName,
-                                       "The maximum number of rows written per request"),
-                    new Max());
-    rowsWritten.add(metrics.metricName("rows-written-rate",
-                                       MetricsConstants.groupName,
-                                       "The average number of rows written per second"),
-                    new Rate());
-
-    requestRetries = metrics.sensor("request-retries");
-    requestRetries.add(metrics.metricName("request-retries-avg",
-                                          MetricsConstants.groupName,
-                                          "The average number of retries per request"),
-                       new Avg());
-    requestRetries.add(metrics.metricName("request-retries-max",
-                                          MetricsConstants.groupName,
-                                          "The maximum number of retry attempts made for a single "
-                                          + "request"),
-                       new Max());
-    requestRetries.add(metrics.metricName("request-retries-count",
-                                          MetricsConstants.groupName,
-                                          "The total number of retry attempts made"),
-                       new Count());
   }
 
   /**
@@ -150,8 +110,6 @@ public abstract class BigQueryWriter {
       }
       try {
         performWriteRequest(table, rows, topic);
-        requestRetries.record(retryCount);
-        rowsWritten.record(rows.size());
         return;
       } catch (BigQueryException err) {
         mostRecentException = err;
@@ -182,7 +140,6 @@ public abstract class BigQueryWriter {
         }
       }
     } while (retryCount <= retries);
-    requestRetries.record(retryCount);
     throw new BigQueryConnectException(
         String.format("Exceeded configured %d attempts for write request", retries),
         mostRecentException);
