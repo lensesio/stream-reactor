@@ -88,8 +88,16 @@ public class TableWriter implements Runnable {
       throw new ConnectException("Thread interrupted while writing to BigQuery.", err);
     }
 
-    logger.info("Wrote {} rows over {} successful calls and {} failed calls.",
-                rows.size(), successCount, failureCount);
+    // Common case is 1 successful call and 0 failed calls:
+    // Write to info if uncommon case,
+    // Write to debug if common case
+    String logMessage = "Wrote {} rows over {} successful calls and {} failed calls.";
+    if (successCount + failureCount > 1) {
+      logger.info(logMessage, rows.size(), successCount, failureCount);
+    }
+    else {
+      logger.debug(logMessage, rows.size(), successCount, failureCount);
+    }
 
   }
 
