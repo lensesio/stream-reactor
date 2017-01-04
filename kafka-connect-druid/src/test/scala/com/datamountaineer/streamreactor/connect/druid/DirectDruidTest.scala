@@ -19,52 +19,37 @@
 package com.datamountaineer.streamreactor.connect.druid
 
 
+import java.io.{File, InputStreamReader}
+import java.net.{BindException, URLClassLoader}
+
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.common.base.Charsets
-import com.google.common.io.CharStreams
-import com.google.common.io.Files
+import com.google.common.io.{CharStreams, Files}
 import com.google.inject.Injector
 import com.metamx.collections.spatial.search.RectangularBound
 import com.metamx.common.lifecycle.Lifecycle
-import com.metamx.common.scala.Jackson
-import com.metamx.common.scala.Logging
+import com.metamx.common.scala.{Jackson, Logging}
+import com.metamx.common.scala.Predef._
 import com.metamx.common.scala.concurrent._
 import com.metamx.common.scala.control._
 import com.metamx.common.scala.timekeeper.Timekeeper
 import com.metamx.common.scala.untyped._
-import io.druid.cli.CliBroker
-import io.druid.cli.CliCoordinator
-import io.druid.cli.CliOverlord
-import io.druid.cli.GuiceRunnable
+import io.druid.cli.{CliBroker, CliCoordinator, CliOverlord, GuiceRunnable}
 import io.druid.granularity.QueryGranularities
 import io.druid.guice.GuiceInjectors
-import io.druid.query.Druids
-import io.druid.query.Query
-import io.druid.query.aggregation.AggregatorFactory
-import io.druid.query.aggregation.LongSumAggregatorFactory
+import io.druid.query.{Druids, Query}
+import io.druid.query.aggregation.{AggregatorFactory, LongSumAggregatorFactory}
 import io.druid.query.filter.SpatialDimFilter
 import io.druid.server.ClientQuerySegmentWalker
-import java.io.File
-import java.io.InputStreamReader
-import java.net.BindException
-import java.net.URLClassLoader
-
-import org.apache.curator.framework.CuratorFramework
+import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
+import org.apache.curator.retry.BoundedExponentialBackoffRetry
+import org.apache.curator.test.{InstanceSpec, TestingCluster}
 import org.scala_tools.time.Imports._
 import org.scalatest.FunSuite
 
 import scala.collection.JavaConverters._
-import scala.reflect.ClassTag
-import scala.reflect.classTag
+import scala.reflect.{ClassTag, classTag}
 import scala.util.Random
-import com.metamx.common.scala.Predef._
-import com.metamx.common.scala.control._
-import java.net.BindException
-
-import org.apache.curator.framework.CuratorFramework
-import org.apache.curator.framework.CuratorFrameworkFactory
-import org.apache.curator.retry.BoundedExponentialBackoffRetry
-import org.apache.curator.test.{InstanceSpec, TestingCluster}
 
 trait CuratorRequiringSuite
 {

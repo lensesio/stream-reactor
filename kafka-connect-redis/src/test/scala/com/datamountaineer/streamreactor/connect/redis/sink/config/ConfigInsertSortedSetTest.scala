@@ -20,6 +20,7 @@ package com.datamountaineer.streamreactor.connect.redis.sink.config
 
 import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSupport
 import org.scalatest.{Matchers, WordSpec}
+
 import scala.collection.JavaConverters._
 
 /**

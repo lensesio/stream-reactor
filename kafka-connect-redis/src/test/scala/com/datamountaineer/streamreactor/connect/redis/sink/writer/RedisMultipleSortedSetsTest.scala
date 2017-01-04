@@ -27,6 +27,7 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import redis.clients.jedis.Jedis
 import redis.embedded.RedisServer
+
 import scala.collection.JavaConverters._
 
 class RedisMultipleSortedSetsTest extends WordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {

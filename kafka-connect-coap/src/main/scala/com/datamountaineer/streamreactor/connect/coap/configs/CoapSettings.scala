@@ -22,8 +22,8 @@ import java.io.File
 
 import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum}
-import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
+import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 
 import scala.collection.JavaConverters._
 
@@ -39,40 +39,43 @@ case class CoapSetting(uri: String,
                        certs: Array[String],
                        chainKey: String,
                        kcql : Config,
-                       retries: Int,
-                       errorPolicy: ErrorPolicy,
+                       retries: Option[Int],
+                       errorPolicy: Option[ErrorPolicy],
                        target : String,
                        bindHost: String,
                        bindPort: Int,
                        sink: Boolean)
 
 object CoapSettings {
-  def apply(config: CoapConfig, sink: Boolean): Set[CoapSetting] = {
-    val uri = config.getString(CoapConfig.COAP_URI)
-    val keyStoreLoc = config.getString(CoapConfig.COAP_KEY_STORE_PATH)
-    val keyStorePass = config.getPassword(CoapConfig.COAP_KEY_STORE_PASS)
-    val trustStoreLoc = config.getString(CoapConfig.COAP_TRUST_STORE_PATH)
-    val trustStorePass = config.getPassword(CoapConfig.COAP_TRUST_STORE_PASS)
-    val certs = config.getList(CoapConfig.COAP_TRUST_CERTS).asScala.toArray
-    val certChainKey = config.getString(CoapConfig.COAP_CERT_CHAIN_KEY)
+  def apply(config: AbstractConfig): Set[CoapSetting] = {
+    val uri = config.getString(CoapConstants.COAP_URI)
+    val keyStoreLoc = config.getString(CoapConstants.COAP_KEY_STORE_PATH)
+    val keyStorePass = config.getPassword(CoapConstants.COAP_KEY_STORE_PASS)
+    val trustStoreLoc = config.getString(CoapConstants.COAP_TRUST_STORE_PATH)
+    val trustStorePass = config.getPassword(CoapConstants.COAP_TRUST_STORE_PASS)
+    val certs = config.getList(CoapConstants.COAP_TRUST_CERTS).asScala.toArray
+    val certChainKey = config.getString(CoapConstants.COAP_CERT_CHAIN_KEY)
 
     if (keyStoreLoc.nonEmpty && !new File(keyStoreLoc).exists()) {
-      throw new ConfigException(s"${CoapConfig.COAP_KEY_STORE_PATH} is invalid. Can't locate $keyStoreLoc")
+      throw new ConfigException(s"${CoapConstants.COAP_KEY_STORE_PATH} is invalid. Can't locate $keyStoreLoc")
     }
 
     if (trustStoreLoc.nonEmpty && !new File(trustStoreLoc).exists()) {
-      throw new ConfigException(s"${CoapConfig.COAP_TRUST_STORE_PATH} is invalid. Can't locate $trustStoreLoc")
+      throw new ConfigException(s"${CoapConstants.COAP_TRUST_STORE_PATH} is invalid. Can't locate $trustStoreLoc")
     }
 
-    val raw = config.getString(CoapConfig.COAP_KCQL)
-    require(raw != null && !raw.isEmpty, s"No ${CoapConfig.COAP_KCQL} provided!")
+    val raw = config.getString(CoapConstants.COAP_KCQL)
+    require(raw != null && !raw.isEmpty, s"No ${CoapConstants.COAP_KCQL} provided!")
     val routes = raw.split(";").map(r => Config.parse(r)).toSet
 
-    val retries = config.getInt(CoapConfig.NBR_OF_RETRIES)
-    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(CoapConfig.ERROR_POLICY).toUpperCase)
-    val errorPolicy = ErrorPolicy(errorPolicyE)
-    val bindPort = if (sink) config.getInt(CoapConfig.COAP_SINK_DTLS_BIND_PORT) else config.getInt(CoapConfig.COAP_SOURCE_DTLS_BIND_PORT)
-    val bindHost = if (sink) config.getString(CoapConfig.COAP_SINK_DTLS_BIND_HOST) else config.getString(CoapConfig.COAP_SOURCE_DTLS_BIND_HOST)
+    val sink = if (config.isInstanceOf[CoapSinkConfig]) true else false
+    val bindPort = if (sink) config.getInt(CoapConstants.COAP_SINK_DTLS_BIND_PORT) else config.getInt(CoapConstants.COAP_SOURCE_DTLS_BIND_PORT)
+    val bindHost = if (sink) config.getString(CoapConstants.COAP_SINK_DTLS_BIND_HOST) else config.getString(CoapConstants.COAP_SOURCE_DTLS_BIND_HOST)
+
+
+    val errorPolicyE = if (sink) Some(ErrorPolicyEnum.withName(config.getString(CoapConstants.ERROR_POLICY).toUpperCase)) else None
+    val errorPolicy = if (sink) Some(ErrorPolicy(errorPolicyE.get)) else None
+    val retries = if (sink) Some(config.getInt(CoapConstants.NBR_OF_RETRIES).toInt) else None
 
     routes.map(r =>
                   new CoapSetting(uri,

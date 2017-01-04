@@ -20,9 +20,8 @@ package com.datamountaineer.streamreactor.connect.coap.connection
 
 import java.net.{ConnectException, URI}
 
-import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConfig, CoapSetting}
+import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConfig, CoapConstants, CoapSetting}
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.ConfigException
 import org.eclipse.californium.core.network.CoapEndpoint
 import org.eclipse.californium.core.network.config.NetworkConfig
 import org.eclipse.californium.core.{CoapClient, CoapResponse}
@@ -37,8 +36,8 @@ abstract class CoapManager(setting: CoapSetting) extends StrictLogging {
   val configUri = new URI(setting.uri)
 
   val uri = configUri.getHost match {
-    case CoapConfig.COAP_DISCOVER_IP4 => discoverServer(CoapConfig.COAP_DISCOVER_IP4_ADDRESS, configUri)
-    case CoapConfig.COAP_DISCOVER_IP6 => discoverServer(CoapConfig.COAP_DISCOVER_IP6_ADDRESS, configUri)
+    case CoapConstants.COAP_DISCOVER_IP4 => discoverServer(CoapConstants.COAP_DISCOVER_IP4_ADDRESS, configUri)
+    case CoapConstants.COAP_DISCOVER_IP6 => discoverServer(CoapConstants.COAP_DISCOVER_IP6_ADDRESS, configUri)
     case _ => configUri
   }
 

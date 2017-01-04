@@ -18,7 +18,7 @@
 
 package com.datamountaineer.streamreactor.connect.coap.sink
 
-import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConfig, CoapSettings}
+import com.datamountaineer.streamreactor.connect.coap.configs.{CoapSettings, CoapSinkConfig}
 import com.datamountaineer.streamreactor.connect.coap.connection.DTLSConnectionFn
 import com.datamountaineer.streamreactor.connect.coap.{Server, TestBase}
 import com.datamountaineer.streamreactor.connect.converters.source.SinkRecordToJson
@@ -86,8 +86,8 @@ class TestCoapSink extends WordSpec  with BeforeAndAfter with TestBase {
     val json = records.map(r => SinkRecordToJson(r, Map.empty, Map.empty))
     task.put(records.asJava)
 
-    val producerConfig = CoapConfig(getTestSink)
-    val producerSettings = CoapSettings(producerConfig, sink = true)
+    val producerConfig = CoapSinkConfig(getTestSink)
+    val producerSettings = CoapSettings(producerConfig)
     val dtlsConnector = new DTLSConnector(DTLSConnectionFn(producerSettings.head))
     val client = new CoapClient(s"$SINK_URI_SECURE/$RESOURCE_SECURE")
     client.setEndpoint(new CoapEndpoint(dtlsConnector, NetworkConfig.getStandard()))

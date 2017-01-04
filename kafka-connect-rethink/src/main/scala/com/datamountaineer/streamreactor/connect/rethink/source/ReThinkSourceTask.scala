@@ -30,8 +30,8 @@ import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
-import scala.concurrent.duration._
 import scala.concurrent.Await
+import scala.concurrent.duration._
 
 /**
   * Created by andrew@datamountaineer.com on 22/09/16. 

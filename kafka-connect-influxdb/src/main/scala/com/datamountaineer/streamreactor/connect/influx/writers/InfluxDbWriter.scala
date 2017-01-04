@@ -21,7 +21,6 @@ package com.datamountaineer.streamreactor.connect.influx.writers
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.influx.ValidateStringParameterFn
 import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.sink.DbWriter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord

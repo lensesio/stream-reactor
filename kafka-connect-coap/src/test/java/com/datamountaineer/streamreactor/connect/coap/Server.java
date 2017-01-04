@@ -18,6 +18,16 @@
 
 package com.datamountaineer.streamreactor.connect.coap;
 
+import org.eclipse.californium.core.CaliforniumLogger;
+import org.eclipse.californium.core.CoapServer;
+import org.eclipse.californium.core.network.CoapEndpoint;
+import org.eclipse.californium.core.network.Endpoint;
+import org.eclipse.californium.core.network.config.NetworkConfig;
+import org.eclipse.californium.core.network.interceptors.MessageTracer;
+import org.eclipse.californium.scandium.DTLSConnector;
+import org.eclipse.californium.scandium.ScandiumLogger;
+import org.eclipse.californium.scandium.config.DtlsConnectorConfig;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -28,16 +38,6 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.util.logging.Level;
-
-import org.eclipse.californium.core.CaliforniumLogger;
-import org.eclipse.californium.core.CoapServer;
-import org.eclipse.californium.core.network.CoapEndpoint;
-import org.eclipse.californium.core.network.Endpoint;
-import org.eclipse.californium.core.network.config.NetworkConfig;
-import org.eclipse.californium.core.network.interceptors.MessageTracer;
-import org.eclipse.californium.scandium.DTLSConnector;
-import org.eclipse.californium.scandium.ScandiumLogger;
-import org.eclipse.californium.scandium.config.DtlsConnectorConfig;
 
 public class Server {
 
@@ -61,23 +61,23 @@ public class Server {
 
     server = new CoapServer();
 
-    InetAddress addr = null;
-    try {
-      addr = InetAddress.getByName("224.0.1.187");
-    } catch (UnknownHostException e) {
-      e.printStackTrace();
-    }
-    InetSocketAddress bindToAddressSecure = new InetSocketAddress(addr, securePort);
-    CoapEndpoint multicastSecure = new CoapEndpoint(bindToAddressSecure);
-
-    InetSocketAddress bindToAddressInSecure = new InetSocketAddress(addr, insecurePort);
-    CoapEndpoint multicastInSecure = new CoapEndpoint(bindToAddressInSecure);
+//    InetAddress addr = null;
+//    try {
+//      addr = InetAddress.getByName("224.0.1.187");
+//    } catch (UnknownHostException e) {
+//      e.printStackTrace();
+//    }
+//    InetSocketAddress bindToAddressSecure = new InetSocketAddress(addr, securePort);
+//    CoapEndpoint multicastSecure = new CoapEndpoint(bindToAddressSecure);
+//
+//    InetSocketAddress bindToAddressInSecure = new InetSocketAddress(addr, insecurePort);
+//    CoapEndpoint multicastInSecure = new CoapEndpoint(bindToAddressInSecure);
 
     server.add(new ObservableResource("secure"));
     server.add(new ObservableResource("insecure"));
 
-    server.addEndpoint(multicastInSecure);
-    server.addEndpoint(multicastSecure);
+//    server.addEndpoint(multicastInSecure);
+//    server.addEndpoint(multicastSecure);
 
     secure = securePort;
     insecure = insecurePort;

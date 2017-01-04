@@ -19,15 +19,15 @@
 package com.datamountaineer.streamreactor.connect.yahoo.source
 
 import java.util
-import java.util.{Timer, TimerTask}
 import java.util.logging.Logger
+import java.util.{Timer, TimerTask}
 
 import com.datamountaineer.streamreactor.connect.yahoo.config.{YahooSettings, YahooSourceConfig}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
-import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 

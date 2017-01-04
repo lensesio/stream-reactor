@@ -21,14 +21,14 @@ package com.datamountaineer.streamreactor.connect.coap.sink
 import java.util
 import java.util.{Timer, TimerTask}
 
-import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConfig, CoapSettings}
+import com.datamountaineer.streamreactor.connect.coap.configs.{CoapSettings, CoapSinkConfig}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
-import scala.collection.mutable
 import scala.collection.JavaConversions._
+import scala.collection.mutable
 
 /**
   * Created by andrew@datamountaineer.com on 29/12/2016. 
@@ -51,8 +51,8 @@ class CoapSinkTask extends SinkTask with StrictLogging {
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-sink-ascii.txt")).mkString)
-    val sinkConfig = CoapConfig(props)
-    val settings = CoapSettings(sinkConfig, sink = true)
+    val sinkConfig = CoapSinkConfig(props)
+    val settings = CoapSettings(sinkConfig)
     settings.map(s => (s.kcql.getSource, CoapWriter(s))).map({ case (k,v) => writers.put(k,v)})
     timer.schedule(new LoggerTask, 0, 60000)
   }

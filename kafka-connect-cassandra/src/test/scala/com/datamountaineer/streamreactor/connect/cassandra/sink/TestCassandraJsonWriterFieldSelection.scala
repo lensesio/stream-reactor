@@ -18,8 +18,6 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 
-import java.nio.ByteBuffer
-
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil

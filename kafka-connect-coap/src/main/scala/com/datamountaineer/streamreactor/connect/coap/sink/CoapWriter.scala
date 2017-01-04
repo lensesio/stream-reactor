@@ -26,7 +26,6 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.eclipse.californium.core.CoapResponse
 import org.eclipse.californium.core.coap.MediaTypeRegistry
 
-import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
 import scala.util.Try
 
@@ -38,7 +37,7 @@ class CoapWriter(setting: CoapSetting) extends CoapManager(setting) with ErrorHa
   logger.info(s"Initialising CoapWriter for resource ${setting.kcql.getTarget}")
 
   //initialize error tracker
-  initialize(setting.retries, setting.errorPolicy)
+  initialize(setting.retries.get, setting.errorPolicy.get)
 
   val fields = Map(setting.kcql.getSource -> setting.kcql.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)
   val ignoredFields = Map(setting.kcql.getSource -> setting.kcql.getIgnoredField.toSet)

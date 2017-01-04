@@ -20,8 +20,8 @@ package com.datamountaineer.streamreactor.connect.druid.config
 
 import java.io.File
 
-import DruidSinkConfig._
 import com.datamountaineer.connector.config.Config
+import com.datamountaineer.streamreactor.connect.druid.config.DruidSinkConfig._
 import com.datamountaineer.streamreactor.connect.schemas.StructFieldsExtractor
 import org.apache.kafka.common.config.ConfigException
 

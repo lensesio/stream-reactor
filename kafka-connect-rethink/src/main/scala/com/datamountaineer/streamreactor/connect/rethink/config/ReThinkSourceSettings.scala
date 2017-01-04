@@ -19,7 +19,6 @@
 package com.datamountaineer.streamreactor.connect.rethink.config
 
 import com.datamountaineer.connector.config.Config
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
 
 /**
   * Created by andrew@datamountaineer.com on 22/09/16. 

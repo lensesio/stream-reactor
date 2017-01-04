@@ -30,8 +30,8 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord
 import org.eclipse.californium.core.{CoapHandler, CoapObserveRelation, CoapResponse, WebLink}
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 /**
   * Created by andrew@datamountaineer.com on 27/12/2016. 

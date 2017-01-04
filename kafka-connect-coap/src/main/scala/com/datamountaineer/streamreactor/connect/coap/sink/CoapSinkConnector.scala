@@ -20,11 +20,12 @@ package com.datamountaineer.streamreactor.connect.coap.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.coap.configs.CoapConfig
+import com.datamountaineer.streamreactor.connect.coap.configs.{CoapSinkConfig}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
+
 import scala.collection.JavaConverters._
 
 /**
@@ -33,7 +34,7 @@ import scala.collection.JavaConverters._
   */
 class CoapSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
-  private val configDef = CoapConfig.config
+  private val configDef = CoapSinkConfig.config
 
   override def taskClass(): Class[_ <: Task] = classOf[CoapSinkTask]
   override def start(props: util.Map[String, String]): Unit = configProps = props

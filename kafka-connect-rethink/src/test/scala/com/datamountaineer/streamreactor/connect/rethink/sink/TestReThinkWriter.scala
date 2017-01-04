@@ -19,7 +19,7 @@
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
 import com.datamountaineer.streamreactor.connect.rethink.TestBase
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkSettings, ReThinkSinkConfig}
+import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSinkSettings}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.gen.ast._

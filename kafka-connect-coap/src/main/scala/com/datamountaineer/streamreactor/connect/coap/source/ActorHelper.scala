@@ -18,14 +18,16 @@
 
 package com.datamountaineer.streamreactor.connect.coap.source
 
-import org.apache.kafka.connect.source.SourceRecord
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
-import akka.pattern.ask
-import akka.actor.ActorRef
-import com.typesafe.scalalogging.slf4j.StrictLogging
 import java.util
+
+import akka.actor.ActorRef
+import akka.pattern.ask
+import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.connect.source.SourceRecord
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 
 /**

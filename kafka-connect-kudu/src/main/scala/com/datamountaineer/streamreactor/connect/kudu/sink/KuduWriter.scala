@@ -28,7 +28,6 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.kududb.client._
 
 import scala.collection.JavaConverters._
-import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 

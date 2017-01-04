@@ -21,16 +21,16 @@ package com.datamountaineer.streamreactor.connect.druid.writer
 import java.io.ByteArrayInputStream
 import java.util
 
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import com.twitter.util.{Await, Future}
-import com.github.nscala_time.time.Imports._
-import org.apache.kafka.connect.data.Struct
-import org.apache.kafka.connect.sink.SinkRecord
+import com.datamountaineer.streamreactor.connect.druid.config.DruidSinkSettings
 import com.datamountaineer.streamreactor.connect.sink.DbWriter
+import com.github.nscala_time.time.Imports._
 import com.metamx.tranquility.config.TranquilityConfig
 import com.metamx.tranquility.druid.DruidBeams
-import com.datamountaineer.streamreactor.connect.druid.config.DruidSinkSettings
 import com.metamx.tranquility.tranquilizer.Tranquilizer
+import com.twitter.util.{Await, Future}
+import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._

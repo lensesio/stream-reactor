@@ -32,13 +32,13 @@ import com.datamountaineer.streamreactor.socketstreamer.domain.{HeartBeatMessage
 import com.datamountaineer.streamreactor.socketstreamer.flows.KafkaSourceCreateFn
 import com.datamountaineer.streamreactor.socketstreamer.{JacksonJson, SocketStreamerConfig}
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import de.heikoseeberger.akkasse.EventStreamMarshalling._
 import de.heikoseeberger.akkasse.{EventStreamMarshalling, ServerSentEvent}
 import io.confluent.kafka.serializers.KafkaAvroDecoder
 import kafka.serializer.Decoder
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
-import EventStreamMarshalling._
 
 import scala.concurrent.duration._
 import scala.language.implicitConversions

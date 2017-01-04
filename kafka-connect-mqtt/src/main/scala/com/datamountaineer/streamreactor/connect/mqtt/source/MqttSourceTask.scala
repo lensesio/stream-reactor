@@ -29,9 +29,9 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 
+import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
-import scala.collection.JavaConversions._
 
 class MqttSourceTask extends SourceTask with StrictLogging {
   private var mqttManager: Option[MqttManager] = None

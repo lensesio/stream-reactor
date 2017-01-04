@@ -22,12 +22,12 @@ import java.util
 import java.util.{Timer, TimerTask}
 
 import akka.actor.{ActorRef, ActorSystem}
-import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConfig, CoapSettings}
+import com.datamountaineer.streamreactor.connect.coap.configs.{CoapSettings, CoapSourceConfig}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
-import scala.collection.mutable
 import scala.collection.JavaConversions._
+import scala.collection.mutable
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -52,8 +52,8 @@ class CoapSourceTask extends SourceTask with StrictLogging {
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-source-ascii.txt")).mkString)
-    val config = CoapConfig(props)
-    val settings = CoapSettings(config, sink = false)
+    val config = CoapSourceConfig(props)
+    val settings = CoapSettings(config)
     val actorProps = CoapReader(settings)
     readers = actorProps.map({ case (source, prop) => system.actorOf(prop, source) }).toSet
     readers.foreach( _ ! StartChangeFeed)

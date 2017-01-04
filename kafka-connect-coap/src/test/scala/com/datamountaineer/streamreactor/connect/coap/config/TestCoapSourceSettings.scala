@@ -19,7 +19,7 @@
 package com.datamountaineer.streamreactor.connect.coap.config
 
 import com.datamountaineer.streamreactor.connect.coap.TestBase
-import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConfig, CoapSettings}
+import com.datamountaineer.streamreactor.connect.coap.configs.{CoapSettings, CoapSinkConfig, CoapSourceConfig}
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.WordSpec
 
@@ -30,8 +30,8 @@ import org.scalatest.WordSpec
 class TestCoapSourceSettings extends WordSpec with TestBase {
   "should create CoapSettings for an insecure connection" in {
     val props = getPropsInsecure
-    val config = CoapConfig(props)
-    val settings = CoapSettings(config, sink = false)
+    val config = CoapSourceConfig(props)
+    val settings = CoapSettings(config)
     val setting = settings.head
     setting.kcql.getSource shouldBe RESOURCE_INSECURE
     setting.kcql.getTarget shouldBe TOPIC
@@ -42,8 +42,8 @@ class TestCoapSourceSettings extends WordSpec with TestBase {
 
   "should create CoapSettings for an secure connection" in {
     val props = getPropsSecure
-    val config = CoapConfig(props)
-    val settings = CoapSettings(config, sink = false)
+    val config = CoapSourceConfig(props)
+    val settings = CoapSettings(config)
     val setting = settings.head
     setting.kcql.getSource shouldBe RESOURCE_SECURE
     setting.kcql.getTarget shouldBe TOPIC
@@ -54,17 +54,17 @@ class TestCoapSourceSettings extends WordSpec with TestBase {
 
   "should fail to create CoapSettings for an secure connection with key wrong path" in {
     val props = getPropsSecureKeyNotFound
-    val config = CoapConfig(props)
+    val config = CoapSinkConfig(props)
     intercept[ConfigException] {
-      CoapSettings(config, sink = false)
+      CoapSettings(config)
     }
   }
 
   "should fail to create CoapSettings for an secure connection with trust wrong path" in {
     val props = getPropsSecureTrustNotFound
-    val config = CoapConfig(props)
+    val config = CoapSourceConfig(props)
     intercept[ConfigException] {
-      CoapSettings(config, sink = false)
+      CoapSettings(config)
     }
   }
 }

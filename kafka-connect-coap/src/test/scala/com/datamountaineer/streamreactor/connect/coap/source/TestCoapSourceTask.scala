@@ -19,26 +19,23 @@
 package com.datamountaineer.streamreactor.connect.coap.source
 
 import java.net.URI
-
-import akka.actor.ActorSystem
-import com.datamountaineer.streamreactor.connect.coap.{Server, TestBase}
-import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConfig, CoapSettings}
-import org.apache.kafka.connect.data.Struct
-import org.eclipse.californium.core.{CaliforniumLogger, CoapClient}
-import akka.pattern.ask
-import akka.util.Timeout
 import java.util.logging.Level
 
+import akka.actor.ActorSystem
+import akka.pattern.ask
+import akka.util.Timeout
+import com.datamountaineer.streamreactor.connect.coap.configs.{CoapSettings, CoapSourceConfig}
 import com.datamountaineer.streamreactor.connect.coap.connection.DTLSConnectionFn
+import com.datamountaineer.streamreactor.connect.coap.{Server, TestBase}
+import org.apache.kafka.connect.data.Struct
 import org.eclipse.californium.core.network.CoapEndpoint
 import org.eclipse.californium.core.network.config.NetworkConfig
+import org.eclipse.californium.core.{CaliforniumLogger, CoapClient}
 import org.eclipse.californium.scandium.{DTLSConnector, ScandiumLogger}
-
-import scala.concurrent.duration._
 import org.scalatest.{BeforeAndAfter, WordSpec}
 
-import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
+import scala.concurrent.duration._
 
 /**
   * Created by andrew@datamountaineer.com on 28/12/2016. 
@@ -65,10 +62,10 @@ class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase {
     implicit val system = ActorSystem()
     implicit val timeout = Timeout(60 seconds)
     val props = getPropsSecure
-    val config = CoapConfig(props)
-    val producerConfig = CoapConfig(getTestSourceProps)
-    val settings = CoapSettings(config, sink = false)
-    val producerSettings = CoapSettings(producerConfig, sink = false)
+    val config = CoapSourceConfig(props)
+    val producerConfig = CoapSourceConfig(getTestSourceProps)
+    val settings = CoapSettings(config)
+    val producerSettings = CoapSettings(producerConfig)
     val actorProps = CoapReader(settings)
     val reader = system.actorOf(actorProps.head._2, actorProps.head._1)
     //start the reader
