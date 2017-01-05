@@ -24,6 +24,12 @@ project(":kafka-connect-coap") {
         demoCerts = "2.0.0-M2"
     }
 
+    test {
+        classpath = project.sourceSets.test.runtimeClasspath + files("${projectDir}/src/test/resources")
+        systemProperty 'truststore',  "${projectDir.canonicalPath}/src/test/resources/certs2/trustStore.jks"
+        systemProperty 'keystore', "${projectDir.canonicalPath}/src/test/resources/certs2/keyStore.jks"
+    }
+
     dependencies {
         compile ("org.eclipse.californium:californium-core:$califVersion")
         compile ("org.eclipse.californium:scandium:$scandiamVersion")
