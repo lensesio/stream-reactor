@@ -16,28 +16,29 @@ A collection of components to build a real time ingestion pipeline.
 ### Connectors
 
 
-|Connector       | Type   | Description                                                                                 | Docs |
-|----------------|--------|---------------------------------------------------------------------------------------------|------|
-| BlockChain     | Source | Kafka connect Blockchain source to subscribe to Blockchain streams and write to Kafka.      | [Docs](http://docs.datamountaineer.com/en/latest/blockchain.html)        |
-| Bloomberg      | Source | Kafka connect Blockchain source to subscribe to Blockchain streams and write to Kafka.      | [Docs](http://docs.datamountaineer.com/en/latest/bloomberg.html)         |
-| Cassandra      | Source | Kafka connect Cassandra source to read Cassandra and write to Kafka.                        | [Docs](http://docs.datamountaineer.com/en/latest/cassandra-source.html)  |
-| Coap           | Source | Kafka connect Coap source to read from IoT Coap endpoints using Californium.                | [Docs](http://docs.datamountaineer.com/en/latest/coap-source.html)    
-| Coap           | Sink | Kafka connect Coap sink to write kafka topic payload to IoT Coap endpoints using Californium. | [Docs](http://docs.datamountaineer.com/en/latest/coap-sink.html)    
-| *DSE Cassandra | Sink   | Certified DSE Kafka connect Cassandra sink task to write Kafka topic payloads to Cassandra. | [Docs](http://docs.datamountaineer.com/en/latest/cassandra-sink.html)    |
-| Druid          | Sink   | Kafka connect Druid sink to write Kafka topic payloads to Druid.                            | [Docs](http://docs.datamountaineer.com/en/latest/druid.html)             |
-| Elastic        | Sink   | Kafka connect Elastic Search sink to write Kafka topic payloads to Elastic Search.          | [Docs](http://docs.datamountaineer.com/en/latest/elastic.html)           |
-| HBase          | Sink   | Kafka connect HBase sink to write Kafka topic payloads to HBase.                            | [Docs](http://docs.datamountaineer.com/en/latest/hbase.html)             |
-| Hazelcast      | Sink   | Kafka connect Hazelcast sink to write Kafka topic payloads to Hazelcast.                    | [Docs](http://docs.datamountaineer.com/en/latest/hazelcast.html)         |
-| Kudu           | Sink   | Kafka connect Kudu sink to write Kafka topic payloads to Kudu.                              | [Docs](http://docs.datamountaineer.com/en/latest/kudu.html)              |
-| InfluxDb       | Sink   | Kafka connect InfluxDb sink to write Kafka topic payloads to InfluxDb.                      | [Docs](http://docs.datamountaineer.com/en/latest/influx.html)            |
-| JMS            | Sink   | Kafka connect JMS sink to write Kafka topic payloads to JMS.                                | [Docs](http://docs.datamountaineer.com/en/latest/jms.html)               |
-| MongoDB        | Sink   | Kafka connect MongoDB sink to write Kafka topic payloads to MongoDB.                        | [Docs](http://docs.datamountaineer.com/en/latest/mongo-sink.html)             |
-| MQTT           | Source | Kafka connect MQTT source to write data from MQTT to Kafka.                                 | [Docs](http://docs.datamountaineer.com/en/latest/mqtt.html)             |
-| Redis          | Sink   | Kafka connect Redis sink to write Kafka topic payloads to Redis.                            | [Docs](kafka-connect-redis/README.md)                                    |
-| ReThinkDB      | Source | Kafka connect RethinkDb source subscribe to ReThinkDB changefeeds and write to Kafka.       | [Docs](http://docs.datamountaineer.com/en/latest/rethink_source.html)    |
-| ReThinkDB      | Sink   | Kafka connect RethinkDb sink to write Kafka topic payloads to RethinkDb.                    | [Docs](http://docs.datamountaineer.com/en/latest/rethink.html)           |
-| Yahoo Finance  | Source | Kafka connect Yahoo Finance source to write to Kafka.                                       | [Docs](http://docs.datamountaineer.com/en/latest/yahoo.html)             |
-| VoltDB         | Sink   | Kafka connect Voltdb sink to write Kafka topic payloads to Voltdb.                          | [Docs](http://docs.datamountaineer.com/en/latest/voltdb.html)            |
+|Connector       | Type   | Description                                                                                   | Docs |
+|----------------|--------|-----------------------------------------------------------------------------------------------|------|
+| BlockChain     | Source | Kafka connect Blockchain source to subscribe to Blockchain streams and write to Kafka.        | [Docs](http://docs.datamountaineer.com/en/latest/blockchain.html)        |
+| Bloomberg      | Source | Kafka connect Blockchain source to subscribe to Blockchain streams and write to Kafka.        | [Docs](http://docs.datamountaineer.com/en/latest/bloomberg.html)         |
+| Cassandra      | Source | Kafka connect Cassandra source to read Cassandra and write to Kafka.                          | [Docs](http://docs.datamountaineer.com/en/latest/cassandra-source.html)  |
+| Coap           | Source | Kafka connect Coap source to read from IoT Coap endpoints using Californium.                  | [Docs](http://docs.datamountaineer.com/en/latest/coap-source.html)       |
+| Coap           | Sink   | Kafka connect Coap sink to write kafka topic payload to IoT Coap endpoints using Californium. | [Docs](http://docs.datamountaineer.com/en/latest/coap-sink.html)         |
+| *DSE Cassandra | Sink   | Certified DSE Kafka connect Cassandra sink task to write Kafka topic payloads to Cassandra.   | [Docs](http://docs.datamountaineer.com/en/latest/cassandra-sink.html)    |
+| Druid          | Sink   | Kafka connect Druid sink to write Kafka topic payloads to Druid.                              | [Docs](http://docs.datamountaineer.com/en/latest/druid.html)             |
+| Elastic        | Sink   | Kafka connect Elastic Search sink to write Kafka topic payloads to Elastic Search.            | [Docs](http://docs.datamountaineer.com/en/latest/elastic.html)           |
+| FTP/HTTP       | Source | Kafka connect FTP and HTTP source to write file data into Kafka topics.                       | [Docs](kafka-connect-ftp/README.md)                                      |
+| HBase          | Sink   | Kafka connect HBase sink to write Kafka topic payloads to HBase.                              | [Docs](http://docs.datamountaineer.com/en/latest/hbase.html)             |
+| Hazelcast      | Sink   | Kafka connect Hazelcast sink to write Kafka topic payloads to Hazelcast.                      | [Docs](http://docs.datamountaineer.com/en/latest/hazelcast.html)         |
+| Kudu           | Sink   | Kafka connect Kudu sink to write Kafka topic payloads to Kudu.                                | [Docs](http://docs.datamountaineer.com/en/latest/kudu.html)              |
+| InfluxDb       | Sink   | Kafka connect InfluxDb sink to write Kafka topic payloads to InfluxDb.                        | [Docs](http://docs.datamountaineer.com/en/latest/influx.html)            |
+| JMS            | Sink   | Kafka connect JMS sink to write Kafka topic payloads to JMS.                                  | [Docs](http://docs.datamountaineer.com/en/latest/jms.html)               |
+| MongoDB        | Sink   | Kafka connect MongoDB sink to write Kafka topic payloads to MongoDB.                          | [Docs](http://docs.datamountaineer.com/en/latest/mongo-sink.html)        |
+| MQTT           | Source | Kafka connect MQTT source to write data from MQTT to Kafka.                                   | [Docs](http://docs.datamountaineer.com/en/latest/mqtt.html)              |
+| Redis          | Sink   | Kafka connect Redis sink to write Kafka topic payloads to Redis.                              | [Docs](kafka-connect-redis/README.md)                                    |
+| ReThinkDB      | Source | Kafka connect RethinkDb source subscribe to ReThinkDB changefeeds and write to Kafka.         | [Docs](http://docs.datamountaineer.com/en/latest/rethink_source.html)    |
+| ReThinkDB      | Sink   | Kafka connect RethinkDb sink to write Kafka topic payloads to RethinkDb.                      | [Docs](http://docs.datamountaineer.com/en/latest/rethink.html)           |
+| Yahoo Finance  | Source | Kafka connect Yahoo Finance source to write to Kafka.                                         | [Docs](http://docs.datamountaineer.com/en/latest/yahoo.html)             |
+| VoltDB         | Sink   | Kafka connect Voltdb sink to write Kafka topic payloads to Voltdb.                            | [Docs](http://docs.datamountaineer.com/en/latest/voltdb.html)            |
 
 
 ### [Kafka-Socket-Streamer](kafka-socket-streamer/README.md)
@@ -47,9 +48,13 @@ Supports limited SQL statements to stream and select from Kafka topics in real t
 
 ## Release Notes
 
-**0.2.3**
+**0.2.4** (In progress)
 
-*   Added CoAP Source and Sink
+*   Added FTP and HTTO Source.
+
+**0.2.3** (5 Jan 2017)
+
+*   Added CoAP Source and Sink.
 *   Added MongoDB Sink.
 *   Added MQTT Source.
 *   Hazelcast support for ring buffers.

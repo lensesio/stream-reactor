@@ -16,23 +16,20 @@
  *   *
  */
 
-include 'kafka-socket-streamer',
-        'kafka-connect-bloomberg',
-        'kafka-connect-elastic',
-        'kafka-connect-druid',
-        'kafka-connect-kudu',
-        'kafka-connect-cassandra',
-        'kafka-connect-yahoo',
-        'kafka-connect-hbase',
-        'kafka-connect-redis',
-        'kafka-connect-rethink',
-        'kafka-connect-jms',
-        'kafka-connect-influxdb',
-        'kafka-connect-hazelcast',
-        'kafka-connect-voltdb',
-        'kafka-connect-blockchain',
-        'kafka-connect-mongodb',
-        'kafka-connect-mqtt',
-        'kafka-connect-coap',
-        'kafka-connect-ftp'
+project(":kafka-connect-ftp") {
+
+    ext {
+        pathikritVersion = '2.16.0'
+        ftpserverVersion = '1.0.6'
+        commonsnetVersion = '3.5'
+        commonsCodecVersion = '1.10'
+    }
+
+    dependencies {
+        compile "commons-net:commons-net:${commonsnetVersion}"
+        compile "commons-codec:commons-codec:${commonsCodecVersion}"
+        testCompile "com.github.pathikrit:better-files_2.11:${pathikritVersion}"
+        testCompile "org.apache.ftpserver:ftpserver-core:${ftpserverVersion}"
+    }
+}
 
