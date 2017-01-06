@@ -28,6 +28,7 @@ class FtpSourceConnector extends SourceConnector with StrictLogging {
   }
 
   override def start(props: util.Map[String, String]): Unit = {
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/ftp-source-ascii.txt")).mkString)
     logger.info(s"start FtpSourceConnector ${GitRepositoryState.summary}")
 
     configProps = Some(props)
