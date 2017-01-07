@@ -666,14 +666,6 @@ public class ConfigTest {
     Config.parse(syntax);
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void throwExceptionIfTheTimestampIsNotInTheSelectedFields() {
-    String topic = "TOPIC_A";
-    String table = "TABLE_A";
-    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITHTIMESTAMP notpresent", table, topic);
-    Config.parse(syntax);
-  }
-
   @Test
   public void handleTimestampAsOneOfTheFields() {
     String topic = "TOPIC_A";
@@ -699,6 +691,22 @@ public class ConfigTest {
     String syntax = String.format("INSERT INTO %s SELECT * FROM %s WITHTIMESTAMP " + Config.TIMESTAMP, table, topic);
     Config c = Config.parse(syntax);
     assertEquals(c.getTimestamp(), Config.TIMESTAMP);
+  }
+
+  @Test
+  public void handleFieldSelectionWithPKWithTimestampSetAsFieldNotInSelection() {
+    String syntax = "INSERT INTO measurements SELECT actualTemperature, targetTemperature FROM TOPIC_A PK machineId, type WITHTIMESTAMP ts";
+    Config c = Config.parse(syntax);
+    assertEquals(c.getTimestamp(), "ts");
+
+    HashSet<String> pks = new HashSet<>();
+    Iterator<String> iter = c.getPrimaryKeys();
+    while (iter.hasNext()) {
+      pks.add(iter.next());
+    }
+    assertEquals(2, pks.size());
+    assertTrue(pks.contains("type"));
+    assertTrue(pks.contains("machineId"));
   }
 
   @Test
