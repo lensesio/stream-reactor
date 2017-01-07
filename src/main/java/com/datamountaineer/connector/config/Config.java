@@ -532,9 +532,7 @@ public class Config {
       if (TIMESTAMP.compareToIgnoreCase(ts) == 0) {
         config.setTimestamp(ts.toLowerCase());
       } else {
-        if (!config.includeAllFields && !config.fields.containsKey(ts)) {
-          throw new IllegalArgumentException(ts + " needs to be set to " + TIMESTAMP + " or be part of selected fields");
-        }
+        config.setTimestamp(ts);
       }
     }
 
