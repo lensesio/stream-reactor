@@ -82,15 +82,12 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
     require(writer.nonEmpty, "Writer is not set!")
     writer.foreach(w => w.write(records.toVector))
     records.foreach(r => counter.put(r.topic(), counter.getOrElse(r.topic(), 0L) + 1L))
-    if (timestamp > 0) {
-      val newTimestamp = System.currentTimeMillis()
-      if (scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
-        logCounts()
-      }
-      timestamp = newTimestamp
-    } else {
-      timestamp = System.currentTimeMillis()
+
+    val newTimestamp = System.currentTimeMillis()
+    if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
+      logCounts()
     }
+    timestamp = newTimestamp
   }
 
   /**
