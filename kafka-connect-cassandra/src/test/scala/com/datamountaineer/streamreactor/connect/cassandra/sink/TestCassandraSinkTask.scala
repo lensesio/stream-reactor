@@ -26,13 +26,13 @@ import com.datastax.driver.core.ConsistencyLevel
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
 
-class TestCassandraSinkTask extends WordSpec with Matchers with MockitoSugar with BeforeAndAfterAll with TestConfig {
+class TestCassandraSinkTask extends WordSpec with Matchers with MockitoSugar with BeforeAndAfter with TestConfig {
 
-  override def beforeAll(): Unit = {
+  before {
     startEmbeddedCassandra()
   }
 
