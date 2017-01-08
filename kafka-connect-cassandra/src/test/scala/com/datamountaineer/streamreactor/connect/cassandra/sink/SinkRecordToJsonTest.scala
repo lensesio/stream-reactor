@@ -41,7 +41,8 @@ class SinkRecordToJsonTest extends WordSpec with Matchers with ConverterUtil {
           Map.empty,
           Map.empty,
           NoopErrorPolicy(),
-          2)
+          2,
+          None)
         val actual = SinkRecordToJson(record)
         //comparing string representation; we have more specific types given the schema
         actual shouldBe json
@@ -60,7 +61,8 @@ class SinkRecordToJsonTest extends WordSpec with Matchers with ConverterUtil {
           Map.empty,
           Map.empty,
           NoopErrorPolicy(),
-          2)
+          2,
+          None)
 
         val actual = SinkRecordToJson(record)
 
@@ -82,7 +84,8 @@ class SinkRecordToJsonTest extends WordSpec with Matchers with ConverterUtil {
           Map.empty,
           Map.empty,
           NoopErrorPolicy(),
-          2)
+          2,
+          None)
 
         val actual = SinkRecordToJson(record)
 

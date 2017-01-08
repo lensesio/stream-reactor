@@ -138,6 +138,16 @@ case class CassandraConfig() {
       ConfigDef.Width.LONG,
       CassandraConfigConstants.KEY_STORE_PASSWD)
 
+    .define(CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG,
+      Type.STRING,
+      CassandraConfigConstants.CONSISTENCY_LEVEL_DEFAULT,
+      Importance.MEDIUM,
+      CassandraConfigConstants.CONSISTENCY_LEVEL_DOC,
+      "Connection",
+      12,
+      ConfigDef.Width.MEDIUM,
+      CassandraConfigConstants.CONSISTENCY_LEVEL_DISPLAY)
+
     .define(CassandraConfigConstants.ERROR_POLICY,
       Type.STRING,
       CassandraConfigConstants.ERROR_POLICY_DEFAULT,
@@ -176,8 +186,8 @@ case class CassandraConfig() {
   * the base.
   **/
 object CassandraConfigSource {
-  val base = CassandraConfig().configDef
-  val sourceConfig = base
+  val base: ConfigDef = CassandraConfig().configDef
+  val sourceConfig: ConfigDef = base
     .define(CassandraConfigConstants.IMPORT_MODE,
       Type.STRING,
       Importance.HIGH,
@@ -268,15 +278,15 @@ object CassandraConfigSink {
       1,
       ConfigDef.Width.LONG,
       CassandraConfigConstants.SINK_KCQL)
-    .define(CassandraConfigConstants.SINK_INSERT_THREAD_POOL,
+    .define(CassandraConfigConstants.SINK_THREAD_POOL_CONFIG,
       Type.INT,
-      CassandraConfigConstants.SINK_INSERT_THREAD_POOL_DEFAULT,
+      CassandraConfigConstants.SINK_THREAD_POOL_DEFAULT,
       Importance.MEDIUM,
-      CassandraConfigConstants.SINK_INSERT_THREAD_POOL_DOC,
+      CassandraConfigConstants.SINK_THREAD_POOL_DOC,
       "Import",
       8,
       ConfigDef.Width.MEDIUM,
-      CassandraConfigConstants.SINK_INSERT_THREAD_POOL_DISPLAY
+      CassandraConfigConstants.SINK_THREAD_POOL_DISPLAY
     )
 }
 

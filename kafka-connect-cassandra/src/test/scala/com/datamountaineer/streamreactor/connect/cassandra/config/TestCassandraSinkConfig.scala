@@ -30,6 +30,7 @@ class TestCassandraSinkConfig extends WordSpec with BeforeAndAfter with Matchers
     taskConfig.getString(CassandraConfigConstants.USERNAME) shouldBe USERNAME
     taskConfig.getPassword(CassandraConfigConstants.PASSWD).value shouldBe PASSWD
     taskConfig.getString(CassandraConfigConstants.SINK_KCQL) shouldBe QUERY_ALL
+    taskConfig.getString(CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG) shouldBe CassandraConfigConstants.CONSISTENCY_LEVEL_DEFAULT
   }
 
   "A CassandraConfig should return configured for SSL" in {
