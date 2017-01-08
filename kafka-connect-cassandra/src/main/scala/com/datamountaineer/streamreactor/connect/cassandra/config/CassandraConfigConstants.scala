@@ -128,12 +128,22 @@ object CassandraConfigConstants {
   val SOURCE_KCQL_QUERY = "connect.cassandra.source.kcql"
   val SOURCE_KCQL_DOC = "KCQL expression describing field selection and routes."
 
-  val SINK_INSERT_THREAD_POOL = "connect.cassandra.sink.threadpool.size"
-  val SINK_INSERT_THREAD_POOL_DOC =
+  val SINK_THREAD_POOL_CONFIG = "connect.cassandra.sink.threadpool.size"
+  val SINK_THREAD_POOL_DOC =
     """
       |The sink inserts all the data concurrently. To fail fast in case of an error, the sink has its own thread pool.
       |Set the value to zero and the threadpool will default to 4* NO_OF_CPUs. Set a value greater than 0
       |and that would be the size of this threadpool.""".stripMargin
-  val SINK_INSERT_THREAD_POOL_DISPLAY = "Insert thread pool size"
-  val SINK_INSERT_THREAD_POOL_DEFAULT = 0
+  val SINK_THREAD_POOL_DISPLAY = "Thread pool size"
+  val SINK_THREAD_POOL_DEFAULT = 0
+
+  val CONSISTENCY_LEVEL_CONFIG = "connect.cassandra.consistency.level"
+  val CONSISTENCY_LEVEL_DOC =
+    """
+      |Consistency refers to how up-to-date and synchronized a row of Cassandra data is on all of its replicas.
+      |Cassandra offers tunable consistency. For any given read or write operation, the client application decides how consistent the requested data must be.
+    """.stripMargin
+  val CONSISTENCY_LEVEL_DISPLAY = "Consistency Level"
+  val CONSISTENCY_LEVEL_DEFAULT = ""
+
 }

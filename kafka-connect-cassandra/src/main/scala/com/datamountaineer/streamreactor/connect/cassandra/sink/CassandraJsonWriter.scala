@@ -82,7 +82,11 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
     * @return A prepared statement for the given topic.
     **/
   private def getPreparedStatement(table: String): Option[PreparedStatement] = {
-    val t: Try[PreparedStatement] = Try(session.prepare(s"INSERT INTO ${session.getLoggedKeyspace}.$table JSON ?"))
+    val t: Try[PreparedStatement] = Try {
+      val statement = session.prepare(s"INSERT INTO ${session.getLoggedKeyspace}.$table JSON ?")
+      settings.consistencyLevel.foreach(statement.setConsistencyLevel)
+      statement
+    }
     handleTry[PreparedStatement](t)
   }
 
