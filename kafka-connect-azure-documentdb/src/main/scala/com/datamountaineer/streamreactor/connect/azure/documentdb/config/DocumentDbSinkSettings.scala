@@ -1,5 +1,5 @@
 /**
-  * Copyright 2016 Datamountaineer.
+  * Copyright 2017 Datamountaineer.
   *
   * Licensed under the Apache License, Version 2.0 (the "License");
   * you may not use this file except in compliance with the License.
@@ -16,39 +16,58 @@
 
 package com.datamountaineer.streamreactor.connect.azure.documentdb.config
 
+import com.datamountaineer.connector.config.{Config, WriteModeEnum}
+import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum}
+import com.microsoft.azure.documentdb.ConsistencyLevel
+import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 
-case class DocumentDbSinkSettings(connection: String,
+import scala.collection.JavaConversions._
+import scala.util.{Failure, Success, Try}
+
+
+case class DocumentDbSinkSettings(endpoint: String,
+                                  masterKey: String,
                                   database: String,
                                   kcql: Seq[Config],
                                   keyBuilderMap: Map[String, Set[String]],
                                   fields: Map[String, Map[String, String]],
                                   ignoredField: Map[String, Set[String]],
                                   errorPolicy: ErrorPolicy,
-                                  taskRetries: Int = MongoConfig.NBR_OF_RETIRES_DEFAULT,
-                                  batchSize: Int = MongoConfig.BATCH_SIZE_CONFIG_DEFAULT)
+                                  consistency: ConsistencyLevel,
+                                  createDatabase: Boolean,
+                                  taskRetries: Int = DocumentDbConfig.NBR_OF_RETIRES_DEFAULT,
+                                  batchSize: Int = DocumentDbConfig.BATCH_SIZE_CONFIG_DEFAULT) {
+
+}
 
 
 object DocumentDbSinkSettings extends StrictLogging {
 
   def apply(config: AbstractConfig): DocumentDbSinkSettings = {
-    val hostsConfig = config.getString(MongoConfig.CONNECTION_CONFIG)
-    require(hostsConfig.nonEmpty, s"Invalid hosts provided.${MongoConfig.CONNECTION_CONFIG_DOC}")
+    val endpoint = config.getString(DocumentDbConfig.CONNECTION_CONFIG)
+    require(endpoint.nonEmpty, s"Invalid endpoint provided.${DocumentDbConfig.CONNECTION_CONFIG_DOC}")
 
-    val database = config.getString(MongoConfig.DATABASE_CONFIG)
+    val masterKey = Option(config.getPassword(DocumentDbConfig.MASTER_KEY_CONFIG))
+      .map(_.value())
+      .getOrElse(throw new ConfigException(s"Missing ${DocumentDbConfig.MASTER_KEY_CONFIG}"))
+    require(masterKey.trim.nonEmpty, s"Invalid ${DocumentDbConfig.MASTER_KEY_CONFIG}")
+
+    val database = config.getString(DocumentDbConfig.DATABASE_CONFIG)
     if (database == null || database.trim.length == 0)
-      throw new ConfigException(s"Invalid ${MongoConfig.DATABASE_CONFIG}")
-    val kcql = config.getString(MongoConfig.KCQL_CONFIG)
+      throw new ConfigException(s"Invalid ${DocumentDbConfig.DATABASE_CONFIG}")
+    val kcql = config.getString(DocumentDbConfig.KCQL_CONFIG)
     val routes = kcql.split(";").map(r => Try(Config.parse(r)) match {
       case Success(query) => query
-      case Failure(t) => throw new ConfigException(s"Invalid ${MongoConfig.KCQL_CONFIG}.${t.getMessage}", t)
+      case Failure(t) => throw new ConfigException(s"Invalid ${DocumentDbConfig.KCQL_CONFIG}.${t.getMessage}", t)
     })
     if (routes.isEmpty)
-      throw new ConfigException(s"Invalid ${MongoConfig.KCQL_CONFIG}. You need to provide at least one route")
+      throw new ConfigException(s"Invalid ${DocumentDbConfig.KCQL_CONFIG}. You need to provide at least one route")
 
-    val batchSize = config.getInt(MongoConfig.BATCH_SIZE_CONFIG)
-    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(MongoConfig.ERROR_POLICY_CONFIG).toUpperCase)
+    val batchSize = config.getInt(DocumentDbConfig.BATCH_SIZE_CONFIG)
+    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(DocumentDbConfig.ERROR_POLICY_CONFIG).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
-    val retries = config.getInt(MongoConfig.NBR_OF_RETRIES_CONFIG)
+    val retries = config.getInt(DocumentDbConfig.NBR_OF_RETRIES_CONFIG)
 
     val rowKeyBuilderMap = routes
       .filter(c => c.getWriteMode == WriteModeEnum.UPSERT)
@@ -65,13 +84,24 @@ object DocumentDbSinkSettings extends StrictLogging {
 
     val ignoreFields = routes.map(r => (r.getSource, r.getIgnoredField.toSet)).toMap
 
-    new MongoSinkSettings(hostsConfig,
+    val consistencyLevel = Try(ConsistencyLevel.valueOf(config.getString(DocumentDbConfig.CONSISTENCY_CONFIG))) match {
+      case Failure(e) => throw new ConfigException(
+        s"""
+           |${config.getString(DocumentDbConfig.CONSISTENCY_CONFIG)} is not a valid entry for ${DocumentDbConfig.CONSISTENCY_CONFIG}
+           |Available values are ${ConsistencyLevel.values().mkString(",")}""".stripMargin)
+
+      case Success(c) => c
+    }
+    new DocumentDbSinkSettings(endpoint,
+      masterKey,
       database,
       routes,
       rowKeyBuilderMap,
       fieldsMap,
       ignoreFields,
       errorPolicy,
+      consistencyLevel,
+      config.getBoolean(DocumentDbConfig.CREATE_DATABASE_CONFIG),
       retries,
       batchSize)
   }

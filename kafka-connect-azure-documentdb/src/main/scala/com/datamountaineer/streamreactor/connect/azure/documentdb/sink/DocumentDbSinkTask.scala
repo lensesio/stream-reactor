@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -28,13 +29,13 @@ import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
 
 /**
-  * <h1>MongoSinkTask</h1>
+  * <h1>DocumentSinkTask</h1>
   *
-  * Kafka Connect Mongo DB sink task. Called by
+  * Kafka Connect Azure Document DB sink task. Called by
   * framework to put records to the target sink
   **/
 class DocumentDbSinkTask extends SinkTask with StrictLogging {
-  private var writer: Option[MongoWriter] = None
+  private var writer: Option[DocumentDbWriter] = None
 
   logger.info("Task initialising")
 
@@ -42,19 +43,18 @@ class DocumentDbSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    val taskConfig = Try(MongoConfig(props)) match {
-      case Failure(f) => throw new ConnectException("Couldn't start Mongo Sink due to configuration error.", f)
+    val taskConfig = Try(DocumentDbConfig(props)) match {
+      case Failure(f) => throw new ConnectException("Couldn't start Azure Document DB Sink due to configuration error.", f)
       case Success(s) => s
     }
 
+    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/documentdb-sink-ascii.txt")).mkString)
 
-    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/mqtt-source-ascii.txt")).mkString)
-
-    writer = Some(MongoWriter(taskConfig, context = context))
+    writer = Some(DocumentDbWriter(taskConfig, context))
   }
 
   /**
-    * Pass the SinkRecords to the mongo db writer for storing them
+    * Pass the SinkRecords to the Azure Document DB writer for storing them
     **/
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
@@ -62,7 +62,7 @@ class DocumentDbSinkTask extends SinkTask with StrictLogging {
   }
 
   override def stop(): Unit = {
-    logger.info("Stopping Mongo Database sink.")
+    logger.info("Stopping Azure Document DB sink.")
     writer.foreach(w => w.close())
   }
 

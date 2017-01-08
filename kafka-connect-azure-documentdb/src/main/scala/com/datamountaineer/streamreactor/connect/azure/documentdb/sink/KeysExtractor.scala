@@ -15,7 +15,7 @@ object KeysExtractor {
 
   ISO_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"))
 
-  def fromStruct(struct: Struct, keys: Set[String]) = {
+  def fromStruct(struct: Struct, keys: Set[String]): Set[(String, Any)] = {
     keys.map { key =>
       val schema = struct.schema().field(key).schema()
       val value = struct.get(key)
@@ -47,7 +47,7 @@ object KeysExtractor {
     }
   }
 
-  def fromMap(map: java.util.Map[String, Any], keys: Set[String]) = {
+  def fromMap(map: java.util.Map[String, Any], keys: Set[String]): Set[(String, Any)] = {
     keys.map { key =>
       if (!map.containsKey(key)) throw new ConfigException(s"The key $key can't be found")
       val value = map.get(key) match {
@@ -56,7 +56,6 @@ object KeysExtractor {
         case t: Int => t
         case t: Long => t
         case t: Double => t
-        //type restriction for Mongo
         case t: BigInt => t.toLong
         case t: BigDecimal => t.toDouble
         case other => throw new ConfigException(s"The key $key is not supported for type ${Option(other).map(_.getClass.getName).getOrElse("NULL")}")
@@ -65,16 +64,16 @@ object KeysExtractor {
     }
   }
 
-  def fromJson(jvalue: JValue, keys: Set[String]) = {
+  def fromJson(jvalue: JValue, keys: Set[String]): List[(String, Any)] = {
     jvalue match {
       case JObject(children) =>
         children.collect {
           case JField(name, value) if keys.contains(name) =>
             val v = value match {
               case JBool(b) => b
-              case JDecimal(d) => d.toDouble //need to do this because of mong
+              case JDecimal(d) => d.toDouble
               case JDouble(d) => d
-              case JInt(i) => i.toLong //need to do this because of mongo
+              case JInt(i) => i.toLong
               case JLong(l) => l
               case JString(s) => s
               case other => throw new ConfigException(s"Field $name is not handled as a key (${other.getClass}). it needs to be a int, long, string, double or decimal")

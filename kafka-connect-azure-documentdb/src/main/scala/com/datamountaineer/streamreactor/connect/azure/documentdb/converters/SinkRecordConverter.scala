@@ -1,3 +1,18 @@
+/**
+  * Copyright 2017 Datamountaineer.
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+  * you may not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an "AS IS" BASIS,
+  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **/
 package com.datamountaineer.streamreactor.connect.azure.documentdb.converters
 
 import java.nio.ByteBuffer
@@ -5,10 +20,11 @@ import java.text.SimpleDateFormat
 import java.util
 import java.util.TimeZone
 
+import com.microsoft.azure.documentdb.Document
 import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.sink.SinkRecord
-
+import org.json.JSONObject
 import org.json4s.JValue
 import org.json4s.JsonAST._
 
@@ -21,15 +37,15 @@ object SinkRecordConverter {
   ISO_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"))
 
   /**
-    * Creates a Mongo document from a HashMap
+    * Creates a Azure Document Db document from a HashMap
     *
     * @param map
     * @return
     */
-  def fromMap(map: util.HashMap[String, AnyRef]): Document = new Document(map)
+  def fromMap(map: util.HashMap[String, AnyRef]): Document = new Document(new JSONObject(map))
 
   /**
-    * Creates a Mongo document from a the Kafka Struct
+    * Creates an Azure DocumentDb document from a the Kafka Struct
     *
     * @param record
     * @return
@@ -105,7 +121,7 @@ object SinkRecordConverter {
                   Option(convertToDocument(valueSchema, entry.getValue))
                     .foreach { mapValue =>
                       if (objectMode) {
-                        obj.append(mapKey.toString, mapValue)
+                        obj.set(mapKey.toString, mapValue)
                       }
                       else {
                         val innerArray = new util.ArrayList[Any]()
@@ -128,7 +144,7 @@ object SinkRecordConverter {
                       .foreach {
                         //case bd: BigDecimal => document.append(field.name, bd.toDouble)
                         //case bi: BigInt => document.append(field.name(), bi.toLong)
-                        case v => document.append(field.name, v)
+                        v => document.set(field.name, v)
                       }
                     document
                   }
@@ -150,10 +166,10 @@ object SinkRecordConverter {
   }
 
   /**
-    * Creates a Mongo document from Json
+    * Creates an Azure Document DB document from Json
     *
     * @param record - The instance to the json node
-    * @return An instance of a mongo document
+    * @return An instance of a Azure Document DB document
     */
   def fromJson(record: JValue): Document = {
     def convert(name: String, jvalue: JValue, document: Document): Document = {
@@ -165,9 +181,9 @@ object SinkRecordConverter {
         }.map {
           case JObject(values) => values.foldLeft(new Document) { case (d, (n, j)) => convert(n, j, d) }
           case JBool(b) => b
-          case JDecimal(d) => d.toDouble //need to do this because of mong not understanding the codec
+          case JDecimal(d) => d.toDouble
           case JDouble(d) => d
-          case JInt(i) => i.toLong //need to do this because of mongo
+          case JInt(i) => i.toLong
           case JLong(l) => l
           case JString(s) => s
           case arr: JArray => convertArray(arr)
@@ -178,22 +194,25 @@ object SinkRecordConverter {
       val value = jvalue match {
         case arr: JArray => convertArray(arr)
         case JBool(b) => b
-        case JDecimal(d) => d.toDouble //need to do this because of mong
+        case JDecimal(d) => d.toDouble
         case JDouble(d) => d
-        case JInt(i) => i.toLong //need to do this because of mongo
+        case JInt(i) => i.toLong
         case JLong(l) => l
         case JNothing => null
         case JNull => null
         case JString(s) => s
         case JObject(values) => values.foldLeft(new Document) { case (d, (n, j)) => convert(n, j, d) }
       }
-      Option(value).map(document.append(name, _)).getOrElse(document)
+      Option(value).map { v =>
+        document.set(name, v)
+        document
+      }.getOrElse(document)
     }
 
     record match {
       case jobj: JObject =>
         jobj.obj.foldLeft(new Document) { case (d, JField(n, j)) => convert(n, j, d) }
-      case other => throw new IllegalArgumentException("Invalid json to convert to mongo ")
+      case other => throw new IllegalArgumentException("Can't convert invalid json!")
     }
   }
 }

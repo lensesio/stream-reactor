@@ -17,55 +17,52 @@
 package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
 import com.datamountaineer.connector.config.WriteModeEnum
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbSinkSettings}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
-import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoSinkSettings}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import com.mongodb.client.model._
-import com.mongodb.{MongoClient, MongoClientURI}
+import com.microsoft.azure.documentdb._
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 
-
-import scala.collection.JavaConversions._
-import scala.util.Failure
+import scala.util.{Failure, Success, Try}
 
 /**
   * <h1>DocumentDbWriter</h1>
   * Azure DocumentDb Json writer for Kafka connect
   * Writes a list of Kafka connect sink records to Azure DocumentDb using the JSON support.
   */
-class DocumentDbWriter(settings: DocumentDbSinkSettings, mongoClient: MongoClient) extends StrictLogging with ConverterUtil with ErrorHandler {
+class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: DocumentClient) extends StrictLogging with ConverterUtil with ErrorHandler {
   logger.info(s"Obtaining the database information for ${settings.database}")
-  private val database = mongoClient.getDatabase(settings.database)
+  private val database = Try(documentClient.readDatabase(settings.database, new RequestOptions()).getResource) match {
+    case Failure(e) => throw new RuntimeException(s"Could not identify database ${settings.database}", e)
+    case Success(d) => d
+  }
 
-  private val collectionMap = settings.kcql
-    .map(c => c.getSource -> Option(database.getCollection(c.getTarget)).getOrElse {
-      logger.info(s"Collection not found. Creating collection ${c.getTarget}")
-      database.createCollection(c.getTarget)
-      database.getCollection(c.getTarget)
-    })
-    .toMap
+  private val configMap = settings.kcql
+    .map { c =>
+      Option(documentClient.readCollection(c.getTarget, null).getResource).getOrElse {
+        throw new IllegalArgumentException(s"Collection '${c.getTarget}' not found!")
+      }
+      c.getSource -> c
+    }.toMap
 
-  private val configMap = settings.kcql.map(c => c.getSource -> c).toMap
+
   //initialize error tracker
   initialize(settings.taskRetries, settings.errorPolicy)
 
   /**
-    * Write SinkRecords to MongoDb.
+    * Write SinkRecords to Azure DocumentDb.
     *
     * @param records A list of SinkRecords from Kafka Connect to write.
     **/
   def write(records: Seq[SinkRecord]): Unit = {
-    if (records.isEmpty) {
-      logger.debug("No records received.")
-    } else {
-      logger.debug(s"Received ${records.size} records.")
+    if (records.nonEmpty) {
       insert(records)
     }
   }
 
   /**
-    * Write SinkRecords to MongoDb
+    * Write SinkRecords to Azure Document Db
     *
     * @param records A list of SinkRecords from Kafka Connect to write.
     * @return boolean indication successful write.
@@ -73,8 +70,8 @@ class DocumentDbWriter(settings: DocumentDbSinkSettings, mongoClient: MongoClien
   private def insert(records: Seq[SinkRecord]) = {
     try {
       records.groupBy(_.topic()).foreach { case (topic, groupedRecords) =>
-        val collection = collectionMap(topic)
-        groupedRecords.map { record =>
+        val config = configMap(topic)
+        groupedRecords.foreach { record =>
           val (document, keysAndValues) = SinkRecordToDocument(
             record,
             settings.keyBuilderMap.getOrElse(record.topic(), Set.empty)
@@ -82,19 +79,14 @@ class DocumentDbWriter(settings: DocumentDbSinkSettings, mongoClient: MongoClien
 
           val config = configMap.getOrElse(record.topic(), sys.error(s"${record.topic()} is not handled by the configuration."))
           config.getWriteMode match {
-            case WriteModeEnum.INSERT => new InsertOneModel[Document](document)
+            case WriteModeEnum.INSERT =>
+              documentClient.createDocument(config.getTarget, document, null, false).getResource
+
             case WriteModeEnum.UPSERT =>
-              require(keysAndValues.nonEmpty, "Need to provide keys and values to identify the record to upsert")
-              val filter = Filters.and(keysAndValues.map { case (k, v) => Filters.eq(k, v) }.toList: _*)
-              new ReplaceOneModel[Document](
-                filter,
-                document,
-                MongoWriter.UpdateOptions.upsert(true))
+              //require(keysAndValues.nonEmpty, "Need to provide keys and values to identify the record to upsert")
+              documentClient.upsertDocument(config.getTarget, document, null, false).getResource
           }
-        }.grouped(settings.batchSize)
-          .foreach { batch =>
-            collection.bulkWrite(batch.toList)
-          }
+        }
       }
     }
     catch {
@@ -105,26 +97,23 @@ class DocumentDbWriter(settings: DocumentDbSinkSettings, mongoClient: MongoClien
   }
 
   def close(): Unit = {
-    logger.info("Shutting down Mongo connect task.")
+    logger.info("Shutting down Document DB writer.")
+    documentClient.close()
   }
 }
 
 
 //Factory to build
 object DocumentDbWriter extends StrictLogging {
-  private val UpdateOptions = new UpdateOptions().upsert(true)
+  def apply(connectorConfig: DocumentDbConfig, context: SinkTaskContext): DocumentDbWriter = {
 
-  def apply(connectorConfig: MongoConfig, context: SinkTaskContext): MongoWriter = {
-
-    val settings = MongoSinkSettings(connectorConfig)
+    implicit val settings = DocumentDbSinkSettings(connectorConfig)
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(connectorConfig.getLong(MongoConfig.ERROR_RETRY_INTERVAL_CONFIG))
+      context.timeout(connectorConfig.getLong(DocumentDbConfig.ERROR_RETRY_INTERVAL_CONFIG))
     }
 
-    val connectionString = new MongoClientURI(settings.connection)
-    logger.info(s"Initialising Mongo writer.Connection to $connectionString")
-    val mongoClient = new MongoClient(connectionString)
-    new MongoWriter(settings, mongoClient)
+    logger.info(s"Initialising Document Db writer.")
+    new DocumentDbWriter(settings, DocumentClientProvider.get(settings))
   }
 }

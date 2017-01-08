@@ -3,6 +3,7 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbSinkSettings
 import com.datamountaineer.streamreactor.connect.azure.documentdb.converters.SinkRecordConverter
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.microsoft.azure.documentdb.Document
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
