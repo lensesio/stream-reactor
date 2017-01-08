@@ -36,6 +36,10 @@ class TestCassandraSinkTask extends WordSpec with Matchers with MockitoSugar wit
     startEmbeddedCassandra()
   }
 
+  after{
+    stopEmbeddedCassandra()
+  }
+
   "A Cassandra SinkTask" should {
     "start and write records to Cassandra" in {
       val session = createTableAndKeySpace(secure = true)
@@ -63,7 +67,7 @@ class TestCassandraSinkTask extends WordSpec with Matchers with MockitoSugar wit
       res.all().size() shouldBe testRecords.size
     }
 
-    "start and write records to Cassandra using ONE as consistency level" ignore {
+    "start and write records to Cassandra using ONE as consistency level" in {
       val session = createTableAndKeySpace(secure = true)
       //mock the context to return our assignment when called
       val context = mock[SinkTaskContext]
