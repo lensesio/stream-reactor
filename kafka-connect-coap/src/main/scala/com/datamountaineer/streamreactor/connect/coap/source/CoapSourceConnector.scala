@@ -20,7 +20,7 @@ package com.datamountaineer.streamreactor.connect.coap.source
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConfig, CoapConstants, CoapSourceConfig}
+import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSourceConfig}
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector

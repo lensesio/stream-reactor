@@ -81,7 +81,7 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
 
         val indexes = sinkRecords
                         .map(r => convert(r, fields, ignoreFields))
-                        .map(r => index into i / i source r)
+                        .map(r => index into i.toLowerCase / i source r)
 
         val ret = client.execute(bulk(indexes).refresh(true))
 

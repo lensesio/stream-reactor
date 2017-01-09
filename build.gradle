@@ -251,7 +251,8 @@ task collectConfs(type: Copy, dependsOn: prepareReleaseDir) {
 
 task collectBin(type: Copy, dependsOn: prepareReleaseDir) {
     from ("${project.rootDir}/bin") {
-        filter{ it.replaceAll('@@CLI_VERSION@@', connectCLIVersion)}
+        filter { it.replaceAll('@@CLI_VERSION@@', connectCLIVersion)}
+        filter { it.replaceAll('@@STREAM_REACTOR_VERSION@@', "${project.version}-${confluentVersion}")}
     }
     into binDir
 }

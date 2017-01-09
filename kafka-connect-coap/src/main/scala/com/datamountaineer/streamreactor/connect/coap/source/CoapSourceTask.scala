@@ -37,9 +37,9 @@ import scala.concurrent.duration._
   */
 class CoapSourceTask extends SourceTask with StrictLogging {
   private var readers : Set[ActorRef] = _
-  private val timer = new Timer()
   private val counter = mutable.Map.empty[String, Long]
   implicit val system = ActorSystem()
+  private var timestamp: Long = 0
 
   class LoggerTask extends TimerTask {
     override def run(): Unit = logCounts()
@@ -57,19 +57,22 @@ class CoapSourceTask extends SourceTask with StrictLogging {
     val actorProps = CoapReader(settings)
     readers = actorProps.map({ case (source, prop) => system.actorOf(prop, source) }).toSet
     readers.foreach( _ ! StartChangeFeed)
-    timer.schedule(new LoggerTask, 0, 60000)
   }
 
   override def poll(): util.List[SourceRecord] = {
     val records = readers.flatMap(ActorHelper.askForRecords).toList
     records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
+    val newTimestamp = System.currentTimeMillis()
+    if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
+      logCounts()
+    }
+    timestamp = newTimestamp
     records
   }
 
   override def stop(): Unit = {
     logger.info("Stopping Coap source and closing connections.")
     readers.foreach(_ ! StopChangeFeed)
-    timer.cancel()
     counter.empty
     Await.ready(system.terminate(), 1.minute)
   }

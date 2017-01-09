@@ -27,10 +27,6 @@ object CoapConstants {
   val COAP_KCQL = "connect.coap.kcql"
   val COAP_KCQL_DOC = "The KCQL statement to select and route resources to topics."
 
-  val COAP_PAYLOAD_CONVERTERS = "connect.coap.source.payload.converters"
-  val COAP_PAYLOAD_CONVERTERS_DOC = "The coap message payload converters to converter the payload to a Connect Struct."
-  val COAP_PAYLOAD_CONVERTERS_DEFAULT = "string"
-
   val COAP_URI = "connect.coap.source.uri"
   val COAP_URI_DOC = "The COAP server to connect to."
   val COAP_URI_DEFAULT = "localhost"
@@ -62,7 +58,7 @@ object CoapConstants {
   val COAP_TRUST_STORE_PATH_DEFAULT = ""
 
   val COAP_TRUST_CERTS = "connect.coap.certs"
-  val COAP_TRUST_CERTS_DOC = "The certificates to load from the trust store"
+  val COAP_TRUST_CERTS_DOC = "The certificates to load from the trust store."
 
   val COAP_KEY_STORE_PASS = "connect.coap.keystore.pass"
   val COAP_KEY_STORE_PASS_DOC = "The password of the key store."
