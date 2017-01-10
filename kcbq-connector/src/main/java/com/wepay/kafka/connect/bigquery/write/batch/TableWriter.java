@@ -94,8 +94,7 @@ public class TableWriter implements Runnable {
     String logMessage = "Wrote {} rows over {} successful calls and {} failed calls.";
     if (successCount + failureCount > 1) {
       logger.info(logMessage, rows.size(), successCount, failureCount);
-    }
-    else {
+    } else {
       logger.debug(logMessage, rows.size(), successCount, failureCount);
     }
 
