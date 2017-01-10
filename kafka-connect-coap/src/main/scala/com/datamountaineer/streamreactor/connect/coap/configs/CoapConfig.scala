@@ -48,6 +48,11 @@ case class CoapConfig() {
       CoapConstants.COAP_KEY_STORE_PASS_DOC, "Connection", 6, ConfigDef.Width.LONG, CoapConstants.COAP_KEY_STORE_PASS)
     .define(CoapConstants.COAP_CERT_CHAIN_KEY, Type.STRING, CoapConstants.COAP_CERT_CHAIN_KEY_DEFAULT, Importance.LOW,
       CoapConstants.COAP_CERT_CHAIN_KEY_DOC, "Connection", 7, ConfigDef.Width.LONG, CoapConstants.COAP_CERT_CHAIN_KEY)
+    .define(CoapConstants.COAP_DTLS_BIND_PORT, Type.INT, CoapConstants.COAP_DTLS_BIND_PORT_DEFAULT, Importance.LOW, CoapConstants.COAP_DTLS_BIND_PORT_DOC,
+      "Connection", 8,
+      ConfigDef.Width.LONG, CoapConstants.COAP_DTLS_BIND_PORT)
+    .define(CoapConstants.COAP_DTLS_BIND_HOST, Type.STRING, CoapConstants.COAP_DTLS_BIND_HOST_DEFAULT, Importance.LOW, CoapConstants.COAP_DTLS_BIND_HOST_DOC,
+      "Connection", 9, ConfigDef.Width.LONG, CoapConstants.COAP_DTLS_BIND_HOST)
 
 }
 
@@ -55,11 +60,6 @@ object CoapSinkConfig {
   val base = CoapConfig().config
 
   val config = base
-    .define(CoapConstants.COAP_SINK_DTLS_BIND_PORT, Type.INT, CoapConstants.COAP_SINK_DTLS_BIND_PORT_DEFAULT, Importance.LOW, CoapConstants.COAP_SINK_DTLS_BIND_PORT_DOC,
-      "Connection", 8,
-      ConfigDef.Width.LONG, CoapConstants.COAP_SINK_DTLS_BIND_PORT)
-    .define(CoapConstants.COAP_SINK_DTLS_BIND_HOST, Type.STRING, CoapConstants.COAP_SINK_DTLS_BIND_HOST_DEFAULT, Importance.LOW, CoapConstants.COAP_SINK_DTLS_BIND_HOST_DOC,
-      "Connection", 9, ConfigDef.Width.LONG, CoapConstants.COAP_SINK_DTLS_BIND_HOST)
     .define(CoapConstants.ERROR_POLICY, Type.STRING, CoapConstants.ERROR_POLICY_DEFAULT, Importance.HIGH, CoapConstants.ERROR_POLICY_DOC,
       "Error", 1, ConfigDef.Width.LONG, CoapConstants.ERROR_POLICY)
     .define(CoapConstants.NBR_OF_RETRIES, Type.INT, CoapConstants.NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, CoapConstants.NBR_OF_RETRIES_DOC,
@@ -72,13 +72,7 @@ case class CoapSinkConfig(props: util.Map[String, String])
   extends AbstractConfig(CoapSinkConfig.config, props)
 
 object CoapSourceConfig {
-  val base = CoapConfig().config
-
-  val config = base
-    .define(CoapConstants.COAP_SOURCE_DTLS_BIND_PORT, Type.INT, CoapConstants.COAP_SOURCE_DTLS_BIND_PORT_DEFAULT, Importance.LOW, CoapConstants.COAP_SINK_DTLS_BIND_PORT_DOC,
-      "Connection", 8, ConfigDef.Width.LONG, CoapConstants.COAP_SOURCE_DTLS_BIND_PORT)
-    .define(CoapConstants.COAP_SOURCE_DTLS_BIND_HOST, Type.STRING, CoapConstants.COAP_SOURCE_DTLS_BIND_HOST_DEFAULT, Importance.LOW, CoapConstants.COAP_SINK_DTLS_BIND_HOST_DOC,
-      "Connection", 9, ConfigDef.Width.LONG, CoapConstants.COAP_SOURCE_DTLS_BIND_HOST)
+  val config = CoapConfig().config
 }
 
 case class CoapSourceConfig(props: util.Map[String, String])

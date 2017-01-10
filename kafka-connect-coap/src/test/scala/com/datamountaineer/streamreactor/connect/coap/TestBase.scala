@@ -103,7 +103,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       CoapConstants.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
       CoapConstants.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
       CoapConstants.COAP_TRUST_CERTS->"root",
-      CoapConstants.COAP_SINK_DTLS_BIND_PORT->"63367"
+      CoapConstants.COAP_DTLS_BIND_PORT->"63367"
     ).asJava
   }
 
@@ -115,7 +115,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       CoapConstants.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
       CoapConstants.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
       CoapConstants.COAP_TRUST_CERTS->"root",
-      CoapConstants.COAP_SINK_DTLS_BIND_PORT->"63366"
+      CoapConstants.COAP_DTLS_BIND_PORT->"63366"
     ).asJava
   }
 
@@ -127,7 +127,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       CoapConstants.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
       CoapConstants.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
       CoapConstants.COAP_TRUST_CERTS->"root",
-      CoapConstants.COAP_SOURCE_DTLS_BIND_PORT->"63368"
+      CoapConstants.COAP_DTLS_BIND_PORT->"63368"
     ).asJava
   }
 
@@ -139,7 +139,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       CoapConstants.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
       CoapConstants.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
       CoapConstants.COAP_TRUST_CERTS->"root",
-      CoapConstants.COAP_SOURCE_DTLS_BIND_PORT->"63369"
+      CoapConstants.COAP_DTLS_BIND_PORT->"63369"
     ).asJava
   }
 
@@ -150,7 +150,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       CoapConstants.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
       CoapConstants.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
       CoapConstants.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
-      CoapConstants.COAP_SOURCE_DTLS_BIND_PORT->"9998"
+      CoapConstants.COAP_DTLS_BIND_PORT->"9998"
     ).asJava
   }
 

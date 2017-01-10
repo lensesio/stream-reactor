@@ -69,8 +69,8 @@ object CoapSettings {
     val routes = raw.split(";").map(r => Config.parse(r)).toSet
 
     val sink = if (config.isInstanceOf[CoapSinkConfig]) true else false
-    val bindPort = if (sink) config.getInt(CoapConstants.COAP_SINK_DTLS_BIND_PORT) else config.getInt(CoapConstants.COAP_SOURCE_DTLS_BIND_PORT)
-    val bindHost = if (sink) config.getString(CoapConstants.COAP_SINK_DTLS_BIND_HOST) else config.getString(CoapConstants.COAP_SOURCE_DTLS_BIND_HOST)
+    val bindPort = if (sink) config.getInt(CoapConstants.COAP_DTLS_BIND_PORT) else config.getInt(CoapConstants.COAP_DTLS_BIND_PORT)
+    val bindHost = if (sink) config.getString(CoapConstants.COAP_DTLS_BIND_HOST) else config.getString(CoapConstants.COAP_DTLS_BIND_HOST)
 
 
     val errorPolicyE = if (sink) Some(ErrorPolicyEnum.withName(config.getString(CoapConstants.ERROR_POLICY).toUpperCase)) else None

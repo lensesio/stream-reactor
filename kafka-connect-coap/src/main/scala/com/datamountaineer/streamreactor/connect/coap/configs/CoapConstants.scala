@@ -27,26 +27,17 @@ object CoapConstants {
   val COAP_KCQL = "connect.coap.kcql"
   val COAP_KCQL_DOC = "The KCQL statement to select and route resources to topics."
 
-  val COAP_URI = "connect.coap.source.uri"
+  val COAP_URI = "connect.coap.uri"
   val COAP_URI_DOC = "The COAP server to connect to."
   val COAP_URI_DEFAULT = "localhost"
 
-  val COAP_SOURCE_DTLS_BIND_PORT = "connect.coap.source.bind.port"
-  val COAP_SOURCE_DTLS_BIND_PORT_DEFAULT = 0
-  val COAP_SOURCE_DTLS_BIND_PORT_DOC = "The port the DTLS connector will bind to on the Connector host."
+  val COAP_DTLS_BIND_PORT = "connect.coap.bind.port"
+  val COAP_DTLS_BIND_PORT_DEFAULT = 0
+  val COAP_DTLS_BIND_PORT_DOC = "The port the DTLS connector will bind to on the Connector host."
 
-  val COAP_SOURCE_DTLS_BIND_HOST = "connect.coap.source.bind.host"
-  val COAP_SOURCE_DTLS_BIND_HOST_DEFAULT = "localhost"
-  val COAP_SOURCE_DTLS_BIND_HOST_DOC = "The hostname the DTLS connector will bind to on the Connector host."
-
-  val COAP_SINK_DTLS_BIND_PORT = "connect.coap.sink.bind.port"
-  val COAP_SINK_DTLS_BIND_PORT_DEFAULT = 0
-  val COAP_SINK_DTLS_BIND_PORT_DOC = "The port the DTLS connector will bind to on the Connector host."
-
-  val COAP_SINK_DTLS_BIND_HOST = "connect.coap.sink.bind.host"
-  val COAP_SINK_DTLS_BIND_HOST_DEFAULT = "localhost"
-  val COAP_SINK_DTLS_BIND_HOST_DOC = "The hostname the DTLS connector will bind to on the Connector host."
-
+  val COAP_DTLS_BIND_HOST = "connect.coap.bind.host"
+  val COAP_DTLS_BIND_HOST_DEFAULT = "localhost"
+  val COAP_DTLS_BIND_HOST_DOC = "The hostname the DTLS connector will bind to on the Connector host."
 
   //Security
   val COAP_TRUST_STORE_PASS = "connect.coap.truststore.pass"

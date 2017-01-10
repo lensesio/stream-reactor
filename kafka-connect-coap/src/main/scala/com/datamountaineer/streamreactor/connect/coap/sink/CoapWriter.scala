@@ -22,6 +22,7 @@ import com.datamountaineer.streamreactor.connect.coap.configs.CoapSetting
 import com.datamountaineer.streamreactor.connect.coap.connection.CoapManager
 import com.datamountaineer.streamreactor.connect.converters.source.SinkRecordToJson
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.eclipse.californium.core.CoapResponse
 import org.eclipse.californium.core.coap.MediaTypeRegistry
@@ -47,10 +48,13 @@ class CoapWriter(setting: CoapSetting) extends CoapManager(setting) with ErrorHa
                       .map(record => SinkRecordToJson(record, fields, ignoredFields))
                       .map(json => (json, client.put(json, MediaTypeRegistry.APPLICATION_JSON)))
                       .filterNot({ case (_, resp) => resp.getCode.codeClass.equals(2) })
-                      .foreach({ case (json, resp)  =>
-                              logger.error(s"Failure sending message $json." +
-                                s"Response is ${resp.getResponseText}, " +
-                                s"Code ${resp.getCode.toString}") }))
+                      .foreach({
+                        case (json, resp)  =>
+                          logger.error(s"Failure sending message $json. Response is ${resp.advanced().getPayload()}, " +
+                                s"Code ${resp.getCode.toString}")
+                          throw new ConnectException(s"Failure sending message $json. Response is ${resp.advanced().getPayload()}, " +
+                            s"Code ${resp.getCode.toString}")
+                      }))
     handleTry(responses)
   }
 

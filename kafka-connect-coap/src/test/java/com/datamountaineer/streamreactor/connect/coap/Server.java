@@ -114,7 +114,9 @@ public class Server {
       //add secure
       server.addEndpoint(new CoapEndpoint(connector, NetworkConfig.getStandard()));
       //add unsecure
-      server.addEndpoint(new CoapEndpoint(new InetSocketAddress("localhost", insecurePort)));
+
+      InetSocketAddress addr = new InetSocketAddress(InetAddress.getByName("localhost"), insecurePort);
+      server.addEndpoint(new CoapEndpoint(addr));
 
     } catch (GeneralSecurityException | IOException e) {
       System.err.println("Could not load the keystore");
@@ -138,6 +140,11 @@ public class Server {
 
   public void stop() {
     server.stop();
+  }
+
+  public static void main(String[] args) {
+    Server server = new Server(5634, 5633);
+    server.start();
   }
 
 
