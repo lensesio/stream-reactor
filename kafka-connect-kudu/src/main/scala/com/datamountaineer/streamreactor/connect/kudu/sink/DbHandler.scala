@@ -169,7 +169,7 @@ object DbHandler extends StrictLogging with KuduConverter {
       val fieldName = f.name()
       val alias = if (mappingFields.contains(fieldName)) mappingFields(fieldName) else fieldName
       val col = fromAvro(f.schema(), alias)
-      val default = if (f.defaultValue() != null) f.defaultValue() else null
+      val default = if (f.defaultVal() != null) f.defaultVal() else null
 
       if (pks.contains(alias)) {
         logger.info(s"Setting PK on ${f.name()} for ${config.getTarget}")
