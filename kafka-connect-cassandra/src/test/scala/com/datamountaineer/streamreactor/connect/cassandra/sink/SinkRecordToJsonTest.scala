@@ -20,6 +20,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSinkSetting
+import com.datamountaineer.streamreactor.connect.converters.source.SinkRecordToJson
 import com.datamountaineer.streamreactor.connect.errors.NoopErrorPolicy
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.kafka.connect.data.Schema
@@ -43,7 +44,7 @@ class SinkRecordToJsonTest extends WordSpec with Matchers with ConverterUtil {
           NoopErrorPolicy(),
           2,
           None)
-        val actual = SinkRecordToJson(record)
+        val actual = SinkRecordToJson(record, settings.fields, settings.ignoreField)
         //comparing string representation; we have more specific types given the schema
         actual shouldBe json
       }
@@ -64,7 +65,7 @@ class SinkRecordToJsonTest extends WordSpec with Matchers with ConverterUtil {
           2,
           None)
 
-        val actual = SinkRecordToJson(record)
+        val actual = SinkRecordToJson(record, settings.fields, settings.ignoreField)
 
         //comparing string representation; we have more specific types given the schema
         actual shouldBe json
@@ -87,7 +88,7 @@ class SinkRecordToJsonTest extends WordSpec with Matchers with ConverterUtil {
           2,
           None)
 
-        val actual = SinkRecordToJson(record)
+        val actual = SinkRecordToJson(record, settings.fields, settings.ignoreField)
 
         //comparing string representation; we have more specific types given the schema
         actual shouldBe json

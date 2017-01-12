@@ -35,7 +35,7 @@ import scala.util.{Failure, Success, Try}
 class YahooSourceTask extends SourceTask with YahooSourceConfig {
   val logger: Logger = Logger.getLogger(getClass.getName)
   private val counter = mutable.Map.empty[String, Long]
-  private val timer = new Timer()
+  private var timestamp: Long = 0
 
   class LoggerTask extends TimerTask {
     override def run(): Unit = logCounts()
@@ -98,7 +98,7 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
 
     dataManager.foreach(_.start())
     logger.info("Data manager started")
-    timer.schedule(new LoggerTask, 0, 60000)
+
   }
 
   /**
@@ -113,6 +113,11 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
     val records = dataManager.map(_.getRecords).getOrElse(new util.ArrayList[SourceRecord]())
     logger.info(s"Returning ${records.size()} record(-s) from Yahoo source")
     records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
+    val newTimestamp = System.currentTimeMillis()
+    if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
+      logCounts()
+    }
+    timestamp = newTimestamp
     records
   }
 

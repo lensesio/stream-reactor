@@ -33,7 +33,7 @@ import scala.collection.mutable
 class ElasticSinkTask extends SinkTask with StrictLogging {
   private var writer : Option[ElasticJsonWriter] = None
   private val counter = mutable.Map.empty[String, Long]
-  private val timer = new Timer()
+  private var timestamp: Long = 0
 
   class LoggerTask extends TimerTask {
     override def run(): Unit = logCounts()
@@ -69,7 +69,7 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
     ElasticSinkConfig.config.parse(props)
     val sinkConfig = ElasticSinkConfig(props)
     writer = Some(ElasticWriter(config = sinkConfig, context = context))
-    timer.schedule(new LoggerTask, 0, 60000)
+
   }
 
   /**
@@ -79,6 +79,11 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
     require(writer.nonEmpty, "Writer is not set!")
     writer.foreach(w=>w.write(records.toSet))
     records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
+    val newTimestamp = System.currentTimeMillis()
+    if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
+      logCounts()
+    }
+    timestamp = newTimestamp
   }
 
   /**

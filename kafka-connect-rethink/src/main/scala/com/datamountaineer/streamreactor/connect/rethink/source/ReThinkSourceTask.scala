@@ -39,7 +39,7 @@ import scala.concurrent.duration._
   */
 class ReThinkSourceTask extends SourceTask with StrictLogging {
   private var readers : Set[ActorRef] = _
-  private val timer = new Timer()
+  private var timestamp: Long = 0
   private val counter = mutable.Map.empty[String, Long]
   implicit val system = ActorSystem()
 
@@ -52,7 +52,7 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
     val config = ReThinkSourceConfig(props)
     lazy val r = RethinkDB.r
     startReaders(config, r)
-    timer.schedule(new LoggerTask, 0, 60000)
+
   }
 
   def startReaders(config: ReThinkSourceConfig, rethinkDB: RethinkDB): Unit = {
@@ -72,6 +72,11 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
   override def poll(): util.List[SourceRecord] = {
    val records = readers.flatMap(ActorHelper.askForRecords).toList
    records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
+    val newTimestamp = System.currentTimeMillis()
+    if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
+      logCounts()
+    }
+    timestamp = newTimestamp
    records
   }
 
@@ -81,7 +86,6 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
   override def stop(): Unit = {
     logger.info("Stopping ReThink source and closing connections.")
     readers.foreach(_ ! StopChangeFeed)
-    timer.cancel()
     counter.empty
     Await.ready(system.terminate(), 1.minute)
   }

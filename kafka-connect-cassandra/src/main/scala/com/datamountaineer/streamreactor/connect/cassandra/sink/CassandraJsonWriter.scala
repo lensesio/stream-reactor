@@ -25,6 +25,7 @@ import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSinkS
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
 import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
 import com.datamountaineer.streamreactor.connect.concurrent.FutureAwaitWithFailFastFn
+import com.datamountaineer.streamreactor.connect.converters.source.SinkRecordToJson
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datastax.driver.core.{PreparedStatement, Session}
@@ -129,7 +130,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
 
         executor.submit {
           val preparedStatement: PreparedStatement = preparedCache(record.topic())
-          val json = SinkRecordToJson(record)(settings)
+          val json = SinkRecordToJson(record, settings.fields, settings.ignoreField)
 
           val bound = preparedStatement.bind(json)
           session.execute(bound)

@@ -41,7 +41,7 @@ class JMSSinkTask extends SinkTask with StrictLogging {
 
   var writer: Option[JMSWriter] = None
   private val counter = mutable.Map.empty[String, Long]
-  private val timer = new Timer()
+  private var timestamp: Long = 0
 
   class LoggerTask extends TimerTask {
     override def run(): Unit = logCounts()
@@ -81,7 +81,7 @@ class JMSSinkTask extends SinkTask with StrictLogging {
     }
 
     writer = Some(JMSWriter(settings))
-    timer.schedule(new LoggerTask, 0, 60000)
+
   }
 
   /**
@@ -95,6 +95,12 @@ class JMSSinkTask extends SinkTask with StrictLogging {
       require(writer.nonEmpty, "Writer is not set!")
       writer.foreach(w => w.write(records.toStream))
       records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
+
+      val newTimestamp = System.currentTimeMillis()
+      if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
+        logCounts()
+      }
+      timestamp = newTimestamp
     }
   }
 

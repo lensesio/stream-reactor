@@ -37,7 +37,7 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
   private var blockchainManager: Option[BlockchainManager] = None
 
   private val counter = mutable.Map.empty[String, Long]
-  private val timer = new Timer()
+  private var timestamp: Long = 0
 
   class LoggerTask extends TimerTask {
     override def run(): Unit = logCounts()
@@ -68,7 +68,7 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
     blockchainManager = Some(new BlockchainManager(settings))
     blockchainManager.foreach(_.start())
     logger.info("Data manager started")
-    timer.schedule(new LoggerTask, 0, 60000)
+
   }
 
   /**
@@ -82,6 +82,11 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
     val records = blockchainManager.map(_.get()).getOrElse(new util.ArrayList[SourceRecord]())
     logger.debug(s"Returning ${records.size()} record(-s) from Blockchain source")
     records.foreach(r => counter.put(r.topic(), counter.getOrElse(r.topic(), 0L) + 1L))
+    val newTimestamp = System.currentTimeMillis()
+    if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
+      logCounts()
+    }
+    timestamp = newTimestamp
     records
   }
 
