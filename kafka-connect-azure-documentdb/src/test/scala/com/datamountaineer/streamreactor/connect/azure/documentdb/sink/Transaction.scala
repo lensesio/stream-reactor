@@ -40,7 +40,7 @@ case class Transaction(lock_time: Long,
     map.put("ver", ver)
     map.put("size", size)
     val inputsArr = new util.ArrayList[Any]()
-    inputs.foreach(i=>inputsArr.add(i.toHashMap))
+    inputs.foreach(i => inputsArr.add(i.toHashMap))
     map.put("inputs", inputsArr)
     rbf.foreach(map.put("rbf", _))
     map.put("time", time)
@@ -60,7 +60,7 @@ case class Transaction(lock_time: Long,
 
 object Transaction {
   val ConnectSchema = SchemaBuilder.struct
-    .name("datamountaineer.blockchain.transaction")
+    .name("transaction")
     .field("lock_time", Schema.INT64_SCHEMA)
     .field("ver", Schema.INT32_SCHEMA)
     .field("size", Schema.INT64_SCHEMA)

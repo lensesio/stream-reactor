@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
 import com.datamountaineer.connector.config.WriteModeEnum
+import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbSinkSettings}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
@@ -32,7 +33,6 @@ import scala.util.{Failure, Success, Try}
   * Writes a list of Kafka connect sink records to Azure DocumentDb using the JSON support.
   */
 class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: DocumentClient) extends StrictLogging with ConverterUtil with ErrorHandler {
-  logger.info(s"Obtaining the database information for ${settings.database}")
   private val database = Try(documentClient.readDatabase(settings.database, new RequestOptions()).getResource) match {
     case Failure(e) => throw new RuntimeException(s"Could not identify database ${settings.database}", e)
     case Success(d) => d
@@ -51,7 +51,7 @@ class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: Documen
   initialize(settings.taskRetries, settings.errorPolicy)
 
   /**
-    * Write SinkRecords to Azure DocumentDb.
+    * Write SinkRecords to Azure Document Db.
     *
     * @param records A list of SinkRecords from Kafka Connect to write.
     **/
@@ -83,7 +83,6 @@ class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: Documen
               documentClient.createDocument(config.getTarget, document, null, false).getResource
 
             case WriteModeEnum.UPSERT =>
-              //require(keysAndValues.nonEmpty, "Need to provide keys and values to identify the record to upsert")
               documentClient.upsertDocument(config.getTarget, document, null, false).getResource
           }
         }

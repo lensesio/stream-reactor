@@ -18,7 +18,10 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbConfig
+import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbSinkSettings}
+import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
+import com.microsoft.azure.documentdb.DocumentClient
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -34,10 +37,12 @@ import scala.util.{Failure, Success, Try}
   * Kafka Connect Azure Document DB sink task. Called by
   * framework to put records to the target sink
   **/
-class DocumentDbSinkTask extends SinkTask with StrictLogging {
+class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => DocumentClient) extends SinkTask with StrictLogging {
   private var writer: Option[DocumentDbWriter] = None
 
   logger.info("Task initialising")
+
+  def this() = this(DocumentClientProvider.get)
 
   /**
     * Parse the configurations and setup the writer
@@ -50,7 +55,14 @@ class DocumentDbSinkTask extends SinkTask with StrictLogging {
 
     logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/documentdb-sink-ascii.txt")).mkString)
 
-    writer = Some(DocumentDbWriter(taskConfig, context))
+    implicit val settings = DocumentDbSinkSettings(taskConfig)
+    //if error policy is retry set retry interval
+    if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
+      context.timeout(taskConfig.getLong(DocumentDbConfig.ERROR_RETRY_INTERVAL_CONFIG))
+    }
+
+    logger.info(s"Initialising Document Db writer.")
+    writer = Some(new DocumentDbWriter(settings, builder(settings)))
   }
 
   /**

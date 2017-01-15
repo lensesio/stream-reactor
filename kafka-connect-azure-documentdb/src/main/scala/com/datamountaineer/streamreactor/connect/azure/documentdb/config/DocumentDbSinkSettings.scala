@@ -36,6 +36,7 @@ case class DocumentDbSinkSettings(endpoint: String,
                                   errorPolicy: ErrorPolicy,
                                   consistency: ConsistencyLevel,
                                   createDatabase: Boolean,
+                                  proxy: Option[String],
                                   taskRetries: Int = DocumentDbConfig.NBR_OF_RETIRES_DEFAULT,
                                   batchSize: Int = DocumentDbConfig.BATCH_SIZE_CONFIG_DEFAULT) {
 
@@ -102,6 +103,7 @@ object DocumentDbSinkSettings extends StrictLogging {
       errorPolicy,
       consistencyLevel,
       config.getBoolean(DocumentDbConfig.CREATE_DATABASE_CONFIG),
+      Option(config.getString(DocumentDbConfig.PROXY_HOST_CONFIG)),
       retries,
       batchSize)
   }

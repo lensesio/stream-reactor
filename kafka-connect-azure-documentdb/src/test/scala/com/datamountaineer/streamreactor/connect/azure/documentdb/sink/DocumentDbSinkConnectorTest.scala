@@ -1,79 +1,168 @@
 package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfig
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbConfig
+import com.microsoft.azure.documentdb._
+import org.mockito.ArgumentMatchers.{eq => mockEq, _}
+import org.mockito.Mockito._
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConversions._
 
-class DocumentDbSinkConnectorTest extends WordSpec with Matchers {
+class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSugar {
+  private val connection = "https://accountName.documents.azure.com:443/"
+
   "DocumentDbSinkConnector" should {
     "return one task config when one route is provided" in {
       val map = Map(
-        MongoConfig.DATABASE_CONFIG -> "database1",
-        MongoConfig.CONNECTION_CONFIG -> "mongodb://localhost:27017",
-        MongoConfig.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
+        DocumentDbConfig.DATABASE_CONFIG -> "database1",
+        DocumentDbConfig.CONNECTION_CONFIG -> connection,
+        DocumentDbConfig.MASTER_KEY_CONFIG -> "secret",
+        DocumentDbConfig.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
       )
 
-      val connector = new MongoSinkConnector()
+      val documentClient = mock[DocumentClient]
+      val dbResource: ResourceResponse[Database] = mock[ResourceResponse[Database]]
+      when(dbResource.getResource).thenReturn(mock[Database])
+
+      val collResource = mock[ResourceResponse[DocumentCollection]]
+      when(collResource.getResource).thenReturn(mock[DocumentCollection])
+
+      when(documentClient.readDatabase(mockEq("database1"), any(classOf[RequestOptions])))
+        .thenReturn(dbResource)
+      when(documentClient.readCollection(mockEq("collection1"), any(classOf[RequestOptions])))
+        .thenReturn(collResource)
+
+      val connector = new DocumentDbSinkConnector((s) => documentClient)
       connector.start(map)
       connector.taskConfigs(3).length shouldBe 1
     }
+
     "return one task when multiple routes are provided but maxTasks is 1" in {
       val map = Map(
-        MongoConfig.DATABASE_CONFIG -> "database1",
-        MongoConfig.CONNECTION_CONFIG -> "mongodb://localhost:27017",
-        MongoConfig.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1; INSERT INTO coll2 SELECT * FROM topicA"
+        DocumentDbConfig.DATABASE_CONFIG -> "database1",
+        DocumentDbConfig.CONNECTION_CONFIG -> connection,
+        DocumentDbConfig.MASTER_KEY_CONFIG -> "secret",
+        DocumentDbConfig.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1; INSERT INTO coll2 SELECT * FROM topicA"
       )
 
-      val connector = new MongoSinkConnector()
+      val documentClient = mock[DocumentClient]
+      val dbResource = mock[ResourceResponse[Database]]
+      when(dbResource.getResource).thenReturn(mock[Database])
+
+      when(documentClient.readDatabase(mockEq("database1"), any(classOf[RequestOptions])))
+        .thenReturn(dbResource)
+
+      Seq("collection1", "coll2").foreach { c =>
+        val resource = mock[ResourceResponse[DocumentCollection]]
+        when(resource.getResource).thenReturn(mock[DocumentCollection])
+
+        when(documentClient.readCollection(mockEq(c), any(classOf[RequestOptions])))
+          .thenReturn(resource)
+      }
+      val connector = new DocumentDbSinkConnector((s) => documentClient)
+
       connector.start(map)
       connector.taskConfigs(1).length shouldBe 1
     }
 
     "return 2 configs when 3 routes are provided and maxTasks is 2" in {
       val map = Map(
-        MongoConfig.DATABASE_CONFIG -> "database1",
-        MongoConfig.CONNECTION_CONFIG -> "mongodb://localhost:27017",
-        MongoConfig.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA;INSERT INTO coll3 SELECT * FROM topicB"
+        DocumentDbConfig.DATABASE_CONFIG -> "database1",
+        DocumentDbConfig.CONNECTION_CONFIG -> connection,
+        DocumentDbConfig.MASTER_KEY_CONFIG -> "secret",
+        DocumentDbConfig.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA;INSERT INTO coll3 SELECT * FROM topicB"
       )
 
-      val connector = new MongoSinkConnector()
+      val documentClient = mock[DocumentClient]
+      val dbResource = mock[ResourceResponse[Database]]
+      when(dbResource.getResource).thenReturn(mock[Database])
+
+      Seq("collection1", "coll2", "coll3").foreach { c =>
+        val resource = mock[ResourceResponse[DocumentCollection]]
+        when(resource.getResource).thenReturn(mock[DocumentCollection])
+
+        when(documentClient.readCollection(mockEq(c), any(classOf[RequestOptions])))
+          .thenReturn(resource)
+      }
+
+      when(documentClient.readDatabase(mockEq("database1"), any(classOf[RequestOptions])))
+        .thenReturn(dbResource)
+
+      val connector = new DocumentDbSinkConnector((s) => documentClient)
+
       connector.start(map)
       val tasksConfigs = connector.taskConfigs(2)
       tasksConfigs.length shouldBe 2
-      tasksConfigs(0).get(MongoConfig.KCQL_CONFIG) shouldBe "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA"
-      tasksConfigs(1).get(MongoConfig.KCQL_CONFIG) shouldBe "INSERT INTO coll3 SELECT * FROM topicB"
+      tasksConfigs(0).get(DocumentDbConfig.KCQL_CONFIG) shouldBe "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA"
+      tasksConfigs(1).get(DocumentDbConfig.KCQL_CONFIG) shouldBe "INSERT INTO coll3 SELECT * FROM topicB"
     }
 
     "return 3 configs when 3 routes are provided and maxTasks is 3" in {
       val map = Map(
-        MongoConfig.DATABASE_CONFIG -> "database1",
-        MongoConfig.CONNECTION_CONFIG -> "mongodb://localhost:27017",
-        MongoConfig.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA;INSERT INTO coll3 SELECT * FROM topicB"
+        DocumentDbConfig.DATABASE_CONFIG -> "database1",
+        DocumentDbConfig.CONNECTION_CONFIG -> connection,
+        DocumentDbConfig.MASTER_KEY_CONFIG -> "secret",
+        DocumentDbConfig.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA;INSERT INTO coll3 SELECT * FROM topicB"
       )
 
-      val connector = new MongoSinkConnector()
+      val documentClient = mock[DocumentClient]
+      val dbResource = mock[ResourceResponse[Database]]
+      when(dbResource.getResource).thenReturn(mock[Database])
+
+      Seq("collection1", "coll2", "coll3").foreach { c =>
+        val resource = mock[ResourceResponse[DocumentCollection]]
+        when(resource.getResource).thenReturn(mock[DocumentCollection])
+
+        when(documentClient.readCollection(mockEq(c), any(classOf[RequestOptions])))
+          .thenReturn(resource)
+      }
+
+      when(documentClient.readDatabase(mockEq("database1"), any(classOf[RequestOptions])))
+        .thenReturn(dbResource)
+
+      val connector = new DocumentDbSinkConnector((s) => documentClient)
+
       connector.start(map)
       val tasksConfigs = connector.taskConfigs(3)
       tasksConfigs.length shouldBe 3
-      tasksConfigs(0).get(MongoConfig.KCQL_CONFIG) shouldBe "INSERT INTO collection1 SELECT * FROM topic1"
-      tasksConfigs(1).get(MongoConfig.KCQL_CONFIG) shouldBe "INSERT INTO coll2 SELECT * FROM topicA"
-      tasksConfigs(2).get(MongoConfig.KCQL_CONFIG) shouldBe "INSERT INTO coll3 SELECT * FROM topicB"
+      tasksConfigs(0).get(DocumentDbConfig.KCQL_CONFIG) shouldBe "INSERT INTO collection1 SELECT * FROM topic1"
+      tasksConfigs(1).get(DocumentDbConfig.KCQL_CONFIG) shouldBe "INSERT INTO coll2 SELECT * FROM topicA"
+      tasksConfigs(2).get(DocumentDbConfig.KCQL_CONFIG) shouldBe "INSERT INTO coll3 SELECT * FROM topicB"
     }
 
     "return 2 configs when 4 routes are provided and maxTasks is 2" in {
       val map = Map(
-        MongoConfig.DATABASE_CONFIG -> "database1",
-        MongoConfig.CONNECTION_CONFIG -> "mongodb://localhost:27017",
-        MongoConfig.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA;INSERT INTO coll3 SELECT * FROM topicB;INSERT INTO coll4 SELECT * FROM topicC"
+        DocumentDbConfig.DATABASE_CONFIG -> "database1",
+        DocumentDbConfig.CONNECTION_CONFIG -> connection,
+        DocumentDbConfig.MASTER_KEY_CONFIG -> "secret",
+        DocumentDbConfig.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA;INSERT INTO coll3 SELECT * FROM topicB;INSERT INTO coll4 SELECT * FROM topicC"
       )
 
-      val connector = new MongoSinkConnector()
+      val documentClient = mock[DocumentClient]
+      val dbResource = mock[ResourceResponse[Database]]
+      when(dbResource.getResource).thenReturn(mock[Database])
+
+      Seq("collection1", "coll2", "coll3", "coll4").foreach { c =>
+        val resource = mock[ResourceResponse[DocumentCollection]]
+        when(resource.getResource).thenReturn(mock[DocumentCollection])
+
+        when(documentClient.readCollection(mockEq(c), any(classOf[RequestOptions])))
+          .thenReturn(resource)
+      }
+
+      when(documentClient.readDatabase(mockEq("database1"), any(classOf[RequestOptions])))
+        .thenReturn(dbResource)
+
+      val connector = new DocumentDbSinkConnector((s) => documentClient)
+
       connector.start(map)
       val tasksConfigs = connector.taskConfigs(2)
       tasksConfigs.length shouldBe 2
-      tasksConfigs(0).get(MongoConfig.KCQL_CONFIG) shouldBe "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA"
-      tasksConfigs(1).get(MongoConfig.KCQL_CONFIG) shouldBe "INSERT INTO coll3 SELECT * FROM topicB;INSERT INTO coll4 SELECT * FROM topicC"
+      tasksConfigs(0).get(DocumentDbConfig.KCQL_CONFIG) shouldBe "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA"
+      tasksConfigs(1).get(DocumentDbConfig.KCQL_CONFIG) shouldBe "INSERT INTO coll3 SELECT * FROM topicB;INSERT INTO coll4 SELECT * FROM topicC"
     }
+
+
   }
 }

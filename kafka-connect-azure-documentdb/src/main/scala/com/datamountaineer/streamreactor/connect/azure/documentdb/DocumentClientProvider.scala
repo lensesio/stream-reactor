@@ -14,19 +14,23 @@
   * limitations under the License.
   **/
 
-package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
+package com.datamountaineer.streamreactor.connect.azure.documentdb
 
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbSinkSettings
 import com.microsoft.azure.documentdb.{ConnectionPolicy, DocumentClient}
+import org.apache.http.HttpHost
 
 /**
   * Creates an instance of Azure DocumentClient class
   */
 object DocumentClientProvider {
-  def get(settings:DocumentDbSinkSettings): DocumentClient= {
+  def get(settings: DocumentDbSinkSettings): DocumentClient = {
+    val policy = ConnectionPolicy.GetDefault()
+    settings.proxy.map(HttpHost.create).foreach(policy.setProxy)
+
     new DocumentClient(settings.endpoint,
       settings.masterKey,
-      ConnectionPolicy.GetDefault(),
+      policy,
       settings.consistency)
   }
 }

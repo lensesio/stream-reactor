@@ -49,7 +49,7 @@ case class Output(addr_tag_link: Option[String],
 object Output {
 
   val ConnectSchema: Schema = SchemaBuilder.struct
-    .name("datamountaineer.blockchain.output")
+    .name("output")
     .doc("The output instance part of a transaction.")
     .field("addr_tag_link", Schema.OPTIONAL_STRING_SCHEMA)
     .field("addr_tag", Schema.OPTIONAL_STRING_SCHEMA)

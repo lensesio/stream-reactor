@@ -32,7 +32,7 @@ case class Input(sequence: Long, prev_out: Option[Output], script: String) {
 
 object Input {
   val ConnectSchema = SchemaBuilder.struct
-    .name("datamountaineer.blockchain.input")
+    .name("input")
     .doc("The input instance part of a transaction.")
     .field("sequence", Schema.INT64_SCHEMA)
     .field("prev_out", Output.ConnectSchema)

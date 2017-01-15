@@ -18,8 +18,9 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbSinkSettings}
-import com.microsoft.azure.documentdb.{DocumentCollection, RequestOptions}
+import com.microsoft.azure.documentdb.{DocumentClient, DocumentCollection, RequestOptions}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.{ConfigDef, ConfigException}
 import org.apache.kafka.connect.connector.{Connector, Task}
@@ -34,8 +35,10 @@ import scala.util.{Failure, Success, Try}
   *
   * Sets up DocumentDbSinkTask and configurations for the tasks.
   **/
-class DocumentDbSinkConnector extends Connector with StrictLogging {
+class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => DocumentClient) extends Connector with StrictLogging {
   private var configProps: util.Map[String, String] = _
+
+  def this() = this(DocumentClientProvider.get)
 
 
   /**
@@ -78,31 +81,31 @@ class DocumentDbSinkConnector extends Connector with StrictLogging {
       case Failure(f) => throw new ConnectException(s"Couldn't start Azure DocumentDb sink due to configuration error: ${f.getMessage}", f)
       case Success(c) => c
     }
-
     configProps = props
 
     val settings = DocumentDbSinkSettings(config)
-    implicit val documentClient = DocumentClientProvider.get(settings)
+    implicit var documentClient: DocumentClient = null
 
-    //check database exists
-    logger.info(s"Checking ${settings.database} exists...")
-    Try(documentClient.readDatabase(settings.database, new RequestOptions()).getResource) match {
-      case Failure(e) =>
-        new RuntimeException(s"Could not find database ${settings.database}", e)
-      case Success(d) =>
-        if (d == null) {
-          if (!settings.createDatabase) {
-            logger.info(s"Database ${settings.database} does not exists. Creating it...")
-            Try(CreateDatabaseFn(settings.database)) match {
-              case Failure(t) => throw new IllegalStateException(s"Could not create database ${settings.database}. ${t.getMessage}", t)
-              case _ => logger.info(s"Database ${settings.database} created")
-            }
-          }
-          else throw new ConfigException(s"Could not find database ${settings.database}", e)
-
-        }
+    try {
+      documentClient = builder(settings)
+      readOrCreateDatabase(settings)
+      readOrCreateCollections(settings)
     }
+    finally {
+      if (null != documentClient) {
+        documentClient.close()
+      }
+    }
+  }
 
+  override def stop(): Unit = {
+  }
+
+  override def version(): String = getClass.getPackage.getImplementationVersion
+
+  override def config(): ConfigDef = DocumentDbConfig.configDef
+
+  private def readOrCreateCollections(settings: DocumentDbSinkSettings)(implicit documentClient: DocumentClient) = {
     //check all collection exists and if not create them
     val requestOptions = new RequestOptions()
     settings.kcql.map(_.getTarget).foreach { collectionName =>
@@ -124,13 +127,26 @@ class DocumentDbSinkConnector extends Connector with StrictLogging {
             logger.warn(s"Collection:$collectionName created")
           }
       }
-
     }
   }
 
-  override def stop(): Unit = {}
+  private def readOrCreateDatabase(settings: DocumentDbSinkSettings)(implicit documentClient: DocumentClient) = {
+    //check database exists
+    logger.info(s"Checking ${settings.database} exists...")
+    Try(documentClient.readDatabase(settings.database, new RequestOptions()).getResource) match {
+      case Failure(e) => new RuntimeException(s"Could not find database ${settings.database}", e)
+      case Success(d) =>
+        if (d == null) {
+          if (!settings.createDatabase) {
+            logger.info(s"Database ${settings.database} does not exists. Creating it...")
+            Try(CreateDatabaseFn(settings.database)) match {
+              case Failure(t) => throw new IllegalStateException(s"Could not create database ${settings.database}. ${t.getMessage}", t)
+              case _ => logger.info(s"Database ${settings.database} created")
+            }
+          }
+          else throw new ConfigException(s"Could not find database ${settings.database}")
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
-
-  override def config(): ConfigDef = DocumentDbConfig.configDef
+        }
+    }
+  }
 }

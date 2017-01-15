@@ -67,12 +67,17 @@ object DocumentDbConfig {
   val CREATE_DATABASE_DISPLAY = "Auto-create database"
   val CREATE_DATABASE_DEFAULT = false
 
-  val configDef = new ConfigDef()
+  val PROXY_HOST_CONFIG="connect.documentdb.proxy"
+  val PROXY_HOST_DOC = "Specifies the connection proxy details."
+  val PROXY_HOST_DISPLAY = "Proxy URI"
+
+  val configDef: ConfigDef = new ConfigDef()
     .define(CONNECTION_CONFIG, Type.STRING, Importance.HIGH, CONNECTION_CONFIG_DOC, "Connection", 1, ConfigDef.Width.LONG, CONNECTION_DISPLAY)
     .define(MASTER_KEY_CONFIG, Type.PASSWORD, Importance.HIGH, MASTER_KEY_DOC, "Connection", 2, ConfigDef.Width.LONG, MASTER_KEY_CONFIG)
     .define(CONSISTENCY_CONFIG, Type.STRING, CONSISTENCY_DEFAULT, Importance.HIGH, CONSITENSCY_DOC, "Connection", 3, ConfigDef.Width.LONG, CONSISTENCY_DISPLAY)
     .define(DATABASE_CONFIG, Type.STRING, Importance.HIGH, DATABASE_CONFIG_DOC, "Connection", 4, ConfigDef.Width.MEDIUM, DATABASE_CONFIG)
     .define(CREATE_DATABASE_CONFIG, Type.BOOLEAN, CREATE_DATABASE_DEFAULT, Importance.MEDIUM, CREATE_DATABASE_DOC, "Connection", 5, ConfigDef.Width.MEDIUM, CREATE_DATABASE_DISPLAY)
+  .define(PROXY_HOST_CONFIG, Type.STRING, null, Importance.LOW,PROXY_HOST_DOC,"Connection", 6,ConfigDef.Width.MEDIUM, PROXY_HOST_DISPLAY)
 
     .define(KCQL_CONFIG, Type.STRING, Importance.HIGH, KCQL_DOC, "Mappings", 1, ConfigDef.Width.LONG, KCQL_CONFIG)
     .define(BATCH_SIZE_CONFIG, Type.INT, BATCH_SIZE_CONFIG_DEFAULT, Importance.MEDIUM, BATCH_SIZE_DOC, "Mappings", 2, ConfigDef.Width.MEDIUM, BATCH_SIZE_CONFIG)

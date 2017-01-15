@@ -20,9 +20,9 @@ import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, Kudu
 import com.datamountaineer.streamreactor.connect.kudu.sink.KuduWriter
 import org.apache.kafka.connect.errors.RetriableException
 import org.kududb.client._
-import org.mockito.Matchers.{any, eq => mockEq}
+import org.mockito.ArgumentMatchers.{any, eq => mockEq}
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 
 import scala.collection.JavaConversions._
 
