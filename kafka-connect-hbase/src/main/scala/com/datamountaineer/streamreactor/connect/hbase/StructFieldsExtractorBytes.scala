@@ -70,16 +70,32 @@ case class StructFieldsExtractorBytes(includeAllFields: Boolean, fieldsAliasMap:
           case Schema.INT8_SCHEMA | Schema.OPTIONAL_INT8_SCHEMA => value.fromByte()
           case Schema.INT16_SCHEMA | Schema.OPTIONAL_INT16_SCHEMA => value.fromShort()
           case Schema.INT32_SCHEMA | Schema.OPTIONAL_INT32_SCHEMA =>
-            if (Date.LOGICAL_NAME.equals(field.schema().name())) {
-              DateFormat.format(Date.toLogical(field.schema(), value.asInstanceOf[Int])).fromString()
+            field.schema().name match {
+              case Date.LOGICAL_NAME =>
+                DateFormat.format(Date.toLogical(field.schema(), value.asInstanceOf[Int])).fromString()
+              case Time.LOGICAL_NAME =>
+                TimeFormat.format(Time.toLogical(field.schema(), value.asInstanceOf[Int])).fromString()
+              case other => value.fromInt()
             }
-            else if (Time.LOGICAL_NAME.equals(field.schema().name())) {
-              TimeFormat.format(Time.toLogical(field.schema(), value.asInstanceOf[Int])).fromString()
+          case Schema.INT64_SCHEMA | Schema.OPTIONAL_INT64_SCHEMA =>
+            if (Timestamp.LOGICAL_NAME == field.schema().name()) {
+              DateFormat.format(Timestamp.toLogical(field.schema(), value.asInstanceOf[Long])).fromString()
             }
-            else value.fromInt()
-          case Schema.INT64_SCHEMA | Schema.OPTIONAL_INT64_SCHEMA => value.fromLong()
+            value.fromLong()
           case Schema.STRING_SCHEMA | Schema.OPTIONAL_STRING_SCHEMA => value.fromString()
-          case other => sys.error(s"$other is not a recognized schema!")
+          case other =>
+            other.name() match {
+              case Decimal.LOGICAL_NAME =>
+                Decimal.toLogical(field.schema(), value.asInstanceOf[Array[Byte]]).fromBigDecimal()
+              case Date.LOGICAL_NAME =>
+                DateFormat.format(Date.toLogical(field.schema(), value.asInstanceOf[Int])).fromString()
+              case Time.LOGICAL_NAME =>
+                TimeFormat.format(Time.toLogical(field.schema(), value.asInstanceOf[Int])).fromString()
+              case Timestamp.LOGICAL_NAME =>
+                DateFormat.format(Timestamp.toLogical(field.schema(), value.asInstanceOf[Long])).fromString()
+
+              case _ => sys.error(s"$other is not a recognized schema!")
+            }
         }
       }
   }

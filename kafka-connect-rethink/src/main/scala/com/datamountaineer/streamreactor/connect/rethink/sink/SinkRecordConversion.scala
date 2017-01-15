@@ -139,6 +139,7 @@ object SinkRecordConversion {
           case Time.LOGICAL_NAME => Time.toLogical(field.schema(), struct.getInt32(field.name()))
           case Timestamp.LOGICAL_NAME => Timestamp.toLogical(field.schema(), struct.getInt64(field.name()))
           case Date.LOGICAL_NAME => Date.toLogical(field.schema(), struct.getInt32(field.name()))
+          case Decimal.LOGICAL_NAME => Decimal.toLogical(field.schema(), struct.getBytes(field.name()))
           case _ => struct.get(field.name())
         }
         hm.put(field.name(), value)

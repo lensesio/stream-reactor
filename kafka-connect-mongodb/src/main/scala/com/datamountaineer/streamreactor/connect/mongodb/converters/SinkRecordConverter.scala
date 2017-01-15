@@ -78,7 +78,7 @@ object SinkRecordConverter {
                 else value
 
               case Schema.Type.INT64 =>
-                if (Timestamp.LOGICAL_NAME == schema.name) Timestamp.fromLogical(schema, value.asInstanceOf[(java.util.Date)])
+                if (Timestamp.LOGICAL_NAME == schema.name) Timestamp.toLogical(schema, value.asInstanceOf[Long])
                 else value
 
               case Schema.Type.STRING => value.asInstanceOf[CharSequence].toString
@@ -149,7 +149,14 @@ object SinkRecordConverter {
                     document
                   }
 
-              case _ => value
+              case other =>
+                schema.name() match {
+                  case Decimal.LOGICAL_NAME => Decimal.toLogical(schema, value.asInstanceOf[Array[Byte]])
+                  case Date.LOGICAL_NAME => ISO_DATE_FORMAT.format(Date.toLogical(schema, value.asInstanceOf[Int]))
+                  case Time.LOGICAL_NAME => TIME_FORMAT.format(Time.toLogical(schema, value.asInstanceOf[Int]))
+                  case Timestamp.LOGICAL_NAME => ISO_DATE_FORMAT.format(Timestamp.toLogical(schema, value.asInstanceOf[Long]))
+                  case _ => sys.error(s"$other is not a recognized schema")
+                }
             }
           }
           catch {
