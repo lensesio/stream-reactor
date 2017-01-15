@@ -36,11 +36,11 @@ schema_name
    ;
 
 insert_from_clause
-   : write_mode table_name select_clause_basic ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? ( project_to )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( with_format_clause )?  (storeas_clause)?
+   : write_mode table_name select_clause_basic ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? ( project_to )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( with_format_clause )?  (storeas_clause)? (with_tags)?
    ;
 
 select_clause
-   : select_clause_basic ( PK primary_key_list)? (with_format_clause)? (with_consumer_group)? (with_offset_list)? (sample_clause)? (storeas_clause)?
+   : select_clause_basic ( PK primary_key_list)? (with_format_clause)? (with_consumer_group)? (with_offset_list)? (sample_clause)? (storeas_clause)? (with_tags)?
    ;
 
 select_clause_basic
@@ -236,5 +236,21 @@ storeas_parameter
     ;
 
 storeas_value
+    : ID | TOPICNAME | INT
+    ;
+
+with_tags
+    : WITHTAG (LEFT_PARAN tag_definition ( COMMA tag_definition )* RIGHT_PARAN)
+    ;
+
+tag_definition
+    : tag_key ( EQUAL tag_value)?
+    ;
+
+tag_key
+    : ID | TOPICNAME
+    ;
+
+tag_value
     : ID | TOPICNAME | INT
     ;

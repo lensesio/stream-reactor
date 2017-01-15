@@ -28,7 +28,7 @@ allprojects {
     targetCompatibility = 1.8
 
     ext {
-        antlrVersion = "4.5.3"
+        antlrVersion = "4.6"
         junitVersion = "4.12"
         mockitoVersion = "1.10.19"
     }

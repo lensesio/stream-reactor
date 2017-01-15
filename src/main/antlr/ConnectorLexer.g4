@@ -85,6 +85,10 @@ WITHOFFSET
     :  'withoffset' | 'WITHOFFSET'
     ;
 
+WITHTAG
+    :   'withtag' | 'WITHTAG'
+    ;
+
 PK
    : 'pk' | 'PK'
    ;
