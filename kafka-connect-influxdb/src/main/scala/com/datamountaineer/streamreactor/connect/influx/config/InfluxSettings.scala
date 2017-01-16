@@ -18,7 +18,7 @@
 
 package com.datamountaineer.streamreactor.connect.influx.config
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.connector.config.{Config, Tag}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.influx.StructFieldsExtractor
 import com.datamountaineer.streamreactor.connect.influx.config.InfluxSinkConfig._
@@ -33,6 +33,7 @@ case class InfluxSettings(connectionUrl: String,
                           retentionPolicy: String,
                           topicToMeasurementMap: Map[String, String],
                           fieldsExtractorMap: Map[String, StructFieldsExtractor],
+                          topicToTagsMap: Map[String, Seq[Tag]],
                           errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                           maxRetries: Int = InfluxSinkConfig.NBR_OF_RETIRES_DEFAULT)
 
@@ -92,6 +93,7 @@ object InfluxSettings {
       retentionPolicy,
       routes.map(r => r.getSource -> r.getTarget).toMap,
       extractorFields,
+      routes.map { r => r.getSource -> r.getTags.toSeq }.filter(_._2.nonEmpty).toMap,
       errorPolicy,
       nbrOfRetries)
   }

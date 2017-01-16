@@ -27,6 +27,7 @@ import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.influxdb.InfluxDB.ConsistencyLevel
 import org.influxdb.dto.{BatchPoints, Point}
+import org.json4s.jackson.JsonMethods.parse
 
 import scala.collection.JavaConversions._
 import scala.util.Try
@@ -53,6 +54,7 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
           }
       }
     }
+
     val batchPoints = BatchPoints
       .database(settings.database)
       .tag("async", "true")
@@ -131,6 +133,9 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
     implicit val formats = DefaultFormats
     val map = jvalue.extract[Map[String, Any]]
 
+    val json = Try(parse(jsonValue)).getOrElse(sys.error(s"Invalid json with the record on topic ${record.topic} and offset ${record.kafkaOffset()}"))
+
+
     val timestamp = extractor.timestampField.map { field =>
       map.getOrElse(field,
         throw new ConfigException(s"$field has not been found on the record on topic ${record.topic()} partition:${record.kafkaPartition()} and offset:${record.kafkaOffset()}"))
@@ -157,8 +162,8 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
     val extractor = settings.fieldsExtractorMap(record.topic())
     val recordData = extractor.get(record.value.asInstanceOf[Struct])
     if (recordData.fields.nonEmpty) {
-      val pointBuilder = Point.measurement(settings.topicToMeasurementMap.getOrElse(record.topic(),
-        throw new ConfigException(s"No matching measurement for topic ${record.topic}")))
+      val measurement = settings.topicToMeasurementMap.getOrElse(record.topic(), throw new ConfigException(s"No matching measurement for topic ${record.topic}"))
+      val pointBuilder = Point.measurement(measurement)
         .time(recordData.timestamp, TimeUnit.MILLISECONDS)
 
       recordData.fields
@@ -176,7 +181,12 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
           case (_, (_, value)) => sys.error(s"$value is not a valid type for InfluxDb.Allowed types:Boolean, " +
             s"Long, String, Double and Number")
         }
-      Some(pointBuilder.build())
+
+      val pb = settings.topicToTagsMap.get(record.topic()).map { tags =>
+        TagsExtractor.fromStruct(record.value().asInstanceOf[Struct], tags, pointBuilder)
+      }.getOrElse(pointBuilder)
+
+      Some(pb.build())
     }
     else {
       None
