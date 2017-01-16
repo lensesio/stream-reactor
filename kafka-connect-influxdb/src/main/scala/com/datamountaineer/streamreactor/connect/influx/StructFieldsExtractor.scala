@@ -37,7 +37,7 @@ trait FieldsValuesExtractor {
 case class StructFieldsExtractor(includeAllFields: Boolean,
                                  fieldsAliasMap: Map[String, String],
                                  timestampField: Option[String],
-                                 ignoredFields:Set[String]) extends FieldsValuesExtractor with StrictLogging {
+                                 ignoredFields: Set[String]) extends FieldsValuesExtractor with StrictLogging {
 
   def get(struct: Struct): RecordData = {
     val schema = struct.schema()
@@ -86,6 +86,7 @@ case class StructFieldsExtractor(includeAllFields: Boolean,
             case Decimal.LOGICAL_NAME => Decimal.toLogical(schema, value.asInstanceOf[Array[Byte]])
             case Date.LOGICAL_NAME => StructFieldsExtractor.DateFormat.format(Date.toLogical(schema, value.asInstanceOf[Int]))
             case Time.LOGICAL_NAME => StructFieldsExtractor.TimeFormat.format(Time.toLogical(schema, value.asInstanceOf[Int]))
+            case Timestamp.LOGICAL_NAME => StructFieldsExtractor.DateFormat.format(Timestamp.toLogical(schema, value.asInstanceOf[Long]))
             case _ => value
           }
 
