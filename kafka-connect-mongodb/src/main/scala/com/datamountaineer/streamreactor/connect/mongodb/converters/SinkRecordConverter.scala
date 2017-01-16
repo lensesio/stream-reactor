@@ -72,19 +72,21 @@ object SinkRecordConverter {
               .getOrElse(throw new DataException("Class " + value.getClass + " does not have corresponding schema type."))
 
             schemaType match {
+
+              case Schema.Type.INT8 | Schema.Type.INT16 | Schema.Type.BOOLEAN | Schema.Type.FLOAT32 | Schema.Type.FLOAT64 => value
               case Schema.Type.INT32 =>
                 if (schema != null && Date.LOGICAL_NAME == schema.name) ISO_DATE_FORMAT.format(Date.toLogical(schema, value.asInstanceOf[Int]))
                 else if (schema != null && Time.LOGICAL_NAME == schema.name) TIME_FORMAT.format(Time.toLogical(schema, value.asInstanceOf[Int]))
                 else value
 
               case Schema.Type.INT64 =>
-                if (Timestamp.LOGICAL_NAME == schema.name) Timestamp.toLogical(schema, value.asInstanceOf[Long])
+                if (schema != null && Timestamp.LOGICAL_NAME == schema.name) Timestamp.toLogical(schema, value.asInstanceOf[Long])
                 else value
 
               case Schema.Type.STRING => value.asInstanceOf[CharSequence].toString
 
               case Schema.Type.BYTES =>
-                if (Decimal.LOGICAL_NAME == schema.name) value.asInstanceOf[BigDecimal]
+                if (schema != null && Decimal.LOGICAL_NAME == schema.name) Decimal.toLogical(schema, value.asInstanceOf[Array[Byte]])
                 else value match {
                   case arrayByte: Array[Byte] => arrayByte
                   case buffer: ByteBuffer => buffer.array
