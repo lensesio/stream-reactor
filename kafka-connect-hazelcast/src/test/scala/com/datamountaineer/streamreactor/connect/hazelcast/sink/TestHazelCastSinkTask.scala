@@ -18,7 +18,7 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.sink
 
-import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkConfig, HazelCastSinkSettings}
+import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastConnectionConfig, HazelCastSinkConfig, HazelCastSinkSettings}
 import com.datamountaineer.streamreactor.connect.hazelcast.{HazelCastConnection, MessageListenerImplJson, TestBase}
 import com.hazelcast.config.Config
 import com.hazelcast.core.{Hazelcast, ITopic}
@@ -54,8 +54,7 @@ class TestHazelCastSinkTask extends TestBase with MockitoSugar {
 
     //get client and check hazelcast
     val config = new HazelCastSinkConfig(props)
-    val settings = HazelCastSinkSettings(config)
-    val conn = HazelCastConnection(settings.connConfig)
+    val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
     val reliableTopic = conn.getReliableTopic(TABLE).asInstanceOf[ITopic[Object]]
     val listener = new MessageListenerImplJson
     reliableTopic.addMessageListener(listener)

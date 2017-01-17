@@ -18,15 +18,18 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.writers
 
+import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
 import com.hazelcast.core.HazelcastInstance
 import com.hazelcast.ringbuffer.Ringbuffer
+import org.apache.kafka.connect.sink.SinkRecord
 
 /**
   * Created by andrew@datamountaineer.com on 02/12/2016. 
   * stream-reactor
   */
-case class RingBufferWriter(client: HazelcastInstance, name: String) extends Writer {
-  val ringBufferWriter: Ringbuffer[Object] = client.getRingbuffer(name).asInstanceOf[Ringbuffer[Object]]
+case class RingBufferWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings) extends Writer(settings) {
+  val ringBufferWriter = client.getRingbuffer(settings.topicObject(topic).name).asInstanceOf[Ringbuffer[Object]]
 
-  override def write(record: Array[Byte]): Unit = ringBufferWriter.add(record)
+  override def write(record: SinkRecord): Unit = ringBufferWriter.add(convert(record))
+  override def close: Unit = {}
 }

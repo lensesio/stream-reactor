@@ -18,15 +18,17 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.writers
 
-import com.hazelcast.core.{HazelcastInstance, ITopic}
+import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
+import com.hazelcast.core.{HazelcastInstance, IQueue}
+import org.apache.kafka.connect.sink.SinkRecord
 
 /**
   * Created by andrew@datamountaineer.com on 02/12/2016. 
   * stream-reactor
   */
-case class ReliableTopicWriter(client: HazelcastInstance, name: String) extends Writer {
-  val reliableTopicWriter: ITopic[Object] = client.getReliableTopic(name).asInstanceOf[ITopic[Object]]
+case class QueueWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings) extends Writer(settings) {
+  val queueWriter = client.getQueue(settings.topicObject(topic).name).asInstanceOf[IQueue[Object]]
 
-  override def write(record: Array[Byte]): Unit = reliableTopicWriter.publish(record)
-
+  override def write(record: SinkRecord): Unit = queueWriter.put(convert(record))
+  override def close: Unit = {}
 }

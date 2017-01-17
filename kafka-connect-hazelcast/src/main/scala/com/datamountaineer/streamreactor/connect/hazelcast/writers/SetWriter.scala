@@ -18,14 +18,17 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.writers
 
-import com.hazelcast.core.{HazelcastInstance, IMap}
+import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
+import com.hazelcast.core.{HazelcastInstance, ISet}
+import org.apache.kafka.connect.sink.SinkRecord
 
 /**
   * Created by andrew@datamountaineer.com on 02/12/2016. 
   * stream-reactor
   */
-case class MapWriter(client: HazelcastInstance, name: String) extends Writer {
-  val mapWriter = client.getMap(name).asInstanceOf[IMap[Object]]
+case class SetWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings) extends Writer(settings) {
+  val setWriter = client.getSet(settings.topicObject(topic).name).asInstanceOf[ISet[Object]]
 
-  override def write(record: Array[Byte]): Unit = mapWriter.put(record)
+  override def write(record: SinkRecord): Unit = setWriter.add(convert(record))
+  override def close: Unit = {}
 }

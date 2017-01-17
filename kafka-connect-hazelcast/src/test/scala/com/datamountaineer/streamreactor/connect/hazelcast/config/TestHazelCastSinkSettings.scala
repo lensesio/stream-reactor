@@ -20,6 +20,9 @@ package com.datamountaineer.streamreactor.connect.hazelcast.config
 
 import com.datamountaineer.streamreactor.connect.errors.ThrowErrorPolicy
 import com.datamountaineer.streamreactor.connect.hazelcast.TestBase
+import com.hazelcast.config.Config
+import com.hazelcast.core.{Hazelcast, HazelcastInstance}
+import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConverters._
 
@@ -28,12 +31,25 @@ import scala.collection.JavaConverters._
   * stream-reactor
   */
 class TestHazelCastSinkSettings extends TestBase {
+
+  var instance : HazelcastInstance = _
+
+  before {
+    val configApp1 = new Config()
+    configApp1.getGroupConfig.setName(GROUP_NAME).setPassword(HazelCastSinkConfig.SINK_GROUP_PASSWORD_DEFAULT)
+    instance = Hazelcast.newHazelcastInstance(configApp1)
+  }
+
+  after {
+    instance.shutdown()
+  }
+
   "Should build settings object from a config" in {
     val props = getProps
     val config = new HazelCastSinkConfig(props)
     val settings = HazelCastSinkSettings(config)
 
-    settings.topicObject(TOPIC) shouldBe HazelCastStoreAsType(TABLE, TargetType.RELIABLE_TOPIC)
+    settings.topicObject(TOPIC) shouldBe HazelCastStoreAsType(s"${TABLE}_avro", TargetType.RELIABLE_TOPIC)
     settings.ignoreFields(TOPIC).size shouldBe 0
     settings.routes.head.isIncludeAllFields shouldBe true
     settings.errorPolicy.isInstanceOf[ThrowErrorPolicy] shouldBe true

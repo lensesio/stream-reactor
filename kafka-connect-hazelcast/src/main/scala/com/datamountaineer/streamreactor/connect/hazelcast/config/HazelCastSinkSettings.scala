@@ -20,7 +20,9 @@ package com.datamountaineer.streamreactor.connect.hazelcast.config
 
 import com.datamountaineer.connector.config.{Config, FormatType}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
 import com.datamountaineer.streamreactor.connect.hazelcast.config.TargetType.TargetType
+import com.hazelcast.core.HazelcastInstance
 import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConversions._
@@ -33,18 +35,17 @@ import scala.util.{Failure, Success, Try}
 
 object TargetType extends Enumeration {
   type TargetType = Value
-  val RELIABLE_TOPIC, RING_BUFFER = Value
+  val RELIABLE_TOPIC, RING_BUFFER, QUEUE, SET, LIST, IMAP, MULTI_MAP, ICACHE = Value
 }
-
 
 case class HazelCastStoreAsType(name: String, targetType: TargetType)
 
-case class HazelCastSinkSettings(groupName : String,
-                                 connConfig: HazelCastConnectionConfig,
+case class HazelCastSinkSettings(client: HazelcastInstance,
                                  routes: Set[Config],
                                  topicObject: Map[String, HazelCastStoreAsType],
                                  fieldsMap : Map[String, Map[String, String]],
                                  ignoreFields: Map[String, Set[String]],
+                                 pks : Map[String, Set[String]],
                                  errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                                  maxRetries: Int = HazelCastSinkConfig.NBR_OF_RETIRES_DEFAULT,
                                  format: Map[String, FormatType])
@@ -65,25 +66,38 @@ object HazelCastSinkSettings {
       }
     }).toMap
 
-    val fieldsMap = routes.map(
-      rm => (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField,fa.getAlias)).toMap)
+    val fieldMap = routes.map(
+      rm => (rm.getSource, rm.getFieldAlias.map( fa => (fa.getField,fa.getAlias)).toMap)
     ).toMap
 
     val ignoreFields = routes.map(r => (r.getSource, r.getIgnoredField.toSet)).toMap
     val groupName = config.getString(HazelCastSinkConfig.SINK_GROUP_NAME)
     require(groupName.nonEmpty,  s"No ${HazelCastSinkConfig.SINK_GROUP_NAME} provided!")
     val connConfig = HazelCastConnectionConfig(config)
+    val client = HazelCastConnection.buildClient(connConfig)
     val format = routes.map(r => (r.getSource, getFormatType(r.getFormatType))).toMap
+    val p = routes.map(r => (r.getSource, r.getPrimaryKeys.toSet)).toMap
 
-    new HazelCastSinkSettings(groupName,
-                              connConfig,
-                              routes,
-                              topicTables,
-                              fieldsMap,
-                              ignoreFields,
-                              errorPolicy,
-                              maxRetries,
-                              format)
+
+    //get the field expected in the sink record which maps to a primary key
+    val pks = fieldMap.map({
+      case (topic, fieldList) =>
+        (topic,
+          fieldList
+            .filter({ case (_,a) => p.contains(a) })
+            .map({ case (f, _) => f })
+            .toSet)
+    })
+
+    //check for caches
+//    val cacheManager = HazelCastConnection.getCacheManager(client, "checker")
+//    topicTables
+//      .filter({ case (_, v) => v.targetType.equals(TargetType.ICACHE)})
+//      .filterNot({ case (_,v) => HazelCastConnection.checkCaches(cacheManager, v.name)})
+//      .foreach( { case (_, v) => throw new ConnectException(s"Cache named ${v.name} not found")})
+//    cacheManager.close()
+
+    new HazelCastSinkSettings(client, routes, topicTables, fieldMap, ignoreFields, pks, errorPolicy, maxRetries, format)
   }
 
   private def getFormatType(format: FormatType) = {
