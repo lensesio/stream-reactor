@@ -39,10 +39,10 @@ trait TestBase  extends WordSpec with Matchers with BeforeAndAfter {
   val ROUTE = s"INSERT INTO $TABLE SELECT * FROM $TOPIC"
   val DB = "test"
   val ROUTE_SELECT_UPSERT = s"UPSERT INTO $TABLE SELECT string_id, int_field FROM $TOPIC AUTOCREATE"
-  val IMPORT_ROUTE = s"INSERT INTO $TOPIC SELECT * FROM $TABLE initialize BATCH = 1000"
-  val IMPORT_ROUTE_DELTA = s"INSERT INTO $TOPIC SELECT * FROM $TABLE BATCH = 1000"
-  val IMPORT_ROUTE_2: String = s"INSERT INTO $TOPIC SELECT * FROM $TABLE initialize BATCH = 1000;" +
-    s"INSERT INTO ${TOPIC}_2 SELECT * FROM ${TABLE}_2 initialize BATCH = 1000"
+  val IMPORT_ROUTE = s"INSERT INTO $TOPIC SELECT * FROM $TABLE initialize "
+  val IMPORT_ROUTE_DELTA = s"INSERT INTO $TOPIC SELECT * FROM $TABLE"
+  val IMPORT_ROUTE_2: String = s"INSERT INTO $TOPIC SELECT * FROM $TABLE initialize;" +
+    s"INSERT INTO ${TOPIC}_2 SELECT * FROM ${TABLE}_2 initialize"
 
   protected val PARTITION: Int = 12
   protected val PARTITION2: Int = 13

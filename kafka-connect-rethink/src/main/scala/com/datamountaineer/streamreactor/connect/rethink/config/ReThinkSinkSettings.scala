@@ -36,8 +36,9 @@ case class ReThinkSinkSetting(db : String,
                               pks : Map[String, Set[String]],
                               conflictPolicy: Map[String, String],
                               errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                              maxRetries : Int,
-                              batchSize : Int
+                              maxRetries : Int
+                              //,
+                              //batchSize : Int
                          )
 
 object ReThinkSinkSettings {
@@ -55,7 +56,7 @@ object ReThinkSinkSettings {
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(ReThinkSinkConfig.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
     val maxRetries = config.getInt(ReThinkSinkConfig.NBR_OF_RETRIES)
-    val batchSize = config.getInt(ReThinkSinkConfig.BATCH_SIZE)
+    //val batchSize = config.getInt(ReThinkSinkConfig.BATCH_SIZE)
 
     //check conflict policy
     val conflictMap = routes.map(m=>{
@@ -85,7 +86,7 @@ object ReThinkSinkSettings {
     })
     val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
 
-    ReThinkSinkSetting(db, routes, topicTableMap, fieldMap, ignoreFields ,pks, conflictMap, errorPolicy, maxRetries, batchSize)
+    ReThinkSinkSetting(db, routes, topicTableMap, fieldMap, ignoreFields ,pks, conflictMap, errorPolicy, maxRetries)
   }
 }
 

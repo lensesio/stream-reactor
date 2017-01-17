@@ -67,8 +67,8 @@ class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSinkSe
     } else {
       logger.info(s"Received ${records.size} records.")
       if (!conn.isOpen) conn.reconnect()
-      val grouped = records.groupBy(_.topic()).grouped(setting.batchSize)
-      grouped.foreach(g => g.foreach { case (topic, entries) => writeRecords(topic, entries) })
+      val grouped = records.groupBy(_.topic())//.grouped(setting.batchSize)
+      grouped.foreach({ case (topic, entries) => writeRecords(topic, entries) })
     }
   }
 
