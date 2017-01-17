@@ -25,7 +25,6 @@ import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import io.confluent.common.config.ConfigException
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.influxdb.InfluxDB.ConsistencyLevel
 import org.influxdb.dto.{BatchPoints, Point}
 
 import scala.collection.JavaConversions._
@@ -53,11 +52,11 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
           }
       }
     }
+
     val batchPoints = BatchPoints
       .database(settings.database)
-      .tag("async", "true")
       .retentionPolicy(settings.retentionPolicy)
-      .consistency(ConsistencyLevel.ALL)
+      .consistency(settings.consistencyLevel)
       .build()
 
     records.foreach(r => handleSinkRecord(r).map(batchPoints.point))
@@ -113,7 +112,25 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
         case (_, value) => sys.error(s"$value (${Option(value).map(_.getClass.getName).getOrElse("")})is not a valid type for InfluxDb. Allowed types:Boolean, " +
           s"Long, String, Double and Number")
       }
-      Some(builder.build())
+
+      val point = settings.topicToTagsMap.get(record.topic())
+        .map { tags =>
+          record.value() match {
+            case str: String =>
+              TagsExtractor.fromJson(record.value().asInstanceOf[String],
+                tags,
+                builder,
+                record)
+
+            case map: java.util.Map[_, _] =>
+              TagsExtractor.fromMap(record.value().asInstanceOf[java.util.Map[String, Any]].toMap,
+                tags,
+                builder)
+
+            case other => sys.error(s"$other content is not supported to extract tags")
+          }
+        }.getOrElse(builder).build()
+      Some(point)
     }
     else {
       None
@@ -157,8 +174,8 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
     val extractor = settings.fieldsExtractorMap(record.topic())
     val recordData = extractor.get(record.value.asInstanceOf[Struct])
     if (recordData.fields.nonEmpty) {
-      val pointBuilder = Point.measurement(settings.topicToMeasurementMap.getOrElse(record.topic(),
-        throw new ConfigException(s"No matching measurement for topic ${record.topic}")))
+      val measurement = settings.topicToMeasurementMap.getOrElse(record.topic(), throw new ConfigException(s"No matching measurement for topic ${record.topic}"))
+      val pointBuilder = Point.measurement(measurement)
         .time(recordData.timestamp, TimeUnit.MILLISECONDS)
 
       recordData.fields
@@ -176,7 +193,12 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
           case (_, (_, value)) => sys.error(s"$value is not a valid type for InfluxDb.Allowed types:Boolean, " +
             s"Long, String, Double and Number")
         }
-      Some(pointBuilder.build())
+
+      val point = settings.topicToTagsMap.get(record.topic()).map { tags =>
+        TagsExtractor.fromStruct(record.value().asInstanceOf[Struct], tags, pointBuilder)
+      }.getOrElse(pointBuilder).build()
+
+      Some(point)
     }
     else {
       None

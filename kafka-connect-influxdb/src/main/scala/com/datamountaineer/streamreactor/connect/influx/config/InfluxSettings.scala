@@ -18,21 +18,25 @@
 
 package com.datamountaineer.streamreactor.connect.influx.config
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.connector.config.{Config, Tag}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.influx.StructFieldsExtractor
 import com.datamountaineer.streamreactor.connect.influx.config.InfluxSinkConfig._
 import org.apache.kafka.common.config.ConfigException
+import org.influxdb.InfluxDB.ConsistencyLevel
 
 import scala.collection.JavaConversions._
+import scala.util.{Failure, Success, Try}
 
 case class InfluxSettings(connectionUrl: String,
                           user: String,
                           password: String,
                           database: String,
                           retentionPolicy: String,
+                          consistencyLevel: ConsistencyLevel,
                           topicToMeasurementMap: Map[String, String],
                           fieldsExtractorMap: Map[String, StructFieldsExtractor],
+                          topicToTagsMap: Map[String, Seq[Tag]],
                           errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                           maxRetries: Int = InfluxSinkConfig.NBR_OF_RETIRES_DEFAULT)
 
@@ -67,16 +71,16 @@ object InfluxSettings {
     if (database == null || database.trim.isEmpty) {
       throw new ConfigException(s"$INFLUX_DATABASE_CONFIG is not set correctly")
     }
-    val raw = config.getString(InfluxSinkConfig.EXPORT_ROUTE_QUERY_CONFIG)
-    require(raw != null && !raw.isEmpty, s"No ${InfluxSinkConfig.EXPORT_ROUTE_QUERY_CONFIG} provided!")
-    val routes = raw.split(";").map(r => Config.parse(r)).toSet
+    val raw = config.getString(InfluxSinkConfig.KCQL_CONFIG)
+    require(raw != null && !raw.isEmpty, s"No ${InfluxSinkConfig.KCQL_CONFIG} provided!")
+    val kcql = raw.split(";").map(r => Config.parse(r)).toSet
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(InfluxSinkConfig.ERROR_POLICY_CONFIG).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
     val nbrOfRetries = config.getInt(InfluxSinkConfig.NBR_OF_RETRIES_CONFIG)
 
-    val fields = routes.map(rm => (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)).toMap
+    val fields = kcql.map(rm => (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)).toMap
 
-    val extractorFields = routes.map { rm =>
+    val extractorFields = kcql.map { rm =>
       val timestampField = Option(rm.getTimestamp) match {
         case Some(Config.TIMESTAMP) => None
         case other => other
@@ -85,13 +89,22 @@ object InfluxSettings {
     }.toMap
 
     val retentionPolicy = config.getString(RETENTION_POLICY_CONFIG)
+    val consistencyLevel = Try {
+      ConsistencyLevel.valueOf(config.getString(CONSISTENCY_CONFIG))
+    } match {
+      case Failure(e) => throw new ConfigException(s"${config.getString(CONSISTENCY_CONFIG)} is not a valid value for $CONSISTENCY_CONFIG. Available values are:${ConsistencyLevel.values().mkString(",")}")
+      case Success(cl) => cl
+    }
+
     new InfluxSettings(url,
       user,
       password,
       database,
       retentionPolicy,
-      routes.map(r => r.getSource -> r.getTarget).toMap,
+      consistencyLevel,
+      kcql.map(r => r.getSource -> r.getTarget).toMap,
       extractorFields,
+      kcql.map { r => r.getSource -> r.getTags.toSeq }.filter(_._2.nonEmpty).toMap,
       errorPolicy,
       nbrOfRetries)
   }
