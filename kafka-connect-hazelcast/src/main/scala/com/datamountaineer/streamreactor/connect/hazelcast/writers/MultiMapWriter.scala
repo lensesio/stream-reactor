@@ -19,19 +19,16 @@
 package com.datamountaineer.streamreactor.connect.hazelcast.writers
 
 import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
-import com.hazelcast.core.{HazelcastInstance, IMap}
+import com.hazelcast.core.{HazelcastInstance, MultiMap}
 import org.apache.kafka.connect.sink.SinkRecord
 
 /**
   * Created by andrew@datamountaineer.com on 02/12/2016. 
   * stream-reactor
   */
-case class MapWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings) extends Writer(settings) {
-  val mapWriter = client.getMap(settings.topicObject(topic).name).asInstanceOf[IMap[String, Object]]
+case class MultiMapWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings) extends Writer(settings) {
+  val multiMapWriter = client.getMultiMap(settings.topicObject(topic).name).asInstanceOf[MultiMap[String, Object]]
 
-  override def write(record: SinkRecord): Unit = {
-    val defaultKeys = Set(topic, record.kafkaPartition().toString ,record.kafkaOffset().toString)
-    val pk = settings.pks.getOrElse(topic, defaultKeys).mkString("-")
-    mapWriter.put(pk, convert(record))
-  }
+  override def write(record: SinkRecord): Unit = multiMapWriter.put(buildPKs(record), convert(record))
+  override def close: Unit = {}
 }

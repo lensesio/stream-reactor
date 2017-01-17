@@ -18,21 +18,26 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast
 
-import java.util.UUID
+import java.net.URI
+import java.util.{Properties, UUID}
+import javax.cache.{Cache, CacheManager, Caching}
 
 import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastConnectionConfig, HazelCastSocketConfig}
+import com.hazelcast.cache.HazelcastCachingProvider
 import com.hazelcast.client.HazelcastClient
 import com.hazelcast.client.config.{ClientConfig, ClientNetworkConfig, SocketOptions}
+import com.hazelcast.client.impl.HazelcastClientProxy
 import com.hazelcast.config.GroupConfig
 import com.hazelcast.core.HazelcastInstance
 
 import scala.collection.JavaConversions._
+
 /**
   * Created by andrew@datamountaineer.com on 10/08/16. 
   * stream-reactor
   */
 object HazelCastConnection {
- def apply(config: HazelCastConnectionConfig): HazelcastInstance = {
+  def buildClient(config: HazelCastConnectionConfig): HazelcastInstance = {
    val clientConfig = new ClientConfig
    val networkConfig = clientConfig.getNetworkConfig
    networkConfig.setAddresses(config.members.toList)
@@ -40,11 +45,10 @@ object HazelCastConnection {
    clientConfig.setGroupConfig(groupConfig)
    buildSocketOptions(networkConfig, config.socketConfig)
    clientConfig.setInstanceName(config.group + "-kafka-connect-" + UUID.randomUUID().toString)
-   //val credentials = new UsernamePasswordCredentials("", "")
    HazelcastClient.newHazelcastClient(clientConfig)
- }
+  }
 
- private def buildSocketOptions(clientNetworkConfig: ClientNetworkConfig, socketConfig: HazelCastSocketConfig): SocketOptions = {
+  private def buildSocketOptions(clientNetworkConfig: ClientNetworkConfig, socketConfig: HazelCastSocketConfig): SocketOptions = {
    val socketOptions = clientNetworkConfig.getSocketOptions
    socketOptions.setKeepAlive(socketConfig.keepAlive)
    socketOptions.setTcpNoDelay(socketConfig.tcpNoDelay)
@@ -52,5 +56,22 @@ object HazelCastConnection {
    socketOptions.setLingerSeconds(socketConfig.lingerSeconds)
    socketOptions.setBufferSize(socketConfig.bufferSize)
    socketOptions
- }
+  }
+
+  def checkCaches(manager: CacheManager, name: String) : Boolean = {
+    manager.getCacheNames.toList.contains(name)
+  }
+
+
+  def getCacheManager(client: HazelcastInstance, name: String) : CacheManager = {
+    val instanceName = client.getName()
+    val cachingProvider = Caching.getCachingProvider()
+
+    // Create Properties instance pointing to a named HazelcastInstance
+    val properties = new Properties()
+    properties.setProperty(HazelcastCachingProvider.HAZELCAST_INSTANCE_NAME, instanceName)
+    val cacheManagerName = new URI(s"${name}-cache-manager" )
+    val cacheManager = cachingProvider.getCacheManager(cacheManagerName, null, properties )
+    cacheManager
+  }
 }

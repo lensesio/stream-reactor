@@ -18,11 +18,10 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.writers
 
-import javax.cache.{Cache, Caching}
+import javax.cache.Cache
 
+import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
 import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
-import com.hazelcast.cache.HazelcastCachingProvider
-import com.hazelcast.config.CacheConfig
 import com.hazelcast.core.HazelcastInstance
 import org.apache.kafka.connect.sink.SinkRecord
 
@@ -30,14 +29,17 @@ import org.apache.kafka.connect.sink.SinkRecord
   * Created by andrew@datamountaineer.com on 02/12/2016. 
   * stream-reactor
   */
-case class JCacheWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings) extends Writer(settings) {
+case class ICacheWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings) extends Writer(settings) {
+  val name =  settings.topicObject(topic).name
+  val cacheManager = HazelCastConnection.getCacheManager(client, s"${client.getName}-${name}-cache-manager")
+  val cacheWriter = cacheManager.getCache(name, classOf[String], classOf[Object])
 
-  val cachingProvider = new HazelcastCachingProvider
+  override def write(record: SinkRecord): Unit = {
+    cacheWriter.put(buildPKs(record), convert(record))
+  }
 
-  
-
-  val cacheManager = cachingProvider.getCacheManager
-  val cache = cacheManager.getCache(settings.topicObject(topic).name).asInstanceOf[Cache[String, Object]]
-
-  override def write(record: SinkRecord): Unit = cache.put(buildPKs(record), convert(record))
+  override def close: Unit = {
+    cacheWriter.close()
+    cacheManager.close()
+  }
 }
