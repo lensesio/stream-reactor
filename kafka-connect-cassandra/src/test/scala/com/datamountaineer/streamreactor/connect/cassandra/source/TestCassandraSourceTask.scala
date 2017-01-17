@@ -44,7 +44,7 @@ class TestCassandraSourceTask extends WordSpec with Matchers with BeforeAndAfter
   }
 
   after {
-   // stopEmbeddedCassandra()
+    stopEmbeddedCassandra()
   }
 
   "A Cassandra SourceTask should start and read records from Cassandra" in {
