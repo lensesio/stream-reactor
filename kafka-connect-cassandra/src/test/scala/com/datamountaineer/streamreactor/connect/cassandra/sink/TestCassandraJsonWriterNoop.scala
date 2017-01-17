@@ -34,6 +34,10 @@ class TestCassandraJsonWriterNoop extends WordSpec with Matchers with MockitoSug
     startEmbeddedCassandra()
   }
 
+  after {
+    stopEmbeddedCassandra()
+  }
+
   "Cassandra JsonWriter with Noop should throw Cassandra exception and keep going" in {
     val session = createTableAndKeySpace(secure = true, ssl = false)
     val context = mock[SinkTaskContext]
@@ -42,7 +46,7 @@ class TestCassandraJsonWriterNoop extends WordSpec with Matchers with MockitoSug
     //get test records
     val testRecords = getTestRecords(TABLE1)
     //get config
-    val props  = getCassandraConfigSinkPropsNoop
+    val props = getCassandraConfigSinkPropsNoop
     val taskConfig = new CassandraConfigSink(props)
     val writer = CassandraWriter(taskConfig, context)
 

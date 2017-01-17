@@ -38,6 +38,10 @@ class TestCassandraSourceTask extends WordSpec with Matchers with BeforeAndAfter
     startEmbeddedCassandra()
   }
 
+  after{
+    stopEmbeddedCassandra()
+  }
+
   "A Cassandra SourceTask should start and read records from Cassandra" in {
     val session = createTableAndKeySpace(secure = true, ssl = false)
 

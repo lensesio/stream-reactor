@@ -42,6 +42,10 @@ class TestCassandraReaderIncr extends WordSpec with Matchers with BeforeAndAfter
     startEmbeddedCassandra()
   }
 
+  after{
+    stopEmbeddedCassandra()
+  }
+
   "CassandraReader should read a tables records in incremental mode" in {
     val session =  createTableAndKeySpace(secure = true, ssl = false)
 

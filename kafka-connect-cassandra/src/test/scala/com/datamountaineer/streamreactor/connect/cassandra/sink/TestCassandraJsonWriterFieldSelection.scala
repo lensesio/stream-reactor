@@ -41,6 +41,10 @@ class TestCassandraJsonWriterFieldSelection extends WordSpec with Matchers with 
     startEmbeddedCassandra()
   }
 
+  after{
+    stopEmbeddedCassandra()
+  }
+
   "Cassandra JsonWriter should write records to Cassandra" in {
     val session = createTableAndKeySpace(secure = true, ssl = false)
     val context = mock[SinkTaskContext]
