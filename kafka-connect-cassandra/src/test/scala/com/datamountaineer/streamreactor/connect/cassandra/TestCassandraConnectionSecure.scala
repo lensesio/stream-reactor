@@ -31,6 +31,9 @@ class TestCassandraConnectionSecure extends WordSpec with Matchers with BeforeAn
     startEmbeddedCassandra()
   }
 
+  after{
+    stopEmbeddedCassandra()
+  }
 
   "should return a secured session" in {
     createTableAndKeySpace(secure = true, ssl = false)
