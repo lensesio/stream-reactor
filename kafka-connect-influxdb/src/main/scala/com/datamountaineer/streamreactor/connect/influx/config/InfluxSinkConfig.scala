@@ -52,8 +52,9 @@ object InfluxSinkConfig {
       |Default retention is `autogen` from 1.0 onwards or `default` for any previous version""".stripMargin
   val RETENTION_POLICY_DEFAULT = "autogen"
 
-  val EXPORT_ROUTE_QUERY_CONFIG = "connect.influx.sink.route.query"
-  val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
+  val KCQL_CONFIG = "connect.influx.sink.kcql"
+  val KCQL_DOC = "KCQL expression describing field selection and routes."
+  val KCQL_DISPLAY = "Kafka Connect Query Language"
 
   val ERROR_POLICY_CONFIG = "connect.influx.error.policy"
   val ERROR_POLICY_DOC: String = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
@@ -70,6 +71,11 @@ object InfluxSinkConfig {
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
+  val CONSISTENCY_CONFIG = "connect.influx.consistency.level"
+  val CONSISTENCY_DOC = "Specifies the write consistency. If any write operations do not meet the configured consistency guarantees, an error will occur and the data will not be indexed. The default consistency-level is ALL."
+  val CONSISTENCY_DEFAULT = "ALL"
+  val CONSISTENCY_DISPLAY = "Consistency Level"
+
   val config: ConfigDef = new ConfigDef()
     .define(INFLUX_URL_CONFIG, Type.STRING, Importance.HIGH, INFLUX_URL_DOC,
       "Connection", 1, ConfigDef.Width.MEDIUM, INFLUX_URL_CONFIG)
@@ -79,16 +85,20 @@ object InfluxSinkConfig {
       "Connection", 3, ConfigDef.Width.MEDIUM, INFLUX_CONNECTION_USER_CONFIG)
     .define(INFLUX_CONNECTION_PASSWORD_CONFIG, Type.PASSWORD, "", Importance.HIGH, INFLUX_CONNECTION_PASSWORD_DOC,
       "Connection", 4, ConfigDef.Width.MEDIUM, INFLUX_CONNECTION_PASSWORD_CONFIG)
-    .define(EXPORT_ROUTE_QUERY_CONFIG, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY_DOC,
-      "Connection", 5, ConfigDef.Width.MEDIUM, EXPORT_ROUTE_QUERY_CONFIG)
+    .define(KCQL_CONFIG, Type.STRING, Importance.HIGH, KCQL_DOC,
+      "Connection", 5, ConfigDef.Width.MEDIUM, KCQL_DISPLAY)
+
     .define(ERROR_POLICY_CONFIG, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC,
-      "Connection", 6, ConfigDef.Width.MEDIUM, ERROR_POLICY_CONFIG)
+      "Miscellaneous", 1, ConfigDef.Width.MEDIUM, ERROR_POLICY_CONFIG)
     .define(ERROR_RETRY_INTERVAL_CONFIG, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC,
-      "Connection", 7, ConfigDef.Width.MEDIUM, ERROR_RETRY_INTERVAL_CONFIG)
+      "Miscellaneous", 2, ConfigDef.Width.MEDIUM, ERROR_RETRY_INTERVAL_CONFIG)
     .define(NBR_OF_RETRIES_CONFIG, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC,
-      "Connection", 8, ConfigDef.Width.MEDIUM, NBR_OF_RETRIES_CONFIG)
+      "Miscellaneous", 3, ConfigDef.Width.MEDIUM, NBR_OF_RETRIES_CONFIG)
+
     .define(RETENTION_POLICY_CONFIG, Type.STRING, RETENTION_POLICY_DEFAULT, Importance.HIGH, RETENTION_POLICY_DOC,
-      "Connection", 9, ConfigDef.Width.MEDIUM, RETENTION_POLICY_DOC)
+      "Writes", 1, ConfigDef.Width.MEDIUM, RETENTION_POLICY_DOC)
+    .define(CONSISTENCY_CONFIG, Type.STRING, CONSISTENCY_DEFAULT, Importance.MEDIUM, CONSISTENCY_DOC,
+      "Writes", 2, ConfigDef.Width.MEDIUM, CONSISTENCY_DISPLAY)
 }
 
 /**
