@@ -47,6 +47,7 @@ import scala.collection.mutable
 trait TestConfig extends StrictLogging with MockitoSugar {
   val CONTACT_POINT = "localhost"
   val CASSANDRA_PORT = 9042
+  val SOURCE_PORT = "9043"
   val CASSANDRA_KEYSPACE = "sink_test"
   val TOPIC1 = "sink_test"
   val TOPIC2 = "sink_test2"
@@ -209,11 +210,11 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   }
 
   //create a cluster, test keyspace and tables
-  def createTableAndKeySpace(secure: Boolean = false, ssl :Boolean = false) : Session = {
+  def createTableAndKeySpace(secure: Boolean = false, ssl :Boolean = false, port: Int = CASSANDRA_PORT) : Session = {
     val cluster : Builder = Cluster
       .builder()
       .addContactPoints(CONTACT_POINT)
-      .withPort(CASSANDRA_PORT)
+      .withPort(port)
 
     if (secure) cluster.withCredentials(USERNAME.trim, PASSWD.trim)
     if (ssl) {
@@ -326,6 +327,14 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   }
 
   def stopEmbeddedCassandra() = {
-    EmbeddedCassandraServerHelper.cleanEmbeddedCassandra()
+   // EmbeddedCassandraServerHelper.cleanEmbeddedCassandra()
   }
+
+//  def startEmbeddedCassandraSource() = {
+//    EmbeddedCassandraServerHelper.startEmbeddedCassandra("cassandra-source.yaml", 25000)
+//  }
+
+//  def stopEmbeddedCassandraSource() = {
+//    EmbeddedCassandraServerHelper.cleanEmbeddedCassandra()
+//  }
 }
