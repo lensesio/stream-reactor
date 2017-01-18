@@ -58,11 +58,6 @@ object HazelCastConnection {
    socketOptions
   }
 
-  def checkCaches(manager: CacheManager, name: String) : Boolean = {
-    manager.getCacheNames.toList.contains(name)
-  }
-
-
   def getCacheManager(client: HazelcastInstance, name: String) : CacheManager = {
     val instanceName = client.getName()
     val cachingProvider = Caching.getCachingProvider()
@@ -70,7 +65,7 @@ object HazelCastConnection {
     // Create Properties instance pointing to a named HazelcastInstance
     val properties = new Properties()
     properties.setProperty(HazelcastCachingProvider.HAZELCAST_INSTANCE_NAME, instanceName)
-    val cacheManagerName = new URI(s"${name}-cache-manager" )
+    val cacheManagerName = new URI(name )
     val cacheManager = cachingProvider.getCacheManager(cacheManagerName, null, properties )
     cacheManager
   }

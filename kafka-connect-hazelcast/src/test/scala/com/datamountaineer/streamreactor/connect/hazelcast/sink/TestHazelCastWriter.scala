@@ -18,18 +18,13 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.sink
 
-
-import javax.cache.Cache
-
 import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastConnectionConfig, HazelCastSinkConfig, HazelCastSinkSettings}
 import com.datamountaineer.streamreactor.connect.hazelcast.writers.HazelCastWriter
 import com.datamountaineer.streamreactor.connect.hazelcast.{HazelCastConnection, MessageListenerImplAvro, MessageListenerImplJson, TestBase}
-import com.hazelcast.cache.ICache
 import com.hazelcast.core._
 import com.hazelcast.ringbuffer.Ringbuffer
 import org.apache.avro.generic.GenericRecord
 
-import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 11/08/16. 

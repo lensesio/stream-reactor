@@ -73,19 +73,9 @@ object ReThinkSinkSettings {
 
     val db = config.getString(ReThinkSinkConfig.RETHINK_DB)
     val p = routes.map(r => (r.getSource, r.getPrimaryKeys.toSet)).toMap
-
-    //get the field expected in the sink record which maps to a primary key
-    val pks = fieldMap.map({
-      case (topic, fieldList) =>
-        (topic,
-        fieldList
-          .filter({ case (_,a) => p.contains(a) })
-          .map({ case (f, _) => f })
-            .toSet)
-    })
     val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
 
-    ReThinkSinkSetting(db, routes, topicTableMap, fieldMap, ignoreFields ,pks, conflictMap, errorPolicy, maxRetries, batchSize)
+    ReThinkSinkSetting(db, routes, topicTableMap, fieldMap, ignoreFields, p, conflictMap, errorPolicy, maxRetries, batchSize)
   }
 }
 
