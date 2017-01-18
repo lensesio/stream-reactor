@@ -129,7 +129,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
       val futures = records.map { record =>
 
         executor.submit {
-          val preparedStatement: PreparedStatement = preparedCache(record.topic())
+          val preparedStatement = preparedCache(record.topic())
           val json = SinkRecordToJson(record, settings.fields, settings.ignoreField)
 
           val bound = preparedStatement.bind(json)

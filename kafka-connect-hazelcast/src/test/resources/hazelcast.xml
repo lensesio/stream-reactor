@@ -1,0 +1,25 @@
+<hazelcast xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://www.hazelcast.com/schema/config
+                               http://www.hazelcast.com/schema/config/hazelcast-config-3.8.xsd"
+           xmlns="http://www.hazelcast.com/schema/config">
+
+    <group>
+        <name>dev</name>
+        <password>dev-pass</password>
+    </group>
+
+
+
+    <cache name="table1_icache">
+        <key-type class-name="java.lang.String"/>
+        <value-type class-name="java.lang.Object"/>
+        <statistics-enabled>true</statistics-enabled>
+        <management-enabled>true</management-enabled>
+        <read-through>true</read-through>
+        <write-through>true</write-through>
+        <in-memory-format>OBJECT</in-memory-format>
+        <backup-count>1</backup-count>
+        <async-backup-count>1</async-backup-count>
+        <eviction size="100000" eviction-policy="LRU" max-size-policy="ENTRY_COUNT"/>
+    </cache>
+</hazelcast>

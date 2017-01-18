@@ -36,9 +36,8 @@ case class ReThinkSinkSetting(db : String,
                               pks : Map[String, Set[String]],
                               conflictPolicy: Map[String, String],
                               errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                              maxRetries : Int
-                              //,
-                              //batchSize : Int
+                              maxRetries : Int,
+                              batchSize : Int
                          )
 
 object ReThinkSinkSettings {
@@ -56,7 +55,7 @@ object ReThinkSinkSettings {
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(ReThinkSinkConfig.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
     val maxRetries = config.getInt(ReThinkSinkConfig.NBR_OF_RETRIES)
-    //val batchSize = config.getInt(ReThinkSinkConfig.BATCH_SIZE)
+    val batchSize = config.getInt(ReThinkSinkConfig.BATCH_SIZE)
 
     //check conflict policy
     val conflictMap = routes.map(m=>{
@@ -74,19 +73,9 @@ object ReThinkSinkSettings {
 
     val db = config.getString(ReThinkSinkConfig.RETHINK_DB)
     val p = routes.map(r => (r.getSource, r.getPrimaryKeys.toSet)).toMap
-
-    //get the field expected in the sink record which maps to a primary key
-    val pks = fieldMap.map({
-      case (topic, fieldList) =>
-        (topic,
-        fieldList
-          .filter({ case (_,a) => p.contains(a) })
-          .map({ case (f, _) => f })
-            .toSet)
-    })
     val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
 
-    ReThinkSinkSetting(db, routes, topicTableMap, fieldMap, ignoreFields ,pks, conflictMap, errorPolicy, maxRetries)
+    ReThinkSinkSetting(db, routes, topicTableMap, fieldMap, ignoreFields, p, conflictMap, errorPolicy, maxRetries, batchSize)
   }
 }
 

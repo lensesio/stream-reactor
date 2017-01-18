@@ -44,10 +44,13 @@ object HazelCastSinkConfig {
   val SINK_GROUP_NAME = "connect.hazelcast.sink.group.name"
   val SINK_GROUP_NAME_DOC = "The group name of the connector in the target Hazelcast cluster."
 
-
   val SINK_GROUP_PASSWORD = "connect.hazelcast.sink.group.password"
   val SINK_GROUP_PASSWORD_DOC: String = """The password for the group name.""".stripMargin
   val SINK_GROUP_PASSWORD_DEFAULT = "dev-pass"
+
+  val PARALLEL_WRITE = "connect.hazelcast.parallel.write"
+  val PARALLEL_WRITE_DOC = "All the sink to write in parallel the records received from Kafka on each poll."
+  val PARALLEL_WRITE_DEFAULT = true
 
   val CONNECTION_TIMEOUT = "connect.hazelcast.connection.timeout"
   val CONNECTION_TIMEOUT_DOC: String =
@@ -102,6 +105,15 @@ object HazelCastSinkConfig {
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
+  val SINK_THREAD_POOL_CONFIG = "connect.hazelcast.sink.threadpool.size"
+  val SINK_THREAD_POOL_DOC =
+    """
+      |The sink inserts all the data concurrently. To fail fast in case of an error, the sink has its own thread pool.
+      |Set the value to zero and the threadpool will default to 4* NO_OF_CPUs. Set a value greater than 0
+      |and that would be the size of this threadpool.""".stripMargin
+  val SINK_THREAD_POOL_DISPLAY = "Thread pool size"
+  val SINK_THREAD_POOL_DEFAULT = 0
+
   val config: ConfigDef = new ConfigDef()
     .define(CLUSTER_SINK_MEMBERS, Type.LIST, Importance.HIGH, CLUSTER_MEMBERS_DOC,
       "Connection", 1, ConfigDef.Width.MEDIUM, CLUSTER_SINK_MEMBERS)
@@ -131,6 +143,10 @@ object HazelCastSinkConfig {
       "Target", 3, ConfigDef.Width.MEDIUM, ERROR_RETRY_INTERVAL)
     .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC,
       "Target", 4, ConfigDef.Width.MEDIUM, NBR_OF_RETRIES)
+    .define(SINK_THREAD_POOL_CONFIG, Type.INT, SINK_THREAD_POOL_DEFAULT, Importance.MEDIUM, SINK_THREAD_POOL_DOC,
+      "Target", 5, ConfigDef.Width.MEDIUM, SINK_THREAD_POOL_DISPLAY)
+    .define(PARALLEL_WRITE, Type.BOOLEAN, PARALLEL_WRITE_DEFAULT, Importance.MEDIUM, PARALLEL_WRITE_DOC,
+      "Target", 5, ConfigDef.Width.MEDIUM, PARALLEL_WRITE)
 }
 
 class HazelCastSinkConfig(props: util.Map[String, String]) extends AbstractConfig(HazelCastSinkConfig.config, props)

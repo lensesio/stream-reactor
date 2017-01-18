@@ -41,12 +41,19 @@ import scala.collection.mutable
 trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   val TOPIC = "sink_test"
   val TABLE = "table1"
-  val EXPORT_MAP=s"INSERT INTO $TABLE SELECT * FROM $TOPIC WITHFORMAT avro"
-  val EXPORT_MAP_RB=s"INSERT INTO $TABLE SELECT * FROM $TOPIC WITHFORMAT json STOREAS RING_BUFFER"
+  val EXPORT_MAP=s"INSERT INTO ${TABLE}_avro SELECT * FROM $TOPIC WITHFORMAT avro"
+  val EXPORT_MAP_RB=s"INSERT INTO ${TABLE}_rb SELECT * FROM $TOPIC WITHFORMAT json STOREAS RING_BUFFER"
+  val EXPORT_MAP_JSON_QUEUE=s"INSERT INTO ${TABLE}_queue SELECT * FROM $TOPIC WITHFORMAT json STOREAS QUEUE"
+  val EXPORT_MAP_JSON_SET=s"INSERT INTO ${TABLE}_set SELECT * FROM $TOPIC WITHFORMAT json STOREAS SET"
+  val EXPORT_MAP_JSON_LIST=s"INSERT INTO ${TABLE}_list SELECT * FROM $TOPIC WITHFORMAT json STOREAS LIST"
+  val EXPORT_MAP_MULTIMAP_DEFAULT_PK=s"INSERT INTO ${TABLE}_multi SELECT * FROM $TOPIC WITHFORMAT json STOREAS MULTI_MAP"
+  val EXPORT_MAP_IMAP_DEFAULT_PK=s"INSERT INTO ${TABLE}_multi SELECT * FROM $TOPIC WITHFORMAT json STOREAS IMAP"
+  val EXPORT_MAP_JSON_ICACHE=s"INSERT INTO ${TABLE}_icache SELECT * FROM $TOPIC WITHFORMAT json STOREAS ICACHE"
+
   val EXPORT_MAP_JSON=s"INSERT INTO $TABLE SELECT * FROM $TOPIC WITHFORMAT json"
   val EXPORT_MAP_SELECTION = s"INSERT INTO $TABLE SELECT a, b, c FROM $TOPIC"
   val EXPORT_MAP_IGNORED = s"INSERT INTO $TABLE SELECT * FROM $TOPIC IGNORE a"
-  val GROUP_NAME = "unittest"
+  val GROUP_NAME = "dev"
   val json = "{\"id\":\"sink_test-12-1\",\"int_field\":12,\"long_field\":12,\"string_field\":\"foo\",\"float_field\":0.1,\"float64_field\":0.199999,\"boolean_field\":true,\"byte_field\":\"Ynl0ZXM=\"}"
 
   protected val PARTITION: Int = 12
@@ -64,6 +71,48 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
 
   def getPropsRB = {
     Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_RB,
+      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+    ).asJava
+  }
+
+  def getPropsJsonQueue = {
+    Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON_QUEUE,
+      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+    ).asJava
+  }
+
+  def getPropsJsonSet = {
+    Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON_SET,
+      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+    ).asJava
+  }
+
+  def getPropsJsonList = {
+    Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON_LIST,
+      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+    ).asJava
+  }
+
+  def getPropsJsonMultiMapDefaultPKS = {
+    Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_MULTIMAP_DEFAULT_PK,
+      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+    ).asJava
+  }
+
+  def getPropsJsonICache = {
+    Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON_ICACHE,
+      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+    ).asJava
+  }
+
+  def getPropsJsonMapDefaultPKS = {
+    Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_IMAP_DEFAULT_PK,
       HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
       HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
     ).asJava
@@ -134,7 +183,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   }
 
   //generate some test records
-  def getTestRecords(nbr : Int = 1) : Set[SinkRecord]= {
+  def getTestRecords(nbr : Int = 1) : Seq[SinkRecord]= {
     val schema = createSchema
     val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
 
@@ -143,7 +192,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
         new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i)
       })
-    }).toSet
+    }).toSeq
   }
 }
 
@@ -211,7 +260,7 @@ class MessageListenerImplJson extends MessageListener[Object] {
 
   def onMessage(m : Message[Object]) {
     System.out.println("Received: " + m.getMessageObject)
-    message = Some(new String(m.getMessageObject.asInstanceOf[Array[Byte]]))
+    message = Some(m.getMessageObject.asInstanceOf[String])
     gotMessage = true
   }
 }
