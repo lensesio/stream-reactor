@@ -37,7 +37,7 @@ import org.apache.kafka.connect.sink.SinkRecord
   */
 abstract class Writer(settings: HazelCastSinkSettings) extends ConverterUtil {
 
-  def write(records: SinkRecord)
+  def write(record: SinkRecord)
   def close
 
   /**
@@ -95,6 +95,9 @@ abstract class Writer(settings: HazelCastSinkSettings) extends ConverterUtil {
   }
 
   def buildPKs(record: SinkRecord) : String = {
+    val keys = settings.pks(record.topic).map(_.mkString("-"))
+
+     // .getOrElse(s"${record.topic}-${record.kafkaPartition()}-${record.kafkaOffset()}" )
     val defaultKeys = s"${record.topic}-${record.kafkaPartition()}-${record.kafkaOffset()}"
     if (settings.pks(record.topic()).isEmpty) defaultKeys else settings.pks(record.topic()).mkString("-")
   }

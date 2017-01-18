@@ -18,13 +18,18 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.writers
 
+import java.util.concurrent.Executors
+
+import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
+import com.datamountaineer.streamreactor.connect.concurrent.FutureAwaitWithFailFastFn
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkSettings, HazelCastStoreAsType, TargetType}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.util.Try
+import scala.util.{Failure, Success}
+import scala.concurrent.duration._
 
 /**
   * Created by andrew@datamountaineer.com on 10/08/16. 
@@ -66,25 +71,58 @@ class HazelCastWriter(settings: HazelCastSinkSettings) extends StrictLogging
     *
     * @param records The sink records to write.
     **/
-  def write(records: Set[SinkRecord]): Unit = {
+  def write(records: Seq[SinkRecord]): Unit = {
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
       logger.debug(s"Received ${records.size} records.")
-      val grouped = records.map(r => (r.topic, r))
-      grouped.foreach({
-        case (topic, payload) =>
-          val writer = writers.get(topic)
-          val t = Try(writer.foreach(w => w.write(payload)))
-          handleTry(t)
-      })
+      if (settings.allowParallel) parallelWrite(records) else sequentialWrite(records)
       logger.debug(s"Written ${records.size}")
     }
   }
 
+  def sequentialWrite(records: Seq[SinkRecord]) = {
+    try {
+      records.foreach(r => insert(r))
+    } catch {
+      case t: Throwable =>
+        logger.error(s"There was an error inserting the records ${t.getMessage}", t)
+        handleTry(Failure(t))
+    }
+  }
+
+  def parallelWrite(records: Seq[SinkRecord]) = {
+    logger.warn("Running parallel writes! Order of writes not guaranteed.")
+    val executor = Executors.newFixedThreadPool(settings.threadPoolSize)
+
+    try {
+      val futures = records.map { record =>
+        executor.submit {
+          insert(record)
+          ()
+        }
+      }
+
+      //when the call returns the pool is shutdown
+      FutureAwaitWithFailFastFn(executor, futures, 1.hours)
+      handleTry(Success(()))
+      logger.debug(s"Processed ${futures.size} records.")
+    }
+    catch {
+      case t: Throwable =>
+        logger.error(s"There was an error inserting the records ${t.getMessage}", t)
+        handleTry(Failure(t))
+    }
+  }
+
+  def insert(record: SinkRecord) = {
+    val writer = writers.get(record.topic())
+    writer.foreach(w => w.write(record))
+  }
+
   def close(): Unit = {
     logger.info("Shutting down Hazelcast client.")
-    writers.foreach({case (_, w) => w.close})
+    writers.values.foreach(_.close)
     settings.client.shutdown()
   }
 

@@ -48,7 +48,9 @@ case class HazelCastSinkSettings(client: HazelcastInstance,
                                  pks : Map[String, Set[String]],
                                  errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                                  maxRetries: Int = HazelCastSinkConfig.NBR_OF_RETIRES_DEFAULT,
-                                 format: Map[String, FormatType])
+                                 format: Map[String, FormatType],
+                                 threadPoolSize: Int,
+                                 allowParallel: Boolean)
 
 object HazelCastSinkSettings {
   def apply(config: HazelCastSinkConfig): HazelCastSinkSettings = {
@@ -78,26 +80,15 @@ object HazelCastSinkSettings {
     val format = routes.map(r => (r.getSource, getFormatType(r.getFormatType))).toMap
     val p = routes.map(r => (r.getSource, r.getPrimaryKeys.toSet)).toMap
 
+    val threadPoolSize: Int = {
+      val threads = config.getInt(HazelCastSinkConfig.SINK_THREAD_POOL_CONFIG)
+      if (threads <= 0) 4 * Runtime.getRuntime.availableProcessors()
+      else threads
+    }
 
-    //get the field expected in the sink record which maps to a primary key
-    val pks = fieldMap.map({
-      case (topic, fieldList) =>
-        (topic,
-          fieldList
-            .filter({ case (_,a) => p.contains(a) })
-            .map({ case (f, _) => f })
-            .toSet)
-    })
+    val allowParallel = config.getBoolean(HazelCastSinkConfig.PARALLEL_WRITE)
 
-    //check for caches
-//    val cacheManager = HazelCastConnection.getCacheManager(client, "checker")
-//    topicTables
-//      .filter({ case (_, v) => v.targetType.equals(TargetType.ICACHE)})
-//      .filterNot({ case (_,v) => HazelCastConnection.checkCaches(cacheManager, v.name)})
-//      .foreach( { case (_, v) => throw new ConnectException(s"Cache named ${v.name} not found")})
-//    cacheManager.close()
-
-    new HazelCastSinkSettings(client, routes, topicTables, fieldMap, ignoreFields, pks, errorPolicy, maxRetries, format)
+    new HazelCastSinkSettings(client, routes, topicTables, fieldMap, ignoreFields, p, errorPolicy, maxRetries, format, threadPoolSize, allowParallel)
   }
 
   private def getFormatType(format: FormatType) = {

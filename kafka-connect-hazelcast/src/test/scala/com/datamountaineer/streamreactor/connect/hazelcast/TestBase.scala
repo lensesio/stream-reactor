@@ -183,7 +183,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   }
 
   //generate some test records
-  def getTestRecords(nbr : Int = 1) : Set[SinkRecord]= {
+  def getTestRecords(nbr : Int = 1) : Seq[SinkRecord]= {
     val schema = createSchema
     val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
 
@@ -192,7 +192,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
         new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i)
       })
-    }).toSet
+    }).toSeq
   }
 }
 
