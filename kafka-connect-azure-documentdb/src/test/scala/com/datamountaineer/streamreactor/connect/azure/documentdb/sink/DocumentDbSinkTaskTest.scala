@@ -4,6 +4,7 @@ import com.datamountaineer.streamreactor.connect.azure.documentdb.config.Documen
 import com.microsoft.azure.documentdb._
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.sink.SinkRecord
+import org.mockito.ArgumentMatcher
 import org.mockito.ArgumentMatchers.{eq => mockEq, _}
 import org.mockito.Mockito.{verify, _}
 import org.scalatest.mockito.MockitoSugar
@@ -58,14 +59,28 @@ class DocumentDbSinkTaskTest extends WordSpec with Matchers with MockitoSugar {
       val r1 = mock[ResourceResponse[Document]]
       when(r1.getResource).thenReturn(doc1)
 
-      when(documentClient.createDocument(mockEq("coll1"), any(classOf[Document]), mockEq(null), mockEq(false)))
+      when(documentClient.createDocument(mockEq("coll1"), argThat{
+        new ArgumentMatcher[Document] {
+          override def matches(argument: Document): Boolean = {
+            val a= argument == doc1
+            argument == doc1
+          }
+        }
+      }, mockEq(null), mockEq(false)))
         .thenReturn(r1)
 
       val doc2 = new Document(json2)
       val r2 = mock[ResourceResponse[Document]]
       when(r2.getResource).thenReturn(doc2)
 
-      when(documentClient.createDocument(mockEq("coll2"), any(classOf[Document]), mockEq(null), mockEq(false)))
+      when(documentClient.createDocument(mockEq("coll2"), argThat{
+        new ArgumentMatcher[Document] {
+          override def matches(argument: Document): Boolean = {
+            val a= argument == doc1
+            argument == doc2
+          }
+        }
+      }, mockEq(null), mockEq(false)))
         .thenReturn(r2)
 
       task.put(Seq(sinkRecord1, sinkRecord2))
