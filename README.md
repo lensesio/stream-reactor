@@ -51,6 +51,9 @@ Supports limited SQL statements to stream and select from Kafka topics in real t
 **0.2.4** (In progress)
 
 *   Added FTP and HTTO Source.
+*   Added InfluxDB tag support. KCQL: INSERT INTO targetdimension ``SELECT * FROM influx-topic WITHTIMESTAMP sys_time() WITHTAG(field1, CONSTANT_KEY1=CONSTANT_VALUE1, field2,CONSTANT_KEY2=CONSTANT_VALUE1)``
+*   Added InfluxDb consistency level. Default is ``ALL``. Use ``connect.influx.consistency.level`` to set it to ONE/QUORUM/ALL/ANY
+*   InfluxDb ``connect.influx.sink.route.query`` was renamed to ``connect.influx.sink.kcql``
 
 **0.2.3** (5 Jan 2017)
 
