@@ -24,7 +24,7 @@ upsert_into
    ;
 
 upsert_pk_into
-   : UPSERT pk ID into
+   : ( UPSERT pk FIELD into)
    ;
 
 write_mode
@@ -32,7 +32,7 @@ write_mode
    ;
 
 schema_name
-   : ID
+   : FIELD
    ;
 
 insert_from_clause
@@ -48,19 +48,23 @@ select_clause_basic
    ;
 
 topic_name
-   : ID | TOPICNAME
+   :  FIELD | TOPICNAME
    ;
 
 table_name
-   : ID | TOPICNAME
+   : FIELD | TOPICNAME
    ;
 
 column_name
-   : ID ( AS column_name_alias )? | ASTERISK
+   : column ( AS column_name_alias )? | ASTERISK
+   ;
+
+column
+   : FIELD ( DOT FIELD )* (DOT ASTERISK)?
    ;
 
 column_name_alias
-   : ID
+   : FIELD
    ;
 
 column_list
@@ -72,7 +76,7 @@ from_clause
    ;
 
 ignored_name
-   : ID
+   : FIELD
    ;
 
 ignore_clause
@@ -80,7 +84,7 @@ ignore_clause
    ;
 
 pk_name
-   : ID
+   : FIELD
    ;
 
 primary_key_list
@@ -112,7 +116,7 @@ initialize
    ;
 
 partition_name
-   : ID
+   : FIELD
    ;
 
 partition_list
@@ -125,7 +129,7 @@ partitionby
 
 
 distribute_name
-   : ID
+   : FIELD
    ;
 
 distribute_list
@@ -141,7 +145,7 @@ timestamp_clause
    ;
 
 timestamp_value
-   : ID | SYS_TIME
+   : FIELD | SYS_TIME
    ;
 
 buckets_number
@@ -149,7 +153,7 @@ buckets_number
     ;
 
 clusterby_name
-    : ID
+    : FIELD
     ;
 
 clusterby_list
@@ -165,7 +169,7 @@ with_consumer_group
     ;
 
 with_consumer_group_value
-    :  INT|ID|TOPICNAME
+    :  INT|FIELD| TOPICNAME
     ;
 
 
@@ -219,7 +223,7 @@ storeas_clause
     ;
 
 storeas_type
-    : ID | TOPICNAME
+    : FIELD | ( DOT | TOPICNAME )+
     ;
 
 storeas_parameters
@@ -232,11 +236,11 @@ storeas_parameters_tuple
     ;
 
 storeas_parameter
-    : ID | TOPICNAME
+    : FIELD | ( DOT | TOPICNAME )+
     ;
 
 storeas_value
-    : ID | TOPICNAME | INT
+    : FIELD | (DOT|TOPICNAME)+ | INT
     ;
 
 with_tags
@@ -248,9 +252,9 @@ tag_definition
     ;
 
 tag_key
-    : ID | TOPICNAME
+    : FIELD | (DOT|TOPICNAME)+
     ;
 
 tag_value
-    : ID | TOPICNAME | INT
+    : FIELD | (DOT|TOPICNAME)+ | INT
     ;

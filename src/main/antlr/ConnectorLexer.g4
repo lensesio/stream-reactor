@@ -146,15 +146,18 @@ RIGHT_PARAN
     ;
 
 
-ID
+FIELD
    : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' )+
    ;
 
 
 TOPICNAME
-   : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9'| '.' | '-' | '+' | '/' )+
+   : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' | '-' | '+' | '/' )+ | ESCAPED_TOPIC
    ;
 
+fragment ESCAPED_TOPIC
+    : ( '`' (~'`')+ '`')
+    ;
 
 NEWLINE
    : '\r'? '\n' -> skip

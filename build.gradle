@@ -49,8 +49,8 @@ allprojects {
     }
 
     generateGrammarSource {
-        arguments += [ "-package" , "com.datamountaineer.connector.config.antlr4"]
-        outputDirectory = new File("${project.projectDir}/src/main/java/com/datamountaineer/connector/config/antlr4")
+        arguments += [ "-package" , "com.datamountaineer.kcql.antlr4"]
+        outputDirectory = new File("${project.projectDir}/src/main/java/com/datamountaineer/kcql/antlr4")
     }
 
     test {
