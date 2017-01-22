@@ -1,4 +1,4 @@
-package com.datamountaineer.connector.config;
+package com.datamountaineer.kcql;
 
 public class Tag {
     private final String key;

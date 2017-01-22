@@ -1,17 +1,18 @@
-package com.datamountaineer.connector.config;
+package com.datamountaineer.kcql;
 
-import com.datamountaineer.connector.config.antlr4.ConnectorLexer;
-import com.datamountaineer.connector.config.antlr4.ConnectorParser;
-import com.datamountaineer.connector.config.antlr4.ConnectorParserBaseListener;
+import com.datamountaineer.kcql.antlr4.ConnectorLexer;
+import com.datamountaineer.kcql.antlr4.ConnectorParser;
+import com.datamountaineer.kcql.antlr4.ConnectorParserBaseListener;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.misc.OrderedHashSet;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.*;
 
 /**
  * Holds the configuration for the Kafka Connect topic.
  */
-public class Config {
+public class Kcql {
 
     public final static String TIMESTAMP = "sys_time()";
     public final static int DEFAULT_BATCH_SIZE = 3000;
@@ -25,10 +26,7 @@ public class Config {
     private WriteModeEnum writeMode;
     private String source;
     private String target;
-    private String docType;
-    private String indexSuffix;
-    private String incrementalMode;
-    private Map<String, FieldAlias> fields = new HashMap<>();
+    private Map<String, Field> fields = new HashMap<>();
     private Set<String> ignoredFields = new HashSet<>();
     private Set<String> primaryKeys = new OrderedHashSet<>();
     private List<String> partitionBy = new ArrayList<>();
@@ -44,19 +42,8 @@ public class Config {
     private Integer sampleRate;
     private FormatType formatType = null;
     private boolean initialize;
-    private boolean withUnwrap = false;
     private Integer projectTo;
     private List<Tag> tags;
-    private long ttl;
-    private String withConverter;
-
-    public void setTTL(long ttl) {
-        this.ttl = ttl;
-    }
-
-    public long getTTL() {
-        return this.ttl;
-    }
 
     private void addIgnoredField(final String ignoredField) {
         if (ignoredField == null || ignoredField.trim().length() == 0) {
@@ -65,11 +52,11 @@ public class Config {
         ignoredFields.add(ignoredField);
     }
 
-    private void addFieldAlias(final FieldAlias fieldAlias) {
+    private void addFieldAlias(final Field fieldAlias) {
         if (fieldAlias == null) {
             throw new IllegalArgumentException("Illegal fieldAlias.");
         }
-        fields.put(fieldAlias.getField(), fieldAlias);
+        fields.put(fieldAlias.getName(), fieldAlias);
     }
 
     private void addPrimaryKey(final String primaryKey) {
@@ -99,10 +86,6 @@ public class Config {
         this.source = source;
     }
 
-    private void setWithUnwrap(boolean flag) {
-        this.withUnwrap = flag;
-    }
-
     public String getTarget() {
         return target;
     }
@@ -111,20 +94,20 @@ public class Config {
         this.target = target;
     }
 
-    public Iterator<FieldAlias> getFieldAlias() {
-        return fields.values().iterator();
+    public List<Field> getFieldAlias() {
+        return new ArrayList<>(fields.values());
     }
 
-    public Iterator<String> getIgnoredField() {
-        return ignoredFields.iterator();
+    public Set<String> getIgnoredField() {
+        return new HashSet<>(ignoredFields);
     }
 
     public boolean isIncludeAllFields() {
         return includeAllFields;
     }
 
-    private void setIncludeAllFields(boolean includeAllFields) {
-        this.includeAllFields = includeAllFields;
+    private void setIncludeAllFields() {
+        this.includeAllFields = true;
     }
 
     public WriteModeEnum getWriteMode() {
@@ -284,33 +267,14 @@ public class Config {
         return tags.iterator();
     }
 
-    public boolean isWithUnwrap() {
-        return this.withUnwrap;
-    }
-
-    public String getIncrementalMode() {
-        return this.incrementalMode;
-    }
-
-    public String getDocType() {
-        return this.docType;
-    }
-
-    public String getIndexSuffix() {
-        return this.indexSuffix;
-    }
-
-    public String getWithConverter() {
-        return withConverter;
-    }
-
-    public static Config parse(final String syntax) {
+    public static Kcql parse(final String syntax) {
         final ConnectorLexer lexer = new ConnectorLexer(new ANTLRInputStream(syntax));
         final CommonTokenStream tokens = new CommonTokenStream(lexer);
         final ConnectorParser parser = new ConnectorParser(tokens);
         final ArrayList<String> bucketNames = new ArrayList<>();
+        final ArrayList<String> nestedFieldsBuffer = new ArrayList<>();
         final Integer[] bucketsNumber = {null};
-        final Config config = new Config();
+        final Kcql config = new Kcql();
         parser.addErrorListener(new BaseErrorListener() {
             @Override
             public void syntaxError(Recognizer<?, ?> recognizer,
@@ -323,32 +287,55 @@ public class Config {
             }
         });
 
-        final String[] columnNameAndAlias = new String[]{null, null};
         final String[] storedAsParameter = {null};
 
         parser.addParseListener(new ConnectorParserBaseListener() {
 
             @Override
-            public void exitColumn_name(ConnectorParser.Column_nameContext ctx) {
-                if (ctx.ID() == null) {
-                    if (Objects.equals(ctx.getText(), "*")) {
-                        config.setIncludeAllFields(true);
-                    }
-                    super.exitColumn_name(ctx);
-                    return;
+            public void exitColumn(ConnectorParser.ColumnContext ctx) {
+                for (TerminalNode tn : ctx.FIELD()) {
+                    nestedFieldsBuffer.add(tn.getText());
                 }
-                if (columnNameAndAlias[1] != null) {
-                    config.addFieldAlias(new FieldAlias(ctx.ID().getText(), columnNameAndAlias[1]));
-                    columnNameAndAlias[1] = null;
-                } else {
-                    config.addFieldAlias(new FieldAlias(ctx.ID().getText()));
+                if (ctx.ASTERISK() != null) {
+                    nestedFieldsBuffer.add("*");
                 }
             }
 
             @Override
-            public void exitColumn_name_alias(ConnectorParser.Column_name_aliasContext ctx) {
-                columnNameAndAlias[1] = ctx.getText();
+            public void enterColumn_name(ConnectorParser.Column_nameContext ctx) {
+                nestedFieldsBuffer.clear();
             }
+
+            @Override
+            public void exitColumn_name(ConnectorParser.Column_nameContext ctx) {
+                super.exitColumn_name(ctx);
+                if (ctx.ASTERISK() != null) {
+                    config.setIncludeAllFields();
+                    return;
+                }
+
+                List<String> parentFields = null;
+                String name = nestedFieldsBuffer.get(nestedFieldsBuffer.size() - 1);
+                nestedFieldsBuffer.remove(nestedFieldsBuffer.size() - 1);
+
+                if (nestedFieldsBuffer.size() > 0) {
+                    parentFields = nestedFieldsBuffer;
+                }
+
+                Field field;
+                if (ctx.column_name_alias() != null) {
+                    field = Field.from(name, ctx.column_name_alias().getText(), parentFields);
+                } else {
+                    field = Field.from(name, parentFields);
+                }
+
+                if ("*".equals(field.getName()) && !field.hasParents() && field.getFieldType() != FieldType.KEY) {
+                    config.setIncludeAllFields();
+                } else {
+                    config.addFieldAlias(field);
+                }
+            }
+
 
             @Override
             public void exitPartition_name(ConnectorParser.Partition_nameContext ctx) {
@@ -362,7 +349,7 @@ public class Config {
 
             @Override
             public void exitTable_name(ConnectorParser.Table_nameContext ctx) {
-                config.setTarget(ctx.getText());
+                config.setTarget(escape(ctx.getText()));
             }
 
             @Override
@@ -372,7 +359,7 @@ public class Config {
 
             @Override
             public void exitTopic_name(ConnectorParser.Topic_nameContext ctx) {
-                config.setSource(ctx.getText());
+                config.setSource(escape(ctx.getText()));
             }
 
             @Override
@@ -398,16 +385,6 @@ public class Config {
             @Override
             public void exitAutoevolve(ConnectorParser.AutoevolveContext ctx) {
                 config.setAutoEvolve(true);
-            }
-
-            @Override
-            public void exitIndex_suffix(ConnectorParser.Index_suffixContext ctx) {
-                config.indexSuffix = ctx.getText();
-            }
-
-            @Override
-            public void exitDoc_type(ConnectorParser.Doc_typeContext ctx) {
-                config.docType = ctx.getText();
             }
 
             @Override
@@ -481,32 +458,14 @@ public class Config {
             }
 
             @Override
-            public void exitTtl_type(ConnectorParser.Ttl_typeContext ctx) {
-                final String value = ctx.getText();
-                try {
-                    long newTTL = Long.parseLong(value);
-                    if (newTTL <= 0) {
-                        throw new IllegalArgumentException(value + " is not a valid number for a TTL.");
-                    }
-                    config.setTTL(newTTL);
-                } catch (NumberFormatException ex) {
-                    throw new IllegalArgumentException(value + " is not a valid number for a TTL.");
-                }
-            }
-
-            @Override
             public void exitTimestamp_value(ConnectorParser.Timestamp_valueContext ctx) {
                 config.setTimestamp(ctx.getText());
             }
 
             @Override
             public void exitWith_consumer_group_value(ConnectorParser.With_consumer_group_valueContext ctx) {
-                config.setConsumerGroup(ctx.getText());
-            }
-
-            @Override
-            public void exitWith_unwrap_clause(ConnectorParser.With_unwrap_clauseContext ctx) {
-                config.setWithUnwrap(true);
+                String value = escape(ctx.getText());
+                config.setConsumerGroup(value);
             }
 
             @Override
@@ -547,16 +506,6 @@ public class Config {
             }
 
             @Override
-            public void exitWith_converter_value(ConnectorParser.With_converter_valueContext ctx) {
-                config.withConverter = ctx.getText();
-            }
-
-            @Override
-            public void exitInc_mode(ConnectorParser.Inc_modeContext ctx) {
-                config.incrementalMode = ctx.getText();
-            }
-
-            @Override
             public void exitTag_definition(ConnectorParser.Tag_definitionContext ctx) {
                 String[] arr = ctx.getText().trim().split("=");
                 if (arr.length == 1) {
@@ -581,16 +530,15 @@ public class Config {
             throw new IllegalArgumentException("Invalid syntax." + ex.getMessage(), ex);
         }
 
-        final HashSet<String> pks = new HashSet<>();
+        /*final HashSet<String> pks = new HashSet<>();
         final Iterator<String> iter = config.getPrimaryKeys();
         while (iter.hasNext()) {
             pks.add(iter.next());
-        }
+        }*/
 
         final HashSet<String> cols = new HashSet<>();
-        final Iterator<FieldAlias> aliasIterator = config.getFieldAlias();
-        while (aliasIterator.hasNext()) {
-            cols.add(aliasIterator.next().getAlias());
+        for (Field alias : config.fields.values()) {
+            cols.add(alias.getAlias());
         }
 
     /*
@@ -652,4 +600,10 @@ public class Config {
         return config;
     }
 
+    private static String escape(String value) {
+        if (value.startsWith("`")) {
+            return value.substring(1, value.length() - 1);
+        }
+        return value;
+    }
 }

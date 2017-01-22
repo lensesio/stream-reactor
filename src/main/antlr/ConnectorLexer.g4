@@ -105,10 +105,6 @@ WITHFORMAT
     : 'WITHFORMAT'|'withformat'
     ;
 
-WITHUNWRAP
-    : 'WITHUNWRAP' | 'withunwrap'
-    ;
-
 FORMAT
     : 'avro'|'AVRO'|'text'|'TEXT'|'binary'|'BINARY'|'json'|'JSON'|'object'|'OBJECT'|'map'|'MAP'
     ;
@@ -121,31 +117,9 @@ STOREAS
     : 'STOREAS'|'storeas'
     ;
 
-INCREMENTALMODE
-    : 'INCREMENTALMODE'|'incrementalmode'
-    ;
-
-WITHDOCTYPE
-    :  'WITHDOCTYPE'|'withdoctype'
-    ;
-
-WITHINDEXSUFFIX
-    : 'WITHINDEXSUFFIX' | 'withindexsuffix'
-    ;
-
-WITHCONVERTER
-    : 'WITHCONVERTER' | 'withconverter'
-    ;
-
-
-TTL
-   : 'TTL'|'ttl'
-   ;
-
 EQUAL
    : '='
    ;
-
 
 INT
    : '0' .. '9'+
@@ -171,14 +145,19 @@ RIGHT_PARAN
     : ')'
     ;
 
-ID
+
+FIELD
    : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' )+
    ;
 
 
 TOPICNAME
-   :( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9'| '.' | '-' | '+' | '/' |'{'|'}'| ':' )+
+   : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' | '-' | '+' | '/' )+ | ESCAPED_TOPIC
    ;
+
+fragment ESCAPED_TOPIC
+    : ( '`' (~'`')+ '`')
+    ;
 
 NEWLINE
    : '\r'? '\n' -> skip
@@ -188,3 +167,4 @@ NEWLINE
 WS
    : ( ' ' | '\t' | '\n' | '\r' )+ -> skip
    ;
+

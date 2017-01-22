@@ -1,105 +1,67 @@
-package com.datamountaineer.connector.config;
+package com.datamountaineer.kcql;
 
+import com.datamountaineer.kcql.*;
 import com.google.common.collect.Lists;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  *
  */
-public class ConfigTest {
+public class KcqlTest {
 
     @Test
     public void parseAnInsertWithSelectAllFieldsAndNoIgnoreAndPKs() {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT * FROM %s PK f1,f2", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
-        assertFalse(config.getFieldAlias().hasNext());
-        assertTrue(config.isIncludeAllFields());
-        assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.isIncludeAllFields());
+        assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
         HashSet<String> pks = new HashSet<>();
-        Iterator<String> iter = config.getPrimaryKeys();
+        Iterator<String> iter = kcql.getPrimaryKeys();
         while (iter.hasNext()) {
             pks.add(iter.next());
         }
         assertEquals(2, pks.size());
         assertTrue(pks.contains("f1"));
         assertTrue(pks.contains("f2"));
-        assertFalse(config.getTags().hasNext());
-        assertFalse(config.isWithUnwrap());
+        assertFalse(kcql.getTags().hasNext());
     }
 
     @Test
     public void parseSimpleSelectCommand() {
         String syntax = "SELECT * FROM topicA";
-        Config config = Config.parse(syntax);
-        assertEquals("topicA", config.getSource());
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals("topicA", kcql.getSource());
     }
 
     @Test
     public void parseSimpleSelectCommandWithPK() {
         String syntax = "SELECT * FROM topicA PK lastName";
-        Config config = Config.parse(syntax);
-        assertEquals("topicA", config.getSource());
-    }
-
-    @Test
-    public void parseWithIncrementalMode() {
-        String incMode = "modeA";
-        String syntax = "SELECT * FROM topicA INCREMENTALMODE=" + incMode;
-        Config config = Config.parse(syntax);
-        assertEquals(incMode, config.getIncrementalMode());
-    }
-
-    @Test
-    public void parseWithIndexSuffix() {
-        String syntax = "SELECT * FROM topicA WITHINDEXSUFFIX=suffix1";
-        Config config = Config.parse(syntax);
-        assertEquals("suffix1", config.getIndexSuffix());
-
-        syntax = "SELECT * FROM topicA WITHINDEXSUFFIX= _{YYYY-MM-dd} ";
-        config = Config.parse(syntax);
-        assertEquals("_{YYYY-MM-dd}", config.getIndexSuffix());
-
-        syntax = "INSERT INTO index_name SELECT * FROM topicA WITHINDEXSUFFIX= _suffix_{YYYY-MM-dd}";
-        config = Config.parse(syntax);
-        assertEquals("_suffix_{YYYY-MM-dd}", config.getIndexSuffix());
-    }
-
-    @Test
-    public void parseWithDocType() {
-        String syntax = "SELECT * FROM topicA WITHDOCTYPE=document1";
-        Config config = Config.parse(syntax);
-        assertEquals("document1", config.getDocType());
-
-        syntax = "SELECT * FROM topicA WITHDOCTYPE= document.name ";
-        config = Config.parse(syntax);
-        assertEquals("document.name", config.getDocType());
-        assertNull(config.getWithConverter());
-    }
-
-    @Test
-    public void parseWithConverter() {
-        String syntax = "SELECT * FROM topicA WITHCONVERTER=com.datamountaineer.converter.Mine";
-        Config config = Config.parse(syntax);
-        assertEquals("com.datamountaineer.converter.Mine", config.getWithConverter());
-
-        syntax = "SELECT * FROM topicA WITHCONVERTER= com.datamountaineer.ConverterA ";
-        config = Config.parse(syntax);
-        assertEquals("com.datamountaineer.ConverterA", config.getWithConverter());
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals("topicA", kcql.getSource());
     }
 
     @Test
     public void parseAnotherSimpleSelectCommandWithPK() {
         String syntax = "SELECT firstName, lastName as surname FROM topicA";
-        Config config = Config.parse(syntax);
-        assertEquals("topicA", config.getSource());
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals("topicA", kcql.getSource());
     }
 
     @Test
@@ -107,25 +69,25 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT * FROM %s", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
-        assertFalse(config.getFieldAlias().hasNext());
-        assertTrue(config.isIncludeAllFields());
-        assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.isIncludeAllFields());
+        assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
     }
 
     @Test
     public void handleTargetAndSourceContainingDot() {
         String topic = "TOPIC.A";
         String table = "TABLE.A";
-        String syntax = String.format("INSERT INTO %s SELECT * FROM %s", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
-        assertFalse(config.getFieldAlias().hasNext());
-        assertTrue(config.isIncludeAllFields());
-        assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+        String syntax = String.format("INSERT INTO `%s` SELECT * FROM `%s`", table, topic);
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.isIncludeAllFields());
+        assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
     }
 
     @Test
@@ -133,12 +95,12 @@ public class ConfigTest {
         String topic = "TOPIC-A";
         String table = "TABLE-A";
         String syntax = String.format("INSERT INTO %s SELECT * FROM %s", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
-        assertFalse(config.getFieldAlias().hasNext());
-        assertTrue(config.isIncludeAllFields());
-        assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.isIncludeAllFields());
+        assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
     }
 
     @Test
@@ -146,22 +108,22 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f2 as col2 FROM %s", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
-        List<FieldAlias> fa = Lists.newArrayList(config.getFieldAlias());
-        Map<String, FieldAlias> map = new HashMap<>();
-        for (FieldAlias alias : fa) {
-            map.put(alias.getField(), alias);
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        List<Field> fa = Lists.newArrayList(kcql.getFieldAlias());
+        Map<String, Field> map = new HashMap<>();
+        for (Field alias : fa) {
+            map.put(alias.getName(), alias);
         }
         assertEquals(2, fa.size());
         assertTrue(map.containsKey("f1"));
         assertEquals("col1", map.get("f1").getAlias());
         assertTrue(map.containsKey("f2"));
         assertEquals("col2", map.get("f2").getAlias());
-        assertFalse(config.isIncludeAllFields());
-        assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
-        assertEquals(Config.DEFAULT_BATCH_SIZE, config.getBatchSize());
+        assertFalse(kcql.isIncludeAllFields());
+        assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
+        assertEquals(kcql.DEFAULT_BATCH_SIZE, kcql.getBatchSize());
     }
 
     @Test
@@ -170,36 +132,36 @@ public class ConfigTest {
         String table = "TABLE_A";
         String batchSize = "500";
         String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f2 as col2 FROM %s BATCH = %s", table, topic, batchSize);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
-        List<FieldAlias> fa = Lists.newArrayList(config.getFieldAlias());
-        Map<String, FieldAlias> map = new HashMap<>();
-        for (FieldAlias alias : fa) {
-            map.put(alias.getField(), alias);
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        List<Field> fa = Lists.newArrayList(kcql.getFieldAlias());
+        Map<String, Field> map = new HashMap<>();
+        for (Field alias : fa) {
+            map.put(alias.getName(), alias);
         }
         assertEquals(2, fa.size());
         assertTrue(map.containsKey("f1"));
         assertEquals("col1", map.get("f1").getAlias());
         assertTrue(map.containsKey("f2"));
         assertEquals("col2", map.get("f2").getAlias());
-        assertFalse(config.isIncludeAllFields());
-        assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
-        assertEquals(500, config.getBatchSize());
+        assertFalse(kcql.isIncludeAllFields());
+        assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
+        assertEquals(500, kcql.getBatchSize());
     }
 
     @Test
     public void parseAnInsertWithFieldAliasMixedWithNoAliasing() {
         String topic = "TOPIC.A";
         String table = "TABLE_A";
-        String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f3, f2 as col2,f4 FROM %s", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
-        List<FieldAlias> fa = Lists.newArrayList(config.getFieldAlias());
-        Map<String, FieldAlias> map = new HashMap<>();
-        for (FieldAlias alias : fa) {
-            map.put(alias.getField(), alias);
+        String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f3, f2 as col2,f4 FROM `%s`", table, topic);
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        List<Field> fa = Lists.newArrayList(kcql.getFieldAlias());
+        Map<String, Field> map = new HashMap<>();
+        for (Field alias : fa) {
+            map.put(alias.getName(), alias);
         }
         assertEquals(4, fa.size());
         assertTrue(map.containsKey("f1"));
@@ -210,8 +172,8 @@ public class ConfigTest {
         assertEquals("f3", map.get("f3").getAlias());
         assertTrue(map.containsKey("f4"));
         assertEquals("f4", map.get("f4").getAlias());
-        assertFalse(config.isIncludeAllFields());
-        assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+        assertFalse(kcql.isIncludeAllFields());
+        assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
     }
 
     @Test
@@ -219,19 +181,19 @@ public class ConfigTest {
         String topic = "TOPIC+A";
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT f1 as col1, * FROM %s", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
-        List<FieldAlias> fa = Lists.newArrayList(config.getFieldAlias());
-        Map<String, FieldAlias> map = new HashMap<>();
-        for (FieldAlias alias : fa) {
-            map.put(alias.getField(), alias);
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        List<Field> fa = Lists.newArrayList(kcql.getFieldAlias());
+        Map<String, Field> map = new HashMap<>();
+        for (Field alias : fa) {
+            map.put(alias.getName(), alias);
         }
         assertEquals(1, fa.size());
         assertTrue(map.containsKey("f1"));
         assertEquals("col1", map.get("f1").getAlias());
-        assertTrue(config.isIncludeAllFields());
-        assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+        assertTrue(kcql.isIncludeAllFields());
+        assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
     }
 
     @Test
@@ -239,19 +201,19 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT *,f1 as col1 FROM %s", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
-        List<FieldAlias> fa = Lists.newArrayList(config.getFieldAlias());
-        Map<String, FieldAlias> map = new HashMap<>();
-        for (FieldAlias alias : fa) {
-            map.put(alias.getField(), alias);
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        List<Field> fa = Lists.newArrayList(kcql.getFieldAlias());
+        Map<String, Field> map = new HashMap<>();
+        for (Field alias : fa) {
+            map.put(alias.getName(), alias);
         }
         assertEquals(1, fa.size());
         assertTrue(map.containsKey("f1"));
         assertEquals("col1", map.get("f1").getAlias());
-        assertTrue(config.isIncludeAllFields());
-        assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+        assertTrue(kcql.isIncludeAllFields());
+        assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
     }
 
     @Test
@@ -259,21 +221,21 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT f2 as col2,*,f1 as col1 FROM %s", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
-        List<FieldAlias> fa = Lists.newArrayList(config.getFieldAlias());
-        Map<String, FieldAlias> map = new HashMap<>();
-        for (FieldAlias alias : fa) {
-            map.put(alias.getField(), alias);
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        List<Field> fa = Lists.newArrayList(kcql.getFieldAlias());
+        Map<String, Field> map = new HashMap<>();
+        for (Field alias : fa) {
+            map.put(alias.getName(), alias);
         }
         assertEquals(2, fa.size());
         assertTrue(map.containsKey("f1"));
         assertEquals("col1", map.get("f1").getAlias());
         assertTrue(map.containsKey("f2"));
         assertEquals("col2", map.get("f2").getAlias());
-        assertTrue(config.isIncludeAllFields());
-        assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+        assertTrue(kcql.isIncludeAllFields());
+        assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
     }
 
 
@@ -282,12 +244,12 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT * FROM %s", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
-        assertFalse(config.getFieldAlias().hasNext());
-        assertTrue(config.isIncludeAllFields());
-        assertEquals(WriteModeEnum.UPSERT, config.getWriteMode());
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.isIncludeAllFields());
+        assertEquals(WriteModeEnum.UPSERT, kcql.getWriteMode());
     }
 
     @Test
@@ -295,18 +257,14 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT * FROM %s IGNORE col1 , col2 ", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
-        assertFalse(config.getFieldAlias().hasNext());
-        assertTrue(config.isIncludeAllFields());
-        assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
-        Set<String> ignored = new HashSet<>();
-        Iterator<String> iter = config.getIgnoredField();
-        while (iter.hasNext()) {
-            ignored.add(iter.next());
-        }
-
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.isIncludeAllFields());
+        assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
+        Set<String> ignored = kcql.getIgnoredField();
+      
         assertTrue(ignored.contains("col1"));
         assertTrue(ignored.contains("col2"));
     }
@@ -316,21 +274,17 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT * FROM %s IGNORE col1, 1col2  ", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
-        assertFalse(config.getFieldAlias().hasNext());
-        assertTrue(config.isIncludeAllFields());
-        assertEquals(WriteModeEnum.UPSERT, config.getWriteMode());
-        Set<String> ignored = new HashSet<>();
-        Iterator<String> iter = config.getIgnoredField();
-        while (iter.hasNext()) {
-            ignored.add(iter.next());
-        }
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.isIncludeAllFields());
+        assertEquals(WriteModeEnum.UPSERT, kcql.getWriteMode());
+        Set<String> ignored =  kcql.getIgnoredField();
 
         assertTrue(ignored.contains("col1"));
         assertTrue(ignored.contains("1col2"));
-        assertFalse(config.isEnableCapitalize());
+        assertFalse(kcql.isEnableCapitalize());
     }
 
     @Test
@@ -338,8 +292,8 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT * FROM %s batch = 100 initialize", table, topic);
-        Config config = Config.parse(syntax);
-        assertTrue(config.isInitialize());
+        Kcql kcql = Kcql.parse(syntax);
+        assertTrue(kcql.isInitialize());
     }
 
     @Test
@@ -347,8 +301,8 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT * FROM %s IGNORE col1, 1col2 ", table, topic);
-        Config config = Config.parse(syntax);
-        assertFalse(config.isInitialize());
+        Kcql kcql = Kcql.parse(syntax);
+        assertFalse(kcql.isInitialize());
     }
 
     @Test
@@ -356,8 +310,8 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT * FROM %s batch = 100 initialize projectTo 1", table, topic);
-        Config config = Config.parse(syntax);
-        assertTrue(config.getProjectTo().equals(1));
+        Kcql kcql = Kcql.parse(syntax);
+        assertTrue(kcql.getProjectTo().equals(1));
     }
 
 
@@ -366,23 +320,23 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f2 as col2 FROM %s AUTOCREATE", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
-        List<FieldAlias> fa = Lists.newArrayList(config.getFieldAlias());
-        Map<String, FieldAlias> map = new HashMap<>();
-        for (FieldAlias alias : fa) {
-            map.put(alias.getField(), alias);
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        List<Field> fa = Lists.newArrayList(kcql.getFieldAlias());
+        Map<String, Field> map = new HashMap<>();
+        for (Field alias : fa) {
+            map.put(alias.getName(), alias);
         }
         assertEquals(2, fa.size());
         assertTrue(map.containsKey("f1"));
         assertEquals("col1", map.get("f1").getAlias());
         assertTrue(map.containsKey("f2"));
         assertEquals("col2", map.get("f2").getAlias());
-        assertFalse(config.isIncludeAllFields());
-        assertTrue(config.isAutoCreate());
-        assertFalse(config.getPrimaryKeys().hasNext());
-        assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+        assertFalse(kcql.isIncludeAllFields());
+        assertTrue(kcql.isAutoCreate());
+        assertFalse(kcql.getPrimaryKeys().hasNext());
+        assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
     }
 
     @Test
@@ -390,13 +344,13 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f2 as col2, col3 FROM %s AUTOCREATE PK col1,col3", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
-        List<FieldAlias> fa = Lists.newArrayList(config.getFieldAlias());
-        Map<String, FieldAlias> map = new HashMap<>();
-        for (FieldAlias alias : fa) {
-            map.put(alias.getField(), alias);
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        List<Field> fa = Lists.newArrayList(kcql.getFieldAlias());
+        Map<String, Field> map = new HashMap<>();
+        for (Field alias : fa) {
+            map.put(alias.getName(), alias);
         }
         assertEquals(3, fa.size());
         assertTrue(map.containsKey("f1"));
@@ -405,10 +359,10 @@ public class ConfigTest {
         assertEquals("col2", map.get("f2").getAlias());
         assertTrue(map.containsKey("col3"));
         assertEquals("col3", map.get("col3").getAlias());
-        assertFalse(config.isIncludeAllFields());
-        assertTrue(config.isAutoCreate());
+        assertFalse(kcql.isIncludeAllFields());
+        assertTrue(kcql.isAutoCreate());
 
-        Iterator<String> pksIterator = config.getPrimaryKeys();
+        Iterator<String> pksIterator = kcql.getPrimaryKeys();
         HashSet<String> pks = new HashSet<>();
         while (pksIterator.hasNext()) {
             pks.add(pksIterator.next());
@@ -417,9 +371,9 @@ public class ConfigTest {
         assertEquals(2, pks.size());
         assertTrue(pks.contains("col1"));
         assertTrue(pks.contains("col3"));
-        assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+        assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
 
-        assertFalse(config.isAutoEvolve());
+        assertFalse(kcql.isAutoEvolve());
     }
 
     @Test
@@ -427,13 +381,13 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f2 as col2, col3 FROM %s AUTOCREATE PK col1,col3 AUTOEVOLVE", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
-        List<FieldAlias> fa = Lists.newArrayList(config.getFieldAlias());
-        Map<String, FieldAlias> map = new HashMap<>();
-        for (FieldAlias alias : fa) {
-            map.put(alias.getField(), alias);
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        List<Field> fa = Lists.newArrayList(kcql.getFieldAlias());
+        Map<String, Field> map = new HashMap<>();
+        for (Field alias : fa) {
+            map.put(alias.getName(), alias);
         }
         assertEquals(3, fa.size());
         assertTrue(map.containsKey("f1"));
@@ -442,10 +396,10 @@ public class ConfigTest {
         assertEquals("col2", map.get("f2").getAlias());
         assertTrue(map.containsKey("col3"));
         assertEquals("col3", map.get("col3").getAlias());
-        assertFalse(config.isIncludeAllFields());
-        assertTrue(config.isAutoCreate());
+        assertFalse(kcql.isIncludeAllFields());
+        assertTrue(kcql.isAutoCreate());
 
-        Iterator<String> pksIterator = config.getPrimaryKeys();
+        Iterator<String> pksIterator = kcql.getPrimaryKeys();
         HashSet<String> pks = new HashSet<>();
         while (pksIterator.hasNext()) {
             pks.add(pksIterator.next());
@@ -454,9 +408,9 @@ public class ConfigTest {
         assertEquals(2, pks.size());
         assertTrue(pks.contains("col1"));
         assertTrue(pks.contains("col3"));
-        assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+        assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
 
-        assertTrue(config.isAutoEvolve());
+        assertTrue(kcql.isAutoEvolve());
     }
 
   /*
@@ -466,14 +420,14 @@ public class ConfigTest {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
     String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f2 as col2, col3 FROM %s AUTOCREATE PK col1,colX", table, topic);
-    Config.parse(syntax);
+    Kcql.parse(syntax);
   }
 
 
   @Test(expected = IllegalArgumentException.class)
   public void throwsErrorWhenThePKIsNotPresentInTheSelectClauseSinglePK() {
     String syntax = "INSERT INTO someTable SELECT lastName as surname, firstName FROM someTable PK IamABadPersonAndIHateYou";
-    Config.parse(syntax);
+    Kcql.parse(syntax);
   }
   */
 
@@ -482,21 +436,17 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT * FROM %s IGNORE col1, 1col2 CAPITALIZE  ", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
-        assertFalse(config.getFieldAlias().hasNext());
-        assertTrue(config.isIncludeAllFields());
-        assertEquals(WriteModeEnum.UPSERT, config.getWriteMode());
-        Set<String> ignored = new HashSet<>();
-        Iterator<String> iter = config.getIgnoredField();
-        while (iter.hasNext()) {
-            ignored.add(iter.next());
-        }
-
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.isIncludeAllFields());
+        assertEquals(WriteModeEnum.UPSERT, kcql.getWriteMode());
+        Set<String> ignored =kcql.getIgnoredField();
+       
         assertTrue(ignored.contains("col1"));
         assertTrue(ignored.contains("1col2"));
-        assertTrue(config.isEnableCapitalize());
+        assertTrue(kcql.isEnableCapitalize());
     }
 
     @Test
@@ -504,10 +454,10 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT * FROM %s IGNORE col1, 1col2 PARTITIONBY col1,col2  ", table, topic);
-        Config config = Config.parse(syntax);
+        Kcql kcql = Kcql.parse(syntax);
 
         Set<String> partitionBy = new HashSet<>();
-        Iterator<String> iter = config.getPartitionBy();
+        Iterator<String> iter = kcql.getPartitionBy();
         while (iter.hasNext()) {
             partitionBy.add(iter.next());
         }
@@ -521,10 +471,10 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT col1, col2, col3 FROM %s IGNORE col1, 1col2 PARTITIONBY col1,col2  ", table, topic);
-        Config config = Config.parse(syntax);
+        Kcql kcql = Kcql.parse(syntax);
 
         Set<String> partitionBy = new HashSet<>();
-        Iterator<String> iter = config.getPartitionBy();
+        Iterator<String> iter = kcql.getPartitionBy();
         while (iter.hasNext()) {
             partitionBy.add(iter.next());
         }
@@ -538,7 +488,7 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT col1, col3 FROM %s IGNORE col1, 1col2 PARTITIONBY col1,col2  ", table, topic);
-        Config.parse(syntax);
+        Kcql.parse(syntax);
     }
 
     @Test
@@ -546,10 +496,10 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT col1, col2 as colABC, col3 FROM %s IGNORE col1, 1col2 PARTITIONBY col1,colABC ", table, topic);
-        Config config = Config.parse(syntax);
+        Kcql kcql = Kcql.parse(syntax);
 
         Set<String> partitionBy = new HashSet<>();
-        Iterator<String> iter = config.getPartitionBy();
+        Iterator<String> iter = kcql.getPartitionBy();
         while (iter.hasNext()) {
             partitionBy.add(iter.next());
         }
@@ -563,9 +513,9 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT * FROM %s IGNORE col1, 1col2 DISTRIBUTEBY col1,col2 INTO 10 BUCKETS", table, topic);
-        Config config = Config.parse(syntax);
+        Kcql kcql = Kcql.parse(syntax);
 
-        Bucketing bucketing = config.getBucketing();
+        Bucketing bucketing = kcql.getBucketing();
         assertNotNull(bucketing);
         HashSet<String> bucketNames = new HashSet<>();
         Iterator<String> iter = bucketing.getBucketNames();
@@ -582,10 +532,10 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT col1, col2, col3 FROM %s IGNORE col1, 1col2 DISTRIBUTEBY col1,col2 INTO 10 BUCKETS", table, topic);
-        Config config = Config.parse(syntax);
+        Kcql kcql = Kcql.parse(syntax);
 
 
-        Bucketing bucketing = config.getBucketing();
+        Bucketing bucketing = kcql.getBucketing();
         assertNotNull(bucketing);
         HashSet<String> bucketNames = new HashSet<>();
         Iterator<String> iter = bucketing.getBucketNames();
@@ -602,7 +552,7 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT col1, col3 FROM %s IGNORE col1, 1col2 DISTRIBUTEBY col1,col2 INTO 10 BUCKETS ", table, topic);
-        Config.parse(syntax);
+        Kcql.parse(syntax);
     }
 
     @Test
@@ -610,9 +560,9 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT col1, col2 as colABC, col3 FROM %s IGNORE col1, 1col2 DISTRIBUTEBY col1,colABC INTO 10 BUCKETS ", table, topic);
-        Config config = Config.parse(syntax);
+        Kcql kcql = Kcql.parse(syntax);
 
-        Bucketing bucketing = config.getBucketing();
+        Bucketing bucketing = kcql.getBucketing();
         assertNotNull(bucketing);
         HashSet<String> bucketNames = new HashSet<>();
         Iterator<String> iter = bucketing.getBucketNames();
@@ -629,9 +579,9 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT * FROM %s PARTITIONBY col1,colABC CLUSTERBY col2 INTO 256 BUCKETS", table, topic);
-        Config config = Config.parse(syntax);
+        Kcql kcql = Kcql.parse(syntax);
 
-        Bucketing bucketing = config.getBucketing();
+        Bucketing bucketing = kcql.getBucketing();
         assertNotNull(bucketing);
         HashSet<String> bucketNames = new HashSet<>();
         Iterator<String> iter = bucketing.getBucketNames();
@@ -648,9 +598,9 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT col1,col2 FROM %s CLUSTERBY col2 INTO 256 BUCKETS", table, topic);
-        Config config = Config.parse(syntax);
+        Kcql kcql = Kcql.parse(syntax);
 
-        Bucketing bucketing = config.getBucketing();
+        Bucketing bucketing = kcql.getBucketing();
         assertNotNull(bucketing);
         HashSet<String> bucketNames = new HashSet<>();
         Iterator<String> iter = bucketing.getBucketNames();
@@ -667,9 +617,9 @@ public class ConfigTest {
         String topic = "TOPIC-A-A";
         String table = "TABLE-A";
         String syntax = String.format("UPSERT INTO %s SELECT col1,col2 FROM %s CLUSTERBY col2 INTO 256 BUCKETS", table, topic);
-        Config config = Config.parse(syntax);
+        Kcql kcql = Kcql.parse(syntax);
 
-        Bucketing bucketing = config.getBucketing();
+        Bucketing bucketing = kcql.getBucketing();
         assertNotNull(bucketing);
         HashSet<String> bucketNames = new HashSet<>();
         Iterator<String> iter = bucketing.getBucketNames();
@@ -686,7 +636,7 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT col1,col2 FROM %s CLUSTERBY col2 INTO 0 BUCKETS", table, topic);
-        Config.parse(syntax);
+        Kcql.parse(syntax);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -694,7 +644,7 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT col1,col2 FROM %s CLUSTERBY col2", table, topic);
-        Config.parse(syntax);
+        Kcql.parse(syntax);
     }
 
 
@@ -703,7 +653,7 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT col1,col2 FROM %s CLUSTERBY  INTO 12 BUCKETS", table, topic);
-        Config.parse(syntax);
+        Kcql.parse(syntax);
     }
 
     @Test
@@ -711,8 +661,8 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITHTIMESTAMP col1", table, topic);
-        Config c = Config.parse(syntax);
-        assertEquals(c.getTimestamp(), "col1");
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(kcql.getTimestamp(), "col1");
     }
 
     @Test
@@ -720,27 +670,27 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT * FROM %s WITHTIMESTAMP col1", table, topic);
-        Config c = Config.parse(syntax);
-        assertEquals(c.getTimestamp(), "col1");
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(kcql.getTimestamp(), "col1");
     }
 
     @Test
     public void handleTimestampSetAsCurrentSysWhenAllFieldsIncluded() {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
-        String syntax = String.format("INSERT INTO %s SELECT * FROM %s WITHTIMESTAMP " + Config.TIMESTAMP, table, topic);
-        Config c = Config.parse(syntax);
-        assertEquals(c.getTimestamp(), Config.TIMESTAMP);
+        String syntax = String.format("INSERT INTO %s SELECT * FROM %s WITHTIMESTAMP " + Kcql.TIMESTAMP, table, topic);
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(kcql.getTimestamp(), Kcql.TIMESTAMP);
     }
 
     @Test
     public void handleFieldSelectionWithPKWithTimestampSetAsFieldNotInSelection() {
         String syntax = "INSERT INTO measurements SELECT actualTemperature, targetTemperature FROM TOPIC_A PK machineId, type WITHTIMESTAMP ts";
-        Config c = Config.parse(syntax);
-        assertEquals(c.getTimestamp(), "ts");
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(kcql.getTimestamp(), "ts");
 
         HashSet<String> pks = new HashSet<>();
-        Iterator<String> iter = c.getPrimaryKeys();
+        Iterator<String> iter = kcql.getPrimaryKeys();
         while (iter.hasNext()) {
             pks.add(iter.next());
         }
@@ -753,9 +703,9 @@ public class ConfigTest {
     public void handleTimestampSetAsCurrentSysWhenSelectedFieldsIncluded() {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
-        String syntax = String.format("INSERT INTO %s SELECT col1, col2,col3 FROM %s WITHTIMESTAMP " + Config.TIMESTAMP, table, topic);
-        Config c = Config.parse(syntax);
-        assertEquals(c.getTimestamp(), Config.TIMESTAMP);
+        String syntax = String.format("INSERT INTO %s SELECT col1, col2,col3 FROM %s WITHTIMESTAMP " + Kcql.TIMESTAMP, table, topic);
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(kcql.getTimestamp(), Kcql.TIMESTAMP);
     }
 
     @Test
@@ -763,19 +713,19 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT * FROM %s WITHFORMAT avro", table, topic);
-        Config c = Config.parse(syntax);
-        assertEquals(c.getFormatType().toString(), "AVRO");
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(kcql.getFormatType().toString(), "AVRO");
 
         String syntax2 = String.format("INSERT INTO %s SELECT * FROM %s WITHFORMAT json", table, topic);
-        Config c2 = Config.parse(syntax2);
+        Kcql c2 = Kcql.parse(syntax2);
         assertEquals(c2.getFormatType().toString(), "JSON");
 
         String syntax3 = String.format("INSERT INTO %s SELECT * FROM %s WITHFORMAT map", table, topic);
-        Config c3 = Config.parse(syntax3);
+        Kcql c3 = Kcql.parse(syntax3);
         assertEquals(c3.getFormatType().toString(), "MAP");
 
         String syntax4 = String.format("INSERT INTO %s SELECT * FROM %s WITHFORMAT object", table, topic);
-        Config c4 = Config.parse(syntax4);
+        Kcql c4 = Kcql.parse(syntax4);
         assertEquals(c4.getFormatType().toString(), "OBJECT");
     }
 
@@ -784,7 +734,7 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT col1,col2 FROM %s STOREAS", table, topic);
-        Config.parse(syntax);
+        Kcql.parse(syntax);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -792,7 +742,7 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT col1,col2 FROM %s STOREAS SS ()", table, topic);
-        Config config = Config.parse(syntax);
+        Kcql kcql = Kcql.parse(syntax);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -800,7 +750,7 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT col1,col2 FROM %s STOREAS SS (name = something , NaMe= something)", table, topic);
-        Config.parse(syntax);
+        Kcql.parse(syntax);
     }
 
     @Test
@@ -808,56 +758,21 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s STOREAS SS (param1 = value1 , param2 = value2,param3=value3)", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals("SS", config.getStoredAs());
-        assertEquals(3, config.getStoredAsParameters().size());
-        assertEquals("value1", config.getStoredAsParameters().get("param1"));
-        assertEquals("value2", config.getStoredAsParameters().get("param2"));
-        assertEquals("value3", config.getStoredAsParameters().get("param3"));
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals("SS", kcql.getStoredAs());
+        assertEquals(3, kcql.getStoredAsParameters().size());
+        assertEquals("value1", kcql.getStoredAsParameters().get("param1"));
+        assertEquals("value2", kcql.getStoredAsParameters().get("param2"));
+        assertEquals("value3", kcql.getStoredAsParameters().get("param3"));
     }
-
-    @Test
-    public void handleTTLClause() {
-        String topic = "TOPIC_A";
-        String table = "TABLE_A";
-        String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s STOREAS SS (param1 = value1 , param2 = value2,param3=value3) TTL=999", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals("SS", config.getStoredAs());
-        assertEquals(3, config.getStoredAsParameters().size());
-        assertEquals("value1", config.getStoredAsParameters().get("param1"));
-        assertEquals("value2", config.getStoredAsParameters().get("param2"));
-        assertEquals("value3", config.getStoredAsParameters().get("param3"));
-        assertEquals(999, config.getTTL());
-    }
-
 
     @Test
     public void handleForwardSlashInSource() {
         String topic = "/TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-    }
-
-    @Test
-    public void handleWithUnwrap() {
-        String topic = "/TOPIC_A";
-        String table = "TABLE_A";
-        String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s withunwrap", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertTrue(config.isWithUnwrap());
-    }
-
-    @Test
-    public void handleSemicolonInTable() {
-        String topic = "/TOPIC_A";
-        String table = "namespace1:tblA";
-        String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
     }
 
     @Test
@@ -865,15 +780,15 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT * FROM %s WITHTAG (field1, c1=v1, field2, c2=v2)", table, topic);
-        Config config = Config.parse(syntax);
-        assertEquals(topic, config.getSource());
-        assertEquals(table, config.getTarget());
-        assertFalse(config.getFieldAlias().hasNext());
-        assertTrue(config.isIncludeAllFields());
-        assertEquals(WriteModeEnum.INSERT, config.getWriteMode());
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.isIncludeAllFields());
+        assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
 
         Map<String, Tag> tagsMap = new HashMap<>();
-        Iterator<Tag> iterTags = config.getTags();
+        Iterator<Tag> iterTags = kcql.getTags();
         while (iterTags.hasNext()) {
             Tag tag = iterTags.next();
             tagsMap.put(tag.getKey(), tag);
@@ -897,7 +812,7 @@ public class ConfigTest {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT col1,col2 FROM %s WITHTAGS ()", table, topic);
-        Config.parse(syntax);
+        Kcql.parse(syntax);
     }
 
 }
