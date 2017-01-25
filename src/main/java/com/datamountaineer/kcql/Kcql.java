@@ -331,9 +331,8 @@ public class Kcql {
 
                 if ("*".equals(field.getName()) && !field.hasParents() && field.getFieldType() != FieldType.KEY) {
                     kcql.setIncludeAllFields();
-                } else {
-                    kcql.addFieldAlias(field);
                 }
+                kcql.addFieldAlias(field);
             }
 
 
