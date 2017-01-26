@@ -311,6 +311,8 @@ public class Kcql {
                 super.exitColumn_name(ctx);
                 if (ctx.ASTERISK() != null) {
                     kcql.setIncludeAllFields();
+                    Field field = new Field("*",FieldType.VALUE, null);
+                    kcql.addFieldAlias(field);
                     return;
                 }
 

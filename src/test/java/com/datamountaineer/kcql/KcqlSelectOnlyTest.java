@@ -25,13 +25,25 @@ import static org.junit.Assert.assertTrue;
 public class KcqlSelectOnlyTest {
 
     @Test
+    public void parseStartAndSetAField() {
+        String topic = "TOPIC_A";
+        String syntax = String.format("SELECT * FROM %s", topic);
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertNull(kcql.getTarget());
+        assertFalse(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.isIncludeAllFields());
+    }
+
+    @Test
     public void parseASelectAllFromTopic() {
         String topic = "TOPIC_A";
         String syntax = String.format("SELECT * FROM %s withformat text", topic);
         Kcql kcql = Kcql.parse(syntax);
         assertEquals(topic, kcql.getSource());
         assertNull(kcql.getTarget());
-        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertFalse(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.getFieldAlias().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         HashSet<String> pks = new HashSet<>();
         Iterator<String> iter = kcql.getPrimaryKeys();
@@ -77,7 +89,8 @@ public class KcqlSelectOnlyTest {
         Kcql kcql = Kcql.parse(syntax);
         assertEquals(topic, kcql.getSource());
         assertNull(kcql.getTarget());
-        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertFalse(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.getFieldAlias().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         HashSet<String> pks = new HashSet<>();
         Iterator<String> iter = kcql.getPrimaryKeys();
@@ -99,8 +112,8 @@ public class KcqlSelectOnlyTest {
         Kcql kcql = Kcql.parse(syntax);
         assertEquals(topic, kcql.getSource());
         assertNull(kcql.getTarget());
-        assertTrue(kcql.getFieldAlias().isEmpty());
-        assertTrue(kcql.isIncludeAllFields());
+        assertFalse(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.getFieldAlias().get(0).getName().equals("*"));
         HashSet<String> pks = new HashSet<>();
         Iterator<String> iter = kcql.getPrimaryKeys();
         while (iter.hasNext()) {
@@ -125,7 +138,8 @@ public class KcqlSelectOnlyTest {
         Kcql kcql = Kcql.parse(syntax);
         assertEquals(topic, kcql.getSource());
         assertNull(kcql.getTarget());
-        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertFalse(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.getFieldAlias().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         HashSet<String> pks = new HashSet<>();
         Iterator<String> iter = kcql.getPrimaryKeys();
@@ -160,7 +174,7 @@ public class KcqlSelectOnlyTest {
         Kcql kcql = Kcql.parse(syntax);
         assertEquals(topic, kcql.getSource());
         assertNull(kcql.getTarget());
-        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.getFieldAlias().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         HashSet<String> pks = new HashSet<>();
         Iterator<String> iter = kcql.getPrimaryKeys();

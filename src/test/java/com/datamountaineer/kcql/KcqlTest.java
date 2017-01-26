@@ -29,7 +29,8 @@ public class KcqlTest {
         Kcql kcql = Kcql.parse(syntax);
         assertEquals(topic, kcql.getSource());
         assertEquals(table, kcql.getTarget());
-        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertFalse(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.getFieldAlias().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
         HashSet<String> pks = new HashSet<>();
@@ -72,7 +73,8 @@ public class KcqlTest {
         Kcql kcql = Kcql.parse(syntax);
         assertEquals(topic, kcql.getSource());
         assertEquals(table, kcql.getTarget());
-        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertFalse(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.getFieldAlias().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
     }
@@ -85,7 +87,8 @@ public class KcqlTest {
         Kcql kcql = Kcql.parse(syntax);
         assertEquals(topic, kcql.getSource());
         assertEquals(table, kcql.getTarget());
-        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertFalse(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.getFieldAlias().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
     }
@@ -98,7 +101,8 @@ public class KcqlTest {
         Kcql kcql = Kcql.parse(syntax);
         assertEquals(topic, kcql.getSource());
         assertEquals(table, kcql.getTarget());
-        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertFalse(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.getFieldAlias().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
     }
@@ -189,8 +193,9 @@ public class KcqlTest {
         for (Field alias : fa) {
             map.put(alias.getName(), alias);
         }
-        assertEquals(1, fa.size());
+        assertEquals(2, fa.size());
         assertTrue(map.containsKey("f1"));
+        assertTrue(map.containsKey("*"));
         assertEquals("col1", map.get("f1").getAlias());
         assertTrue(kcql.isIncludeAllFields());
         assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
@@ -209,8 +214,9 @@ public class KcqlTest {
         for (Field alias : fa) {
             map.put(alias.getName(), alias);
         }
-        assertEquals(1, fa.size());
+        assertEquals(2, fa.size());
         assertTrue(map.containsKey("f1"));
+        assertTrue(map.containsKey("*"));
         assertEquals("col1", map.get("f1").getAlias());
         assertTrue(kcql.isIncludeAllFields());
         assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
@@ -229,7 +235,8 @@ public class KcqlTest {
         for (Field alias : fa) {
             map.put(alias.getName(), alias);
         }
-        assertEquals(2, fa.size());
+        assertEquals(3, fa.size());
+        assertTrue(map.containsKey("*"));
         assertTrue(map.containsKey("f1"));
         assertEquals("col1", map.get("f1").getAlias());
         assertTrue(map.containsKey("f2"));
@@ -247,7 +254,8 @@ public class KcqlTest {
         Kcql kcql = Kcql.parse(syntax);
         assertEquals(topic, kcql.getSource());
         assertEquals(table, kcql.getTarget());
-        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertFalse(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.getFieldAlias().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         assertEquals(WriteModeEnum.UPSERT, kcql.getWriteMode());
     }
@@ -260,7 +268,8 @@ public class KcqlTest {
         Kcql kcql = Kcql.parse(syntax);
         assertEquals(topic, kcql.getSource());
         assertEquals(table, kcql.getTarget());
-        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertFalse(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.getFieldAlias().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
         Set<String> ignored = kcql.getIgnoredField();
@@ -277,7 +286,8 @@ public class KcqlTest {
         Kcql kcql = Kcql.parse(syntax);
         assertEquals(topic, kcql.getSource());
         assertEquals(table, kcql.getTarget());
-        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertFalse(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.getFieldAlias().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         assertEquals(WriteModeEnum.UPSERT, kcql.getWriteMode());
         Set<String> ignored =  kcql.getIgnoredField();
@@ -439,7 +449,8 @@ public class KcqlTest {
         Kcql kcql = Kcql.parse(syntax);
         assertEquals(topic, kcql.getSource());
         assertEquals(table, kcql.getTarget());
-        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertFalse(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.getFieldAlias().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         assertEquals(WriteModeEnum.UPSERT, kcql.getWriteMode());
         Set<String> ignored =kcql.getIgnoredField();
@@ -783,7 +794,8 @@ public class KcqlTest {
         Kcql kcql = Kcql.parse(syntax);
         assertEquals(topic, kcql.getSource());
         assertEquals(table, kcql.getTarget());
-        assertTrue(kcql.getFieldAlias().isEmpty());
+        assertFalse(kcql.getFieldAlias().isEmpty());
+        assertTrue(kcql.getFieldAlias().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
 
