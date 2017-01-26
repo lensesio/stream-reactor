@@ -1,8 +1,5 @@
 package com.datamountaineer.kcql;
 
-import com.datamountaineer.kcql.Field;
-import com.datamountaineer.kcql.FieldType;
-import com.datamountaineer.kcql.Kcql;
 import com.google.common.collect.Lists;
 import org.junit.Test;
 
@@ -22,7 +19,7 @@ public class KcqlNestedFieldTest {
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT field1.field2.field3 FROM %s", table, topic);
         Kcql kcql = Kcql.parse(syntax);
-        List<Field> fields = Lists.newArrayList(kcql.getFieldAlias());
+        List<Field> fields = Lists.newArrayList(kcql.getFields());
         assertEquals(1, fields.size());
         assertEquals("field3", fields.get(0).getName());
         assertEquals("field3", fields.get(0).getAlias());
@@ -39,7 +36,7 @@ public class KcqlNestedFieldTest {
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT field2.field3 as afield FROM %s", table, topic);
         Kcql kcql = Kcql.parse(syntax);
-        List<Field> fields = Lists.newArrayList(kcql.getFieldAlias());
+        List<Field> fields = Lists.newArrayList(kcql.getFields());
         assertEquals(1, fields.size());
         assertEquals("field3", fields.get(0).getName());
         assertEquals(1, fields.get(0).getParentFields().size());
@@ -55,7 +52,7 @@ public class KcqlNestedFieldTest {
         String table = "TABLE/A";
         String syntax = String.format("INSERT INTO %s SELECT fieldA as A, field1.field2 as B FROM `%s`", table, topic);
         Kcql kcql = Kcql.parse(syntax);
-        List<Field> fields = Lists.newArrayList(kcql.getFieldAlias());
+        List<Field> fields = Lists.newArrayList(kcql.getFields());
         assertEquals(2, fields.size());
         assertEquals("fieldA", fields.get(0).getName());
         assertEquals("A", fields.get(0).getAlias());
@@ -74,7 +71,7 @@ public class KcqlNestedFieldTest {
         String table = "TABLE_A";
         String syntax = String.format("INSERT INTO %s SELECT field1.field2.field3.* FROM %s", table, topic);
         Kcql kcql = Kcql.parse(syntax);
-        List<Field> fields = Lists.newArrayList(kcql.getFieldAlias());
+        List<Field> fields = Lists.newArrayList(kcql.getFields());
         assertEquals(1, fields.size());
         assertEquals("*", fields.get(0).getName());
         assertEquals("*", fields.get(0).getAlias());
@@ -119,7 +116,7 @@ public class KcqlNestedFieldTest {
     @Test
     public void parseKeyFields() {
         Kcql kcql = Kcql.parse("INSERT INTO target SELECT _.key.field1,_.key.field2.field3.field4, _.key.* FROM source");
-        List<Field> fields = kcql.getFieldAlias();
+        List<Field> fields = kcql.getFields();
         assertEquals(3, fields.size());
 
         HashMap<String, Field> fieldsMap = new HashMap<>();
@@ -162,7 +159,7 @@ public class KcqlNestedFieldTest {
     @Test
     public void parseKeyFieldsWithAlias() {
         Kcql kcql = Kcql.parse("INSERT INTO target SELECT _.key.field1 as F1,_.key.field2.field3.field4 as F2, _.key.* FROM source");
-        List<Field> fields = kcql.getFieldAlias();
+        List<Field> fields = kcql.getFields();
         assertEquals(3, fields.size());
 
         HashMap<String, Field> fieldsMap = new HashMap<>();
@@ -200,7 +197,7 @@ public class KcqlNestedFieldTest {
     @Test
     public void parseMetadataFields() {
         Kcql kcql = Kcql.parse("INSERT INTO target SELECT _.topic,_.partition,_.offset, _.timestamp FROM source");
-        List<Field> fields = kcql.getFieldAlias();
+        List<Field> fields = kcql.getFields();
         assertEquals(4, fields.size());
 
         HashMap<String, Field> fieldsMap = new HashMap<>();
@@ -238,7 +235,7 @@ public class KcqlNestedFieldTest {
     @Test
     public void parseMetadataFieldsWithAlias() {
         Kcql kcql = Kcql.parse("INSERT INTO target SELECT _.topic as T,_.partition as P,_.offset as O, _.timestamp as TS FROM source");
-        List<Field> fields = kcql.getFieldAlias();
+        List<Field> fields = kcql.getFields();
         assertEquals(4, fields.size());
 
         HashMap<String, Field> fieldsMap = new HashMap<>();

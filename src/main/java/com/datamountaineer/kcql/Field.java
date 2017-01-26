@@ -45,6 +45,7 @@ public class Field {
     }
 
     public List<String> getParentFields() {
+        if(parentFields == null) return null;
         return new ArrayList<>(parentFields);
     }
 
