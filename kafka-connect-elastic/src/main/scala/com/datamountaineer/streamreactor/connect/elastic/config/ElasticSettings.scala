@@ -18,8 +18,7 @@
 
 package com.datamountaineer.streamreactor.connect.elastic.config
 
-import com.datamountaineer.connector.config.Config
-
+import com.datamountaineer.connector.config.{Config, WriteModeEnum}
 import scala.collection.JavaConversions._
 
 /**
@@ -29,6 +28,7 @@ import scala.collection.JavaConversions._
 case class ElasticSettings(routes: List[Config],
                            fields : Map[String, Map[String, String]],
                            ignoreFields: Map[String, Set[String]],
+                           pks: Map[String, String],
                            tableMap: Map[String, String])
 
 object ElasticSettings {
@@ -44,6 +44,14 @@ object ElasticSettings {
     val tableMap = routes.map(rm => (rm.getSource, rm.getTarget)).toMap
     val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
 
-    ElasticSettings(routes = routes, fields = fields,ignoreFields = ignoreFields, tableMap = tableMap)
+    val pks = routes
+      .filter(c => c.getWriteMode == WriteModeEnum.UPSERT)
+      .map { r =>
+        val keys = r.getPrimaryKeys.toSet
+        require(!keys.isEmpty && keys.size == 1,s"${r.getTarget} is set up with upsert, you need one primary key setup")
+        (r.getSource, keys.head)
+      }.toMap
+
+    ElasticSettings(routes = routes, fields = fields,ignoreFields = ignoreFields, pks = pks, tableMap = tableMap)
   }
 }
