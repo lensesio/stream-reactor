@@ -28,22 +28,22 @@ import org.apache.kafka.common.config.AbstractConfig
 
 /**
   * Set up a Casssandra connection
-  * */
+  **/
 
 object CassandraConnection extends StrictLogging {
-  def apply(connectorConfig: AbstractConfig) : CassandraConnection = {
+  def apply(connectorConfig: AbstractConfig): CassandraConnection = {
     val cluster = getCluster(connectorConfig)
     val keySpace = connectorConfig.getString(CassandraConfigConstants.KEY_SPACE)
     val session = getSession(keySpace, cluster)
     new CassandraConnection(cluster = cluster, session = session)
   }
 
-  def getCluster(connectorConfig: AbstractConfig) : Cluster = {
+  def getCluster(connectorConfig: AbstractConfig): Cluster = {
     val contactPoints: String = connectorConfig.getString(CassandraConfigConstants.CONTACT_POINTS)
     val port = connectorConfig.getInt(CassandraConfigConstants.PORT)
     val builder: Builder = Cluster
       .builder()
-      .addContactPoints(contactPoints)
+      .addContactPoints(contactPoints.split(","): _*)
       .withPort(port)
       .withLoadBalancingPolicy(new TokenAwarePolicy(DCAwareRoundRobinPolicy.builder().build()))
 
@@ -59,9 +59,9 @@ object CassandraConnection extends StrictLogging {
     * Get a Cassandra session
     *
     * @param keySpace A configuration to build the setting from
-    * @param cluster The cluster the get the session for
-    * */
-  def getSession(keySpace: String, cluster: Cluster) : Session = {
+    * @param cluster  The cluster the get the session for
+    **/
+  def getSession(keySpace: String, cluster: Cluster): Session = {
     cluster.connect(keySpace)
   }
 
@@ -69,10 +69,10 @@ object CassandraConnection extends StrictLogging {
     * Add authentication to the connection builder
     *
     * @param connectorConfig The connector configuration to get the parameters from
-    * @param builder The builder to add the authentication to
+    * @param builder         The builder to add the authentication to
     * @return The builder with authentication added.
-    * */
-  private def addAuthMode(connectorConfig: AbstractConfig, builder: Builder) : Builder = {
+    **/
+  private def addAuthMode(connectorConfig: AbstractConfig, builder: Builder): Builder = {
     val username = connectorConfig.getString(CassandraConfigConstants.USERNAME)
     val password = connectorConfig.getPassword(CassandraConfigConstants.PASSWD).value
 
@@ -86,18 +86,19 @@ object CassandraConnection extends StrictLogging {
 
   /**
     * Add SSL connection options to the connection builder
+    *
     * @param connectorConfig The connector configuration to get the parameters from
-    * @param builder The builder to add the authentication to
+    * @param builder         The builder to add the authentication to
     * @return The builder with SSL added.
-    * */
-  private def addSSL(connectorConfig: AbstractConfig, builder: Builder) : Builder = {
+    **/
+  private def addSSL(connectorConfig: AbstractConfig, builder: Builder): Builder = {
     val ssl = connectorConfig.getBoolean(CassandraConfigConstants.SSL_ENABLED).asInstanceOf[Boolean]
     ssl match {
       case true =>
         logger.info("Setting up SSL context.")
         val sslConfig = SSLConfig(
           trustStorePath = connectorConfig.getString(CassandraConfigConstants.TRUST_STORE_PATH),
-          trustStorePass =  connectorConfig.getPassword(CassandraConfigConstants.TRUST_STORE_PASSWD).value,
+          trustStorePass = connectorConfig.getPassword(CassandraConfigConstants.TRUST_STORE_PASSWD).value,
           keyStorePath = Some(connectorConfig.getString(CassandraConfigConstants.KEY_STORE_PATH)),
           keyStorePass = Some(connectorConfig.getPassword(CassandraConfigConstants.KEY_STORE_PASSWD).value),
           useClientCert = connectorConfig.getBoolean(CassandraConfigConstants.USE_CLIENT_AUTH)
@@ -118,5 +119,5 @@ object CassandraConnection extends StrictLogging {
   * <h1>CassandraConnection</h1>
   *
   * Case class to hold a Cassandra cluster and session connection
-  * */
+  **/
 case class CassandraConnection(cluster: Cluster, session: Session)
