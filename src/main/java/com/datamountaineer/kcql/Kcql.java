@@ -52,11 +52,11 @@ public class Kcql {
         ignoredFields.add(ignoredField);
     }
 
-    private void addFieldAlias(final Field fieldAlias) {
-        if (fieldAlias == null) {
+    private void addField(final Field field) {
+        if (field == null) {
             throw new IllegalArgumentException("Illegal fieldAlias.");
         }
-        fields.put(fieldAlias.getName(), fieldAlias);
+        fields.put(field.getName(), field);
     }
 
     private void addPrimaryKey(final String primaryKey) {
@@ -94,7 +94,7 @@ public class Kcql {
         this.target = target;
     }
 
-    public List<Field> getFieldAlias() {
+    public List<Field> getFields() {
         return new ArrayList<>(fields.values());
     }
 
@@ -312,7 +312,7 @@ public class Kcql {
                 if (ctx.ASTERISK() != null) {
                     kcql.setIncludeAllFields();
                     Field field = new Field("*",FieldType.VALUE, null);
-                    kcql.addFieldAlias(field);
+                    kcql.addField(field);
                     return;
                 }
 
@@ -334,7 +334,7 @@ public class Kcql {
                 if ("*".equals(field.getName()) && !field.hasParents() && field.getFieldType() != FieldType.KEY) {
                     kcql.setIncludeAllFields();
                 }
-                kcql.addFieldAlias(field);
+                kcql.addField(field);
             }
 
 
