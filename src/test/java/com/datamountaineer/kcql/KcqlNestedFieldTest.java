@@ -6,10 +6,7 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class KcqlNestedFieldTest {
 
@@ -267,5 +264,32 @@ public class KcqlNestedFieldTest {
         assertEquals("timestamp", field.getName());
         assertEquals("TS", field.getAlias());
         assertEquals(FieldType.TIMESTAMP, field.getFieldType());
+    }
+
+    @Test
+    public void parseFieldsWithTheSameNameButDifferentPath() {
+        String topic = "TOPIC.A";
+        String table = "TABLE/A";
+        String syntax = String.format("INSERT INTO %s SELECT fieldA as A, field1.field2.fieldA, fieldx.fieldA as B FROM `%s`", table, topic);
+        Kcql kcql = Kcql.parse(syntax);
+        List<Field> fields = Lists.newArrayList(kcql.getFields());
+        assertEquals(3, fields.size());
+        assertEquals("fieldA", fields.get(0).getName());
+        assertEquals("A", fields.get(0).getAlias());
+        assertFalse(fields.get(0).hasParents());
+        assertEquals(FieldType.VALUE, fields.get(0).getFieldType());
+
+        assertEquals("fieldA", fields.get(1).getName());
+        assertEquals("field1", fields.get(1).getParentFields().get(0));
+        assertEquals("field2", fields.get(1).getParentFields().get(1));
+        assertEquals("fieldA",fields.get(1).getAlias());
+        assertEquals(FieldType.VALUE, fields.get(1).getFieldType());
+
+        assertEquals("fieldA", fields.get(2).getName());
+        assertEquals("B", fields.get(2).getAlias());
+        assertTrue(fields.get(2).hasParents());
+        assertEquals(1, fields.get(2).getParentFields().size());
+        assertEquals("fieldx", fields.get(2).getParentFields().get(0));
+        assertEquals(FieldType.VALUE, fields.get(2).getFieldType());
     }
 }

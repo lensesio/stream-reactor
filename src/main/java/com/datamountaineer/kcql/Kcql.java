@@ -3,6 +3,7 @@ package com.datamountaineer.kcql;
 import com.datamountaineer.kcql.antlr4.ConnectorLexer;
 import com.datamountaineer.kcql.antlr4.ConnectorParser;
 import com.datamountaineer.kcql.antlr4.ConnectorParserBaseListener;
+import org.antlr.v4.misc.OrderedHashMap;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.misc.OrderedHashSet;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -26,7 +27,7 @@ public class Kcql {
     private WriteModeEnum writeMode;
     private String source;
     private String target;
-    private Map<String, Field> fields = new HashMap<>();
+    private Map<String, Field> fields = new OrderedHashMap<>();
     private Set<String> ignoredFields = new HashSet<>();
     private Set<String> primaryKeys = new OrderedHashSet<>();
     private List<String> partitionBy = new ArrayList<>();
@@ -56,7 +57,13 @@ public class Kcql {
         if (field == null) {
             throw new IllegalArgumentException("Illegal fieldAlias.");
         }
-        fields.put(field.getName(), field);
+        StringBuilder b = new StringBuilder();
+        if (field.hasParents()) {
+            for (String p : field.getParentFields()) {
+                b.append(p);
+            }
+        }
+        fields.put(field.getName() + "." + b + "." + field.getFieldType(), field);
     }
 
     private void addPrimaryKey(final String primaryKey) {
@@ -311,7 +318,7 @@ public class Kcql {
                 super.exitColumn_name(ctx);
                 if (ctx.ASTERISK() != null) {
                     kcql.setIncludeAllFields();
-                    Field field = new Field("*",FieldType.VALUE, null);
+                    Field field = new Field("*", FieldType.VALUE, null);
                     kcql.addField(field);
                     return;
                 }
