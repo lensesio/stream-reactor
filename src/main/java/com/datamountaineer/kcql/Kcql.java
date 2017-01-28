@@ -3,9 +3,7 @@ package com.datamountaineer.kcql;
 import com.datamountaineer.kcql.antlr4.ConnectorLexer;
 import com.datamountaineer.kcql.antlr4.ConnectorParser;
 import com.datamountaineer.kcql.antlr4.ConnectorParserBaseListener;
-import org.antlr.v4.misc.OrderedHashMap;
 import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.misc.OrderedHashSet;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.*;
@@ -27,9 +25,9 @@ public class Kcql {
     private WriteModeEnum writeMode;
     private String source;
     private String target;
-    private Map<String, Field> fields = new OrderedHashMap<>();
+    private List<Field> fields = new ArrayList<>();
     private Set<String> ignoredFields = new HashSet<>();
-    private Set<String> primaryKeys = new OrderedHashSet<>();
+    private List<String> primaryKeys = new ArrayList<>();
     private List<String> partitionBy = new ArrayList<>();
     private int retries = 1;
     private int batchSize = DEFAULT_BATCH_SIZE;
@@ -57,18 +55,36 @@ public class Kcql {
         if (field == null) {
             throw new IllegalArgumentException("Illegal fieldAlias.");
         }
-        StringBuilder b = new StringBuilder();
-        if (field.hasParents()) {
-            for (String p : field.getParentFields()) {
-                b.append(p);
+        if (fieldExists(field)) {
+            throw new IllegalArgumentException(String.format("Field %s has already been defined", field.getName()));
+        }
+        fields.add(field);
+    }
+
+    private boolean fieldExists(final Field newField) {
+        for (Field field : fields) {
+            if (!field.getName().equals(newField.getName()) ||
+                    !field.getFieldType().equals(newField.getFieldType())) {
+                continue;
+            }
+            if (!field.hasParents() && !newField.hasParents()) {
+                return true;
+            }
+            if (field.hasParents() && newField.hasParents()) {
+                if (field.getParentFields().equals(newField.hasParents())) {
+                    return true;
+                }
             }
         }
-        fields.put(field.getName() + "." + b + "." + field.getFieldType(), field);
+        return false;
     }
 
     private void addPrimaryKey(final String primaryKey) {
         if (primaryKey == null || primaryKey.trim().length() == 0) {
             throw new IllegalArgumentException("Invalid primaryKey.");
+        }
+        if (primaryKeys.contains(primaryKey)) {
+            throw new IllegalArgumentException(String.format("%s has already been defined", primaryKey));
         }
         primaryKeys.add(primaryKey);
     }
@@ -102,7 +118,7 @@ public class Kcql {
     }
 
     public List<Field> getFields() {
-        return new ArrayList<>(fields.values());
+        return new ArrayList<>(fields);
     }
 
     public Set<String> getIgnoredField() {
@@ -545,7 +561,7 @@ public class Kcql {
         }*/
 
         final HashSet<String> cols = new HashSet<>();
-        for (Field alias : kcql.fields.values()) {
+        for (Field alias : kcql.fields) {
             cols.add(alias.getAlias());
         }
 
