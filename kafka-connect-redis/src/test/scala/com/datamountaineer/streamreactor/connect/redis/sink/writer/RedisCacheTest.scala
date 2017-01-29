@@ -20,14 +20,15 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkConfig._
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConnectionInfo, RedisSinkConfig, RedisSinkSettings}
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
-import org.apache.kafka.connect.sink.SinkRecord
-import redis.embedded.RedisServer
-import redis.clients.jedis.Jedis
 import com.google.gson.Gson
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
+import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import redis.clients.jedis.Jedis
+import redis.embedded.RedisServer
+
 import scala.collection.JavaConverters._
 
 class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {

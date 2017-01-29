@@ -21,8 +21,8 @@ package com.datamountaineer.streamreactor.connect.redis.sink.support
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkConfig
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkConfig._
 import org.apache.kafka.common.config.types.Password
-import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
+import org.scalatest.mock.MockitoSugar
 
 trait RedisMockSupport extends MockitoSugar {
 

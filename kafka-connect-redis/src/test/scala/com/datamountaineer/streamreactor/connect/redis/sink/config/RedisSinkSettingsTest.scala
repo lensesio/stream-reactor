@@ -18,9 +18,10 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.config
 
-import com.datamountaineer.streamreactor.connect.rowkeys.{StringGenericRowKeyBuilder, StringStructFieldsStringKeyBuilder}
 import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSupport
+import com.datamountaineer.streamreactor.connect.rowkeys.{StringGenericRowKeyBuilder, StringStructFieldsStringKeyBuilder}
 import org.scalatest.{Matchers, WordSpec}
+
 import scala.collection.JavaConverters._
 
 class RedisSinkSettingsTest extends WordSpec with Matchers with RedisMockSupport {

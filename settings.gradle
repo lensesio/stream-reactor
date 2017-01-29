@@ -33,5 +33,6 @@ include 'kafka-socket-streamer',
         'kafka-connect-blockchain',
         'kafka-connect-mongodb',
         'kafka-connect-mqtt',
-        'kafka-connect-coap'
+        'kafka-connect-coap',
+        'kafka-connect-ftp'
 

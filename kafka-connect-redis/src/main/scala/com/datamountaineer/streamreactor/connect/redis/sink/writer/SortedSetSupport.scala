@@ -18,8 +18,9 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
-import com.typesafe.scalalogging.slf4j.StrictLogging
 import com.datamountaineer.connector.config.Config
+import com.typesafe.scalalogging.slf4j.StrictLogging
+
 import scala.collection.JavaConverters._
 
 trait SortedSetSupport extends StrictLogging {

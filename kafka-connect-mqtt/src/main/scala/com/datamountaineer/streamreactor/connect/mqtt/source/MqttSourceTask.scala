@@ -29,14 +29,14 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 
+import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
-import scala.collection.JavaConversions._
 
 class MqttSourceTask extends SourceTask with StrictLogging {
   private var mqttManager: Option[MqttManager] = None
   private val counter = mutable.Map.empty[String, Long]
-  private val timer = new Timer()
+  private var timestamp: Long = 0
 
   class LoggerTask extends TimerTask {
     override def run(): Unit = logCounts()
@@ -82,7 +82,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
     }
     logger.info("Starting Mqtt source...")
     mqttManager = Some(new MqttManager(MqttClientConnectionFn.apply, convertersMap, settings.mqttQualityOfService, settings.kcql.map(Config.parse), settings.throwOnConversion))
-    timer.schedule(new LoggerTask, 0, 10000)
+
   }
 
   /**
@@ -97,6 +97,13 @@ class MqttSourceTask extends SourceTask with StrictLogging {
     }.orNull
 
     records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
+
+    val newTimestamp = System.currentTimeMillis()
+    if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
+      logCounts()
+    }
+    timestamp = newTimestamp
+
     records
   }
 

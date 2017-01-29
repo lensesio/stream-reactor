@@ -18,8 +18,6 @@
 
 package com.datamountaineer.streamreactor.connect.kudu.sink
 
-import java.util
-
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.kudu.KuduConverter
 import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig}
@@ -29,7 +27,6 @@ import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.kududb.client._
 
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
@@ -41,7 +38,7 @@ case class SchemaMap(version: Int, schema: Schema)
   * stream-reactor
   */
 object KuduWriter extends StrictLogging {
-  def apply(config: KuduSinkConfig, settings: KuduSettings) : KuduWriter = {
+  def apply(config: KuduSinkConfig, settings: KuduSettings): KuduWriter = {
     val kuduMaster = config.getString(KuduSinkConfig.KUDU_MASTER)
     logger.info(s"Connecting to Kudu Master at $kuduMaster")
     lazy val client = new KuduClient.KuduClientBuilder(kuduMaster).build()
@@ -59,7 +56,7 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
     case Failure(f) => logger.warn("Unable to create tables at startup! Tables will be created on delivery of the first record", f)
   }
   //cache tables
-  private lazy val kuduTablesCache = collection.mutable.Map(DbHandler.buildTableCache(setting, client).toSeq:_*)
+  private lazy val kuduTablesCache = collection.mutable.Map(DbHandler.buildTableCache(setting, client).toSeq: _*)
   private lazy val session = client.newSession()
 
   //ignore duplicate in case of redelivery
@@ -75,8 +72,8 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
     * Write SinkRecords to Kudu
     *
     * @param records A list of SinkRecords to write
-    * */
-  def write(records: Set[SinkRecord]) : Unit = {
+    **/
+  def write(records: Set[SinkRecord]): Unit = {
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
@@ -95,7 +92,7 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
   /**
     * Per topic, build an new Kudu insert. Per insert build a Kudu row per SinkRecord.
     * Apply the insert per topic for the rows
-    * */
+    **/
   private def applyInsert(records: Set[SinkRecord], session: KuduSession) = {
     val t = Try({
       records
@@ -114,8 +111,8 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
     *
     * @param record The sink record to create a table for
     * @return A KuduTable
-    * */
-  private def applyDDLs(record: SinkRecord) : SinkRecord = {
+    **/
+  private def applyDDLs(record: SinkRecord): SinkRecord = {
     if (!kuduTablesCache.contains(record.topic())) {
       val mapping = setting.routes.filter(f => f.getSource.equals(record.topic())).head
       val table = DbHandler.createTableFromSinkRecord(mapping, record.valueSchema(), client).get
@@ -132,8 +129,8 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
     * Check alter table is schema has changed
     *
     * @param record The sinkRecord to check the schema for
-    * */
-  def handleAlterTable(record: SinkRecord) : SinkRecord = {
+    **/
+  def handleAlterTable(record: SinkRecord): SinkRecord = {
     val topic = record.topic()
     val allowEvo = setting.allowAutoEvolve.getOrElse(topic, false)
 
@@ -162,8 +159,8 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
 
   /**
     * Close the Kudu session and client
-    * */
-  def close() : Unit = {
+    **/
+  def close(): Unit = {
     logger.info("Closing Kudu Session and Client")
     flush()
     if (!session.isClosed) session.close()
@@ -173,18 +170,24 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
   /**
     * Force the session to flush it's buffers.
     *
-    * */
-  def flush() : Unit = {
+    **/
+  def flush(): Unit = {
     if (!session.isClosed) {
 
       //throw and let error policy handle it, don't want to throw RetriableException.
       //May want to die if error policy is Throw
-      val responses = session.flush().asScala
-      responses
-        .filter(r => (r == null) || r.hasRowError)
-        .foreach(e => {
-          throw new Throwable(s"Failed to flush one or more changes: ${e.getRowError.toString}")
-        })
+      val flush = session.flush()
+      if (flush != null) {
+        val errors = flush.asScala
+          .flatMap(r => Option(r))
+          .withFilter(_.hasRowError)
+          .map(_.getRowError.toString)
+          .mkString(";")
+
+        if (errors.nonEmpty) {
+          throw new RuntimeException(s"Failed to flush one or more changes:$errors")
+        }
+      }
     }
   }
 }

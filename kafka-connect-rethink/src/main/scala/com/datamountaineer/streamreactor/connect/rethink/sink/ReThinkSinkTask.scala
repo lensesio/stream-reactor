@@ -37,7 +37,7 @@ import scala.collection.mutable
 class ReThinkSinkTask extends SinkTask with StrictLogging {
   private var writer : Option[ReThinkWriter] = None
   private val counter = mutable.Map.empty[String, Long]
-  private val timer = new Timer()
+  private var timestamp: Long = 0
 
   class LoggerTask extends TimerTask {
     override def run(): Unit = logCounts()
@@ -55,7 +55,7 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/rethink-sink-ascii.txt")).mkString)
     val sinkConfig = ReThinkSinkConfig(props)
     writer = Some(ReThinkWriter(config = sinkConfig, context = context))
-    timer.schedule(new LoggerTask, 0, 10000)
+
   }
 
   /**
@@ -65,6 +65,11 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
     require(writer.nonEmpty, "Writer is not set!")
     writer.foreach(w => w.write(records.toList))
     records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
+    val newTimestamp = System.currentTimeMillis()
+    if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
+      logCounts()
+    }
+    timestamp = newTimestamp
   }
 
   /**

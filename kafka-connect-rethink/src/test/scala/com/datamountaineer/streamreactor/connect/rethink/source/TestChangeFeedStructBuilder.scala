@@ -19,8 +19,6 @@
 package com.datamountaineer.streamreactor.connect.rethink.source
 
 import com.datamountaineer.streamreactor.connect.rethink.TestBase
-
-import scala.collection.JavaConverters._
 /**
   * Created by andrew@datamountaineer.com on 23/09/16. 
   * stream-reactor

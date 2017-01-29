@@ -41,7 +41,7 @@ class VoltSinkTask extends SinkTask with StrictLogging {
 
   var writer: Option[VoltDbWriter] = None
   private val counter = mutable.Map.empty[String, Long]
-  private val timer = new Timer()
+  private var timestamp: Long = 0
 
   class LoggerTask extends TimerTask {
     override def run(): Unit = logCounts()
@@ -83,7 +83,7 @@ class VoltSinkTask extends SinkTask with StrictLogging {
       context.timeout(sinkConfig.getInt(VoltSinkConfig.ERROR_RETRY_INTERVAL_CONFIG).toLong)
     }
     writer = Some(new VoltDbWriter(voltSettings))
-    timer.schedule(new LoggerTask, 0, 10000)
+
   }
 
   /**
@@ -99,6 +99,11 @@ class VoltSinkTask extends SinkTask with StrictLogging {
       writer.foreach(w => w.write(records.toSeq))
       logger.info("Records handled")
       records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
+      val newTimestamp = System.currentTimeMillis()
+      if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
+        logCounts()
+      }
+      timestamp = newTimestamp
     }
   }
 

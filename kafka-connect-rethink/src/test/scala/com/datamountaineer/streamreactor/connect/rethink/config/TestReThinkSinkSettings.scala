@@ -20,8 +20,6 @@ package com.datamountaineer.streamreactor.connect.rethink.config
 
 import com.datamountaineer.connector.config.WriteModeEnum
 import com.datamountaineer.streamreactor.connect.rethink.TestBase
-import org.apache.kafka.connect.sink.SinkTaskContext
-import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 
 import scala.collection.JavaConverters._

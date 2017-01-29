@@ -27,7 +27,6 @@ import io.confluent.common.config.ConfigException
 import org.apache.kafka.common.config.AbstractConfig
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
-import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
@@ -38,14 +37,14 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
   private var blockchainManager: Option[BlockchainManager] = None
 
   private val counter = mutable.Map.empty[String, Long]
-  private val timer = new Timer()
+  private var timestamp: Long = 0
 
   class LoggerTask extends TimerTask {
     override def run(): Unit = logCounts()
   }
 
   def logCounts(): mutable.Map[String, Long] = {
-    counter.foreach( { case (k,v) => logger.info(s"Delivered $v records for $k.") })
+    counter.foreach({ case (k, v) => logger.info(s"Delivered $v records for $k.") })
     counter.empty
   }
 
@@ -55,12 +54,9 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
     * @param props A map of supplied properties.
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/ascii.txt")).mkString)
-    logger.info(
-      s"""
-         |Configuration for task
-         |${props.asScala}
-      """.stripMargin)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/blockchain-ascii.txt")).mkString)
+    logger.info("Blockchain Task configuration")
+    props.foreach { case (k, v) => logger.info("   Key= " + k + "     Value=" + v) }
     //get configuration for this task
     taskConfig = Try(new AbstractConfig(BlockchainConfig.config, props)) match {
       case Failure(f) => throw new ConfigException("Couldn't start BlockchainSource due to configuration error.", f)
@@ -72,7 +68,7 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
     blockchainManager = Some(new BlockchainManager(settings))
     blockchainManager.foreach(_.start())
     logger.info("Data manager started")
-    timer.schedule(new LoggerTask, 0, 10000)
+
   }
 
   /**
@@ -85,7 +81,12 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
   override def poll(): util.List[SourceRecord] = {
     val records = blockchainManager.map(_.get()).getOrElse(new util.ArrayList[SourceRecord]())
     logger.debug(s"Returning ${records.size()} record(-s) from Blockchain source")
-    records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
+    records.foreach(r => counter.put(r.topic(), counter.getOrElse(r.topic(), 0L) + 1L))
+    val newTimestamp = System.currentTimeMillis()
+    if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
+      logCounts()
+    }
+    timestamp = newTimestamp
     records
   }
 

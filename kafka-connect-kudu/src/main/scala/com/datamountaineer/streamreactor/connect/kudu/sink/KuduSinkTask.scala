@@ -38,7 +38,7 @@ import scala.collection.mutable
 class KuduSinkTask extends SinkTask with StrictLogging {
   private var writer : Option[KuduWriter] = None
   private val counter = mutable.Map.empty[String, Long]
-  private val timer = new Timer()
+  private var timestamp: Long = 0
 
   class LoggerTask extends TimerTask {
     override def run(): Unit = logCounts()
@@ -51,7 +51,7 @@ class KuduSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Parse the configurations and setup the writer
-    * */
+    **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(
       """
@@ -80,21 +80,26 @@ class KuduSinkTask extends SinkTask with StrictLogging {
     }
 
     writer = Some(KuduWriter(sinkConfig, settings))
-    timer.schedule(new LoggerTask, 0, 10000)
+
   }
 
   /**
     * Pass the SinkRecords to the writer for Writing
-    * */
+    **/
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     writer.foreach(w => w.write(records.toSet))
     records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
+    val newTimestamp = System.currentTimeMillis()
+    if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
+      logCounts()
+    }
+    timestamp = newTimestamp
   }
 
   /**
     * Clean up writer
-    * */
+    **/
   override def stop(): Unit = {
     logger.info("Stopping Kudu sink.")
     writer.foreach(w => w.close())

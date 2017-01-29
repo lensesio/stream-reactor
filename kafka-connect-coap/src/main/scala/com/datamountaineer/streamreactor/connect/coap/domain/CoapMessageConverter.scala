@@ -38,13 +38,15 @@ case class CoapMessageConverter() {
     .version(1)
     .field("source", Schema.OPTIONAL_STRING_SCHEMA)
     .field("source_resource", Schema.OPTIONAL_STRING_SCHEMA)
+    .field("message_id", Schema.OPTIONAL_INT32_SCHEMA)
+    .build()
 
   val schema = SchemaBuilder
     .struct()
     .version(1)
     .field("message_id", Schema.OPTIONAL_INT32_SCHEMA)
     .field("type", Schema.OPTIONAL_STRING_SCHEMA)
-    .field("code", Schema.STRING_SCHEMA)
+    .field("code", Schema.OPTIONAL_STRING_SCHEMA)
     .field("raw_code", Schema.OPTIONAL_INT32_SCHEMA)
     .field("rtt", Schema.OPTIONAL_INT64_SCHEMA)
     .field("is_last", Schema.OPTIONAL_BOOLEAN_SCHEMA)
@@ -99,6 +101,7 @@ case class CoapMessageConverter() {
     val key = new Struct(keySchema)
       .put("source", source)
       .put("source_resource", resource)
+      .put("message_id", response.getMID)
 
     val rec = new Struct(schema)
       .put("message_id", response.getMID)

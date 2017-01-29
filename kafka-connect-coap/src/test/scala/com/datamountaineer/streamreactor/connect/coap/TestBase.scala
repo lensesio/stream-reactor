@@ -22,7 +22,7 @@ import java.nio.ByteBuffer
 import java.util
 import java.util.concurrent.CountDownLatch
 
-import com.datamountaineer.streamreactor.connect.coap.configs.CoapConfig
+import com.datamountaineer.streamreactor.connect.coap.configs.CoapConstants
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
@@ -31,9 +31,9 @@ import org.eclipse.californium.core.coap.{MediaTypeRegistry, OptionSet, Response
 import org.eclipse.californium.elements.{RawData, RawDataChannel}
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
-import scala.collection.mutable
-import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 /**
   * Created by andrew@datamountaineer.com on 08/08/16. 
@@ -54,7 +54,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   val SOURCE_PORT_INSECURE = PORT
   val SINK_PORT_SECURE: Int = DTLS_PORT + 1000
   val SINK_PORT_INSECURE: Int = PORT + 1000
-  val DISCOVER_URI = s"coap://${CoapConfig.COAP_DISCOVER_IP4}:${SOURCE_PORT_INSECURE}"
+  val DISCOVER_URI = s"coap://${CoapConstants.COAP_DISCOVER_IP4}:${SOURCE_PORT_INSECURE}"
   val SOURCE_URI_INSECURE = s"coap://localhost:$SOURCE_PORT_INSECURE"
   val SOURCE_URI_SECURE = s"coaps://localhost:$SOURCE_PORT_SECURE"
 
@@ -63,8 +63,11 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
 
   val KEYSTORE_PASS = "endPass"
   val TRUSTSTORE_PASS = "rootPass"
-  val KEYSTORE_PATH: String =  getClass.getResource("/certs2/keyStore.jks").getPath
-  val TRUSTSTORE_PATH: String = getClass.getResource("/certs2/trustStore.jks").getPath
+
+  val TRUSTSTORE_PATH = System.getProperty("truststore")
+  val KEYSTORE_PATH = System.getProperty("keystore")
+//  val KEYSTORE_PATH: String =  getClass.getResource("/certs2/keyStore.jks").getPath
+//  val TRUSTSTORE_PATH: String = getClass.getResource("/certs2/trustStore.jks").getPath
 
   protected val PARTITION: Int = 12
   protected val TOPIC_PARTITION: TopicPartition = new TopicPartition(TOPIC, PARTITION)
@@ -73,74 +76,101 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   ASSIGNMENT.add(TOPIC_PARTITION)
 
   def getPropsInsecure: util.Map[String, String] = {
-    Map(CoapConfig.COAP_KCQL->SOURCE_KCQL_INSECURE,
-        CoapConfig.COAP_URI->SOURCE_URI_INSECURE
+    Map(CoapConstants.COAP_KCQL->SOURCE_KCQL_INSECURE,
+        CoapConstants.COAP_URI->SOURCE_URI_INSECURE
     ).asJava
   }
 
   def getPropsInsecureDisco: util.Map[String, String] = {
-    Map(CoapConfig.COAP_KCQL->SOURCE_KCQL_INSECURE,
-      CoapConfig.COAP_URI->DISCOVER_URI
+    Map(CoapConstants.COAP_KCQL->SOURCE_KCQL_INSECURE,
+      CoapConstants.COAP_URI->DISCOVER_URI
     ).asJava
   }
 
 
   def getPropsInsecureSink: util.Map[String, String] = {
-    Map(CoapConfig.COAP_KCQL->SINK_KCQL_INSECURE,
-      CoapConfig.COAP_URI->SINK_URI_INSECURE
+    Map(CoapConstants.COAP_KCQL->SINK_KCQL_INSECURE,
+      CoapConstants.COAP_URI->SINK_URI_INSECURE
     ).asJava
   }
 
 
   def getPropsSinkSecure: util.Map[String, String] = {
-    Map(CoapConfig.COAP_KCQL->SINK_KCQL_SECURE,
-      CoapConfig.COAP_URI->SINK_URI_SECURE,
-      CoapConfig.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
-      CoapConfig.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
-      CoapConfig.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
-      CoapConfig.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
-      CoapConfig.COAP_TRUST_CERTS->"root"
+    Map(CoapConstants.COAP_KCQL->SINK_KCQL_SECURE,
+      CoapConstants.COAP_URI->SINK_URI_SECURE,
+      CoapConstants.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
+      CoapConstants.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
+      CoapConstants.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
+      CoapConstants.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
+      CoapConstants.COAP_TRUST_CERTS->"root",
+      CoapConstants.COAP_DTLS_BIND_PORT->"63367"
+    ).asJava
+  }
+
+  def getTestSink: util.Map[String, String] = {
+    Map(CoapConstants.COAP_KCQL->SINK_KCQL_SECURE,
+      CoapConstants.COAP_URI->SINK_URI_SECURE,
+      CoapConstants.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
+      CoapConstants.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
+      CoapConstants.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
+      CoapConstants.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
+      CoapConstants.COAP_TRUST_CERTS->"root",
+      CoapConstants.COAP_DTLS_BIND_PORT->"63366"
     ).asJava
   }
 
   def getPropsSecure: util.Map[String, String] = {
-    Map(CoapConfig.COAP_KCQL->SOURCE_KCQL_SECURE,
-      CoapConfig.COAP_URI->SOURCE_URI_SECURE,
-      CoapConfig.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
-      CoapConfig.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
-      CoapConfig.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
-      CoapConfig.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
-      CoapConfig.COAP_TRUST_CERTS->"root"
+    Map(CoapConstants.COAP_KCQL->SOURCE_KCQL_SECURE,
+      CoapConstants.COAP_URI->SOURCE_URI_SECURE,
+      CoapConstants.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
+      CoapConstants.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
+      CoapConstants.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
+      CoapConstants.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
+      CoapConstants.COAP_TRUST_CERTS->"root",
+      CoapConstants.COAP_DTLS_BIND_PORT->"63368"
+    ).asJava
+  }
+
+  def getTestSourceProps: util.Map[String, String] = {
+    Map(CoapConstants.COAP_KCQL->SOURCE_KCQL_SECURE,
+      CoapConstants.COAP_URI->SOURCE_URI_SECURE,
+      CoapConstants.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
+      CoapConstants.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
+      CoapConstants.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
+      CoapConstants.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
+      CoapConstants.COAP_TRUST_CERTS->"root",
+      CoapConstants.COAP_DTLS_BIND_PORT->"63369"
     ).asJava
   }
 
   def getPropsSecureMultipleKCQL: util.Map[String, String] = {
-    Map(CoapConfig.COAP_KCQL->s"$SOURCE_KCQL_SECURE;$SOURCE_KCQL_INSECURE",
-      CoapConfig.COAP_URI->SOURCE_URI_SECURE,
-      CoapConfig.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
-      CoapConfig.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
-      CoapConfig.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
-      CoapConfig.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH
+    Map(CoapConstants.COAP_KCQL->s"$SOURCE_KCQL_SECURE;$SOURCE_KCQL_INSECURE",
+      CoapConstants.COAP_URI->SOURCE_URI_SECURE,
+      CoapConstants.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
+      CoapConstants.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
+      CoapConstants.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
+      CoapConstants.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH,
+      CoapConstants.COAP_DTLS_BIND_PORT->"9998"
     ).asJava
   }
 
   def getPropsSecureKeyNotFound: util.Map[String, String] = {
-    Map(CoapConfig.COAP_KCQL->SOURCE_KCQL_SECURE,
-      CoapConfig.COAP_URI->SOURCE_URI_SECURE,
-      CoapConfig.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
-      CoapConfig.COAP_KEY_STORE_PATH->"blah",
-      CoapConfig.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
-      CoapConfig.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH
+    Map(CoapConstants.COAP_KCQL->SOURCE_KCQL_SECURE,
+      CoapConstants.COAP_URI->SOURCE_URI_SECURE,
+      CoapConstants.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
+      CoapConstants.COAP_KEY_STORE_PATH->"blah",
+      CoapConstants.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
+      CoapConstants.COAP_TRUST_STORE_PATH->TRUSTSTORE_PATH
     ).asJava
   }
 
   def getPropsSecureTrustNotFound: util.Map[String, String] = {
-    Map(CoapConfig.COAP_KCQL->SOURCE_KCQL_SECURE,
-      CoapConfig.COAP_URI->SOURCE_URI_SECURE,
-      CoapConfig.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
-      CoapConfig.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
-      CoapConfig.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
-      CoapConfig.COAP_TRUST_STORE_PATH->"blah"
+    Map(CoapConstants.COAP_KCQL->SOURCE_KCQL_SECURE,
+      CoapConstants.COAP_URI->SOURCE_URI_SECURE,
+      CoapConstants.COAP_KEY_STORE_PASS->KEYSTORE_PASS,
+      CoapConstants.COAP_KEY_STORE_PATH->KEYSTORE_PATH,
+      CoapConstants.COAP_TRUST_STORE_PASS->TRUSTSTORE_PASS,
+      CoapConstants.COAP_TRUST_STORE_PATH->"blah"
     ).asJava
   }
 

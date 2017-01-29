@@ -19,26 +19,23 @@
 package com.datamountaineer.streamreactor.connect.coap.source
 
 import java.net.URI
-
-import akka.actor.ActorSystem
-import com.datamountaineer.streamreactor.connect.coap.{Server, TestBase}
-import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConfig, CoapSettings}
-import org.apache.kafka.connect.data.Struct
-import org.eclipse.californium.core.{CaliforniumLogger, CoapClient}
-import akka.pattern.ask
-import akka.util.Timeout
 import java.util.logging.Level
 
+import akka.actor.ActorSystem
+import akka.pattern.ask
+import akka.util.Timeout
+import com.datamountaineer.streamreactor.connect.coap.configs.{CoapSettings, CoapSourceConfig}
 import com.datamountaineer.streamreactor.connect.coap.connection.DTLSConnectionFn
+import com.datamountaineer.streamreactor.connect.coap.{Server, TestBase}
+import org.apache.kafka.connect.data.Struct
 import org.eclipse.californium.core.network.CoapEndpoint
 import org.eclipse.californium.core.network.config.NetworkConfig
+import org.eclipse.californium.core.{CaliforniumLogger, CoapClient}
 import org.eclipse.californium.scandium.{DTLSConnector, ScandiumLogger}
-
-import scala.concurrent.duration._
 import org.scalatest.{BeforeAndAfter, WordSpec}
 
-import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
+import scala.concurrent.duration._
 
 /**
   * Created by andrew@datamountaineer.com on 28/12/2016. 
@@ -46,17 +43,14 @@ import scala.collection.JavaConversions._
   */
 class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase {
   val server = new Server(SOURCE_PORT_SECURE, SOURCE_PORT_INSECURE)
-  val serverI = new Server(SINK_PORT_SECURE, SINK_PORT_INSECURE)
 
   before {
     server.start()
-    serverI.start()
-    Thread.sleep(2000)
+    Thread.sleep(5000)
   }
 
   after {
     server.stop()
-    serverI.stop()
   }
 
   CaliforniumLogger.initialize()
@@ -64,24 +58,25 @@ class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase {
   ScandiumLogger.initialize()
   ScandiumLogger.setLevel(Level.INFO)
 
-
   "should create a secure reader and read a message" in {
     implicit val system = ActorSystem()
     implicit val timeout = Timeout(60 seconds)
     val props = getPropsSecure
-    val config = CoapConfig(props)
-    val settings = CoapSettings(config, sink = false)
+    val config = CoapSourceConfig(props)
+    val producerConfig = CoapSourceConfig(getTestSourceProps)
+    val settings = CoapSettings(config)
+    val producerSettings = CoapSettings(producerConfig)
     val actorProps = CoapReader(settings)
     val reader = system.actorOf(actorProps.head._2, actorProps.head._1)
     //start the reader
     reader ? StartChangeFeed
 
     //get secure client to put messages in
-    val dtlsConnector = new DTLSConnector(DTLSConnectionFn(settings.head))
+    val dtlsConnector = new DTLSConnector(DTLSConnectionFn(producerSettings.head))
     val client = new CoapClient(new URI(s"$SOURCE_URI_SECURE/$RESOURCE_SECURE"))
     client.setEndpoint(new CoapEndpoint(dtlsConnector, NetworkConfig.getStandard()))
     client.post("Message1", 0)
-    Thread.sleep(3000)
+    Thread.sleep(5000)
 
     //ask for records
     val records = ActorHelper.askForRecords(reader)

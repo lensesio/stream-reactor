@@ -21,7 +21,7 @@ package com.datamountaineer.streamreactor.connect.influx.avro
 import org.apache.avro.Schema
 import org.apache.avro.file.{DataFileReader, SeekableByteArrayInput}
 import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
-import org.apache.avro.io.{DecoderFactory, EncoderFactory}
+import org.apache.avro.io.DecoderFactory
 
 /**
   * Reads the avro record from the given array using the schema provided

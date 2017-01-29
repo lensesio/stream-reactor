@@ -18,7 +18,7 @@
 
 package com.datamountaineer.streamreactor.connect.druid.writer
 
-import org.apache.kafka.connect.data.{ Schema, SchemaBuilder }
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
 
 object WikipediaSchemaBuilderFn {
   def apply(): Schema = {

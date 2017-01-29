@@ -23,10 +23,12 @@ import java.net.ConnectException
 
 import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
+import com.datastax.driver.core.ConsistencyLevel
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 
 import scala.collection.JavaConversions._
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andrew@datamountaineer.com on 22/04/16. 
@@ -41,6 +43,7 @@ case class CassandraSourceSetting(routes: Config,
                                   timestampColumn: Option[String] = None,
                                   pollInterval: Long = CassandraConfigConstants.DEFAULT_POLL_INTERVAL,
                                   config: AbstractConfig,
+                                  consistencyLevel: Option[ConsistencyLevel],
                                   errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                                   taskRetires: Int = CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT
                                  ) extends CassandraSetting
@@ -51,6 +54,7 @@ case class CassandraSinkSetting(keySpace: String,
                                 ignoreField: Map[String, Set[String]],
                                 errorPolicy: ErrorPolicy,
                                 threadPoolSize: Int,
+                                consistencyLevel: Option[ConsistencyLevel],
                                 taskRetries: Int = CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT) extends CassandraSetting
 
 /**
@@ -79,6 +83,15 @@ object CassandraSettings extends StrictLogging {
     val errorPolicy = ErrorPolicy(errorPolicyE)
     val timestampCols = routes.map(r => (r.getSource, r.getPrimaryKeys.toList)).toMap
 
+    val consistencyLevel = config.getString(CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG) match {
+      case "" => None
+      case other =>
+        Try(ConsistencyLevel.valueOf(other)) match {
+          case Failure(e) => throw new ConfigException(s"'$other' is not a valid ${CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG}. Available values are:${ConsistencyLevel.values().map(_.name()).mkString(",")}")
+          case Success(cl) => Some(cl)
+        }
+    }
+
     routes.map({
       r => {
         val tCols = timestampCols(r.getSource)
@@ -94,7 +107,8 @@ object CassandraSettings extends StrictLogging {
           bulkImportMode = bulk,
           pollInterval = pollInterval,
           config = config,
-          errorPolicy = errorPolicy
+          errorPolicy = errorPolicy,
+          consistencyLevel = consistencyLevel
         )
       }
     })
@@ -116,13 +130,23 @@ object CassandraSettings extends StrictLogging {
     ).toMap
 
 
-    val threadPoolSize = {
-      val threads = config.getInt(CassandraConfigConstants.SINK_INSERT_THREAD_POOL)
+    val threadPoolSize: Int = {
+      val threads = config.getInt(CassandraConfigConstants.SINK_THREAD_POOL_CONFIG)
       if (threads <= 0) 4 * Runtime.getRuntime.availableProcessors()
       else threads
     }
 
     val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
-    CassandraSinkSetting(keySpace, routes, fields, ignoreFields, errorPolicy, retries)
+
+    val consistencyLevel = config.getString(CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG) match {
+      case "" => None
+      case other =>
+        Try(ConsistencyLevel.valueOf(other)) match {
+          case Failure(e) => throw new ConfigException(s"'$other' is not a valid ${CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG}. Available values are:${ConsistencyLevel.values().map(_.name()).mkString(",")}")
+          case Success(cl) => Some(cl)
+        }
+    }
+
+    CassandraSinkSetting(keySpace, routes, fields, ignoreFields, errorPolicy, threadPoolSize, consistencyLevel, retries)
   }
 }

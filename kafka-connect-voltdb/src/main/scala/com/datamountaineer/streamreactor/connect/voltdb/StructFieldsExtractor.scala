@@ -19,8 +19,7 @@
 package com.datamountaineer.streamreactor.connect.voltdb
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.connect.data.{Field, Struct}
-import org.apache.kafka.connect.data._
+import org.apache.kafka.connect.data.{Field, Struct, _}
 
 import scala.collection.JavaConversions._
 

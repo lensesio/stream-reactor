@@ -19,20 +19,19 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import org.apache.avro.Schema
-import org.apache.avro.Schema.Field
-import org.codehaus.jackson.node.NullNode
+import org.apache.avro.{Schema, SchemaBuilder}
 import org.kududb.client.{KuduTable, Upsert}
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable.ListBuffer
+import scala.collection.JavaConversions._
 
 /**
   * Created by andrew@datamountaineer.com on 04/03/16. 
   * stream-reactor
   */
+//noinspection ScalaDeprecation
 class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil with MockitoSugar {
   "Should convert a SinkRecord Schema to Kudu Schema" in {
     val record = getTestRecords.head
@@ -76,30 +75,28 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
 
 
   "Should convert an Avro to Kudu" in {
-    var new_fields = new ListBuffer[Field]()
-    new_fields += new Field("string_field", Schema.createUnion(List(Schema.create(Schema.Type.NULL),
-      Schema.create(Schema.Type.STRING)).asJava), null, NullNode.getInstance())
+    val stringSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.STRING)).asJava)
+    val intSchema =  Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.INT)).asJava)
+    val booleanSchema =  Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.BOOLEAN)).asJava)
+    val doubleSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.DOUBLE)).asJava)
+    val floatSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.FLOAT)).asJava)
+    val longSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.LONG)).asJava)
+    val bytesSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.BYTES)).asJava)
 
-    new_fields += new Field("int_field", Schema.createUnion(List(Schema.create(Schema.Type.NULL),
-      Schema.create(Schema.Type.INT)).asJava), null, NullNode.getInstance())
-
-    new_fields += new Field("boolean_field", Schema.createUnion(List(Schema.create(Schema.Type.NULL),
-      Schema.create(Schema.Type.BOOLEAN)).asJava), null, NullNode.getInstance())
-
-    new_fields += new Field("double_field", Schema.createUnion(List(Schema.create(Schema.Type.NULL),
-      Schema.create(Schema.Type.DOUBLE)).asJava), null, NullNode.getInstance())
-
-    new_fields += new Field("float_field", Schema.createUnion(List(Schema.create(Schema.Type.NULL),
-      Schema.create(Schema.Type.FLOAT)).asJava), null, NullNode.getInstance())
-
-    new_fields += new Field("long_field", Schema.createUnion(List(Schema.create(Schema.Type.NULL),
-      Schema.create(Schema.Type.LONG)).asJava), null, NullNode.getInstance())
-
-    new_fields += new Field("bytes_field", Schema.createUnion(List(Schema.create(Schema.Type.NULL),
-      Schema.create(Schema.Type.BYTES)).asJava), null, NullNode.getInstance())
+    val schema = SchemaBuilder
+      .record("datamountaineer").namespace("com.datamountaineer.connect.kudu")
+      .fields()
+      .name("string_field").`type`(stringSchema).withDefault(null)
+      .name("int_field").`type`(intSchema).withDefault(null)
+      .name("boolean_field").`type`(booleanSchema).withDefault(null)
+      .name("double_field").`type`(doubleSchema).withDefault(null)
+      .name("float_field").`type`(floatSchema).withDefault(null)
+      .name("long_field").`type`(longSchema).withDefault(null)
+      .name("bytes_field").`type`(bytesSchema).withDefault(null)
+      .endRecord()
 
 
-    val kuduFields = new_fields.map(f=>fromAvro(f.schema(), f.name()).build())
+    val kuduFields = schema.getFields.map(f=>fromAvro(f.schema(), f.name()).build())
     kuduFields.head.getName shouldBe "string_field"
     kuduFields.head.getType shouldBe org.kududb.Type.STRING
     kuduFields(1).getName shouldBe "int_field"

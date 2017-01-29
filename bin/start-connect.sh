@@ -8,7 +8,7 @@ if [ -z ${CONFLUENT_HOME+x} ];
 fi
 
 
-for jar in ${DIR}/../libs/*; do
+for jar in ${DIR}/../libs/kafka-connect-*-@@STREAM_REACTOR_VERSION@@-all.jar; do
   CLASSPATH=${CLASSPATH}:${jar}
 done
 

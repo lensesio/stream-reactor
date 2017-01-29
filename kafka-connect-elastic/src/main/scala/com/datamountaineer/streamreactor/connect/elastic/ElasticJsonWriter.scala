@@ -19,16 +19,13 @@
 package com.datamountaineer.streamreactor.connect.elastic
 
 import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSettings
-import com.datamountaineer.streamreactor.connect.schemas.{ConverterUtil, StructFieldsExtractor}
-import com.datamountaineer.connector.config.WriteModeEnum
-
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.source.Indexable
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 import org.elasticsearch.action.bulk.BulkResponse
-import org.apache.kafka.connect.data.Struct
 
 import scala.collection.immutable.Iterable
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -47,15 +44,13 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
     *
     * */
   private def createIndexes() : Unit = {
-   settings.tableMap.map({ case(_,v) => client.execute( { create index v })})
+   settings.tableMap.map({ case(_,v) => client.execute( { create index v.toLowerCase() })})
   }
 
   /**
     * Close elastic4s client
     * */
   def close() : Unit = client.close()
-
-  private val configMap = settings.routes.map(c => c.getSource -> c).toMap
 
   /**
     * Write SinkRecords to Elastic Search if list is not empty
@@ -86,19 +81,7 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
 
         val indexes = sinkRecords
                         .map(r => convert(r, fields, ignoreFields))
-                        .map { r =>
-                          configMap(r.topic).getWriteMode match {
-                            case WriteModeEnum.INSERT => index into i / i source r
-                            case WriteModeEnum.UPSERT =>
-                              // Build a Struct field extractor to get the value from the PK field
-                              val pkField = settings.pks(r.topic)
-                              // Extractor includes all since we already converted the records to have only needed fields
-                              val extractor = StructFieldsExtractor(includeAllFields = true, Map(pkField -> pkField))
-                              val fieldsAndValues = extractor.get(r.value.asInstanceOf[Struct]).toMap
-                              val pkValue = fieldsAndValues(pkField).toString
-                              update id pkValue in i / i docAsUpsert fieldsAndValues
-                          }
-                        }
+                        .map(r => index into i.toLowerCase / i source r)
 
         val ret = client.execute(bulk(indexes).refresh(true))
 

@@ -21,14 +21,14 @@ package com.datamountaineer.streamreactor.connect.rethink.source
 import java.util
 
 import akka.actor.ActorRef
+import akka.pattern.ask
 import com.datamountaineer.streamreactor.connect.rethink.source.ReThinkSourceReader.DataRequest
+import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord
 
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
-import akka.pattern.ask
-import com.typesafe.scalalogging.slf4j.StrictLogging
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 /**
   * Created by andrew@datamountaineer.com on 04/10/2016. 

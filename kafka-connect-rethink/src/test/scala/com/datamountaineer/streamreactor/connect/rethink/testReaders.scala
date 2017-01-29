@@ -79,7 +79,7 @@
 //    val routes: Set[(Config, LinkedBlockingQueue[SourceRecord])] = settings.routes zip queues
 //    val readers = routes.map({ case (route, queue) => ReaderBuilder(r, conn.get, route, queue)}).toSeq
 //    readers.foreach(_.start())
-//    timer.schedule(new LoggerTask, 0, 10000)
+//
 //  }
 //
 //  def ReaderBuilder(rethinkDB: RethinkDB, connection: Connection, route: Config, queue: LinkedBlockingQueue[SourceRecord]) = {
