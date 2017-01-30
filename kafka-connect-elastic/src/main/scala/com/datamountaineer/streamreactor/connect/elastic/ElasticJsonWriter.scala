@@ -86,7 +86,7 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
 
         val indexes = sinkRecords
                         .map(r => convert(r, fields, ignoreFields))
-                        .map({ r =>
+                        .map { r =>
                           configMap(r.topic).getWriteMode match {
                             case WriteModeEnum.INSERT => index into i.toLowerCase / i source r
                             case WriteModeEnum.UPSERT =>
@@ -95,16 +95,10 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
                               // Extractor includes all since we already converted the records to have only needed fields
                               val extractor = StructFieldsExtractor(includeAllFields = true, Map(pkField -> pkField))
                               val fieldsAndValues = extractor.get(r.value.asInstanceOf[Struct]).toMap
-                              if(fieldsAndValues.contains(pkField)){
-                                val pkValue = fieldsAndValues(pkField).toString
-                                update id pkValue in i.toLowerCase / i docAsUpsert fieldsAndValues
-                              } else {
-                                logger.error(s"Empty ${pkField}")
-                                null
-                              }
+                              val pkValue = fieldsAndValues(pkField).toString
+                              update id pkValue in i.toLowerCase / i docAsUpsert fieldsAndValues
                           }
-                        })
-                        .filter(r => r != null)
+                        }
 
         val ret = client.execute(bulk(indexes).refresh(true))
 
