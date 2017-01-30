@@ -58,4 +58,43 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     client.close()
     TMP.deleteRecursively()
   }
+
+  "A ElasticWriter should update a number of records in Elastic Search" in {
+    //mock the context to return our assignment when called
+    val context = mock[SinkTaskContext]
+    when(context.assignment()).thenReturn(getAssignment)
+    //get test records
+    val testRecords = getTestRecords
+    //get config
+    val config  = new ElasticSinkConfig(getElasticSinkUpdateConfigProps)
+
+    val essettings = Settings
+      .settingsBuilder().put(ElasticSinkConfig.ES_CLUSTER_NAME, ElasticSinkConfig.ES_CLUSTER_NAME_DEFAULT)
+      .put("path.home", TMP.toString).build()
+    val client = ElasticClient.local(essettings)
+    val settings = ElasticSettings(config)
+    val writer = new ElasticJsonWriter(client = client, settings = settings)
+    //First run writes records to elastic
+    writer.write(testRecords)
+
+    Thread.sleep(2000)
+    //check counts
+    val res = client.execute { search in INDEX }.await
+    res.totalHits shouldBe testRecords.size
+
+    val testUpdateRecords = getUpdateTestRecord
+
+    //Second run just updates
+    writer.write(testUpdateRecords)
+
+    Thread.sleep(2000)
+    //check counts
+    val updateRes = client.execute { search in INDEX }.await
+    updateRes.totalHits shouldBe testRecords.size
+
+    //close writer
+    writer.close()
+    client.close()
+    TMP.deleteRecursively()
+  }
 }

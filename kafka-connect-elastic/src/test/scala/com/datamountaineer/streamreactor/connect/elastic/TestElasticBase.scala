@@ -38,6 +38,8 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
   var TMP : File = _
   val QUERY = s"INSERT INTO $INDEX SELECT * FROM $TOPIC"
   val QUERY_SELECTION = s"INSERT INTO $INDEX SELECT id, string_field FROM $TOPIC"
+  val UPDATE_QUERY = s"UPSERT INTO $INDEX SELECT * FROM $TOPIC PK id"
+  val UPDATE_QUERY_SELECTION = s"UPSERT INTO $INDEX SELECT id, string_field FROM $TOPIC PK id"
 
   protected val PARTITION: Int = 12
   protected val PARTITION2: Int = 13
@@ -95,21 +97,40 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
     }).toSet
   }
 
+  def getUpdateTestRecord: Set[SinkRecord]= {
+    val schema = createSchema
+    val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
+
+    assignment.flatMap(a => {
+      (1 to 2).map(i => {
+        val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
+        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i)
+      })
+    }).toSet
+  }
+
   def getElasticSinkConfigProps = {
-    Map (
-      ElasticSinkConfig.URL->ELASTIC_SEARCH_HOSTNAMES,
-      ElasticSinkConfig.ES_CLUSTER_NAME->ElasticSinkConfig.ES_CLUSTER_NAME_DEFAULT,
-      ElasticSinkConfig.URL_PREFIX->ElasticSinkConfig.URL_PREFIX_DEFAULT,
-      ElasticSinkConfig.EXPORT_ROUTE_QUERY->QUERY
-    ).asJava
+    getBaseElasticSinkConfigProps(QUERY)
   }
 
   def getElasticSinkConfigPropsSelection = {
+    getBaseElasticSinkConfigProps(QUERY_SELECTION)
+  }
+
+  def getElasticSinkUpdateConfigProps = {
+    getBaseElasticSinkConfigProps(UPDATE_QUERY)
+  }
+
+  def getElasticSinkUpdateConfigPropsSelection = {
+    getBaseElasticSinkConfigProps(UPDATE_QUERY_SELECTION)
+  }
+
+  def getBaseElasticSinkConfigProps(query: String) = {
     Map (
       ElasticSinkConfig.URL->ELASTIC_SEARCH_HOSTNAMES,
       ElasticSinkConfig.ES_CLUSTER_NAME->ElasticSinkConfig.ES_CLUSTER_NAME_DEFAULT,
       ElasticSinkConfig.URL_PREFIX->ElasticSinkConfig.URL_PREFIX_DEFAULT,
-      ElasticSinkConfig.EXPORT_ROUTE_QUERY->QUERY_SELECTION
+      ElasticSinkConfig.EXPORT_ROUTE_QUERY->query
     ).asJava
   }
 
