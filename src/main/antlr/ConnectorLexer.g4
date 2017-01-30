@@ -89,6 +89,10 @@ WITHTAG
     :   'withtag' | 'WITHTAG'
     ;
 
+WITHSTRUCTURE
+    : 'withstructure' | 'WITHSTRUCTURE'
+    ;
+
 PK
    : 'pk' | 'PK'
    ;

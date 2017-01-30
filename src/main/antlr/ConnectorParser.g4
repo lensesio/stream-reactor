@@ -40,7 +40,7 @@ insert_from_clause
    ;
 
 select_clause
-   : select_clause_basic ( PK primary_key_list)? (with_format_clause)? (with_consumer_group)? (with_offset_list)? (sample_clause)? (storeas_clause)? (with_tags)?
+   : select_clause_basic ( PK primary_key_list)? (with_structure)? (with_format_clause)? (with_consumer_group)? (with_offset_list)? (sample_clause)? (storeas_clause)? (with_tags)?
    ;
 
 select_clause_basic
@@ -204,6 +204,10 @@ sample_period
 
 with_format_clause
     : WITHFORMAT with_format
+    ;
+
+with_structure
+    : WITHSTRUCTURE
     ;
 
 with_format
