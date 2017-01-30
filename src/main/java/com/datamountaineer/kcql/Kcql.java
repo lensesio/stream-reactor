@@ -43,6 +43,7 @@ public class Kcql {
     private boolean initialize;
     private Integer projectTo;
     private List<Tag> tags;
+    private boolean retainStructure = false;
 
     private void addIgnoredField(final String ignoredField) {
         if (ignoredField == null || ignoredField.trim().length() == 0) {
@@ -105,16 +106,8 @@ public class Kcql {
         return source;
     }
 
-    private void setSource(String source) {
-        this.source = source;
-    }
-
     public String getTarget() {
         return target;
-    }
-
-    private void setTarget(String target) {
-        this.target = target;
     }
 
     public List<Field> getFields() {
@@ -129,16 +122,8 @@ public class Kcql {
         return includeAllFields;
     }
 
-    private void setIncludeAllFields() {
-        this.includeAllFields = true;
-    }
-
     public WriteModeEnum getWriteMode() {
         return writeMode;
-    }
-
-    private void setWriteMode(WriteModeEnum writeMode) {
-        this.writeMode = writeMode;
     }
 
     public Iterator<String> getPrimaryKeys() {
@@ -149,36 +134,16 @@ public class Kcql {
         return bucketing;
     }
 
-    private void setBucketing(final Bucketing bucketing) {
-        this.bucketing = bucketing;
-    }
-
     public String getTimestamp() {
         return this.timestamp;
-    }
-
-    private void setTimestamp(final String value) {
-        this.timestamp = value;
     }
 
     public String getStoredAs() {
         return storedAs;
     }
 
-    private void setStoredAs(String format) {
-        this.storedAs = format;
-    }
-
     public Map<String, String> getStoredAsParameters() {
         return storedAsParameters;
-    }
-
-    private void setStoredAsParameters(Map<String, String> storedAsParameters) {
-        this.storedAsParameters = storedAsParameters;
-    }
-
-    private void setConsumerGroup(String consumerGroup) {
-        this.consumerGroup = consumerGroup;
     }
 
     public String getConsumerGroup() {
@@ -186,83 +151,46 @@ public class Kcql {
     }
 
     public List<PartitionOffset> getPartitonOffset() {
-        return partitions;
+        if (partitions == null) {
+            return null;
+        }
+        return new ArrayList<>(partitions);
     }
 
     public Integer getSampleCount() {
         return sampleCount;
     }
 
-    private void setSampleCount(Integer sampleCount) {
-        this.sampleCount = sampleCount;
-    }
-
     public Integer getSampleRate() {
         return sampleRate;
-    }
-
-    private void setSampleRate(Integer sampleRate) {
-        this.sampleRate = sampleRate;
     }
 
     public FormatType getFormatType() {
         return formatType;
     }
 
-    private void setFormatType(FormatType type) {
-        formatType = type;
-    }
-
     public Integer getProjectTo() {
         return projectTo;
-    }
-
-    private void setProjectTo(Integer version) {
-        this.projectTo = version;
     }
 
     public boolean isAutoCreate() {
         return autoCreate;
     }
 
-    public void setAutoCreate(boolean autoCreate) {
-        this.autoCreate = autoCreate;
-    }
-
     public int getRetries() {
         return retries;
-    }
-
-    public void setRetries(int retries) {
-        this.retries = retries;
     }
 
     public boolean isAutoEvolve() {
         return autoEvolve;
     }
 
-    public void setAutoEvolve(boolean autoEvolve) {
-        this.autoEvolve = autoEvolve;
-    }
-
     public int getBatchSize() {
         return batchSize;
     }
 
-    public void setBatchSize(int batchSize) {
-        this.batchSize = batchSize;
-    }
-
     public boolean isEnableCapitalize() {
         return enableCapitalize;
-    }
-
-    public void setEnableCapitalize(boolean enableCapitalize) {
-        this.enableCapitalize = enableCapitalize;
-    }
-
-    public void setEnableInitialize(boolean enableInitialize) {
-        this.initialize = enableInitialize;
     }
 
     public boolean isInitialize() {
@@ -289,6 +217,11 @@ public class Kcql {
         }
         return tags.iterator();
     }
+
+    public boolean hasRetainStructure() {
+        return retainStructure;
+    }
+
 
     public static Kcql parse(final String syntax) {
         final ConnectorLexer lexer = new ConnectorLexer(new ANTLRInputStream(syntax));
@@ -325,6 +258,11 @@ public class Kcql {
             }
 
             @Override
+            public void exitWith_structure(ConnectorParser.With_structureContext ctx) {
+                kcql.retainStructure = true;
+            }
+
+            @Override
             public void enterColumn_name(ConnectorParser.Column_nameContext ctx) {
                 nestedFieldsBuffer.clear();
             }
@@ -333,7 +271,7 @@ public class Kcql {
             public void exitColumn_name(ConnectorParser.Column_nameContext ctx) {
                 super.exitColumn_name(ctx);
                 if (ctx.ASTERISK() != null) {
-                    kcql.setIncludeAllFields();
+                    kcql.includeAllFields = true;
                     Field field = new Field("*", FieldType.VALUE, null);
                     kcql.addField(field);
                     return;
@@ -355,7 +293,7 @@ public class Kcql {
                 }
 
                 if ("*".equals(field.getName()) && !field.hasParents() && field.getFieldType() != FieldType.KEY) {
-                    kcql.setIncludeAllFields();
+                    kcql.includeAllFields = true;
                 }
                 kcql.addField(field);
             }
@@ -373,7 +311,7 @@ public class Kcql {
 
             @Override
             public void exitTable_name(ConnectorParser.Table_nameContext ctx) {
-                kcql.setTarget(escape(ctx.getText()));
+                kcql.target = escape(ctx.getText());
             }
 
             @Override
@@ -383,22 +321,22 @@ public class Kcql {
 
             @Override
             public void exitTopic_name(ConnectorParser.Topic_nameContext ctx) {
-                kcql.setSource(escape(ctx.getText()));
+                kcql.source = escape(ctx.getText());
             }
 
             @Override
             public void exitUpsert_into(ConnectorParser.Upsert_intoContext ctx) {
-                kcql.setWriteMode(WriteModeEnum.UPSERT);
+                kcql.writeMode = WriteModeEnum.UPSERT;
             }
 
             @Override
             public void exitInsert_into(ConnectorParser.Insert_intoContext ctx) {
-                kcql.setWriteMode(WriteModeEnum.INSERT);
+                kcql.writeMode = WriteModeEnum.INSERT;
             }
 
             @Override
             public void exitAutocreate(ConnectorParser.AutocreateContext ctx) {
-                kcql.setAutoCreate(true);
+                kcql.autoCreate = true;
             }
 
             @Override
@@ -408,12 +346,12 @@ public class Kcql {
 
             @Override
             public void exitAutoevolve(ConnectorParser.AutoevolveContext ctx) {
-                kcql.setAutoEvolve(true);
+                kcql.autoEvolve = true;
             }
 
             @Override
             public void exitStoreas_type(ConnectorParser.Storeas_typeContext ctx) {
-                kcql.setStoredAs(ctx.getText());
+                kcql.storedAs = ctx.getText();
             }
 
             @Override
@@ -434,12 +372,12 @@ public class Kcql {
 
             @Override
             public void exitCapitalize(ConnectorParser.CapitalizeContext ctx) {
-                kcql.setEnableCapitalize(true);
+                kcql.enableCapitalize = true;
             }
 
             @Override
             public void exitInitialize(ConnectorParser.InitializeContext ctx) {
-                kcql.setEnableInitialize(true);
+                kcql.initialize = true;
             }
 
             @Override
@@ -451,7 +389,7 @@ public class Kcql {
                     if (version <= 0) {
                         throw new IllegalArgumentException(value + " is not a valid number for a version.");
                     }
-                    kcql.setProjectTo(version);
+                    kcql.projectTo = version;
                 } catch (NumberFormatException ex) {
                     throw new IllegalArgumentException(value + " is not a valid number for a version.");
                 }
@@ -475,7 +413,7 @@ public class Kcql {
                     if (newBatchSize <= 0) {
                         throw new IllegalArgumentException(value + " is not a valid number for a batch Size.");
                     }
-                    kcql.setBatchSize(newBatchSize);
+                    kcql.batchSize = newBatchSize;
                 } catch (NumberFormatException ex) {
                     throw new IllegalArgumentException(value + " is not a valid number for a batch Size.");
                 }
@@ -483,13 +421,13 @@ public class Kcql {
 
             @Override
             public void exitTimestamp_value(ConnectorParser.Timestamp_valueContext ctx) {
-                kcql.setTimestamp(ctx.getText());
+                kcql.timestamp = ctx.getText();
             }
 
             @Override
             public void exitWith_consumer_group_value(ConnectorParser.With_consumer_group_valueContext ctx) {
                 String value = escape(ctx.getText());
-                kcql.setConsumerGroup(value);
+                kcql.consumerGroup = value;
             }
 
             @Override
@@ -514,19 +452,19 @@ public class Kcql {
             @Override
             public void exitSample_value(ConnectorParser.Sample_valueContext ctx) {
                 Integer value = Integer.parseInt(ctx.getText());
-                kcql.setSampleCount(value);
+                kcql.sampleCount = value;
             }
 
             @Override
             public void exitSample_period(ConnectorParser.Sample_periodContext ctx) {
                 Integer value = Integer.parseInt(ctx.getText());
-                kcql.setSampleRate(value);
+                kcql.sampleRate = value;
             }
 
             @Override
             public void exitWith_format(ConnectorParser.With_formatContext ctx) {
                 FormatType formatType = FormatType.valueOf(ctx.getText().toUpperCase());
-                kcql.setFormatType(formatType);
+                kcql.formatType = formatType;
             }
 
             @Override
@@ -602,15 +540,15 @@ public class Kcql {
                     }
                 }
             }
-            kcql.setBucketing(bucketing);
+            kcql.bucketing = bucketing;
         }
 
         String ts = kcql.timestamp;
         if (ts != null) {
             if (TIMESTAMP.compareToIgnoreCase(ts) == 0) {
-                kcql.setTimestamp(ts.toLowerCase());
+                kcql.timestamp = ts.toLowerCase();
             } else {
-                kcql.setTimestamp(ts);
+                kcql.timestamp = ts;
             }
         }
 
@@ -630,4 +568,6 @@ public class Kcql {
         }
         return value;
     }
+
+
 }
