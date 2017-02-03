@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/datamountaineer/kafka-connect-query-language.svg?branch=master)](https://travis-ci.org/datamountaineer/kafka-connect-query-language)
-[<img src="https://img.shields.io/badge/latest%20release-v0.9.9-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22%20AND%20a%3A%22kcql%22)
+[<img src="https://img.shields.io/badge/latest%20release-v2.0.7-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22%20AND%20a%3A%22kcql%22)
 
 
 # Kafka Connect Query Language
@@ -31,18 +31,18 @@ Maven
 <dependency>
 	<groupId>com.datamountaineer</groupId>
 	<artifactId>kcql</artifactId>
-	<version>0.9.9</version>
+	<version>2.0.7</version>
 </dependency>
 ```
 
 SBT
 ```bash
-libraryDependencies += "com.datamountaineer" % "kcql % "0.9.9"
+libraryDependencies += "com.datamountaineer" % "kcql % "2.0.7"
 ```
 
 Gradle
 ```bash
-com.datamountaineer:kcql:0.9.9'
+com.datamountaineer:kcql:2.0.7'
 ```
 
 Check <a href="http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22kcql%22">Maven</a> for latest release.
