@@ -64,20 +64,20 @@ allprojects {
         scalaTest = '2.2.6'
         junit = '4.11'
         scalaLoggingVersion = '2.1.2'
-        kafkaVersion = '0.10.0.1'
+        kafkaVersion = '0.10.1.1'
         mockitoVersion = '1.10.19'
         jacksonDatabind = '2.7.0'
         avroVersion = '1.7.7'
         jacksonxmlVersion = '2.6.5'
         slf4jVersion = "1.7.7"
-        dataMountaineerCommonVersion = "0.6.6"
+        dataMountaineerCommonVersion = "0.6.7"
         dataMountaineerTestKitVersion = "0.2"
         avro4sVersion = "1.6.0"
         json4sVersion = "3.3.0"
         kiteMiniClusterVersion = "1.1.0"
         gsonVersion = "2.6.2"
         dataMountaineerKCQLVersion = "0.9.9"
-        confluentVersion = '3.0.1'
+        confluentVersion = '3.1.1'
         akkaVersion = "2.4.10"
         connectCLIVersion = "0.9"
 

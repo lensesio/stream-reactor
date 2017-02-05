@@ -44,6 +44,28 @@ class StructFieldsExtractorTest extends WordSpec with Matchers {
 
     }
 
+    "return all the fields and their bytes value when boolean is involved" in {
+      val schema = SchemaBuilder.struct().name("com.example.Person")
+        .field("firstName", Schema.STRING_SCHEMA)
+        .field("lastName", Schema.STRING_SCHEMA)
+        .field("age", Schema.INT32_SCHEMA)
+        .field("threshold", Schema.OPTIONAL_FLOAT64_SCHEMA)
+        .field("isRight", SchemaBuilder.bool().defaultValue(true).build()).build()
+
+      val struct = new Struct(schema)
+        .put("firstName", "Alex")
+        .put("lastName", "Smith")
+        .put("age", 30)
+        .put("isRight", true)
+
+      val map = StructFieldsExtractorBytes(includeAllFields = true, Map.empty).get(struct).toMap
+
+      Bytes.toString(map("firstName")) shouldBe "Alex"
+      Bytes.toString(map("lastName")) shouldBe "Smith"
+      Bytes.toInt(map("age")) shouldBe 30
+      Bytes.toBoolean(map("isRight")) shouldBe true
+    }
+
     "return all fields and apply the mapping" in {
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)

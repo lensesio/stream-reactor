@@ -29,6 +29,7 @@ import com.datastax.driver.core._
 import com.datastax.driver.core.utils.UUIDs
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.source.SourceTaskContext
@@ -277,7 +278,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     assignment.flatMap(a => {
       (1 to 7).map(i => {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
-        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i)
+        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.LOG_APPEND_TIME)
       })
     }).toSeq
   }

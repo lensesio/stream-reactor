@@ -24,6 +24,7 @@ import java.util.concurrent.CountDownLatch
 
 import com.datamountaineer.streamreactor.connect.coap.configs.CoapConstants
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.eclipse.californium.core.coap.CoAP.{ResponseCode, Type}
@@ -222,7 +223,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
     assignment.flatMap(a => {
       (1 to nbr).map(i => {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
-        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i)
+        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
     }).toSet
   }

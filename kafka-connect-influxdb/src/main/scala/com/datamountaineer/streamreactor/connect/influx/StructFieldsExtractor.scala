@@ -78,7 +78,7 @@ case class StructFieldsExtractor(includeAllFields: Boolean,
 
           //decimal info comes as a logical schema. so if it's bytes and not a decimal throw an error because influxdb doesn't have
           //support bytes
-          if ((schema == Schema.BYTES_SCHEMA || schema == Schema.OPTIONAL_BYTES_SCHEMA) && !Decimal.LOGICAL_NAME.equals(schema.name())) {
+          if ((schema.`type`() == Schema.Type.BYTES) && !Decimal.LOGICAL_NAME.equals(schema.name())) {
             throw new RuntimeException("BYTES schema is not supported. Cannot store bytes in InfluxDb")
           }
 
