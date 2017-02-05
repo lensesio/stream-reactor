@@ -38,10 +38,10 @@ case class CoapSetting(uri: String,
                        trustStorePass: Password,
                        certs: Array[String],
                        chainKey: String,
-                       kcql : Config,
+                       kcql: Config,
                        retries: Option[Int],
                        errorPolicy: Option[ErrorPolicy],
-                       target : String,
+                       target: String,
                        bindHost: String,
                        bindPort: Int,
                        sink: Boolean)
@@ -56,11 +56,11 @@ object CoapSettings {
     val certs = config.getList(CoapConstants.COAP_TRUST_CERTS).asScala.toArray
     val certChainKey = config.getString(CoapConstants.COAP_CERT_CHAIN_KEY)
 
-    if (keyStoreLoc.nonEmpty && !new File(keyStoreLoc).exists()) {
+    if (keyStoreLoc != null && keyStoreLoc.nonEmpty && !new File(keyStoreLoc).exists()) {
       throw new ConfigException(s"${CoapConstants.COAP_KEY_STORE_PATH} is invalid. Can't locate $keyStoreLoc")
     }
 
-    if (trustStoreLoc.nonEmpty && !new File(trustStoreLoc).exists()) {
+    if (trustStoreLoc != null && trustStoreLoc.nonEmpty && !new File(trustStoreLoc).exists()) {
       throw new ConfigException(s"${CoapConstants.COAP_TRUST_STORE_PATH} is invalid. Can't locate $trustStoreLoc")
     }
 
@@ -78,20 +78,20 @@ object CoapSettings {
     val retries = if (sink) Some(config.getInt(CoapConstants.NBR_OF_RETRIES).toInt) else None
 
     routes.map(r =>
-                  new CoapSetting(uri,
-                  keyStoreLoc,
-                  keyStorePass,
-                  trustStoreLoc,
-                  trustStorePass,
-                  certs,
-                  certChainKey,
-                  r,
-                  retries,
-                  errorPolicy,
-                  if (sink) r.getTarget else r.getSource,
-                  bindHost,
-                  bindPort,
-                  sink)
+      new CoapSetting(uri,
+        keyStoreLoc,
+        keyStorePass,
+        trustStoreLoc,
+        trustStorePass,
+        certs,
+        certChainKey,
+        r,
+        retries,
+        errorPolicy,
+        if (sink) r.getTarget else r.getSource,
+        bindHost,
+        bindPort,
+        sink)
     )
   }
 }

@@ -46,7 +46,7 @@ abstract class CoapManager(setting: CoapSetting) extends StrictLogging {
   def buildClient(uri: URI): CoapClient = {
     val client = new CoapClient(uri)
     //Use DTLS is key stores defined
-    if (setting.keyStoreLoc.nonEmpty) {
+    if (setting.keyStoreLoc != null && setting.keyStoreLoc.nonEmpty) {
       logger.info("Creating secure client")
       client.setEndpoint(new CoapEndpoint(new DTLSConnector(DTLSConnectionFn(setting)), NetworkConfig.getStandard()))
     }

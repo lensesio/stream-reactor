@@ -59,17 +59,17 @@ case class StructFieldsExtractorBytes(includeAllFields: Boolean, fieldsAliasMap:
   private def getFieldBytes(field: Field, struct: Struct): Option[Array[Byte]] = {
     Option(struct.get(field))
       .map { value =>
-        field.schema() match {
-          case Schema.BOOLEAN_SCHEMA | Schema.OPTIONAL_BOOLEAN_SCHEMA => value.fromBoolean()
-          case Schema.BYTES_SCHEMA | Schema.OPTIONAL_BYTES_SCHEMA =>
+        field.schema().`type`() match {
+          case Schema.Type.BOOLEAN => value.fromBoolean()
+          case Schema.Type.BYTES =>
             if (Decimal.LOGICAL_NAME.equals(field.schema().name())) {
               Decimal.toLogical(field.schema(), value.asInstanceOf[Array[Byte]]).fromBigDecimal()
             } else value.fromBytes()
-          case Schema.FLOAT32_SCHEMA | Schema.OPTIONAL_FLOAT32_SCHEMA => value.fromFloat()
-          case Schema.FLOAT64_SCHEMA | Schema.OPTIONAL_FLOAT64_SCHEMA => value.fromDouble()
-          case Schema.INT8_SCHEMA | Schema.OPTIONAL_INT8_SCHEMA => value.fromByte()
-          case Schema.INT16_SCHEMA | Schema.OPTIONAL_INT16_SCHEMA => value.fromShort()
-          case Schema.INT32_SCHEMA | Schema.OPTIONAL_INT32_SCHEMA =>
+          case Schema.Type.FLOAT32 => value.fromFloat()
+          case Schema.Type.FLOAT64 => value.fromDouble()
+          case Schema.Type.INT8 => value.fromByte()
+          case Schema.Type.INT16 => value.fromShort()
+          case Schema.Type.INT32 =>
             field.schema().name match {
               case Date.LOGICAL_NAME =>
                 DateFormat.format(Date.toLogical(field.schema(), value.asInstanceOf[Int])).fromString()
@@ -77,12 +77,11 @@ case class StructFieldsExtractorBytes(includeAllFields: Boolean, fieldsAliasMap:
                 TimeFormat.format(Time.toLogical(field.schema(), value.asInstanceOf[Int])).fromString()
               case other => value.fromInt()
             }
-          case Schema.INT64_SCHEMA | Schema.OPTIONAL_INT64_SCHEMA =>
+          case Schema.Type.INT64 =>
             if (Timestamp.LOGICAL_NAME == field.schema().name()) {
               DateFormat.format(Timestamp.toLogical(field.schema(), value.asInstanceOf[Long])).fromString()
-            }
-            value.fromLong()
-          case Schema.STRING_SCHEMA | Schema.OPTIONAL_STRING_SCHEMA => value.fromString()
+            } else value.fromLong()
+          case Schema.Type.STRING => value.fromString()
           case other =>
             other.name() match {
               case Decimal.LOGICAL_NAME =>
