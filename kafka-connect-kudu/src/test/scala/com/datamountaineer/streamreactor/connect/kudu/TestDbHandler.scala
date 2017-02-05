@@ -1,26 +1,26 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ *  Copyright 2016 Datamountaineer.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.kudu
 
 import com.datamountaineer.kafka.EmbeddedSingleNodeKafkaCluster
+import com.datamountaineer.kafka.schemaregistry.RestApp
 import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig}
 import com.datamountaineer.streamreactor.connect.kudu.sink.{CreateTableProps, DbHandler}
+import io.confluent.kafka.schemaregistry.client.rest.RestService
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.kududb.client._
@@ -152,9 +152,11 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
   }
 
   "Should create table" in {
-    val cluster = new EmbeddedSingleNodeKafkaCluster
+    val cluster = new EmbeddedSingleNodeKafkaCluster(1)
     cluster.start()
-    val schemaClient = cluster.getSchemaRegistry.restClient
+    val sr = new RestApp(8081, cluster.zKConnectString(), "_schemas")
+    sr.start()
+    val srClient = new RestService("http://localhost:8081")
 
     val rawSchema: String =
       """
@@ -173,10 +175,10 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
       """.stripMargin
 
     //register the schema for topic1
-    schemaClient.registerSchema(rawSchema, TOPIC)
+    srClient.registerSchema(rawSchema, TOPIC)
 
     //set up configs
-    val config = new KuduSinkConfig(getConfigAutoCreate(cluster.schemaRegistryUrl()))
+    val config = new KuduSinkConfig(getConfigAutoCreate("http://localhost:8081"))
     val settings = KuduSettings(config)
 
     //mock out kudu client

@@ -1,19 +1,17 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ *  Copyright 2016 Datamountaineer.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.kudu
@@ -28,6 +26,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.kudu.config.KuduSinkConfig
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
@@ -235,7 +234,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   }
 
   def createSinkRecord(record: Struct, topic: String, offset: Long) = {
-    new SinkRecord(topic, 1, Schema.STRING_SCHEMA, "key", record.schema(), record, offset)
+    new SinkRecord(topic, 1, Schema.STRING_SCHEMA, "key", record.schema(), record, offset, System.currentTimeMillis(), TimestampType.CREATE_TIME)
   }
 
   //generate some test records
@@ -246,7 +245,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
     assignment.flatMap(a => {
       (1 to 1).map(i => {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
-        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i)
+        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
     }).toSet
   }
