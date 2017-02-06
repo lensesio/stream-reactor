@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 Datamountaineer.
+ *  Copyright 2017 Datamountaineer.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -69,7 +69,6 @@ object CoapSettings {
     val sink = if (config.isInstanceOf[CoapSinkConfig]) true else false
     val bindPort = if (sink) config.getInt(CoapConstants.COAP_DTLS_BIND_PORT) else config.getInt(CoapConstants.COAP_DTLS_BIND_PORT)
     val bindHost = if (sink) config.getString(CoapConstants.COAP_DTLS_BIND_HOST) else config.getString(CoapConstants.COAP_DTLS_BIND_HOST)
-
 
     val errorPolicyE = if (sink) Some(ErrorPolicyEnum.withName(config.getString(CoapConstants.ERROR_POLICY).toUpperCase)) else None
     val errorPolicy = if (sink) Some(ErrorPolicy(errorPolicyE.get)) else None

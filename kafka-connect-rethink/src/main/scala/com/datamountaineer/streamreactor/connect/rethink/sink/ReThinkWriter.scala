@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 Datamountaineer.
+ *  Copyright 2017 Datamountaineer.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
-import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
+import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
 import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSinkSetting, ReThinkSinkSettings}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.rethinkdb.RethinkDB
@@ -37,6 +37,12 @@ object ReThinkWriter extends StrictLogging {
     val settings = ReThinkSinkSettings(config)
     lazy val r = RethinkDB.r
     lazy val conn: Connection = r.connection().hostname(rethinkHost).port(port).connect()
+
+    //if error policy is retry set retry interval
+    if (settings.equals(ErrorPolicyEnum.RETRY)) {
+      context.timeout(settings.retryInterval)
+    }
+
     new ReThinkWriter(r, conn = conn, setting = settings)
   }
 }

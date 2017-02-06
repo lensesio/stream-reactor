@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 Datamountaineer.
+ *  Copyright 2017 Datamountaineer.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ case class ReThinkSinkSetting(db : String,
                               conflictPolicy: Map[String, String],
                               errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                               maxRetries : Int,
+                              retryInterval: Long,
                               batchSize : Int
                          )
 
@@ -72,8 +73,9 @@ object ReThinkSinkSettings {
     val db = config.getString(ReThinkSinkConfig.RETHINK_DB)
     val p = routes.map(r => (r.getSource, r.getPrimaryKeys.toSet)).toMap
     val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
+    val retry = config.getInt(ReThinkSinkConfig.ERROR_RETRY_INTERVAL).toLong
 
-    ReThinkSinkSetting(db, routes, topicTableMap, fieldMap, ignoreFields, p, conflictMap, errorPolicy, maxRetries, batchSize)
+    ReThinkSinkSetting(db, routes, topicTableMap, fieldMap, ignoreFields, p, conflictMap, errorPolicy, maxRetries, retry, batchSize)
   }
 }
 

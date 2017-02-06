@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 Datamountaineer.
+ *  Copyright 2017 Datamountaineer.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,7 +19,8 @@ package com.datamountaineer.streamreactor.connect.coap.sink
 import java.util
 import java.util.{Timer, TimerTask}
 
-import com.datamountaineer.streamreactor.connect.coap.configs.{CoapSettings, CoapSinkConfig}
+import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSettings, CoapSinkConfig}
+import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -50,6 +51,11 @@ class CoapSinkTask extends SinkTask with StrictLogging {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-sink-ascii.txt")).mkString)
     val sinkConfig = CoapSinkConfig(props)
     val settings = CoapSettings(sinkConfig)
+
+    //if error policy is retry set retry interval
+    if (settings.head.equals(ErrorPolicyEnum.RETRY)) {
+      context.timeout(sinkConfig.getString(CoapConstants.ERROR_RETRY_INTERVAL).toLong)
+    }
     settings.map(s => (s.kcql.getSource, CoapWriter(s))).map({ case (k,v) => writers.put(k,v)})
   }
 
