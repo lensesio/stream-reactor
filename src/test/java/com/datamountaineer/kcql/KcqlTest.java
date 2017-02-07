@@ -3,17 +3,9 @@ package com.datamountaineer.kcql;
 import com.google.common.collect.Lists;
 import org.junit.Test;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  *
@@ -32,15 +24,12 @@ public class KcqlTest {
         assertTrue(kcql.getFields().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
-        HashSet<String> pks = new HashSet<>();
-        Iterator<String> iter = kcql.getPrimaryKeys();
-        while (iter.hasNext()) {
-            pks.add(iter.next());
-        }
+        HashSet<String> pks = new HashSet<>(kcql.getPrimaryKeys());
+
         assertEquals(2, pks.size());
         assertTrue(pks.contains("f1"));
         assertTrue(pks.contains("f2"));
-        assertFalse(kcql.getTags().hasNext());
+        assertNull(kcql.getTags());
     }
 
     @Test
@@ -272,7 +261,7 @@ public class KcqlTest {
         assertTrue(kcql.isIncludeAllFields());
         assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
         Set<String> ignored = kcql.getIgnoredField();
-      
+
         assertTrue(ignored.contains("col1"));
         assertTrue(ignored.contains("col2"));
     }
@@ -289,7 +278,7 @@ public class KcqlTest {
         assertTrue(kcql.getFields().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         assertEquals(WriteModeEnum.UPSERT, kcql.getWriteMode());
-        Set<String> ignored =  kcql.getIgnoredField();
+        Set<String> ignored = kcql.getIgnoredField();
 
         assertTrue(ignored.contains("col1"));
         assertTrue(ignored.contains("1col2"));
@@ -344,7 +333,7 @@ public class KcqlTest {
         assertEquals("col2", map.get("f2").getAlias());
         assertFalse(kcql.isIncludeAllFields());
         assertTrue(kcql.isAutoCreate());
-        assertFalse(kcql.getPrimaryKeys().hasNext());
+        assertTrue(kcql.getPrimaryKeys().isEmpty());
         assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
     }
 
@@ -371,12 +360,7 @@ public class KcqlTest {
         assertFalse(kcql.isIncludeAllFields());
         assertTrue(kcql.isAutoCreate());
 
-        Iterator<String> pksIterator = kcql.getPrimaryKeys();
-        HashSet<String> pks = new HashSet<>();
-        while (pksIterator.hasNext()) {
-            pks.add(pksIterator.next());
-        }
-
+        HashSet<String> pks = new HashSet<>(kcql.getPrimaryKeys());
         assertEquals(2, pks.size());
         assertTrue(pks.contains("col1"));
         assertTrue(pks.contains("col3"));
@@ -408,11 +392,7 @@ public class KcqlTest {
         assertFalse(kcql.isIncludeAllFields());
         assertTrue(kcql.isAutoCreate());
 
-        Iterator<String> pksIterator = kcql.getPrimaryKeys();
-        HashSet<String> pks = new HashSet<>();
-        while (pksIterator.hasNext()) {
-            pks.add(pksIterator.next());
-        }
+        HashSet<String> pks = new HashSet<>(kcql.getPrimaryKeys());
 
         assertEquals(2, pks.size());
         assertTrue(pks.contains("col1"));
@@ -452,8 +432,8 @@ public class KcqlTest {
         assertTrue(kcql.getFields().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         assertEquals(WriteModeEnum.UPSERT, kcql.getWriteMode());
-        Set<String> ignored =kcql.getIgnoredField();
-       
+        Set<String> ignored = kcql.getIgnoredField();
+
         assertTrue(ignored.contains("col1"));
         assertTrue(ignored.contains("1col2"));
         assertTrue(kcql.isEnableCapitalize());
@@ -699,11 +679,8 @@ public class KcqlTest {
         Kcql kcql = Kcql.parse(syntax);
         assertEquals(kcql.getTimestamp(), "ts");
 
-        HashSet<String> pks = new HashSet<>();
-        Iterator<String> iter = kcql.getPrimaryKeys();
-        while (iter.hasNext()) {
-            pks.add(iter.next());
-        }
+        HashSet<String> pks = new HashSet<>(kcql.getPrimaryKeys());
+
         assertEquals(2, pks.size());
         assertTrue(pks.contains("type"));
         assertTrue(pks.contains("machineId"));
@@ -799,7 +776,7 @@ public class KcqlTest {
         assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
 
         Map<String, Tag> tagsMap = new HashMap<>();
-        Iterator<Tag> iterTags = kcql.getTags();
+        Iterator<Tag> iterTags = kcql.getTags().iterator();
         while (iterTags.hasNext()) {
             Tag tag = iterTags.next();
             tagsMap.put(tag.getKey(), tag);
