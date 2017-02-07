@@ -111,11 +111,13 @@ public class Kcql {
     }
 
     public List<Field> getFields() {
-        return new ArrayList<>(fields);
+       return fields;
+        //return new ArrayList<>(fields);
     }
 
     public Set<String> getIgnoredField() {
-        return new HashSet<>(ignoredFields);
+        //return new HashSet<>(ignoredFields);
+    return ignoredFields;
     }
 
     public boolean isIncludeAllFields() {
@@ -126,8 +128,8 @@ public class Kcql {
         return writeMode;
     }
 
-    public Iterator<String> getPrimaryKeys() {
-        return primaryKeys.iterator();
+    public List<String> getPrimaryKeys() {
+        return primaryKeys;//.iterator();
     }
 
     public Bucketing getBucketing() {
@@ -151,10 +153,7 @@ public class Kcql {
     }
 
     public List<PartitionOffset> getPartitonOffset() {
-        if (partitions == null) {
-            return null;
-        }
-        return new ArrayList<>(partitions);
+        return partitions;
     }
 
     public Integer getSampleCount() {
@@ -201,21 +200,8 @@ public class Kcql {
         return partitionBy.iterator();
     }
 
-    public Iterator<Tag> getTags() {
-        if (tags == null) {
-            return new Iterator<Tag>() {
-                @Override
-                public boolean hasNext() {
-                    return false;
-                }
-
-                @Override
-                public Tag next() {
-                    return null;
-                }
-            };
-        }
-        return tags.iterator();
+    public List<Tag> getTags() {
+        return tags;
     }
 
     public boolean hasRetainStructure() {
