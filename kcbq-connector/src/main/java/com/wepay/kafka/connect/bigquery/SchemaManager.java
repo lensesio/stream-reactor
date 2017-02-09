@@ -11,8 +11,6 @@ import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 
 import org.apache.kafka.connect.data.Schema;
 
-import java.util.Set;
-
 /**
  * Class for managing Schemas of BigQuery tables (creating and updating).
  */
