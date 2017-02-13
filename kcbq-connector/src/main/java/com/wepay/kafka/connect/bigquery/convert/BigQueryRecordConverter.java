@@ -88,16 +88,16 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
     }
     Schema.Type kafkaConnectSchemaType = kafkaConnectSchema.type();
     switch (kafkaConnectSchemaType) {
-      case STRUCT:
-        return convertStruct(kafkaConnectObject, kafkaConnectSchema);
+      case ARRAY:
+        return convertArray(kafkaConnectObject, kafkaConnectSchema);
       case MAP:
         return convertMap(kafkaConnectObject, kafkaConnectSchema);
+      case STRUCT:
+        return convertStruct(kafkaConnectObject, kafkaConnectSchema);
       case BYTES:
         ByteBuffer byteBuffer = (ByteBuffer) kafkaConnectObject;
         byte[] bytes = byteBuffer.array();
         return Base64.getEncoder().encodeToString(bytes);
-      case ARRAY:
-        return (List<Object>) kafkaConnectObject;
       case BOOLEAN:
         return (Boolean) kafkaConnectObject;
       case FLOAT32:
@@ -134,6 +134,19 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
       }
     }
     return bigQueryRecord;
+  }
+
+  @SuppressWarnings("unchecked")
+  private List<Object> convertArray(Object kafkaConnectObject,
+                                    Schema kafkaConnectSchema) {
+    Schema kafkaConnectValueSchema = kafkaConnectSchema.valueSchema();
+    List<Object> bigQueryList = new ArrayList<>();
+    List<Object> kafkaConnectList = (List<Object>) kafkaConnectObject;
+    for (Object kafkaConnectElement : kafkaConnectList) {
+      Object bigQueryValue = convertObject(kafkaConnectElement, kafkaConnectValueSchema);
+      bigQueryList.add(bigQueryValue);
+    }
+    return bigQueryList;
   }
 
   @SuppressWarnings("unchecked")
