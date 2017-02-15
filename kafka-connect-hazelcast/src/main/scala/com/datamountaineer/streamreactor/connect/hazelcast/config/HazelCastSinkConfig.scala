@@ -48,7 +48,7 @@ object HazelCastSinkConfig {
 
   val PARALLEL_WRITE = "connect.hazelcast.parallel.write"
   val PARALLEL_WRITE_DOC = "All the sink to write in parallel the records received from Kafka on each poll."
-  val PARALLEL_WRITE_DEFAULT = true
+  val PARALLEL_WRITE_DEFAULT = false
 
   val CONNECTION_TIMEOUT = "connect.hazelcast.connection.timeout"
   val CONNECTION_TIMEOUT_DOC: String =

@@ -41,12 +41,17 @@ A collection of components to build a real time ingestion pipeline.
 | VoltDB         | Sink   | Kafka connect Voltdb sink to write Kafka topic payloads to Voltdb.                            | [Docs](http://docs.datamountaineer.com/en/latest/voltdb.html)            |
 
 
-### [Kafka-Socket-Streamer](kafka-socket-streamer/README.md)
-
-Akka Http and Reactive Kafka with Websocket and Server Send Event support.
-Supports limited SQL statements to stream and select from Kafka topics in real time.
 
 ## Release Notes
+
+
+**0.2.5 (Pending)**
+
+* Removed Socket Streamer in favour of Landoop kafka-backend
+* Move to Confluent 3.1.1 and Kafka 0.10.1.0
+* Move to Kudu 1.0
+* Move to CLI 1.0
+* Add ingest_time to CoAP Source
 
 **0.2.4** (26 Jan 2017)
 

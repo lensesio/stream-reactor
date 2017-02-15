@@ -42,6 +42,7 @@ case class CoapMessageConverter() {
   val schema = SchemaBuilder
     .struct()
     .version(1)
+    .field("ingest_time", Schema.OPTIONAL_INT64_SCHEMA)
     .field("message_id", Schema.OPTIONAL_INT32_SCHEMA)
     .field("type", Schema.OPTIONAL_STRING_SCHEMA)
     .field("code", Schema.OPTIONAL_STRING_SCHEMA)
@@ -102,6 +103,7 @@ case class CoapMessageConverter() {
       .put("message_id", response.getMID)
 
     val rec = new Struct(schema)
+      .put("ingest_time", System.currentTimeMillis())
       .put("message_id", response.getMID)
       .put("type", response.getType.toString)
       .put("code", response.getCode.toString)

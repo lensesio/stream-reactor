@@ -71,7 +71,7 @@ class TestCassandraSourceTask extends WordSpec with Matchers with BeforeAndAfter
 
     //wait a little for the poll to catch the records
     while (task.queueSize(TABLE2) == 0) {
-      Thread.sleep(1000)
+      Thread.sleep(5000)
     }
 
     //call poll again to drain the queue
@@ -104,8 +104,8 @@ class TestCassandraSourceTask extends WordSpec with Matchers with BeforeAndAfter
     reader.read()
 
     //sleep and check queue size
-    while (reader.isQuerying) {
-      Thread.sleep(1000)
+    while (queue.size() < 1) {
+      Thread.sleep(5000)
     }
     queue.size() shouldBe 1
 

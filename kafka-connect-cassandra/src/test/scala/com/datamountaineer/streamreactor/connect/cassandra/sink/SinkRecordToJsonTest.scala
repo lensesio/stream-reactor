@@ -70,7 +70,7 @@ class SinkRecordToJsonTest extends WordSpec with Matchers with ConverterUtil {
       }
     }
 
-    "convert Schemaless + Json payload to a Mongo Document" in {
+    "convert Schemaless + Json payload to a Document" in {
       for (i <- 1 to 4) {
         val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath).mkString
 
