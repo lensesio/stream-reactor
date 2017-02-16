@@ -32,4 +32,3 @@ include 'kafka-connect-bloomberg',
         'kafka-connect-mqtt',
         'kafka-connect-coap',
         'kafka-connect-ftp'
-
