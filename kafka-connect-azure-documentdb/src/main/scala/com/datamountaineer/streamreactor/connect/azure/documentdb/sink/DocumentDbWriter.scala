@@ -1,5 +1,5 @@
 /**
-  * Copyright 2016 Datamountaineer.
+  * Copyright 2017 Datamountaineer.
   *
   * Licensed under the Apache License, Version 2.0 (the "License");
   * you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: Documen
 
   private val configMap = settings.kcql
     .map { c =>
-      Option(documentClient.readCollection(c.getTarget, null).getResource).getOrElse {
+      Option(documentClient.readCollection(c.getTarget, new RequestOptions).getResource).getOrElse {
         throw new IllegalArgumentException(s"Collection '${c.getTarget}' not found!")
       }
       c.getSource -> c
@@ -49,6 +49,9 @@ class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: Documen
 
   //initialize error tracker
   initialize(settings.taskRetries, settings.errorPolicy)
+
+  private val requestOptionsInsert = new RequestOptions
+  requestOptionsInsert.setConsistencyLevel(settings.consistency)
 
   /**
     * Write SinkRecords to Azure Document Db.
@@ -77,13 +80,17 @@ class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: Documen
             settings.keyBuilderMap.getOrElse(record.topic(), Set.empty)
           )(settings)
 
+          val key = keysAndValues.flatMap { case (f, v) => Option(v) }.mkString(".")
+          if (key.nonEmpty) {
+            document.setId(key)
+          }
           val config = configMap.getOrElse(record.topic(), sys.error(s"${record.topic()} is not handled by the configuration."))
           config.getWriteMode match {
             case WriteModeEnum.INSERT =>
-              documentClient.createDocument(config.getTarget, document, null, false).getResource
+              documentClient.createDocument(config.getTarget, document, requestOptionsInsert, key.nonEmpty).getResource
 
             case WriteModeEnum.UPSERT =>
-              documentClient.upsertDocument(config.getTarget, document, null, false).getResource
+              documentClient.upsertDocument(config.getTarget, document, requestOptionsInsert, key.nonEmpty).getResource
           }
         }
       }

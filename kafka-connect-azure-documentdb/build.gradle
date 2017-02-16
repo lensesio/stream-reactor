@@ -1,6 +1,6 @@
 project(":kafka-connect-azure-documentdb") {
     ext {
-        documentDbVersion = "1.9.4"
+        documentDbVersion = "1.9.5"
     }
 
     dependencies {

@@ -20,6 +20,7 @@ import java.text.SimpleDateFormat
 import java.util
 import java.util.TimeZone
 
+import com.datamountaineer.streamreactor.connect.azure.documentdb.Json
 import com.microsoft.azure.documentdb.Document
 import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.DataException
@@ -42,7 +43,7 @@ object SinkRecordConverter {
     * @param map
     * @return
     */
-  def fromMap(map: util.HashMap[String, AnyRef]): Document = new Document(new JSONObject(map))
+  def fromMap(map: util.HashMap[String, AnyRef]): Document = new Document(Json.toJson(map))
 
   /**
     * Creates an Azure DocumentDb document from a the Kafka Struct

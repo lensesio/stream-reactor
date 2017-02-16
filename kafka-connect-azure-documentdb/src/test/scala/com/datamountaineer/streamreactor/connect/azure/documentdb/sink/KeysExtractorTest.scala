@@ -2,6 +2,7 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.azure.documentdb.Json
 import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.common.config.ConfigException

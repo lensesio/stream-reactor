@@ -91,6 +91,21 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
       settings.ignoredField shouldBe Map("topic1" -> Set.empty)
     }
 
+    "throw an exception if the consistency level is invalid" in {
+      val map = Map(
+        DocumentDbConfig.DATABASE_CONFIG -> "dbs/database1",
+        DocumentDbConfig.CONNECTION_CONFIG -> connection,
+        DocumentDbConfig.MASTER_KEY_CONFIG -> "secret",
+        DocumentDbConfig.CONSISTENCY_CONFIG -> "invalid",
+        DocumentDbConfig.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1 PK a,b"
+      )
+
+      val config = DocumentDbConfig(map)
+      intercept[ConfigException] {
+        DocumentDbSinkSettings(config)
+      }
+    }
+
     "throw an exception if the kcql is not valid" in {
       val map = Map(
         DocumentDbConfig.DATABASE_CONFIG -> "database1",

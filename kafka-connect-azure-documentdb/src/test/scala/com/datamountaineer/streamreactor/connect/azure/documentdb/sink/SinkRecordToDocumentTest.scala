@@ -1,5 +1,6 @@
 package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
+import com.datamountaineer.streamreactor.connect.azure.documentdb.Json
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbSinkSettings
 import com.datamountaineer.streamreactor.connect.errors.NoopErrorPolicy
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
