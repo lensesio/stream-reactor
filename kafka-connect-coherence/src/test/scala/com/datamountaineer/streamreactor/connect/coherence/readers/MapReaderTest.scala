@@ -14,19 +14,17 @@
  *  limitations under the License.
  */
 
-project(":kafka-connect-hazelcast") {
+package com.datamountaineer.streamreactor.connect.coherence.readers
 
-    ext {
-        hazelCastVersion = "3.6.7"
-        javaxCacheversion = "1.0.0"
-    }
+import org.scalatest.{BeforeAndAfter, WordSpec}
 
-    test {
-        systemProperty 'hazelcast.logging.type', 'log4j'
-    }
+/**
+  * Created by andrew@datamountaineer.com on 15/02/2017. 
+  * stream-reactor
+  */
+class MapReaderTest  extends WordSpec  with BeforeAndAfter {
+  "should read from Map Listener" in {
+    val reader =
+  }
 
-    dependencies {
-        compile "com.hazelcast:hazelcast-all:$hazelCastVersion"
-        compile "javax.cache:cache-api:$javaxCacheversion"
-    }
 }

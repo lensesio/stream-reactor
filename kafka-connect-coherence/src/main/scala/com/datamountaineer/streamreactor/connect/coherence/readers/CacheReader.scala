@@ -14,19 +14,14 @@
  *  limitations under the License.
  */
 
-project(":kafka-connect-hazelcast") {
+package com.datamountaineer.streamreactor.connect.coherence.readers
 
-    ext {
-        hazelCastVersion = "3.6.7"
-        javaxCacheversion = "1.0.0"
-    }
+import com.datamountaineer.streamreactor.connect.coherence.config.CoherenceSourceSettings
 
-    test {
-        systemProperty 'hazelcast.logging.type', 'log4j'
-    }
+/**
+  * Created by andrew@datamountaineer.com on 15/02/2017. 
+  * stream-reactor
+  */
+class CacheReader(settings: CoherenceSourceSettings) {
 
-    dependencies {
-        compile "com.hazelcast:hazelcast-all:$hazelCastVersion"
-        compile "javax.cache:cache-api:$javaxCacheversion"
-    }
 }

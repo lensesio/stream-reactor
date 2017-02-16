@@ -14,19 +14,12 @@
  *  limitations under the License.
  */
 
-project(":kafka-connect-hazelcast") {
+package com.datamountaineer.streamreactor.connect.coherence
 
-    ext {
-        hazelCastVersion = "3.6.7"
-        javaxCacheversion = "1.0.0"
-    }
+/**
+  * Created by andrew@datamountaineer.com on 15/02/2017. 
+  * stream-reactor
+  */
+trait TestBase {
 
-    test {
-        systemProperty 'hazelcast.logging.type', 'log4j'
-    }
-
-    dependencies {
-        compile "com.hazelcast:hazelcast-all:$hazelCastVersion"
-        compile "javax.cache:cache-api:$javaxCacheversion"
-    }
 }
