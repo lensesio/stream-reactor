@@ -18,6 +18,7 @@ A collection of components to build a real time ingestion pipeline.
 
 |Connector       | Type   | Description                                                                                   | Docs |
 |----------------|--------|-----------------------------------------------------------------------------------------------|------|
+| AzureDocumentDb| Sink   | Kafka connect Azure DocumentDb sink to subscribe to write to the cloud Azure Document Db.     | [Docs](http://docs.datamountaineer.com/en/latest/azuredocumentdb.html)   |
 | BlockChain     | Source | Kafka connect Blockchain source to subscribe to Blockchain streams and write to Kafka.        | [Docs](http://docs.datamountaineer.com/en/latest/blockchain.html)        |
 | Bloomberg      | Source | Kafka connect Blockchain source to subscribe to Blockchain streams and write to Kafka.        | [Docs](http://docs.datamountaineer.com/en/latest/bloomberg.html)         |
 | Cassandra      | Source | Kafka connect Cassandra source to read Cassandra and write to Kafka.                          | [Docs](http://docs.datamountaineer.com/en/latest/cassandra-source.html)  |
@@ -52,6 +53,7 @@ A collection of components to build a real time ingestion pipeline.
 * Move to Kudu 1.0
 * Move to CLI 1.0
 * Add ingest_time to CoAP Source
+* Adding Azure DocumentDb Sink
 
 **0.2.4** (26 Jan 2017)
 
