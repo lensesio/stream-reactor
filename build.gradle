@@ -59,11 +59,11 @@ allprojects {
         scalaMajorVersion = '2.11'
         scala = '2.11.7'
         scalaCheck = '1.11.1'
-        scalaTest = '2.2.6'
+        scalaTest = '3.0.1'
         junit = '4.11'
         scalaLoggingVersion = '2.1.2'
         kafkaVersion = '0.10.1.0'
-        mockitoVersion = '1.10.19'
+        mockitoVersion = '2.7.7'
         jacksonDatabind = '2.7.0'
         avroVersion = '1.7.7'
         jacksonxmlVersion = '2.6.5'
@@ -145,7 +145,7 @@ allprojects {
         compile "io.confluent:kafka-schema-registry:$confluentVersion"
         compile "org.apache.avro:avro:$avroVersion"
 
-        testCompile "org.mockito:mockito-all:$mockitoVersion"
+        testCompile "org.mockito:mockito-core:$mockitoVersion"
         testCompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
         testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
         testCompile "junit:junit:$junit"
