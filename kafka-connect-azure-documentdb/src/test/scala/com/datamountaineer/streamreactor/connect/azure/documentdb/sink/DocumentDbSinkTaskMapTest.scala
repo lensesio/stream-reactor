@@ -3,24 +3,20 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbConfig
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.microsoft.azure.documentdb._
-import io.confluent.connect.avro.AvroData
-import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
-import org.mockito.ArgumentMatcher
-import org.mockito.ArgumentMatchers.{eq => mockEq, _}
+import org.mockito.ArgumentMatchers.{any, eq => mockEq}
 import org.mockito.Mockito.{verify, _}
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConversions._
 
-class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar {
+class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar with MatchingArgument {
   private val connection = "https://accountName.documents.azure.com:443/"
 
-  implicit val formats = org.json4s.DefaultFormats
-  private val mapper = new ObjectMapper()
-  private val `type` = mapper.getTypeFactory.constructMapType(classOf[java.util.HashMap[String, Any]], classOf[String], classOf[Any])
-  
+  val mapper = new ObjectMapper()
+  val `type` = mapper.getTypeFactory.constructMapType(classOf[java.util.HashMap[String, Any]], classOf[String], classOf[Any])
+
   "DocumentDbSinkTask" should {
     "handle util.Map INSERTS with default consistency level" in {
       val map = Map(
@@ -64,60 +60,54 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
       val r1 = mock[ResourceResponse[Document]]
       when(r1.getResource).thenReturn(doc1)
 
-      when(documentClient.createDocument(mockEq("coll1"), argThat {
-        new ArgumentMatcher[Document] {
-          override def matches(argument: Document): Boolean = {
-            argument != null && argument.toString == doc1.toString
-          }
-        }
-      }, argThat {
-        new ArgumentMatcher[RequestOptions] {
-          override def matches(argument: RequestOptions): Boolean = argument.getConsistencyLevel == ConsistencyLevel.Session
-        }
-      }, mockEq(false)))
+      when(
+        documentClient
+          .createDocument(
+            mockEq("coll1"),
+            argThat { argument: Document =>
+              argument != null && argument.toString == doc1.toString
+            }, argThat { argument: RequestOptions =>
+              argument.getConsistencyLevel == ConsistencyLevel.Session
+            }, mockEq(false)))
         .thenReturn(r1)
 
       val doc2 = new Document(json2)
       val r2 = mock[ResourceResponse[Document]]
       when(r2.getResource).thenReturn(doc2)
 
-      when(documentClient.createDocument(mockEq("coll2"), argThat {
-        new ArgumentMatcher[Document] {
-          override def matches(argument: Document): Boolean = {
-            argument != null && argument.toString == doc2.toString
-          }
-        }
-      }, argThat {
-        new ArgumentMatcher[RequestOptions] {
-          override def matches(argument: RequestOptions) = argument.getConsistencyLevel == ConsistencyLevel.Session
-        }
-      }, mockEq(false)))
+      when(
+        documentClient
+          .createDocument(
+            mockEq("coll2"),
+            argThat { argument: Document =>
+              argument != null && argument.toString == doc2.toString
+            },
+            argThat { argument: RequestOptions => argument.getConsistencyLevel == ConsistencyLevel.Session
+            }, mockEq(false)))
         .thenReturn(r2)
 
       task.put(Seq(sinkRecord1, sinkRecord2))
 
-      verify(documentClient).createDocument(mockEq("coll1"),
-        argThat(new ArgumentMatcher[Document] {
-          override def matches(argument: Document): Boolean = {
+      verify(documentClient)
+        .createDocument(
+          mockEq("coll1"),
+          argThat { argument: Document =>
             argument.toString == doc1.toString
-          }
-        }), argThat {
-          new ArgumentMatcher[RequestOptions] {
-            override def matches(argument: RequestOptions) = argument.getConsistencyLevel == ConsistencyLevel.Session
-          }
-        }, mockEq(false))
+          },
+          argThat { argument: RequestOptions =>
+            argument.getConsistencyLevel == ConsistencyLevel.Session
+          }, mockEq(false))
 
-      verify(documentClient).createDocument(mockEq("coll2"),
-        argThat(new ArgumentMatcher[Document] {
-          override def matches(argument: Document): Boolean = {
+      verify(documentClient)
+        .createDocument(
+          mockEq("coll2"),
+          argThat { argument: Document =>
             doc2.toString == argument.toString
+          },
+          argThat { argument: RequestOptions =>
+            argument.getConsistencyLevel == ConsistencyLevel.Session
           }
-        }), argThat {
-          new ArgumentMatcher[RequestOptions] {
-            override def matches(argument: RequestOptions) = argument.getConsistencyLevel == ConsistencyLevel.Session
-          }
-        }
-        , mockEq(false))
+          , mockEq(false))
     }
 
     "handle util.Map INSERTS with Eventual consistency level" in {
@@ -163,60 +153,59 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
       val r1 = mock[ResourceResponse[Document]]
       when(r1.getResource).thenReturn(doc1)
 
-      when(documentClient.createDocument(mockEq("coll1"), argThat {
-        new ArgumentMatcher[Document] {
-          override def matches(argument: Document): Boolean = {
-            argument != null && argument.toString == doc1.toString
-          }
-        }
-      }, argThat {
-        new ArgumentMatcher[RequestOptions] {
-          override def matches(argument: RequestOptions): Boolean = argument.getConsistencyLevel == ConsistencyLevel.Eventual
-        }
-      }, mockEq(false)))
+      when(
+        documentClient
+          .createDocument(
+            mockEq("coll1"),
+            argThat { argument: Document =>
+              argument != null && argument.toString == doc1.toString
+            },
+            argThat { argument: RequestOptions =>
+              argument.getConsistencyLevel == ConsistencyLevel.Eventual
+            },
+            mockEq(false)))
         .thenReturn(r1)
 
       val doc2 = new Document(json2)
       val r2 = mock[ResourceResponse[Document]]
       when(r2.getResource).thenReturn(doc2)
 
-      when(documentClient.createDocument(mockEq("coll2"), argThat {
-        new ArgumentMatcher[Document] {
-          override def matches(argument: Document): Boolean = {
-            argument != null && argument.toString == doc2.toString
-          }
-        }
-      }, argThat {
-        new ArgumentMatcher[RequestOptions] {
-          override def matches(argument: RequestOptions) = argument.getConsistencyLevel == ConsistencyLevel.Eventual
-        }
-      }, mockEq(false)))
+      when(
+        documentClient
+          .createDocument(
+            mockEq("coll2"),
+            argThat { argument: Document =>
+              argument != null && argument.toString == doc2.toString
+            },
+            argThat { argument: RequestOptions =>
+              argument.getConsistencyLevel == ConsistencyLevel.Eventual
+            },
+            mockEq(false)))
         .thenReturn(r2)
 
       task.put(Seq(sinkRecord1, sinkRecord2))
 
-      verify(documentClient).createDocument(mockEq("coll1"),
-        argThat(new ArgumentMatcher[Document] {
-          override def matches(argument: Document): Boolean = {
+      verify(documentClient)
+        .createDocument(
+          mockEq("coll1"),
+          argThat { argument: Document =>
             argument.toString == doc1.toString
-          }
-        }), argThat {
-          new ArgumentMatcher[RequestOptions] {
-            override def matches(argument: RequestOptions) = argument.getConsistencyLevel == ConsistencyLevel.Eventual
-          }
-        }, mockEq(false))
+          },
+          argThat { argument: RequestOptions =>
+            argument.getConsistencyLevel == ConsistencyLevel.Eventual
+          },
+          mockEq(false))
 
-      verify(documentClient).createDocument(mockEq("coll2"),
-        argThat(new ArgumentMatcher[Document] {
-          override def matches(argument: Document): Boolean = {
+      verify(documentClient)
+        .createDocument(
+          mockEq("coll2"),
+          argThat { argument: Document =>
             doc2.toString == argument.toString
-          }
-        }), argThat {
-          new ArgumentMatcher[RequestOptions] {
-            override def matches(argument: RequestOptions) = argument.getConsistencyLevel == ConsistencyLevel.Eventual
-          }
-        }
-        , mockEq(false))
+          },
+          argThat { argument: RequestOptions =>
+            argument.getConsistencyLevel == ConsistencyLevel.Eventual
+          },
+          mockEq(false))
     }
 
     "handle util.Map UPSERT with Eventual consistency level" in {
@@ -258,17 +247,17 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
       val r1 = mock[ResourceResponse[Document]]
       when(r1.getResource).thenReturn(doc1)
 
-      when(documentClient.upsertDocument(mockEq("coll1"), argThat {
-        new ArgumentMatcher[Document] {
-          override def matches(argument: Document): Boolean = {
-            argument != null && argument.toString == doc1.toString
-          }
-        }
-      }, argThat {
-        new ArgumentMatcher[RequestOptions] {
-          override def matches(argument: RequestOptions): Boolean = argument.getConsistencyLevel == ConsistencyLevel.Eventual
-        }
-      }, mockEq(true)))
+      when(
+        documentClient
+          .upsertDocument(
+            mockEq("coll1"),
+            argThat { argument: Document =>
+              argument != null && argument.toString == doc1.toString
+            },
+            argThat { argument: RequestOptions =>
+              argument.getConsistencyLevel == ConsistencyLevel.Eventual
+            },
+            mockEq(true)))
         .thenReturn(r1)
 
       val doc2 = new Document(json2)
@@ -276,43 +265,40 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
       val r2 = mock[ResourceResponse[Document]]
       when(r2.getResource).thenReturn(doc2)
 
-      when(documentClient.upsertDocument(mockEq("coll1"), argThat {
-        new ArgumentMatcher[Document] {
-          override def matches(argument: Document): Boolean = {
-            argument != null && argument.toString == doc2.toString
-          }
-        }
-      }, argThat {
-        new ArgumentMatcher[RequestOptions] {
-          override def matches(argument: RequestOptions) = argument.getConsistencyLevel == ConsistencyLevel.Eventual
-        }
-      }, mockEq(true)))
+      when(
+        documentClient
+          .upsertDocument(
+            mockEq("coll1"),
+            argThat { argument: Document =>
+              argument != null && argument.toString == doc2.toString
+            },
+            argThat { argument: RequestOptions =>
+              argument.getConsistencyLevel == ConsistencyLevel.Eventual
+            }, mockEq(true)))
         .thenReturn(r2)
 
       task.put(Seq(sinkRecord1, sinkRecord2))
 
-      verify(documentClient).upsertDocument(mockEq("coll1"),
-        argThat(new ArgumentMatcher[Document] {
-          override def matches(argument: Document): Boolean = {
+      verify(documentClient)
+        .upsertDocument(
+          mockEq("coll1"),
+          argThat { argument: Document =>
             argument.toString == doc1.toString
-          }
-        }), argThat {
-          new ArgumentMatcher[RequestOptions] {
-            override def matches(argument: RequestOptions) = argument.getConsistencyLevel == ConsistencyLevel.Eventual
-          }
-        }, mockEq(true))
+          },
+          argThat { argument: RequestOptions =>
+            argument.getConsistencyLevel == ConsistencyLevel.Eventual
+          }, mockEq(true))
 
-      verify(documentClient).upsertDocument(mockEq("coll1"),
-        argThat(new ArgumentMatcher[Document] {
-          override def matches(argument: Document): Boolean = {
+      verify(documentClient)
+        .upsertDocument(
+          mockEq("coll1"),
+          argThat { argument: Document =>
             doc2.toString == argument.toString
-          }
-        }), argThat {
-          new ArgumentMatcher[RequestOptions] {
-            override def matches(argument: RequestOptions) = argument.getConsistencyLevel == ConsistencyLevel.Eventual
-          }
-        }
-        , mockEq(true))
+          },
+          argThat { argument: RequestOptions =>
+            argument.getConsistencyLevel == ConsistencyLevel.Eventual
+          },
+          mockEq(true))
     }
 
 
