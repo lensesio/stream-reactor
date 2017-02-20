@@ -144,7 +144,7 @@ class TestCassandraSourceTask extends WordSpec with Matchers with BeforeAndAfter
     reader.read()
 
     //sleep and check queue size
-    while (queue.size() < 0) {
+    while (reader.isQuerying) {
       Thread.sleep(5000)
     }
 
