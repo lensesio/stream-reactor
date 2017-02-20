@@ -146,6 +146,8 @@ allprojects {
         compile "org.apache.avro:avro:$avroVersion"
 
         testCompile "org.mockito:mockito-core:$mockitoVersion"
+        testCompile "net.bytebuddy:byte-buddy:1.6.5"
+        testCompile "net.bytebuddy:byte-buddy-agent:1.6.5"
         testCompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
         testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
         testCompile "junit:junit:$junit"
