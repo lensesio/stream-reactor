@@ -21,7 +21,7 @@ import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkSinkConfi
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.gen.ast.{Db, TableCreate, TableList}
 import com.rethinkdb.net.Connection
-import org.mockito.ArgumentMatchers._
+import org.mockito.Matchers.any
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 

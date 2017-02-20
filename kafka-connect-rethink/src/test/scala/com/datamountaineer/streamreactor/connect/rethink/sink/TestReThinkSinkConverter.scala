@@ -27,9 +27,9 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
-import org.mockito.ArgumentMatchers._
+import org.mockito.Matchers.{any, eq => mockEq}
 import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+import org.scalatest.mock.MockitoSugar
 
 import scala.collection.JavaConverters._
 

@@ -25,7 +25,7 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.kududb.client._
 import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+import org.scalatest.mock.MockitoSugar
 
 import scala.collection.JavaConverters._
 import scala.util.Try
