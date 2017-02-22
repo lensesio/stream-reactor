@@ -20,7 +20,7 @@ A collection of components to build a real time ingestion pipeline.
 |----------------|--------|-----------------------------------------------------------------------------------------------|------|
 | AzureDocumentDb| Sink   | Kafka connect Azure DocumentDb sink to subscribe to write to the cloud Azure Document Db.     | [Docs](http://docs.datamountaineer.com/en/latest/azuredocumentdb.html)   |
 | BlockChain     | Source | Kafka connect Blockchain source to subscribe to Blockchain streams and write to Kafka.        | [Docs](http://docs.datamountaineer.com/en/latest/blockchain.html)        |
-| Bloomberg      | Source | Kafka connect Blockchain source to subscribe to Blockchain streams and write to Kafka.        | [Docs](http://docs.datamountaineer.com/en/latest/bloomberg.html)         |
+| Bloomberg      | Source | Kafka connect source to subscribe to Blockchain streams and write to Kafka.                   | [Docs](http://docs.datamountaineer.com/en/latest/bloomberg.html)         |
 | Cassandra      | Source | Kafka connect Cassandra source to read Cassandra and write to Kafka.                          | [Docs](http://docs.datamountaineer.com/en/latest/cassandra-source.html)  |
 | Coap           | Source | Kafka connect Coap source to read from IoT Coap endpoints using Californium.                  | [Docs](http://docs.datamountaineer.com/en/latest/coap-source.html)       |
 | Coap           | Sink   | Kafka connect Coap sink to write kafka topic payload to IoT Coap endpoints using Californium. | [Docs](http://docs.datamountaineer.com/en/latest/coap-sink.html)         |
