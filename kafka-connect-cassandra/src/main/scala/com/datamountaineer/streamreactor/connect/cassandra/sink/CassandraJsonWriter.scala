@@ -26,6 +26,7 @@ import com.datamountaineer.streamreactor.connect.concurrent.FutureAwaitWithFailF
 import com.datamountaineer.streamreactor.connect.converters.source.SinkRecordToJson
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.datastax.driver.core.exceptions.SyntaxError
 import com.datastax.driver.core.{PreparedStatement, Session}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
@@ -130,10 +131,17 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
           val preparedStatement = preparedCache(record.topic())
           val json = SinkRecordToJson(record, settings.fields, settings.ignoreField)
 
-          val bound = preparedStatement.bind(json)
-          session.execute(bound)
-          //we don't care about the ResultSet here
-          ()
+          try {
+            val bound = preparedStatement.bind(json)
+            session.execute(bound)
+            //we don't care about the ResultSet here
+            ()
+          }
+          catch {
+            case e:SyntaxError=>
+              logger.error(s"Syntax error inserting <$json>", e)
+              throw e
+          }
         }
       }
 
