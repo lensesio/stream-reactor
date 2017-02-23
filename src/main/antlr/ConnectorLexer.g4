@@ -121,6 +121,10 @@ STOREAS
     : 'STOREAS'|'storeas'
     ;
 
+LIMIT
+    : 'LIMIT' | 'limit'
+    ;
+
 EQUAL
    : '='
    ;
