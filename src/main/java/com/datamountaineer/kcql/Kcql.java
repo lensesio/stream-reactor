@@ -30,6 +30,7 @@ public class Kcql {
     private List<String> primaryKeys = new ArrayList<>();
     private List<String> partitionBy = new ArrayList<>();
     private int retries = 1;
+    private int limit = 5;
     private int batchSize = DEFAULT_BATCH_SIZE;
     private Bucketing bucketing;
     private String timestamp;
@@ -111,13 +112,13 @@ public class Kcql {
     }
 
     public List<Field> getFields() {
-       return fields;
+        return fields;
         //return new ArrayList<>(fields);
     }
 
     public Set<String> getIgnoredField() {
         //return new HashSet<>(ignoredFields);
-    return ignoredFields;
+        return ignoredFields;
     }
 
     public boolean isIncludeAllFields() {
@@ -174,6 +175,10 @@ public class Kcql {
 
     public boolean isAutoCreate() {
         return autoCreate;
+    }
+
+    public int getLimit(){
+        return limit;
     }
 
     public int getRetries() {
@@ -246,6 +251,18 @@ public class Kcql {
             @Override
             public void exitWith_structure(ConnectorParser.With_structureContext ctx) {
                 kcql.retainStructure = true;
+            }
+
+            @Override
+            public void exitLimit_value(ConnectorParser.Limit_valueContext ctx) {
+                try {
+                    int limit = Integer.parseInt(ctx.INT().getText());
+                    if (limit < 1)
+                        throw new IllegalArgumentException("Invalid limit specified. Needs to be an integer greater than zero");
+                    kcql.limit = limit;
+                } catch (NumberFormatException nfe) {
+                    throw new IllegalArgumentException("Invalid limit specified(" + ctx.INT().getText() + "). Needs to be an integer greater than zero");
+                }
             }
 
             @Override

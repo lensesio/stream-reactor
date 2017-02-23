@@ -40,7 +40,7 @@ insert_from_clause
    ;
 
 select_clause
-   : select_clause_basic ( PK primary_key_list)? (with_structure)? (with_format_clause)? (with_consumer_group)? (with_offset_list)? (sample_clause)? (storeas_clause)? (with_tags)?
+   : select_clause_basic ( PK primary_key_list)? (with_structure)? (with_format_clause)? (with_consumer_group)? (with_offset_list)? (sample_clause)? (limit_clause)? (storeas_clause)? (with_tags)?
    ;
 
 select_clause_basic
@@ -48,11 +48,11 @@ select_clause_basic
    ;
 
 topic_name
-   :  FIELD | TOPICNAME
+   : ( FIELD | TOPICNAME | DOT )+
    ;
 
 table_name
-   : FIELD | TOPICNAME
+   : FIELD | (DOT|TOPICNAME)+
    ;
 
 column_name
@@ -189,6 +189,13 @@ with_offset_list
     : WITHOFFSET partition_offset_list
     ;
 
+limit_clause
+    : LIMIT limit_value
+    ;
+
+limit_value
+    : INT
+    ;
 
 sample_clause
     : SAMPLE sample_value EVERY sample_period
