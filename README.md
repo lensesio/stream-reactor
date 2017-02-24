@@ -15,6 +15,7 @@ A collection of components to build a real time ingestion pipeline.
 
 ### Connectors
 
+**Please take a moment and read the documentation and make sure the software prerequisites are met!!**
 
 |Connector       | Type   | Description                                                                                   | Docs |
 |----------------|--------|-----------------------------------------------------------------------------------------------|------|
