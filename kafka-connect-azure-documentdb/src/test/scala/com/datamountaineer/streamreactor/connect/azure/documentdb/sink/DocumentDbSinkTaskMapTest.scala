@@ -227,7 +227,7 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
       val resource = mock[ResourceResponse[DocumentCollection]]
       when(resource.getResource).thenReturn(mock[DocumentCollection])
 
-      when(documentClient.readCollection(mockEq("coll1"), any(classOf[RequestOptions])))
+      when(documentClient.readCollection(mockEq("dbs/database1/colls/coll1"), any(classOf[RequestOptions])))
         .thenReturn(resource)
 
 

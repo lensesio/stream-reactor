@@ -37,11 +37,9 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
         when(documentClient.readCollection(mockEq(c), any(classOf[RequestOptions])))
           .thenReturn(resource)
 
-        when(documentClient.readCollection(mockEq(c), mockEq(null)))
-          .thenReturn(resource)
       }
 
-      when(documentClient.readDatabase(mockEq("dbs/database1"), any(classOf[RequestOptions])))
+      when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
       val task = new DocumentDbSinkTask(s => documentClient)
@@ -132,11 +130,9 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
         when(documentClient.readCollection(mockEq(c), any(classOf[RequestOptions])))
           .thenReturn(resource)
 
-        when(documentClient.readCollection(mockEq(c), mockEq(null)))
-          .thenReturn(resource)
       }
 
-      when(documentClient.readDatabase(mockEq("dbs/database1"), any(classOf[RequestOptions])))
+      when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
       val task = new DocumentDbSinkTask(s => documentClient)
@@ -226,7 +222,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
         .thenReturn(resource)
 
 
-      when(documentClient.readDatabase(mockEq("dbs/database1"), any(classOf[RequestOptions])))
+      when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
       val task = new DocumentDbSinkTask(s => documentClient)
