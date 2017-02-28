@@ -20,7 +20,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbSinkSettings}
-import com.microsoft.azure.documentdb.{DocumentClient, DocumentCollection, RequestOptions}
+import com.microsoft.azure.documentdb._
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.{ConfigDef, ConfigException}
 import org.apache.kafka.connect.connector.{Connector, Task}
@@ -88,8 +88,8 @@ class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => D
 
     try {
       documentClient = builder(settings)
-      readOrCreateDatabase(settings)
-      readOrCreateCollections(settings)
+      val database = readOrCreateDatabase(settings)
+      readOrCreateCollections(database, settings)
     }
     finally {
       if (null != documentClient) {
@@ -105,13 +105,23 @@ class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => D
 
   override def config(): ConfigDef = DocumentDbConfig.configDef
 
-  private def readOrCreateCollections(settings: DocumentDbSinkSettings)(implicit documentClient: DocumentClient) = {
+  private def readOrCreateCollections(database: Database, settings: DocumentDbSinkSettings)(implicit documentClient: DocumentClient) = {
     //check all collection exists and if not create them
     val requestOptions = new RequestOptions()
+    requestOptions.setOfferThroughput(400)
     settings.kcql.map(_.getTarget).foreach { collectionName =>
-      Try(documentClient.readCollection(collectionName, requestOptions).getResource) match {
+      Try(documentClient.readCollection(s"dbs/${settings.database}/colls/$collectionName", requestOptions).getResource) match {
         case Failure(e) =>
-          throw new RuntimeException(s"Could not read collection $collectionName. ${e.getMessage}", e)
+          logger.warn(s"Collection:$collectionName doesn't exist. Creating it...")
+          val collection = new DocumentCollection()
+          collection.setId(collectionName)
+
+          Try(documentClient.createCollection(database.getSelfLink, collection, requestOptions).getResource) match {
+            case Failure(t) => throw new RuntimeException(s"Could not create collection:$collectionName. ${t.getMessage}", t)
+            case _ =>
+          }
+
+          logger.warn(s"Collection:$collectionName created")
 
         case Success(c) =>
           if (c == null) {
@@ -119,7 +129,7 @@ class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => D
             val collection = new DocumentCollection()
             collection.setId(collectionName)
 
-            Try(documentClient.createCollection(settings.database, collection, requestOptions).getResource) match {
+            Try(documentClient.createCollection(database.getSelfLink, collection, requestOptions).getResource) match {
               case Failure(t) => throw new RuntimeException(s"Could not create collection:$collectionName. ${t.getMessage}", t)
               case _ =>
             }
@@ -130,22 +140,41 @@ class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => D
     }
   }
 
-  private def readOrCreateDatabase(settings: DocumentDbSinkSettings)(implicit documentClient: DocumentClient) = {
+  private def readOrCreateDatabase(settings: DocumentDbSinkSettings)(implicit documentClient: DocumentClient): Database = {
     //check database exists
     logger.info(s"Checking ${settings.database} exists...")
-    Try(documentClient.readDatabase(settings.database, new RequestOptions()).getResource) match {
-      case Failure(e) => new RuntimeException(s"Could not find database ${settings.database}", e)
+    Try {
+      documentClient.readDatabase(s"dbs/${settings.database}", null).getResource
+    } match {
+      case Failure(e) =>
+        logger.warn(s"Couldn't read the database ${settings.database}", e)
+        if (settings.createDatabase) {
+          logger.info(s"Database ${settings.database} does not exists. Creating it...")
+          Try(CreateDatabaseFn(settings.database)) match {
+            case Failure(t) => throw new IllegalStateException(s"Could not create database ${settings.database}. ${t.getMessage}", t)
+            case Success(db) =>
+              logger.info(s"Database ${settings.database} created")
+              db
+          }
+        }
+        else {
+          throw new RuntimeException(s"Could not find database ${settings.database}", e)
+        }
       case Success(d) =>
         if (d == null) {
-          if (!settings.createDatabase) {
+          if (settings.createDatabase) {
             logger.info(s"Database ${settings.database} does not exists. Creating it...")
             Try(CreateDatabaseFn(settings.database)) match {
               case Failure(t) => throw new IllegalStateException(s"Could not create database ${settings.database}. ${t.getMessage}", t)
-              case _ => logger.info(s"Database ${settings.database} created")
+              case Success(db) =>
+                logger.info(s"Database ${settings.database} created")
+                db
             }
           }
           else throw new ConfigException(s"Could not find database ${settings.database}")
-
+        } else {
+          logger.info(s"Database ${settings.database} (${d.getSelfLink}) already exists...")
+          d
         }
     }
   }

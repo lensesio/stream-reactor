@@ -33,14 +33,14 @@ import scala.util.{Failure, Success, Try}
   * Writes a list of Kafka connect sink records to Azure DocumentDb using the JSON support.
   */
 class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: DocumentClient) extends StrictLogging with ConverterUtil with ErrorHandler {
-  private val database = Try(documentClient.readDatabase(settings.database, new RequestOptions()).getResource) match {
+  private val database = Try(documentClient.readDatabase(s"dbs/${settings.database}", null).getResource) match {
     case Failure(e) => throw new RuntimeException(s"Could not identify database ${settings.database}", e)
     case Success(d) => d
   }
 
   private val configMap = settings.kcql
     .map { c =>
-      Option(documentClient.readCollection(c.getTarget, new RequestOptions).getResource).getOrElse {
+      Option(documentClient.readCollection(s"dbs/${settings.database}/colls/${c.getTarget}", new RequestOptions).getResource).getOrElse {
         throw new IllegalArgumentException(s"Collection '${c.getTarget}' not found!")
       }
       c.getSource -> c
