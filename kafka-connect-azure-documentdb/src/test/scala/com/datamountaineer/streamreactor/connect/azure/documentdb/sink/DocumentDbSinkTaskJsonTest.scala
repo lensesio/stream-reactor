@@ -29,7 +29,8 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
       val dbResource: ResourceResponse[Database] = mock[ResourceResponse[Database]]
       when(dbResource.getResource).thenReturn(mock[Database])
 
-      Seq("coll1", "coll2").foreach { c =>
+      Seq("dbs/database1/colls/coll1",
+        "dbs/database1/colls/coll2").foreach { c =>
         val resource = mock[ResourceResponse[DocumentCollection]]
         when(resource.getResource).thenReturn(mock[DocumentCollection])
 
@@ -40,7 +41,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
           .thenReturn(resource)
       }
 
-      when(documentClient.readDatabase(mockEq("database1"), any(classOf[RequestOptions])))
+      when(documentClient.readDatabase(mockEq("dbs/database1"), any(classOf[RequestOptions])))
         .thenReturn(dbResource)
 
       val task = new DocumentDbSinkTask(s => documentClient)
@@ -60,7 +61,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
       when(
         documentClient
           .createDocument(
-            mockEq("coll1"),
+            mockEq("dbs/database1/colls/coll1"),
             argThat { argument: Document =>
               argument != null && argument.toString == doc1.toString
             },
@@ -76,7 +77,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
       when(
         documentClient
           .createDocument(
-            mockEq("coll2"),
+            mockEq("dbs/database1/colls/coll2"),
             argThat { argument: Document =>
               argument != null && argument.toString == doc2.toString
             },
@@ -89,7 +90,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
 
       verify(documentClient)
         .createDocument(
-          mockEq("coll1"),
+          mockEq("dbs/database1/colls/coll1"),
           argThat { argument: Document =>
             argument.toString == doc1.toString
           },
@@ -100,7 +101,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
 
       verify(documentClient)
         .createDocument(
-          mockEq("coll2"),
+          mockEq("dbs/database1/colls/coll2"),
           argThat { argument: Document =>
             doc2.toString == argument.toString
           },
@@ -123,7 +124,8 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
       val dbResource: ResourceResponse[Database] = mock[ResourceResponse[Database]]
       when(dbResource.getResource).thenReturn(mock[Database])
 
-      Seq("coll1", "coll2").foreach { c =>
+      Seq("dbs/database1/colls/coll1",
+        "dbs/database1/colls/coll2").foreach { c =>
         val resource = mock[ResourceResponse[DocumentCollection]]
         when(resource.getResource).thenReturn(mock[DocumentCollection])
 
@@ -134,7 +136,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
           .thenReturn(resource)
       }
 
-      when(documentClient.readDatabase(mockEq("database1"), any(classOf[RequestOptions])))
+      when(documentClient.readDatabase(mockEq("dbs/database1"), any(classOf[RequestOptions])))
         .thenReturn(dbResource)
 
       val task = new DocumentDbSinkTask(s => documentClient)
@@ -154,7 +156,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
       when(
         documentClient
           .createDocument(
-            mockEq("coll1"),
+            mockEq("dbs/database1/colls/coll1"),
             argThat { argument: Document =>
               argument != null && argument.toString == doc1.toString
             },
@@ -170,7 +172,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
       when(
         documentClient
           .createDocument(
-            mockEq("coll2"),
+            mockEq("dbs/database1/colls/coll2"),
             argThat { argument: Document =>
               argument != null && argument.toString == doc2.toString
             },
@@ -182,7 +184,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
 
       verify(documentClient)
         .createDocument(
-          mockEq("coll1"),
+          mockEq("dbs/database1/colls/coll1"),
           argThat { argument: Document =>
             argument.toString == doc1.toString
           },
@@ -193,7 +195,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
 
       verify(documentClient)
         .createDocument(
-          mockEq("coll2"),
+          mockEq("dbs/database1/colls/coll2"),
           argThat { argument: Document =>
             doc2.toString == argument.toString
           },
@@ -220,11 +222,11 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
       val resource = mock[ResourceResponse[DocumentCollection]]
       when(resource.getResource).thenReturn(mock[DocumentCollection])
 
-      when(documentClient.readCollection(mockEq("coll1"), any(classOf[RequestOptions])))
+      when(documentClient.readCollection(mockEq("dbs/database1/colls/coll1"), any(classOf[RequestOptions])))
         .thenReturn(resource)
 
 
-      when(documentClient.readDatabase(mockEq("database1"), any(classOf[RequestOptions])))
+      when(documentClient.readDatabase(mockEq("dbs/database1"), any(classOf[RequestOptions])))
         .thenReturn(dbResource)
 
       val task = new DocumentDbSinkTask(s => documentClient)
@@ -245,7 +247,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
       when(
         documentClient
           .upsertDocument(
-            mockEq("coll1"),
+            mockEq("dbs/database1/colls/coll1"),
             argThat { argument: Document =>
               argument != null && argument.toString == doc1.toString
             },
@@ -262,7 +264,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
       when(
         documentClient
           .upsertDocument(
-            mockEq("coll1"),
+            mockEq("dbs/database1/colls/coll1"),
             argThat { argument: Document =>
               argument != null && argument.toString == doc2.toString
             },
@@ -275,7 +277,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
 
       verify(documentClient)
         .upsertDocument(
-          mockEq("coll1"),
+          mockEq("dbs/database1/colls/coll1"),
           argThat { argument: Document =>
             argument.toString == doc1.toString
           },
@@ -285,7 +287,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
 
       verify(documentClient)
         .upsertDocument(
-          mockEq("coll1"),
+          mockEq("dbs/database1/colls/coll1"),
           argThat { argument: Document =>
             doc2.toString == argument.toString
           },

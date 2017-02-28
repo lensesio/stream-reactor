@@ -23,7 +23,7 @@ class SinkRecordToDocumentTest extends WordSpec with Matchers with ConverterUtil
         implicit val settings = DocumentDbSinkSettings(
           connection,
           "secret",
-          "dbs/database",
+          "database",
           Seq.empty,
           Map("topic1" -> Set.empty[String]),
           Map("topic1" -> Map.empty),
@@ -49,7 +49,7 @@ class SinkRecordToDocumentTest extends WordSpec with Matchers with ConverterUtil
         implicit val settings = DocumentDbSinkSettings(
           connection,
           "secret",
-          "dbs/database",
+          "database",
           Seq.empty,
           Map("topic1" -> Set.empty[String]),
           Map("topic1" -> Map.empty),
@@ -77,7 +77,7 @@ class SinkRecordToDocumentTest extends WordSpec with Matchers with ConverterUtil
         implicit val settings = DocumentDbSinkSettings(
           connection,
           "secret",
-          "dbs/database",
+          "database",
           Seq.empty,
           Map("topic1" -> Set.empty[String]),
           Map("topic1" -> Map.empty),

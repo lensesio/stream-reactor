@@ -30,7 +30,8 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
       val dbResource: ResourceResponse[Database] = mock[ResourceResponse[Database]]
       when(dbResource.getResource).thenReturn(mock[Database])
 
-      Seq("coll1", "coll2").foreach { c =>
+      Seq("dbs/database1/colls/coll1",
+        "dbs/database1/colls/coll2").foreach { c =>
         val resource = mock[ResourceResponse[DocumentCollection]]
         when(resource.getResource).thenReturn(mock[DocumentCollection])
 
@@ -41,7 +42,7 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
           .thenReturn(resource)
       }
 
-      when(documentClient.readDatabase(mockEq("database1"), any(classOf[RequestOptions])))
+      when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
       val task = new DocumentDbSinkTask(s => documentClient)
@@ -63,7 +64,7 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
       when(
         documentClient
           .createDocument(
-            mockEq("coll1"),
+            mockEq("dbs/database1/colls/coll1"),
             argThat { argument: Document =>
               argument != null && argument.toString == doc1.toString
             }, argThat { argument: RequestOptions =>
@@ -78,7 +79,7 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
       when(
         documentClient
           .createDocument(
-            mockEq("coll2"),
+            mockEq("dbs/database1/colls/coll2"),
             argThat { argument: Document =>
               argument != null && argument.toString == doc2.toString
             },
@@ -90,7 +91,7 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
 
       verify(documentClient)
         .createDocument(
-          mockEq("coll1"),
+          mockEq("dbs/database1/colls/coll1"),
           argThat { argument: Document =>
             argument.toString == doc1.toString
           },
@@ -100,7 +101,7 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
 
       verify(documentClient)
         .createDocument(
-          mockEq("coll2"),
+          mockEq("dbs/database1/colls/coll2"),
           argThat { argument: Document =>
             doc2.toString == argument.toString
           },
@@ -123,7 +124,8 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
       val dbResource: ResourceResponse[Database] = mock[ResourceResponse[Database]]
       when(dbResource.getResource).thenReturn(mock[Database])
 
-      Seq("coll1", "coll2").foreach { c =>
+      Seq("dbs/database1/colls/coll1",
+        "dbs/database1/colls/coll2").foreach { c =>
         val resource = mock[ResourceResponse[DocumentCollection]]
         when(resource.getResource).thenReturn(mock[DocumentCollection])
 
@@ -134,7 +136,7 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
           .thenReturn(resource)
       }
 
-      when(documentClient.readDatabase(mockEq("database1"), any(classOf[RequestOptions])))
+      when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
       val task = new DocumentDbSinkTask(s => documentClient)
@@ -156,7 +158,7 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
       when(
         documentClient
           .createDocument(
-            mockEq("coll1"),
+            mockEq("dbs/database1/colls/coll1"),
             argThat { argument: Document =>
               argument != null && argument.toString == doc1.toString
             },
@@ -173,7 +175,7 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
       when(
         documentClient
           .createDocument(
-            mockEq("coll2"),
+            mockEq("dbs/database1/colls/coll2"),
             argThat { argument: Document =>
               argument != null && argument.toString == doc2.toString
             },
@@ -187,7 +189,7 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
 
       verify(documentClient)
         .createDocument(
-          mockEq("coll1"),
+          mockEq("dbs/database1/colls/coll1"),
           argThat { argument: Document =>
             argument.toString == doc1.toString
           },
@@ -198,7 +200,7 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
 
       verify(documentClient)
         .createDocument(
-          mockEq("coll2"),
+          mockEq("dbs/database1/colls/coll2"),
           argThat { argument: Document =>
             doc2.toString == argument.toString
           },
@@ -229,7 +231,7 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
         .thenReturn(resource)
 
 
-      when(documentClient.readDatabase(mockEq("database1"), any(classOf[RequestOptions])))
+      when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
       val task = new DocumentDbSinkTask(s => documentClient)
@@ -250,7 +252,7 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
       when(
         documentClient
           .upsertDocument(
-            mockEq("coll1"),
+            mockEq("dbs/database1/colls/coll1"),
             argThat { argument: Document =>
               argument != null && argument.toString == doc1.toString
             },
@@ -268,7 +270,7 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
       when(
         documentClient
           .upsertDocument(
-            mockEq("coll1"),
+            mockEq("dbs/database1/colls/coll1"),
             argThat { argument: Document =>
               argument != null && argument.toString == doc2.toString
             },
@@ -281,7 +283,7 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
 
       verify(documentClient)
         .upsertDocument(
-          mockEq("coll1"),
+          mockEq("dbs/database1/colls/coll1"),
           argThat { argument: Document =>
             argument.toString == doc1.toString
           },
@@ -291,7 +293,7 @@ class DocumentDbSinkTaskMapTest extends WordSpec with Matchers with MockitoSugar
 
       verify(documentClient)
         .upsertDocument(
-          mockEq("coll1"),
+          mockEq("dbs/database1/colls/coll1"),
           argThat { argument: Document =>
             doc2.toString == argument.toString
           },

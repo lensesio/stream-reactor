@@ -28,9 +28,9 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
       val collResource = mock[ResourceResponse[DocumentCollection]]
       when(collResource.getResource).thenReturn(mock[DocumentCollection])
 
-      when(documentClient.readDatabase(mockEq("database1"), any(classOf[RequestOptions])))
+      when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
-      when(documentClient.readCollection(mockEq("collection1"), any(classOf[RequestOptions])))
+      when(documentClient.readCollection(mockEq("dbs/database1/colls/collection1"), any(classOf[RequestOptions])))
         .thenReturn(collResource)
 
       val connector = new DocumentDbSinkConnector((s) => documentClient)
@@ -50,10 +50,11 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
       val dbResource = mock[ResourceResponse[Database]]
       when(dbResource.getResource).thenReturn(mock[Database])
 
-      when(documentClient.readDatabase(mockEq("database1"), any(classOf[RequestOptions])))
+      when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
-      Seq("collection1", "coll2").foreach { c =>
+      Seq("dbs/database1/colls/collection1",
+        "dbs/database1/colls/coll2").foreach { c =>
         val resource = mock[ResourceResponse[DocumentCollection]]
         when(resource.getResource).thenReturn(mock[DocumentCollection])
 
@@ -78,7 +79,9 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
       val dbResource = mock[ResourceResponse[Database]]
       when(dbResource.getResource).thenReturn(mock[Database])
 
-      Seq("collection1", "coll2", "coll3").foreach { c =>
+      Seq("dbs/database1/colls/collection1",
+        "dbs/database1/colls/coll2",
+        "dbs/database1/colls/coll3").foreach { c =>
         val resource = mock[ResourceResponse[DocumentCollection]]
         when(resource.getResource).thenReturn(mock[DocumentCollection])
 
@@ -86,7 +89,7 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
           .thenReturn(resource)
       }
 
-      when(documentClient.readDatabase(mockEq("database1"), any(classOf[RequestOptions])))
+      when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
       val connector = new DocumentDbSinkConnector((s) => documentClient)
@@ -110,7 +113,9 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
       val dbResource = mock[ResourceResponse[Database]]
       when(dbResource.getResource).thenReturn(mock[Database])
 
-      Seq("collection1", "coll2", "coll3").foreach { c =>
+      Seq("dbs/database1/colls/collection1",
+        "dbs/database1/colls/coll2",
+        "dbs/database1/colls/coll3").foreach { c =>
         val resource = mock[ResourceResponse[DocumentCollection]]
         when(resource.getResource).thenReturn(mock[DocumentCollection])
 
@@ -118,7 +123,7 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
           .thenReturn(resource)
       }
 
-      when(documentClient.readDatabase(mockEq("database1"), any(classOf[RequestOptions])))
+      when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
       val connector = new DocumentDbSinkConnector((s) => documentClient)
@@ -143,7 +148,10 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
       val dbResource = mock[ResourceResponse[Database]]
       when(dbResource.getResource).thenReturn(mock[Database])
 
-      Seq("collection1", "coll2", "coll3", "coll4").foreach { c =>
+      Seq("dbs/database1/colls/collection1",
+        "dbs/database1/colls/coll2",
+        "dbs/database1/colls/coll3",
+        "dbs/database1/colls/coll4").foreach { c =>
         val resource = mock[ResourceResponse[DocumentCollection]]
         when(resource.getResource).thenReturn(mock[DocumentCollection])
 
@@ -151,7 +159,7 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
           .thenReturn(resource)
       }
 
-      when(documentClient.readDatabase(mockEq("database1"), any(classOf[RequestOptions])))
+      when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
       val connector = new DocumentDbSinkConnector((s) => documentClient)
