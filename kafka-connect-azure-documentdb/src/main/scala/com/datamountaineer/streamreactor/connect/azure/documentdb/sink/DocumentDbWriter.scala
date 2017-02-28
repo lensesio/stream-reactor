@@ -87,10 +87,10 @@ class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: Documen
           val config = configMap.getOrElse(record.topic(), sys.error(s"${record.topic()} is not handled by the configuration."))
           config.getWriteMode match {
             case WriteModeEnum.INSERT =>
-              documentClient.createDocument(config.getTarget, document, requestOptionsInsert, key.nonEmpty).getResource
+              documentClient.createDocument(s"dbs/${settings.database}/colls/${config.getTarget}", document, requestOptionsInsert, key.nonEmpty).getResource
 
             case WriteModeEnum.UPSERT =>
-              documentClient.upsertDocument(config.getTarget, document, requestOptionsInsert, key.nonEmpty).getResource
+              documentClient.upsertDocument(s"dbs/${settings.database}/colls/${config.getTarget}", document, requestOptionsInsert, key.nonEmpty).getResource
           }
         }
       }
