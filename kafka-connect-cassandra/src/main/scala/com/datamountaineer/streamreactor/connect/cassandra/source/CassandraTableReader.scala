@@ -19,9 +19,9 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 import java.text.SimpleDateFormat
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.{ Collections, Date }
+import java.util.{Collections, Date}
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.{ CassandraConfigConstants, CassandraSourceSetting }
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSourceSetting}
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraResultSetWrapper.resultSetFutureToScala
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
 import com.datamountaineer.streamreactor.connect.offsets.OffsetHandler
@@ -29,12 +29,12 @@ import com.datastax.driver.core._
 import com.datastax.driver.core.utils.UUIDs
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
-import org.apache.kafka.connect.source.{ SourceRecord, SourceTaskContext }
+import org.apache.kafka.connect.source.{SourceRecord, SourceTaskContext}
 
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.{ Failure, Success, Try }
+import scala.util.{Failure, Success, Try}
 import java.util.Arrays.ArrayList
 import java.util.ArrayList
 import org.apache.kafka.common.config.ConfigException
@@ -44,9 +44,9 @@ import org.apache.kafka.common.config.ConfigException
  * stream-reactor
  */
 class CassandraTableReader(private val session: Session,
-    private val setting: CassandraSourceSetting,
-    private val context: SourceTaskContext,
-    var queue: LinkedBlockingQueue[SourceRecord]) extends StrictLogging {
+                           private val setting: CassandraSourceSetting,
+                           private val context: SourceTaskContext,
+                           var queue: LinkedBlockingQueue[SourceRecord]) extends StrictLogging {
 
   logger.info(s"Received setting:\n ${setting.toString}")
   private val defaultTimestamp = "1900-01-01 00:00:00.0000000Z"
@@ -127,12 +127,14 @@ class CassandraTableReader(private val session: Session,
         //checking we are querying here,don't issue another query for the table if we querying,
         // maintain incremental order
         logger.debug(s"Still querying for $keySpace.$table. Current queue size in ${queue.size()}.")
-      } //wait for next poll interval to expire
+      } 
+      //wait for next poll interval to expire
       else if (lastPoll + setting.pollInterval < newPollTime) {
         lastPoll = newPollTime
         query()
       }
-    } else {
+    } 
+    else {
       logger.info(s"Told to stop for $keySpace.$table.")
     }
   }
@@ -150,7 +152,8 @@ class CassandraTableReader(private val session: Session,
     //execute the query, gives us back a future resultset
     val frs = if (setting.bulkImportMode) {
       resultSetFutureToScala(fireQuery())
-    } else {
+    } 
+    else {
       resultSetFutureToScala(bindAndFireQuery(lowerBound, upperBound))
     }
 
@@ -317,9 +320,9 @@ class CassandraTableReader(private val session: Session,
 
 object CassandraTableReader {
   def apply(session: Session,
-    setting: CassandraSourceSetting,
-    context: SourceTaskContext,
-    queue: LinkedBlockingQueue[SourceRecord]): CassandraTableReader = {
+            setting: CassandraSourceSetting,
+            context: SourceTaskContext,
+            queue: LinkedBlockingQueue[SourceRecord]): CassandraTableReader = {
     //return a reader
     new CassandraTableReader(session = session,
       setting = setting,
