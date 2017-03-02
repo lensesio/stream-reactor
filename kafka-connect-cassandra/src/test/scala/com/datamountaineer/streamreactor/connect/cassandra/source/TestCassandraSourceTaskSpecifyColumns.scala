@@ -94,11 +94,68 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
     val json: JsonNode = convertValueToJson(sourceRecord)
     println(json)
     json.get("string_field").asText().equals("magic_string") shouldBe true
+    json.get("timestamp_field").asText().size > 0
     json.get("int_field") shouldBe null
     //stop task
     task.stop()
   }
 
+  
+    "A Cassandra SourceTask should read only columns specified and ignore those specified" in {
+    val session = createTableAndKeySpace(secure = true, ssl = false)
+
+    val sql = s"INSERT INTO $CASSANDRA_KEYSPACE.$TABLE2" +
+      "(id, int_field, long_field, string_field, timestamp_field) " +
+      "VALUES ('id1', 2, 3, 'magic_string', now());"
+    session.execute(sql)
+
+    //wait for cassandra write a little
+    Thread.sleep(1000)
+
+    val taskContext = getSourceTaskContextDefault
+    //get config
+    val config = {
+      Map(
+        CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+        CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+        CassandraConfigConstants.USERNAME -> USERNAME,
+        CassandraConfigConstants.PASSWD -> PASSWD,
+        CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $TABLE2 IGNORE timestamp_field PK timestamp_field",
+        CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE2",
+        CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
+        CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
+    }
+
+    //get task
+    val task = new CassandraSourceTask()
+    //initialise the tasks context
+    task.initialize(taskContext)
+    //start task
+    task.start(config)
+
+    //trigger poll to have the readers execute a query and add to the queue
+    task.poll()
+
+    //wait a little for the poll to catch the records
+    while (task.queueSize(TABLE2) == 0) {
+      Thread.sleep(5000)
+    }
+
+    //call poll again to drain the queue
+    val records = task.poll()
+
+    val sourceRecord = records.asScala.head
+    //check a field
+    val json: JsonNode = convertValueToJson(sourceRecord)
+    println(json)
+    json.get("string_field").asText().equals("magic_string") shouldBe true
+    json.get("int_field") shouldBe null
+    json.get("timestamp_field") shouldBe null
+    //stop task
+    task.stop()
+  }
+  
+  
   "A Cassandra SourceTask should throw exception when timestamp column is not specified" in {
     val session = createTableAndKeySpace(secure = true, ssl = false)
 
@@ -132,6 +189,7 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
     } catch {
       case _: ConfigException => // Expected, so continue
     }
+    task.stop()
   }
 }
 

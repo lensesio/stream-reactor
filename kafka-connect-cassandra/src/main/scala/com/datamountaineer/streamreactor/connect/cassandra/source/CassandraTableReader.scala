@@ -62,7 +62,6 @@ class CassandraTableReader(private val session: Session,
   private var tableOffset: Option[Date] = buildOffsetMap(context)
   private val partition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
   private val routeMapping = setting.routes
-  private val fields = routeMapping.getFieldAlias.map(fa => (fa.getField, "'" + fa.getAlias + "'")).toMap
   private val schemaName = s"$keySpace.$table".replace('-', '.')
 
   /**
@@ -89,7 +88,7 @@ class CassandraTableReader(private val session: Session,
     //if no columns set then select the whole table
     val f = if (faList == null || faList.isEmpty) "*" else faList.mkString(",")
     logger.info(s"the fields to select are $f")
-
+    
     val selectStatement = if (setting.bulkImportMode) {
       s"SELECT $f FROM $keySpace.$table"
     } else {
@@ -98,12 +97,16 @@ class CassandraTableReader(private val session: Session,
         s"WHERE $timestampCol > maxTimeuuid(?) AND $timestampCol <= minTimeuuid(?) " + " ALLOW FILTERING"
     }
 
-    if (!setting.bulkImportMode && !f.contains(timestampCol)) {
-      val msg = s"the timestamp column ($timestampCol) must appear in the SELECT statement"
-      logger.error(msg)
-      throw new ConfigException(msg)
+    // if we are in incremental mode
+    // we need to have the time stamp column
+    if (!setting.bulkImportMode) {
+      if (!f.contains(timestampCol) && !f.contentEquals("*")) {
+        val msg = s"the timestamp column ($timestampCol) must appear in the SELECT statement"
+        logger.error(msg)
+        throw new ConfigException(msg)
+      }
     }
-
+    
     val statement = session.prepare(selectStatement)
     setting.consistencyLevel.foreach(statement.setConsistencyLevel)
     statement
@@ -244,9 +247,10 @@ class CassandraTableReader(private val session: Session,
    */
   private def processRow(row: Row) = {
     //convert the cassandra row to a struct
-    val struct = CassandraUtils.convert(row, schemaName)
-    //get the offset for this value
+    val ignoreList = setting.routes.getIgnoredField.map(next => next).toList
+    val struct = CassandraUtils.convert(row, schemaName, ignoreList)
 
+    //get the offset for this value
     val rowOffset: Date = if (setting.bulkImportMode) tableOffset.get else extractTimestamp(row)
     val offset: String = dateFormatter.format(rowOffset)
 
