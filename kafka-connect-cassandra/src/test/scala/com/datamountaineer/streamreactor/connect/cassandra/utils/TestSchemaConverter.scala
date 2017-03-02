@@ -28,6 +28,7 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
+import org.apache.kafka.connect.errors.DataException
 
 /**
   * Created by andrew@datamountaineer.com on 21/04/16.
@@ -51,12 +52,42 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     val cols = TestUtils.getColumnDefs
     when(row.getColumnDefinitions).thenReturn(cols)
     mockRow(row)
-    val sr: Struct = CassandraUtils.convert(row, "test")
+    val sr: Struct = CassandraUtils.convert(row, "test", null)
     val schema = sr.schema()
     checkCols(schema)
     sr.get("timeuuidCol").toString shouldBe uuid.toString
     sr.get("intCol") shouldBe 0
     sr.get("mapCol") shouldBe "{}"
+  }
+
+  "should convert a Cassandra row to a SourceRecord and ignore some" in {
+    val row = mock[Row]
+    val cols = TestUtils.getColumnDefs
+    when(row.getColumnDefinitions).thenReturn(cols)
+    mockRow(row)
+
+    val ignoreList = List("intCol", "floatCol")
+
+    val sr: Struct = CassandraUtils.convert(row, "test", ignoreList)
+    sr.get("timeuuidCol").toString shouldBe uuid.toString
+    sr.get("mapCol") shouldBe "{}"
+
+    try {
+      sr.get("intCol")
+      fail()
+    } 
+    catch {
+      case _: DataException => // Expected, so continue
+    }
+
+    try {
+      sr.get("floatCol")
+      fail()
+    } 
+    catch {
+      case _: DataException => // Expected, so continue
+    }
+
   }
 
 

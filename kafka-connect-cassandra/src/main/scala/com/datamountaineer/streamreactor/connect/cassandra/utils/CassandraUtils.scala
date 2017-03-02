@@ -63,13 +63,21 @@ object CassandraUtils {
     * @param row The Cassandra resultset row to convert
     * @return a SourceRecord
     * */
-  def convert(row: Row, name: String) : Struct = {
+  def convert(row: Row, name: String, ignoreList: List[String]) : Struct = {
     //TODO do we need to get the list of columns everytime?
 
     val cols = row.getColumnDefinitions
-    val connectSchema = convertToConnectSchema(cols.toList, name)
+    
+    val colFiltered = if (ignoreList != null && ignoreList.size > 0) {
+      cols.filter(cd => !ignoreList.contains(cd.getName)).toList
+    } 
+    else {
+      cols.toList
+    }
+    
+    val connectSchema = convertToConnectSchema(colFiltered, name)
     val struct = new Struct(connectSchema)
-    cols.map(c => struct.put(c.getName, mapTypes(c, row))).head
+    colFiltered.map(c => struct.put(c.getName, mapTypes(c, row))).head
     struct
   }
 
