@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.coap.connection
 
 import java.net.{ConnectException, URI}
 
-import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConfig, CoapConstants, CoapSetting}
+import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSetting}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.eclipse.californium.core.network.CoapEndpoint
 import org.eclipse.californium.core.network.config.NetworkConfig

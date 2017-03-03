@@ -17,9 +17,9 @@
 package com.datamountaineer.streamreactor.connect.voltdb
 
 import java.util
-import java.util.{Timer, TimerTask}
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
+import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.datamountaineer.streamreactor.connect.voltdb.config.{VoltSettings, VoltSinkConfig}
 import com.datamountaineer.streamreactor.connect.voltdb.writers.VoltDbWriter
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -28,7 +28,6 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable
 
 /**
   * <h1>VoltSinkTask</h1>
@@ -38,17 +37,7 @@ import scala.collection.mutable
 class VoltSinkTask extends SinkTask with StrictLogging {
 
   var writer: Option[VoltDbWriter] = None
-  private val counter = mutable.Map.empty[String, Long]
-  private var timestamp: Long = 0
-
-  class LoggerTask extends TimerTask {
-    override def run(): Unit = logCounts()
-  }
-
-  def logCounts(): mutable.Map[String, Long] = {
-    counter.foreach( { case (k,v) => logger.info(s"Delivered $v records for $k.") })
-    counter.empty
-  }
+  private val progressCounter = new ProgressCounter
 
   /**
     * Parse the configurations and setup the writer
@@ -93,15 +82,8 @@ class VoltSinkTask extends SinkTask with StrictLogging {
     }
     else {
       require(writer.nonEmpty, "Writer is not set!")
-      logger.info(s"Received ${records.size()} record(-s)")
       writer.foreach(w => w.write(records.toSeq))
-      logger.info("Records handled")
-      records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
-      val newTimestamp = System.currentTimeMillis()
-      if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
-        logCounts()
-      }
-      timestamp = newTimestamp
+      progressCounter.update(records.toVector)
     }
   }
 

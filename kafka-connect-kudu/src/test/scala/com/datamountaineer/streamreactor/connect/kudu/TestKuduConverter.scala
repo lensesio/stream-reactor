@@ -22,8 +22,8 @@ import org.kududb.client.{KuduTable, Upsert}
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 
-import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 04/03/16. 

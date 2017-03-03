@@ -16,12 +16,13 @@
 
 package com.datamountaineer.streamreactor.connect.ftp
 
+import java.util
+
 import com.datamountaineer.streamreactor.connect.ftp.KeyStyle.KeyStyle
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 import scala.collection.JavaConverters._
-import java.util
 
 // abstracts the properties away a bit
 class FtpSourceConfig(props: util.Map[String, String])

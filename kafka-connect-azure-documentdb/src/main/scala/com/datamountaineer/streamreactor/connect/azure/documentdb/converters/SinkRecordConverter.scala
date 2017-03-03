@@ -25,7 +25,6 @@ import com.microsoft.azure.documentdb.Document
 import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.sink.SinkRecord
-import org.json.JSONObject
 import org.json4s.JValue
 import org.json4s.JsonAST._
 

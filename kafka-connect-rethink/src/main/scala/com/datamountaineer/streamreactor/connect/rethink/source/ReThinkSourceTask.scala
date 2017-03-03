@@ -17,17 +17,16 @@
 package com.datamountaineer.streamreactor.connect.rethink.source
 
 import java.util
-import java.util.{Timer, TimerTask}
 
 import akka.actor.{ActorRef, ActorSystem}
 import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkSourceConfig
 import com.datamountaineer.streamreactor.connect.rethink.source.ReThinkSourceReader.{StartChangeFeed, StopChangeFeed}
+import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.rethinkdb.RethinkDB
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -37,13 +36,9 @@ import scala.concurrent.duration._
   */
 class ReThinkSourceTask extends SourceTask with StrictLogging {
   private var readers : Set[ActorRef] = _
-  private var timestamp: Long = 0
-  private val counter = mutable.Map.empty[String, Long]
   implicit val system = ActorSystem()
 
-  class LoggerTask extends TimerTask {
-    override def run(): Unit = logCounts()
-  }
+  private var progressCounter = new ProgressCounter
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/rethink-source-ascii.txt")).mkString)
@@ -59,22 +54,12 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
     readers.foreach( _ ! StartChangeFeed)
   }
 
-  def logCounts(): mutable.Map[String, Long] = {
-    counter.foreach( { case (k,v) => logger.info(s"Delivered $v records for $k.") })
-    counter.empty
-  }
-
   /**
     * Read from readers queue
     * */
   override def poll(): util.List[SourceRecord] = {
    val records = readers.flatMap(ActorHelper.askForRecords).toList
-   records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
-    val newTimestamp = System.currentTimeMillis()
-    if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
-      logCounts()
-    }
-    timestamp = newTimestamp
+   progressCounter.update(records.toVector)
    records
   }
 
@@ -84,7 +69,7 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
   override def stop(): Unit = {
     logger.info("Stopping ReThink source and closing connections.")
     readers.foreach(_ ! StopChangeFeed)
-    counter.empty
+    progressCounter.empty
     Await.ready(system.terminate(), 1.minute)
   }
 

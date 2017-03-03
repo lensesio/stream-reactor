@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.coap.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.coap.configs.{CoapSinkConfig}
+import com.datamountaineer.streamreactor.connect.coap.configs.CoapSinkConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
