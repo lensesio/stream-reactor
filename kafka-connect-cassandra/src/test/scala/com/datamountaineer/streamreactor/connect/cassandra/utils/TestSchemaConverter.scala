@@ -52,7 +52,8 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     val cols = TestUtils.getColumnDefs
     when(row.getColumnDefinitions).thenReturn(cols)
     mockRow(row)
-    val sr: Struct = CassandraUtils.convert(row, "test", null)
+    val colDefList = CassandraUtils.getStructColumns(row, null)
+    val sr: Struct = CassandraUtils.convert(row, "test", colDefList)
     val schema = sr.schema()
     checkCols(schema)
     sr.get("timeuuidCol").toString shouldBe uuid.toString
@@ -67,8 +68,9 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     mockRow(row)
 
     val ignoreList = List("intCol", "floatCol")
-
-    val sr: Struct = CassandraUtils.convert(row, "test", ignoreList)
+    val colDefList = CassandraUtils.getStructColumns(row, ignoreList)
+    val sr: Struct = CassandraUtils.convert(row, "test", colDefList)
+    
     sr.get("timeuuidCol").toString shouldBe uuid.toString
     sr.get("mapCol") shouldBe "{}"
 

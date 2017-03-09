@@ -38,6 +38,7 @@ import scala.util.{Failure, Success, Try}
 import java.util.Arrays.ArrayList
 import java.util.ArrayList
 import org.apache.kafka.common.config.ConfigException
+import org.apache.kafka.connect.data.Schema
 
 /**
  * Created by andrew@datamountaineer.com on 20/04/16.
@@ -58,11 +59,13 @@ class CassandraTableReader(private val session: Session,
   private val table = setting.routes.getSource
   private val topic = setting.routes.getTarget
   private val keySpace = setting.keySpace
+  private val selectColumns = getSelectColumns
   private val preparedStatement = getPreparedStatements
   private var tableOffset: Option[Date] = buildOffsetMap(context)
-  private val partition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
+  private val sourcePartition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
   private val routeMapping = setting.routes
   private val schemaName = s"$keySpace.$table".replace('-', '.')
+
 
   /**
    * Build a map of table to offset.
@@ -81,18 +84,14 @@ class CassandraTableReader(private val session: Session,
   /**
    * Build a preparedStatement for the given table.
    *
-   * @return A map of table -> prepared statements..
+   * @return the PreparedStatement 
    */
   private def getPreparedStatements: PreparedStatement = {
-    val faList = setting.routes.getFieldAlias.map(next => next.getField).toList
-    //if no columns set then select the whole table
-    val f = if (faList == null || faList.isEmpty) "*" else faList.mkString(",")
-    logger.info(s"the fields to select are $f")
-    
+
     val selectStatement = if (setting.bulkImportMode) {
-      s"SELECT $f FROM $keySpace.$table"
+      s"SELECT $selectColumns FROM $keySpace.$table"
     } else {
-      s"SELECT $f " +
+      s"SELECT $selectColumns " +
         s"FROM $keySpace.$table " +
         s"WHERE $timestampCol > maxTimeuuid(?) AND $timestampCol <= minTimeuuid(?) " + " ALLOW FILTERING"
     }
@@ -100,7 +99,7 @@ class CassandraTableReader(private val session: Session,
     // if we are in incremental mode
     // we need to have the time stamp column
     if (!setting.bulkImportMode) {
-      if (!f.contains(timestampCol) && !f.contentEquals("*")) {
+      if (!selectColumns.contains(timestampCol) && !selectColumns.contentEquals("*")) {
         val msg = s"the timestamp column ($timestampCol) must appear in the SELECT statement"
         logger.error(msg)
         throw new ConfigException(msg)
@@ -111,6 +110,19 @@ class CassandraTableReader(private val session: Session,
     setting.consistencyLevel.foreach(statement.setConsistencyLevel)
     statement
   }
+  
+  /**
+   * get the columns for the SELECT statement
+   * @return the comma separated columns
+   */
+  private def getSelectColumns: String = {
+    val faList = setting.routes.getFieldAlias.map(next => next.getField).toList
+    
+    //if no columns set then select the whole table
+    val f = if (faList == null || faList.isEmpty) "*" else faList.mkString(",")
+    logger.info(s"the fields to select are $f")
+    f
+  }
 
   /**
    * Fires cassandra queries for the rows in a loop incrementing the timestamp
@@ -118,16 +130,10 @@ class CassandraTableReader(private val session: Session,
    */
   def read(): Unit = {
     if (!stop.get()) {
-
-      if (setting.bulkImportMode & !queue.isEmpty) {
-        logger.info(s"Entries still pending drainage from the queue for $keySpace.$table!" +
-          s" Not submitting query till empty.")
-      }
-
       val newPollTime = System.currentTimeMillis()
 
       if (querying.get()) {
-        //checking we are querying here,don't issue another query for the table if we querying,
+        // don't issue another query for the table if we are querying,
         // maintain incremental order
         logger.debug(s"Still querying for $keySpace.$table. Current queue size in ${queue.size()}.")
       } 
@@ -143,9 +149,8 @@ class CassandraTableReader(private val session: Session,
   }
 
   private def query() = {
-    //execute the query
+    // we are going to execute the query
     querying.set(true)
-    //logger.info(s"Setting up new query for ${setting.table}.")
 
     //if the tableoffset has been set use it as the lower bound else get default (1900-01-01) for first query
     val lowerBound = if (tableOffset.isEmpty) dateFormatter.parse(defaultTimestamp) else tableOffset.get
@@ -160,7 +165,8 @@ class CassandraTableReader(private val session: Session,
       resultSetFutureToScala(bindAndFireQuery(lowerBound, upperBound))
     }
 
-    //give futureresultset to the process method to extract records,once complete it will update the tableoffset timestamp
+    //give futureresultset to the process method to extract records,
+    //once complete it will update the tableoffset timestamp
     process(frs)
   }
 
@@ -194,8 +200,8 @@ class CassandraTableReader(private val session: Session,
   }
 
   /**
-   * Iterate over the resultset, extract SinkRecords
-   * and add to the queue.
+   * Iterate over the resultset, extract SourceRecords
+   * and add them to the queue.
    *
    * @param f Cassandra Future ResultSet to iterate over.
    */
@@ -248,7 +254,8 @@ class CassandraTableReader(private val session: Session,
   private def processRow(row: Row) = {
     //convert the cassandra row to a struct
     val ignoreList = setting.routes.getIgnoredField.map(next => next).toList
-    val struct = CassandraUtils.convert(row, schemaName, ignoreList)
+    val structColDefs = CassandraUtils.getStructColumns(row, ignoreList)
+    val struct = CassandraUtils.convert(row, schemaName, structColDefs)
 
     //get the offset for this value
     val rowOffset: Date = if (setting.bulkImportMode) tableOffset.get else extractTimestamp(row)
@@ -257,9 +264,15 @@ class CassandraTableReader(private val session: Session,
     logger.info(s"Storing offset $offset")
 
     //create source record
-    val record = new SourceRecord(partition, Map(timestampCol -> offset), topic, struct.schema(), struct)
+    val withunwrap = false // this will be read from the KCQL when it is available
+    val record = if (withunwrap) {
+      val structValue = structColDefs.map(d => d.getName).mkString(",")
+      new SourceRecord(sourcePartition, Map(timestampCol -> offset), topic, Schema.STRING_SCHEMA, structValue)
+    } else {
+      new SourceRecord(sourcePartition, Map(timestampCol -> offset), topic, struct.schema(), struct)
+    }
 
-    //add to queue
+    //add source record to queue
     logger.debug(s"Attempting to put SourceRecord ${record.toString} on queue for $keySpace.$table.")
     if (queue.offer(record)) {
       logger.debug(s"Successfully enqueued SourceRecord ${record.toString}.")
