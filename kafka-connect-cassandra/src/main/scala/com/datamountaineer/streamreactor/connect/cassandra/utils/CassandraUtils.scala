@@ -27,6 +27,7 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConversions._
+import com.datastax.driver.core.ColumnDefinitions
 
 /**
   * Created by andrew@datamountaineer.com on 21/04/16.
@@ -57,15 +58,14 @@ object CassandraUtils {
     if (missing.nonEmpty) throw new ConnectException(s"No tables found in Cassandra for topics ${missing.mkString(",")}")
   }
 
+  
   /**
-    * Convert a Cassandra row to a SourceRecord
-    *
-    * @param row The Cassandra resultset row to convert
-    * @return a SourceRecord
-    * */
-  def convert(row: Row, name: String, ignoreList: List[String]) : Struct = {
+   * get the columns that are to be placed in the Source Record
+   * by removing the ignore columns from the select columns
+   * @return the comma separated columns
+   */
+  def getStructColumns(row :Row, ignoreList :List[String]): List[ColumnDefinitions.Definition] = {
     //TODO do we need to get the list of columns everytime?
-
     val cols = row.getColumnDefinitions
     
     val colFiltered = if (ignoreList != null && ignoreList.size > 0) {
@@ -74,10 +74,19 @@ object CassandraUtils {
     else {
       cols.toList
     }
-    
-    val connectSchema = convertToConnectSchema(colFiltered, name)
+    colFiltered
+  }
+  
+  /**
+    * Convert a Cassandra row to a SourceRecord
+    *
+    * @param row The Cassandra resultset row to convert
+    * @return a SourceRecord
+    * */
+  def convert(row: Row, schemaName: String, colDefList: List[ColumnDefinitions.Definition]) : Struct = {
+    val connectSchema = convertToConnectSchema(colDefList, schemaName)
     val struct = new Struct(connectSchema)
-    colFiltered.map(c => struct.put(c.getName, mapTypes(c, row))).head
+    colDefList.map(c => struct.put(c.getName, mapTypes(c, row))).head
     struct
   }
 
