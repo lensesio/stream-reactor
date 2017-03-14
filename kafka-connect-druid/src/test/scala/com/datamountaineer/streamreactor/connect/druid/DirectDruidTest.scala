@@ -26,18 +26,18 @@ import com.google.common.io.{CharStreams, Files}
 import com.google.inject.Injector
 import com.metamx.collections.spatial.search.RectangularBound
 import com.metamx.common.lifecycle.Lifecycle
-import com.metamx.common.scala.{Jackson, Logging}
 import com.metamx.common.scala.Predef._
 import com.metamx.common.scala.concurrent._
 import com.metamx.common.scala.control._
 import com.metamx.common.scala.timekeeper.Timekeeper
 import com.metamx.common.scala.untyped._
+import com.metamx.common.scala.{Jackson, Logging}
 import io.druid.cli.{CliBroker, CliCoordinator, CliOverlord, GuiceRunnable}
 import io.druid.granularity.QueryGranularities
 import io.druid.guice.GuiceInjectors
-import io.druid.query.{Druids, Query}
 import io.druid.query.aggregation.{AggregatorFactory, LongSumAggregatorFactory}
 import io.druid.query.filter.SpatialDimFilter
+import io.druid.query.{Druids, Query}
 import io.druid.server.ClientQuerySegmentWalker
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.BoundedExponentialBackoffRetry

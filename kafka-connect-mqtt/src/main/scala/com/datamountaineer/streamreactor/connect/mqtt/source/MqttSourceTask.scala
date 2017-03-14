@@ -18,32 +18,21 @@ package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import java.io.File
 import java.util
-import java.util.{Timer, TimerTask}
 
 import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttSourceConfig, MqttSourceSettings}
+import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 class MqttSourceTask extends SourceTask with StrictLogging {
   private var mqttManager: Option[MqttManager] = None
-  private val counter = mutable.Map.empty[String, Long]
-  private var timestamp: Long = 0
-
-  class LoggerTask extends TimerTask {
-    override def run(): Unit = logCounts()
-  }
-
-  def logCounts(): mutable.Map[String, Long] = {
-    counter.foreach( { case (k,v) => logger.info(s"Delivered $v records for $k.") })
-    counter.empty
-  }
+  private val progressCounter = new ProgressCounter
 
   override def start(props: util.Map[String, String]): Unit = {
 
@@ -94,14 +83,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
       list
     }.orNull
 
-    records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
-
-    val newTimestamp = System.currentTimeMillis()
-    if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
-      logCounts()
-    }
-    timestamp = newTimestamp
-
+    progressCounter.update(records.toVector)
     records
   }
 
@@ -111,6 +93,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
   override def stop(): Unit = {
     logger.info("Stopping Mqtt source.")
     mqttManager.foreach(_.close())
+    progressCounter.empty()
   }
 
   override def version(): String = getClass.getPackage.getImplementationVersion

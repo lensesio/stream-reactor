@@ -193,6 +193,8 @@ object SinkRecordConverter {
           case JInt(i) => i.toLong //need to do this because of mongo
           case JLong(l) => l
           case JString(s) => s
+          case JNothing => null
+          case JNull => null
           case arr: JArray => convertArray(arr)
         }.foreach(list.add)
         list

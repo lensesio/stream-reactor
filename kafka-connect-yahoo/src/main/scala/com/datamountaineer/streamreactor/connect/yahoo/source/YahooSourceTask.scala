@@ -18,31 +18,20 @@ package com.datamountaineer.streamreactor.connect.yahoo.source
 
 import java.util
 import java.util.logging.Logger
-import java.util.{Timer, TimerTask}
 
+import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.datamountaineer.streamreactor.connect.yahoo.config.{YahooSettings, YahooSourceConfig}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
-import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 
 class YahooSourceTask extends SourceTask with YahooSourceConfig {
   val logger: Logger = Logger.getLogger(getClass.getName)
-  private val counter = mutable.Map.empty[String, Long]
-  private var timestamp: Long = 0
-
-  class LoggerTask extends TimerTask {
-    override def run(): Unit = logCounts()
-  }
-
-  def logCounts(): mutable.Map[String, Long] = {
-    counter.foreach( { case (k,v) => logger.info(s"Delivered $v records for $k.") })
-    counter.empty
-  }
+  private val progressCounter = new ProgressCounter
 
   private var taskConfig: Option[AbstractConfig] = None
   private var dataManager: Option[DataRetrieverManager] = None
@@ -109,13 +98,7 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
   override def poll(): util.List[SourceRecord] = {
     logger.info("Polling for Yahoo records...")
     val records = dataManager.map(_.getRecords).getOrElse(new util.ArrayList[SourceRecord]())
-    logger.info(s"Returning ${records.size()} record(-s) from Yahoo source")
-    records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
-    val newTimestamp = System.currentTimeMillis()
-    if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
-      logCounts()
-    }
-    timestamp = newTimestamp
+    progressCounter.update(records.toVector)
     records
   }
 
@@ -127,6 +110,7 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
     logger.info("Stopping Yahoo source...")
     dataManager.foreach(_.close())
     logger.info("Yahoo data retriever stopped.")
+    progressCounter.empty()
   }
 
   /**

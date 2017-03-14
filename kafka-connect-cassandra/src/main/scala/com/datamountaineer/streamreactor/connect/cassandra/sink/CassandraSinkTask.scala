@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
+import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -26,7 +27,6 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -37,15 +37,10 @@ import scala.util.{Failure, Success, Try}
   **/
 class CassandraSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[CassandraJsonWriter] = None
-  private var timestamp: Long = 0
-
-  private val counter = mutable.Map.empty[String, Long]
+  private val progressCounter = new ProgressCounter
   logger.info("Task initialising")
 
-  private def logCounts(): mutable.Map[String, Long] = {
-    counter.foreach({ case (k, v) => logger.info(s"Delivered $v records for $k.") })
-    counter.empty
-  }
+
 
   /**
     * Parse the configurations and setup the writer
@@ -79,13 +74,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     writer.foreach(w => w.write(records.toVector))
-    records.foreach(r => counter.put(r.topic(), counter.getOrElse(r.topic(), 0L) + 1L))
-
-    val newTimestamp = System.currentTimeMillis()
-    if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
-      logCounts()
-    }
-    timestamp = newTimestamp
+    progressCounter.update(records.toVector)
   }
 
   /**
@@ -94,7 +83,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
   override def stop(): Unit = {
     logger.info("Stopping Cassandra sink.")
     writer.foreach(w => w.close())
-    counter.empty
+    progressCounter.empty
   }
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}

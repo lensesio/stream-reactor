@@ -29,13 +29,11 @@ import com.rethinkdb.RethinkDB
 import com.rethinkdb.net.{Connection, Cursor}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.SchemaBuilder
-import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceRecord
 
 import scala.collection.JavaConverters._
-import scala.collection.JavaConversions._
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 /**
   * Created by andrew@datamountaineer.com on 22/09/16. 

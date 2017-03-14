@@ -17,34 +17,22 @@
 package com.datamountaineer.streamreactor.connect.blockchain.source
 
 import java.util
-import java.util.{Timer, TimerTask}
 
 import com.datamountaineer.streamreactor.connect.blockchain.config.{BlockchainConfig, BlockchainSettings}
+import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import io.confluent.common.config.ConfigException
 import org.apache.kafka.common.config.AbstractConfig
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 class BlockchainSourceTask extends SourceTask with StrictLogging {
 
   private var taskConfig: Option[AbstractConfig] = None
   private var blockchainManager: Option[BlockchainManager] = None
-
-  private val counter = mutable.Map.empty[String, Long]
-  private var timestamp: Long = 0
-
-  class LoggerTask extends TimerTask {
-    override def run(): Unit = logCounts()
-  }
-
-  def logCounts(): mutable.Map[String, Long] = {
-    counter.foreach({ case (k, v) => logger.info(s"Delivered $v records for $k.") })
-    counter.empty
-  }
+  private val progressCounter = new ProgressCounter()
 
   /**
     * Starts the Blockchain source, parsing the options and setting up the reader.
@@ -66,7 +54,6 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
     blockchainManager = Some(new BlockchainManager(settings))
     blockchainManager.foreach(_.start())
     logger.info("Data manager started")
-
   }
 
   /**
@@ -79,12 +66,7 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
   override def poll(): util.List[SourceRecord] = {
     val records = blockchainManager.map(_.get()).getOrElse(new util.ArrayList[SourceRecord]())
     logger.debug(s"Returning ${records.size()} record(-s) from Blockchain source")
-    records.foreach(r => counter.put(r.topic(), counter.getOrElse(r.topic(), 0L) + 1L))
-    val newTimestamp = System.currentTimeMillis()
-    if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
-      logCounts()
-    }
-    timestamp = newTimestamp
+    progressCounter.update(records.toVector)
     records
   }
 

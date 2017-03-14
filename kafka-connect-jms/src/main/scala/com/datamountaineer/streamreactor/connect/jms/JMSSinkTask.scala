@@ -17,18 +17,17 @@
 package com.datamountaineer.streamreactor.connect.jms
 
 import java.util
-import java.util.{Timer, TimerTask}
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.jms.sink.config.{JMSSettings, JMSSinkConfig}
 import com.datamountaineer.streamreactor.connect.jms.sink.writer.JMSWriter
+import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable
 
 /**
   * <h1>JMSSinkTask</h1>
@@ -38,17 +37,7 @@ import scala.collection.mutable
 class JMSSinkTask extends SinkTask with StrictLogging {
 
   var writer: Option[JMSWriter] = None
-  private val counter = mutable.Map.empty[String, Long]
-  private var timestamp: Long = 0
-
-  class LoggerTask extends TimerTask {
-    override def run(): Unit = logCounts()
-  }
-
-  def logCounts(): mutable.Map[String, Long] = {
-    counter.foreach( { case (k,v) => logger.info(s"Delivered $v records for $k.") })
-    counter.empty
-  }
+  private val progressCounter = new ProgressCounter
 
   /**
     * Parse the configurations and setup the writer
@@ -92,13 +81,7 @@ class JMSSinkTask extends SinkTask with StrictLogging {
     else {
       require(writer.nonEmpty, "Writer is not set!")
       writer.foreach(w => w.write(records.toStream))
-      records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
-
-      val newTimestamp = System.currentTimeMillis()
-      if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
-        logCounts()
-      }
-      timestamp = newTimestamp
+      progressCounter.update(records.toVector)
     }
   }
 
@@ -108,6 +91,7 @@ class JMSSinkTask extends SinkTask with StrictLogging {
   override def stop(): Unit = {
     logger.info("Stopping Hbase sink.")
     writer.foreach(w => w.close())
+    progressCounter.empty()
   }
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {
