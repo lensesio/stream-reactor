@@ -63,7 +63,6 @@ object MapMessageBuilderFn {
           MapMessageBuilderFn(f.name(), struct.get(f), f.schema(), nestedMsg, session)
         }
         msg.setObject(fieldName, nestedMsg)
-
     }
   }
 }

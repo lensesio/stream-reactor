@@ -14,9 +14,15 @@
  *  limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.jms.sink.config
+package com.datamountaineer.streamreactor.connect.jms.config
 
 sealed trait DestinationType
 
 case object TopicDestination extends DestinationType
 case object QueueDestination extends DestinationType
+
+
+object DestinationSelector extends Enumeration {
+  type DestinationSelector = Value
+  val CDI, JNDI = Value
+}
