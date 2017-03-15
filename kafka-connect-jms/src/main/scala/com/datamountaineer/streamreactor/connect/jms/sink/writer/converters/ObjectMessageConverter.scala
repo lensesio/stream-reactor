@@ -63,7 +63,6 @@ object ObjectMessageConverterFn {
           ObjectMessageConverterFn(f.name(), struct.get(f), f.schema(), nestedMsg, session)
         }
         msg.setObjectProperty(fieldName, nestedMsg)
-
     }
   }
 }

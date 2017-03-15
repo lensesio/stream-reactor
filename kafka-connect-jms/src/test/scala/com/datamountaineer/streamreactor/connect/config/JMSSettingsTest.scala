@@ -16,118 +16,157 @@
 
 package com.datamountaineer.streamreactor.connect.config
 
-import com.datamountaineer.connector.config.FormatType
-import com.datamountaineer.streamreactor.connect.jms.JMSSinkTask
-import com.datamountaineer.streamreactor.connect.jms.sink.config._
-import io.confluent.common.config.ConfigException
-import org.apache.activemq.ActiveMQConnectionFactory
-import org.scalatest.{Matchers, WordSpec}
+import com.datamountaineer.streamreactor.connect.TestBase
+import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
+import com.datamountaineer.streamreactor.connect.jms.config._
+import org.apache.kafka.common.config.ConfigException
 
-import scala.collection.JavaConversions._
+class JMSSettingsTest extends TestBase {
 
-class JMSSettingsTest extends WordSpec with Matchers {
-  "JMSSettingsTest" should {
-    "create a new instance" in {
-      val config = JMSSinkConfig(
-        Map(
-          JMSSinkConfig.JMS_URL -> "tcp://localhost",
-          JMSSinkConfig.CONNECTION_FACTORY -> classOf[ActiveMQConnectionFactory].getCanonicalName,
-          JMSSinkConfig.EXPORT_ROUTE_QUERY -> "INSERT INTO mqtopic1 SELECT * FROM kafkaTopic1 WITHFORMAT AVRO;INSERT INTO mqqueue1 SELECT c1,c2 as calias FROM kafkaTopic2",
-          JMSSinkConfig.TOPICS_LIST -> "mqtopic1",
-          JMSSinkConfig.QUEUES_LIST -> "mqqueue1",
-          JMSSinkConfig.JMS_USER -> "user1",
-          JMSSinkConfig.JMS_PASSWORD -> "password1"
-        ))
+  "should create a JMSSettings for a source with only 1 queue for a source" in {
+    val props = getProps1Queue
+    val config = JMSConfig(props)
+    val settings = JMSSettings(config, false)
+    val setting = settings.settings.head
+    setting.source shouldBe QUEUE1
+    setting.target shouldBe TOPIC1
+    setting.includeAllFields shouldBe true
+    setting.fieldsAlias.isEmpty shouldBe true
+    setting.sourceConverters shouldBe None
+    setting.destinationType shouldBe QueueDestination
+    settings.connectionURL shouldBe JMS_URL
 
-      val settings = JMSSettings(config)
-      settings.user shouldBe Some("user1")
-      settings.password shouldBe Some("password1")
-      settings.connectionFactoryClass shouldBe classOf[ActiveMQConnectionFactory]
-      settings.routes.size shouldBe 2
+  }
 
-      val r1 = settings.routes.head
-      r1.target shouldBe "mqtopic1"
-      r1.destinationType shouldBe TopicDestination
-      r1.fieldsAlias shouldBe Map.empty
-      r1.source shouldBe "kafkaTopic1"
-      r1.format shouldBe FormatType.AVRO
+  "should create a JMSSettings for a source with only 1 topic for a source" in {
+    val props = getProps1Topic
+    val config = JMSConfig(props)
+    val settings = JMSSettings(config, false)
+    val setting = settings.settings.head
+    setting.source shouldBe TOPIC1
+    setting.target shouldBe TOPIC1
+    setting.includeAllFields shouldBe true
+    setting.fieldsAlias.isEmpty shouldBe true
+    setting.sourceConverters shouldBe None
+    setting.destinationType shouldBe TopicDestination
+    settings.connectionURL shouldBe JMS_URL
+  }
 
-      val r2 = settings.routes.tail.head
-      r2.target shouldBe "mqqueue1"
-      r2.destinationType shouldBe QueueDestination
-      r2.fieldsAlias shouldBe Map("c1" -> "c1", "c2" -> "calias")
-      r2.source shouldBe "kafkaTopic2"
-      r2.format shouldBe FormatType.JSON
+  "should create a JMSSettings for a source with only 1 topic with JNDI for a source" in {
+    val props = getProps1TopicJNDI
+    val config = JMSConfig(props)
+    val settings = JMSSettings(config, false)
+    val setting = settings.settings.head
+    setting.source shouldBe TOPIC1
+    setting.target shouldBe TOPIC1
+    setting.includeAllFields shouldBe true
+    setting.fieldsAlias.isEmpty shouldBe true
+    setting.sourceConverters shouldBe None
+    setting.destinationType shouldBe TopicDestination
+    settings.destinationSelector shouldBe DestinationSelector.JNDI
+    settings.connectionURL shouldBe JMS_URL
+  }
 
+  "should create a JMSSettings for a source with only 1 topic, 1 queue and JNDI for a source" in {
+    val props = getPropsMixJNDI
+    val config = JMSConfig(props)
+    val settings = JMSSettings(config, false)
+    val queue = settings.settings.head
+    queue.source shouldBe QUEUE1
+    queue.target shouldBe TOPIC1
+    queue.includeAllFields shouldBe true
+    queue.fieldsAlias.isEmpty shouldBe true
+    queue.sourceConverters shouldBe None
+    queue.destinationType shouldBe QueueDestination
+
+    val topic = settings.settings.last
+    topic.source shouldBe TOPIC1
+    topic.target shouldBe TOPIC1
+    topic.includeAllFields shouldBe true
+    topic.fieldsAlias.isEmpty shouldBe true
+    topic.sourceConverters shouldBe None
+    topic.destinationType shouldBe TopicDestination
+
+    settings.destinationSelector shouldBe DestinationSelector.JNDI
+    settings.connectionURL shouldBe JMS_URL
+  }
+
+  "should create a JMSSettings for a source with only 1 topic, 1 queue and JNDI and converters for a source" in {
+    val props = getPropsMixJNDIWithConverter
+    val config = JMSConfig(props)
+    val settings = JMSSettings(config, false)
+    val queue = settings.settings.head
+    queue.source shouldBe QUEUE1
+    queue.target shouldBe TOPIC1
+    queue.includeAllFields shouldBe true
+    queue.fieldsAlias.isEmpty shouldBe true
+    queue.sourceConverters shouldBe None
+    queue.destinationType shouldBe QueueDestination
+
+    val topic = settings.settings.last
+    topic.source shouldBe TOPIC1
+    topic.target shouldBe TOPIC1
+    topic.includeAllFields shouldBe true
+    topic.fieldsAlias.isEmpty shouldBe true
+    topic.destinationType shouldBe TopicDestination
+    topic.sourceConverters.get.isInstanceOf[AvroConverter] shouldBe true
+
+    settings.destinationSelector shouldBe DestinationSelector.JNDI
+    settings.connectionURL shouldBe JMS_URL
+  }
+
+  "should create a JMSSettings for a source with only 1 topic, 1 queue and JNDI and converters for a sink" in {
+    val props = getPropsMixJNDIWithConverterSink()
+    val config = JMSConfig(props)
+    val settings = JMSSettings(config, true)
+    val queue = settings.settings.head
+    queue.source shouldBe TOPIC2
+    queue.target shouldBe QUEUE1
+    queue.includeAllFields shouldBe true
+    queue.fieldsAlias.isEmpty shouldBe true
+    queue.sourceConverters shouldBe None
+
+    val topic = settings.settings.last
+    topic.source shouldBe TOPIC1
+    topic.target shouldBe TOPIC1
+    topic.includeAllFields shouldBe true
+    topic.fieldsAlias.isEmpty shouldBe true
+    topic.destinationType shouldBe TopicDestination
+
+    settings.destinationSelector shouldBe DestinationSelector.JNDI
+    settings.connectionURL shouldBe JMS_URL
+  }
+
+  "should throw an exception if the topics list is not provided for a source" in {
+    val props = getPropsTopicListIncorrect
+    val config = JMSConfig(props)
+    intercept[ConfigException] {
+      JMSSettings(config, false)
     }
+  }
 
-//    "throw an exception if the config provides routes for kafka topics not configured for the connector" in {
-//      intercept[ConfigException] {
-//        val config = JMSSinkConfig(
-//          Map(
-//            JMSSinkConfig.JMS_URL -> "tcp://localhost",
-//            JMSSinkConfig.CONNECTION_FACTORY -> classOf[ActiveMQConnectionFactory].getCanonicalName,
-//            JMSSinkConfig.EXPORT_ROUTE_QUERY -> "INSERT INTO mqtopic1 SELECT * FROM kafkaTopic1;INSERT INTO mqqueue1 SELECT c1,c2 as calias FROM kafkaTopic2",
-//            JMSSinkConfig.TOPICS_LIST -> "mqtopic1",
-//            JMSSinkConfig.QUEUES_LIST -> "mqqueue1",
-//            JMSSinkConfig.MESSAGE_TYPE -> "AVRO",
-//            JMSSinkConfig.JMS_USER -> "user1",
-//            JMSSinkConfig.JMS_PASSWORD -> "password1"
-//          ))
-//
-//        JMSSettings(config)
-//      }
-//    }
-
-    "throw an exception if the config is missing to specify the target into the topics list" in {
-      intercept[ConfigException] {
-        val config = JMSSinkConfig(
-          Map(
-            JMSSinkConfig.JMS_URL -> "tcp://localhost",
-            JMSSinkConfig.CONNECTION_FACTORY -> classOf[ActiveMQConnectionFactory].getCanonicalName,
-            JMSSinkConfig.EXPORT_ROUTE_QUERY -> "INSERT INTO mqtopic1 SELECT * FROM kafkaTopic1;INSERT INTO mqqueue1 SELECT c1,c2 as calias FROM kafkaTopic2",
-            JMSSinkConfig.TOPICS_LIST -> "different topic",
-            JMSSinkConfig.QUEUES_LIST -> "mqqueue1",
-            JMSSinkConfig.JMS_USER -> "user1",
-            JMSSinkConfig.JMS_PASSWORD -> "password1"
-          ))
-
-        JMSSettings(config)
-      }
+  "should throw an exception if the topics list is not provided for a sink" in {
+    val props = getPropsTopicListIncorrect
+    val config = JMSConfig(props)
+    intercept[ConfigException] {
+      JMSSettings(config, true)
     }
+  }
 
-    "throw an exception if the config is missing to specify the target into the queues list" in {
-      intercept[ConfigException] {
-        val config = JMSSinkConfig(
-          Map(
-            JMSSinkConfig.JMS_URL -> "tcp://localhost",
-            JMSSinkConfig.CONNECTION_FACTORY -> classOf[ActiveMQConnectionFactory].getCanonicalName,
-            JMSSinkConfig.EXPORT_ROUTE_QUERY -> "INSERT INTO mqtopic1 SELECT * FROM kafkaTopic1 WITHFORMAT AVRO;INSERT INTO mqqueue1 SELECT c1,c2 as calias FROM kafkaTopic2",
-            JMSSinkConfig.TOPICS_LIST -> "mqtopic1",
-            JMSSinkConfig.QUEUES_LIST -> "mqqueueNotPresent",
-            JMSSinkConfig.JMS_USER -> "user1",
-            JMSSinkConfig.JMS_PASSWORD -> "password1"
-          ))
 
-        JMSSettings(config)
-      }
+  "throw an exception if the config is specifying a wrong connection factory for a source" in {
+    val props = getPropsBadFactory
+    val config = JMSConfig(props)
+    intercept[ConfigException] {
+      JMSSettings(config, false)
     }
+  }
 
-    "throw an exception if the config is specifying a wrong connection factory" in {
-      intercept[ConfigException] {
-        val config = JMSSinkConfig(
-          Map(
-            JMSSinkConfig.JMS_URL -> "tcp://localhost",
-            JMSSinkConfig.CONNECTION_FACTORY -> classOf[JMSSinkTask].getCanonicalName,
-            JMSSinkConfig.EXPORT_ROUTE_QUERY -> "INSERT INTO mqtopic1 SELECT * FROM kafkaTopic1;INSERT INTO mqqueue1 SELECT c1,c2 as calias FROM kafkaTopic2",
-            JMSSinkConfig.TOPICS_LIST -> "mqtopic1",
-            JMSSinkConfig.QUEUES_LIST -> "mqqueueNotPresent",
-            JMSSinkConfig.JMS_USER -> "user1",
-            JMSSinkConfig.JMS_PASSWORD -> "password1"
-          ))
-
-        JMSSettings(config)
-      }
+  "throw an exception if the config is specifying a wrong connection factory for a sink" in {
+    val props = getPropsBadFactory
+    val config = JMSConfig(props)
+    intercept[ConfigException] {
+      JMSSettings(config, true)
     }
   }
 }

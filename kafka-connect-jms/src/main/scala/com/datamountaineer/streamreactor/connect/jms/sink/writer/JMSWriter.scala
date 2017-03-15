@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.jms.sink.writer
 import javax.jms.{Connection, Destination, MessageProducer, Session}
 import javax.naming.InitialContext
 
-import com.datamountaineer.streamreactor.connect.jms.sink.config.{JMSConfig, JMSSettings, TopicDestination}
+import com.datamountaineer.streamreactor.connect.jms.config.{JMSSetting, JMSSettings, TopicDestination}
 import com.datamountaineer.streamreactor.connect.jms.sink.writer.converters.{JMSMessageConverter, JMSMessageConverterFn}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -30,10 +30,10 @@ import scala.util.Try
 
 case class JMSWriter(context: InitialContext,
                      connection: Connection,
-                     routes: Seq[JMSConfig]) extends AutoCloseable with ConverterUtil with StrictLogging {
+                     routes: Seq[JMSSetting]) extends AutoCloseable with ConverterUtil with StrictLogging {
   val session: Session = connection.createSession(true, 0)
 
-  val topicsMap: Map[String, (MessageProducer, JMSConfig)] = routes.map { route =>
+  val topicsMap: Map[String, (MessageProducer, JMSSetting)] = routes.map { route =>
     val destination = if (route.destinationType == TopicDestination) {
       session.createTopic(route.target)
     } else {
@@ -88,9 +88,9 @@ case class JMSWriter(context: InitialContext,
       session.commit()
     }
     catch {
-      case _: Throwable =>
+      case t: Throwable =>
         val first = records.head
-        logger.error(s"There was an error writing records from topic:${first.topic()}  partition:${first.kafkaPartition()} offset:${first.kafkaOffset()}")
+        logger.error(s"There was an error writing records from topic:${first.topic()}  partition:${first.kafkaPartition()} offset:${first.kafkaOffset()}", t)
         session.rollback()
     }
   }
@@ -111,10 +111,10 @@ object JMSWriter {
 
     val connection = settings.user match {
       case None => connectionFactory.createConnection()
-      case Some(user) => connectionFactory.createConnection(user, settings.password.get)
+      case Some(user) => connectionFactory.createConnection(user, settings.password.get.value())
     }
 
-    JMSWriter(context, connection, settings.routes)
+    JMSWriter(context, connection, settings.settings)
   }
 }
 
