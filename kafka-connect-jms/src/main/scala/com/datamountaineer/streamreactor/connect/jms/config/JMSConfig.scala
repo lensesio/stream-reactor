@@ -32,12 +32,8 @@ object JMSConfig {
   val JMS_PASSWORD = "connect.jms.password"
   private val JMS_PASSWORD_DOC = "Provides the password for the JMS connection"
 
-  val INITIAL_CONTEXT_FACTORY = "connect.jms.initial.context.factory"
-  private val INITIAL_CONTEXT_FACTORY_DOC = "Initial Context Factory, e.g: org.apache.activemq.jndi.ActiveMQInitialContextFactory"
-
   val CONNECTION_FACTORY = "connect.jms.connection.factory"
-  private val CONNECTION_FACTORY_DOC = "Provides the full class name for the ConnectionFactory implementation to use, e.g" +
-    "org.apache.activemq.ActiveMQConnectionFactory"
+  private val CONNECTION_FACTORY_DOC = "Provides the full class name for the ConnectionFactory implementation to use."
 
   val KCQL = "connect.jms.kcql"
   val KCQL_DOC =  "KCQL expression describing field selection and routes."
@@ -55,7 +51,7 @@ object JMSConfig {
   val ERROR_RETRY_INTERVAL = "connect.jms.retry.interval"
   val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
   val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
-  val NBR_OF_RETRIES = "connect.jms.max.retries"
+  val NBR_OF_RETRIES = "connect.jms.max.retires"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
@@ -83,20 +79,13 @@ object JMSConfig {
   val QUEUE_LIST = "connect.jms.queues"
   val QUEUE_LIST_DOC = "A comma separated list of JMS topics, must match the KCQL source or target JMS queues."
 
-  val EXTRA_PROPS = "connect.jms.initial.context.extra.params"
-  private val EXTRA_PROPS_DOC = "List (comma separated) of extra properties as key/value pairs with a colon delimiter to " +
-    "supply to the initial context e.g. SOLACE_JMS_VPN:my_solace_vp "
-  private val EXTRA_PROPS_DEFAULT = new util.ArrayList[String]
-
   val config: ConfigDef = new ConfigDef()
     .define(JMS_URL, Type.STRING, Importance.HIGH, JMS_URL_DOC,
       "Connection", 1, ConfigDef.Width.MEDIUM, JMS_URL)
-    .define(INITIAL_CONTEXT_FACTORY, Type.STRING, Importance.HIGH, INITIAL_CONTEXT_FACTORY_DOC,
-      "Connection", 2, ConfigDef.Width.MEDIUM, INITIAL_CONTEXT_FACTORY)
     .define(CONNECTION_FACTORY, Type.STRING, Importance.HIGH, CONNECTION_FACTORY_DOC,
-      "Connection", 3, ConfigDef.Width.MEDIUM, CONNECTION_FACTORY)
+      "Connection", 2, ConfigDef.Width.MEDIUM, CONNECTION_FACTORY)
     .define(KCQL, Type.STRING, Importance.HIGH, KCQL,
-      "Connection", 4, ConfigDef.Width.MEDIUM, KCQL)
+      "Connection", 3, ConfigDef.Width.MEDIUM, KCQL)
     .define(QUEUE_LIST, Type.LIST, new util.ArrayList[String], Importance.HIGH, QUEUE_LIST_DOC,
       "Connection", 5, ConfigDef.Width.MEDIUM, QUEUE_LIST)
     .define(TOPIC_LIST, Type.LIST, new util.ArrayList[String], Importance.HIGH, TOPIC_LIST_DOC,
@@ -113,8 +102,6 @@ object JMSConfig {
       "Connection", 11, ConfigDef.Width.MEDIUM, NBR_OF_RETRIES)
     .define(DESTINATION_SELECTOR, Type.STRING, DESTINATION_SELECTOR_DEFAULT, Importance.MEDIUM, DESTINATION_SELECTOR_DOC,
       "Connection", 11, ConfigDef.Width.MEDIUM, DESTINATION_SELECTOR)
-    .define(EXTRA_PROPS, Type.LIST, EXTRA_PROPS_DEFAULT, Importance.MEDIUM, EXTRA_PROPS_DOC,
-      "Connection", 12, ConfigDef.Width.MEDIUM, EXTRA_PROPS)
 
     //converters
     //converter

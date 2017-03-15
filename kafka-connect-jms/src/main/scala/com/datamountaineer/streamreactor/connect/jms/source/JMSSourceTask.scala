@@ -36,8 +36,8 @@ class JMSSourceTask extends SourceTask with StrictLogging {
 
     try {
        val polled = reader.poll()
-       records = collection.mutable.Seq(polled.map({ case (_, record) =>  record}).toSeq: _*)
-       messages = collection.mutable.Seq(polled.map({ case (message, _) => message}).toSeq: _*)
+       records = collection.mutable.Seq(polled.map({ case (_, record) =>  record}): _*)
+       messages = collection.mutable.Seq(polled.map({ case (message, _) => message}): _*)
     } finally {
       messages.foreach(m => m.acknowledge())
     }

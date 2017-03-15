@@ -16,6 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.jms.config
 
+import javax.jms.{ConnectionFactory, QueueConnectionFactory, TopicConnectionFactory}
+
 import com.datamountaineer.connector.config.{Config, FormatType}
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
@@ -28,10 +30,8 @@ import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
 
 case class JMSSettings(connectionURL: String,
-                       initialContextClass: String,
-                       connectionFactoryClass: String,
-                       destinationSelector: DestinationSelector,
-                       extraProps : List[Map[String, String]],
+                       connectionFactoryClass: Class[_ <: ConnectionFactory with QueueConnectionFactory with TopicConnectionFactory],
+                       destinationSelector: DestinationSelector ,
                        settings: List[JMSSetting],
                        user: Option[String],
                        password: Option[Password],
@@ -58,11 +58,14 @@ object JMSSettings extends StrictLogging {
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(JMSConfig.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
     val nbrOfRetries = config.getInt(JMSConfig.NBR_OF_RETRIES)
-    val initialContextFactoryClass = config.getString(JMSConfig.INITIAL_CONTEXT_FACTORY)
     val clazz = config.getString(JMSConfig.CONNECTION_FACTORY)
+    val connectionFactoryClass = Try(Class.forName(clazz)).getOrElse(throw new ConfigException("$clazz can not be loaded"))
+
     val destinationSelector = DestinationSelector.withName(config.getString(JMSConfig.DESTINATION_SELECTOR).toUpperCase)
-    val extraProps = config.getList(JMSConfig.EXTRA_PROPS)
-      .map(p => p.split("=").grouped(2).map { case Array(k: String, v: String) => (k.trim -> v.trim) }.toMap).toList
+
+    if (!connectionFactoryClass.isInstanceOf[Class[_ <: ConnectionFactory with QueueConnectionFactory with TopicConnectionFactory]]) {
+      throw new ConfigException("$clazz is not derived from ConnectionFactory")
+    }
 
     val url = config.getString(JMSConfig.JMS_URL)
     if (url == null || url.trim.length == 0) {
@@ -119,10 +122,8 @@ object JMSSettings extends StrictLogging {
 
     new JMSSettings(
       url,
-      initialContextFactoryClass,
-      clazz,
+      connectionFactoryClass.asInstanceOf[Class[_ <: ConnectionFactory with QueueConnectionFactory with TopicConnectionFactory]],
       destinationSelector,
-      extraProps,
       settings,
       Option(user),
       Option(passwordRaw),

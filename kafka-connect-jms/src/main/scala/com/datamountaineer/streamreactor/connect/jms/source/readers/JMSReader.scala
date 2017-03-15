@@ -26,7 +26,7 @@ class JMSReader(settings: JMSSettings) extends StrictLogging {
   val convertersMap = settings.settings.map(s => (s.source, s.sourceConverters)).toMap
   val topicsMap = settings.settings.map(s => (s.source, s.target)).toMap
 
-  def poll(): Map[Message, SourceRecord] = {
+  def poll(): Seq[(Message, SourceRecord)] = {
     val queueMessages = Future(queueConsumers
       .flatMap({ case (source, consumer)=>
           (1 to 100)

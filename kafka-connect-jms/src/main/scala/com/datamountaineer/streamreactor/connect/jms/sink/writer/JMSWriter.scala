@@ -19,7 +19,6 @@ package com.datamountaineer.streamreactor.connect.jms.sink.writer
 import javax.jms.{Connection, Destination, MessageProducer, Session}
 import javax.naming.InitialContext
 
-import com.datamountaineer.streamreactor.connect.jms.JMSProvider
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSSetting, JMSSettings, TopicDestination}
 import com.datamountaineer.streamreactor.connect.jms.sink.writer.converters.{JMSMessageConverter, JMSMessageConverterFn}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
@@ -107,8 +106,15 @@ case class DestinationAndFieldAlias(destination: Destination, fieldAlias: Map[St
 
 object JMSWriter {
   def apply(settings: JMSSettings): JMSWriter = {
-    val jmsProvider = JMSProvider(settings)
-    JMSWriter(jmsProvider.context,  jmsProvider.connection, settings.settings)
+    val context = new InitialContext()
+    val connectionFactory = settings.connectionFactoryClass.getConstructor(classOf[String]).newInstance(settings.connectionURL)
+
+    val connection = settings.user match {
+      case None => connectionFactory.createConnection()
+      case Some(user) => connectionFactory.createConnection(user, settings.password.get.value())
+    }
+
+    JMSWriter(context, connection, settings.settings)
   }
 }
 

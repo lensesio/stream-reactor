@@ -2,7 +2,6 @@ package com.datamountaineer.streamreactor.connect
 
 import com.datamountaineer.streamreactor.connect.jms.config.{DestinationSelector, JMSConfig}
 import org.apache.activemq.ActiveMQConnectionFactory
-import org.apache.activemq.jndi.ActiveMQInitialContextFactory
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.mock.MockitoSugar
@@ -27,20 +26,17 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
   val KCQL_MIX_SINK = s"$KCQL_SINK_QUEUE;$KCQL_SINK_TOPIC"
   val JMS_USER = ""
   val JMS_PASSWORD = ""
-  val CONNECTION_FACTORY = "ConnectionFactory"
-  val INITIAL_CONTEXT_FACTORY = classOf[ActiveMQInitialContextFactory].getCanonicalName
+  val CONNECTION_FACTORY = classOf[ActiveMQConnectionFactory].getCanonicalName
   val JMS_URL = "tcp://localhost:61620"
   val JMS_URL_1 = "tcp://localhost:61621"
   val QUEUE_LIST = QUEUE1
   val TOPIC_LIST = TOPIC1
   val TOPIC1_CONVERTER = s"$TOPIC1=com.datamountaineer.streamreactor.connect.converters.source.AvroConverter"
-  val SELECTOR = DestinationSelector.CDI.toString
 
   val getProps1Queue = {
     Map(JMSConfig.KCQL -> KCQL_SOURCE_QUEUE,
       JMSConfig.JMS_USER -> JMS_USER,
       JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfig.CONNECTION_FACTORY -> CONNECTION_FACTORY,
       JMSConfig.JMS_URL -> JMS_URL,
       JMSConfig.QUEUE_LIST -> QUEUE_LIST
@@ -51,7 +47,6 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     Map(JMSConfig.KCQL -> KCQL_SOURCE_QUEUE,
       JMSConfig.JMS_USER -> JMS_USER,
       JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfig.CONNECTION_FACTORY -> "plop",
       JMSConfig.JMS_URL -> JMS_URL,
       JMSConfig.QUEUE_LIST -> QUEUE_LIST
@@ -62,7 +57,6 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     Map(JMSConfig.KCQL -> KCQL_SOURCE_TOPIC,
       JMSConfig.JMS_USER -> JMS_USER,
       JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfig.CONNECTION_FACTORY -> CONNECTION_FACTORY,
       JMSConfig.JMS_URL -> JMS_URL,
       JMSConfig.TOPIC_LIST -> TOPIC_LIST
@@ -73,7 +67,6 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     Map(JMSConfig.KCQL -> KCQL_SOURCE_TOPIC,
       JMSConfig.JMS_USER -> JMS_USER,
       JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfig.CONNECTION_FACTORY -> CONNECTION_FACTORY,
       JMSConfig.JMS_URL -> JMS_URL,
       JMSConfig.TOPIC_LIST -> TOPIC_LIST,
@@ -85,7 +78,6 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     Map(JMSConfig.KCQL -> KCQL_SOURCE_TOPIC,
       JMSConfig.JMS_USER -> JMS_USER,
       JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfig.CONNECTION_FACTORY -> CONNECTION_FACTORY,
       JMSConfig.JMS_URL -> JMS_URL,
       JMSConfig.TOPIC_LIST -> "foo",
@@ -97,7 +89,6 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     Map(JMSConfig.KCQL -> KCQL_MIX,
       JMSConfig.JMS_USER -> JMS_USER,
       JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfig.CONNECTION_FACTORY -> CONNECTION_FACTORY,
       JMSConfig.JMS_URL -> JMS_URL,
       JMSConfig.TOPIC_LIST -> TOPIC_LIST,
@@ -110,12 +101,11 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     Map(JMSConfig.KCQL -> KCQL_MIX,
       JMSConfig.JMS_USER -> JMS_USER,
       JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfig.CONNECTION_FACTORY -> CONNECTION_FACTORY,
       JMSConfig.JMS_URL -> JMS_URL,
       JMSConfig.TOPIC_LIST -> TOPIC_LIST,
       JMSConfig.QUEUE_LIST -> QUEUE_LIST,
-      JMSConfig.DESTINATION_SELECTOR -> SELECTOR,
+      JMSConfig.DESTINATION_SELECTOR -> DestinationSelector.JNDI.toString,
       JMSConfig.CONVERTER_CONFIG -> TOPIC1_CONVERTER
     ).asJava
   }
@@ -124,12 +114,11 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     Map(JMSConfig.KCQL -> KCQL_MIX_SINK,
       JMSConfig.JMS_USER -> JMS_USER,
       JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfig.CONNECTION_FACTORY -> CONNECTION_FACTORY,
       JMSConfig.JMS_URL -> url,
       JMSConfig.TOPIC_LIST -> TOPIC_LIST,
       JMSConfig.QUEUE_LIST -> QUEUE_LIST,
-      JMSConfig.DESTINATION_SELECTOR -> SELECTOR,
+      JMSConfig.DESTINATION_SELECTOR -> DestinationSelector.JNDI.toString,
       JMSConfig.CONVERTER_CONFIG -> TOPIC1_CONVERTER
     ).asJava
   }
