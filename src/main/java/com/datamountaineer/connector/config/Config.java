@@ -52,6 +52,7 @@ public class Config {
     private Integer sampleRate;
     private FormatType formatType = null;
     private boolean initialize;
+    private boolean withUnwrap = false;
     private Integer projectTo;
     private List<Tag> tags;
 
@@ -94,6 +95,10 @@ public class Config {
 
     private void setSource(String source) {
         this.source = source;
+    }
+
+    private void setWithUnwrap(boolean flag){
+        this.withUnwrap = flag;
     }
 
     public String getTarget() {
@@ -277,6 +282,10 @@ public class Config {
         return tags.iterator();
     }
 
+    public boolean isWithUnwrap(){
+        return this.withUnwrap;
+    }
+
     public static Config parse(final String syntax) {
         final ConnectorLexer lexer = new ConnectorLexer(new ANTLRInputStream(syntax));
         final CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -451,6 +460,11 @@ public class Config {
             @Override
             public void exitWith_consumer_group_value(ConnectorParser.With_consumer_group_valueContext ctx) {
                 config.setConsumerGroup(ctx.getText());
+            }
+
+            @Override
+            public void exitWith_unwrap_clause(ConnectorParser.With_unwrap_clauseContext ctx) {
+                config.setWithUnwrap(true);
             }
 
             @Override

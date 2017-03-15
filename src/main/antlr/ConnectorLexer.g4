@@ -105,6 +105,10 @@ WITHFORMAT
     : 'WITHFORMAT'|'withformat'
     ;
 
+WITHUNWRAP
+    : 'WITHUNWRAP' | 'withunwrap'
+    ;
+
 FORMAT
     : 'avro'|'AVRO'|'text'|'TEXT'|'binary'|'BINARY'|'json'|'JSON'|'object'|'OBJECT'|'map'|'MAP'
     ;

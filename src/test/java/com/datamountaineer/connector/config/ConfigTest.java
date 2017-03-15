@@ -40,6 +40,7 @@ public class ConfigTest {
         assertTrue(pks.contains("f1"));
         assertTrue(pks.contains("f2"));
         assertFalse(config.getTags().hasNext());
+        assertFalse(config.isWithUnwrap());
     }
 
     @Test
@@ -784,6 +785,16 @@ public class ConfigTest {
         String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s", table, topic);
         Config config = Config.parse(syntax);
         assertEquals(topic, config.getSource());
+    }
+
+    @Test
+    public void handleWithUnwrap() {
+        String topic = "/TOPIC_A";
+        String table = "TABLE_A";
+        String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s withunwrap", table, topic);
+        Config config = Config.parse(syntax);
+        assertEquals(topic, config.getSource());
+        assertTrue(config.isWithUnwrap());
     }
 
     @Test
