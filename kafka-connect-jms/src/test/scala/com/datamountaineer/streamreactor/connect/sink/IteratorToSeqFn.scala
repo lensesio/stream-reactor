@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect
+package com.datamountaineer.streamreactor.connect.sink
 
 object IteratorToSeqFn {
   def apply[T](iter: java.util.Iterator[T]): Seq[T] = {
