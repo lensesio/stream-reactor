@@ -14,30 +14,32 @@
  *  limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect
+package com.datamountaineer.streamreactor.connect.sink.writer
 
-import java.util
 import javax.jms.{Message, MessageListener, Session, TextMessage}
 
-import com.datamountaineer.streamreactor.connect.jms.sink.JMSSinkTask
+import com.datamountaineer.streamreactor.connect.TestBase
+import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
+import com.datamountaineer.streamreactor.connect.jms.sink.writer.JMSWriter
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.datamountaineer.streamreactor.connect.sink.IteratorToSeqFn
 import com.fasterxml.jackson.databind.node.{ArrayNode, IntNode}
 import com.sksamuel.scalax.io.Using
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
-import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.json.JsonDeserializer
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
-import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.BeforeAndAfter
+import org.apache.kafka.connect.sink.SinkRecord
+import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
+import scala.collection.JavaConverters._
 
-class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfter with MockitoSugar {
+class JMSWriterTest extends TestBase with Using with BeforeAndAfter with ConverterUtil {
   val broker = new BrokerService()
   broker.setPersistent(false)
   broker.setUseJmx(false)
   broker.setDeleteAllMessagesOnStartup(true)
-  val brokerUrl = JMS_URL_1
+  val brokerUrl = "tcp://localhost:61620"
   broker.addConnector(brokerUrl)
   broker.setUseShutdownHook(false)
 
@@ -49,9 +51,8 @@ class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfter with Mocki
     broker.stop()
   }
 
-  "JMSSinkTask" should {
-    "redirect the connect records to JMS" in {
-
+  "JMSWriter" should {
+    "route the messages to the appropriate topic and queues" in {
       val kafkaTopic1 = TOPIC1
       val kafkaTopic2 = TOPIC2
 
@@ -93,21 +94,11 @@ class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfter with Mocki
           }
           consumerQueue.setMessageListener(queueMsgListener)
 
-
-          val context = mock[SinkTaskContext]
-          val topicsSet = new util.HashSet[TopicPartition]()
-          topicsSet.add(new TopicPartition(kafkaTopic1, 0))
-          topicsSet.add(new TopicPartition(kafkaTopic2, 0))
-          when(context.assignment()).thenReturn(topicsSet)
-
-          val task = new JMSSinkTask
-          task.initialize(context)
-          task.start(getPropsMixJNDIWithConverterSink(brokerUrl))
-
-          val records = new java.util.ArrayList[SinkRecord]
-          records.add(record1)
-          records.add(record2)
-          task.put(records)
+          val props = getPropsMixJNDIWithConverterSink()
+          val config = JMSConfig(props)
+          val settings = JMSSettings(config, true)
+          val writer = JMSWriter(settings)
+          writer.write(Seq(record1, record2))
 
           Thread.sleep(1000)
           val queueMessage = queueMsgListener.msg.asInstanceOf[TextMessage]
@@ -119,10 +110,9 @@ class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfter with Mocki
           //can not do json text comparison because fields order is not guaranteed
           val deserializer = new JsonDeserializer()
           val queueJson = deserializer.deserialize("", queueMessage.getText.getBytes)
-          //queueJson.get("byte").asInt() shouldBe 12
-          //queueJson.get("short").asInt() shouldBe 12
-          queueJson.get("int32").asInt() shouldBe 12
-          queueJson.get("int64").asInt() shouldBe 12
+          queueJson.get("int8").asInt() shouldBe 12
+          queueJson.get("int16").asInt() shouldBe 12
+          //queueJson.get("long").asInt() shouldBe 12
           queueJson.get("float32").asDouble() shouldBe 12.2
           queueJson.get("float64").asDouble() shouldBe 12.2
           queueJson.get("boolean").asBoolean() shouldBe true
@@ -135,16 +125,16 @@ class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfter with Mocki
             t.getKey -> t.getValue.asInstanceOf[IntNode].asInt()
           }.toMap shouldBe Map("field" -> 1)
 
-          IteratorToSeqFn(queueJson.get("mapNonStringKeys").asInstanceOf[ArrayNode].iterator()).flatMap { t =>
+          IteratorToSeqFn(queueJson.get("mapNonStringKeys").asInstanceOf[ArrayNode].iterator()).flatMap { _ =>
             IteratorToSeqFn(queueJson.get("mapNonStringKeys").asInstanceOf[ArrayNode].iterator().next().asInstanceOf[ArrayNode].iterator())
               .map(_.asInt())
           }.toVector shouldBe Vector(1, 1)
 
           val topicJson = deserializer.deserialize("", topicMessage.getText.getBytes)
-          topicJson.get("int8").asInt() shouldBe 12
-          topicJson.get("int16").asInt() shouldBe 12
-          //topicJson.get("int").asInt() shouldBe 12
-          //topicJson.get("long").asInt() shouldBe 12
+         // topicJson.get("byte").asInt() shouldBe 12
+         // topicJson.get("short").asInt() shouldBe 12
+          topicJson.get("int32").asInt() shouldBe 12
+          topicJson.get("int64").asInt() shouldBe 12
           topicJson.get("float32").asDouble() shouldBe 12.2
           topicJson.get("float64").asDouble() shouldBe 12.2
           topicJson.get("boolean").asBoolean() shouldBe true
@@ -158,12 +148,15 @@ class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfter with Mocki
             t.getKey -> t.getValue.asInstanceOf[IntNode].asInt()
           }.toMap shouldBe Map("field" -> 1)
 
-          IteratorToSeqFn(topicJson.get("mapNonStringKeys").asInstanceOf[ArrayNode].iterator()).flatMap { t =>
+          IteratorToSeqFn(topicJson.get("mapNonStringKeys").asInstanceOf[ArrayNode].iterator()).flatMap { _ =>
             IteratorToSeqFn(topicJson.get("mapNonStringKeys").asInstanceOf[ArrayNode].iterator().next().asInstanceOf[ArrayNode].iterator())
               .map(_.asInt())
           }.toVector shouldBe Vector(1, 1)
         }
       }
+
     }
   }
 }
+
+

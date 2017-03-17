@@ -14,24 +14,30 @@
  *  limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.writer.converters
+package com.datamountaineer.streamreactor.connect.sink.writer.converters
 
-import javax.jms.ObjectMessage
+import java.nio.ByteBuffer
+import javax.jms.BytesMessage
 
-import com.datamountaineer.streamreactor.connect.jms.sink.writer.converters.ObjectMessageConverter
+import com.datamountaineer.streamreactor.connect.jms.sink.writer.converters.AvroMessageConverter
+import com.datamountaineer.streamreactor.connect.sink.AvroDeserializer
 import com.sksamuel.scalax.io.Using
+import io.confluent.connect.avro.AvroData
 import org.apache.activemq.ActiveMQConnectionFactory
+import org.apache.avro.generic.GenericData
+import org.apache.avro.util.Utf8
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
 
-class ObjectMessageConverterTest extends WordSpec with Matchers with Using {
-  val converter = new ObjectMessageConverter()
+class AvroMessageConverterTest extends WordSpec with Matchers with Using {
+  val converter = new AvroMessageConverter()
+  private lazy val avroData = new AvroData(128)
 
-  "ObjectMessageConverter" should {
-    "create an instance of jms ObjectMessage" in {
+  "AvroMessageConverter" should {
+    "create a BytesMessage with avro payload" in {
       val connectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false")
 
       using(connectionFactory.createConnection()) { connection =>
@@ -66,27 +72,45 @@ class ObjectMessageConverterTest extends WordSpec with Matchers with Using {
             .put("mapNonStringKeys", Map(1 -> 1).asJava)
 
           val record = new SinkRecord("topic", 0, null, null, schema, struct, 1)
-          val msg = converter.convert(record, session).asInstanceOf[ObjectMessage]
+          val msg = converter.convert(record, session).asInstanceOf[BytesMessage]
 
           Option(msg).isDefined shouldBe true
 
-          msg.getBooleanProperty("boolean") shouldBe true
-          msg.getByteProperty("int8") shouldBe 12.toByte
-          msg.getShortProperty("int16") shouldBe 12.toShort
-          msg.getIntProperty("int32") shouldBe 12
-          msg.getLongProperty("int64") shouldBe 12L
-          msg.getFloatProperty("float32") shouldBe 12.2f
-          msg.getDoubleProperty("float64") shouldBe 12.2
-          msg.getStringProperty("string") shouldBe "foo"
-          msg.getObjectProperty("bytes").asInstanceOf[java.util.List[Byte]].toArray shouldBe "foo".getBytes()
-          val arr = msg.getObjectProperty("array")
-          arr.asInstanceOf[java.util.List[String]].asScala.toArray shouldBe Array("a", "b", "c")
+          msg.reset()
 
-          val map1 = msg.getObjectProperty("map").asInstanceOf[java.util.Map[String, Int]].asScala.toMap
-          map1 shouldBe Map("field" -> 1)
+          val size = msg.getBodyLength
 
-          val map2 = msg.getObjectProperty("mapNonStringKeys").asInstanceOf[java.util.Map[Int, Int]].asScala.toMap
-          map2 shouldBe Map(1 -> 1)
+          size > 0 shouldBe true
+          val data = new Array[Byte](size.toInt)
+          msg.readBytes(data)
+
+          val avroRecord = AvroDeserializer(data, avroData.fromConnectSchema(schema))
+          avroRecord.get("int8") shouldBe 12.toByte
+          avroRecord.get("int16") shouldBe 12.toShort
+          avroRecord.get("int32") shouldBe 12
+          avroRecord.get("int64") shouldBe 12L
+          avroRecord.get("float32") shouldBe 12.2f
+          avroRecord.get("float64") shouldBe 12.2
+          avroRecord.get("boolean") shouldBe true
+          avroRecord.get("string").toString shouldBe "foo"
+          avroRecord.get("bytes").asInstanceOf[ByteBuffer].array() shouldBe "foo".getBytes()
+          val array = avroRecord.get("array").asInstanceOf[GenericData.Array[Utf8]]
+          val iter = array.iterator()
+          new Iterator[String] {
+            override def hasNext: Boolean = iter.hasNext
+
+            override def next(): String = iter.next().toString
+          }.toSeq shouldBe Seq("a", "b", "c")
+          val map = avroRecord.get("map").asInstanceOf[java.util.Map[Utf8, Int]].asScala
+          map.size shouldBe 1
+          map.keys.head.toString shouldBe "field"
+          map.get(map.keys.head) shouldBe Some(1)
+
+          val iterRecord = avroRecord.get("mapNonStringKeys").asInstanceOf[GenericData.Array[GenericData.Record]].iterator()
+          iterRecord.hasNext shouldBe true
+          val r = iterRecord.next()
+          r.get("key") shouldBe 1
+          r.get("value") shouldBe 1
         }
       }
     }

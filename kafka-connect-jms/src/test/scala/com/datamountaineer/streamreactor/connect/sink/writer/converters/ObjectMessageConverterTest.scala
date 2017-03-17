@@ -14,11 +14,11 @@
  *  limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.writer.converters
+package com.datamountaineer.streamreactor.connect.sink.writer.converters
 
-import javax.jms.TextMessage
+import javax.jms.ObjectMessage
 
-import com.datamountaineer.streamreactor.connect.jms.sink.writer.converters.JsonMessageConverter
+import com.datamountaineer.streamreactor.connect.jms.sink.writer.converters.ObjectMessageConverter
 import com.sksamuel.scalax.io.Using
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -27,12 +27,11 @@ import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
 
+class ObjectMessageConverterTest extends WordSpec with Matchers with Using {
+  val converter = new ObjectMessageConverter()
 
-class JsonMessageConverterTest extends WordSpec with Matchers with Using {
-  val converter = new JsonMessageConverter()
-
-  "JsonMessageConverter" should {
-    "create a TextMessage with Json payload" in {
+  "ObjectMessageConverter" should {
+    "create an instance of jms ObjectMessage" in {
       val connectionFactory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false")
 
       using(connectionFactory.createConnection()) { connection =>
@@ -67,13 +66,27 @@ class JsonMessageConverterTest extends WordSpec with Matchers with Using {
             .put("mapNonStringKeys", Map(1 -> 1).asJava)
 
           val record = new SinkRecord("topic", 0, null, null, schema, struct, 1)
-          val msg = converter.convert(record, session).asInstanceOf[TextMessage]
+          val msg = converter.convert(record, session).asInstanceOf[ObjectMessage]
+
           Option(msg).isDefined shouldBe true
 
-          val json = msg.getText
-          json shouldBe
-            """{"int8":12,"int16":12,"int32":12,"int64":12,"float32":12.2,"float64":12.2,"boolean":true,"string":"foo","bytes":"Zm9v","array":["a","b","c"],"map":{"field":1},"mapNonStringKeys":[[1,1]]}""".stripMargin
+          msg.getBooleanProperty("boolean") shouldBe true
+          msg.getByteProperty("int8") shouldBe 12.toByte
+          msg.getShortProperty("int16") shouldBe 12.toShort
+          msg.getIntProperty("int32") shouldBe 12
+          msg.getLongProperty("int64") shouldBe 12L
+          msg.getFloatProperty("float32") shouldBe 12.2f
+          msg.getDoubleProperty("float64") shouldBe 12.2
+          msg.getStringProperty("string") shouldBe "foo"
+          msg.getObjectProperty("bytes").asInstanceOf[java.util.List[Byte]].toArray shouldBe "foo".getBytes()
+          val arr = msg.getObjectProperty("array")
+          arr.asInstanceOf[java.util.List[String]].asScala.toArray shouldBe Array("a", "b", "c")
 
+          val map1 = msg.getObjectProperty("map").asInstanceOf[java.util.Map[String, Int]].asScala.toMap
+          map1 shouldBe Map("field" -> 1)
+
+          val map2 = msg.getObjectProperty("mapNonStringKeys").asInstanceOf[java.util.Map[Int, Int]].asScala.toMap
+          map2 shouldBe Map(1 -> 1)
         }
       }
     }

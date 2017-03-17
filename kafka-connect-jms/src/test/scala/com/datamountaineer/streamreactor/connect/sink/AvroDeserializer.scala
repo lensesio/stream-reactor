@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect
+package com.datamountaineer.streamreactor.connect.sink
 
 import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
