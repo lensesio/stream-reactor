@@ -30,6 +30,7 @@ public class KcqlTest {
         assertTrue(pks.contains("f1"));
         assertTrue(pks.contains("f2"));
         assertNull(kcql.getTags());
+        assertFalse(kcql.isUnwrapping());
     }
 
     @Test

@@ -42,6 +42,7 @@ public class Kcql {
     private Integer sampleRate;
     private FormatType formatType = null;
     private boolean initialize;
+    private boolean unwrapping=false;
     private Integer projectTo;
     private List<Tag> tags;
     private boolean retainStructure = false;
@@ -213,6 +214,10 @@ public class Kcql {
         return retainStructure;
     }
 
+    public boolean isUnwrapping(){
+        return unwrapping;
+    }
+
 
     public static Kcql parse(final String syntax) {
         final ConnectorLexer lexer = new ConnectorLexer(new ANTLRInputStream(syntax));
@@ -246,6 +251,11 @@ public class Kcql {
                 if (ctx.ASTERISK() != null) {
                     nestedFieldsBuffer.add("*");
                 }
+            }
+
+            @Override
+            public void exitWith_unwrap_clause(ConnectorParser.With_unwrap_clauseContext ctx) {
+                kcql.unwrapping = true;
             }
 
             @Override
