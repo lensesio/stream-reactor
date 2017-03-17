@@ -95,6 +95,7 @@ allprojects {
     task fatJarNoTest(dependsOn: 'shadowJar')
 
     signing {
+        required { gradle.taskGraph.hasTask("uploadArchives") }
         sign configurations.archives
     }
 

@@ -70,6 +70,15 @@ public class KcqlSelectOnlyTest {
     }
 
     @Test
+    public void testUnwrapping() {
+        // RDBMS KCQL should not allow this - but we need flexibility for other target systems
+        String KCQL = "SELECT temperature, humidity FROM sensorsTopic PK sensorID WITHUNWRAP";
+        Kcql kcql = Kcql.parse(KCQL);
+        assertEquals("sensorID", kcql.getPrimaryKeys().get(0));
+        assertTrue(kcql.isUnwrapping());
+    }
+
+    @Test
     public void parseASelectAllFromTopicWithAConsumerGroup() {
         String topic = "TOPIC_A";
         String expectedConsumerGroup = "myconsumer-group";
