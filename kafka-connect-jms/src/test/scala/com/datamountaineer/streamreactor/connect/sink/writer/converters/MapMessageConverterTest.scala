@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.writer.converters
+package com.datamountaineer.streamreactor.connect.sink.writer.converters
 
 import javax.jms.MapMessage
 
