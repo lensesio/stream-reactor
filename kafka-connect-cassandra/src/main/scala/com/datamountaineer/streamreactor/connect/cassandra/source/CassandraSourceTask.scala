@@ -50,7 +50,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     * Starts the Cassandra source, parsing the options and setting up the reader.
     *
     * @param props A map of supplied properties.
-    * */
+    */
   override def start(props: util.Map[String, String]): Unit = {
 
     //get configuration for this task
@@ -108,7 +108,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     * Map over the queues, draining each and returning SourceRecords.
     *
     * @return A util.List of SourceRecords.
-    * */
+    */
   override def poll(): util.List[SourceRecord] = {
     settings.map(s=>s.routes).flatten(r=>process(r.getSource)).toList
   }
@@ -118,10 +118,10 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     *
     * Get the reader can call read, if querying it will return then drain it's queue
     * else if will start a new query then drain.
- *
+    *
     * @param table The table to query and drain
     * @return A list of Source records
-    * */
+    */
   def process(table: String) : List[SourceRecord]= {
     val reader = readers(table)
     reader.read()
@@ -135,8 +135,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
 
   /**
     * Stop the task and close readers.
-    *
-    * */
+    */
   override def stop(): Unit = {
     logger.info("Stopping Cassandra source.")
     readers.foreach( {case (k, v) => v.close()})
@@ -147,7 +146,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
   }
 
   /**
-    * Gets the version of this sink.
+    * Gets the version of this Source.
     *
     * @return
     */
@@ -159,7 +158,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     *
     * @param table The table to check if a query is active against.
     * @return A boolean indicating if querying is in progress.
-    * */
+    */
   private[datamountaineer] def isReaderQuerying(table: String) : Boolean = {
     readers(table).isQuerying
   }
@@ -169,7 +168,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     *
     * @param table The table to check the queue size for.
     * @return The size of the queue.
-    * */
+    */
   private[datamountaineer] def queueSize(table: String) : Int = {
     queues(table).size()
   }

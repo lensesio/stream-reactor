@@ -87,15 +87,6 @@ class CassandraTableReader(private val session: Session,
    * @return the PreparedStatement 
    */
   private def getPreparedStatements: PreparedStatement = {
-
-    val selectStatement = if (setting.bulkImportMode) {
-      s"SELECT $selectColumns FROM $keySpace.$table"
-    } else {
-      s"SELECT $selectColumns " +
-        s"FROM $keySpace.$table " +
-        s"WHERE $timestampCol > maxTimeuuid(?) AND $timestampCol <= minTimeuuid(?) " + " ALLOW FILTERING"
-    }
-
     // if we are in incremental mode
     // we need to have the time stamp column
     if (!setting.bulkImportMode) {
@@ -104,6 +95,15 @@ class CassandraTableReader(private val session: Session,
         logger.error(msg)
         throw new ConfigException(msg)
       }
+    }
+
+    // build the correct CQL statement based on the KCQL
+    val selectStatement = if (setting.bulkImportMode) {
+      s"SELECT $selectColumns FROM $keySpace.$table"
+    } else {
+      s"SELECT $selectColumns " +
+      s"FROM $keySpace.$table " +
+      s"WHERE $timestampCol > maxTimeuuid(?) AND $timestampCol <= minTimeuuid(?) " + " ALLOW FILTERING"
     }
     
     val statement = session.prepare(selectStatement)
@@ -116,7 +116,7 @@ class CassandraTableReader(private val session: Session,
    * @return the comma separated columns
    */
   private def getSelectColumns: String = {
-    val faList = setting.routes.getFieldAlias.map(next => next.getField).toList
+    val faList = setting.routes.getFieldAlias.map(fa => fa.getField).toList
     
     //if no columns set then select the whole table
     val f = if (faList == null || faList.isEmpty) "*" else faList.mkString(",")
@@ -125,19 +125,18 @@ class CassandraTableReader(private val session: Session,
   }
 
   /**
-   * Fires cassandra queries for the rows in a loop incrementing the timestamp
-   * with each loop. Row returned are put into the queue.
+   * Fires Cassandra queries and increments the timestamp
+   * Every Row returned from query is put into the queue for processing.
    */
   def read(): Unit = {
     if (!stop.get()) {
       val newPollTime = System.currentTimeMillis()
 
+      // don't issue another query for the table if we are querying
       if (querying.get()) {
-        // don't issue another query for the table if we are querying,
-        // maintain incremental order
-        logger.debug(s"Still querying for $keySpace.$table. Current queue size in ${queue.size()}.")
+        logger.debug(s"Still querying for $keySpace.$table. Current queue size is ${queue.size()}.")
       } 
-      //wait for next poll interval to expire
+      // wait for next poll interval to expire
       else if (lastPoll + setting.pollInterval < newPollTime) {
         lastPoll = newPollTime
         query()
@@ -152,16 +151,15 @@ class CassandraTableReader(private val session: Session,
     // we are going to execute the query
     querying.set(true)
 
-    //if the tableoffset has been set use it as the lower bound else get default (1900-01-01) for first query
-    val lowerBound = if (tableOffset.isEmpty) dateFormatter.parse(defaultTimestamp) else tableOffset.get
-    //set the upper bound to now
-    val upperBound = new Date()
-
-    //execute the query, gives us back a future resultset
+    // execute the query, gives us back a future result set
     val frs = if (setting.bulkImportMode) {
       resultSetFutureToScala(fireQuery())
     } 
     else {
+      // if the tableoffset has been set use it as the lower bound else get default (1900-01-01) for first query
+      val lowerBound = if (tableOffset.isEmpty) dateFormatter.parse(defaultTimestamp) else tableOffset.get
+      // set the upper bound to now
+      val upperBound = new Date()
       resultSetFutureToScala(bindAndFireQuery(lowerBound, upperBound))
     }
 
@@ -205,24 +203,25 @@ class CassandraTableReader(private val session: Session,
    *
    * @param f Cassandra Future ResultSet to iterate over.
    */
-  private def process(f: Future[ResultSet]) = {
+  private def process(future: Future[ResultSet]) = {
     //get the max offset per query
     var maxOffset: Option[Date] = None
     //on success start writing the row to the queue
-    f.onSuccess({
+    future.onSuccess({
       case rs: ResultSet =>
-        logger.info(s"Querying returning results for $keySpace.$table.")
+        logger.info(s"Processing results for $keySpace.$table.")
         val iter = rs.iterator()
         var counter = 0
 
+        // process results unless told to stop
         while (iter.hasNext & !stop.get()) {
-          //check if we have been told to stop
           val row = iter.next()
           Try({
             //if not bulk get the row timestamp column value to get the max
             if (!setting.bulkImportMode) {
               val rowOffset = extractTimestamp(row)
               maxOffset = if (maxOffset.isEmpty || rowOffset.after(maxOffset.get)) Some(rowOffset) else maxOffset
+              logger.info(s"Max Offset is currently: $maxOffset")
             }
             processRow(row)
             counter += 1
@@ -234,11 +233,11 @@ class CassandraTableReader(private val session: Session,
           }
         }
         logger.info(s"Processed $counter rows for table $topic.$table")
-        reset(maxOffset) //set the as the new high watermark.
+        reset(maxOffset) //set as the new high watermark.
     })
 
     //On failure, rest and throw
-    f.onFailure({
+    future.onFailure({
       case t: Throwable =>
         reset(tableOffset)
         throw new ConnectException(s"Error will querying $table.", t)
@@ -252,27 +251,26 @@ class CassandraTableReader(private val session: Session,
    *
    */
   private def processRow(row: Row) = {
-    //convert the cassandra row to a struct
-    val ignoreList = setting.routes.getIgnoredField.map(next => next).toList
+    // convert the cassandra row to a struct
+    val ignoreList = setting.routes.getIgnoredField.toList
     val structColDefs = CassandraUtils.getStructColumns(row, ignoreList)
     val struct = CassandraUtils.convert(row, schemaName, structColDefs)
 
-    //get the offset for this value
+    // get the offset for this value
     val rowOffset: Date = if (setting.bulkImportMode) tableOffset.get else extractTimestamp(row)
     val offset: String = dateFormatter.format(rowOffset)
 
     logger.info(s"Storing offset $offset")
 
-    //create source record
-    val withunwrap = false // this will be read from the KCQL when it is available
-    val record = if (withunwrap) {
-      val structValue = structColDefs.map(d => d.getName).mkString(",")
+    // create source record
+    val record = if (setting.routes.isWithUnwrap) {
+      val structValue = structColDefs.map(d => d.getName).map(name => row.getObject(name)).mkString(",")
       new SourceRecord(sourcePartition, Map(timestampCol -> offset), topic, Schema.STRING_SCHEMA, structValue)
     } else {
       new SourceRecord(sourcePartition, Map(timestampCol -> offset), topic, struct.schema(), struct)
     }
 
-    //add source record to queue
+    // add source record to queue
     logger.debug(s"Attempting to put SourceRecord ${record.toString} on queue for $keySpace.$table.")
     if (queue.offer(record)) {
       logger.debug(s"Successfully enqueued SourceRecord ${record.toString}.")
