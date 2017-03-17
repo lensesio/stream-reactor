@@ -86,7 +86,9 @@ object CassandraUtils {
   def convert(row: Row, schemaName: String, colDefList: List[ColumnDefinitions.Definition]) : Struct = {
     val connectSchema = convertToConnectSchema(colDefList, schemaName)
     val struct = new Struct(connectSchema)
-    colDefList.map(c => struct.put(c.getName, mapTypes(c, row))).head
+    if (colDefList != null) {
+      colDefList.map(c => struct.put(c.getName, mapTypes(c, row))).head
+    }
     struct
   }
 
@@ -133,7 +135,7 @@ object CassandraUtils {
     * */
   def convertToConnectSchema(cols: List[Definition], name: String) : Schema = {
     val builder = SchemaBuilder.struct().name(name)
-    cols.map(c => builder.field(c.getName, typeMapToConnect(c)))
+    if (cols != null) cols.map(c => builder.field(c.getName, typeMapToConnect(c)))
     builder.build()
   }
 

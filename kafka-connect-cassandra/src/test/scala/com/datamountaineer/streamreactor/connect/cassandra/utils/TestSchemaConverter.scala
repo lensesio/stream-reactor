@@ -21,22 +21,29 @@ import java.nio.ByteBuffer
 import java.util.UUID
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import com.datastax.driver.core.{ColumnDefinitions, Row, TestUtils}
-import org.apache.kafka.connect.data.{Schema, Struct}
+import com.datastax.driver.core.{ ColumnDefinitions, Row, TestUtils }
+import org.apache.kafka.connect.data.{ Schema, Struct }
 import org.apache.kafka.connect.errors.DataException
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.{ Matchers, WordSpec }
 
 import scala.collection.JavaConverters._
 
 /**
-  * Created by andrew@datamountaineer.com on 21/04/16.
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 21/04/16.
+ * stream-reactor
+ */
 class TestSchemaConverter extends WordSpec with TestConfig with Matchers with MockitoSugar {
 
   val uuid = UUID.randomUUID()
+
+  "should handle null when converting a Cassandra row schema to a Connect schema" in {
+    val schema = CassandraUtils.convertToConnectSchema(null, "test")
+    val schemaFields = schema.fields().asScala
+    schemaFields.size shouldBe 0
+    schema.name() shouldBe "test"
+  }
 
   "should convert a Cassandra row schema to a Connect schema" in {
     val cols: ColumnDefinitions = TestUtils.getColumnDefs
@@ -47,7 +54,7 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     checkCols(schema)
   }
 
-  "should convert a Cassandra row to a SourceRecord" in {
+  "should convert a Cassandra row to a Struct" in {
     val row = mock[Row]
     val cols = TestUtils.getColumnDefs
     when(row.getColumnDefinitions).thenReturn(cols)
@@ -61,7 +68,18 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     sr.get("mapCol") shouldBe "{}"
   }
 
-  "should convert a Cassandra row to a SourceRecord and ignore some" in {
+  "should convert a Cassandra row to a Struct no columns" in {
+    val row = mock[Row]
+    val cols = TestUtils.getColumnDefs
+    when(row.getColumnDefinitions).thenReturn(cols)
+    mockRow(row)
+    val colDefList = null
+    val sr: Struct = CassandraUtils.convert(row, "test", colDefList)
+    val schema = sr.schema()
+    schema.defaultValue() shouldBe null
+  }
+
+  "should convert a Cassandra row to a Struct and ignore some" in {
     val row = mock[Row]
     val cols = TestUtils.getColumnDefs
     when(row.getColumnDefinitions).thenReturn(cols)
@@ -70,28 +88,25 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     val ignoreList = List("intCol", "floatCol")
     val colDefList = CassandraUtils.getStructColumns(row, ignoreList)
     val sr: Struct = CassandraUtils.convert(row, "test", colDefList)
-    
+
     sr.get("timeuuidCol").toString shouldBe uuid.toString
     sr.get("mapCol") shouldBe "{}"
 
     try {
       sr.get("intCol")
       fail()
-    } 
-    catch {
+    } catch {
       case _: DataException => // Expected, so continue
     }
 
     try {
       sr.get("floatCol")
       fail()
-    } 
-    catch {
+    } catch {
       case _: DataException => // Expected, so continue
     }
 
   }
-
 
   def mockRow(row: Row) = {
     when(row.getString("uuid")).thenReturn("string")
@@ -120,7 +135,7 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     //when(row.getTupleValue("tupleCol")).thenReturn(new TupleValue("tuple"))
   }
 
-  def checkCols(schema :Schema) = {
+  def checkCols(schema: Schema) = {
     schema.field("uuidCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
     schema.field("inetCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
     schema.field("asciiCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
