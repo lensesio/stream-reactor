@@ -14,11 +14,12 @@
  *  limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect
+package com.datamountaineer.streamreactor.connect.sink
 
 import java.util
 import javax.jms.{Message, MessageListener, Session, TextMessage}
 
+import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.sink.JMSSinkTask
 import com.fasterxml.jackson.databind.node.{ArrayNode, IntNode}
 import com.sksamuel.scalax.io.Using
@@ -28,8 +29,8 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.json.JsonDeserializer
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
 import org.scalatest.BeforeAndAfter
+import org.scalatest.mock.MockitoSugar
 
 
 class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfter with MockitoSugar {

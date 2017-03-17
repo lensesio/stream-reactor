@@ -111,7 +111,7 @@ class JMSSettingsTest extends TestBase {
     topic.destinationType shouldBe TopicDestination
     topic.sourceConverters.get.isInstanceOf[AvroConverter] shouldBe true
 
-    settings.destinationSelector shouldBe DestinationSelector.JNDI
+    settings.destinationSelector shouldBe DestinationSelector.CDI
     settings.connectionURL shouldBe JMS_URL
   }
 
@@ -133,7 +133,7 @@ class JMSSettingsTest extends TestBase {
     topic.fieldsAlias.isEmpty shouldBe true
     topic.destinationType shouldBe TopicDestination
 
-    settings.destinationSelector shouldBe DestinationSelector.JNDI
+    settings.destinationSelector shouldBe DestinationSelector.CDI
     settings.connectionURL shouldBe JMS_URL
   }
 
@@ -150,15 +150,6 @@ class JMSSettingsTest extends TestBase {
     val config = JMSConfig(props)
     intercept[ConfigException] {
       JMSSettings(config, true)
-    }
-  }
-
-
-  "throw an exception if the config is specifying a wrong connection factory for a source" in {
-    val props = getPropsBadFactory
-    val config = JMSConfig(props)
-    intercept[ConfigException] {
-      JMSSettings(config, false)
     }
   }
 

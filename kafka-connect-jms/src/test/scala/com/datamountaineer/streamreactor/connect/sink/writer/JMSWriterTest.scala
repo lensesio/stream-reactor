@@ -14,14 +14,15 @@
  *  limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.writer
+package com.datamountaineer.streamreactor.connect.sink.writer
 
 import javax.jms.{Message, MessageListener, Session, TextMessage}
 
-import com.datamountaineer.streamreactor.connect.{IteratorToSeqFn, TestBase}
+import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.writer.JMSWriter
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.datamountaineer.streamreactor.connect.sink.IteratorToSeqFn
 import com.fasterxml.jackson.databind.node.{ArrayNode, IntNode}
 import com.sksamuel.scalax.io.Using
 import org.apache.activemq.ActiveMQConnectionFactory
