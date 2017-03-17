@@ -17,7 +17,6 @@
 package com.datamountaineer.streamreactor.connect.elastic
 
 import java.util
-import java.util.UUID
 
 import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSinkConfig
 import org.apache.kafka.common.TopicPartition
@@ -28,7 +27,6 @@ import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.reflect.io.File
 
 trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
   val ELASTIC_SEARCH_HOSTNAMES = "localhost:9300"

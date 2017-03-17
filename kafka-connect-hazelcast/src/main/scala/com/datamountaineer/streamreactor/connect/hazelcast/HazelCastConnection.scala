@@ -18,13 +18,12 @@ package com.datamountaineer.streamreactor.connect.hazelcast
 
 import java.net.URI
 import java.util.{Properties, UUID}
-import javax.cache.{Cache, CacheManager, Caching}
+import javax.cache.{CacheManager, Caching}
 
 import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastConnectionConfig, HazelCastSocketConfig}
 import com.hazelcast.cache.HazelcastCachingProvider
 import com.hazelcast.client.HazelcastClient
 import com.hazelcast.client.config.{ClientConfig, ClientNetworkConfig, SocketOptions}
-import com.hazelcast.client.impl.HazelcastClientProxy
 import com.hazelcast.config.GroupConfig
 import com.hazelcast.core.HazelcastInstance
 

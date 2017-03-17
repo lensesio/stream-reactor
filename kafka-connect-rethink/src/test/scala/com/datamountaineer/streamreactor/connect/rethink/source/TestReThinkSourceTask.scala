@@ -32,7 +32,6 @@ class TestReThinkSourceTask extends TestBase with MockReThinkSource {
     task.startReaders(config, r)
     Thread.sleep(3000)
     (task.poll().size() > 0) shouldBe true
-    task.logCounts()
     task.stop()
   }
 }

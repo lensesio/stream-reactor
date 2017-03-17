@@ -20,7 +20,6 @@ import com.datamountaineer.streamreactor.connect.errors.ThrowErrorPolicy
 import com.datamountaineer.streamreactor.connect.hazelcast.TestBase
 import com.hazelcast.config.Config
 import com.hazelcast.core.{Hazelcast, HazelcastInstance}
-import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConverters._
 

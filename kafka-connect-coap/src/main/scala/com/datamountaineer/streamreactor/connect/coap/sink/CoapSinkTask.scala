@@ -17,10 +17,10 @@
 package com.datamountaineer.streamreactor.connect.coap.sink
 
 import java.util
-import java.util.{Timer, TimerTask}
 
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSettings, CoapSinkConfig}
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
+import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -35,17 +35,7 @@ import scala.collection.mutable
   */
 class CoapSinkTask extends SinkTask with StrictLogging {
   private val writers = mutable.Map.empty[String, CoapWriter]
-  private var timestamp: Long = 0
-  private val counter = mutable.Map.empty[String, Long]
-
-  class LoggerTask extends TimerTask {
-    override def run(): Unit = logCounts()
-  }
-
-  def logCounts(): mutable.Map[String, Long] = {
-    counter.foreach( { case (k,v) => logger.info(s"Delivered $v records for $k.") })
-    counter.empty
-  }
+  private var progressCounter = new ProgressCounter
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-sink-ascii.txt")).mkString)
@@ -61,13 +51,7 @@ class CoapSinkTask extends SinkTask with StrictLogging {
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
     records.map(r => writers(r.topic()).write(List(r)))
-    records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
-
-    val newTimestamp = System.currentTimeMillis()
-    if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
-      logCounts()
-    }
-    timestamp = newTimestamp
+    progressCounter.update(records.toVector)
   }
 
   override def stop(): Unit = {
@@ -75,6 +59,7 @@ class CoapSinkTask extends SinkTask with StrictLogging {
       logger.info(s"Shutting down writer for $t")
       w.stop()
     })
+    progressCounter.empty()
 
   }
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}

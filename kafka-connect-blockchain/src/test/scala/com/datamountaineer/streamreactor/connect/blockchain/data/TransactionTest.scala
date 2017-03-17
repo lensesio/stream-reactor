@@ -16,8 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.blockchain.data
 
-import com.datamountaineer.streamreactor.connect.blockchain.{GetResourcesFromDirectoryFn, Using}
 import com.datamountaineer.streamreactor.connect.blockchain.json.Json
+import com.datamountaineer.streamreactor.connect.blockchain.{GetResourcesFromDirectoryFn, Using}
 import org.scalatest.{Matchers, WordSpec}
 
 class TransactionTest extends WordSpec with Matchers with Using {

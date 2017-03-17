@@ -68,7 +68,7 @@ allprojects {
         avroVersion = '1.7.7'
         jacksonxmlVersion = '2.6.5'
         slf4jVersion = "1.7.7"
-        dataMountaineerCommonVersion = "0.6.8"
+        dataMountaineerCommonVersion = "0.7.0"
         dataMountaineerTestKitVersion = "0.4"
         avro4sVersion = "1.6.0"
         json4sVersion = "3.3.0"
@@ -92,7 +92,7 @@ allprojects {
     }
 
     repositories {
-        //mavenLocal()
+        mavenLocal()
         mavenCentral()
         maven { url "http://packages.confluent.io/maven/" }
         maven { url "http://repo.typesafe.com/typesafe/releases/" }

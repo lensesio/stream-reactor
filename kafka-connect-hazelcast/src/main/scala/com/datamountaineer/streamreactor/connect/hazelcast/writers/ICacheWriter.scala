@@ -16,8 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.writers
 
-import javax.cache.Cache
-
 import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
 import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
 import com.hazelcast.core.HazelcastInstance

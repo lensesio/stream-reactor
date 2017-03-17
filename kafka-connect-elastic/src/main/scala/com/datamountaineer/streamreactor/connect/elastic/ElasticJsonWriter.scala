@@ -16,17 +16,16 @@
 
 package com.datamountaineer.streamreactor.connect.elastic
 
+import com.datamountaineer.connector.config.WriteModeEnum
 import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSettings
 import com.datamountaineer.streamreactor.connect.schemas.{ConverterUtil, StructFieldsExtractor}
-import com.datamountaineer.connector.config.WriteModeEnum
-
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.source.Indexable
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import org.elasticsearch.action.bulk.BulkResponse
-import org.apache.kafka.connect.data.Struct
 
 import scala.collection.immutable.Iterable
 import scala.concurrent.ExecutionContext.Implicits.global

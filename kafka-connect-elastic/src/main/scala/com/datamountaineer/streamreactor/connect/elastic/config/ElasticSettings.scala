@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.connect.elastic.config
 
 import com.datamountaineer.connector.config.{Config, WriteModeEnum}
+
 import scala.collection.JavaConversions._
 
 /**

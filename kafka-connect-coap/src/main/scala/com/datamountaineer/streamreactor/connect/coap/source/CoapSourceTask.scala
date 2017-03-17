@@ -17,15 +17,14 @@
 package com.datamountaineer.streamreactor.connect.coap.source
 
 import java.util
-import java.util.{Timer, TimerTask}
 
 import akka.actor.{ActorRef, ActorSystem}
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapSettings, CoapSourceConfig}
+import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -35,18 +34,8 @@ import scala.concurrent.duration._
   */
 class CoapSourceTask extends SourceTask with StrictLogging {
   private var readers : Set[ActorRef] = _
-  private val counter = mutable.Map.empty[String, Long]
+  private val progressCounter = new ProgressCounter
   implicit val system = ActorSystem()
-  private var timestamp: Long = 0
-
-  class LoggerTask extends TimerTask {
-    override def run(): Unit = logCounts()
-  }
-
-  def logCounts(): mutable.Map[String, Long] = {
-    counter.foreach( { case (k,v) => logger.info(s"Delivered $v records for $k.") })
-    counter.empty
-  }
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-source-ascii.txt")).mkString)
@@ -59,19 +48,14 @@ class CoapSourceTask extends SourceTask with StrictLogging {
 
   override def poll(): util.List[SourceRecord] = {
     val records = readers.flatMap(ActorHelper.askForRecords).toList
-    records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
-    val newTimestamp = System.currentTimeMillis()
-    if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
-      logCounts()
-    }
-    timestamp = newTimestamp
+    progressCounter.update(records.toVector)
     records
   }
 
   override def stop(): Unit = {
     logger.info("Stopping Coap source and closing connections.")
     readers.foreach(_ ! StopChangeFeed)
-    counter.empty
+    progressCounter.empty
     Await.ready(system.terminate(), 1.minute)
   }
 
