@@ -24,6 +24,7 @@ import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConf
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.fasterxml.jackson.databind.JsonNode
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceRecord
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
@@ -174,6 +175,52 @@ class TestCassandraSourceTask extends WordSpec with Matchers with BeforeAndAfter
     //should be 2!!!
     queue.size() shouldBe 2
 
+  }
+
+  "CassandraReader should read double columns incremental mode" in {
+    val session =  createTableAndKeySpace(secure = true, ssl = false)
+
+
+    val taskContext = getSourceTaskContextDefault
+    val taskConfig  = new CassandraConfigSource(getCassandraConfigSourcePropsDoubleIncr)
+
+    //queue for reader to put records in
+    val queue = new LinkedBlockingQueue[SourceRecord](100)
+    val setting = CassandraSettings.configureSource(taskConfig).head
+    val reader = CassandraTableReader(
+      session,
+      setting,
+      taskContext,
+      queue)
+    reader.read()
+
+    queue.size() shouldBe 0
+
+    //insert another two records
+    val sql =
+      s"""
+         |INSERT INTO $CASSANDRA_KEYSPACE.$TABLE4
+         |(id, int_field, double_field,timestamp_field)
+         |VALUES ('id1', 4, 111.1, now());""".stripMargin
+    session.execute(sql)
+    Thread.sleep(2000)
+
+    //read
+    reader.read()
+
+    //sleep and check queue size
+    while (queue.size() < 1) {
+      Thread.sleep(5000)
+    }
+
+    queue.size() shouldBe 1
+
+    val sourceRecords = QueueHelpers.drainQueue(queue, 100).asScala.toList
+    sourceRecords.size shouldBe 1
+
+    val struct = sourceRecords.head.value().asInstanceOf[Struct]
+    //check a field
+    struct.get("double_field") shouldBe 111.1
   }
 }
 

@@ -103,7 +103,7 @@ class CassandraTableReader(private val session: Session,
     } else {
       s"SELECT $selectColumns " +
       s"FROM $keySpace.$table " +
-      s"WHERE $timestampCol > maxTimeuuid(?) AND $timestampCol <= minTimeuuid(?) " + " ALLOW FILTERING"
+      s"WHERE $timestampCol > maxTimeuuid(?) AND $timestampCol <= minTimeuuid(?)  ALLOW FILTERING"
     }
     
     val statement = session.prepare(selectStatement)
