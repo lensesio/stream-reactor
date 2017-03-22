@@ -111,6 +111,7 @@ object CassandraUtils {
       case DataType.Name.BLOB => row.getBytes(columnDef.getName)
       case DataType.Name.TINYINT | DataType.Name.SMALLINT => row.getShort(columnDef.getName)
       case DataType.Name.INT => row.getInt(columnDef.getName)
+      case DataType.Name.DOUBLE => row.getDouble(columnDef.getName)
       case DataType.Name.FLOAT => row.getFloat(columnDef.getName)
       case DataType.Name.COUNTER | DataType.Name.BIGINT | DataType.Name.VARINT | DataType.Name.DOUBLE => row.getLong(columnDef.getName)
       case DataType.Name.BOOLEAN => row.getBool(columnDef.getName)
@@ -157,6 +158,7 @@ object CassandraUtils {
       case DataType.Name.SMALLINT => Schema.OPTIONAL_INT16_SCHEMA
       case DataType.Name.INT => Schema.OPTIONAL_INT32_SCHEMA
       case DataType.Name.DECIMAL => Schema.OPTIONAL_STRING_SCHEMA
+      case DataType.Name.DOUBLE=> Schema.OPTIONAL_FLOAT64_SCHEMA
       case DataType.Name.FLOAT => Schema.OPTIONAL_FLOAT32_SCHEMA
       case DataType.Name.COUNTER | DataType.Name.BIGINT | DataType.Name.VARINT| DataType.Name.DOUBLE |
            DataType.Name.TIME => Schema.OPTIONAL_INT64_SCHEMA
