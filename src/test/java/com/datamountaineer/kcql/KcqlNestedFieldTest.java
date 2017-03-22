@@ -282,7 +282,7 @@ public class KcqlNestedFieldTest {
         assertEquals("fieldA", fields.get(1).getName());
         assertEquals("field1", fields.get(1).getParentFields().get(0));
         assertEquals("field2", fields.get(1).getParentFields().get(1));
-        assertEquals("fieldA",fields.get(1).getAlias());
+        assertEquals("fieldA", fields.get(1).getAlias());
         assertEquals(FieldType.VALUE, fields.get(1).getFieldType());
 
         assertEquals("fieldA", fields.get(2).getName());
@@ -291,5 +291,18 @@ public class KcqlNestedFieldTest {
         assertEquals(1, fields.get(2).getParentFields().size());
         assertEquals("fieldx", fields.get(2).getParentFields().get(0));
         assertEquals(FieldType.VALUE, fields.get(2).getFieldType());
+    }
+
+    @Test
+    public void handleWithStructureQuery() {
+        Kcql kcql = Kcql.parse("INSERT INTO pizza_avro_out\n" +
+                "SELECT\n" +
+                "  name,\n" +
+                "  ingredients.name as fieldName,\n" +
+                "  calories as cals,\n" +
+                "  ingredients.sugar as fieldSugar,\n" +
+                "  ingredients.*\n" +
+                "FROM pizza_avro_in withstructure");
+        assertEquals(kcql.hasRetainStructure(), true);
     }
 }
