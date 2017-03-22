@@ -149,7 +149,7 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     schema.field("counterCol").schema().`type`() shouldBe Schema.OPTIONAL_INT64_SCHEMA.`type`()
     schema.field("bigintCol").schema().`type`() shouldBe Schema.OPTIONAL_INT64_SCHEMA.`type`()
     schema.field("varintCol").schema().`type`() shouldBe Schema.OPTIONAL_INT64_SCHEMA.`type`()
-    schema.field("doubleCol").schema().`type`() shouldBe Schema.OPTIONAL_INT64_SCHEMA.`type`()
+    schema.field("doubleCol").schema().`type`() shouldBe Schema.OPTIONAL_FLOAT64_SCHEMA.`type`()
     schema.field("timeuuidCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
     schema.field("blobCol").schema().`type`() shouldBe Schema.OPTIONAL_BYTES_SCHEMA.`type`()
     schema.field("timeCol").schema().`type`() shouldBe Schema.OPTIONAL_INT64_SCHEMA.`type`()
