@@ -156,8 +156,8 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     cluster.start()
     val sr = new RestApp(8081, cluster.zKConnectString(), "_schemas")
     sr.start()
+    Thread.sleep(3000)
     val srClient = new RestService("http://localhost:8081")
-
     val rawSchema: String =
       """
         |{"type":"record","name":"myrecord",

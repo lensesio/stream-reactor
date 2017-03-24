@@ -47,14 +47,16 @@ A collection of components to build a real time ingestion pipeline.
 ## Release Notes
 
 
-**0.2.5 (Pending)**
+**0.2.5 (24 March 2017)**
 
-* Removed Socket Streamer in favour of Landoop kafka-backend
-* Move to Confluent 3.1.1 and Kafka 0.10.1.0
-* Move to Kudu 1.0
-* Move to CLI 1.0
-* Add ingest_time to CoAP Source
 * Adding Azure DocumentDb Sink
+* Adding UPSERT to Elastic Search
+* Cassandra improvements `withunwrap`
+* Upgrade to Kudu 1.0 and CLI 1.0
+* Add ingest_time to CoAP Source
+* Multiple bug fixes
+* Release for CP 3.2.0 and Kafka 0.10.2.0
+* Release for CP 3.1.2 and Kafka 0.10.1.1
 
 **0.2.4** (26 Jan 2017)
 
