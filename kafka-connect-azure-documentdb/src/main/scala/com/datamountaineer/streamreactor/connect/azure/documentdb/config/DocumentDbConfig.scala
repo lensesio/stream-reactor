@@ -50,7 +50,7 @@ object DocumentDbConfig {
   val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
   val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
 
-  val NBR_OF_RETRIES_CONFIG = "connect.documentdb.max.retires"
+  val NBR_OF_RETRIES_CONFIG = "connect.documentdb.max.retries"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 

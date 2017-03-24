@@ -40,11 +40,11 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
       })
   }
 
-  override def config(): ConfigDef = ???
+  override def config(): ConfigDef = config()
 
   override def start(props: util.Map[String, String]): Unit = configProps = props
 
-  override def stop(): Unit = ???
+  override def stop(): Unit = {}
 
   override def version(): String =  getClass.getPackage.getImplementationVersion
 }

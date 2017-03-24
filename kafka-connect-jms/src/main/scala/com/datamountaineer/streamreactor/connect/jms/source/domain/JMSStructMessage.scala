@@ -27,7 +27,7 @@ import scala.collection.JavaConversions._
           .field("message_id", Schema.OPTIONAL_STRING_SCHEMA)
           .field("mode", Schema.OPTIONAL_INT32_SCHEMA)
           .field("type", Schema.OPTIONAL_STRING_SCHEMA)
-          .field("priority", Schema.OPTIONAL_INT16_SCHEMA)
+          .field("priority", Schema.OPTIONAL_INT32_SCHEMA)
           .field("bytes_payload", Schema.OPTIONAL_BYTES_SCHEMA)
           .build()
       }

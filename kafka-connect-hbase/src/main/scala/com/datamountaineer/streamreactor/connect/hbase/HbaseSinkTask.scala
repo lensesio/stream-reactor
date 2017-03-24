@@ -28,6 +28,7 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * <h1>HbaseSinkTask</h1>
@@ -86,7 +87,7 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
     else {
       require(writer.nonEmpty, "Writer is not set!")
       writer.foreach(w => w.write(records.toSeq))
-      progressCounter.update(records.toVector)
+      //progressCounter.update(records.asScala.toSeq)
     }
   }
 
@@ -96,7 +97,7 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
   override def stop(): Unit = {
     logger.info("Stopping Hbase sink.")
     writer.foreach(w => w.close())
-    progressCounter.empty()
+    progressCounter.empty
   }
 
   override def version(): String = getClass.getPackage.getImplementationVersion

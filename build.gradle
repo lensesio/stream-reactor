@@ -62,14 +62,14 @@ allprojects {
         scalaTest = '2.2.6'
         junit = '4.11'
         scalaLoggingVersion = '2.1.2'
-        kafkaVersion = '0.10.1.0'
+        //kafkaVersion = '0.10.1.0'
         mockitoVersion = '1.10.19'
         jacksonDatabind = '2.7.0'
         avroVersion = '1.7.7'
         jacksonxmlVersion = '2.6.5'
         slf4jVersion = "1.7.7"
-        dataMountaineerCommonVersion = "0.7.0"
-        dataMountaineerTestKitVersion = "0.4"
+        dataMountaineerCommonVersion = "0.7.1"
+        dataMountaineerTestKitVersion = "0.5"
         avro4sVersion = "1.6.0"
         json4sVersion = "3.3.0"
         kiteMiniClusterVersion = "1.1.0"
@@ -140,10 +140,10 @@ allprojects {
         }
         compile ("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion")
 
-        compile "org.apache.kafka:connect-json:$kafkaVersion"
-        compile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
-        compile "io.confluent:kafka-schema-registry:$confluentVersion"
-        compile "org.apache.avro:avro:$avroVersion"
+        //compile "org.apache.kafka:connect-json:$kafkaVersion"
+        //compile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
+        //compile "io.confluent:kafka-schema-registry:$confluentVersion"
+        //compile "org.apache.avro:avro:$avroVersion"
 
         testCompile "org.mockito:mockito-core:$mockitoVersion"
         testCompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"

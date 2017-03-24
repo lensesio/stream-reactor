@@ -14,19 +14,14 @@
  *  limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.jms.sink.writer.converters
+package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
-import com.datamountaineer.connector.config.FormatType
+import javax.jms.{Message, Session}
 
-object JMSMessageConverterFn {
-  def apply(storedAs: FormatType): JMSMessageConverter = {
-    storedAs match {
-      case FormatType.AVRO => new AvroMessageConverter
-      case FormatType.JSON => new JsonMessageConverter
-      case FormatType.OBJECT => new ObjectMessageConverter
-      case FormatType.BINARY => new ObjectMessageConverter
-      case FormatType.TEXT => new JsonMessageConverter
-      case FormatType.MAP => new MapMessageConverter
-    }
-  }
+import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
+import org.apache.kafka.connect.sink.SinkRecord
+
+
+trait JMSMessageConverter {
+  def convert(record:SinkRecord, session:Session, setting: JMSSetting): (String, Message)
 }

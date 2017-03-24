@@ -14,20 +14,23 @@
  *  limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.jms.sink.writer.converters
+package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
-import javax.jms.{MapMessage, Message, Session}
+import javax.jms.{MapMessage, Session}
 
+import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.collection.JavaConversions._
 
-class MapMessageConverter extends JMSMessageConverter {
-  override def convert(record: SinkRecord, session: Session): Message = {
+class MapMessageConverter extends JMSMessageConverter with ConverterUtil {
+  override def convert(record: SinkRecord, session: Session, setting: JMSSetting): (String, MapMessage) = {
+    val converted =  super[ConverterUtil].convert(record, setting.fields, setting.ignoreField)
     val msg = session.createMapMessage()
-    val value = record.value()
-    val schema = record.valueSchema()
+    val value = converted.value()
+    val schema = converted.valueSchema()
     schema.`type`() match {
       case Schema.Type.STRUCT =>
         val struct = value.asInstanceOf[Struct]
@@ -37,7 +40,7 @@ class MapMessageConverter extends JMSMessageConverter {
 
       case _ => MapMessageBuilderFn("field", value, schema, msg, session)
     }
-    msg
+    (setting.source, msg)
   }
 }
 

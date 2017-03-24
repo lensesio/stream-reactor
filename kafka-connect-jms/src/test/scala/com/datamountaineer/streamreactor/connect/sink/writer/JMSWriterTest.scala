@@ -16,6 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.sink.writer
 
+import java.io.File
 import javax.jms.{Message, MessageListener, Session, TextMessage}
 
 import com.datamountaineer.streamreactor.connect.TestBase
@@ -27,12 +28,9 @@ import com.fasterxml.jackson.databind.node.{ArrayNode, IntNode}
 import com.sksamuel.scalax.io.Using
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.json.JsonDeserializer
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
-
-import scala.collection.JavaConverters._
+import org.scalatest.BeforeAndAfter
 
 class JMSWriterTest extends TestBase with Using with BeforeAndAfter with ConverterUtil {
   val broker = new BrokerService()
@@ -42,6 +40,9 @@ class JMSWriterTest extends TestBase with Using with BeforeAndAfter with Convert
   val brokerUrl = "tcp://localhost:61620"
   broker.addConnector(brokerUrl)
   broker.setUseShutdownHook(false)
+  val property = "java.io.tmpdir"
+  val tempDir = System.getProperty(property)
+  broker.setTmpDataDirectory( new File(tempDir))
 
   before {
     broker.start()
@@ -94,7 +95,7 @@ class JMSWriterTest extends TestBase with Using with BeforeAndAfter with Convert
           }
           consumerQueue.setMessageListener(queueMsgListener)
 
-          val props = getPropsMixJNDIWithConverterSink()
+          val props = getPropsMixJNDIWithSink()
           val config = JMSConfig(props)
           val settings = JMSSettings(config, true)
           val writer = JMSWriter(settings)

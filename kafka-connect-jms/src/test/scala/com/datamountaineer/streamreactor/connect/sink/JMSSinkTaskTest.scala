@@ -16,6 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.sink
 
+import java.io.File
 import java.util
 import javax.jms.{Message, MessageListener, Session, TextMessage}
 
@@ -41,6 +42,9 @@ class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfter with Mocki
   val brokerUrl = JMS_URL_1
   broker.addConnector(brokerUrl)
   broker.setUseShutdownHook(false)
+  val property = "java.io.tmpdir"
+  val tempDir = System.getProperty(property)
+  broker.setDataDirectoryFile( new File(tempDir))
 
   before {
     broker.start()
@@ -103,7 +107,7 @@ class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfter with Mocki
 
           val task = new JMSSinkTask
           task.initialize(context)
-          task.start(getPropsMixJNDIWithConverterSink(brokerUrl))
+          task.start(getPropsMixJNDIWithSink(brokerUrl))
 
           val records = new java.util.ArrayList[SinkRecord]
           records.add(record1)

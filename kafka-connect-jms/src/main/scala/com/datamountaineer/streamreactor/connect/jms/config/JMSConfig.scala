@@ -42,8 +42,6 @@ object JMSConfig {
   val KCQL = "connect.jms.kcql"
   val KCQL_DOC =  "KCQL expression describing field selection and routes."
 
-  val MESSAGE_TYPE = "connect.jms.message.type"
-
   val ERROR_POLICY = "connect.jms.error.policy"
   val ERROR_POLICY_DOC: String = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
     "There are two available options: \n" + "NOOP - the error is swallowed \n" +
@@ -59,11 +57,10 @@ object JMSConfig {
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
-
   val CONVERTER_CONFIG = "connect.jms.source.converters"
   private val CONVERTER_DOC =
     """
-      |Contains a tuple (Mqtt source topic and the canonical class name for the converter of a raw JMS message bytes to a SourceRecord).
+      |Contains a tuple (JMS source topic and the canonical class name for the converter of a raw JMS message bytes to a SourceRecord).
       |If the source topic is not matched it will default to the BytesConverter
       |i.e. $jms_source1=com.datamountaineer.streamreactor.connect.source.converters.AvroConverter;$jms_source2=com.datamountaineer.streamreactor.connect.source.converters.JsonConverter""".stripMargin
   private val CONVERTER_DISPLAY = "Converter class"
@@ -85,8 +82,12 @@ object JMSConfig {
 
   val EXTRA_PROPS = "connect.jms.initial.context.extra.params"
   private val EXTRA_PROPS_DOC = "List (comma separated) of extra properties as key/value pairs with a colon delimiter to " +
-    "supply to the initial context e.g. SOLACE_JMS_VPN:my_solace_vp "
+    "supply to the initial context e.g. SOLACE_JMS_VPN:my_solace_vp"
   private val EXTRA_PROPS_DEFAULT = new util.ArrayList[String]
+
+  val BATCH_SIZE = "connect.jms.batch.size"
+  private val BATCH_SIZE_DOC = "The number of records to poll for on the target JMS destination in each Connect poll."
+  private val BATCH_SIZE_DEFAULT = 100
 
   val config: ConfigDef = new ConfigDef()
     .define(JMS_URL, Type.STRING, Importance.HIGH, JMS_URL_DOC,
@@ -115,10 +116,11 @@ object JMSConfig {
       "Connection", 11, ConfigDef.Width.MEDIUM, DESTINATION_SELECTOR)
     .define(EXTRA_PROPS, Type.LIST, EXTRA_PROPS_DEFAULT, Importance.MEDIUM, EXTRA_PROPS_DOC,
       "Connection", 12, ConfigDef.Width.MEDIUM, EXTRA_PROPS)
+    .define(BATCH_SIZE, Type.INT, BATCH_SIZE_DEFAULT, Importance.MEDIUM, BATCH_SIZE_DOC,
+      "Connection", 12, ConfigDef.Width.MEDIUM, BATCH_SIZE)
 
     //converters
-    //converter
-    .define(CONVERTER_CONFIG, Type.STRING, null, Importance.HIGH, CONVERTER_DOC, "Converter", 1, ConfigDef.Width.MEDIUM, CONVERTER_DISPLAY)
+    .define(CONVERTER_CONFIG, Type.STRING, "", Importance.HIGH, CONVERTER_DOC, "Converter", 1, ConfigDef.Width.MEDIUM, CONVERTER_DISPLAY)
     .define(THROW_ON_CONVERT_ERRORS_CONFIG, Type.BOOLEAN, THROW_ON_CONVERT_ERRORS_DEFAULT, Importance.HIGH, THROW_ON_CONVERT_ERRORS_DOC, "Converter", 2, ConfigDef.Width.MEDIUM, THROW_ON_CONVERT_ERRORS_DISPLAY)
 
 }

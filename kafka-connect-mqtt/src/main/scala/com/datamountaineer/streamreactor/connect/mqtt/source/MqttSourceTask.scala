@@ -27,7 +27,7 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 class MqttSourceTask extends SourceTask with StrictLogging {
@@ -83,7 +83,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
       list
     }.orNull
 
-    progressCounter.update(records.toVector)
+    //progressCounter.update(records.asScala.toSeq)
     records
   }
 
@@ -93,7 +93,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
   override def stop(): Unit = {
     logger.info("Stopping Mqtt source.")
     mqttManager.foreach(_.close())
-    progressCounter.empty()
+    progressCounter.empty
   }
 
   override def version(): String = getClass.getPackage.getImplementationVersion

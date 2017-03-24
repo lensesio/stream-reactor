@@ -98,7 +98,7 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
   override def poll(): util.List[SourceRecord] = {
     logger.info("Polling for Yahoo records...")
     val records = dataManager.map(_.getRecords).getOrElse(new util.ArrayList[SourceRecord]())
-    progressCounter.update(records.toVector)
+    //progressCounter.update(records.asScala.toSeq)
     records
   }
 
@@ -110,7 +110,7 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
     logger.info("Stopping Yahoo source...")
     dataManager.foreach(_.close())
     logger.info("Yahoo data retriever stopped.")
-    progressCounter.empty()
+    progressCounter.empty
   }
 
   /**

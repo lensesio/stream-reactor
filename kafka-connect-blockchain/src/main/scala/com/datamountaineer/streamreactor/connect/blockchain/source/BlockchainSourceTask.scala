@@ -26,6 +26,7 @@ import org.apache.kafka.common.config.AbstractConfig
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 class BlockchainSourceTask extends SourceTask with StrictLogging {
@@ -66,7 +67,7 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
   override def poll(): util.List[SourceRecord] = {
     val records = blockchainManager.map(_.get()).getOrElse(new util.ArrayList[SourceRecord]())
     logger.debug(s"Returning ${records.size()} record(-s) from Blockchain source")
-    progressCounter.update(records.toVector)
+    //progressCounter.update(records.asScala.toSeq)
     records
   }
 

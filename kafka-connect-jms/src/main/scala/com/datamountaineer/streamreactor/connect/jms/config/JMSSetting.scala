@@ -16,33 +16,14 @@
 
 package com.datamountaineer.streamreactor.connect.jms.config
 
-import com.datamountaineer.connector.config.{Config, FormatType}
+import com.datamountaineer.connector.config.FormatType
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
-import com.typesafe.scalalogging.slf4j.StrictLogging
 
-import scala.collection.JavaConversions._
-
-case class JMSSetting(destinationType: DestinationType,
-                      source: String,
+case class JMSSetting(source: String,
                       target: String,
-                      includeAllFields: Boolean,
-                      fieldsAlias: Map[String, String],
+                      fields: Map[String, String],
+                      ignoreField: Set[String],
+                      destinationType: DestinationType,
                       format: FormatType = FormatType.JSON,
                       sourceConverters: Option[Converter]
                     )
-
-object JMSSetting extends StrictLogging {
-
-  def apply(config: Config, destinationType: DestinationType, formatType: FormatType, sourceConverters: Option[Converter]): JMSSetting = {
-
-    new JMSSetting(
-      destinationType,
-      config.getSource,
-      config.getTarget,
-      config.isIncludeAllFields,
-      config.getFieldAlias.map(f => f.getField -> f.getAlias).toMap,
-      formatType,
-      sourceConverters
-    )
-  }
-}
