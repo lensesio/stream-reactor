@@ -24,14 +24,12 @@ import org.apache.kafka.common.config.ConfigException
 class JMSSettingsTest extends TestBase {
 
   "should create a JMSSettings for a source with only 1 queue for a source" in {
-    val props = getProps1Queue
+    val props = getProps1Queue()
     val config = JMSConfig(props)
     val settings = JMSSettings(config, false)
     val setting = settings.settings.head
     setting.source shouldBe QUEUE1
     setting.target shouldBe TOPIC1
-    setting.includeAllFields shouldBe true
-    setting.fieldsAlias.isEmpty shouldBe true
     setting.sourceConverters shouldBe None
     setting.destinationType shouldBe QueueDestination
     settings.connectionURL shouldBe JMS_URL
@@ -45,8 +43,6 @@ class JMSSettingsTest extends TestBase {
     val setting = settings.settings.head
     setting.source shouldBe TOPIC1
     setting.target shouldBe TOPIC1
-    setting.includeAllFields shouldBe true
-    setting.fieldsAlias.isEmpty shouldBe true
     setting.sourceConverters shouldBe None
     setting.destinationType shouldBe TopicDestination
     settings.connectionURL shouldBe JMS_URL
@@ -59,8 +55,6 @@ class JMSSettingsTest extends TestBase {
     val setting = settings.settings.head
     setting.source shouldBe TOPIC1
     setting.target shouldBe TOPIC1
-    setting.includeAllFields shouldBe true
-    setting.fieldsAlias.isEmpty shouldBe true
     setting.sourceConverters shouldBe None
     setting.destinationType shouldBe TopicDestination
     settings.destinationSelector shouldBe DestinationSelector.JNDI
@@ -68,22 +62,18 @@ class JMSSettingsTest extends TestBase {
   }
 
   "should create a JMSSettings for a source with only 1 topic, 1 queue and JNDI for a source" in {
-    val props = getPropsMixJNDI
+    val props = getPropsMixJNDI()
     val config = JMSConfig(props)
     val settings = JMSSettings(config, false)
     val queue = settings.settings.head
     queue.source shouldBe QUEUE1
     queue.target shouldBe TOPIC1
-    queue.includeAllFields shouldBe true
-    queue.fieldsAlias.isEmpty shouldBe true
     queue.sourceConverters shouldBe None
     queue.destinationType shouldBe QueueDestination
 
     val topic = settings.settings.last
     topic.source shouldBe TOPIC1
     topic.target shouldBe TOPIC1
-    topic.includeAllFields shouldBe true
-    topic.fieldsAlias.isEmpty shouldBe true
     topic.sourceConverters shouldBe None
     topic.destinationType shouldBe TopicDestination
 
@@ -92,45 +82,37 @@ class JMSSettingsTest extends TestBase {
   }
 
   "should create a JMSSettings for a source with only 1 topic, 1 queue and JNDI and converters for a source" in {
-    val props = getPropsMixJNDIWithConverter
+    val props = getPropsMixWithConverter
     val config = JMSConfig(props)
     val settings = JMSSettings(config, false)
     val queue = settings.settings.head
-    queue.source shouldBe QUEUE1
+    queue.source shouldBe AVRO_QUEUE
     queue.target shouldBe TOPIC1
-    queue.includeAllFields shouldBe true
-    queue.fieldsAlias.isEmpty shouldBe true
-    queue.sourceConverters shouldBe None
+    queue.sourceConverters.get.isInstanceOf[AvroConverter] shouldBe true
     queue.destinationType shouldBe QueueDestination
 
     val topic = settings.settings.last
     topic.source shouldBe TOPIC1
     topic.target shouldBe TOPIC1
-    topic.includeAllFields shouldBe true
-    topic.fieldsAlias.isEmpty shouldBe true
     topic.destinationType shouldBe TopicDestination
-    topic.sourceConverters.get.isInstanceOf[AvroConverter] shouldBe true
+    topic.sourceConverters.getOrElse(None) shouldBe None
 
     settings.destinationSelector shouldBe DestinationSelector.CDI
     settings.connectionURL shouldBe JMS_URL
   }
 
   "should create a JMSSettings for a source with only 1 topic, 1 queue and JNDI and converters for a sink" in {
-    val props = getPropsMixJNDIWithConverterSink()
+    val props = getPropsMixJNDIWithSink()
     val config = JMSConfig(props)
     val settings = JMSSettings(config, true)
     val queue = settings.settings.head
     queue.source shouldBe TOPIC2
     queue.target shouldBe QUEUE1
-    queue.includeAllFields shouldBe true
-    queue.fieldsAlias.isEmpty shouldBe true
     queue.sourceConverters shouldBe None
 
     val topic = settings.settings.last
     topic.source shouldBe TOPIC1
     topic.target shouldBe TOPIC1
-    topic.includeAllFields shouldBe true
-    topic.fieldsAlias.isEmpty shouldBe true
     topic.destinationType shouldBe TopicDestination
 
     settings.destinationSelector shouldBe DestinationSelector.CDI

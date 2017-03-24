@@ -1,8 +1,8 @@
 package com.datamountaineer.streamreactor.connect.jms
 
 import java.util.Properties
-import javax.naming.InitialContext
 import javax.jms._
+import javax.naming.InitialContext
 
 import com.datamountaineer.streamreactor.connect.jms.config.DestinationSelector.DestinationSelector
 import com.datamountaineer.streamreactor.connect.jms.config._
@@ -17,30 +17,42 @@ import scala.util.{Failure, Success, Try}
   * stream-reactor
   */
 case class JMSProvider(queueConsumers: Map[String, MessageConsumer],
-                  topicsConsumers: Map[String, MessageConsumer],
-                  session: Session,
-                  connection: Connection,
-                  context: InitialContext
-                 ) extends StrictLogging {
+                       topicsConsumers: Map[String, MessageConsumer],
+                       queueProducers : Map[String, MessageProducer],
+                       topicProducers : Map[String, MessageProducer],
+                       session: Session,
+                       connection: Connection,
+                       context: InitialContext) extends StrictLogging {
 
+  def start() = connection.start()
 
   def close() = {
     topicsConsumers.foreach({ case(source, consumer) =>
-      logger.info(s"Stopping queue consumer for ${source}")
+      logger.info(s"Stopping topic consumer for ${source}")
       consumer.close()
     })
     queueConsumers.foreach({ case(source, consumer) =>
-      logger.info(s"Stopping consumer for ${source}")
+      logger.info(s"Stopping queue consumer for ${source}")
       consumer.close()
     })
-    Try(session.close())
+
+    topicProducers.foreach({ case(source, producer) =>
+      logger.info(s"Stopping topic producer for ${source}")
+      producer.close()
+    })
+
+    queueProducers.foreach({ case(source, producer) =>
+      logger.info(s"Stopping queue producer for ${source}")
+      producer.close()
+    })
+
     Try(session.close())
     Try(context.close())
   }
 }
 
 object JMSProvider extends StrictLogging {
-  def apply(settings: JMSSettings): JMSProvider ={
+  def apply(settings: JMSSettings, sink: Boolean = false): JMSProvider ={
     val context =  new InitialContext(getProps(settings))
     val connectionFactory = context.lookup(settings.connectionFactoryClass).asInstanceOf[ConnectionFactory]
     val connection = settings.user match {
@@ -57,24 +69,34 @@ object JMSProvider extends StrictLogging {
         throw new ConnectException(f)
     }
 
-    val topicsConsumers = settings
-      .settings
-      .filter(f => f.destinationType.equals(TopicDestination))
-      .map(t => (t.source, getDestination(t.source, context, settings.destinationSelector, TopicDestination, session)))
-      .map({ case (source, topic) => (source, session.createConsumer(topic)) })
-      .toMap
+    lazy val topicsConsumers = configureDestination(TopicDestination, context, session, settings, sink)
+                            .flatMap({ case (source, topic) => createConsumers(source, session, topic) }).toMap
 
-    val queueConsumers = settings
-      .settings
-      .filter(f => f.destinationType.equals(QueueDestination))
-      .map(t => (t.source,getDestination(t.source, context, settings.destinationSelector, QueueDestination, session)))
-      .map({ case (source, queue) => (source, session.createConsumer(queue)) })
-      .toMap
+    lazy val queueConsumers = configureDestination(QueueDestination, context, session, settings, sink)
+                            .flatMap({ case (source, queue) => createConsumers(source, session, queue) }).toMap
 
-    new JMSProvider(queueConsumers, topicsConsumers, session, connection, context)
+
+    lazy val topicProducers = configureDestination(TopicDestination, context, session, settings, sink)
+                            .flatMap({ case (source, topic) => createProducers(source, session, topic) }).toMap
+
+    lazy val queueProducers = configureDestination(QueueDestination, context, session, settings, sink)
+                            .flatMap({ case (source, queue) => createProducers(source, session, queue) }).toMap
+
+    new JMSProvider(queueConsumers, topicsConsumers, queueProducers, topicProducers, session, connection, context)
   }
 
-  private def getDestination(name: String, context: InitialContext, selector: DestinationSelector, destination: DestinationType, session: Session): Destination = {
+  def configureDestination(destinationType: DestinationType, context: InitialContext, session: Session, settings: JMSSettings, sink: Boolean = false) = {
+    settings.settings
+      .filter(f => f.destinationType.equals(destinationType))
+      .map(t => (t.source, getDestination((if (sink) t.target else t.source), context, settings.destinationSelector, destinationType, session)))
+  }
+
+  def createProducers(source: String, session: Session, destination: Destination) = Map(source -> session.createProducer(destination))
+
+  def createConsumers(source: String, session: Session, destination: Destination) = Map(source -> session.createConsumer(destination))
+
+  private def getDestination(name: String, context: InitialContext, selector: DestinationSelector,
+                             destination: DestinationType, session: Session): Destination = {
     selector match {
       case DestinationSelector.JNDI => context.lookup(name).asInstanceOf[Destination]
       case DestinationSelector.CDI => {
@@ -86,6 +108,11 @@ object JMSProvider extends StrictLogging {
     }
   }
 
+  /**
+    * Construct the properties for the initial context
+    * adding in anything in the extra properties for solace or ibm
+    *
+    * */
   private def getProps(settings: JMSSettings) = {
     val props = new Properties()
     props.setProperty(javax.naming.Context.INITIAL_CONTEXT_FACTORY, settings.initialContextClass)

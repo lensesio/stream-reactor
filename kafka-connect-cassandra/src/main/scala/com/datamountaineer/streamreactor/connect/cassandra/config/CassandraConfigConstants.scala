@@ -107,7 +107,7 @@ object CassandraConfigConstants {
       | There are three available options:
       |    NOOP - the error is swallowed
       |    THROW - the error is allowed to propagate.
-      |    RETRY - The exception causes the Connect framework to retry the message. The number of retries is set by connect.cassandra.max.retires.
+      |    RETRY - The exception causes the Connect framework to retry the message. The number of retries is set by connect.cassandra.max.retries.
       |All errors will be logged automatically, even if the code swallows them.
     """.stripMargin
   val ERROR_POLICY_DEFAULT = "THROW"
@@ -115,7 +115,7 @@ object CassandraConfigConstants {
   val ERROR_RETRY_INTERVAL = "connect.cassandra.retry.interval"
   val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
   val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
-  val NBR_OF_RETRIES = "connect.cassandra.max.retires"
+  val NBR_OF_RETRIES = "connect.cassandra.max.retries"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 

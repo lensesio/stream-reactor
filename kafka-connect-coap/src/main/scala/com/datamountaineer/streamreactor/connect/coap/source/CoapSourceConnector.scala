@@ -58,9 +58,7 @@ class CoapSourceConnector extends SourceConnector {
 
   override def config(): ConfigDef = configDef
 
-  override def start(props: util.Map[String, String]): Unit = {
-    configProps = props
-  }
+  override def start(props: util.Map[String, String]): Unit = configProps = props
 
   override def stop(): Unit = {}
 

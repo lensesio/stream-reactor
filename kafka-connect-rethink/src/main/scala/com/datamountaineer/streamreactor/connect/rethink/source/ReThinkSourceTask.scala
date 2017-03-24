@@ -27,6 +27,7 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -59,7 +60,7 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
     * */
   override def poll(): util.List[SourceRecord] = {
    val records = readers.flatMap(ActorHelper.askForRecords).toList
-   progressCounter.update(records.toVector)
+   //progressCounter.update(records.toArray)
    records
   }
 

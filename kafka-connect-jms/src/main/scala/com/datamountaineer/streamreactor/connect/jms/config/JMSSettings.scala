@@ -35,6 +35,7 @@ case class JMSSettings(connectionURL: String,
                        settings: List[JMSSetting],
                        user: Option[String],
                        password: Option[Password],
+                       batchSize: Int,
                        errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                        retries: Int) {
   require(connectionURL != null && connectionURL.trim.length > 0, "Invalid connection URL")
@@ -72,6 +73,13 @@ object JMSSettings extends StrictLogging {
     val user = config.getString(JMSConfig.JMS_USER)
     val passwordRaw = config.getPassword(JMSConfig.JMS_PASSWORD)
     val sources = kcql.map(_.getSource).toSet
+    val batchSize = config.getInt(JMSConfig.BATCH_SIZE)
+
+    val fields = kcql.map(rm => (rm.getSource,
+      rm.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)
+    ).toMap
+
+    val ignoreFields = kcql.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
 
     val sourcesToConverterMap = Option(config.getString(JMSConfig.CONVERTER_CONFIG))
       .map { c =>
@@ -106,6 +114,7 @@ object JMSSettings extends StrictLogging {
         case Success(value) => value.asInstanceOf[Converter]
         case Failure(_) => throw new ConfigException(s"Invalid ${JMSConfig.CONVERTER_CONFIG} is invalid. $clazz should have an empty ctor!")
       }
+      converter.initialize(config.props.toMap)
       s._1 -> converter
     }
 
@@ -114,7 +123,7 @@ object JMSSettings extends StrictLogging {
 
     val settings = kcql.map(r => {
       val jmsName = if (sink) r.getTarget else r.getSource
-      JMSSetting(r, getDestinationType(jmsName, jmsQueues, jmsTopics), getFormatType(r), convertersMap.get(jmsName))
+      JMSSetting(r.getSource, r.getTarget, fields(r.getSource), ignoreFields(r.getSource), getDestinationType(jmsName, jmsQueues, jmsTopics), getFormatType(r), convertersMap.get(jmsName))
     }).toList
 
     new JMSSettings(
@@ -126,14 +135,12 @@ object JMSSettings extends StrictLogging {
       settings,
       Option(user),
       Option(passwordRaw),
+      batchSize,
       errorPolicy,
       nbrOfRetries)
   }
 
-  def getFormatType(config: Config) : FormatType = {
-    val format = Option(config.getFormatType)
-    format.getOrElse(FormatType.JSON)
-  }
+  def getFormatType(config: Config) : FormatType = Option(config.getFormatType).getOrElse(FormatType.JSON)
 
   def getDestinationType(target: String, queues: Set[String], topics: Set[String]): DestinationType = {
     if (topics.contains(target)) {

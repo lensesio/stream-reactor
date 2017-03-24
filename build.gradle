@@ -67,11 +67,14 @@ allprojects {
         avroVersion = '1.7.7'
         jacksonxmlVersion = '2.6.5'
         slf4jVersion = "1.7.7"
+        dataMountaineerCommonVersion = "0.7.1"
+        dataMountaineerTestKitVersion = "0.5"
         avro4sVersion = "1.6.0"
         json4sVersion = "3.3.0"
         kiteMiniClusterVersion = "1.1.0"
         gsonVersion = "2.6.2"
         dataMountaineerKCQLVersion = "1.0.0"
+        confluentVersion = '3.1.1'
         akkaVersion = "2.4.10"
         connectCLIVersion = "1.0"
 

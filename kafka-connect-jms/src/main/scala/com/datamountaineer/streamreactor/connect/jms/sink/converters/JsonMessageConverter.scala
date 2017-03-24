@@ -14,13 +14,19 @@
  *  limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.jms.sink.writer.converters
+package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
 import javax.jms.{Message, Session}
 
+import com.datamountaineer.streamreactor.connect.converters.source.SinkRecordToJson
+import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.kafka.connect.sink.SinkRecord
 
+class JsonMessageConverter extends JMSMessageConverter with ConverterUtil {
 
-trait JMSMessageConverter {
-  def convert(record:SinkRecord, session:Session):Message
+  override def convert(sinkRecord: SinkRecord, session: Session, setting: JMSSetting): (String, Message) = {
+    val json = SinkRecordToJson(sinkRecord, Map(sinkRecord.topic() -> setting.fields), Map(sinkRecord.topic() -> setting.ignoreField))
+    (setting.source, session.createTextMessage(json))
+  }
 }

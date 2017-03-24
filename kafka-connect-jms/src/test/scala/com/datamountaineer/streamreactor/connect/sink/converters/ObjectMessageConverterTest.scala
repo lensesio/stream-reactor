@@ -14,21 +14,25 @@
  *  limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.sink.writer.converters
+package com.datamountaineer.streamreactor.connect.sink.converters
 
 import javax.jms.ObjectMessage
 
-import com.datamountaineer.streamreactor.connect.jms.sink.writer.converters.ObjectMessageConverter
+import com.datamountaineer.streamreactor.connect.TestBase
+import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
+import com.datamountaineer.streamreactor.connect.jms.sink.converters.ObjectMessageConverter
 import com.sksamuel.scalax.io.Using
 import org.apache.activemq.ActiveMQConnectionFactory
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
-import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
 
-class ObjectMessageConverterTest extends WordSpec with Matchers with Using {
+class ObjectMessageConverterTest extends WordSpec with Matchers with Using with TestBase {
   val converter = new ObjectMessageConverter()
+  val props = getPropsMixJNDIWithSink()
+  val config = JMSConfig(props)
+  val settings = JMSSettings(config, true)
+  val setting = settings.settings.head
 
   "ObjectMessageConverter" should {
     "create an instance of jms ObjectMessage" in {
@@ -36,37 +40,8 @@ class ObjectMessageConverterTest extends WordSpec with Matchers with Using {
 
       using(connectionFactory.createConnection()) { connection =>
         using(connection.createSession(false, 1)) { session =>
-          val builder = SchemaBuilder.struct
-            .field("int8", SchemaBuilder.int8().defaultValue(2.toByte).doc("int8 field").build())
-            .field("int16", Schema.INT16_SCHEMA)
-            .field("int32", Schema.INT32_SCHEMA)
-            .field("int64", Schema.INT64_SCHEMA)
-            .field("float32", Schema.FLOAT32_SCHEMA)
-            .field("float64", Schema.FLOAT64_SCHEMA)
-            .field("boolean", Schema.BOOLEAN_SCHEMA)
-            .field("string", Schema.STRING_SCHEMA)
-            .field("bytes", Schema.BYTES_SCHEMA)
-            .field("array", SchemaBuilder.array(Schema.STRING_SCHEMA).build())
-            .field("map", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA).build())
-            .field("mapNonStringKeys", SchemaBuilder.map(Schema.INT32_SCHEMA, Schema.INT32_SCHEMA)
-              .build())
-          val schema = builder.build()
-          val struct = new Struct(schema)
-            .put("int8", 12.toByte)
-            .put("int16", 12.toShort)
-            .put("int32", 12)
-            .put("int64", 12L)
-            .put("float32", 12.2f)
-            .put("float64", 12.2)
-            .put("boolean", true)
-            .put("string", "foo")
-            .put("bytes", "foo".getBytes())
-            .put("array", List("a", "b", "c").asJava)
-            .put("map", Map("field" -> 1).asJava)
-            .put("mapNonStringKeys", Map(1 -> 1).asJava)
-
-          val record = new SinkRecord("topic", 0, null, null, schema, struct, 1)
-          val msg = converter.convert(record, session).asInstanceOf[ObjectMessage]
+          val record = getSinkRecords.head
+          val msg = converter.convert(record, session, setting)._2.asInstanceOf[ObjectMessage]
 
           Option(msg).isDefined shouldBe true
 
