@@ -121,9 +121,11 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
                 record)
 
             case map: java.util.Map[_, _] =>
-              TagsExtractor.fromMap(record.value().asInstanceOf[java.util.Map[String, Any]].toMap,
+              TagsExtractor.fromMap(
+                record.value().asInstanceOf[java.util.Map[String, Any]].toMap,
                 tags,
-                builder)
+                builder,
+                record)
 
             case other => sys.error(s"$other content is not supported to extract tags")
           }
@@ -193,7 +195,7 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
         }
 
       val point = settings.topicToTagsMap.get(record.topic()).map { tags =>
-        TagsExtractor.fromStruct(record.value().asInstanceOf[Struct], tags, pointBuilder)
+        TagsExtractor.fromStruct(record, tags, pointBuilder)
       }.getOrElse(pointBuilder).build()
 
       Some(point)

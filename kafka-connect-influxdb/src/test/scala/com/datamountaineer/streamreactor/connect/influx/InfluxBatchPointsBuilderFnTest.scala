@@ -94,7 +94,7 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers {
       tags shouldBe Map.empty
     }
 
-    "throw an exception while converting a sink record with a json string payload and the tag field is missing" in {
+    "not throw an exception while converting a sink record with a json string payload and the tag field is missing" in {
       val jsonPayload =
         """
           | {
@@ -125,9 +125,8 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers {
       val extractor = StructFieldsExtractor(true, Map.empty, None, ignoredFields = Set.empty)
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
         Map(topic -> measurement), Map(topic -> extractor), Map(topic -> Seq(new Tag("abc"))))
-      intercept[RuntimeException] {
-        InfluxBatchPointsBuilderFn(Seq(record), settings)
-      }
+      val points = InfluxBatchPointsBuilderFn(Seq(record), settings)
+      points.getPoints.size() shouldBe 1
     }
 
 
@@ -717,7 +716,7 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers {
     PointMapFieldGetter.tags(point) shouldBe Map.empty
   }
 
-  "raise an exception while converting a schemaless sink record if the tag field is not present" in {
+  "not raise an exception while converting a schemaless sink record if the tag field is not present" in {
     val sourceMap = new util.HashMap[String, Any]()
     val s: Short = 123
     sourceMap.put("timestamp", s)
@@ -746,9 +745,8 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers {
     val extractor = StructFieldsExtractor(true, Map.empty, Some("timestamp"), Set.empty)
     val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
       Map(topic -> measurement), Map(topic -> extractor), Map(topic -> Seq(new Tag("abc"))))
-    intercept[RuntimeException] {
-      InfluxBatchPointsBuilderFn(Seq(record), settings)
-    }
+    val pb = InfluxBatchPointsBuilderFn(Seq(record), settings)
+    pb.getPoints.size() shouldBe 1
   }
 
   "convert a schemaless sink record when all fields are selected with the timestamp field within the payload and tags applied" in {

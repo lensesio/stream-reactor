@@ -18,26 +18,26 @@ package com.datamountaineer.streamreactor.connect.influx.writers
 
 import com.datamountaineer.connector.config.Tag
 import com.datamountaineer.streamreactor.connect.influx.StructFieldsExtractor
+import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.sink.SinkRecord
 import org.influxdb.dto.Point
 import org.json4s.jackson.JsonMethods.parse
 
-import scala.collection.JavaConversions._
 import scala.util.Try
 
-object TagsExtractor {
+object TagsExtractor extends StrictLogging {
   def apply(record: SinkRecord, tags: Seq[Tag], pointBuilder: Point.Builder): Point.Builder = {
     Option(record.valueSchema()) match {
       case None =>
         record.value() match {
-          case map: java.util.Map[_, _] => fromMap(map.asInstanceOf[Map[String, Any]], tags, pointBuilder)
+          case map: java.util.Map[_, _] => fromMap(map.asInstanceOf[Map[String, Any]], tags, pointBuilder, record)
           case _ => sys.error("For schemaless record only String and Map types are supported")
         }
       case Some(schema: Schema) =>
         schema.`type`() match {
           case Schema.Type.STRING => fromJson(record.value().asInstanceOf[String], tags, pointBuilder, record)
-          case Schema.Type.STRUCT => fromStruct(record.value().asInstanceOf[Struct], tags, pointBuilder)
+          case Schema.Type.STRUCT => fromStruct(record, tags, pointBuilder)
           case other => sys.error(s"$other schema is not supported")
         }
     }
@@ -53,42 +53,59 @@ object TagsExtractor {
     tags.foldLeft(pointBuilder) { case (pb, t) =>
       if (t.isConstant) pb.tag(t.getKey, t.getValue)
       else {
-        Option(json.getOrElse(t.getKey, throw new IllegalArgumentException(s"${t.getKey} can't be found on the values list:${json.keys.mkString(",")}")))
+        json.get(t.getKey)
+          .flatMap(Option(_))
           .map { value =>
             pb.tag(t.getKey, value.toString)
-          }.getOrElse(pb)
-      }
-    }
-  }
-
-  def fromMap(map: Map[String, Any], tags: Seq[Tag], pointBuilder: Point.Builder): Point.Builder = {
-    tags.foldLeft(pointBuilder) { case (pb, t) =>
-      if (t.isConstant) pb.tag(t.getKey, t.getValue)
-      else {
-        Option(map.getOrElse(t.getKey, throw new IllegalArgumentException(s"${t.getKey} can't be found on the values list:${map.keys.mkString(",")}")))
-          .map { value =>
-            pb.tag(t.getKey, value.toString)
-          }.getOrElse(pb)
-      }
-    }
-  }
-
-  def fromStruct(struct: Struct, tags: Seq[Tag], pointBuilder: Point.Builder): Point.Builder = {
-    tags.foldLeft(pointBuilder) { case (pb, t) =>
-      if (t.isConstant) pb.tag(t.getKey, t.getValue)
-      else {
-        Option(struct.schema().field(t.getKey)).getOrElse(throw new IllegalArgumentException(s"${t.getKey} is not found in the list of fields:${struct.schema().fields().map(_.name()).mkString(",")}"))
-
-        val schema = struct.schema().field(t.getKey).schema()
-        val value = schema.name() match {
-          case Decimal.LOGICAL_NAME => Decimal.toLogical(schema, struct.getBytes(t.getKey))
-          case Date.LOGICAL_NAME => StructFieldsExtractor.DateFormat.format(Date.toLogical(schema, struct.getInt32(t.getKey)))
-          case Time.LOGICAL_NAME => StructFieldsExtractor.TimeFormat.format(Time.toLogical(schema, struct.getInt32(t.getKey)))
-          case Timestamp.LOGICAL_NAME => StructFieldsExtractor.DateFormat.format(Timestamp.toLogical(schema, struct.getInt64(t.getKey)))
-          case _ => struct.get(t.getKey)
+          }.getOrElse {
+          logger.warn(s"Tag can't be set because field:${t.getKey} can't be found or is null on the incoming value. topic=${record.topic()};partition=${record.kafkaPartition()};offset=${record.kafkaOffset()}.")
+          pb
         }
+      }
+    }
+  }
 
-        Option(value).map(v => pb.tag(t.getKey, v.toString)).getOrElse(pb)
+  def fromMap(map: Map[String, Any], tags: Seq[Tag], pointBuilder: Point.Builder, record: SinkRecord): Point.Builder = {
+    tags.foldLeft(pointBuilder) { case (pb, t) =>
+      if (t.isConstant) pb.tag(t.getKey, t.getValue)
+      else {
+        map.get(t.getKey)
+          .flatMap(Option(_))
+          .map { value =>
+            pb.tag(t.getKey, value.toString)
+          }.getOrElse {
+          logger.warn(s"Tag can't be set because field:${t.getKey} can't be found or is null on the incoming value. topic=${record.topic()};partition=${record.kafkaPartition()};offset=${record.kafkaOffset()}")
+          pb
+        }
+      }
+    }
+  }
+
+  def fromStruct(record: SinkRecord,
+                 tags: Seq[Tag],
+                 pointBuilder: Point.Builder): Point.Builder = {
+    val struct = record.value().asInstanceOf[Struct]
+    tags.foldLeft(pointBuilder) { case (pb, t) =>
+      if (t.isConstant) pb.tag(t.getKey, t.getValue)
+      else {
+
+        Option(struct.schema().field(t.getKey))
+          .flatMap { field =>
+            val schema = field.schema()
+            val value = schema.name() match {
+              case Decimal.LOGICAL_NAME => Decimal.toLogical(schema, struct.getBytes(t.getKey))
+              case Date.LOGICAL_NAME => StructFieldsExtractor.DateFormat.format(Date.toLogical(schema, struct.getInt32(t.getKey)))
+              case Time.LOGICAL_NAME => StructFieldsExtractor.TimeFormat.format(Time.toLogical(schema, struct.getInt32(t.getKey)))
+              case Timestamp.LOGICAL_NAME => StructFieldsExtractor.DateFormat.format(Timestamp.toLogical(schema, struct.getInt64(t.getKey)))
+              case _ => struct.get(t.getKey)
+            }
+            Option(value)
+          }
+          .map(v => pb.tag(t.getKey, v.toString))
+          .getOrElse {
+            logger.warn(s"Tag can't be set because field:${t.getKey} can't be found or is null on the incoming value.topic=${record.topic()};partition=${record.kafkaPartition()};offset=${record.kafkaOffset()}")
+            pb
+          }
       }
     }
   }
