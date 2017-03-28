@@ -27,7 +27,7 @@ import org.json4s.jackson.JsonMethods.parse
 import scala.util.Try
 
 object TagsExtractor extends StrictLogging {
-  def apply(record: SinkRecord, tags: Seq[Tag], pointBuilder: Point.Builder): Point.Builder = {
+  /*def apply(record: SinkRecord, tags: Seq[Tag], pointBuilder: Point.Builder): Point.Builder = {
     Option(record.valueSchema()) match {
       case None =>
         record.value() match {
@@ -41,7 +41,7 @@ object TagsExtractor extends StrictLogging {
           case other => sys.error(s"$other schema is not supported")
         }
     }
-  }
+  }*/
 
   def fromJson(value: String, tags: Seq[Tag], pointBuilder: Point.Builder, record: SinkRecord): Point.Builder = {
     lazy val json = {
@@ -65,17 +65,25 @@ object TagsExtractor extends StrictLogging {
     }
   }
 
-  def fromMap(map: Map[String, Any], tags: Seq[Tag], pointBuilder: Point.Builder, record: SinkRecord): Point.Builder = {
+  def fromMap(map: java.util.Map[String, Any],
+              originalMap: java.util.Map[String, Any],
+              tags: Seq[Tag],
+              pointBuilder: Point.Builder,
+              record: SinkRecord): Point.Builder = {
     tags.foldLeft(pointBuilder) { case (pb, t) =>
       if (t.isConstant) pb.tag(t.getKey, t.getValue)
       else {
-        map.get(t.getKey)
-          .flatMap(Option(_))
-          .map { value =>
-            pb.tag(t.getKey, value.toString)
-          }.getOrElse {
-          logger.warn(s"Tag can't be set because field:${t.getKey} can't be found or is null on the incoming value. topic=${record.topic()};partition=${record.kafkaPartition()};offset=${record.kafkaOffset()}")
-          pb
+        Option(map.get(t.getKey)) match {
+          case Some(v) => pb.tag(t.getKey, v.toString)
+
+          case None =>
+            Option(originalMap.get(t.getKey))
+              .map { value =>
+                pb.tag(t.getKey, value.toString)
+              }.getOrElse {
+              logger.warn(s"Tag can't be set because field:${t.getKey} is null on the incoming value. topic=${record.topic()};partition=${record.kafkaPartition()};offset=${record.kafkaOffset()}")
+              pb
+            }
         }
       }
     }
@@ -84,23 +92,27 @@ object TagsExtractor extends StrictLogging {
   def fromStruct(record: SinkRecord,
                  tags: Seq[Tag],
                  pointBuilder: Point.Builder): Point.Builder = {
+
+    def getTagValue(key: String, struct: Struct): Option[Any] = {
+      Option(struct.schema().field(key))
+        .flatMap { field =>
+          val schema = field.schema()
+          val value = schema.name() match {
+            case Decimal.LOGICAL_NAME => Decimal.toLogical(schema, struct.getBytes(key))
+            case Date.LOGICAL_NAME => StructFieldsExtractor.DateFormat.format(Date.toLogical(schema, struct.getInt32(key)))
+            case Time.LOGICAL_NAME => StructFieldsExtractor.TimeFormat.format(Time.toLogical(schema, struct.getInt32(key)))
+            case Timestamp.LOGICAL_NAME => StructFieldsExtractor.DateFormat.format(Timestamp.toLogical(schema, struct.getInt64(key)))
+            case _ => struct.get(key)
+          }
+          Option(value)
+        }
+    }
+
     val struct = record.value().asInstanceOf[Struct]
     tags.foldLeft(pointBuilder) { case (pb, t) =>
       if (t.isConstant) pb.tag(t.getKey, t.getValue)
       else {
-
-        Option(struct.schema().field(t.getKey))
-          .flatMap { field =>
-            val schema = field.schema()
-            val value = schema.name() match {
-              case Decimal.LOGICAL_NAME => Decimal.toLogical(schema, struct.getBytes(t.getKey))
-              case Date.LOGICAL_NAME => StructFieldsExtractor.DateFormat.format(Date.toLogical(schema, struct.getInt32(t.getKey)))
-              case Time.LOGICAL_NAME => StructFieldsExtractor.TimeFormat.format(Time.toLogical(schema, struct.getInt32(t.getKey)))
-              case Timestamp.LOGICAL_NAME => StructFieldsExtractor.DateFormat.format(Timestamp.toLogical(schema, struct.getInt64(t.getKey)))
-              case _ => struct.get(t.getKey)
-            }
-            Option(value)
-          }
+        getTagValue(t.getKey, struct)
           .map(v => pb.tag(t.getKey, v.toString))
           .getOrElse {
             logger.warn(s"Tag can't be set because field:${t.getKey} can't be found or is null on the incoming value.topic=${record.topic()};partition=${record.kafkaPartition()};offset=${record.kafkaOffset()}")

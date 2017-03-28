@@ -19,18 +19,21 @@ package com.datamountaineer.streamreactor.connect.influx
 import java.util
 
 import com.datamountaineer.connector.config.Tag
-import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
+import com.datamountaineer.streamreactor.connect.influx.config.{InfluxSettings, InfluxSinkConfig}
 import com.datamountaineer.streamreactor.connect.influx.writers.InfluxBatchPointsBuilderFn
+import com.fasterxml.jackson.core.`type`.TypeReference
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.influxdb.InfluxDB.ConsistencyLevel
 import org.influxdb.dto.Point
+import org.mockito.Mockito.when
+import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConversions._
 
 
-class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers {
+class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with MockitoSugar {
   "InfluxBatchPointsBuilderFn" should {
     "convert a sink record with a json string payload when all fields are selected" in {
       val jsonPayload =
@@ -129,6 +132,72 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers {
       points.getPoints.size() shouldBe 1
     }
 
+    "convert a sink record with a json string payload and tag is left out" in {
+      val jsonPayload =
+        """
+          |{
+          |  "time": 1490693176034,
+          |  "sid": "SymvD4Ghg",
+          |  "ptype": "lp",
+          |  "pid": "B1xHp7f3e",
+          |  "origin": "https://p.hecaila.com/l/B1xHp7f3e",
+          |  "resolution": "1440x900",
+          |  "bit": "24-bit",
+          |  "lang": "zh-CN",
+          |  "cookieEnabled": 1,
+          |  "title": "未项目",
+          |  "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.110 Safari/537.36",
+          |  "ip": "0.0.0.0",
+          |  "query": "ck=1&ln=zh-CN&cl=24-bit&ds=1440x900&tt=%E6%9C%AA%E9%A1%B9%E7%9B%AE&u=https%3A%2F%2Fp.hecaila.com%2Fl%2FB1xHp7f3e&tp=lp&id=B1xHp7f3e&rnd=620884&p=0&t=0",
+          |  "region": "上海",
+          |  "browser": "Chrome",
+          |  "device": "Apple Macintosh",
+          |  "os": "Mac OS X 10.12.3",
+          |  "agent": "Chrome",
+          |  "deviceType": "Desktop"
+          |}
+        """.stripMargin
+
+      val sourceMap: util.HashMap[String, Any] = JacksonJson.mapper.readValue(jsonPayload, new TypeReference[util.HashMap[String, Object]]() {})
+      val topic = "topic1"
+      val measurement = "measurement1"
+
+      val database = "mydatabase"
+      val user = "myuser"
+      val config = mock[InfluxSinkConfig]
+      when(config.getString(InfluxSinkConfig.INFLUX_URL_CONFIG)).thenReturn("http://localhost:8081")
+      when(config.getString(InfluxSinkConfig.INFLUX_DATABASE_CONFIG)).thenReturn(database)
+      when(config.getString(InfluxSinkConfig.INFLUX_CONNECTION_USER_CONFIG)).thenReturn(user)
+      when(config.getString(InfluxSinkConfig.INFLUX_CONNECTION_PASSWORD_CONFIG)).thenReturn(null)
+      when(config.getString(InfluxSinkConfig.ERROR_POLICY_CONFIG)).thenReturn("THROW")
+      when(config.getString(InfluxSinkConfig.KCQL_CONFIG)).thenReturn(s"INSERT INTO $measurement SELECT * FROM $topic IGNORE ptype, pid WITHTAG (ptype, pid) WITHTIMESTAMP time")
+      when(config.getString(InfluxSinkConfig.CONSISTENCY_CONFIG)).thenReturn(ConsistencyLevel.QUORUM.toString)
+      val settings = InfluxSettings(config)
+
+      val before = System.currentTimeMillis()
+
+      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
+
+      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+      val points = batchPoints.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      PointMapFieldGetter.measurement(point) shouldBe measurement
+      val time = PointMapFieldGetter.time(point)
+      time > before shouldBe true
+
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 17
+
+      map.get("sid") shouldBe "SymvD4Ghg"
+      map.containsKey("pid") shouldBe false
+      map.containsKey("ptype") shouldBe false
+
+      val tags = PointMapFieldGetter.tags(point)
+      tags.size shouldBe 2
+      tags.get("pid") shouldBe Some("B1xHp7f3e")
+      tags.get("ptype") shouldBe Some("lp")
+    }
 
     "convert a sink record with a json string payload when all fields are selected and tags are applied" in {
       val jsonPayload =

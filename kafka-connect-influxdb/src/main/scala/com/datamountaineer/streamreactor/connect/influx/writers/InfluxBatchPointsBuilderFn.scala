@@ -24,6 +24,7 @@ import io.confluent.common.config.ConfigException
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.influxdb.dto.{BatchPoints, Point}
+import org.json4s.jackson.JsonMethods.parse
 
 import scala.collection.JavaConversions._
 import scala.util.Try
@@ -81,12 +82,19 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
       }
     }.getOrElse(System.currentTimeMillis())
 
+    val ignoredFields = new java.util.HashMap[String, Any]()
+    extractor.ignoredFields.foreach { f =>
+      Option(map.get(f)).foreach { v =>
+        ignoredFields.put(f, v)
+      }
+    }
     val convertedMap = convertSchemalessJson(record, extractor.fieldsAliasMap, extractor.ignoredFields, key = false, includeAllFields = extractor.includeAllFields)
 
-    fromMapToPoint(convertedMap, timestamp, settings, record)
+    fromMapToPoint(convertedMap, ignoredFields, timestamp, settings, record)
   }
 
   private def fromMapToPoint(map: java.util.Map[String, Any],
+                             originalMap: java.util.Map[String, Any],
                              timestamp: Long,
                              settings: InfluxSettings,
                              record: SinkRecord): Option[Point] = {
@@ -113,22 +121,13 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
 
       val point = settings.topicToTagsMap.get(record.topic())
         .map { tags =>
-          record.value() match {
-            case str: String =>
-              TagsExtractor.fromJson(record.value().asInstanceOf[String],
-                tags,
-                builder,
-                record)
+          TagsExtractor.fromMap(
+            map,
+            originalMap,
+            tags,
+            builder,
+            record)
 
-            case map: java.util.Map[_, _] =>
-              TagsExtractor.fromMap(
-                record.value().asInstanceOf[java.util.Map[String, Any]].toMap,
-                tags,
-                builder,
-                record)
-
-            case other => sys.error(s"$other content is not supported to extract tags")
-          }
         }.getOrElse(builder).build()
       Some(point)
     }
@@ -141,11 +140,19 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
     require(record.value() != null && record.value().getClass == classOf[String],
       "The SinkRecord payload should be of type String")
 
-    val extractor = settings.fieldsExtractorMap(record.topic())
-    val jvalue = convertStringSchemaAndJson(record, extractor.fieldsAliasMap, extractor.ignoredFields, key = false, includeAllFields = extractor.includeAllFields)
-
     import org.json4s._
     implicit val formats = DefaultFormats
+
+    val extractor = settings.fieldsExtractorMap(record.topic())
+    val original = parse(record.value().asInstanceOf[String])
+    val originalMap = original.extract[Map[String, Any]]
+
+    val jvalue = convertStringSchemaAndJson(record,
+      extractor.fieldsAliasMap,
+      extractor.ignoredFields,
+      key = false,
+      includeAllFields = extractor.includeAllFields)
+
     val map = jvalue.extract[Map[String, Any]]
 
     val timestamp = extractor.timestampField.map { field =>
@@ -162,11 +169,12 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
       }
     }.getOrElse(System.currentTimeMillis())
 
-    fromMapToPoint(map, timestamp, settings, record)
+    fromMapToPoint(map, originalMap, timestamp, settings, record)
   }
 
 
-  private def buildPointFromStruct(record: SinkRecord, settings: InfluxSettings): Option[Point] = {
+  private def buildPointFromStruct(record: SinkRecord,
+                                   settings: InfluxSettings): Option[Point] = {
     require(record.value() != null && record.value().getClass == classOf[Struct],
       "The SinkRecord payload should be of type Struct")
 
