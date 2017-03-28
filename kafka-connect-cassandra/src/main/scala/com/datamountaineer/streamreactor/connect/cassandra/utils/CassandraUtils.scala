@@ -107,7 +107,7 @@ object CassandraUtils {
       case DataType.Name.MAP => mapper.writeValueAsString(row.getMap(columnDef.getName, classOf[String], classOf[String]))
       case DataType.Name.LIST => mapper.writeValueAsString(row.getList(columnDef.getName, classOf[String]))
       case DataType.Name.SET  => mapper.writeValueAsString(row.getSet(columnDef.getName, classOf[String]))
-      case DataType.Name.UUID => row.getString(columnDef.getName)
+      case DataType.Name.UUID => row.getUUID(columnDef.getName)
       case DataType.Name.BLOB => row.getBytes(columnDef.getName)
       case DataType.Name.TINYINT | DataType.Name.SMALLINT => row.getShort(columnDef.getName)
       case DataType.Name.INT => row.getInt(columnDef.getName)
