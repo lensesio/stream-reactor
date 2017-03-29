@@ -190,7 +190,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.SOURCE_KCQL_QUERY -> IMPORT_QUERY_ALL,
-      CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES,
+      //CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES,
       CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.BULK,
       CassandraConfigConstants.POLL_INTERVAL -> "1000"
     ).asJava
@@ -217,7 +217,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO $TOPIC4 SELECT * FROM $TABLE4 PK timestamp_field",
-      CassandraConfigConstants.ASSIGNED_TABLES -> TABLE4,
+      //CassandraConfigConstants.ASSIGNED_TABLES -> TABLE4,
       CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
       //CassandraConfigConstants.TABLE_TIMESTAMP_COL_MAP->TIMESTAMP_COL_MAP,
       CassandraConfigConstants.POLL_INTERVAL -> "1000"

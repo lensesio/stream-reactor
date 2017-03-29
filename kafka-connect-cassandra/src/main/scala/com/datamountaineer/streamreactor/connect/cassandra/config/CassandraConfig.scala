@@ -195,14 +195,14 @@ object CassandraConfigSource {
       ConfigDef.Width.LONG,
       CassandraConfigConstants.IMPORT_MODE)
 
-    .define(CassandraConfigConstants.ASSIGNED_TABLES,
-      Type.STRING,
-      Importance.LOW,
-      CassandraConfigConstants.ASSIGNED_TABLES_DOC,
-      "Import",
-      4,
-      ConfigDef.Width.LONG,
-      CassandraConfigConstants.ASSIGNED_TABLES)
+//    .define(CassandraConfigConstants.ASSIGNED_TABLES,
+//      Type.STRING,
+//      Importance.LOW,
+//      CassandraConfigConstants.ASSIGNED_TABLES_DOC,
+//      "Import",
+//      4,
+//      ConfigDef.Width.LONG,
+//      CassandraConfigConstants.ASSIGNED_TABLES)
 
     .define(CassandraConfigConstants.SOURCE_KCQL_QUERY,
       Type.STRING,
