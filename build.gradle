@@ -67,8 +67,6 @@ allprojects {
         avroVersion = '1.7.7'
         jacksonxmlVersion = '2.6.5'
         slf4jVersion = "1.7.7"
-        dataMountaineerCommonVersion = "0.7.1"
-        dataMountaineerTestKitVersion = "0.5"
         avro4sVersion = "1.6.0"
         json4sVersion = "3.3.0"
         kiteMiniClusterVersion = "1.1.0"
@@ -81,7 +79,7 @@ allprojects {
         // The following 4 need to align to compile against a particular version
         confluentVersion = '3.2.0'
         kafkaVersion = '0.10.2.0'
-        dataMountaineerCommonVersion = "0.7.1"
+        dataMountaineerCommonVersion = "0.7.3"
         dataMountaineerTestKitVersion = "0.5"
 
         // For 3.1.x versions use
