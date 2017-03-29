@@ -24,7 +24,10 @@ case class JMSProvider(queueConsumers: Map[String, MessageConsumer],
                        connection: Connection,
                        context: InitialContext) extends StrictLogging {
 
-  def start() = connection.start()
+  def start() = {
+    logger.info(s"Starting connection to ${connection.toString}")
+    connection.start()
+  }
 
   def close() = {
     topicsConsumers.foreach({ case(source, consumer) =>

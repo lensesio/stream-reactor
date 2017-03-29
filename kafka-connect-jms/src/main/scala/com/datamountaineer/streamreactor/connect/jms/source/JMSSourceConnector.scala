@@ -18,6 +18,7 @@ import scala.collection.JavaConverters._
   */
 class JMSSourceConnector extends SourceConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
+  private val configDef = JMSConfig.config
 
   override def taskClass(): Class[_ <: Task] = classOf[JMSSourceTask]
 
@@ -40,7 +41,7 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
       })
   }
 
-  override def config(): ConfigDef = config()
+  override def config(): ConfigDef = configDef
 
   override def start(props: util.Map[String, String]): Unit = configProps = props
 

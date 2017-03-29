@@ -1,7 +1,9 @@
 package com.datamountaineer.streamreactor.connect.jms.source.domain
 
-import javax.jms.{BytesMessage, Message, TextMessage}
+import java.util
+import javax.jms.{BytesMessage, MapMessage, Message, TextMessage}
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.source.SourceRecord
 
@@ -11,11 +13,18 @@ import scala.collection.JavaConversions._
   * Created by andrew@datamountaineer.com on 11/03/2017.
   * stream-reactor
   */
-    object JMSStructMessage {
-      val keySchema = SchemaBuilder.string().optional().build()
+  object JMSStructMessage {
+    val mapper = new ObjectMapper()
       val schema = getSchema()
       private val sourcePartition =  Map.empty[String, String]
       private val offset = Map.empty[String, String]
+
+      def propStruct() : Schema = {
+        SchemaBuilder.struct().name("properties")
+        .field("key", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("value", Schema.OPTIONAL_STRING_SCHEMA)
+        .build()
+      }
 
       def getSchema(): Schema = {
         SchemaBuilder.struct().name("com.datamountaineer.streamreactor.connect.jms")
@@ -29,23 +38,38 @@ import scala.collection.JavaConversions._
           .field("type", Schema.OPTIONAL_STRING_SCHEMA)
           .field("priority", Schema.OPTIONAL_INT32_SCHEMA)
           .field("bytes_payload", Schema.OPTIONAL_BYTES_SCHEMA)
+          .field("properties", SchemaBuilder.array(propStruct()).optional())
           .build()
       }
 
       def getStruct(target: String, message: Message): SourceRecord = {
         val struct = new Struct(schema)
-                        .put("message_timestamp", message.getJMSTimestamp)
-                        .put("correlation_id", message.getJMSCorrelationID)
-                        .put("redelivered", message.getJMSRedelivered)
-                        .put("reply_to", message.getJMSReplyTo)
-                        .put("destination", message.getJMSDestination.toString)
-                        .put("message_id", message.getJMSMessageID)
-                        .put("mode", message.getJMSDeliveryMode)
-                        .put("type", message.getJMSType)
-                        .put("priority", message.getJMSPriority)
+                        .put("message_timestamp", Option(message.getJMSTimestamp).getOrElse(null))
+                        .put("correlation_id",  Option(message.getJMSCorrelationID).getOrElse(null))
+                        .put("redelivered",  Option(message.getJMSRedelivered).getOrElse(null))
+                        .put("reply_to",  Option(message.getJMSReplyTo).getOrElse(null))
+                        .put("destination",  Option(message.getJMSDestination.toString).getOrElse(null))
+                        .put("message_id",  Option(message.getJMSMessageID).getOrElse(null))
+                        .put("mode",  Option(message.getJMSDeliveryMode).getOrElse(null))
+                        .put("type",  Option(message.getJMSType).getOrElse(null))
+                        .put("priority",  Option(message.getJMSPriority).getOrElse(null))
 
+
+        if (message.getPropertyNames.hasMoreElements) {
+          struct.put("properties", getProperties(message))
+        }
         struct.put("bytes_payload", getPayload(message))
-        new SourceRecord(sourcePartition, offset, target, keySchema, message.getJMSDestination.toString, getSchema(), struct)
+        new SourceRecord(sourcePartition, offset, target, null, null, struct.schema(), struct)
+      }
+
+      def getProperties(message: Message) = {
+        val map = scala.collection.mutable.Map[String, String]()
+        val props = message.getPropertyNames
+        while (props.hasMoreElements) {
+          val name  = props.nextElement().toString
+          val value = message.getStringProperty(name)
+          map.put(name, value)
+        }
       }
 
       def getPayload(message: Message): Array[Byte] = {
@@ -56,6 +80,16 @@ import scala.collection.JavaConversions._
             val dest = new Array[Byte](length)
             b.readBytes(dest, length)
             dest
+          }
+          case m: MapMessage => {
+            val map = scala.collection.mutable.Map[String, String]()
+            val props = m.getMapNames
+            while (props.hasMoreElements) {
+              val name  = props.nextElement().toString
+              val value = m.getStringProperty(name)
+              map.put(name, value)
+            }
+            mapper.writeValueAsBytes(map)
           }
         }
       }
