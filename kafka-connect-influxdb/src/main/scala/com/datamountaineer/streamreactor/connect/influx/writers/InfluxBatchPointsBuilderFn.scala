@@ -16,10 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.influx.writers
 
+import java.util
 import java.util.concurrent.TimeUnit
 
 import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.typesafe.scalalogging.slf4j.StrictLogging
 import io.confluent.common.config.ConfigException
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
@@ -30,7 +32,7 @@ import scala.collection.JavaConversions._
 import scala.util.Try
 
 
-object InfluxBatchPointsBuilderFn extends ConverterUtil {
+object InfluxBatchPointsBuilderFn extends ConverterUtil with StrictLogging {
   def apply(records: Seq[SinkRecord],
             settings: InfluxSettings): BatchPoints = {
 
@@ -82,15 +84,19 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
       }
     }.getOrElse(System.currentTimeMillis())
 
-    val ignoredFields = new java.util.HashMap[String, Any]()
-    extractor.ignoredFields.foreach { f =>
-      Option(map.get(f)).foreach { v =>
-        ignoredFields.put(f, v)
+    val tagsMap = new java.util.HashMap[String, Any]()
+    extractor.timestampField.foreach(ts => Option(map.get(ts)))
+    settings.topicToTagsMap.get(record.topic()).foreach { tags =>
+      tags.withFilter(!_.isConstant).foreach { tag =>
+        Option(map.get(tag.getKey)).foreach { v =>
+          tagsMap.put(tag.getKey, v)
+        }
       }
     }
+
     val convertedMap = convertSchemalessJson(record, extractor.fieldsAliasMap, extractor.ignoredFields, key = false, includeAllFields = extractor.includeAllFields)
 
-    fromMapToPoint(convertedMap, ignoredFields, timestamp, settings, record)
+    fromMapToPoint(convertedMap, tagsMap, timestamp, settings, record)
   }
 
   private def fromMapToPoint(map: java.util.Map[String, Any],
@@ -145,8 +151,22 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
 
     val extractor = settings.fieldsExtractorMap(record.topic())
     val original = parse(record.value().asInstanceOf[String])
-    val originalMap = original.extract[Map[String, Any]]
+    val tagsMap = new util.HashMap[String, Any]
+    settings.topicToTagsMap.get(record.topic()).foreach { tags =>
+      tags.withFilter(!_.isConstant)
+        .foreach { tag =>
+          val value = original \ tag.getValue match {
+            case JString(s) => s
+            case JDouble(d) => d
+            case JInt(i) => i
+            case JLong(l) => l
+            case JDecimal(d) => d
+            case JNull | JNothing => logger.warn(s"Tag ${tag.getKey} can't be found. It won't be set")
+            case other => throw new IllegalArgumentException(s"${tag.getValue} resolves to ${other.getClass}")
+          }
 
+        }
+    }
     val jvalue = convertStringSchemaAndJson(record,
       extractor.fieldsAliasMap,
       extractor.ignoredFields,
@@ -169,7 +189,7 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil {
       }
     }.getOrElse(System.currentTimeMillis())
 
-    fromMapToPoint(map, originalMap, timestamp, settings, record)
+    fromMapToPoint(map, tagsMap, timestamp, settings, record)
   }
 
 

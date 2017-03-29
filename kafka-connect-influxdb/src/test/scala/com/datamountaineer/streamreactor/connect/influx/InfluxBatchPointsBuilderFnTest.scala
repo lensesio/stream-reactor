@@ -170,7 +170,7 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
       when(config.getString(InfluxSinkConfig.INFLUX_CONNECTION_USER_CONFIG)).thenReturn(user)
       when(config.getString(InfluxSinkConfig.INFLUX_CONNECTION_PASSWORD_CONFIG)).thenReturn(null)
       when(config.getString(InfluxSinkConfig.ERROR_POLICY_CONFIG)).thenReturn("THROW")
-      when(config.getString(InfluxSinkConfig.KCQL_CONFIG)).thenReturn(s"INSERT INTO $measurement SELECT * FROM $topic IGNORE ptype, pid WITHTAG (ptype, pid) WITHTIMESTAMP time")
+      when(config.getString(InfluxSinkConfig.KCQL_CONFIG)).thenReturn(s"INSERT INTO $measurement SELECT * FROM $topic IGNORE ptype, pid WITHTIMESTAMP time WITHTAG (ptype, pid) ")
       when(config.getString(InfluxSinkConfig.CONSISTENCY_CONFIG)).thenReturn(ConsistencyLevel.QUORUM.toString)
       val settings = InfluxSettings(config)
 
@@ -184,7 +184,7 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
       val time = PointMapFieldGetter.time(point)
-      time > before shouldBe true
+      time shouldBe 1490693176034L
 
       val map = PointMapFieldGetter.fields(point)
       map.size shouldBe 17
@@ -475,696 +475,722 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
       map.get("phone") shouldBe "+1 (905) 514-3719"
       map.get("address") shouldBe "316 Hoyt Street, Welda, Puerto Rico, 1474"
     }
-  }
 
-  "convert sink record with a json string payload with all fields selected and one aliased" in {
-    val jsonPayload =
-      """
-        | {
-        |    "_id": "580151bca6f3a2f0577baaac",
-        |    "index": 0,
-        |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
-        |    "isActive": false,
-        |    "balance": 3589.15,
-        |    "age": 27,
-        |    "eyeColor": "brown",
-        |    "name": "Clements Crane",
-        |    "company": "TERRAGEN",
-        |    "email": "clements.crane@terragen.io",
-        |    "phone": "+1 (905) 514-3719",
-        |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
-        |    "latitude": "-49.817964",
-        |    "longitude": "-141.645812"
-        | }
-      """.stripMargin
 
-    val topic = "topic1"
-    val measurement = "measurement1"
+    "convert sink record with a json string payload with all fields selected and one aliased" in {
+      val jsonPayload =
+        """
+          | {
+          |    "_id": "580151bca6f3a2f0577baaac",
+          |    "index": 0,
+          |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
+          |    "isActive": false,
+          |    "balance": 3589.15,
+          |    "age": 27,
+          |    "eyeColor": "brown",
+          |    "name": "Clements Crane",
+          |    "company": "TERRAGEN",
+          |    "email": "clements.crane@terragen.io",
+          |    "phone": "+1 (905) 514-3719",
+          |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
+          |    "latitude": "-49.817964",
+          |    "longitude": "-141.645812"
+          | }
+        """.stripMargin
 
-    val before = System.currentTimeMillis()
+      val
+      topic = "topic1"
+      val measurement =
+        "measurement1"
 
-    val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
+      val before =
 
-    val extractor = StructFieldsExtractor(true, Map("name" -> "this_is_renamed"), None, Set.empty)
-    val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-      Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-    val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
-    val points = batchPoints.getPoints
-    points.size() shouldBe 1
-    val point = points.get(0)
-    PointMapFieldGetter.measurement(point) shouldBe measurement
-    val time = PointMapFieldGetter.time(point)
-    before <= time shouldBe true
-    time <= System.currentTimeMillis() shouldBe true
+        System.currentTimeMillis()
 
-    val map = PointMapFieldGetter.fields(point)
-    map.size shouldBe 14
+      val record =
 
-    map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
-    map.get("index") shouldBe 0
-    map.get("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
-    map.get("isActive") shouldBe false
-    map.get("balance") shouldBe 3589.15
-    map.get("age") shouldBe 27
-    map.get("eyeColor") shouldBe "brown"
-    map.get("this_is_renamed") shouldBe "Clements Crane"
-    map.get("company") shouldBe "TERRAGEN"
-    map.get("email") shouldBe "clements.crane@terragen.io"
-    map.get("phone") shouldBe "+1 (905) 514-3719"
-    map.get("address") shouldBe "316 Hoyt Street, Welda, Puerto Rico, 1474"
-    map.get("latitude") shouldBe "-49.817964"
-    map.get("longitude") shouldBe "-141.645812"
-  }
+        new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
-  "convert a sink record with a json string payload with specific fields being selected" in {
-    val jsonPayload =
-      """
-        | {
-        |    "_id": "580151bca6f3a2f0577baaac",
-        |    "index": 0,
-        |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
-        |    "isActive": false,
-        |    "balance": 3589.15,
-        |    "age": 27,
-        |    "eyeColor": "brown",
-        |    "name": "Clements Crane",
-        |    "company": "TERRAGEN",
-        |    "email": "clements.crane@terragen.io",
-        |    "phone": "+1 (905) 514-3719",
-        |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
-        |    "latitude": "-49.817964",
-        |    "longitude": "-141.645812"
-        | }
-      """.stripMargin
+      val
 
-    val topic = "topic1"
-    val measurement = "measurement1"
+      extractor = StructFieldsExtractor(true, Map("name" -> "this_is_renamed"), None, Set.empty)
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Map
+        (topic -> measurement), Map(topic -> extractor), Map.empty)
+      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+      val points = batchPoints.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      PointMapFieldGetter.measurement(point) shouldBe measurement
+      val time = PointMapFieldGetter.time(point)
+      before <= time shouldBe true
+      time <= System.currentTimeMillis() shouldBe true
 
-    val before = System.currentTimeMillis()
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 14
 
-    val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
+      map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
+      map.get("index") shouldBe 0
+      map.get("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
+      map.get("isActive") shouldBe false
+      map.get("balance") shouldBe 3589.15
+      map.get("age") shouldBe 27
+      map.get("eyeColor") shouldBe "brown"
+      map.get("this_is_renamed") shouldBe "Clements Crane"
+      map.get("company") shouldBe "TERRAGEN"
+      map.get("email") shouldBe "clements.crane@terragen.io"
+      map.get("phone") shouldBe "+1 (905) 514-3719"
+      map.get("address") shouldBe "316 Hoyt Street, Welda, Puerto Rico, 1474"
+      map.get("latitude") shouldBe "-49.817964"
+      map.get("longitude") shouldBe
+        "-141.645812"
+    }
 
-    val extractor = StructFieldsExtractor(false, Map("_id" -> "_id", "name" -> "this_is_renamed", "email" -> "email"), None, Set.empty)
-    val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-      Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-    val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
-    val points = batchPoints.getPoints
-    points.size() shouldBe 1
-    val point = points.get(0)
-    PointMapFieldGetter.measurement(point) shouldBe measurement
-    val time = PointMapFieldGetter.time(point)
-    before <= time shouldBe true
-    time <= System.currentTimeMillis() shouldBe true
+    "convert a sink record with a json string payload with specific fields being selected" in {
+      val
+      jsonPayload =
+        """
+          | {
+          |    "_id": "580151bca6f3a2f0577baaac",
+          |    "index": 0,
+          |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
+          |    "isActive": false,
+          |    "balance": 3589.15,
+          |    "age": 27,
+          |    "eyeColor": "brown",
+          |    "name": "Clements Crane",
+          |    "company": "TERRAGEN",
+          |    "email": "clements.crane@terragen.io",
+          |    "phone": "+1 (905) 514-3719",
+          |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
+          |    "latitude": "-49.817964",
+          |    "longitude": "-141.645812"
+          | }
+        """.
+          stripMargin
 
-    val map = PointMapFieldGetter.fields(point)
-    map.size shouldBe 3
+      val topic = "topic1"
+      val measurement = "measurement1"
 
-    map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
-    map.get("this_is_renamed") shouldBe "Clements Crane"
-    map.get("email") shouldBe "clements.crane@terragen.io"
+      val before = System.currentTimeMillis()
 
-  }
+      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
-  "convert a sink record with a json string payload with specific fields being selected and tags are applied" in {
-    val jsonPayload =
-      """
-        | {
-        |    "_id": "580151bca6f3a2f0577baaac",
-        |    "index": 0,
-        |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
-        |    "isActive": false,
-        |    "balance": 3589.15,
-        |    "age": 27,
-        |    "eyeColor": "brown",
-        |    "name": "Clements Crane",
-        |    "company": "TERRAGEN",
-        |    "email": "clements.crane@terragen.io",
-        |    "phone": "+1 (905) 514-3719",
-        |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
-        |    "latitude": "-49.817964",
-        |    "longitude": "-141.645812"
-        | }
-      """.stripMargin
+      val extractor = StructFieldsExtractor(false, Map("_id" -> "_id", "name" -> "this_is_renamed", "email" -> "email"), None, Set.empty)
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Map
+        (topic -> measurement), Map(topic -> extractor), Map.empty)
+      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+      val points = batchPoints.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      PointMapFieldGetter.measurement(point) shouldBe measurement
+      val time = PointMapFieldGetter.time(point)
+      before <= time shouldBe true
+      time <= System.currentTimeMillis() shouldBe true
 
-    val topic = "topic1"
-    val measurement = "measurement1"
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 3
 
-    val before = System.currentTimeMillis()
+      map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
+      map.get("this_is_renamed") shouldBe "Clements Crane"
+      map.get("email") shouldBe "clements.crane@terragen.io"
 
-    val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
+    }
 
-    val extractor = StructFieldsExtractor(false, Map("_id" -> "_id", "name" -> "this_is_renamed", "email" -> "email"), None, Set.empty)
-    val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-      Map(topic -> measurement), Map(topic -> extractor), Map(topic -> Seq(new Tag("age"), new Tag("eyeColor"))))
-    val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
-    val points = batchPoints.getPoints
-    points.size() shouldBe 1
-    val point = points.get(0)
-    PointMapFieldGetter.measurement(point) shouldBe measurement
-    val time = PointMapFieldGetter.time(point)
-    before <= time shouldBe true
-    time <= System.currentTimeMillis() shouldBe true
+    "convert a sink record with a json string payload with specific fields being selected and tags are applied" in {
+      val jsonPayload =
+        """
+          | {
+          |    "_id": "580151bca6f3a2f0577baaac",
+          |    "index": 0,
+          |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
+          |    "isActive": false,
+          |    "balance": 3589.15,
+          |    "age": 27,
+          |    "eyeColor": "brown",
+          |    "name": "Clements Crane",
+          |    "company": "TERRAGEN",
+          |    "email": "clements.crane@terragen.io",
+          |    "phone": "+1 (905) 514-3719",
+          |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
+          |    "latitude": "-49.817964",
+          |    "longitude": "-141.645812"
+          | }
+        """.
+          stripMargin
 
-    val map = PointMapFieldGetter.fields(point)
-    map.size shouldBe 3
+      val topic =
 
-    map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
-    map.get("this_is_renamed") shouldBe "Clements Crane"
-    map.get("email") shouldBe "clements.crane@terragen.io"
+        "topic1"
+      val
+      measurement = "measurement1"
 
-    val tags = PointMapFieldGetter.tags(point)
-    tags shouldBe Map("age" -> "27", "eyeColor" -> "brown")
-  }
+      val
 
-  "throw an error of if nested json since there is no flattening of json for a sink record with string json payload" in {
-    val jsonPayload =
-      """
-        | {
-        |    "eyeColor": "brown",
-        |    "name": {
-        |      "first": "Christian",
-        |      "last": "Melton"
-        |    }
-        | }
-      """.stripMargin
+      before = System.currentTimeMillis()
 
-    val topic = "topic1"
-    val measurement = "measurement1"
+      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
-    val before = System.currentTimeMillis()
+      val extractor = StructFieldsExtractor(false, Map("_id" -> "_id", "name" -> "this_is_renamed", "email" -> "email"), None, Set.empty)
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Map
+        (topic -> measurement), Map(topic -> extractor), Map(topic -> Seq(new Tag("age"), new Tag("eyeColor"))))
+      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+      val points = batchPoints.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      PointMapFieldGetter.measurement(point) shouldBe measurement
+      val time = PointMapFieldGetter.time(point)
+      before <= time shouldBe true
+      time <= System.currentTimeMillis() shouldBe true
 
-    val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 3
 
-    val extractor = StructFieldsExtractor(true, Map.empty, None, Set.empty)
-    val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-      Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-    intercept[RuntimeException] {
-      InfluxBatchPointsBuilderFn(Seq(record), settings)
+      map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
+      map.get("this_is_renamed") shouldBe "Clements Crane"
+      map.get("email") shouldBe "clements.crane@terragen.io"
+
+      val tags = PointMapFieldGetter.tags(point)
+      tags shouldBe Map("age" -> "27", "eyeColor" -> "brown"
+      )
+    }
+
+    "throw an error of if nested json since there is no flattening of json for a sink record with string json payload" in {
+      val jsonPayload =
+        """
+          | {
+          |    "eyeColor": "brown",
+          |    "name": {
+          |      "first": "Christian",
+          |      "last": "Melton"
+          |    }
+          | }
+        """
+          .stripMargin
+
+      val topic = "topic1"
+      val measurement = "measurement1"
+
+      val before = System.currentTimeMillis()
+
+      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
+
+      val extractor = StructFieldsExtractor(true, Map.empty, None, Set.empty)
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
+      intercept[RuntimeException] {
+        InfluxBatchPointsBuilderFn(Seq(record), settings)
+      }
+    }
+
+    "throw an error of if array is present in json since there is no flattening of json for a sink record with string json payload" in {
+      val jsonPayload =
+        """
+          | {
+          |    "eyeColor": "brown",
+          |     "tags": [
+          |      "ut",
+          |      "dolor",
+          |      "laboris",
+          |      "minim",
+          |      "ad"
+          |    ]
+          | }
+        """.
+          stripMargin
+
+      val
+
+      topic = "topic1"
+      val measurement = "measurement1"
+
+      val before = System.currentTimeMillis()
+
+      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
+
+      val extractor = StructFieldsExtractor(true, Map.empty, None, Set.empty)
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
+      intercept[RuntimeException] {
+        InfluxBatchPointsBuilderFn(Seq(record), settings)
+      }
+    }
+
+    "throw an exception if the timestamp field can't be converted to long for a schemaless sink record" in {
+      val sourceMap = new util.HashMap[String, Any]()
+
+      sourceMap.put("timestamp", "not_right")
+      sourceMap.put("_id", "580151bca6f3a2f0577baaac")
+      sourceMap.put("index", 0)
+      sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
+      sourceMap.put("isActive", false)
+      sourceMap.put("balance", 3589.15)
+      sourceMap.put("age", 27)
+      sourceMap.put("eyeColor", "brown")
+      sourceMap.put("name", "Clements Crane")
+      sourceMap.put("company", "TERRAGEN")
+      sourceMap.put("email", "clements.crane@terragen.io")
+      sourceMap.put("phone", "+1 (905) 514-3719")
+      sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
+      sourceMap.put("latitude", "-49.817964")
+      sourceMap.put("longitude", "-141.645812")
+
+      val topic = "topic1"
+      val measurement = "measurement1"
+
+      val before = System.currentTimeMillis()
+
+      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
+
+      val extractor = StructFieldsExtractor(true, Map.empty, Some("timestamp"), Set.empty)
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
+      intercept[RuntimeException] {
+        InfluxBatchPointsBuilderFn(Seq(record), settings)
+      }
+    }
+
+    "convert a schemaless sink record when all fields are selected with the timestamp field within the payload" in {
+      val sourceMap = new util.HashMap[String, Any]()
+      val s: Short = 123
+      sourceMap.put("timestamp", s)
+      sourceMap.put("_id", "580151bca6f3a2f0577baaac")
+      sourceMap.put("index", 0)
+      sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
+      sourceMap.put("isActive", false)
+      sourceMap.put("balance", 3589.15)
+      sourceMap.put("age", 27)
+      sourceMap.put("eyeColor", "brown")
+      sourceMap.put("name", "Clements Crane")
+      sourceMap.put("company", "TERRAGEN")
+      sourceMap.put("email", "clements.crane@terragen.io")
+      sourceMap.put("phone", "+1 (905) 514-3719")
+      sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
+      sourceMap.put("latitude", "-49.817964")
+      sourceMap.put("longitude", "-141.645812")
+
+      val topic = "topic1"
+      val measurement = "measurement1"
+
+      val before = System.currentTimeMillis()
+
+      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
+
+      val extractor = StructFieldsExtractor(true, Map.empty, Some("timestamp"), Set.empty)
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
+      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+      val points = batchPoints.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      PointMapFieldGetter.measurement(point) shouldBe measurement
+      val time = PointMapFieldGetter.time(point)
+      time shouldBe 123
+
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 15
+
+      map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
+      map.get("index") shouldBe 0
+      map.get("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
+      map.get("isActive") shouldBe false
+      map.get("balance") shouldBe 3589.15
+      map.get("age") shouldBe 27
+      map.get("eyeColor") shouldBe "brown"
+      map.get("name") shouldBe "Clements Crane"
+      map.get("company") shouldBe "TERRAGEN"
+      map.get("email") shouldBe "clements.crane@terragen.io"
+      map.get("phone") shouldBe "+1 (905) 514-3719"
+      map.get("address") shouldBe "316 Hoyt Street, Welda, Puerto Rico, 1474"
+      map.get("latitude") shouldBe "-49.817964"
+      map.get("longitude") shouldBe "-141.645812"
+
+      PointMapFieldGetter.tags(point) shouldBe Map.empty
+    }
+
+    "not raise an exception while converting a schemaless sink record if the tag field is not present" in {
+      val sourceMap = new util.HashMap[String, Any]()
+      val s: Short = 123
+      sourceMap.put("timestamp", s)
+      sourceMap.put("_id", "580151bca6f3a2f0577baaac")
+      sourceMap.put("index", 0)
+      sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
+      sourceMap.put("isActive", false)
+      sourceMap.put("balance", 3589.15)
+      sourceMap.put("age", 27)
+      sourceMap.put("eyeColor", "brown")
+      sourceMap.put("name", "Clements Crane")
+      sourceMap.put("company", "TERRAGEN")
+      sourceMap.put("email", "clements.crane@terragen.io")
+      sourceMap.put("phone", "+1 (905) 514-3719")
+      sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
+      sourceMap.put("latitude", "-49.817964")
+      sourceMap.put("longitude", "-141.645812")
+
+      val topic = "topic1"
+      val measurement = "measurement1"
+
+      val before = System.currentTimeMillis()
+
+      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
+
+      val extractor = StructFieldsExtractor(true, Map.empty, Some("timestamp"), Set.empty)
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Map(topic -> measurement), Map(topic -> extractor), Map(topic -> Seq(new Tag("abc"))))
+      val pb = InfluxBatchPointsBuilderFn(Seq(record), settings)
+      pb
+        .getPoints.size() shouldBe 1
+    }
+
+    "convert a schemaless sink record when all fields are selected with the timestamp field within the payload and tags applied" in {
+      val sourceMap = new util.HashMap[String, Any]()
+      val s: Short = 123
+      sourceMap.put("timestamp", s)
+      sourceMap.put("_id", "580151bca6f3a2f0577baaac")
+      sourceMap.put("index", 0)
+      sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
+      sourceMap.put("isActive", false)
+      sourceMap.put("balance", 3589.15)
+      sourceMap.put("age", 27)
+      sourceMap.put("eyeColor", "brown")
+      sourceMap.put("name", "Clements Crane")
+      sourceMap.put("company", "TERRAGEN")
+      sourceMap.put("email", "clements.crane@terragen.io")
+      sourceMap.put("phone", "+1 (905) 514-3719")
+      sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
+      sourceMap.put("latitude", "-49.817964")
+      sourceMap.put("longitude", "-141.645812")
+
+      val topic = "topic1"
+      val measurement = "measurement1"
+
+      val before = System.currentTimeMillis()
+
+      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
+
+      val extractor = StructFieldsExtractor(true, Map.empty, Some("timestamp"), Set.empty)
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Map(topic -> measurement), Map(topic -> extractor), Map(topic -> Seq(new Tag("xyz", "zyx"), new Tag("age"))))
+      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+      val points = batchPoints.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      PointMapFieldGetter.measurement(point) shouldBe measurement
+      val time = PointMapFieldGetter.time(point)
+      time shouldBe 123
+
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 15
+
+      map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
+      map.get("index") shouldBe 0
+      map.get("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
+      map.get("isActive") shouldBe false
+      map.get("balance") shouldBe 3589.15
+      map.get("age") shouldBe 27
+      map.get("eyeColor") shouldBe "brown"
+      map.get("name") shouldBe "Clements Crane"
+      map.get("company") shouldBe "TERRAGEN"
+      map.get("email") shouldBe "clements.crane@terragen.io"
+      map.get("phone") shouldBe "+1 (905) 514-3719"
+      map.get("address") shouldBe "316 Hoyt Street, Welda, Puerto Rico, 1474"
+      map.get("latitude") shouldBe "-49.817964"
+      map.get("longitude") shouldBe "-141.645812"
+
+      PointMapFieldGetter.tags(point) shouldBe Map("xyz" -> "zyx", "age" -> "27")
+    }
+
+    "convert a schemaless sink record when all fields are selected" in {
+      val sourceMap = new util.HashMap[String, Any]()
+      sourceMap.put("_id", "580151bca6f3a2f0577baaac")
+      sourceMap.put("index", 0)
+      sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
+      sourceMap.put("isActive", false)
+      sourceMap.put("balance", 3589.15)
+      sourceMap.put("age", 27)
+      sourceMap.put("eyeColor", "brown")
+      sourceMap.put("name", "Clements Crane")
+      sourceMap.put("company", "TERRAGEN")
+      sourceMap.put("email", "clements.crane@terragen.io")
+      sourceMap.put("phone", "+1 (905) 514-3719")
+      sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
+      sourceMap.put("latitude", "-49.817964")
+      sourceMap.put("longitude", "-141.645812")
+
+      val topic = "topic1"
+      val measurement = "measurement1"
+
+      val before = System.currentTimeMillis()
+
+      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
+
+      val extractor = StructFieldsExtractor(true, Map.empty, None, Set.empty)
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
+      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+      val points = batchPoints.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      PointMapFieldGetter.measurement(point) shouldBe measurement
+      val time = PointMapFieldGetter.time(point)
+      before <= time shouldBe true
+      time <= System.currentTimeMillis() shouldBe true
+
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 14
+
+      map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
+      map.get("index") shouldBe 0
+      map.get("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
+      map.get("isActive") shouldBe false
+      map.get("balance") shouldBe 3589.15
+      map.get("age") shouldBe 27
+      map.get("eyeColor") shouldBe "brown"
+      map.get("name") shouldBe "Clements Crane"
+      map.get("company") shouldBe "TERRAGEN"
+      map.get("email") shouldBe "clements.crane@terragen.io"
+      map.get("phone") shouldBe "+1 (905) 514-3719"
+      map.get("address") shouldBe "316 Hoyt Street, Welda, Puerto Rico, 1474"
+      map.get("latitude") shouldBe "-49.817964"
+      map.get("longitude") shouldBe "-141.645812"
+    }
+
+    "convert a schemaless sink record with fields ignored" in {
+      val sourceMap = new util.HashMap[String, Any]()
+      sourceMap.put("_id", "580151bca6f3a2f0577baaac")
+      sourceMap.put("index", 0)
+      sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
+      sourceMap.put("isActive", false)
+      sourceMap.put("balance", 3589.15)
+      sourceMap.put("age", 27)
+      sourceMap.put("eyeColor", "brown")
+      sourceMap.put("name", "Clements Crane")
+      sourceMap.put("company", "TERRAGEN")
+      sourceMap.put("email", "clements.crane@terragen.io")
+      sourceMap.put("phone", "+1 (905) 514-3719")
+      sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
+      sourceMap.put("latitude", "-49.817964")
+      sourceMap.put("longitude", "-141.645812")
+
+      val topic = "topic1"
+      val measurement = "measurement1"
+
+      val before = System.currentTimeMillis()
+
+      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
+
+      val extractor = StructFieldsExtractor(true, Map.empty, None, Set("longitude", "latitude"))
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
+      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+      val points = batchPoints.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      PointMapFieldGetter.measurement(point) shouldBe measurement
+      val time = PointMapFieldGetter.time(point)
+      before <= time shouldBe true
+      time <= System.currentTimeMillis() shouldBe true
+
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 12
+
+      map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
+      map.get("index") shouldBe 0
+      map.get("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
+      map.get("isActive") shouldBe false
+      map.get("balance") shouldBe 3589.15
+      map.get("age") shouldBe 27
+      map.get("eyeColor") shouldBe "brown"
+      map.get("name") shouldBe "Clements Crane"
+      map.get("company") shouldBe "TERRAGEN"
+      map.get("email") shouldBe "clements.crane@terragen.io"
+      map.get("phone") shouldBe "+1 (905) 514-3719"
+      map.get("address") shouldBe "316 Hoyt Street, Welda, Puerto Rico, 1474"
+    }
+
+
+    "convert a schemaless sink record with all fields selected and one aliased" in {
+      val sourceMap = new util.HashMap[String, Any]()
+      sourceMap.put("_id", "580151bca6f3a2f0577baaac")
+      sourceMap.put("index", 0)
+      sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
+      sourceMap.put("isActive", false)
+      sourceMap.put("balance", 3589.15)
+      sourceMap.put("age", 27)
+      sourceMap.put("eyeColor", "brown")
+      sourceMap.put("name", "Clements Crane")
+      sourceMap.put("company", "TERRAGEN")
+      sourceMap.put("email", "clements.crane@terragen.io")
+      sourceMap.put("phone", "+1 (905) 514-3719")
+      sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
+      sourceMap.put("latitude", "-49.817964")
+      sourceMap.put("longitude", "-141.645812")
+
+      val topic = "topic1"
+      val measurement = "measurement1"
+
+      val before = System.currentTimeMillis()
+
+      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
+
+      val extractor = StructFieldsExtractor(true, Map("name" -> "this_is_renamed"), None, Set.empty)
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
+      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+      val points = batchPoints.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      PointMapFieldGetter.measurement(point) shouldBe measurement
+      val time = PointMapFieldGetter.time(point)
+      before <= time shouldBe true
+      time <= System.currentTimeMillis() shouldBe true
+
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 14
+
+      map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
+      map.get("index") shouldBe 0
+      map.get("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
+      map.get("isActive") shouldBe false
+      map.get("balance") shouldBe 3589.15
+      map.get("age") shouldBe 27
+      map.get("eyeColor") shouldBe "brown"
+      map.get("this_is_renamed") shouldBe "Clements Crane"
+      map.get("company") shouldBe "TERRAGEN"
+      map.get("email") shouldBe "clements.crane@terragen.io"
+      map.get("phone") shouldBe "+1 (905) 514-3719"
+      map.get("address") shouldBe "316 Hoyt Street, Welda, Puerto Rico, 1474"
+      map.get("latitude") shouldBe "-49.817964"
+      map.get("longitude") shouldBe "-141.645812"
+    }
+
+    "convert a schemaless sink record with specific fields being selected" in {
+      val sourceMap = new util.HashMap[String, Any]()
+      sourceMap.put("_id", "580151bca6f3a2f0577baaac")
+      sourceMap.put("index", 0)
+      sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
+      sourceMap.put("isActive", false)
+      sourceMap.put("balance", 3589.15)
+      sourceMap.put("age", 27)
+      sourceMap.put("eyeColor", "brown")
+      sourceMap.put("name", "Clements Crane")
+      sourceMap.put("company", "TERRAGEN")
+      sourceMap.put("email", "clements.crane@terragen.io")
+      sourceMap.put("phone", "+1 (905) 514-3719")
+      sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
+      sourceMap.put("latitude", "-49.817964")
+      sourceMap.put("longitude", "-141.645812")
+
+      val topic = "topic1"
+      val measurement = "measurement1"
+
+      val before = System.currentTimeMillis()
+
+      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
+
+      val extractor = StructFieldsExtractor(false, Map("_id" -> "_id", "name" -> "this_is_renamed", "email" -> "email"), None, Set.empty)
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
+      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+      val points = batchPoints.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      PointMapFieldGetter.measurement(point) shouldBe measurement
+      val time = PointMapFieldGetter.time(point)
+      before <= time shouldBe true
+      time <= System.currentTimeMillis() shouldBe true
+
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 3
+
+      map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
+      map.get("this_is_renamed") shouldBe "Clements Crane"
+      map.get("email") shouldBe "clements.crane@terragen.io"
+
+    }
+
+    "throw an error of if there is an Map within the map for a schemaless sink record" in {
+      val sourceMap = new util.HashMap[String, Any]()
+      sourceMap.put("_id", "580151bca6f3a2f0577baaac")
+      sourceMap.put("index", 0)
+      sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
+      sourceMap.put("isActive", false)
+      sourceMap.put("balance", 3589.15)
+      sourceMap.put("age", 27)
+      sourceMap.put("eyeColor", "brown")
+      sourceMap.put("name", "Clements Crane")
+      sourceMap.put("company", "TERRAGEN")
+      sourceMap.put("email", "clements.crane@terragen.io")
+      sourceMap.put("phone", "+1 (905) 514-3719")
+      sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
+      sourceMap.put("latitude", "-49.817964")
+      sourceMap.put("longitude", "-141.645812")
+      sourceMap.put("NOT_HANDLED", new util.HashMap[String, Any]())
+
+      val topic = "topic1"
+      val measurement = "measurement1"
+
+      val before = System.currentTimeMillis()
+
+      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
+      val extractor = StructFieldsExtractor(true, Map.empty, None, Set.empty)
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
+      intercept[RuntimeException] {
+        InfluxBatchPointsBuilderFn(Seq(record), settings)
+      }
+    }
+
+    "throw an error of if array is present in the generated map for a schemaless sink record" in {
+      val sourceMap = new util.HashMap[String, Any]()
+      sourceMap.put("_id", "580151bca6f3a2f0577baaac")
+      sourceMap.put("index", 0)
+      sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
+      sourceMap.put("isActive", false)
+      sourceMap.put("balance", 3589.15)
+      sourceMap.put("age", 27)
+      sourceMap.put("eyeColor", "brown")
+      sourceMap.put("name", "Clements Crane")
+      sourceMap.put("company", "TERRAGEN")
+      sourceMap.put("email", "clements.crane@terragen.io")
+      sourceMap.put("phone", "+1 (905) 514-3719")
+      sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
+      sourceMap.put("latitude", "-49.817964")
+      sourceMap.put("longitude", "-141.645812")
+      sourceMap.put("NOT_HANDLED", new util.ArrayList[String])
+
+      val topic = "topic1"
+      val measurement = "measurement1"
+
+      val before = System.currentTimeMillis()
+
+      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
+
+      val extractor = StructFieldsExtractor(true, Map.empty, None, Set.empty)
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
+      intercept[RuntimeException] {
+        InfluxBatchPointsBuilderFn(Seq(record), settings)
+      }
+    }
+
+
+    object PointMapFieldGetter {
+      def fields(point: Point): java.util.Map[String, Any] = extractField("fields", point).asInstanceOf[java.util.Map[String, Any]]
+
+      def time(point: Point): Long = extractField("time", point).asInstanceOf[Long]
+
+      def measurement(point: Point): String = extractField("measurement", point).asInstanceOf[String]
+
+      def tags(point: Point): Map[String, String] = extractField("tags", point).asInstanceOf[java.util.Map[String, String]].toMap
+
+      private def extractField(fieldName: String, point: Point): Any = {
+        val field = point.getClass.getDeclaredField(fieldName)
+        field.setAccessible(true)
+        field.get(point)
+      }
     }
   }
-
-  "throw an error of if array is present in json since there is no flattening of json for a sink record with string json payload" in {
-    val jsonPayload =
-      """
-        | {
-        |    "eyeColor": "brown",
-        |     "tags": [
-        |      "ut",
-        |      "dolor",
-        |      "laboris",
-        |      "minim",
-        |      "ad"
-        |    ]
-        | }
-      """.stripMargin
-
-    val topic = "topic1"
-    val measurement = "measurement1"
-
-    val before = System.currentTimeMillis()
-
-    val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
-
-    val extractor = StructFieldsExtractor(true, Map.empty, None, Set.empty)
-    val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-      Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-    intercept[RuntimeException] {
-      InfluxBatchPointsBuilderFn(Seq(record), settings)
-    }
-  }
-
-  "throw an exception if the timestamp field can't be converted to long for a schemaless sink record" in {
-    val sourceMap = new util.HashMap[String, Any]()
-
-    sourceMap.put("timestamp", "not_right")
-    sourceMap.put("_id", "580151bca6f3a2f0577baaac")
-    sourceMap.put("index", 0)
-    sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
-    sourceMap.put("isActive", false)
-    sourceMap.put("balance", 3589.15)
-    sourceMap.put("age", 27)
-    sourceMap.put("eyeColor", "brown")
-    sourceMap.put("name", "Clements Crane")
-    sourceMap.put("company", "TERRAGEN")
-    sourceMap.put("email", "clements.crane@terragen.io")
-    sourceMap.put("phone", "+1 (905) 514-3719")
-    sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
-    sourceMap.put("latitude", "-49.817964")
-    sourceMap.put("longitude", "-141.645812")
-
-    val topic = "topic1"
-    val measurement = "measurement1"
-
-    val before = System.currentTimeMillis()
-
-    val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-
-    val extractor = StructFieldsExtractor(true, Map.empty, Some("timestamp"), Set.empty)
-    val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-      Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-    intercept[RuntimeException] {
-      InfluxBatchPointsBuilderFn(Seq(record), settings)
-    }
-  }
-
-  "convert a schemaless sink record when all fields are selected with the timestamp field within the payload" in {
-    val sourceMap = new util.HashMap[String, Any]()
-    val s: Short = 123
-    sourceMap.put("timestamp", s)
-    sourceMap.put("_id", "580151bca6f3a2f0577baaac")
-    sourceMap.put("index", 0)
-    sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
-    sourceMap.put("isActive", false)
-    sourceMap.put("balance", 3589.15)
-    sourceMap.put("age", 27)
-    sourceMap.put("eyeColor", "brown")
-    sourceMap.put("name", "Clements Crane")
-    sourceMap.put("company", "TERRAGEN")
-    sourceMap.put("email", "clements.crane@terragen.io")
-    sourceMap.put("phone", "+1 (905) 514-3719")
-    sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
-    sourceMap.put("latitude", "-49.817964")
-    sourceMap.put("longitude", "-141.645812")
-
-    val topic = "topic1"
-    val measurement = "measurement1"
-
-    val before = System.currentTimeMillis()
-
-    val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-
-    val extractor = StructFieldsExtractor(true, Map.empty, Some("timestamp"), Set.empty)
-    val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-      Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-    val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
-    val points = batchPoints.getPoints
-    points.size() shouldBe 1
-    val point = points.get(0)
-    PointMapFieldGetter.measurement(point) shouldBe measurement
-    val time = PointMapFieldGetter.time(point)
-    time shouldBe 123
-
-    val map = PointMapFieldGetter.fields(point)
-    map.size shouldBe 15
-
-    map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
-    map.get("index") shouldBe 0
-    map.get("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
-    map.get("isActive") shouldBe false
-    map.get("balance") shouldBe 3589.15
-    map.get("age") shouldBe 27
-    map.get("eyeColor") shouldBe "brown"
-    map.get("name") shouldBe "Clements Crane"
-    map.get("company") shouldBe "TERRAGEN"
-    map.get("email") shouldBe "clements.crane@terragen.io"
-    map.get("phone") shouldBe "+1 (905) 514-3719"
-    map.get("address") shouldBe "316 Hoyt Street, Welda, Puerto Rico, 1474"
-    map.get("latitude") shouldBe "-49.817964"
-    map.get("longitude") shouldBe "-141.645812"
-
-    PointMapFieldGetter.tags(point) shouldBe Map.empty
-  }
-
-  "not raise an exception while converting a schemaless sink record if the tag field is not present" in {
-    val sourceMap = new util.HashMap[String, Any]()
-    val s: Short = 123
-    sourceMap.put("timestamp", s)
-    sourceMap.put("_id", "580151bca6f3a2f0577baaac")
-    sourceMap.put("index", 0)
-    sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
-    sourceMap.put("isActive", false)
-    sourceMap.put("balance", 3589.15)
-    sourceMap.put("age", 27)
-    sourceMap.put("eyeColor", "brown")
-    sourceMap.put("name", "Clements Crane")
-    sourceMap.put("company", "TERRAGEN")
-    sourceMap.put("email", "clements.crane@terragen.io")
-    sourceMap.put("phone", "+1 (905) 514-3719")
-    sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
-    sourceMap.put("latitude", "-49.817964")
-    sourceMap.put("longitude", "-141.645812")
-
-    val topic = "topic1"
-    val measurement = "measurement1"
-
-    val before = System.currentTimeMillis()
-
-    val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-
-    val extractor = StructFieldsExtractor(true, Map.empty, Some("timestamp"), Set.empty)
-    val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-      Map(topic -> measurement), Map(topic -> extractor), Map(topic -> Seq(new Tag("abc"))))
-    val pb = InfluxBatchPointsBuilderFn(Seq(record), settings)
-    pb.getPoints.size() shouldBe 1
-  }
-
-  "convert a schemaless sink record when all fields are selected with the timestamp field within the payload and tags applied" in {
-    val sourceMap = new util.HashMap[String, Any]()
-    val s: Short = 123
-    sourceMap.put("timestamp", s)
-    sourceMap.put("_id", "580151bca6f3a2f0577baaac")
-    sourceMap.put("index", 0)
-    sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
-    sourceMap.put("isActive", false)
-    sourceMap.put("balance", 3589.15)
-    sourceMap.put("age", 27)
-    sourceMap.put("eyeColor", "brown")
-    sourceMap.put("name", "Clements Crane")
-    sourceMap.put("company", "TERRAGEN")
-    sourceMap.put("email", "clements.crane@terragen.io")
-    sourceMap.put("phone", "+1 (905) 514-3719")
-    sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
-    sourceMap.put("latitude", "-49.817964")
-    sourceMap.put("longitude", "-141.645812")
-
-    val topic = "topic1"
-    val measurement = "measurement1"
-
-    val before = System.currentTimeMillis()
-
-    val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-
-    val extractor = StructFieldsExtractor(true, Map.empty, Some("timestamp"), Set.empty)
-    val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-      Map(topic -> measurement), Map(topic -> extractor), Map(topic -> Seq(new Tag("xyz", "zyx"), new Tag("age"))))
-    val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
-    val points = batchPoints.getPoints
-    points.size() shouldBe 1
-    val point = points.get(0)
-    PointMapFieldGetter.measurement(point) shouldBe measurement
-    val time = PointMapFieldGetter.time(point)
-    time shouldBe 123
-
-    val map = PointMapFieldGetter.fields(point)
-    map.size shouldBe 15
-
-    map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
-    map.get("index") shouldBe 0
-    map.get("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
-    map.get("isActive") shouldBe false
-    map.get("balance") shouldBe 3589.15
-    map.get("age") shouldBe 27
-    map.get("eyeColor") shouldBe "brown"
-    map.get("name") shouldBe "Clements Crane"
-    map.get("company") shouldBe "TERRAGEN"
-    map.get("email") shouldBe "clements.crane@terragen.io"
-    map.get("phone") shouldBe "+1 (905) 514-3719"
-    map.get("address") shouldBe "316 Hoyt Street, Welda, Puerto Rico, 1474"
-    map.get("latitude") shouldBe "-49.817964"
-    map.get("longitude") shouldBe "-141.645812"
-
-    PointMapFieldGetter.tags(point) shouldBe Map("xyz" -> "zyx", "age" -> "27")
-  }
-
-  "convert a schemaless sink record when all fields are selected" in {
-    val sourceMap = new util.HashMap[String, Any]()
-    sourceMap.put("_id", "580151bca6f3a2f0577baaac")
-    sourceMap.put("index", 0)
-    sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
-    sourceMap.put("isActive", false)
-    sourceMap.put("balance", 3589.15)
-    sourceMap.put("age", 27)
-    sourceMap.put("eyeColor", "brown")
-    sourceMap.put("name", "Clements Crane")
-    sourceMap.put("company", "TERRAGEN")
-    sourceMap.put("email", "clements.crane@terragen.io")
-    sourceMap.put("phone", "+1 (905) 514-3719")
-    sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
-    sourceMap.put("latitude", "-49.817964")
-    sourceMap.put("longitude", "-141.645812")
-
-    val topic = "topic1"
-    val measurement = "measurement1"
-
-    val before = System.currentTimeMillis()
-
-    val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-
-    val extractor = StructFieldsExtractor(true, Map.empty, None, Set.empty)
-    val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-      Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-    val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
-    val points = batchPoints.getPoints
-    points.size() shouldBe 1
-    val point = points.get(0)
-    PointMapFieldGetter.measurement(point) shouldBe measurement
-    val time = PointMapFieldGetter.time(point)
-    before <= time shouldBe true
-    time <= System.currentTimeMillis() shouldBe true
-
-    val map = PointMapFieldGetter.fields(point)
-    map.size shouldBe 14
-
-    map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
-    map.get("index") shouldBe 0
-    map.get("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
-    map.get("isActive") shouldBe false
-    map.get("balance") shouldBe 3589.15
-    map.get("age") shouldBe 27
-    map.get("eyeColor") shouldBe "brown"
-    map.get("name") shouldBe "Clements Crane"
-    map.get("company") shouldBe "TERRAGEN"
-    map.get("email") shouldBe "clements.crane@terragen.io"
-    map.get("phone") shouldBe "+1 (905) 514-3719"
-    map.get("address") shouldBe "316 Hoyt Street, Welda, Puerto Rico, 1474"
-    map.get("latitude") shouldBe "-49.817964"
-    map.get("longitude") shouldBe "-141.645812"
-  }
-
-  "convert a schemaless sink record with fields ignored" in {
-    val sourceMap = new util.HashMap[String, Any]()
-    sourceMap.put("_id", "580151bca6f3a2f0577baaac")
-    sourceMap.put("index", 0)
-    sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
-    sourceMap.put("isActive", false)
-    sourceMap.put("balance", 3589.15)
-    sourceMap.put("age", 27)
-    sourceMap.put("eyeColor", "brown")
-    sourceMap.put("name", "Clements Crane")
-    sourceMap.put("company", "TERRAGEN")
-    sourceMap.put("email", "clements.crane@terragen.io")
-    sourceMap.put("phone", "+1 (905) 514-3719")
-    sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
-    sourceMap.put("latitude", "-49.817964")
-    sourceMap.put("longitude", "-141.645812")
-
-    val topic = "topic1"
-    val measurement = "measurement1"
-
-    val before = System.currentTimeMillis()
-
-    val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-
-    val extractor = StructFieldsExtractor(true, Map.empty, None, Set("longitude", "latitude"))
-    val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-      Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-    val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
-    val points = batchPoints.getPoints
-    points.size() shouldBe 1
-    val point = points.get(0)
-    PointMapFieldGetter.measurement(point) shouldBe measurement
-    val time = PointMapFieldGetter.time(point)
-    before <= time shouldBe true
-    time <= System.currentTimeMillis() shouldBe true
-
-    val map = PointMapFieldGetter.fields(point)
-    map.size shouldBe 12
-
-    map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
-    map.get("index") shouldBe 0
-    map.get("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
-    map.get("isActive") shouldBe false
-    map.get("balance") shouldBe 3589.15
-    map.get("age") shouldBe 27
-    map.get("eyeColor") shouldBe "brown"
-    map.get("name") shouldBe "Clements Crane"
-    map.get("company") shouldBe "TERRAGEN"
-    map.get("email") shouldBe "clements.crane@terragen.io"
-    map.get("phone") shouldBe "+1 (905) 514-3719"
-    map.get("address") shouldBe "316 Hoyt Street, Welda, Puerto Rico, 1474"
-  }
-
-
-  "convert a schemaless sink record with all fields selected and one aliased" in {
-    val sourceMap = new util.HashMap[String, Any]()
-    sourceMap.put("_id", "580151bca6f3a2f0577baaac")
-    sourceMap.put("index", 0)
-    sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
-    sourceMap.put("isActive", false)
-    sourceMap.put("balance", 3589.15)
-    sourceMap.put("age", 27)
-    sourceMap.put("eyeColor", "brown")
-    sourceMap.put("name", "Clements Crane")
-    sourceMap.put("company", "TERRAGEN")
-    sourceMap.put("email", "clements.crane@terragen.io")
-    sourceMap.put("phone", "+1 (905) 514-3719")
-    sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
-    sourceMap.put("latitude", "-49.817964")
-    sourceMap.put("longitude", "-141.645812")
-
-    val topic = "topic1"
-    val measurement = "measurement1"
-
-    val before = System.currentTimeMillis()
-
-    val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-
-    val extractor = StructFieldsExtractor(true, Map("name" -> "this_is_renamed"), None, Set.empty)
-    val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-      Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-    val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
-    val points = batchPoints.getPoints
-    points.size() shouldBe 1
-    val point = points.get(0)
-    PointMapFieldGetter.measurement(point) shouldBe measurement
-    val time = PointMapFieldGetter.time(point)
-    before <= time shouldBe true
-    time <= System.currentTimeMillis() shouldBe true
-
-    val map = PointMapFieldGetter.fields(point)
-    map.size shouldBe 14
-
-    map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
-    map.get("index") shouldBe 0
-    map.get("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
-    map.get("isActive") shouldBe false
-    map.get("balance") shouldBe 3589.15
-    map.get("age") shouldBe 27
-    map.get("eyeColor") shouldBe "brown"
-    map.get("this_is_renamed") shouldBe "Clements Crane"
-    map.get("company") shouldBe "TERRAGEN"
-    map.get("email") shouldBe "clements.crane@terragen.io"
-    map.get("phone") shouldBe "+1 (905) 514-3719"
-    map.get("address") shouldBe "316 Hoyt Street, Welda, Puerto Rico, 1474"
-    map.get("latitude") shouldBe "-49.817964"
-    map.get("longitude") shouldBe "-141.645812"
-  }
-
-  "convert a schemaless sink record with specific fields being selected" in {
-    val sourceMap = new util.HashMap[String, Any]()
-    sourceMap.put("_id", "580151bca6f3a2f0577baaac")
-    sourceMap.put("index", 0)
-    sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
-    sourceMap.put("isActive", false)
-    sourceMap.put("balance", 3589.15)
-    sourceMap.put("age", 27)
-    sourceMap.put("eyeColor", "brown")
-    sourceMap.put("name", "Clements Crane")
-    sourceMap.put("company", "TERRAGEN")
-    sourceMap.put("email", "clements.crane@terragen.io")
-    sourceMap.put("phone", "+1 (905) 514-3719")
-    sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
-    sourceMap.put("latitude", "-49.817964")
-    sourceMap.put("longitude", "-141.645812")
-
-    val topic = "topic1"
-    val measurement = "measurement1"
-
-    val before = System.currentTimeMillis()
-
-    val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-
-    val extractor = StructFieldsExtractor(false, Map("_id" -> "_id", "name" -> "this_is_renamed", "email" -> "email"), None, Set.empty)
-    val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-      Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-    val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
-    val points = batchPoints.getPoints
-    points.size() shouldBe 1
-    val point = points.get(0)
-    PointMapFieldGetter.measurement(point) shouldBe measurement
-    val time = PointMapFieldGetter.time(point)
-    before <= time shouldBe true
-    time <= System.currentTimeMillis() shouldBe true
-
-    val map = PointMapFieldGetter.fields(point)
-    map.size shouldBe 3
-
-    map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
-    map.get("this_is_renamed") shouldBe "Clements Crane"
-    map.get("email") shouldBe "clements.crane@terragen.io"
-
-  }
-
-  "throw an error of if there is an Map within the map for a schemaless sink record" in {
-    val sourceMap = new util.HashMap[String, Any]()
-    sourceMap.put("_id", "580151bca6f3a2f0577baaac")
-    sourceMap.put("index", 0)
-    sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
-    sourceMap.put("isActive", false)
-    sourceMap.put("balance", 3589.15)
-    sourceMap.put("age", 27)
-    sourceMap.put("eyeColor", "brown")
-    sourceMap.put("name", "Clements Crane")
-    sourceMap.put("company", "TERRAGEN")
-    sourceMap.put("email", "clements.crane@terragen.io")
-    sourceMap.put("phone", "+1 (905) 514-3719")
-    sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
-    sourceMap.put("latitude", "-49.817964")
-    sourceMap.put("longitude", "-141.645812")
-    sourceMap.put("NOT_HANDLED", new util.HashMap[String, Any]())
-
-    val topic = "topic1"
-    val measurement = "measurement1"
-
-    val before = System.currentTimeMillis()
-
-    val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-    val extractor = StructFieldsExtractor(true, Map.empty, None, Set.empty)
-    val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-      Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-    intercept[RuntimeException] {
-      InfluxBatchPointsBuilderFn(Seq(record), settings)
-    }
-  }
-
-  "throw an error of if array is present in the generated map for a schemaless sink record" in {
-    val sourceMap = new util.HashMap[String, Any]()
-    sourceMap.put("_id", "580151bca6f3a2f0577baaac")
-    sourceMap.put("index", 0)
-    sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
-    sourceMap.put("isActive", false)
-    sourceMap.put("balance", 3589.15)
-    sourceMap.put("age", 27)
-    sourceMap.put("eyeColor", "brown")
-    sourceMap.put("name", "Clements Crane")
-    sourceMap.put("company", "TERRAGEN")
-    sourceMap.put("email", "clements.crane@terragen.io")
-    sourceMap.put("phone", "+1 (905) 514-3719")
-    sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
-    sourceMap.put("latitude", "-49.817964")
-    sourceMap.put("longitude", "-141.645812")
-    sourceMap.put("NOT_HANDLED", new util.ArrayList[String])
-
-    val topic = "topic1"
-    val measurement = "measurement1"
-
-    val before = System.currentTimeMillis()
-
-    val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-
-    val extractor = StructFieldsExtractor(true, Map.empty, None, Set.empty)
-    val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-      Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-    intercept[RuntimeException] {
-      InfluxBatchPointsBuilderFn(Seq(record), settings)
-    }
-  }
-
-
-  object PointMapFieldGetter {
-    def fields(point: Point): java.util.Map[String, Any] = extractField("fields", point).asInstanceOf[java.util.Map[String, Any]]
-
-    def time(point: Point): Long = extractField("time", point).asInstanceOf[Long]
-
-    def measurement(point: Point): String = extractField("measurement", point).asInstanceOf[String]
-
-    def tags(point: Point): Map[String, String] = extractField("tags", point).asInstanceOf[java.util.Map[String, String]].toMap
-
-    private def extractField(fieldName: String, point: Point): Any = {
-      val field = point.getClass.getDeclaredField(fieldName)
-      field.setAccessible(true)
-      field.get(point)
-    }
-  }
-
 }
