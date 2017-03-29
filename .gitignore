@@ -48,3 +48,6 @@ target/
 Californium.properties
 /gradle/wrapper/gradle-wrapper.properties
 /.DS_Store
+
+/kafka-connect-jms/*-*-*-*-*
+*-*-*-*-*
