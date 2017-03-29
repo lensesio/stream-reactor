@@ -119,7 +119,7 @@ object CassandraUtils {
       case DataType.Name.TIME => row.getTime(columnDef.getName)
       case DataType.Name.TIMESTAMP =>
         val timestamp: Date = row.getTimestamp(columnDef.getName)
-        dateFormatter.format(timestamp)
+        if (timestamp != null) dateFormatter.format(timestamp)
       case DataType.Name.TUPLE => row.getTupleValue(columnDef.getName).toString
       case DataType.Name.UDT => row.getUDTValue(columnDef.getName).toString
       case DataType.Name.TIMEUUID => row.getUUID(columnDef.getName).toString
