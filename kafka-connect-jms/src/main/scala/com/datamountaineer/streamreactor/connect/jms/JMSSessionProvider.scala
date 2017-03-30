@@ -72,17 +72,17 @@ object JMSProvider extends StrictLogging {
         throw new ConnectException(f)
     }
 
-    lazy val topicsConsumers = configureDestination(TopicDestination, context, session, settings, sink)
+    val topicsConsumers = configureDestination(TopicDestination, context, session, settings, sink)
                             .flatMap({ case (source, topic) => createConsumers(source, session, topic) }).toMap
 
-    lazy val queueConsumers = configureDestination(QueueDestination, context, session, settings, sink)
+    val queueConsumers = configureDestination(QueueDestination, context, session, settings, sink)
                             .flatMap({ case (source, queue) => createConsumers(source, session, queue) }).toMap
 
 
-    lazy val topicProducers = configureDestination(TopicDestination, context, session, settings, sink)
+    val topicProducers = configureDestination(TopicDestination, context, session, settings, sink)
                             .flatMap({ case (source, topic) => createProducers(source, session, topic) }).toMap
 
-    lazy val queueProducers = configureDestination(QueueDestination, context, session, settings, sink)
+    val queueProducers = configureDestination(QueueDestination, context, session, settings, sink)
                             .flatMap({ case (source, queue) => createProducers(source, session, queue) }).toMap
 
     new JMSProvider(queueConsumers, topicsConsumers, queueProducers, topicProducers, session, connection, context)
