@@ -1,17 +1,17 @@
 /*
- *  Copyright 2017 Datamountaineer.
+ * Copyright 2017 Datamountaineer.
  *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.cassandra
@@ -248,8 +248,8 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       s" string_field text,  timeuuid_field timeuuid, timestamp_field timestamp)")
     session.execute(s"CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE2 (id text, int_field int, long_field bigint," +
       s" string_field text, timestamp_field timeuuid, PRIMARY KEY (id, timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)")
-    session.execute(s"CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE3 (id text PRIMARY KEY, int_field int, long_field bigint," +
-      s" string_field text,  timeuuid_field timeuuid, timestamp_field timestamp)")
+    session.execute(s"CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE3 (id text, int_field int, long_field bigint," +
+      s" string_field text, timestamp_field timestamp, PRIMARY KEY (id, timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)")
     session.execute(
       s"""
          |CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE4
