@@ -18,7 +18,6 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.logging.SimpleFormatter
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
@@ -54,8 +53,8 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
     val formatted = formatter.format(now)
 
     val sql = s"INSERT INTO $CASSANDRA_KEYSPACE.$TABLE3" +
-      "(id, int_field, long_field, string_field, timestamp_field) " +
-      s"VALUES ('id1', 2, 3, 'magic_string', '$formatted');"
+      "(id, int_field, long_field, string_field, timestamp_field, timeuuid_field) " +
+      s"VALUES ('id1', 2, 3, 'magic_string', '$formatted', now());"
     session.execute(sql)
 
     //wait for cassandra write a little

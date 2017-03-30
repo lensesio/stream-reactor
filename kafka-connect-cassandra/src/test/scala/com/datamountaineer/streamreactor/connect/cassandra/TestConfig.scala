@@ -249,7 +249,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     session.execute(s"CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE2 (id text, int_field int, long_field bigint," +
       s" string_field text, timestamp_field timeuuid, PRIMARY KEY (id, timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)")
     session.execute(s"CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE3 (id text, int_field int, long_field bigint," +
-      s" string_field text, timestamp_field timestamp, PRIMARY KEY (id, timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)")
+      s" string_field text, timestamp_field timestamp, timeuuid_field timeuuid, PRIMARY KEY (id, timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)")
     session.execute(
       s"""
          |CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE4
@@ -263,9 +263,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   }
 
   //get the assignment of topic partitions for the sinkTask
-  def getAssignment: util.Set[TopicPartition] = {
-    ASSIGNMENT
-  }
+  def getAssignment: util.Set[TopicPartition] = ASSIGNMENT
 
   //build a test record schema
   def createSchema: Schema = {

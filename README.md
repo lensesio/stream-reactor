@@ -50,14 +50,17 @@ A collection of components to build a real time ingestion pipeline.
 
 **0.2.5 (24 March 2017)**
 
-* Adding Azure DocumentDb Sink
-* Adding UPSERT to Elastic Search
-* Cassandra improvements `withunwrap`
-* Upgrade to Kudu 1.0 and CLI 1.0
-* Add ingest_time to CoAP Source
-* Multiple bug fixes
-* Release for CP 3.2.0 and Kafka 0.10.2.0
-* Release for CP 3.1.2 and Kafka 0.10.1.1
+*   Adding Azure DocumentDb Sink
+*   Adding UPSERT to Elastic Search
+*   Cassandra improvements `withunwrap`
+*   Upgrade to Kudu 1.0 and CLI 1.0
+*   Add ingest_time to CoAP Source
+*   Support Confluent 3.2 and Kafka 0.10.2.
+*   Added Azure DocumentDB.
+*   Added JMS Source.
+*   Added Schemaless Json and Json with schema support to JMS Sink.
+*   InfluxDB bug fixes for tags and field selection.
+*   Support for Cassandra data type of ``timestamp`` in the Cassandra Source for timestamp tracking.
 
 **0.2.4** (26 Jan 2017)
 

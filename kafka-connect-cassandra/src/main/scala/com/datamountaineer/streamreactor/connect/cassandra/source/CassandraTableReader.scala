@@ -48,7 +48,6 @@ class CassandraTableReader(private val session: Session,
                            private val context: SourceTaskContext,
                            var queue: LinkedBlockingQueue[SourceRecord]) extends StrictLogging {
 
-  logger.info(s"Received setting:\n ${setting.toString}")
   private val defaultTimestamp = "1900-01-01 00:00:00.0000000Z"
   private val dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'")
   private val timestampCol = setting.timestampColumn.getOrElse("")
@@ -62,7 +61,6 @@ class CassandraTableReader(private val session: Session,
   private val preparedStatement = getPreparedStatements
   private var tableOffset: Option[Date] = buildOffsetMap(context)
   private val sourcePartition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
-  private val routeMapping = setting.routes
   private val schemaName = s"$keySpace.$table".replace('-', '.')
 
 
@@ -222,7 +220,7 @@ class CassandraTableReader(private val session: Session,
             if (!setting.bulkImportMode) {
               val rowOffset = extractTimestamp(row)
               maxOffset = if (maxOffset.isEmpty || rowOffset.after(maxOffset.get)) Some(rowOffset) else maxOffset
-              logger.info(s"Max Offset is currently: $maxOffset")
+              logger.info(s"Max Offset is currently: ${maxOffset.get}")
             }
             processRow(row)
             counter += 1

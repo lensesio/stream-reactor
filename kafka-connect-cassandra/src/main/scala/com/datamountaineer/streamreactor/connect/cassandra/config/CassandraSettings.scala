@@ -47,7 +47,6 @@ case class CassandraSourceSetting(routes: Config,
                                   timestampColumn: Option[String] = None,
                                   timestampColType: TimestampType,
                                   pollInterval: Long = CassandraConfigConstants.DEFAULT_POLL_INTERVAL,
-                                  config: AbstractConfig,
                                   consistencyLevel: Option[ConsistencyLevel],
                                   errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                                   taskRetires: Int = CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT
@@ -114,7 +113,6 @@ object CassandraSettings extends StrictLogging {
           timestampColType = timestampType,
           bulkImportMode = bulk,
           pollInterval = pollInterval,
-          config = config,
           errorPolicy = errorPolicy,
           consistencyLevel = consistencyLevel
         )
