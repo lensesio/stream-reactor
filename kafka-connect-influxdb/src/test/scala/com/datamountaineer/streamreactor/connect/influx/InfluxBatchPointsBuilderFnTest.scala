@@ -620,22 +620,16 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
         """.
           stripMargin
 
-      val topic =
+      val topic = "topic1"
+      val measurement = "measurement1"
 
-        "topic1"
-      val
-      measurement = "measurement1"
-
-      val
-
-      before = System.currentTimeMillis()
+      val before = System.currentTimeMillis()
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
       val extractor = StructFieldsExtractor(false, Map("_id" -> "_id", "name" -> "this_is_renamed", "email" -> "email"), None, Set.empty)
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map
-        (topic -> measurement), Map(topic -> extractor), Map(topic -> Seq(new Tag("age"), new Tag("eyeColor"))))
+        Map (topic -> measurement), Map(topic -> extractor), Map(topic -> Seq(new Tag("age"), new Tag("eyeColor"))))
       val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
       val points = batchPoints.getPoints
       points.size() shouldBe 1
@@ -653,8 +647,7 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
       map.get("email") shouldBe "clements.crane@terragen.io"
 
       val tags = PointMapFieldGetter.tags(point)
-      tags shouldBe Map("age" -> "27", "eyeColor" -> "brown"
-      )
+      tags shouldBe Map("age" -> "27", "eyeColor" -> "brown")
     }
 
     "throw an error of if nested json since there is no flattening of json for a sink record with string json payload" in {

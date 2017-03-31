@@ -155,16 +155,16 @@ object InfluxBatchPointsBuilderFn extends ConverterUtil with StrictLogging {
     settings.topicToTagsMap.get(record.topic()).foreach { tags =>
       tags.withFilter(!_.isConstant)
         .foreach { tag =>
-          val value = original \ tag.getValue match {
+          val value = original \ tag.getKey match {
             case JString(s) => s
             case JDouble(d) => d
             case JInt(i) => i
             case JLong(l) => l
             case JDecimal(d) => d
             case JNull | JNothing => logger.warn(s"Tag ${tag.getKey} can't be found. It won't be set")
-            case other => throw new IllegalArgumentException(s"${tag.getValue} resolves to ${other.getClass}")
+            case other => throw new IllegalArgumentException(s"${tag.getKey} resolves to ${other.getClass}")
           }
-
+          tagsMap.put(tag.getKey, value)
         }
     }
     val jvalue = convertStringSchemaAndJson(record,
