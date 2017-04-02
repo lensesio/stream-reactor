@@ -63,19 +63,24 @@ object CassandraConfigConstants {
   val SSL_ENABLED_DEFAULT = "false"
 
   val TRUST_STORE_PATH = "connect.cassandra.trust.store.path"
-  val TRUST_STORE_PATH_DOC = "Path to the client Trust store."
-
+  val TRUST_STORE_PATH_DOC = "Path to the client Trust Store."
   val TRUST_STORE_PASSWD = "connect.cassandra.trust.store.password"
-  val TRUST_STORE_PASSWD_DOC = "Password for the client Trust store."
+  val TRUST_STORE_PASSWD_DOC = "Password for the client Trust Store."
+  val TRUST_STORE_TYPE = "connect.cassandra.trust.store.type"
+  val TRUST_STORE_TYPE_DOC = "Type of the Trust Store, defaults to JKS"
+  val TRUST_STORE_TYPE_DEFAULT = "JKS"
 
   val USE_CLIENT_AUTH = "connect.cassandra.ssl.client.cert.auth"
   val USE_CLIENT_AUTH_DEFAULT = "false"
   val USE_CLIENT_AUTH_DOC = "Enable client certification authentication by Cassandra. Requires KeyStore options to be set."
 
   val KEY_STORE_PATH = "connect.cassandra.key.store.path"
-  val KEY_STORE_PATH_DOC = "Path to the client Key store."
+  val KEY_STORE_PATH_DOC = "Path to the client Key Store."
   val KEY_STORE_PASSWD = "connect.cassandra.key.store.password"
   val KEY_STORE_PASSWD_DOC = "Password for the client Key Store"
+  val KEY_STORE_TYPE = "connect.cassandra.key.store.type"
+  val KEY_STORE_TYPE_DOC = "Type of the Key Store, defauts to JKS"
+  val KEY_STORE_TYPE_DEFAULT = "JKS"
 
   //source
   val IMPORT_MODE = "connect.cassandra.import.mode"
