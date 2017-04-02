@@ -26,7 +26,7 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
-
+import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 24/03/16. 
@@ -51,7 +51,7 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     writer.foreach(w => w.write(records.toList))
-    progressCounter.update(records.toVector)
+    //progressCounter.update(records.asScala.toSeq)
   }
 
   /**
@@ -60,7 +60,7 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
   override def stop(): Unit = {
     logger.info("Stopping Rethink sink.")
     writer.foreach(w => w.close())
-    progressCounter.empty()
+    progressCounter.empty
   }
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}

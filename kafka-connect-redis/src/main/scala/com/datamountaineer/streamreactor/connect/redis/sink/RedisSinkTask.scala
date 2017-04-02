@@ -28,6 +28,7 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * <h1>RedisSinkTask</h1>
@@ -103,7 +104,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     else {
       require(writer.nonEmpty, "Writer is not set!")
       writer.foreach(w => w.write(records.toSeq))
-      progressCounter.update(records.toVector)
+      //progressCounter.update(records.asScala.toSeq)
     }
   }
 
@@ -113,7 +114,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
   override def stop(): Unit = {
     logger.info("Stopping Redis sink.")
     writer.foreach(w => w.close())
-    progressCounter.empty()
+    progressCounter.empty
   }
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {

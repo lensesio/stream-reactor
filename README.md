@@ -33,6 +33,7 @@ A collection of components to build a real time ingestion pipeline.
 | Hazelcast      | Sink   | Kafka connect Hazelcast sink to write Kafka topic payloads to Hazelcast.                      | [Docs](http://docs.datamountaineer.com/en/latest/hazelcast.html)         |
 | Kudu           | Sink   | Kafka connect Kudu sink to write Kafka topic payloads to Kudu.                                | [Docs](http://docs.datamountaineer.com/en/latest/kudu.html)              |
 | InfluxDb       | Sink   | Kafka connect InfluxDb sink to write Kafka topic payloads to InfluxDb.                        | [Docs](http://docs.datamountaineer.com/en/latest/influx.html)            |
+| JMS            | Source   | Kafka connect JMS source to write from JMS to Kafka topics.                                  | [Docs](http://docs.datamountaineer.com/en/latest/jms-source.html)               |
 | JMS            | Sink   | Kafka connect JMS sink to write Kafka topic payloads to JMS.                                  | [Docs](http://docs.datamountaineer.com/en/latest/jms.html)               |
 | MongoDB        | Sink   | Kafka connect MongoDB sink to write Kafka topic payloads to MongoDB.                          | [Docs](http://docs.datamountaineer.com/en/latest/mongo-sink.html)        |
 | MQTT           | Source | Kafka connect MQTT source to write data from MQTT to Kafka.                                   | [Docs](http://docs.datamountaineer.com/en/latest/mqtt.html)              |
@@ -49,14 +50,17 @@ A collection of components to build a real time ingestion pipeline.
 
 **0.2.5 (24 March 2017)**
 
-* Adding Azure DocumentDb Sink
-* Adding UPSERT to Elastic Search
-* Cassandra improvements `withunwrap`
-* Upgrade to Kudu 1.0 and CLI 1.0
-* Add ingest_time to CoAP Source
-* Multiple bug fixes
-* Release for CP 3.2.0 and Kafka 0.10.2.0
-* Release for CP 3.1.2 and Kafka 0.10.1.1
+*   Adding Azure DocumentDb Sink
+*   Adding UPSERT to Elastic Search
+*   Cassandra improvements `withunwrap`
+*   Upgrade to Kudu 1.0 and CLI 1.0
+*   Add ingest_time to CoAP Source
+*   Support Confluent 3.2 and Kafka 0.10.2.
+*   Added Azure DocumentDB.
+*   Added JMS Source.
+*   Added Schemaless Json and Json with schema support to JMS Sink.
+*   InfluxDB bug fixes for tags and field selection.
+*   Support for Cassandra data type of ``timestamp`` in the Cassandra Source for timestamp tracking.
 
 **0.2.4** (26 Jan 2017)
 

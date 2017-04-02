@@ -82,7 +82,7 @@ object MqttSourceConfig {
     """
       |Contains a tuple (Mqtt source topic and the canonical class name for the converter of a raw Mqtt message bytes to a SourceRecord).
       |If the source topic is not matched it will default to the BytesConverter
-      |i.e. $mqtt_source1=com.datamountaineer.streamreactor.connect.mqtt.source.converters.AvroConverter;$mqtt_source2=com.datamountaineer.streamreactor.connect.mqtt.source.converters.JsonConverter""".stripMargin
+      |i.e. $mqtt_source1=com.datamountaineer.streamreactor.connect.source.converters.AvroConverter;$mqtt_source2=com.datamountaineer.streamreactor.connect.source.converters.JsonConverter""".stripMargin
   private val CONVERTER_DISPLAY = "Converter class"
 
   val THROW_ON_CONVERT_ERRORS_CONFIG = "connect.mqtt.converter.throw.on.error"

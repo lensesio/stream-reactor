@@ -27,6 +27,7 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 /**
@@ -51,7 +52,7 @@ class CoapSinkTask extends SinkTask with StrictLogging {
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
     records.map(r => writers(r.topic()).write(List(r)))
-    progressCounter.update(records.toVector)
+    //progressCounter.update(records.asScala.toSeq)
   }
 
   override def stop(): Unit = {
@@ -59,7 +60,7 @@ class CoapSinkTask extends SinkTask with StrictLogging {
       logger.info(s"Shutting down writer for $t")
       w.stop()
     })
-    progressCounter.empty()
+    progressCounter.empty
 
   }
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
