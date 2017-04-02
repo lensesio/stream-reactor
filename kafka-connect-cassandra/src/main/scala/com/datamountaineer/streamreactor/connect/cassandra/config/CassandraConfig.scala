@@ -106,13 +106,33 @@ case class CassandraConfig() {
       ConfigDef.Width.LONG,
       CassandraConfigConstants.TRUST_STORE_PASSWD)
 
+    .define(CassandraConfigConstants.TRUST_STORE_TYPE,
+      Type.STRING,
+      CassandraConfigConstants.TRUST_STORE_TYPE_DEFAULT,
+      Importance.MEDIUM,
+      CassandraConfigConstants.TRUST_STORE_TYPE_DOC,
+      "Connection",
+      9,
+      ConfigDef.Width.MEDIUM,
+      CassandraConfigConstants.TRUST_STORE_TYPE)
+
+    .define(CassandraConfigConstants.KEY_STORE_TYPE,
+      Type.STRING,
+      CassandraConfigConstants.KEY_STORE_TYPE_DEFAULT,
+      Importance.MEDIUM,
+      CassandraConfigConstants.KEY_STORE_TYPE_DOC,
+      "Connection",
+      10,
+      ConfigDef.Width.MEDIUM,
+      CassandraConfigConstants.KEY_STORE_TYPE)
+
     .define(CassandraConfigConstants.USE_CLIENT_AUTH,
       Type.BOOLEAN,
       CassandraConfigConstants.USE_CLIENT_AUTH_DEFAULT,
       Importance.LOW,
       CassandraConfigConstants.USE_CLIENT_AUTH_DOC,
       "Connection",
-      9,
+      11,
       ConfigDef.Width.LONG,
       CassandraConfigConstants.USE_CLIENT_AUTH)
 
@@ -122,7 +142,7 @@ case class CassandraConfig() {
       Importance.LOW,
       CassandraConfigConstants.KEY_STORE_PATH_DOC,
       "Connection",
-      10,
+      12,
       ConfigDef.Width.LONG,
       CassandraConfigConstants.KEY_STORE_PATH)
 
@@ -132,7 +152,7 @@ case class CassandraConfig() {
       Importance.LOW,
       CassandraConfigConstants.KEY_STORE_PASSWD_DOC,
       "Connection",
-      11,
+      13,
       ConfigDef.Width.LONG,
       CassandraConfigConstants.KEY_STORE_PASSWD)
 
@@ -142,7 +162,7 @@ case class CassandraConfig() {
       Importance.MEDIUM,
       CassandraConfigConstants.CONSISTENCY_LEVEL_DOC,
       "Connection",
-      12,
+      14,
       ConfigDef.Width.MEDIUM,
       CassandraConfigConstants.CONSISTENCY_LEVEL_DISPLAY)
 
