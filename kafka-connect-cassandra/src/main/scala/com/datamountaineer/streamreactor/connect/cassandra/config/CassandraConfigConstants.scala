@@ -1,17 +1,17 @@
 /*
- *  Copyright 2017 Datamountaineer.
+ * Copyright 2017 Datamountaineer.
  *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.cassandra.config
@@ -107,7 +107,7 @@ object CassandraConfigConstants {
       | There are three available options:
       |    NOOP - the error is swallowed
       |    THROW - the error is allowed to propagate.
-      |    RETRY - The exception causes the Connect framework to retry the message. The number of retries is set by connect.cassandra.max.retires.
+      |    RETRY - The exception causes the Connect framework to retry the message. The number of retries is set by connect.cassandra.max.retries.
       |All errors will be logged automatically, even if the code swallows them.
     """.stripMargin
   val ERROR_POLICY_DEFAULT = "THROW"
@@ -115,7 +115,7 @@ object CassandraConfigConstants {
   val ERROR_RETRY_INTERVAL = "connect.cassandra.retry.interval"
   val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
   val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
-  val NBR_OF_RETRIES = "connect.cassandra.max.retires"
+  val NBR_OF_RETRIES = "connect.cassandra.max.retries"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
@@ -143,5 +143,10 @@ object CassandraConfigConstants {
     """.stripMargin
   val CONSISTENCY_LEVEL_DISPLAY = "Consistency Level"
   val CONSISTENCY_LEVEL_DEFAULT = ""
+
+
+  val TIMESTAMP_TYPE = "connect.cassandra.source.timestamp.type"
+  val TIMESTAMP_TYPE_DOC = "The Cassandra data type of the timestamp column, either timeuuid (default) or timestamp."
+  val TIMESTAMP_TYPE_DEFAULT = "timeUUID"
 
 }

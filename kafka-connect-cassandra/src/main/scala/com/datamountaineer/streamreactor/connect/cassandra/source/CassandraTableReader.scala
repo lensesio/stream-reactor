@@ -1,17 +1,17 @@
 /*
- *  Copyright 2017 Datamountaineer.
+ * Copyright 2017 Datamountaineer.
  *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.cassandra.source
@@ -21,7 +21,7 @@ import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.{Collections, Date}
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSourceSetting}
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSourceSetting, TimestampType}
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraResultSetWrapper.resultSetFutureToScala
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
 import com.datamountaineer.streamreactor.connect.offsets.OffsetHandler
@@ -35,8 +35,7 @@ import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
-import java.util.Arrays.ArrayList
-import java.util.ArrayList
+
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data.Schema
 
@@ -49,7 +48,6 @@ class CassandraTableReader(private val session: Session,
                            private val context: SourceTaskContext,
                            var queue: LinkedBlockingQueue[SourceRecord]) extends StrictLogging {
 
-  logger.info(s"Received setting:\n ${setting.toString}")
   private val defaultTimestamp = "1900-01-01 00:00:00.0000000Z"
   private val dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'")
   private val timestampCol = setting.timestampColumn.getOrElse("")
@@ -63,7 +61,6 @@ class CassandraTableReader(private val session: Session,
   private val preparedStatement = getPreparedStatements
   private var tableOffset: Option[Date] = buildOffsetMap(context)
   private val sourcePartition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
-  private val routeMapping = setting.routes
   private val schemaName = s"$keySpace.$table".replace('-', '.')
 
 
@@ -101,9 +98,11 @@ class CassandraTableReader(private val session: Session,
     val selectStatement = if (setting.bulkImportMode) {
       s"SELECT $selectColumns FROM $keySpace.$table"
     } else {
-      s"SELECT $selectColumns " +
-      s"FROM $keySpace.$table " +
-      s"WHERE $timestampCol > maxTimeuuid(?) AND $timestampCol <= minTimeuuid(?)  ALLOW FILTERING"
+      val predicate = setting.timestampColType match {
+        case TimestampType.TIMEUUID => s"WHERE $timestampCol > maxTimeuuid(?) AND $timestampCol <= minTimeuuid(?) ALLOW FILTERING"
+        case TimestampType.TIMESTAMP => s"WHERE $timestampCol > ? AND $timestampCol <= ? ALLOW FILTERING"
+      }
+      s"SELECT $selectColumns FROM $keySpace.$table $predicate"
     }
     
     val statement = session.prepare(selectStatement)
@@ -201,7 +200,7 @@ class CassandraTableReader(private val session: Session,
    * Iterate over the resultset, extract SourceRecords
    * and add them to the queue.
    *
-   * @param f Cassandra Future ResultSet to iterate over.
+   * @param future Cassandra Future ResultSet to iterate over.
    */
   private def process(future: Future[ResultSet]) = {
     //get the max offset per query
@@ -221,7 +220,7 @@ class CassandraTableReader(private val session: Session,
             if (!setting.bulkImportMode) {
               val rowOffset = extractTimestamp(row)
               maxOffset = if (maxOffset.isEmpty || rowOffset.after(maxOffset.get)) Some(rowOffset) else maxOffset
-              logger.info(s"Max Offset is currently: $maxOffset")
+              logger.info(s"Max Offset is currently: ${maxOffset.get}")
             }
             processRow(row)
             counter += 1
@@ -260,7 +259,7 @@ class CassandraTableReader(private val session: Session,
     val rowOffset: Date = if (setting.bulkImportMode) tableOffset.get else extractTimestamp(row)
     val offset: String = dateFormatter.format(rowOffset)
 
-    logger.info(s"Storing offset $offset")
+    logger.debug(s"Storing offset $offset")
 
     // create source record
     val record = if (setting.routes.isWithUnwrap) {
@@ -282,11 +281,14 @@ class CassandraTableReader(private val session: Session,
   /**
    * Extract the CQL UUID timestamp and return a date
    *
-   * @param row The row to extract the UUI from
+   * @param row The row to extract the timestamp from
    * @return A java.util.Date
    */
   private def extractTimestamp(row: Row): Date = {
-    new Date(UUIDs.unixTimestamp(row.getUUID(setting.timestampColumn.get)))
+    Try(row.getTimestamp(setting.timestampColumn.get)) match {
+      case Success(s) => s
+      case Failure(_) => new Date(UUIDs.unixTimestamp(row.getUUID(setting.timestampColumn.get)))
+    }
   }
 
   /**

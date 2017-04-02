@@ -57,7 +57,7 @@ class MqttManager(connectionFn: (MqttCallback) => MqttClient,
     val converter = convertersMap.getOrElse(topic, throw new RuntimeException(s"$topic topic is missing the converter instance."))
     if (!message.isDuplicate) {
       try {
-        Option(converter.convert(kafkaTopic, topic, message.getId, message.getPayload)) match {
+        Option(converter.convert(kafkaTopic, topic, message.getId.toString, message.getPayload)) match {
           case Some(record) =>
             queue.add(record)
             message.setRetained(false)

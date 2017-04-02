@@ -18,8 +18,7 @@ package com.datamountaineer.streamreactor.connect.jms.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.jms.JMSSinkTask
-import com.datamountaineer.streamreactor.connect.jms.sink.config.JMSSinkConfig
+import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -35,7 +34,7 @@ import scala.collection.JavaConverters._
   **/
 class JMSSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: Option[util.Map[String, String]] = None
-  private val configDef = JMSSinkConfig.config
+  private val configDef = JMSConfig.config
 
   /**
     * States which SinkTask class to use
