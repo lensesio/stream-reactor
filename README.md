@@ -37,35 +37,6 @@ save the properties file.
 
 Once you get more familiar with the connector, you might want to revisit the `connector.properties`
 file and experiment with tweaking its settings.
-
-### Cherry-Picking Schema Registry Patches
-
-> **NOTE:** You can skip this step if you don't plan on using multiple topics with different names 
-but identical schemas, or the [Avro] bytes type.
-
-The connector depends on some commits in Confluent's [Schema Registry] that have not yet been 
-included in a released version. As a result, there is some external work involved in building the 
-connector. Here is what you need to do before building:
-
-1. Checkout Schema Registry locally.
-
-1. Checkout the `v3.0.0` release tag:
-
-   ```bash
-   git checkout v3.0.0
-   ```
-
-1. Cherry-pick the following two commits:
-
-   ```bash
-   git cherry-pick -m 1 f835af3a2fd97911c633c0a13c72c1d6f91dc1eb
-   git cherry-pick -m 1 b3fba7f9f8cc2a117aafa9aff8ac2f50c8dc38e9
-   ```
-
-1. Run `mvn install` in your local `schema-registry` directory to install a modified 
-   Schema Registry 3.0.0 into your local [Maven] repository.
-   
-Once a new version of Schema Registry is released, these steps should no longer be required.
    
 ### Building and Extracting a Tarball
 
