@@ -48,7 +48,7 @@ A collection of components to build a real time ingestion pipeline.
 ## Release Notes
 
 
-**0.2.5 (24 March 2017)**
+**0.2.5 (4 Apr 2017)**
 
 *   Adding Azure DocumentDb Sink
 *   Adding UPSERT to Elastic Search
