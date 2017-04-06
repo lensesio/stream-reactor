@@ -26,7 +26,7 @@ import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.util.{Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 case class JMSWriter(settings: JMSSettings) extends AutoCloseable with ConverterUtil with ErrorHandler with StrictLogging {
 
@@ -67,7 +67,7 @@ case class JMSWriter(settings: JMSSettings) extends AutoCloseable with Converter
         //handle error tracking for redelivery for Connect
         handleTry(sent)
       }
-      case _ =>
+      case _ => handleTry(Success())
     }
   }
 
