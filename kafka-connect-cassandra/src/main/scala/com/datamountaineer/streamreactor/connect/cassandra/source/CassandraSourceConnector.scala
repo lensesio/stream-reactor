@@ -27,7 +27,6 @@ import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 
 /**
   * <h1>CassandraSourceConnector</h1>
@@ -37,7 +36,7 @@ import scala.collection.JavaConverters._
   */
 class CassandraSourceConnector extends SourceConnector with StrictLogging {
 
-  private var configProps : Option[util.Map[String, String]] = None
+  private var configProps: Option[util.Map[String, String]] = None
   private val configDef = CassandraConfigSource.sourceConfig
 
   /**
@@ -52,13 +51,11 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
     *
     * @param maxTasks The max number of task workers be can spawn.
     * @return a List of configuration properties per worker.
-    * */
+    **/
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     val raw = configProps.get.get(CassandraConfigConstants.SOURCE_KCQL_QUERY).split(";")
 
-    val tables = raw.map({
-      r => Config.parse(r).getSource
-    }).toList
+    val tables = raw.map { r => Config.parse(r).getSource }.toList
 
     val numGroups = Math.min(tables.size, maxTasks)
 
@@ -67,20 +64,19 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
 
     //setup the config for each task and set assigned tables
     groups
-      .filterNot(g => g.isEmpty)
-      .map(g=> {
-        val taskConfigs = new java.util.HashMap[String,String]
+      .withFilter(g => g.nonEmpty)
+      .map { g =>
+        val taskConfigs = new java.util.HashMap[String, String](configProps.get)
         taskConfigs.put(CassandraConfigConstants.ASSIGNED_TABLES, g.mkString(","))
-        taskConfigs.putAll(configProps.get)
-        taskConfigs.toMap.asJava
-      })
+        taskConfigs
+      }
   }
 
   /**
     * Start the sink and set to configuration.
     *
     * @param props A map of properties for the connector and worker.
-    * */
+    **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Cassandra source task with ${props.toString}.")
     configProps = Some(props)
