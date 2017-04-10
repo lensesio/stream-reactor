@@ -31,8 +31,7 @@ object MongoSinkConfigConstants {
 
   val ERROR_POLICY_CONFIG = "connect.mongo.error.policy"
   val ERROR_POLICY_DOC: String =
-    """
-      |Specifies the action to be taken if an error occurs while inserting the data.
+    """Specifies the action to be taken if an error occurs while inserting the data.
       |There are two available options:
       |NOOP - the error is swallowed
       |THROW - the error is allowed to propagate.
