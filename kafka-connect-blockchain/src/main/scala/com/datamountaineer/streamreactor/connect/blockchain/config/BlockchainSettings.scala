@@ -29,12 +29,12 @@ case class BlockchainSettings(url: String,
 
 object BlockchainSettings {
   def apply(config: AbstractConfig): BlockchainSettings = {
-    val url = config.getString(BlockchainConfig.CONNECTION_URL)
-    require(url != null && !url.trim.isEmpty, s"No ${BlockchainConfig.CONNECTION_URL} provided!")
+    val url = config.getString(BlockchainConfigConstants.CONNECTION_URL)
+    require(url != null && !url.trim.isEmpty, s"No ${BlockchainConfigConstants.CONNECTION_URL} provided!")
 
-    val addresses = Option(config.getString(BlockchainConfig.ADDRESS_SUBSCRIPTION)).map(_.split(",").map(_.trim).toSet).getOrElse(Set.empty)
-    val kafkaTopic = config.getString(BlockchainConfig.KAFKA_TOPIC)
-    require(kafkaTopic != null && kafkaTopic.trim.nonEmpty, s"No ${BlockchainConfig.KAFKA_TOPIC} provided")
+    val addresses = Option(config.getString(BlockchainConfigConstants.ADDRESS_SUBSCRIPTION)).map(_.split(",").map(_.trim).toSet).getOrElse(Set.empty)
+    val kafkaTopic = config.getString(BlockchainConfigConstants.KAFKA_TOPIC)
+    require(kafkaTopic != null && kafkaTopic.trim.nonEmpty, s"No ${BlockchainConfigConstants.KAFKA_TOPIC} provided")
 
     BlockchainSettings(url, kafkaTopic, addresses)
   }
