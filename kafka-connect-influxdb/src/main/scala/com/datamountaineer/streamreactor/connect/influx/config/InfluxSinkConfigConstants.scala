@@ -1,0 +1,56 @@
+package com.datamountaineer.streamreactor.connect.influx.config
+
+object InfluxSinkConfigConstants {
+  val INFLUX_URL_CONFIG = "connect.influx.connection.url"
+  val INFLUX_URL_DOC = "The InfluxDB database url."
+
+  val INFLUX_DATABASE_CONFIG = "connect.influx.connection.database"
+  val INFLUX_DATABASE_DOC = "The database to store the values to."
+
+  val INFLUX_CONNECTION_USER_CONFIG = "connect.influx.connection.user"
+  val INFLUX_CONNECTION_USER_DOC = "The user to connect to the influx database"
+
+  val INFLUX_CONNECTION_PASSWORD_CONFIG = "connect.influx.connection.password"
+  val INFLUX_CONNECTION_PASSWORD_DOC = "The password for the influxdb user."
+
+
+  val RETENTION_POLICY_CONFIG = "connect.influx.retention.policy"
+  val RETENTION_POLICY_DOC: String =
+    """
+      |Determines how long InfluxDB keeps the data - the options for specifying the duration of the retention policy are listed below.
+      |Note that the minimum retention period is one hour.
+      |DURATION determines how long InfluxDB keeps the data - the options for specifying the duration of the retention policy are listed below. Note that the minimum retention period is one hour.
+      |m minutes
+      |h hours
+      |d days
+      |w weeks
+      |INF infinite
+      |
+      |Default retention is `autogen` from 1.0 onwards or `default` for any previous version""".stripMargin
+  val RETENTION_POLICY_DEFAULT = "autogen"
+
+  val KCQL_CONFIG = "connect.influx.sink.kcql"
+  val KCQL_DOC = "KCQL expression describing field selection and routes."
+  val KCQL_DISPLAY = "Kafka Connect Query Language"
+
+  val ERROR_POLICY_CONFIG = "connect.influx.error.policy"
+  val ERROR_POLICY_DOC: String = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
+    "There are two available options: \n" + "NOOP - the error is swallowed \n" +
+    "THROW - the error is allowed to propagate. \n" +
+    "RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on \n" +
+    "The error will be logged automatically"
+  val ERROR_POLICY_DEFAULT = "THROW"
+
+  val ERROR_RETRY_INTERVAL_CONFIG = "connect.influx.retry.interval"
+  val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
+  val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
+  val NBR_OF_RETRIES_CONFIG = "connect.influx.max.retries"
+  val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
+  val NBR_OF_RETIRES_DEFAULT = 20
+
+  val CONSISTENCY_CONFIG = "connect.influx.consistency.level"
+  val CONSISTENCY_DOC = "Specifies the write consistency. If any write operations do not meet the configured consistency guarantees, an error will occur and the data will not be indexed. The default consistency-level is ALL."
+  val CONSISTENCY_DEFAULT = "ALL"
+  val CONSISTENCY_DISPLAY = "Consistency Level"
+
+}
