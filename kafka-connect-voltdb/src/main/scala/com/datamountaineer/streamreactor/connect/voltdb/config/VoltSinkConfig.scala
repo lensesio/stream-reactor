@@ -22,48 +22,21 @@ import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 object VoltSinkConfig {
-  val SERVERS_CONFIG = "connect.volt.connection.servers"
-  val SERVERS_DOC = "Comma separated server[:port]"
-
-  val USER_CONFIG = "connect.volt.connection.user"
-  val USER_DOC = "The user to connect to the volt database"
-
-  val PASSWORD_CONFIG = "connect.volt.connection.password"
-  val PASSWORD_DOC = "The password for the voltdb user."
-
-  val EXPORT_ROUTE_QUERY_CONFIG = "connect.volt.sink.kcql"
-  val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
-
-  val ERROR_POLICY_CONFIG = "connect.volt.error.policy"
-  val ERROR_POLICY_DOC: String = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
-    "There are two available options: \n" + "NOOP - the error is swallowed \n" +
-    "THROW - the error is allowed to propagate. \n" +
-    "RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on \n" +
-    "The error will be logged automatically"
-  val ERROR_POLICY_DEFAULT = "THROW"
-
-  val ERROR_RETRY_INTERVAL_CONFIG = "connect.volt.retry.interval"
-  val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
-  val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
-  val NBR_OF_RETRIES_CONFIG = "connect.volt.max.retries"
-  val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
-  val NBR_OF_RETIRES_DEFAULT = 20
-
   val config: ConfigDef = new ConfigDef()
-    .define(SERVERS_CONFIG, Type.STRING, Importance.HIGH, SERVERS_DOC,
-      "Connection", 1, ConfigDef.Width.MEDIUM, SERVERS_CONFIG)
-    .define(USER_CONFIG, Type.STRING, Importance.HIGH, USER_DOC,
-      "Connection", 2, ConfigDef.Width.MEDIUM, USER_CONFIG)
-    .define(PASSWORD_CONFIG, Type.PASSWORD, Importance.HIGH, PASSWORD_DOC,
-      "Connection", 3, ConfigDef.Width.MEDIUM, PASSWORD_CONFIG)
-    .define(EXPORT_ROUTE_QUERY_CONFIG, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY_DOC,
-      "Connection", 4, ConfigDef.Width.MEDIUM, EXPORT_ROUTE_QUERY_CONFIG)
-    .define(ERROR_POLICY_CONFIG, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC,
-      "Connection", 5, ConfigDef.Width.MEDIUM, ERROR_POLICY_CONFIG)
-    .define(ERROR_RETRY_INTERVAL_CONFIG, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM,
-      ERROR_RETRY_INTERVAL_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, ERROR_RETRY_INTERVAL_CONFIG)
-    .define(NBR_OF_RETRIES_CONFIG, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC,
-      "Connection", 6, ConfigDef.Width.MEDIUM, NBR_OF_RETRIES_CONFIG)
+    .define(VoltSinkConfigConstants.SERVERS_CONFIG, Type.STRING, Importance.HIGH, VoltSinkConfigConstants.SERVERS_DOC,
+      "Connection", 1, ConfigDef.Width.MEDIUM, VoltSinkConfigConstants.SERVERS_CONFIG)
+    .define(VoltSinkConfigConstants.USER_CONFIG, Type.STRING, Importance.HIGH, VoltSinkConfigConstants.USER_DOC,
+      "Connection", 2, ConfigDef.Width.MEDIUM, VoltSinkConfigConstants.USER_CONFIG)
+    .define(VoltSinkConfigConstants.PASSWORD_CONFIG, Type.PASSWORD, Importance.HIGH, VoltSinkConfigConstants.PASSWORD_DOC,
+      "Connection", 3, ConfigDef.Width.MEDIUM, VoltSinkConfigConstants.PASSWORD_CONFIG)
+    .define(VoltSinkConfigConstants.EXPORT_ROUTE_QUERY_CONFIG, Type.STRING, Importance.HIGH, VoltSinkConfigConstants.EXPORT_ROUTE_QUERY_DOC,
+      "Connection", 4, ConfigDef.Width.MEDIUM, VoltSinkConfigConstants.EXPORT_ROUTE_QUERY_CONFIG)
+    .define(VoltSinkConfigConstants.ERROR_POLICY_CONFIG, Type.STRING, VoltSinkConfigConstants.ERROR_POLICY_DEFAULT, Importance.HIGH, VoltSinkConfigConstants.ERROR_POLICY_DOC,
+      "Connection", 5, ConfigDef.Width.MEDIUM, VoltSinkConfigConstants.ERROR_POLICY_CONFIG)
+    .define(VoltSinkConfigConstants.ERROR_RETRY_INTERVAL_CONFIG, Type.INT, VoltSinkConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM,
+      VoltSinkConfigConstants.ERROR_RETRY_INTERVAL_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, VoltSinkConfigConstants.ERROR_RETRY_INTERVAL_CONFIG)
+    .define(VoltSinkConfigConstants.NBR_OF_RETRIES_CONFIG, Type.INT, VoltSinkConfigConstants.NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, VoltSinkConfigConstants.NBR_OF_RETRIES_DOC,
+      "Connection", 6, ConfigDef.Width.MEDIUM, VoltSinkConfigConstants.NBR_OF_RETRIES_CONFIG)
 }
 
 /**
