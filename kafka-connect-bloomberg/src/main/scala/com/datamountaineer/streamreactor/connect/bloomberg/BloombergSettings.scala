@@ -16,7 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.bloomberg
 
-import com.datamountaineer.streamreactor.connect.bloomberg.ConnectorConfig._
+import com.datamountaineer.streamreactor.connect.bloomberg.config.ConnectorConfig._
+import com.datamountaineer.streamreactor.connect.bloomberg.config.{BloombergSourceConfigConstants, ConnectorConfig}
 
 import scala.util.{Success, Try}
 

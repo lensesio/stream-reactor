@@ -1,4 +1,4 @@
-package com.datamountaineer.streamreactor.connect.bloomberg
+package com.datamountaineer.streamreactor.connect.bloomberg.config
 
 object BloombergSourceConfigConstants {
 
