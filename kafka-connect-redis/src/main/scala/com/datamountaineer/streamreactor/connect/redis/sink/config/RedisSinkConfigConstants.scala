@@ -40,11 +40,13 @@ object RedisSinkConfigConstants {
   private[config] val KCQL_DOC = "KCQL expression describing field selection and routes."
 
   val ERROR_POLICY = "connect.redis.error.policy"
-  private[config] val ERROR_POLICY_DOC: String = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
-    "There are two available options: \n" + "NOOP - the error is swallowed \n" +
-    "THROW - the error is allowed to propagate. \n" +
-    "RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on \n" +
-    "The error will be logged automatically"
+  private[config] val ERROR_POLICY_DOC: String =
+    """Specifies the action to be taken if an error occurs while inserting the data.
+      |There are two available options:
+      |NOOP - the error is swallowed
+      |THROW - the error is allowed to propagate.
+      |RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on
+      |The error will be logged automatically""".stripMargin
   private[config] val ERROR_POLICY_DEFAULT = "THROW"
 
   val ERROR_RETRY_INTERVAL = "connect.redis.retry.interval"
