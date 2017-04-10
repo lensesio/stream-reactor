@@ -20,6 +20,7 @@ import java.time.Duration
 import java.util
 
 import com.datamountaineer.streamreactor.connect.ftp.SourceRecordProducers.SourceRecordProducer
+import com.datamountaineer.streamreactor.connect.ftp.config.{FtpSourceConfig, FtpSourceConfigConstants}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.ConnectException
@@ -73,8 +74,8 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
   val monitor2topic = cfg.ftpMonitorConfigs
     .map(monitorCfg => (MonitoredPath(monitorCfg.path, monitorCfg.tail), monitorCfg.topic)).toMap
 
-  val pollDuration = Duration.parse(cfg.getString(FtpSourceConfig.RefreshRate))
-  val maxBackoff = Duration.parse(cfg.getString(FtpSourceConfig.MaxBackoff))
+  val pollDuration = Duration.parse(cfg.getString(FtpSourceConfigConstants.REFRESH_RATE))
+  val maxBackoff = Duration.parse(cfg.getString(FtpSourceConfigConstants.MAX_BACKOFF))
 
   var backoff = new ExponentialBackOff(pollDuration, maxBackoff)
 
@@ -83,9 +84,9 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
     FtpMonitorSettings(
       host,
       optPort,
-      cfg.getString(FtpSourceConfig.User),
-      cfg.getPassword(FtpSourceConfig.Password).value,
-      Some(Duration.parse(cfg.getString(FtpSourceConfig.FileMaxAge))),
+      cfg.getString(FtpSourceConfigConstants.USER),
+      cfg.getPassword(FtpSourceConfigConstants.PASSWORD).value,
+      Some(Duration.parse(cfg.getString(FtpSourceConfigConstants.FILE_MAX_AGE))),
       monitor2topic.keys.toSeq,
       cfg.timeoutMs()),
     metaStore)}
