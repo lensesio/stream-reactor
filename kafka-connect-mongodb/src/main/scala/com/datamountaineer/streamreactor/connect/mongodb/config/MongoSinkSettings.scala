@@ -32,31 +32,31 @@ case class MongoSinkSettings(connection: String,
                              fields: Map[String, Map[String, String]],
                              ignoredField: Map[String, Set[String]],
                              errorPolicy: ErrorPolicy,
-                             taskRetries: Int = MongoConfig.NBR_OF_RETIRES_DEFAULT,
-                             batchSize: Int = MongoConfig.BATCH_SIZE_CONFIG_DEFAULT)
+                             taskRetries: Int = MongoSinkConfigConstants.NBR_OF_RETIRES_DEFAULT,
+                             batchSize: Int = MongoSinkConfigConstants.BATCH_SIZE_CONFIG_DEFAULT)
 
 
 object MongoSinkSettings extends StrictLogging {
 
   def apply(config: AbstractConfig): MongoSinkSettings = {
-    val hostsConfig = config.getString(MongoConfig.CONNECTION_CONFIG)
-    require(hostsConfig.nonEmpty, s"Invalid hosts provided.${MongoConfig.CONNECTION_CONFIG_DOC}")
+    val hostsConfig = config.getString(MongoSinkConfigConstants.CONNECTION_CONFIG)
+    require(hostsConfig.nonEmpty, s"Invalid hosts provided.${MongoSinkConfigConstants.CONNECTION_CONFIG_DOC}")
 
-    val database = config.getString(MongoConfig.DATABASE_CONFIG)
+    val database = config.getString(MongoSinkConfigConstants.DATABASE_CONFIG)
     if (database == null || database.trim.length == 0)
-      throw new ConfigException(s"Invalid ${MongoConfig.DATABASE_CONFIG}")
-    val kcql = config.getString(MongoConfig.KCQL_CONFIG)
+      throw new ConfigException(s"Invalid ${MongoSinkConfigConstants.DATABASE_CONFIG}")
+    val kcql = config.getString(MongoSinkConfigConstants.KCQL_CONFIG)
     val routes = kcql.split(";").map(r => Try(Config.parse(r)) match {
       case Success(query) => query
-      case Failure(t) => throw new ConfigException(s"Invalid ${MongoConfig.KCQL_CONFIG}.${t.getMessage}", t)
+      case Failure(t) => throw new ConfigException(s"Invalid ${MongoSinkConfigConstants.KCQL_CONFIG}.${t.getMessage}", t)
     })
     if (routes.isEmpty)
-      throw new ConfigException(s"Invalid ${MongoConfig.KCQL_CONFIG}. You need to provide at least one route")
+      throw new ConfigException(s"Invalid ${MongoSinkConfigConstants.KCQL_CONFIG}. You need to provide at least one route")
 
-    val batchSize = config.getInt(MongoConfig.BATCH_SIZE_CONFIG)
-    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(MongoConfig.ERROR_POLICY_CONFIG).toUpperCase)
+    val batchSize = config.getInt(MongoSinkConfigConstants.BATCH_SIZE_CONFIG)
+    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(MongoSinkConfigConstants.ERROR_POLICY_CONFIG).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
-    val retries = config.getInt(MongoConfig.NBR_OF_RETRIES_CONFIG)
+    val retries = config.getInt(MongoSinkConfigConstants.NBR_OF_RETRIES_CONFIG)
 
     val rowKeyBuilderMap = routes
       .filter(c => c.getWriteMode == WriteModeEnum.UPSERT)

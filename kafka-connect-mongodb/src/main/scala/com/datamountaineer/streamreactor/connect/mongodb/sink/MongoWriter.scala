@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.mongodb.sink
 
 import com.datamountaineer.connector.config.WriteModeEnum
 import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
-import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoSinkSettings}
+import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoSinkConfigConstants, MongoSinkSettings}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.mongodb.client.model._
 import com.mongodb.{MongoClient, MongoClientURI}
@@ -119,7 +119,7 @@ object MongoWriter extends StrictLogging {
     val settings = MongoSinkSettings(connectorConfig)
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(connectorConfig.getLong(MongoConfig.ERROR_RETRY_INTERVAL_CONFIG))
+      context.timeout(connectorConfig.getLong(MongoSinkConfigConstants.ERROR_RETRY_INTERVAL_CONFIG))
     }
 
     val connectionString = new MongoClientURI(settings.connection)
