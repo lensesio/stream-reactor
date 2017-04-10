@@ -20,7 +20,7 @@ project(":kafka-connect-mqtt") {
         mqttVersion = "1.1.0"
         bouncyCastle = "1.54"
         json4s = "3.5.0"
-        activeMq="5.7.0"
+        activeMq = "5.7.0"
     }
 
     dependencies {
