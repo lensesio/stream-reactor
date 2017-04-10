@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkConfig._
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConnectionInfo, RedisSinkConfig, RedisSinkSettings}
+import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConnectionInfo, RedisSinkConfig, RedisSinkConfigConstants, RedisSinkSettings}
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.Mockito._
@@ -45,11 +45,11 @@ class RedisMultipleSortedSetsTest extends WordSpec with Matchers with BeforeAndA
       println("Testing KCQL : " + KCQL)
 
       val config = mock[RedisSinkConfig]
-      when(config.getString(REDIS_HOST)).thenReturn("localhost")
-      when(config.getInt(REDIS_PORT)).thenReturn(6379)
-      when(config.getString(REDIS_PASSWORD)).thenReturn("")
-      when(config.getString(KCQL_CONFIG)).thenReturn(KCQL)
-      when(config.getString(ERROR_POLICY)).thenReturn("THROW")
+      when(config.getString(RedisSinkConfigConstants.REDIS_HOST)).thenReturn("localhost")
+      when(config.getInt(RedisSinkConfigConstants.REDIS_PORT)).thenReturn(6379)
+      when(config.getString(RedisSinkConfigConstants.REDIS_PASSWORD)).thenReturn("")
+      when(config.getString(RedisSinkConfigConstants.KCQL_CONFIG)).thenReturn(KCQL)
+      when(config.getString(RedisSinkConfigConstants.ERROR_POLICY)).thenReturn("THROW")
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisMultipleSortedSets(settings)

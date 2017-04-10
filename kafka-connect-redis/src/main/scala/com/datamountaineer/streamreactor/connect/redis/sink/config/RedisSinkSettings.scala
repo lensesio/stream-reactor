@@ -39,20 +39,20 @@ case class RedisKCQLSetting(topic: String,
 case class RedisSinkSettings(connectionInfo: RedisConnectionInfo,
                              kcqlSettings: Set[RedisKCQLSetting],
                              errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                             taskRetries: Int = RedisSinkConfig.NBR_OF_RETIRES_DEFAULT)
+                             taskRetries: Int = RedisSinkConfigConstants.NBR_OF_RETIRES_DEFAULT)
 
 object RedisSinkSettings {
 
   def apply(config: RedisSinkConfig): RedisSinkSettings = {
 
     // Get the error-policy, num-of-retries, redis-connection-info
-    val errorPolicy = ErrorPolicy(ErrorPolicyEnum.withName(config.getString(RedisSinkConfig.ERROR_POLICY).toUpperCase))
-    val nbrOfRetries = config.getInt(RedisSinkConfig.NBR_OF_RETRIES)
+    val errorPolicy = ErrorPolicy(ErrorPolicyEnum.withName(config.getString(RedisSinkConfigConstants.ERROR_POLICY).toUpperCase))
+    val nbrOfRetries = config.getInt(RedisSinkConfigConstants.NBR_OF_RETRIES)
     val connectionInfo = RedisConnectionInfo(config)
 
     // Ensure KCQL command/s are provided
-    val kcqlCommands = config.getString(RedisSinkConfig.KCQL_CONFIG)
-    require(kcqlCommands != null && kcqlCommands.nonEmpty, s"No ${RedisSinkConfig.KCQL_CONFIG} provided!")
+    val kcqlCommands = config.getString(RedisSinkConfigConstants.KCQL_CONFIG)
+    require(kcqlCommands != null && kcqlCommands.nonEmpty, s"No ${RedisSinkConfigConstants.KCQL_CONFIG} provided!")
 
     // Get per KCQL : kcqlConfig, key-builder, aliases, ignored-fields
     val kcqlConfigs = kcqlCommands.split(';').map(r => Config.parse(r)).toList.distinct
@@ -82,14 +82,14 @@ object RedisSinkSettings {
 
 object RedisConnectionInfo {
   def apply(config: RedisSinkConfig): RedisConnectionInfo = {
-    val host = config.getString(REDIS_HOST)
-    if (host.isEmpty) new ConfigException(s"$REDIS_HOST is not set correctly")
+    val host = config.getString(RedisSinkConfigConstants.REDIS_HOST)
+    if (host.isEmpty) new ConfigException(s"${RedisSinkConfigConstants.REDIS_HOST} is not set correctly")
 
-    val password = Option(config.getPassword(REDIS_PASSWORD)).map(_.value())
+    val password = Option(config.getPassword(RedisSinkConfigConstants.REDIS_PASSWORD)).map(_.value())
 
     new RedisConnectionInfo(
       host,
-      config.getInt(REDIS_PORT),
+      config.getInt(RedisSinkConfigConstants.REDIS_PORT),
       password)
   }
 }
