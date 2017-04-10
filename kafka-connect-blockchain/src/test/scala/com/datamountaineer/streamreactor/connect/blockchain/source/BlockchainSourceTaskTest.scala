@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.blockchain.source
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.blockchain.config.BlockchainConfig
+import com.datamountaineer.streamreactor.connect.blockchain.config.{BlockchainConfigConstants}
 import org.scalatest.{Matchers, WordSpec}
 
 class BlockchainSourceTaskTest extends WordSpec with Matchers {
@@ -26,7 +26,7 @@ class BlockchainSourceTaskTest extends WordSpec with Matchers {
     "start and stop on request" ignore {
       val task = new BlockchainSourceTask()
       val map = new util.HashMap[String, String]
-      map.put(BlockchainConfig.KAFKA_TOPIC, "sometopic")
+      map.put(BlockchainConfigConstants.KAFKA_TOPIC, "sometopic")
       task.start(map)
 
       //Thread.sleep(50000)
