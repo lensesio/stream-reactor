@@ -37,7 +37,7 @@ import scala.util.{Failure, Success, Try}
   * stream-reactor-maven
   */
 
-case class CreateTableProps(name : String, schema: kuduSchema, cto : CreateTableOptions)
+case class CreateTableProps(name: String, schema: kuduSchema, cto: CreateTableOptions)
 
 
 object DbHandler extends StrictLogging with KuduConverter {
@@ -53,7 +53,7 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @param settings Settings containing the mapping of topic to table
     * @return A Map of topic -> KuduRowInsert
     **/
-  def buildTableCache(settings: KuduSettings, client : KuduClient): Map[String, KuduTable] = {
+  def buildTableCache(settings: KuduSettings, client: KuduClient): Map[String, KuduTable] = {
     createTables(settings, client)
     val tables = settings.routes.map(s => s.getTarget).toSet
     val missing = tables.filterNot(t => client.tableExists(t))
@@ -72,10 +72,10 @@ object DbHandler extends StrictLogging with KuduConverter {
     * Creates tables in Kudu
     *
     * @param setting A kuduSetting with the list of tables to create
-    * @param client A Kudu Client to execute the DDL
-    * */
+    * @param client  A Kudu Client to execute the DDL
+    **/
   def createTables(setting: KuduSettings,
-                   client : KuduClient) : Set[KuduTable] = {
+                   client: KuduClient): Set[KuduTable] = {
 
     //check the schema registry for the a schema for this topic
     val url = setting.schemaRegistryUrl
@@ -84,9 +84,9 @@ object DbHandler extends StrictLogging with KuduConverter {
     subjects
       .flatMap(_ => {
         setting
-            .routes
-            .filter(r => r.isAutoCreate)
-            .map(m => createTableProps(subjects, m, url, client))
+          .routes
+          .filter(r => r.isAutoCreate)
+          .map(m => createTableProps(subjects, m, url, client))
       }).flatten
       .map(ctp => executeCreateTable(ctp, client))
   }
@@ -96,14 +96,14 @@ object DbHandler extends StrictLogging with KuduConverter {
     *
     * @param schemas A list of the schemas available
     * @param mapping The mapping configuration to create
-    * @param client The kudu client to use
-    * */
-  def createTableProps(schemas : Set[String],
+    * @param client  The kudu client to use
+    **/
+  def createTableProps(schemas: Set[String],
                        mapping: Config,
                        url: String,
-                       client: KuduClient) : Set[CreateTableProps] = {
+                       client: KuduClient): Set[CreateTableProps] = {
     //do we have our topic
-    var  lkTopic = mapping.getSource
+    var lkTopic = mapping.getSource
 
     //the schema registry
     //console producer tags -value on end of topic name so check for it
@@ -132,8 +132,8 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @param config The config containing the fields and mappings set for the sink
     * @param schema The topics schema
     * @return The kudu schema
-    * */
-  def getKuduSchema(config: Config, schema: String) : kuduSchema = {
+    **/
+  def getKuduSchema(config: Config, schema: String): kuduSchema = {
 
     //get the latest schema from the schema registry
     val avroFields = new Schema.Parser().parse(schema)
@@ -146,13 +146,13 @@ object DbHandler extends StrictLogging with KuduConverter {
   /**
     * Convert Avro fields to Kudu columns
     *
-    * @param config The config containing the fields and mappings set for the sink
+    * @param config     The config containing the fields and mappings set for the sink
     * @param avroFields The avro fields
     * @return A list of Kudu Columns
-    * */
-  private def getKuduCols(config : Config, avroFields : avroSchema) : util.List[ColumnSchema] = {
+    **/
+  private def getKuduCols(config: Config, avroFields: avroSchema): util.List[ColumnSchema] = {
     logger.info(config.getFieldAlias.mkString(","))
-    val mappingFields = config.getFieldAlias.map(f => (f.getField,f.getAlias)).toMap
+    val mappingFields = config.getFieldAlias.map(f => (f.getField, f.getAlias)).toMap
     val ignored = config.getIgnoredField.toSet
     val fields = avroFields.getFields.filterNot(f => ignored.contains(f.name()))
 
@@ -184,35 +184,64 @@ object DbHandler extends StrictLogging with KuduConverter {
   }
 
   /**
-    * Execute a Create table DDL
-    *
-    * @param ctp A create table properties contain the name of the table, the schema and create table options
-    * @param client A client to use to execute the DDL
-    * */
-  private[kudu] def executeCreateTable(ctp : CreateTableProps, client : KuduClient) : KuduTable = {
-    logger.info(s"Executing create table on ${ctp.name} with ${ctp.schema.toString}")
-    client.createTable(ctp.name, ctp.schema, ctp.cto)
-  }
-
-
-  /**
     * Alter a Kudu table, new columns only
     *
-    * @param table The table to alter
-    * @param old The old schema
+    * @param table   The table to alter
+    * @param old     The old schema
     * @param current The current schema
-    * @param client A Kudu client to execute the DDL
-    * */
+    * @param client  A Kudu client to execute the DDL
+    **/
   def alterTable(table: String,
                  old: connectSchema,
-                 current : connectSchema,
-                 client: KuduClient) : KuduTable  = {
+                 current: connectSchema,
+                 client: KuduClient): KuduTable = {
     val ato = compare(old, current)
     ato.foreach(a => executeAlterTable(a, table, client))
     client.openTable(table)
   }
 
-  def createTableFromSinkRecord(mapping : Config, schema: connectSchema, client: KuduClient) : Try[KuduTable] = {
+  /**
+    * Compare two connect schemas and return a Kudu AlterTableOptions list
+    *
+    * @param old     The old schema
+    * @param current The current schema
+    * @return A list of AlterTableOptions
+    **/
+  def compare(old: connectSchema, current: connectSchema): List[AlterTableOptions] = {
+    ///look for new fields
+    logger.info("Found a difference in the schemas.")
+    val diff = current.fields().toSet.diff(old.fields().toSet)
+    diff.map(d => {
+      val schema = convertConnectField(d)
+      val ato = new AlterTableOptions()
+      if (null == schema.getDefaultValue) {
+        logger.info(s"Adding nullable column ${schema.getName}, type ${schema.getType}")
+        ato.addNullableColumn(schema.getName, schema.getType)
+      } else {
+        logger.info(s"Adding column ${schema.getName}, type ${schema.getType}, default ${schema.getDefaultValue}")
+        ato.addColumn(schema.getName, schema.getType, schema.getDefaultValue)
+      }
+    }).toList
+  }
+
+  /**
+    * Execute a Alter table DDL
+    *
+    * @param ato    The kudu alter table options
+    * @param target The name of the table to create
+    * @param client A client to use to execute the DDL
+    **/
+  private def executeAlterTable(ato: AlterTableOptions, target: String, client: KuduClient) = {
+    logger.info(s"Executing alter table on $target with ${ato.toString}")
+    client.alterTable(target, ato)
+    //wait for alter table
+    while (!client.isAlterTableDone(target)) {
+      logger.info(s"Waiting to alter table to complete for table $target")
+    }
+    logger.info(s"Altered table $target. Added ${ato.toString}")
+  }
+
+  def createTableFromSinkRecord(mapping: Config, schema: connectSchema, client: KuduClient): Try[KuduTable] = {
     if (mapping.isAutoCreate) {
       val cto = getCreateTableOptions(mapping)
       val kuduSchema = convertToKuduSchema(schema)
@@ -224,54 +253,23 @@ object DbHandler extends StrictLogging with KuduConverter {
   }
 
   /**
-    * Compare two connect schemas and return a Kudu AlterTableOptions list
+    * Execute a Create table DDL
     *
-    * @param old The old schema
-    * @param current The current schema
-    * @return A list of AlterTableOptions
-    * */
-  def compare(old: connectSchema, current : connectSchema) : List[AlterTableOptions] = {
-      ///look for new fields
-      logger.info("Found a difference in the schemas.")
-      val diff = current.fields().toSet.diff(old.fields().toSet)
-      diff.map(d => {
-        val schema = convertConnectField(d)
-        val ato = new AlterTableOptions()
-        if (null == schema.getDefaultValue){
-          logger.info(s"Adding nullable column ${schema.getName}, type ${schema.getType}")
-          ato.addNullableColumn(schema.getName, schema.getType)
-        } else {
-          logger.info(s"Adding column ${schema.getName}, type ${schema.getType}, default ${schema.getDefaultValue}")
-          ato.addColumn(schema.getName, schema.getType, schema.getDefaultValue)
-        }
-      }).toList
-  }
-
-  /**
-    * Execute a Alter table DDL
-    *
-    * @param ato The kudu alter table options
-    * @param target The name of the table to create
+    * @param ctp    A create table properties contain the name of the table, the schema and create table options
     * @param client A client to use to execute the DDL
-    * */
-  private def executeAlterTable(ato: AlterTableOptions, target: String, client : KuduClient) = {
-    logger.info(s"Executing alter table on $target with ${ato.toString}")
-    client.alterTable(target, ato)
-    //wait for alter table
-    while (!client.isAlterTableDone(target)){
-      logger.info(s"Waiting to alter table to complete for table $target")
-    }
-    logger.info(s"Altered table $target. Added ${ato.toString}")
+    **/
+  private[kudu] def executeCreateTable(ctp: CreateTableProps, client: KuduClient): KuduTable = {
+    logger.info(s"Executing create table on ${ctp.name} with ${ctp.schema.toString}")
+    client.createTable(ctp.name, ctp.schema, ctp.cto)
   }
-
 
   /**
     * Create a Kudu CreateTableOptions default to hash partition for now
     *
     * @param config The mapping config
     * @return a CreateTableConfig
-    * */
-  private def getCreateTableOptions(config: Config) : CreateTableOptions = {
+    **/
+  private def getCreateTableOptions(config: Config): CreateTableOptions = {
     new CreateTableOptions()
       .addHashPartitions(config.getBucketing.getBucketNames.toList, config.getBucketing.getBucketsNumber)
   }
