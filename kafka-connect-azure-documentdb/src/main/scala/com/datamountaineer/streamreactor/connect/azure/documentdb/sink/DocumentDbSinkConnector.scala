@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbSinkSettings}
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
 import com.microsoft.azure.documentdb._
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.{ConfigDef, ConfigException}
@@ -55,7 +55,7 @@ class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => D
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
 
-    val kcql = configProps.get(DocumentDbConfig.KCQL_CONFIG).split(";")
+    val kcql = configProps.get(DocumentDbConfigConstants.KCQL_CONFIG).split(";")
     if (maxTasks == 1 || kcql.length == 1) {
       List(configProps)
     }
@@ -65,7 +65,7 @@ class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => D
         .map(_.mkString(";"))
         .map { routes =>
           val taskProps = new util.HashMap[String, String](configProps)
-          taskProps.put(DocumentDbConfig.KCQL_CONFIG, routes)
+          taskProps.put(DocumentDbConfigConstants.KCQL_CONFIG, routes)
           taskProps
         }.toList
     }

@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbSinkSettings}
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.microsoft.azure.documentdb.DocumentClient
@@ -61,7 +61,7 @@ class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => Do
     implicit val settings = DocumentDbSinkSettings(taskConfig)
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(taskConfig.getLong(DocumentDbConfig.ERROR_RETRY_INTERVAL_CONFIG))
+      context.timeout(taskConfig.getLong(DocumentDbConfigConstants.ERROR_RETRY_INTERVAL_CONFIG))
     }
 
     logger.info(s"Initialising Document Db writer.")

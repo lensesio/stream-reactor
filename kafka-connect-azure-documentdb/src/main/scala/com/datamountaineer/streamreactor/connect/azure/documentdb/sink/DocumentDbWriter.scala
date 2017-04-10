@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
 import com.datamountaineer.connector.config.WriteModeEnum
 import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbSinkSettings}
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.microsoft.azure.documentdb._
@@ -116,7 +116,7 @@ object DocumentDbWriter extends StrictLogging {
     implicit val settings = DocumentDbSinkSettings(connectorConfig)
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(connectorConfig.getLong(DocumentDbConfig.ERROR_RETRY_INTERVAL_CONFIG))
+      context.timeout(connectorConfig.getLong(DocumentDbConfigConstants.ERROR_RETRY_INTERVAL_CONFIG))
     }
 
     logger.info(s"Initialising Document Db writer.")
