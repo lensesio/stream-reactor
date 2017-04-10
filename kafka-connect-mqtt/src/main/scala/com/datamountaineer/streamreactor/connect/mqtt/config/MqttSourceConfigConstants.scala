@@ -62,8 +62,7 @@ object MqttSourceConfigConstants {
   private[config] val SSL_CERT_KEY_DOC = "Certificate private [config] key file path."
   private[config] val SSL_CERT_KEY_DISPLAY = "Certificate private [config] key file path"
   private[config] val CONVERTER_DOC =
-    """
-      |Contains a tuple (Mqtt source topic and the canonical class name for the converter of a raw Mqtt message bytes to a SourceRecord).
+    """Contains a tuple (Mqtt source topic and the canonical class name for the converter of a raw Mqtt message bytes to a SourceRecord).
       |If the source topic is not matched it will default to the BytesConverter
       |i.e. $mqtt_source1=com.datamountaineer.streamreactor.connect.source.converters.AvroConverter;$mqtt_source2=com.datamountaineer.streamreactor.connect.source.converters.JsonConverter""".stripMargin
   private[config] val CONVERTER_DISPLAY = "Converter class"
