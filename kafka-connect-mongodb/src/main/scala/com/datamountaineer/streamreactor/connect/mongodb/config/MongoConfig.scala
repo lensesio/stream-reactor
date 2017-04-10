@@ -24,46 +24,13 @@ import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 object MongoConfig {
 
   val configDef: ConfigDef = new ConfigDef()
-    .define(
-      MongoSinkConfigConstants.CONNECTION_CONFIG, Type.STRING, Importance.HIGH,
-      MongoSinkConfigConstants.CONNECTION_CONFIG_DOC, "Connection", 1, ConfigDef.Width.LONG,
-      MongoSinkConfigConstants.CONNECTION_CONFIG
-    )
-    .define(
-      MongoSinkConfigConstants.DATABASE_CONFIG, Type.STRING, Importance.HIGH,
-      MongoSinkConfigConstants.DATABASE_CONFIG_DOC, "Connection", 2, ConfigDef.Width.MEDIUM,
-      MongoSinkConfigConstants.DATABASE_CONFIG
-    )
-    .define(
-      MongoSinkConfigConstants.KCQL_CONFIG, Type.STRING, Importance.HIGH,
-      MongoSinkConfigConstants.KCQL_DOC, "Mappings", 1, ConfigDef.Width.LONG,
-      MongoSinkConfigConstants.KCQL_CONFIG
-    )
-    .define(
-      MongoSinkConfigConstants.BATCH_SIZE_CONFIG, Type.INT,
-      MongoSinkConfigConstants.BATCH_SIZE_CONFIG_DEFAULT, Importance.MEDIUM,
-      MongoSinkConfigConstants.BATCH_SIZE_DOC, "Mappings", 2, ConfigDef.Width.MEDIUM,
-      MongoSinkConfigConstants.BATCH_SIZE_CONFIG
-    )
-    .define(
-      MongoSinkConfigConstants.ERROR_POLICY_CONFIG, Type.STRING,
-      MongoSinkConfigConstants.ERROR_POLICY_DEFAULT, Importance.HIGH,
-      MongoSinkConfigConstants.ERROR_POLICY_DOC, "Error", 1, ConfigDef.Width.LONG,
-      MongoSinkConfigConstants.ERROR_POLICY_CONFIG
-    )
-    .define(
-      MongoSinkConfigConstants.NBR_OF_RETRIES_CONFIG, Type.INT,
-      MongoSinkConfigConstants.NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM,
-      MongoSinkConfigConstants.NBR_OF_RETRIES_DOC, "Error", 2, ConfigDef.Width.LONG,
-      MongoSinkConfigConstants.NBR_OF_RETRIES_CONFIG
-    )
-    .define(
-      MongoSinkConfigConstants.ERROR_RETRY_INTERVAL_CONFIG, Type.INT,
-      MongoSinkConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM,
-      MongoSinkConfigConstants.ERROR_RETRY_INTERVAL_DOC, "Error", 3, ConfigDef.Width.LONG,
-      MongoSinkConfigConstants.ERROR_RETRY_INTERVAL_CONFIG
-    )
-
+    .define(MongoSinkConfigConstants.CONNECTION_CONFIG, Type.STRING, Importance.HIGH, MongoSinkConfigConstants.CONNECTION_CONFIG_DOC, "Connection", 1, ConfigDef.Width.LONG, MongoSinkConfigConstants.CONNECTION_CONFIG)
+    .define(MongoSinkConfigConstants.DATABASE_CONFIG, Type.STRING, Importance.HIGH, MongoSinkConfigConstants.DATABASE_CONFIG_DOC, "Connection", 2, ConfigDef.Width.MEDIUM, MongoSinkConfigConstants.DATABASE_CONFIG)
+    .define(MongoSinkConfigConstants.KCQL_CONFIG, Type.STRING, Importance.HIGH, MongoSinkConfigConstants.KCQL_DOC, "Mappings", 1, ConfigDef.Width.LONG, MongoSinkConfigConstants.KCQL_CONFIG)
+    .define(MongoSinkConfigConstants.BATCH_SIZE_CONFIG, Type.INT, MongoSinkConfigConstants.BATCH_SIZE_CONFIG_DEFAULT, Importance.MEDIUM, MongoSinkConfigConstants.BATCH_SIZE_DOC, "Mappings", 2, ConfigDef.Width.MEDIUM, MongoSinkConfigConstants.BATCH_SIZE_CONFIG)
+    .define(MongoSinkConfigConstants.ERROR_POLICY_CONFIG, Type.STRING, MongoSinkConfigConstants.ERROR_POLICY_DEFAULT, Importance.HIGH, MongoSinkConfigConstants.ERROR_POLICY_DOC, "Error", 1, ConfigDef.Width.LONG, MongoSinkConfigConstants.ERROR_POLICY_CONFIG)
+    .define(MongoSinkConfigConstants.NBR_OF_RETRIES_CONFIG, Type.INT, MongoSinkConfigConstants.NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, MongoSinkConfigConstants.NBR_OF_RETRIES_DOC, "Error", 2, ConfigDef.Width.LONG, MongoSinkConfigConstants.NBR_OF_RETRIES_CONFIG)
+    .define(MongoSinkConfigConstants.ERROR_RETRY_INTERVAL_CONFIG, Type.INT, MongoSinkConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, MongoSinkConfigConstants.ERROR_RETRY_INTERVAL_DOC, "Error", 3, ConfigDef.Width.LONG, MongoSinkConfigConstants.ERROR_RETRY_INTERVAL_CONFIG)
 }
 
 
