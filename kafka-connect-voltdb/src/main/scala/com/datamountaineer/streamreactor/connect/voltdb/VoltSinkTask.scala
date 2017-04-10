@@ -20,7 +20,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
-import com.datamountaineer.streamreactor.connect.voltdb.config.{VoltSettings, VoltSinkConfig}
+import com.datamountaineer.streamreactor.connect.voltdb.config.{VoltSettings, VoltSinkConfig, VoltSinkConfigConstants}
 import com.datamountaineer.streamreactor.connect.voltdb.writers.VoltDbWriter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -28,7 +28,6 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 
 /**
   * <h1>VoltSinkTask</h1>
@@ -37,8 +36,8 @@ import scala.collection.JavaConverters._
   **/
 class VoltSinkTask extends SinkTask with StrictLogging {
 
-  var writer: Option[VoltDbWriter] = None
   private val progressCounter = new ProgressCounter
+  var writer: Option[VoltDbWriter] = None
 
   /**
     * Parse the configurations and setup the writer
@@ -68,7 +67,7 @@ class VoltSinkTask extends SinkTask with StrictLogging {
 
     //if error policy is retry set retry interval
     if (voltSettings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getInt(VoltSinkConfig.ERROR_RETRY_INTERVAL_CONFIG).toLong)
+      context.timeout(sinkConfig.getInt(VoltSinkConfigConstants.ERROR_RETRY_INTERVAL_CONFIG).toLong)
     }
     writer = Some(new VoltDbWriter(voltSettings))
 

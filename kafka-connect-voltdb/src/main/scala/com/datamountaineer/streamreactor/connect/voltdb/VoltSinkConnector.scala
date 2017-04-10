@@ -33,8 +33,8 @@ import scala.collection.JavaConverters._
   * Sets up VoltSinkTask and configurations for the tasks.
   **/
 class VoltSinkConnector extends SinkConnector with StrictLogging {
-  private var configProps: Option[util.Map[String, String]] = None
   private val configDef = VoltSinkConfig.config
+  private var configProps: Option[util.Map[String, String]] = None
 
   /**
     * States which SinkTask class to use

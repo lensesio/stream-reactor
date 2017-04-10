@@ -22,19 +22,15 @@ import org.voltdb.{VoltTable, VoltType}
 
 object VoltDbMetadataReader extends StrictLogging {
 
-  private def getMetadata(client: Client, metadata: String): Array[VoltTable] = {
-    client.callProcedure("@SystemCatalog", metadata).getResults
-  }
-
   def getProcedureParameters(client: Client, tableName: String): List[String] = {
     val rs = getMetadata(client, "COLUMNS")
     val params = rs.flatMap { vt =>
-        vt.advanceRow()
-        val nbrRows = vt.getRowCount
-        (0 until nbrRows).map(vt.fetchRow)
-          .filter(_.getString("TABLE_NAME").toLowerCase == tableName.toLowerCase)
-          .map(row => row.getString("COLUMN_NAME") -> row.get("ORDINAL_POSITION", VoltType.INTEGER).asInstanceOf[Int])
-      }
+      vt.advanceRow()
+      val nbrRows = vt.getRowCount
+      (0 until nbrRows).map(vt.fetchRow)
+        .filter(_.getString("TABLE_NAME").toLowerCase == tableName.toLowerCase)
+        .map(row => row.getString("COLUMN_NAME") -> row.get("ORDINAL_POSITION", VoltType.INTEGER).asInstanceOf[Int])
+    }
       .sortBy { case (_, ordinal) => ordinal }
       .map { case (column, _) => column }
       .toList
@@ -42,6 +38,10 @@ object VoltDbMetadataReader extends StrictLogging {
     if (params.isEmpty) logger.error(s"Unable to find parameters for table $tableName in Voltdb")
 
     params
+  }
+
+  private def getMetadata(client: Client, metadata: String): Array[VoltTable] = {
+    client.callProcedure("@SystemCatalog", metadata).getResults
   }
 
 

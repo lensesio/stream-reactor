@@ -20,9 +20,10 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 
 object CreateSqlFn extends StrictLogging {
   def apply(targetTable: String, isUpsert: Boolean, columns: Seq[String]): String = {
-    val sql  = s"""
-       |${if (isUpsert) "UPSERT" else "INSERT"} INTO $targetTable (${columns.mkString(",")})
-       |VALUES (${columns.map(_ => "?").mkString(",")})
+    val sql =
+      s"""
+         |${if (isUpsert) "UPSERT" else "INSERT"} INTO $targetTable (${columns.mkString(",")})
+         |VALUES (${columns.map(_ => "?").mkString(",")})
     """.stripMargin
     logger.debug(sql)
     sql
