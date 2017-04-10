@@ -34,14 +34,12 @@ object VoltSinkConfigConstants {
 
   val ERROR_POLICY_CONFIG = "connect.volt.error.policy"
   val ERROR_POLICY_DOC: String =
-    """
-      |Specifies the action to be taken if an error occurs while inserting the data.
+    """Specifies the action to be taken if an error occurs while inserting the data.
       |There are two available options:
       |NOOP - the error is swallowed
       |THROW - the error is allowed to propagate.
       |RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on
-      |The error will be logged automatically
-    """.stripMargin
+      |The error will be logged automatically""".stripMargin
   val ERROR_POLICY_DEFAULT = "THROW"
 
   val ERROR_RETRY_INTERVAL_CONFIG = "connect.volt.retry.interval"
