@@ -37,8 +37,8 @@ case class DocumentDbSinkSettings(endpoint: String,
                                   consistency: ConsistencyLevel,
                                   createDatabase: Boolean,
                                   proxy: Option[String],
-                                  taskRetries: Int = DocumentDbConfig.NBR_OF_RETIRES_DEFAULT,
-                                  batchSize: Int = DocumentDbConfig.BATCH_SIZE_CONFIG_DEFAULT) {
+                                  taskRetries: Int = DocumentDbConfigConstants.NBR_OF_RETIRES_DEFAULT,
+                                  batchSize: Int = DocumentDbConfigConstants.BATCH_SIZE_CONFIG_DEFAULT) {
 
 }
 
@@ -46,29 +46,29 @@ case class DocumentDbSinkSettings(endpoint: String,
 object DocumentDbSinkSettings extends StrictLogging {
 
   def apply(config: AbstractConfig): DocumentDbSinkSettings = {
-    val endpoint = config.getString(DocumentDbConfig.CONNECTION_CONFIG)
-    require(endpoint.nonEmpty, s"Invalid endpoint provided.${DocumentDbConfig.CONNECTION_CONFIG_DOC}")
+    val endpoint = config.getString(DocumentDbConfigConstants.CONNECTION_CONFIG)
+    require(endpoint.nonEmpty, s"Invalid endpoint provided.${DocumentDbConfigConstants.CONNECTION_CONFIG_DOC}")
 
-    val masterKey = Option(config.getPassword(DocumentDbConfig.MASTER_KEY_CONFIG))
+    val masterKey = Option(config.getPassword(DocumentDbConfigConstants.MASTER_KEY_CONFIG))
       .map(_.value())
-      .getOrElse(throw new ConfigException(s"Missing ${DocumentDbConfig.MASTER_KEY_CONFIG}"))
-    require(masterKey.trim.nonEmpty, s"Invalid ${DocumentDbConfig.MASTER_KEY_CONFIG}")
+      .getOrElse(throw new ConfigException(s"Missing ${DocumentDbConfigConstants.MASTER_KEY_CONFIG}"))
+    require(masterKey.trim.nonEmpty, s"Invalid ${DocumentDbConfigConstants.MASTER_KEY_CONFIG}")
 
-    val database = config.getString(DocumentDbConfig.DATABASE_CONFIG)
+    val database = config.getString(DocumentDbConfigConstants.DATABASE_CONFIG)
     if (database == null || database.trim.length == 0)
-      throw new ConfigException(s"Invalid ${DocumentDbConfig.DATABASE_CONFIG}")
-    val kcql = config.getString(DocumentDbConfig.KCQL_CONFIG)
+      throw new ConfigException(s"Invalid ${DocumentDbConfigConstants.DATABASE_CONFIG}")
+    val kcql = config.getString(DocumentDbConfigConstants.KCQL_CONFIG)
     val routes = kcql.split(";").map(r => Try(Config.parse(r)) match {
       case Success(query) => query
-      case Failure(t) => throw new ConfigException(s"Invalid ${DocumentDbConfig.KCQL_CONFIG}.${t.getMessage}", t)
+      case Failure(t) => throw new ConfigException(s"Invalid ${DocumentDbConfigConstants.KCQL_CONFIG}.${t.getMessage}", t)
     })
     if (routes.isEmpty)
-      throw new ConfigException(s"Invalid ${DocumentDbConfig.KCQL_CONFIG}. You need to provide at least one route")
+      throw new ConfigException(s"Invalid ${DocumentDbConfigConstants.KCQL_CONFIG}. You need to provide at least one route")
 
-    val batchSize = config.getInt(DocumentDbConfig.BATCH_SIZE_CONFIG)
-    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(DocumentDbConfig.ERROR_POLICY_CONFIG).toUpperCase)
+    val batchSize = config.getInt(DocumentDbConfigConstants.BATCH_SIZE_CONFIG)
+    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(DocumentDbConfigConstants.ERROR_POLICY_CONFIG).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
-    val retries = config.getInt(DocumentDbConfig.NBR_OF_RETRIES_CONFIG)
+    val retries = config.getInt(DocumentDbConfigConstants.NBR_OF_RETRIES_CONFIG)
 
     val rowKeyBuilderMap = routes
       .filter(c => c.getWriteMode == WriteModeEnum.UPSERT)
@@ -85,10 +85,10 @@ object DocumentDbSinkSettings extends StrictLogging {
 
     val ignoreFields = routes.map(r => (r.getSource, r.getIgnoredField.toSet)).toMap
 
-    val consistencyLevel = Try(ConsistencyLevel.valueOf(config.getString(DocumentDbConfig.CONSISTENCY_CONFIG))) match {
+    val consistencyLevel = Try(ConsistencyLevel.valueOf(config.getString(DocumentDbConfigConstants.CONSISTENCY_CONFIG))) match {
       case Failure(e) => throw new ConfigException(
         s"""
-           |${config.getString(DocumentDbConfig.CONSISTENCY_CONFIG)} is not a valid entry for ${DocumentDbConfig.CONSISTENCY_CONFIG}
+           |${config.getString(DocumentDbConfigConstants.CONSISTENCY_CONFIG)} is not a valid entry for ${DocumentDbConfigConstants.CONSISTENCY_CONFIG}
            |Available values are ${ConsistencyLevel.values().mkString(",")}""".stripMargin)
 
       case Success(c) => c
@@ -102,8 +102,8 @@ object DocumentDbSinkSettings extends StrictLogging {
       ignoreFields,
       errorPolicy,
       consistencyLevel,
-      config.getBoolean(DocumentDbConfig.CREATE_DATABASE_CONFIG),
-      Option(config.getString(DocumentDbConfig.PROXY_HOST_CONFIG)),
+      config.getBoolean(DocumentDbConfigConstants.CREATE_DATABASE_CONFIG),
+      Option(config.getString(DocumentDbConfigConstants.PROXY_HOST_CONFIG)),
       retries,
       batchSize)
   }

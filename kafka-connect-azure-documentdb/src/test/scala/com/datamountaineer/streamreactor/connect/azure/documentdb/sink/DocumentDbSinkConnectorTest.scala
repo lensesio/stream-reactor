@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbConfig
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants}
 import com.microsoft.azure.documentdb._
 import org.mockito.ArgumentMatchers.{any, eq => mockEq}
 import org.mockito.Mockito._
@@ -31,10 +31,10 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
   "DocumentDbSinkConnector" should {
     "return one task config when one route is provided" in {
       val map = Map(
-        DocumentDbConfig.DATABASE_CONFIG -> "database1",
-        DocumentDbConfig.CONNECTION_CONFIG -> connection,
-        DocumentDbConfig.MASTER_KEY_CONFIG -> "secret",
-        DocumentDbConfig.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
+        DocumentDbConfigConstants.DATABASE_CONFIG -> "database1",
+        DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
+        DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
+        DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
       )
 
       val documentClient = mock[DocumentClient]
@@ -56,10 +56,10 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
 
     "return one task when multiple routes are provided but maxTasks is 1" in {
       val map = Map(
-        DocumentDbConfig.DATABASE_CONFIG -> "database1",
-        DocumentDbConfig.CONNECTION_CONFIG -> connection,
-        DocumentDbConfig.MASTER_KEY_CONFIG -> "secret",
-        DocumentDbConfig.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1; INSERT INTO coll2 SELECT * FROM topicA"
+        DocumentDbConfigConstants.DATABASE_CONFIG -> "database1",
+        DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
+        DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
+        DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1; INSERT INTO coll2 SELECT * FROM topicA"
       )
 
       val documentClient = mock[DocumentClient]
@@ -85,10 +85,10 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
 
     "return 2 configs when 3 routes are provided and maxTasks is 2" in {
       val map = Map(
-        DocumentDbConfig.DATABASE_CONFIG -> "database1",
-        DocumentDbConfig.CONNECTION_CONFIG -> connection,
-        DocumentDbConfig.MASTER_KEY_CONFIG -> "secret",
-        DocumentDbConfig.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA;INSERT INTO coll3 SELECT * FROM topicB"
+        DocumentDbConfigConstants.DATABASE_CONFIG -> "database1",
+        DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
+        DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
+        DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA;INSERT INTO coll3 SELECT * FROM topicB"
       )
 
       val documentClient = mock[DocumentClient]
@@ -113,16 +113,16 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
       connector.start(map)
       val tasksConfigs = connector.taskConfigs(2)
       tasksConfigs.length shouldBe 2
-      tasksConfigs(0).get(DocumentDbConfig.KCQL_CONFIG) shouldBe "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA"
-      tasksConfigs(1).get(DocumentDbConfig.KCQL_CONFIG) shouldBe "INSERT INTO coll3 SELECT * FROM topicB"
+      tasksConfigs(0).get(DocumentDbConfigConstants.KCQL_CONFIG) shouldBe "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA"
+      tasksConfigs(1).get(DocumentDbConfigConstants.KCQL_CONFIG) shouldBe "INSERT INTO coll3 SELECT * FROM topicB"
     }
 
     "return 3 configs when 3 routes are provided and maxTasks is 3" in {
       val map = Map(
-        DocumentDbConfig.DATABASE_CONFIG -> "database1",
-        DocumentDbConfig.CONNECTION_CONFIG -> connection,
-        DocumentDbConfig.MASTER_KEY_CONFIG -> "secret",
-        DocumentDbConfig.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA;INSERT INTO coll3 SELECT * FROM topicB"
+        DocumentDbConfigConstants.DATABASE_CONFIG -> "database1",
+        DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
+        DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
+        DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA;INSERT INTO coll3 SELECT * FROM topicB"
       )
 
       val documentClient = mock[DocumentClient]
@@ -147,17 +147,17 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
       connector.start(map)
       val tasksConfigs = connector.taskConfigs(3)
       tasksConfigs.length shouldBe 3
-      tasksConfigs(0).get(DocumentDbConfig.KCQL_CONFIG) shouldBe "INSERT INTO collection1 SELECT * FROM topic1"
-      tasksConfigs(1).get(DocumentDbConfig.KCQL_CONFIG) shouldBe "INSERT INTO coll2 SELECT * FROM topicA"
-      tasksConfigs(2).get(DocumentDbConfig.KCQL_CONFIG) shouldBe "INSERT INTO coll3 SELECT * FROM topicB"
+      tasksConfigs(0).get(DocumentDbConfigConstants.KCQL_CONFIG) shouldBe "INSERT INTO collection1 SELECT * FROM topic1"
+      tasksConfigs(1).get(DocumentDbConfigConstants.KCQL_CONFIG) shouldBe "INSERT INTO coll2 SELECT * FROM topicA"
+      tasksConfigs(2).get(DocumentDbConfigConstants.KCQL_CONFIG) shouldBe "INSERT INTO coll3 SELECT * FROM topicB"
     }
 
     "return 2 configs when 4 routes are provided and maxTasks is 2" in {
       val map = Map(
-        DocumentDbConfig.DATABASE_CONFIG -> "database1",
-        DocumentDbConfig.CONNECTION_CONFIG -> connection,
-        DocumentDbConfig.MASTER_KEY_CONFIG -> "secret",
-        DocumentDbConfig.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA;INSERT INTO coll3 SELECT * FROM topicB;INSERT INTO coll4 SELECT * FROM topicC"
+        DocumentDbConfigConstants.DATABASE_CONFIG -> "database1",
+        DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
+        DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
+        DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA;INSERT INTO coll3 SELECT * FROM topicB;INSERT INTO coll4 SELECT * FROM topicC"
       )
 
       val documentClient = mock[DocumentClient]
@@ -183,8 +183,8 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
       connector.start(map)
       val tasksConfigs = connector.taskConfigs(2)
       tasksConfigs.length shouldBe 2
-      tasksConfigs(0).get(DocumentDbConfig.KCQL_CONFIG) shouldBe "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA"
-      tasksConfigs(1).get(DocumentDbConfig.KCQL_CONFIG) shouldBe "INSERT INTO coll3 SELECT * FROM topicB;INSERT INTO coll4 SELECT * FROM topicC"
+      tasksConfigs(0).get(DocumentDbConfigConstants.KCQL_CONFIG) shouldBe "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA"
+      tasksConfigs(1).get(DocumentDbConfigConstants.KCQL_CONFIG) shouldBe "INSERT INTO coll3 SELECT * FROM topicB;INSERT INTO coll4 SELECT * FROM topicC"
     }
 
 
