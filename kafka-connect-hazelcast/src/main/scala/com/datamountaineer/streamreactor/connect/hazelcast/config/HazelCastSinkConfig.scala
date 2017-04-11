@@ -28,123 +28,39 @@ import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
   */
 object HazelCastSinkConfig {
 
-  val CLUSTER_SOURCE_MEMBERS = "connect.hazelcast.source.cluster.members"
-  val CLUSTER_SINK_MEMBERS = "connect.hazelcast.sink.cluster.members"
-  val CLUSTER_MEMBERS_DOC: String =
-    """
-      |Address List is the initial list of cluster addresses to which the client will connect.
-      |The client uses this list to find an alive node. Although it may be enough to give only one
-      |address of a node in the cluster (since all nodes communicate with each other),
-      |it is recommended that you give the addresses for all the nodes.
-    """.stripMargin
-  val CLUSTER_MEMBERS_DEFAULT = "localhost"
-
-  val SINK_GROUP_NAME = "connect.hazelcast.sink.group.name"
-  val SINK_GROUP_NAME_DOC = "The group name of the connector in the target Hazelcast cluster."
-
-  val SINK_GROUP_PASSWORD = "connect.hazelcast.sink.group.password"
-  val SINK_GROUP_PASSWORD_DOC: String = """The password for the group name.""".stripMargin
-  val SINK_GROUP_PASSWORD_DEFAULT = "dev-pass"
-
-  val PARALLEL_WRITE = "connect.hazelcast.parallel.write"
-  val PARALLEL_WRITE_DOC = "All the sink to write in parallel the records received from Kafka on each poll."
-  val PARALLEL_WRITE_DEFAULT = false
-
-  val CONNECTION_TIMEOUT = "connect.hazelcast.connection.timeout"
-  val CONNECTION_TIMEOUT_DOC: String =
-    """
-      |Connection timeout is the timeout value in milliseconds for nodes to
-      |accept client connection requests.""".stripMargin
-  val CONNECTION_TIMEOUT_DEFAULT = 5000
-
-  val CONNECTION_RETRY_ATTEMPTS = "connect.hazelcast.connection.retries"
-  val CONNECTION_RETRY_ATTEMPTS_DOC: String = """Number of times a client will retry the connection at startup.""".stripMargin
-  val CONNECTION_RETRY_ATTEMPTS_DEFAULT = 2
-
-  val KEEP_ALIVE = "connect.hazelcast.connection.keep.alive"
-  val KEEP_ALIVE_DOC: String = """Enables/disables the SO_KEEPALIVE socket option. The default value is true.""".stripMargin
-  val KEEP_ALIVE_DEFAULT = true
-
-  val TCP_NO_DELAY = "connect.hazelcast.connection.tcp.no.delay"
-  val TCP_NO_DELAY_DOC: String = """Enables/disables the TCP_NODELAY socket option. The default value is true.""".stripMargin
-  val TCP_NO_DELAY_DEFAULT = true
-
-  val REUSE_ADDRESS = "connect.hazelcast.connection.reuse.address"
-  val REUSE_ADDRESS_DOC: String = """Enables/disables the SO_REUSEADDR socket option. The default value is true.""".stripMargin
-  val REUSE_ADDRESS_DEFAULT = true
-
-  val LINGER_SECONDS = "connect.hazelcast.connection.linger.seconds"
-  val LINGER_SECONDS_DOC: String =
-    """Enables/disables SO_LINGER with the specified linger time in seconds.
-      |The default value is 3.""".stripMargin
-  val LINGER_SECONDS_DEFAULT = 3
-
-  val BUFFER_SIZE = "connect.hazelcast.connection.buffer.size"
-  val BUFFER_SIZE_DOC: String =
-    """Sets the SO_SNDBUF and SO_RCVBUF options to the specified value in KB for this Socket.
-      |The default value is 32.""".stripMargin
-  val BUFFER_SIZE_DEFAULT = 32
-
-  val EXPORT_ROUTE_QUERY = "connect.hazelcast.sink.kcql"
-  val EXPORT_ROUTE_QUERY_DOC =  "KCQL expression describing field selection and routes."
-
-  val ERROR_POLICY = "connect.hazelcast.sink.error.policy"
-  val ERROR_POLICY_DOC: String = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
-    "There are two available options: \n" + "NOOP - the error is swallowed \n" +
-    "THROW - the error is allowed to propagate. \n" +
-    "RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on \n" +
-    "The error will be logged automatically"
-  val ERROR_POLICY_DEFAULT = "THROW"
-
-  val ERROR_RETRY_INTERVAL = "connect.hazelcast.sink.retry.interval"
-  val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
-  val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
-  val NBR_OF_RETRIES = "connect.hazelcast.max.retries"
-  val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
-  val NBR_OF_RETIRES_DEFAULT = 20
-
-  val SINK_THREAD_POOL_CONFIG = "connect.hazelcast.sink.threadpool.size"
-  val SINK_THREAD_POOL_DOC =
-    """
-      |The sink inserts all the data concurrently. To fail fast in case of an error, the sink has its own thread pool.
-      |Set the value to zero and the threadpool will default to 4* NO_OF_CPUs. Set a value greater than 0
-      |and that would be the size of this threadpool.""".stripMargin
-  val SINK_THREAD_POOL_DISPLAY = "Thread pool size"
-  val SINK_THREAD_POOL_DEFAULT = 0
-
   val config: ConfigDef = new ConfigDef()
-    .define(CLUSTER_SINK_MEMBERS, Type.LIST, Importance.HIGH, CLUSTER_MEMBERS_DOC,
-      "Connection", 1, ConfigDef.Width.MEDIUM, CLUSTER_SINK_MEMBERS)
-    .define(CONNECTION_TIMEOUT, Type.LONG, CONNECTION_TIMEOUT_DEFAULT, Importance.LOW, CONNECTION_TIMEOUT_DOC,
-      "Connection", 2, ConfigDef.Width.MEDIUM, CONNECTION_TIMEOUT)
-    .define(CONNECTION_RETRY_ATTEMPTS, Type.INT, CONNECTION_RETRY_ATTEMPTS_DEFAULT, Importance.LOW,
-      CONNECTION_RETRY_ATTEMPTS_DOC, "Connection", 3, ConfigDef.Width.MEDIUM, CONNECTION_RETRY_ATTEMPTS)
-    .define(KEEP_ALIVE, Type.BOOLEAN, KEEP_ALIVE_DEFAULT, Importance.LOW, KEEP_ALIVE_DOC,
-      "Connection", 3, ConfigDef.Width.MEDIUM, KEEP_ALIVE)
-    .define(TCP_NO_DELAY, Type.BOOLEAN, TCP_NO_DELAY_DEFAULT, Importance.LOW, TCP_NO_DELAY_DOC,
-      "Connection", 4, ConfigDef.Width.MEDIUM, TCP_NO_DELAY)
-    .define(REUSE_ADDRESS, Type.BOOLEAN, REUSE_ADDRESS_DEFAULT, Importance.LOW, REUSE_ADDRESS_DOC,
-      "Connection", 5, ConfigDef.Width.MEDIUM, REUSE_ADDRESS)
-    .define(LINGER_SECONDS, Type.INT, LINGER_SECONDS_DEFAULT, Importance.LOW, LINGER_SECONDS_DOC,
-      "Connection", 6, ConfigDef.Width.MEDIUM, LINGER_SECONDS)
-    .define(BUFFER_SIZE, Type.INT, BUFFER_SIZE_DEFAULT, Importance.LOW, BUFFER_SIZE_DOC,
-      "Connection", 7, ConfigDef.Width.MEDIUM, BUFFER_SIZE)
-    .define(SINK_GROUP_NAME, Type.STRING, Importance.HIGH, SINK_GROUP_NAME_DOC,
-      "Connection", 8, ConfigDef.Width.MEDIUM, SINK_GROUP_NAME)
-    .define(SINK_GROUP_PASSWORD, Type.PASSWORD, SINK_GROUP_PASSWORD_DEFAULT, Importance.MEDIUM, SINK_GROUP_PASSWORD_DOC,
-      "Connection", 9, ConfigDef.Width.MEDIUM, SINK_GROUP_PASSWORD)
-    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY,
-      "Target", 1, ConfigDef.Width.MEDIUM, EXPORT_ROUTE_QUERY)
-    .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC,
-     "Target", 2, ConfigDef.Width.MEDIUM, ERROR_POLICY)
-    .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC,
-      "Target", 3, ConfigDef.Width.MEDIUM, ERROR_RETRY_INTERVAL)
-    .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC,
-      "Target", 4, ConfigDef.Width.MEDIUM, NBR_OF_RETRIES)
-    .define(SINK_THREAD_POOL_CONFIG, Type.INT, SINK_THREAD_POOL_DEFAULT, Importance.MEDIUM, SINK_THREAD_POOL_DOC,
-      "Target", 5, ConfigDef.Width.MEDIUM, SINK_THREAD_POOL_DISPLAY)
-    .define(PARALLEL_WRITE, Type.BOOLEAN, PARALLEL_WRITE_DEFAULT, Importance.MEDIUM, PARALLEL_WRITE_DOC,
-      "Target", 5, ConfigDef.Width.MEDIUM, PARALLEL_WRITE)
+    .define(HazelCastSinkConfigConstants.CLUSTER_SINK_MEMBERS, Type.LIST, Importance.HIGH, HazelCastSinkConfigConstants.CLUSTER_MEMBERS_DOC,
+      "Connection", 1, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.CLUSTER_SINK_MEMBERS)
+    .define(HazelCastSinkConfigConstants.CONNECTION_TIMEOUT, Type.LONG, HazelCastSinkConfigConstants.CONNECTION_TIMEOUT_DEFAULT, Importance.LOW, HazelCastSinkConfigConstants.CONNECTION_TIMEOUT_DOC,
+      "Connection", 2, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.CONNECTION_TIMEOUT)
+    .define(HazelCastSinkConfigConstants.CONNECTION_RETRY_ATTEMPTS, Type.INT, HazelCastSinkConfigConstants.CONNECTION_RETRY_ATTEMPTS_DEFAULT, Importance.LOW,
+      HazelCastSinkConfigConstants.CONNECTION_RETRY_ATTEMPTS_DOC, "Connection", 3, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.CONNECTION_RETRY_ATTEMPTS)
+    .define(HazelCastSinkConfigConstants.KEEP_ALIVE, Type.BOOLEAN, HazelCastSinkConfigConstants.KEEP_ALIVE_DEFAULT, Importance.LOW, HazelCastSinkConfigConstants.KEEP_ALIVE_DOC,
+      "Connection", 3, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.KEEP_ALIVE)
+    .define(HazelCastSinkConfigConstants.TCP_NO_DELAY, Type.BOOLEAN, HazelCastSinkConfigConstants.TCP_NO_DELAY_DEFAULT, Importance.LOW, HazelCastSinkConfigConstants.TCP_NO_DELAY_DOC,
+      "Connection", 4, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.TCP_NO_DELAY)
+    .define(HazelCastSinkConfigConstants.REUSE_ADDRESS, Type.BOOLEAN, HazelCastSinkConfigConstants.REUSE_ADDRESS_DEFAULT, Importance.LOW, HazelCastSinkConfigConstants.REUSE_ADDRESS_DOC,
+      "Connection", 5, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.REUSE_ADDRESS)
+    .define(HazelCastSinkConfigConstants.LINGER_SECONDS, Type.INT, HazelCastSinkConfigConstants.LINGER_SECONDS_DEFAULT, Importance.LOW, HazelCastSinkConfigConstants.LINGER_SECONDS_DOC,
+      "Connection", 6, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.LINGER_SECONDS)
+    .define(HazelCastSinkConfigConstants.BUFFER_SIZE, Type.INT, HazelCastSinkConfigConstants.BUFFER_SIZE_DEFAULT, Importance.LOW, HazelCastSinkConfigConstants.BUFFER_SIZE_DOC,
+      "Connection", 7, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.BUFFER_SIZE)
+    .define(HazelCastSinkConfigConstants.SINK_GROUP_NAME, Type.STRING, Importance.HIGH, HazelCastSinkConfigConstants.SINK_GROUP_NAME_DOC,
+      "Connection", 8, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.SINK_GROUP_NAME)
+    .define(HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD, Type.PASSWORD, HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DEFAULT, Importance.MEDIUM, HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DOC,
+      "Connection", 9, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD)
+    .define(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY,
+      "Target", 1, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY)
+    .define(HazelCastSinkConfigConstants.ERROR_POLICY, Type.STRING, HazelCastSinkConfigConstants.ERROR_POLICY_DEFAULT, Importance.HIGH, HazelCastSinkConfigConstants.ERROR_POLICY_DOC,
+      "Target", 2, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.ERROR_POLICY)
+    .define(HazelCastSinkConfigConstants.ERROR_RETRY_INTERVAL, Type.INT, HazelCastSinkConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, HazelCastSinkConfigConstants.ERROR_RETRY_INTERVAL_DOC,
+      "Target", 3, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.ERROR_RETRY_INTERVAL)
+    .define(HazelCastSinkConfigConstants.NBR_OF_RETRIES, Type.INT, HazelCastSinkConfigConstants.NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, HazelCastSinkConfigConstants.NBR_OF_RETRIES_DOC,
+      "Target", 4, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.NBR_OF_RETRIES)
+    .define(HazelCastSinkConfigConstants.SINK_THREAD_POOL_CONFIG, Type.INT, HazelCastSinkConfigConstants.SINK_THREAD_POOL_DEFAULT, Importance.MEDIUM, HazelCastSinkConfigConstants.SINK_THREAD_POOL_DOC,
+      "Target", 5, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.SINK_THREAD_POOL_DISPLAY)
+    .define(HazelCastSinkConfigConstants.PARALLEL_WRITE, Type.BOOLEAN, HazelCastSinkConfigConstants.PARALLEL_WRITE_DEFAULT, Importance.MEDIUM, HazelCastSinkConfigConstants.PARALLEL_WRITE_DOC,
+      "Target", 5, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.PARALLEL_WRITE)
 }
 
 class HazelCastSinkConfig(props: util.Map[String, String]) extends AbstractConfig(HazelCastSinkConfig.config, props)
