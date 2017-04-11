@@ -26,6 +26,6 @@ class TestHazelCastSinkConfig extends TestBase {
   "HazelCastSinkConfig should return an export route" in {
     val props = getProps
     val sinkConfig = new HazelCastSinkConfig(props)
-    sinkConfig.getString(HazelCastSinkConfig.EXPORT_ROUTE_QUERY) shouldBe EXPORT_MAP
+    sinkConfig.getString(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY) shouldBe EXPORT_MAP
   }
 }
