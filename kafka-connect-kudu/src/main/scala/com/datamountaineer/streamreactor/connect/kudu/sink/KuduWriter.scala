@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.kudu.sink
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.kudu.KuduConverter
-import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig}
+import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig, KuduSinkConfigConstants}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.Schema
@@ -37,7 +37,7 @@ case class SchemaMap(version: Int, schema: Schema)
   */
 object KuduWriter extends StrictLogging {
   def apply(config: KuduSinkConfig, settings: KuduSettings): KuduWriter = {
-    val kuduMaster = config.getString(KuduSinkConfig.KUDU_MASTER)
+    val kuduMaster = config.getString(KuduSinkConfigConstants.KUDU_MASTER)
     logger.info(s"Connecting to Kudu Master at $kuduMaster")
     lazy val client = new KuduClient.KuduClientBuilder(kuduMaster).build()
     new KuduWriter(client, settings)

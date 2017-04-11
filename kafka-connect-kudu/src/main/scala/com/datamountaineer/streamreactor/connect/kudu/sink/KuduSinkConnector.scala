@@ -31,12 +31,12 @@ import scala.collection.JavaConversions._
   * stream-reactor
   */
 class KuduSinkConnector extends SinkConnector with StrictLogging {
-  private var configProps : Option[util.Map[String, String]] = None
   private val configDef = KuduSinkConfig.config
+  private var configProps: Option[util.Map[String, String]] = None
 
   /**
     * States which SinkTask class to use
-    * */
+    **/
   override def taskClass(): Class[_ <: Task] = classOf[KuduSinkTask]
 
   /**
@@ -44,7 +44,7 @@ class KuduSinkConnector extends SinkConnector with StrictLogging {
     *
     * @param maxTasks The max number of task workers be can spawn
     * @return a List of configuration properties per worker
-    * */
+    **/
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
     (1 to maxTasks).map(_ => configProps.get).toList
@@ -54,13 +54,15 @@ class KuduSinkConnector extends SinkConnector with StrictLogging {
     * Start the sink and set to configuration
     *
     * @param props A map of properties for the connector and worker
-    * */
+    **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Kudu sink task.")
     configProps = Some(props)
   }
 
   override def stop(): Unit = {}
+
   override def version(): String = getClass.getPackage.getImplementationVersion
+
   override def config(): ConfigDef = configDef
 }

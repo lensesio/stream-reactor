@@ -43,7 +43,7 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
 
   "Should convert a SinkRecord into a Kudu Insert operation" in {
     val record = getTestRecords.head
-    val fields = record.valueSchema().fields().asScala.map(f=>(f.name(), f.name())).toMap
+    val fields = record.valueSchema().fields().asScala.map(f => (f.name(), f.name())).toMap
     val kuduSchema = convertToKuduSchema(record)
     val kuduRow = kuduSchema.newPartialRow()
     val insert = mock[Upsert]
@@ -57,7 +57,7 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
   }
 
   "Should convert a SinkRecord into a Kudu Insert operation with Field Selection" in {
-    val fields = Map("id"->"id", "long_field"->"new_field_name")
+    val fields = Map("id" -> "id", "long_field" -> "new_field_name")
     val record = getTestRecords.head
     val converted = convert(record, fields)
     val kuduSchema = convertToKuduSchema(converted)
@@ -74,8 +74,8 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
 
   "Should convert an Avro to Kudu" in {
     val stringSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.STRING)).asJava)
-    val intSchema =  Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.INT)).asJava)
-    val booleanSchema =  Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.BOOLEAN)).asJava)
+    val intSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.INT)).asJava)
+    val booleanSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.BOOLEAN)).asJava)
     val doubleSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.DOUBLE)).asJava)
     val floatSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.FLOAT)).asJava)
     val longSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.LONG)).asJava)
@@ -94,7 +94,7 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
       .endRecord()
 
 
-    val kuduFields = schema.getFields.map(f=>fromAvro(f.schema(), f.name()).build())
+    val kuduFields = schema.getFields.map(f => fromAvro(f.schema(), f.name()).build())
     kuduFields.head.getName shouldBe "string_field"
     kuduFields.head.getType shouldBe org.kududb.Type.STRING
     kuduFields(1).getName shouldBe "int_field"

@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.kudu
 
 import com.datamountaineer.kafka.EmbeddedSingleNodeKafkaCluster
 import com.datamountaineer.kafka.schemaregistry.RestApp
-import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig}
+import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig, KuduSinkConfigConstants}
 import com.datamountaineer.streamreactor.connect.kudu.sink.{CreateTableProps, DbHandler}
 import io.confluent.kafka.schemaregistry.client.rest.RestService
 import org.apache.kafka.connect.errors.ConnectException
@@ -80,7 +80,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val config = new KuduSinkConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
 
-    val creates = settings.routes.map(r=>DbHandler.getKuduSchema(r, schema))
+    val creates = settings.routes.map(r => DbHandler.getKuduSchema(r, schema))
     val create = creates.head
     create.getColumnCount shouldBe 8
     create.getPrimaryKeyColumnCount shouldBe 2
@@ -100,7 +100,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val config = new KuduSinkConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
 
-    val creates = settings.routes.map(r=>DbHandler.getKuduSchema(r, schemaDefaults))
+    val creates = settings.routes.map(r => DbHandler.getKuduSchema(r, schemaDefaults))
     val create = creates.head
     create.getColumnCount shouldBe 8
     create.getPrimaryKeyColumnCount shouldBe 2
@@ -188,7 +188,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val kuduSchemas = DbHandler.createTableProps(
       Set(rawSchema),
       settings.routes.head,
-      config.getString(KuduSinkConfig.SCHEMA_REGISTRY_URL),
+      config.getString(KuduSinkConfigConstants.SCHEMA_REGISTRY_URL),
       client)
 
     val kuduSchema = kuduSchemas.head.schema
@@ -220,7 +220,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val record: SinkRecord = getTestRecords.head
     val config = new KuduSinkConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
-    val ret = DbHandler.createTableFromSinkRecord( settings.routes.head, record.valueSchema(), client)
+    val ret = DbHandler.createTableFromSinkRecord(settings.routes.head, record.valueSchema(), client)
     ret.isInstanceOf[Try[KuduTable]] shouldBe true
   }
 }
