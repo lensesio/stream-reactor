@@ -24,7 +24,8 @@ object HazelCastSinkConfigConstants {
   val CLUSTER_SOURCE_MEMBERS = "connect.hazelcast.source.cluster.members"
   val CLUSTER_SINK_MEMBERS = "connect.hazelcast.sink.cluster.members"
   val CLUSTER_MEMBERS_DOC: String =
-    """Address List is the initial list of cluster addresses to which the client will connect.
+    """
+      |Address List is the initial list of cluster addresses to which the client will connect.
       |The client uses this list to find an alive node. Although it may be enough to give only one
       |address of a node in the cluster (since all nodes communicate with each other),
       |it is recommended that you give the addresses for all the nodes.""".stripMargin
@@ -43,7 +44,8 @@ object HazelCastSinkConfigConstants {
 
   val CONNECTION_TIMEOUT = "connect.hazelcast.connection.timeout"
   val CONNECTION_TIMEOUT_DOC: String =
-    """Connection timeout is the timeout value in milliseconds for nodes to
+    """
+      |Connection timeout is the timeout value in milliseconds for nodes to
       |accept client connection requests.""".stripMargin
   val CONNECTION_TIMEOUT_DEFAULT = 5000
 
@@ -65,7 +67,8 @@ object HazelCastSinkConfigConstants {
 
   val LINGER_SECONDS = "connect.hazelcast.connection.linger.seconds"
   val LINGER_SECONDS_DOC: String =
-    """Enables/disables SO_LINGER with the specified linger time in seconds.
+    """
+      |Enables/disables SO_LINGER with the specified linger time in seconds.
       |The default value is 3.""".stripMargin
   val LINGER_SECONDS_DEFAULT = 3
 
@@ -80,7 +83,8 @@ object HazelCastSinkConfigConstants {
 
   val ERROR_POLICY = "connect.hazelcast.sink.error.policy"
   val ERROR_POLICY_DOC: String =
-    """Specifies the action to be taken if an error occurs while inserting the data.
+    """
+      |Specifies the action to be taken if an error occurs while inserting the data.
       |There are two available options:
       |NOOP - the error is swallowed
       |THROW - the error is allowed to propagate.
@@ -97,7 +101,8 @@ object HazelCastSinkConfigConstants {
 
   val SINK_THREAD_POOL_CONFIG = "connect.hazelcast.sink.threadpool.size"
   val SINK_THREAD_POOL_DOC =
-    """The sink inserts all the data concurrently. To fail fast in case of an error, the sink has its own thread pool.
+    """
+      |The sink inserts all the data concurrently. To fail fast in case of an error, the sink has its own thread pool.
       |Set the value to zero and the threadpool will default to 4* NO_OF_CPUs. Set a value greater than 0
       |and that would be the size of this threadpool.""".stripMargin
   val SINK_THREAD_POOL_DISPLAY = "Thread pool size"
