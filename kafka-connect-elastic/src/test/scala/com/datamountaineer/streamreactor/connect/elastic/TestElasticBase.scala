@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.elastic
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSinkConfig
+import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticSinkConfig, ElasticSinkConfigConstants}
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -124,16 +124,16 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
 
   def getBaseElasticSinkConfigProps(query: String) = {
     Map (
-      ElasticSinkConfig.URL->ELASTIC_SEARCH_HOSTNAMES,
-      ElasticSinkConfig.ES_CLUSTER_NAME->ElasticSinkConfig.ES_CLUSTER_NAME_DEFAULT,
-      ElasticSinkConfig.URL_PREFIX->ElasticSinkConfig.URL_PREFIX_DEFAULT,
-      ElasticSinkConfig.EXPORT_ROUTE_QUERY->query
+      ElasticSinkConfigConstants.URL->ELASTIC_SEARCH_HOSTNAMES,
+      ElasticSinkConfigConstants.ES_CLUSTER_NAME->ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT,
+      ElasticSinkConfigConstants.URL_PREFIX->ElasticSinkConfigConstants.URL_PREFIX_DEFAULT,
+      ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY->query
     ).asJava
   }
 
   def getElasticSinkConfigPropsDefaults = {
     Map (
-      ElasticSinkConfig.URL->ELASTIC_SEARCH_HOSTNAMES
+      ElasticSinkConfigConstants.URL->ELASTIC_SEARCH_HOSTNAMES
     ).asJava
   }
 }

@@ -32,8 +32,8 @@ case class ElasticSettings(routes: List[Config],
 
 object ElasticSettings {
   def apply(config: ElasticSinkConfig): ElasticSettings = {
-    val raw = config.getString(ElasticSinkConfig.EXPORT_ROUTE_QUERY)
-    require(!raw.isEmpty,s"Empty ${ElasticSinkConfig.EXPORT_ROUTE_QUERY_DOC}")
+    val raw = config.getString(ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY)
+    require(!raw.isEmpty,s"Empty ${ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY_DOC}")
     val routes = raw.split(";").map(r => Config.parse(r)).toList
 
     val fields = routes.map(
