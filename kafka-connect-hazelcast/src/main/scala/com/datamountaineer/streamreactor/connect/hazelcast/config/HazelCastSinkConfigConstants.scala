@@ -43,8 +43,7 @@ object HazelCastSinkConfigConstants {
 
   val CONNECTION_TIMEOUT = "connect.hazelcast.connection.timeout"
   val CONNECTION_TIMEOUT_DOC: String =
-    """
-      |Connection timeout is the timeout value in milliseconds for nodes to
+    """Connection timeout is the timeout value in milliseconds for nodes to
       |accept client connection requests.""".stripMargin
   val CONNECTION_TIMEOUT_DEFAULT = 5000
 
