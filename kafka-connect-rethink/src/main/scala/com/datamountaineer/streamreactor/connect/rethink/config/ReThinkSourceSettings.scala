@@ -29,11 +29,11 @@ case class ReThinkSourceSettings (db : String,
 
 object ReThinkSourceSettings {
   def apply(config: ReThinkSourceConfig) : ReThinkSourceSettings = {
-    val raw = config.getString(ReThinkSourceConfig.IMPORT_ROUTE_QUERY)
-    require(raw != null && !raw.isEmpty,  s"No ${ReThinkSourceConfig.IMPORT_ROUTE_QUERY} provided!")
+    val raw = config.getString(ReThinkSourceConfigConstants.IMPORT_ROUTE_QUERY)
+    require(raw != null && !raw.isEmpty,  s"No ${ReThinkSourceConfigConstants.IMPORT_ROUTE_QUERY} provided!")
     val routes = raw.split(";").map(r => Config.parse(r)).toSet
     val tableTopicMap = routes.map(rm => (rm.getSource, rm.getTarget)).toMap
-    val db = config.getString(ReThinkSourceConfig.RETHINK_DB)
+    val db = config.getString(ReThinkSourceConfigConstants.RETHINK_DB)
     ReThinkSourceSettings(db, routes, tableTopicMap)
   }
 }

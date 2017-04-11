@@ -23,7 +23,7 @@ import akka.actor.{Actor, Props}
 import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.datamountaineer.streamreactor.connect.rethink.ReThinkConnection
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSourceConfig, ReThinkSourceSettings}
+import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSourceConfig, ReThinkSourceConfigConstants, ReThinkSourceSettings}
 import com.datamountaineer.streamreactor.connect.rethink.source.ReThinkSourceReader.{DataRequest, StartChangeFeed, StopChangeFeed}
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.net.{Connection, Cursor}
@@ -48,8 +48,8 @@ object ReThinkSourceReader {
   case object StopChangeFeed
 
   def apply(config: ReThinkSourceConfig, r: RethinkDB): Map[String, Props] = {
-    val host = config.getString(ReThinkSourceConfig.RETHINK_HOST)
-    val port = config.getInt(ReThinkSourceConfig.RETHINK_PORT)
+    val host = config.getString(ReThinkSourceConfigConstants.RETHINK_HOST)
+    val port = config.getInt(ReThinkSourceConfigConstants.RETHINK_PORT)
     val conn = Some(ReThinkConnection(host, port, r))
     val settings = ReThinkSourceSettings(config)
     settings.routes.map(route => (route.getSource, Props(new ReThinkSourceReader(r, conn.get, settings.db, route)))).toMap

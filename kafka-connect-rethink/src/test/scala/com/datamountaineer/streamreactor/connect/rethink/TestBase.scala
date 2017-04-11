@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.rethink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSourceConfig}
+import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfigConstants, ReThinkSourceConfigConstants}
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -32,7 +32,7 @@ import scala.collection.mutable
   * Created by andrew@datamountaineer.com on 21/06/16. 
   * stream-reactor-maven
   */
-trait TestBase  extends WordSpec with Matchers with BeforeAndAfter {
+trait TestBase extends WordSpec with Matchers with BeforeAndAfter {
   val TABLE = "rethink_table"
   val TOPIC = "rethink_topic"
   val ROUTE = s"INSERT INTO $TABLE SELECT * FROM $TOPIC"
@@ -47,39 +47,39 @@ trait TestBase  extends WordSpec with Matchers with BeforeAndAfter {
   protected val PARTITION2: Int = 13
   protected val TOPIC_PARTITION: TopicPartition = new TopicPartition(TOPIC, PARTITION)
   protected val TOPIC_PARTITION2: TopicPartition = new TopicPartition(TOPIC, PARTITION2)
-  protected val ASSIGNMENT: util.Set[TopicPartition] =  new util.HashSet[TopicPartition]
+  protected val ASSIGNMENT: util.Set[TopicPartition] = new util.HashSet[TopicPartition]
   //Set topic assignments
   ASSIGNMENT.add(TOPIC_PARTITION)
 
   def getProps: util.Map[String, String] = {
-    Map(ReThinkSinkConfig.EXPORT_ROUTE_QUERY->ROUTE,
-      ReThinkSinkConfig.RETHINK_HOST->"localhost",
-      ReThinkSinkConfig.RETHINK_DB->DB).asJava
+    Map(ReThinkSinkConfigConstants.EXPORT_ROUTE_QUERY -> ROUTE,
+      ReThinkSinkConfigConstants.RETHINK_HOST -> "localhost",
+      ReThinkSinkConfigConstants.RETHINK_DB -> DB).asJava
   }
 
   def getPropsSource: util.Map[String, String] = {
-    Map(ReThinkSourceConfig.IMPORT_ROUTE_QUERY->IMPORT_ROUTE,
-      ReThinkSourceConfig.RETHINK_HOST->"localhost",
-      ReThinkSourceConfig.RETHINK_DB->DB).asJava
+    Map(ReThinkSourceConfigConstants.IMPORT_ROUTE_QUERY -> IMPORT_ROUTE,
+      ReThinkSourceConfigConstants.RETHINK_HOST -> "localhost",
+      ReThinkSourceConfigConstants.RETHINK_DB -> DB).asJava
   }
 
   def getPropsSourceDelta: util.Map[String, String] = {
-    Map(ReThinkSourceConfig.IMPORT_ROUTE_QUERY->IMPORT_ROUTE_DELTA,
-      ReThinkSourceConfig.RETHINK_HOST->"localhost",
-      ReThinkSourceConfig.RETHINK_DB->DB).asJava
+    Map(ReThinkSourceConfigConstants.IMPORT_ROUTE_QUERY -> IMPORT_ROUTE_DELTA,
+      ReThinkSourceConfigConstants.RETHINK_HOST -> "localhost",
+      ReThinkSourceConfigConstants.RETHINK_DB -> DB).asJava
   }
 
   def getPropsSource2: util.Map[String, String] = {
-    Map(ReThinkSourceConfig.IMPORT_ROUTE_QUERY->IMPORT_ROUTE_2,
-      ReThinkSourceConfig.RETHINK_HOST->"localhost",
-      ReThinkSourceConfig.RETHINK_DB->DB).asJava
+    Map(ReThinkSourceConfigConstants.IMPORT_ROUTE_QUERY -> IMPORT_ROUTE_2,
+      ReThinkSourceConfigConstants.RETHINK_HOST -> "localhost",
+      ReThinkSourceConfigConstants.RETHINK_DB -> DB).asJava
   }
 
   def getPropsUpsertSelectRetry: util.Map[String, String] = {
-    Map(ReThinkSinkConfig.EXPORT_ROUTE_QUERY->ROUTE_SELECT_UPSERT,
-      ReThinkSinkConfig.RETHINK_HOST->"localhost",
-      ReThinkSinkConfig.RETHINK_DB->DB,
-      ReThinkSinkConfig.ERROR_POLICY->"RETRY").asJava
+    Map(ReThinkSinkConfigConstants.EXPORT_ROUTE_QUERY -> ROUTE_SELECT_UPSERT,
+      ReThinkSinkConfigConstants.RETHINK_HOST -> "localhost",
+      ReThinkSinkConfigConstants.RETHINK_DB -> DB,
+      ReThinkSinkConfigConstants.ERROR_POLICY -> "RETRY").asJava
   }
 
 
@@ -110,7 +110,7 @@ trait TestBase  extends WordSpec with Matchers with BeforeAndAfter {
 
 
   //generate some test records
-  def getTestRecords: List[SinkRecord]= {
+  def getTestRecords: List[SinkRecord] = {
     val schema = createSchema
     val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
 

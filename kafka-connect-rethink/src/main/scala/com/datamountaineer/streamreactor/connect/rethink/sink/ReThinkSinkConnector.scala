@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.rethink.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSinkSettings}
+import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSinkConfigConstants, ReThinkSinkSettings}
 import com.rethinkdb.RethinkDB
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
@@ -73,8 +73,8 @@ class ReThinkSinkConnector extends SinkConnector with StrictLogging {
   def initializeTables(rethink: RethinkDB,props: util.Map[String, String]): Unit = {
     val config =  ReThinkSinkConfig(props)
     val settings = ReThinkSinkSettings(config)
-    val rethinkHost = config.getString(ReThinkSinkConfig.RETHINK_HOST)
-    val port = config.getInt(ReThinkSinkConfig.RETHINK_PORT)
+    val rethinkHost = config.getString(ReThinkSinkConfigConstants.RETHINK_HOST)
+    val port = config.getInt(ReThinkSinkConfigConstants.RETHINK_PORT)
 
     val conn = rethink.connection().hostname(rethinkHost).port(port).connect()
     ReThinkHelper.checkAndCreateTables(rethink, settings, conn)
