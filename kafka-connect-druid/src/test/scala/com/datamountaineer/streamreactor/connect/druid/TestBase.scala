@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.druid
 import java.nio.file.Paths
 import java.util
 
-import com.datamountaineer.streamreactor.connect.druid.config.DruidSinkConfig
+import com.datamountaineer.streamreactor.connect.druid.config.{DruidSinkConfig, DruidSinkConfigConstants}
 
 import scala.collection.JavaConverters._
 
@@ -35,15 +35,15 @@ trait TestBase {
   lazy val DRUID_CONFIG_FILE: String = Paths.get(getClass.getResource("/ds-template.json").toURI).toAbsolutePath.toFile.getAbsolutePath
 
   def getProps(): util.Map[String, String] = {
-    Map(DruidSinkConfig.KCQL->KCQL, DruidSinkConfig.CONFIG_FILE->DRUID_CONFIG_FILE).asJava
+    Map(DruidSinkConfigConstants.KCQL->KCQL, DruidSinkConfigConstants.CONFIG_FILE->DRUID_CONFIG_FILE).asJava
   }
 
   def getPropsNoFile(): util.Map[String, String] = {
-    Map(DruidSinkConfig.KCQL->KCQL).asJava
+    Map(DruidSinkConfigConstants.KCQL->KCQL).asJava
   }
 
   def getPropWrongPath(): util.Map[String, String] = {
-    Map(DruidSinkConfig.KCQL->KCQL, DruidSinkConfig.CONFIG_FILE->"bah").asJava
+    Map(DruidSinkConfigConstants.KCQL->KCQL, DruidSinkConfigConstants.CONFIG_FILE->"bah").asJava
   }
 
 }

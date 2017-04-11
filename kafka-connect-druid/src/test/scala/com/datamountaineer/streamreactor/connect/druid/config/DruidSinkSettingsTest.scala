@@ -41,8 +41,8 @@ class DruidSinkSettingsTest extends WordSpec with TestBase with Matchers with Mo
     }
     "create an instance of DruidSinkSettings with field alias" in {
       val config = mock[DruidSinkConfig]
-      when(config.getString(DruidSinkConfig.KCQL)).thenReturn(KCQL)
-      when(config.getString(DruidSinkConfig.CONFIG_FILE)).thenReturn(Paths.get(getClass.getResource(s"/ds-template.json").toURI).toAbsolutePath.toString)
+      when(config.getString(DruidSinkConfigConstants.KCQL)).thenReturn(KCQL)
+      when(config.getString(DruidSinkConfigConstants.CONFIG_FILE)).thenReturn(Paths.get(getClass.getResource(s"/ds-template.json").toURI).toAbsolutePath.toString)
       val settings = DruidSinkSettings(config)
 
       settings.datasourceNames shouldBe Map(TOPIC->DATA_SOURCE)
