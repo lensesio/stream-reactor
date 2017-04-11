@@ -20,7 +20,7 @@ import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.util
 
-import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkConfig
+import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkConfig, HazelCastSinkConfigConstants}
 import com.hazelcast.core.{Message, MessageListener}
 import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
 import org.apache.avro.io.DecoderFactory
@@ -62,81 +62,81 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   ASSIGNMENT.add(TOPIC_PARTITION)
 
   def getProps = {
-    Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP,
-      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
-      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP,
+      HazelCastSinkConfigConstants.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_SINK_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsRB = {
-    Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_RB,
-      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
-      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_RB,
+      HazelCastSinkConfigConstants.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_SINK_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJsonQueue = {
-    Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON_QUEUE,
-      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
-      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON_QUEUE,
+      HazelCastSinkConfigConstants.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_SINK_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJsonSet = {
-    Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON_SET,
-      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
-      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON_SET,
+      HazelCastSinkConfigConstants.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_SINK_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJsonList = {
-    Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON_LIST,
-      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
-      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON_LIST,
+      HazelCastSinkConfigConstants.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_SINK_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJsonMultiMapDefaultPKS = {
-    Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_MULTIMAP_DEFAULT_PK,
-      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
-      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_MULTIMAP_DEFAULT_PK,
+      HazelCastSinkConfigConstants.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_SINK_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJsonICache = {
-    Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON_ICACHE,
-      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
-      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON_ICACHE,
+      HazelCastSinkConfigConstants.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_SINK_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJsonMapDefaultPKS = {
-    Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_IMAP_DEFAULT_PK,
-      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
-      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_IMAP_DEFAULT_PK,
+      HazelCastSinkConfigConstants.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_SINK_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJson = {
-    Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON,
-      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
-      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON,
+      HazelCastSinkConfigConstants.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_SINK_MEMBERS->"localhost"
 
     ).asJava
   }
 
   def getPropsSelection = {
-    Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_SELECTION,
-      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
-        HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_SELECTION,
+      HazelCastSinkConfigConstants.SINK_GROUP_NAME->GROUP_NAME,
+        HazelCastSinkConfigConstants.CLUSTER_SINK_MEMBERS->"localhost"
 
     ).asJava
   }
 
   def getPropsIgnored = {
-    Map(HazelCastSinkConfig.EXPORT_ROUTE_QUERY->EXPORT_MAP_IGNORED,
-      HazelCastSinkConfig.SINK_GROUP_NAME->GROUP_NAME,
-      HazelCastSinkConfig.CLUSTER_SINK_MEMBERS->"localhost"
+    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_IGNORED,
+      HazelCastSinkConfigConstants.SINK_GROUP_NAME->GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_SINK_MEMBERS->"localhost"
     ).asJava
   }
 

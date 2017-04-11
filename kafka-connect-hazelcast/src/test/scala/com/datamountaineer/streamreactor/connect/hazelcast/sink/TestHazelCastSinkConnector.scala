@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.hazelcast.sink
 
 import com.datamountaineer.streamreactor.connect.hazelcast.TestBase
-import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkConfig
+import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkConfig, HazelCastSinkConfigConstants}
 
 import scala.collection.JavaConverters._
 
@@ -31,8 +31,8 @@ class TestHazelCastSinkConnector extends TestBase {
     val connector = new HazelCastSinkConnector
     connector.start(props)
     val taskConfigs = connector.taskConfigs(1)
-    taskConfigs.asScala.head.get(HazelCastSinkConfig.EXPORT_ROUTE_QUERY) shouldBe EXPORT_MAP
-    taskConfigs.asScala.head.get(HazelCastSinkConfig.SINK_GROUP_NAME) shouldBe GROUP_NAME
+    taskConfigs.asScala.head.get(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY) shouldBe EXPORT_MAP
+    taskConfigs.asScala.head.get(HazelCastSinkConfigConstants.SINK_GROUP_NAME) shouldBe GROUP_NAME
     connector.stop()
   }
 }
