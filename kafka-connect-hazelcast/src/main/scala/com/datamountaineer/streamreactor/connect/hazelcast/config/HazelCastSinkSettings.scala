@@ -45,19 +45,19 @@ case class HazelCastSinkSettings(client: HazelcastInstance,
                                  ignoreFields: Map[String, Set[String]],
                                  pks : Map[String, Set[String]],
                                  errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                                 maxRetries: Int = HazelCastSinkConfig.NBR_OF_RETIRES_DEFAULT,
+                                 maxRetries: Int = HazelCastSinkConfigConstants.NBR_OF_RETIRES_DEFAULT,
                                  format: Map[String, FormatType],
                                  threadPoolSize: Int,
                                  allowParallel: Boolean)
 
 object HazelCastSinkSettings {
   def apply(config: HazelCastSinkConfig): HazelCastSinkSettings = {
-    val raw = config.getString(HazelCastSinkConfig.EXPORT_ROUTE_QUERY)
-    require(raw.nonEmpty,  s"No ${HazelCastSinkConfig.EXPORT_ROUTE_QUERY} provided!")
+    val raw = config.getString(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY)
+    require(raw.nonEmpty,  s"No ${HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY} provided!")
     val routes = raw.split(";").map(r => Config.parse(r)).toSet
-    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(HazelCastSinkConfig.ERROR_POLICY).toUpperCase)
+    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(HazelCastSinkConfigConstants.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
-    val maxRetries = config.getInt(HazelCastSinkConfig.NBR_OF_RETRIES)
+    val maxRetries = config.getInt(HazelCastSinkConfigConstants.NBR_OF_RETRIES)
 
     val topicTables = routes.map(r => {
       Try(TargetType.withName(r.getStoredAs.toUpperCase)) match {
@@ -71,20 +71,20 @@ object HazelCastSinkSettings {
     ).toMap
 
     val ignoreFields = routes.map(r => (r.getSource, r.getIgnoredField.toSet)).toMap
-    val groupName = config.getString(HazelCastSinkConfig.SINK_GROUP_NAME)
-    require(groupName.nonEmpty,  s"No ${HazelCastSinkConfig.SINK_GROUP_NAME} provided!")
+    val groupName = config.getString(HazelCastSinkConfigConstants.SINK_GROUP_NAME)
+    require(groupName.nonEmpty,  s"No ${HazelCastSinkConfigConstants.SINK_GROUP_NAME} provided!")
     val connConfig = HazelCastConnectionConfig(config)
     val client = HazelCastConnection.buildClient(connConfig)
     val format = routes.map(r => (r.getSource, getFormatType(r.getFormatType))).toMap
     val p = routes.map(r => (r.getSource, r.getPrimaryKeys.toSet)).toMap
 
     val threadPoolSize: Int = {
-      val threads = config.getInt(HazelCastSinkConfig.SINK_THREAD_POOL_CONFIG)
+      val threads = config.getInt(HazelCastSinkConfigConstants.SINK_THREAD_POOL_CONFIG)
       if (threads <= 0) 4 * Runtime.getRuntime.availableProcessors()
       else threads
     }
 
-    val allowParallel = config.getBoolean(HazelCastSinkConfig.PARALLEL_WRITE)
+    val allowParallel = config.getBoolean(HazelCastSinkConfigConstants.PARALLEL_WRITE)
 
     new HazelCastSinkSettings(client, routes, topicTables, fieldMap, ignoreFields, p, errorPolicy, maxRetries, format, threadPoolSize, allowParallel)
   }

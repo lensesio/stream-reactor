@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.sink
 
-import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastConnectionConfig, HazelCastSinkConfig}
+import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastConnectionConfig, HazelCastSinkConfig, HazelCastSinkConfigConstants}
 import com.datamountaineer.streamreactor.connect.hazelcast.{HazelCastConnection, MessageListenerImplJson, TestBase}
 import com.hazelcast.config.Config
 import com.hazelcast.core.{Hazelcast, ITopic}
@@ -35,7 +35,7 @@ class TestHazelCastSinkTask extends TestBase with MockitoSugar {
   "should start SinkTask and write json" in {
     val configApp1 = new Config()
     configApp1.setProperty( "hazelcast.logging.type", "log4j" )
-    configApp1.getGroupConfig.setName(GROUP_NAME).setPassword(HazelCastSinkConfig.SINK_GROUP_PASSWORD_DEFAULT)
+    configApp1.getGroupConfig.setName(GROUP_NAME).setPassword(HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DEFAULT)
     val instance = Hazelcast.newHazelcastInstance(configApp1)
 
 
