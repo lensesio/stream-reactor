@@ -22,7 +22,7 @@ import java.util.UUID
 import javax.jms.{BytesMessage, Session, TextMessage}
 
 import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
-import com.datamountaineer.streamreactor.connect.jms.config.{DestinationSelector, JMSConfig}
+import com.datamountaineer.streamreactor.connect.jms.config.{DestinationSelector, JMSConfig, JMSConfigConstants}
 import com.sksamuel.avro4s.{AvroOutputStream, SchemaFor}
 import org.apache.activemq.jndi.ActiveMQInitialContextFactory
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -75,142 +75,142 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
   }
 
   def getProps1Queue(url: String = JMS_URL) = {
-    Map(JMSConfig.KCQL -> KCQL_SOURCE_QUEUE,
-      JMSConfig.JMS_USER -> JMS_USER,
-      JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfig.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfig.JMS_URL -> url,
-      JMSConfig.QUEUE_LIST -> QUEUE_LIST
+    Map(JMSConfigConstants.KCQL -> KCQL_SOURCE_QUEUE,
+      JMSConfigConstants.JMS_USER -> JMS_USER,
+      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
+      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
+      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
+      JMSConfigConstants.JMS_URL -> url,
+      JMSConfigConstants.QUEUE_LIST -> QUEUE_LIST
     ).asJava
   }
 
   def getPropsBadFactory = {
-    Map(JMSConfig.KCQL -> KCQL_SOURCE_QUEUE,
-      JMSConfig.JMS_USER -> JMS_USER,
-      JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfig.CONNECTION_FACTORY -> "plop",
-      JMSConfig.JMS_URL -> JMS_URL,
-      JMSConfig.QUEUE_LIST -> QUEUE_LIST
+    Map(JMSConfigConstants.KCQL -> KCQL_SOURCE_QUEUE,
+      JMSConfigConstants.JMS_USER -> JMS_USER,
+      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
+      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
+      JMSConfigConstants.CONNECTION_FACTORY -> "plop",
+      JMSConfigConstants.JMS_URL -> JMS_URL,
+      JMSConfigConstants.QUEUE_LIST -> QUEUE_LIST
     ).asJava
   }
 
   def getProps1Topic = {
-    Map(JMSConfig.KCQL -> KCQL_SOURCE_TOPIC,
-      JMSConfig.JMS_USER -> JMS_USER,
-      JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfig.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfig.JMS_URL -> JMS_URL,
-      JMSConfig.TOPIC_LIST -> TOPIC_LIST
+    Map(JMSConfigConstants.KCQL -> KCQL_SOURCE_TOPIC,
+      JMSConfigConstants.JMS_USER -> JMS_USER,
+      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
+      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
+      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
+      JMSConfigConstants.JMS_URL -> JMS_URL,
+      JMSConfigConstants.TOPIC_LIST -> TOPIC_LIST
     ).asJava
   }
 
   def getProps1TopicJNDI = {
-    Map(JMSConfig.KCQL -> KCQL_SOURCE_TOPIC,
-      JMSConfig.JMS_USER -> JMS_USER,
-      JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfig.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfig.JMS_URL -> JMS_URL,
-      JMSConfig.TOPIC_LIST -> TOPIC_LIST,
-      JMSConfig.DESTINATION_SELECTOR -> DestinationSelector.JNDI.toString
+    Map(JMSConfigConstants.KCQL -> KCQL_SOURCE_TOPIC,
+      JMSConfigConstants.JMS_USER -> JMS_USER,
+      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
+      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
+      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
+      JMSConfigConstants.JMS_URL -> JMS_URL,
+      JMSConfigConstants.TOPIC_LIST -> TOPIC_LIST,
+      JMSConfigConstants.DESTINATION_SELECTOR -> DestinationSelector.JNDI.toString
     ).asJava
   }
 
   def getPropsTopicListIncorrect = {
-    Map(JMSConfig.KCQL -> KCQL_SOURCE_TOPIC,
-      JMSConfig.JMS_USER -> JMS_USER,
-      JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfig.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfig.JMS_URL -> JMS_URL,
-      JMSConfig.TOPIC_LIST -> "foo",
-      JMSConfig.DESTINATION_SELECTOR -> DestinationSelector.JNDI.toString
+    Map(JMSConfigConstants.KCQL -> KCQL_SOURCE_TOPIC,
+      JMSConfigConstants.JMS_USER -> JMS_USER,
+      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
+      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
+      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
+      JMSConfigConstants.JMS_URL -> JMS_URL,
+      JMSConfigConstants.TOPIC_LIST -> "foo",
+      JMSConfigConstants.DESTINATION_SELECTOR -> DestinationSelector.JNDI.toString
     ).asJava
   }
 
   def getPropsMixCDI(url : String = JMS_URL) = {
-    Map(JMSConfig.KCQL -> KCQL_MIX,
-      JMSConfig.JMS_USER -> JMS_USER,
-      JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfig.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfig.JMS_URL -> url,
-      JMSConfig.TOPIC_LIST -> TOPIC_LIST,
-      JMSConfig.QUEUE_LIST -> QUEUE_LIST,
-      JMSConfig.DESTINATION_SELECTOR -> DestinationSelector.CDI.toString
+    Map(JMSConfigConstants.KCQL -> KCQL_MIX,
+      JMSConfigConstants.JMS_USER -> JMS_USER,
+      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
+      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
+      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
+      JMSConfigConstants.JMS_URL -> url,
+      JMSConfigConstants.TOPIC_LIST -> TOPIC_LIST,
+      JMSConfigConstants.QUEUE_LIST -> QUEUE_LIST,
+      JMSConfigConstants.DESTINATION_SELECTOR -> DestinationSelector.CDI.toString
     ).asJava
   }
 
   def getPropsMixCDIWithConverters(url : String = JMS_URL) = {
-    Map(JMSConfig.KCQL -> KCQL_AVRO_SOURCE_MIX,
-      JMSConfig.JMS_USER -> JMS_USER,
-      JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfig.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfig.JMS_URL -> url,
-      JMSConfig.QUEUE_LIST -> AVRO_QUEUE,
-      JMSConfig.TOPIC_LIST -> TOPIC1,
-      JMSConfig.DESTINATION_SELECTOR -> DestinationSelector.CDI.toString,
-      JMSConfig.CONVERTER_CONFIG -> QUEUE_CONVERTER,
+    Map(JMSConfigConstants.KCQL -> KCQL_AVRO_SOURCE_MIX,
+      JMSConfigConstants.JMS_USER -> JMS_USER,
+      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
+      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
+      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
+      JMSConfigConstants.JMS_URL -> url,
+      JMSConfigConstants.QUEUE_LIST -> AVRO_QUEUE,
+      JMSConfigConstants.TOPIC_LIST -> TOPIC1,
+      JMSConfigConstants.DESTINATION_SELECTOR -> DestinationSelector.CDI.toString,
+      JMSConfigConstants.CONVERTER_CONFIG -> QUEUE_CONVERTER,
       AvroConverter.SCHEMA_CONFIG -> AVRO_SCHEMA_CONFIG
     ).asJava
   }
 
   def getPropsMixJNDI(url : String = JMS_URL) = {
-    Map(JMSConfig.KCQL -> KCQL_MIX,
-      JMSConfig.JMS_USER -> JMS_USER,
-      JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfig.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfig.JMS_URL -> url,
-      JMSConfig.TOPIC_LIST -> TOPIC_LIST,
-      JMSConfig.QUEUE_LIST -> QUEUE_LIST,
-      JMSConfig.DESTINATION_SELECTOR -> DestinationSelector.JNDI.toString
+    Map(JMSConfigConstants.KCQL -> KCQL_MIX,
+      JMSConfigConstants.JMS_USER -> JMS_USER,
+      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
+      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
+      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
+      JMSConfigConstants.JMS_URL -> url,
+      JMSConfigConstants.TOPIC_LIST -> TOPIC_LIST,
+      JMSConfigConstants.QUEUE_LIST -> QUEUE_LIST,
+      JMSConfigConstants.DESTINATION_SELECTOR -> DestinationSelector.JNDI.toString
     ).asJava
   }
 
   def getPropsMixWithConverter = {
-    Map(JMSConfig.KCQL -> KCQL_AVRO_SOURCE_MIX,
-      JMSConfig.JMS_USER -> JMS_USER,
-      JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfig.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfig.JMS_URL -> JMS_URL,
-      JMSConfig.TOPIC_LIST -> TOPIC_LIST,
-      JMSConfig.QUEUE_LIST -> AVRO_QUEUE,
-      JMSConfig.DESTINATION_SELECTOR -> SELECTOR,
-      JMSConfig.CONVERTER_CONFIG -> QUEUE_CONVERTER,
+    Map(JMSConfigConstants.KCQL -> KCQL_AVRO_SOURCE_MIX,
+      JMSConfigConstants.JMS_USER -> JMS_USER,
+      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
+      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
+      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
+      JMSConfigConstants.JMS_URL -> JMS_URL,
+      JMSConfigConstants.TOPIC_LIST -> TOPIC_LIST,
+      JMSConfigConstants.QUEUE_LIST -> AVRO_QUEUE,
+      JMSConfigConstants.DESTINATION_SELECTOR -> SELECTOR,
+      JMSConfigConstants.CONVERTER_CONFIG -> QUEUE_CONVERTER,
       AvroConverter.SCHEMA_CONFIG -> AVRO_SCHEMA_CONFIG
     ).asJava
   }
 
   def getPropsQueueWithConverter(url: String = JMS_URL) = {
-    Map(JMSConfig.KCQL -> KCQL_SOURCE_QUEUE,
-      JMSConfig.JMS_USER -> JMS_USER,
-      JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfig.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfig.JMS_URL -> url,
-      JMSConfig.TOPIC_LIST -> TOPIC_LIST,
-      JMSConfig.QUEUE_LIST -> QUEUE_LIST,
-      JMSConfig.DESTINATION_SELECTOR -> SELECTOR,
-      JMSConfig.CONVERTER_CONFIG -> QUEUE_CONVERTER
+    Map(JMSConfigConstants.KCQL -> KCQL_SOURCE_QUEUE,
+      JMSConfigConstants.JMS_USER -> JMS_USER,
+      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
+      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
+      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
+      JMSConfigConstants.JMS_URL -> url,
+      JMSConfigConstants.TOPIC_LIST -> TOPIC_LIST,
+      JMSConfigConstants.QUEUE_LIST -> QUEUE_LIST,
+      JMSConfigConstants.DESTINATION_SELECTOR -> SELECTOR,
+      JMSConfigConstants.CONVERTER_CONFIG -> QUEUE_CONVERTER
     ).asJava
   }
 
   def getPropsMixJNDIWithSink(url: String = JMS_URL) = {
-    Map(JMSConfig.KCQL -> KCQL_MIX_SINK,
-      JMSConfig.JMS_USER -> JMS_USER,
-      JMSConfig.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfig.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfig.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfig.JMS_URL -> url,
-      JMSConfig.TOPIC_LIST -> TOPIC_LIST,
-      JMSConfig.QUEUE_LIST -> QUEUE_LIST,
-      JMSConfig.DESTINATION_SELECTOR -> SELECTOR
+    Map(JMSConfigConstants.KCQL -> KCQL_MIX_SINK,
+      JMSConfigConstants.JMS_USER -> JMS_USER,
+      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
+      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
+      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
+      JMSConfigConstants.JMS_URL -> url,
+      JMSConfigConstants.TOPIC_LIST -> TOPIC_LIST,
+      JMSConfigConstants.QUEUE_LIST -> QUEUE_LIST,
+      JMSConfigConstants.DESTINATION_SELECTOR -> SELECTOR
     ).asJava
   }
 

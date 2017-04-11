@@ -52,28 +52,28 @@ object JMSSettings extends StrictLogging {
     * @return An instance of JmsSettings
     */
   def apply(config: JMSConfig, sink: Boolean) : JMSSettings = {
-    val raw = config.getString(JMSConfig.KCQL)
-    require(raw != null && !raw.isEmpty, s"No ${JMSConfig.KCQL} provided!")
+    val raw = config.getString(JMSConfigConstants.KCQL)
+    require(raw != null && !raw.isEmpty, s"No ${JMSConfigConstants.KCQL} provided!")
 
     val kcql = raw.split(";").map(r => Config.parse(r))
-    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(JMSConfig.ERROR_POLICY).toUpperCase)
+    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(JMSConfigConstants.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
-    val nbrOfRetries = config.getInt(JMSConfig.NBR_OF_RETRIES)
-    val initialContextFactoryClass = config.getString(JMSConfig.INITIAL_CONTEXT_FACTORY)
-    val clazz = config.getString(JMSConfig.CONNECTION_FACTORY)
-    val destinationSelector = DestinationSelector.withName(config.getString(JMSConfig.DESTINATION_SELECTOR).toUpperCase)
-    val extraProps = config.getList(JMSConfig.EXTRA_PROPS)
+    val nbrOfRetries = config.getInt(JMSConfigConstants.NBR_OF_RETRIES)
+    val initialContextFactoryClass = config.getString(JMSConfigConstants.INITIAL_CONTEXT_FACTORY)
+    val clazz = config.getString(JMSConfigConstants.CONNECTION_FACTORY)
+    val destinationSelector = DestinationSelector.withName(config.getString(JMSConfigConstants.DESTINATION_SELECTOR).toUpperCase)
+    val extraProps = config.getList(JMSConfigConstants.EXTRA_PROPS)
       .map(p => p.split("=").grouped(2).map { case Array(k: String, v: String) => (k.trim -> v.trim) }.toMap).toList
 
-    val url = config.getString(JMSConfig.JMS_URL)
+    val url = config.getString(JMSConfigConstants.JMS_URL)
     if (url == null || url.trim.length == 0) {
-      throw new ConfigException(s"${JMSConfig.JMS_URL} has not been set")
+      throw new ConfigException(s"${JMSConfigConstants.JMS_URL} has not been set")
     }
 
-    val user = config.getString(JMSConfig.JMS_USER)
-    val passwordRaw = config.getPassword(JMSConfig.JMS_PASSWORD)
+    val user = config.getString(JMSConfigConstants.JMS_USER)
+    val passwordRaw = config.getPassword(JMSConfigConstants.JMS_PASSWORD)
     val sources = kcql.map(_.getSource).toSet
-    val batchSize = config.getInt(JMSConfig.BATCH_SIZE)
+    val batchSize = config.getInt(JMSConfigConstants.BATCH_SIZE)
 
     val fields = kcql.map(rm => (rm.getSource,
       rm.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)
@@ -81,7 +81,7 @@ object JMSSettings extends StrictLogging {
 
     val ignoreFields = kcql.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
 
-    val sourcesToConverterMap = Option(config.getString(JMSConfig.CONVERTER_CONFIG))
+    val sourcesToConverterMap = Option(config.getString(JMSConfigConstants.CONVERTER_CONFIG))
       .map { c =>
         c.split(';')
           .map(_.trim)
@@ -91,18 +91,18 @@ object JMSSettings extends StrictLogging {
               case Array(source: String, clazz: String) =>
 
                 if (!sources.contains(source)) {
-                  throw new ConfigException(s"Invalid ${JMSConfig.CONVERTER_CONFIG}. Source '$source' is not found in ${JMSConfig.KCQL}. Defined sources:${sources.mkString(",")}")
+                  throw new ConfigException(s"Invalid ${JMSConfigConstants.CONVERTER_CONFIG}. Source '$source' is not found in ${JMSConfigConstants.KCQL}. Defined sources:${sources.mkString(",")}")
                 }
                 Try(getClass.getClassLoader.loadClass(clazz)) match {
-                  case Failure(_) => throw new ConfigException(s"Invalid ${JMSConfig.CONVERTER_CONFIG}.$clazz can't be found")
+                  case Failure(_) => throw new ConfigException(s"Invalid ${JMSConfigConstants.CONVERTER_CONFIG}.$clazz can't be found")
                   case Success(clz) =>
                     if (!classOf[Converter].isAssignableFrom(clz)) {
-                      throw new ConfigException(s"Invalid ${JMSConfig.CONVERTER_CONFIG}. $clazz is not inheriting Converter")
+                      throw new ConfigException(s"Invalid ${JMSConfigConstants.CONVERTER_CONFIG}. $clazz is not inheriting Converter")
                     }
                 }
 
                 source -> clazz
-              case _ => throw new ConfigException(s"Invalid ${JMSConfig.CONVERTER_CONFIG}. '$e' is not correct. Expecting source = className")
+              case _ => throw new ConfigException(s"Invalid ${JMSConfigConstants.CONVERTER_CONFIG}. '$e' is not correct. Expecting source = className")
             }
           }.toMap
       }.getOrElse(Map.empty[String, String])
@@ -112,14 +112,14 @@ object JMSSettings extends StrictLogging {
       logger.info(s"Creating converter instance for $clazz")
       val converter = Try(this.getClass.getClassLoader.loadClass(clazz).newInstance()) match {
         case Success(value) => value.asInstanceOf[Converter]
-        case Failure(_) => throw new ConfigException(s"Invalid ${JMSConfig.CONVERTER_CONFIG} is invalid. $clazz should have an empty ctor!")
+        case Failure(_) => throw new ConfigException(s"Invalid ${JMSConfigConstants.CONVERTER_CONFIG} is invalid. $clazz should have an empty ctor!")
       }
       converter.initialize(config.props.toMap)
       s._1 -> converter
     }
 
-    val jmsTopics = config.getList(JMSConfig.TOPIC_LIST).toSet
-    val jmsQueues = config.getList(JMSConfig.QUEUE_LIST).toSet
+    val jmsTopics = config.getList(JMSConfigConstants.TOPIC_LIST).toSet
+    val jmsQueues = config.getList(JMSConfigConstants.QUEUE_LIST).toSet
 
     val settings = kcql.map(r => {
       val jmsName = if (sink) r.getTarget else r.getSource

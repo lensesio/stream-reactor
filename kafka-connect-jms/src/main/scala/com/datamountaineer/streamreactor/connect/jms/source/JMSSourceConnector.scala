@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.jms.source
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
+import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -39,8 +39,8 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
   override def taskClass(): Class[_ <: Task] = classOf[JMSSourceTask]
 
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
-    val raw = configProps.get(JMSConfig.KCQL)
-    require(raw != null && !raw.isEmpty,  s"No ${JMSConfig.KCQL} provided!")
+    val raw = configProps.get(JMSConfigConstants.KCQL)
+    require(raw != null && !raw.isEmpty,  s"No ${JMSConfigConstants.KCQL} provided!")
 
     //sql1, sql2
     val kcqls = raw.split(";")
@@ -52,7 +52,7 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
       .map(g => {
         val taskConfigs = new java.util.HashMap[String,String]
         taskConfigs.putAll(configProps)
-        taskConfigs.put(JMSConfig.KCQL, g.mkString(";")) //overwrite
+        taskConfigs.put(JMSConfigConstants.KCQL, g.mkString(";")) //overwrite
         taskConfigs.toMap.asJava
       })
   }
