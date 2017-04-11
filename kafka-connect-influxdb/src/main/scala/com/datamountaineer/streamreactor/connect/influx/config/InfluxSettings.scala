@@ -19,7 +19,6 @@ package com.datamountaineer.streamreactor.connect.influx.config
 import com.datamountaineer.connector.config.{Config, Tag}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.influx.StructFieldsExtractor
-import com.datamountaineer.streamreactor.connect.influx.config.InfluxSinkConfig._
 import org.apache.kafka.common.config.ConfigException
 import org.influxdb.InfluxDB.ConsistencyLevel
 
@@ -36,7 +35,7 @@ case class InfluxSettings(connectionUrl: String,
                           fieldsExtractorMap: Map[String, StructFieldsExtractor],
                           topicToTagsMap: Map[String, Seq[Tag]],
                           errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                          maxRetries: Int = InfluxSinkConfig.NBR_OF_RETIRES_DEFAULT)
+                          maxRetries: Int = InfluxSinkConfigConstants.NBR_OF_RETIRES_DEFAULT)
 
 object InfluxSettings {
 
@@ -47,34 +46,34 @@ object InfluxSettings {
     * @return An instance of InfluxSettings
     */
   def apply(config: InfluxSinkConfig): InfluxSettings = {
-    val url = config.getString(INFLUX_URL_CONFIG)
+    val url = config.getString(InfluxSinkConfigConstants.INFLUX_URL_CONFIG)
 
     if (url == null || url.trim.length == 0) {
-      throw new ConfigException(s"${InfluxSinkConfig.INFLUX_URL_CONFIG} is not set correctly")
+      throw new ConfigException(s"${InfluxSinkConfigConstants.INFLUX_URL_CONFIG} is not set correctly")
     }
 
-    val user = config.getString(INFLUX_CONNECTION_USER_CONFIG)
+    val user = config.getString(InfluxSinkConfigConstants.INFLUX_CONNECTION_USER_CONFIG)
     if (user == null || user.trim.length == 0) {
-      throw new ConfigException(s"${InfluxSinkConfig.INFLUX_CONNECTION_USER_CONFIG} is not set correctly")
+      throw new ConfigException(s"${InfluxSinkConfigConstants.INFLUX_CONNECTION_USER_CONFIG} is not set correctly")
     }
 
-    val passwordRaw = config.getPassword(INFLUX_CONNECTION_PASSWORD_CONFIG)
+    val passwordRaw = config.getPassword(InfluxSinkConfigConstants.INFLUX_CONNECTION_PASSWORD_CONFIG)
 
     val password = passwordRaw match {
       case null => null
       case _ => passwordRaw.value()
     }
 
-    val database = config.getString(INFLUX_DATABASE_CONFIG)
+    val database = config.getString(InfluxSinkConfigConstants.INFLUX_DATABASE_CONFIG)
     if (database == null || database.trim.isEmpty) {
-      throw new ConfigException(s"$INFLUX_DATABASE_CONFIG is not set correctly")
+      throw new ConfigException(s"${InfluxSinkConfigConstants.INFLUX_DATABASE_CONFIG} is not set correctly")
     }
-    val raw = config.getString(InfluxSinkConfig.KCQL_CONFIG)
-    require(raw != null && !raw.isEmpty, s"No ${InfluxSinkConfig.KCQL_CONFIG} provided!")
+    val raw = config.getString(InfluxSinkConfigConstants.KCQL_CONFIG)
+    require(raw != null && !raw.isEmpty, s"No ${InfluxSinkConfigConstants.KCQL_CONFIG} provided!")
     val kcql = raw.split(";").map(r => Config.parse(r)).toSet
-    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(InfluxSinkConfig.ERROR_POLICY_CONFIG).toUpperCase)
+    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(InfluxSinkConfigConstants.ERROR_POLICY_CONFIG).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
-    val nbrOfRetries = config.getInt(InfluxSinkConfig.NBR_OF_RETRIES_CONFIG)
+    val nbrOfRetries = config.getInt(InfluxSinkConfigConstants.NBR_OF_RETRIES_CONFIG)
 
     val fields = kcql.map(rm => (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)).toMap
 
@@ -86,11 +85,11 @@ object InfluxSettings {
       (rm.getSource, StructFieldsExtractor(rm.isIncludeAllFields, fields(rm.getSource), timestampField, rm.getIgnoredField.toSet))
     }.toMap
 
-    val retentionPolicy = config.getString(RETENTION_POLICY_CONFIG)
+    val retentionPolicy = config.getString(InfluxSinkConfigConstants.RETENTION_POLICY_CONFIG)
     val consistencyLevel = Try {
-      ConsistencyLevel.valueOf(config.getString(CONSISTENCY_CONFIG))
+      ConsistencyLevel.valueOf(config.getString(InfluxSinkConfigConstants.CONSISTENCY_CONFIG))
     } match {
-      case Failure(e) => throw new ConfigException(s"${config.getString(CONSISTENCY_CONFIG)} is not a valid value for $CONSISTENCY_CONFIG. Available values are:${ConsistencyLevel.values().mkString(",")}")
+      case Failure(e) => throw new ConfigException(s"${config.getString(InfluxSinkConfigConstants.CONSISTENCY_CONFIG)} is not a valid value for ${InfluxSinkConfigConstants.CONSISTENCY_CONFIG}. Available values are:${ConsistencyLevel.values().mkString(",")}")
       case Success(cl) => cl
     }
 
