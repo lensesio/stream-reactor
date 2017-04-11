@@ -21,18 +21,17 @@ import java.util
 
 import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
-import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttSourceConfig, MqttSourceSettings}
+import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttSourceConfig, MqttSourceConfigConstants, MqttSourceSettings}
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 
-import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 class MqttSourceTask extends SourceTask with StrictLogging {
-  private var mqttManager: Option[MqttManager] = None
   private val progressCounter = new ProgressCounter
+  private var mqttManager: Option[MqttManager] = None
 
   override def start(props: util.Map[String, String]): Unit = {
 
@@ -41,19 +40,19 @@ class MqttSourceTask extends SourceTask with StrictLogging {
 
     settings.sslCACertFile.foreach { file =>
       if (!new File(file).exists()) {
-        throw new ConfigException(s"${MqttSourceConfig.SSL_CA_CERT_CONFIG} is invalid. Can't locate $file")
+        throw new ConfigException(s"${MqttSourceConfigConstants.SSL_CA_CERT_CONFIG} is invalid. Can't locate $file")
       }
     }
 
     settings.sslCertFile.foreach { file =>
       if (!new File(file).exists()) {
-        throw new ConfigException(s"${MqttSourceConfig.SSL_CERT_CONFIG} is invalid. Can't locate $file")
+        throw new ConfigException(s"${MqttSourceConfigConstants.SSL_CERT_CONFIG} is invalid. Can't locate $file")
       }
     }
 
     settings.sslCertKeyFile.foreach { file =>
       if (!new File(file).exists()) {
-        throw new ConfigException(s"${MqttSourceConfig.SSL_CERT_KEY_CONFIG} is invalid. Can't locate $file")
+        throw new ConfigException(s"${MqttSourceConfigConstants.SSL_CERT_KEY_CONFIG} is invalid. Can't locate $file")
       }
     }
 
@@ -61,7 +60,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
       logger.info(s"Creating converter instance for $clazz")
       val converter = Try(this.getClass.getClassLoader.loadClass(clazz).newInstance()) match {
         case Success(value) => value.asInstanceOf[Converter]
-        case Failure(_) => throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG} is invalid. $clazz should have an empty ctor!")
+        case Failure(_) => throw new ConfigException(s"Invalid ${MqttSourceConfigConstants.CONVERTER_CONFIG} is invalid. $clazz should have an empty ctor!")
       }
       import scala.collection.JavaConverters._
       converter.initialize(props.asScala.toMap)

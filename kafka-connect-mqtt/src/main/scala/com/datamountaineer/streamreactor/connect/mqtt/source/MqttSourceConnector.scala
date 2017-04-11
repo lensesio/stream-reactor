@@ -28,8 +28,8 @@ import org.apache.kafka.connect.source.SourceConnector
 import scala.collection.JavaConverters._
 
 class MqttSourceConnector extends SourceConnector with StrictLogging {
-  private var configProps: util.Map[String, String] = _
   private val configDef = MqttSourceConfig.config
+  private var configProps: util.Map[String, String] = _
 
   /**
     * States which SinkTask class to use

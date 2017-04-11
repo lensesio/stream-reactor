@@ -40,22 +40,22 @@ case class MqttSourceSettings(connection: String,
 
   def asMap(): java.util.Map[String, String] = {
     val map = new java.util.HashMap[String, String]()
-    map.put(MqttSourceConfig.HOSTS_CONFIG, connection)
-    user.foreach(u => map.put(MqttSourceConfig.USER_CONFIG, u))
-    password.foreach(p => map.put(MqttSourceConfig.PASSWORD_CONFIG, p))
-    map.put(MqttSourceConfig.CLIENT_ID_CONFIG, clientId)
-    map.put(MqttSourceConfig.CONNECTION_TIMEOUT_CONFIG, connectionTimeout.toString)
-    map.put(MqttSourceConfig.CLEAN_SESSION_CONFIG, cleanSession.toString)
-    map.put(MqttSourceConfig.KEEP_ALIVE_INTERVAL_CONFIG, keepAliveInterval.toString)
-    sslCACertFile.foreach(s => map.put(MqttSourceConfig.SSL_CA_CERT_CONFIG, s))
-    sslCertFile.foreach(s => map.put(MqttSourceConfig.SSL_CERT_CONFIG, s))
-    sslCertKeyFile.foreach(s => map.put(MqttSourceConfig.SSL_CERT_KEY_CONFIG, s))
+    map.put(MqttSourceConfigConstants.HOSTS_CONFIG, connection)
+    user.foreach(u => map.put(MqttSourceConfigConstants.USER_CONFIG, u))
+    password.foreach(p => map.put(MqttSourceConfigConstants.PASSWORD_CONFIG, p))
+    map.put(MqttSourceConfigConstants.CLIENT_ID_CONFIG, clientId)
+    map.put(MqttSourceConfigConstants.CONNECTION_TIMEOUT_CONFIG, connectionTimeout.toString)
+    map.put(MqttSourceConfigConstants.CLEAN_SESSION_CONFIG, cleanSession.toString)
+    map.put(MqttSourceConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG, keepAliveInterval.toString)
+    sslCACertFile.foreach(s => map.put(MqttSourceConfigConstants.SSL_CA_CERT_CONFIG, s))
+    sslCertFile.foreach(s => map.put(MqttSourceConfigConstants.SSL_CERT_CONFIG, s))
+    sslCertKeyFile.foreach(s => map.put(MqttSourceConfigConstants.SSL_CERT_KEY_CONFIG, s))
 
-    map.put(MqttSourceConfig.QS_CONFIG, mqttQualityOfService.toString)
-    map.put(MqttSourceConfig.KCQL_CONFIG, kcql.mkString(";"))
+    map.put(MqttSourceConfigConstants.QS_CONFIG, mqttQualityOfService.toString)
+    map.put(MqttSourceConfigConstants.KCQL_CONFIG, kcql.mkString(";"))
 
 
-    map.put(MqttSourceConfig.CONVERTER_CONFIG, kcql.map(Config.parse).map(_.getSource).map(s => s"$s=${sourcesToConverters(s)}").mkString(";"))
+    map.put(MqttSourceConfigConstants.CONVERTER_CONFIG, kcql.map(Config.parse).map(_.getSource).map(s => s"$s=${sourcesToConverters(s)}").mkString(";"))
     map
   }
 }
@@ -63,37 +63,37 @@ case class MqttSourceSettings(connection: String,
 
 object MqttSourceSettings {
   def apply(config: MqttSourceConfig): MqttSourceSettings = {
-    val kcqlStr = config.getString(MqttSourceConfig.KCQL_CONFIG).split(';')
+    val kcqlStr = config.getString(MqttSourceConfigConstants.KCQL_CONFIG).split(';')
       .filter(_.trim.nonEmpty)
 
     val kcql = kcqlStr.map(Config.parse)
-    require(kcql.nonEmpty, s"${MqttSourceConfig.KCQL_CONFIG} provided!")
+    require(kcql.nonEmpty, s"${MqttSourceConfigConstants.KCQL_CONFIG} provided!")
 
     val sources = kcql.map(_.getSource).toSet
 
-    val connection = config.getString(MqttSourceConfig.HOSTS_CONFIG)
+    val connection = config.getString(MqttSourceConfigConstants.HOSTS_CONFIG)
     if (connection == null || connection.trim.isEmpty) {
-      throw new ConfigException(s"${MqttSourceConfig.HOSTS_CONFIG} is not provided!")
+      throw new ConfigException(s"${MqttSourceConfigConstants.HOSTS_CONFIG} is not provided!")
     }
 
-    val user = Option(config.getString(MqttSourceConfig.USER_CONFIG))
-    val password = Option(config.getPassword(MqttSourceConfig.PASSWORD_CONFIG)).map(_.value())
+    val user = Option(config.getString(MqttSourceConfigConstants.USER_CONFIG))
+    val password = Option(config.getPassword(MqttSourceConfigConstants.PASSWORD_CONFIG)).map(_.value())
 
-    val clientId = Option(config.getString(MqttSourceConfig.CLIENT_ID_CONFIG)).getOrElse(MqttClient.generateClientId())
+    val clientId = Option(config.getString(MqttSourceConfigConstants.CLIENT_ID_CONFIG)).getOrElse(MqttClient.generateClientId())
 
     def getFile(configKey: String) = Option(config.getString(configKey))
 
-    val sslCACertFile = getFile(MqttSourceConfig.SSL_CA_CERT_CONFIG)
-    val sslCertFile = getFile(MqttSourceConfig.SSL_CERT_CONFIG)
-    val sslCertKeyFile = getFile(MqttSourceConfig.SSL_CERT_KEY_CONFIG)
+    val sslCACertFile = getFile(MqttSourceConfigConstants.SSL_CA_CERT_CONFIG)
+    val sslCertFile = getFile(MqttSourceConfigConstants.SSL_CERT_CONFIG)
+    val sslCertKeyFile = getFile(MqttSourceConfigConstants.SSL_CERT_KEY_CONFIG)
 
     (sslCACertFile, sslCertFile, sslCertKeyFile) match {
       case (Some(_), Some(_), Some(_)) =>
       case (None, None, None) =>
-      case _ => throw new ConfigException(s"You can't define one of the ${MqttSourceConfig.SSL_CA_CERT_CONFIG},${MqttSourceConfig.SSL_CERT_CONFIG}, ${MqttSourceConfig.SSL_CERT_KEY_CONFIG} without the other")
+      case _ => throw new ConfigException(s"You can't define one of the ${MqttSourceConfigConstants.SSL_CA_CERT_CONFIG},${MqttSourceConfigConstants.SSL_CERT_CONFIG}, ${MqttSourceConfigConstants.SSL_CERT_KEY_CONFIG} without the other")
     }
 
-    val sourcesToConverterMap = Option(config.getString(MqttSourceConfig.CONVERTER_CONFIG))
+    val sourcesToConverterMap = Option(config.getString(MqttSourceConfigConstants.CONVERTER_CONFIG))
       .map { c =>
         c.split(';')
           .map(_.trim)
@@ -103,18 +103,18 @@ object MqttSourceSettings {
               case Array(source: String, clazz: String) =>
 
                 if (!sources.contains(source)) {
-                  throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG}. Source '$source' is not found in ${MqttSourceConfig.KCQL_CONFIG}. Defined sources:${sources.mkString(",")}")
+                  throw new ConfigException(s"Invalid ${MqttSourceConfigConstants.CONVERTER_CONFIG}. Source '$source' is not found in ${MqttSourceConfigConstants.KCQL_CONFIG}. Defined sources:${sources.mkString(",")}")
                 }
                 Try(getClass.getClassLoader.loadClass(clazz)) match {
-                  case Failure(_) => throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG}.$clazz can't be found")
+                  case Failure(_) => throw new ConfigException(s"Invalid ${MqttSourceConfigConstants.CONVERTER_CONFIG}.$clazz can't be found")
                   case Success(clz) =>
                     if (!classOf[Converter].isAssignableFrom(clz)) {
-                      throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG}. $clazz is not inheriting MqttConverter")
+                      throw new ConfigException(s"Invalid ${MqttSourceConfigConstants.CONVERTER_CONFIG}. $clazz is not inheriting MqttConverter")
                     }
                 }
 
                 source -> clazz
-              case _ => throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG}. '$e' is not correct. Expecting source = className")
+              case _ => throw new ConfigException(s"Invalid ${MqttSourceConfigConstants.CONVERTER_CONFIG}. '$e' is not correct. Expecting source = className")
             }
           }.toMap
       }.getOrElse(Map.empty[String, String])
@@ -123,9 +123,9 @@ object MqttSourceSettings {
       .map { s => s -> classOf[BytesConverter].getCanonicalName }
       .foldLeft(sourcesToConverterMap)(_ + _)
 
-    val qs = config.getInt(MqttSourceConfig.QS_CONFIG)
+    val qs = config.getInt(MqttSourceConfigConstants.QS_CONFIG)
     if (qs < 0 || qs > 2) {
-      throw new ConfigException(s"${MqttSourceConfig.QS_CONFIG} is not valid. Can be 0,1 or 2")
+      throw new ConfigException(s"${MqttSourceConfigConstants.QS_CONFIG} is not valid. Can be 0,1 or 2")
     }
     MqttSourceSettings(
       connection,
@@ -133,12 +133,12 @@ object MqttSourceSettings {
       password,
       clientId,
       sourcesToConverterMap1,
-      config.getBoolean(MqttSourceConfig.THROW_ON_CONVERT_ERRORS_CONFIG),
+      config.getBoolean(MqttSourceConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG),
       kcqlStr,
       qs,
-      config.getInt(MqttSourceConfig.CONNECTION_TIMEOUT_CONFIG),
-      config.getBoolean(MqttSourceConfig.CLEAN_SESSION_CONFIG),
-      config.getInt(MqttSourceConfig.KEEP_ALIVE_INTERVAL_CONFIG),
+      config.getInt(MqttSourceConfigConstants.CONNECTION_TIMEOUT_CONFIG),
+      config.getBoolean(MqttSourceConfigConstants.CLEAN_SESSION_CONFIG),
+      config.getInt(MqttSourceConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG),
       sslCACertFile,
       sslCertFile,
       sslCertKeyFile
