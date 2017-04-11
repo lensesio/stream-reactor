@@ -67,8 +67,7 @@ object HazelCastSinkConfigConstants {
 
   val LINGER_SECONDS = "connect.hazelcast.connection.linger.seconds"
   val LINGER_SECONDS_DOC: String =
-    """
-      |Enables/disables SO_LINGER with the specified linger time in seconds.
+    """Enables/disables SO_LINGER with the specified linger time in seconds.
       |The default value is 3.""".stripMargin
   val LINGER_SECONDS_DEFAULT = 3
 
@@ -83,8 +82,7 @@ object HazelCastSinkConfigConstants {
 
   val ERROR_POLICY = "connect.hazelcast.sink.error.policy"
   val ERROR_POLICY_DOC: String =
-    """
-      |Specifies the action to be taken if an error occurs while inserting the data.
+    """Specifies the action to be taken if an error occurs while inserting the data.
       |There are two available options:
       |NOOP - the error is swallowed
       |THROW - the error is allowed to propagate.
