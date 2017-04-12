@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Uses the Confluent Schema Registry to fetch the latest schema for a given topic.

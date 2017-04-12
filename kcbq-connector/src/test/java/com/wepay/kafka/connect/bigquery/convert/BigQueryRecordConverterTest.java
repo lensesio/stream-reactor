@@ -35,14 +35,17 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 public class BigQueryRecordConverterTest {
+
   @Test(expected = ConversionConnectException.class)
   public void testTopLevelRecord() {
     SinkRecord kafkaConnectRecord = spoofSinkRecord(Schema.BOOLEAN_SCHEMA, false);
@@ -437,7 +440,11 @@ public class BigQueryRecordConverterTest {
         Timestamp.SCHEMA,
         fieldTime
     );
-    final double fieldValueBigQuery = fieldValueKafkaConnect.getTime() / 1000.0;
+    java.util.Date date = new java.util.Date(fieldValueKafkaConnect.getTime());
+    SimpleDateFormat timestampFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    timestampFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+    final String fieldValueBigQuery =
+        timestampFormat.format(date);
 
     Map<String, Object> bigQueryExpectedRecord = new HashMap<>();
     bigQueryExpectedRecord.put(fieldName, fieldValueBigQuery);
@@ -464,7 +471,10 @@ public class BigQueryRecordConverterTest {
         Date.SCHEMA,
         fieldDate
     );
-    final double fieldValueBigQuery = fieldValueKafkaConnect.getTime() / 1000.0;
+    java.util.Date date = new java.util.Date(fieldValueKafkaConnect.getTime());
+    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+    final String fieldValueBigQuery = dateFormat.format(date);
 
     Map<String, Object> bigQueryExpectedRecord = new HashMap<>();
     bigQueryExpectedRecord.put(fieldName, fieldValueBigQuery);

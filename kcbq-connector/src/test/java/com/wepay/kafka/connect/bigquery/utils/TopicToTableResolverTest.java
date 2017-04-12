@@ -25,11 +25,9 @@ import com.wepay.kafka.connect.bigquery.SinkPropertiesFactory;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 
 import org.apache.kafka.common.config.ConfigException;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 

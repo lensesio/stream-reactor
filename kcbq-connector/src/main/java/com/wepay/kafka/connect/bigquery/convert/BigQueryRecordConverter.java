@@ -20,6 +20,10 @@ package com.wepay.kafka.connect.bigquery.convert;
 
 import com.google.cloud.bigquery.InsertAllRequest.RowToInsert;
 
+import com.wepay.kafka.connect.bigquery.convert.logicaltype.DebeziumLogicalConverters;
+import com.wepay.kafka.connect.bigquery.convert.logicaltype.KafkaLogicalConverters;
+import com.wepay.kafka.connect.bigquery.convert.logicaltype.LogicalConverterRegistry;
+import com.wepay.kafka.connect.bigquery.convert.logicaltype.LogicalTypeConverter;
 import com.wepay.kafka.connect.bigquery.exception.ConversionConnectException;
 
 import org.apache.kafka.connect.data.Date;
@@ -49,6 +53,10 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
   private static final Set<String> LOGICAL_SCHEMA_NAMES;
 
   static {
+    // force registration
+    new DebeziumLogicalConverters();
+    new KafkaLogicalConverters();
+
     LOGICAL_SCHEMA_NAMES = new HashSet<>();
     LOGICAL_SCHEMA_NAMES.add(Timestamp.LOGICAL_NAME);
     LOGICAL_SCHEMA_NAMES.add(Date.LOGICAL_NAME);
@@ -175,23 +183,8 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
 
   private Object convertLogical(Object kafkaConnectObject,
                                 Schema kafkaConnectSchema) {
-    switch (kafkaConnectSchema.name()) {
-      case Timestamp.LOGICAL_NAME:
-      case Date.LOGICAL_NAME:
-        java.util.Date kafkaConnectDate = (java.util.Date) kafkaConnectObject;
-        // BigQuery timestamps are represented as floating points of seconds since the Unix epoch,
-        // with up to six digits of precision after the decimal. The logical representation for the
-        // Kafka Connect Timestamp and Date types is a Java Date object. Thus, in order to convert
-        // data from Kafka Connect to BigQuery format, return a float containing the Date's number
-        // of milliseconds since the Unix epoch divided by 1000. (BigQuery represents dates
-        // identically to timestamps.)
-        return kafkaConnectDate.getTime() / 1000.0;
-      case Decimal.LOGICAL_NAME:
-        java.math.BigDecimal kafkaConnectDecimal = (java.math.BigDecimal) kafkaConnectObject;
-        return kafkaConnectDecimal;
-      default:
-        throw new ConversionConnectException(
-            "Unaccounted-for logical schema name: " + kafkaConnectSchema.name());
-    }
+    LogicalTypeConverter converter =
+        LogicalConverterRegistry.getConverter(kafkaConnectSchema.name());
+    return converter.convert(kafkaConnectObject);
   }
 }

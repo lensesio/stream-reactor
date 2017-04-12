@@ -115,9 +115,9 @@ public class TableWriter implements Runnable {
    *         size, or false otherwise.
    */
   private static boolean isBatchSizeError(BigQueryException exception) {
-    if (exception.code() == BAD_REQUEST_CODE
-        && exception.error() == null
-        && exception.reason() == null) {
+    if (exception.getCode() == BAD_REQUEST_CODE
+        && exception.getError() == null
+        && exception.getReason() == null) {
       /*
        * 400 with no error or reason represents a request that is more than 10MB. This is not
        * documented but is referenced slightly under "Error codes" here:
@@ -125,7 +125,8 @@ public class TableWriter implements Runnable {
        * (by decreasing the batch size we can eventually expect to end up with a request under 10MB)
        */
       return true;
-    } else if (exception.code() == BAD_REQUEST_CODE && INVALID_REASON.equals(exception.reason())) {
+    } else if (exception.getCode() == BAD_REQUEST_CODE
+               && INVALID_REASON.equals(exception.getReason())) {
       /*
        * this is the error that the documentation claims google will return if a request exceeds
        * 10MB. if this actually ever happens...

@@ -64,6 +64,6 @@ public class SchemaManagerTest {
     TableInfo tableInfo = schemaManager.constructTableInfo(tableId, mockKafkaSchema);
 
     Assert.assertEquals("Kafka doc does not match BigQuery table description",
-                        testDoc, tableInfo.description());
+                        testDoc, tableInfo.getDescription());
   }
 }

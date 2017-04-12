@@ -265,7 +265,7 @@ public class BigQuerySinkTaskTest {
     BigQuery bigQuery  = mock(BigQuery.class);
     InsertAllResponse fakeResponse = mock(InsertAllResponse.class);
     when(fakeResponse.hasErrors()).thenReturn(false);
-    when(fakeResponse.insertErrors()).thenReturn(Collections.emptyMap());
+    when(fakeResponse.getInsertErrors()).thenReturn(Collections.emptyMap());
     when(bigQuery.insertAll(any(InsertAllRequest.class))).thenReturn(fakeResponse);
 
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
@@ -312,9 +312,9 @@ public class BigQuerySinkTaskTest {
   public static InsertAllRequest buildExpectedInsertAllRequest(
       TableId table,
       InsertAllRequest.RowToInsert... rows) {
-    return InsertAllRequest.builder(table, rows)
-        .ignoreUnknownValues(false)
-        .skipInvalidRows(false)
+    return InsertAllRequest.newBuilder(table, rows)
+        .setIgnoreUnknownValues(false)
+        .setSkipInvalidRows(false)
         .build();
   }
 

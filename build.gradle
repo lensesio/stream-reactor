@@ -180,7 +180,10 @@ project(':kcbq-connector') {
     dependencies {
         compile project(':kcbq-api')
 
-        compile group: 'com.google.cloud', name: 'gcloud-java', version: '0.2.7'
+        compile group: 'com.google.cloud', name: 'google-cloud', version: '0.10.0-alpha'
+        compile group: 'com.google.auth', name: 'google-auth-library-oauth2-http', version: '0.6.0'
+
+        compile group: 'io.debezium', name: 'debezium-core',  version:'0.4.0'
 
         compile group: 'org.apache.kafka', name: 'connect-api', version: '0.10.2.0'
         compile group: 'org.apache.kafka', name: 'kafka-clients', version: '0.10.2.0'
@@ -228,7 +231,7 @@ project('kcbq-api') {
     }
 
     dependencies {
-        compile group: 'com.google.cloud', name: 'gcloud-java', version: '0.2.7'
+        compile group: 'com.google.cloud', name: 'google-cloud', version: '0.10.0-alpha'
 
         compile group: 'org.apache.kafka', name: 'connect-api', version: '0.10.2.0'
     }
@@ -260,7 +263,6 @@ project('kcbq-confluent') {
     }
 
     repositories {
-        mavenLocal()
         mavenCentral()
         maven {
             url 'http://packages.confluent.io/maven'
@@ -276,7 +278,7 @@ project('kcbq-confluent') {
     dependencies {
         compile project(':kcbq-api')
 
-        compile group: 'com.google.cloud', name: 'gcloud-java', version: '0.2.7'
+        compile group: 'com.google.cloud', name: 'google-cloud', version: '0.10.0-alpha'
 
         compile group: 'io.confluent', name: 'kafka-connect-avro-converter', version: '3.2.0'
         compile group: 'io.confluent', name: 'kafka-schema-registry-client', version: '3.2.0'

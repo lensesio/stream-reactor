@@ -83,9 +83,9 @@ public abstract class BigQueryWriter {
    */
   protected InsertAllRequest createInsertAllRequest(PartitionedTableId tableId,
                                                     List<InsertAllRequest.RowToInsert> rows) {
-    return InsertAllRequest.builder(tableId.getFullTableId(), rows)
-        .ignoreUnknownValues(false)
-        .skipInvalidRows(false)
+    return InsertAllRequest.newBuilder(tableId.getFullTableId(), rows)
+        .setIgnoreUnknownValues(false)
+        .setSkipInvalidRows(false)
         .build();
   }
 
@@ -113,25 +113,25 @@ public abstract class BigQueryWriter {
         return;
       } catch (BigQueryException err) {
         mostRecentException = err;
-        if (err.code() == INTERNAL_SERVICE_ERROR
-            || err.code() == SERVICE_UNAVAILABLE
-            || err.code() == BAD_GATEWAY) {
+        if (err.getCode() == INTERNAL_SERVICE_ERROR
+            || err.getCode() == SERVICE_UNAVAILABLE
+            || err.getCode() == BAD_GATEWAY) {
           // backend error: https://cloud.google.com/bigquery/troubleshooting-errors
           /* for BAD_GATEWAY: https://cloud.google.com/storage/docs/json_api/v1/status-codes
              todo possibly this page is inaccurate for bigquery, but the message we are getting
              suggest it's an internal backend error and we should retry, so lets take that at face
              value. */
-          logger.warn("BQ backend error: {}, attempting retry", err.code());
+          logger.warn("BQ backend error: {}, attempting retry", err.getCode());
           retryCount++;
-        } else if (err.code() == FORBIDDEN
-                   && err.error() != null
-                   && QUOTA_EXCEEDED_REASON.equals(err.reason())) {
+        } else if (err.getCode() == FORBIDDEN
+                   && err.getError() != null
+                   && QUOTA_EXCEEDED_REASON.equals(err.getReason())) {
           // quota exceeded error
           logger.warn("Quota exceeded for table {}, attempting retry", table);
           retryCount++;
-        } else if (err.code() == FORBIDDEN
-                   && err.error() != null
-                   && RATE_LIMIT_EXCEEDED_REASON.equals(err.reason())) {
+        } else if (err.getCode() == FORBIDDEN
+                   && err.getError() != null
+                   && RATE_LIMIT_EXCEEDED_REASON.equals(err.getReason())) {
           // rate limit exceeded error
           logger.warn("Rate limit exceeded for table {}, attempting retry", table);
           retryCount++;

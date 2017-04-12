@@ -70,7 +70,7 @@ public class SimpleBigQueryWriter extends BigQueryWriter {
           + "{}=true in the properties file",
           BigQuerySinkTaskConfig.SCHEMA_UPDATE_CONFIG
       );
-      throw new BigQueryConnectException(writeResponse.insertErrors());
+      throw new BigQueryConnectException(writeResponse.getInsertErrors());
     } else {
       logger.debug("table insertion completed with no reported errors");
     }

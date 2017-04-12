@@ -55,17 +55,17 @@ public class KafkaDataBQSchemaConverter extends BigQuerySchemaConverter {
     Field topicField = Field.of(KAFKA_DATA_TOPIC_FIELD_NAME, Field.Type.string());
     Field partitionField = Field.of(KAFKA_DATA_PARTITION_FIELD_NAME, Field.Type.integer());
     Field offsetField = Field.of(KAFKA_DATA_OFFSET_FIELD_NAME, Field.Type.integer());
-    Field.Builder insertTimeBuilder = Field.builder(KAFKA_DATA_INSERT_TIME_FIELD_NAME,
+    Field.Builder insertTimeBuilder = Field.newBuilder(KAFKA_DATA_INSERT_TIME_FIELD_NAME,
                                                     Field.Type.timestamp())
-                                           .mode(Field.Mode.NULLABLE);
+                                           .setMode(Field.Mode.NULLABLE);
     Field insertTimeField = insertTimeBuilder.build();
 
     Field.Builder kafkaDataFieldBuilder =
-        Field.builder(KAFKA_DATA_FIELD_NAME, Field.Type.record(topicField,
+        Field.newBuilder(KAFKA_DATA_FIELD_NAME, Field.Type.record(topicField,
                                                                partitionField,
                                                                offsetField,
                                                                insertTimeField))
-             .mode(Field.Mode.NULLABLE);
+             .setMode(Field.Mode.NULLABLE);
 
     schemaBuilder.addField(kafkaDataFieldBuilder.build());
 

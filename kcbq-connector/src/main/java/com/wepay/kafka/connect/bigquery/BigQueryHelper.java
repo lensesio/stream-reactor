@@ -17,9 +17,7 @@ package com.wepay.kafka.connect.bigquery;
  * under the License.
  */
 
-
-import com.google.cloud.AuthCredentials;
-
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 
@@ -55,12 +53,12 @@ public class BigQueryHelper {
     }
 
     logger.debug("Attempting to open file {} for service account json key", keyFilename);
-    try (InputStream accountKey = new FileInputStream(keyFilename)) {
+    try (InputStream credentialsStream = new FileInputStream(keyFilename)) {
       logger.debug("Attempting to authenticate with BigQuery using provided json key");
       return new BigQueryOptions.DefaultBigqueryFactory().create(
-          BigQueryOptions.builder()
-          .projectId(projectName)
-          .authCredentials(AuthCredentials.createForJson(accountKey))
+          BigQueryOptions.newBuilder()
+          .setProjectId(projectName)
+          .setCredentials(GoogleCredentials.fromStream(credentialsStream))
           .build()
       );
     } catch (IOException err) {
@@ -79,8 +77,8 @@ public class BigQueryHelper {
   public BigQuery connect(String projectName) {
     logger.debug("Attempting to access BigQuery without authentication");
     return new BigQueryOptions.DefaultBigqueryFactory().create(
-        BigQueryOptions.builder()
-        .projectId(projectName)
+        BigQueryOptions.newBuilder()
+        .setProjectId(projectName)
         .build()
     );
   }
