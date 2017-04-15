@@ -79,10 +79,10 @@ class DruidSinkTask extends SinkTask with StrictLogging {
   }
 
   /**
-    * Clean up Cassandra connections
+    * Clean up Druid connections
     **/
   override def stop(): Unit = {
-    logger.info("Stopping Hbase sink.")
+    logger.info("Stopping Druid sink.")
     //writer.foreach(w => w.close())
   }
 
