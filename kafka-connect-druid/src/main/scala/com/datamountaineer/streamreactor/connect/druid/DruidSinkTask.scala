@@ -79,7 +79,7 @@ class DruidSinkTask extends SinkTask with StrictLogging {
   }
 
   /**
-    * Clean up Cassandra connections
+    * Clean up Druid connections
     **/
   override def stop(): Unit = {
     logger.info("Stopping Druid sink.")

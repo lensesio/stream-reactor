@@ -43,7 +43,7 @@ object DruidSinkConfig {
 }
 
 /**
-  * <h1>HbaseSinkConfig</h1>
+  * <h1>DruidSinkConfig</h1>
   *
   * Holds config, extends AbstractConfig.
   **/
