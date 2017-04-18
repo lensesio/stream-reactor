@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.rethink.config
 
 import java.util
 
+import com.datamountaineer.streamreactor.temp.{ErrorPolicySettings, KcqlSettings, NumberRetriesSettings}
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
@@ -55,3 +56,10 @@ object ReThinkSinkConfig {
 
 case class ReThinkSinkConfig(props: util.Map[String, String])
   extends AbstractConfig(ReThinkSinkConfig.config, props)
+    with ErrorPolicySettings
+    with NumberRetriesSettings
+    with KcqlSettings {
+  override val errorPolicyConstant: String = ReThinkSinkConfigConstants.ERROR_POLICY
+  override val kcqlConstant: String = ReThinkSinkConfigConstants.EXPORT_ROUTE_QUERY
+  override val numberRetriesConstant: String = ReThinkSinkConfigConstants.NBR_OF_RETRIES
+}

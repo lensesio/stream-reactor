@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.rethink.config
 
 import java.util
 
+import com.datamountaineer.streamreactor.temp.KcqlSettings
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
@@ -42,4 +43,6 @@ object ReThinkSourceConfig {
 
 case class ReThinkSourceConfig(props: util.Map[String, String])
   extends AbstractConfig(ReThinkSourceConfig.config, props)
-
+    with KcqlSettings {
+  override val kcqlConstant: String = ReThinkSourceConfigConstants.IMPORT_ROUTE_QUERY
+}

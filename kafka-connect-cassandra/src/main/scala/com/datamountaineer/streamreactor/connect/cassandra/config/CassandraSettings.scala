@@ -21,13 +21,15 @@ import java.net.ConnectException
 
 import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.cassandra.config.TimestampType.TimestampType
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datastax.driver.core.ConsistencyLevel
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
+import org.apache.kafka.common.config.ConfigException
 
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
+
+
 
 /**
   * Created by andrew@datamountaineer.com on 22/04/16. 
@@ -66,15 +68,12 @@ case class CassandraSinkSetting(keySpace: String,
   * Holds the table, topic, import mode and timestamp columns
   * Import mode and timestamp columns are only applicable for the source.
   **/
-object CassandraSettings extends StrictLogging {
+object CassandraSettings extends StrictLogging  {
 
-  def configureSource(config: AbstractConfig): Set[CassandraSourceSetting] = {
+  def configureSource(config: CassandraConfigSource): Set[CassandraSourceSetting] = {
     //get keyspace
     val keySpace = config.getString(CassandraConfigConstants.KEY_SPACE)
     require(!keySpace.isEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
-    val raw = config.getString(CassandraConfigConstants.SOURCE_KCQL_QUERY)
-    require(!raw.isEmpty, s"${CassandraConfigConstants.SOURCE_KCQL_QUERY} is empty.")
-    val routes = raw.split(";").map(r => Config.parse(r)).toSet
     val pollInterval = config.getLong(CassandraConfigConstants.POLL_INTERVAL)
 
     val bulk = config.getString(CassandraConfigConstants.IMPORT_MODE).toLowerCase() match {
@@ -83,9 +82,7 @@ object CassandraSettings extends StrictLogging {
       case e => throw new ConnectException(s"Unsupported import mode $e.")
     }
 
-    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(CassandraConfigConstants.ERROR_POLICY).toUpperCase)
-    val errorPolicy = ErrorPolicy(errorPolicyE)
-    val timestampCols = routes.map(r => (r.getSource, r.getPrimaryKeys.toList)).toMap
+
 
     val consistencyLevel = config.getString(CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG) match {
       case "" => None
@@ -97,6 +94,10 @@ object CassandraSettings extends StrictLogging {
     }
 
     val timestampType = TimestampType.withName(config.getString(CassandraConfigConstants.TIMESTAMP_TYPE).toUpperCase)
+
+    val errorPolicy = config.getErrorPolicy
+    val routes = config.getRoutes
+    val timestampCols = routes.map(r => (r.getSource, r.getPrimaryKeys.toList)).toMap
 
     routes.map({
       r => {
@@ -124,25 +125,20 @@ object CassandraSettings extends StrictLogging {
     //get keyspace
     val keySpace = config.getString(CassandraConfigConstants.KEY_SPACE)
     require(!keySpace.isEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
-    val raw = config.getString(CassandraConfigConstants.SINK_KCQL)
-    require(!raw.isEmpty, s"${CassandraConfigConstants.SINK_KCQL} is empty.")
-    val routes = raw.split(";").map(r => Config.parse(r)).toSet
-    val retries = config.getInt(CassandraConfigConstants.NBR_OF_RETRIES)
-    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(CassandraConfigConstants.ERROR_POLICY).toUpperCase)
-    val errorPolicy = ErrorPolicy(errorPolicyE)
 
-    val fields = routes.map(rm =>
-      (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)
-    ).toMap
+    val errorPolicy = config.getErrorPolicy
 
+    val retries = config.getNumberRetries
+
+    val routes: Set[Config] = config.getRoutes
+    val fields = config.getFields(routes)
+    val ignoreFields = config.getIgnoreFields(routes)
 
     val threadPoolSize: Int = {
       val threads = config.getInt(CassandraConfigConstants.SINK_THREAD_POOL_CONFIG)
       if (threads <= 0) 4 * Runtime.getRuntime.availableProcessors()
       else threads
     }
-
-    val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
 
     val consistencyLevel = config.getString(CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG) match {
       case "" => None

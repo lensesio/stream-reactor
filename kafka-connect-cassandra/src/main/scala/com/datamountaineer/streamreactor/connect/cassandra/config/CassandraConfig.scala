@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import java.util
 
+import com.datamountaineer.streamreactor.temp.{ErrorPolicySettings, KcqlSettings, NumberRetriesSettings}
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
@@ -291,6 +292,11 @@ object CassandraConfigSource {
 
 case class CassandraConfigSource(props: util.Map[String, String])
   extends AbstractConfig(CassandraConfigSource.sourceConfig, props)
+    with ErrorPolicySettings
+    with KcqlSettings {
+  override val errorPolicyConstant: String = CassandraConfigConstants.ERROR_POLICY
+  override val kcqlConstant: String = CassandraConfigConstants.SOURCE_KCQL_QUERY
+}
 
 /**
   * Holds the extra configurations for the sink on top of
@@ -321,3 +327,10 @@ object CassandraConfigSink {
 
 case class CassandraConfigSink(props: util.Map[String, String])
   extends AbstractConfig(CassandraConfigSink.sinkConfig, props)
+    with ErrorPolicySettings
+    with NumberRetriesSettings
+    with KcqlSettings {
+  override val errorPolicyConstant: String = CassandraConfigConstants.ERROR_POLICY
+  override val kcqlConstant: String = CassandraConfigConstants.SINK_KCQL
+  override val numberRetriesConstant: String = CassandraConfigConstants.NBR_OF_RETRIES
+}
