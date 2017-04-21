@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.rethink.config
 
 import com.datamountaineer.connector.config.{Config, WriteModeEnum}
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConversions._
@@ -26,31 +26,31 @@ import scala.collection.JavaConversions._
   * Created by andrew@datamountaineer.com on 13/05/16.
   * stream-reactor-maven
   */
-case class ReThinkSinkSetting(db: String,
+case class ReThinkSinkSetting(database: String,
                               routes: Set[Config],
                               topicTableMap: Map[String, String],
                               fieldMap: Map[String, Map[String, String]],
                               ignoreFields: Map[String, Set[String]],
-                              pks: Map[String, Set[String]],
+                              primaryKeys: Map[String, Set[String]],
                               conflictPolicy: Map[String, String],
                               errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                               maxRetries: Int,
                               retryInterval: Long,
-                              batchSize: Int
-                             )
+                              batchSize: Int)
 
 object ReThinkSinkSettings {
   def apply(config: ReThinkSinkConfig): ReThinkSinkSetting = {
     val routes = config.getRoutes
 
-    //only allow on primary key for rethink.
+    //only allow one primary key for rethink.
     routes
       .filter(r => r.getPrimaryKeys.size > 1)
-      .foreach(_ => new ConnectException(s"More than one primary key found in ${ReThinkSinkConfigConstants.EXPORT_ROUTE_QUERY}." +
-        s" Only one field can be set."))
+      .foreach(_ => new ConnectException(
+        s"""More than one primary key found in ${ReThinkSinkConfigConstants.EXPORT_ROUTE_QUERY}.
+           |Only one field can be set.""".stripMargin.replaceAll("\n","")))
     val errorPolicy = config.getErrorPolicy
     val maxRetries = config.getNumberRetries
-    val batchSize = config.getInt(ReThinkSinkConfigConstants.BATCH_SIZE)
+    val batchSize = config.getBatchSize
 
     //check conflict policy
     val conflictMap = routes.map(m => {
@@ -60,18 +60,26 @@ object ReThinkSinkSettings {
       })
     }).toMap
 
-    val topicTableMap = routes.map(rm => (rm.getSource, rm.getTarget)).toMap
+    val tableTopicMap = config.getTableTopic(routes)
 
     val fieldMap = config.getFields(routes)
 
-    val db = config.getString(ReThinkSinkConfigConstants.RETHINK_DB)
-    val p = routes.map(r => (r.getSource, r.getPrimaryKeys.toSet)).toMap
+    val database = config.getDatabase
+    val primaryKeys = config.getPrimaryKeys(routes)
     val ignoreFields = config.getIgnoreFields(routes)
-    val retry = config.getInt(ReThinkSinkConfigConstants.ERROR_RETRY_INTERVAL).toLong
+    val retryInterval = config.getRetryInterval.toLong
 
-    ReThinkSinkSetting(db, routes, topicTableMap, fieldMap, ignoreFields, p, conflictMap, errorPolicy, maxRetries, retry, batchSize)
+    ReThinkSinkSetting(
+      database,
+      routes,
+      tableTopicMap,
+      fieldMap,
+      ignoreFields,
+      primaryKeys,
+      conflictMap,
+      errorPolicy,
+      maxRetries,
+      retryInterval,
+      batchSize)
   }
 }
-
-
-

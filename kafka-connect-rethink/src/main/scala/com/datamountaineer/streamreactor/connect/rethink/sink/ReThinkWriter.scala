@@ -90,7 +90,7 @@ class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSinkSe
     val writes = records.map(handleSinkRecord).toArray
 
     val x: java.util.Map[String, Object] = rethink
-      .db(setting.db)
+      .db(setting.database)
       .table(table)
       .insert(writes)
       .optArg("conflict", conflict.toString.toLowerCase)
@@ -104,7 +104,7 @@ class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSinkSe
   private def handleSinkRecord(record: SinkRecord): java.util.HashMap[String, Any] = {
     val schema = record.valueSchema()
     val value = record.value()
-    val pks = setting.pks(record.topic)
+    val pks = setting.primaryKeys(record.topic)
 
     if (schema == null) {
       //try to take it as string

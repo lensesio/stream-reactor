@@ -22,16 +22,15 @@ import com.datamountaineer.connector.config.Config
   * Created by andrew@datamountaineer.com on 22/09/16. 
   * stream-reactor
   */
-case class ReThinkSourceSettings (db : String,
-                                  routes: Set[Config],
-                                  tableTopicMap : Map[String, String])
-
+case class ReThinkSourceSettings(db: String,
+                                 routes: Set[Config],
+                                 tableTopicMap: Map[String, String])
 
 object ReThinkSourceSettings {
-  def apply(config: ReThinkSourceConfig) : ReThinkSourceSettings = {
+  def apply(config: ReThinkSourceConfig): ReThinkSourceSettings = {
     val routes = config.getRoutes
-    val tableTopicMap = routes.map(rm => (rm.getSource, rm.getTarget)).toMap
-    val db = config.getString(ReThinkSourceConfigConstants.RETHINK_DB)
-    ReThinkSourceSettings(db, routes, tableTopicMap)
+    val tableTopicMap = config.getTableTopic(routes)
+    val database = config.getDatabase
+    ReThinkSourceSettings(database, routes, tableTopicMap)
   }
 }

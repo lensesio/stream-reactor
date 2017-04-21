@@ -95,6 +95,6 @@ abstract class Writer(settings: HazelCastSinkSettings) extends ConverterUtil {
 
   def buildPKs(record: SinkRecord): String = {
     val defaultKeys = s"${record.topic}-${record.kafkaPartition()}-${record.kafkaOffset()}"
-    if (settings.pks(record.topic()).isEmpty) defaultKeys else settings.pks(record.topic()).mkString("-")
+    if (settings.primaryKeys(record.topic()).isEmpty) defaultKeys else settings.primaryKeys(record.topic()).mkString("-")
   }
 }

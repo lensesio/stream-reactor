@@ -1,6 +1,6 @@
 package com.datamountaineer.streamreactor.temp
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.connector.config.{Config, FormatType}
 import scala.collection.JavaConversions._
 
 trait KcqlSettings extends BaseSettings {
@@ -19,6 +19,18 @@ trait KcqlSettings extends BaseSettings {
   }
 
   def getIgnoreFields(routes: Set[Config] = getRoutes): Map[String, Set[String]] = {
-    routes.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
+    routes.map(r => (r.getSource, r.getIgnoredField.toSet)).toMap
+  }
+
+  def getPrimaryKeys(routes: Set[Config] = getRoutes): Map[String, Set[String]] = {
+    routes.map(r => (r.getSource, r.getPrimaryKeys.toSet)).toMap
+  }
+
+  def getTableTopic(routes: Set[Config] = getRoutes): Map[String, String] = {
+    routes.map(r => (r.getSource, r.getTarget)).toMap
+  }
+
+  def getFormat(formatType: FormatType => FormatType, routes: Set[Config] = getRoutes): Map[String, FormatType] = {
+    routes.map(r => (r.getSource, formatType(r.getFormatType))).toMap
   }
 }
