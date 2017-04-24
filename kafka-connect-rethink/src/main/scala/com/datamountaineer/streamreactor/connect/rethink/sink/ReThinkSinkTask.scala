@@ -18,26 +18,19 @@ package com.datamountaineer.streamreactor.connect.rethink.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkSinkConfig
-import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.clients.consumer.OffsetAndMetadata
-import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
-
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 24/03/16. 
   * stream-reactor
   */
 class ReThinkSinkTask extends SinkTask with StrictLogging {
-  private var writer : Option[ReThinkWriter] = None
+  private var writer: Option[ReThinkWriter] = None
   private val progressCounter = new ProgressCounter
+
   /**
     * Parse the configurations and setup the writer
-    * */
+    **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/rethink-sink-ascii.txt")).mkString)
     val sinkConfig = ReThinkSinkConfig(props)
@@ -47,7 +40,7 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Pass the SinkRecords to the writer for Writing
-    * */
+    **/
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     writer.foreach(w => w.write(records.toList))
@@ -56,7 +49,7 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Clean up writer
-    * */
+    **/
   override def stop(): Unit = {
     logger.info("Stopping Rethink sink.")
     writer.foreach(w => w.close())
@@ -64,6 +57,7 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
   }
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
+
   override def version(): String = getClass.getPackage.getImplementationVersion
 
 }

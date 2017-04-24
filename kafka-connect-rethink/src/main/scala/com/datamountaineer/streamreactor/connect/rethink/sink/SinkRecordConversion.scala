@@ -18,14 +18,6 @@ package com.datamountaineer.streamreactor.connect.rethink.sink
 
 import java.util
 
-import org.apache.kafka.common.config.ConfigException
-import org.apache.kafka.connect.data.Schema.Type
-import org.apache.kafka.connect.data._
-import org.apache.kafka.connect.sink.SinkRecord
-import org.json4s.JValue
-
-import scala.collection.JavaConversions._
-
 /**
   * Created by stepi on 11/10/16.
   */
@@ -87,8 +79,6 @@ object SinkRecordConversion {
     */
   def fromJson(record: SinkRecord, jvalue: JValue, primaryKeys: Set[String]): java.util.HashMap[String, Any] = {
     val connectKey = s"${record.topic()}-${record.kafkaPartition().toString}-${record.kafkaOffset().toString}"
-
-    import org.json4s._
     implicit val formats = DefaultFormats
     val map = jvalue.extract[Map[String, Any]]
 

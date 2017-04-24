@@ -23,57 +23,24 @@ import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 object RedisSinkConfig {
 
-  val REDIS_HOST = "connect.redis.connection.host"
-  val REDIS_HOST_DOC: String =
-    """
-      |Specifies the redis server
-    """.stripMargin
-
-  val REDIS_PORT = "connect.redis.connection.port"
-  val REDIS_PORT_DOC: String =
-    """
-      |Specifies the redis connection port
-    """.stripMargin
-
-  val REDIS_PASSWORD = "connect.redis.connection.password"
-  val REDIS_PASSWORD_DOC: String =
-    """
-      |Provides the password for the redis connection.
-    """.stripMargin
-
-  val KCQL_CONFIG = "connect.redis.sink.kcql"
-  val KCQL_DOC = "KCQL expression describing field selection and routes."
-
-  val ERROR_POLICY = "connect.redis.error.policy"
-  val ERROR_POLICY_DOC: String = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
-    "There are two available options: \n" + "NOOP - the error is swallowed \n" +
-    "THROW - the error is allowed to propagate. \n" +
-    "RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on \n" +
-    "The error will be logged automatically"
-  val ERROR_POLICY_DEFAULT = "THROW"
-
-  val ERROR_RETRY_INTERVAL = "connect.redis.retry.interval"
-  val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
-  val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
-  val NBR_OF_RETRIES = "connect.redis.max.retries"
-  val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
-  val NBR_OF_RETIRES_DEFAULT = 20
-
   val config: ConfigDef = new ConfigDef()
-    .define(REDIS_HOST, Type.STRING, Importance.HIGH, REDIS_HOST_DOC,
-      "Connection", 2, ConfigDef.Width.MEDIUM, REDIS_HOST)
-    .define(REDIS_PORT, Type.INT, Importance.HIGH, REDIS_PORT_DOC,
-      "Connection", 3, ConfigDef.Width.MEDIUM, REDIS_PORT)
-    .define(REDIS_PASSWORD, Type.PASSWORD, null, Importance.LOW, REDIS_PASSWORD_DOC,
-      "Connection", 4, ConfigDef.Width.MEDIUM, REDIS_PASSWORD)
-    .define(KCQL_CONFIG, Type.STRING, Importance.HIGH, KCQL_CONFIG,
-      "Connection", 1, ConfigDef.Width.MEDIUM, KCQL_CONFIG)
-    .define(ERROR_POLICY, Type.STRING, ERROR_POLICY_DEFAULT, Importance.HIGH, ERROR_POLICY_DOC,
-      "Connection", 5, ConfigDef.Width.MEDIUM, ERROR_POLICY)
-    .define(ERROR_RETRY_INTERVAL, Type.INT, ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, ERROR_RETRY_INTERVAL_DOC,
-      "Connection", 6, ConfigDef.Width.MEDIUM, ERROR_RETRY_INTERVAL)
-    .define(NBR_OF_RETRIES, Type.INT, NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, NBR_OF_RETRIES_DOC,
-      "Connection", 7, ConfigDef.Width.MEDIUM, NBR_OF_RETRIES)
+    .define(RedisSinkConfigConstants.REDIS_HOST, Type.STRING, Importance.HIGH, RedisSinkConfigConstants.REDIS_HOST_DOC,
+      "Connection", 2, ConfigDef.Width.MEDIUM, RedisSinkConfigConstants.REDIS_HOST)
+    .define(RedisSinkConfigConstants.REDIS_PORT, Type.INT, Importance.HIGH, RedisSinkConfigConstants.REDIS_PORT_DOC,
+      "Connection", 3, ConfigDef.Width.MEDIUM, RedisSinkConfigConstants.REDIS_PORT)
+    .define(RedisSinkConfigConstants.REDIS_PASSWORD, Type.PASSWORD, null, Importance.LOW, RedisSinkConfigConstants.REDIS_PASSWORD_DOC,
+      "Connection", 4, ConfigDef.Width.MEDIUM, RedisSinkConfigConstants.REDIS_PASSWORD)
+    .define(RedisSinkConfigConstants.KCQL_CONFIG, Type.STRING, Importance.HIGH, RedisSinkConfigConstants.KCQL_CONFIG,
+      "Connection", 1, ConfigDef.Width.MEDIUM, RedisSinkConfigConstants.KCQL_CONFIG)
+    .define(RedisSinkConfigConstants.ERROR_POLICY, Type.STRING, RedisSinkConfigConstants.ERROR_POLICY_DEFAULT,
+      Importance.HIGH, RedisSinkConfigConstants.ERROR_POLICY_DOC,
+      "Connection", 5, ConfigDef.Width.MEDIUM, RedisSinkConfigConstants.ERROR_POLICY)
+    .define(RedisSinkConfigConstants.ERROR_RETRY_INTERVAL, Type.INT, RedisSinkConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT,
+      Importance.MEDIUM, RedisSinkConfigConstants.ERROR_RETRY_INTERVAL_DOC,
+      "Connection", 6, ConfigDef.Width.MEDIUM, RedisSinkConfigConstants.ERROR_RETRY_INTERVAL)
+    .define(RedisSinkConfigConstants.NBR_OF_RETRIES, Type.INT, RedisSinkConfigConstants.NBR_OF_RETIRES_DEFAULT,
+      Importance.MEDIUM, RedisSinkConfigConstants.NBR_OF_RETRIES_DOC,
+      "Connection", 7, ConfigDef.Width.MEDIUM, RedisSinkConfigConstants.NBR_OF_RETRIES)
 }
 
 /**

@@ -14,6 +14,6 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.ftp
+package com.datamountaineer.streamreactor.connect.ftp.config
 
 case class MonitorConfig(topic:String, path:String, tail:Boolean)

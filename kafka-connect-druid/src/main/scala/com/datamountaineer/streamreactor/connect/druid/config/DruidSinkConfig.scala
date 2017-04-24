@@ -23,23 +23,10 @@ import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 object DruidSinkConfig {
 
-  val KCQL = "connect.druid.sink.kcql"
-  val KCQL_DOC = "The KCQL statement to specify field selection from topics and druid datasource targets."
-
-  val CONFIG_FILE = "connect.druid.sink.config.file"
-  val CONFIG_FILE_DOC = "The path to the configuration file."
-
-  val TIMEOUT = "connnect.druid.sink.write.timeout"
-  val TIMEOUT_DOC: String =
-    """
-      |Specifies the number of seconds to wait for the write to Druid to happen.
-    """.stripMargin
-  val TIMEOUT_DEFAULT = 6000
-
   val config: ConfigDef = new ConfigDef()
-    .define(KCQL, Type.STRING, Importance.HIGH, KCQL_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, KCQL)
-    .define(CONFIG_FILE, Type.STRING, Importance.HIGH, CONFIG_FILE_DOC, "Connection", 2, ConfigDef.Width.LONG, CONFIG_FILE)
-    .define(TIMEOUT, Type.INT, TIMEOUT_DEFAULT, Importance.LOW, TIMEOUT_DOC, "Connection", 3, ConfigDef.Width.SHORT, TIMEOUT)
+    .define(DruidSinkConfigConstants.KCQL, Type.STRING, Importance.HIGH, DruidSinkConfigConstants.KCQL_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, DruidSinkConfigConstants.KCQL)
+    .define(DruidSinkConfigConstants.CONFIG_FILE, Type.STRING, Importance.HIGH, DruidSinkConfigConstants.CONFIG_FILE_DOC, "Connection", 2, ConfigDef.Width.LONG, DruidSinkConfigConstants.CONFIG_FILE)
+    .define(DruidSinkConfigConstants.TIMEOUT, Type.INT, DruidSinkConfigConstants.TIMEOUT_DEFAULT, Importance.LOW, DruidSinkConfigConstants.TIMEOUT_DOC, "Connection", 3, ConfigDef.Width.SHORT, DruidSinkConfigConstants.TIMEOUT)
 }
 
 /**

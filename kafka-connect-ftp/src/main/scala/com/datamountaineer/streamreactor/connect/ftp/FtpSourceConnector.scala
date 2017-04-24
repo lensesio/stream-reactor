@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.ftp
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.ftp.config.FtpSourceConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException

@@ -18,16 +18,6 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import java.util
 
-import com.datamountaineer.connector.config.Config
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource}
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.connect.connector.Task
-import org.apache.kafka.connect.source.SourceConnector
-import org.apache.kafka.connect.util.ConnectorUtils
-
-import scala.collection.JavaConversions._
-
 /**
   * <h1>CassandraSourceConnector</h1>
   * Kafka connect Cassandra Source connector

@@ -16,8 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.ftp
 
+import com.datamountaineer.streamreactor.connect.ftp.config.FtpSourceConfigConstants
+
 object KeyStyle extends Enumeration {
   type KeyStyle = Value
-  val String = Value(FtpSourceConfig.StringKeyStyle)
-  val Struct = Value(FtpSourceConfig.StructKeyStyle)
+  val String = Value(FtpSourceConfigConstants.STRING_KEY_STYLE)
+  val Struct = Value(FtpSourceConfigConstants.STRUCT_KEY_STYLE)
 }

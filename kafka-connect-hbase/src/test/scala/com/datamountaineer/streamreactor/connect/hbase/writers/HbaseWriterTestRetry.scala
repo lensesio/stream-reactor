@@ -17,8 +17,7 @@
 package com.datamountaineer.streamreactor.connect.hbase.writers
 
 import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
-import com.datamountaineer.streamreactor.connect.hbase.config.HbaseSinkConfig._
-import com.datamountaineer.streamreactor.connect.hbase.config.{HbaseSettings, HbaseSinkConfig}
+import com.datamountaineer.streamreactor.connect.hbase.config.{HbaseSettings, HbaseSinkConfig, HbaseSinkConfigConstants}
 import com.datamountaineer.streamreactor.connect.hbase.{FieldsValuesExtractor, HbaseHelper, HbaseTableHelper, StructFieldsRowKeyBuilderBytes}
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -33,19 +32,19 @@ import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 class HbaseWriterTestRetry extends WordSpec with Matchers with MockitoSugar with BeforeAndAfter {
 
   implicit val formats = DefaultFormats
-  var miniCluster : Option[MiniCluster] = None
+  var miniCluster: Option[MiniCluster] = None
 
   before {
     val workDir = "target/kite-minicluster-workdir-hbase"
     miniCluster = Some(new MiniCluster
-                            .Builder()
-                            .workDir(workDir)
-                            .bindIP("localhost")
-                            .zkPort(2181)
-                            .addService(classOf[HdfsService])
-                            .addService(classOf[ZookeeperService])
-                            .addService(classOf[HBaseService])
-                            .clean(true).build)
+    .Builder()
+      .workDir(workDir)
+      .bindIP("localhost")
+      .zkPort(2181)
+      .addService(classOf[HdfsService])
+      .addService(classOf[ZookeeperService])
+      .addService(classOf[HBaseService])
+      .clean(true).build)
     miniCluster.get.start()
   }
 
@@ -66,10 +65,10 @@ class HbaseWriterTestRetry extends WordSpec with Matchers with MockitoSugar with
       val columnFamily = "somecolumnFamily"
       val QUERY_ALL = s"INSERT INTO $tableName SELECT * FROM $topic PK firstName"
 
-      when(config.getString(COLUMN_FAMILY)).thenReturn(columnFamily)
-      when(config.getString(EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL)
-      when(config.getString(HbaseSinkConfig.ERROR_POLICY)).thenReturn("RETRY")
-      when(config.getInt(HbaseSinkConfig.NBR_OF_RETRIES)).thenReturn(HbaseSinkConfig.NBR_OF_RETIRES_DEFAULT)
+      when(config.getString(HbaseSinkConfigConstants.COLUMN_FAMILY)).thenReturn(columnFamily)
+      when(config.getString(HbaseSinkConfigConstants.EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL)
+      when(config.getString(HbaseSinkConfigConstants.ERROR_POLICY)).thenReturn("RETRY")
+      when(config.getInt(HbaseSinkConfigConstants.NBR_OF_RETRIES)).thenReturn(HbaseSinkConfigConstants.NBR_OF_RETIRES_DEFAULT)
 
       val settings = HbaseSettings(config)
 

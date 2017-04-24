@@ -123,7 +123,7 @@ class TestReThinkSinkConverter extends TestBase with MockitoSugar {
       val tableList = mock[TableList]
       val tableCreate = mock[TableCreate]
 
-      when(r.db(settings.db)).thenReturn(db)
+      when(r.db(settings.database)).thenReturn(db)
       when(db.tableList()).thenReturn(tableList)
       when(r.db(DB).tableList().run(conn)).thenReturn(List.empty[String].asJava)
       when(r.db(DB).tableCreate(TABLE)).thenReturn(tableCreate)

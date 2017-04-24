@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.influx
 import java.util
 
 import com.datamountaineer.connector.config.Tag
-import com.datamountaineer.streamreactor.connect.influx.config.{InfluxSettings, InfluxSinkConfig}
+import com.datamountaineer.streamreactor.connect.influx.config.{InfluxSettings, InfluxSinkConfig, InfluxSinkConfigConstants}
 import com.datamountaineer.streamreactor.connect.influx.writers.InfluxBatchPointsBuilderFn
 import com.fasterxml.jackson.core.`type`.TypeReference
 import org.apache.kafka.connect.data.Schema
@@ -165,13 +165,13 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
       val database = "mydatabase"
       val user = "myuser"
       val config = mock[InfluxSinkConfig]
-      when(config.getString(InfluxSinkConfig.INFLUX_URL_CONFIG)).thenReturn("http://localhost:8081")
-      when(config.getString(InfluxSinkConfig.INFLUX_DATABASE_CONFIG)).thenReturn(database)
-      when(config.getString(InfluxSinkConfig.INFLUX_CONNECTION_USER_CONFIG)).thenReturn(user)
-      when(config.getString(InfluxSinkConfig.INFLUX_CONNECTION_PASSWORD_CONFIG)).thenReturn(null)
-      when(config.getString(InfluxSinkConfig.ERROR_POLICY_CONFIG)).thenReturn("THROW")
-      when(config.getString(InfluxSinkConfig.KCQL_CONFIG)).thenReturn(s"INSERT INTO $measurement SELECT * FROM $topic IGNORE ptype, pid WITHTIMESTAMP time WITHTAG (ptype, pid) ")
-      when(config.getString(InfluxSinkConfig.CONSISTENCY_CONFIG)).thenReturn(ConsistencyLevel.QUORUM.toString)
+      when(config.getString(InfluxSinkConfigConstants.INFLUX_URL_CONFIG)).thenReturn("http://localhost:8081")
+      when(config.getString(InfluxSinkConfigConstants.INFLUX_DATABASE_CONFIG)).thenReturn(database)
+      when(config.getString(InfluxSinkConfigConstants.INFLUX_CONNECTION_USER_CONFIG)).thenReturn(user)
+      when(config.getString(InfluxSinkConfigConstants.INFLUX_CONNECTION_PASSWORD_CONFIG)).thenReturn(null)
+      when(config.getString(InfluxSinkConfigConstants.ERROR_POLICY_CONFIG)).thenReturn("THROW")
+      when(config.getString(InfluxSinkConfigConstants.KCQL_CONFIG)).thenReturn(s"INSERT INTO $measurement SELECT * FROM $topic IGNORE ptype, pid WITHTIMESTAMP time WITHTAG (ptype, pid) ")
+      when(config.getString(InfluxSinkConfigConstants.CONSISTENCY_CONFIG)).thenReturn(ConsistencyLevel.QUORUM.toString)
       val settings = InfluxSettings(config)
 
       val before = System.currentTimeMillis()

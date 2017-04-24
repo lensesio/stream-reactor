@@ -20,8 +20,6 @@ package com.datamountaineer.streamreactor.connect.cassandra.utils
   * Created by andrew@datamountaineer.com on 29/04/16. 
   * stream-reactor
   */
-import com.datastax.driver.core.{ResultSet, ResultSetFuture}
-import com.google.common.util.concurrent.{FutureCallback, Futures}
 
 import scala.concurrent.{Future, Promise}
 import scala.language.{implicitConversions, postfixOps}
@@ -39,6 +37,7 @@ object CassandraResultSetWrapper {
     Futures.addCallback(f,
       new FutureCallback[ResultSet] {
         def onSuccess(r: ResultSet) = p success r
+
         def onFailure(t: Throwable) = p failure t
       })
     p.future

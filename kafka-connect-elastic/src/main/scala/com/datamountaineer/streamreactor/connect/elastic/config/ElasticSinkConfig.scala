@@ -23,26 +23,19 @@ import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 
 object ElasticSinkConfig {
-  val URL = "connect.elastic.url"
-  val URL_DOC = "Url including port for Elastic Search cluster node."
-  val URL_DEFAULT = "localhost:9300"
-  val ES_CLUSTER_NAME = "connect.elastic.cluster.name"
-  val ES_CLUSTER_NAME_DEFAULT = "elasticsearch"
-  val ES_CLUSTER_NAME_DOC = "Name of the elastic search cluster, used in local mode for setting the connection"
-  val URL_PREFIX = "connect.elastic.url.prefix"
-  val URL_PREFIX_DOC = "URL connection string prefix"
-  val URL_PREFIX_DEFAULT = "elasticsearch"
-  val EXPORT_ROUTE_QUERY = "connect.elastic.sink.kcql"
-  val EXPORT_ROUTE_QUERY_DOC =  "KCQL expression describing field selection and routes."
 
   val config: ConfigDef = new ConfigDef()
-    .define(URL, Type.STRING, URL_DEFAULT, Importance.HIGH, URL_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, URL)
-    .define(ES_CLUSTER_NAME, Type.STRING, ES_CLUSTER_NAME_DEFAULT, Importance.HIGH, ES_CLUSTER_NAME_DOC,
-      "Connection", 2, ConfigDef.Width.MEDIUM, ES_CLUSTER_NAME)
-    .define(URL_PREFIX, Type.STRING, URL_PREFIX_DEFAULT, Importance.LOW, URL_PREFIX_DOC, "Connection", 3,
-      ConfigDef.Width.MEDIUM, URL_PREFIX)
-    .define(EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, EXPORT_ROUTE_QUERY_DOC, "Target", 1,
-      ConfigDef.Width.LONG, EXPORT_ROUTE_QUERY)
+    .define(ElasticSinkConfigConstants.URL, Type.STRING, ElasticSinkConfigConstants.URL_DEFAULT, Importance.HIGH,
+      ElasticSinkConfigConstants.URL_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, ElasticSinkConfigConstants.URL)
+    .define(ElasticSinkConfigConstants.ES_CLUSTER_NAME, Type.STRING, ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT,
+      Importance.HIGH, ElasticSinkConfigConstants.ES_CLUSTER_NAME_DOC, "Connection", 2, ConfigDef.Width.MEDIUM,
+      ElasticSinkConfigConstants.ES_CLUSTER_NAME)
+    .define(ElasticSinkConfigConstants.URL_PREFIX, Type.STRING, ElasticSinkConfigConstants.URL_PREFIX_DEFAULT,
+      Importance.LOW, ElasticSinkConfigConstants.URL_PREFIX_DOC, "Connection", 3, ConfigDef.Width.MEDIUM,
+      ElasticSinkConfigConstants.URL_PREFIX)
+    .define(ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH,
+      ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY_DOC, "Target", 1, ConfigDef.Width.LONG,
+      ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY)
 }
 
 /**

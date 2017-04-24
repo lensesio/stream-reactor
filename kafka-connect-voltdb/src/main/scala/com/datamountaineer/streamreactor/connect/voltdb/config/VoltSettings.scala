@@ -28,7 +28,7 @@ case class VoltSettings(servers: String,
                         password: String,
                         fieldsExtractorMap: Map[String, StructFieldsExtractor],
                         errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                        maxRetries: Int = VoltSinkConfig.NBR_OF_RETIRES_DEFAULT)
+                        maxRetries: Int = VoltSinkConfigConstants.NBR_OF_RETIRES_DEFAULT)
 
 object VoltSettings {
 
@@ -39,29 +39,29 @@ object VoltSettings {
     * @return An instance of InfluxSettings
     */
   def apply(config: VoltSinkConfig): VoltSettings = {
-    val servers = config.getString(VoltSinkConfig.SERVERS_CONFIG)
+    val servers = config.getString(VoltSinkConfigConstants.SERVERS_CONFIG)
 
     if (servers == null || servers.trim.length == 0) {
-      throw new ConfigException(s"${VoltSinkConfig.SERVERS_CONFIG} is not set correctly")
+      throw new ConfigException(s"${VoltSinkConfigConstants.SERVERS_CONFIG} is not set correctly")
     }
 
-    val user = config.getString(VoltSinkConfig.USER_CONFIG)
-//    if (user == null || user.trim.length == 0)
-//      throw new ConfigException(s"${VoltSinkConfig.USER_CONFIG} is not set correctly")
+    val user = config.getString(VoltSinkConfigConstants.USER_CONFIG)
+    //    if (user == null || user.trim.length == 0)
+    //      throw new ConfigException(s"${VoltSinkConfigConstants.USER_CONFIG} is not set correctly")
 
-    val passwordRaw = config.getPassword(VoltSinkConfig.PASSWORD_CONFIG)
+    val passwordRaw = config.getPassword(VoltSinkConfigConstants.PASSWORD_CONFIG)
 
     val password = passwordRaw match {
       case null => null
       case _ => passwordRaw.value()
     }
 
-    val raw = config.getString(VoltSinkConfig.EXPORT_ROUTE_QUERY_CONFIG)
-    require(raw != null && !raw.isEmpty, s"No ${VoltSinkConfig.EXPORT_ROUTE_QUERY_CONFIG} provided!")
+    val raw = config.getString(VoltSinkConfigConstants.EXPORT_ROUTE_QUERY_CONFIG)
+    require(raw != null && !raw.isEmpty, s"No ${VoltSinkConfigConstants.EXPORT_ROUTE_QUERY_CONFIG} provided!")
     val routes = raw.split(";").map(r => Config.parse(r)).toSet
-    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(VoltSinkConfig.ERROR_POLICY_CONFIG).toUpperCase)
+    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(VoltSinkConfigConstants.ERROR_POLICY_CONFIG).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
-    val nbrOfRetries = config.getInt(VoltSinkConfig.NBR_OF_RETRIES_CONFIG)
+    val nbrOfRetries = config.getInt(VoltSinkConfigConstants.NBR_OF_RETRIES_CONFIG)
 
     val fields = routes.map(rm => (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)).toMap
 

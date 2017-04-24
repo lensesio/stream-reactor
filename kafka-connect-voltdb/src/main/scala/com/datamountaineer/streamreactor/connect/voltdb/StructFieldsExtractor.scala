@@ -51,7 +51,7 @@ case class StructFieldsExtractor(targetTable: String,
     //need to select all fields including null. the stored proc needs a fixed set of params
     fields.map { field =>
       val schema = field.schema()
-      val value =  Option(struct.get(field))
+      val value = Option(struct.get(field))
         .map { value =>
           //handle specific schema
           schema.name() match {

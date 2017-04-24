@@ -16,14 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import com.datamountaineer.streamreactor.connect.config.{SSLConfig, SSLConfigContext}
-import com.datastax.driver.core.Cluster.Builder
-import com.datastax.driver.core.policies.{DCAwareRoundRobinPolicy, TokenAwarePolicy}
-import com.datastax.driver.core.{Cluster, JdkSSLOptions, Session}
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.AbstractConfig
-
 /**
   * Set up a Casssandra connection
   **/

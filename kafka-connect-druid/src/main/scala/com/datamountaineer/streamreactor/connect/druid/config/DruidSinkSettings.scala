@@ -38,18 +38,18 @@ object DruidSinkSettings {
     * @return An instance of DruidSinkSettings
     */
   def apply(config: DruidSinkConfig): DruidSinkSettings = {
-    val file = config.getString(CONFIG_FILE)
+    val file = config.getString(DruidSinkConfigConstants.CONFIG_FILE)
     if (file.trim.length == 0 || !new File(file).exists()) {
-      throw new ConfigException(s"$CONFIG_FILE is not set correctly.")
+      throw new ConfigException(s"${DruidSinkConfigConstants.CONFIG_FILE} is not set correctly.")
     }
 
     val fileContents = scala.io.Source.fromFile(file).mkString
 
     if (fileContents.isEmpty) {
-      throw new ConfigException(s"Empty $CONFIG_FILE.")
+      throw new ConfigException(s"Empty ${DruidSinkConfigConstants.CONFIG_FILE}.")
     }
 
-    val routes = config.getString(DruidSinkConfig.KCQL).split(";").map(r => Config.parse(r)).toList
+    val routes = config.getString(DruidSinkConfigConstants.KCQL).split(";").map(r => Config.parse(r)).toList
     val dataSources = routes.map(r => (r.getSource, r.getTarget)).toMap
     val fields = routes.map(rm =>
       (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField,fa.getAlias)).toMap)

@@ -16,22 +16,13 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
-import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSinkSetting, ReThinkSinkSettings}
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import com.rethinkdb.RethinkDB
-import com.rethinkdb.net.Connection
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
-
 import scala.util.{Failure, Try}
 
 
 object ReThinkWriter extends StrictLogging {
   def apply(config: ReThinkSinkConfig, context: SinkTaskContext): ReThinkWriter = {
-    val rethinkHost = config.getString(ReThinkSinkConfig.RETHINK_HOST)
-    val port = config.getInt(ReThinkSinkConfig.RETHINK_PORT)
+    val rethinkHost = config.getString(ReThinkSinkConfigConstants.RETHINK_HOST)
+    val port = config.getInt(ReThinkSinkConfigConstants.RETHINK_PORT)
 
     //set up the connection to the host
     val settings = ReThinkSinkSettings(config)
@@ -71,7 +62,7 @@ class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSinkSe
     } else {
       logger.info(s"Received ${records.size} records.")
       if (!conn.isOpen) conn.reconnect()
-      val grouped = records.groupBy(_.topic())//.grouped(setting.batchSize)
+      val grouped = records.groupBy(_.topic()) //.grouped(setting.batchSize)
       grouped.foreach({ case (topic, entries) => writeRecords(topic, entries) })
     }
   }
@@ -90,7 +81,7 @@ class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSinkSe
     val writes = records.map(handleSinkRecord).toArray
 
     val x: java.util.Map[String, Object] = rethink
-      .db(setting.db)
+      .db(setting.database)
       .table(table)
       .insert(writes)
       .optArg("conflict", conflict.toString.toLowerCase)
@@ -104,7 +95,7 @@ class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSinkSe
   private def handleSinkRecord(record: SinkRecord): java.util.HashMap[String, Any] = {
     val schema = record.valueSchema()
     val value = record.value()
-    val pks = setting.pks(record.topic)
+    val pks = setting.primaryKeys(record.topic)
 
     if (schema == null) {
       //try to take it as string

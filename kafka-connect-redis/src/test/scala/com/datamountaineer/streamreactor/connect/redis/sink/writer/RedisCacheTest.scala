@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkConfig._
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConnectionInfo, RedisSinkConfig, RedisSinkSettings}
+import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConnectionInfo, RedisSinkConfig, RedisSinkConfigConstants, RedisSinkSettings}
 import com.google.gson.Gson
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
@@ -46,11 +46,11 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
       val QUERY_ALL = s"SELECT * FROM $TOPIC PK firstName"
 
       val config = mock[RedisSinkConfig]
-      when(config.getString(REDIS_HOST)).thenReturn("localhost")
-      when(config.getInt(REDIS_PORT)).thenReturn(6379)
-      when(config.getString(REDIS_PASSWORD)).thenReturn("")
-      when(config.getString(KCQL_CONFIG)).thenReturn(QUERY_ALL)
-      when(config.getString(ERROR_POLICY)).thenReturn("THROW")
+      when(config.getString(RedisSinkConfigConstants.REDIS_HOST)).thenReturn("localhost")
+      when(config.getInt(RedisSinkConfigConstants.REDIS_PORT)).thenReturn(6379)
+      when(config.getString(RedisSinkConfigConstants.REDIS_PASSWORD)).thenReturn("")
+      when(config.getString(RedisSinkConfigConstants.KCQL_CONFIG)).thenReturn(QUERY_ALL)
+      when(config.getString(RedisSinkConfigConstants.ERROR_POLICY)).thenReturn("THROW")
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
@@ -93,11 +93,11 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
       val KCQL = s"INSERT INTO KEY_PREFIX_ SELECT * FROM $TOPIC PK firstName"
 
       val config = mock[RedisSinkConfig]
-      when(config.getString(REDIS_HOST)).thenReturn("localhost")
-      when(config.getInt(REDIS_PORT)).thenReturn(6379)
-      when(config.getString(REDIS_PASSWORD)).thenReturn("")
-      when(config.getString(KCQL_CONFIG)).thenReturn(KCQL)
-      when(config.getString(ERROR_POLICY)).thenReturn("THROW")
+      when(config.getString(RedisSinkConfigConstants.REDIS_HOST)).thenReturn("localhost")
+      when(config.getInt(RedisSinkConfigConstants.REDIS_PORT)).thenReturn(6379)
+      when(config.getString(RedisSinkConfigConstants.REDIS_PASSWORD)).thenReturn("")
+      when(config.getString(RedisSinkConfigConstants.KCQL_CONFIG)).thenReturn(KCQL)
+      when(config.getString(RedisSinkConfigConstants.ERROR_POLICY)).thenReturn("THROW")
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
 
       val settings = RedisSinkSettings(config)

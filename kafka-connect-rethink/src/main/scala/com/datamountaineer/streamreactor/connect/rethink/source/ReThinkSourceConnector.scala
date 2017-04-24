@@ -18,13 +18,6 @@ package com.datamountaineer.streamreactor.connect.rethink.source
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkSourceConfig
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.connect.connector.Task
-import org.apache.kafka.connect.source.SourceConnector
-import org.apache.kafka.connect.util.ConnectorUtils
-
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
@@ -49,8 +42,8 @@ class ReThinkSourceConnector extends SourceConnector with StrictLogging {
     **/
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
 
-    val raw = configProps.asScala.get(ReThinkSourceConfig.IMPORT_ROUTE_QUERY)
-    require(raw != null && raw.isDefined,  s"No ${ReThinkSourceConfig.IMPORT_ROUTE_QUERY} provided!")
+    val raw = configProps.asScala.get(ReThinkSourceConfigConstants.IMPORT_ROUTE_QUERY)
+    require(raw != null && raw.isDefined, s"No ${ReThinkSourceConfigConstants.IMPORT_ROUTE_QUERY} provided!")
 
     //sql1, sql2
     val kcqls = raw.get.split(";")
@@ -60,9 +53,9 @@ class ReThinkSourceConnector extends SourceConnector with StrictLogging {
     groups
       .filterNot(g => g.isEmpty)
       .map(g => {
-        val taskConfigs = new java.util.HashMap[String,String]
+        val taskConfigs = new java.util.HashMap[String, String]
         taskConfigs.putAll(configProps)
-        taskConfigs.put(ReThinkSourceConfig.IMPORT_ROUTE_QUERY, g.mkString(";")) //overwrite
+        taskConfigs.put(ReThinkSourceConfigConstants.IMPORT_ROUTE_QUERY, g.mkString(";")) //overwrite
         taskConfigs.toMap.asJava
       })
   }
