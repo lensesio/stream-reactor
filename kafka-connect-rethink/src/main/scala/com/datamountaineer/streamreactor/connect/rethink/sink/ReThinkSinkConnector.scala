@@ -18,13 +18,6 @@ package com.datamountaineer.streamreactor.connect.rethink.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSinkConfigConstants, ReThinkSinkSettings}
-import com.rethinkdb.RethinkDB
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.connect.connector.Task
-import org.apache.kafka.connect.sink.SinkConnector
-
 import scala.collection.JavaConverters._
 
 
@@ -64,14 +57,14 @@ class ReThinkSinkConnector extends SinkConnector with StrictLogging {
       * ReThinkDb allows creation of tables with the same name at the same time
       * Moved the table creation here, it means we parse the config twice as we
       * need the target and primary keys from KCQL.
-      * */
+      **/
     val rethink = RethinkDB.r
     initializeTables(rethink, props)
     configProps = props
   }
 
-  def initializeTables(rethink: RethinkDB,props: util.Map[String, String]): Unit = {
-    val config =  ReThinkSinkConfig(props)
+  def initializeTables(rethink: RethinkDB, props: util.Map[String, String]): Unit = {
+    val config = ReThinkSinkConfig(props)
     val settings = ReThinkSinkSettings(config)
     val rethinkHost = config.getString(ReThinkSinkConfigConstants.RETHINK_HOST)
     val port = config.getInt(ReThinkSinkConfigConstants.RETHINK_PORT)

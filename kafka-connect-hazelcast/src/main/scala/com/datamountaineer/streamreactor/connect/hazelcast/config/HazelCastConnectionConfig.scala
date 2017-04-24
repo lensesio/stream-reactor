@@ -16,8 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.config
 
-import scala.collection.JavaConversions._
-
 /**
   * Created by andrew@datamountaineer.com on 10/08/16. 
   * stream-reactor
@@ -27,7 +25,7 @@ case class HazelCastConnectionConfig(group: String,
                                      redo: Boolean = true,
                                      connectionAttempts: Int,
                                      connectionTimeouts: Long,
-                                     pass : String,
+                                     pass: String,
                                      socketConfig: HazelCastSocketConfig)
 
 case class HazelCastSocketConfig(keepAlive: Boolean = true,

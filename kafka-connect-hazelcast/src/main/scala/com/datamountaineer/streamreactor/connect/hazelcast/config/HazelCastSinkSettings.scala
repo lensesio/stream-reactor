@@ -16,13 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.config
 
-import com.datamountaineer.connector.config.{Config, FormatType}
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
-import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
-import com.datamountaineer.streamreactor.connect.hazelcast.config.TargetType.TargetType
-import com.hazelcast.core.HazelcastInstance
-import org.apache.kafka.connect.errors.ConnectException
-
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -70,7 +63,8 @@ object HazelCastSinkSettings {
 
     new HazelCastSinkSettings(
       client,
-      routes, topicTables,
+      routes,
+      topicTables,
       fieldMap,
       ignoreFields,
       primaryKeys,

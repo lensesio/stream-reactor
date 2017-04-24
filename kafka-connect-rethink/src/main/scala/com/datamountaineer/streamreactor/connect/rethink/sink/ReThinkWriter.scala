@@ -16,15 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
-import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSinkConfigConstants, ReThinkSinkSetting, ReThinkSinkSettings}
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import com.rethinkdb.RethinkDB
-import com.rethinkdb.net.Connection
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
-
 import scala.util.{Failure, Try}
 
 
@@ -71,7 +62,7 @@ class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSinkSe
     } else {
       logger.info(s"Received ${records.size} records.")
       if (!conn.isOpen) conn.reconnect()
-      val grouped = records.groupBy(_.topic())//.grouped(setting.batchSize)
+      val grouped = records.groupBy(_.topic()) //.grouped(setting.batchSize)
       grouped.foreach({ case (topic, entries) => writeRecords(topic, entries) })
     }
   }

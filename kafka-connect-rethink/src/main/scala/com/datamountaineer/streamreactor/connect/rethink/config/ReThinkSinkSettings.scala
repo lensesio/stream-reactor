@@ -16,12 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.config
 
-import com.datamountaineer.connector.config.{Config, WriteModeEnum}
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
-import org.apache.kafka.connect.errors.ConnectException
-
-import scala.collection.JavaConversions._
-
 /**
   * Created by andrew@datamountaineer.com on 13/05/16.
   * stream-reactor-maven
@@ -47,7 +41,7 @@ object ReThinkSinkSettings {
       .filter(r => r.getPrimaryKeys.size > 1)
       .foreach(_ => new ConnectException(
         s"""More than one primary key found in ${ReThinkSinkConfigConstants.EXPORT_ROUTE_QUERY}.
-           |Only one field can be set.""".stripMargin.replaceAll("\n","")))
+           |Only one field can be set.""".stripMargin.replaceAll("\n", "")))
     val errorPolicy = config.getErrorPolicy
     val maxRetries = config.getNumberRetries
     val batchSize = config.getBatchSize

@@ -26,6 +26,5 @@ object ReThinkSourceConfigConstants {
   val RETHINK_PORT = "connect.rethink.source.port"
   val RETHINK_PORT_DEFAULT = "28015"
   private[config] val RETHINK_PORT_DOC = "Client port of rethink server to connect to."
-
   val IMPORT_ROUTE_QUERY = "connect.rethink.source.kcql"
 }

@@ -19,14 +19,6 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 import java.lang.Boolean
 import java.net.ConnectException
 
-import com.datamountaineer.connector.config.Config
-import com.datamountaineer.streamreactor.connect.cassandra.config.TimestampType.TimestampType
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
-import com.datastax.driver.core.ConsistencyLevel
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.ConfigException
-import scala.collection.JavaConversions.asScalaIterator
-
 
 /**
   * Created by andrew@datamountaineer.com on 22/04/16. 
@@ -58,7 +50,8 @@ case class CassandraSinkSetting(keySpace: String,
                                 errorPolicy: ErrorPolicy,
                                 threadPoolSize: Int,
                                 consistencyLevel: Option[ConsistencyLevel],
-                                taskRetries: Int = CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT) extends CassandraSetting
+                                taskRetries: Int = CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT
+                               ) extends CassandraSetting
 
 /**
   * Cassandra Setting used for both Readers and writers
@@ -79,11 +72,8 @@ object CassandraSettings extends StrictLogging {
       case e => throw new ConnectException(s"Unsupported import mode $e.")
     }
 
-
     val consistencyLevel = config.getConsistencyLevel
-
     val timestampType = TimestampType.withName(config.getString(CassandraConfigConstants.TIMESTAMP_TYPE).toUpperCase)
-
     val errorPolicy = config.getErrorPolicy
     val routes = config.getRoutes
     val timestampCols = routes.map(r => (r.getSource, r.getPrimaryKeys.toList)).toMap
@@ -114,17 +104,12 @@ object CassandraSettings extends StrictLogging {
     //get keyspace
     val keySpace = config.getString(CassandraConfigConstants.KEY_SPACE)
     require(!keySpace.isEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
-
     val errorPolicy = config.getErrorPolicy
-
     val retries = config.getNumberRetries
-
     val routes: Set[Config] = config.getRoutes
     val fields = config.getFields(routes)
     val ignoreFields = config.getIgnoreFields(routes)
-
     val threadPoolSize = config.getThreadPoolSize
-
     val consistencyLevel = config.getConsistencyLevel
 
     CassandraSinkSetting(keySpace, routes, fields, ignoreFields, errorPolicy, threadPoolSize, consistencyLevel, retries)

@@ -16,9 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.rethink
 
-import com.rethinkdb.RethinkDB
-import com.rethinkdb.net.Connection
-
 /**
   * Created by andrew@datamountaineer.com on 27/09/16. 
   * stream-reactor

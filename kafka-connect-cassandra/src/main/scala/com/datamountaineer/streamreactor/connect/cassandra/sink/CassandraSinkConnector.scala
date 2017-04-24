@@ -18,12 +18,6 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.connect.connector.{Connector, Task}
-import org.apache.kafka.connect.errors.ConnectException
-
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Try}
 
@@ -32,14 +26,14 @@ import scala.util.{Failure, Try}
   * Kafka connect Cassandra Sink connector
   *
   * Sets up CassandraSinkTask and configurations for the tasks.
-  * */
+  **/
 class CassandraSinkConnector extends Connector with StrictLogging {
-  private var configProps : util.Map[String, String] = _
+  private var configProps: util.Map[String, String] = _
   private val configDef = CassandraConfigSink.sinkConfig
 
   /**
     * States which SinkTask class to use
-    * */
+    **/
   override def taskClass(): Class[_ <: Task] = classOf[CassandraSinkTask]
 
   /**
@@ -47,7 +41,7 @@ class CassandraSinkConnector extends Connector with StrictLogging {
     *
     * @param maxTasks The max number of task workers be can spawn
     * @return a List of configuration properties per worker
-    * */
+    **/
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
     (1 to maxTasks).map(c => configProps).toList
@@ -57,7 +51,7 @@ class CassandraSinkConnector extends Connector with StrictLogging {
     * Start the sink and set to configuration
     *
     * @param props A map of properties for the connector and worker
-    * */
+    **/
   override def start(props: util.Map[String, String]): Unit = {
     configProps = props
     Try(new CassandraConfigSink(props)) match {
@@ -68,6 +62,8 @@ class CassandraSinkConnector extends Connector with StrictLogging {
   }
 
   override def stop(): Unit = {}
+
   override def version(): String = "1"
+
   override def config(): ConfigDef = configDef
 }
