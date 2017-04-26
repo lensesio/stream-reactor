@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 package com.datamountaineer.streamreactor.connect.hazelcast.writers
 
 import java.io.ByteArrayOutputStream
