@@ -76,11 +76,11 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   protected val PARTITION: Int = 12
   protected val PARTITION2: Int = 13
   protected val TOPIC_PARTITION: TopicPartition = new TopicPartition(TOPIC, PARTITION)
+  protected val TOPIC_PARTITION2: TopicPartition = new TopicPartition(TOPIC, PARTITION2)
+  protected val ASSIGNMENT: util.Set[TopicPartition] = new util.HashSet[TopicPartition]
   //Set topic assignments
   ASSIGNMENT.add(TOPIC_PARTITION)
   ASSIGNMENT.add(TOPIC_PARTITION2)
-  protected val TOPIC_PARTITION2: TopicPartition = new TopicPartition(TOPIC, PARTITION2)
-  protected val ASSIGNMENT: util.Set[TopicPartition] = new util.HashSet[TopicPartition]
 
   before {
 
