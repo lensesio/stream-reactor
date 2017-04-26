@@ -97,14 +97,31 @@ object TagsExtractor extends StrictLogging {
       Option(struct.schema().field(key))
         .flatMap { field =>
           val schema = field.schema()
-          val value = schema.name() match {
-            case Decimal.LOGICAL_NAME => Decimal.toLogical(schema, struct.getBytes(key))
-            case Date.LOGICAL_NAME => StructFieldsExtractor.DateFormat.format(Date.toLogical(schema, struct.getInt32(key)))
-            case Time.LOGICAL_NAME => StructFieldsExtractor.TimeFormat.format(Time.toLogical(schema, struct.getInt32(key)))
-            case Timestamp.LOGICAL_NAME => StructFieldsExtractor.DateFormat.format(Timestamp.toLogical(schema, struct.getInt64(key)))
-            case _ => struct.get(key)
+          Option(struct.get(field)).map { value =>
+            schema.name() match {
+              case Decimal.LOGICAL_NAME =>
+                value match {
+                  case java.math.BigDecimal => value
+                  case arr: Array[Byte] => Decimal.toLogical(schema, arr)
+                  case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
+                }
+              case Time.LOGICAL_NAME =>
+                value.asInstanceOf[Any] match {
+                  case i: Int => StructFieldsExtractor.TimeFormat.format(Time.toLogical(schema, i))
+                  case d@java.util.Date => StructFieldsExtractor.TimeFormat.format(d)
+                  case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
+                }
+
+              case Timestamp.LOGICAL_NAME =>
+                value.asInstanceOf[Any] match {
+                  case d@java.util.Date => StructFieldsExtractor.DateFormat.format(d)
+                  case l: Long => StructFieldsExtractor.DateFormat.format(Timestamp.toLogical(schema, l))
+                  case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
+                }
+              case _ => value
+            }
           }
-          Option(value)
+
         }
     }
 
