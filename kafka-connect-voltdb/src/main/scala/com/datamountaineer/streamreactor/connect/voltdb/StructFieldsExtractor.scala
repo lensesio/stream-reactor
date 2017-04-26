@@ -16,6 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.voltdb
 
+import java.text.SimpleDateFormat
+import java.util.TimeZone
+
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.{Field, Struct, _}
 
@@ -55,10 +58,26 @@ case class StructFieldsExtractor(targetTable: String,
         .map { value =>
           //handle specific schema
           schema.name() match {
-            case Decimal.LOGICAL_NAME => Decimal.toLogical(schema, value.asInstanceOf[Array[Byte]])
-            case Date.LOGICAL_NAME => Date.toLogical(schema, value.asInstanceOf[Int])
-            case Time.LOGICAL_NAME => Time.toLogical(schema, value.asInstanceOf[Int])
-            case Timestamp.LOGICAL_NAME => Timestamp.toLogical(schema, value.asInstanceOf[Long])
+            case Decimal.LOGICAL_NAME =>
+              value match {
+                case java.math.BigDecimal => value
+                case arr: Array[Byte] => Decimal.toLogical(schema, arr)
+                case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
+              }
+            case Time.LOGICAL_NAME =>
+              value.asInstanceOf[Any] match {
+                case i: Int => StructFieldsExtractor.TimeFormat.format(Time.toLogical(schema, i))
+                case d@java.util.Date => StructFieldsExtractor.TimeFormat.format(d)
+                case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
+              }
+
+            case Timestamp.LOGICAL_NAME =>
+              value.asInstanceOf[Any] match {
+                case d@java.util.Date => StructFieldsExtractor.DateFormat.format(d)
+                case l: Long => StructFieldsExtractor.DateFormat.format(Timestamp.toLogical(schema, l))
+                case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
+              }
+
             case _ => value
           }
         }.orNull
@@ -69,3 +88,8 @@ case class StructFieldsExtractor(targetTable: String,
 }
 
 
+object StructFieldsExtractor {
+  val DateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+  val TimeFormat: SimpleDateFormat = new SimpleDateFormat("HH:mm:ss.SSSZ")
+  DateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
+}

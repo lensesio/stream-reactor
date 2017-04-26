@@ -81,10 +81,25 @@ case class StructFieldsExtractor(includeAllFields: Boolean,
           }
 
           schema.name() match {
-            case Decimal.LOGICAL_NAME => Decimal.toLogical(schema, value.asInstanceOf[Array[Byte]])
-            case Date.LOGICAL_NAME => StructFieldsExtractor.DateFormat.format(Date.toLogical(schema, value.asInstanceOf[Int]))
-            case Time.LOGICAL_NAME => StructFieldsExtractor.TimeFormat.format(Time.toLogical(schema, value.asInstanceOf[Int]))
-            case Timestamp.LOGICAL_NAME => StructFieldsExtractor.DateFormat.format(Timestamp.toLogical(schema, value.asInstanceOf[Long]))
+            case Decimal.LOGICAL_NAME =>
+              value match {
+                case java.math.BigDecimal => value
+                case arr: Array[Byte] => Decimal.toLogical(schema, arr)
+                case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
+              }
+            case Time.LOGICAL_NAME =>
+              value.asInstanceOf[Any] match {
+                case i: Int => StructFieldsExtractor.TimeFormat.format(Time.toLogical(schema, i))
+                case d@java.util.Date => StructFieldsExtractor.TimeFormat.format(d)
+                case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
+              }
+
+            case Timestamp.LOGICAL_NAME =>
+              value.asInstanceOf[Any] match {
+                case d@java.util.Date => StructFieldsExtractor.DateFormat.format(d)
+                case l: Long => StructFieldsExtractor.DateFormat.format(Timestamp.toLogical(schema, l))
+                case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
+              }
             case _ => value
           }
 

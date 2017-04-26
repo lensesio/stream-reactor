@@ -20,7 +20,6 @@ import java.text.SimpleDateFormat
 import java.util.TimeZone
 
 import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
-import com.datamountaineer.streamreactor.connect.hbase.StructFieldsExtractorBytes._
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data._
 
@@ -57,42 +56,40 @@ case class StructFieldsExtractorBytes(includeAllFields: Boolean, fieldsAliasMap:
   private def getFieldBytes(field: Field, struct: Struct): Option[Array[Byte]] = {
     Option(struct.get(field))
       .map { value =>
-        field.schema().`type`() match {
-          case Schema.Type.BOOLEAN => value.fromBoolean()
-          case Schema.Type.BYTES =>
-            if (Decimal.LOGICAL_NAME.equals(field.schema().name())) {
-              Decimal.toLogical(field.schema(), value.asInstanceOf[Array[Byte]]).fromBigDecimal()
-            } else value.fromBytes()
-          case Schema.Type.FLOAT32 => value.fromFloat()
-          case Schema.Type.FLOAT64 => value.fromDouble()
-          case Schema.Type.INT8 => value.fromByte()
-          case Schema.Type.INT16 => value.fromShort()
-          case Schema.Type.INT32 =>
-            field.schema().name match {
-              case Date.LOGICAL_NAME =>
-                DateFormat.format(Date.toLogical(field.schema(), value.asInstanceOf[Int])).fromString()
-              case Time.LOGICAL_NAME =>
-                TimeFormat.format(Time.toLogical(field.schema(), value.asInstanceOf[Int])).fromString()
-              case other => value.fromInt()
+        Option(field.schema().name()).collect {
+          case Decimal.LOGICAL_NAME =>
+            value match {
+              case java.math.BigDecimal => value.fromBigDecimal()
+              case arr: Array[Byte] => Decimal.toLogical(field.schema, arr).fromBigDecimal()
+              case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
             }
-          case Schema.Type.INT64 =>
-            if (Timestamp.LOGICAL_NAME == field.schema().name()) {
-              DateFormat.format(Timestamp.toLogical(field.schema(), value.asInstanceOf[Long])).fromString()
-            } else value.fromLong()
-          case Schema.Type.STRING => value.fromString()
-          case other =>
-            other.name() match {
-              case Decimal.LOGICAL_NAME =>
-                Decimal.toLogical(field.schema(), value.asInstanceOf[Array[Byte]]).fromBigDecimal()
-              case Date.LOGICAL_NAME =>
-                DateFormat.format(Date.toLogical(field.schema(), value.asInstanceOf[Int])).fromString()
-              case Time.LOGICAL_NAME =>
-                TimeFormat.format(Time.toLogical(field.schema(), value.asInstanceOf[Int])).fromString()
-              case Timestamp.LOGICAL_NAME =>
-                DateFormat.format(Timestamp.toLogical(field.schema(), value.asInstanceOf[Long])).fromString()
+          case Time.LOGICAL_NAME =>
+            value.asInstanceOf[Any] match {
+              case i: Int => StructFieldsExtractorBytes.TimeFormat.format(Time.toLogical(field.schema, i)).fromString()
+              case d@java.util.Date => StructFieldsExtractorBytes.TimeFormat.format(d).fromString()
+              case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
+            }
 
-              case _ => sys.error(s"$other is not a recognized schema!")
+          case Timestamp.LOGICAL_NAME =>
+            value.asInstanceOf[Any] match {
+              case d@java.util.Date => StructFieldsExtractorBytes.DateFormat.format(d).fromString()
+              case l: Long => StructFieldsExtractorBytes.DateFormat.format(Timestamp.toLogical(field.schema, l)).fromString()
+              case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
             }
+        }.getOrElse {
+
+          field.schema().`type`() match {
+            case Schema.Type.BOOLEAN => value.fromBoolean()
+            case Schema.Type.BYTES => value.fromBytes()
+            case Schema.Type.FLOAT32 => value.fromFloat()
+            case Schema.Type.FLOAT64 => value.fromDouble()
+            case Schema.Type.INT8 => value.fromByte()
+            case Schema.Type.INT16 => value.fromShort()
+            case Schema.Type.INT32 => value.fromInt()
+            case Schema.Type.INT64 => value.fromLong()
+            case Schema.Type.STRING => value.fromString()
+            case other => sys.error(s"$other is not a recognized schema!")
+          }
         }
       }
   }
