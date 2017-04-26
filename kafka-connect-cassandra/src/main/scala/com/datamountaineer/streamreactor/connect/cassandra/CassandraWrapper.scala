@@ -35,6 +35,7 @@ object CassandraWrapper {
     Futures.addCallback(f,
       new FutureCallback[ResultSet] {
         def onSuccess(r: ResultSet) = p success r
+
         def onFailure(t: Throwable) = p failure t
       })
     p.future

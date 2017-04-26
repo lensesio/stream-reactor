@@ -16,6 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
+import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkSinkSetting
+import com.rethinkdb.RethinkDB
+import com.rethinkdb.net.Connection
+import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.connect.errors.ConnectException
+
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
 

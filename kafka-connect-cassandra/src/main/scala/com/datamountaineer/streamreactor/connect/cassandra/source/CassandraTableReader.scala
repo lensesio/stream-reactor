@@ -21,9 +21,23 @@ import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.{Collections, Date}
 
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSourceSetting, TimestampType}
+import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraResultSetWrapper.resultSetFutureToScala
+import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
+import com.datamountaineer.streamreactor.connect.offsets.OffsetHandler
+import com.datastax.driver.core._
+import com.datastax.driver.core.utils.UUIDs
+import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.connect.errors.ConnectException
+import org.apache.kafka.connect.source.{SourceRecord, SourceTaskContext}
+
+import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
+
+import org.apache.kafka.common.config.ConfigException
+import org.apache.kafka.connect.data.Schema
 
 /**
   * Created by andrew@datamountaineer.com on 20/04/16.

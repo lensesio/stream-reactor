@@ -16,6 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.config
 
+import com.datamountaineer.connector.config.Config
+
 /**
   * Created by andrew@datamountaineer.com on 22/09/16. 
   * stream-reactor

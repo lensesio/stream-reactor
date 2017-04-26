@@ -18,8 +18,18 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
+import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
+import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.clients.consumer.OffsetAndMetadata
+import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.connect.errors.ConnectException
+import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
+
 
 /**
   * <h1>CassandraSinkTask</h1>

@@ -18,7 +18,16 @@ package com.datamountaineer.streamreactor.connect.rethink.source
 
 import java.util
 
+import akka.actor.{ActorRef, ActorSystem}
+import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkSourceConfig
+import com.datamountaineer.streamreactor.connect.rethink.source.ReThinkSourceReader.{StartChangeFeed, StopChangeFeed}
+import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
+import com.rethinkdb.RethinkDB
+import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
+
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 

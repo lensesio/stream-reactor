@@ -16,6 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.config
 
+import scala.collection.JavaConversions._
+
 /**
   * Created by andrew@datamountaineer.com on 10/08/16. 
   * stream-reactor

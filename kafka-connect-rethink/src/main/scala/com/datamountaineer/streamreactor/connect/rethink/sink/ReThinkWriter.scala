@@ -16,8 +16,16 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
-import scala.util.{Failure, Try}
+import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
+import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSinkConfigConstants, ReThinkSinkSetting, ReThinkSinkSettings}
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.rethinkdb.RethinkDB
+import com.rethinkdb.net.Connection
+import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 
+import scala.util.{Failure, Try}
 
 object ReThinkWriter extends StrictLogging {
   def apply(config: ReThinkSinkConfig, context: SinkTaskContext): ReThinkWriter = {

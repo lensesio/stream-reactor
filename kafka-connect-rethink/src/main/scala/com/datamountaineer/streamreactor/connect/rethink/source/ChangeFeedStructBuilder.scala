@@ -16,6 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.source
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 
 /**
   * Created by andrew@datamountaineer.com on 22/09/16. 

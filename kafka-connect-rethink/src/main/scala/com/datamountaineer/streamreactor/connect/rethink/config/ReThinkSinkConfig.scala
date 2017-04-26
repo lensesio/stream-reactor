@@ -18,6 +18,10 @@ package com.datamountaineer.streamreactor.connect.rethink.config
 
 import java.util
 
+import com.datamountaineer.streamreactor.temp._
+import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
+import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
+
 /**
   * Created by andrew@datamountaineer.com on 24/03/16. 
   * stream-reactor

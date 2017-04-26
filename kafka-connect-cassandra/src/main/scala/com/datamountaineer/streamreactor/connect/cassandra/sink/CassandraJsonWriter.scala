@@ -18,6 +18,19 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import java.util.concurrent.Executors
 
+import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSinkSetting
+import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
+import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
+import com.datamountaineer.streamreactor.connect.concurrent.FutureAwaitWithFailFastFn
+import com.datamountaineer.streamreactor.connect.converters.source.SinkRecordToJson
+import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.datastax.driver.core.exceptions.SyntaxError
+import com.datastax.driver.core.{PreparedStatement, Session}
+import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.connect.sink.SinkRecord
+
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 

@@ -18,6 +18,12 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
+import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.common.config.ConfigDef
+import org.apache.kafka.connect.connector.{Connector, Task}
+import org.apache.kafka.connect.errors.ConnectException
+
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Try}
 

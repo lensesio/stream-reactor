@@ -18,6 +18,14 @@ package com.datamountaineer.streamreactor.connect.rethink.sink
 
 import java.util
 
+import org.apache.kafka.common.config.ConfigException
+import org.apache.kafka.connect.data.Schema.Type
+import org.apache.kafka.connect.data._
+import org.apache.kafka.connect.sink.SinkRecord
+import org.json4s.{DefaultFormats, JValue}
+
+import scala.collection.JavaConversions._
+
 /**
   * Created by stepi on 11/10/16.
   */

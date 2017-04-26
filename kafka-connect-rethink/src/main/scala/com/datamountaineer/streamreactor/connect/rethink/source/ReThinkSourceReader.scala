@@ -19,6 +19,18 @@ package com.datamountaineer.streamreactor.connect.rethink.source
 import java.util
 import java.util.concurrent.LinkedBlockingQueue
 
+import akka.actor.{Actor, Props}
+import com.datamountaineer.connector.config.Config
+import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
+import com.datamountaineer.streamreactor.connect.rethink.ReThinkConnection
+import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSourceConfig, ReThinkSourceConfigConstants, ReThinkSourceSettings}
+import com.datamountaineer.streamreactor.connect.rethink.source.ReThinkSourceReader.{DataRequest, StartChangeFeed, StopChangeFeed}
+import com.rethinkdb.RethinkDB
+import com.rethinkdb.net.{Connection, Cursor}
+import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.source.SourceRecord
+
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

@@ -16,6 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.config
 
+import com.datamountaineer.connector.config.{Config, WriteModeEnum}
+import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
+import org.apache.kafka.connect.errors.ConnectException
+
+import scala.collection.JavaConversions._
+
 /**
   * Created by andrew@datamountaineer.com on 13/05/16.
   * stream-reactor-maven
