@@ -28,16 +28,34 @@ import scala.collection.JavaConversions._
 trait KuduConverter {
 
   /**
+    * Convert a SinkRecord to a Kudu row upsert for a Kudu Table
+    *
+    * @param record A SinkRecord to convert
+    * @param table  A Kudu table to create a row insert for
+    * @return A Kudu upsert operation
+    **/
+  def convertToKuduUpsert(record: SinkRecord, table: KuduTable): Upsert = {
+    val recordFields = record.valueSchema().fields()
+    val kuduColNames = table.getSchema.getColumns.map(c => c.getName)
+    val upsert = table.newUpsert()
+    val row = upsert.getRow
+    recordFields
+      .filter(f => kuduColNames.contains(f.name())) //handle missing fields in target (maybe dropped)
+      .map(f => addFieldToRow(record, f, row))
+    upsert
+  }
+
+  /**
     * Convert SinkRecord type to Kudu and add the column to the Kudu row
     *
-    * @param field SinkRecord Field
+    * @param field  SinkRecord Field
     * @param record Sink record
-    * @param row The Kudu row to add the field to
+    * @param row    The Kudu row to add the field to
     * @return the updated Kudu row
     **/
-   private def addFieldToRow( record: SinkRecord,
-                              field: Field,
-                              row: PartialRow): PartialRow = {
+  private def addFieldToRow(record: SinkRecord,
+                            field: Field,
+                            row: PartialRow): PartialRow = {
     val fieldType = field.schema().`type`()
     val fieldName = field.name()
     val struct = record.value().asInstanceOf[Struct]
@@ -58,40 +76,22 @@ trait KuduConverter {
   }
 
   /**
-    * Convert a SinkRecord to a Kudu row upsert for a Kudu Table
-    *
-    * @param record A SinkRecord to convert
-    * @param table A Kudu table to create a row insert for
-    * @return A Kudu upsert operation
-    * */
-  def convertToKuduUpsert(record: SinkRecord, table: KuduTable): Upsert = {
-    val recordFields = record.valueSchema().fields()
-    val kuduColNames = table.getSchema.getColumns.map(c => c.getName)
-    val upsert = table.newUpsert()
-    val row = upsert.getRow
-    recordFields
-      .filter(f => kuduColNames.contains(f.name())) //handle missing fields in target (maybe dropped)
-      .map(f => addFieldToRow(record, f, row))
-    upsert
-  }
-
-  /**
     * Convert Connect Schema to Kudu
     *
     * @param record A sinkRecord to get the value schema from
-    * */
-  def convertToKuduSchema(record: SinkRecord) : org.kududb.Schema = {
+    **/
+  def convertToKuduSchema(record: SinkRecord): org.kududb.Schema = {
     val connectFields = record.valueSchema().fields()
     val kuduFields = createKuduColumns(connectFields.toSet)
     new org.kududb.Schema(kuduFields.toList)
   }
 
-  def convertToKuduSchema(schema : Schema) : org.kududb.Schema = {
+  def convertToKuduSchema(schema: Schema): org.kududb.Schema = {
     val connectFields = createKuduColumns(schema.fields().toSet)
     new org.kududb.Schema(connectFields.toList)
   }
 
-  def createKuduColumns(fields: Set[Field]): Set[ColumnSchema] = fields.map(cf=>convertConnectField(cf))
+  def createKuduColumns(fields: Set[Field]): Set[ColumnSchema] = fields.map(cf => convertConnectField(cf))
 
 
   /**
@@ -99,21 +99,21 @@ trait KuduConverter {
     *
     * @param field The Connect field to convert
     * @return The equivalent Kudu type
-    * */
-  def convertConnectField(field: Field) : ColumnSchema = {
+    **/
+  def convertConnectField(field: Field): ColumnSchema = {
     val fieldType = field.schema().`type`()
     val fieldName = field.name()
     val kudu = fieldType match {
-        case Type.STRING => new ColumnSchemaBuilder(fieldName, org.kududb.Type.STRING)
-        case Type.INT8 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.INT8)
-        case Type.INT16 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.INT16)
-        case Type.INT32 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.INT32)
-        case Type.INT64 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.INT64)
-        case Type.BOOLEAN => new ColumnSchemaBuilder(fieldName, org.kududb.Type.BOOL)
-        case Type.FLOAT32 | Type.FLOAT64 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.FLOAT)
-        case Type.BYTES => new ColumnSchemaBuilder(fieldName, org.kududb.Type.BINARY)
-        case _ => throw new UnsupportedOperationException(s"Unknown type $fieldType")
-      }
+      case Type.STRING => new ColumnSchemaBuilder(fieldName, org.kududb.Type.STRING)
+      case Type.INT8 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.INT8)
+      case Type.INT16 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.INT16)
+      case Type.INT32 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.INT32)
+      case Type.INT64 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.INT64)
+      case Type.BOOLEAN => new ColumnSchemaBuilder(fieldName, org.kududb.Type.BOOL)
+      case Type.FLOAT32 | Type.FLOAT64 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.FLOAT)
+      case Type.BYTES => new ColumnSchemaBuilder(fieldName, org.kududb.Type.BINARY)
+      case _ => throw new UnsupportedOperationException(s"Unknown type $fieldType")
+    }
     val default = field.schema().defaultValue()
     if (default != null) kudu.defaultValue(default)
     kudu.build()
@@ -122,11 +122,11 @@ trait KuduConverter {
   /**
     * Convert an Avro schema
     *
-    * @param schema The avro field schema to convert
+    * @param schema    The avro field schema to convert
     * @param fieldName The fieldName to use for the Kudu column
     * @return A Kudu ColumnSchemaBuilder
-    * */
-  def fromAvro(schema:  org.apache.avro.Schema, fieldName: String): ColumnSchemaBuilder = {
+    **/
+  def fromAvro(schema: org.apache.avro.Schema, fieldName: String): ColumnSchemaBuilder = {
     schema.getType match {
       case org.apache.avro.Schema.Type.RECORD =>
         throw new RuntimeException("Avro type RECORD not supported")
@@ -142,7 +142,7 @@ trait KuduConverter {
       case org.apache.avro.Schema.Type.LONG => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.INT64)
       case org.apache.avro.Schema.Type.FLOAT => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.FLOAT)
       case org.apache.avro.Schema.Type.DOUBLE => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.FLOAT)
-      case org.apache.avro.Schema.Type.BOOLEAN =>new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.BOOL)
+      case org.apache.avro.Schema.Type.BOOLEAN => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.BOOL)
       case org.apache.avro.Schema.Type.NULL => throw new RuntimeException("Avro type NULL not supported")
       case _ => throw new RuntimeException("Avro type not supported")
     }
@@ -153,9 +153,8 @@ trait KuduConverter {
     *
     * @param schema The schema to resolve the union for
     * @return An Avro schema for the data type from the union
-    * */
-  private def getNonNull(schema: org.apache.avro.Schema): org.apache.avro.Schema =
-  {
+    **/
+  private def getNonNull(schema: org.apache.avro.Schema): org.apache.avro.Schema = {
     val unionTypes = schema.getTypes
     if (unionTypes.size == 2) {
       if (unionTypes.get(0).getType == org.apache.avro.Schema.Type.NULL) {

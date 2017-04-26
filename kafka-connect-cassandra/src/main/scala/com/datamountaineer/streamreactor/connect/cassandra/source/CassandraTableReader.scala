@@ -40,9 +40,9 @@ import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data.Schema
 
 /**
- * Created by andrew@datamountaineer.com on 20/04/16.
- * stream-reactor
- */
+  * Created by andrew@datamountaineer.com on 20/04/16.
+  * stream-reactor
+  */
 class CassandraTableReader(private val session: Session,
                            private val setting: CassandraSourceSetting,
                            private val context: SourceTaskContext,
@@ -65,11 +65,11 @@ class CassandraTableReader(private val session: Session,
 
 
   /**
-   * Build a map of table to offset.
-   *
-   * @param context SourceTaskContext for this task.
-   * @return The last stored offset.
-   */
+    * Build a map of table to offset.
+    *
+    * @param context SourceTaskContext for this task.
+    * @return The last stored offset.
+    */
   private def buildOffsetMap(context: SourceTaskContext): Option[Date] = {
     val offsetStorageKey = CassandraConfigConstants.ASSIGNED_TABLES
     val tables = List(topic)
@@ -79,10 +79,10 @@ class CassandraTableReader(private val session: Session,
   }
 
   /**
-   * Build a preparedStatement for the given table.
-   *
-   * @return the PreparedStatement 
-   */
+    * Build a preparedStatement for the given table.
+    *
+    * @return the PreparedStatement
+    */
   private def getPreparedStatements: PreparedStatement = {
     // if we are in incremental mode
     // we need to have the time stamp column
@@ -104,19 +104,20 @@ class CassandraTableReader(private val session: Session,
       }
       s"SELECT $selectColumns FROM $keySpace.$table $predicate"
     }
-    
+
     val statement = session.prepare(selectStatement)
     setting.consistencyLevel.foreach(statement.setConsistencyLevel)
     statement
   }
-  
+
   /**
-   * get the columns for the SELECT statement
-   * @return the comma separated columns
-   */
+    * get the columns for the SELECT statement
+    *
+    * @return the comma separated columns
+    */
   private def getSelectColumns: String = {
     val faList = setting.routes.getFieldAlias.map(fa => fa.getField).toList
-    
+
     //if no columns set then select the whole table
     val f = if (faList == null || faList.isEmpty) "*" else faList.mkString(",")
     logger.info(s"the fields to select are $f")
@@ -124,9 +125,9 @@ class CassandraTableReader(private val session: Session,
   }
 
   /**
-   * Fires Cassandra queries and increments the timestamp
-   * Every Row returned from query is put into the queue for processing.
-   */
+    * Fires Cassandra queries and increments the timestamp
+    * Every Row returned from query is put into the queue for processing.
+    */
   def read(): Unit = {
     if (!stop.get()) {
       val newPollTime = System.currentTimeMillis()
@@ -134,13 +135,13 @@ class CassandraTableReader(private val session: Session,
       // don't issue another query for the table if we are querying
       if (querying.get()) {
         logger.debug(s"Still querying for $keySpace.$table. Current queue size is ${queue.size()}.")
-      } 
+      }
       // wait for next poll interval to expire
       else if (lastPoll + setting.pollInterval < newPollTime) {
         lastPoll = newPollTime
         query()
       }
-    } 
+    }
     else {
       logger.info(s"Told to stop for $keySpace.$table.")
     }
@@ -153,7 +154,7 @@ class CassandraTableReader(private val session: Session,
     // execute the query, gives us back a future result set
     val frs = if (setting.bulkImportMode) {
       resultSetFutureToScala(fireQuery())
-    } 
+    }
     else {
       // if the tableoffset has been set use it as the lower bound else get default (1900-01-01) for first query
       val lowerBound = if (tableOffset.isEmpty) dateFormatter.parse(defaultTimestamp) else tableOffset.get
@@ -168,12 +169,12 @@ class CassandraTableReader(private val session: Session,
   }
 
   /**
-   * Bind and execute the preparedStatement and set querying to true.
-   *
-   * @param previous The previous timestamp to bind.
-   * @param now      The current timestamp on the db to bind.
-   * @return a ResultSet.
-   */
+    * Bind and execute the preparedStatement and set querying to true.
+    *
+    * @param previous The previous timestamp to bind.
+    * @param now      The current timestamp on the db to bind.
+    * @return a ResultSet.
+    */
   private def bindAndFireQuery(previous: Date, now: Date) = {
     //bind the offset and db time
     val formattedPrevious = dateFormatter.format(previous)
@@ -184,10 +185,10 @@ class CassandraTableReader(private val session: Session,
   }
 
   /**
-   * Execute the preparedStatement and set querying to true.
-   *
-   * @return a ResultSet.
-   */
+    * Execute the preparedStatement and set querying to true.
+    *
+    * @return a ResultSet.
+    */
   private def fireQuery(): ResultSetFuture = {
     //bind the offset and db time
     val bound = preparedStatement.bind()
@@ -197,11 +198,11 @@ class CassandraTableReader(private val session: Session,
   }
 
   /**
-   * Iterate over the resultset, extract SourceRecords
-   * and add them to the queue.
-   *
-   * @param future Cassandra Future ResultSet to iterate over.
-   */
+    * Iterate over the resultset, extract SourceRecords
+    * and add them to the queue.
+    *
+    * @param future Cassandra Future ResultSet to iterate over.
+    */
   private def process(future: Future[ResultSet]) = {
     //get the max offset per query
     var maxOffset: Option[Date] = None
@@ -244,11 +245,11 @@ class CassandraTableReader(private val session: Session,
   }
 
   /**
-   * Process a Cassandra row, convert it to a SourceRecord and put in queue
-   *
-   * @param row The Cassandra row to process.
-   *
-   */
+    * Process a Cassandra row, convert it to a SourceRecord and put in queue
+    *
+    * @param row The Cassandra row to process.
+    *
+    */
   private def processRow(row: Row) = {
     // convert the cassandra row to a struct
     val ignoreList = setting.routes.getIgnoredField.toList
@@ -279,11 +280,11 @@ class CassandraTableReader(private val session: Session,
   }
 
   /**
-   * Extract the CQL UUID timestamp and return a date
-   *
-   * @param row The row to extract the timestamp from
-   * @return A java.util.Date
-   */
+    * Extract the CQL UUID timestamp and return a date
+    *
+    * @param row The row to extract the timestamp from
+    * @return A java.util.Date
+    */
   private def extractTimestamp(row: Row): Date = {
     Try(row.getTimestamp(setting.timestampColumn.get)) match {
       case Success(s) => s
@@ -292,10 +293,10 @@ class CassandraTableReader(private val session: Session,
   }
 
   /**
-   * Set the offset for the table and set querying to false
-   *
-   * @param offset the date to set the offset to
-   */
+    * Set the offset for the table and set querying to false
+    *
+    * @param offset the date to set the offset to
+    */
   private def reset(offset: Option[Date]) = {
     //set the offset to the 'now' bind value
     val table = setting.routes.getTarget
@@ -307,8 +308,8 @@ class CassandraTableReader(private val session: Session,
   }
 
   /**
-   * Closed down the driver session and cluster.
-   */
+    * Closed down the driver session and cluster.
+    */
   def close(): Unit = {
     logger.info("Shutting down Queries.")
     stopQuerying()
@@ -316,8 +317,8 @@ class CassandraTableReader(private val session: Session,
   }
 
   /**
-   * Tell me to stop processing.
-   */
+    * Tell me to stop processing.
+    */
   def stopQuerying(): Unit = {
     val table = setting.routes.getTarget
     stop.set(true)
@@ -328,8 +329,8 @@ class CassandraTableReader(private val session: Session,
   }
 
   /**
-   * Is the reader in the middle of a query
-   */
+    * Is the reader in the middle of a query
+    */
   def isQuerying: Boolean = {
     querying.get()
   }

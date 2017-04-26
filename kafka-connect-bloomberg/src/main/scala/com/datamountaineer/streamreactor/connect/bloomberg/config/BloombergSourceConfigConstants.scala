@@ -14,15 +14,10 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.bloomberg
+package com.datamountaineer.streamreactor.connect.bloomberg.config
 
-import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
-import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
+object BloombergSourceConfigConstants {
 
-
-class ConnectorConfig(map: java.util.Map[String, String]) extends AbstractConfig(ConnectorConfig.config, map)
-
-object ConnectorConfig {
   val SERVER_HOST = "connect.bloomberg.server.host"
   val SERVER_HOST_DOC = "The hostname running the bloomberg service"
 
@@ -73,13 +68,4 @@ object ConnectorConfig {
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
-  lazy val config = new ConfigDef()
-    .define(SERVER_HOST, Type.STRING, Importance.HIGH, SERVER_HOST_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, SERVER_HOST)
-    .define(SERVER_PORT, Type.INT, Importance.HIGH, SERVER_PORT_DOC, "Connection", 2, ConfigDef.Width.MEDIUM, SERVER_PORT)
-    .define(SERVICE_URI, Type.STRING, Importance.HIGH, SERVICE_URI_DOC,  "Connection", 3, ConfigDef.Width.MEDIUM, SERVICE_URI)
-    .define(SUBSCRIPTIONS, Type.STRING, Importance.HIGH, SUBSCRIPTION_DOC,  "Subscription", 1, ConfigDef.Width.MEDIUM, SUBSCRIPTIONS)
-    .define(AUTHENTICATION_MODE, Type.STRING, Importance.LOW, AUTHENTICATION_MODE_DOC, "Connection", 4, ConfigDef.Width.MEDIUM, AUTHENTICATION_MODE)
-    .define(KAFKA_TOPIC, Type.STRING, Importance.HIGH, KAFKA_TOPIC_DOC, "Subscription", 1, ConfigDef.Width.MEDIUM, KAFKA_TOPIC)
-    .define(BUFFER_SIZE, Type.INT, Importance.MEDIUM, BUFFER_SIZE_DOC, "Connection", 4, ConfigDef.Width.SHORT, BUFFER_SIZE)
-    .define(PAYLOAD_TYPE, Type.STRING, Importance.MEDIUM, PAYLOAD_TYPE_DOC, "Subscription", 2, ConfigDef.Width.SHORT, PAYLOAD_TYPE)
 }

@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
 import com.datamountaineer.streamreactor.connect.rethink.TestBase
-import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkSinkConfig
+import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSinkConfigConstants}
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.gen.ast.{Db, TableCreate, TableList}
 import com.rethinkdb.net.Connection
@@ -41,8 +41,8 @@ class TestReThinkSinkConnector extends TestBase with MockitoSugar{
     val tableList = mock[TableList]
     val tableCreate = mock[TableCreate]
 
-    when(connBuilder.hostname(ReThinkSinkConfig.RETHINK_HOST_DEFAULT)).thenReturn(connBuilder)
-    when(connBuilder.port(ReThinkSinkConfig.RETHINK_PORT_DEFAULT.toInt)).thenReturn(connBuilder)
+    when(connBuilder.hostname(ReThinkSinkConfigConstants.RETHINK_HOST_DEFAULT)).thenReturn(connBuilder)
+    when(connBuilder.port(ReThinkSinkConfigConstants.RETHINK_PORT_DEFAULT.toInt)).thenReturn(connBuilder)
     when(connBuilder.connect()).thenReturn(conn)
     when(r.connection()).thenReturn(connBuilder)
     when(r.db(DB)).thenReturn(db)

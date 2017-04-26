@@ -61,7 +61,7 @@ class MqttManager(connectionFn: (MqttCallback) => MqttClient,
           case Some(record) =>
             queue.add(record)
             message.setRetained(false)
-            //message.setPayload(Array.empty)
+          //message.setPayload(Array.empty)
           case None =>
             logger.warn(s"Error converting message with id:${message.getId} on topic:$topic. 'null' record returned by converter")
             if (throwOnErrors)

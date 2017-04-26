@@ -36,7 +36,7 @@ import scala.concurrent.duration._
   * stream-reactor
   */
 class ReThinkSourceTask extends SourceTask with StrictLogging {
-  private var readers : Set[ActorRef] = _
+  private var readers: Set[ActorRef] = _
   implicit val system = ActorSystem()
 
   private var progressCounter = new ProgressCounter
@@ -46,27 +46,26 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
     val config = ReThinkSourceConfig(props)
     lazy val r = RethinkDB.r
     startReaders(config, r)
-
   }
 
   def startReaders(config: ReThinkSourceConfig, rethinkDB: RethinkDB): Unit = {
     val actorProps = ReThinkSourceReader(config, rethinkDB)
     readers = actorProps.map({ case (source, prop) => system.actorOf(prop, source) }).toSet
-    readers.foreach( _ ! StartChangeFeed)
+    readers.foreach(_ ! StartChangeFeed)
   }
 
   /**
     * Read from readers queue
-    * */
+    **/
   override def poll(): util.List[SourceRecord] = {
-   val records = readers.flatMap(ActorHelper.askForRecords).toList
-   //progressCounter.update(records.toArray)
-   records
+    val records = readers.flatMap(ActorHelper.askForRecords).toList
+    //progressCounter.update(records.toArray)
+    records
   }
 
   /**
     * Shutdown connections
-    * */
+    **/
   override def stop(): Unit = {
     logger.info("Stopping ReThink source and closing connections.")
     readers.foreach(_ ! StopChangeFeed)

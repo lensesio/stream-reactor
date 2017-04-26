@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.jms.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
+import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.writer.JMSWriter
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -50,7 +50,7 @@ class JMSSinkTask extends SinkTask with StrictLogging {
 
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getInt(JMSConfig.ERROR_RETRY_INTERVAL).toLong)
+      context.timeout(sinkConfig.getInt(JMSConfigConstants.ERROR_RETRY_INTERVAL).toLong)
     }
 
     writer = Some(JMSWriter(settings))

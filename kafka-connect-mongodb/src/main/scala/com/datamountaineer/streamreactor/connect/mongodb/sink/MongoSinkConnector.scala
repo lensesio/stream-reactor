@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.mongodb.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfig
+import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoSinkConfigConstants}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.{Connector, Task}
@@ -51,7 +51,7 @@ class MongoSinkConnector extends Connector with StrictLogging {
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
 
-    val kcql = configProps.get(MongoConfig.KCQL_CONFIG).split(";")
+    val kcql = configProps.get(MongoSinkConfigConstants.KCQL_CONFIG).split(";")
     if (maxTasks == 1 || kcql.length == 1) {
       List(configProps)
     }
@@ -61,7 +61,7 @@ class MongoSinkConnector extends Connector with StrictLogging {
         .map(_.mkString(";"))
         .map { routes =>
           val taskProps = new util.HashMap[String, String](configProps)
-          taskProps.put(MongoConfig.KCQL_CONFIG, routes)
+          taskProps.put(MongoSinkConfigConstants.KCQL_CONFIG, routes)
           taskProps
         }.toList
     }

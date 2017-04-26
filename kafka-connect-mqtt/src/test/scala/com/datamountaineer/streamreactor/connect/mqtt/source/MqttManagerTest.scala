@@ -67,6 +67,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
 
   private def initializeConverter(mqttSource: String, converter: AvroConverter, schema: org.apache.avro.Schema) = {
     val schemaFile = Paths.get(UUID.randomUUID().toString)
+
     def writeSchema(schema: org.apache.avro.Schema): File = {
 
       val bw = new BufferedWriter(new FileWriter(schemaFile.toFile))

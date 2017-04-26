@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
 import com.datamountaineer.streamreactor.connect.azure.documentdb.Json
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbConfig
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants}
 import com.microsoft.azure.documentdb._
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.sink.SinkRecord
@@ -35,10 +35,10 @@ class DocumentDbSinkTaskStructTest extends WordSpec with Matchers with MockitoSu
   "DocumentDbSinkTask" should {
     "handle STRUCT INSERTS with default consistency level" in {
       val map = Map(
-        DocumentDbConfig.DATABASE_CONFIG -> "database1",
-        DocumentDbConfig.CONNECTION_CONFIG -> connection,
-        DocumentDbConfig.MASTER_KEY_CONFIG -> "secret",
-        DocumentDbConfig.KCQL_CONFIG -> "INSERT INTO coll1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topic2"
+        DocumentDbConfigConstants.DATABASE_CONFIG -> "database1",
+        DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
+        DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
+        DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO coll1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topic2"
       )
 
       val documentClient = mock[DocumentClient]
@@ -115,11 +115,11 @@ class DocumentDbSinkTaskStructTest extends WordSpec with Matchers with MockitoSu
 
     "handle STRUCT INSERTS with Eventual consistency level" in {
       val map = Map(
-        DocumentDbConfig.DATABASE_CONFIG -> "database1",
-        DocumentDbConfig.CONNECTION_CONFIG -> connection,
-        DocumentDbConfig.MASTER_KEY_CONFIG -> "secret",
-        DocumentDbConfig.CONSISTENCY_CONFIG -> ConsistencyLevel.Eventual.toString,
-        DocumentDbConfig.KCQL_CONFIG -> "INSERT INTO coll1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topic2"
+        DocumentDbConfigConstants.DATABASE_CONFIG -> "database1",
+        DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
+        DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
+        DocumentDbConfigConstants.CONSISTENCY_CONFIG -> ConsistencyLevel.Eventual.toString,
+        DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO coll1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topic2"
       )
 
       val documentClient = mock[DocumentClient]
@@ -208,11 +208,11 @@ class DocumentDbSinkTaskStructTest extends WordSpec with Matchers with MockitoSu
 
     "handle STRUCT UPSERT with Eventual consistency level" in {
       val map = Map(
-        DocumentDbConfig.DATABASE_CONFIG -> "database1",
-        DocumentDbConfig.CONNECTION_CONFIG -> connection,
-        DocumentDbConfig.MASTER_KEY_CONFIG -> "secret",
-        DocumentDbConfig.CONSISTENCY_CONFIG -> ConsistencyLevel.Eventual.toString,
-        DocumentDbConfig.KCQL_CONFIG -> "UPSERT INTO coll1 SELECT * FROM topic1 PK time"
+        DocumentDbConfigConstants.DATABASE_CONFIG -> "database1",
+        DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
+        DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
+        DocumentDbConfigConstants.CONSISTENCY_CONFIG -> ConsistencyLevel.Eventual.toString,
+        DocumentDbConfigConstants.KCQL_CONFIG -> "UPSERT INTO coll1 SELECT * FROM topic1 PK time"
       )
 
       val documentClient = mock[DocumentClient]

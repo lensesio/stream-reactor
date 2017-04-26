@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.hbase
 import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.hbase.config.{HbaseSettings, HbaseSinkConfig}
+import com.datamountaineer.streamreactor.connect.hbase.config.{HbaseSettings, HbaseSinkConfig, HbaseSinkConfigConstants}
 import com.datamountaineer.streamreactor.connect.hbase.writers.{HbaseWriter, WriterFactoryFn}
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -28,7 +28,6 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 
 /**
   * <h1>HbaseSinkTask</h1>
@@ -48,17 +47,17 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
     logger.info(
 
       """
-      |    ____        __        __  ___                  __        _
-      |   / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
-      |  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
-      | / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
-      |/_____/\\_,\\\\\\\__,_/_/  /_/\___\\\\\,\/_/ /_/\\_/\__,_/_/_/ /_/\___/\___/_/
-      |      / / / / __ )____ _________ / ___/(_)___  / /__
-      |     / /_/ / __  / __ `/ ___/ _ \\__ \/ / __ \/ //_/
-      |    / __  / /_/ / /_/ (__  )  __/__/ / / / / / ,<
-      |   /_/ /_/_____/\__,_/____/\___/____/_/_/ /_/_/|_|
-      |
-      |By Stefan Bocutiu""".stripMargin)
+        |    ____        __        __  ___                  __        _
+        |   / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
+        |  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
+        | / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
+        |/_____/\\_,\\\\\\\__,_/_/  /_/\___\\\\\,\/_/ /_/\\_/\__,_/_/_/ /_/\___/\___/_/
+        |      / / / / __ )____ _________ / ___/(_)___  / /__
+        |     / /_/ / __  / __ `/ ___/ _ \\__ \/ / __ \/ //_/
+        |    / __  / /_/ / /_/ (__  )  __/__/ / / / / / ,<
+        |   /_/ /_/_____/\__,_/____/\___/____/_/_/ /_/_/|_|
+        |
+        |By Stefan Bocutiu""".stripMargin)
 
     HbaseSinkConfig.config.parse(props)
     val sinkConfig = HbaseSinkConfig(props)
@@ -66,12 +65,12 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
 
     //if error policy is retry set retry interval
     if (hbaseSettings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getInt(HbaseSinkConfig.ERROR_RETRY_INTERVAL).toLong)
+      context.timeout(sinkConfig.getInt(HbaseSinkConfigConstants.ERROR_RETRY_INTERVAL).toLong)
     }
 
     logger.info(
       s"""Settings:
-          |$hbaseSettings
+         |$hbaseSettings
       """.stripMargin)
     writer = Some(WriterFactoryFn(hbaseSettings))
 

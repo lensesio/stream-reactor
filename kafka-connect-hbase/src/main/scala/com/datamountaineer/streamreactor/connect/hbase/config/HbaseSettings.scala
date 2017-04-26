@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.hbase.config
 
 import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
-import com.datamountaineer.streamreactor.connect.hbase.config.HbaseSinkConfig._
+import com.datamountaineer.streamreactor.connect.hbase.config.HbaseSinkConfigConstants._
 import com.datamountaineer.streamreactor.connect.hbase.{GenericRowKeyBuilderBytes, RowKeyBuilderBytes, StructFieldsExtractorBytes, StructFieldsRowKeyBuilderBytes}
 import org.apache.kafka.common.config.ConfigException
 
@@ -26,11 +26,11 @@ import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
 case class HbaseSettings(columnFamilyMap: String,
-                         rowKeyModeMap : Map[String, RowKeyBuilderBytes],
+                         rowKeyModeMap: Map[String, RowKeyBuilderBytes],
                          routes: List[Config],
-                         extractorFields : Map[String, StructFieldsExtractorBytes],
-                         errorPolicy : ErrorPolicy = new ThrowErrorPolicy,
-                         maxRetries : Int = HbaseSinkConfig.NBR_OF_RETIRES_DEFAULT
+                         extractorFields: Map[String, StructFieldsExtractorBytes],
+                         errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
+                         maxRetries: Int = HbaseSinkConfigConstants.NBR_OF_RETIRES_DEFAULT
                         )
 
 object HbaseSettings {
@@ -46,23 +46,23 @@ object HbaseSettings {
 
     if (columnFamily.trim.length == 0) throw new ConfigException(s"$COLUMN_FAMILY is not set correctly")
 
-    val raw = config.getString(HbaseSinkConfig.EXPORT_ROUTE_QUERY)
-    require(raw != null && !raw.isEmpty,  s"No ${HbaseSinkConfig.EXPORT_ROUTE_QUERY} provided!")
+    val raw = config.getString(HbaseSinkConfigConstants.EXPORT_ROUTE_QUERY)
+    require(raw != null && !raw.isEmpty, s"No ${HbaseSinkConfigConstants.EXPORT_ROUTE_QUERY} provided!")
     val routes = raw.split(";").map(r => Config.parse(r)).toSet
-    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(HbaseSinkConfig.ERROR_POLICY).toUpperCase)
+    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(HbaseSinkConfigConstants.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
-    val nbrOfRetries = config.getInt(HbaseSinkConfig.NBR_OF_RETRIES)
+    val nbrOfRetries = config.getInt(HbaseSinkConfigConstants.NBR_OF_RETRIES)
 
-    val rowKeyModeMap = routes.map(r=> {
-        val keys = r.getPrimaryKeys.asScala.toList
-        if (keys.nonEmpty) (r.getSource, StructFieldsRowKeyBuilderBytes(keys)) else (r.getSource, new GenericRowKeyBuilderBytes())
-      }
+    val rowKeyModeMap = routes.map(r => {
+      val keys = r.getPrimaryKeys.asScala.toList
+      if (keys.nonEmpty) (r.getSource, StructFieldsRowKeyBuilderBytes(keys)) else (r.getSource, new GenericRowKeyBuilderBytes())
+    }
     ).toMap
 
-    val fields = routes.map(rm => (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField,fa.getAlias)).toMap)).toMap
+    val fields = routes.map(rm => (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)).toMap
 
     val extractorFields = routes.map(rm => {
-      (rm.getSource, StructFieldsExtractorBytes(rm.isIncludeAllFields , fields(rm.getSource)))
+      (rm.getSource, StructFieldsExtractorBytes(rm.isIncludeAllFields, fields(rm.getSource)))
     }).toMap
 
     new HbaseSettings(columnFamily, rowKeyModeMap, routes.toList, extractorFields, errorPolicy, nbrOfRetries)

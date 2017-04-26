@@ -37,12 +37,12 @@ object ReThinkHelper extends StrictLogging {
     **/
   def checkAndCreateTables(rethink: RethinkDB, setting: ReThinkSinkSetting, conn: Connection): Unit = {
     val isAutoCreate = setting.routes.map(r => (r.getTarget, r.isAutoCreate)).toMap
-    val tables: java.util.List[String] = rethink.db(setting.db).tableList().run(conn)
+    val tables: java.util.List[String] = rethink.db(setting.database).tableList().run(conn)
 
     setting.topicTableMap
       .filter({ case (_, table) => !tables.contains(table) && isAutoCreate(table).equals(false) })
       .foreach({
-        case (_, table) => throw new ConnectException(s"No table called $table found in database ${setting.db} and" +
+        case (_, table) => throw new ConnectException(s"No table called $table found in database ${setting.database} and" +
           s" it's not set for AUTOCREATE")
       })
 
@@ -61,7 +61,7 @@ object ReThinkHelper extends StrictLogging {
         logger.info(s"Setting primary as first field found: $pkName")
 
         val create: java.util.Map[String, Object] = rethink
-          .db(setting.db)
+          .db(setting.database)
           .tableCreate(r.getTarget)
           .optArg("primary_key", pkName)
           .run(conn)

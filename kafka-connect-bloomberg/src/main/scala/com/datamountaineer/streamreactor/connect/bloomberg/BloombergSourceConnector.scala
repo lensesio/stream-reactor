@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.bloomberg
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.bloomberg.config.ConnectorConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task

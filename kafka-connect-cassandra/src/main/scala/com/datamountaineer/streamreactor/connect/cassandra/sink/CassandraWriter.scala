@@ -27,7 +27,7 @@ import scala.util.{Failure, Success, Try}
 
 //Factory to build
 object CassandraWriter extends StrictLogging {
-  def apply(connectorConfig: CassandraConfigSink, context: SinkTaskContext) : CassandraJsonWriter = {
+  def apply(connectorConfig: CassandraConfigSink, context: SinkTaskContext): CassandraJsonWriter = {
 
     val connection = Try(CassandraConnection(connectorConfig)) match {
       case Success(s) => s

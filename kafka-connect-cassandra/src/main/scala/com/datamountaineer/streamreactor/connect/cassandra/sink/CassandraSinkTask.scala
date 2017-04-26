@@ -30,6 +30,7 @@ import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
+
 /**
   * <h1>CassandraSinkTask</h1>
   *
@@ -40,7 +41,6 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[CassandraJsonWriter] = None
   private val progressCounter = new ProgressCounter
   logger.info("Task initialising")
-
 
 
   /**

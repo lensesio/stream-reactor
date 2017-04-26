@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.hazelcast.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkConfig, HazelCastSinkSettings}
+import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkConfig, HazelCastSinkConfigConstants, HazelCastSinkSettings}
 import com.datamountaineer.streamreactor.connect.hazelcast.writers.HazelCastWriter
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -28,19 +28,18 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 10/08/16. 
   * stream-reactor
   */
 class HazelCastSinkTask extends SinkTask with StrictLogging {
-  private var writer : Option[HazelCastWriter] = None
+  private var writer: Option[HazelCastWriter] = None
   private val progressCounter = new ProgressCounter
 
   /**
     * Parse the configurations and setup the writer
-    * */
+    **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(
       """
@@ -66,7 +65,7 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
 
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getInt(HazelCastSinkConfig.ERROR_RETRY_INTERVAL).toLong)
+      context.timeout(sinkConfig.getInt(HazelCastSinkConfigConstants.ERROR_RETRY_INTERVAL).toLong)
     }
 
     writer = Some(HazelCastWriter(settings))
@@ -75,7 +74,7 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Pass the SinkRecords to the writer
-    * */
+    **/
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     writer.foreach(w => w.write(records.toSeq))
@@ -84,7 +83,7 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Clean up writer
-    * */
+    **/
   override def stop(): Unit = {
     logger.info("Stopping Hazelcast sink.")
     writer.foreach(w => w.close)

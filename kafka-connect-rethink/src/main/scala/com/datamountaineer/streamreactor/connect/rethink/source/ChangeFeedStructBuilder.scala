@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 
-
 /**
   * Created by andrew@datamountaineer.com on 22/09/16. 
   * stream-reactor
@@ -42,9 +41,9 @@ object ChangeFeedStructBuilder extends StrictLogging {
     .field(`type`, Schema.OPTIONAL_STRING_SCHEMA)
     .build
 
-  def apply(hm: Map[String, Object]) : Struct = {
+  def apply(hm: Map[String, Object]): Struct = {
     val struct = new Struct(schema)
-    hm.foreach({ case (k, v) => if (v != null) struct.put(k, v.toString)})
+    hm.foreach({ case (k, v) => if (v != null) struct.put(k, v.toString) })
     struct
   }
 }

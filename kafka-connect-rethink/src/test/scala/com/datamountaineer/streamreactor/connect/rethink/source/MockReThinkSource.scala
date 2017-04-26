@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.rethink.source
 import java.util
 
 import com.datamountaineer.streamreactor.connect.rethink.TestBase
-import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkSourceConfig
+import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSourceConfig, ReThinkSourceConfigConstants}
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.gen.ast.{Changes, Db, Table}
 import com.rethinkdb.net.{Connection, Cursor}
@@ -46,8 +46,8 @@ trait MockReThinkSource extends TestBase with MockitoSugar {
   hs.put("type",`type`)
   hs.put("old_val", oldVal)
 
-  when(connBuilder.hostname(ReThinkSourceConfig.RETHINK_HOST_DEFAULT)).thenReturn(connBuilder)
-  when(connBuilder.port(ReThinkSourceConfig.RETHINK_PORT_DEFAULT.toInt)).thenReturn(connBuilder)
+  when(connBuilder.hostname(ReThinkSourceConfigConstants.RETHINK_HOST_DEFAULT)).thenReturn(connBuilder)
+  when(connBuilder.port(ReThinkSourceConfigConstants.RETHINK_PORT_DEFAULT.toInt)).thenReturn(connBuilder)
   when(connBuilder.connect()).thenReturn(conn)
   when(r.connection()).thenReturn(connBuilder)
   when(changes.optArg("include_states", true)).thenReturn(changes)

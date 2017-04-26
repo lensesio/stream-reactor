@@ -138,7 +138,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
             ()
           }
           catch {
-            case e:SyntaxError=>
+            case e: SyntaxError =>
               logger.error(s"Syntax error inserting <$json>", e)
               throw e
           }

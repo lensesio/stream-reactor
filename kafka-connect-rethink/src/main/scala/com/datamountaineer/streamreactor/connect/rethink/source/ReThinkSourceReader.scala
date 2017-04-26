@@ -23,7 +23,7 @@ import akka.actor.{Actor, Props}
 import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.datamountaineer.streamreactor.connect.rethink.ReThinkConnection
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSourceConfig, ReThinkSourceSettings}
+import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSourceConfig, ReThinkSourceConfigConstants, ReThinkSourceSettings}
 import com.datamountaineer.streamreactor.connect.rethink.source.ReThinkSourceReader.{DataRequest, StartChangeFeed, StopChangeFeed}
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.net.{Connection, Cursor}
@@ -44,27 +44,30 @@ import scala.concurrent.Future
 object ReThinkSourceReader {
 
   case object DataRequest
+
   case object StartChangeFeed
+
   case object StopChangeFeed
 
   def apply(config: ReThinkSourceConfig, r: RethinkDB): Map[String, Props] = {
-    val host = config.getString(ReThinkSourceConfig.RETHINK_HOST)
-    val port = config.getInt(ReThinkSourceConfig.RETHINK_PORT)
+    val host = config.getString(ReThinkSourceConfigConstants.RETHINK_HOST)
+    val port = config.getInt(ReThinkSourceConfigConstants.RETHINK_PORT)
     val conn = Some(ReThinkConnection(host, port, r))
     val settings = ReThinkSourceSettings(config)
     settings.routes.map(route => (route.getSource, Props(new ReThinkSourceReader(r, conn.get, settings.db, route)))).toMap
   }
 }
 
-class ReThinkSourceReader(rethink : RethinkDB, conn : Connection,
+class ReThinkSourceReader(rethink: RethinkDB,
+                          conn: Connection,
                           db: String,
                           route: Config)
   extends Actor with StrictLogging {
 
   logger.info(s"Initialising ReThink Reader Actor for ${route.getSource}")
   private val keySchema = SchemaBuilder.string().optional().build()
-  private val valueSchema =  ChangeFeedStructBuilder.schema
-  private val sourcePartition =  Map.empty[String, String]
+  private val valueSchema = ChangeFeedStructBuilder.schema
+  private val sourcePartition = Map.empty[String, String]
   private val offset = Map.empty[String, String]
   private var readFlag = true
   private val buffer = new LinkedBlockingQueue[SourceRecord]()
@@ -74,18 +77,18 @@ class ReThinkSourceReader(rethink : RethinkDB, conn : Connection,
     * to a Struct and add to queue for draining
     * by the task
     *
-    * */
+    **/
   private def read = {
     logger.info(s"Starting changefeed for ${route.getSource}")
     val feed = changeFeed()
     while (feed.hasNext() && readFlag) {
-        buffer.offer(convert(feed.next().asScala.toMap))
+      buffer.offer(convert(feed.next().asScala.toMap))
     }
     feed.close()
     logger.info(s"Stopping changefeed for ${route.getSource}")
   }
 
-  private def changeFeed() : Cursor[util.HashMap[String, String]] = {
+  private def changeFeed(): Cursor[util.HashMap[String, String]] = {
     rethink
       .db(db)
       .table(route.getSource)

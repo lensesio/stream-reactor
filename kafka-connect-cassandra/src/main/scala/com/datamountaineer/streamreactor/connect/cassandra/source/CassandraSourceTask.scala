@@ -39,7 +39,7 @@ import scala.util.{Failure, Success, Try}
 class CassandraSourceTask extends SourceTask with StrictLogging {
   private var queues = mutable.Map.empty[String, LinkedBlockingQueue[SourceRecord]]
   private val readers = mutable.Map.empty[String, CassandraTableReader]
-  private var taskConfig : Option[AbstractConfig] = None
+  private var taskConfig : Option[CassandraConfigSource] = None
   private var connection : Option[CassandraConnection] = None
   private var settings : Set[CassandraSourceSetting] = Set.empty
   private var bufferSize : Option[Int] = None

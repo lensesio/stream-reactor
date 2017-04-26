@@ -29,7 +29,7 @@ object JacksonJson {
     toJson(value map { case (k,v) => k.name -> v})
   }*/
 
-  def toJson[T<:AnyRef](value: T): String = {
+  def toJson[T <: AnyRef](value: T): String = {
     write(value)
   }
 }
