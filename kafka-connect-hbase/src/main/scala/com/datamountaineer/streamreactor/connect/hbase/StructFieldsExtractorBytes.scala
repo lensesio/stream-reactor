@@ -58,22 +58,22 @@ case class StructFieldsExtractorBytes(includeAllFields: Boolean, fieldsAliasMap:
       .map { value =>
         Option(field.schema().name()).collect {
           case Decimal.LOGICAL_NAME =>
-            value match {
-              case java.math.BigDecimal => value.fromBigDecimal()
-              case arr: Array[Byte] => Decimal.toLogical(field.schema, arr).fromBigDecimal()
+            value.asInstanceOf[Any] match {
+              case _:java.math.BigDecimal => value.fromBigDecimal()
+              case arr: Array[Byte] => Decimal.toLogical(field.schema, arr).asInstanceOf[Any].fromBigDecimal()
               case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
             }
           case Time.LOGICAL_NAME =>
             value.asInstanceOf[Any] match {
-              case i: Int => StructFieldsExtractorBytes.TimeFormat.format(Time.toLogical(field.schema, i)).fromString()
-              case d@java.util.Date => StructFieldsExtractorBytes.TimeFormat.format(d).fromString()
+              case i: Int => StructFieldsExtractorBytes.TimeFormat.format(Time.toLogical(field.schema, i)).asInstanceOf[Any].fromString()
+              case d:java.util.Date => StructFieldsExtractorBytes.TimeFormat.format(d).asInstanceOf[Any].fromString()
               case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
             }
 
           case Timestamp.LOGICAL_NAME =>
             value.asInstanceOf[Any] match {
-              case d@java.util.Date => StructFieldsExtractorBytes.DateFormat.format(d).fromString()
-              case l: Long => StructFieldsExtractorBytes.DateFormat.format(Timestamp.toLogical(field.schema, l)).fromString()
+              case d:java.util.Date => StructFieldsExtractorBytes.DateFormat.format(d).asInstanceOf[Any].fromString()
+              case l: Long => StructFieldsExtractorBytes.DateFormat.format(Timestamp.toLogical(field.schema, l)).asInstanceOf[Any].fromString()
               case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
             }
         }.getOrElse {

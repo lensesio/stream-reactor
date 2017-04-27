@@ -59,21 +59,21 @@ case class StructFieldsExtractor(targetTable: String,
           //handle specific schema
           schema.name() match {
             case Decimal.LOGICAL_NAME =>
-              value match {
-                case java.math.BigDecimal => value
+              value.asInstanceOf[Any] match {
+                case _:java.math.BigDecimal => value
                 case arr: Array[Byte] => Decimal.toLogical(schema, arr)
                 case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
               }
             case Time.LOGICAL_NAME =>
               value.asInstanceOf[Any] match {
                 case i: Int => StructFieldsExtractor.TimeFormat.format(Time.toLogical(schema, i))
-                case d@java.util.Date => StructFieldsExtractor.TimeFormat.format(d)
+                case d:java.util.Date => StructFieldsExtractor.TimeFormat.format(d)
                 case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
               }
 
             case Timestamp.LOGICAL_NAME =>
               value.asInstanceOf[Any] match {
-                case d@java.util.Date => StructFieldsExtractor.DateFormat.format(d)
+                case d:java.util.Date => StructFieldsExtractor.DateFormat.format(d)
                 case l: Long => StructFieldsExtractor.DateFormat.format(Timestamp.toLogical(schema, l))
                 case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
               }
