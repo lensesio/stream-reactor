@@ -59,7 +59,8 @@ case class CassandraSinkSetting(keySpace: String,
                                 errorPolicy: ErrorPolicy,
                                 threadPoolSize: Int,
                                 consistencyLevel: Option[ConsistencyLevel],
-                                taskRetries: Int = CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT) extends CassandraSetting
+                                taskRetries: Int = CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT,
+                                enableProgress: Boolean = CassandraConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT) extends CassandraSetting
 
 /**
   * Cassandra Setting used for both Readers and writers
@@ -153,6 +154,15 @@ object CassandraSettings extends StrictLogging {
         }
     }
 
-    CassandraSinkSetting(keySpace, routes, fields, ignoreFields, errorPolicy, threadPoolSize, consistencyLevel, retries)
+    val enableCounter = config.getBoolean(CassandraConfigConstants.PROGRESS_COUNTER_ENABLED)
+    CassandraSinkSetting(keySpace,
+      routes,
+      fields,
+      ignoreFields,
+      errorPolicy,
+      threadPoolSize,
+      consistencyLevel,
+      retries,
+      enableCounter)
   }
 }

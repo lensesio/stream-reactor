@@ -154,4 +154,8 @@ object CassandraConfigConstants {
   val TIMESTAMP_TYPE_DOC = "The Cassandra data type of the timestamp column, either timeuuid (default) or timestamp."
   val TIMESTAMP_TYPE_DEFAULT = "timeUUID"
 
+  val PROGRESS_COUNTER_ENABLED = "connect.cassandra.progress.enabled"
+  val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
+  val PROGRESS_COUNTER_ENABLED_DEFAULT = false
+  val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 }

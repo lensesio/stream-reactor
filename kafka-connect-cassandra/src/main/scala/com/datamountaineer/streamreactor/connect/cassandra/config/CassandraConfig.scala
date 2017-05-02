@@ -317,6 +317,15 @@ object CassandraConfigSink {
       ConfigDef.Width.MEDIUM,
       CassandraConfigConstants.SINK_THREAD_POOL_DISPLAY
     )
+    .define(CassandraConfigConstants.PROGRESS_COUNTER_ENABLED,
+      Type.BOOLEAN,
+      CassandraConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
+      Importance.MEDIUM,
+      CassandraConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
+      "Metrics",
+      1,
+      ConfigDef.Width.MEDIUM,
+      CassandraConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 }
 
 case class CassandraConfigSink(props: util.Map[String, String])
