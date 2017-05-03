@@ -29,4 +29,16 @@ object ElasticSinkConfigConstants {
   val URL_PREFIX_DEFAULT = "elasticsearch"
   val EXPORT_ROUTE_QUERY = "connect.elastic.sink.kcql"
   val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
+
+  val INDEX_NAME_SUFFIX = "connect.elastic.index.suffix"
+  val INDEX_NAME_SUFFIX_DOC = "Suffix to append to the index name. Supports date time notation inside curly brackets. E.g. 'abc_{YYYY-MM-dd}_def'"
+  val INDEX_NAME_SUFFIX_DEFAULT = ""
+
+  val AUTO_CREATE_INDEX = "connect.elastic.index.auto.create"
+  val AUTO_CREATE_INDEX_DOC = "The flag enables/disables auto creating the ElasticSearch index. Boolean value required. Defaults to TRUE."
+  val AUTO_CREATE_INDEX_DEFAULT = true
+
+  val DOCUMENT_TYPE = "connect.elastic.document.type"
+  val DOCUMENT_TYPE_DOC = "Sets the ElasticSearch document type. See https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-type-field.html for more info."
+  val DOCUMENT_TYPE_DEFAULT = ""
 }

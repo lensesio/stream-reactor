@@ -28,9 +28,15 @@ case class ElasticSettings(routes: List[Config],
                            fields : Map[String, Map[String, String]],
                            ignoreFields: Map[String, Set[String]],
                            pks: Map[String, String],
-                           tableMap: Map[String, String])
+                           tableMap: Map[String, String],
+                           indexNameSuffix: Option[String],
+                           indexAutoCreate: Boolean,
+                           documentType: Option[String])
 
 object ElasticSettings {
+
+  private def toOption(configValue: String) = if (configValue.nonEmpty) Some(configValue) else None
+
   def apply(config: ElasticSinkConfig): ElasticSettings = {
     val raw = config.getString(ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY)
     require(!raw.isEmpty,s"Empty ${ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY_DOC}")
@@ -51,6 +57,14 @@ object ElasticSettings {
         (r.getSource, keys.head)
       }.toMap
 
-    ElasticSettings(routes = routes, fields = fields,ignoreFields = ignoreFields, pks = pks, tableMap = tableMap)
+    ElasticSettings(routes = routes,
+                    fields = fields,
+                    ignoreFields = ignoreFields,
+                    pks = pks,
+                    tableMap = tableMap,
+                    indexNameSuffix = toOption(config.getString(ElasticSinkConfigConstants.INDEX_NAME_SUFFIX)),
+                    indexAutoCreate = config.getBoolean(ElasticSinkConfigConstants.AUTO_CREATE_INDEX),
+                    documentType = toOption(config.getString(ElasticSinkConfigConstants.DOCUMENT_TYPE))
+    )
   }
 }

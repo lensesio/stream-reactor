@@ -16,9 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.elastic
 
+import java.time.{Instant, LocalDateTime}
 import java.util
 
-import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticSinkConfig, ElasticSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSinkConfigConstants
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -27,11 +28,15 @@ import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.reflect.io.File
+import java.time.LocalDateTime._
+import java.time.format.DateTimeFormatter._
 
 trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
   val ELASTIC_SEARCH_HOSTNAMES = "localhost:9300"
   val TOPIC = "sink_test"
   val INDEX = "index_andrew"
+  val INDEX_WITH_DATE = s"${INDEX}_${LocalDateTime.now.format(ofPattern("YYYY-MM-dd"))}"
   //var TMP : File = _
   val QUERY = s"INSERT INTO $INDEX SELECT * FROM $TOPIC"
   val QUERY_SELECTION = s"INSERT INTO $INDEX SELECT id, string_field FROM $TOPIC"
@@ -127,7 +132,20 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
       ElasticSinkConfigConstants.URL->ELASTIC_SEARCH_HOSTNAMES,
       ElasticSinkConfigConstants.ES_CLUSTER_NAME->ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT,
       ElasticSinkConfigConstants.URL_PREFIX->ElasticSinkConfigConstants.URL_PREFIX_DEFAULT,
-      ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY->query
+      ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY->query,
+      ElasticSinkConfigConstants.INDEX_NAME_SUFFIX->"_{YYYY-MM-dd}",
+      ElasticSinkConfigConstants.DOCUMENT_TYPE->"sample_document"
+    ).asJava
+  }
+
+  def getElasticSinkConfigPropsWithIndexAutoCreation(autoCreate: Boolean) = {
+    Map (
+      ElasticSinkConfigConstants.URL->ELASTIC_SEARCH_HOSTNAMES,
+      ElasticSinkConfigConstants.ES_CLUSTER_NAME->ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT,
+      ElasticSinkConfigConstants.URL_PREFIX->ElasticSinkConfigConstants.URL_PREFIX_DEFAULT,
+      ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY->QUERY,
+      ElasticSinkConfigConstants.INDEX_NAME_SUFFIX->"_{YYYY-MM-dd}",
+      ElasticSinkConfigConstants.AUTO_CREATE_INDEX->s"$autoCreate"
     ).asJava
   }
 

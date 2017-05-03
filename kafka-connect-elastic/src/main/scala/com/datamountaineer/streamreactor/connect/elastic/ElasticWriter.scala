@@ -21,7 +21,7 @@ import com.sksamuel.elastic4s.{ElasticClient, ElasticsearchClientUri}
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.elasticsearch.common.settings.Settings
 
-object  ElasticWriter {
+object ElasticWriter {
   /**
     * Construct a JSONWriter.
     *

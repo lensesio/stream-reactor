@@ -23,6 +23,7 @@ import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.elasticsearch.common.settings.Settings
+import org.elasticsearch.index.IndexNotFoundException
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 
@@ -98,6 +99,42 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     val updateRes = client.execute { search in INDEX }.await
     updateRes.totalHits shouldBe testRecords.size
 
+    //close writer
+    writer.close()
+    client.close()
+    TMP.deleteRecursively()
+  }
+
+  "it should fail writing to a non-existent index when auto creation is disabled" in {
+    val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
+    TMP.createDirectory()
+    //mock the context to return our assignment when called
+    val context = mock[SinkTaskContext]
+    when(context.assignment()).thenReturn(getAssignment)
+    //get test records
+    val testRecords = getTestRecords
+    //get config
+    val config  = new ElasticSinkConfig(getElasticSinkConfigPropsWithIndexAutoCreation(autoCreate = false))
+
+    val essettings = Settings
+      .settingsBuilder().put(ElasticSinkConfigConstants.ES_CLUSTER_NAME, ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT)
+      .put("path.home", TMP.toString).put("action.auto_create_index", "false").build()
+    val client = ElasticClient.local(essettings)
+
+    //get writer
+
+    val settings = ElasticSettings(config)
+    val writer = new ElasticJsonWriter(client = client, settings = settings)
+    //write records to elastic
+    writer.write(testRecords)
+
+    Thread.sleep(2000)
+    //check counts
+    intercept[IndexNotFoundException] {
+      val res = client.execute {
+        search in INDEX_WITH_DATE
+      }.await
+    }
     //close writer
     writer.close()
     client.close()
