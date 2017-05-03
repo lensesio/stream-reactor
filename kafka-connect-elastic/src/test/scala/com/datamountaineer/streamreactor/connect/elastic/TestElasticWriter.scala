@@ -56,7 +56,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
 
     Thread.sleep(2000)
     //check counts
-    val res = client.execute { search in INDEX }.await
+    val res = client.execute { search in INDEX_WITH_DATE }.await
     res.totalHits shouldBe testRecords.size
     //close writer
     writer.close()
@@ -86,7 +86,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
 
     Thread.sleep(2000)
     //check counts
-    val res = client.execute { search in INDEX }.await
+    val res = client.execute { search in INDEX_WITH_DATE }.await
     res.totalHits shouldBe testRecords.size
 
     val testUpdateRecords = getUpdateTestRecord
@@ -96,7 +96,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
 
     Thread.sleep(2000)
     //check counts
-    val updateRes = client.execute { search in INDEX }.await
+    val updateRes = client.execute { search in INDEX_WITH_DATE }.await
     updateRes.totalHits shouldBe testRecords.size
 
     //close writer
