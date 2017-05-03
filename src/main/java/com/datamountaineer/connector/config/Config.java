@@ -3,21 +3,10 @@ package com.datamountaineer.connector.config;
 import com.datamountaineer.connector.config.antlr4.ConnectorLexer;
 import com.datamountaineer.connector.config.antlr4.ConnectorParser;
 import com.datamountaineer.connector.config.antlr4.ConnectorParserBaseListener;
-import org.antlr.v4.runtime.ANTLRInputStream;
-import org.antlr.v4.runtime.BaseErrorListener;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.misc.OrderedHashSet;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Holds the configuration for the Kafka Connect topic.
@@ -36,6 +25,7 @@ public class Config {
     private WriteModeEnum writeMode;
     private String source;
     private String target;
+    private String incrementalMode;
     private Map<String, FieldAlias> fields = new HashMap<>();
     private Set<String> ignoredFields = new HashSet<>();
     private Set<String> primaryKeys = new OrderedHashSet<>();
@@ -97,7 +87,7 @@ public class Config {
         this.source = source;
     }
 
-    private void setWithUnwrap(boolean flag){
+    private void setWithUnwrap(boolean flag) {
         this.withUnwrap = flag;
     }
 
@@ -282,8 +272,12 @@ public class Config {
         return tags.iterator();
     }
 
-    public boolean isWithUnwrap(){
+    public boolean isWithUnwrap() {
         return this.withUnwrap;
+    }
+
+    public String getIncrementalMode() {
+        return this.incrementalMode;
     }
 
     public static Config parse(final String syntax) {
@@ -502,6 +496,11 @@ public class Config {
             public void exitWith_format(ConnectorParser.With_formatContext ctx) {
                 FormatType formatType = FormatType.valueOf(ctx.getText().toUpperCase());
                 config.setFormatType(formatType);
+            }
+
+            @Override
+            public void exitInc_mode(ConnectorParser.Inc_modeContext ctx) {
+                config.incrementalMode = ctx.getText();
             }
 
             @Override

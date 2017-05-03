@@ -121,6 +121,11 @@ STOREAS
     : 'STOREAS'|'storeas'
     ;
 
+INCREMENTALMODE
+    : 'INCREMENTALMODE'|'incrementalmode'
+    ;
+
+
 EQUAL
    : '='
    ;

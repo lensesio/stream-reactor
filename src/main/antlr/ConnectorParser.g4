@@ -40,7 +40,7 @@ insert_from_clause
    ;
 
 select_clause
-   : select_clause_basic ( PK primary_key_list)? (with_format_clause)? (with_consumer_group)? (with_offset_list)? (sample_clause)? (storeas_clause)? (with_tags)?
+   : select_clause_basic ( PK primary_key_list)? (with_format_clause)? (with_consumer_group)? (with_offset_list)? (sample_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)?
    ;
 
 select_clause_basic
@@ -241,6 +241,14 @@ storeas_value
 
 with_tags
     : WITHTAG (LEFT_PARAN tag_definition ( COMMA tag_definition )* RIGHT_PARAN)
+    ;
+
+with_inc_mode
+    : INCREMENTALMODE EQUAL inc_mode
+    ;
+
+inc_mode
+    : ID | TOPICNAME
     ;
 
 tag_definition

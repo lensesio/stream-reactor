@@ -58,6 +58,14 @@ public class ConfigTest {
     }
 
     @Test
+    public void parseWithIncrementalMode() {
+        String incMode="modeA";
+        String syntax = "SELECT * FROM topicA INCREMENTALMODE="+incMode;
+        Config config = Config.parse(syntax);
+        assertEquals(incMode, config.getIncrementalMode());
+    }
+
+    @Test
     public void parseAnotherSimpleSelectCommandWithPK() {
         String syntax = "SELECT firstName, lastName as surname FROM topicA";
         Config config = Config.parse(syntax);
