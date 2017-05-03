@@ -25,7 +25,7 @@ import com.sksamuel.elastic4s.source.Indexable
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
-import org.elasticsearch.action.bulk.BulkResponse
+import com.sksamuel.elastic4s.BulkResult
 
 import scala.collection.immutable.Iterable
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -87,7 +87,7 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
     *
     * @param records A list of SinkRecords
     * */
-  def insert(records: Map[String, Set[SinkRecord]]) : Iterable[Future[BulkResponse]] = {
+  def insert(records: Map[String, Set[SinkRecord]]) : Iterable[Future[BulkResult]] = {
     val ret = records.map({
       case (topic, sinkRecords) =>
         val fields = settings.fields(topic)

@@ -17,8 +17,8 @@
 project(":kafka-connect-elastic") {
 
     ext {
-        elastic4sVersion = '2.1.0'
-        elasticVersion = '2.2.0'
+        elastic4sVersion = '2.4.0'
+        elasticVersion = '2.4.5'
         jnaVersion = '3.0.9'
     }
 
