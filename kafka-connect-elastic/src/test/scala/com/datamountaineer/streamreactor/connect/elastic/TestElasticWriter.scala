@@ -138,7 +138,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     TMP.deleteRecursively()
   }
 
-  "it should fail writing to a non-existent index when auto creation is disabled" ignore {
+  "it should fail writing to a non-existent index when auto creation is disabled" in {
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
     //mock the context to return our assignment when called
