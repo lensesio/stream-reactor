@@ -25,15 +25,23 @@ import com.sksamuel.elastic4s.source.Indexable
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
-import org.elasticsearch.action.bulk.BulkResponse
+import com.sksamuel.elastic4s.BulkResult
 
 import scala.collection.immutable.Iterable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import com.datamountaineer.streamreactor.connect.elastic.indexname.CustomIndexName
 
 class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extends StrictLogging with ConverterUtil {
   logger.info("Initialising Elastic Json writer")
-  createIndexes()
+
+  import ElasticJsonWriter.createIndexName
+
+  val createIndexNameWithSuffix = createIndexName(settings.indexNameSuffix) _
+
+  if (settings.indexAutoCreate) {
+    createIndexes()
+  }
 
   implicit object SinkRecordIndexable extends Indexable[SinkRecord] {
     override def json(t: SinkRecord): String = convertValueToJson(t).toString
@@ -44,7 +52,12 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
     *
     * */
   private def createIndexes() : Unit = {
-   settings.tableMap.map({ case(_,v) => client.execute( { create index v.toLowerCase() })})
+   settings.tableMap.map({ case(topicName, indexName) => client.execute( {
+     settings.documentType match {
+       case Some(documentType) => create index createIndexNameWithSuffix(indexName) mappings documentType
+       case _ => create index createIndexNameWithSuffix(indexName)
+     }
+   })})
   }
 
   /**
@@ -74,18 +87,19 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
     *
     * @param records A list of SinkRecords
     * */
-  def insert(records: Map[String, Set[SinkRecord]]) : Iterable[Future[BulkResponse]] = {
+  def insert(records: Map[String, Set[SinkRecord]]) : Iterable[Future[BulkResult]] = {
     val ret = records.map({
       case (topic, sinkRecords) =>
         val fields = settings.fields(topic)
         val ignoreFields = settings.ignoreFields(topic)
-        val i = settings.tableMap(topic)
+        val i = createIndexNameWithSuffix(settings.tableMap(topic))
+        val documentType = settings.documentType.getOrElse(i)
 
         val indexes = sinkRecords
                         .map(r => convert(r, fields, ignoreFields))
                         .map { r =>
                           configMap(r.topic).getWriteMode match {
-                            case WriteModeEnum.INSERT => index into i.toLowerCase / i source r
+                            case WriteModeEnum.INSERT => index into i / documentType source r
                             case WriteModeEnum.UPSERT =>
                               // Build a Struct field extractor to get the value from the PK field
                               val pkField = settings.pks(r.topic)
@@ -93,7 +107,7 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
                               val extractor = StructFieldsExtractor(includeAllFields = true, Map(pkField -> pkField))
                               val fieldsAndValues = extractor.get(r.value.asInstanceOf[Struct]).toMap
                               val pkValue = fieldsAndValues(pkField).toString
-                              update id pkValue in i.toLowerCase / i docAsUpsert fieldsAndValues
+                              update id pkValue in i / documentType docAsUpsert fieldsAndValues
                           }
                         }
 
@@ -110,4 +124,9 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
     })
     ret
   }
+}
+
+private object ElasticJsonWriter {
+  def createIndexName(maybeIndexNameSuffix: Option[String])(indexName: String): String =
+    maybeIndexNameSuffix.fold(indexName) { indexNameSuffix => s"$indexName${CustomIndexName.parseIndexName(indexNameSuffix)}" }
 }

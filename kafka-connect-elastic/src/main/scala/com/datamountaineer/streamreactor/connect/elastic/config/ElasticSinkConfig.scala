@@ -36,6 +36,11 @@ object ElasticSinkConfig {
     .define(ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH,
       ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY_DOC, "Target", 1, ConfigDef.Width.LONG,
       ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY)
+    .define(ElasticSinkConfigConstants.INDEX_NAME_SUFFIX, Type.STRING, ElasticSinkConfigConstants.INDEX_NAME_SUFFIX_DEFAULT,
+        Importance.LOW, ElasticSinkConfigConstants.INDEX_NAME_SUFFIX_DOC, "Target", 2, ConfigDef.Width.MEDIUM, ElasticSinkConfigConstants.INDEX_NAME_SUFFIX)
+    .define(ElasticSinkConfigConstants.AUTO_CREATE_INDEX, Type.BOOLEAN, ElasticSinkConfigConstants.AUTO_CREATE_INDEX_DEFAULT,
+        Importance.LOW, ElasticSinkConfigConstants.AUTO_CREATE_INDEX_DOC, "Target", 3, ConfigDef.Width.MEDIUM, ElasticSinkConfigConstants.AUTO_CREATE_INDEX)
+    .define(ElasticSinkConfigConstants.DOCUMENT_TYPE, Type.STRING, ElasticSinkConfigConstants.DOCUMENT_TYPE_DEFAULT, Importance.LOW, ElasticSinkConfigConstants.DOCUMENT_TYPE_DOC, "Target", 4, ConfigDef.Width.MEDIUM, ElasticSinkConfigConstants.DOCUMENT_TYPE)
 }
 
 /**
