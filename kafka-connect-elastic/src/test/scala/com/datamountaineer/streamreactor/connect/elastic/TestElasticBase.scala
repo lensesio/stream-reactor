@@ -139,9 +139,7 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
       ElasticSinkConfigConstants.URL->ELASTIC_SEARCH_HOSTNAMES,
       ElasticSinkConfigConstants.ES_CLUSTER_NAME->ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT,
       ElasticSinkConfigConstants.URL_PREFIX->ElasticSinkConfigConstants.URL_PREFIX_DEFAULT,
-      ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY->QUERY,
-      ElasticSinkConfigConstants.INDEX_NAME_SUFFIX->"_{YYYY-MM-dd}",
-      ElasticSinkConfigConstants.AUTO_CREATE_INDEX->s"$autoCreate"
+      ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY->(QUERY + (if (autoCreate) " AUTOCREATE " else "") + " WITHSUFFIX=_{YYYY-MM-dd}")
     ).asJava
   }
 

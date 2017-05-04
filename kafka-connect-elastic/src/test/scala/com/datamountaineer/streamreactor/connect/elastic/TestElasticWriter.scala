@@ -117,7 +117,8 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     val config  = new ElasticSinkConfig(getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate = true))
 
     val essettings = Settings
-      .settingsBuilder().put(ElasticSinkConfigConstants.ES_CLUSTER_NAME, ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT)
+      .settingsBuilder()
+      .put(ElasticSinkConfigConstants.ES_CLUSTER_NAME, ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT)
       .put("path.home", TMP.toString).build()
     val client = ElasticClient.local(essettings)
 

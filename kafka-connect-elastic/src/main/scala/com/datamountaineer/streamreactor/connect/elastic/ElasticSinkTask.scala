@@ -26,15 +26,14 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 
 class ElasticSinkTask extends SinkTask with StrictLogging {
-  private var writer : Option[ElasticJsonWriter] = None
+  private var writer: Option[ElasticJsonWriter] = None
   private val progressCounter = new ProgressCounter
 
   /**
     * Parse the configurations and setup the writer
-    * */
+    **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(
       """
@@ -62,16 +61,16 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Pass the SinkRecords to the writer for Writing
-    * */
+    **/
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.foreach(w=>w.write(records.toSet))
+    writer.foreach(w => w.write(records.toSet))
     //progressCounter.update(records.asScala.toSeq)
   }
 
   /**
     * Clean up writer
-    * */
+    **/
   override def stop(): Unit = {
     logger.info("Stopping Elastic sink.")
     writer.foreach(w => w.close())
@@ -81,5 +80,6 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {
     logger.info("Flushing Elastic Sink")
   }
+
   override def version(): String = getClass.getPackage.getImplementationVersion
 }
