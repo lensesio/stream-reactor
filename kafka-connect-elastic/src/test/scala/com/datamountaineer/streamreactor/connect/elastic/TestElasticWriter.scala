@@ -56,7 +56,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
 
     Thread.sleep(2000)
     //check counts
-    val res = client.execute { search in INDEX_WITH_DATE }.await
+    val res = client.execute { search in INDEX }.await
     res.totalHits shouldBe testRecords.size
     //close writer
     writer.close()
@@ -86,7 +86,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
 
     Thread.sleep(2000)
     //check counts
-    val res = client.execute { search in INDEX_WITH_DATE }.await
+    val res = client.execute { search in INDEX }.await
     res.totalHits shouldBe testRecords.size
 
     val testUpdateRecords = getUpdateTestRecord
@@ -96,7 +96,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
 
     Thread.sleep(2000)
     //check counts
-    val updateRes = client.execute { search in INDEX_WITH_DATE }.await
+    val updateRes = client.execute { search in INDEX }.await
     updateRes.totalHits shouldBe testRecords.size
 
     //close writer
@@ -105,7 +105,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     TMP.deleteRecursively()
   }
 
-  "it should fail writing to a non-existent index when auto creation is disabled" in {
+  "A ElasticWriter should update a number of records in Elastic Search with index suffix defined" in {
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
     //mock the context to return our assignment when called
@@ -114,7 +114,40 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecords
     //get config
-    val config  = new ElasticSinkConfig(getElasticSinkConfigPropsWithIndexAutoCreation(autoCreate = false))
+    val config  = new ElasticSinkConfig(getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate = true))
+
+    val essettings = Settings
+      .settingsBuilder().put(ElasticSinkConfigConstants.ES_CLUSTER_NAME, ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT)
+      .put("path.home", TMP.toString).build()
+    val client = ElasticClient.local(essettings)
+
+    //get writer
+
+    val settings = ElasticSettings(config)
+    val writer = new ElasticJsonWriter(client = client, settings = settings)
+    //write records to elastic
+    writer.write(testRecords)
+
+    Thread.sleep(2000)
+    //check counts
+    val res = client.execute { search in INDEX_WITH_DATE }.await
+    res.totalHits shouldBe testRecords.size
+    //close writer
+    writer.close()
+    client.close()
+    TMP.deleteRecursively()
+  }
+
+  "it should fail writing to a non-existent index when auto creation is disabled" ignore {
+    val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
+    TMP.createDirectory()
+    //mock the context to return our assignment when called
+    val context = mock[SinkTaskContext]
+    when(context.assignment()).thenReturn(getAssignment)
+    //get test records
+    val testRecords = getTestRecords
+    //get config
+    val config  = new ElasticSinkConfig(getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate = false))
 
     val essettings = Settings
       .settingsBuilder().put(ElasticSinkConfigConstants.ES_CLUSTER_NAME, ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT)

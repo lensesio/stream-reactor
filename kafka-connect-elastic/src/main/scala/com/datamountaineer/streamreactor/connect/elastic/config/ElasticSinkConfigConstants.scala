@@ -32,7 +32,7 @@ object ElasticSinkConfigConstants {
 
   val INDEX_NAME_SUFFIX = "connect.elastic.index.suffix"
   val INDEX_NAME_SUFFIX_DOC = "Suffix to append to the index name. Supports date time notation inside curly brackets. E.g. 'abc_{YYYY-MM-dd}_def'"
-  val INDEX_NAME_SUFFIX_DEFAULT = ""
+  val INDEX_NAME_SUFFIX_DEFAULT: String = null
 
   val AUTO_CREATE_INDEX = "connect.elastic.index.auto.create"
   val AUTO_CREATE_INDEX_DOC = "The flag enables/disables auto creating the ElasticSearch index. Boolean value required. Defaults to TRUE."
@@ -40,5 +40,5 @@ object ElasticSinkConfigConstants {
 
   val DOCUMENT_TYPE = "connect.elastic.document.type"
   val DOCUMENT_TYPE_DOC = "Sets the ElasticSearch document type. See https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-type-field.html for more info."
-  val DOCUMENT_TYPE_DEFAULT = ""
+  val DOCUMENT_TYPE_DEFAULT: String = null
 }

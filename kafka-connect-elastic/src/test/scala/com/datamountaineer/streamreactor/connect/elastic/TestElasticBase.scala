@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.elastic
 
-import java.time.{Instant, LocalDateTime}
+import java.time.LocalDateTime
 import java.util
 
 import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSinkConfigConstants
@@ -28,8 +28,6 @@ import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.reflect.io.File
-import java.time.LocalDateTime._
 import java.time.format.DateTimeFormatter._
 
 trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
@@ -132,13 +130,11 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
       ElasticSinkConfigConstants.URL->ELASTIC_SEARCH_HOSTNAMES,
       ElasticSinkConfigConstants.ES_CLUSTER_NAME->ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT,
       ElasticSinkConfigConstants.URL_PREFIX->ElasticSinkConfigConstants.URL_PREFIX_DEFAULT,
-      ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY->query,
-      ElasticSinkConfigConstants.INDEX_NAME_SUFFIX->"_{YYYY-MM-dd}",
-      ElasticSinkConfigConstants.DOCUMENT_TYPE->"sample_document"
+      ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY->query
     ).asJava
   }
 
-  def getElasticSinkConfigPropsWithIndexAutoCreation(autoCreate: Boolean) = {
+  def getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate: Boolean) = {
     Map (
       ElasticSinkConfigConstants.URL->ELASTIC_SEARCH_HOSTNAMES,
       ElasticSinkConfigConstants.ES_CLUSTER_NAME->ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT,
