@@ -66,6 +66,10 @@ public class ConfigTest {
         syntax = "SELECT * FROM topicA WITHINDEXSUFFIX= _{YYYY-MM-dd} ";
         config = Config.parse(syntax);
         assertEquals("_{YYYY-MM-dd}", config.getIndexSuffix());
+
+        syntax = "INSERT INTO index_name SELECT * FROM topicA WITHINDEXSUFFIX= _suffix_{YYYY-MM-dd}";
+        config = Config.parse(syntax);
+        assertEquals("_suffix_{YYYY-MM-dd}", config.getIndexSuffix());
     }
 
     @Test
