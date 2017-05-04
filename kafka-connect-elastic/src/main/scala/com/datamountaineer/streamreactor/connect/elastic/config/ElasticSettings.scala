@@ -28,7 +28,9 @@ case class ElasticSettings(routes: List[Config],
                            fields: Map[String, Map[String, String]],
                            ignoreFields: Map[String, Set[String]],
                            pks: Map[String, String],
-                           tableMap: Map[String, String])
+                           tableMap: Map[String, String],
+                           writeTimeout: Int = ElasticSinkConfigConstants.WRITE_TIMEOUT_DEFAULT,
+                           throwOnError: Boolean = ElasticSinkConfigConstants.THROW_ON_ERROR_DEFAULT)
 
 object ElasticSettings {
 
@@ -52,11 +54,16 @@ object ElasticSettings {
         (r.getSource, keys.head)
       }.toMap
 
+    val writeTimeout = config.getInt(ElasticSinkConfigConstants.WRITE_TIMEOUT_CONFIG)
+
+    val throwOnError = config.getBoolean(ElasticSinkConfigConstants.THROW_ON_ERROR_CONFIG)
     ElasticSettings(routes = routes,
       fields = fields,
       ignoreFields = ignoreFields,
       pks = pks,
-      tableMap = tableMap)
+      tableMap = tableMap,
+      writeTimeout,
+      throwOnError)
 
   }
 }

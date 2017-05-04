@@ -20,16 +20,16 @@ import com.datamountaineer.connector.config.WriteModeEnum
 import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSettings
 import com.datamountaineer.streamreactor.connect.elastic.indexname.CreateIndex
 import com.datamountaineer.streamreactor.connect.schemas.{ConverterUtil, StructFieldsExtractor}
+import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.source.Indexable
-import com.sksamuel.elastic4s.{BulkResult, ElasticClient}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.immutable.Iterable
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extends StrictLogging with ConverterUtil {
   logger.info("Initialising Elastic Json writer")
@@ -68,8 +68,8 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
     *
     * @param records A list of SinkRecords
     **/
-  def insert(records: Map[String, Set[SinkRecord]]): Iterable[Future[BulkResult]] = {
-    val ret = records.map({
+  def insert(records: Map[String, Set[SinkRecord]]): Unit = {
+    val fut = records.map {
       case (topic, sinkRecords) =>
         val fields = settings.fields(topic)
         val ignoreFields = settings.ignoreFields(topic)
@@ -93,18 +93,17 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
             }
           }
 
-        val ret = client.execute(bulk(indexes).refresh(true))
-
-        ret.onSuccess({
-          case _ => logger.debug(s"Elastic write successful for ${records.size} records!")
-        })
-
-        ret.onFailure({
-          case f: Throwable => logger.info(f.toString)
-        })
-        ret
-    })
-    ret
+        client.execute(bulk(indexes).refresh(true))
+    }
+    try {
+      Await.result(Future.sequence(fut), settings.writeTimeout.seconds)
+    } catch {
+      case t: Throwable =>
+        logger.error(s"Failed to insert records.${t.getMessage}", t)
+        if (settings.throwOnError) {
+          throw t
+        }
+    }
   }
 }
 

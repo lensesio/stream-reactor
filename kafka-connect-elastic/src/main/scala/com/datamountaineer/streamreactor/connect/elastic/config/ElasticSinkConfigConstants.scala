@@ -30,6 +30,16 @@ object ElasticSinkConfigConstants {
   val EXPORT_ROUTE_QUERY = "connect.elastic.sink.kcql"
   val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
 
+  val WRITE_TIMEOUT_CONFIG = "connect.elastic.write.timeout"
+  val WRITE_TIMEOUT_DOC = "The time to wait in millis. Default is 5 minutes."
+  val WRITE_TIMEOUT_DISPLAY = "Write timeout"
+  val WRITE_TIMEOUT_DEFAULT = 300000
+
+  val THROW_ON_ERROR_CONFIG = "connect.elastic.error.throw"
+  val THROW_ON_ERROR_DOC = "Throws the exception on write. Default is 'true'"
+  val THROW_ON_ERROR_DISPLAY = "Throw on errors"
+  val THROW_ON_ERROR_DEFAULT = true
+
   /*
   val INDEX_NAME_SUFFIX = "connect.elastic.index.suffix"
   val INDEX_NAME_SUFFIX_DOC = "Suffix to append to the index name. Supports date time notation inside curly brackets. E.g. 'abc_{YYYY-MM-dd}_def'"
