@@ -125,6 +125,13 @@ INCREMENTALMODE
     : 'INCREMENTALMODE'|'incrementalmode'
     ;
 
+WITHDOCTYPE
+    :  'WITHDOCTYPE'|'withdoctype'
+    ;
+
+WITHINDEXSUFFIX
+    : 'WITHINDEXSUFFIX' | 'withindexsuffix'
+    ;
 
 EQUAL
    : '='
@@ -161,7 +168,7 @@ ID
 
 
 TOPICNAME
-   : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9'| '.' | '-' | '+' | '/' )+
+   : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9'| '.' | '-' | '+' | '/' |'{'|'}' )+
    ;
 
 

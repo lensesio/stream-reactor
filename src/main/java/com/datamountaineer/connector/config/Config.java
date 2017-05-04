@@ -25,6 +25,8 @@ public class Config {
     private WriteModeEnum writeMode;
     private String source;
     private String target;
+    private String docType;
+    private String indexSuffix;
     private String incrementalMode;
     private Map<String, FieldAlias> fields = new HashMap<>();
     private Set<String> ignoredFields = new HashSet<>();
@@ -280,6 +282,14 @@ public class Config {
         return this.incrementalMode;
     }
 
+    public String getDocType() {
+        return this.docType;
+    }
+
+    public String getIndexSuffix() {
+        return this.indexSuffix;
+    }
+
     public static Config parse(final String syntax) {
         final ConnectorLexer lexer = new ConnectorLexer(new ANTLRInputStream(syntax));
         final CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -374,6 +384,16 @@ public class Config {
             @Override
             public void exitAutoevolve(ConnectorParser.AutoevolveContext ctx) {
                 config.setAutoEvolve(true);
+            }
+
+            @Override
+            public void exitIndex_suffix(ConnectorParser.Index_suffixContext ctx) {
+                config.indexSuffix = ctx.getText();
+            }
+
+            @Override
+            public void exitDoc_type(ConnectorParser.Doc_typeContext ctx) {
+                config.docType= ctx.getText();
             }
 
             @Override

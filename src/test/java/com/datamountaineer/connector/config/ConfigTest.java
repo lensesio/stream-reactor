@@ -3,17 +3,9 @@ package com.datamountaineer.connector.config;
 import com.google.common.collect.Lists;
 import org.junit.Test;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  *
@@ -59,10 +51,32 @@ public class ConfigTest {
 
     @Test
     public void parseWithIncrementalMode() {
-        String incMode="modeA";
-        String syntax = "SELECT * FROM topicA INCREMENTALMODE="+incMode;
+        String incMode = "modeA";
+        String syntax = "SELECT * FROM topicA INCREMENTALMODE=" + incMode;
         Config config = Config.parse(syntax);
         assertEquals(incMode, config.getIncrementalMode());
+    }
+
+    @Test
+    public void parseWithIndexSuffix() {
+        String syntax = "SELECT * FROM topicA WITHINDEXSUFFIX=suffix1";
+        Config config = Config.parse(syntax);
+        assertEquals("suffix1", config.getIndexSuffix());
+
+        syntax = "SELECT * FROM topicA WITHINDEXSUFFIX= _{YYYY-MM-dd} ";
+        config = Config.parse(syntax);
+        assertEquals("_{YYYY-MM-dd}", config.getIndexSuffix());
+    }
+
+    @Test
+    public void parseWithDocType() {
+        String syntax = "SELECT * FROM topicA WITHDOCTYPE=document1";
+        Config config = Config.parse(syntax);
+        assertEquals("document1", config.getDocType());
+
+        syntax = "SELECT * FROM topicA WITHDOCTYPE= document.name ";
+        config = Config.parse(syntax);
+        assertEquals("document.name", config.getDocType());
     }
 
     @Test
