@@ -62,6 +62,7 @@ class CassandraTableReader(private val session: Session,
   private val topic = config.getTarget
   private val keySpace = setting.keySpace
   // TODO: need two different statements for token (with no offset and with an offset)
+  // private val preparedStatementNoOffset ??
   private val preparedStatement = getPreparedStatements
   // TODO: make offset handling generic (not date based)
   private var tableOffset: Option[Date] = buildOffsetMap(context)
