@@ -36,13 +36,13 @@ trait CassandraSetting
 
 object TimestampType extends Enumeration {
   type TimestampType = Value
-  val TIMESTAMP, TIMEUUID = Value
+  val TIMESTAMP, TIMEUUID, TOKEN = Value
 }
 
 case class CassandraSourceSetting(routes: Config,
                                   keySpace: String,
                                   bulkImportMode: Boolean = true,
-                                  timestampColumn: Option[String] = None,
+                                  primaryKeyColumn: Option[String] = None,
                                   timestampColType: TimestampType,
                                   pollInterval: Long = CassandraConfigConstants.DEFAULT_POLL_INTERVAL,
                                   consistencyLevel: Option[ConsistencyLevel],
@@ -83,20 +83,20 @@ object CassandraSettings extends StrictLogging {
     val timestampType = TimestampType.withName(config.getString(CassandraConfigConstants.TIMESTAMP_TYPE).toUpperCase)
     val errorPolicy = config.getErrorPolicy
     val routes = config.getRoutes
-    val timestampCols = routes.map(r => (r.getSource, r.getPrimaryKeys.toList)).toMap
+    val primaryKeyCols = routes.map(r => (r.getSource, r.getPrimaryKeys.toList)).toMap
 
     routes.map({
       r => {
-        val tCols = timestampCols(r.getSource)
+        val tCols = primaryKeyCols(r.getSource)
         if (!bulk && tCols.size != 1) {
-          throw new ConfigException("Only one timestamp column is allowed to be specified in Incremental mode. " +
+          throw new ConfigException("Only one primary key column is allowed to be specified in Incremental mode. " +
             s"Received ${tCols.mkString(",")} for source ${r.getSource}")
         }
 
         CassandraSourceSetting(
           routes = r,
           keySpace = keySpace,
-          timestampColumn = if (bulk) None else Some(tCols.head),
+          primaryKeyColumn = if (bulk) None else Some(tCols.head),
           timestampColType = timestampType,
           bulkImportMode = bulk,
           pollInterval = pollInterval,

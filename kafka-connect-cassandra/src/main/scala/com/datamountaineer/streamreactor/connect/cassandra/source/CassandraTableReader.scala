@@ -48,17 +48,23 @@ class CassandraTableReader(private val session: Session,
                            private val context: SourceTaskContext,
                            var queue: LinkedBlockingQueue[SourceRecord]) extends StrictLogging {
 
+
+  private val config = setting.routes
+  private val cqlGenerator = new CqlGenerator(setting)
+  
   private val defaultTimestamp = "1900-01-01 00:00:00.0000000Z"
   private val dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'")
-  private val timestampCol = setting.timestampColumn.getOrElse("")
+  private val timestampCol = setting.primaryKeyColumn.getOrElse("")
   private val querying = new AtomicBoolean(false)
   private val stop = new AtomicBoolean(false)
   private var lastPoll = 0.toLong
-  private val table = setting.routes.getSource
-  private val topic = setting.routes.getTarget
+  private val table = config.getSource
+  private val topic = config.getTarget
   private val keySpace = setting.keySpace
-  private val selectColumns = getSelectColumns
+  // TODO: need two different statements for token (with no offset and with an offset)
+  // private val preparedStatementNoOffset ??
   private val preparedStatement = getPreparedStatements
+  // TODO: make offset handling generic (not date based)
   private var tableOffset: Option[Date] = buildOffsetMap(context)
   private val sourcePartition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
   private val schemaName = s"$keySpace.$table".replace('-', '.')
@@ -84,44 +90,10 @@ class CassandraTableReader(private val session: Session,
     * @return the PreparedStatement
     */
   private def getPreparedStatements: PreparedStatement = {
-    // if we are in incremental mode
-    // we need to have the time stamp column
-    if (!setting.bulkImportMode) {
-      if (!selectColumns.contains(timestampCol) && !selectColumns.contentEquals("*")) {
-        val msg = s"the timestamp column ($timestampCol) must appear in the SELECT statement"
-        logger.error(msg)
-        throw new ConfigException(msg)
-      }
-    }
-
-    // build the correct CQL statement based on the KCQL
-    val selectStatement = if (setting.bulkImportMode) {
-      s"SELECT $selectColumns FROM $keySpace.$table"
-    } else {
-      val predicate = setting.timestampColType match {
-        case TimestampType.TIMEUUID => s"WHERE $timestampCol > maxTimeuuid(?) AND $timestampCol <= minTimeuuid(?) ALLOW FILTERING"
-        case TimestampType.TIMESTAMP => s"WHERE $timestampCol > ? AND $timestampCol <= ? ALLOW FILTERING"
-      }
-      s"SELECT $selectColumns FROM $keySpace.$table $predicate"
-    }
-
+    val selectStatement = cqlGenerator.getCqlStatement
     val statement = session.prepare(selectStatement)
     setting.consistencyLevel.foreach(statement.setConsistencyLevel)
     statement
-  }
-
-  /**
-    * get the columns for the SELECT statement
-    *
-    * @return the comma separated columns
-    */
-  private def getSelectColumns: String = {
-    val faList = setting.routes.getFieldAlias.map(fa => fa.getField).toList
-
-    //if no columns set then select the whole table
-    val f = if (faList == null || faList.isEmpty) "*" else faList.mkString(",")
-    logger.info(s"the fields to select are $f")
-    f
   }
 
   /**
@@ -252,7 +224,7 @@ class CassandraTableReader(private val session: Session,
     */
   private def processRow(row: Row) = {
     // convert the cassandra row to a struct
-    val ignoreList = setting.routes.getIgnoredField.toList
+    val ignoreList = config.getIgnoredField.toList
     val structColDefs = CassandraUtils.getStructColumns(row, ignoreList)
     val struct = CassandraUtils.convert(row, schemaName, structColDefs)
 
@@ -263,7 +235,7 @@ class CassandraTableReader(private val session: Session,
     logger.debug(s"Storing offset $offset")
 
     // create source record
-    val record = if (setting.routes.isWithUnwrap) {
+    val record = if (config.isWithUnwrap) {
       val structValue = structColDefs.map(d => d.getName).map(name => row.getObject(name)).mkString(",")
       new SourceRecord(sourcePartition, Map(timestampCol -> offset), topic, Schema.STRING_SCHEMA, structValue)
     } else {
@@ -286,9 +258,9 @@ class CassandraTableReader(private val session: Session,
     * @return A java.util.Date
     */
   private def extractTimestamp(row: Row): Date = {
-    Try(row.getTimestamp(setting.timestampColumn.get)) match {
+    Try(row.getTimestamp(setting.primaryKeyColumn.get)) match {
       case Success(s) => s
-      case Failure(_) => new Date(UUIDs.unixTimestamp(row.getUUID(setting.timestampColumn.get)))
+      case Failure(_) => new Date(UUIDs.unixTimestamp(row.getUUID(setting.primaryKeyColumn.get)))
     }
   }
 
@@ -299,7 +271,7 @@ class CassandraTableReader(private val session: Session,
     */
   private def reset(offset: Option[Date]) = {
     //set the offset to the 'now' bind value
-    val table = setting.routes.getTarget
+    val table = config.getTarget
     logger.debug(s"Setting offset for $keySpace.$table to $offset.")
     tableOffset = offset.orElse(tableOffset)
     //switch to not querying
@@ -320,7 +292,7 @@ class CassandraTableReader(private val session: Session,
     * Tell me to stop processing.
     */
   def stopQuerying(): Unit = {
-    val table = setting.routes.getTarget
+    val table = config.getTarget
     stop.set(true)
     while (querying.get()) {
       logger.info(s"Waiting for querying to stop for $keySpace.$table.")
