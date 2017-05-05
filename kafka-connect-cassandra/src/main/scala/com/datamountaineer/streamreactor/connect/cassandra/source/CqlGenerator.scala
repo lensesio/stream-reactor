@@ -17,7 +17,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
   private val keySpace = setting.keySpace
   private val selectColumns = getSelectColumns
   private val incrementMode = determineMode
-  private val limitRowsSize = 100
+  private val limitRowsSize = config.getBatchSize
 
   /**
    * Build the CQL for the given table.
