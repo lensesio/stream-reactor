@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.connect.elastic
 
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter._
 import java.util
 
 import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSinkConfigConstants
@@ -28,7 +29,6 @@ import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import java.time.format.DateTimeFormatter._
 
 trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
   val ELASTIC_SEARCH_HOSTNAMES = "localhost:9300"
@@ -45,19 +45,19 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
   protected val PARTITION2: Int = 13
   protected val TOPIC_PARTITION: TopicPartition = new TopicPartition(TOPIC, PARTITION)
   protected val TOPIC_PARTITION2: TopicPartition = new TopicPartition(TOPIC, PARTITION2)
-  protected val ASSIGNMENT: util.Set[TopicPartition] =  new util.HashSet[TopicPartition]
+  protected val ASSIGNMENT: util.Set[TopicPartition] = new util.HashSet[TopicPartition]
   //Set topic assignments
   ASSIGNMENT.add(TOPIC_PARTITION)
   ASSIGNMENT.add(TOPIC_PARTITION2)
 
-//  before {
-//    TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
-//    TMP.createDirectory()
-//  }
-//
-//  after {
-//    TMP.deleteRecursively()
-//  }
+  //  before {
+  //    TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
+  //    TMP.createDirectory()
+  //  }
+  //
+  //  after {
+  //    TMP.deleteRecursively()
+  //  }
 
   //get the assignment of topic partitions for the sinkTask
   def getAssignment: util.Set[TopicPartition] = {
@@ -85,7 +85,7 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
   }
 
   //generate some test records
-  def getTestRecords: Set[SinkRecord]= {
+  def getTestRecords: Set[SinkRecord] = {
     val schema = createSchema
     val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
 
@@ -97,7 +97,7 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
     }).toSet
   }
 
-  def getUpdateTestRecord: Set[SinkRecord]= {
+  def getUpdateTestRecord: Set[SinkRecord] = {
     val schema = createSchema
     val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
 
@@ -126,28 +126,26 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
   }
 
   def getBaseElasticSinkConfigProps(query: String) = {
-    Map (
-      ElasticSinkConfigConstants.URL->ELASTIC_SEARCH_HOSTNAMES,
-      ElasticSinkConfigConstants.ES_CLUSTER_NAME->ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT,
-      ElasticSinkConfigConstants.URL_PREFIX->ElasticSinkConfigConstants.URL_PREFIX_DEFAULT,
-      ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY->query
+    Map(
+      ElasticSinkConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
+      ElasticSinkConfigConstants.ES_CLUSTER_NAME -> ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT,
+      ElasticSinkConfigConstants.URL_PREFIX -> ElasticSinkConfigConstants.URL_PREFIX_DEFAULT,
+      ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY -> query
     ).asJava
   }
 
   def getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate: Boolean) = {
-    Map (
-      ElasticSinkConfigConstants.URL->ELASTIC_SEARCH_HOSTNAMES,
-      ElasticSinkConfigConstants.ES_CLUSTER_NAME->ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT,
-      ElasticSinkConfigConstants.URL_PREFIX->ElasticSinkConfigConstants.URL_PREFIX_DEFAULT,
-      ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY->QUERY,
-      ElasticSinkConfigConstants.INDEX_NAME_SUFFIX->"_{YYYY-MM-dd}",
-      ElasticSinkConfigConstants.AUTO_CREATE_INDEX->s"$autoCreate"
+    Map(
+      ElasticSinkConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
+      ElasticSinkConfigConstants.ES_CLUSTER_NAME -> ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT,
+      ElasticSinkConfigConstants.URL_PREFIX -> ElasticSinkConfigConstants.URL_PREFIX_DEFAULT,
+      ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY -> (QUERY + (if (autoCreate) " AUTOCREATE " else "") + " WITHINDEXSUFFIX=_{YYYY-MM-dd}")
     ).asJava
   }
 
   def getElasticSinkConfigPropsDefaults = {
-    Map (
-      ElasticSinkConfigConstants.URL->ELASTIC_SEARCH_HOSTNAMES
+    Map(
+      ElasticSinkConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES
     ).asJava
   }
 }
