@@ -61,7 +61,7 @@ class TestCqlGenerator extends WordSpec with Matchers with BeforeAndAfter with M
     val cqlGenerator = new CqlGenerator(configureMe("INCREMENTALMODE=token", "timeuuid"))
     val cqlStatement = cqlGenerator.getCqlStatement
 
-    cqlStatement shouldBe "SELECT timestamp_field,string_field FROM sink_test.cassandra-table WHERE token(timestamp_field) > token(?) LIMIT 200"
+    cqlStatement shouldBe "SELECT timestamp_field,string_field FROM sink_test.cassandra-table WHERE token(timestamp_field) > token(?) LIMIT 3000"
   }
 
   "Exception should be thrown with unknown incremental mode in KCQL" in {

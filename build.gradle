@@ -73,7 +73,7 @@ allprojects {
         gsonVersion = "2.6.2"
         dataMountaineerKCQLVersion = "1.0.3"
         akkaVersion = "2.4.10"
-        connectCLIVersion = "1.0"
+        connectCLIVersion = "1.0.1"
 
         // The following 4 need to align to compile against a particular version
         confluentVersion = '3.2.0'

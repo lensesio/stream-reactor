@@ -52,3 +52,10 @@ classes/*
 
 /kafka-connect-jms/*-*-*-*-*
 *-*-*-*-*
+/.classpath
+/.project
+/.settings
+
+/*/.classpath
+/*/.project
+/*/.settings
