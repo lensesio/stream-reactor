@@ -476,7 +476,7 @@ public class Config {
             }
 
             @Override
-            public void exitTtl_clause(ConnectorParser.Ttl_clauseContext ctx) {
+            public void exitTtl_type(ConnectorParser.Ttl_typeContext ctx) {
                 final String value = ctx.getText();
                 try {
                     long newTTL = Long.parseLong(value);

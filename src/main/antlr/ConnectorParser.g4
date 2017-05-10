@@ -284,7 +284,7 @@ with_unwrap_clause
     ;
 
 ttl_clause
-    : TTL ttl_type
+    : TTL EQUAL ttl_type
     ;
 
 ttl_type

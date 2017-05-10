@@ -133,9 +133,15 @@ WITHINDEXSUFFIX
     : 'WITHINDEXSUFFIX' | 'withindexsuffix'
     ;
 
+
+TTL
+   : 'TTL'|'ttl'
+   ;
+
 EQUAL
    : '='
    ;
+
 
 INT
    : '0' .. '9'+
@@ -161,7 +167,6 @@ RIGHT_PARAN
     : ')'
     ;
 
-
 ID
    : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' )+
    ;
@@ -180,8 +185,3 @@ NEWLINE
 WS
    : ( ' ' | '\t' | '\n' | '\r' )+ -> skip
    ;
-
-TTL
-   : 'TTL'|'ttl'
-   ;
-
