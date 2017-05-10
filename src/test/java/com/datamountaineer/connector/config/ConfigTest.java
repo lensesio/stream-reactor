@@ -805,6 +805,21 @@ public class ConfigTest {
     }
 
     @Test
+    public void handleTTLClause() {
+        String topic = "TOPIC_A";
+        String table = "TABLE_A";
+        String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s STOREAS SS (param1 = value1 , param2 = value2,param3=value3) TTL 999", table, topic);
+        Config config = Config.parse(syntax);
+        assertEquals("SS", config.getStoredAs());
+        assertEquals(3, config.getStoredAsParameters().size());
+        assertEquals("value1", config.getStoredAsParameters().get("param1"));
+        assertEquals("value2", config.getStoredAsParameters().get("param2"));
+        assertEquals("value3", config.getStoredAsParameters().get("param3"));
+        assertEquals("999", config.getTTL());
+    }
+
+
+    @Test
     public void handleForwardSlashInSource() {
         String topic = "/TOPIC_A";
         String table = "TABLE_A";

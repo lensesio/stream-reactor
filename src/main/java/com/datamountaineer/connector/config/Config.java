@@ -47,6 +47,15 @@ public class Config {
     private boolean withUnwrap = false;
     private Integer projectTo;
     private List<Tag> tags;
+    private long ttl;
+
+    public void setTTL(long ttl) {
+        this.ttl = ttl;
+    }
+
+    public long getTTL() {
+        return this.ttl;
+    }
 
     private void addIgnoredField(final String ignoredField) {
         if (ignoredField == null || ignoredField.trim().length() == 0) {
@@ -463,6 +472,20 @@ public class Config {
                     config.setBatchSize(newBatchSize);
                 } catch (NumberFormatException ex) {
                     throw new IllegalArgumentException(value + " is not a valid number for a batch Size.");
+                }
+            }
+
+            @Override
+            public void exitTtl_clause(ConnectorParser.Ttl_clauseContext ctx) {
+                final String value = ctx.getText();
+                try {
+                    long newTTL = Long.parseLong(value);
+                    if (newTTL <= 0) {
+                        throw new IllegalArgumentException(value + " is not a valid number for a TTL.");
+                    }
+                    config.setTTL(newTTL);
+                } catch (NumberFormatException ex) {
+                    throw new IllegalArgumentException(value + " is not a valid number for a TTL.");
                 }
             }
 
