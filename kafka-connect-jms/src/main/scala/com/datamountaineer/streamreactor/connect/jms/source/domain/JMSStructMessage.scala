@@ -24,6 +24,7 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.source.SourceRecord
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable.ListBuffer
 
 /**
   * Created by andrew@datamountaineer.com on 11/03/2017.
@@ -32,10 +33,11 @@ import scala.collection.JavaConversions._
   object JMSStructMessage {
     val mapper = new ObjectMapper()
       val schema = getSchema()
+      val propertySchema = getPropertySchema()
       private val sourcePartition =  Map.empty[String, String]
       private val offset = Map.empty[String, String]
 
-      def propStruct() : Schema = {
+      def getPropertySchema() : Schema = {
         SchemaBuilder.struct().name("properties")
         .field("key", Schema.OPTIONAL_STRING_SCHEMA)
         .field("value", Schema.OPTIONAL_STRING_SCHEMA)
@@ -54,7 +56,7 @@ import scala.collection.JavaConversions._
           .field("type", Schema.OPTIONAL_STRING_SCHEMA)
           .field("priority", Schema.OPTIONAL_INT32_SCHEMA)
           .field("bytes_payload", Schema.OPTIONAL_BYTES_SCHEMA)
-          .field("properties", SchemaBuilder.array(propStruct()).optional())
+          .field("properties", SchemaBuilder.array(getPropertySchema()).optional())
           .build()
       }
 
@@ -79,13 +81,16 @@ import scala.collection.JavaConversions._
       }
 
       def getProperties(message: Message) = {
-        val map = scala.collection.mutable.Map[String, String]()
+        val list = scala.collection.mutable.ListBuffer[Struct]()
         val props = message.getPropertyNames
         while (props.hasMoreElements) {
-          val name  = props.nextElement().toString
-          val value = message.getStringProperty(name)
-          map.put(name, value)
+          val property = new Struct(propertySchema)
+          val name = props.nextElement().toString
+          property.put("key", name)
+          property.put("value", message.getStringProperty(name))
+          list += property
         }
+        seqAsJavaList(list)
       }
 
       def getPayload(message: Message): Array[Byte] = {
