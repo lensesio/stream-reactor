@@ -28,7 +28,7 @@ object JMSConfig {
       "Connection", 1, ConfigDef.Width.MEDIUM, JMSConfigConstants.JMS_URL)
     .define(JMSConfigConstants.INITIAL_CONTEXT_FACTORY, Type.STRING, Importance.HIGH, JMSConfigConstants.INITIAL_CONTEXT_FACTORY_DOC,
       "Connection", 2, ConfigDef.Width.MEDIUM, JMSConfigConstants.INITIAL_CONTEXT_FACTORY)
-    .define(JMSConfigConstants.CONNECTION_FACTORY, Type.STRING, Importance.HIGH, JMSConfigConstants.CONNECTION_FACTORY_DOC,
+    .define(JMSConfigConstants.CONNECTION_FACTORY, Type.STRING, JMSConfigConstants.CONNECTION_FACTORY_DEFAULT, Importance.HIGH, JMSConfigConstants.CONNECTION_FACTORY_DOC,
       "Connection", 3, ConfigDef.Width.MEDIUM, JMSConfigConstants.CONNECTION_FACTORY)
     .define(JMSConfigConstants.KCQL, Type.STRING, Importance.HIGH, JMSConfigConstants.KCQL,
       "Connection", 4, ConfigDef.Width.MEDIUM, JMSConfigConstants.KCQL)
@@ -61,7 +61,9 @@ object JMSConfig {
 
     //converters
     .define(JMSConfigConstants.CONVERTER_CONFIG, Type.STRING, "", Importance.HIGH, JMSConfigConstants.CONVERTER_DOC,
-    "Converter", 1, ConfigDef.Width.MEDIUM, JMSConfigConstants.CONVERTER_DISPLAY)
+      "Converter", 1, ConfigDef.Width.MEDIUM, JMSConfigConstants.CONVERTER_DISPLAY)
+    .define(JMSConfigConstants.DEFAULT_CONVERTER_CONFIG, Type.STRING, "", Importance.HIGH, JMSConfigConstants.DEFAULT_CONVERTER_DOC,
+      "Converter", 1, ConfigDef.Width.MEDIUM, JMSConfigConstants.DEFAULT_CONVERTER_DISPLAY)
     .define(JMSConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG, Type.BOOLEAN, JMSConfigConstants.THROW_ON_CONVERT_ERRORS_DEFAULT,
       Importance.HIGH, JMSConfigConstants.THROW_ON_CONVERT_ERRORS_DOC, "Converter", 2, ConfigDef.Width.MEDIUM,
       JMSConfigConstants.THROW_ON_CONVERT_ERRORS_DISPLAY)

@@ -80,7 +80,25 @@ object JMSSettings extends StrictLogging {
     ).toMap
 
     val ignoreFields = kcql.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
-
+    
+    val defaultConverter = Option(config.getString(JMSConfigConstants.DEFAULT_CONVERTER_CONFIG))
+      .map { c =>
+        Try(getClass.getClassLoader.loadClass(c)) match {
+          case Failure(_) => throw new ConfigException(s"Invalid ${JMSConfigConstants.DEFAULT_CONVERTER_CONFIG}.$c can't be found")
+          case Success(clz) =>
+            if (!classOf[Converter].isAssignableFrom(clz)) {
+              throw new ConfigException(s"Invalid ${JMSConfigConstants.DEFAULT_CONVERTER_CONFIG}. $c is not inheriting Converter")
+            }
+            logger.info(s"Creating converter instance for $c")
+            val coverter = Try(this.getClass.getClassLoader.loadClass(c).newInstance()) match {
+              case Success(value) => value.asInstanceOf[Converter]
+              case Failure(_) => throw new ConfigException(s"Invalid ${JMSConfigConstants.DEFAULT_CONVERTER_CONFIG} is invalid. $c should have an empty ctor!")
+            }
+            coverter.initialize(config.props.toMap)
+            coverter
+        }
+      }
+    
     val sourcesToConverterMap = Option(config.getString(JMSConfigConstants.CONVERTER_CONFIG))
       .map { c =>
         c.split(';')
@@ -123,7 +141,11 @@ object JMSSettings extends StrictLogging {
 
     val settings = kcql.map(r => {
       val jmsName = if (sink) r.getTarget else r.getSource
-      JMSSetting(r.getSource, r.getTarget, fields(r.getSource), ignoreFields(r.getSource), getDestinationType(jmsName, jmsQueues, jmsTopics), getFormatType(r), convertersMap.get(jmsName))
+      var converter = convertersMap.get(jmsName)
+      if (converter.isEmpty) {
+        converter = defaultConverter
+      }
+      JMSSetting(r.getSource, r.getTarget, fields(r.getSource), ignoreFields(r.getSource), getDestinationType(jmsName, jmsQueues, jmsTopics), getFormatType(r), converter)
     }).toList
 
     new JMSSettings(

@@ -32,6 +32,8 @@ object JMSConfigConstants {
   val CONNECTION_FACTORY = "connect.jms.connection.factory"
   private[config] val CONNECTION_FACTORY_DOC = "Provides the full class name for the ConnectionFactory implementation to use, e.g" +
     "org.apache.activemq.ActiveMQConnectionFactory"
+  val CONNECTION_FACTORY_DEFAULT = "ConnectionFactory"
+
 
   val KCQL = "connect.jms.kcql"
   val KCQL_DOC =  "KCQL expression describing field selection and routes."
@@ -60,6 +62,16 @@ object JMSConfigConstants {
       |If the source topic is not matched it will default to the BytesConverter
       |i.e. $jms_source1=com.datamountaineer.streamreactor.connect.source.converters.AvroConverter;$jms_source2=com.datamountaineer.streamreactor.connect.source.converters.JsonConverter""".stripMargin
   private[config] val CONVERTER_DISPLAY = "Converter class"
+
+
+  val DEFAULT_CONVERTER_CONFIG = "connect.jms.source.default.converter"
+  private[config] val DEFAULT_CONVERTER_DOC =
+    """
+      |Contains a canonical class name for the default converter of a raw JMS message bytes to a SourceRecord.
+      |Overides to the default can be done by using connect.jms.source.converters still.
+      |i.e. com.datamountaineer.streamreactor.connect.source.converters.AvroConverter""".stripMargin
+  private[config] val DEFAULT_CONVERTER_DISPLAY = "Default Converter class"
+
 
   val THROW_ON_CONVERT_ERRORS_CONFIG = "connect.jms.converter.throw.on.error"
   private[config] val THROW_ON_CONVERT_ERRORS_DOC = "If set to false the conversion exception will be swallowed and everything carries on BUT the message is lost!!; true will throw the exception.Default is false."
