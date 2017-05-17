@@ -82,7 +82,7 @@ object JMSSettings extends StrictLogging {
     val ignoreFields = kcql.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
     
     val defaultConverter = Option(config.getString(JMSConfigConstants.DEFAULT_CONVERTER_CONFIG))
-      .map { c =>
+        .filterNot(c => c.isEmpty).map { c =>
         Try(getClass.getClassLoader.loadClass(c)) match {
           case Failure(_) => throw new ConfigException(s"Invalid ${JMSConfigConstants.DEFAULT_CONVERTER_CONFIG}.$c can't be found")
           case Success(clz) =>
