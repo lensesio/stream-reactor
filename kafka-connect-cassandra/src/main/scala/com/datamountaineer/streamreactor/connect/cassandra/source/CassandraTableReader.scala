@@ -108,10 +108,13 @@ class CassandraTableReader(private val session: Session,
       if (querying.get()) {
         logger.debug(s"Still querying for $keySpace.$table. Current queue size is ${queue.size()}.")
       }
-      // wait for next poll interval to expire
+      // have we passed the last poll and interval
       else if (lastPoll + setting.pollInterval < newPollTime) {
         lastPoll = newPollTime
         query()
+      } else {
+        val sleepFor = newPollTime - lastPoll
+        Thread.sleep(sleepFor)
       }
     }
     else {
