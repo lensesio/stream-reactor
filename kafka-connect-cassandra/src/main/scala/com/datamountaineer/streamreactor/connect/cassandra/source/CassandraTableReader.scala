@@ -52,9 +52,8 @@ class CassandraTableReader(private val session: Session,
   private val config = setting.routes
   private val cqlGenerator = new CqlGenerator(setting)
   
-  private val defaultTimestamp = "1900-01-01 00:00:00.0000000Z"
   private val dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'")
-  private val timestampCol = setting.primaryKeyColumn.getOrElse("")
+  private val primaryKeyCol = setting.primaryKeyColumn.getOrElse("")
   private val querying = new AtomicBoolean(false)
   private val stop = new AtomicBoolean(false)
   private var lastPoll = 0.toLong
@@ -65,7 +64,7 @@ class CassandraTableReader(private val session: Session,
   // private val preparedStatementNoOffset ??
   private val preparedStatement = getPreparedStatements
   // TODO: make offset handling generic (not date based)
-  private var tableOffset: Option[Date] = buildOffsetMap(context)
+  private var tableOffset: Option[String] = buildOffsetMap(context)
   private val sourcePartition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
   private val schemaName = s"$keySpace.$table".replace('-', '.')
 
@@ -76,12 +75,13 @@ class CassandraTableReader(private val session: Session,
     * @param context SourceTaskContext for this task.
     * @return The last stored offset.
     */
-  private def buildOffsetMap(context: SourceTaskContext): Option[Date] = {
+  private def buildOffsetMap(context: SourceTaskContext): Option[String] = {
     val offsetStorageKey = CassandraConfigConstants.ASSIGNED_TABLES
     val tables = List(topic)
     val recoveredOffsets = OffsetHandler.recoverOffsets(offsetStorageKey, tables, context)
-    val offset = OffsetHandler.recoverOffset[String](recoveredOffsets, offsetStorageKey, table, timestampCol)
-    Some(dateFormatter.parse(offset.getOrElse(defaultTimestamp)))
+    val offset = OffsetHandler.recoverOffset[String](recoveredOffsets, offsetStorageKey, table, primaryKeyCol)
+    
+    cqlGenerator.getDefaultOffsetValue(offset)
   }
 
   /**
@@ -129,17 +129,19 @@ class CassandraTableReader(private val session: Session,
     // execute the query, gives us back a future result set
     val frs = if (setting.bulkImportMode) {
       resultSetFutureToScala(fireQuery())
-    }
-    else {
-      // if the tableoffset has been set use it as the lower bound else get default (1900-01-01) for first query
-      val lowerBound = if (tableOffset.isEmpty) dateFormatter.parse(defaultTimestamp) else tableOffset.get
+    } else if (cqlGenerator.isTokenBased()) {
+      // TODO: token based 
+      null
+    } else {
+      // time based key column
+      val lowerBound = dateFormatter.parse(cqlGenerator.getDefaultOffsetValue(tableOffset).get)
       // set the upper bound to now
       val upperBound = new Date()
       resultSetFutureToScala(bindAndFireQuery(lowerBound, upperBound))
     }
 
     //give futureresultset to the process method to extract records,
-    //once complete it will update the tableoffset timestamp
+    //once complete it will update the tableoffset
     process(frs)
   }
 
@@ -180,7 +182,7 @@ class CassandraTableReader(private val session: Session,
     */
   private def process(future: Future[ResultSet]) = {
     //get the max offset per query
-    var maxOffset: Option[Date] = None
+    var maxOffset: Option[String] = None
     //on success start writing the row to the queue
     future.onSuccess({
       case rs: ResultSet =>
@@ -192,10 +194,15 @@ class CassandraTableReader(private val session: Session,
         while (iter.hasNext & !stop.get()) {
           val row = iter.next()
           Try({
-            //if not bulk get the row timestamp column value to get the max
+            // if not bulk get the row timestamp column value to get the max
             if (!setting.bulkImportMode) {
-              val rowOffset = extractTimestamp(row)
-              maxOffset = if (maxOffset.isEmpty || rowOffset.after(maxOffset.get)) Some(rowOffset) else maxOffset
+              maxOffset = if (cqlGenerator.isTokenBased()) {
+                val rowOffset = ""//extract value from row /token
+                maxOffset
+              } else {
+                val rowOffsetDate = extractTimestamp(row)
+                if (maxOffset.isEmpty || rowOffsetDate.after(dateFormatter.parse(maxOffset.get))) Some(dateFormatter.format(rowOffsetDate)) else maxOffset
+              }
               logger.info(s"Max Offset is currently: ${maxOffset.get}")
             }
             processRow(row)
@@ -232,17 +239,22 @@ class CassandraTableReader(private val session: Session,
     val struct = CassandraUtils.convert(row, schemaName, structColDefs)
 
     // get the offset for this value
-    val rowOffset: Date = if (setting.bulkImportMode) tableOffset.get else extractTimestamp(row)
-    val offset: String = dateFormatter.format(rowOffset)
-
+    val offset: String = if (cqlGenerator.isTokenBased()) {
+      // token
+      null
+    } else {
+      val rowOffset: Date = if (setting.bulkImportMode) dateFormatter.parse(tableOffset.get) else extractTimestamp(row)
+      dateFormatter.format(rowOffset)
+    }
+    
     logger.debug(s"Storing offset $offset")
 
     // create source record
     val record = if (config.isWithUnwrap) {
       val structValue = structColDefs.map(d => d.getName).map(name => row.getObject(name)).mkString(",")
-      new SourceRecord(sourcePartition, Map(timestampCol -> offset), topic, Schema.STRING_SCHEMA, structValue)
+      new SourceRecord(sourcePartition, Map(primaryKeyCol -> offset), topic, Schema.STRING_SCHEMA, structValue)
     } else {
-      new SourceRecord(sourcePartition, Map(timestampCol -> offset), topic, struct.schema(), struct)
+      new SourceRecord(sourcePartition, Map(primaryKeyCol -> offset), topic, struct.schema(), struct)
     }
 
     // add source record to queue
@@ -272,7 +284,7 @@ class CassandraTableReader(private val session: Session,
     *
     * @param offset the date to set the offset to
     */
-  private def reset(offset: Option[Date]) = {
+  private def reset(offset: Option[String]) = {
     //set the offset to the 'now' bind value
     val table = config.getTarget
     logger.debug(s"Setting offset for $keySpace.$table to $offset.")
