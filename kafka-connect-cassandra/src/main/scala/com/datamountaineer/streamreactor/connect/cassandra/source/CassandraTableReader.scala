@@ -63,7 +63,6 @@ class CassandraTableReader(private val session: Session,
   // TODO: need two different statements for token (with no offset and with an offset)
   // private val preparedStatementNoOffset ??
   private val preparedStatement = getPreparedStatements
-  // TODO: make offset handling generic (not date based)
   private var tableOffset: Option[String] = buildOffsetMap(context)
   private val sourcePartition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
   private val schemaName = s"$keySpace.$table".replace('-', '.')
@@ -197,11 +196,9 @@ class CassandraTableReader(private val session: Session,
             // if not bulk get the row timestamp column value to get the max
             if (!setting.bulkImportMode) {
               maxOffset = if (cqlGenerator.isTokenBased()) {
-                val rowOffset = ""//extract value from row /token
-                maxOffset
+                getTokenMaxOffsetForRow(maxOffset, row)
               } else {
-                val rowOffsetDate = extractTimestamp(row)
-                if (maxOffset.isEmpty || rowOffsetDate.after(dateFormatter.parse(maxOffset.get))) Some(dateFormatter.format(rowOffsetDate)) else maxOffset
+                getTimebasedMaxOffsetForRow(maxOffset, row)
               }
               logger.info(s"Max Offset is currently: ${maxOffset.get}")
             }
@@ -224,6 +221,15 @@ class CassandraTableReader(private val session: Session,
         reset(tableOffset)
         throw new ConnectException(s"Error will querying $table.", t)
     })
+  }
+  
+  private def getTokenMaxOffsetForRow(maxOffset: Option[String], row: Row): Option[String] = {
+    null
+  }
+  
+  private def getTimebasedMaxOffsetForRow(maxOffset: Option[String], row: Row): Option[String] = {
+    val rowOffsetDate = extractTimestamp(row)
+    if (maxOffset.isEmpty || rowOffsetDate.after(dateFormatter.parse(maxOffset.get))) Some(dateFormatter.format(rowOffsetDate)) else maxOffset
   }
 
   /**
