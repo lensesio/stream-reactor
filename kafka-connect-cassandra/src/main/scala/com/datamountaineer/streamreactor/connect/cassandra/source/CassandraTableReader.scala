@@ -212,7 +212,8 @@ class CassandraTableReader(private val session: Session,
           }
         }
         logger.info(s"Processed $counter rows for table $topic.$table")
-        reset(maxOffset) //set as the new high watermark.
+        //set as the new high watermark.
+        reset(maxOffset)
     })
 
     //On failure, rest and throw
