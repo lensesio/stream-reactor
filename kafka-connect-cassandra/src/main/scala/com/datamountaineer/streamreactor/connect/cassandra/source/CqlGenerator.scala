@@ -1,14 +1,20 @@
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
+import com.datastax.driver.core.BoundStatement
+import com.datastax.driver.core.PreparedStatement
+import com.datastax.driver.core.Row
+
 import com.datamountaineer.connector.config.Config
 import com.datamountaineer.connector.config.FieldAlias
-import com.datastax.driver.core.PreparedStatement
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSourceSetting
+import com.datamountaineer.streamreactor.connect.cassandra.config.TimestampType
+
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.common.config.ConfigException
+import java.text.SimpleDateFormat
 
 import scala.collection.JavaConversions._
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSourceSetting
-import org.apache.kafka.common.config.ConfigException
-import com.datamountaineer.streamreactor.connect.cassandra.config.TimestampType
+import scala.util.{ Failure, Success, Try }
 
 class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLogging {
 
@@ -18,6 +24,8 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
   private val selectColumns = getSelectColumns
   private val incrementMode = determineMode
   private val limitRowsSize = config.getBatchSize
+
+  private val defaultTimestamp = "1900-01-01 00:00:00.0000000Z"
 
   /**
    * Build the CQL for the given table.
@@ -44,6 +52,20 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
     selectStatement
   }
 
+  def getDefaultOffsetValue(offset: Option[String]): Option[String] = {
+    incrementMode.toUpperCase match {
+      case "TIMESTAMP" | "TIMEUUID" => Some(offset.getOrElse(defaultTimestamp))
+      case "TOKEN" => Some("")
+    }
+  }
+
+  def isTokenBased() = {
+    incrementMode.toUpperCase match {
+      case "TIMESTAMP" | "TIMEUUID" => false
+      case "TOKEN" => true
+    }
+  }
+
   /**
    * get the columns for the SELECT statement
    *
@@ -57,47 +79,47 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
     selectColumns
   }
 
-  private def checkCqlForPrimaryKey(pkCol:String) = {
+  private def checkCqlForPrimaryKey(pkCol: String) = {
     logger.info(s"checking CQL for PK: $pkCol")
     if (!selectColumns.contains(pkCol) && !selectColumns.contentEquals("*")) {
-        val msg = s"the primary key column (pkCol) must appear in the SELECT statement"
-        logger.error(msg)
-        throw new ConfigException(msg)
-      }
+      val msg = s"the primary key column (pkCol) must appear in the SELECT statement"
+      logger.error(msg)
+      throw new ConfigException(msg)
+    }
   }
-  
+
   private def generateCqlForTokenMode: String = {
     val pkCol = setting.primaryKeyColumn.getOrElse("")
     checkCqlForPrimaryKey(pkCol)
-    val whereClause =  s" WHERE token($pkCol) > token(?) LIMIT $limitRowsSize"
+    val whereClause = s" WHERE token($pkCol) > token(?) LIMIT $limitRowsSize"
     generateCqlForBulkMode + whereClause
   }
-  
+
   private def generateCqlForTimeUuidMode: String = {
     val pkCol = setting.primaryKeyColumn.getOrElse("")
     checkCqlForPrimaryKey(pkCol)
-    val whereClause =  s" WHERE $pkCol > maxTimeuuid(?) AND $pkCol <= minTimeuuid(?) ALLOW FILTERING"
+    val whereClause = s" WHERE $pkCol > maxTimeuuid(?) AND $pkCol <= minTimeuuid(?) ALLOW FILTERING"
     generateCqlForBulkMode + whereClause
   }
-  
+
   private def generateCqlForTimestampMode: String = {
     val pkCol = setting.primaryKeyColumn.getOrElse("")
     checkCqlForPrimaryKey(pkCol)
-    val whereClause =  s" WHERE $pkCol > ? AND $pkCol <= ? ALLOW FILTERING"
+    val whereClause = s" WHERE $pkCol > ? AND $pkCol <= ? ALLOW FILTERING"
     generateCqlForBulkMode + whereClause
   }
 
   private def generateCqlForBulkMode: String = {
     s"SELECT $selectColumns FROM $keySpace.$table"
   }
-  
+
   /**
    * determine the incremental mode in use
-   * if the INCREMENTALMODE is used in KCQL it 
-   * will take precedence over the configuration 
+   * if the INCREMENTALMODE is used in KCQL it
+   * will take precedence over the configuration
    * setting
-   * 
-   * @return the incremental mode 
+   *
+   * @return the incremental mode
    */
   private def determineMode: String = {
     val incMode = if (config.getIncrementalMode != null && !config.getIncrementalMode.isEmpty) {
