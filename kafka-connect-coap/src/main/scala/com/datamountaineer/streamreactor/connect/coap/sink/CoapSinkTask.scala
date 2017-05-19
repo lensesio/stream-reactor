@@ -37,6 +37,7 @@ import scala.collection.mutable
 class CoapSinkTask extends SinkTask with StrictLogging {
   private val writers = mutable.Map.empty[String, CoapWriter]
   private var progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-sink-ascii.txt")).mkString)
@@ -52,7 +53,10 @@ class CoapSinkTask extends SinkTask with StrictLogging {
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
     records.map(r => writers(r.topic()).write(List(r)))
-    //progressCounter.update(records.asScala.toSeq)
+    val seq = records.toVector
+    if (enableProgress) {
+      progressCounter.update(seq)
+    }
   }
 
   override def stop(): Unit = {

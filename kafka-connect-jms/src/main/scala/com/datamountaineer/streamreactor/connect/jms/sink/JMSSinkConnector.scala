@@ -58,7 +58,7 @@ class JMSSinkConnector extends SinkConnector with StrictLogging {
     * @param props A map of properties for the connector and worker
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(s"Starting Jms sink task with ${props.toString}.")
+    logger.info(s"Starting Jms sink task.")
     configProps = Some(props)
   }
 

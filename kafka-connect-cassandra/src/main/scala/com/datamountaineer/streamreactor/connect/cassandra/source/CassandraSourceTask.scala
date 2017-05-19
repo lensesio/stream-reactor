@@ -36,6 +36,9 @@ import scala.util.{Failure, Success, Try}
   * Created by andrew@datamountaineer.com on 14/04/16.
   * stream-reactor
   */
+
+
+
 class CassandraSourceTask extends SourceTask with StrictLogging {
   private var queues = mutable.Map.empty[String, LinkedBlockingQueue[SourceRecord]]
   private val readers = mutable.Map.empty[String, CassandraTableReader]
@@ -44,6 +47,8 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
   private var settings : Set[CassandraSourceSetting] = Set.empty
   private var bufferSize : Option[Int] = None
   private var batchSize : Option[Int] = None
+  private var tracker: Long = 0
+  private var pollInterval : Long = CassandraConfigConstants.DEFAULT_POLL_INTERVAL
 
 
   /**
@@ -58,22 +63,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
       case Failure(f) => throw new ConnectException("Couldn't start CassandraSource due to configuration error.", f)
       case Success(s) => Some(s)
     }
-
-    //ascii art!!
-    logger.info("""
-                  |
-                  |    ____        __        __  ___                  __        _
-                  |   / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
-                  |  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
-                  | / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
-                  |/_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
-                  |       ______                                __           _____
-                  |      / ____/___ _______________ _____  ____/ /________ _/ ___/____  __  _______________
-                  |     / /   / __ `/ ___/ ___/ __ `/ __ \/ __  / ___/ __ `/\__ \/ __ \/ / / / ___/ ___/ _ \
-                  |    / /___/ /_/ (__  |__  ) /_/ / / / / /_/ / /  / /_/ /___/ / /_/ / /_/ / /  / /__/  __/
-                  |    \____/\__,_/____/____/\__,_/_/ /_/\__,_/_/   \__,_//____/\____/\__,_/_/   \___/\___/
-                  |
-                  | By Andrew Stevenson.""".stripMargin)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-source-ascii.txt")).mkString)
 
     //get the list of assigned tables this sink
     val assigned = taskConfig.get.getString(CassandraConfigConstants.ASSIGNED_TABLES).split(",").toList
@@ -100,6 +90,8 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
       val queue = queues(table)
       readers += table -> CassandraTableReader(session = session, setting = setting, context = context, queue = queue)
     })
+
+    pollInterval = settings.head.pollInterval
   }
 
   /**
@@ -110,8 +102,20 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     * @return A util.List of SourceRecords.
     */
   override def poll(): util.List[SourceRecord] = {
-    settings.map(s=>s.routes).flatten(r=>process(r.getSource)).toList
+    val now = System.currentTimeMillis()
+    if (tracker + pollInterval <= now) {
+      tracker = now
+      settings
+        .map(s => s.routes)
+        .flatten(r => process(r.getSource))
+        .toList
+    } else {
+      logger.debug(s"Waiting for poll interval to pass")
+      Thread.sleep(pollInterval)
+      List[SourceRecord]()
+    }
   }
+
 
   /**
     * Process the table
@@ -124,11 +128,19 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     */
   def process(table: String) : List[SourceRecord]= {
     val reader = readers(table)
-    reader.read()
-    val queue = queues(table)
-    if (!queue.isEmpty) {
-      QueueHelpers.drainQueue(queues(table), batchSize.get).toList
+    if (!reader.isQuerying) {
+      //query
+      reader.read()
+      val queue = queues(table)
+      if (!queue.isEmpty) {
+        logger.debug(s"Attempting to draining $batchSize from the queue for table $table")
+        val records = QueueHelpers.drainQueue(queues(table), batchSize.get).toList
+        records
+      } else {
+        List[SourceRecord]()
+      }
     } else {
+      logger.info(s"Reader for table ${table} is still querying")
       List[SourceRecord]()
     }
   }
@@ -138,7 +150,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     */
   override def stop(): Unit = {
     logger.info("Stopping Cassandra source.")
-    readers.foreach( {case (k, v) => v.close()})
+    readers.foreach( {case (_, v) => v.close()})
     val cluster = connection.get.session.getCluster
     logger.info("Shutting down Cassandra driver connections.")
     connection.get.session.close()

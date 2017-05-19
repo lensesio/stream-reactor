@@ -105,4 +105,9 @@ object HazelCastSinkConfigConstants {
       |and that would be the size of this threadpool.""".stripMargin
   val SINK_THREAD_POOL_DISPLAY = "Thread pool size"
   val SINK_THREAD_POOL_DEFAULT = 0
+
+  val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"
+  val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
+  val PROGRESS_COUNTER_ENABLED_DEFAULT = false
+  val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 }

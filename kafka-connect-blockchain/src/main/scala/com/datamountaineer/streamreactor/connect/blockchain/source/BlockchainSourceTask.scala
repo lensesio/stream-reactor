@@ -34,6 +34,7 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
   private var taskConfig: Option[AbstractConfig] = None
   private var blockchainManager: Option[BlockchainManager] = None
   private val progressCounter = new ProgressCounter()
+  private var enableProgress: Boolean = false
 
   /**
     * Starts the Blockchain source, parsing the options and setting up the reader.
@@ -65,9 +66,12 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
     * @return A util.List of SourceRecords.
     **/
   override def poll(): util.List[SourceRecord] = {
+    Thread.sleep(1000)
     val records = blockchainManager.map(_.get()).getOrElse(new util.ArrayList[SourceRecord]())
     logger.debug(s"Returning ${records.size()} record(-s) from Blockchain source")
-    //progressCounter.update(records.asScala.toSeq)
+    if (enableProgress) {
+      progressCounter.update(records.toVector)
+    }
     records
   }
 

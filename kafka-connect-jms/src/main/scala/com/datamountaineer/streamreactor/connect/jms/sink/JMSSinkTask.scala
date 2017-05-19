@@ -38,6 +38,7 @@ class JMSSinkTask extends SinkTask with StrictLogging {
 
   var writer: Option[JMSWriter] = None
   val progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
 
   /**
     * Parse the configurations and setup the writer
@@ -60,8 +61,12 @@ class JMSSinkTask extends SinkTask with StrictLogging {
     * Pass the SinkRecords to the writer for Writing
     **/
   override def put(records: util.Collection[SinkRecord]): Unit = {
-    writer.foreach(w => w.write(records.toSeq))
-    //progressCounter.update(records.asScala.toSeq)
+    val seq = records.toVector
+    writer.foreach(w => w.write(seq))
+
+    if (enableProgress) {
+      progressCounter.update(seq)
+    }
   }
 
   /**

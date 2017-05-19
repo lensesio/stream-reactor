@@ -50,4 +50,9 @@ object MongoSinkConfigConstants {
 
   val KCQL_CONFIG = "connect.mongo.sink.kcql"
   val KCQL_DOC = "KCQL expression describing field selection and data routing to the target mongo db."
+
+  val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"
+  val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
+  val PROGRESS_COUNTER_ENABLED_DEFAULT = false
+  val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 }

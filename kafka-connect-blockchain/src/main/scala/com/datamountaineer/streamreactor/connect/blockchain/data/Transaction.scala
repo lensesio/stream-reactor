@@ -56,7 +56,8 @@ object Transaction {
 
   implicit class TransactionToSourceRecordConverter(val tx: Transaction) extends AnyVal {
     def toSourceRecord(topic: String, partition: Int, key: Option[String]): SourceRecord = {
-      new SourceRecord(Option(key).map(Collections.singletonMap("Blockchain", _)).orNull,
+      new SourceRecord(
+        null,
         null,
         topic,
         partition,

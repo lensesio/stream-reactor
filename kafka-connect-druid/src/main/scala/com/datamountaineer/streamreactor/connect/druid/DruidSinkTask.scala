@@ -38,22 +38,7 @@ class DruidSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(
-      """
-        |
-        |    ____        __        __  ___                  __        _
-        |   / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
-        |  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
-        | / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
-        |/_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
-        |       ____             _     _______ _       __
-        |      / __ \_______  __(_)___/ / ___/(_)___  / /__ By Stefan Bocutiu
-        |     / / / / ___/ / / / / __  /\__ \/ / __ \/ //_/
-        |    / /_/ / /  / /_/ / / /_/ /___/ / / / / / ,<
-        |   /_____/_/   \__,_/_/\__,_//____/_/_/ /_/_/|_|
-        |
-        |
-      """.stripMargin)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/druid-ascii.txt")).mkString)
 
     DruidSinkConfig.config.parse(props)
     val sinkConfig = new DruidSinkConfig(props)

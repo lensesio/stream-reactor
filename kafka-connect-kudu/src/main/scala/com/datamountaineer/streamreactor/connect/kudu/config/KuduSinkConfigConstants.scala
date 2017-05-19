@@ -54,4 +54,9 @@ object KuduSinkConfigConstants {
   val BUCKET_SIZE = "connect.kudu.sink.bucket.size"
   val BUCKET_SIZE_DOC = "The number of buckets to use for Auto Table creation. The distribution is set to use the Hash strategy"
   val BUCKET_SIZE_DEFAULT = 10
+
+  val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"
+  val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
+  val PROGRESS_COUNTER_ENABLED_DEFAULT = false
+  val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 }

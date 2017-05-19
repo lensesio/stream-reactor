@@ -53,4 +53,9 @@ object ElasticSinkConfigConstants {
   val DOCUMENT_TYPE_DOC = "Sets the ElasticSearch document type. See https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-type-field.html for more info."
   val DOCUMENT_TYPE_DEFAULT: String = null
   */
+
+  val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"
+  val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
+  val PROGRESS_COUNTER_ENABLED_DEFAULT = false
+  val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 }

@@ -72,4 +72,9 @@ object InfluxSinkConfigConstants {
   val CONSISTENCY_DEFAULT = "ALL"
   val CONSISTENCY_DISPLAY = "Consistency Level"
 
+  val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"
+  val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
+  val PROGRESS_COUNTER_ENABLED_DEFAULT = false
+  val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
+
 }

@@ -39,25 +39,13 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
 
   var writer: Option[InfluxDbWriter] = None
   private val progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
 
   /**
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(
-
-      """
-        |  ____        _        __  __                   _        _
-        | |  _ \  __ _| |_ __ _|  \/  | ___  _   _ _ __ | |_ __ _(_)_ __   ___  ___ _ __
-        | | | | |/ _` | __/ _` | |\/| |/ _ \| | | | '_ \| __/ _` | | '_ \ / _ \/ _ \ '__|
-        | | |_| | (_| | || (_| | |  | | (_) | |_| | | | | || (_| | | | | |  __/  __/ |
-        | |____/ \__,_|\__\__,_|_|  |_|\___/ \__,_|_| |_|\__\__,_|_|_| |_|\___|\___|_|
-        |  ___        __ _            ____  _       ____  _       _ by Stefan Bocutiu
-        | |_ _|_ __  / _| |_   ___  _|  _ \| |__   / ___|(_)_ __ | | __
-        |  | || '_ \| |_| | | | \ \/ / | | | '_ \  \___ \| | '_ \| |/ /
-        |  | || | | |  _| | |_| |>  <| |_| | |_) |  ___) | | | | |   <
-        | |___|_| |_|_| |_|\__,_/_/\_\____/|_.__/  |____/|_|_| |_|_|\_\
-        | """.stripMargin)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/influx-ascii.txt")).mkString)
 
     InfluxSinkConfig.config.parse(props)
     val sinkConfig = InfluxSinkConfig(props)
@@ -81,8 +69,12 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
     }
     else {
       require(writer.nonEmpty, "Writer is not set!")
-      writer.foreach(w => w.write(records.toSeq))
-      //progressCounter.update(records.asScala.toSeq)
+      val seq = records.toVector
+      writer.foreach(w => w.write(seq))
+
+      if (enableProgress) {
+        progressCounter.update(seq)
+      }
     }
   }
 

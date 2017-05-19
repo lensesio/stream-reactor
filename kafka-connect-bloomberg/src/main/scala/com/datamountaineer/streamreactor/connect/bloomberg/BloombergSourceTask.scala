@@ -70,25 +70,7 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
     * @param map A map of configuration properties for this task
     */
   override def start(map: util.Map[String, String]): Unit = {
-
-    logger.info(
-      """
-        |
-        |    ____        __        __  ___                  __        _
-        |   / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
-        |  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
-        | / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
-        |/_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
-        |       ____  __                      __                    _____
-        |      / __ )/ /___  ____  ____ ___  / /_  ___  _________ _/ ___/____  __  _______________
-        |     / __  / / __ \/ __ \/ __ `__ \/ __ \/ _ \/ ___/ __ `/\__ \/ __ \/ / / / ___/ ___/ _ \
-        |    / /_/ / / /_/ / /_/ / / / / / / /_/ /  __/ /  / /_/ /___/ / /_/ / /_/ / /  / /__/  __/
-        |   /_____/_/\____/\____/_/ /_/ /_/_.___/\___/_/   \__, //____/\____/\__,_/_/   \___/\___/
-        |                                                 /____/
-        |
-        |By Stefan Bocutiu
-      """.stripMargin)
-
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/bloomberg-ascii.txt")).mkString)
 
     try {
       settings = Some(BloombergSettings(new ConnectorConfig(map)))

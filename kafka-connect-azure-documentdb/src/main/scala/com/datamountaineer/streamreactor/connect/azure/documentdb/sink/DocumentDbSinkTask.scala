@@ -44,6 +44,7 @@ class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => Do
   private var writer: Option[DocumentDbWriter] = None
 
   private val progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
 
   def this() = this(DocumentClientProvider.get)
 
@@ -73,8 +74,12 @@ class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => Do
     **/
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.foreach(w => w.write(records.toVector))
-    //progressCounter.update(records.asScala.toSeq)
+    val seq = records.toVector
+    writer.foreach(w => w.write(seq))
+
+    if (enableProgress) {
+      progressCounter.update(seq)
+    }
   }
 
   override def stop(): Unit = {

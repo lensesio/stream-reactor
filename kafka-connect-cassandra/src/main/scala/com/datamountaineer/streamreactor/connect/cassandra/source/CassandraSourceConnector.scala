@@ -78,7 +78,6 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
     * @param props A map of properties for the connector and worker.
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(s"Starting Cassandra source task with ${props.toString}.")
     configProps = Some(props)
   }
 

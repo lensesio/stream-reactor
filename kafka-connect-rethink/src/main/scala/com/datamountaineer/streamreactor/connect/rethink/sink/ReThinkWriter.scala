@@ -68,7 +68,7 @@ class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSinkSe
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
-      logger.info(s"Received ${records.size} records.")
+      logger.debug(s"Received ${records.size} records.")
       if (!conn.isOpen) conn.reconnect()
       val grouped = records.groupBy(_.topic()) //.grouped(setting.batchSize)
       grouped.foreach({ case (topic, entries) => writeRecords(topic, entries) })
@@ -97,7 +97,7 @@ class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSinkSe
       .run(conn)
 
     handleFailure(x)
-    logger.info(s"Wrote ${writes.length} to rethink.")
+    logger.debug(s"Wrote ${writes.length} to rethink.")
   }
 
   private def handleSinkRecord(record: SinkRecord): java.util.HashMap[String, Any] = {

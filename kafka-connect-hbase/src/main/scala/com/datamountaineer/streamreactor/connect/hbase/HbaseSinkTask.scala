@@ -39,25 +39,13 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
 
   var writer: Option[HbaseWriter] = None
   private val progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
 
   /**
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(
-
-      """
-        |    ____        __        __  ___                  __        _
-        |   / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
-        |  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
-        | / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
-        |/_____/\\_,\\\\\\\__,_/_/  /_/\___\\\\\,\/_/ /_/\\_/\__,_/_/_/ /_/\___/\___/_/
-        |      / / / / __ )____ _________ / ___/(_)___  / /__
-        |     / /_/ / __  / __ `/ ___/ _ \\__ \/ / __ \/ //_/
-        |    / __  / /_/ / /_/ (__  )  __/__/ / / / / / ,<
-        |   /_/ /_/_____/\__,_/____/\___/____/_/_/ /_/_/|_|
-        |
-        |By Stefan Bocutiu""".stripMargin)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/hbase-ascii.txt")).mkString)
 
     HbaseSinkConfig.config.parse(props)
     val sinkConfig = HbaseSinkConfig(props)
@@ -85,8 +73,12 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
     }
     else {
       require(writer.nonEmpty, "Writer is not set!")
-      writer.foreach(w => w.write(records.toSeq))
-      //progressCounter.update(records.asScala.toSeq)
+      val seq = records.toVector
+      writer.foreach(w => w.write(seq))
+
+      if (enableProgress) {
+        progressCounter.update(seq)
+      }
     }
   }
 

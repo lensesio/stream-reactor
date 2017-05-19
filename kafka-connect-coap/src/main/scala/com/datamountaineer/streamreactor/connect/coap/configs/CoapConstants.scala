@@ -84,4 +84,9 @@ object CoapConstants {
   val COAP_DISCOVER_IP6 = "discoverIP6"
   val COAP_DISCOVER_IP4_ADDRESS = "224.0.1.187"
   val COAP_DISCOVER_IP6_ADDRESS = "FF05::FD"
+
+  val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"
+  val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
+  val PROGRESS_COUNTER_ENABLED_DEFAULT = false
+  val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 }

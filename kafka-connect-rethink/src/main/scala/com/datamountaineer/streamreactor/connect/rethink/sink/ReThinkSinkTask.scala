@@ -35,6 +35,7 @@ import scala.collection.JavaConverters._
 class ReThinkSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[ReThinkWriter] = None
   private val progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
 
   /**
     * Parse the configurations and setup the writer
@@ -51,8 +52,12 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
     **/
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
+    val seq = records.toVector
     writer.foreach(w => w.write(records.toList))
-    //progressCounter.update(records.asScala.toSeq)
+
+    if (enableProgress) {
+      progressCounter.update(seq)
+    }
   }
 
   /**
