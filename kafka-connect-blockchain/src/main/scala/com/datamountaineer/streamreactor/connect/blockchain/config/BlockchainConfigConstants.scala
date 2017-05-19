@@ -32,4 +32,9 @@ object BlockchainConfigConstants {
   val KAFKA_TOPIC = "connect.blockchain.source.kafka.topic"
   val KAFKA_TOPIC_DOC = "Specifies the kafka topic to sent the records to."
 
+  val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"
+  val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
+  val PROGRESS_COUNTER_ENABLED_DEFAULT = false
+  val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
+
 }

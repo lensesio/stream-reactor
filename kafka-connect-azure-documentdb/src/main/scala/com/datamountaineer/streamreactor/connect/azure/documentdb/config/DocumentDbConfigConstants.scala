@@ -75,4 +75,9 @@ object DocumentDbConfigConstants {
   val PROXY_HOST_CONFIG = "connect.documentdb.proxy"
   val PROXY_HOST_DOC = "Specifies the connection proxy details."
   val PROXY_HOST_DISPLAY = "Proxy URI"
+
+  val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"
+  val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
+  val PROGRESS_COUNTER_ENABLED_DEFAULT = false
+  val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 }

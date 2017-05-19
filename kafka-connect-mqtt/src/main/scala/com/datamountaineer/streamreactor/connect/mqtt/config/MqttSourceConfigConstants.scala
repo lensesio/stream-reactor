@@ -69,4 +69,9 @@ object MqttSourceConfigConstants {
   private[config] val THROW_ON_CONVERT_ERRORS_DOC = "If set to false the conversion exception will be swallowed and everything carries on BUT the message is lost!!; true will throw the exception.Default is false."
   private[config] val THROW_ON_CONVERT_ERRORS_DISPLAY = "Throw error on conversion"
   private[config] val THROW_ON_CONVERT_ERRORS_DEFAULT = false
+
+  val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"
+  val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
+  val PROGRESS_COUNTER_ENABLED_DEFAULT = false
+  val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 }

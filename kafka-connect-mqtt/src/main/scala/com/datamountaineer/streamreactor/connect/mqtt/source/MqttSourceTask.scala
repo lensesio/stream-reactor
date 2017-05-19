@@ -26,11 +26,13 @@ import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
+import scala.collection.JavaConversions._
 
 import scala.util.{Failure, Success, Try}
 
 class MqttSourceTask extends SourceTask with StrictLogging {
   private val progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
   private var mqttManager: Option[MqttManager] = None
 
   override def start(props: util.Map[String, String]): Unit = {
@@ -82,7 +84,9 @@ class MqttSourceTask extends SourceTask with StrictLogging {
       list
     }.orNull
 
-    //progressCounter.update(records.asScala.toSeq)
+    if (enableProgress) {
+      progressCounter.update(records.toVector)
+    }
     records
   }
 

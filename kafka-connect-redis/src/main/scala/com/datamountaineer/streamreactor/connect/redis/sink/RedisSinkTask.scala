@@ -39,28 +39,13 @@ import scala.collection.JavaConverters._
 class RedisSinkTask extends SinkTask with StrictLogging {
   var writer: List[RedisWriter] = List[RedisWriter]()
   private val progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
 
   /**
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(
-
-      """
-        |
-        |    ____        __        __  ___                  __        _
-        |   / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
-        |  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
-        | / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
-        |/_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
-        |       ____           ___      _____ _       __
-        |      / __ \___  ____/ (_)____/ ___/(_)___  / /__
-        |     / /_/ / _ \/ __  / / ___/\__ \/ / __ \/ //_/
-        |    / _, _/  __/ /_/ / (__  )___/ / / / / / ,<
-        |   /_/ |_|\___/\__,_/_/____//____/_/_/ /_/_/|_|
-        |
-        |  By Stefan Bocutiu & Antonios Chalkiopoulos
-      """.stripMargin)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/redis-ascii.txt")).mkString)
 
     RedisSinkConfig.config.parse(props)
     val sinkConfig = new RedisSinkConfig(props)
@@ -103,8 +88,12 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     }
     else {
       require(writer.nonEmpty, "Writer is not set!")
-      writer.foreach(w => w.write(records.toSeq))
-      //progressCounter.update(records.asScala.toSeq)
+      val seq = records.toVector
+      writer.foreach(w => w.write(seq))
+
+      if (enableProgress) {
+        progressCounter.update(seq)
+      }
     }
   }
 

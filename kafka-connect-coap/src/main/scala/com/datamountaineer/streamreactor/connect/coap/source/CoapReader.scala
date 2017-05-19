@@ -69,9 +69,9 @@ case class CoapReader(setting: CoapSetting) extends CoapManager(setting) with Ac
       Future.failed(t)
     }
     case StopChangeFeed =>
-      observing = false
       relation.foreach(r => r.proactiveCancel())
       client.delete(handler)
+      observing = false
     case Discover => sender() ! discover
     case Observing => sender() ! observing
   }

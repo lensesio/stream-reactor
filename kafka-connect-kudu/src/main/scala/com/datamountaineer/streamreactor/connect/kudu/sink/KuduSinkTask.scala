@@ -34,28 +34,15 @@ import scala.collection.JavaConversions._
   */
 class KuduSinkTask extends SinkTask with StrictLogging {
   private val progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
   private var writer: Option[KuduWriter] = None
 
   /**
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(
-      """
-        |    ____        __        __  ___                  __        _
-        |   / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
-        |  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
-        | / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
-        |/_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
-        |       __ __          __      _____ _       __
-        |      / //_/_  ______/ /_  __/ ___/(_)___  / /__
-        |     / ,< / / / / __  / / / /\__ \/ / __ \/ //_/
-        |    / /| / /_/ / /_/ / /_/ /___/ / / / / / ,<
-        |   /_/ |_\__,_/\__,_/\__,_//____/_/_/ /_/_/|_|
-        |
-        |
-        |by Andrew Stevenson
-      """.stripMargin)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/kudu-ascii.txt")).mkString)
+
 
     KuduSinkConfig.config.parse(props)
     val sinkConfig = new KuduSinkConfig(props)
@@ -75,8 +62,12 @@ class KuduSinkTask extends SinkTask with StrictLogging {
     **/
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
+    val seq = records.toVector
     writer.foreach(w => w.write(records.toSet))
-    //progressCounter.update(records.asScala.toSeq)
+
+    if (enableProgress) {
+      progressCounter.update(seq)
+    }
   }
 
   /**

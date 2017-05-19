@@ -52,4 +52,9 @@ object ReThinkSinkConfigConstants {
   val BATCH_SIZE = "connect.rethink.sink.batch.size"
   private[config] val BATCH_SIZE_DOC = "Per topic the number of sink records to batch together and insert into ReThinkDB."
   private[config] val BATCH_SIZE_DEFAULT = 1000
+
+  val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"
+  val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
+  val PROGRESS_COUNTER_ENABLED_DEFAULT = false
+  val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 }

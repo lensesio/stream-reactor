@@ -40,6 +40,7 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
   implicit val system = ActorSystem()
 
   private var progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/rethink-source-ascii.txt")).mkString)
@@ -59,7 +60,9 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
     **/
   override def poll(): util.List[SourceRecord] = {
     val records = readers.flatMap(ActorHelper.askForRecords).toList
-    //progressCounter.update(records.toArray)
+    if (enableProgress) {
+      progressCounter.update(records.toVector)
+    }
     records
   }
 

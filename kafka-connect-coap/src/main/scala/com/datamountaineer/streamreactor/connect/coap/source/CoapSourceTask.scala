@@ -35,7 +35,8 @@ import scala.concurrent.duration._
   */
 class CoapSourceTask extends SourceTask with StrictLogging {
   private var readers : Set[ActorRef] = _
-  private val progressCounter = new ProgressCounter
+  private var progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
   implicit val system = ActorSystem()
 
   override def start(props: util.Map[String, String]): Unit = {
@@ -49,7 +50,9 @@ class CoapSourceTask extends SourceTask with StrictLogging {
 
   override def poll(): util.List[SourceRecord] = {
     val records = readers.flatMap(ActorHelper.askForRecords).toList
-    //progressCounter.update(records.toArray)
+    //if (enableProgress) {
+      progressCounter.update(records.toVector)
+   // }
     records
   }
 

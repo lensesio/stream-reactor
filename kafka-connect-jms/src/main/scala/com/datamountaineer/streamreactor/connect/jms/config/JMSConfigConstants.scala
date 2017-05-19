@@ -96,4 +96,9 @@ object JMSConfigConstants {
   val BATCH_SIZE = "connect.jms.batch.size"
   private[config] val BATCH_SIZE_DOC = "The number of records to poll for on the target JMS destination in each Connect poll."
   private[config] val BATCH_SIZE_DEFAULT = 100
+
+  val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"
+  val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
+  val PROGRESS_COUNTER_ENABLED_DEFAULT = false
+  val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 }

@@ -32,6 +32,7 @@ import scala.util.{Failure, Success, Try}
 class YahooSourceTask extends SourceTask with YahooSourceConfig {
   val logger: Logger = Logger.getLogger(getClass.getName)
   private val progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
 
   private var taskConfig: Option[AbstractConfig] = None
   private var dataManager: Option[DataRetrieverManager] = None
@@ -42,30 +43,8 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
     * @param props A map of supplied properties.
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/yahoo-ascii.txt")).mkString)
 
-      """
-        |
-        |    ____        __        __  ___                  __        _
-        |   / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
-        |  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
-        | / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
-        |/_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
-        |         __  __      __               _____
-        |         \ \/ /___ _/ /_  ____  ____ / ___/____  __  _______________
-        |          \  / __ `/ __ \/ __ \/ __ \\__ \/ __ \/ / / / ___/ ___/ _ \
-        |          / / /_/ / / / / /_/ / /_/ /__/ / /_/ / /_/ / /  / /__/  __/
-        |         /_/\__,_/_/ /_/\____/\____/____/\____/\__,_/_/   \___/\___/
-        |
-        | By Stefan Bocutiu
-        |
-        | """.stripMargin)
-
-    logger.info(
-      s"""
-         |Configuration for task
-         |${props.asScala}
-      """.stripMargin)
     //get configuration for this task
     taskConfig = Try(new AbstractConfig(configDef, props)) match {
       case Failure(f) => throw new ConfigException("Couldn't start YahooSource due to configuration error.", f)
@@ -98,7 +77,9 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
   override def poll(): util.List[SourceRecord] = {
     logger.info("Polling for Yahoo records...")
     val records = dataManager.map(_.getRecords).getOrElse(new util.ArrayList[SourceRecord]())
-    //progressCounter.update(records.asScala.toSeq)
+    if (enableProgress) {
+      progressCounter.update(records.toVector)
+    }
     records
   }
 

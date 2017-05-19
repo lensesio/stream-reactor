@@ -37,28 +37,14 @@ import scala.collection.JavaConversions._
 class VoltSinkTask extends SinkTask with StrictLogging {
 
   private val progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
   var writer: Option[VoltDbWriter] = None
 
   /**
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(
-      """
-        | _____                                                    _
-        |(____ \       _                                 _        (_)
-        | _   \ \ ____| |_  ____ ____   ___  _   _ ____ | |_  ____ _ ____   ____ ____  ____
-        || |   | / _  |  _)/ _  |    \ / _ \| | | |  _ \|  _)/ _  | |  _ \ / _  ) _  )/ ___)
-        || |__/ ( ( | | |_( ( | | | | | |_| | |_| | | | | |_( ( | | | | | ( (/ ( (/ /| |
-        ||_____/ \_||_|\___)_||_|_|_|_|\___/ \____|_| |_|\___)_||_|_|_| |_|\____)____)_|
-        |                                    by Stefan Bocutiu
-        | _    _     _      _____   _           _    _       _
-        || |  | |   | |_   (____ \ | |         | |  (_)     | |
-        || |  | |__ | | |_  _   \ \| | _        \ \  _ ____ | |  _
-        | \ \/ / _ \| |  _)| |   | | || \        \ \| |  _ \| | / )
-        |  \  / |_| | | |__| |__/ /| |_) )   _____) ) | | | | |< (
-        |   \/ \___/|_|\___)_____/ |____/   (______/|_|_| |_|_| \_)
-        | """.stripMargin)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/voltdb-ascii.txt")).mkString)
 
     VoltSinkConfig.config.parse(props)
     val sinkConfig = VoltSinkConfig(props)
@@ -82,8 +68,11 @@ class VoltSinkTask extends SinkTask with StrictLogging {
     }
     else {
       require(writer.nonEmpty, "Writer is not set!")
-      writer.foreach(w => w.write(records.toSeq))
-      //progressCounter.update(records.asScala.toSeq)
+      val seq = records.toVector
+      writer.foreach(w => w.write(seq))
+      if (enableProgress) {
+        progressCounter.update(seq)
+      }
     }
   }
 

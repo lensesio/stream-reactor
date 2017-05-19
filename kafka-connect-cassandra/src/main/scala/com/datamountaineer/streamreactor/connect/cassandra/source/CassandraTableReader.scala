@@ -57,7 +57,6 @@ class CassandraTableReader(private val session: Session,
   private val timestampCol = setting.primaryKeyColumn.getOrElse("")
   private val querying = new AtomicBoolean(false)
   private val stop = new AtomicBoolean(false)
-  private var lastPoll = 0.toLong
   private val table = config.getSource
   private val topic = config.getTarget
   private val keySpace = setting.keySpace
@@ -78,9 +77,10 @@ class CassandraTableReader(private val session: Session,
     */
   private def buildOffsetMap(context: SourceTaskContext): Option[Date] = {
     val offsetStorageKey = CassandraConfigConstants.ASSIGNED_TABLES
-    val tables = List(topic)
+    val tables = List(table)
     val recoveredOffsets = OffsetHandler.recoverOffsets(offsetStorageKey, tables, context)
     val offset = OffsetHandler.recoverOffset[String](recoveredOffsets, offsetStorageKey, table, timestampCol)
+    offset.map(s => logger.info(s"Recovered offset $s"))
     Some(dateFormatter.parse(offset.getOrElse(defaultTimestamp)))
   }
 
@@ -100,27 +100,7 @@ class CassandraTableReader(private val session: Session,
     * Fires Cassandra queries and increments the timestamp
     * Every Row returned from query is put into the queue for processing.
     */
-  def read(): Unit = {
-    if (!stop.get()) {
-      val newPollTime = System.currentTimeMillis()
-
-      // don't issue another query for the table if we are querying
-      if (querying.get()) {
-        logger.debug(s"Still querying for $keySpace.$table. Current queue size is ${queue.size()}.")
-      }
-      // have we passed the last poll and interval
-      else if (lastPoll + setting.pollInterval < newPollTime) {
-        lastPoll = newPollTime
-        query()
-      } else {
-        val sleepFor = newPollTime - lastPoll
-        Thread.sleep(sleepFor)
-      }
-    }
-    else {
-      logger.info(s"Told to stop for $keySpace.$table.")
-    }
-  }
+  def read(): Unit = if (!stop.get() && !querying.get()) query()
 
   private def query() = {
     // we are going to execute the query
@@ -299,6 +279,7 @@ class CassandraTableReader(private val session: Session,
     stop.set(true)
     while (querying.get()) {
       logger.info(s"Waiting for querying to stop for $keySpace.$table.")
+      Thread.sleep(2000)
     }
     logger.info(s"Querying stopped for $keySpace.$table.")
   }

@@ -54,20 +54,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
 
     val sinkSettings = CassandraSettings.configureSink(taskConfig)
     enableProgress = sinkSettings.enableProgress
-    logger.info(
-      """
-        |    ____        __        __  ___                  __        _
-        |   / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
-        |  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
-        | / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
-        |/_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
-        |       ______                                __           _____ _       __
-        |      / ____/___ _______________ _____  ____/ /________ _/ ___/(_)___  / /__
-        |     / /   / __ `/ ___/ ___/ __ `/ __ \/ __  / ___/ __ `/\__ \/ / __ \/ //_/
-        |    / /___/ /_/ (__  |__  ) /_/ / / / / /_/ / /  / /_/ /___/ / / / / / ,<
-        |    \____/\__,_/____/____/\__,_/_/ /_/\__,_/_/   \__,_//____/_/_/ /_/_/|_|
-        |
-        | By Andrew Stevenson.""".stripMargin)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-sink-ascii.txt")).mkString)
     writer = Some(CassandraWriter(connectorConfig = taskConfig, context = context))
   }
 

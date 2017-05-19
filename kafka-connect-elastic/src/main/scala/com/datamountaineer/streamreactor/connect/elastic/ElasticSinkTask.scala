@@ -30,28 +30,13 @@ import scala.collection.JavaConversions._
 class ElasticSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[ElasticJsonWriter] = None
   private val progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
 
   /**
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(
-      """
-        |
-        |    ____        __        __  ___                  __        _
-        |   / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
-        |  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
-        | / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
-        |/_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
-        |       ________           __  _      _____ _       __
-        |      / ____/ /___ ______/ /_(_)____/ ___/(_)___  / /__
-        |     / __/ / / __ `/ ___/ __/ / ___/\__ \/ / __ \/ //_/
-        |    / /___/ / /_/ (__  ) /_/ / /__ ___/ / / / / / ,<
-        |   /_____/_/\__,_/____/\__/_/\___//____/_/_/ /_/_/|_|
-        |
-        |
-        |by Andrew Stevenson
-      """.stripMargin)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/elastic-ascii.txt")).mkString)
 
     ElasticSinkConfig.config.parse(props)
     val sinkConfig = ElasticSinkConfig(props)
@@ -65,7 +50,10 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     writer.foreach(w => w.write(records.toSet))
-    //progressCounter.update(records.asScala.toSeq)
+    val seq = records.toVector
+    if (enableProgress) {
+      progressCounter.update(seq)
+    }
   }
 
   /**

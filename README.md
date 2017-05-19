@@ -47,6 +47,19 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
+**0.2.6 (Pending)**
+
+* Fixes for high CPU on CoAP source
+* Fixes for high CPU on Cassandra source
+* Add CQL generator to Cassandra source
+* Support for setting key- and truststore type on Cassandra connectors
+* Prep Cassandra source for paging
+* Major refactor, thanks Marionete
+* Added default bytes converter to JMS Source
+* Added default connection factory to JMS Source
+* Moved to Elastic4s 2.4
+* Support for dates in Elastic Indexes and custom document types
+
 
 **0.2.5 (8 Apr 2017)**
 

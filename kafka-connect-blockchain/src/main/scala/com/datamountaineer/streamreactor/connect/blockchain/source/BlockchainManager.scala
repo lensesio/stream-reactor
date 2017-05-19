@@ -99,8 +99,10 @@ class BlockchainManager(settings: BlockchainSettings) extends AutoCloseable with
 
     val outgoing = Source.single(TextMessage.Strict("{\"op\":\"unconfirmed_sub\"}"))
       .concatMat(Source.maybe[Message])(Keep.right)
+
     val webSocketFlow = Http().webSocketClientFlow(WebSocketRequest(settings.url))
-    val (((s, upgradeResponse), cancellable), closed) =
+
+    val (((_, upgradeResponse), cancellable), closed) =
       outgoing
         .keepAlive(settings.keepAlive, () => TextMessage.Strict("{\"op\":\"ping\"}"))
         .viaMat(webSocketFlow)(Keep.both)
