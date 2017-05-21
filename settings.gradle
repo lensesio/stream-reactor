@@ -16,6 +16,7 @@
 
 include 'kafka-connect-bloomberg',
         'kafka-connect-elastic',
+        'kafka-connect-elastic5',
         'kafka-connect-druid',
         'kafka-connect-kudu',
         'kafka-connect-cassandra',
