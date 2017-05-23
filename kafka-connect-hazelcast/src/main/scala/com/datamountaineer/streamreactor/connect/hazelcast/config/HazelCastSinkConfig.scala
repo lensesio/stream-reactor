@@ -18,14 +18,9 @@ package com.datamountaineer.streamreactor.connect.hazelcast.config
 
 import java.util
 
-import com.datamountaineer.streamreactor.temp.ErrorPolicySettings
-import com.datamountaineer.streamreactor.temp.NumberRetriesSettings
-import com.datamountaineer.streamreactor.temp.ThreadPoolSettings
-import com.datamountaineer.streamreactor.temp.KcqlSettings
 import com.datamountaineer.streamreactor.temp.traits._
+import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
-import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
-
 
 /**
   * Created by andrew@datamountaineer.com on 08/08/16. 
@@ -69,15 +64,9 @@ object HazelCastSinkConfig {
 }
 
 class HazelCastSinkConfig(props: util.Map[String, String])
-  extends AbstractConfig(HazelCastSinkConfig.config, props)
+  extends BaseConfig(HazelCastSinkConfigConstants.HAZELCAST_CONNECTOR_PREFIX, HazelCastSinkConfig.config, props)
     with ErrorPolicySettings
     with KcqlSettings
     with NumberRetriesSettings
     with ThreadPoolSettings
-    with AllowParallelizationSettings {
-  override val errorPolicyConstant: String = HazelCastSinkConfigConstants.ERROR_POLICY
-  override val kcqlConstant: String = HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY
-  override val numberRetriesConstant: String = HazelCastSinkConfigConstants.NBR_OF_RETRIES
-  override val threadPoolConstant: String = HazelCastSinkConfigConstants.SINK_THREAD_POOL_CONFIG
-  override val allowParallelConstant: String = HazelCastSinkConfigConstants.PARALLEL_WRITE
-}
+    with AllowParallelizationSettings

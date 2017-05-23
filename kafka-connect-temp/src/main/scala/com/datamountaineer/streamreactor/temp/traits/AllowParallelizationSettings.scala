@@ -16,8 +16,10 @@
 
 package com.datamountaineer.streamreactor.temp.traits
 
-trait AllowParallelizationSettings extends BaseSettings{
-  val allowParallelConstant: String
+import com.datamountaineer.streamreactor.temp.const.TraitConfigConst.ALLOW_PARALLEL_WRITE_PROP_SUFFIX
 
-  def getAllowParallel = getBoolean(allowParallelConstant)
+trait AllowParallelizationSettings extends BaseSettings {
+  val allowParallelConstant: String = s"$connectorPrefix.$ALLOW_PARALLEL_WRITE_PROP_SUFFIX"
+
+  def getAllowParallel: java.lang.Boolean = getBoolean(allowParallelConstant)
 }
