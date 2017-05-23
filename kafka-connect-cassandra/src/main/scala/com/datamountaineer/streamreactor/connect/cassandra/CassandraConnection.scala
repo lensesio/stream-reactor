@@ -20,7 +20,7 @@ import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfi
 import com.datamountaineer.streamreactor.connect.config.{SSLConfig, SSLConfigContext}
 import com.datastax.driver.core.Cluster.Builder
 import com.datastax.driver.core.policies.{DCAwareRoundRobinPolicy, TokenAwarePolicy}
-import com.datastax.driver.core.{Cluster, JdkSSLOptions, Session}
+import com.datastax.driver.core.{Cluster, JdkSSLOptions, QueryOptions, Session}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.AbstractConfig
 
@@ -39,11 +39,13 @@ object CassandraConnection extends StrictLogging {
   def getCluster(connectorConfig: AbstractConfig): Cluster = {
     val contactPoints: String = connectorConfig.getString(CassandraConfigConstants.CONTACT_POINTS)
     val port = connectorConfig.getInt(CassandraConfigConstants.PORT)
+    val fetchSize = connectorConfig.getInt(CassandraConfigConstants.FETCH_SIZE)
     val builder: Builder = Cluster
       .builder()
       .addContactPoints(contactPoints.split(","): _*)
       .withPort(port)
       .withLoadBalancingPolicy(new TokenAwarePolicy(DCAwareRoundRobinPolicy.builder().build()))
+      .withQueryOptions(new QueryOptions().setFetchSize(fetchSize))
 
     //get authentication mode, only support NONE and USERNAME_PASSWORD for now
     addAuthMode(connectorConfig, builder)

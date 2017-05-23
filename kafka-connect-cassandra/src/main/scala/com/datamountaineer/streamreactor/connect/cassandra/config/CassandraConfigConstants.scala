@@ -90,8 +90,12 @@ object CassandraConfigConstants {
   val BATCH_SIZE_DOC = "The number of records the source task should drain from the reader queue."
   val BATCH_SIZE_DEFAULT = 100
 
+  val FETCH_SIZE = "connect.cassandra.fetch.size"
+  val FETCH_SIZE_DOC = "The number of records the Cassandra driver will return at once."
+  val FETCH_SIZE_DEFAULT = 5000
+
   val READER_BUFFER_SIZE = "connect.cassandra.source.task.buffer.size"
-  val READER_BUFFER_SIZE_DOC = "The size of the queue as read writes to."
+  val READER_BUFFER_SIZE_DOC = "The size of the queue a reader writes to."
   val READER_BUFFER_SIZE_DEFAULT = 10000
 
   val ALLOW_FILTERING = "connect.cassandra.import.source.allow.filtering"

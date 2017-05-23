@@ -199,6 +199,16 @@ case class CassandraConfig() {
       ConfigDef.Width.LONG,
       CassandraConfigConstants.ERROR_RETRY_INTERVAL)
 
+   .define(CassandraConfigConstants.FETCH_SIZE,
+      Type.INT,
+      CassandraConfigConstants.FETCH_SIZE_DEFAULT,
+      Importance.MEDIUM,
+      CassandraConfigConstants.FETCH_SIZE_DOC,
+      "Connection",
+      15,
+      ConfigDef.Width.LONG,
+      CassandraConfigConstants.FETCH_SIZE)
+
 }
 
 
