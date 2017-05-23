@@ -23,4 +23,6 @@ object TraitConfigConst {
   val MAX_RETRIES_PROP_SUFFIX = "max.retries"
   val BATCH_SIZE_PROP_SUFFIX = "batch.size"
   val DATABASE_PROP_SUFFIX = "db"
+  val THREAD_POLL_PROP_SUFFIX = "threadpool.size"
+  val ALLOW_PARALLEL_WRITE_PROP_SUFFIX = "parallel.write"
 }
