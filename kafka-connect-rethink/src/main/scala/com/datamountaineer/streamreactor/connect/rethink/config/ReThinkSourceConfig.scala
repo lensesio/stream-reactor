@@ -18,9 +18,9 @@ package com.datamountaineer.streamreactor.connect.rethink.config
 
 import java.util
 
-import com.datamountaineer.streamreactor.temp.{DatabaseSettings, KcqlSettings}
+import com.datamountaineer.streamreactor.temp.traits.{BaseConfig, DatabaseSettings, KcqlSettings}
+import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
-import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 /**
   * Created by andrew@datamountaineer.com on 22/09/16. 
@@ -46,9 +46,6 @@ object ReThinkSourceConfig {
 }
 
 case class ReThinkSourceConfig(props: util.Map[String, String])
-  extends AbstractConfig(ReThinkSourceConfig.config, props)
+  extends BaseConfig(ReThinkSourceConfigConstants.RETHINK_CONNECTOR_PREFIX, ReThinkSourceConfig.config, props)
     with KcqlSettings
-    with DatabaseSettings {
-  override val kcqlConstant: String = ReThinkSourceConfigConstants.IMPORT_ROUTE_QUERY
-  override val databaseConstant: String = ReThinkSourceConfigConstants.RETHINK_DB
-}
+    with DatabaseSettings

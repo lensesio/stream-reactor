@@ -18,11 +18,11 @@ package com.datamountaineer.streamreactor.connect.hazelcast.config
 
 import java.util
 
-import com.datamountaineer.streamreactor.temp.AllowParallelizationSettings
 import com.datamountaineer.streamreactor.temp.ErrorPolicySettings
 import com.datamountaineer.streamreactor.temp.NumberRetriesSettings
 import com.datamountaineer.streamreactor.temp.ThreadPoolSettings
 import com.datamountaineer.streamreactor.temp.KcqlSettings
+import com.datamountaineer.streamreactor.temp.traits._
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 

@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import java.util
 
-import com.datamountaineer.streamreactor.temp._
+import com.datamountaineer.streamreactor.temp.traits._
 import com.datastax.driver.core.ConsistencyLevel
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
