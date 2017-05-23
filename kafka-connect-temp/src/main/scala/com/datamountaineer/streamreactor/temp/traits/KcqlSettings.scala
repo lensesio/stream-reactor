@@ -1,10 +1,28 @@
-package com.datamountaineer.streamreactor.temp
+/*
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.datamountaineer.streamreactor.temp.traits
 
 import com.datamountaineer.connector.config.{Config, FormatType}
+import com.datamountaineer.streamreactor.temp.const.TraitConfigConst.KCQL_PROP_SUFFIX
+
 import scala.collection.JavaConversions._
 
 trait KcqlSettings extends BaseSettings {
-  val kcqlConstant: String
+  val kcqlConstant: String = s"$connectorPrefix.$KCQL_PROP_SUFFIX"
 
   def getRoutes: Set[Config] = {
     val raw = getString(kcqlConstant)

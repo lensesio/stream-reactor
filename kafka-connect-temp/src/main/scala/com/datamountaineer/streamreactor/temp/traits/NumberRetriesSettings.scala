@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.temp
+package com.datamountaineer.streamreactor.temp.traits
 
-import java.util
+import com.datamountaineer.streamreactor.temp.const.TraitConfigConst.MAX_RETRIES_PROP_SUFFIX
 
-import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
+trait NumberRetriesSettings extends BaseSettings {
+  val numberRetriesConstant: String = s"$connectorPrefix.$MAX_RETRIES_PROP_SUFFIX"
 
-abstract class BaseConfig(val connectorPrefixStr: String, props: util.Map[String, String], confDef: ConfigDef)
-  extends AbstractConfig(confDef, props) {
-  val connectorPrefix: String = connectorPrefixStr
+  def getNumberRetries: Int = getInt(numberRetriesConstant)
 }

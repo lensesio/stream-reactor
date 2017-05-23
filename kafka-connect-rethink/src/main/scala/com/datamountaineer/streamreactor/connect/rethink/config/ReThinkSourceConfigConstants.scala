@@ -16,15 +16,19 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.config
 
+import com.datamountaineer.streamreactor.temp.const.TraitConfigConst.{DATABASE_PROP_SUFFIX, KCQL_PROP_SUFFIX}
+
 object ReThinkSourceConfigConstants {
-  val RETHINK_HOST = "connect.rethink.source.host"
+  val RETHINK_CONNECTOR_PREFIX = "connect.rethink"
+
+  val RETHINK_HOST = s"$RETHINK_CONNECTOR_PREFIX.source.host"
   private[config] val RETHINK_HOST_DOC = "Rethink server host."
   val RETHINK_HOST_DEFAULT = "localhost"
-  val RETHINK_DB = "connect.rethink.source.db"
+  val RETHINK_DB = s"$RETHINK_CONNECTOR_PREFIX.$DATABASE_PROP_SUFFIX"
   private[config] val RETHINK_DB_DEFAULT = "connect_rethink_sink"
   private[config] val RETHINK_DB_DOC = "The reThink database to read from."
-  val RETHINK_PORT = "connect.rethink.source.port"
+  val RETHINK_PORT = s"$RETHINK_CONNECTOR_PREFIX.source.port"
   val RETHINK_PORT_DEFAULT = "28015"
   private[config] val RETHINK_PORT_DOC = "Client port of rethink server to connect to."
-  val IMPORT_ROUTE_QUERY = "connect.rethink.source.kcql"
+  val IMPORT_ROUTE_QUERY = s"$RETHINK_CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
 }
