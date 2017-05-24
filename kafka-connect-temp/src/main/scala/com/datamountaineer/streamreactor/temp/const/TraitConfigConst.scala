@@ -25,4 +25,5 @@ object TraitConfigConst {
   val DATABASE_PROP_SUFFIX = "db"
   val THREAD_POLL_PROP_SUFFIX = "threadpool.size"
   val ALLOW_PARALLEL_WRITE_PROP_SUFFIX = "parallel.write"
+  val CONSISTENCY_LEVEL_PROP_SUFFIX = "consistency.level"
 }
