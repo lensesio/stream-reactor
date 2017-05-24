@@ -41,9 +41,9 @@ object ReThinkSinkConfig {
       ReThinkSinkConfigConstants.RETHINK_PORT_DEFAULT,
       Importance.MEDIUM, ReThinkSinkConfigConstants.RETHINK_PORT_DOC,
       "Connection", 3, ConfigDef.Width.MEDIUM, ReThinkSinkConfigConstants.RETHINK_PORT)
-    .define(ReThinkSinkConfigConstants.EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH,
+    .define(ReThinkSinkConfigConstants.ROUTE_QUERY, Type.STRING, Importance.HIGH,
       ReThinkSinkConfigConstants.EXPORT_ROUTE_QUERY_DOC,
-      "Connection", 4, ConfigDef.Width.MEDIUM, ReThinkSinkConfigConstants.EXPORT_ROUTE_QUERY)
+      "Connection", 4, ConfigDef.Width.MEDIUM, ReThinkSinkConfigConstants.ROUTE_QUERY)
     .define(ReThinkSinkConfigConstants.ERROR_POLICY, Type.STRING,
       ReThinkSinkConfigConstants.ERROR_POLICY_DEFAULT,
       Importance.HIGH, ReThinkSinkConfigConstants.ERROR_POLICY_DOC,

@@ -18,24 +18,28 @@ package com.datamountaineer.streamreactor.connect.rethink.config
 
 import com.datamountaineer.streamreactor.temp.const.TraitConfigConst._
 
-object ReThinkSinkConfigConstants {
+sealed trait ReThinkConfigConstants {
   val RETHINK_CONNECTOR_PREFIX = "connect.rethink"
 
-  val RETHINK_HOST = s"$RETHINK_CONNECTOR_PREFIX.sink.host"
+  val RETHINK_HOST = s"$RETHINK_CONNECTOR_PREFIX.host"
   private[config] val RETHINK_HOST_DOC = "Rethink server host."
   val RETHINK_HOST_DEFAULT = "localhost"
   val RETHINK_DB = s"$RETHINK_CONNECTOR_PREFIX.$DATABASE_PROP_SUFFIX"
   private[config] val RETHINK_DB_DEFAULT = "connect_rethink_sink"
-  private[config] val RETHINK_DB_DOC = "The reThink database to write to and create tables in."
-  val RETHINK_PORT = s"$RETHINK_CONNECTOR_PREFIX.sink.port"
+  private[config] val RETHINK_DB_DOC = "The reThink database to read from."
+  val RETHINK_PORT = s"$RETHINK_CONNECTOR_PREFIX.port"
   val RETHINK_PORT_DEFAULT = "28015"
   private[config] val RETHINK_PORT_DOC = "Client port of rethink server to connect to."
+  val ROUTE_QUERY = s"$RETHINK_CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
+}
+
+object ReThinkSinkConfigConstants extends ReThinkConfigConstants {
+  override private[config] val RETHINK_DB_DOC = "The reThink database to write to and create tables in."
 
   val CONFLICT_ERROR = "error"
   val CONFLICT_REPLACE = "replace"
   val CONFLICT_UPDATE = "update"
 
-  val EXPORT_ROUTE_QUERY = s"$RETHINK_CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
   private[config] val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
 
   val ERROR_POLICY = s"$RETHINK_CONNECTOR_PREFIX.$ERROR_POLICY_PROP_SUFFIX"
@@ -57,4 +61,8 @@ object ReThinkSinkConfigConstants {
   val BATCH_SIZE = s"$RETHINK_CONNECTOR_PREFIX.$BATCH_SIZE_PROP_SUFFIX"
   private[config] val BATCH_SIZE_DOC = "Per topic the number of sink records to batch together and insert into ReThinkDB."
   private[config] val BATCH_SIZE_DEFAULT = 1000
+}
+
+object ReThinkSourceConfigConstants extends ReThinkConfigConstants {
+  override private[config] val RETHINK_DB_DOC = "The reThink database to read from."
 }

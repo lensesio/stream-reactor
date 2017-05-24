@@ -46,7 +46,7 @@ object ReThinkSinkSettings {
     routes
       .filter(r => r.getPrimaryKeys.size > 1)
       .foreach(_ => new ConnectException(
-        s"""More than one primary key found in ${ReThinkSinkConfigConstants.EXPORT_ROUTE_QUERY}.
+        s"""More than one primary key found in ${ReThinkSinkConfigConstants.ROUTE_QUERY}.
            |Only one field can be set.""".stripMargin.replaceAll("\n", "")))
     val errorPolicy = config.getErrorPolicy
     val maxRetries = config.getNumberRetries

@@ -40,9 +40,9 @@ object ReThinkSourceConfig {
       ReThinkSourceConfigConstants.RETHINK_PORT_DEFAULT,
       Importance.MEDIUM, ReThinkSourceConfigConstants.RETHINK_PORT_DOC,
       "Connection", 3, ConfigDef.Width.MEDIUM, ReThinkSourceConfigConstants.RETHINK_PORT)
-    .define(ReThinkSourceConfigConstants.IMPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH,
-      ReThinkSourceConfigConstants.IMPORT_ROUTE_QUERY,
-      "Connection", 4, ConfigDef.Width.MEDIUM, ReThinkSourceConfigConstants.IMPORT_ROUTE_QUERY)
+    .define(ReThinkSourceConfigConstants.ROUTE_QUERY, Type.STRING, Importance.HIGH,
+      ReThinkSourceConfigConstants.ROUTE_QUERY,
+      "Connection", 4, ConfigDef.Width.MEDIUM, ReThinkSourceConfigConstants.ROUTE_QUERY)
 }
 
 case class ReThinkSourceConfig(props: util.Map[String, String])
