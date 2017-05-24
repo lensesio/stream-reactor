@@ -89,10 +89,10 @@ object JMSProvider extends StrictLogging {
     }
 
     val topicsConsumers = configureDestination(TopicDestination, context, session, settings, sink)
-                            .flatMap({ case (source, topic) => createConsumers(source, session, topic) }).toMap
+                            .flatMap({ case (source, topic) => createConsumers(source, session, topic, settings.subscriptionName)}).toMap
 
     val queueConsumers = configureDestination(QueueDestination, context, session, settings, sink)
-                            .flatMap({ case (source, queue) => createConsumers(source, session, queue) }).toMap
+                            .flatMap({ case (source, queue) => createConsumers(source, session, queue, settings.subscriptionName) }).toMap
 
 
     val topicProducers = configureDestination(TopicDestination, context, session, settings, sink)
@@ -112,7 +112,16 @@ object JMSProvider extends StrictLogging {
 
   def createProducers(source: String, session: Session, destination: Destination) = Map(source -> session.createProducer(destination))
 
-  def createConsumers(source: String, session: Session, destination: Destination) = Map(source -> session.createConsumer(destination))
+  def createConsumers(source: String, session: Session, destination: Destination, subscriptionName: Option[String]) = Map(source -> {
+    subscriptionName match {
+      case None =>  session.createConsumer(destination)
+      case Some(name) => 
+        destination match {
+          case destination: Topic => session.createSharedDurableConsumer(destination, name)
+          case _ => session.createConsumer(destination)
+        }
+    }
+  })
 
   private def getDestination(name: String, context: InitialContext, selector: DestinationSelector,
                              destination: DestinationType, session: Session): Destination = {

@@ -85,6 +85,9 @@ object JMSConfigConstants {
   val TOPIC_LIST = "connect.jms.topics"
   val TOPIC_LIST_DOC = "A comma separated list of JMS topics, must match the KCQL source or target JMS topics."
 
+  val TOPIC_SUBSCRIPTION_NAME = "connect.jms.subscription.name"
+  val TOPIC_SUBSCRIPTION_NAME_DOC = "subscription name to use when subscribing to a topic, specifying this makes a durable subscription for topics"
+
   val QUEUE_LIST = "connect.jms.queues"
   val QUEUE_LIST_DOC = "A comma separated list of JMS topics, must match the KCQL source or target JMS queues."
 

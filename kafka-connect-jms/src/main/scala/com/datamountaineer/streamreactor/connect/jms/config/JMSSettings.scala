@@ -33,6 +33,7 @@ case class JMSSettings(connectionURL: String,
                        destinationSelector: DestinationSelector,
                        extraProps : List[Map[String, String]],
                        settings: List[JMSSetting],
+                       subscriptionName: Option[String],
                        user: Option[String],
                        password: Option[Password],
                        batchSize: Int,
@@ -137,6 +138,7 @@ object JMSSettings extends StrictLogging {
     }
 
     val jmsTopics = config.getList(JMSConfigConstants.TOPIC_LIST).toSet
+    val jmsSubscriptionName = config.getString(JMSConfigConstants.TOPIC_SUBSCRIPTION_NAME);
     val jmsQueues = config.getList(JMSConfigConstants.QUEUE_LIST).toSet
 
     val settings = kcql.map(r => {
@@ -155,6 +157,7 @@ object JMSSettings extends StrictLogging {
       destinationSelector,
       extraProps,
       settings,
+      Option(jmsSubscriptionName),
       Option(user),
       Option(passwordRaw),
       batchSize,
