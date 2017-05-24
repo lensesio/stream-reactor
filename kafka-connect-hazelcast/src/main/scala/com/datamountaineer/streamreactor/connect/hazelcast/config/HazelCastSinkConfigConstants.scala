@@ -25,8 +25,7 @@ import com.datamountaineer.streamreactor.temp.const.TraitConfigConst._
 object HazelCastSinkConfigConstants {
   val HAZELCAST_CONNECTOR_PREFIX = "connect.hazelcast"
 
-  val CLUSTER_SOURCE_MEMBERS = s"$HAZELCAST_CONNECTOR_PREFIX.source.cluster.members"
-  val CLUSTER_SINK_MEMBERS = s"$HAZELCAST_CONNECTOR_PREFIX.sink.cluster.members"
+  val CLUSTER_MEMBERS = s"$HAZELCAST_CONNECTOR_PREFIX.cluster.members"
   val CLUSTER_MEMBERS_DOC: String =
     """
       |Address List is the initial list of cluster addresses to which the client will connect.
@@ -35,10 +34,10 @@ object HazelCastSinkConfigConstants {
       |it is recommended that you give the addresses for all the nodes.""".stripMargin
   val CLUSTER_MEMBERS_DEFAULT = "localhost"
 
-  val SINK_GROUP_NAME = s"$HAZELCAST_CONNECTOR_PREFIX.sink.group.name"
+  val GROUP_NAME = s"$HAZELCAST_CONNECTOR_PREFIX.group.name"
   val SINK_GROUP_NAME_DOC = "The group name of the connector in the target Hazelcast cluster."
 
-  val SINK_GROUP_PASSWORD = s"$HAZELCAST_CONNECTOR_PREFIX.sink.group.password"
+  val GROUP_PASSWORD = s"$HAZELCAST_CONNECTOR_PREFIX.group.password"
   val SINK_GROUP_PASSWORD_DOC: String = """The password for the group name.""".stripMargin
   val SINK_GROUP_PASSWORD_DEFAULT = "dev-pass"
 
@@ -94,7 +93,7 @@ object HazelCastSinkConfigConstants {
       |The error will be logged automatically""".stripMargin
   val ERROR_POLICY_DEFAULT = "THROW"
 
-  val ERROR_RETRY_INTERVAL = s"$HAZELCAST_CONNECTOR_PREFIX.sink.retry.interval"
+  val ERROR_RETRY_INTERVAL = s"$HAZELCAST_CONNECTOR_PREFIX.retry.interval"
   val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
   val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
 
@@ -102,7 +101,7 @@ object HazelCastSinkConfigConstants {
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
-  val SINK_THREAD_POOL_CONFIG = s"$HAZELCAST_CONNECTOR_PREFIX.$THREAD_POLL_PROP_SUFFIX"
+  val THREAD_POOL_CONFIG = s"$HAZELCAST_CONNECTOR_PREFIX.$THREAD_POLL_PROP_SUFFIX"
   val SINK_THREAD_POOL_DOC =
     """
       |The sink inserts all the data concurrently. To fail fast in case of an error, the sink has its own thread pool.
