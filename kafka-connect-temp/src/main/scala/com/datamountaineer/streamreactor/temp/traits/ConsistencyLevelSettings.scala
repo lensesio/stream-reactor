@@ -16,13 +16,14 @@
 
 package com.datamountaineer.streamreactor.temp.traits
 
+import com.datamountaineer.streamreactor.temp.const.TraitConfigConst.CONSISTENCY_LEVEL_PROP_SUFFIX
 import org.apache.kafka.common.config.ConfigException
 
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
 trait ConsistencyLevelSettings[T <: Enum[T]] extends BaseSettings {
-  val consistencyLevelConstant: String
+  val consistencyLevelConstant: String = s"$connectorPrefix.$CONSISTENCY_LEVEL_PROP_SUFFIX"
 
   def getConsistencyLevel(implicit ct: ClassTag[T]): Option[T] = {
 
