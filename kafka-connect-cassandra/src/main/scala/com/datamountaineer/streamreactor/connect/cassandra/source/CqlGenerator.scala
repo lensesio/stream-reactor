@@ -23,7 +23,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
   private val keySpace = setting.keySpace
   private val selectColumns = getSelectColumns
   private val incrementMode = determineMode
-  private val limitRowsSize = config.getBatchSize
+  private val limitRowsSize = setting.fetchSize
 
   private val defaultTimestamp = "1900-01-01 00:00:00.0000000Z"
 
@@ -75,7 +75,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
     val fieldList = config.getFieldAlias.map(fa => fa.getField).toList
     // if no columns set then select all the columns in the table
     val selectColumns = if (fieldList == null || fieldList.isEmpty) "*" else fieldList.mkString(",")
-    logger.info(s"the fields to select are $selectColumns")
+    logger.debug(s"the fields to select are $selectColumns")
     selectColumns
   }
 
