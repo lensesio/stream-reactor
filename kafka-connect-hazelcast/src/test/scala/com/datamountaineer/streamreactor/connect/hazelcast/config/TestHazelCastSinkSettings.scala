@@ -33,7 +33,7 @@ class TestHazelCastSinkSettings extends TestBase {
 
   before {
     val configApp1 = new Config()
-    configApp1.getGroupConfig.setName(GROUP_NAME).setPassword(HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DEFAULT)
+    configApp1.getGroupConfig.setName(TESTS_GROUP_NAME).setPassword(HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DEFAULT)
     instance = Hazelcast.newHazelcastInstance(configApp1)
   }
 

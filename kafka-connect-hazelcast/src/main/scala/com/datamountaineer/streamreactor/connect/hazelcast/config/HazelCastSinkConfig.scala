@@ -29,8 +29,8 @@ import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 object HazelCastSinkConfig {
 
   val config: ConfigDef = new ConfigDef()
-    .define(HazelCastSinkConfigConstants.CLUSTER_SINK_MEMBERS, Type.LIST, Importance.HIGH, HazelCastSinkConfigConstants.CLUSTER_MEMBERS_DOC,
-      "Connection", 1, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.CLUSTER_SINK_MEMBERS)
+    .define(HazelCastSinkConfigConstants.CLUSTER_MEMBERS, Type.LIST, Importance.HIGH, HazelCastSinkConfigConstants.CLUSTER_MEMBERS_DOC,
+      "Connection", 1, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.CLUSTER_MEMBERS)
     .define(HazelCastSinkConfigConstants.CONNECTION_TIMEOUT, Type.LONG, HazelCastSinkConfigConstants.CONNECTION_TIMEOUT_DEFAULT, Importance.LOW, HazelCastSinkConfigConstants.CONNECTION_TIMEOUT_DOC,
       "Connection", 2, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.CONNECTION_TIMEOUT)
     .define(HazelCastSinkConfigConstants.CONNECTION_RETRY_ATTEMPTS, Type.INT, HazelCastSinkConfigConstants.CONNECTION_RETRY_ATTEMPTS_DEFAULT, Importance.LOW,
@@ -45,10 +45,10 @@ object HazelCastSinkConfig {
       "Connection", 6, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.LINGER_SECONDS)
     .define(HazelCastSinkConfigConstants.BUFFER_SIZE, Type.INT, HazelCastSinkConfigConstants.BUFFER_SIZE_DEFAULT, Importance.LOW, HazelCastSinkConfigConstants.BUFFER_SIZE_DOC,
       "Connection", 7, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.BUFFER_SIZE)
-    .define(HazelCastSinkConfigConstants.SINK_GROUP_NAME, Type.STRING, Importance.HIGH, HazelCastSinkConfigConstants.SINK_GROUP_NAME_DOC,
-      "Connection", 8, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.SINK_GROUP_NAME)
-    .define(HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD, Type.PASSWORD, HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DEFAULT, Importance.MEDIUM, HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DOC,
-      "Connection", 9, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD)
+    .define(HazelCastSinkConfigConstants.GROUP_NAME, Type.STRING, Importance.HIGH, HazelCastSinkConfigConstants.SINK_GROUP_NAME_DOC,
+      "Connection", 8, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.GROUP_NAME)
+    .define(HazelCastSinkConfigConstants.GROUP_PASSWORD, Type.PASSWORD, HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DEFAULT, Importance.MEDIUM, HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DOC,
+      "Connection", 9, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.GROUP_PASSWORD)
     .define(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY,
       "Target", 1, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY)
     .define(HazelCastSinkConfigConstants.ERROR_POLICY, Type.STRING, HazelCastSinkConfigConstants.ERROR_POLICY_DEFAULT, Importance.HIGH, HazelCastSinkConfigConstants.ERROR_POLICY_DOC,
@@ -57,7 +57,7 @@ object HazelCastSinkConfig {
       "Target", 3, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.ERROR_RETRY_INTERVAL)
     .define(HazelCastSinkConfigConstants.NBR_OF_RETRIES, Type.INT, HazelCastSinkConfigConstants.NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, HazelCastSinkConfigConstants.NBR_OF_RETRIES_DOC,
       "Target", 4, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.NBR_OF_RETRIES)
-    .define(HazelCastSinkConfigConstants.SINK_THREAD_POOL_CONFIG, Type.INT, HazelCastSinkConfigConstants.SINK_THREAD_POOL_DEFAULT, Importance.MEDIUM, HazelCastSinkConfigConstants.SINK_THREAD_POOL_DOC,
+    .define(HazelCastSinkConfigConstants.THREAD_POOL_CONFIG, Type.INT, HazelCastSinkConfigConstants.SINK_THREAD_POOL_DEFAULT, Importance.MEDIUM, HazelCastSinkConfigConstants.SINK_THREAD_POOL_DOC,
       "Target", 5, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.SINK_THREAD_POOL_DISPLAY)
     .define(HazelCastSinkConfigConstants.PARALLEL_WRITE, Type.BOOLEAN, HazelCastSinkConfigConstants.PARALLEL_WRITE_DEFAULT, Importance.MEDIUM, HazelCastSinkConfigConstants.PARALLEL_WRITE_DOC,
       "Target", 5, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.PARALLEL_WRITE)

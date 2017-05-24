@@ -16,18 +16,17 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.config
 
-import com.datamountaineer.streamreactor.connect.hazelcast.TestBase
+import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
 /**
   * The point of this test is to check that constants keys are not changed after the refactor of the code.
   */
-class TestHazelCastSinkConstants extends TestBase {
+class TestHazelCastSinkConstants extends WordSpec with BeforeAndAfter with Matchers {
 
   // Constants
-  val CLUSTER_SOURCE_MEMBERS = "connect.hazelcast.source.cluster.members"
-  val CLUSTER_SINK_MEMBERS = "connect.hazelcast.sink.cluster.members"
-  val SINK_GROUP_NAME = "connect.hazelcast.sink.group.name"
-  val SINK_GROUP_PASSWORD = "connect.hazelcast.sink.group.password"
+  val CLUSTER_MEMBERS = "connect.hazelcast.cluster.members"
+  val GROUP_NAME = "connect.hazelcast.group.name"
+  val GROUP_PASSWORD = "connect.hazelcast.group.password"
   val PARALLEL_WRITE = "connect.hazelcast.parallel.write"
   val CONNECTION_TIMEOUT = "connect.hazelcast.connection.timeout"
   val CONNECTION_RETRY_ATTEMPTS = "connect.hazelcast.connection.retries"
@@ -38,21 +37,18 @@ class TestHazelCastSinkConstants extends TestBase {
   val BUFFER_SIZE = "connect.hazelcast.connection.buffer.size"
   val EXPORT_ROUTE_QUERY = "connect.hazelcast.kcql"
   val ERROR_POLICY = "connect.hazelcast.error.policy"
-  val ERROR_RETRY_INTERVAL = "connect.hazelcast.sink.retry.interval"
+  val ERROR_RETRY_INTERVAL = "connect.hazelcast.retry.interval"
   val NBR_OF_RETRIES = "connect.hazelcast.max.retries"
-  val SINK_THREAD_POOL_CONFIG = "connect.hazelcast.threadpool.size"
+  val THREAD_POOL_CONFIG = "connect.hazelcast.threadpool.size"
 
   "CLUSTER_SOURCE_MEMBERS should have the same key in HazelCastSinkConfigConstants" in {
-    assert(CLUSTER_SOURCE_MEMBERS.equals(HazelCastSinkConfigConstants.CLUSTER_SOURCE_MEMBERS))
-  }
-  "CLUSTER_SINK_MEMBERS should have the same key in HazelCastSinkConfigConstants" in {
-    assert(CLUSTER_SINK_MEMBERS.equals(HazelCastSinkConfigConstants.CLUSTER_SINK_MEMBERS))
+    assert(CLUSTER_MEMBERS.equals(HazelCastSinkConfigConstants.CLUSTER_MEMBERS))
   }
   "SINK_GROUP_NAME should have the same key in HazelCastSinkConfigConstants" in {
-    assert(SINK_GROUP_NAME.equals(HazelCastSinkConfigConstants.SINK_GROUP_NAME))
+    assert(GROUP_NAME.equals(HazelCastSinkConfigConstants.GROUP_NAME))
   }
   "SINK_GROUP_PASSWORD should have the same key in HazelCastSinkConfigConstants" in {
-    assert(SINK_GROUP_PASSWORD.equals(HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD))
+    assert(GROUP_PASSWORD.equals(HazelCastSinkConfigConstants.GROUP_PASSWORD))
   }
   "PARALLEL_WRITE should have the same key in HazelCastSinkConfigConstants" in {
     assert(PARALLEL_WRITE.equals(HazelCastSinkConfigConstants.PARALLEL_WRITE))
@@ -91,6 +87,6 @@ class TestHazelCastSinkConstants extends TestBase {
     assert(NBR_OF_RETRIES.equals(HazelCastSinkConfigConstants.NBR_OF_RETRIES))
   }
   "SINK_THREAD_POOL_CONFIG should have the same key in HazelCastSinkConfigConstants" in {
-    assert(SINK_THREAD_POOL_CONFIG.equals(HazelCastSinkConfigConstants.SINK_THREAD_POOL_CONFIG))
+    assert(THREAD_POOL_CONFIG.equals(HazelCastSinkConfigConstants.THREAD_POOL_CONFIG))
   }
 }
