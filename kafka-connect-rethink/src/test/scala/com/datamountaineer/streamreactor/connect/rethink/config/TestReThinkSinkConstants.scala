@@ -16,18 +16,18 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.config
 
-import com.datamountaineer.streamreactor.connect.rethink.TestBase
+import org.scalatest.WordSpec
 
 /**
   * The point of this test is to check that constants keys are not changed after the refactor of the code.
   */
-class TestReThinkSinkConstants extends TestBase {
+class TestReThinkSinkConstants extends WordSpec {
 
   // Constants
   val RETHINK_HOST = "connect.rethink.host"
   val RETHINK_DB = "connect.rethink.db"
   val RETHINK_PORT = "connect.rethink.port"
-  val EXPORT_ROUTE_QUERY = "connect.rethink.kcql"
+  val ROUTE_QUERY = "connect.rethink.kcql"
   val ERROR_POLICY = "connect.rethink.error.policy"
   val ERROR_RETRY_INTERVAL = "connect.rethink.retry.interval"
   val NBR_OF_RETRIES = "connect.rethink.max.retries"
@@ -45,8 +45,8 @@ class TestReThinkSinkConstants extends TestBase {
     assert(RETHINK_PORT.equals(ReThinkSinkConfigConstants.RETHINK_PORT))
   }
 
-  "EXPORT_ROUTE_QUERY should have the same key in ReThinkSinkConfigConstants" in {
-    assert(EXPORT_ROUTE_QUERY.equals(ReThinkSinkConfigConstants.ROUTE_QUERY))
+  "ROUTE_QUERY should have the same key in ReThinkSinkConfigConstants" in {
+    assert(ROUTE_QUERY.equals(ReThinkSinkConfigConstants.ROUTE_QUERY))
   }
 
   "ERROR_POLICY should have the same key in ReThinkSinkConfigConstants" in {
