@@ -68,7 +68,7 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
         CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
         CassandraConfigConstants.USERNAME -> USERNAME,
         CassandraConfigConstants.PASSWD -> PASSWD,
-        CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $TABLE3 PK timestamp_field",
+        CassandraConfigConstants.ROUTE_QUERY -> s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $TABLE3 PK timestamp_field",
         CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE3",
         CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
         CassandraConfigConstants.POLL_INTERVAL -> "1000",
@@ -123,7 +123,7 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
         CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
         CassandraConfigConstants.USERNAME -> USERNAME,
         CassandraConfigConstants.PASSWD -> PASSWD,
-        CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $TABLE2 PK timestamp_field",
+        CassandraConfigConstants.ROUTE_QUERY -> s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $TABLE2 PK timestamp_field",
         CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE2",
         CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
         CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
@@ -177,7 +177,7 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
         CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
         CassandraConfigConstants.USERNAME -> USERNAME,
         CassandraConfigConstants.PASSWD -> PASSWD,
-        CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $TABLE2 IGNORE timestamp_field PK timestamp_field",
+        CassandraConfigConstants.ROUTE_QUERY -> s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $TABLE2 IGNORE timestamp_field PK timestamp_field",
         CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE2",
         CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
         CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
@@ -231,7 +231,7 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
         CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
         CassandraConfigConstants.USERNAME -> USERNAME,
         CassandraConfigConstants.PASSWD -> PASSWD,
-        CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT string_field FROM $TABLE2 PK timestamp_field",
+        CassandraConfigConstants.ROUTE_QUERY -> s"INSERT INTO sink_test SELECT string_field FROM $TABLE2 PK timestamp_field",
         CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE2",
         CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
         CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
@@ -267,7 +267,7 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
         CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
         CassandraConfigConstants.USERNAME -> USERNAME,
         CassandraConfigConstants.PASSWD -> PASSWD,
-        CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $TABLE2 IGNORE timestamp_field PK timestamp_field WITHUNWRAP",
+        CassandraConfigConstants.ROUTE_QUERY -> s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $TABLE2 IGNORE timestamp_field PK timestamp_field WITHUNWRAP",
         CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE2",
         CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
         CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
@@ -321,7 +321,7 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
         CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
         CassandraConfigConstants.USERNAME -> USERNAME,
         CassandraConfigConstants.PASSWD -> PASSWD,
-        CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT string_field, long_field, timestamp_field FROM $TABLE2 IGNORE timestamp_field PK timestamp_field WITHUNWRAP",
+        CassandraConfigConstants.ROUTE_QUERY -> s"INSERT INTO sink_test SELECT string_field, long_field, timestamp_field FROM $TABLE2 IGNORE timestamp_field PK timestamp_field WITHUNWRAP",
         CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE2",
         CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
         CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava

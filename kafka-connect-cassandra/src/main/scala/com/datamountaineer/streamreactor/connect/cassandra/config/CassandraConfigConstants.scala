@@ -94,11 +94,11 @@ object CassandraConfigConstants {
   val BATCH_SIZE_DOC = "The number of records the source task should drain from the reader queue."
   val BATCH_SIZE_DEFAULT = 100
 
-  val READER_BUFFER_SIZE = s"$CASSANDRA_CONNECTOR_PREFIX.source.task.buffer.size"
+  val READER_BUFFER_SIZE = s"$CASSANDRA_CONNECTOR_PREFIX.task.buffer.size"
   val READER_BUFFER_SIZE_DOC = "The size of the queue as read writes to."
   val READER_BUFFER_SIZE_DEFAULT = 10000
 
-  val ALLOW_FILTERING = s"$CASSANDRA_CONNECTOR_PREFIX.import.source.allow.filtering"
+  val ALLOW_FILTERING = s"$CASSANDRA_CONNECTOR_PREFIX.import.allow.filtering"
   val ALLOW_FILTERING_DOC = "Enable ALLOW FILTERING in incremental selects."
   val ALLOW_FILTERING_DEFAULT = true
 
@@ -130,20 +130,17 @@ object CassandraConfigConstants {
   val NBR_OF_RETIRES_DEFAULT = 20
 
 
-  val SINK_KCQL = s"$CASSANDRA_CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
-  val SINK_KCQL_DOC = "KCQL expression describing field selection and routes."
+  val ROUTE_QUERY = s"$CASSANDRA_CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
+  val ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
 
-  val SOURCE_KCQL_QUERY = s"$CASSANDRA_CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
-  val SOURCE_KCQL_DOC = "KCQL expression describing field selection and routes."
-
-  val SINK_THREAD_POOL_CONFIG = s"$CASSANDRA_CONNECTOR_PREFIX.$THREAD_POLL_PROP_SUFFIX"
-  val SINK_THREAD_POOL_DOC =
+  val THREAD_POOL_CONFIG = s"$CASSANDRA_CONNECTOR_PREFIX.$THREAD_POLL_PROP_SUFFIX"
+  val THREAD_POOL_DOC =
     """
       |The sink inserts all the data concurrently. To fail fast in case of an error, the sink has its own thread pool.
       |Set the value to zero and the threadpool will default to 4* NO_OF_CPUs. Set a value greater than 0
       |and that would be the size of this threadpool.""".stripMargin
-  val SINK_THREAD_POOL_DISPLAY = "Thread pool size"
-  val SINK_THREAD_POOL_DEFAULT = 0
+  val THREAD_POOL_DISPLAY = "Thread pool size"
+  val THREAD_POOL_DEFAULT = 0
 
   val CONSISTENCY_LEVEL_CONFIG = s"$CASSANDRA_CONNECTOR_PREFIX.$CONSISTENCY_LEVEL_PROP_SUFFIX"
   val CONSISTENCY_LEVEL_DOC =
@@ -155,7 +152,7 @@ object CassandraConfigConstants {
   val CONSISTENCY_LEVEL_DEFAULT = ""
 
 
-  val TIMESTAMP_TYPE = s"$CASSANDRA_CONNECTOR_PREFIX.source.timestamp.type"
+  val TIMESTAMP_TYPE = s"$CASSANDRA_CONNECTOR_PREFIX.timestamp.type"
   val TIMESTAMP_TYPE_DOC = "The Cassandra data type of the timestamp column, either timeuuid (default) or timestamp."
   val TIMESTAMP_TYPE_DEFAULT = "timeUUID"
 

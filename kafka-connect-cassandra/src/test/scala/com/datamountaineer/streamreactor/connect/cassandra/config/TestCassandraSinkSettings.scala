@@ -70,14 +70,14 @@ class TestCassandraSinkSettings extends WordSpec with Matchers with MockitoSugar
 
   "CassandraSettings should allow setting the sink thread pool to 64" in {
     val map = new util.HashMap[String, String](getCassandraConfigSinkPropsRetry)
-    map.put(CassandraConfigConstants.SINK_THREAD_POOL_CONFIG, "64")
+    map.put(CassandraConfigConstants.THREAD_POOL_CONFIG, "64")
     val settings = CassandraSettings.configureSink(CassandraConfigSink(map))
     settings.threadPoolSize shouldBe 64
   }
 
   "CassandraSettings should handle setting the sink thread pool to 0 and return a non zero value" in {
     val map = new util.HashMap[String, String](getCassandraConfigSinkPropsRetry)
-    map.put(CassandraConfigConstants.SINK_THREAD_POOL_CONFIG, "0")
+    map.put(CassandraConfigConstants.THREAD_POOL_CONFIG, "0")
     val settings = CassandraSettings.configureSink(CassandraConfigSink(map))
     settings.threadPoolSize shouldBe 4 * Runtime.getRuntime.availableProcessors()
   }

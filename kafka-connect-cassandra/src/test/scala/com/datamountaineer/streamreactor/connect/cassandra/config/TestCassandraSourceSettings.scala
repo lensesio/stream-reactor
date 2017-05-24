@@ -45,7 +45,7 @@ class TestCassandraSourceSettings extends WordSpec with Matchers with TestConfig
       CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
-      CassandraConfigConstants.SOURCE_KCQL_QUERY -> "INSERT INTO cassandra-source SELECT * FROM orders PK created",
+      CassandraConfigConstants.ROUTE_QUERY -> "INSERT INTO cassandra-source SELECT * FROM orders PK created",
       CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
       CassandraConfigConstants.POLL_INTERVAL -> "1000"
     )
