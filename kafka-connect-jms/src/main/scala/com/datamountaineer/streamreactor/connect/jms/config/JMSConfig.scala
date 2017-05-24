@@ -36,6 +36,8 @@ object JMSConfig {
       "Connection", 5, ConfigDef.Width.MEDIUM, JMSConfigConstants.QUEUE_LIST)
     .define(JMSConfigConstants.TOPIC_LIST, Type.LIST, new util.ArrayList[String], Importance.HIGH, JMSConfigConstants.TOPIC_LIST_DOC,
       "Connection", 6, ConfigDef.Width.MEDIUM, JMSConfigConstants.TOPIC_LIST)
+    .define(JMSConfigConstants.TOPIC_SUBSCRIPTION_NAME, Type.STRING, null, Importance.HIGH, JMSConfigConstants.TOPIC_SUBSCRIPTION_NAME_DOC,
+      "Connection", 6, ConfigDef.Width.MEDIUM, JMSConfigConstants.TOPIC_SUBSCRIPTION_NAME)
     .define(JMSConfigConstants.JMS_PASSWORD, Type.PASSWORD, null, Importance.HIGH, JMSConfigConstants.JMS_PASSWORD_DOC,
       "Connection", 7, ConfigDef.Width.MEDIUM, JMSConfigConstants.JMS_PASSWORD)
     .define(JMSConfigConstants.JMS_USER, Type.STRING, null, Importance.HIGH, JMSConfigConstants.JMS_USER_DOC,

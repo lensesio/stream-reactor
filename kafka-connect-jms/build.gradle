@@ -17,13 +17,13 @@
 project(":kafka-connect-jms") {
 
     ext {
-        jmsVersion = "1.1-rev-1"
+        jmsVersion = "2.0.1"
         scalaxVersion = "1.26.0"
     }
 
     dependencies {
-        compile("javax.jms:jms-api:$jmsVersion")
         compile("org.apache.activemq:activemq-core:5.7.0")
+        compile("javax.jms:javax.jms-api:$jmsVersion")
         testCompile("org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion")
         testCompile("com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion")
         testCompile("com.sksamuel.avro4s:avro4s-macros_$scalaMajorVersion:$avro4sVersion")
