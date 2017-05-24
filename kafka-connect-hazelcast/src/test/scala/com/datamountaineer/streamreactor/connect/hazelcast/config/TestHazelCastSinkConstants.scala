@@ -16,12 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.config
 
-import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
+import org.scalatest.WordSpec
 
 /**
   * The point of this test is to check that constants keys are not changed after the refactor of the code.
   */
-class TestHazelCastSinkConstants extends WordSpec with BeforeAndAfter with Matchers {
+class TestHazelCastSinkConstants extends WordSpec {
 
   // Constants
   val CLUSTER_MEMBERS = "connect.hazelcast.cluster.members"
@@ -41,13 +41,13 @@ class TestHazelCastSinkConstants extends WordSpec with BeforeAndAfter with Match
   val NBR_OF_RETRIES = "connect.hazelcast.max.retries"
   val THREAD_POOL_CONFIG = "connect.hazelcast.threadpool.size"
 
-  "CLUSTER_SOURCE_MEMBERS should have the same key in HazelCastSinkConfigConstants" in {
+  "CLUSTER_MEMBERS should have the same key in HazelCastSinkConfigConstants" in {
     assert(CLUSTER_MEMBERS.equals(HazelCastSinkConfigConstants.CLUSTER_MEMBERS))
   }
-  "SINK_GROUP_NAME should have the same key in HazelCastSinkConfigConstants" in {
+  "GROUP_NAME should have the same key in HazelCastSinkConfigConstants" in {
     assert(GROUP_NAME.equals(HazelCastSinkConfigConstants.GROUP_NAME))
   }
-  "SINK_GROUP_PASSWORD should have the same key in HazelCastSinkConfigConstants" in {
+  "GROUP_PASSWORD should have the same key in HazelCastSinkConfigConstants" in {
     assert(GROUP_PASSWORD.equals(HazelCastSinkConfigConstants.GROUP_PASSWORD))
   }
   "PARALLEL_WRITE should have the same key in HazelCastSinkConfigConstants" in {
@@ -86,7 +86,7 @@ class TestHazelCastSinkConstants extends WordSpec with BeforeAndAfter with Match
   "NBR_OF_RETRIES should have the same key in HazelCastSinkConfigConstants" in {
     assert(NBR_OF_RETRIES.equals(HazelCastSinkConfigConstants.NBR_OF_RETRIES))
   }
-  "SINK_THREAD_POOL_CONFIG should have the same key in HazelCastSinkConfigConstants" in {
+  "THREAD_POOL_CONFIG should have the same key in HazelCastSinkConfigConstants" in {
     assert(THREAD_POOL_CONFIG.equals(HazelCastSinkConfigConstants.THREAD_POOL_CONFIG))
   }
 }
