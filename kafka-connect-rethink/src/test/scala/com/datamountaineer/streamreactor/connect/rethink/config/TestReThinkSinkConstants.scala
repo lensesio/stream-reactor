@@ -24,9 +24,9 @@ import com.datamountaineer.streamreactor.connect.rethink.TestBase
 class TestReThinkSinkConstants extends TestBase {
 
   // Constants
-  val RETHINK_HOST = "connect.rethink.sink.host"
+  val RETHINK_HOST = "connect.rethink.host"
   val RETHINK_DB = "connect.rethink.db"
-  val RETHINK_PORT = "connect.rethink.sink.port"
+  val RETHINK_PORT = "connect.rethink.port"
   val EXPORT_ROUTE_QUERY = "connect.rethink.kcql"
   val ERROR_POLICY = "connect.rethink.error.policy"
   val ERROR_RETRY_INTERVAL = "connect.rethink.retry.interval"
@@ -46,7 +46,7 @@ class TestReThinkSinkConstants extends TestBase {
   }
 
   "EXPORT_ROUTE_QUERY should have the same key in ReThinkSinkConfigConstants" in {
-    assert(EXPORT_ROUTE_QUERY.equals(ReThinkSinkConfigConstants.EXPORT_ROUTE_QUERY))
+    assert(EXPORT_ROUTE_QUERY.equals(ReThinkSinkConfigConstants.ROUTE_QUERY))
   }
 
   "ERROR_POLICY should have the same key in ReThinkSinkConfigConstants" in {
