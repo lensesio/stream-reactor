@@ -23,7 +23,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
   private val keySpace = setting.keySpace
   private val selectColumns = getSelectColumns
   private val incrementMode = determineMode
-  private val limitRowsSize = setting.fetchSize
+  private val limitRowsSize = config.getBatchSize
 
   private val defaultTimestamp = "1900-01-01 00:00:00.0000000Z"
 
