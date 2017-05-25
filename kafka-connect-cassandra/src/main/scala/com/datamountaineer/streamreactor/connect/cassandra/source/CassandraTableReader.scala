@@ -59,8 +59,7 @@ class CassandraTableReader(private val session: Session,
   private val table = config.getSource
   private val topic = config.getTarget
   private val keySpace = setting.keySpace
-  // TODO: need two different statements for token (with no offset and with an offset)
-  // private val preparedStatementNoOffset ??
+  private val preparedStatementNoOffset = getPreparedStatementNoOffset
   private val preparedStatement = getPreparedStatements
   private var tableOffset: Option[String] = buildOffsetMap(context)
   private val sourcePartition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
@@ -93,6 +92,13 @@ class CassandraTableReader(private val session: Session,
     setting.consistencyLevel.foreach(statement.setConsistencyLevel)
     statement
   }
+  
+  private def getPreparedStatementNoOffset: PreparedStatement = {
+    val selectStatement = cqlGenerator.getCqlStatementNoOffset
+    val statement = session.prepare(selectStatement)
+    setting.consistencyLevel.foreach(statement.setConsistencyLevel)
+    statement
+  }
 
   /**
     * Fires Cassandra queries and increments the timestamp
@@ -106,10 +112,13 @@ class CassandraTableReader(private val session: Session,
 
     // execute the query, gives us back a future result set
     val frs = if (setting.bulkImportMode) {
-      resultSetFutureToScala(fireQuery())
+      resultSetFutureToScala(fireQuery(preparedStatement))
     } else if (cqlGenerator.isTokenBased()) {
-      // TODO: token based 
-      null
+      // token based 
+      tableOffset match {
+        case Some(tableOffset) => resultSetFutureToScala(bindAndFireQuery(tableOffset))
+        case None => resultSetFutureToScala(fireQuery(preparedStatementNoOffset))
+      }
     } else {
       // time based key column
       val lowerBound = dateFormatter.parse(cqlGenerator.getDefaultOffsetValue(tableOffset).get)
@@ -138,17 +147,29 @@ class CassandraTableReader(private val session: Session,
     logger.debug(s"Query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow).")
     session.executeAsync(bound)
   }
+  
+    /**
+    * Bind and execute the preparedStatement and set querying to true.
+    *
+    * @param lastToken The last token from previous query
+    * @return a ResultSet.
+    */
+  private def bindAndFireQuery(lastToken: String) = {
+    val bound = preparedStatement.bind(lastToken)
+    logger.debug(s"Query ${preparedStatement.getQueryString} executing with bindings ($lastToken).")
+    session.executeAsync(bound)
+  }
 
   /**
     * Execute the preparedStatement and set querying to true.
     *
     * @return a ResultSet.
     */
-  private def fireQuery(): ResultSetFuture = {
+  private def fireQuery(ps: PreparedStatement): ResultSetFuture = {
     //bind the offset and db time
-    val bound = preparedStatement.bind()
+    val bound = ps.bind()
     //execute the query
-    logger.debug(s"Query ${preparedStatement.getQueryString} executing.")
+    logger.debug(s"Query ${ps.getQueryString} executing.")
     session.executeAsync(bound)
   }
 
@@ -204,6 +225,7 @@ class CassandraTableReader(private val session: Session,
   }
   
   private def getTokenMaxOffsetForRow(maxOffset: Option[String], row: Row): Option[String] = {
+    //TODO
     null
   }
   

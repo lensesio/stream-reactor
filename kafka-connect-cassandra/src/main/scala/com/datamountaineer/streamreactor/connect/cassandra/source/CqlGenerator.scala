@@ -33,7 +33,6 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
    * @return the CQL statement (as a String)
    */
   def getCqlStatement: String = {
-
     // build the correct CQL statement based on the KCQL mode
     val selectStatement = if (setting.bulkImportMode) {
       generateCqlForBulkMode
@@ -51,11 +50,35 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
     logger.info(s"generated CQL: $selectStatement")
     selectStatement
   }
+  
+  /**
+   * Build the CQL for the given table when no offset is available.
+   *
+   * @return the CQL statement (as a String)
+   */
+  def getCqlStatementNoOffset: String = {
+    // build the correct CQL statement based on the KCQL mode
+    val selectStatement = if (setting.bulkImportMode) {
+      generateCqlForBulkMode
+    } else {
+      // if we are not in bulk mode 
+      // we must be in incremental mode
+      logger.info(s"the increment mode is $incrementMode")
+      incrementMode.toUpperCase match {
+        case "TIMEUUID" => generateCqlForTimeUuidMode
+        case "TIMESTAMP" => generateCqlForTimestampMode
+        case "TOKEN" => generateCqlForTokenModeNoOffset
+        case _ => throw new ConfigException(s"unknown incremental mode ($incrementMode)")
+      }
+    }
+    logger.info(s"generated CQL: $selectStatement")
+    selectStatement
+  }
 
   def getDefaultOffsetValue(offset: Option[String]): Option[String] = {
     incrementMode.toUpperCase match {
       case "TIMESTAMP" | "TIMEUUID" => Some(offset.getOrElse(defaultTimestamp))
-      case "TOKEN" => Some("")
+      case "TOKEN" => offset
     }
   }
 
@@ -92,6 +115,13 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
     val pkCol = setting.primaryKeyColumn.getOrElse("")
     checkCqlForPrimaryKey(pkCol)
     val whereClause = s" WHERE token($pkCol) > token(?) LIMIT $limitRowsSize"
+    generateCqlForBulkMode + whereClause
+  }
+
+  private def generateCqlForTokenModeNoOffset: String = {
+    val pkCol = setting.primaryKeyColumn.getOrElse("")
+    checkCqlForPrimaryKey(pkCol)
+    val whereClause = s" LIMIT $limitRowsSize"
     generateCqlForBulkMode + whereClause
   }
 

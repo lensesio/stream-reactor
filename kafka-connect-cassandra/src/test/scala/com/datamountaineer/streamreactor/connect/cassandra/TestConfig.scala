@@ -55,7 +55,8 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   val TABLE3 = TOPIC2
   val TABLE4 = "table4"
   val TOPIC4 =  "topic4"
-
+  val TABLE5 = "table5"
+  
   val USERNAME = "cassandra"
   val PASSWD = "cassandra"
   val TRUST_STORE_PATH = System.getProperty("truststore")
@@ -258,7 +259,17 @@ trait TestConfig extends StrictLogging with MockitoSugar {
          |double_field double,
          |timestamp_field timeuuid,
          |PRIMARY KEY(id,timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)""".stripMargin)
-
+    session.execute(
+      s"""
+          CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE5 (
+            id text, 
+            int_field int, 
+            long_field bigint,
+            string_field text, 
+            timestamp_field timestamp, 
+            timeuuid_field timeuuid, 
+            PRIMARY KEY ((id), timeuuid_field))""".stripMargin)
+            
     session
   }
 
