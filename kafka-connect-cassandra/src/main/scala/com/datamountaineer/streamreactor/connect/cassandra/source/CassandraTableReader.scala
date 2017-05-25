@@ -44,9 +44,9 @@ import org.apache.kafka.connect.data.Schema
  * stream-reactor
  */
 class CassandraTableReader(private val session: Session,
-    					             private val setting: CassandraSourceSetting,
-                           private val context: SourceTaskContext,
-    					             var queue: LinkedBlockingQueue[SourceRecord]) extends StrictLogging {
+                            private val setting: CassandraSourceSetting,
+                            private val context: SourceTaskContext,
+                            var queue: LinkedBlockingQueue[SourceRecord]) extends StrictLogging {
 
   private val config = setting.routes
   private val cqlGenerator = new CqlGenerator(setting)
