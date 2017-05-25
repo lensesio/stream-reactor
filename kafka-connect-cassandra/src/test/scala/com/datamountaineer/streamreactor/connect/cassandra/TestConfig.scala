@@ -262,13 +262,12 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     session.execute(
       s"""
           CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE5 (
-            id text, 
+            id timeuuid, 
             int_field int, 
             long_field bigint,
             string_field text, 
-            timestamp_field timestamp, 
-            timeuuid_field timeuuid, 
-            PRIMARY KEY ((id), timeuuid_field))""".stripMargin)
+            another_time_field timeuuid, 
+            PRIMARY KEY ((id), another_time_field))""".stripMargin)
             
     session
   }
