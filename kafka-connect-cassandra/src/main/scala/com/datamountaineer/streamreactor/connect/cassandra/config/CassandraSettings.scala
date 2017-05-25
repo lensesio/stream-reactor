@@ -47,7 +47,8 @@ case class CassandraSourceSetting(routes: Config,
                                   pollInterval: Long = CassandraConfigConstants.DEFAULT_POLL_INTERVAL,
                                   consistencyLevel: Option[ConsistencyLevel],
                                   errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                                  taskRetires: Int = CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT
+                                  taskRetires: Int = CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT,
+                                  fetchSize: Int = CassandraConfigConstants.FETCH_SIZE_DEFAULT
                                  ) extends CassandraSetting
 
 case class CassandraSinkSetting(keySpace: String,
@@ -84,6 +85,7 @@ object CassandraSettings extends StrictLogging {
     val errorPolicy = config.getErrorPolicy
     val routes = config.getRoutes
     val primaryKeyCols = routes.map(r => (r.getSource, r.getPrimaryKeys.toList)).toMap
+    val fetchSize = config.getInt(CassandraConfigConstants.FETCH_SIZE)
 
     routes.map({
       r => {
@@ -101,7 +103,8 @@ object CassandraSettings extends StrictLogging {
           bulkImportMode = bulk,
           pollInterval = pollInterval,
           errorPolicy = errorPolicy,
-          consistencyLevel = consistencyLevel
+          consistencyLevel = consistencyLevel,
+          fetchSize = fetchSize
         )
       }
     })

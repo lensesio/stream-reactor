@@ -75,7 +75,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
     val fieldList = config.getFieldAlias.map(fa => fa.getField).toList
     // if no columns set then select all the columns in the table
     val selectColumns = if (fieldList == null || fieldList.isEmpty) "*" else fieldList.mkString(",")
-    logger.info(s"the fields to select are $selectColumns")
+    logger.debug(s"the fields to select are $selectColumns")
     selectColumns
   }
 

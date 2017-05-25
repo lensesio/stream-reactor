@@ -61,7 +61,7 @@ class TestCqlGenerator extends WordSpec with Matchers with BeforeAndAfter with M
     val cqlGenerator = new CqlGenerator(configureMe("INCREMENTALMODE=token", "timeuuid"))
     val cqlStatement = cqlGenerator.getCqlStatement
 
-    cqlStatement shouldBe "SELECT timestamp_field,string_field FROM sink_test.cassandra-table WHERE token(timestamp_field) > token(?) LIMIT 3000"
+    cqlStatement shouldBe "SELECT timestamp_field,string_field FROM sink_test.cassandra-table WHERE token(timestamp_field) > token(?) LIMIT 200"
   }
 
   "Exception should be thrown with unknown incremental mode in KCQL" in {
@@ -87,7 +87,7 @@ class TestCqlGenerator extends WordSpec with Matchers with BeforeAndAfter with M
   }
 
   def configureMe(kcqlIncrementMode: String, configIncrementMode: String): CassandraSourceSetting = {
-    val myKcql = s"INSERT INTO kafka-topic SELECT string_field, timestamp_field FROM cassandra-table PK timestamp_field $kcqlIncrementMode"
+    val myKcql = s"INSERT INTO kafka-topic SELECT string_field, timestamp_field FROM cassandra-table PK timestamp_field BATCH=200 $kcqlIncrementMode"
     val configMap = {
       Map(
         CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
@@ -95,7 +95,8 @@ class TestCqlGenerator extends WordSpec with Matchers with BeforeAndAfter with M
         CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE3",
         CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
         CassandraConfigConstants.POLL_INTERVAL -> "1000",
-        CassandraConfigConstants.BATCH_SIZE -> "200",
+        CassandraConfigConstants.FETCH_SIZE -> "500",
+        CassandraConfigConstants.BATCH_SIZE -> "800",
         CassandraConfigConstants.TIMESTAMP_TYPE -> configIncrementMode).asJava
     }
     val configSource = new CassandraConfigSource(configMap)

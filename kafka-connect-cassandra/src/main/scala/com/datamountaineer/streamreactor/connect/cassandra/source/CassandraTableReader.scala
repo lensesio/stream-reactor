@@ -135,7 +135,7 @@ class CassandraTableReader(private val session: Session,
     val formattedPrevious = dateFormatter.format(previous)
     val formattedNow = dateFormatter.format(now)
     val bound = preparedStatement.bind(previous, now)
-    logger.info(s"Query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow).")
+    logger.debug(s"Query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow).")
     session.executeAsync(bound)
   }
 
@@ -148,7 +148,7 @@ class CassandraTableReader(private val session: Session,
     //bind the offset and db time
     val bound = preparedStatement.bind()
     //execute the query
-    logger.info(s"Query ${preparedStatement.getQueryString} executing.")
+    logger.debug(s"Query ${preparedStatement.getQueryString} executing.")
     session.executeAsync(bound)
   }
 
@@ -179,7 +179,7 @@ class CassandraTableReader(private val session: Session,
               } else {
                 getTimebasedMaxOffsetForRow(maxOffset, row)
               }
-              logger.info(s"Max Offset is currently: ${maxOffset.get}")
+              logger.debug(s"Max Offset is currently: ${maxOffset.get}")
             }
             processRow(row)
             counter += 1
@@ -296,7 +296,7 @@ class CassandraTableReader(private val session: Session,
     val table = config.getTarget
     stop.set(true)
     while (querying.get()) {
-      logger.info(s"Waiting for querying to stop for $keySpace.$table.")
+      logger.debug(s"Waiting for querying to stop for $keySpace.$table.")
       Thread.sleep(2000)
     }
     logger.info(s"Querying stopped for $keySpace.$table.")
