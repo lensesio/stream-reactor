@@ -36,11 +36,11 @@ schema_name
    ;
 
 insert_from_clause
-   : write_mode table_name select_clause_basic ( autocreate )? (with_structure)? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? ( project_to )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( with_format_clause )? (with_unwrap_clause)? (storeas_clause)? (with_tags)?
+   : write_mode table_name select_clause_basic ( autocreate )? (with_structure)? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? ( project_to )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( with_format_clause )? (with_unwrap_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_doc_type)? (with_index_suffix)? (ttl_clause)? (with_converter)?
    ;
 
 select_clause
-   : select_clause_basic ( PK primary_key_list)? (with_structure)? (with_format_clause)? (with_unwrap_clause)? (with_consumer_group)? (with_offset_list)? (sample_clause)? (limit_clause)? (storeas_clause)? (with_tags)?
+   : select_clause_basic ( PK primary_key_list)? (with_structure)? (with_format_clause)? (with_unwrap_clause)? (with_consumer_group)? (with_offset_list)? (sample_clause)? (limit_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_doc_type)? (with_index_suffix)? (with_converter)?
    ;
 
 select_clause_basic
@@ -262,6 +262,38 @@ with_tags
     : WITHTAG (LEFT_PARAN tag_definition ( COMMA tag_definition )* RIGHT_PARAN)
     ;
 
+with_inc_mode
+    : INCREMENTALMODE EQUAL inc_mode
+    ;
+
+inc_mode
+    : FIELD | TOPICNAME
+    ;
+
+with_doc_type
+    : WITHDOCTYPE EQUAL doc_type
+    ;
+
+doc_type
+    : FIELD | TOPICNAME | INT
+    ;
+
+with_index_suffix
+    : WITHINDEXSUFFIX EQUAL index_suffix
+    ;
+
+index_suffix
+    : FIELD | TOPICNAME | INT
+    ;
+
+with_converter
+    : WITHCONVERTER EQUAL with_converter_value
+    ;
+
+with_converter_value
+    : ID | TOPICNAME
+    ;
+
 tag_definition
     : tag_key ( EQUAL tag_value)?
     ;
@@ -272,4 +304,13 @@ tag_key
 
 tag_value
     : FIELD | (DOT|TOPICNAME)+ | INT
+    ;
+
+
+ttl_clause
+    : TTL EQUAL ttl_type
+    ;
+
+ttl_type
+    : INT
     ;
