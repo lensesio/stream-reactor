@@ -331,6 +331,18 @@ public class KcqlNestedFieldTest {
     }
 
     @Test
+    public void parseIngoreFields() {
+        String syntax = "SELECT * FROM topicA ignore f1, f2.a";
+        Kcql kcql = Kcql.parse(syntax);
+        List<Field> ignored = kcql.getIgnoredFields();
+        assertEquals(2, ignored.size());
+        assertEquals(ignored.get(0).getName(),"f1");
+        assertEquals(ignored.get(1).getName(),"a");
+        assertEquals(1, ignored.get(1).getParentFields().size());
+        assertEquals("f2", ignored.get(1).getParentFields().get(0));
+    }
+
+    @Test
     public void parseWithDocType() {
         String syntax = "SELECT * FROM topicA WITHDOCTYPE=document1";
         Kcql kcql = Kcql.parse(syntax);

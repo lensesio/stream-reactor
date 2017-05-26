@@ -29,7 +29,7 @@ public class Kcql {
     private String indexSuffix;
     private String incrementalMode;
     private List<Field> fields = new ArrayList<>();
-    private Set<String> ignoredFields = new HashSet<>();
+    private List<Field> ignoredFields = new ArrayList<>();
     private List<String> primaryKeys = new ArrayList<>();
     private List<String> partitionBy = new ArrayList<>();
     private int retries = 1;
@@ -45,18 +45,12 @@ public class Kcql {
     private Integer sampleRate;
     private FormatType formatType = null;
     private boolean initialize;
-    private boolean unwrapping=false;
+    private boolean unwrapping = false;
     private Integer projectTo;
     private List<Tag> tags;
     private boolean retainStructure = false;
     private String withConverter;
 
-    private void addIgnoredField(final String ignoredField) {
-        if (ignoredField == null || ignoredField.trim().length() == 0) {
-            throw new IllegalArgumentException("Invalid ignoredField");
-        }
-        ignoredFields.add(ignoredField);
-    }
 
     private void addField(final Field field) {
         if (field == null) {
@@ -121,7 +115,7 @@ public class Kcql {
         //return new ArrayList<>(fields);
     }
 
-    public Set<String> getIgnoredField() {
+    public List<Field> getIgnoredFields() {
         //return new HashSet<>(ignoredFields);
         return ignoredFields;
     }
@@ -182,7 +176,7 @@ public class Kcql {
         return autoCreate;
     }
 
-    public int getLimit(){
+    public int getLimit() {
         return limit;
     }
 
@@ -218,7 +212,7 @@ public class Kcql {
         return retainStructure;
     }
 
-    public boolean isUnwrapping(){
+    public boolean isUnwrapping() {
         return unwrapping;
     }
 
@@ -261,6 +255,7 @@ public class Kcql {
 
         final String[] storedAsParameter = {null};
 
+        final boolean[] isWithinIgnore = {false};
         parser.addParseListener(new ConnectorParserBaseListener() {
 
             @Override
@@ -325,10 +320,14 @@ public class Kcql {
                     field = Field.from(name, parentFields);
                 }
 
-                if ("*".equals(field.getName()) && !field.hasParents() && field.getFieldType() != FieldType.KEY) {
-                    kcql.includeAllFields = true;
+                if (isWithinIgnore[0]) {
+                    kcql.ignoredFields.add(field);
+                } else {
+                    if ("*".equals(field.getName()) && !field.hasParents() && field.getFieldType() != FieldType.KEY) {
+                        kcql.includeAllFields = true;
+                    }
+                    kcql.addField(field);
                 }
-                kcql.addField(field);
             }
 
 
@@ -368,8 +367,13 @@ public class Kcql {
             }
 
             @Override
-            public void exitIgnored_name(ConnectorParser.Ignored_nameContext ctx) {
-                kcql.addIgnoredField(ctx.getText());
+            public void enterWith_ignore(ConnectorParser.With_ignoreContext ctx) {
+                isWithinIgnore[0] = true;
+            }
+
+            @Override
+            public void exitWith_ignore(ConnectorParser.With_ignoreContext ctx) {
+                isWithinIgnore[0] = false;
             }
 
             @Override

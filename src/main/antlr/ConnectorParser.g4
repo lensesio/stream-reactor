@@ -44,7 +44,7 @@ select_clause
    ;
 
 select_clause_basic
-   : SELECT column_list FROM topic_name ( IGNORE ignore_clause )?
+   : SELECT column_list FROM topic_name ( with_ignore )?
    ;
 
 topic_name
@@ -76,11 +76,15 @@ from_clause
    ;
 
 ignored_name
-   : FIELD
+   : FIELD | TOPICNAME
+   ;
+
+with_ignore
+   : IGNORE ignore_clause
    ;
 
 ignore_clause
-   : ignored_name ( COMMA ignored_name )*
+   : column_name ( COMMA column_name )*
    ;
 
 pk_name
