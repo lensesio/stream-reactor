@@ -81,6 +81,18 @@ public class ConfigTest {
         syntax = "SELECT * FROM topicA WITHDOCTYPE= document.name ";
         config = Config.parse(syntax);
         assertEquals("document.name", config.getDocType());
+        assertNull(config.getWithConverter());
+    }
+
+    @Test
+    public void parseWithConverter() {
+        String syntax = "SELECT * FROM topicA WITHCONVERTER=com.datamountaineer.converter.Mine";
+        Config config = Config.parse(syntax);
+        assertEquals("com.datamountaineer.converter.Mine", config.getWithConverter());
+
+        syntax = "SELECT * FROM topicA WITHCONVERTER= com.datamountaineer.ConverterA ";
+        config = Config.parse(syntax);
+        assertEquals("com.datamountaineer.ConverterA", config.getWithConverter());
     }
 
     @Test

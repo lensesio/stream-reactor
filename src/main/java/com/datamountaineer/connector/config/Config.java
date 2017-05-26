@@ -48,6 +48,7 @@ public class Config {
     private Integer projectTo;
     private List<Tag> tags;
     private long ttl;
+    private String withConverter;
 
     public void setTTL(long ttl) {
         this.ttl = ttl;
@@ -299,6 +300,10 @@ public class Config {
         return this.indexSuffix;
     }
 
+    public String getWithConverter() {
+        return withConverter;
+    }
+
     public static Config parse(final String syntax) {
         final ConnectorLexer lexer = new ConnectorLexer(new ANTLRInputStream(syntax));
         final CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -402,7 +407,7 @@ public class Config {
 
             @Override
             public void exitDoc_type(ConnectorParser.Doc_typeContext ctx) {
-                config.docType= ctx.getText();
+                config.docType = ctx.getText();
             }
 
             @Override
@@ -539,6 +544,11 @@ public class Config {
             public void exitWith_format(ConnectorParser.With_formatContext ctx) {
                 FormatType formatType = FormatType.valueOf(ctx.getText().toUpperCase());
                 config.setFormatType(formatType);
+            }
+
+            @Override
+            public void exitWith_converter_value(ConnectorParser.With_converter_valueContext ctx) {
+                config.withConverter = ctx.getText();
             }
 
             @Override

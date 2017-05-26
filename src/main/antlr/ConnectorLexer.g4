@@ -133,6 +133,10 @@ WITHINDEXSUFFIX
     : 'WITHINDEXSUFFIX' | 'withindexsuffix'
     ;
 
+WITHCONVERTER
+    : 'WITHCONVERTER' | 'withconverter'
+    ;
+
 
 TTL
    : 'TTL'|'ttl'
