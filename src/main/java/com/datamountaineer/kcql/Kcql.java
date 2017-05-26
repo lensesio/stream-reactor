@@ -25,6 +25,9 @@ public class Kcql {
     private WriteModeEnum writeMode;
     private String source;
     private String target;
+    private String docType;
+    private String indexSuffix;
+    private String incrementalMode;
     private List<Field> fields = new ArrayList<>();
     private Set<String> ignoredFields = new HashSet<>();
     private List<String> primaryKeys = new ArrayList<>();
@@ -46,6 +49,7 @@ public class Kcql {
     private Integer projectTo;
     private List<Tag> tags;
     private boolean retainStructure = false;
+    private String withConverter;
 
     private void addIgnoredField(final String ignoredField) {
         if (ignoredField == null || ignoredField.trim().length() == 0) {
@@ -219,6 +223,22 @@ public class Kcql {
     }
 
 
+    public String getIncrementalMode() {
+        return this.incrementalMode;
+    }
+
+    public String getDocType() {
+        return this.docType;
+    }
+
+    public String getIndexSuffix() {
+        return this.indexSuffix;
+    }
+
+    public String getWithConverter() {
+        return withConverter;
+    }
+
     public static Kcql parse(final String syntax) {
         final ConnectorLexer lexer = new ConnectorLexer(new ANTLRInputStream(syntax));
         final CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -311,6 +331,26 @@ public class Kcql {
                 kcql.addField(field);
             }
 
+
+            @Override
+            public void exitDoc_type(ConnectorParser.Doc_typeContext ctx) {
+                kcql.docType = escape(ctx.getText());
+            }
+
+            @Override
+            public void exitWith_converter_value(ConnectorParser.With_converter_valueContext ctx) {
+                kcql.withConverter = escape(ctx.getText());
+            }
+
+            @Override
+            public void exitIndex_suffix(ConnectorParser.Index_suffixContext ctx) {
+                kcql.indexSuffix = escape(ctx.getText());
+            }
+
+            @Override
+            public void exitInc_mode(ConnectorParser.Inc_modeContext ctx) {
+                kcql.incrementalMode = ctx.getText();
+            }
 
             @Override
             public void exitPartition_name(ConnectorParser.Partition_nameContext ctx) {

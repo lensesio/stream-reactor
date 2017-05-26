@@ -129,6 +129,28 @@ LIMIT
     : 'LIMIT' | 'limit'
     ;
 
+INCREMENTALMODE
+    : 'INCREMENTALMODE'|'incrementalmode'
+    ;
+
+WITHDOCTYPE
+    :  'WITHDOCTYPE'|'withdoctype'
+    ;
+
+WITHINDEXSUFFIX
+    : 'WITHINDEXSUFFIX' | 'withindexsuffix'
+    ;
+
+WITHCONVERTER
+    : 'WITHCONVERTER' | 'withconverter'
+    ;
+
+
+TTL
+   : 'TTL'|'ttl'
+   ;
+
+
 EQUAL
    : '='
    ;
@@ -164,7 +186,7 @@ FIELD
 
 
 TOPICNAME
-   : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' | '-' | '+' | '/' )+ | ESCAPED_TOPIC
+   : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' | '-' | '+' | '/' |'{'|'}' )+ | ESCAPED_TOPIC
    ;
 
 fragment ESCAPED_TOPIC

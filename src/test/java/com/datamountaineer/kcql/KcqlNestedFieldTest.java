@@ -305,4 +305,51 @@ public class KcqlNestedFieldTest {
                 "FROM pizza_avro_in withstructure");
         assertEquals(kcql.hasRetainStructure(), true);
     }
+
+
+    @Test
+    public void parseWithIncrementalMode() {
+        String incMode = "modeA";
+        String syntax = "SELECT * FROM topicA INCREMENTALMODE=" + incMode;
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(incMode, kcql.getIncrementalMode());
+    }
+
+    @Test
+    public void parseWithIndexSuffix() {
+        String syntax = "SELECT * FROM topicA WITHINDEXSUFFIX=suffix1";
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals("suffix1", kcql.getIndexSuffix());
+
+        syntax = "SELECT * FROM topicA WITHINDEXSUFFIX= _{YYYY-MM-dd} ";
+        kcql = Kcql.parse(syntax);
+        assertEquals("_{YYYY-MM-dd}", kcql.getIndexSuffix());
+
+        syntax = "INSERT INTO index_name SELECT * FROM topicA WITHINDEXSUFFIX= _suffix_{YYYY-MM-dd}";
+        kcql = Kcql.parse(syntax);
+        assertEquals("_suffix_{YYYY-MM-dd}", kcql.getIndexSuffix());
+    }
+
+    @Test
+    public void parseWithDocType() {
+        String syntax = "SELECT * FROM topicA WITHDOCTYPE=document1";
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals("document1", kcql.getDocType());
+
+        syntax = "SELECT * FROM topicA WITHDOCTYPE= `document.name` ";
+        kcql = Kcql.parse(syntax);
+        assertEquals("document.name", kcql.getDocType());
+        assertNull(kcql.getWithConverter());
+    }
+
+    @Test
+    public void parseWithConverter() {
+        String syntax = "SELECT * FROM topicA WITHCONVERTER=`com.datamountaineer.converter.Mine`";
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals("com.datamountaineer.converter.Mine", kcql.getWithConverter());
+
+        syntax = "SELECT * FROM topicA WITHCONVERTER= `com.datamountaineer.ConverterA` ";
+        kcql = Kcql.parse(syntax);
+        assertEquals("com.datamountaineer.ConverterA", kcql.getWithConverter());
+    }
 }
