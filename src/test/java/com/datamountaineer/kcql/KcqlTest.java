@@ -261,10 +261,11 @@ public class KcqlTest {
         assertTrue(kcql.getFields().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
-        Set<String> ignored = kcql.getIgnoredField();
+        List<Field> ignored = kcql.getIgnoredFields();
 
-        assertTrue(ignored.contains("col1"));
-        assertTrue(ignored.contains("col2"));
+        assertEquals(ignored.get(0).getName(),"col1");
+        assertEquals(ignored.get(1).getName(),"col2");
+
     }
 
     @Test
@@ -279,10 +280,10 @@ public class KcqlTest {
         assertTrue(kcql.getFields().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         assertEquals(WriteModeEnum.UPSERT, kcql.getWriteMode());
-        Set<String> ignored = kcql.getIgnoredField();
+        List<Field> ignored = kcql.getIgnoredFields();
 
-        assertTrue(ignored.contains("col1"));
-        assertTrue(ignored.contains("1col2"));
+        assertEquals(ignored.get(0).getName(),"col1");
+        assertEquals(ignored.get(1).getName(),"1col2");
         assertFalse(kcql.isEnableCapitalize());
     }
 
@@ -433,10 +434,10 @@ public class KcqlTest {
         assertTrue(kcql.getFields().get(0).getName().equals("*"));
         assertTrue(kcql.isIncludeAllFields());
         assertEquals(WriteModeEnum.UPSERT, kcql.getWriteMode());
-        Set<String> ignored = kcql.getIgnoredField();
+        List<Field> ignored = kcql.getIgnoredFields();
 
-        assertTrue(ignored.contains("col1"));
-        assertTrue(ignored.contains("1col2"));
+        assertEquals(ignored.get(0).getName(),"col1");
+        assertEquals(ignored.get(1).getName(),"1col2");
         assertTrue(kcql.isEnableCapitalize());
     }
 
