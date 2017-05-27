@@ -15,10 +15,6 @@ public class Kcql {
 
     public final static String TIMESTAMP = "sys_time()";
     public final static int DEFAULT_BATCH_SIZE = 3000;
-    /**
-     * Returns true if all payload fields should be included; false - otherwise
-     */
-    private boolean includeAllFields;
     private boolean autoCreate;
     private boolean autoEvolve;
     private boolean enableCapitalize;
@@ -118,10 +114,6 @@ public class Kcql {
     public List<Field> getIgnoredFields() {
         //return new HashSet<>(ignoredFields);
         return ignoredFields;
-    }
-
-    public boolean isIncludeAllFields() {
-        return includeAllFields;
     }
 
     public WriteModeEnum getWriteMode() {
@@ -299,7 +291,6 @@ public class Kcql {
             public void exitColumn_name(ConnectorParser.Column_nameContext ctx) {
                 super.exitColumn_name(ctx);
                 if (ctx.ASTERISK() != null) {
-                    kcql.includeAllFields = true;
                     Field field = new Field("*", FieldType.VALUE, null);
                     kcql.addField(field);
                     return;
@@ -323,9 +314,6 @@ public class Kcql {
                 if (isWithinIgnore[0]) {
                     kcql.ignoredFields.add(field);
                 } else {
-                    if ("*".equals(field.getName()) && !field.hasParents() && field.getFieldType() != FieldType.KEY) {
-                        kcql.includeAllFields = true;
-                    }
                     kcql.addField(field);
                 }
             }
@@ -560,24 +548,6 @@ public class Kcql {
             cols.add(alias.getAlias());
         }
 
-    /*
-    // This check is necessary only for RDBMS KCQL
-    for (String key : pks) {
-      if (!cols.contains(key) && !kcql.includeAllFields) {
-        throw new IllegalArgumentException(String.format("%s Primary Key needs to appear in the Select clause", key));
-      }
-    }
-    */
-
-        if (!kcql.includeAllFields) {
-            final Iterator<String> iterPartitionBy = kcql.getPartitionBy();
-            while (iterPartitionBy.hasNext()) {
-                final String field = iterPartitionBy.next();
-                if (!cols.contains(field)) {
-                    throw new IllegalArgumentException(String.format("Partition by field %s is not present in the list of columns specified.", field));
-                }
-            }
-        }
 
         if (bucketNames.size() > 0 && (bucketsNumber[0] == null || bucketsNumber[0] == 0)) {
             throw new IllegalArgumentException("Invalid bucketing information. Missing the buckets number");
@@ -589,14 +559,6 @@ public class Kcql {
             final Bucketing bucketing = new Bucketing(bucketNames);
             bucketing.setBucketsNumber(bucketsNumber[0]);
 
-            if (!kcql.includeAllFields) {
-                for (final String bucketName : bucketNames) {
-                    if (!cols.contains(bucketName)) {
-                        throw new IllegalArgumentException(
-                                String.format("Bucketing field %s is not present in the selected columns", bucketName));
-                    }
-                }
-            }
             kcql.bucketing = bucketing;
         }
 
