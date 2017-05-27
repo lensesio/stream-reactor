@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import java.util
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
@@ -55,7 +55,7 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     val raw = configProps.get.get(CassandraConfigConstants.KCQL).split(";")
 
-    val tables = raw.map { r => Config.parse(r).getSource }.toList
+    val tables = raw.map { r => Kcql.parse(r).getSource }.toList
 
     val numGroups = Math.min(tables.size, maxTasks)
 

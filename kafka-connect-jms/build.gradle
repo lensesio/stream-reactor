@@ -24,6 +24,9 @@ project(":kafka-connect-jms") {
     dependencies {
         compile("org.apache.activemq:activemq-core:5.7.0")
         compile("javax.jms:javax.jms-api:$jmsVersion")
+        compile("com.datamountaineer:kcql:$KCQLVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
         testCompile("org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion")
         testCompile("com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion")
         testCompile("com.sksamuel.avro4s:avro4s-macros_$scalaMajorVersion:$avro4sVersion")

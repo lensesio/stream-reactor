@@ -31,6 +31,9 @@ project(":kafka-connect-mqtt") {
         compile "org.bouncycastle:bcprov-jdk15on:$bouncyCastle"
         compile "org.bouncycastle:bcpkix-jdk15on:$bouncyCastle"
         compile "org.bouncycastle:bcpg-jdk15on:$bouncyCastle"
+        compile("com.datamountaineer:kcql:$KCQLVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
 
         testCompile "org.json4s:json4s-core_$scalaMajorVersion:$json4s"
         testCompile "org.json4s:json4s-jackson_$scalaMajorVersion:$json4s"

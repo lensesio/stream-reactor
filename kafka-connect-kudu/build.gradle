@@ -21,6 +21,9 @@ project(":kafka-connect-kudu") {
 
     dependencies {
         compile "org.kududb:kudu-client:$kuduVersion"
+        compile("com.datamountaineer:kcql:$KCQLVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
         testCompile("com.datamountaineer:kafka-testkit:$dataMountaineerTestKitVersion") {
             exclude group: 'com.google.guava', module: 'guava'
         }

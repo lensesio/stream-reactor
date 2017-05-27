@@ -18,15 +18,14 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import java.lang.Boolean
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.{Field, Kcql}
 import com.datamountaineer.streamreactor.connect.cassandra.config.TimestampType.TimestampType
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datastax.driver.core.ConsistencyLevel
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 
-import scala.collection.JavaConversions.asScalaIterator
-import scala.util.{Success, Try}
+import scala.collection.JavaConversions._
 
 /**
   * Created by andrew@datamountaineer.com on 22/04/16. 
@@ -40,7 +39,7 @@ object TimestampType extends Enumeration {
   val TIMESTAMP, TIMEUUID, TOKEN, NONE = Value
 }
 
-case class CassandraSourceSetting(routes: Config,
+case class CassandraSourceSetting(kcql: Kcql,
                                   keySpace: String,
                                   primaryKeyColumn: Option[String] = None,
                                   timestampColType: TimestampType,
@@ -52,9 +51,9 @@ case class CassandraSourceSetting(routes: Config,
                                  ) extends CassandraSetting
 
 case class CassandraSinkSetting(keySpace: String,
-                                kcql: Set[Config],
-                                fields: Map[String, Map[String, String]],
-                                ignoreField: Map[String, Set[String]],
+                                kcqls: Seq[Kcql],
+                                fields: Map[String, Seq[Field]],
+                                ignoreField: Map[String, Seq[Field]],
                                 errorPolicy: ErrorPolicy,
                                 threadPoolSize: Int,
                                 consistencyLevel: Option[ConsistencyLevel],
@@ -68,7 +67,7 @@ case class CassandraSinkSetting(keySpace: String,
   **/
 object CassandraSettings extends StrictLogging {
 
-  def configureSource(config: CassandraConfigSource): Set[CassandraSourceSetting] = {
+  def configureSource(config: CassandraConfigSource): Seq[CassandraSourceSetting] = {
     //get keyspace
     val keySpace = config.getString(CassandraConfigConstants.KEY_SPACE)
     require(!keySpace.isEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
@@ -76,36 +75,34 @@ object CassandraSettings extends StrictLogging {
 
     val consistencyLevel = config.getConsistencyLevel
     val errorPolicy = config.getErrorPolicy
-    val routes = config.getRoutes
-    val primaryKeyCols = routes.map(r => (r.getSource, r.getPrimaryKeys.toList)).toMap
+    val kcqls = config.getKcql()
+    val primaryKeyCols = kcqls.map(r => (r.getSource, r.getPrimaryKeys.toList)).toMap
     val fetchSize = config.getInt(CassandraConfigConstants.FETCH_SIZE)
     val incrementalModes = config.getIncrementalMode(routes)
 
-    routes.map({
-      r => {
-        val tCols = primaryKeyCols(r.getSource)
-        val timestampType = Try(TimestampType.withName(incrementalModes.get(r.getSource).get.toUpperCase)) match {
-          case Success(s) => s
-          case _ => TimestampType.NONE
-        }
-
-        if (tCols.size != 1 && TimestampType.equals(TimestampType.NONE)) {
-          throw new ConfigException("Only one primary key column is allowed to be specified in Incremental mode. " +
-            s"Received ${tCols.mkString(",")} for source ${r.getSource}")
-        }
-
-        CassandraSourceSetting(
-          routes = r,
-          keySpace = keySpace,
-          primaryKeyColumn = if (tCols.isEmpty) None else Some(tCols.head),
-          timestampColType = timestampType,
-          pollInterval = pollInterval,
-          errorPolicy = errorPolicy,
-          consistencyLevel = consistencyLevel,
-          fetchSize = fetchSize
-        )
+    kcqls.map { r =>
+      val tCols = primaryKeyCols(r.getSource)
+      val timestampType = Try(TimestampType.withName(incrementalModes.get(r.getSource).get.toUpperCase)) match {
+        case Success(s) => s
+        case _ => TimestampType.NONE
       }
-    })
+
+      if (tCols.size != 1 && TimestampType.equals(TimestampType.NONE)) {
+        throw new ConfigException("Only one primary key column is allowed to be specified in Incremental mode. " +
+          s"Received ${tCols.mkString(",")} for source ${r.getSource}")
+      }
+
+      CassandraSourceSetting(
+        kcql = r,
+        keySpace = keySpace,
+        primaryKeyColumn = if (tCols.isEmpty) None else Some(tCols.head),
+        timestampColType = timestampType,
+        pollInterval = pollInterval,
+        errorPolicy = errorPolicy,
+        consistencyLevel = consistencyLevel,
+        fetchSize = fetchSize
+      )
+    }
   }
 
   def configureSink(config: CassandraConfigSink): CassandraSinkSetting = {
@@ -114,15 +111,15 @@ object CassandraSettings extends StrictLogging {
     require(!keySpace.isEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
     val errorPolicy = config.getErrorPolicy
     val retries = config.getNumberRetries
-    val kcql = config.getRoutes
-    val fields = config.getFields(kcql)
-    val ignoreFields = config.getIgnoreFields(kcql)
+    val kcqls = config.getKcql()
+    val fields = kcqls.map(k => k.getSource -> k.getFields.toSeq).toMap
+    val ignoreFields = kcqls.map(k => k.getSource -> k.getIgnoredFields.toSeq).toMap
     val threadPoolSize = config.getThreadPoolSize
     val consistencyLevel = config.getConsistencyLevel
 
     val enableCounter = config.getBoolean(CassandraConfigConstants.PROGRESS_COUNTER_ENABLED)
     CassandraSinkSetting(keySpace,
-      kcql,
+      kcqls,
       fields,
       ignoreFields,
       errorPolicy,

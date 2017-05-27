@@ -21,5 +21,8 @@ project(":kafka-connect-bloomberg") {
             exclude group: "org.mortbay.jetty", module: "jetty"
         }
         compile files('lib/blpapi-3.8.8-2.jar')
+        compile("com.datamountaineer:kcql:$KCQLVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
     }
 }

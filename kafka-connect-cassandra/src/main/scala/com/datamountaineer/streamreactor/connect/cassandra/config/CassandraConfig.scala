@@ -18,10 +18,11 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import java.util
 
-import com.datamountaineer.streamreactor.temp.traits._
+import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.streamreactor.temp.{ConsistencyLevelSettings, ErrorPolicySettings, KcqlSettings, NumberRetriesSettings, ThreadPoolSettings}
 import com.datastax.driver.core.ConsistencyLevel
-import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
+import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 /**
   * Holds the base configuration.
@@ -281,13 +282,28 @@ object CassandraConfigSource {
       ConfigDef.Width.LONG,
       CassandraConfigConstants.ALLOW_FILTERING)
 
+    .define(CassandraConfigConstants.TIMESTAMP_TYPE,
+      Type.STRING,
+      CassandraConfigConstants.TIMESTAMP_TYPE_DEFAULT,
+      Importance.HIGH,
+      CassandraConfigConstants.TIMESTAMP_TYPE_DOC,
+      "Import",
+      8,
+      ConfigDef.Width.LONG,
+      CassandraConfigConstants.TIMESTAMP_TYPE)
+
 }
 
 case class CassandraConfigSource(props: util.Map[String, String])
-  extends BaseConfig(CassandraConfigConstants.CASSANDRA_CONNECTOR_PREFIX, CassandraConfigSource.sourceConfig, props)
+  extends AbstractConfig(CassandraConfigSource.sourceConfig, props)
     with ErrorPolicySettings
-    with KcqlSettings
-    with ConsistencyLevelSettings[ConsistencyLevel]
+    with ConsistencyLevelSettings[ConsistencyLevel] {
+  override val errorPolicyConstant: String = CassandraConfigConstants.ERROR_POLICY
+  val kcqlConstant: String = CassandraConfigConstants.SOURCE_KCQL_QUERY
+  override val consistencyLevelConstant: String = CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG
+
+  def getKcql():Seq[Kcql]= getString(kcqlConstant).split(";").map(Kcql.parse)
+}
 
 /**
   * Holds the extra configurations for the sink on top of
@@ -326,9 +342,16 @@ object CassandraConfigSink {
 }
 
 case class CassandraConfigSink(props: util.Map[String, String])
-  extends BaseConfig(CassandraConfigConstants.CASSANDRA_CONNECTOR_PREFIX, CassandraConfigSink.sinkConfig, props)
+  extends AbstractConfig(CassandraConfigSink.sinkConfig, props)
     with ErrorPolicySettings
     with NumberRetriesSettings
-    with KcqlSettings
     with ThreadPoolSettings
-    with ConsistencyLevelSettings[ConsistencyLevel]
+    with ConsistencyLevelSettings[ConsistencyLevel] {
+  override val errorPolicyConstant: String = CassandraConfigConstants.ERROR_POLICY
+  val kcqlConstant: String = CassandraConfigConstants.SINK_KCQL
+  override val numberRetriesConstant: String = CassandraConfigConstants.NBR_OF_RETRIES
+  override val threadPoolConstant: String = CassandraConfigConstants.SINK_THREAD_POOL_CONFIG
+  override val consistencyLevelConstant: String = CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG
+
+  def getKcql():Seq[Kcql]= getString(kcqlConstant).split(";").map(Kcql.parse)
+}

@@ -21,6 +21,9 @@ project(":kafka-connect-azure-documentdb") {
 
     dependencies {
         compile "com.microsoft.azure:azure-documentdb:$documentDbVersion"
+        compile("com.datamountaineer:kcql:$KCQLVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
         testCompile "com.datamountaineer:kafka-testkit:$dataMountaineerTestKitVersion"
         testCompile "org.json4s:json4s-native_$scalaMajorVersion:3.4.0"
         testCompile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"

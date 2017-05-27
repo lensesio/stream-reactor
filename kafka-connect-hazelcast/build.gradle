@@ -29,5 +29,8 @@ project(":kafka-connect-hazelcast") {
         compile "com.hazelcast:hazelcast-all:$hazelCastVersion"
         compile project(":kafka-connect-temp")
         compile "javax.cache:cache-api:$javaxCacheversion"
+        compile("com.datamountaineer:kcql:$KCQLVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
     }
 }

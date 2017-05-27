@@ -23,6 +23,9 @@ project(':kafka-connect-redis') {
 
     dependencies {
         compile "redis.clients:jedis:$jedisVersion"
+        compile("com.datamountaineer:kcql:$KCQLVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
         testCompile "com.google.code.gson:gson:$gsonVersion"
         testCompile "com.orange.redis-embedded:embedded-redis:$embeddedRedisVersion"
     }

@@ -85,7 +85,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
    * @return the comma separated columns
    */
   private def getSelectColumns(): String = {
-    val fieldList = config.getFieldAlias.map(fa => fa.getField).toList
+    val fieldList = config.getFields.map(fa => fa.getName)
     // if no columns set then select all the columns in the table
     val selectColumns = if (fieldList == null || fieldList.isEmpty) "*" else fieldList.mkString(",")
     logger.debug(s"the fields to select are $selectColumns")

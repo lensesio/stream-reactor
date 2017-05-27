@@ -26,6 +26,9 @@ project(":kafka-connect-ftp") {
     dependencies {
         compile "commons-net:commons-net:${commonsnetVersion}"
         compile "commons-codec:commons-codec:${commonsCodecVersion}"
+        compile("com.datamountaineer:kcql:$KCQLVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
         testCompile "com.github.pathikrit:better-files_2.11:${pathikritVersion}"
         testCompile "org.apache.ftpserver:ftpserver-core:${ftpserverVersion}"
     }
