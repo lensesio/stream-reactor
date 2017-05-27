@@ -23,7 +23,6 @@ public class KcqlSelectOnlyTest {
         assertEquals(topic, kcql.getSource());
         assertNull(kcql.getTarget());
         assertFalse(kcql.getFields().isEmpty());
-        assertTrue(kcql.isIncludeAllFields());
     }
 
     @Test
@@ -35,7 +34,6 @@ public class KcqlSelectOnlyTest {
         assertNull(kcql.getTarget());
         assertFalse(kcql.getFields().isEmpty());
         assertTrue(kcql.getFields().get(0).getName().equals("*"));
-        assertTrue(kcql.isIncludeAllFields());
         HashSet<String> pks = new HashSet<>(kcql.getPrimaryKeys());
 
         assertEquals(0, pks.size());
@@ -88,7 +86,6 @@ public class KcqlSelectOnlyTest {
         assertNull(kcql.getTarget());
         assertFalse(kcql.getFields().isEmpty());
         assertTrue(kcql.getFields().get(0).getName().equals("*"));
-        assertTrue(kcql.isIncludeAllFields());
         HashSet<String> pks = new HashSet<>(kcql.getPrimaryKeys());
 
         assertEquals(0, pks.size());
@@ -131,7 +128,6 @@ public class KcqlSelectOnlyTest {
         assertNull(kcql.getTarget());
         assertFalse(kcql.getFields().isEmpty());
         assertTrue(kcql.getFields().get(0).getName().equals("*"));
-        assertTrue(kcql.isIncludeAllFields());
         HashSet<String> pks = new HashSet<>(kcql.getPrimaryKeys());
 
         assertEquals(0, pks.size());
@@ -163,7 +159,6 @@ public class KcqlSelectOnlyTest {
         assertEquals(topic, kcql.getSource());
         assertNull(kcql.getTarget());
         assertTrue(kcql.getFields().get(0).getName().equals("*"));
-        assertTrue(kcql.isIncludeAllFields());
         HashSet<String> pks = new HashSet<>(kcql.getPrimaryKeys());
 
         assertEquals(0, pks.size());
@@ -195,7 +190,6 @@ public class KcqlSelectOnlyTest {
         assertEquals("col1", map.get("f1").getAlias());
         assertTrue(map.containsKey("f2"));
         assertEquals("col2", map.get("f2").getAlias());
-        assertFalse(kcql.isIncludeAllFields());
     }
 
 
@@ -220,7 +214,6 @@ public class KcqlSelectOnlyTest {
         assertEquals("f3", map.get("f3").getAlias());
         assertTrue(map.containsKey("f4"));
         assertEquals("f4", map.get("f4").getAlias());
-        assertFalse(kcql.isIncludeAllFields());
         assertNull(kcql.getSampleCount());
         assertNull(kcql.getSampleRate());
         assertFalse(kcql.hasRetainStructure());
@@ -247,7 +240,6 @@ public class KcqlSelectOnlyTest {
         assertEquals("f3", map.get("f3").getAlias());
         assertTrue(map.containsKey("f4"));
         assertEquals("f4", map.get("f4").getAlias());
-        assertFalse(kcql.isIncludeAllFields());
         assertNull(kcql.getSampleCount());
         assertNull(kcql.getSampleRate());
         assertTrue(kcql.hasRetainStructure());
@@ -277,7 +269,6 @@ public class KcqlSelectOnlyTest {
         assertEquals("f3", map.get("f3").getAlias());
         assertTrue(map.containsKey("f4"));
         assertEquals("f4", map.get("f4").getAlias());
-        assertFalse(kcql.isIncludeAllFields());
 
         assertEquals(expectedSampleCount, kcql.getSampleCount());
         assertEquals(expectedSampleRate, kcql.getSampleRate());
