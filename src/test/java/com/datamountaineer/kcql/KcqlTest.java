@@ -184,6 +184,16 @@ public class KcqlTest {
     }
 
     @Test
+    public void parseAnInsertWithDottedTarget() {
+        String topic = "TOPIC+A";
+        String table = "KEYSPACE.A";
+        String syntax = String.format("INSERT INTO %s SELECT f1 as col1, * FROM %s", table, topic);
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+    }
+
+    @Test
     public void parseAnInsertWithFieldAliasMixedWithAllFieldsTheAsterixAtTheBegining() {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
