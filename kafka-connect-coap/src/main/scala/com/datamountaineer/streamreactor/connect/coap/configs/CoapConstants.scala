@@ -89,4 +89,8 @@ object CoapConstants {
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
+
+  val BATCH_SIZE = "connect.coap.batch.size"
+  val BATCH_SIZE_DEFAULT = 100
+  val BATCH_SIZE_DOC = "The number of events to take from the internal queue to batch together to send to Kafka."
 }
