@@ -256,6 +256,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
       .put("timestamp_field", d)
 
     val struct = new Struct(schema)
+      .put("id", "id1")
       .put("inner1", inner1)
       .put("inner2", inner2)
       .put("i1", 100)
