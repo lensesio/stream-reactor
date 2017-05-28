@@ -30,7 +30,6 @@ import org.eclipse.californium.scandium.{DTLSConnector, ScandiumLogger}
 import org.scalatest.{BeforeAndAfter, WordSpec}
 
 import scala.collection.JavaConversions._
-import scala.concurrent.duration._
 
 /**
   * Created by andrew@datamountaineer.com on 28/12/2016. 
