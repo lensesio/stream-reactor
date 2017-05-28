@@ -42,7 +42,8 @@ case class CoapSetting(uri: String,
                        target: String,
                        bindHost: String,
                        bindPort: Int,
-                       sink: Boolean)
+                       sink: Boolean
+                      )
 
 object CoapSettings {
   def apply(config: AbstractConfig): Set[CoapSetting] = {
@@ -88,7 +89,8 @@ object CoapSettings {
         if (sink) r.getTarget else r.getSource,
         bindHost,
         bindPort,
-        sink)
+        sink
+      )
     )
   }
 }

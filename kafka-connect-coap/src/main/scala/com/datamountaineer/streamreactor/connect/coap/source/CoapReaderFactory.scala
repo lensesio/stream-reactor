@@ -37,23 +37,22 @@ import scala.concurrent.Future
   */
 
 case object DataRequest
-case object StartChangeFeed
 case object StopChangeFeed
 case object Observing
 case object Discover
 
-object CoapReader {
-  def apply(settings: Set[CoapSetting]): Map[String, Props] = {
-    settings.map(s => (s.kcql.getSource, Props(new CoapReader(s)))).toMap
+object CoapReaderFactory {
+  def apply(settings: Set[CoapSetting], queue: LinkedBlockingQueue[SourceRecord]): Set[CoapReader] = {
+    settings.map(s => new CoapReader(s, queue))
   }
 }
 
-case class CoapReader(setting: CoapSetting) extends CoapManager(setting) with Actor {
+case class CoapReader(setting: CoapSetting, queue: LinkedBlockingQueue[SourceRecord]) extends CoapManager(setting) {
   logger.info(s"Initialising COAP Reader for ${setting.kcql.getSource}")
-  val buffer = new LinkedBlockingQueue[SourceRecord]
-  val handler = new MessageHandler(setting.kcql.getSource, setting.kcql.getTarget, buffer)
+  val handler = new MessageHandler(setting.kcql.getSource, setting.kcql.getTarget, queue)
   var observing = false
   var relation : Option[CoapObserveRelation] = None
+  read
 
   //start observing
   def read = {
@@ -62,18 +61,11 @@ case class CoapReader(setting: CoapSetting) extends CoapManager(setting) with Ac
     relation = Some(client.observe(handler))
   }
 
-  override def receive: Receive = {
-    case DataRequest => sender() ! QueueHelpers.drainQueue(buffer, buffer.size())
-    case StartChangeFeed => Future(read).recoverWith { case t =>
-      logger.error("Could not retrieve the source records", t)
-      Future.failed(t)
-    }
-    case StopChangeFeed =>
-      relation.foreach(r => r.proactiveCancel())
-      client.delete(handler)
-      observing = false
-    case Discover => sender() ! discover
-    case Observing => sender() ! observing
+  def stop = {
+    relation.foreach(r => r.proactiveCancel())
+    client.delete(handler)
+    client.shutdown()
+    observing = false
   }
 
   def discover: util.Set[WebLink] = client.discover()

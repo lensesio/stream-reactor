@@ -19,9 +19,6 @@ package com.datamountaineer.streamreactor.connect.coap.source
 import java.net.URI
 import java.util.logging.Level
 
-import akka.actor.ActorSystem
-import akka.pattern.ask
-import akka.util.Timeout
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapSettings, CoapSourceConfig}
 import com.datamountaineer.streamreactor.connect.coap.connection.DTLSConnectionFn
 import com.datamountaineer.streamreactor.connect.coap.{Server, TestBase}
@@ -56,18 +53,13 @@ class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase {
   ScandiumLogger.initialize()
   ScandiumLogger.setLevel(Level.INFO)
 
-  "should create a secure reader and read a message" in {
-    implicit val system = ActorSystem()
-    implicit val timeout = Timeout(60 seconds)
+  "should create a secure task and read a message" in {
     val props = getPropsSecure
-    val config = CoapSourceConfig(props)
     val producerConfig = CoapSourceConfig(getTestSourceProps)
-    val settings = CoapSettings(config)
     val producerSettings = CoapSettings(producerConfig)
-    val actorProps = CoapReader(settings)
-    val reader = system.actorOf(actorProps.head._2, actorProps.head._1)
-    //start the reader
-    reader ? StartChangeFeed
+
+    val task = new CoapSourceTask
+    task.start(props)
 
     //get secure client to put messages in
     val dtlsConnector = new DTLSConnector(DTLSConnectionFn(producerSettings.head))
@@ -76,19 +68,17 @@ class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase {
     client.post("Message1", 0)
     Thread.sleep(5000)
 
-    //ask for records
-    val records = ActorHelper.askForRecords(reader)
+//    //ask for records
+    val records = task.poll()
     records.size() shouldBe 1
     val record = records.head
     val struct = record.value().asInstanceOf[Struct]
     struct.getString("payload") shouldBe "Message1"
     struct.getString("type") shouldBe "ACK"
-    reader ? StopChangeFeed
+    task.stop
   }
 
   "should create a task and receive messages" in {
-      implicit val system = ActorSystem()
-      implicit val timeout = Timeout(60 seconds)
       val props = getPropsInsecure
       val task = new CoapSourceTask()
       task.start(props)
