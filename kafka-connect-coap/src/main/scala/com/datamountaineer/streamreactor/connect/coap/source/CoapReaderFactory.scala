@@ -19,17 +19,27 @@ package com.datamountaineer.streamreactor.connect.coap.source
 import java.util
 import java.util.concurrent.LinkedBlockingQueue
 
+import akka.actor.{Actor, Props}
 import com.datamountaineer.streamreactor.connect.coap.configs.CoapSetting
 import com.datamountaineer.streamreactor.connect.coap.connection.CoapManager
 import com.datamountaineer.streamreactor.connect.coap.domain.CoapMessageConverter
+import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord
 import org.eclipse.californium.core.{CoapHandler, CoapObserveRelation, CoapResponse, WebLink}
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 /**
   * Created by andrew@datamountaineer.com on 27/12/2016. 
   * stream-reactor
   */
+
+case object DataRequest
+case object StopChangeFeed
+case object Observing
+case object Discover
 
 object CoapReaderFactory {
   def apply(settings: Set[CoapSetting], queue: LinkedBlockingQueue[SourceRecord]): Set[CoapReader] = {
