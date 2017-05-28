@@ -52,7 +52,7 @@ topic_name
    ;
 
 table_name
-   : FIELD | (DOT|TOPICNAME)+
+   : ( FIELD | TOPICNAME | DOT )+
    ;
 
 column_name
