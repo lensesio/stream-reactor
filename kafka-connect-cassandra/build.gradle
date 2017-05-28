@@ -22,7 +22,7 @@ project(":kafka-connect-cassandra") {
         cassandraUnitVersion = "2.2.2.1"
         jPountzVersion = "1.3.0"
         snappyVersion = "1.1.2.1"
-        kcql2 = "2.0.13"
+        kcql2 = "2.0.14"
         smt = "0.1"
     }
 
