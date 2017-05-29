@@ -41,6 +41,9 @@ object RedisSinkConfig {
     .define(RedisSinkConfigConstants.NBR_OF_RETRIES, Type.INT, RedisSinkConfigConstants.NBR_OF_RETIRES_DEFAULT,
       Importance.MEDIUM, RedisSinkConfigConstants.NBR_OF_RETRIES_DOC,
       "Connection", 7, ConfigDef.Width.MEDIUM, RedisSinkConfigConstants.NBR_OF_RETRIES)
+    .define(RedisSinkConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, RedisSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
+        Importance.MEDIUM, RedisSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
+        "Metrics", 1, ConfigDef.Width.MEDIUM, RedisSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 }
 
 /**

@@ -35,8 +35,7 @@ case class ReThinkSinkSetting(database: String,
                               conflictPolicy: Map[String, String],
                               errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                               maxRetries: Int,
-                              retryInterval: Long,
-                              batchSize: Int)
+                              retryInterval: Long)
 
 object ReThinkSinkSettings {
   def apply(config: ReThinkSinkConfig): ReThinkSinkSetting = {
@@ -79,7 +78,6 @@ object ReThinkSinkSettings {
       conflictMap,
       errorPolicy,
       maxRetries,
-      retryInterval,
-      batchSize)
+      retryInterval)
   }
 }

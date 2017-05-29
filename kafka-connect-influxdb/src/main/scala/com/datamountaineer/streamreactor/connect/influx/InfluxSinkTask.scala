@@ -49,6 +49,7 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
 
     InfluxSinkConfig.config.parse(props)
     val sinkConfig = InfluxSinkConfig(props)
+    enableProgress = sinkConfig.getBoolean(InfluxSinkConfigConstants.PROGRESS_COUNTER_ENABLED)
     val influxSettings = InfluxSettings(sinkConfig)
 
     //if error policy is retry set retry interval

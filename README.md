@@ -65,6 +65,8 @@ A collection of components to build a real time ingestion pipeline.
 *   Support for dates in Elastic Indexes and custom document types
 *   Upgrade Azure Documentdb to 1.11.0
 *   Removed unused batch size and bucket size options from Kudu, they are taken from KCQL
+*   Added optional progress counter to all connectors, it can be enabled with ``connect.progress.enabled`` which will 
+periodically report log messages processed
 *   Removed unused batch size option from DocumentDb
 
 **0.2.5 (8 Apr 2017)**

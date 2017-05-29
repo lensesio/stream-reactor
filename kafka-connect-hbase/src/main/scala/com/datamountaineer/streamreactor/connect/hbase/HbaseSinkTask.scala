@@ -49,6 +49,7 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
 
     HbaseSinkConfig.config.parse(props)
     val sinkConfig = HbaseSinkConfig(props)
+    enableProgress = sinkConfig.getBoolean(HbaseSinkConfigConstants.PROGRESS_COUNTER_ENABLED)
     val hbaseSettings = HbaseSettings(sinkConfig)
 
     //if error policy is retry set retry interval

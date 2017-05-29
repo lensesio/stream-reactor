@@ -70,6 +70,10 @@ object JMSConfig {
       Importance.HIGH, JMSConfigConstants.THROW_ON_CONVERT_ERRORS_DOC, "Converter", 2, ConfigDef.Width.MEDIUM,
       JMSConfigConstants.THROW_ON_CONVERT_ERRORS_DISPLAY)
 
+    .define(JMSConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, JMSConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
+        Importance.MEDIUM, JMSConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
+        "Metrics", 1, ConfigDef.Width.MEDIUM, JMSConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
+
 }
 
 /**

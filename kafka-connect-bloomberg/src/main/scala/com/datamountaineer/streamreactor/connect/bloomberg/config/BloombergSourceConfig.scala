@@ -34,4 +34,5 @@ object BloombergSourceConfig {
     .define(BloombergSourceConfigConstants.KAFKA_TOPIC, Type.STRING, Importance.HIGH, BloombergSourceConfigConstants.KAFKA_TOPIC_DOC, "Subscription", 1, ConfigDef.Width.MEDIUM, BloombergSourceConfigConstants.KAFKA_TOPIC)
     .define(BloombergSourceConfigConstants.BUFFER_SIZE, Type.INT, Importance.MEDIUM, BloombergSourceConfigConstants.BUFFER_SIZE_DOC, "Connection", 4, ConfigDef.Width.SHORT, BloombergSourceConfigConstants.BUFFER_SIZE)
     .define(BloombergSourceConfigConstants.PAYLOAD_TYPE, Type.STRING, Importance.MEDIUM, BloombergSourceConfigConstants.PAYLOAD_TYPE_DOC, "Subscription", 2, ConfigDef.Width.SHORT, BloombergSourceConfigConstants.PAYLOAD_TYPE)
+    .define(BloombergSourceConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, BloombergSourceConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT, Importance.MEDIUM, BloombergSourceConfigConstants.PROGRESS_COUNTER_ENABLED_DOC, "Metrics", 1, ConfigDef.Width.MEDIUM, BloombergSourceConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 }

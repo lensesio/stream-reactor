@@ -45,6 +45,7 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/hazelcast-ascii.txt")).mkString)
     HazelCastSinkConfig.config.parse(props)
     val sinkConfig = new HazelCastSinkConfig(props)
+    enableProgress = sinkConfig.getBoolean(HazelCastSinkConfigConstants.PROGRESS_COUNTER_ENABLED)
     val settings = HazelCastSinkSettings(sinkConfig)
 
     //if error policy is retry set retry interval

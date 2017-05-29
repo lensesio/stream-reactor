@@ -33,7 +33,7 @@ import scala.collection.JavaConversions._
   */
 class CoapSourceTask extends SourceTask with StrictLogging {
   private var readers : Set[CoapReader] = _
-  private var progressCounter = new ProgressCounter
+  private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
   private val queue = new LinkedBlockingQueue[SourceRecord]()
   private var batchSize : Int = CoapConstants.BATCH_SIZE_DEFAULT
@@ -41,6 +41,7 @@ class CoapSourceTask extends SourceTask with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-source-ascii.txt")).mkString)
     val config = CoapSourceConfig(props)
+    enableProgress = config.getBoolean(CoapConstants.PROGRESS_COUNTER_ENABLED)
     val settings = CoapSettings(config)
     batchSize = config.getInt(CoapConstants.BATCH_SIZE)
     enableProgress = config.getBoolean(CoapConstants.PROGRESS_COUNTER_ENABLED)

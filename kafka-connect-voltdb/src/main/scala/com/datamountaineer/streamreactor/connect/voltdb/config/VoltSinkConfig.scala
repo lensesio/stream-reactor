@@ -37,6 +37,9 @@ object VoltSinkConfig {
       VoltSinkConfigConstants.ERROR_RETRY_INTERVAL_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, VoltSinkConfigConstants.ERROR_RETRY_INTERVAL_CONFIG)
     .define(VoltSinkConfigConstants.NBR_OF_RETRIES_CONFIG, Type.INT, VoltSinkConfigConstants.NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, VoltSinkConfigConstants.NBR_OF_RETRIES_DOC,
       "Connection", 6, ConfigDef.Width.MEDIUM, VoltSinkConfigConstants.NBR_OF_RETRIES_CONFIG)
+    .define(VoltSinkConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, VoltSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
+        Importance.MEDIUM, VoltSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
+        "Metrics", 1, ConfigDef.Width.MEDIUM, VoltSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 }
 
 /**

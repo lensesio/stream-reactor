@@ -49,6 +49,7 @@ class VoltSinkTask extends SinkTask with StrictLogging {
     VoltSinkConfig.config.parse(props)
     val sinkConfig = VoltSinkConfig(props)
     val voltSettings = VoltSettings(sinkConfig)
+    enableProgress = sinkConfig.getBoolean(VoltSinkConfigConstants.PROGRESS_COUNTER_ENABLED)
 
 
     //if error policy is retry set retry interval

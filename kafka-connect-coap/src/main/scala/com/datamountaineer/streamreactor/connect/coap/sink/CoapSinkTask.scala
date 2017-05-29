@@ -41,6 +41,7 @@ class CoapSinkTask extends SinkTask with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-sink-ascii.txt")).mkString)
     val sinkConfig = CoapSinkConfig(props)
+    enableProgress = sinkConfig.getBoolean(CoapConstants.PROGRESS_COUNTER_ENABLED)
     val settings = CoapSettings(sinkConfig)
 
     //if error policy is retry set retry interval

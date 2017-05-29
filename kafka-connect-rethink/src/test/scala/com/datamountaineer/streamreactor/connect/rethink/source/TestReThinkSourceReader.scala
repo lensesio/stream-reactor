@@ -16,12 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.source
 
-import akka.actor.ActorSystem
 import com.datamountaineer.streamreactor.connect.rethink.TestBase
 import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkSourceConfig
-import com.datamountaineer.streamreactor.connect.rethink.source.ReThinkSourceReader.StartChangeFeed
 import org.apache.kafka.connect.data.Struct
-import scala.collection.JavaConversions._
 
 /**
   * Created by andrew@datamountaineer.com on 23/09/16. 
@@ -29,15 +26,11 @@ import scala.collection.JavaConversions._
   */
 class TestReThinkSourceReader extends TestBase with MockReThinkSource {
   "reader should read changefeeds" in {
-    implicit val system = ActorSystem()
-
     val props = getPropsSource
     val config = ReThinkSourceConfig(props)
-    val actorProps = ReThinkSourceReader(config, r)
-    val actors = actorProps.map({ case (source, prop) => system.actorOf(prop, source) }).toSet
-    actors.foreach(_ ! StartChangeFeed)
-    Thread.sleep(1000)
-    val records = actors.flatMap(ActorHelper.askForRecords)
+    val readers = ReThinkSourceReadersFactory(config, r)
+
+    val records = readers.flatMap(_.read())
     val struct = records.head.value().asInstanceOf[Struct]
     struct.getString("new_val") shouldBe (newVal)
     struct.getString("old_val") shouldBe oldVal

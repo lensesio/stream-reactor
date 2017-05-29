@@ -61,6 +61,9 @@ object HazelCastSinkConfig {
       "Target", 5, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.SINK_THREAD_POOL_DISPLAY)
     .define(HazelCastSinkConfigConstants.PARALLEL_WRITE, Type.BOOLEAN, HazelCastSinkConfigConstants.PARALLEL_WRITE_DEFAULT, Importance.MEDIUM, HazelCastSinkConfigConstants.PARALLEL_WRITE_DOC,
       "Target", 5, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.PARALLEL_WRITE)
+    .define(HazelCastSinkConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, HazelCastSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
+      Importance.MEDIUM, HazelCastSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
+      "Metrics", 1, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 }
 
 class HazelCastSinkConfig(props: util.Map[String, String])

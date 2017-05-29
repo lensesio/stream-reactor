@@ -27,6 +27,7 @@ object BlockchainConfig {
     .define(BlockchainConfigConstants.CONNECTION_URL, Type.STRING, BlockchainConfigConstants.CONNECTION_URL_DEFAULT, Importance.HIGH, BlockchainConfigConstants.CONNECTION_URL_DOC)
     .define(BlockchainConfigConstants.ADDRESS_SUBSCRIPTION, Type.STRING, null, Importance.LOW, BlockchainConfigConstants.ADDRESS_SUBSCRIPTION_DOC)
     .define(BlockchainConfigConstants.KAFKA_TOPIC, Type.STRING, Importance.HIGH, BlockchainConfigConstants.KAFKA_TOPIC_DOC)
+    .define(BlockchainConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, BlockchainConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT, Importance.MEDIUM, BlockchainConfigConstants.PROGRESS_COUNTER_ENABLED_DOC, "Metrics", 1, ConfigDef.Width.MEDIUM, BlockchainConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 }
 
 case class BlockchainConfig(props: util.Map[String, String]) extends AbstractConfig(BlockchainConfig.config, props)

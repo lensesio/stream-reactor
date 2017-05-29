@@ -116,6 +116,15 @@ object ElasticSinkConfig {
       2,
       ConfigDef.Width.LONG,
       ElasticSinkConfigConstants.ES_CLUSTER_XPACK_PLUGINS_DOC)
+    .define(ElasticSinkConfigConstants.PROGRESS_COUNTER_ENABLED,
+      Type.BOOLEAN,
+      ElasticSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
+      Importance.MEDIUM,
+      ElasticSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
+      "Metrics",
+      1,
+      ConfigDef.Width.MEDIUM,
+      ElasticSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 }
 
 /**

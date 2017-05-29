@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.blockchain.source
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.blockchain.config.{BlockchainConfig, BlockchainSettings}
+import com.datamountaineer.streamreactor.connect.blockchain.config.{BlockchainConfig, BlockchainConfigConstants, BlockchainSettings}
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import io.confluent.common.config.ConfigException
@@ -50,6 +50,7 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
       case Failure(f) => throw new ConfigException("Couldn't start BlockchainSource due to configuration error.", f)
       case Success(s) => Some(s)
     }
+    enableProgress = taskConfig.get.getBoolean(BlockchainConfigConstants.PROGRESS_COUNTER_ENABLED)
 
     val settings = BlockchainSettings(taskConfig.get)
 

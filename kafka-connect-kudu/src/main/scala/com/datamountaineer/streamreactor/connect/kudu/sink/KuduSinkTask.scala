@@ -46,6 +46,7 @@ class KuduSinkTask extends SinkTask with StrictLogging {
 
     KuduSinkConfig.config.parse(props)
     val sinkConfig = new KuduSinkConfig(props)
+    enableProgress = sinkConfig.getBoolean(KuduSinkConfigConstants.PROGRESS_COUNTER_ENABLED)
     val settings = KuduSettings(sinkConfig)
 
     //if error policy is retry set retry interval

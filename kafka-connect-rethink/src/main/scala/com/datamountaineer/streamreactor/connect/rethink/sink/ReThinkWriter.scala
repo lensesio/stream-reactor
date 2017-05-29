@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
 import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSinkConfigConstants, ReThinkSinkSetting, ReThinkSinkSettings}
+import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkConfigConstants, ReThinkSinkConfig, ReThinkSinkSetting, ReThinkSinkSettings}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.net.Connection
@@ -29,8 +29,8 @@ import scala.util.{Failure, Try}
 
 object ReThinkWriter extends StrictLogging {
   def apply(config: ReThinkSinkConfig, context: SinkTaskContext): ReThinkWriter = {
-    val rethinkHost = config.getString(ReThinkSinkConfigConstants.RETHINK_HOST)
-    val port = config.getInt(ReThinkSinkConfigConstants.RETHINK_PORT)
+    val rethinkHost = config.getString(ReThinkConfigConstants.RETHINK_HOST)
+    val port = config.getInt(ReThinkConfigConstants.RETHINK_PORT)
 
     //set up the connection to the host
     val settings = ReThinkSinkSettings(config)
@@ -70,7 +70,7 @@ class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSinkSe
     } else {
       logger.debug(s"Received ${records.size} records.")
       if (!conn.isOpen) conn.reconnect()
-      val grouped = records.groupBy(_.topic()) //.grouped(setting.batchSize)
+      val grouped = records.groupBy(_.topic())
       grouped.foreach({ case (topic, entries) => writeRecords(topic, entries) })
     }
   }
