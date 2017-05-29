@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.rethink.source
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkConfigConstants, ReThinkSourceConfig}
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.rethinkdb.RethinkDB
@@ -42,15 +43,23 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
     enableProgress = config.getBoolean(ReThinkConfigConstants.PROGRESS_COUNTER_ENABLED)
     lazy val r = RethinkDB.r
     readers = ReThinkSourceReadersFactory(config, r)
+    readers.foreach(_.start())
   }
 
   /**
     * Read from readers queue
     **/
   override def poll(): util.List[SourceRecord] = {
-    val records = readers.flatMap(_.read()).toList
+    val records = readers.flatMap(r => {
+      val records = new util.ArrayList[SourceRecord]()
+      //wait for batch size
+      while (r.queue.size() > 0 && records.size() <= r.batchSize) {
+        records.addAll(QueueHelpers.drainQueue(r.queue, r.batchSize))
+      }
+      records
+    }).toList
 
-    if (enableProgress) {
+    if (enableProgress && records.size > 0) {
       progressCounter.update(records.toVector)
     }
     records
@@ -61,9 +70,8 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
     **/
   override def stop(): Unit = {
     logger.info("Stopping ReThink source and closing connections.")
-
+    readers.foreach(_.stop())
     progressCounter.empty
-
   }
 
   override def version(): String = getClass.getPackage.getImplementationVersion

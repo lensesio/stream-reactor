@@ -99,6 +99,16 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfter {
     ).asJava
   }
 
+  def test() : util.Map[String, String] = {
+    Map(ReThinkConfigConstants.SOURCE_ROUTE_QUERY -> "INSERT INTO rethink-topic SELECT * FROM source_test",
+    ReThinkConfigConstants.RETHINK_HOST -> "localhost",
+    ReThinkConfigConstants.RETHINK_DB -> "test",
+      ReThinkConfigConstants.USERNAME->"admin",
+      ReThinkConfigConstants.PASSWORD->"yourBrandNewKey"
+    //ReThinkConfigConstants.AUTH_KEY->"yourBrandNewKey",
+    //ReThinkConfigConstants.CERT_FILE->"/Users/andrew/workspace/projects/datamountaineer/stream-reactor/cert.pem"
+    ).asJava
+  }
 
   //build a test record schema
   def createSchema: Schema = {

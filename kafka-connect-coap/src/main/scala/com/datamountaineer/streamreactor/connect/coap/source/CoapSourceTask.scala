@@ -57,7 +57,7 @@ class CoapSourceTask extends SourceTask with StrictLogging {
       records.addAll(QueueHelpers.drainQueue(queue, batchSize))
     }
 
-    if (enableProgress) {
+    if (enableProgress && records.size > 0) {
       progressCounter.update(records.toVector)
     }
     records

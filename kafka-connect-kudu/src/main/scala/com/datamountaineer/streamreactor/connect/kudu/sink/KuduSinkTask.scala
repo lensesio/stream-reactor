@@ -66,7 +66,7 @@ class KuduSinkTask extends SinkTask with StrictLogging {
     val seq = records.toVector
     writer.foreach(w => w.write(records.toSet))
 
-    if (enableProgress) {
+    if (enableProgress && records.size > 0) {
       progressCounter.update(seq)
     }
   }

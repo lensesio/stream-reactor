@@ -52,7 +52,7 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
     require(writer.nonEmpty, "Writer is not set!")
     writer.foreach(w => w.write(records.toSet))
     val seq = records.toVector
-    if (enableProgress) {
+    if (enableProgress && records.size > 0) {
       progressCounter.update(seq)
     }
   }

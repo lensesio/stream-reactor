@@ -71,7 +71,7 @@ class VoltSinkTask extends SinkTask with StrictLogging {
       require(writer.nonEmpty, "Writer is not set!")
       val seq = records.toVector
       writer.foreach(w => w.write(seq))
-      if (enableProgress) {
+      if (enableProgress && records.size > 0) {
         progressCounter.update(seq)
       }
     }

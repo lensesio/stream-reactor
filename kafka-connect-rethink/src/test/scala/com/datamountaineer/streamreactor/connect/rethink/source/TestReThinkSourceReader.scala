@@ -25,13 +25,17 @@ import org.apache.kafka.connect.data.Struct
   * stream-reactor
   */
 class TestReThinkSourceReader extends TestBase with MockReThinkSource {
-  "reader should read changefeeds" in {
+  "reader should read change feeds" in {
     val props = getPropsSource
     val config = ReThinkSourceConfig(props)
     val readers = ReThinkSourceReadersFactory(config, r)
-
-    val records = readers.flatMap(_.read())
-    val struct = records.head.value().asInstanceOf[Struct]
+    readers.foreach(_.start())
+    val reader = readers.head
+    while (reader.queue.size() == 0) {
+      Thread.sleep(100)
+    }
+    val record = reader.queue.take()
+    val struct = record.value().asInstanceOf[Struct]
     struct.getString("new_val") shouldBe (newVal)
     struct.getString("old_val") shouldBe oldVal
     struct.getString("type") shouldBe `type`
