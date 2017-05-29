@@ -66,6 +66,44 @@ object ReThinkSinkConfigConstants extends ReThinkConfigConstants {
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
+
+  val USERNAME = "connect.rethink.username"
+  val USERNAME_DOC = "The user name to connect to rethink with."
+
+  val PASSWORD = "connect.rethink.password"
+  val PASSWORD_DOC = "The password for the user."
+
+  val CERT_FILE = "connect.rethink.cert.file"
+  val CERT_FILE_DOC = "Certificate file to use for secure TLS connection to the rethinkdb servers. Cannot be used with username/password."
+  val CERT_FILE_DEFAULT = ""
+
+  val SSL_ENABLED = "connect.rethink.ssl.enabled"
+  val SSL_ENABLED_DOC = "Secure Cassandra driver connection via SSL."
+  val SSL_ENABLED_DEFAULT = "false"
+
+  val TRUST_STORE_PATH = "connect.rethink.trust.store.path"
+  val TRUST_STORE_PATH_DOC = "Path to the client Trust Store."
+  val TRUST_STORE_PASSWD = "connect.rethink.trust.store.password"
+  val TRUST_STORE_PASSWD_DOC = "Password for the client Trust Store."
+  val TRUST_STORE_TYPE = "connect.rethink.trust.store.type"
+  val TRUST_STORE_TYPE_DOC = "Type of the Trust Store, defaults to JKS"
+  val TRUST_STORE_TYPE_DEFAULT = "JKS"
+
+  val USE_CLIENT_AUTH = "connect.rethink.ssl.client.cert.auth"
+  val USE_CLIENT_AUTH_DEFAULT = "false"
+  val USE_CLIENT_AUTH_DOC = "Enable client certification authentication. Requires KeyStore options to be set."
+
+  val KEY_STORE_PATH = "connect.rethink.key.store.path"
+  val KEY_STORE_PATH_DOC = "Path to the client Key Store."
+  val KEY_STORE_PASSWD = "connect.rethink.key.store.password"
+  val KEY_STORE_PASSWD_DOC = "Password for the client Key Store"
+  val KEY_STORE_TYPE = "connect.rethink.key.store.type"
+  val KEY_STORE_TYPE_DOC = "Type of the Key Store, defauts to JKS"
+  val KEY_STORE_TYPE_DEFAULT = "JKS"
+
+  val AUTH_KEY = "connect.rethink.auth.key"
+  val AUTH_KEY_DOC = "The authorization key to use in combination with the certificate file."
+  val AUTH_KEY_DEFAULT = ""
 }
 
 object ReThinkSourceConfigConstants extends ReThinkConfigConstants {

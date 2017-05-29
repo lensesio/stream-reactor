@@ -83,6 +83,22 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfter {
       ReThinkSinkConfigConstants.ERROR_POLICY -> "RETRY").asJava
   }
 
+  def getPropsConnTestNoAuth: util.Map[String, String] = {
+    Map(ReThinkConfigConstants.SOURCE_ROUTE_QUERY -> IMPORT_ROUTE_2,
+      ReThinkConfigConstants.RETHINK_HOST -> "localhost",
+      ReThinkConfigConstants.RETHINK_DB -> DB,
+      ReThinkConfigConstants.CERT_FILE->"cert.pem"
+    ).asJava
+  }
+
+  def getPropsConnTestNoCert: util.Map[String, String] = {
+    Map(ReThinkConfigConstants.SOURCE_ROUTE_QUERY -> IMPORT_ROUTE_2,
+      ReThinkConfigConstants.RETHINK_HOST -> "localhost",
+      ReThinkConfigConstants.RETHINK_DB -> DB,
+      ReThinkConfigConstants.AUTH_KEY->"test"
+    ).asJava
+  }
+
 
   //build a test record schema
   def createSchema: Schema = {

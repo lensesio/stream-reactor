@@ -38,9 +38,7 @@ import scala.collection.JavaConverters._
 object ReThinkSourceReadersFactory {
 
   def apply(config: ReThinkSourceConfig, r: RethinkDB): Set[ReThinkSourceReader] = {
-    val host = config.getString(ReThinkConfigConstants.RETHINK_HOST)
-    val port = config.getInt(ReThinkConfigConstants.RETHINK_PORT)
-    val conn = Some(ReThinkConnection(host, port, r))
+    val conn = Some(ReThinkConnection(r, config))
     val settings = ReThinkSourceSettings(config)
     settings.map(s => new ReThinkSourceReader(r, conn.get, s))
   }
