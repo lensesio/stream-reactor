@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.connect.rethink.source
 
 import java.util
+import java.util.concurrent.TimeUnit
 
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkConfigConstants, ReThinkSourceConfig}
@@ -51,12 +52,11 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
     **/
   override def poll(): util.List[SourceRecord] = {
     val records = readers.flatMap(r => {
-      val records = new util.ArrayList[SourceRecord]()
-      //wait for batch size
-      while (r.queue.size() > 0 && records.size() <= r.batchSize) {
-        records.addAll(QueueHelpers.drainQueue(r.queue, r.batchSize))
+      if (r.queue.size() > 0) {
+        QueueHelpers.drainQueue(r.queue, r.batchSize)
+      } else {
+        List.empty[SourceRecord]
       }
-      records
     }).toList
 
     if (enableProgress && records.size > 0) {

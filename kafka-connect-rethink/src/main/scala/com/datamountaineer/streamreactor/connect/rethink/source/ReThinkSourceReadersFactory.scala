@@ -68,6 +68,7 @@ class ReThinkSourceReader(rethink: RethinkDB, conn: Connection, setting: ReThink
     stopFeed.set(true)
     while (handlingFeed.get()) {
       logger.debug("Waiting for feed to shutdown...")
+      Thread.sleep(1000)
     }
     feed.close()
     logger.info(s"Change feed closed for ${setting.source}")
@@ -86,7 +87,9 @@ class ReThinkSourceReader(rethink: RethinkDB, conn: Connection, setting: ReThink
     **/
   private def handleFeed(feed: Cursor[util.HashMap[String, String]]) = {
     handlingFeed.set(true)
-    while(feed.hasNext) {
+
+    //feed.next is blocking
+    while(!stopFeed.get()) {
       logger.debug(s"Waiting for next change feed event for ${setting.source}")
       val cdc = convert(feed.next().asScala.toMap)
       queue.put(cdc)
