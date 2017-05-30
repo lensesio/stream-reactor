@@ -851,6 +851,16 @@ public class ConfigTest {
     }
 
     @Test
+    public void handleSemicolonInTable() {
+        String topic = "/TOPIC_A";
+        String table = "namespace1:tblA";
+        String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s", table, topic);
+        Config config = Config.parse(syntax);
+        assertEquals(topic, config.getSource());
+        assertEquals(table, config.getTarget());
+    }
+
+    @Test
     public void parseTags() {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
