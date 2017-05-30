@@ -737,6 +737,16 @@ public class KcqlTest {
     }
 
     @Test
+    public void handleSemicolonInTarget() {
+        String topic = "TOPIC_A";
+        String table = "namespace1:TABLE_A";
+        String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s", table, topic);
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+    }
+
+    @Test
     public void handleForwardSlashInSource() {
         String topic = "/TOPIC_A";
         String table = "TABLE_A";
