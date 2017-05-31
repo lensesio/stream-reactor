@@ -70,8 +70,9 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
     settings.routes.map(r => {
       val topic = r.getSource
       val table = r.getTarget
+      val ttl = r.getTTL
       logger.info(s"Preparing statements for $topic.")
-      topic -> getPreparedStatement(table).get
+      topic -> getPreparedStatement(table, ttl).get
     }).toMap
   }
 
@@ -81,9 +82,13 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
     * @param table The table name to prepare the statement for.
     * @return A prepared statement for the given topic.
     **/
-  private def getPreparedStatement(table: String): Option[PreparedStatement] = {
+  private def getPreparedStatement(table: String, ttl: Long): Option[PreparedStatement] = {
     val t: Try[PreparedStatement] = Try {
-      val statement = session.prepare(s"INSERT INTO ${session.getLoggedKeyspace}.$table JSON ?")
+      val statement = if (ttl.equals(0)) {
+        session.prepare(s"INSERT INTO ${session.getLoggedKeyspace}.$table JSON ?")
+      } else {
+        session.prepare(s"INSERT INTO ${session.getLoggedKeyspace}.$table JSON ? USING TTL $ttl")
+      }
       settings.consistencyLevel.foreach(statement.setConsistencyLevel)
       statement
     }

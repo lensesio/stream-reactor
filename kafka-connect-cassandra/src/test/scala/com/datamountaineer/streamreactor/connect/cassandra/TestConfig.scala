@@ -56,6 +56,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   val TABLE4 = "table4"
   val TOPIC4 =  "topic4"
   val TABLE5 = "table5"
+  val TTL = 100000
   
   val USERNAME = "cassandra"
   val PASSWD = "cassandra"
@@ -65,6 +66,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   val KEYSTORE_PASSWORD = "8yJQLUnGkwZxOw"
 
   val QUERY_ALL = s"INSERT INTO $TABLE1 SELECT * FROM $TOPIC1;INSERT INTO $TABLE3 SELECT * FROM $TOPIC2"
+  val QUERY_ALL_TTL = s"INSERT INTO $TABLE1 SELECT * FROM $TOPIC1 TTL=$TTL;INSERT INTO $TABLE3 SELECT * FROM $TOPIC2"
   val QUERY_SELECTION = s"INSERT INTO $TABLE1 SELECT id, long_field FROM $TOPIC1"
 
   val IMPORT_QUERY_ALL = s"INSERT INTO $TOPIC1 SELECT * FROM $TABLE1;INSERT INTO $TOPIC2 SELECT * FROM $TABLE2"
@@ -108,6 +110,16 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.SINK_KCQL -> QUERY_ALL
+    ).asJava
+  }
+
+  def getCassandraConfigSinkPropsTTL = {
+    Map(
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.SINK_KCQL -> QUERY_ALL_TTL
     ).asJava
   }
 

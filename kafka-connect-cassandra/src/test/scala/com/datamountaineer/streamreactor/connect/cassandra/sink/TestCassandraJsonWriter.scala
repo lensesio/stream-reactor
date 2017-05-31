@@ -278,5 +278,43 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
       val res = session.execute(s"SELECT * FROM $CASSANDRA_KEYSPACE.$TOPIC1")
       res.all().size() shouldBe testRecords.size
     }
+
+    "start and write records to Cassandra using TTL" in {
+      val session = createTableAndKeySpace(secure = true)
+      //mock the context to return our assignment when called
+      val context = mock[SinkTaskContext]
+      val assignment = getAssignment
+      when(context.assignment()).thenReturn(assignment)
+      //get test records
+      val testRecords1 = getTestRecords(TABLE1)
+      val testRecords2 = getTestRecords(TOPIC2)
+      val testRecords = testRecords1 ++ testRecords2
+      //get config
+      val config = new util.HashMap[String, String](getCassandraConfigSinkPropsTTL)
+      //get task
+      val task = new CassandraSinkTask()
+      //initialise the tasks context
+      task.initialize(context)
+      //start task
+      task.start(config)
+      //simulate the call from Connect
+      task.put(testRecords.asJava)
+      //stop task
+      task.stop()
+
+      //check we can get back what we wrote
+      val res1 = session.execute(s"SELECT * FROM $CASSANDRA_KEYSPACE.$TOPIC1")
+      val res2 = session.execute(s"SELECT * FROM $CASSANDRA_KEYSPACE.$TOPIC2")
+      val key1 = testRecords1.head.value().asInstanceOf[Struct].getString("id")
+      val key2 = testRecords2.head.value().asInstanceOf[Struct].getString("id")
+      res1.all().size() shouldBe testRecords1.size
+      res2.all().size() shouldBe testRecords2.size
+      val ttl1 = session.execute(s"SELECT TTL (int_field) FROM $CASSANDRA_KEYSPACE.$TOPIC1 where id = '$key1'")
+      val ttl2 = session.execute(s"SELECT TTL (int_field) FROM $CASSANDRA_KEYSPACE.$TOPIC2 where id = '$key2'")
+      val one = ttl1.one().getInt("ttl(int_field)")
+      val two = ttl2.one().getInt("ttl(int_field)")
+      (one < TTL) shouldBe true
+      two shouldBe 0
+    }
   }
 }
