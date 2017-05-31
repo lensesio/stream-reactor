@@ -66,7 +66,7 @@ class DruidSinkTask extends SinkTask with StrictLogging {
       writer.foreach(w => w.write(records.toSeq))
     }
 
-    if (enableProgress && records.size > 0) {
+    if (enableProgress) {
       progressCounter.update(records.toVector)
     }
   }

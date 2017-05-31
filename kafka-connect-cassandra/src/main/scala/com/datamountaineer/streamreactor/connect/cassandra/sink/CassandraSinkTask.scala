@@ -65,7 +65,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
     require(writer.nonEmpty, "Writer is not set!")
     val seq = records.toVector
     writer.foreach(w => w.write(seq))
-    if (enableProgress && records.size > 0) {
+    if (enableProgress) {
       progressCounter.update(seq)
     }
   }
@@ -76,7 +76,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
   override def stop(): Unit = {
     logger.info("Stopping Cassandra sink.")
     writer.foreach(w => w.close())
-    if (enableProgress && records.size > 0) {
+    if (enableProgress) {
       progressCounter.empty
     }
   }

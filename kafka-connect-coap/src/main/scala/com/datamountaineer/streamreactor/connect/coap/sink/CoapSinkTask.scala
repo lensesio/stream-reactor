@@ -54,7 +54,7 @@ class CoapSinkTask extends SinkTask with StrictLogging {
   override def put(records: util.Collection[SinkRecord]): Unit = {
     records.map(r => writers(r.topic()).write(List(r)))
     val seq = records.toVector
-    if (enableProgress && records.size > 0) {
+    if (enableProgress) {
       progressCounter.update(seq)
     }
   }

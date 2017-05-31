@@ -84,7 +84,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
       list
     }.orNull
 
-    if (enableProgress && records.size > 0) {
+    if (enableProgress) {
       progressCounter.update(records.toVector)
     }
     records

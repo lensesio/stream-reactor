@@ -70,7 +70,7 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
     Thread.sleep(1000)
     val records = blockchainManager.map(_.get()).getOrElse(new util.ArrayList[SourceRecord]())
     logger.debug(s"Returning ${records.size()} record(-s) from Blockchain source")
-    if (enableProgress && records.size > 0) {
+    if (enableProgress) {
       progressCounter.update(records.toVector)
     }
     records

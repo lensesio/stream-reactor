@@ -92,5 +92,11 @@ object CoapConstants {
 
   val BATCH_SIZE = "connect.coap.batch.size"
   val BATCH_SIZE_DEFAULT = 100
-  val BATCH_SIZE_DOC = "The number of events to take from the internal queue to batch together to send to Kafka."
+  val BATCH_SIZE_DOC = "The number of events to take from the internal queue to batch together to send to Kafka. The records will" +
+    "be flushed if the linger period has expired first."
+
+  val SOURCE_LINGER_MS = "connect.source.linger.ms"
+  val SOURCE_LINGER_MS_DEFAULT = 5000
+  val SOURCE_LINGER_MS_DOC = "The number of milliseconds to wait before flushing the received messages to Kafka. The records will" +
+    "be flushed if the batch size is reached before the linger period has expired."
 }

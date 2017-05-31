@@ -16,6 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.config
 
+import com.datamountaineer.streamreactor.connect.coap.configs.CoapConstants
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
@@ -87,6 +88,11 @@ case class ReThinkConfig() {
     .define(ReThinkConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, ReThinkConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
       Importance.MEDIUM, ReThinkConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
       "Metrics", 1, ConfigDef.Width.MEDIUM, ReThinkConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
+
+    .define(ReThinkConfigConstants.BATCH_SIZE, Type.INT, ReThinkConfigConstants.BATCH_SIZE_DEFAULT, Importance.MEDIUM,
+      ReThinkConfigConstants.BATCH_SIZE_DOC, "Metrics", 2, ConfigDef.Width.MEDIUM, ReThinkConfigConstants.BATCH_SIZE)
+    .define(ReThinkConfigConstants.SOURCE_LINGER_MS, Type.INT, ReThinkConfigConstants.SOURCE_LINGER_MS_DEFAULT, Importance.MEDIUM,
+      ReThinkConfigConstants.SOURCE_LINGER_MS_DOC, "Metrics", 3, ConfigDef.Width.MEDIUM, ReThinkConfigConstants.SOURCE_LINGER_MS)
 
 
 }

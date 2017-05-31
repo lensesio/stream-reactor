@@ -73,7 +73,7 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
       val seq = records.toVector
       writer.foreach(w => w.write(seq))
 
-      if (enableProgress && records.size > 0) {
+      if (enableProgress) {
         progressCounter.update(seq)
       }
     }

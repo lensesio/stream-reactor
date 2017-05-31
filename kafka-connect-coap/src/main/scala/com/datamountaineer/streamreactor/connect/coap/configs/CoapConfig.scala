@@ -54,8 +54,9 @@ case class CoapConfig() {
     .define(CoapConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, CoapConstants.PROGRESS_COUNTER_ENABLED_DEFAULT, Importance.MEDIUM,
       CoapConstants.PROGRESS_COUNTER_ENABLED_DOC, "Metrics", 1, ConfigDef.Width.MEDIUM, CoapConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
     .define(CoapConstants.BATCH_SIZE, Type.INT, CoapConstants.BATCH_SIZE_DEFAULT, Importance.MEDIUM,
-      CoapConstants.BATCH_SIZE_DOC, "Metrics", 1, ConfigDef.Width.MEDIUM, CoapConstants.BATCH_SIZE)
-
+      CoapConstants.BATCH_SIZE_DOC, "Metrics", 2, ConfigDef.Width.MEDIUM, CoapConstants.BATCH_SIZE)
+    .define(CoapConstants.SOURCE_LINGER_MS, Type.INT, CoapConstants.SOURCE_LINGER_MS_DEFAULT, Importance.MEDIUM,
+      CoapConstants.SOURCE_LINGER_MS_DOC, "Metrics", 3, ConfigDef.Width.MEDIUM, CoapConstants.SOURCE_LINGER_MS)
 }
 
 object CoapSinkConfig {

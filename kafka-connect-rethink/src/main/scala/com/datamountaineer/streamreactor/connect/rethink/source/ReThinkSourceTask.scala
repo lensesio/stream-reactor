@@ -37,11 +37,15 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
   private var readers: Set[ReThinkSourceReader] = _
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
+  private var batchSize : Int = ReThinkConfigConstants.BATCH_SIZE_DEFAULT
+  private var lingerTimeout = ReThinkConfigConstants.SOURCE_LINGER_MS_DEFAULT
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/rethink-source-ascii.txt")).mkString)
     val config = ReThinkSourceConfig(props)
     enableProgress = config.getBoolean(ReThinkConfigConstants.PROGRESS_COUNTER_ENABLED)
+    batchSize = config.getInt(ReThinkConfigConstants.BATCH_SIZE)
+    lingerTimeout = config.getInt(ReThinkConfigConstants.SOURCE_LINGER_MS)
     lazy val r = RethinkDB.r
     readers = ReThinkSourceReadersFactory(config, r)
     readers.foreach(_.start())
@@ -52,14 +56,12 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
     **/
   override def poll(): util.List[SourceRecord] = {
     val records = readers.flatMap(r => {
-      if (r.queue.size() > 0) {
-        QueueHelpers.drainQueue(r.queue, r.batchSize)
-      } else {
-        List.empty[SourceRecord]
-      }
+      val records = new util.ArrayList[SourceRecord]()
+      QueueHelpers.drainWithTimeoutNoGauva(records, r.batchSize, lingerTimeout, r.queue)
+      records
     }).toList
 
-    if (enableProgress && records.size > 0) {
+    if (enableProgress) {
       progressCounter.update(records.toVector)
     }
     records

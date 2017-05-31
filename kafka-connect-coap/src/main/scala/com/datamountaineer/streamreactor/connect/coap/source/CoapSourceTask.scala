@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.coap.source
 
 import java.util
-import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSettings, CoapSourceConfig}
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
@@ -26,6 +26,7 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
+import scala.concurrent.{Await, Future}
 
 /**
   * Created by andrew@datamountaineer.com on 27/12/2016. 
@@ -37,6 +38,7 @@ class CoapSourceTask extends SourceTask with StrictLogging {
   private var enableProgress: Boolean = false
   private val queue = new LinkedBlockingQueue[SourceRecord]()
   private var batchSize : Int = CoapConstants.BATCH_SIZE_DEFAULT
+  private var lingerTimeout = CoapConstants.SOURCE_LINGER_MS_DEFAULT
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-source-ascii.txt")).mkString)
@@ -44,20 +46,17 @@ class CoapSourceTask extends SourceTask with StrictLogging {
     enableProgress = config.getBoolean(CoapConstants.PROGRESS_COUNTER_ENABLED)
     val settings = CoapSettings(config)
     batchSize = config.getInt(CoapConstants.BATCH_SIZE)
+    lingerTimeout = config.getInt(CoapConstants.SOURCE_LINGER_MS)
     enableProgress = config.getBoolean(CoapConstants.PROGRESS_COUNTER_ENABLED)
     readers = CoapReaderFactory(settings, queue)
   }
 
   override def poll(): util.List[SourceRecord] = {
-
     val records = new util.ArrayList[SourceRecord]()
 
-    //wait for batch size
-    while (queue.size() > 0 && records.size() <= batchSize) {
-      records.addAll(QueueHelpers.drainQueue(queue, batchSize))
-    }
+    QueueHelpers.drainWithTimeoutNoGauva(records, batchSize, lingerTimeout, queue)
 
-    if (enableProgress && records.size > 0) {
+    if (enableProgress) {
       progressCounter.update(records.toVector)
     }
     records

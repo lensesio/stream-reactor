@@ -17,6 +17,7 @@
 project(":kafka-connect-rethink") {
     ext {
         rethinkDbVersion = "2.3.3"
+        guavaVersion = "19.0"
     }
 
     dependencies {
@@ -25,5 +26,6 @@ project(":kafka-connect-rethink") {
         compile "com.typesafe.akka:akka-actor_$scalaMajorVersion:$akkaVersion"
         compile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
         compile "com.sksamuel.avro4s:avro4s-json_$scalaMajorVersion:$avro4sVersion"
+        compile "com.google.guava:guava:$guavaVersion"
     }
 }
