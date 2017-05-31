@@ -102,7 +102,7 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
     kuduFields(2).getName shouldBe "boolean_field"
     kuduFields(2).getType shouldBe org.kududb.Type.BOOL
     kuduFields(3).getName shouldBe "double_field"
-    kuduFields(3).getType shouldBe org.kududb.Type.FLOAT
+    kuduFields(3).getType shouldBe org.kududb.Type.DOUBLE
     kuduFields(4).getName shouldBe "float_field"
     kuduFields(4).getType shouldBe org.kududb.Type.FLOAT
     kuduFields(5).getName shouldBe "long_field"
