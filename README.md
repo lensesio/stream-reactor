@@ -57,7 +57,7 @@ A collection of components to build a real time ingestion pipeline.
 *   Major refactor, thanks Marionete
 *   Added default bytes converter to JMS Source
 *   Added default connection factory to JMS Source
-*   Added support for SharedDurableConsmers to JMS Connectors
+*   Added support for SharedDurableConsumers to JMS Connectors
 *   Fixes on JMS properties converter, Invalid schema when extracting properties
 *   Upgraded JMS Connector to JMS 2.0
 *   Moved to Elastic4s 2.4
