@@ -78,7 +78,7 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter 
               val payload = convertValueToJson(recordToSink)
 
               val scoreField = getScoreField(KCQL.kcqlConfig)
-              val score = StringStructFieldsStringKeyBuilder(Seq(scoreField)).build(recordToSink).toDouble
+              val score = StringStructFieldsStringKeyBuilder(Seq(scoreField)).build(record).toDouble
 
               logger.debug(s"ZADD $sortedSetName    score = $score     payload = ${payload.toString}")
               val response = jedis.zadd(sortedSetName, score, payload.toString)
