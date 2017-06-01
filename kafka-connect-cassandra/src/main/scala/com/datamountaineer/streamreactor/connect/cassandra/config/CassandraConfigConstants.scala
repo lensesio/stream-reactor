@@ -34,7 +34,7 @@ object CassandraConfigConstants {
   val DEFAULT_POLL_INTERVAL = 1000
 
   val POLL_INTERVAL = "connect.cassandra.import.poll.interval"
-  val POLL_INTERVAL_DOC = "The polling interval between queries against tables for bulk mode."
+  val POLL_INTERVAL_DOC = "The polling interval between queries against tables."
 
   val KEY_SPACE = "connect.cassandra.key.space"
   val KEY_SPACE_DOC = "Keyspace to write to."
