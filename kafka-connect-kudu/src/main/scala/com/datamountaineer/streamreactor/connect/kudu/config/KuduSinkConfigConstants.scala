@@ -43,17 +43,9 @@ object KuduSinkConfigConstants {
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
-  val BATCH_SIZE = "connect.kudu.sink.batch.size"
-  val BATCH_SIZE_DOC = "Per topic the number of sink records to batch together and insert into Kudu"
-  val BATCH_SIZE_DEFAULT = 1000
-
   val SCHEMA_REGISTRY_URL = "connect.kudu.sink.schema.registry.url"
   val SCHEMA_REGISTRY_URL_DOC = "Url for the schema registry"
   val SCHEMA_REGISTRY_URL_DEFAULT = "http://localhost:8081"
-
-  val BUCKET_SIZE = "connect.kudu.sink.bucket.size"
-  val BUCKET_SIZE_DOC = "The number of buckets to use for Auto Table creation. The distribution is set to use the Hash strategy"
-  val BUCKET_SIZE_DEFAULT = 10
 
   val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
