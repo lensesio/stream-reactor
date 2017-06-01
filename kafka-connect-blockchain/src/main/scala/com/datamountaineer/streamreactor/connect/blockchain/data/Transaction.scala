@@ -38,7 +38,7 @@ case class Transaction(lock_time: Long,
 
 
 object Transaction {
-  val ConnectSchema = SchemaBuilder.struct
+  val ConnectSchema: Schema = SchemaBuilder.struct
     .name("datamountaineer.blockchain.transaction")
     .field("lock_time", Schema.INT64_SCHEMA)
     .field("ver", Schema.INT32_SCHEMA)

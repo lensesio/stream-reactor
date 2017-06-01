@@ -16,8 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.bloomberg
 
-import com.datamountaineer.streamreactor.connect.bloomberg.config.ConnectorConfig._
-import com.datamountaineer.streamreactor.connect.bloomberg.config.{BloombergSourceConfigConstants, ConnectorConfig}
+import com.datamountaineer.streamreactor.connect.bloomberg.config.BloombergSourceConfig._
+import com.datamountaineer.streamreactor.connect.bloomberg.config.{BloombergSourceConfigConstants, BloombergSourceConfig}
 
 import scala.util.{Success, Try}
 
@@ -58,12 +58,12 @@ case class BloombergSettings(serverHost: String,
 
 object BloombergSettings {
   /**
-    * Creates an instance of BloombergSettings from a ConnectorConfig
+    * Creates an instance of BloombergSettings from a BloombergSourceConfig
     *
     * @param connectorConfig : The map of all provided configurations
     * @return An instance of BloombergSettings
     */
-  def apply(connectorConfig: ConnectorConfig): BloombergSettings = {
+  def apply(connectorConfig: BloombergSourceConfig): BloombergSettings = {
     val serverHost = connectorConfig.getString(BloombergSourceConfigConstants.SERVER_HOST)
     require(serverHost.trim.nonEmpty, "Server host should be defined")
 

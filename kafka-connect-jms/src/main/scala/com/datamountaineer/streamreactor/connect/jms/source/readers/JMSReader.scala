@@ -16,10 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.jms.source.readers
 
-import javax.jms.Message
+import javax.jms.{Message, MessageConsumer}
 
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
-import com.datamountaineer.streamreactor.connect.jms.JMSProvider
+import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -28,6 +28,7 @@ import org.apache.kafka.connect.source.SourceRecord
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
+import scala.util.Try
 
 /**
   * Created by andrew@datamountaineer.com on 10/03/2017. 
@@ -35,11 +36,11 @@ import scala.concurrent.{Await, Future}
   */
 class JMSReader(settings: JMSSettings) extends StrictLogging {
 
-  val provider = JMSProvider(settings)
+  val provider = JMSSessionProvider(settings)
   provider.start()
-  val consumers = provider.queueConsumers ++ provider.topicsConsumers
-  val convertersMap = settings.settings.map(s => (s.source, s.sourceConverters)).toMap
-  val topicsMap = settings.settings.map(s => (s.source, s.target)).toMap
+  val consumers: Map[String, MessageConsumer] = provider.queueConsumers ++ provider.topicsConsumers
+  val convertersMap: Map[String, Option[Converter]] = settings.settings.map(s => (s.source, s.sourceConverters)).toMap
+  val topicsMap: Map[String, String] = settings.settings.map(s => (s.source, s.target)).toMap
 
   def poll(): Map[Message, SourceRecord] = {
 
@@ -60,7 +61,7 @@ class JMSReader(settings: JMSSettings) extends StrictLogging {
     }
   }
 
-  def stop = provider.close()
+  def stop: Try[Unit] = provider.close()
 }
 
 object JMSReader {

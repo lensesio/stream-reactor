@@ -20,12 +20,12 @@ import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 
-class ConnectorConfig(map: java.util.Map[String, String]) extends AbstractConfig(ConnectorConfig.config, map)
+class BloombergSourceConfig(map: java.util.Map[String, String]) extends AbstractConfig(BloombergSourceConfig.config, map)
 
-object ConnectorConfig {
+object BloombergSourceConfig {
 
 
-  lazy val config = new ConfigDef()
+  lazy val config: ConfigDef = new ConfigDef()
     .define(BloombergSourceConfigConstants.SERVER_HOST, Type.STRING, Importance.HIGH, BloombergSourceConfigConstants.SERVER_HOST_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, BloombergSourceConfigConstants.SERVER_HOST)
     .define(BloombergSourceConfigConstants.SERVER_PORT, Type.INT, Importance.HIGH, BloombergSourceConfigConstants.SERVER_PORT_DOC, "Connection", 2, ConfigDef.Width.MEDIUM, BloombergSourceConfigConstants.SERVER_PORT)
     .define(BloombergSourceConfigConstants.SERVICE_URI, Type.STRING, Importance.HIGH, BloombergSourceConfigConstants.SERVICE_URI_DOC,  "Connection", 3, ConfigDef.Width.MEDIUM, BloombergSourceConfigConstants.SERVICE_URI)

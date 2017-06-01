@@ -82,7 +82,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
     }
   }
 
-  def isTokenBased() = {
+  def isTokenBased(): Boolean = {
     incrementMode.toUpperCase match {
       case "TIMESTAMP" | "TIMEUUID" => false
       case "TOKEN" => true

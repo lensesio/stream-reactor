@@ -33,13 +33,13 @@ abstract class CoapManager(setting: CoapSetting) extends StrictLogging {
 
   val configUri = new URI(setting.uri)
 
-  val uri = configUri.getHost match {
+  val uri: URI = configUri.getHost match {
     case CoapConstants.COAP_DISCOVER_IP4 => discoverServer(CoapConstants.COAP_DISCOVER_IP4_ADDRESS, configUri)
     case CoapConstants.COAP_DISCOVER_IP6 => discoverServer(CoapConstants.COAP_DISCOVER_IP6_ADDRESS, configUri)
     case _ => configUri
   }
 
-  val client = buildClient(uri)
+  val client: CoapClient = buildClient(uri)
 
   def buildClient(uri: URI): CoapClient = {
     val client = new CoapClient(uri)

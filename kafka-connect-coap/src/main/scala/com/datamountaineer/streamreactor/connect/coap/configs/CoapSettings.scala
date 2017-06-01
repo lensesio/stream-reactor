@@ -76,7 +76,7 @@ object CoapSettings {
     val retries = if (sink) Some(config.getInt(CoapConstants.NBR_OF_RETRIES).toInt) else None
 
     routes.map(r =>
-      new CoapSetting(uri,
+      CoapSetting(uri,
         keyStoreLoc,
         keyStorePass,
         trustStoreLoc,

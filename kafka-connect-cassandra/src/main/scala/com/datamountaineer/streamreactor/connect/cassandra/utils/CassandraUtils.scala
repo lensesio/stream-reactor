@@ -68,7 +68,7 @@ object CassandraUtils {
     //TODO do we need to get the list of columns everytime?
     val cols = row.getColumnDefinitions
     
-    val colFiltered = if (ignoreList != null && ignoreList.size > 0) {
+    val colFiltered = if (ignoreList != null && ignoreList.nonEmpty) {
       cols.filter(cd => !ignoreList.contains(cd.getName)).toList
     } 
     else {

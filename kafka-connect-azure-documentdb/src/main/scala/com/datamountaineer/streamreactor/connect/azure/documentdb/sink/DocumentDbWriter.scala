@@ -33,10 +33,6 @@ import scala.util.{Failure, Success, Try}
   * Writes a list of Kafka connect sink records to Azure DocumentDb using the JSON support.
   */
 class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: DocumentClient) extends StrictLogging with ConverterUtil with ErrorHandler {
-  private val database = Try(documentClient.readDatabase(s"dbs/${settings.database}", null).getResource) match {
-    case Failure(e) => throw new RuntimeException(s"Could not identify database ${settings.database}", e)
-    case Success(d) => d
-  }
 
   private val configMap = settings.kcql
     .map { c =>
@@ -45,7 +41,6 @@ class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: Documen
       }
       c.getSource -> c
     }.toMap
-
 
   //initialize error tracker
   initialize(settings.taskRetries, settings.errorPolicy)
@@ -72,15 +67,14 @@ class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: Documen
     **/
   private def insert(records: Seq[SinkRecord]) = {
     try {
-      records.groupBy(_.topic()).foreach { case (topic, groupedRecords) =>
-        val config = configMap(topic)
+      records.groupBy(_.topic()).foreach { case (_, groupedRecords) =>
         groupedRecords.foreach { record =>
           val (document, keysAndValues) = SinkRecordToDocument(
             record,
             settings.keyBuilderMap.getOrElse(record.topic(), Set.empty)
           )(settings)
 
-          val key = keysAndValues.flatMap { case (f, v) => Option(v) }.mkString(".")
+          val key = keysAndValues.flatMap { case (_, v) => Option(v) }.mkString(".")
           if (key.nonEmpty) {
             document.setId(key)
           }

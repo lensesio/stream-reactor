@@ -110,7 +110,7 @@ object CassandraConfigConstants {
   val SELECT_OFFSET_COLUMN = "___kafka_connect_offset_col"
 
   val ERROR_POLICY = "connect.cassandra.error.policy"
-  val ERROR_POLICY_DOC =
+  val ERROR_POLICY_DOC: String =
     """
       |Specifies the action to be taken if an error occurs while inserting the data.
       | There are three available options:
@@ -136,7 +136,7 @@ object CassandraConfigConstants {
   val SOURCE_KCQL_DOC = "KCQL expression describing field selection and routes."
 
   val SINK_THREAD_POOL_CONFIG = "connect.cassandra.sink.threadpool.size"
-  val SINK_THREAD_POOL_DOC =
+  val SINK_THREAD_POOL_DOC: String =
     """
       |The sink inserts all the data concurrently. To fail fast in case of an error, the sink has its own thread pool.
       |Set the value to zero and the threadpool will default to 4* NO_OF_CPUs. Set a value greater than 0
@@ -145,7 +145,7 @@ object CassandraConfigConstants {
   val SINK_THREAD_POOL_DEFAULT = 0
 
   val CONSISTENCY_LEVEL_CONFIG = "connect.cassandra.consistency.level"
-  val CONSISTENCY_LEVEL_DOC =
+  val CONSISTENCY_LEVEL_DOC: String =
     """
       |Consistency refers to how up-to-date and synchronized a row of Cassandra data is on all of its replicas.
       |Cassandra offers tunable consistency. For any given read or write operation, the client application decides how consistent the requested data must be.

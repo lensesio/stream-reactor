@@ -56,7 +56,7 @@ object DruidSinkSettings {
     ).toMap
 
     val extractors = routes.map(r => {
-      val ignore = if (r.getIgnoredField.size > 0) true else false
+      val ignore = if (r.getIgnoredField.nonEmpty) true else false
       (r.getSource, StructFieldsExtractor(ignore, fields(r.getSource)))
     }).toMap
 

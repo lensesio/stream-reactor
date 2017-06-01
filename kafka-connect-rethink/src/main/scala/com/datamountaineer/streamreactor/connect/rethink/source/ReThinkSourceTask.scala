@@ -39,7 +39,7 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
   private var readers: Set[ActorRef] = _
   implicit val system = ActorSystem()
 
-  private var progressCounter = new ProgressCounter
+  private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
 
   override def start(props: util.Map[String, String]): Unit = {

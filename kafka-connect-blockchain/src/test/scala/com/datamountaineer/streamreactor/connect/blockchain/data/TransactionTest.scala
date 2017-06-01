@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.blockchain.data
 
-import com.datamountaineer.streamreactor.connect.blockchain.json.Json
+import com.datamountaineer.streamreactor.connect.blockchain.json.JacksonJson
 import com.datamountaineer.streamreactor.connect.blockchain.{GetResourcesFromDirectoryFn, Using}
 import org.scalatest.{Matchers, WordSpec}
 
@@ -25,7 +25,7 @@ class TransactionTest extends WordSpec with Matchers with Using {
     "be initialized from json" in {
       GetResourcesFromDirectoryFn("/transactions").foreach { file =>
         val json = scala.io.Source.fromFile(file).mkString
-        val message = Json.fromJson[BlockchainMessage](json)
+        val message = JacksonJson.fromJson[BlockchainMessage](json)
         message.x.isDefined shouldBe true
         val sr = message.x.get.toSourceRecord("test", 0, None)
       }
@@ -35,7 +35,7 @@ class TransactionTest extends WordSpec with Matchers with Using {
         .mkString
         .split(';')
         .foreach { json =>
-          val msg = Json.fromJson[BlockchainMessage](json)
+          val msg = JacksonJson.fromJson[BlockchainMessage](json)
           msg.x.isDefined shouldBe true
           msg.x.get.toSourceRecord("test", 0, None)
         }

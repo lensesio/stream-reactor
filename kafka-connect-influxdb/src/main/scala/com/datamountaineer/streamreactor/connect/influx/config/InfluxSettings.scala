@@ -89,7 +89,7 @@ object InfluxSettings {
     val consistencyLevel = Try {
       ConsistencyLevel.valueOf(config.getString(InfluxSinkConfigConstants.CONSISTENCY_CONFIG))
     } match {
-      case Failure(e) => throw new ConfigException(s"${config.getString(InfluxSinkConfigConstants.CONSISTENCY_CONFIG)} is not a valid value for ${InfluxSinkConfigConstants.CONSISTENCY_CONFIG}. Available values are:${ConsistencyLevel.values().mkString(",")}")
+      case Failure(_) => throw new ConfigException(s"${config.getString(InfluxSinkConfigConstants.CONSISTENCY_CONFIG)} is not a valid value for ${InfluxSinkConfigConstants.CONSISTENCY_CONFIG}. Available values are:${ConsistencyLevel.values().mkString(",")}")
       case Success(cl) => cl
     }
 

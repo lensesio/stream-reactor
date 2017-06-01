@@ -53,7 +53,7 @@ private[bloomberg] class AvroSchemaGenerator(namespace: String) {
         val firstItemSchema = if (list.isEmpty) {
                                   Schema.create(Schema.Type.NULL) }
                               else {
-                                  getSchema(create(name, list.get(0), allowOptional = false), optional = false)
+                                  getSchema(create(name, list.get(0)))
                               }
         getSchema(Schema.createArray(firstItemSchema), allowOptional)
       case map: java.util.LinkedHashMap[String @unchecked, _] =>

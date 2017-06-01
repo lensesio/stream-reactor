@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants}
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbConfigConstants
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.microsoft.azure.documentdb._
 import org.apache.kafka.connect.sink.SinkRecord

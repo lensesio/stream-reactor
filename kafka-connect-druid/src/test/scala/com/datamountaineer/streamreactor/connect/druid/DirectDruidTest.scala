@@ -240,7 +240,7 @@ trait DruidIntegrationSuite extends Logging with CuratorRequiringSuite
         brokerObjectMapper.writeValueAsBytes(query.run(walker, Map.empty[String, AnyRef].asJava))
       )
       val gotAsString = got.toString match {
-        case x if x.size > 1024 => x.take(1024) + " ..."
+        case x if x.length > 1024 => x.take(1024) + " ..."
         case x => x
       }
       if (got != expected) {

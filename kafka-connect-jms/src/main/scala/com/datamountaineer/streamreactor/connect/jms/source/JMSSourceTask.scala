@@ -38,7 +38,7 @@ class JMSSourceTask extends SourceTask with StrictLogging {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-source-ascii.txt")).mkString)
     JMSConfig.config.parse(props)
     val config = new JMSConfig(props)
-    val settings = JMSSettings(config, false)
+    val settings = JMSSettings(config, sink = false)
     reader = JMSReader(settings)
   }
 

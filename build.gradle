@@ -240,7 +240,7 @@ task prepareReleaseDir(type: Copy) {
 task downloadCli(type: Download, dependsOn: prepareReleaseDir) {
     overwrite false
     src cliUrl
-    dest libsDir
+    dest binDir
 }
 
 task downloadSchemaCli(type: Download, dependsOn: prepareReleaseDir) {

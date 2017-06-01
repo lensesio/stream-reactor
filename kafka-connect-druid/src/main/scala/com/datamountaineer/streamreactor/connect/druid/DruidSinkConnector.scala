@@ -47,7 +47,7 @@ class DruidSinkConnector extends SinkConnector with StrictLogging {
     **/
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
-    (1 to maxTasks).map(c => configProps.get).toList.asJava
+    (1 to maxTasks).map(_ => configProps.get).toList.asJava
   }
 
   /**
