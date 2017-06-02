@@ -15,7 +15,7 @@ trait ConsistencyLevelSettings[T <: Enum[T]] extends BaseSettings {
       case "" => None
       case other =>
         Try(Enum.valueOf[T](enum, other)) match {
-          case Failure(e) => throw new ConfigException(s"'$other' is not a valid $consistencyLevelConstant. " +
+          case Failure(_) => throw new ConfigException(s"'$other' is not a valid $consistencyLevelConstant. " +
             s"Available values are:${enum.getEnumConstants.map(_.toString).mkString(",")}")
           case Success(cl) => Some(cl)
         }

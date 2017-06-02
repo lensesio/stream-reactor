@@ -19,9 +19,9 @@ package com.datamountaineer.streamreactor.connect.jms.sink.writer
 import javax.jms._
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
-import com.datamountaineer.streamreactor.connect.jms.JMSProvider
-import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
-import com.datamountaineer.streamreactor.connect.jms.sink.converters.JMSMessageConverterFn
+import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
+import com.datamountaineer.streamreactor.connect.jms.config.{JMSSetting, JMSSettings}
+import com.datamountaineer.streamreactor.connect.jms.sink.converters.{JMSMessageConverter, JMSMessageConverterFn}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
@@ -30,11 +30,11 @@ import scala.util.{Failure, Success, Try}
 
 case class JMSWriter(settings: JMSSettings) extends AutoCloseable with ConverterUtil with ErrorHandler with StrictLogging {
 
-  val provider = JMSProvider(settings, sink = true)
+  val provider = JMSSessionProvider(settings, sink = true)
   provider.start()
-  val producers = provider.queueProducers ++ provider.topicProducers
-  val converterMap = settings.settings.map(s => (s.source, JMSMessageConverterFn(s.format))).toMap
-  val settingsMap = settings.settings.map(s => (s.source, s)).toMap
+  val producers: Map[String, MessageProducer] = provider.queueProducers ++ provider.topicProducers
+  val converterMap: Map[String, JMSMessageConverter] = settings.settings.map(s => (s.source, JMSMessageConverterFn(s.format))).toMap
+  val settingsMap: Map[String, JMSSetting] = settings.settings.map(s => (s.source, s)).toMap
 
   //initialize error tracker
   initialize(settings.retries, settings.errorPolicy)
@@ -51,7 +51,7 @@ case class JMSWriter(settings: JMSSettings) extends AutoCloseable with Converter
   /**
     * Write the records
     * */
-  def write(records: Seq[SinkRecord]) = {
+  def write(records: Seq[SinkRecord]): Option[Unit] = {
     //convert and send, commit the session if good
     val sent = Try({
       val messages = records.map(createJMSRecord)
@@ -61,12 +61,11 @@ case class JMSWriter(settings: JMSSettings) extends AutoCloseable with Converter
 
     //rollback on failure
     sent match {
-      case Failure(f) => {
+      case Failure(f) =>
         logger.error(s"Error processing messages, ${f.getMessage}")
         provider.session.rollback()
         //handle error tracking for redelivery for Connect
         handleTry(sent)
-      }
       case _ => handleTry(Success())
     }
   }
@@ -74,7 +73,7 @@ case class JMSWriter(settings: JMSSettings) extends AutoCloseable with Converter
   /**
     * Send the messages to the JMS destination
     * */
-  def send(messages: Seq[(String, Message)]) = {
+  def send(messages: Seq[(String, Message)]): Unit = {
     messages.foreach({ case (name, message) => producers(name).send(message)})
   }
 

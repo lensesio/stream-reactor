@@ -5,7 +5,7 @@ import java.time.LocalDateTime._
 import java.time.format.DateTimeFormatter._
 
 object ClockProvider {
-  val ClockInstance = Clock.systemUTC()
+  val ClockInstance: Clock = Clock.systemUTC()
 }
 
 sealed trait IndexNameFragment {

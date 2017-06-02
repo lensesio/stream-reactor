@@ -78,7 +78,7 @@ class ReThinkSourceReader(rethink: RethinkDB,
     * by the task
     *
     **/
-  private def read = {
+  private def read() = {
     logger.info(s"Starting changefeed for ${route.getSource}")
     val feed = changeFeed()
     while (feed.hasNext() && readFlag) {

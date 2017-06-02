@@ -33,7 +33,7 @@ import org.eclipse.californium.core.{CoapHandler, CoapObserveRelation, CoapRespo
 
 object CoapReaderFactory {
   def apply(settings: Set[CoapSetting], queue: LinkedBlockingQueue[SourceRecord]): Set[CoapReader] = {
-    settings.map(s => new CoapReader(s, queue))
+    settings.map(s => CoapReader(s, queue))
   }
 }
 
@@ -45,13 +45,13 @@ case class CoapReader(setting: CoapSetting, queue: LinkedBlockingQueue[SourceRec
   read
 
   //start observing
-  def read = {
+  def read(): Unit = {
     observing = true
     logger.info(s"Starting observation of resource ${setting.uri}/${setting.kcql.getSource} and writing to ${setting.kcql.getTarget}")
     relation = Some(client.observe(handler))
   }
 
-  def stop = {
+  def stop(): Unit = {
     relation.foreach(r => r.proactiveCancel())
     client.delete(handler)
     client.shutdown()

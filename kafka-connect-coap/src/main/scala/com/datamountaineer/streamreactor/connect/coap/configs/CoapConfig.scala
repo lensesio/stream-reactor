@@ -59,9 +59,9 @@ case class CoapConfig() {
 }
 
 object CoapSinkConfig {
-  val base = CoapConfig().config
+  val base: ConfigDef = CoapConfig().config
 
-  val config = base
+  val config: ConfigDef = base
     .define(CoapConstants.ERROR_POLICY, Type.STRING, CoapConstants.ERROR_POLICY_DEFAULT, Importance.HIGH, CoapConstants.ERROR_POLICY_DOC,
       "Error", 1, ConfigDef.Width.LONG, CoapConstants.ERROR_POLICY)
     .define(CoapConstants.NBR_OF_RETRIES, Type.INT, CoapConstants.NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, CoapConstants.NBR_OF_RETRIES_DOC,
@@ -74,7 +74,7 @@ case class CoapSinkConfig(props: util.Map[String, String])
   extends AbstractConfig(CoapSinkConfig.config, props)
 
 object CoapSourceConfig {
-  val config = CoapConfig().config
+  val config: ConfigDef = CoapConfig().config
 }
 
 case class CoapSourceConfig(props: util.Map[String, String])

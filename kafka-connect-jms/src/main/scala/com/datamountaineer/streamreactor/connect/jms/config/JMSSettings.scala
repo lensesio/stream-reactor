@@ -64,7 +64,7 @@ object JMSSettings extends StrictLogging {
     val clazz = config.getString(JMSConfigConstants.CONNECTION_FACTORY)
     val destinationSelector = DestinationSelector.withName(config.getString(JMSConfigConstants.DESTINATION_SELECTOR).toUpperCase)
     val extraProps = config.getList(JMSConfigConstants.EXTRA_PROPS)
-      .map(p => p.split("=").grouped(2).map { case Array(k: String, v: String) => (k.trim -> v.trim) }.toMap).toList
+      .map(p => p.split("=").grouped(2).map { case Array(k: String, v: String) => k.trim -> v.trim }.toMap).toList
 
     val url = config.getString(JMSConfigConstants.JMS_URL)
     if (url == null || url.trim.length == 0) {
@@ -138,7 +138,7 @@ object JMSSettings extends StrictLogging {
     }
 
     val jmsTopics = config.getList(JMSConfigConstants.TOPIC_LIST).toSet
-    val jmsSubscriptionName = config.getString(JMSConfigConstants.TOPIC_SUBSCRIPTION_NAME);
+    val jmsSubscriptionName = config.getString(JMSConfigConstants.TOPIC_SUBSCRIPTION_NAME)
     val jmsQueues = config.getList(JMSConfigConstants.QUEUE_LIST).toSet
 
     val settings = kcql.map(r => {

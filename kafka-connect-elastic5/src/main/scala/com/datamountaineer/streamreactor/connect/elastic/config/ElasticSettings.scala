@@ -72,7 +72,7 @@ object ElasticSettings {
         value.split(";").map { s =>
           s.split("=") match {
             case Array(k, v) => k -> v
-            case other => throw new IllegalArgumentException(s"Invalid setting provided for ${ElasticSinkConfigConstants.ES_CLUSTER_XPACK_SETTINGS}. '$s' is not a valid xpack setting. You need to provide in the format of 'key=value'")
+            case _ => throw new IllegalArgumentException(s"Invalid setting provided for ${ElasticSinkConfigConstants.ES_CLUSTER_XPACK_SETTINGS}. '$s' is not a valid xpack setting. You need to provide in the format of 'key=value'")
           }
         }.toMap
       }.getOrElse(Map.empty)

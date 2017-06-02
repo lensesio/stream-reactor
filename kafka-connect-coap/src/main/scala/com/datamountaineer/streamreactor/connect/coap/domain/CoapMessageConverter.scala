@@ -31,7 +31,7 @@ import scala.collection.JavaConverters._
 
 case class CoapMessageConverter() {
 
-  val keySchema = SchemaBuilder
+  val keySchema: Schema = SchemaBuilder
     .struct()
     .version(1)
     .field("source", Schema.OPTIONAL_STRING_SCHEMA)
@@ -39,7 +39,7 @@ case class CoapMessageConverter() {
     .field("message_id", Schema.OPTIONAL_INT32_SCHEMA)
     .build()
 
-  val schema = SchemaBuilder
+  val schema: Schema = SchemaBuilder
     .struct()
     .version(1)
     .field("ingest_time", Schema.OPTIONAL_INT64_SCHEMA)

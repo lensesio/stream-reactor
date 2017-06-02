@@ -93,26 +93,26 @@ object CassandraConnection extends StrictLogging {
     **/
   private def addSSL(connectorConfig: AbstractConfig, builder: Builder): Builder = {
     val ssl = connectorConfig.getBoolean(CassandraConfigConstants.SSL_ENABLED).asInstanceOf[Boolean]
-    ssl match {
-      case true =>
-        logger.info("Setting up SSL context.")
-        val sslConfig = SSLConfig(
-          trustStorePath = connectorConfig.getString(CassandraConfigConstants.TRUST_STORE_PATH),
-          trustStorePass = connectorConfig.getPassword(CassandraConfigConstants.TRUST_STORE_PASSWD).value,
-          keyStorePath = Some(connectorConfig.getString(CassandraConfigConstants.KEY_STORE_PATH)),
-          keyStorePass = Some(connectorConfig.getPassword(CassandraConfigConstants.KEY_STORE_PASSWD).value),
-          useClientCert = connectorConfig.getBoolean(CassandraConfigConstants.USE_CLIENT_AUTH),
-          keyStoreType = connectorConfig.getString(CassandraConfigConstants.KEY_STORE_TYPE),
-          trustStoreType = connectorConfig.getString(CassandraConfigConstants.TRUST_STORE_TYPE)
-        )
+    if (ssl) {
+      logger.info("Setting up SSL context.")
+      val sslConfig = SSLConfig(
+        trustStorePath = connectorConfig.getString(CassandraConfigConstants.TRUST_STORE_PATH),
+        trustStorePass = connectorConfig.getPassword(CassandraConfigConstants.TRUST_STORE_PASSWD).value,
+        keyStorePath = Some(connectorConfig.getString(CassandraConfigConstants.KEY_STORE_PATH)),
+        keyStorePass = Some(connectorConfig.getPassword(CassandraConfigConstants.KEY_STORE_PASSWD).value),
+        useClientCert = connectorConfig.getBoolean(CassandraConfigConstants.USE_CLIENT_AUTH),
+        keyStoreType = connectorConfig.getString(CassandraConfigConstants.KEY_STORE_TYPE),
+        trustStoreType = connectorConfig.getString(CassandraConfigConstants.TRUST_STORE_TYPE)
+      )
 
-        val context = SSLConfigContext(sslConfig)
-        //val cipherSuites: Array[String] = Array("TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA")
-        val sSLOptions = new JdkSSLOptions.Builder
-        //sSLOptions.withCipherSuites(cipherSuites)
-        sSLOptions.withSSLContext(context)
-        builder.withSSL(sSLOptions.build())
-      case false => builder
+      val context = SSLConfigContext(sslConfig)
+      //val cipherSuites: Array[String] = Array("TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA")
+      val sSLOptions = new JdkSSLOptions.Builder
+      //sSLOptions.withCipherSuites(cipherSuites)
+      sSLOptions.withSSLContext(context)
+      builder.withSSL(sSLOptions.build())
+    } else {
+      builder
     }
   }
 }

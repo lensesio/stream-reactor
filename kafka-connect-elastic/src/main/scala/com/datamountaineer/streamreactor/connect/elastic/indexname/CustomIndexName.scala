@@ -5,7 +5,7 @@ import scala.annotation.tailrec
 class InvalidCustomIndexNameException(message: String) extends RuntimeException(message)
 
 case class CustomIndexName(fragments: Vector[IndexNameFragment]) {
-  override def toString = fragments.map(_.getFragment).mkString
+  override def toString: String = fragments.map(_.getFragment).mkString
 }
 
 object CustomIndexName {

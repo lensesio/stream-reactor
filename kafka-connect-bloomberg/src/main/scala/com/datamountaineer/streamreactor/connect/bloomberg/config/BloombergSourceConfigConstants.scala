@@ -28,22 +28,22 @@ object BloombergSourceConfigConstants {
   val SERVICE_URI_DOC = "The Bloomberg service type: Market Data(//blp/mkdata);Reference Data(//blp/refdata)"
 
   val AUTHENTICATION_MODE = "connect.bloomberg.authentication.mode"
-  val AUTHENTICATION_MODE_DOC = "Optional parameter setting how the authentication should be done. " +
+  val AUTHENTICATION_MODE_DOC: String = "Optional parameter setting how the authentication should be done. " +
     "It can be APPLICATION_ONLY or USER_AND_APPLICATION. Follow the Bloomberg API documentation for how to configure this"
 
   val SUBSCRIPTIONS = "connect.bloomberg.subscriptions"
-  val SUBSCRIPTION_DOC = "Provides the list of securities and the fields to subscribe to. " +
+  val SUBSCRIPTION_DOC: String = "Provides the list of securities and the fields to subscribe to. " +
     "Example: \"AAPL US Equity:LAST_PRICE,BID,ASK;IBM US Equity:BID,ASK,HIGH,LOW,OPEN\""
 
   val KAFKA_TOPIC: String = "connect.bloomberg.kafka.topic"
   val KAFKA_TOPIC_DOC: String = "The name of the kafka topic on which the data from Bloomberg will be sent."
 
   val BUFFER_SIZE = "connect.bloomberg.buffer.size"
-  val BUFFER_SIZE_DOC = "Specifies how big is the queue to hold the updates received from Bloomberg. If the buffer is full" +
+  val BUFFER_SIZE_DOC: String = "Specifies how big is the queue to hold the updates received from Bloomberg. If the buffer is full" +
     "it won't accept new items until it is drained."
 
   val PAYLOAD_TYPE = "connect.bloomberg.payload.type"
-  val PAYLOAD_TYPE_DOC = "Specifies the way the information is serialized and sent over kafka. " +
+  val PAYLOAD_TYPE_DOC: String = "Specifies the way the information is serialized and sent over kafka. " +
     "There are two modes supported: json(default) and avro."
 
   val BloombergServicesUris = Set("//blp/mkdata", "//blp/refdata")
@@ -54,7 +54,7 @@ object BloombergSourceConfigConstants {
   val EXPORT_ROUTE_QUERY_DOC = ""
 
   val ERROR_POLICY = "connect.bloomberg.error.policy"
-  val ERROR_POLICY_DOC = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
+  val ERROR_POLICY_DOC: String = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
     "There are two available options: \n" + "NOOP - the error is swallowed \n" +
     "THROW - the error is allowed to propagate. \n" +
     "RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on \n" +

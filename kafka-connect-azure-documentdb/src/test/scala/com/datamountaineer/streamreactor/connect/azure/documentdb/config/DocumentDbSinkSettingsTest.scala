@@ -63,7 +63,6 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
       val settings = DocumentDbSinkSettings(config)
       settings.database shouldBe "dbs/database1"
       settings.endpoint shouldBe connection
-      settings.batchSize shouldBe DocumentDbConfigConstants.BATCH_SIZE_CONFIG_DEFAULT
       settings.keyBuilderMap.size shouldBe 0
       settings.kcql.size shouldBe 2
       settings.errorPolicy shouldBe ThrowErrorPolicy()
@@ -82,7 +81,6 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
       val settings = DocumentDbSinkSettings(config)
       settings.database shouldBe "db/database1"
       settings.endpoint shouldBe connection
-      settings.batchSize shouldBe DocumentDbConfigConstants.BATCH_SIZE_CONFIG_DEFAULT
       settings.keyBuilderMap.size shouldBe 0
       settings.kcql.size shouldBe 1
       settings.keyBuilderMap.size shouldBe 0

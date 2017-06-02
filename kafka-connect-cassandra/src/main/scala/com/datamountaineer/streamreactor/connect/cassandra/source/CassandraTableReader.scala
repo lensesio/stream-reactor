@@ -75,7 +75,7 @@ class CassandraTableReader(private val session: Session,
     val tables = List(table)
     val recoveredOffsets = OffsetHandler.recoverOffsets(offsetStorageKey, tables, context)
     val offset = OffsetHandler.recoverOffset[String](recoveredOffsets, offsetStorageKey, table, primaryKeyCol)
-    offset.map(s => logger.info(s"Recovered offset $s"))
+    offset.foreach(s => logger.info(s"Recovered offset $s"))
     cqlGenerator.getDefaultOffsetValue(offset)
   }
 
@@ -210,7 +210,7 @@ class CassandraTableReader(private val session: Session,
             case Failure(e) =>
               reset(tableOffset)
               throw new ConnectException(s"Error processing row ${row.toString} for table $table.", e)
-            case Success(s) => logger.debug(s"Processed row ${row.toString}")
+            case Success(_) => logger.debug(s"Processed row ${row.toString}")
           }
         }
         logger.info(s"Processed $counter rows for table $topic.$table")

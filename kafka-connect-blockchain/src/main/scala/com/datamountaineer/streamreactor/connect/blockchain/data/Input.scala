@@ -21,7 +21,7 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 case class Input(sequence: Long, prev_out: Option[Output], script: String)
 
 object Input {
-  val ConnectSchema = SchemaBuilder.struct
+  val ConnectSchema: Schema = SchemaBuilder.struct
     .name("datamountaineer.blockchain.input")
     .doc("The input instance part of a transaction.")
     .field("sequence", Schema.INT64_SCHEMA)

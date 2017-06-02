@@ -16,6 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.hbase
 
+import io.confluent.connect.avro.AvroData
+import org.apache.avro.generic.GenericData
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.{Matchers, WordSpec}
@@ -62,6 +64,23 @@ class StructFieldsExtractorTest extends WordSpec with Matchers {
       Bytes.toString(map("lastName")) shouldBe "Smith"
       Bytes.toInt(map("age")) shouldBe 30
       Bytes.toBoolean(map("isRight")) shouldBe true
+    }
+
+    "handle bytes" in {
+      val avroSchema = org.apache.avro.Schema.createRecord("test", "", "n1", false)
+      val fields = new java.util.ArrayList[org.apache.avro.Schema.Field]
+      fields.add(new org.apache.avro.Schema.Field("data", org.apache.avro.Schema.create(org.apache.avro.Schema.Type.BYTES), null, null))
+      val schema = org.apache.avro.Schema.createRecord("Data", "", "avro.test", false)
+      schema.setFields(fields)
+
+      val record = new GenericData.Record(schema)
+      record.put("data", Array[Byte](1, 2, 3, 4, 5))
+
+      val data = new AvroData(4)
+      val valueAndSchema = data.toConnectData(schema, record)
+      val map = StructFieldsExtractorBytes(includeAllFields = true, Map.empty).get(valueAndSchema.value().asInstanceOf[Struct]).toMap
+
+      map("data") shouldBe Array[Byte](1, 2, 3, 4, 5)
     }
 
     "return all fields and apply the mapping" in {

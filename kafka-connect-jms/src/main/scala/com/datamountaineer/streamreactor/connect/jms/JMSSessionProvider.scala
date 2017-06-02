@@ -32,36 +32,36 @@ import scala.util.{Failure, Success, Try}
   * Created by andrew@datamountaineer.com on 10/03/2017. 
   * stream-reactor
   */
-case class JMSProvider(queueConsumers: Map[String, MessageConsumer],
-                       topicsConsumers: Map[String, MessageConsumer],
-                       queueProducers : Map[String, MessageProducer],
-                       topicProducers : Map[String, MessageProducer],
-                       session: Session,
-                       connection: Connection,
-                       context: InitialContext) extends StrictLogging {
+case class JMSSessionProvider(queueConsumers: Map[String, MessageConsumer],
+                              topicsConsumers: Map[String, MessageConsumer],
+                              queueProducers : Map[String, MessageProducer],
+                              topicProducers : Map[String, MessageProducer],
+                              session: Session,
+                              connection: Connection,
+                              context: InitialContext) extends StrictLogging {
 
-  def start() = {
+  def start(): Unit = {
     logger.info(s"Starting connection to ${connection.toString}")
     connection.start()
   }
 
-  def close() = {
+  def close(): Try[Unit] = {
     topicsConsumers.foreach({ case(source, consumer) =>
-      logger.info(s"Stopping topic consumer for ${source}")
+      logger.info(s"Stopping topic consumer for $source")
       consumer.close()
     })
     queueConsumers.foreach({ case(source, consumer) =>
-      logger.info(s"Stopping queue consumer for ${source}")
+      logger.info(s"Stopping queue consumer for $source")
       consumer.close()
     })
 
     topicProducers.foreach({ case(source, producer) =>
-      logger.info(s"Stopping topic producer for ${source}")
+      logger.info(s"Stopping topic producer for $source")
       producer.close()
     })
 
     queueProducers.foreach({ case(source, producer) =>
-      logger.info(s"Stopping queue producer for ${source}")
+      logger.info(s"Stopping queue producer for $source")
       producer.close()
     })
 
@@ -70,8 +70,8 @@ case class JMSProvider(queueConsumers: Map[String, MessageConsumer],
   }
 }
 
-object JMSProvider extends StrictLogging {
-  def apply(settings: JMSSettings, sink: Boolean = false): JMSProvider ={
+object JMSSessionProvider extends StrictLogging {
+  def apply(settings: JMSSettings, sink: Boolean = false): JMSSessionProvider ={
     val context =  new InitialContext(getProps(settings))
     val connectionFactory = context.lookup(settings.connectionFactoryClass).asInstanceOf[ConnectionFactory]
     val connection = settings.user match {
@@ -101,13 +101,13 @@ object JMSProvider extends StrictLogging {
     val queueProducers = configureDestination(QueueDestination, context, session, settings, sink)
                             .flatMap({ case (source, queue) => createProducers(source, session, queue) }).toMap
 
-    new JMSProvider(queueConsumers, topicsConsumers, queueProducers, topicProducers, session, connection, context)
+    new JMSSessionProvider(queueConsumers, topicsConsumers, queueProducers, topicProducers, session, connection, context)
   }
 
-  def configureDestination(destinationType: DestinationType, context: InitialContext, session: Session, settings: JMSSettings, sink: Boolean = false) = {
+  def configureDestination(destinationType: DestinationType, context: InitialContext, session: Session, settings: JMSSettings, sink: Boolean = false): List[(String, Destination)] = {
     settings.settings
       .filter(f => f.destinationType.equals(destinationType))
-      .map(t => (t.source, getDestination((if (sink) t.target else t.source), context, settings.destinationSelector, destinationType, session)))
+      .map(t => (t.source, getDestination(if (sink) t.target else t.source, context, settings.destinationSelector, destinationType, session)))
   }
 
   def createProducers(source: String, session: Session, destination: Destination) = Map(source -> session.createProducer(destination))
@@ -127,12 +127,11 @@ object JMSProvider extends StrictLogging {
                              destination: DestinationType, session: Session): Destination = {
     selector match {
       case DestinationSelector.JNDI => context.lookup(name).asInstanceOf[Destination]
-      case DestinationSelector.CDI => {
+      case DestinationSelector.CDI =>
         destination match {
           case QueueDestination => session.createQueue(name)
           case TopicDestination => session.createTopic(name)
         }
-      }
     }
   }
 

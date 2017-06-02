@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.ftp
 import java.util.Properties
 
 object GitRepositoryState {
-  val props = {
+  val props: Properties = {
     val p = new Properties()
     p.load(getClass.getClassLoader.getResourceAsStream("git.properties"))
     p

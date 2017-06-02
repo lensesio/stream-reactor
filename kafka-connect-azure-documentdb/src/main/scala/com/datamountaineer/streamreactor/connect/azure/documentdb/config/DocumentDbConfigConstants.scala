@@ -37,12 +37,8 @@ object DocumentDbConfigConstants {
   val MASTER_KEY_DOC = "The connection master key"
   val MASTER_KEY_DISPLAY = "Master Key"
 
-  val BATCH_SIZE_CONFIG = "connect.documentdb.sink.batch.size"
-  val BATCH_SIZE_DOC = "The number of records the sink would push to DocumentDb at once."
-  val BATCH_SIZE_CONFIG_DEFAULT = 100
-
   val ERROR_POLICY_CONFIG = "connect.documentdb.error.policy"
-  val ERROR_POLICY_DOC =
+  val ERROR_POLICY_DOC: String =
     """Specifies the action to be taken if an error occurs while inserting the data
       |There are two available options:
       |NOOP - the error is swallowed

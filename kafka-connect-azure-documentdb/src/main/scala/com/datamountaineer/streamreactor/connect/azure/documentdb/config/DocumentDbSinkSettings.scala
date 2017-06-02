@@ -37,8 +37,8 @@ case class DocumentDbSinkSettings(endpoint: String,
                                   consistency: ConsistencyLevel,
                                   createDatabase: Boolean,
                                   proxy: Option[String],
-                                  taskRetries: Int = DocumentDbConfigConstants.NBR_OF_RETIRES_DEFAULT,
-                                  batchSize: Int = DocumentDbConfigConstants.BATCH_SIZE_CONFIG_DEFAULT) {
+                                  taskRetries: Int = DocumentDbConfigConstants.NBR_OF_RETIRES_DEFAULT
+                                  ) {
 
 }
 
@@ -65,7 +65,7 @@ object DocumentDbSinkSettings extends StrictLogging {
     if (routes.isEmpty)
       throw new ConfigException(s"Invalid ${DocumentDbConfigConstants.KCQL_CONFIG}. You need to provide at least one route")
 
-    val batchSize = config.getInt(DocumentDbConfigConstants.BATCH_SIZE_CONFIG)
+    //val batchSize = config.getInt(DocumentDbConfigConstants.BATCH_SIZE_CONFIG)
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(DocumentDbConfigConstants.ERROR_POLICY_CONFIG).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
     val retries = config.getInt(DocumentDbConfigConstants.NBR_OF_RETRIES_CONFIG)
@@ -86,7 +86,7 @@ object DocumentDbSinkSettings extends StrictLogging {
     val ignoreFields = routes.map(r => (r.getSource, r.getIgnoredField.toSet)).toMap
 
     val consistencyLevel = Try(ConsistencyLevel.valueOf(config.getString(DocumentDbConfigConstants.CONSISTENCY_CONFIG))) match {
-      case Failure(e) => throw new ConfigException(
+      case Failure(_) => throw new ConfigException(
         s"""
            |${config.getString(DocumentDbConfigConstants.CONSISTENCY_CONFIG)} is not a valid entry for ${DocumentDbConfigConstants.CONSISTENCY_CONFIG}
            |Available values are ${ConsistencyLevel.values().mkString(",")}""".stripMargin)
@@ -104,7 +104,6 @@ object DocumentDbSinkSettings extends StrictLogging {
       consistencyLevel,
       config.getBoolean(DocumentDbConfigConstants.CREATE_DATABASE_CONFIG),
       Option(config.getString(DocumentDbConfigConstants.PROXY_HOST_CONFIG)),
-      retries,
-      batchSize)
+      retries)
   }
 }

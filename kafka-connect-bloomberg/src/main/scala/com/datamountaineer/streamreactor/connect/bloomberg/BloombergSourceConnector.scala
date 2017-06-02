@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.bloomberg
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.bloomberg.config.ConnectorConfig
+import com.datamountaineer.streamreactor.connect.bloomberg.config.BloombergSourceConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -36,7 +36,7 @@ import scala.collection.JavaConverters._
   */
 class BloombergSourceConnector extends SourceConnector with StrictLogging {
   private var bloombergSettings: Option[BloombergSettings] = None
-  private val configDef = ConnectorConfig.config
+  private val configDef = BloombergSourceConfig.config
 
   /**
     * Defines the sink class to use
@@ -65,7 +65,7 @@ class BloombergSourceConnector extends SourceConnector with StrictLogging {
     **/
   override def start(props: util.Map[String, String]): Unit = {
     try {
-      bloombergSettings = Some(BloombergSettings(new ConnectorConfig(props)))
+      bloombergSettings = Some(BloombergSettings(new BloombergSourceConfig(props)))
     }
     catch {
       case t: Throwable => throw new ConnectException("Cannot start the Bloomberg connector due to invalid configuration.", t)

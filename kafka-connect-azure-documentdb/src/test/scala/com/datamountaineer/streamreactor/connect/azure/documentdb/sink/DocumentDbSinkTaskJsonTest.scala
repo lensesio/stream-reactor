@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants}
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbConfigConstants
 import com.microsoft.azure.documentdb._
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.Schema

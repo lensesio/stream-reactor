@@ -81,7 +81,7 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
               val recordToSink = convert(record, fields = KCQL.fieldsAndAliases + (scoreField -> scoreField), ignoreFields = KCQL.ignoredFields)
               val payload = convertValueToJson(recordToSink)
 
-              val score = StringStructFieldsStringKeyBuilder(Seq(scoreField)).build(recordToSink).toDouble
+              val score = StringStructFieldsStringKeyBuilder(Seq(scoreField)).build(record).toDouble
 
               logger.debug(s"ZADD $sortedSetName    score = $score     payload = ${payload.toString}")
               val response = jedis.zadd(sortedSetName, score, payload.toString)

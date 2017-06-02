@@ -47,7 +47,7 @@ class JMSSinkTask extends SinkTask with StrictLogging {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-sink-ascii.txt")).mkString)
     JMSConfig.config.parse(props)
     val sinkConfig = new JMSConfig(props)
-    val settings = JMSSettings(sinkConfig, true)
+    val settings = JMSSettings(sinkConfig, sink = true)
 
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {

@@ -98,7 +98,7 @@ object HazelCastSinkConfigConstants {
   val NBR_OF_RETIRES_DEFAULT = 20
 
   val SINK_THREAD_POOL_CONFIG = "connect.hazelcast.sink.threadpool.size"
-  val SINK_THREAD_POOL_DOC =
+  val SINK_THREAD_POOL_DOC: String =
     """
       |The sink inserts all the data concurrently. To fail fast in case of an error, the sink has its own thread pool.
       |Set the value to zero and the threadpool will default to 4* NO_OF_CPUs. Set a value greater than 0

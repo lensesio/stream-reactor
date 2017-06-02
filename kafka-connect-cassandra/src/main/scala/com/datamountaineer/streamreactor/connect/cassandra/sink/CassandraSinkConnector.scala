@@ -50,7 +50,7 @@ class CassandraSinkConnector extends Connector with StrictLogging {
     **/
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
-    (1 to maxTasks).map(c => configProps).toList
+    (1 to maxTasks).map(_ => configProps).toList
   }
 
   /**

@@ -34,7 +34,7 @@ import scala.util.{Failure, Success}
 object SourceRecordProducers {
   type SourceRecordProducer = (ConnectFileMetaDataStore, String, FileMetaData, FileBody) => SourceRecord
 
-  val fileInfoSchema = SchemaBuilder.struct().name("com.datamountaineer.streamreactor.connect.ftp.FileInfo")
+  val fileInfoSchema: Schema = SchemaBuilder.struct().name("com.datamountaineer.streamreactor.connect.ftp.FileInfo")
     .field("name", Schema.STRING_SCHEMA)
     .field("offset", Schema.INT64_SCHEMA)
     .build()
@@ -71,15 +71,15 @@ object SourceRecordProducers {
 class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) extends StrictLogging {
   val metaStore = new ConnectFileMetaDataStore(offsetStorage)
 
-  val monitor2topic = cfg.ftpMonitorConfigs
+  val monitor2topic: Map[MonitoredPath, String] = cfg.ftpMonitorConfigs
     .map(monitorCfg => (MonitoredPath(monitorCfg.path, monitorCfg.tail), monitorCfg.topic)).toMap
 
-  val pollDuration = Duration.parse(cfg.getString(FtpSourceConfigConstants.REFRESH_RATE))
-  val maxBackoff = Duration.parse(cfg.getString(FtpSourceConfigConstants.MAX_BACKOFF))
+  val pollDuration: Duration = Duration.parse(cfg.getString(FtpSourceConfigConstants.REFRESH_RATE))
+  val maxBackoff: Duration = Duration.parse(cfg.getString(FtpSourceConfigConstants.MAX_BACKOFF))
 
   var backoff = new ExponentialBackOff(pollDuration, maxBackoff)
 
-  val ftpMonitor = {val (host,optPort) = cfg.address
+  val ftpMonitor: FtpMonitor = {val (host,optPort) = cfg.address
     new FtpMonitor(
     FtpMonitorSettings(
       host,

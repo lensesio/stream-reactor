@@ -46,7 +46,7 @@ class HazelCastWriter(settings: HazelCastSinkSettings) extends StrictLogging
 
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
-  val writers = getWriters(settings.topicObject)
+  val writers: Map[String, Writer] = getWriters(settings.topicObject)
 
   def getWriters(tp: Map[String, HazelCastStoreAsType]): Map[String, Writer] = {
     tp.map({
@@ -79,7 +79,7 @@ class HazelCastWriter(settings: HazelCastSinkSettings) extends StrictLogging
     }
   }
 
-  def sequentialWrite(records: Seq[SinkRecord]) = {
+  def sequentialWrite(records: Seq[SinkRecord]): Any = {
     try {
       records.foreach(r => insert(r))
     } catch {
@@ -89,7 +89,7 @@ class HazelCastWriter(settings: HazelCastSinkSettings) extends StrictLogging
     }
   }
 
-  def parallelWrite(records: Seq[SinkRecord]) = {
+  def parallelWrite(records: Seq[SinkRecord]): Any = {
     logger.warn("Running parallel writes! Order of writes not guaranteed.")
     val executor = Executors.newFixedThreadPool(settings.threadPoolSize)
 
@@ -113,7 +113,7 @@ class HazelCastWriter(settings: HazelCastSinkSettings) extends StrictLogging
     }
   }
 
-  def insert(record: SinkRecord) = {
+  def insert(record: SinkRecord): Unit = {
     val writer = writers.get(record.topic())
     writer.foreach(w => w.write(record))
   }
