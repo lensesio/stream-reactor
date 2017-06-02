@@ -157,6 +157,11 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
     } else {
       setting.timestampColType.toString()
     }
+    
+    incMode.toUpperCase match {
+      case "TOKEN" => logger.warn(s"\n****\n**** TOKEN MODE SHOULD ONLY USED WITH ByteOrderedPartitioner\n****");
+    }
+    
     incMode
   }
 

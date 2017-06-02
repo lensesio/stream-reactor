@@ -40,7 +40,7 @@ class TestCassandraSourceTaskTokenCql extends WordSpec with Matchers with Before
     with ConverterUtil {
 
   before {
-    startEmbeddedCassandra()
+    startEmbeddedCassandra("cassandra.ByteOrderedPartitioner.yaml")
   }
 
   after {
@@ -63,7 +63,7 @@ class TestCassandraSourceTaskTokenCql extends WordSpec with Matchers with Before
         CassandraConfigConstants.USERNAME -> USERNAME,
         CassandraConfigConstants.PASSWD -> PASSWD,
         CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
-        CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT id, string_field FROM $TABLE5 PK id BATCH=1 INCREMENTALMODE=TOKEN",
+        CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT id, string_field FROM $TABLE5 PK id BATCH=2 INCREMENTALMODE=TOKEN",
         CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE5",
         CassandraConfigConstants.POLL_INTERVAL -> "1000",
         CassandraConfigConstants.FETCH_SIZE -> "10",
@@ -75,43 +75,51 @@ class TestCassandraSourceTaskTokenCql extends WordSpec with Matchers with Before
     task.initialize(taskContext)
     task.start(config)
 
-    val records = pollAndWait(task)
+    var records = pollAndWait(task)
 
-    records.size() shouldBe 1
+    records.size() shouldBe 2
+
+    var sourceRecord = records.asScala(0)
+    checkSourceRecord(sourceRecord, "chewie")
     
-    val sourceRecord = records.asScala.head
-    val json: JsonNode = convertValueToJson(sourceRecord)
-    
-    val recordId = json.get("id").asText()
-    recordId.size > 0
-    
-    val stringField = json.get("string_field").asText()
-    stringField.equals("yoda") || stringField.equals("chewie") shouldBe true
-    json.get("timestamp_field") shouldBe null
-    json.get("int_field") shouldBe null
-    
+    sourceRecord = records.asScala(1)
+    checkSourceRecord(sourceRecord, "yoda")
+
+    //
+    // insert more data
+    // 
+    insert(session, "han solo")
+    insert(session, "greedo")
+    insert(session, "kenobi")
+    insert(session, "windu")
+
     //
     // call 2nd time
     //
-    val nextRecords = pollAndWait(task)
+    records = pollAndWait(task)
+
+    records.size() shouldBe 2
     
-    nextRecords.size() shouldBe 1
-    
-    val nextSourceRecord = nextRecords.asScala.head
-    val nextJson: JsonNode = convertValueToJson(nextSourceRecord)
-    
-    val nextRecordId = nextJson.get("id").asText()
-    nextRecordId.size > 0
-    nextRecordId.equals(recordId) shouldBe false
-    
-    val nextStringField = nextJson.get("string_field").asText()
-    nextStringField.equals("yoda") || nextStringField.equals("chewie") shouldBe true
-    nextStringField.equals(recordId) shouldBe false
-    nextJson.get("timestamp_field") shouldBe null
-    nextJson.get("int_field") shouldBe null
-    
+    sourceRecord = records.asScala(0)
+    checkSourceRecord(sourceRecord, "han solo")
+        
+    sourceRecord = records.asScala(1)
+    checkSourceRecord(sourceRecord, "greedo")
+
     //stop task
     task.stop()
+  }
+
+  private def checkSourceRecord(sourceRecord: SourceRecord, expectedString: String) = {
+    val json: JsonNode = convertValueToJson(sourceRecord)
+
+    val recordId = json.get("id").asText()
+    recordId.size > 0
+
+    val stringField = json.get("string_field").asText()
+    stringField.equals(expectedString) shouldBe true
+    json.get("timestamp_field") shouldBe null
+    json.get("int_field") shouldBe null
   }
 
   private def pollAndWait(task: CassandraSourceTask): java.util.List[SourceRecord] = {
@@ -127,7 +135,7 @@ class TestCassandraSourceTaskTokenCql extends WordSpec with Matchers with Before
     val records = task.poll()
     records
   }
-  
+
   private def insert(session: Session, myValue: String) {
     val sql = s"""INSERT INTO $CASSANDRA_KEYSPACE.$TABLE5
       (id, int_field, long_field, string_field, another_time_field) 
