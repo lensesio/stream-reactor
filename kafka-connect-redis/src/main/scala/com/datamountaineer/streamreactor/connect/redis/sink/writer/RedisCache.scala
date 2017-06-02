@@ -72,7 +72,7 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
                 // Use first primary key's value and (optional) prefix
                 val keyBuilder = StringStructFieldsStringKeyBuilder(Seq(KCQL.kcqlConfig.getPrimaryKeys.next))
                 val extracted = convert(record, fields = KCQL.fieldsAndAliases, ignoreFields = KCQL.ignoredFields)
-                val key = optionalPrefix + keyBuilder.build(extracted)
+                val key = optionalPrefix + keyBuilder.build(record)
                 val payload = convertValueToJson(extracted).toString
                 jedis.set(key, payload)
               }
