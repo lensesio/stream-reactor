@@ -90,7 +90,10 @@ object CassandraUtils {
     val connectSchema = convertToConnectSchema(colDefList, schemaName)
     val struct = new Struct(connectSchema)
     if (colDefList != null) {
-      colDefList.map(c => struct.put(c.getName, mapTypes(c, row))).head
+      colDefList.map { c =>
+        val value = mapTypes(c, row)
+        struct.put(c.getName, value)
+      }.head
     }
     struct
   }
@@ -122,12 +125,11 @@ object CassandraUtils {
       case DataType.Name.BOOLEAN => row.getBool(columnDef.getName)
       case DataType.Name.DATE => Option(row.getDate(columnDef.getName))
         .map(d => new Date(d.getMillisSinceEpoch))
-        .map(d => org.apache.kafka.connect.data.Date.fromLogical(OPTIONAL_DATE_SCHEMA, d))
         .orNull
       case DataType.Name.TIME => row.getTime(columnDef.getName)
-      case DataType.Name.TIMESTAMP => Option(row.getTimestamp(columnDef.getName))
-        .map(d => Timestamp.fromLogical(OPTIONAL_TIMESTAMP_SCHEMA, d))
-        .orNull
+      case DataType.Name.TIMESTAMP =>
+        Option(row.getTimestamp(columnDef.getName))
+          .orNull
       case DataType.Name.TUPLE => row.getTupleValue(columnDef.getName).toString
       case DataType.Name.UDT => row.getUDTValue(columnDef.getName).toString
       case DataType.Name.TIMEUUID => row.getUUID(columnDef.getName).toString
