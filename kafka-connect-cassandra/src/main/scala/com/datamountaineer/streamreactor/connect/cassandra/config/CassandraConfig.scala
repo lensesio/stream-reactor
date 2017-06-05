@@ -317,8 +317,8 @@ case class CassandraConfigSource(props: util.Map[String, String])
   * the base.
   **/
 object CassandraConfigSink {
-  val base = CassandraConfig().configDef
-  val sinkConfig = base
+  val base: ConfigDef = CassandraConfig().configDef
+  val sinkConfig: ConfigDef = base
     .define(CassandraConfigConstants.SINK_KCQL,
       Type.STRING,
       Importance.HIGH,

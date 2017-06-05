@@ -111,7 +111,7 @@ class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => D
     requestOptions.setOfferThroughput(400)
     settings.kcql.map(_.getTarget).foreach { collectionName =>
       Try(documentClient.readCollection(s"dbs/${settings.database}/colls/$collectionName", requestOptions).getResource) match {
-        case Failure(e) =>
+        case Failure(_) =>
           logger.warn(s"Collection:$collectionName doesn't exist. Creating it...")
           val collection = new DocumentCollection()
           collection.setId(collectionName)

@@ -140,7 +140,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
         List[SourceRecord]()
       }
     } else {
-      logger.info(s"Reader for table ${table} is still querying")
+      logger.info(s"Reader for table $table is still querying")
       List[SourceRecord]()
     }
   }

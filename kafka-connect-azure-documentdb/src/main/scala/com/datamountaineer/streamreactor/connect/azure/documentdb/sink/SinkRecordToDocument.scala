@@ -30,14 +30,14 @@ object SinkRecordToDocument extends ConverterUtil {
     if (schema == null) {
       //try to take it as string
       value match {
-        case map: java.util.Map[_, _] =>
+        case _: java.util.Map[_, _] =>
           val extracted = convertSchemalessJson(record, settings.fields(record.topic()), settings.ignoredField(record.topic()))
           //not ideal; but the implementation is hashmap anyway
 
           SinkRecordConverter.fromMap(extracted.asInstanceOf[java.util.HashMap[String, AnyRef]]) ->
             keys.headOption.map(_ => KeysExtractor.fromMap(extracted, keys)).getOrElse(Iterable.empty)
 
-        case s: String =>
+        case _: String =>
           val extracted = convertStringSchemaAndJson(record, settings.fields(record.topic()), settings.ignoredField(record.topic()))
           SinkRecordConverter.fromJson(extracted) ->
             keys.headOption.map(_ => KeysExtractor.fromJson(extracted, keys)).getOrElse(Iterable.empty)

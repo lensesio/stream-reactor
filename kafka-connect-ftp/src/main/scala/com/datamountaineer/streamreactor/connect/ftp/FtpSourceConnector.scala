@@ -20,6 +20,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.ftp.config.FtpSourceConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceConnector
@@ -57,5 +58,5 @@ class FtpSourceConnector extends SourceConnector with StrictLogging {
 
   override def version(): String = getClass.getPackage.getImplementationVersion
 
-  override def config() = FtpSourceConfig.definition
+  override def config(): ConfigDef = FtpSourceConfig.definition
 }

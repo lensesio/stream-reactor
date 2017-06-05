@@ -49,17 +49,22 @@ A collection of components to build a real time ingestion pipeline.
 
 **0.2.6 (Pending)**
 
-* Fixes for high CPU on CoAP source
-* Fixes for high CPU on Cassandra source
-* Add CQL generator to Cassandra source
-* Support for setting key- and truststore type on Cassandra connectors
-* Prep Cassandra source for paging
-* Major refactor, thanks Marionete
-* Added default bytes converter to JMS Source
-* Added default connection factory to JMS Source
-* Moved to Elastic4s 2.4
-* Support for dates in Elastic Indexes and custom document types
-
+*   Fixes for high CPU on CoAP source
+*   Fixes for high CPU on Cassandra source
+*   Add CQL generator to Cassandra source
+*   Support for setting key and truststore type on Cassandra connectors
+*   Added token based paging support for Cassandra source
+*   Major refactor, thanks Marionete
+*   Added default bytes converter to JMS Source
+*   Added default connection factory to JMS Source
+*   Added support for SharedDurableConsumers to JMS Connectors
+*   Fixes on JMS properties converter, Invalid schema when extracting properties
+*   Upgraded JMS Connector to JMS 2.0
+*   Moved to Elastic4s 2.4
+*   Support for dates in Elastic Indexes and custom document types
+*   Upgrade Azure Documentdb to 1.11.0
+*   Removed unused batch size and bucket size options from Kudu, they are taken from KCQL
+*   Removed unused batch size option from DocumentDb
 
 **0.2.5 (8 Apr 2017)**
 

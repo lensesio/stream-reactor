@@ -37,7 +37,7 @@ abstract class Writer(settings: HazelCastSinkSettings) extends ConverterUtil {
 
   def write(record: SinkRecord)
 
-  def close
+  def close()
 
   /**
     * Convert a sink record to avro or Json string bytes

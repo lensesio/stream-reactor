@@ -34,7 +34,6 @@ case class KuduSettings(routes: List[Config],
                         writeModeMap: Map[String, WriteModeEnum],
                         errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                         maxRetries: Int = KuduSinkConfigConstants.NBR_OF_RETIRES_DEFAULT,
-                        batchSize: Int = KuduSinkConfigConstants.BATCH_SIZE_DEFAULT,
                         schemaRegistryUrl: String)
 
 object KuduSettings {
@@ -47,7 +46,6 @@ object KuduSettings {
     val errorPolicyE = ErrorPolicyEnum.withName(config.getString(KuduSinkConfigConstants.ERROR_POLICY).toUpperCase)
     val errorPolicy = ErrorPolicy(errorPolicyE)
     val maxRetries = config.getInt(KuduSinkConfigConstants.NBR_OF_RETRIES)
-    val batchSize = config.getInt(KuduSinkConfigConstants.BATCH_SIZE)
     val autoCreate = routes.map(r => (r.getSource, r.isAutoCreate)).toMap
     val autoEvolve = routes.map(r => (r.getSource, r.isAutoEvolve)).toMap
     val schemaRegUrl = config.getString(KuduSinkConfigConstants.SCHEMA_REGISTRY_URL)
@@ -69,7 +67,6 @@ object KuduSettings {
       writeModeMap = writeModeMap,
       errorPolicy = errorPolicy,
       maxRetries = maxRetries,
-      batchSize = batchSize,
       schemaRegistryUrl = schemaRegUrl)
   }
 }

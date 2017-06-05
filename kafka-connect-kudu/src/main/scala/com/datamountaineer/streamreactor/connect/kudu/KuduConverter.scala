@@ -68,7 +68,7 @@ trait KuduConverter {
       case Type.INT64 => row.addLong(fieldName, struct.getInt64(fieldName))
       case Type.BOOLEAN => row.addBoolean(fieldName, struct.get(fieldName).asInstanceOf[Boolean])
       case Type.FLOAT32 => row.addFloat(fieldName, struct.getFloat32(fieldName))
-      case Type.FLOAT64 => row.addFloat(fieldName, struct.getFloat64(fieldName).toFloat)
+      case Type.FLOAT64 => row.addDouble(fieldName, struct.getFloat64(fieldName))
       case Type.BYTES => row.addBinary(fieldName, struct.getBytes(fieldName))
       case _ => throw new UnsupportedOperationException(s"Unknown type $fieldType")
     }
@@ -110,7 +110,8 @@ trait KuduConverter {
       case Type.INT32 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.INT32)
       case Type.INT64 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.INT64)
       case Type.BOOLEAN => new ColumnSchemaBuilder(fieldName, org.kududb.Type.BOOL)
-      case Type.FLOAT32 | Type.FLOAT64 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.FLOAT)
+      case Type.FLOAT32 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.FLOAT)
+      case Type.FLOAT64 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.DOUBLE)
       case Type.BYTES => new ColumnSchemaBuilder(fieldName, org.kududb.Type.BINARY)
       case _ => throw new UnsupportedOperationException(s"Unknown type $fieldType")
     }
@@ -141,7 +142,7 @@ trait KuduConverter {
       case org.apache.avro.Schema.Type.INT => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.INT32)
       case org.apache.avro.Schema.Type.LONG => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.INT64)
       case org.apache.avro.Schema.Type.FLOAT => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.FLOAT)
-      case org.apache.avro.Schema.Type.DOUBLE => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.FLOAT)
+      case org.apache.avro.Schema.Type.DOUBLE => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.DOUBLE)
       case org.apache.avro.Schema.Type.BOOLEAN => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.BOOL)
       case org.apache.avro.Schema.Type.NULL => throw new RuntimeException("Avro type NULL not supported")
       case _ => throw new RuntimeException("Avro type not supported")

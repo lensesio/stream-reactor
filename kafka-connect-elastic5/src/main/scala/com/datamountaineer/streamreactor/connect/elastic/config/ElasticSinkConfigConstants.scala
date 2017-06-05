@@ -50,7 +50,7 @@ object ElasticSinkConfigConstants {
   val NBR_OF_RETIRES_DEFAULT = 20
 
   val ERROR_POLICY_CONFIG = "connect.elastic.error.policy"
-  val ERROR_POLICY_DOC =
+  val ERROR_POLICY_DOC: String =
     """Specifies the action to be taken if an error occurs while inserting the data
       |There are two available options:
       |NOOP - the error is swallowed

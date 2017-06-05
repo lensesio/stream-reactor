@@ -153,7 +153,7 @@ object SinkRecordConverter {
             }
           }
           catch {
-            case e: ClassCastException => throw new DataException("Invalid type for " + schema.`type` + ": " + value.getClass)
+            case _: ClassCastException => throw new DataException("Invalid type for " + schema.`type` + ": " + value.getClass)
           }
       }
     }
@@ -213,7 +213,7 @@ object SinkRecordConverter {
     record match {
       case jobj: JObject =>
         jobj.obj.foldLeft(new Document) { case (d, JField(n, j)) => convert(n, j, d) }
-      case other => throw new IllegalArgumentException("Can't convert invalid json!")
+      case _ => throw new IllegalArgumentException("Can't convert invalid json!")
     }
   }
 }

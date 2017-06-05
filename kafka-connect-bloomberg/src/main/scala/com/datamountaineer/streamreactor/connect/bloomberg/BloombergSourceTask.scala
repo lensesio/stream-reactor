@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.bloomberg
 import java.util
 
 import com.bloomberglp.blpapi._
-import com.datamountaineer.streamreactor.connect.bloomberg.config.ConnectorConfig
+import com.datamountaineer.streamreactor.connect.bloomberg.config.BloombergSourceConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
@@ -48,14 +48,14 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
       session.get.unsubscribe(subscriptions.get)
     }
     catch {
-      case t: Throwable =>
+      case _: Throwable =>
         logger.error(s"Unexpected exception un-subscribing for correlation=${CorrelationIdsExtractorFn(subscriptions.get)}")
     }
     try {
       session.get.stop()
     }
     catch {
-      case e: InterruptedException =>
+      case _: InterruptedException =>
         logger.error(s"There was an error stopping the bloomberg session for correlation=${CorrelationIdsExtractorFn(subscriptions.get)}")
     }
     session = None
@@ -73,7 +73,7 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/bloomberg-ascii.txt")).mkString)
 
     try {
-      settings = Some(BloombergSettings(new ConnectorConfig(map)))
+      settings = Some(BloombergSettings(new BloombergSourceConfig(map)))
       subscriptions = Some(SubscriptionsBuilderFn(settings.get))
 
       val correlationToTicketMap = subscriptions.get.asScala.map { s => s.correlationID().value() -> s.subscriptionString() }.toMap

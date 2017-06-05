@@ -100,5 +100,5 @@ object StructFieldsExtractorBytes {
   val DateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
   val TimeFormat = new SimpleDateFormat("HH:mm:ss.SSSZ")
 
-  DateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+  DateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
 }

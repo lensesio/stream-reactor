@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.cassandra
 
 import java.text.SimpleDateFormat
 import java.util
-import java.util.{ Collections, Date }
+import java.util.{Collections, Date}
 
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
@@ -28,7 +28,7 @@ import com.datastax.driver.core.utils.UUIDs
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
-import org.apache.kafka.connect.data.{ Schema, SchemaBuilder, Struct }
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
@@ -40,9 +40,9 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 /**
- * Created by andrew@datamountaineer.com on 14/04/16.
- * stream-reactor
- */
+  * Created by andrew@datamountaineer.com on 14/04/16. 
+  * stream-reactor
+  */
 trait TestConfig extends StrictLogging with MockitoSugar {
   val CONTACT_POINT = "localhost"
   val CASSANDRA_PORT = 9042
@@ -54,9 +54,9 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   val TABLE2 = "table2"
   val TABLE3 = TOPIC2
   val TABLE4 = "table4"
-  val TOPIC4 = "topic4"
+  val TOPIC4 =  "topic4"
   val TABLE5 = "table5"
-
+  
   val USERNAME = "cassandra"
   val PASSWD = "cassandra"
   val TRUST_STORE_PATH = System.getProperty("truststore")
@@ -87,7 +87,8 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   def getCassandraConfigSinkPropsBad = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE).asJava
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE
+    ).asJava
   }
 
   def getCassandraConfigSinkPropsSecure = {
@@ -96,7 +97,8 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
-      CassandraConfigConstants.SINK_KCQL -> QUERY_ALL).asJava
+      CassandraConfigConstants.SINK_KCQL -> QUERY_ALL
+    ).asJava
   }
 
   def getCassandraConfigSinkProps = {
@@ -105,7 +107,8 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
-      CassandraConfigConstants.SINK_KCQL -> QUERY_ALL).asJava
+      CassandraConfigConstants.SINK_KCQL -> QUERY_ALL
+    ).asJava
   }
 
   def getCassandraConfigSinkPropsFieldSelection = {
@@ -114,8 +117,10 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
-      CassandraConfigConstants.SINK_KCQL -> QUERY_SELECTION).asJava
+      CassandraConfigConstants.SINK_KCQL -> QUERY_SELECTION
+    ).asJava
   }
+
 
   def getCassandraConfigSinkPropsRetry = {
     Map(
@@ -124,7 +129,8 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.SINK_KCQL -> QUERY_ALL,
-      CassandraConfigConstants.ERROR_POLICY -> ErrorPolicyEnum.RETRY.toString).asJava
+      CassandraConfigConstants.ERROR_POLICY -> ErrorPolicyEnum.RETRY.toString
+    ).asJava
   }
 
   def getCassandraConfigSinkPropsNoop = {
@@ -134,7 +140,8 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.SINK_KCQL -> QUERY_ALL,
-      CassandraConfigConstants.ERROR_POLICY -> ErrorPolicyEnum.NOOP.toString).asJava
+      CassandraConfigConstants.ERROR_POLICY -> ErrorPolicyEnum.NOOP.toString
+    ).asJava
   }
 
   def getCassandraConfigSinkPropsSecureSSL = {
@@ -146,7 +153,8 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.SSL_ENABLED -> "true",
       CassandraConfigConstants.TRUST_STORE_PATH -> TRUST_STORE_PATH,
       CassandraConfigConstants.TRUST_STORE_PASSWD -> TRUST_STORE_PASSWORD,
-      CassandraConfigConstants.SINK_KCQL -> QUERY_ALL).asJava
+      CassandraConfigConstants.SINK_KCQL -> QUERY_ALL
+    ).asJava
   }
 
   def getCassandraConfigSinkPropsSecureSSLwithoutClient = {
@@ -161,8 +169,10 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.USE_CLIENT_AUTH -> "false",
       CassandraConfigConstants.KEY_STORE_PATH -> KEYSTORE_PATH,
       CassandraConfigConstants.KEY_STORE_PASSWD -> KEYSTORE_PASSWORD,
-      CassandraConfigConstants.SINK_KCQL -> QUERY_ALL).asJava
+      CassandraConfigConstants.SINK_KCQL -> QUERY_ALL
+    ).asJava
   }
+
 
   def getCassandraConfigSourcePropsBad = {
     Map(
@@ -170,7 +180,8 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
-      CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES).asJava
+      CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES
+    ).asJava
   }
 
   def getCassandraConfigSourcePropsBulk = {
@@ -182,7 +193,8 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.SOURCE_KCQL_QUERY -> IMPORT_QUERY_ALL,
       CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES,
       CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.BULK,
-      CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
+      CassandraConfigConstants.POLL_INTERVAL -> "1000"
+    ).asJava
   }
 
   def getCassandraConfigSourcePropsIncr = {
@@ -195,7 +207,8 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES,
       CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
       //CassandraConfigConstants.TABLE_TIMESTAMP_COL_MAP->TIMESTAMP_COL_MAP,
-      CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
+      CassandraConfigConstants.POLL_INTERVAL -> "1000"
+    ).asJava
   }
 
   def getCassandraConfigSourcePropsDoubleIncr = {
@@ -208,7 +221,8 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       //CassandraConfigConstants.ASSIGNED_TABLES -> TABLE4,
       CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
       //CassandraConfigConstants.TABLE_TIMESTAMP_COL_MAP->TIMESTAMP_COL_MAP,
-      CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
+      CassandraConfigConstants.POLL_INTERVAL -> "1000"
+    ).asJava
   }
 
   //create a cluster, test keyspace and tables
@@ -254,7 +268,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
             string_field text, 
             another_time_field timeuuid, 
             PRIMARY KEY ((id), another_time_field))""".stripMargin)
-
+            
     session
   }
 
@@ -300,12 +314,13 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     }).toSeq
   }
 
+
   def getSourceTaskContext(lookupPartitionKey: String, offsetValue: String, offsetColumn: String, table: String) = {
     /**
-     * offset holds a map of map[string, something],map[identifier, value]
-     *
-     * map(map(assign.import.table->table1) -> map("my_timeuuid"->"2013-01-01 00:05+0000")
-     */
+      * offset holds a map of map[string, something],map[identifier, value]
+      *
+      * map(map(assign.import.table->table1) -> map("my_timeuuid"->"2013-01-01 00:05+0000")
+      */
 
     //set up partition
     val partition: util.Map[String, String] = Collections.singletonMap(lookupPartitionKey, table)
@@ -339,12 +354,12 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     Thread.sleep(10000)
   }
 
+  def startEmbeddedCassandra(yamlFile:String) = {
+    EmbeddedCassandraServerHelper.startEmbeddedCassandra(yamlFile, 25000)
+  }
+  
   def startEmbeddedCassandra() = {
     EmbeddedCassandraServerHelper.startEmbeddedCassandra("cassandra.yaml", 25000)
-  }
-
-  def startEmbeddedCassandra(yamlName:String) = {
-    EmbeddedCassandraServerHelper.startEmbeddedCassandra(yamlName, 25000)
   }
 
   def stopEmbeddedCassandra() = {

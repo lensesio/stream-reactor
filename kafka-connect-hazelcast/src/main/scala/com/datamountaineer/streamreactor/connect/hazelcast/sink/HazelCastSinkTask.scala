@@ -74,7 +74,7 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
     **/
   override def stop(): Unit = {
     logger.info("Stopping Hazelcast sink.")
-    writer.foreach(w => w.close)
+    writer.foreach(w => w.close())
     progressCounter.empty
   }
 

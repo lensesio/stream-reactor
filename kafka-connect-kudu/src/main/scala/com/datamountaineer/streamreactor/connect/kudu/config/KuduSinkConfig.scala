@@ -40,12 +40,8 @@ object KuduSinkConfig {
       "Connection", 4, ConfigDef.Width.MEDIUM, KuduSinkConfigConstants.ERROR_RETRY_INTERVAL)
     .define(KuduSinkConfigConstants.NBR_OF_RETRIES, Type.INT, KuduSinkConfigConstants.NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, KuduSinkConfigConstants.NBR_OF_RETRIES_DOC,
       "Connection", 5, ConfigDef.Width.MEDIUM, KuduSinkConfigConstants.NBR_OF_RETRIES)
-    .define(KuduSinkConfigConstants.BATCH_SIZE, Type.INT, KuduSinkConfigConstants.BATCH_SIZE_DEFAULT, Importance.MEDIUM, KuduSinkConfigConstants.BATCH_SIZE_DOC,
-      "Connection", 6, ConfigDef.Width.MEDIUM, KuduSinkConfigConstants.BATCH_SIZE)
     .define(KuduSinkConfigConstants.SCHEMA_REGISTRY_URL, Type.STRING, KuduSinkConfigConstants.SCHEMA_REGISTRY_URL_DEFAULT, Importance.HIGH, KuduSinkConfigConstants.SCHEMA_REGISTRY_URL_DOC,
-      "Connection", 7, ConfigDef.Width.MEDIUM, KuduSinkConfigConstants.SCHEMA_REGISTRY_URL)
-    .define(KuduSinkConfigConstants.BUCKET_SIZE, Type.INT, KuduSinkConfigConstants.BUCKET_SIZE_DEFAULT, Importance.MEDIUM, KuduSinkConfigConstants.BUCKET_SIZE_DOC,
-      "Connection", 8, ConfigDef.Width.MEDIUM, KuduSinkConfigConstants.BUCKET_SIZE)
+      "Connection", 6, ConfigDef.Width.MEDIUM, KuduSinkConfigConstants.SCHEMA_REGISTRY_URL)
 }
 
 class KuduSinkConfig(props: util.Map[String, String])

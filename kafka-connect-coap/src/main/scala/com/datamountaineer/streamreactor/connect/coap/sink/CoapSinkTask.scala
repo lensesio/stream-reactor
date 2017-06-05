@@ -27,7 +27,6 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 /**
@@ -36,7 +35,7 @@ import scala.collection.mutable
   */
 class CoapSinkTask extends SinkTask with StrictLogging {
   private val writers = mutable.Map.empty[String, CoapWriter]
-  private var progressCounter = new ProgressCounter
+  private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
 
   override def start(props: util.Map[String, String]): Unit = {

@@ -37,7 +37,7 @@ object JacksonJson {
 import org.json4s._
 import org.json4s.native.JsonMethods._
 
-object Json {
+object JacksonJson {
   implicit val formats = DefaultFormats
 
   def fromJson[T <: Product:Manifest](json: String): T = {

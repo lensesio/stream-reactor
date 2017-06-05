@@ -79,7 +79,7 @@ class StockHelperTest extends WordSpec with Matchers {
     quote.setYearLow(new BigDecimal("39.85"))
     stock.setQuote(quote)
 
-    val record = stock.toSourceRecord("topic_stocks", includeHistory = false)
+    val record = stock.toSourceRecord("topic_stocks")
     record.topic() shouldBe "topic_stocks"
     record.sourcePartition() shouldBe Collections.singletonMap("Yahoo", "MSFT")
 
@@ -191,7 +191,7 @@ class StockHelperTest extends WordSpec with Matchers {
     quote.setYearLow(new BigDecimal("39.85"))
     stock.setQuote(quote)
 
-    val record = stock.toSourceRecord("topic_stocks", includeHistory = false)
+    val record = stock.toSourceRecord("topic_stocks")
     record.topic() shouldBe "topic_stocks"
     record.sourcePartition() shouldBe Collections.singletonMap("Yahoo", "MSFT")
 

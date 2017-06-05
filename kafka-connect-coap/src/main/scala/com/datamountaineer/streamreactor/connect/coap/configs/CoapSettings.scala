@@ -42,7 +42,8 @@ case class CoapSetting(uri: String,
                        target: String,
                        bindHost: String,
                        bindPort: Int,
-                       sink: Boolean)
+                       sink: Boolean
+                      )
 
 object CoapSettings {
   def apply(config: AbstractConfig): Set[CoapSetting] = {
@@ -75,7 +76,7 @@ object CoapSettings {
     val retries = if (sink) Some(config.getInt(CoapConstants.NBR_OF_RETRIES).toInt) else None
 
     routes.map(r =>
-      new CoapSetting(uri,
+      CoapSetting(uri,
         keyStoreLoc,
         keyStorePass,
         trustStoreLoc,
@@ -88,7 +89,8 @@ object CoapSettings {
         if (sink) r.getTarget else r.getSource,
         bindHost,
         bindPort,
-        sink)
+        sink
+      )
     )
   }
 }
