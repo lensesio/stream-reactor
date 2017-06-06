@@ -354,6 +354,10 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     Thread.sleep(10000)
   }
 
+  def startEmbeddedCassandra(yamlFile:String) = {
+    EmbeddedCassandraServerHelper.startEmbeddedCassandra(yamlFile, 25000)
+  }
+  
   def startEmbeddedCassandra() = {
     EmbeddedCassandraServerHelper.startEmbeddedCassandra("cassandra.yaml", 25000)
   }
