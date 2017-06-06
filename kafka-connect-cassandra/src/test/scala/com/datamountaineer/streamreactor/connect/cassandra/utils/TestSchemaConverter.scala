@@ -31,9 +31,9 @@ import org.scalatest.{ Matchers, WordSpec }
 import scala.collection.JavaConverters._
 
 /**
- * Created by andrew@datamountaineer.com on 21/04/16.
- * stream-reactor
- */
+  * Created by andrew@datamountaineer.com on 21/04/16.
+  * stream-reactor
+  */
 class TestSchemaConverter extends WordSpec with TestConfig with Matchers with MockitoSugar {
 
   val uuid = UUID.randomUUID()
@@ -153,7 +153,7 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     schema.field("timeuuidCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
     schema.field("blobCol").schema().`type`() shouldBe Schema.OPTIONAL_BYTES_SCHEMA.`type`()
     schema.field("timeCol").schema().`type`() shouldBe Schema.OPTIONAL_INT64_SCHEMA.`type`()
-    schema.field("timestampCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
-    schema.field("dateCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
+    schema.field("timestampCol").schema().`type`() shouldBe CassandraUtils.OPTIONAL_TIMESTAMP_SCHEMA.`type`()
+    schema.field("dateCol").schema().`type`() shouldBe CassandraUtils.OPTIONAL_DATE_SCHEMA.`type`()
   }
 }

@@ -36,8 +36,8 @@ object CassandraUtils {
   val mapper = new ObjectMapper()
   private val dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ")
 
-  private val OPTIONAL_DATE_SCHEMA = org.apache.kafka.connect.data.Date.builder().optional().build()
-  private val OPTIONAL_TIMESTAMP_SCHEMA = Timestamp.builder().optional().build()
+  val OPTIONAL_DATE_SCHEMA = org.apache.kafka.connect.data.Date.builder().optional().build()
+  val OPTIONAL_TIMESTAMP_SCHEMA = Timestamp.builder().optional().build()
 
   /**
     * Check if we have tables in Cassandra and if we have table named the same as our topic
