@@ -38,6 +38,7 @@ public class DebeziumLogicalConvertersTest {
 
   //corresponds to March 1 2017, 22:20:38.808(123) UTC
   //              (March 1 2017, 14:20:38.808(123)-8:00)
+  private static final Long DAYS_TIMESTAMP = 17226L;
   private static final Long MILLI_TIMESTAMP = 1488406838808L;
   private static final Long MICRO_TIMESTAMP = 1488406838808123L;
 
@@ -52,8 +53,8 @@ public class DebeziumLogicalConvertersTest {
     } catch (Exception ex) {
       fail("Expected encoding type check to succeed.");
     }
-
-    String formattedDate = converter.convert(MILLI_TIMESTAMP);
+    
+    String formattedDate = converter.convert(DAYS_TIMESTAMP);
     assertEquals("2017-03-01", formattedDate);
   }
 

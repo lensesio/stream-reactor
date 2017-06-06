@@ -33,6 +33,7 @@ import java.text.SimpleDateFormat;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.TemporalAccessor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Class containing all the Debezium logical type converters.
@@ -65,7 +66,9 @@ public class DebeziumLogicalConverters {
 
     @Override
     public String convert(Object kafkaConnectObject) {
-      java.util.Date date = new java.util.Date((Long) kafkaConnectObject);
+      Long daysSinceEpoch = (Long) kafkaConnectObject;
+      long msSinceEpoch = TimeUnit.DAYS.toMillis(daysSinceEpoch);
+      java.util.Date date = new java.util.Date(msSinceEpoch);
       return getBQDateFormat().format(date);
     }
   }
