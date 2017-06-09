@@ -34,6 +34,10 @@ trait KcqlSettings extends BaseSettings {
     routes.map(r => (r.getSource, formatType(r.getFormatType))).toMap
   }
 
+  def getTTL(routes: Set[Config] = getRoutes): Map[String, Long] = {
+    routes.map(r => (r.getSource, r.getTTL)).toMap
+  }
+
   def getIncrementalMode(routes: Set[Config] = getRoutes): Map[String, String] = {
     routes.map(r => (r.getSource, r.getIncrementalMode)).toMap
   }
