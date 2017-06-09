@@ -47,9 +47,9 @@ class TestCassandraSourceTask extends WordSpec with Matchers with BeforeAndAfter
   }
 
   "A Cassandra SourceTask should start and read records from Cassandra" in {
-    val session = createTableAndKeySpace(secure = true, ssl = false)
+    val session = createTableAndKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
 
-    val sql = s"INSERT INTO $CASSANDRA_KEYSPACE.$TABLE2" +
+    val sql = s"INSERT INTO $CASSANDRA_SOURCE_KEYSPACE.$TABLE2" +
       "(id, int_field, long_field, string_field, timestamp_field) " +
       "VALUES ('id1', 2, 3, 'magic_string', now());"
     session.execute(sql)
@@ -88,9 +88,9 @@ class TestCassandraSourceTask extends WordSpec with Matchers with BeforeAndAfter
   }
 
   "CassandraReader should read a tables records in incremental mode" in {
-    val session =  createTableAndKeySpace(secure = true, ssl = false)
+    val session =  createTableAndKeySpace(CASSANDRA_SOURCE_KEYSPACE ,secure = true, ssl = false)
 
-    val sql = s"INSERT INTO $CASSANDRA_KEYSPACE.$TABLE2" +
+    val sql = s"INSERT INTO $CASSANDRA_SOURCE_KEYSPACE.$TABLE2" +
       "(id, int_field, long_field, string_field, timestamp_field) " +
       "VALUES ('id1', 2, 3, 'magic_string', now());"
     session.execute(sql)
@@ -118,11 +118,11 @@ class TestCassandraSourceTask extends WordSpec with Matchers with BeforeAndAfter
     json.get("string_field").asText().equals("magic_string") shouldBe true
 
     //insert another two records
-    val sql2 = s"INSERT INTO $CASSANDRA_KEYSPACE.$TABLE2" +
+    val sql2 = s"INSERT INTO $CASSANDRA_SOURCE_KEYSPACE.$TABLE2" +
       "(id, int_field, long_field, string_field, timestamp_field) " +
       "VALUES ('id2', 3, 4, 'magic_string2', now());"
     session.execute(sql2)
-    val sql3 = s"INSERT INTO $CASSANDRA_KEYSPACE.$TABLE2" +
+    val sql3 = s"INSERT INTO $CASSANDRA_SOURCE_KEYSPACE.$TABLE2" +
       "(id, int_field, long_field, string_field, timestamp_field) " +
       "VALUES ('id3', 4, 5, 'magic_string3', now());"
     session.execute(sql3)
@@ -153,13 +153,13 @@ class TestCassandraSourceTask extends WordSpec with Matchers with BeforeAndAfter
     queue.size() shouldBe 0
 
     //insert another two records
-    val sql4 = s"INSERT INTO $CASSANDRA_KEYSPACE.$TABLE2" +
+    val sql4 = s"INSERT INTO $CASSANDRA_SOURCE_KEYSPACE.$TABLE2" +
       "(id, int_field, long_field, string_field, timestamp_field) " +
       "VALUES ('id4', 4, 5, 'magic_string4', now());"
     session.execute(sql4)
 
     Thread.sleep(2000)
-    val sql5 = s"INSERT INTO $CASSANDRA_KEYSPACE.$TABLE2" +
+    val sql5 = s"INSERT INTO $CASSANDRA_SOURCE_KEYSPACE.$TABLE2" +
       "(id, int_field, long_field, string_field, timestamp_field) " +
       "VALUES ('id4', 5, 6, 'magic_string5', now());"
     session.execute(sql5)
@@ -178,7 +178,7 @@ class TestCassandraSourceTask extends WordSpec with Matchers with BeforeAndAfter
   }
 
   "CassandraReader should read double columns incremental mode" in {
-    val session =  createTableAndKeySpace(secure = true, ssl = false)
+    val session =  createTableAndKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
 
 
     val taskContext = getSourceTaskContextDefault
@@ -199,7 +199,7 @@ class TestCassandraSourceTask extends WordSpec with Matchers with BeforeAndAfter
     //insert another two records
     val sql =
       s"""
-         |INSERT INTO $CASSANDRA_KEYSPACE.$TABLE4
+         |INSERT INTO $CASSANDRA_SOURCE_KEYSPACE.$TABLE4
          |(id, int_field, double_field,timestamp_field)
          |VALUES ('id1', 4, 111.1, now());""".stripMargin
     session.execute(sql)

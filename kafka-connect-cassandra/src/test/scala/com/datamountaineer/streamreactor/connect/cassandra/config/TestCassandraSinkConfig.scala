@@ -24,7 +24,7 @@ class TestCassandraSinkConfig extends WordSpec with BeforeAndAfter with Matchers
   "A CassandraConfig should return configured for username and password" in {
     val taskConfig = CassandraConfigSink(getCassandraConfigSinkPropsSecure)
     taskConfig.getString(CassandraConfigConstants.CONTACT_POINTS) shouldBe CONTACT_POINT
-    taskConfig.getString(CassandraConfigConstants.KEY_SPACE) shouldBe CASSANDRA_KEYSPACE
+    taskConfig.getString(CassandraConfigConstants.KEY_SPACE) shouldBe CASSANDRA_SINK_KEYSPACE
     taskConfig.getString(CassandraConfigConstants.USERNAME) shouldBe USERNAME
     taskConfig.getPassword(CassandraConfigConstants.PASSWD).value shouldBe PASSWD
     taskConfig.getString(CassandraConfigConstants.SINK_KCQL) shouldBe QUERY_ALL
@@ -34,7 +34,7 @@ class TestCassandraSinkConfig extends WordSpec with BeforeAndAfter with Matchers
   "A CassandraConfig should return configured for SSL" in {
     val taskConfig  = CassandraConfigSink(getCassandraConfigSinkPropsSecureSSL)
     taskConfig.getString(CassandraConfigConstants.CONTACT_POINTS) shouldBe CONTACT_POINT
-    taskConfig.getString(CassandraConfigConstants.KEY_SPACE) shouldBe CASSANDRA_KEYSPACE
+    taskConfig.getString(CassandraConfigConstants.KEY_SPACE) shouldBe CASSANDRA_SINK_KEYSPACE
     taskConfig.getString(CassandraConfigConstants.USERNAME) shouldBe USERNAME
     taskConfig.getPassword(CassandraConfigConstants.PASSWD).value shouldBe PASSWD
     taskConfig.getBoolean(CassandraConfigConstants.SSL_ENABLED) shouldBe true
@@ -47,7 +47,7 @@ class TestCassandraSinkConfig extends WordSpec with BeforeAndAfter with Matchers
   "A CassandraConfig should return configured for SSL without client certficate authentication" in {
     val taskConfig  = CassandraConfigSink(getCassandraConfigSinkPropsSecureSSLwithoutClient)
     taskConfig.getString(CassandraConfigConstants.CONTACT_POINTS) shouldBe CONTACT_POINT
-    taskConfig.getString(CassandraConfigConstants.KEY_SPACE) shouldBe CASSANDRA_KEYSPACE
+    taskConfig.getString(CassandraConfigConstants.KEY_SPACE) shouldBe CASSANDRA_SINK_KEYSPACE
     taskConfig.getString(CassandraConfigConstants.USERNAME) shouldBe USERNAME
     taskConfig.getPassword(CassandraConfigConstants.PASSWD).value shouldBe PASSWD
     taskConfig.getBoolean(CassandraConfigConstants.SSL_ENABLED) shouldBe true

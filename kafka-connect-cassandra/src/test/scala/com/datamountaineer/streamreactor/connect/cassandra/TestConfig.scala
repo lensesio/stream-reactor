@@ -47,7 +47,8 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   val CONTACT_POINT = "localhost"
   val CASSANDRA_PORT = 9042
   val SOURCE_PORT = "9043"
-  val CASSANDRA_KEYSPACE = "sink_test"
+  val CASSANDRA_SINK_KEYSPACE = "sink_test"
+  val CASSANDRA_SOURCE_KEYSPACE = "source_test"
   val TOPIC1 = "sink_test"
   val TOPIC2 = "sink_test2"
   val TABLE1 = TOPIC1
@@ -56,7 +57,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   val TABLE4 = "table4"
   val TOPIC4 =  "topic4"
   val TABLE5 = "table5"
-  
+
   val USERNAME = "cassandra"
   val PASSWD = "cassandra"
   val TRUST_STORE_PATH = System.getProperty("truststore")
@@ -68,7 +69,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   val QUERY_SELECTION = s"INSERT INTO $TABLE1 SELECT id, long_field FROM $TOPIC1"
 
   val IMPORT_QUERY_ALL = s"INSERT INTO $TOPIC1 SELECT * FROM $TABLE1;INSERT INTO $TOPIC2 SELECT * FROM $TABLE2"
-  val IMPORT_QUERY_INCR = s"INSERT INTO $TOPIC1 SELECT * FROM $TABLE2 PK timestamp_field"
+  val IMPORT_QUERY_INCR = s"INSERT INTO $TOPIC1 SELECT * FROM $TABLE2 PK timestamp_field INCREMENTALMODE=timeuuid"
 
   val ASSIGNED_TABLES = s"$TABLE1,$TABLE2"
   //val TIMESTAMP_COL_MAP = s"$TABLE2:timestamp_field"
@@ -87,14 +88,14 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   def getCassandraConfigSinkPropsBad = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE
     ).asJava
   }
 
   def getCassandraConfigSinkPropsSecure = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.SINK_KCQL -> QUERY_ALL
@@ -104,7 +105,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   def getCassandraConfigSinkProps = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.SINK_KCQL -> QUERY_ALL
@@ -114,7 +115,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   def getCassandraConfigSinkPropsFieldSelection = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.SINK_KCQL -> QUERY_SELECTION
@@ -125,7 +126,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   def getCassandraConfigSinkPropsRetry = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.SINK_KCQL -> QUERY_ALL,
@@ -136,7 +137,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   def getCassandraConfigSinkPropsNoop = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.SINK_KCQL -> QUERY_ALL,
@@ -147,7 +148,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   def getCassandraConfigSinkPropsSecureSSL = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.SSL_ENABLED -> "true",
@@ -160,7 +161,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   def getCassandraConfigSinkPropsSecureSSLwithoutClient = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.SSL_ENABLED -> "true",
@@ -177,7 +178,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   def getCassandraConfigSourcePropsBad = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES
@@ -187,12 +188,11 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   def getCassandraConfigSourcePropsBulk = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.SOURCE_KCQL_QUERY -> IMPORT_QUERY_ALL,
       CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES,
-      CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.BULK,
       CassandraConfigConstants.POLL_INTERVAL -> "1000"
     ).asJava
   }
@@ -200,13 +200,11 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   def getCassandraConfigSourcePropsIncr = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.SOURCE_KCQL_QUERY -> IMPORT_QUERY_INCR,
       CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES,
-      CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
-      //CassandraConfigConstants.TABLE_TIMESTAMP_COL_MAP->TIMESTAMP_COL_MAP,
       CassandraConfigConstants.POLL_INTERVAL -> "1000"
     ).asJava
   }
@@ -214,19 +212,16 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   def getCassandraConfigSourcePropsDoubleIncr = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO $TOPIC4 SELECT * FROM $TABLE4 PK timestamp_field",
-      //CassandraConfigConstants.ASSIGNED_TABLES -> TABLE4,
-      CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
-      //CassandraConfigConstants.TABLE_TIMESTAMP_COL_MAP->TIMESTAMP_COL_MAP,
       CassandraConfigConstants.POLL_INTERVAL -> "1000"
     ).asJava
   }
 
   //create a cluster, test keyspace and tables
-  def createTableAndKeySpace(secure: Boolean = false, ssl: Boolean = false, port: Int = CASSANDRA_PORT): Session = {
+  def createTableAndKeySpace(keyspace: String, secure: Boolean = false, ssl: Boolean = false, port: Int = CASSANDRA_PORT): Session = {
     val cluster: Builder = Cluster
       .builder()
       .addContactPoints(CONTACT_POINT)
@@ -243,17 +238,17 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     }
 
     val session = cluster.build().connect()
-    session.execute(s"DROP KEYSPACE IF EXISTS $CASSANDRA_KEYSPACE")
-    session.execute(s"CREATE KEYSPACE $CASSANDRA_KEYSPACE WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 3}")
-    session.execute(s"CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE1 (id text PRIMARY KEY, int_field int, long_field bigint," +
+    session.execute(s"DROP KEYSPACE IF EXISTS $keyspace")
+    session.execute(s"CREATE KEYSPACE $keyspace WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 3}")
+    session.execute(s"CREATE TABLE IF NOT EXISTS $keyspace.$TABLE1 (id text PRIMARY KEY, int_field int, long_field bigint," +
       s" string_field text,  timeuuid_field timeuuid, timestamp_field timestamp)")
-    session.execute(s"CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE2 (id text, int_field int, long_field bigint," +
+    session.execute(s"CREATE TABLE IF NOT EXISTS $keyspace.$TABLE2 (id text, int_field int, long_field bigint," +
       s" string_field text, timestamp_field timeuuid, PRIMARY KEY (id, timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)")
-    session.execute(s"CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE3 (id text, int_field int, long_field bigint," +
+    session.execute(s"CREATE TABLE IF NOT EXISTS $keyspace.$TABLE3 (id text, int_field int, long_field bigint," +
       s" string_field text, timestamp_field timestamp, timeuuid_field timeuuid, PRIMARY KEY (id, timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)")
     session.execute(
       s"""
-         |CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE4
+         |CREATE TABLE IF NOT EXISTS $keyspace.$TABLE4
          |(id text,
          |int_field int,
          |double_field double,
@@ -261,7 +256,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
          |PRIMARY KEY(id,timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)""".stripMargin)
     session.execute(
       s"""
-          CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE5 (
+          CREATE TABLE IF NOT EXISTS $keyspace.$TABLE5 (
             id timeuuid, 
             int_field int, 
             long_field bigint,
@@ -355,7 +350,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   }
 
   def startEmbeddedCassandra(yamlFile:String) = {
-    EmbeddedCassandraServerHelper.startEmbeddedCassandra(yamlFile, 25000)
+    EmbeddedCassandraServerHelper.startEmbeddedCassandra(yamlFile, "cass-test", 25000)
   }
   
   def startEmbeddedCassandra() = {

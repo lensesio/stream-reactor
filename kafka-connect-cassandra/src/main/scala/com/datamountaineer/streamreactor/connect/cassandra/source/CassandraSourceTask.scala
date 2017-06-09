@@ -23,7 +23,6 @@ import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource, CassandraSettings, CassandraSourceSetting}
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.AbstractConfig
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 

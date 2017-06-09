@@ -46,13 +46,13 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
   }
 
   "A Cassandra SourceTask should read records with only columns specified as Timestamp field" in {
-    val session = createTableAndKeySpace(secure = true, ssl = false)
+    val session = createTableAndKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
 
     val formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ")
     val now = new Date()
     val formatted = formatter.format(now)
 
-    val sql = s"INSERT INTO $CASSANDRA_KEYSPACE.$TABLE3" +
+    val sql = s"INSERT INTO $CASSANDRA_SOURCE_KEYSPACE.$TABLE3" +
       "(id, int_field, long_field, string_field, timestamp_field, timeuuid_field) " +
       s"VALUES ('id1', 2, 3, 'magic_string', '$formatted', now());"
     session.execute(sql)
@@ -65,14 +65,12 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
     val config = {
       Map(
         CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-        CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+        CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
         CassandraConfigConstants.USERNAME -> USERNAME,
         CassandraConfigConstants.PASSWD -> PASSWD,
         CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $TABLE3 PK timestamp_field",
         CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE3",
-        CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
-        CassandraConfigConstants.POLL_INTERVAL -> "1000",
-        CassandraConfigConstants.TIMESTAMP_TYPE -> "timestamp").asJava
+        CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
     }
 
     //get task
@@ -105,9 +103,9 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
   }
 
   "A Cassandra SourceTask should read records with only columns specified" in {
-    val session = createTableAndKeySpace(secure = true, ssl = false)
+    val session = createTableAndKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
 
-    val sql = s"INSERT INTO $CASSANDRA_KEYSPACE.$TABLE2" +
+    val sql = s"INSERT INTO $CASSANDRA_SOURCE_KEYSPACE.$TABLE2" +
       "(id, int_field, long_field, string_field, timestamp_field) " +
       "VALUES ('id1', 2, 3, 'magic_string', now());"
     session.execute(sql)
@@ -120,12 +118,11 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
     val config = {
       Map(
         CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-        CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+        CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
         CassandraConfigConstants.USERNAME -> USERNAME,
         CassandraConfigConstants.PASSWD -> PASSWD,
         CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $TABLE2 PK timestamp_field",
         CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE2",
-        CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
         CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
     }
 
@@ -159,9 +156,9 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
   }
 
   "A Cassandra SourceTask should read only columns specified and ignore those specified" in {
-    val session = createTableAndKeySpace(secure = true, ssl = false)
+    val session = createTableAndKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
 
-    val sql = s"INSERT INTO $CASSANDRA_KEYSPACE.$TABLE2" +
+    val sql = s"INSERT INTO $CASSANDRA_SOURCE_KEYSPACE.$TABLE2" +
       "(id, int_field, long_field, string_field, timestamp_field) " +
       "VALUES ('id1', 2, 3, 'magic_string', now());"
     session.execute(sql)
@@ -174,12 +171,11 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
     val config = {
       Map(
         CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-        CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+        CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
         CassandraConfigConstants.USERNAME -> USERNAME,
         CassandraConfigConstants.PASSWD -> PASSWD,
         CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $TABLE2 IGNORE timestamp_field PK timestamp_field",
         CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE2",
-        CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
         CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
     }
 
@@ -213,9 +209,9 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
   }
 
   "A Cassandra SourceTask should throw exception when timestamp column is not specified" in {
-    val session = createTableAndKeySpace(secure = true, ssl = false)
+    val session = createTableAndKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
 
-    val sql = s"INSERT INTO $CASSANDRA_KEYSPACE.$TABLE2" +
+    val sql = s"INSERT INTO $CASSANDRA_SOURCE_KEYSPACE.$TABLE2" +
       "(id, int_field, long_field, string_field, timestamp_field) " +
       "VALUES ('id1', 2, 3, 'magic_string', now());"
     session.execute(sql)
@@ -228,12 +224,11 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
     val config = {
       Map(
         CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-        CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+        CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
         CassandraConfigConstants.USERNAME -> USERNAME,
         CassandraConfigConstants.PASSWD -> PASSWD,
-        CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT string_field FROM $TABLE2 PK timestamp_field",
+        CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT string_field FROM $TABLE2 PK timestamp_field INCREMENTALMODE=timeuuid",
         CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE2",
-        CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
         CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
     }
 
@@ -249,9 +244,9 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
   }
 
   "A Cassandra SourceTask should read only columns specified and use unwrap" in {
-    val session = createTableAndKeySpace(secure = true, ssl = false)
+    val session = createTableAndKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
 
-    val sql = s"INSERT INTO $CASSANDRA_KEYSPACE.$TABLE2" +
+    val sql = s"INSERT INTO $CASSANDRA_SOURCE_KEYSPACE.$TABLE2" +
       "(id, int_field, long_field, string_field, timestamp_field) " +
       "VALUES ('id1', 2, 3, 'magic_string', now());"
     session.execute(sql)
@@ -264,12 +259,11 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
     val config = {
       Map(
         CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-        CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+        CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
         CassandraConfigConstants.USERNAME -> USERNAME,
         CassandraConfigConstants.PASSWD -> PASSWD,
-        CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $TABLE2 IGNORE timestamp_field PK timestamp_field WITHUNWRAP",
+        CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $TABLE2 IGNORE timestamp_field PK timestamp_field WITHUNWRAP INCREMENTALMODE=timeuuid",
         CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE2",
-        CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
         CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
     }
 
@@ -303,9 +297,9 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
   }
 
   "A Cassandra SourceTask should read multiple columns and use unwrap" in {
-    val session = createTableAndKeySpace(secure = true, ssl = false)
+    val session = createTableAndKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
 
-    val sql = s"INSERT INTO $CASSANDRA_KEYSPACE.$TABLE2" +
+    val sql = s"INSERT INTO $CASSANDRA_SOURCE_KEYSPACE.$TABLE2" +
       "(id, int_field, long_field, string_field, timestamp_field) " +
       "VALUES ('id1', 2, 3, 'magic_string', now());"
     session.execute(sql)
@@ -318,12 +312,11 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
     val config = {
       Map(
         CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-        CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+        CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
         CassandraConfigConstants.USERNAME -> USERNAME,
         CassandraConfigConstants.PASSWD -> PASSWD,
-        CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT string_field, long_field, timestamp_field FROM $TABLE2 IGNORE timestamp_field PK timestamp_field WITHUNWRAP",
+        CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT string_field, long_field, timestamp_field FROM $TABLE2 IGNORE timestamp_field PK timestamp_field WITHUNWRAP INCREMENTALMODE=timeuuid",
         CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE2",
-        CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
         CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
     }
 

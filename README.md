@@ -52,6 +52,7 @@ A collection of components to build a real time ingestion pipeline.
 *   Fixes for high CPU on CoAP source
 *   Fixes for high CPU on Cassandra source
 *   Add CQL generator to Cassandra source
+*   Add KCQL INCREMENTALMODE support to the Cassandra source, bulk mode and the timestamp column type is now take from KCQL
 *   Support for setting key and truststore type on Cassandra connectors
 *   Added token based paging support for Cassandra source
 *   Major refactor, thanks Marionete

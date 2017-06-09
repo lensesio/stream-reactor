@@ -17,7 +17,6 @@
 package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import java.lang.Boolean
-import java.net.ConnectException
 
 import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.cassandra.config.TimestampType.TimestampType
@@ -25,7 +24,9 @@ import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowError
 import com.datastax.driver.core.ConsistencyLevel
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigException
+
 import scala.collection.JavaConversions.asScalaIterator
+import scala.util.{Success, Try}
 
 /**
   * Created by andrew@datamountaineer.com on 22/04/16. 
@@ -36,12 +37,11 @@ trait CassandraSetting
 
 object TimestampType extends Enumeration {
   type TimestampType = Value
-  val TIMESTAMP, TIMEUUID, TOKEN = Value
+  val TIMESTAMP, TIMEUUID, TOKEN, NONE = Value
 }
 
 case class CassandraSourceSetting(routes: Config,
                                   keySpace: String,
-                                  bulkImportMode: Boolean = true,
                                   primaryKeyColumn: Option[String] = None,
                                   timestampColType: TimestampType,
                                   pollInterval: Long = CassandraConfigConstants.DEFAULT_POLL_INTERVAL,
@@ -74,23 +74,22 @@ object CassandraSettings extends StrictLogging {
     require(!keySpace.isEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
     val pollInterval = config.getLong(CassandraConfigConstants.POLL_INTERVAL)
 
-    val bulk = config.getString(CassandraConfigConstants.IMPORT_MODE).toLowerCase() match {
-      case CassandraConfigConstants.BULK => true
-      case CassandraConfigConstants.INCREMENTAL => false
-      case e => throw new ConnectException(s"Unsupported import mode $e.")
-    }
-
     val consistencyLevel = config.getConsistencyLevel
-    val timestampType = TimestampType.withName(config.getString(CassandraConfigConstants.TIMESTAMP_TYPE).toUpperCase)
     val errorPolicy = config.getErrorPolicy
     val routes = config.getRoutes
     val primaryKeyCols = routes.map(r => (r.getSource, r.getPrimaryKeys.toList)).toMap
     val fetchSize = config.getInt(CassandraConfigConstants.FETCH_SIZE)
+    val incrementalModes = config.getIncrementalMode(routes)
 
     routes.map({
       r => {
         val tCols = primaryKeyCols(r.getSource)
-        if (!bulk && tCols.size != 1) {
+        val timestampType = Try(TimestampType.withName(incrementalModes.get(r.getSource).get.toUpperCase)) match {
+          case Success(s) => s
+          case _ => TimestampType.NONE
+        }
+
+        if (tCols.size != 1 && TimestampType.equals(TimestampType.NONE)) {
           throw new ConfigException("Only one primary key column is allowed to be specified in Incremental mode. " +
             s"Received ${tCols.mkString(",")} for source ${r.getSource}")
         }
@@ -98,9 +97,8 @@ object CassandraSettings extends StrictLogging {
         CassandraSourceSetting(
           routes = r,
           keySpace = keySpace,
-          primaryKeyColumn = if (bulk) None else Some(tCols.head),
+          primaryKeyColumn = if (tCols.isEmpty) None else Some(tCols.head),
           timestampColType = timestampType,
-          bulkImportMode = bulk,
           pollInterval = pollInterval,
           errorPolicy = errorPolicy,
           consistencyLevel = consistencyLevel,

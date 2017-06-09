@@ -34,7 +34,7 @@ class TestCassandraConnectionSecure extends WordSpec with Matchers with BeforeAn
   }
 
   "should return a secured session" in {
-    createTableAndKeySpace(secure = true, ssl = false)
+    createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
     val taskConfig = CassandraConfigSink(getCassandraConfigSinkPropsSecure)
     val conn = CassandraConnection(taskConfig)
     val session = conn.session

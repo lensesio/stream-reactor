@@ -19,31 +19,29 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 import java.text.SimpleDateFormat
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.{ Collections, Date }
+import java.util.{Collections, Date}
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.{ CassandraConfigConstants, CassandraSourceSetting, TimestampType }
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSourceSetting, TimestampType}
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraResultSetWrapper.resultSetFutureToScala
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
 import com.datamountaineer.streamreactor.connect.offsets.OffsetHandler
 import com.datastax.driver.core._
 import com.datastax.driver.core.utils.UUIDs
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.errors.ConnectException
-import org.apache.kafka.connect.source.{ SourceRecord, SourceTaskContext }
+import org.apache.kafka.connect.source.{SourceRecord, SourceTaskContext}
 
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.{ Failure, Success, Try }
-
-import org.apache.kafka.common.config.ConfigException
-import org.apache.kafka.connect.data.Schema
+import scala.util.{Failure, Success, Try}
 
 /**
  * Created by andrew@datamountaineer.com on 20/04/16.
  * stream-reactor
  */
-class CassandraTableReader(private val session: Session,
+class CassandraTableReader( private val session: Session,
                             private val setting: CassandraSourceSetting,
                             private val context: SourceTaskContext,
                             var queue: LinkedBlockingQueue[SourceRecord]) extends StrictLogging {
@@ -63,6 +61,7 @@ class CassandraTableReader(private val session: Session,
   private var tableOffset: Option[String] = buildOffsetMap(context)
   private val sourcePartition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
   private val schemaName = s"$keySpace.$table".replace('-', '.')
+  private val bulk = if (setting.timestampColType.equals(TimestampType.NONE)) true else false
 
   /**
    * Build a map of table to offset.
@@ -109,7 +108,7 @@ class CassandraTableReader(private val session: Session,
     querying.set(true)
 
     // execute the query, gives us back a future result set
-    val frs = if (setting.bulkImportMode) {
+    val frs = if (bulk) {
       // bulk
       resultSetFutureToScala(fireQuery(preparedStatement))
     } else if (cqlGenerator.isTokenBased()) {
@@ -133,8 +132,6 @@ class CassandraTableReader(private val session: Session,
   /**
    * Bind and execute the preparedStatement and set querying to true.
    *
-   * @param previous The previous timestamp to bind.
-   * @param now      The current timestamp on the db to bind.
    * @return a ResultSet.
    */
   private def bindAndFireTimebasedQuery() = {
@@ -196,7 +193,7 @@ class CassandraTableReader(private val session: Session,
           val row = iter.next()
           Try({
             // if not bulk get the row timestamp column value to get the max
-            if (!setting.bulkImportMode) {
+            if (!bulk) {
               maxOffset = if (cqlGenerator.isTokenBased()) {
                 getTokenMaxOffsetForRow(maxOffset, row)
               } else {
@@ -252,7 +249,7 @@ class CassandraTableReader(private val session: Session,
     val offset: String = if (cqlGenerator.isTokenBased()) {
       extractUuid(row).getOrElse("")
     } else {
-      val rowOffset: Date = if (setting.bulkImportMode) dateFormatter.parse(tableOffset.get) else extractTimestamp(row)
+      val rowOffset: Date = if (bulk) dateFormatter.parse(tableOffset.get) else extractTimestamp(row)
       dateFormatter.format(rowOffset)
     }
 

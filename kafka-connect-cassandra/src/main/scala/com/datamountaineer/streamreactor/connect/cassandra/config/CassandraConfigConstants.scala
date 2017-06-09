@@ -29,8 +29,6 @@ object CassandraConfigConstants {
   val USERNAME_PASSWORD = "username_password"
   val NONE = "none"
   val PAYLOAD = "payload"
-  val BULK = "bulk"
-  val INCREMENTAL = "incremental"
   val DEFAULT_POLL_INTERVAL = 1000
 
   val POLL_INTERVAL = "connect.cassandra.import.poll.interval"
@@ -83,8 +81,6 @@ object CassandraConfigConstants {
   val KEY_STORE_TYPE_DEFAULT = "JKS"
 
   //source
-  val IMPORT_MODE = "connect.cassandra.import.mode"
-  val IMPORT_MODE_DOC = s"Import mode for the tables. Either $BULK or $INCREMENTAL"
 
   val BATCH_SIZE = "connect.cassandra.source.task.batch.size"
   val BATCH_SIZE_DOC = "The number of records the source task should drain from the reader queue."
@@ -152,11 +148,6 @@ object CassandraConfigConstants {
     """.stripMargin
   val CONSISTENCY_LEVEL_DISPLAY = "Consistency Level"
   val CONSISTENCY_LEVEL_DEFAULT = ""
-
-
-  val TIMESTAMP_TYPE = "connect.cassandra.source.timestamp.type"
-  val TIMESTAMP_TYPE_DOC = "The Cassandra data type of the timestamp column, either timeuuid (default) or timestamp."
-  val TIMESTAMP_TYPE_DEFAULT = "timeUUID"
 
   val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"

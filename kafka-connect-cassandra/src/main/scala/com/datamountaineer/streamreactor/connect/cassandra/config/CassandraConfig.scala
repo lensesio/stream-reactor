@@ -18,8 +18,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import java.util
 
-import com.datamountaineer.streamreactor.temp.{ErrorPolicySettings, NumberRetriesSettings, KcqlSettings,
-ThreadPoolSettings, ConsistencyLevelSettings}
+import com.datamountaineer.streamreactor.temp._
 import com.datastax.driver.core.ConsistencyLevel
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
@@ -219,14 +218,6 @@ case class CassandraConfig() {
 object CassandraConfigSource {
   val base: ConfigDef = CassandraConfig().configDef
   val sourceConfig: ConfigDef = base
-    .define(CassandraConfigConstants.IMPORT_MODE,
-      Type.STRING,
-      Importance.HIGH,
-      CassandraConfigConstants.IMPORT_MODE_DOC,
-      "Import",
-      1,
-      ConfigDef.Width.LONG,
-      CassandraConfigConstants.IMPORT_MODE)
 
     .define(CassandraConfigConstants.ASSIGNED_TABLES,
       Type.STRING,
@@ -289,16 +280,6 @@ object CassandraConfigSource {
       7,
       ConfigDef.Width.LONG,
       CassandraConfigConstants.ALLOW_FILTERING)
-
-    .define(CassandraConfigConstants.TIMESTAMP_TYPE,
-      Type.STRING,
-      CassandraConfigConstants.TIMESTAMP_TYPE_DEFAULT,
-      Importance.HIGH,
-      CassandraConfigConstants.TIMESTAMP_TYPE_DOC,
-      "Import",
-      8,
-      ConfigDef.Width.LONG,
-      CassandraConfigConstants.TIMESTAMP_TYPE)
 
 }
 

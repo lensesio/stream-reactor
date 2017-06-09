@@ -28,25 +28,23 @@ import scala.collection.JavaConversions._
 class TestCassandraSourceSettings extends WordSpec with Matchers with TestConfig {
   "CassandraSettings should return setting for a source" in {
     val taskConfig = CassandraConfigSource(getCassandraConfigSourcePropsBulk)
-    val assigned = List(TABLE1, TABLE2)
     val settings = CassandraSettings.configureSource(taskConfig).toList
     settings.size shouldBe 2
     settings.head.routes.getSource shouldBe TABLE1
     settings.head.routes.getTarget shouldBe TABLE1 //no table mapping provided so should be the table
-    settings.head.bulkImportMode shouldBe true
+    settings.head.timestampColType shouldBe TimestampType.NONE
     settings(1).routes.getSource shouldBe TABLE2
     settings(1).routes.getTarget shouldBe TOPIC2
-    settings(1).bulkImportMode shouldBe true
+    settings(1).timestampColType shouldBe TimestampType.NONE
   }
 
   "CassandraSettings should return setting for a source with one table" in {
     val map = Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.SOURCE_KCQL_QUERY -> "INSERT INTO cassandra-source SELECT * FROM orders PK created",
-      CassandraConfigConstants.IMPORT_MODE -> CassandraConfigConstants.INCREMENTAL,
       CassandraConfigConstants.POLL_INTERVAL -> "1000"
     )
     val taskConfig = CassandraConfigSource(map)

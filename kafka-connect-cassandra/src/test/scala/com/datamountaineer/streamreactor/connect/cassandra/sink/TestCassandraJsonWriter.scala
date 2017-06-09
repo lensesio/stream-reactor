@@ -81,7 +81,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
 
 
   "Cassandra JsonWriter should write records to Cassandra" in {
-    val session = createTableAndKeySpace(secure = true, ssl = false)
+    val session = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE ,secure = true, ssl = false)
     val context = mock[SinkTaskContext]
     val assignment = getAssignment
     when(context.assignment()).thenReturn(assignment)
@@ -97,15 +97,15 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     writer.write(testRecords)
     Thread.sleep(2000)
     //check we can get back what we wrote
-    val res1 = session.execute(s"SELECT * FROM $CASSANDRA_KEYSPACE.$TABLE1")
+    val res1 = session.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TABLE1")
     res1.all().size() shouldBe testRecords1.size
     //check we can get back what we wrote
-    val res2 = session.execute(s"SELECT * FROM $CASSANDRA_KEYSPACE.$TOPIC2")
+    val res2 = session.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TOPIC2")
     res2.all().size() shouldBe testRecords1.size
   }
 
   "Cassandra JsonWriter should write records to Cassandra with field selection" in {
-    val session = createTableAndKeySpace(secure = true, ssl = false)
+    val session = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
     val context = mock[SinkTaskContext]
     val assignment = getAssignment
     when(context.assignment()).thenReturn(assignment)
@@ -119,7 +119,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     writer.write(testRecords)
     Thread.sleep(2000)
     //check we can get back what we wrote
-    val res = session.execute(s"SELECT * FROM $CASSANDRA_KEYSPACE.$TABLE1")
+    val res = session.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TABLE1")
     val rs = res.all().asScala
 
 
@@ -168,7 +168,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
 
 
   "Cassandra JsonWriter with Retry should throw Retriable Exception" in {
-    val session = createTableAndKeySpace(secure = true, ssl = false)
+    val session = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
     val context = mock[SinkTaskContext]
     val assignment = getAssignment
     when(context.assignment()).thenReturn(assignment)
@@ -181,7 +181,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
 
 
     //drop table in cassandra
-    session.execute(s"DROP TABLE IF EXISTS $CASSANDRA_KEYSPACE.$TABLE1")
+    session.execute(s"DROP TABLE IF EXISTS $CASSANDRA_SINK_KEYSPACE.$TABLE1")
     intercept[RetriableException] {
       writer.write(testRecords)
     }
@@ -189,16 +189,16 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     session.close()
 
     //put back table
-    val session2 = createTableAndKeySpace(secure = true, ssl = false)
+    val session2 = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
     writer.write(testRecords)
     Thread.sleep(2000)
     //check we can get back what we wrote
-    val res = session2.execute(s"SELECT * FROM $CASSANDRA_KEYSPACE.$TABLE1")
+    val res = session2.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TABLE1")
     res.all().size() shouldBe testRecords.size
   }
 
   "Cassandra JsonWriter with Noop should throw Cassandra exception and keep going" in {
-    val session = createTableAndKeySpace(secure = true, ssl = false)
+    val session = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
     val context = mock[SinkTaskContext]
     val assignment = getAssignment
     when(context.assignment()).thenReturn(assignment)
@@ -210,24 +210,24 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     val writer = CassandraWriter(taskConfig, context)
 
     //drop table in cassandra
-    session.execute(s"DROP TABLE IF EXISTS $CASSANDRA_KEYSPACE.$TABLE1")
+    session.execute(s"DROP TABLE IF EXISTS $CASSANDRA_SINK_KEYSPACE.$TABLE1")
     Thread.sleep(1000)
     writer.write(testRecords)
 
     session.close()
 
     //put back table
-    val session2 = createTableAndKeySpace(secure = true, ssl = false)
+    val session2 = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
     writer.write(testRecords)
     Thread.sleep(2000)
     //check we can get back what we wrote
-    val res = session2.execute(s"SELECT * FROM $CASSANDRA_KEYSPACE.$TABLE1")
+    val res = session2.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TABLE1")
     res.all().size() shouldBe testRecords.size
   }
 
   "A Cassandra SinkTask" should {
     "start and write records to Cassandra" in {
-      val session = createTableAndKeySpace(secure = true)
+      val session = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true)
       //mock the context to return our assignment when called
       val context = mock[SinkTaskContext]
       val assignment = getAssignment
@@ -248,12 +248,12 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
       task.stop()
 
       //check we can get back what we wrote
-      val res = session.execute(s"SELECT * FROM $CASSANDRA_KEYSPACE.$TOPIC1")
+      val res = session.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TOPIC1")
       res.all().size() shouldBe testRecords.size
     }
 
     "start and write records to Cassandra using ONE as consistency level" in {
-      val session = createTableAndKeySpace(secure = true)
+      val session = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true)
       //mock the context to return our assignment when called
       val context = mock[SinkTaskContext]
       val assignment = getAssignment
@@ -275,7 +275,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
       task.stop()
 
       //check we can get back what we wrote
-      val res = session.execute(s"SELECT * FROM $CASSANDRA_KEYSPACE.$TOPIC1")
+      val res = session.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TOPIC1")
       res.all().size() shouldBe testRecords.size
     }
   }
