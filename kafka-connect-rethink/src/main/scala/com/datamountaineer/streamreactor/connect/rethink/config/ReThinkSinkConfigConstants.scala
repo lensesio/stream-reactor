@@ -34,7 +34,7 @@ object ReThinkSinkConfigConstants {
   val EXPORT_ROUTE_QUERY = "connect.rethink.sink.kcql"
   private[config] val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
 
-  val ERROR_POLICY = "connect.rethink.size.error.policy"
+  val ERROR_POLICY = "connect.rethink.sink.error.policy"
   private[config] val ERROR_POLICY_DOC: String = "Specifies the action to be taken if an error occurs while inserting the data.\n" +
     "There are two available options: \n" + "NOOP - the error is swallowed \n" +
     "THROW - the error is allowed to propagate. \n" +
