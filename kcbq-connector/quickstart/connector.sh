@@ -14,13 +14,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
-BASE_DIR=`dirname "$0"`
+BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 if [ -z $CONFLUENT_DIR ]; then
   CONFLUENT_DIR="$BASE_DIR/../../confluent-3.0.0"
 fi
 
-export CLASSPATH="$CLASSPATH:$BASE_DIR/../bin/jar/*"
+export CLASSPATH="$CLASSPATH:$BASE_DIR/../../bin/jar/*"
 
 STANDALONE_PROPS="$BASE_DIR/properties/standalone.properties"
 CONNECTOR_PROPS="$BASE_DIR/properties/connector.properties"

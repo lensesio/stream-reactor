@@ -17,7 +17,7 @@ The latest releases are available in the GitHub release tab, or via [tarballs in
 ### Configuration Basics
 
 Firstly, you need to specify configuration settings for your connector. These can be found in the 
-`quickstart/properties/connector.properties` file. Look for this section:
+`kcbq-connector/quickstart/properties/connector.properties` file. Look for this section:
 
 ```plain
 ########################################### Fill me in! ###########################################
@@ -63,7 +63,7 @@ $ mkdir bin/jar/ && tar -C bin/jar/ -xf bin/tar/kcbq-connector-*-confluent-dist.
 Then move into the `quickstart` directory:
 
 ```bash
-$ cd quickstart/
+$ cd kcbq-connector/quickstart/
 ```
 
 After that, if your Confluent Platform installation isn't in a sibling directory to the connector, 
@@ -124,7 +124,7 @@ Producer instance, and the pipeline instance should write them to BigQuery.
 
 If you want to get more adventurous, you can experiment with different schemas or topics by 
 adjusting flags given to the Avro Console Producer and tweaking the config settings found in the 
-`quickstart/properties` directory.
+`kcbq-connector/quickstart/properties` directory.
 
 ## Integration Testing the Connector
 
