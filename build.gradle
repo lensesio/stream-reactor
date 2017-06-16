@@ -185,8 +185,8 @@ project(':kcbq-connector') {
 
         compile group: 'io.debezium', name: 'debezium-core',  version:'0.4.0'
 
-        compile group: 'org.apache.kafka', name: 'connect-api', version: '0.10.2.0'
-        compile group: 'org.apache.kafka', name: 'kafka-clients', version: '0.10.2.0'
+        compile group: 'org.apache.kafka', name: 'connect-api', version: '0.10.2.1'
+        compile group: 'org.apache.kafka', name: 'kafka-clients', version: '0.10.2.1'
 
         compile group: 'org.slf4j', name: 'slf4j-api', version: '1.6.1'
         compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.6.1'
@@ -233,7 +233,7 @@ project('kcbq-api') {
     dependencies {
         compile group: 'com.google.cloud', name: 'google-cloud', version: '0.10.0-alpha'
 
-        compile group: 'org.apache.kafka', name: 'connect-api', version: '0.10.2.0'
+        compile group: 'org.apache.kafka', name: 'connect-api', version: '0.10.2.1'
     }
 
     artifacts {
@@ -285,8 +285,8 @@ project('kcbq-confluent') {
 
         compile group: 'org.apache.avro', name: 'avro', version: '1.8.1'
 
-        compile group: 'org.apache.kafka', name: 'connect-api', version: '0.10.2.0'
-        compile group: 'org.apache.kafka', name: 'kafka-clients', version: '0.10.2.0'
+        compile group: 'org.apache.kafka', name: 'connect-api', version: '0.10.2.1'
+        compile group: 'org.apache.kafka', name: 'kafka-clients', version: '0.10.2.1'
 
         compile group: 'org.slf4j', name: 'slf4j-api', version: '1.6.1'
 
