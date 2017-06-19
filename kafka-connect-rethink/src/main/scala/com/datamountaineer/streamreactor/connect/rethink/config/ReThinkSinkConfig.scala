@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.rethink.config
 import java.util
 
 import com.datamountaineer.streamreactor.temp._
+import com.datamountaineer.streamreactor.temp.traits._
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
@@ -40,9 +41,9 @@ object ReThinkSinkConfig {
       ReThinkSinkConfigConstants.RETHINK_PORT_DEFAULT,
       Importance.MEDIUM, ReThinkSinkConfigConstants.RETHINK_PORT_DOC,
       "Connection", 3, ConfigDef.Width.MEDIUM, ReThinkSinkConfigConstants.RETHINK_PORT)
-    .define(ReThinkSinkConfigConstants.EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH,
+    .define(ReThinkSinkConfigConstants.ROUTE_QUERY, Type.STRING, Importance.HIGH,
       ReThinkSinkConfigConstants.EXPORT_ROUTE_QUERY_DOC,
-      "Connection", 4, ConfigDef.Width.MEDIUM, ReThinkSinkConfigConstants.EXPORT_ROUTE_QUERY)
+      "Connection", 4, ConfigDef.Width.MEDIUM, ReThinkSinkConfigConstants.ROUTE_QUERY)
     .define(ReThinkSinkConfigConstants.ERROR_POLICY, Type.STRING,
       ReThinkSinkConfigConstants.ERROR_POLICY_DEFAULT,
       Importance.HIGH, ReThinkSinkConfigConstants.ERROR_POLICY_DOC,
@@ -62,17 +63,10 @@ object ReThinkSinkConfig {
 }
 
 case class ReThinkSinkConfig(props: util.Map[String, String])
-  extends AbstractConfig(ReThinkSinkConfig.config, props)
+  extends BaseConfig(ReThinkSinkConfigConstants.RETHINK_CONNECTOR_PREFIX, ReThinkSinkConfig.config, props)
     with ErrorPolicySettings
     with NumberRetriesSettings
     with KcqlSettings
     with BatchSizeSettings
     with DatabaseSettings
-    with RetryIntervalSettings {
-  override val errorPolicyConstant: String = ReThinkSinkConfigConstants.ERROR_POLICY
-  override val kcqlConstant: String = ReThinkSinkConfigConstants.EXPORT_ROUTE_QUERY
-  override val numberRetriesConstant: String = ReThinkSinkConfigConstants.NBR_OF_RETRIES
-  override val batchSizeConstant: String = ReThinkSinkConfigConstants.BATCH_SIZE
-  override val databaseConstant: String = ReThinkSinkConfigConstants.RETHINK_DB
-  override val retryIntervalConstant: String = ReThinkSinkConfigConstants.ERROR_RETRY_INTERVAL
-}
+    with RetryIntervalSettings

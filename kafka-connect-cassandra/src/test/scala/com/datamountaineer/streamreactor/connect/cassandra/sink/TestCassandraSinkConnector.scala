@@ -28,7 +28,7 @@ class TestCassandraSinkConnector extends WordSpec with BeforeAndAfter with Match
     val connector = new CassandraSinkConnector()
     connector.start(props)
     val taskConfigs = connector.taskConfigs(1)
-    taskConfigs.asScala.head.get(CassandraConfigConstants.SINK_KCQL) shouldBe QUERY_ALL
+    taskConfigs.asScala.head.get(CassandraConfigConstants.ROUTE_QUERY) shouldBe QUERY_ALL
     taskConfigs.asScala.head.get(CassandraConfigConstants.CONTACT_POINTS) shouldBe CONTACT_POINT
     taskConfigs.asScala.head.get(CassandraConfigConstants.KEY_SPACE) shouldBe TOPIC1
     taskConfigs.size() shouldBe 1

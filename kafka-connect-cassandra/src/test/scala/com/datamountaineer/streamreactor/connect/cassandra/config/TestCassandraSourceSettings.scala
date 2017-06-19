@@ -44,7 +44,7 @@ class TestCassandraSourceSettings extends WordSpec with Matchers with TestConfig
       CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
-      CassandraConfigConstants.SOURCE_KCQL_QUERY -> "INSERT INTO cassandra-source SELECT * FROM orders PK created",
+      CassandraConfigConstants.ROUTE_QUERY -> "INSERT INTO cassandra-source SELECT * FROM orders PK created",
       CassandraConfigConstants.POLL_INTERVAL -> "1000"
     )
     val taskConfig = CassandraConfigSource(map)

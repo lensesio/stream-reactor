@@ -39,7 +39,7 @@ case class HazelCastSocketConfig(keepAlive: Boolean = true,
 
 object HazelCastConnectionConfig {
   def apply(config: HazelCastSinkConfig): HazelCastConnectionConfig = {
-    val members = config.getList(HazelCastSinkConfigConstants.CLUSTER_SINK_MEMBERS).toSet
+    val members = config.getList(HazelCastSinkConfigConstants.CLUSTER_MEMBERS).toSet
     val redo = true
     val connectionAttempts = config.getInt(HazelCastSinkConfigConstants.CONNECTION_RETRY_ATTEMPTS)
     val connectionTimeouts = config.getLong(HazelCastSinkConfigConstants.CONNECTION_TIMEOUT)
@@ -49,8 +49,8 @@ object HazelCastConnectionConfig {
     val linger = config.getInt(HazelCastSinkConfigConstants.LINGER_SECONDS)
     val buffer = config.getInt(HazelCastSinkConfigConstants.BUFFER_SIZE)
     val socketConfig = HazelCastSocketConfig(keepAlive, tcpNoDelay, reuse, linger, buffer)
-    val pass = config.getPassword(HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD).value()
-    val group = config.getString(HazelCastSinkConfigConstants.SINK_GROUP_NAME)
+    val pass = config.getPassword(HazelCastSinkConfigConstants.GROUP_PASSWORD).value()
+    val group = config.getString(HazelCastSinkConfigConstants.GROUP_NAME)
     new HazelCastConnectionConfig(group, members, redo, connectionAttempts, connectionTimeouts, pass, socketConfig)
   }
 }

@@ -18,10 +18,10 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import java.util
 
-import com.datamountaineer.streamreactor.temp._
+import com.datamountaineer.streamreactor.temp.traits._
 import com.datastax.driver.core.ConsistencyLevel
+import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
-import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 /**
   * Holds the base configuration.
@@ -229,14 +229,14 @@ object CassandraConfigSource {
       ConfigDef.Width.LONG,
       CassandraConfigConstants.ASSIGNED_TABLES)
 
-    .define(CassandraConfigConstants.SOURCE_KCQL_QUERY,
+    .define(CassandraConfigConstants.ROUTE_QUERY,
       Type.STRING,
       Importance.HIGH,
-      CassandraConfigConstants.SOURCE_KCQL_DOC,
+      CassandraConfigConstants.ROUTE_QUERY_DOC,
       "Mappings",
       2,
       ConfigDef.Width.LONG,
-      CassandraConfigConstants.SOURCE_KCQL_QUERY)
+      CassandraConfigConstants.ROUTE_QUERY)
 
 
     .define(CassandraConfigConstants.READER_BUFFER_SIZE,
@@ -284,14 +284,10 @@ object CassandraConfigSource {
 }
 
 case class CassandraConfigSource(props: util.Map[String, String])
-  extends AbstractConfig(CassandraConfigSource.sourceConfig, props)
+  extends BaseConfig(CassandraConfigConstants.CASSANDRA_CONNECTOR_PREFIX, CassandraConfigSource.sourceConfig, props)
     with ErrorPolicySettings
     with KcqlSettings
-    with ConsistencyLevelSettings[ConsistencyLevel] {
-  override val errorPolicyConstant: String = CassandraConfigConstants.ERROR_POLICY
-  override val kcqlConstant: String = CassandraConfigConstants.SOURCE_KCQL_QUERY
-  override val consistencyLevelConstant: String = CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG
-}
+    with ConsistencyLevelSettings[ConsistencyLevel]
 
 /**
   * Holds the extra configurations for the sink on top of
@@ -299,24 +295,24 @@ case class CassandraConfigSource(props: util.Map[String, String])
   **/
 object CassandraConfigSink {
   val base: ConfigDef = CassandraConfig().configDef
-  val sinkConfig: ConfigDef = base
-    .define(CassandraConfigConstants.SINK_KCQL,
+  val sinkConfig = base
+    .define(CassandraConfigConstants.ROUTE_QUERY,
       Type.STRING,
       Importance.HIGH,
-      CassandraConfigConstants.SINK_KCQL_DOC,
+      CassandraConfigConstants.ROUTE_QUERY_DOC,
       "Mappings",
       1,
       ConfigDef.Width.LONG,
-      CassandraConfigConstants.SINK_KCQL)
-    .define(CassandraConfigConstants.SINK_THREAD_POOL_CONFIG,
+      CassandraConfigConstants.ROUTE_QUERY)
+    .define(CassandraConfigConstants.THREAD_POOL_CONFIG,
       Type.INT,
-      CassandraConfigConstants.SINK_THREAD_POOL_DEFAULT,
+      CassandraConfigConstants.THREAD_POOL_DEFAULT,
       Importance.MEDIUM,
-      CassandraConfigConstants.SINK_THREAD_POOL_DOC,
+      CassandraConfigConstants.THREAD_POOL_DOC,
       "Import",
       8,
       ConfigDef.Width.MEDIUM,
-      CassandraConfigConstants.SINK_THREAD_POOL_DISPLAY
+      CassandraConfigConstants.THREAD_POOL_DISPLAY
     )
     .define(CassandraConfigConstants.PROGRESS_COUNTER_ENABLED,
       Type.BOOLEAN,
@@ -330,15 +326,9 @@ object CassandraConfigSink {
 }
 
 case class CassandraConfigSink(props: util.Map[String, String])
-  extends AbstractConfig(CassandraConfigSink.sinkConfig, props)
+  extends BaseConfig(CassandraConfigConstants.CASSANDRA_CONNECTOR_PREFIX, CassandraConfigSink.sinkConfig, props)
     with ErrorPolicySettings
     with NumberRetriesSettings
     with KcqlSettings
     with ThreadPoolSettings
-    with ConsistencyLevelSettings[ConsistencyLevel] {
-  override val errorPolicyConstant: String = CassandraConfigConstants.ERROR_POLICY
-  override val kcqlConstant: String = CassandraConfigConstants.SINK_KCQL
-  override val numberRetriesConstant: String = CassandraConfigConstants.NBR_OF_RETRIES
-  override val threadPoolConstant: String = CassandraConfigConstants.SINK_THREAD_POOL_CONFIG
-  override val consistencyLevelConstant: String = CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG
-}
+    with ConsistencyLevelSettings[ConsistencyLevel]

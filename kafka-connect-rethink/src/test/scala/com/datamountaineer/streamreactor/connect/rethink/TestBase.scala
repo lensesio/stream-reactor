@@ -52,31 +52,31 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfter {
   ASSIGNMENT.add(TOPIC_PARTITION)
 
   def getProps: util.Map[String, String] = {
-    Map(ReThinkSinkConfigConstants.EXPORT_ROUTE_QUERY -> ROUTE,
+    Map(ReThinkSinkConfigConstants.ROUTE_QUERY -> ROUTE,
       ReThinkSinkConfigConstants.RETHINK_HOST -> "localhost",
       ReThinkSinkConfigConstants.RETHINK_DB -> DB).asJava
   }
 
   def getPropsSource: util.Map[String, String] = {
-    Map(ReThinkSourceConfigConstants.IMPORT_ROUTE_QUERY -> IMPORT_ROUTE,
+    Map(ReThinkSourceConfigConstants.ROUTE_QUERY -> IMPORT_ROUTE,
       ReThinkSourceConfigConstants.RETHINK_HOST -> "localhost",
       ReThinkSourceConfigConstants.RETHINK_DB -> DB).asJava
   }
 
   def getPropsSourceDelta: util.Map[String, String] = {
-    Map(ReThinkSourceConfigConstants.IMPORT_ROUTE_QUERY -> IMPORT_ROUTE_DELTA,
+    Map(ReThinkSourceConfigConstants.ROUTE_QUERY -> IMPORT_ROUTE_DELTA,
       ReThinkSourceConfigConstants.RETHINK_HOST -> "localhost",
       ReThinkSourceConfigConstants.RETHINK_DB -> DB).asJava
   }
 
   def getPropsSource2: util.Map[String, String] = {
-    Map(ReThinkSourceConfigConstants.IMPORT_ROUTE_QUERY -> IMPORT_ROUTE_2,
+    Map(ReThinkSourceConfigConstants.ROUTE_QUERY -> IMPORT_ROUTE_2,
       ReThinkSourceConfigConstants.RETHINK_HOST -> "localhost",
       ReThinkSourceConfigConstants.RETHINK_DB -> DB).asJava
   }
 
   def getPropsUpsertSelectRetry: util.Map[String, String] = {
-    Map(ReThinkSinkConfigConstants.EXPORT_ROUTE_QUERY -> ROUTE_SELECT_UPSERT,
+    Map(ReThinkSinkConfigConstants.ROUTE_QUERY -> ROUTE_SELECT_UPSERT,
       ReThinkSinkConfigConstants.RETHINK_HOST -> "localhost",
       ReThinkSinkConfigConstants.RETHINK_DB -> DB,
       ReThinkSinkConfigConstants.ERROR_POLICY -> "RETRY").asJava
