@@ -85,6 +85,7 @@ object CassandraConfigConstants {
   val KEY_STORE_TYPE_DEFAULT = "JKS"
 
   //source
+
   val BATCH_SIZE = s"$CASSANDRA_CONNECTOR_PREFIX.$BATCH_SIZE_PROP_SUFFIX"
   val BATCH_SIZE_DOC = "The number of records the source task should drain from the reader queue."
   val BATCH_SIZE_DEFAULT = 100
