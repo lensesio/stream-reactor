@@ -5,10 +5,18 @@ build/
 *.tar
 
 .gradle
+
+# Intellij
 .idea
 *.iml
 *.iws
 *.ipr
+
+# Eclipse
+.classpath
+.project
+.settings
+.metadata
 
 key.json
 

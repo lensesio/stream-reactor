@@ -34,7 +34,7 @@ import java.util.TimeZone;
 public abstract class LogicalTypeConverter {
 
   // BigQuery uses UTC timezone by default
-  protected final static TimeZone utcTimeZone = TimeZone.getTimeZone("UTC");
+  protected static final TimeZone utcTimeZone = TimeZone.getTimeZone("UTC");
 
   private String logicalName;
   private Schema.Type encodingType;

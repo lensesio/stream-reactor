@@ -12,6 +12,7 @@ subprojects { subproject ->
     apply plugin: 'checkstyle'
     apply plugin: 'findbugs'
     apply plugin: 'idea'
+    apply plugin: 'eclipse'
 
     jar.baseName = subproject.name
 
