@@ -66,7 +66,7 @@ public class SimpleBigQueryWriter extends BigQueryWriter {
     InsertAllResponse writeResponse = bigQuery.insertAll(request);
     if (writeResponse.hasErrors()) {
       logger.warn(
-          "You may want to enable auto schema updates by specifying"
+          "You may want to enable auto schema updates by specifying "
           + "{}=true in the properties file",
           BigQuerySinkTaskConfig.SCHEMA_UPDATE_CONFIG
       );
