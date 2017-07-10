@@ -49,7 +49,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
 
   private var session: Session = getSession.get
 
-  CassandraUtils.checkCassandraTables(session.getCluster, settings.routes, session.getLoggedKeyspace)
+  CassandraUtils.checkCassandraTables(session.getCluster, settings.kcql, session.getLoggedKeyspace)
   private var preparedCache: Map[String, PreparedStatement] = cachePreparedStatements
 
   /**
@@ -67,7 +67,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
     * @return A Map of topic->preparedStatements.
     **/
   private def cachePreparedStatements: Map[String, PreparedStatement] = {
-    settings.routes.map(r => {
+    settings.kcql.map(r => {
       val topic = r.getSource
       val table = r.getTarget
       val ttl = r.getTTL

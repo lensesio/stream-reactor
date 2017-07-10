@@ -18,7 +18,6 @@ package com.datamountaineer.streamreactor.connect.rethink
 
 import java.io.{BufferedInputStream, FileInputStream}
 
-import com.datamountaineer.streamreactor.connect.config.{SSLConfig, SSLConfigContext}
 import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkConfigConstants
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.net.Connection
@@ -36,18 +35,19 @@ object ReThinkConnection extends StrictLogging {
     val host = config.getString(ReThinkConfigConstants.RETHINK_HOST)
     val port = config.getInt(ReThinkConfigConstants.RETHINK_PORT)
     val username = config.getString(ReThinkConfigConstants.USERNAME)
+    val password = config.getPassword(ReThinkConfigConstants.PASSWORD).value()
     val certFile = config.getString(ReThinkConfigConstants.CERT_FILE)
     val authKey = config.getPassword(ReThinkConfigConstants.AUTH_KEY)
 
     //java driver also catches this
-    if (!username.isEmpty && !certFile.isEmpty) {
+    if (username.nonEmpty && certFile.nonEmpty) {
       throw new ConnectException("Username and Certificate file can not be used together.")
     }
 
-    if ((!certFile.isEmpty && config.getPassword(ReThinkConfigConstants.AUTH_KEY).value().isEmpty)
-      || certFile.isEmpty && !config.getPassword(ReThinkConfigConstants.AUTH_KEY).value().isEmpty
+    if ((certFile.nonEmpty && config.getPassword(ReThinkConfigConstants.AUTH_KEY).value().isEmpty)
+      || certFile.isEmpty && config.getPassword(ReThinkConfigConstants.AUTH_KEY).value().nonEmpty
     ) {
-      throw new ConnectException("Both the certificate file and authentication must be set for secure TLS connections.")
+      throw new ConnectException("Both the certificate file and authentication key must be set for secure TLS connections.")
     }
 
     val builder = r.connection()
@@ -55,12 +55,12 @@ object ReThinkConnection extends StrictLogging {
       .port(port)
 
     if (!username.isEmpty) {
-      logger.info("Logging on to RethinkDB with username/password")
-      builder.user(username, config.getPassword(ReThinkConfigConstants.PASSWORD).value())
+      logger.info("Adding username/password credentials to connection")
+      builder.user(username, password)
     }
 
     if (!certFile.isEmpty) {
-      logger.info(s"Using certificate file ${certFile} for TLS connection, override SSLContext")
+      logger.info(s"Using certificate file ${certFile} for TLS connection, overriding any SSLContext")
       val is = new BufferedInputStream(new FileInputStream(certFile))
       builder.certFile(is)
     }
@@ -70,28 +70,6 @@ object ReThinkConnection extends StrictLogging {
       builder.authKey(authKey.value())
     }
 
-    addSSL(config, builder)
     builder.connect()
-  }
-
-  private def addSSL(connectorConfig: AbstractConfig, builder: Connection.Builder): Connection.Builder = {
-    val ssl = connectorConfig.getBoolean(ReThinkConfigConstants.SSL_ENABLED).asInstanceOf[Boolean]
-    ssl match {
-      case true =>
-        logger.info("Setting up SSL context.")
-        val sslConfig = SSLConfig(
-          trustStorePath = connectorConfig.getString(ReThinkConfigConstants.TRUST_STORE_PATH),
-          trustStorePass = connectorConfig.getPassword(ReThinkConfigConstants.TRUST_STORE_PASSWD).value,
-          keyStorePath = Some(connectorConfig.getString(ReThinkConfigConstants.KEY_STORE_PATH)),
-          keyStorePass = Some(connectorConfig.getPassword(ReThinkConfigConstants.KEY_STORE_PASSWD).value),
-          useClientCert = connectorConfig.getBoolean(ReThinkConfigConstants.USE_CLIENT_AUTH),
-          keyStoreType = connectorConfig.getString(ReThinkConfigConstants.KEY_STORE_TYPE),
-          trustStoreType = connectorConfig.getString(ReThinkConfigConstants.TRUST_STORE_TYPE)
-        )
-
-        val context = SSLConfigContext(sslConfig)
-        builder.sslContext(context)
-      case false => builder
-    }
   }
 }

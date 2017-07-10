@@ -64,7 +64,7 @@ class TestCqlGenerator extends WordSpec with Matchers with BeforeAndAfter with M
     val configMap = {
       Map(
         CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
-        CassandraConfigConstants.ROUTE_QUERY -> myKcql,
+        CassandraConfigConstants.KCQL -> myKcql,
         CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE3",
         CassandraConfigConstants.POLL_INTERVAL -> "1000",
         CassandraConfigConstants.FETCH_SIZE -> "500",

@@ -70,6 +70,7 @@ periodically report log messages processed
 *   Added authentication and TLS to ReThink Connectors
 *   Fixed Avro double fields mapping to Kudu columns
 *   Removed unused batch size option from DocumentDb
+*   Added TLS support for ReThinkDB, add batch size option to source for draining the internal queues.
 
 **0.2.5 (8 Apr 2017)**
 

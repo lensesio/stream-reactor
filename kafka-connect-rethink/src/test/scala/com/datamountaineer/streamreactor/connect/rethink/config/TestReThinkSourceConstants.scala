@@ -30,18 +30,18 @@ class TestReThinkSourceConstants extends WordSpec {
   val ROUTE_QUERY ="connect.rethink.kcql"
 
   "RETHINK_HOST should have the same key in ReThinkSinkConfigConstants" in {
-    assert(RETHINK_HOST.equals(ReThinkSourceConfigConstants.RETHINK_HOST))
+    assert(RETHINK_HOST.equals(ReThinkConfigConstants.RETHINK_HOST))
   }
 
   "RETHINK_DB should have the same key in ReThinkSinkConfigConstants" in {
-    assert(RETHINK_DB.equals(ReThinkSourceConfigConstants.RETHINK_DB))
+    assert(RETHINK_DB.equals(ReThinkConfigConstants.RETHINK_DB))
   }
 
   "RETHINK_PORT should have the same key in ReThinkSinkConfigConstants" in {
-    assert(RETHINK_PORT.equals(ReThinkSourceConfigConstants.RETHINK_PORT))
+    assert(RETHINK_PORT.equals(ReThinkConfigConstants.RETHINK_PORT))
   }
 
   "ROUTE_QUERY should have the same key in ReThinkSinkConfigConstants" in {
-    assert(ROUTE_QUERY.equals(ReThinkSourceConfigConstants.ROUTE_QUERY))
+    assert(ROUTE_QUERY.equals(ReThinkConfigConstants.KCQL))
   }
 }

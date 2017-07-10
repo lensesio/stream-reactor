@@ -30,18 +30,33 @@ object KuduSinkConfig {
 
 
   val config: ConfigDef = new ConfigDef()
-    .define(KuduSinkConfigConstants.KUDU_MASTER, Type.STRING, KuduSinkConfigConstants.KUDU_MASTER_DEFAULT, Importance.HIGH, KuduSinkConfigConstants.KUDU_MASTER_DOC,
+    .define(KuduSinkConfigConstants.KUDU_MASTER, Type.STRING, KuduSinkConfigConstants.KUDU_MASTER_DEFAULT,
+      Importance.HIGH, KuduSinkConfigConstants.KUDU_MASTER_DOC,
       "Connection", 1, ConfigDef.Width.MEDIUM, KuduSinkConfigConstants.KUDU_MASTER)
+
     .define(KuduSinkConfigConstants.EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, KuduSinkConfigConstants.EXPORT_ROUTE_QUERY,
       "Connection", 2, ConfigDef.Width.MEDIUM, KuduSinkConfigConstants.EXPORT_ROUTE_QUERY)
-    .define(KuduSinkConfigConstants.ERROR_POLICY, Type.STRING, KuduSinkConfigConstants.ERROR_POLICY_DEFAULT, Importance.HIGH, KuduSinkConfigConstants.ERROR_POLICY_DOC,
+
+    .define(KuduSinkConfigConstants.ERROR_POLICY, Type.STRING, KuduSinkConfigConstants.ERROR_POLICY_DEFAULT,
+      Importance.HIGH, KuduSinkConfigConstants.ERROR_POLICY_DOC,
       "Connection", 3, ConfigDef.Width.MEDIUM, KuduSinkConfigConstants.ERROR_POLICY)
-    .define(KuduSinkConfigConstants.ERROR_RETRY_INTERVAL, Type.INT, KuduSinkConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, KuduSinkConfigConstants.ERROR_RETRY_INTERVAL_DOC,
+
+    .define(KuduSinkConfigConstants.ERROR_RETRY_INTERVAL, Type.INT, KuduSinkConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT,
+      Importance.MEDIUM, KuduSinkConfigConstants.ERROR_RETRY_INTERVAL_DOC,
+
       "Connection", 4, ConfigDef.Width.MEDIUM, KuduSinkConfigConstants.ERROR_RETRY_INTERVAL)
-    .define(KuduSinkConfigConstants.NBR_OF_RETRIES, Type.INT, KuduSinkConfigConstants.NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, KuduSinkConfigConstants.NBR_OF_RETRIES_DOC,
+    .define(KuduSinkConfigConstants.NBR_OF_RETRIES, Type.INT, KuduSinkConfigConstants.NBR_OF_RETIRES_DEFAULT,
+      Importance.MEDIUM, KuduSinkConfigConstants.NBR_OF_RETRIES_DOC,
       "Connection", 5, ConfigDef.Width.MEDIUM, KuduSinkConfigConstants.NBR_OF_RETRIES)
-    .define(KuduSinkConfigConstants.SCHEMA_REGISTRY_URL, Type.STRING, KuduSinkConfigConstants.SCHEMA_REGISTRY_URL_DEFAULT, Importance.HIGH, KuduSinkConfigConstants.SCHEMA_REGISTRY_URL_DOC,
-      "Connection", 6, ConfigDef.Width.MEDIUM, KuduSinkConfigConstants.SCHEMA_REGISTRY_URL)
+
+    .define(KuduSinkConfigConstants.SCHEMA_REGISTRY_URL, Type.STRING,
+      KuduSinkConfigConstants.SCHEMA_REGISTRY_URL_DEFAULT, Importance.HIGH, KuduSinkConfigConstants.SCHEMA_REGISTRY_URL_DOC,
+      "Connection", 6, ConfigDef.Width.MEDIUM,
+      KuduSinkConfigConstants.SCHEMA_REGISTRY_URL)
+
+    .define(KuduSinkConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, KuduSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
+      Importance.MEDIUM, KuduSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
+      "Metrics", 1, ConfigDef.Width.MEDIUM, KuduSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 }
 
 class KuduSinkConfig(props: util.Map[String, String])

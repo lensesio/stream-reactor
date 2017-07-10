@@ -45,24 +45,21 @@ object ReThinkSinkSettings {
     routes
       .filter(r => r.getPrimaryKeys.size > 1)
       .foreach(_ => new ConnectException(
-        s"""More than one primary key found in ${ReThinkSinkConfigConstants.ROUTE_QUERY}.
+        s"""More than one primary key found in ${ReThinkConfigConstants.KCQL}.
            |Only one field can be set.""".stripMargin.replaceAll("\n", "")))
     val errorPolicy = config.getErrorPolicy
     val maxRetries = config.getNumberRetries
-    val batchSize = config.getBatchSize
 
     //check conflict policy
     val conflictMap = routes.map(m => {
       (m.getTarget, m.getWriteMode match {
-        case WriteModeEnum.INSERT => ReThinkSinkConfigConstants.CONFLICT_ERROR
-        case WriteModeEnum.UPSERT => ReThinkSinkConfigConstants.CONFLICT_REPLACE
+        case WriteModeEnum.INSERT => ReThinkConfigConstants.CONFLICT_ERROR
+        case WriteModeEnum.UPSERT => ReThinkConfigConstants.CONFLICT_REPLACE
       })
     }).toMap
 
     val tableTopicMap = config.getTableTopic(routes)
-
     val fieldMap = config.getFields(routes)
-
     val database = config.getDatabase
     val primaryKeys = config.getPrimaryKeys(routes)
     val ignoreFields = config.getIgnoreFields(routes)

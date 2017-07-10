@@ -229,14 +229,14 @@ object CassandraConfigSource {
       ConfigDef.Width.LONG,
       CassandraConfigConstants.ASSIGNED_TABLES)
 
-    .define(CassandraConfigConstants.ROUTE_QUERY,
+    .define(CassandraConfigConstants.KCQL,
       Type.STRING,
       Importance.HIGH,
-      CassandraConfigConstants.ROUTE_QUERY_DOC,
+      CassandraConfigConstants.KCQL_DOC,
       "Mappings",
       2,
       ConfigDef.Width.LONG,
-      CassandraConfigConstants.ROUTE_QUERY)
+      CassandraConfigConstants.KCQL)
 
 
     .define(CassandraConfigConstants.READER_BUFFER_SIZE,
@@ -296,14 +296,14 @@ case class CassandraConfigSource(props: util.Map[String, String])
 object CassandraConfigSink {
   val base: ConfigDef = CassandraConfig().configDef
   val sinkConfig = base
-    .define(CassandraConfigConstants.ROUTE_QUERY,
+    .define(CassandraConfigConstants.KCQL,
       Type.STRING,
       Importance.HIGH,
-      CassandraConfigConstants.ROUTE_QUERY_DOC,
+      CassandraConfigConstants.KCQL_DOC,
       "Mappings",
       1,
       ConfigDef.Width.LONG,
-      CassandraConfigConstants.ROUTE_QUERY)
+      CassandraConfigConstants.KCQL)
     .define(CassandraConfigConstants.THREAD_POOL_CONFIG,
       Type.INT,
       CassandraConfigConstants.THREAD_POOL_DEFAULT,

@@ -17,7 +17,6 @@
 package com.datamountaineer.streamreactor.connect.rethink.source
 
 import java.util
-import java.util.concurrent.TimeUnit
 
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkConfigConstants, ReThinkSourceConfig}
@@ -37,15 +36,13 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
   private var readers: Set[ReThinkSourceReader] = _
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
-  private var batchSize : Int = ReThinkConfigConstants.BATCH_SIZE_DEFAULT
   private var lingerTimeout = ReThinkConfigConstants.SOURCE_LINGER_MS_DEFAULT
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/rethink-source-ascii.txt")).mkString)
     val config = ReThinkSourceConfig(props)
     enableProgress = config.getBoolean(ReThinkConfigConstants.PROGRESS_COUNTER_ENABLED)
-    batchSize = config.getInt(ReThinkConfigConstants.BATCH_SIZE)
-    lingerTimeout = config.getInt(ReThinkConfigConstants.SOURCE_LINGER_MS)
+    lingerTimeout = config.getLong(ReThinkConfigConstants.SOURCE_LINGER_MS)
     lazy val r = RethinkDB.r
     readers = ReThinkSourceReadersFactory(config, r)
     readers.foreach(_.start())

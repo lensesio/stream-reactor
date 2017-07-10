@@ -20,7 +20,6 @@ import java.util
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicBoolean
 
-import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.datamountaineer.streamreactor.connect.rethink.ReThinkConnection
 import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSourceConfig, ReThinkSourceSetting, ReThinkSourceSettings}
 import com.rethinkdb.RethinkDB
@@ -30,10 +29,8 @@ import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.source.SourceRecord
 
 import scala.collection.JavaConverters._
-import scala.collection.JavaConversions._
-import scala.concurrent.Future
-
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object ReThinkSourceReadersFactory {
 
@@ -53,10 +50,10 @@ class ReThinkSourceReader(rethink: RethinkDB, conn: Connection, setting: ReThink
   private val sourcePartition = Map.empty[String, String]
   private val offset = Map.empty[String, String]
   private val stopFeed = new AtomicBoolean(false)
-  val queue = new LinkedBlockingQueue[SourceRecord]()
-  val batchSize = setting.batchSize
   private val handlingFeed = new AtomicBoolean(false)
   private var feed : Cursor[util.HashMap[String, String]] = _
+  val queue = new LinkedBlockingQueue[SourceRecord]()
+  val batchSize = setting.batchSize
 
   def start() = {
     feed = getChangeFeed()

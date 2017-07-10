@@ -49,8 +49,8 @@ class ReThinkSourceConnector extends SourceConnector with StrictLogging {
     **/
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
 
-    val raw = configProps.asScala.get(ReThinkSourceConfigConstants.ROUTE_QUERY)
-    require(raw != null && raw.isDefined, s"No ${ReThinkSourceConfigConstants.ROUTE_QUERY} provided!")
+    val raw = configProps.asScala.get(ReThinkConfigConstants.KCQL)
+    require(raw != null && raw.isDefined, s"No ${ReThinkConfigConstants.KCQL} provided!")
 
     //sql1, sql2
     val kcqls = raw.get.split(";")
@@ -62,7 +62,7 @@ class ReThinkSourceConnector extends SourceConnector with StrictLogging {
       .map(g => {
         val taskConfigs = new java.util.HashMap[String, String]
         taskConfigs.putAll(configProps)
-        taskConfigs.put(ReThinkSourceConfigConstants.ROUTE_QUERY, g.mkString(";")) //overwrite
+        taskConfigs.put(ReThinkConfigConstants.KCQL, g.mkString(";")) //overwrite
         taskConfigs.toMap.asJava
       })
   }

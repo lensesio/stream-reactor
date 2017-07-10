@@ -47,7 +47,6 @@ allprojects {
     apply plugin: 'scala'
     apply plugin: 'maven'
     apply plugin: 'com.github.maiflai.scalatest'
-    apply plugin: 'net.researchgate.release'
     apply plugin: 'scalaStyle'
     apply plugin: 'com.github.johnrengelman.shadow'
     apply plugin: 'de.undercouch.download'
@@ -213,6 +212,7 @@ allprojects {
         from "${buildDir}/libs"
         into libsDir
     }
+
 }
 
 task prepareReleaseDir(type: Copy) {

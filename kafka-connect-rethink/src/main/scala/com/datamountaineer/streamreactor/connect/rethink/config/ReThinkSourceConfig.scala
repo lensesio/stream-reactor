@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.rethink.config
 
 import java.util
 
-import com.datamountaineer.streamreactor.temp.traits.{BaseConfig, DatabaseSettings, KcqlSettings}
+import com.datamountaineer.streamreactor.temp.traits.{BaseConfig, BatchSizeSettings, DatabaseSettings, KcqlSettings}
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
@@ -26,26 +26,21 @@ import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
   * Created by andrew@datamountaineer.com on 22/09/16. 
   * stream-reactor
   */
-object ReThinkSourceConfig {
-  val config: ConfigDef = new ConfigDef()
-    .define(ReThinkSourceConfigConstants.RETHINK_HOST, Type.STRING,
-      ReThinkSourceConfigConstants.RETHINK_HOST_DEFAULT,
-      Importance.HIGH, ReThinkSourceConfigConstants.RETHINK_HOST_DOC,
-      "Connection", 1, ConfigDef.Width.MEDIUM, ReThinkSourceConfigConstants.RETHINK_HOST)
-    .define(ReThinkSourceConfigConstants.RETHINK_DB, Type.STRING,
-      ReThinkSourceConfigConstants.RETHINK_DB_DEFAULT,
-      Importance.HIGH, ReThinkSourceConfigConstants.RETHINK_DB_DOC,
-      "Connection", 2, ConfigDef.Width.MEDIUM, ReThinkSourceConfigConstants.RETHINK_DB)
-    .define(ReThinkSourceConfigConstants.RETHINK_PORT, Type.INT,
-      ReThinkSourceConfigConstants.RETHINK_PORT_DEFAULT,
-      Importance.MEDIUM, ReThinkSourceConfigConstants.RETHINK_PORT_DOC,
-      "Connection", 3, ConfigDef.Width.MEDIUM, ReThinkSourceConfigConstants.RETHINK_PORT)
-    .define(ReThinkSourceConfigConstants.ROUTE_QUERY, Type.STRING, Importance.HIGH,
-      ReThinkSourceConfigConstants.ROUTE_QUERY,
-      "Connection", 4, ConfigDef.Width.MEDIUM, ReThinkSourceConfigConstants.ROUTE_QUERY)
+object ReThinkSourceConfig extends ReThinkConfig{
+  val config: ConfigDef = baseConfig
+    .define(ReThinkConfigConstants.BATCH_SIZE, Type.INT,
+      ReThinkConfigConstants.BATCH_SIZE_DEFAULT,
+      Importance.MEDIUM, ReThinkConfigConstants.BATCH_SIZE_DOC,
+      "Connection", 9, ConfigDef.Width.MEDIUM, ReThinkConfigConstants.BATCH_SIZE)
+
+    .define(ReThinkConfigConstants.SOURCE_LINGER_MS, Type.LONG,
+      ReThinkConfigConstants.SOURCE_LINGER_MS_DEFAULT,
+      Importance.MEDIUM, ReThinkConfigConstants.SOURCE_LINGER_MS_DOC,
+      "Connection", 10, ConfigDef.Width.MEDIUM, ReThinkConfigConstants.SOURCE_LINGER_MS)
 }
 
 case class ReThinkSourceConfig(props: util.Map[String, String])
-  extends BaseConfig(ReThinkSourceConfigConstants.RETHINK_CONNECTOR_PREFIX, ReThinkSourceConfig.config, props)
+  extends BaseConfig(ReThinkConfigConstants.RETHINK_CONNECTOR_PREFIX, ReThinkSourceConfig.config, props)
     with KcqlSettings
     with DatabaseSettings
+    with BatchSizeSettings

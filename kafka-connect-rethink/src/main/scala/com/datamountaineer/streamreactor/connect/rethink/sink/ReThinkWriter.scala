@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
 import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkConfigConstants, ReThinkSinkConfig, ReThinkSinkSetting, ReThinkSinkSettings}
+import com.datamountaineer.streamreactor.connect.rethink.ReThinkConnection
+import com.datamountaineer.streamreactor.connect.rethink.config._
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.net.Connection
@@ -29,13 +30,10 @@ import scala.util.{Failure, Try}
 
 object ReThinkWriter extends StrictLogging {
   def apply(config: ReThinkSinkConfig, context: SinkTaskContext): ReThinkWriter = {
-    val rethinkHost = config.getString(ReThinkConfigConstants.RETHINK_HOST)
-    val port = config.getInt(ReThinkConfigConstants.RETHINK_PORT)
-
     //set up the connection to the host
     val settings = ReThinkSinkSettings(config)
     lazy val r = RethinkDB.r
-    lazy val conn: Connection = r.connection().hostname(rethinkHost).port(port).connect()
+    lazy val conn = ReThinkConnection(r, config)
 
     //if error policy is retry set retry interval
     if (settings.equals(ErrorPolicyEnum.RETRY)) {

@@ -113,7 +113,7 @@ class TestCassandraConstants extends WordSpec with Matchers {
     assert(NBR_OF_RETRIES.equals(CassandraConfigConstants.NBR_OF_RETRIES))
   }
   "ROUTE_QUERY should have the same key in CassandraConfigConstants" in {
-    assert(ROUTE_QUERY.equals(CassandraConfigConstants.ROUTE_QUERY))
+    assert(ROUTE_QUERY.equals(CassandraConfigConstants.KCQL))
   }
   "THREAD_POOL_CONFIG should have the same key in CassandraConfigConstants" in {
     assert(THREAD_POOL_CONFIG.equals(CassandraConfigConstants.THREAD_POOL_CONFIG))
