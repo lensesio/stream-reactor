@@ -19,8 +19,9 @@ package com.datamountaineer.streamreactor.connect.jms.source
 import java.util
 import javax.jms.Message
 
-import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
+import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.source.readers.JMSReader
+import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
@@ -33,6 +34,8 @@ import scala.collection.mutable
   */
 class JMSSourceTask extends SourceTask with StrictLogging {
   var reader : JMSReader = _
+  val progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-source-ascii.txt")).mkString)
@@ -40,6 +43,7 @@ class JMSSourceTask extends SourceTask with StrictLogging {
     val config = new JMSConfig(props)
     val settings = JMSSettings(config, sink = false)
     reader = JMSReader(settings)
+    enableProgress = config.getBoolean(JMSConfigConstants.PROGRESS_COUNTER_ENABLED)
   }
 
   override def stop(): Unit = {
@@ -58,6 +62,11 @@ class JMSSourceTask extends SourceTask with StrictLogging {
     } finally {
       messages.foreach(m => m.acknowledge())
     }
+
+    if (enableProgress) {
+      progressCounter.update(records.toVector)
+    }
+
     records
   }
 
