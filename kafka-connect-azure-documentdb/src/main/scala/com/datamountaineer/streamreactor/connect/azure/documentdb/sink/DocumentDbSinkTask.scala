@@ -65,6 +65,7 @@ class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => Do
 
     logger.info(s"Initialising Document Db writer.")
     writer = Some(new DocumentDbWriter(settings, builder(settings)))
+    enableProgress = taskConfig.getBoolean(DocumentDbConfigConstants.PROGRESS_COUNTER_ENABLED)
   }
 
   /**
@@ -83,6 +84,7 @@ class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => Do
   override def stop(): Unit = {
     logger.info("Stopping Azure Document DB sink.")
     writer.foreach(w => w.close())
+    progressCounter.empty()
   }
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}

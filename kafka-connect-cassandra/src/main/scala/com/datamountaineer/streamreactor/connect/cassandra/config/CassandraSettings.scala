@@ -52,7 +52,7 @@ case class CassandraSourceSetting(routes: Config,
                                  ) extends CassandraSetting
 
 case class CassandraSinkSetting(keySpace: String,
-                                routes: Set[Config],
+                                kcql: Set[Config],
                                 fields: Map[String, Map[String, String]],
                                 ignoreField: Map[String, Set[String]],
                                 errorPolicy: ErrorPolicy,
@@ -114,15 +114,15 @@ object CassandraSettings extends StrictLogging {
     require(!keySpace.isEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
     val errorPolicy = config.getErrorPolicy
     val retries = config.getNumberRetries
-    val routes: Set[Config] = config.getRoutes
-    val fields = config.getFields(routes)
-    val ignoreFields = config.getIgnoreFields(routes)
+    val kcql = config.getRoutes
+    val fields = config.getFields(kcql)
+    val ignoreFields = config.getIgnoreFields(kcql)
     val threadPoolSize = config.getThreadPoolSize
     val consistencyLevel = config.getConsistencyLevel
 
     val enableCounter = config.getBoolean(CassandraConfigConstants.PROGRESS_COUNTER_ENABLED)
     CassandraSinkSetting(keySpace,
-      routes,
+      kcql,
       fields,
       ignoreFields,
       errorPolicy,

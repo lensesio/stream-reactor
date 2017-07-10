@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.mongodb.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfig
+import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoSinkConfigConstants}
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -56,7 +56,7 @@ class MongoSinkTask extends SinkTask with StrictLogging {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/mongo-ascii.txt")).mkString)
 
     writer = Some(MongoWriter(taskConfig, context = context))
-
+    enableProgress = taskConfig.getBoolean(MongoSinkConfigConstants.PROGRESS_COUNTER_ENABLED)
   }
 
   /**

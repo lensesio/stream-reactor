@@ -20,6 +20,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.druid.config._
 import com.datamountaineer.streamreactor.connect.druid.writer.DruidDbWriter
+import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -33,6 +34,8 @@ import scala.collection.JavaConversions._
   */
 class DruidSinkTask extends SinkTask with StrictLogging {
   var writer: Option[DruidDbWriter] = None
+  private val progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
 
   /**
     * Parse the configurations and setup the writer
@@ -48,6 +51,7 @@ class DruidSinkTask extends SinkTask with StrictLogging {
           |$settings
       """.stripMargin)
     writer = Some(new DruidDbWriter(settings))
+    enableProgress = sinkConfig.getBoolean(DruidSinkConfigConstants.PROGRESS_COUNTER_ENABLED)
   }
 
   /**
@@ -60,6 +64,10 @@ class DruidSinkTask extends SinkTask with StrictLogging {
     else {
       require(writer.nonEmpty, "Writer is not set!")
       writer.foreach(w => w.write(records.toSeq))
+    }
+
+    if (enableProgress) {
+      progressCounter.update(records.toVector)
     }
   }
 

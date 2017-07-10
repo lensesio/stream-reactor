@@ -28,18 +28,22 @@ class TestReThinkSourceSettings extends TestBase with MockitoSugar {
   "should create a ReThinkSourceSetting for all fields with Initialize" in {
     val config = ReThinkSourceConfig(getPropsSource)
     val settings = ReThinkSourceSettings(config)
-    val routes = settings.routes.head
-    routes.getSource shouldBe TABLE
-    routes.getTarget shouldBe TOPIC
-    routes.isInitialize shouldBe true
+    val setting = settings.head
+    setting.source shouldBe TABLE
+    setting.target shouldBe TOPIC
+    setting.initialise shouldBe true
+    setting.db shouldBe DB
+    setting.batchSize shouldBe BATCH_SIZE
   }
 
   "should create a ReThinkSourceSetting for all fields without Initialize" in {
     val config = ReThinkSourceConfig(getPropsSourceDelta)
     val settings = ReThinkSourceSettings(config)
-    val routes = settings.routes.head
-    routes.getSource shouldBe TABLE
-    routes.getTarget shouldBe TOPIC
-    routes.isInitialize shouldBe false
+    val setting = settings.head
+    setting.source shouldBe TABLE
+    setting.target shouldBe TOPIC
+    setting.initialise shouldBe false
+    setting.db shouldBe DB
+    setting.batchSize shouldBe BATCH_SIZE
   }
 }

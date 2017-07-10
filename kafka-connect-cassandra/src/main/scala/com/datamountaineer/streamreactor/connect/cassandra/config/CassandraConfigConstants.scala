@@ -130,8 +130,8 @@ object CassandraConfigConstants {
   val NBR_OF_RETIRES_DEFAULT = 20
 
 
-  val ROUTE_QUERY = s"$CASSANDRA_CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
-  val ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
+  val KCQL = s"$CASSANDRA_CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
+  val KCQL_DOC = "KCQL expression describing field selection and routes."
 
   val THREAD_POOL_CONFIG = s"$CASSANDRA_CONNECTOR_PREFIX.$THREAD_POLL_PROP_SUFFIX"
   val THREAD_POOL_DOC =

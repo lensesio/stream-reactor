@@ -33,6 +33,7 @@ object DocumentDbConfig {
     .define(DocumentDbConfigConstants.ERROR_POLICY_CONFIG, Type.STRING, DocumentDbConfigConstants.ERROR_POLICY_DEFAULT, Importance.HIGH, DocumentDbConfigConstants.ERROR_POLICY_DOC, "Error", 1, ConfigDef.Width.LONG, DocumentDbConfigConstants.ERROR_POLICY_CONFIG)
     .define(DocumentDbConfigConstants.NBR_OF_RETRIES_CONFIG, Type.INT, DocumentDbConfigConstants.NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, DocumentDbConfigConstants.NBR_OF_RETRIES_DOC, "Error", 2, ConfigDef.Width.LONG, DocumentDbConfigConstants.NBR_OF_RETRIES_CONFIG)
     .define(DocumentDbConfigConstants.ERROR_RETRY_INTERVAL_CONFIG, Type.INT, DocumentDbConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, DocumentDbConfigConstants.ERROR_RETRY_INTERVAL_DOC, "Error", 3, ConfigDef.Width.LONG, DocumentDbConfigConstants.ERROR_RETRY_INTERVAL_CONFIG)
+    .define(DocumentDbConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, DocumentDbConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT, Importance.MEDIUM, DocumentDbConfigConstants.PROGRESS_COUNTER_ENABLED_DOC, "Metrics", 1, ConfigDef.Width.MEDIUM, DocumentDbConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 }
 
 case class DocumentDbConfig(props: util.Map[String, String]) extends AbstractConfig(DocumentDbConfig.configDef, props)

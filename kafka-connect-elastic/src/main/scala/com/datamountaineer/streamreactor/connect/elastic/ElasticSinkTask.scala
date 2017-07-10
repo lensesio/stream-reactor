@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.elastic
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSinkConfig
+import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticSinkConfig, ElasticSinkConfigConstants}
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -40,6 +40,7 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
 
     ElasticSinkConfig.config.parse(props)
     val sinkConfig = ElasticSinkConfig(props)
+    enableProgress = sinkConfig.getBoolean(ElasticSinkConfigConstants.PROGRESS_COUNTER_ENABLED)
     writer = Some(ElasticWriter(config = sinkConfig, context = context))
 
   }

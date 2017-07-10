@@ -50,7 +50,9 @@ object MqttSourceConfig {
     .define(MqttSourceConfigConstants.CONVERTER_CONFIG, Type.STRING, null, Importance.HIGH, MqttSourceConfigConstants.CONVERTER_DOC, "Converter", 1, ConfigDef.Width.MEDIUM, MqttSourceConfigConstants.CONVERTER_DISPLAY)
     .define(MqttSourceConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG, Type.BOOLEAN, MqttSourceConfigConstants.THROW_ON_CONVERT_ERRORS_DEFAULT, Importance.HIGH, MqttSourceConfigConstants.THROW_ON_CONVERT_ERRORS_DOC, "Converter", 2, ConfigDef.Width.MEDIUM, MqttSourceConfigConstants.THROW_ON_CONVERT_ERRORS_DISPLAY)
 
-
+    .define(MqttSourceConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, MqttSourceConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
+      Importance.MEDIUM, MqttSourceConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
+      "Metrics", 1, ConfigDef.Width.MEDIUM, MqttSourceConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 }
 
 case class MqttSourceConfig(props: util.Map[String, String]) extends AbstractConfig(MqttSourceConfig.config, props)

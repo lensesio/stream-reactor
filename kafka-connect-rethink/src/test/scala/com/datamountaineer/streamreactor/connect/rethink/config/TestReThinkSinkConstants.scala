@@ -34,34 +34,34 @@ class TestReThinkSinkConstants extends WordSpec {
   val BATCH_SIZE = "connect.rethink.batch.size"
 
   "RETHINK_HOST should have the same key in ReThinkSinkConfigConstants" in {
-    assert(RETHINK_HOST.equals(ReThinkSinkConfigConstants.RETHINK_HOST))
+    assert(RETHINK_HOST.equals(ReThinkConfigConstants.RETHINK_HOST))
   }
 
   "RETHINK_DB should have the same key in ReThinkSinkConfigConstants" in {
-    assert(RETHINK_DB.equals(ReThinkSinkConfigConstants.RETHINK_DB))
+    assert(RETHINK_DB.equals(ReThinkConfigConstants.RETHINK_DB))
   }
 
   "RETHINK_PORT should have the same key in ReThinkSinkConfigConstants" in {
-    assert(RETHINK_PORT.equals(ReThinkSinkConfigConstants.RETHINK_PORT))
+    assert(RETHINK_PORT.equals(ReThinkConfigConstants.RETHINK_PORT))
   }
 
   "ROUTE_QUERY should have the same key in ReThinkSinkConfigConstants" in {
-    assert(ROUTE_QUERY.equals(ReThinkSinkConfigConstants.ROUTE_QUERY))
+    assert(ROUTE_QUERY.equals(ReThinkConfigConstants.KCQL))
   }
 
   "ERROR_POLICY should have the same key in ReThinkSinkConfigConstants" in {
-    assert(ERROR_POLICY.equals(ReThinkSinkConfigConstants.ERROR_POLICY))
+    assert(ERROR_POLICY.equals(ReThinkConfigConstants.ERROR_POLICY))
   }
 
   "ERROR_RETRY_INTERVAL should have the same key in ReThinkSinkConfigConstants" in {
-    assert(ERROR_RETRY_INTERVAL.equals(ReThinkSinkConfigConstants.ERROR_RETRY_INTERVAL))
+    assert(ERROR_RETRY_INTERVAL.equals(ReThinkConfigConstants.ERROR_RETRY_INTERVAL))
   }
 
   "NBR_OF_RETRIES should have the same key in ReThinkSinkConfigConstants" in {
-    assert(NBR_OF_RETRIES.equals(ReThinkSinkConfigConstants.NBR_OF_RETRIES))
+    assert(NBR_OF_RETRIES.equals(ReThinkConfigConstants.NBR_OF_RETRIES))
   }
 
   "BATCH_SIZE should have the same key in ReThinkSinkConfigConstants" in {
-    assert(BATCH_SIZE.equals(ReThinkSinkConfigConstants.BATCH_SIZE))
+    assert(BATCH_SIZE.equals(ReThinkConfigConstants.BATCH_SIZE))
   }
 }

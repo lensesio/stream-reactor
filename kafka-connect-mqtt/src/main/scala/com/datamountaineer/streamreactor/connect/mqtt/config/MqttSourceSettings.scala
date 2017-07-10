@@ -36,7 +36,8 @@ case class MqttSourceSettings(connection: String,
                               keepAliveInterval: Int,
                               sslCACertFile: Option[String],
                               sslCertFile: Option[String],
-                              sslCertKeyFile: Option[String]) {
+                              sslCertKeyFile: Option[String],
+                              enableProgress : Boolean = MqttSourceConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT) {
 
   def asMap(): java.util.Map[String, String] = {
     val map = new java.util.HashMap[String, String]()
@@ -93,6 +94,8 @@ object MqttSourceSettings {
       case _ => throw new ConfigException(s"You can't define one of the ${MqttSourceConfigConstants.SSL_CA_CERT_CONFIG},${MqttSourceConfigConstants.SSL_CERT_CONFIG}, ${MqttSourceConfigConstants.SSL_CERT_KEY_CONFIG} without the other")
     }
 
+    val progressEnabled = config.getBoolean(MqttSourceConfigConstants.PROGRESS_COUNTER_ENABLED)
+
     val sourcesToConverterMap = Option(config.getString(MqttSourceConfigConstants.CONVERTER_CONFIG))
       .map { c =>
         c.split(';')
@@ -141,7 +144,8 @@ object MqttSourceSettings {
       config.getInt(MqttSourceConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG),
       sslCACertFile,
       sslCertFile,
-      sslCertKeyFile
+      sslCertKeyFile,
+      progressEnabled
     )
   }
 }

@@ -32,6 +32,5 @@ project(":kafka-connect-coap") {
         compile ("org.eclipse.californium:californium-core:$califVersion")
         compile ("org.eclipse.californium:scandium:$scandiamVersion")
 //        compile ("org.eclipse.californium:demo-certs:$demoCerts")
-        compile "com.typesafe.akka:akka-actor_$scalaMajorVersion:$akkaVersion"
     }
 }

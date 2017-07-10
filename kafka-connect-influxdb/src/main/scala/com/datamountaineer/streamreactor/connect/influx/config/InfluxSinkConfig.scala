@@ -34,6 +34,7 @@ object InfluxSinkConfig {
     .define(InfluxSinkConfigConstants.NBR_OF_RETRIES_CONFIG, Type.INT, InfluxSinkConfigConstants.NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, InfluxSinkConfigConstants.NBR_OF_RETRIES_DOC, "Miscellaneous", 3, ConfigDef.Width.MEDIUM, InfluxSinkConfigConstants.NBR_OF_RETRIES_CONFIG)
     .define(InfluxSinkConfigConstants.RETENTION_POLICY_CONFIG, Type.STRING, InfluxSinkConfigConstants.RETENTION_POLICY_DEFAULT, Importance.HIGH, InfluxSinkConfigConstants.RETENTION_POLICY_DOC, "Writes", 1, ConfigDef.Width.MEDIUM, InfluxSinkConfigConstants.RETENTION_POLICY_DOC)
     .define(InfluxSinkConfigConstants.CONSISTENCY_CONFIG, Type.STRING, InfluxSinkConfigConstants.CONSISTENCY_DEFAULT, Importance.MEDIUM, InfluxSinkConfigConstants.CONSISTENCY_DOC, "Writes", 2, ConfigDef.Width.MEDIUM, InfluxSinkConfigConstants.CONSISTENCY_DISPLAY)
+    .define(InfluxSinkConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, InfluxSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT, Importance.MEDIUM, InfluxSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DOC, "Metrics", 1, ConfigDef.Width.MEDIUM, InfluxSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 }
 
 /**

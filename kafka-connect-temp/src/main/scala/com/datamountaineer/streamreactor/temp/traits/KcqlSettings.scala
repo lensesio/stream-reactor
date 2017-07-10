@@ -59,4 +59,12 @@ trait KcqlSettings extends BaseSettings {
   def getIncrementalMode(routes: Set[Config] = getRoutes): Map[String, String] = {
     routes.map(r => (r.getSource, r.getIncrementalMode)).toMap
   }
+
+  def getBatchSize(routes: Set[Config] = getRoutes, defaultBatchSize: Int) : Map[String, Int] = {
+    routes.map(r => (r.getSource, Option(r.getBatchSize).getOrElse(defaultBatchSize))).toMap
+  }
+
+  def getBucketSize(routes: Set[Config] = getRoutes) : Map[String, Int] = {
+    routes.map(r => (r.getSource, r.getBucketing.getBucketsNumber)).toMap
+  }
 }

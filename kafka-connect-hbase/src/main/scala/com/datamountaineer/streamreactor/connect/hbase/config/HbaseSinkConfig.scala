@@ -33,6 +33,9 @@ object HbaseSinkConfig {
       "Connection", 4, ConfigDef.Width.MEDIUM, HbaseSinkConfigConstants.ERROR_RETRY_INTERVAL)
     .define(HbaseSinkConfigConstants.NBR_OF_RETRIES, Type.INT, HbaseSinkConfigConstants.NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, HbaseSinkConfigConstants.NBR_OF_RETRIES_DOC,
       "Connection", 5, ConfigDef.Width.MEDIUM, HbaseSinkConfigConstants.NBR_OF_RETRIES)
+    .define(HbaseSinkConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, HbaseSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
+      Importance.MEDIUM, HbaseSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
+      "Metrics", 1, ConfigDef.Width.MEDIUM, HbaseSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 }
 
 /**

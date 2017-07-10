@@ -84,6 +84,15 @@ object ElasticSinkConfig {
       1,
       ConfigDef.Width.LONG,
       ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY)
+    .define(ElasticSinkConfigConstants.PROGRESS_COUNTER_ENABLED,
+        Type.BOOLEAN,
+        ElasticSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
+        Importance.MEDIUM,
+        ElasticSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
+        "Metrics",
+        1,
+        ConfigDef.Width.MEDIUM,
+        ElasticSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 
 }
 

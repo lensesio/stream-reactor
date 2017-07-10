@@ -16,21 +16,16 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.config
 
-import com.datamountaineer.connector.config.Config
-
 /**
   * Created by andrew@datamountaineer.com on 22/09/16. 
   * stream-reactor
   */
-case class ReThinkSourceSettings(db: String,
-                                 routes: Set[Config],
-                                 tableTopicMap: Map[String, String])
+
+case class ReThinkSourceSetting(db: String, source: String, target: String, batchSize: Int, initialise: Boolean = false)
 
 object ReThinkSourceSettings {
-  def apply(config: ReThinkSourceConfig): ReThinkSourceSettings = {
+  def apply(config: ReThinkSourceConfig): Set[ReThinkSourceSetting] = {
     val routes = config.getRoutes
-    val tableTopicMap = config.getTableTopic(routes)
-    val database = config.getDatabase
-    ReThinkSourceSettings(database, routes, tableTopicMap)
+    routes.map(r => new ReThinkSourceSetting(config.getDatabase, r.getSource, r.getTarget, r.getBatchSize, r.isInitialize))
   }
 }

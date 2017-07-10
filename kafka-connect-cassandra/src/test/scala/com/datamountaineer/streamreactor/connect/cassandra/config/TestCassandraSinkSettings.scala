@@ -40,7 +40,7 @@ class TestCassandraSinkSettings extends WordSpec with Matchers with MockitoSugar
     val taskConfig = CassandraConfigSink(getCassandraConfigSinkPropsRetry)
     val settings = CassandraSettings.configureSink(taskConfig)
 
-    val parsedConf: List[Config] = settings.routes.toList
+    val parsedConf: List[Config] = settings.kcql.toList
     parsedConf.size shouldBe 2
 
     parsedConf.head.getTarget shouldBe TABLE1

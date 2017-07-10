@@ -27,6 +27,7 @@ object DruidSinkConfig {
     .define(DruidSinkConfigConstants.KCQL, Type.STRING, Importance.HIGH, DruidSinkConfigConstants.KCQL_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, DruidSinkConfigConstants.KCQL)
     .define(DruidSinkConfigConstants.CONFIG_FILE, Type.STRING, Importance.HIGH, DruidSinkConfigConstants.CONFIG_FILE_DOC, "Connection", 2, ConfigDef.Width.LONG, DruidSinkConfigConstants.CONFIG_FILE)
     .define(DruidSinkConfigConstants.TIMEOUT, Type.INT, DruidSinkConfigConstants.TIMEOUT_DEFAULT, Importance.LOW, DruidSinkConfigConstants.TIMEOUT_DOC, "Connection", 3, ConfigDef.Width.SHORT, DruidSinkConfigConstants.TIMEOUT)
+    .define(DruidSinkConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, DruidSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT, Importance.MEDIUM, DruidSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DOC, "Metrics", 1, ConfigDef.Width.MEDIUM, DruidSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 }
 
 /**
