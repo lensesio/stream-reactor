@@ -66,7 +66,7 @@ case class JMSWriter(settings: JMSSettings) extends AutoCloseable with Converter
         provider.session.rollback()
         //handle error tracking for redelivery for Connect
         handleTry(sent)
-      case _ => handleTry(Success())
+      case Success(_) => None
     }
   }
 

@@ -48,6 +48,7 @@ class JMSSinkTask extends SinkTask with StrictLogging {
     JMSConfig.config.parse(props)
     val sinkConfig = new JMSConfig(props)
     val settings = JMSSettings(sinkConfig, sink = true)
+    enableProgress = sinkConfig.getBoolean(JMSConfigConstants.PROGRESS_COUNTER_ENABLED)
 
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
