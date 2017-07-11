@@ -26,6 +26,7 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 
 import scala.collection.JavaConversions._
+import scala.util.{Success, Try}
 
 /**
   * Created by andrew@datamountaineer.com on 22/04/16. 
@@ -78,11 +79,11 @@ object CassandraSettings extends StrictLogging {
     val kcqls = config.getKcql()
     val primaryKeyCols = kcqls.map(r => (r.getSource, r.getPrimaryKeys.toList)).toMap
     val fetchSize = config.getInt(CassandraConfigConstants.FETCH_SIZE)
-    val incrementalModes = config.getIncrementalMode(routes)
+    val incrementalModes = config.getIncrementalMode(kcqls)
 
     kcqls.map { r =>
       val tCols = primaryKeyCols(r.getSource)
-      val timestampType = Try(TimestampType.withName(incrementalModes.get(r.getSource).get.toUpperCase)) match {
+      val timestampType = Try(TimestampType.withName(incrementalModes(r.getSource).toUpperCase)) match {
         case Success(s) => s
         case _ => TimestampType.NONE
       }

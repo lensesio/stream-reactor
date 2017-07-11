@@ -157,7 +157,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   def getCassandraConfigSinkPropsNestedFieldsTables = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.KCQL -> s"INSERT INTO $TABLE8 SELECT id, inner1.int_field, inner2.* FROM $TOPIC8",
@@ -168,7 +168,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   def getCassandraConfigSinkPropsNestedFieldsStructTables = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_KEYSPACE,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.KCQL -> s"INSERT INTO $TABLE9 SELECT id, inner1.int_field, inner2.* FROM $TOPIC9",
@@ -320,7 +320,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
 
     session.execute(
       s"""
-         |CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE6
+         |CREATE TABLE IF NOT EXISTS $CASSANDRA_SINK_KEYSPACE.$TABLE6
          |(id text,
          |int_field1 int,
          |double_field1 double,
@@ -330,7 +330,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
 
     session.execute(
       s"""
-         |CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE7
+         |CREATE TABLE IF NOT EXISTS $CASSANDRA_SINK_KEYSPACE.$TABLE7
          |(id text,
          |int_field2 int,
          |double_field2 double,
@@ -340,7 +340,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
 
     session.execute(
       s"""
-         |CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE8
+         |CREATE TABLE IF NOT EXISTS $CASSANDRA_SINK_KEYSPACE.$TABLE8
          |(id text,
          |int_field int,
          |double_field double,
@@ -350,7 +350,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
 
     session.execute(
       s"""
-         |CREATE TABLE IF NOT EXISTS $CASSANDRA_KEYSPACE.$TABLE9
+         |CREATE TABLE IF NOT EXISTS $CASSANDRA_SINK_KEYSPACE.$TABLE9
          |(id text,
          |int_field int,
          |double_field double,
@@ -443,7 +443,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     Thread.sleep(10000)
   }
 
-  def startEmbeddedCassandra(yamlFile:String) = {
+  def startEmbeddedCassandra(yamlFile: String) = {
     EmbeddedCassandraServerHelper.startEmbeddedCassandra(yamlFile, "cass-test", 25000)
   }
 

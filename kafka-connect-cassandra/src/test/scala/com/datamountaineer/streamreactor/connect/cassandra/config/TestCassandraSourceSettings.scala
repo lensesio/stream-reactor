@@ -33,10 +33,10 @@ class TestCassandraSourceSettings extends WordSpec with Matchers with TestConfig
     settings.size shouldBe 2
     settings.head.kcql.getSource shouldBe TABLE1
     settings.head.kcql.getTarget shouldBe TABLE1 //no table mapping provided so should be the table
-    settings.head.bulkImportMode shouldBe true
+    settings.head.timestampColType shouldBe TimestampType.NONE
     settings(1).kcql.getSource shouldBe TABLE2
     settings(1).kcql.getTarget shouldBe TOPIC2
-    settings(1).bulkImportMode shouldBe true
+    settings(1).timestampColType shouldBe TimestampType.NONE
   }
 
   "CassandraSettings should return setting for a source with one table" in {

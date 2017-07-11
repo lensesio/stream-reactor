@@ -83,7 +83,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
 
 
   "Cassandra JsonWriter should write records to Cassandra" in {
-    val session = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE ,secure = true, ssl = false)
+    val session = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
     val context = mock[SinkTaskContext]
     val assignment = getAssignment
     when(context.assignment()).thenReturn(assignment)
@@ -107,7 +107,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
   }
 
   "Cassandra JsonWriter should write records to two Cassandra tables" in {
-    val session = createTableAndKeySpace(secure = true, ssl = false)
+    val session = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
     val context = mock[SinkTaskContext]
     val assignment = getAssignment
     when(context.assignment()).thenReturn(assignment)
@@ -146,7 +146,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     writer.write(Seq(record))
     Thread.sleep(2000)
     //check we can get back what we wrote
-    val res1 = session.execute(s"SELECT * FROM $CASSANDRA_KEYSPACE.$TABLE6")
+    val res1 = session.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TABLE6")
     val list1 = res1.all()
     list1.size() shouldBe 1
     list1.foreach { r =>
@@ -156,7 +156,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
       r.getUUID("timestamp_field1").toString shouldBe d1
     }
     //check we can get back what we wrote
-    val res2 = session.execute(s"SELECT * FROM $CASSANDRA_KEYSPACE.$TABLE7")
+    val res2 = session.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TABLE7")
     val list2 = res2.all()
     list2.size() shouldBe 1
     list2.foreach { r =>
@@ -168,7 +168,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
   }
 
   "Cassandra JsonWriter should write records using nested fields in Cassandra tables - STRING SCHEMA" in {
-    val session = createTableAndKeySpace(secure = true, ssl = false)
+    val session = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
     val context = mock[SinkTaskContext]
     val assignment = getAssignment
     when(context.assignment()).thenReturn(assignment)
@@ -206,7 +206,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     writer.write(Seq(record))
     Thread.sleep(2000)
     //check we can get back what we wrote
-    val res1 = session.execute(s"SELECT * FROM $CASSANDRA_KEYSPACE.$TABLE8")
+    val res1 = session.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TABLE8")
     val list1 = res1.all()
     list1.size() shouldBe 1
     list1.foreach { r =>
@@ -219,7 +219,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
   }
 
   "Cassandra JsonWriter should write records using nested fields in Cassandra tables - STRUCT SCHEMA" in {
-    val session = createTableAndKeySpace(secure = true, ssl = false)
+    val session = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
     val context = mock[SinkTaskContext]
     val assignment = getAssignment
     when(context.assignment()).thenReturn(assignment)
@@ -272,7 +272,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     writer.write(Seq(record))
     Thread.sleep(2000)
     //check we can get back what we wrote
-    val res1 = session.execute(s"SELECT * FROM $CASSANDRA_KEYSPACE.$TABLE9")
+    val res1 = session.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TABLE9")
     val list1 = res1.all()
     list1.size() shouldBe 1
     list1.foreach { r =>
