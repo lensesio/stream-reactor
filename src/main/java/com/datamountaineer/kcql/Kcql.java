@@ -46,7 +46,15 @@ public class Kcql {
     private List<Tag> tags;
     private boolean retainStructure = false;
     private String withConverter;
+    private long ttl;
 
+    public void setTTL(long ttl) {
+        this.ttl = ttl;
+    }
+
+    public long getTTL() {
+        return this.ttl;
+    }
 
     private void addField(final Field field) {
         if (field == null) {
@@ -461,6 +469,20 @@ public class Kcql {
                     kcql.batchSize = newBatchSize;
                 } catch (NumberFormatException ex) {
                     throw new IllegalArgumentException(value + " is not a valid number for a batch Size.");
+                }
+            }
+
+            @Override
+            public void exitTtl_type(ConnectorParser.Ttl_typeContext ctx) {
+                final String value = ctx.getText();
+                try {
+                    long newTTL = Long.parseLong(value);
+                    if (newTTL <= 0) {
+                        throw new IllegalArgumentException(value + " is not a valid number for a TTL.");
+                    }
+                    kcql.setTTL(newTTL);
+                } catch (NumberFormatException ex) {
+                    throw new IllegalArgumentException(value + " is not a valid number for a TTL.");
                 }
             }
 
