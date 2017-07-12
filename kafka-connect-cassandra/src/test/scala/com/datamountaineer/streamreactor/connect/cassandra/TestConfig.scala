@@ -320,7 +320,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
 
     session.execute(
       s"""
-         |CREATE TABLE IF NOT EXISTS $CASSANDRA_SINK_KEYSPACE.$TABLE6
+         |CREATE TABLE IF NOT EXISTS $keyspace.$TABLE6
          |(id text,
          |int_field1 int,
          |double_field1 double,
@@ -330,7 +330,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
 
     session.execute(
       s"""
-         |CREATE TABLE IF NOT EXISTS $CASSANDRA_SINK_KEYSPACE.$TABLE7
+         |CREATE TABLE IF NOT EXISTS $keyspace.$TABLE7
          |(id text,
          |int_field2 int,
          |double_field2 double,
@@ -340,7 +340,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
 
     session.execute(
       s"""
-         |CREATE TABLE IF NOT EXISTS $CASSANDRA_SINK_KEYSPACE.$TABLE8
+         |CREATE TABLE IF NOT EXISTS $keyspace.$TABLE8
          |(id text,
          |int_field int,
          |double_field double,
@@ -350,7 +350,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
 
     session.execute(
       s"""
-         |CREATE TABLE IF NOT EXISTS $CASSANDRA_SINK_KEYSPACE.$TABLE9
+         |CREATE TABLE IF NOT EXISTS $keyspace.$TABLE9
          |(id text,
          |int_field int,
          |double_field double,

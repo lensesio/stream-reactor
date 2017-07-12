@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.temp.traits
 import com.datamountaineer.streamreactor.temp.const.TraitConfigConst.THREAD_POLL_PROP_SUFFIX
 
 trait ThreadPoolSettings extends BaseSettings {
-  val threadPoolConstant: String = s"$connectorPrefix.$THREAD_POLL_PROP_SUFFIX"
+  def threadPoolConstant: String = s"$connectorPrefix.$THREAD_POLL_PROP_SUFFIX"
 
   def getThreadPoolSize: Int = {
     val threads = getInt(threadPoolConstant)

@@ -299,15 +299,15 @@ case class CassandraConfigSource(props: util.Map[String, String])
     with ErrorPolicySettings
     with ConsistencyLevelSettings[ConsistencyLevel] {
   val kcqlConstant: String = CassandraConfigConstants.KCQL
-  override val consistencyLevelConstant: String = CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG
+
+  override def consistencyLevelConstant: String = CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG
 
   def getKcql(): Seq[Kcql] = getString(kcqlConstant).split(";").map(Kcql.parse)
 
   def getIncrementalMode(routes: Seq[Kcql]): Map[String, String] = {
     routes.map(r => (r.getSource, r.getIncrementalMode)).toMap
   }
-
-  override val connectorPrefix: String = CassandraConfigConstants.CASSANDRA_CONNECTOR_PREFIX
+  val connectorPrefix: String = CassandraConfigConstants.CASSANDRA_CONNECTOR_PREFIX
 }
 
 /**
@@ -352,6 +352,8 @@ case class CassandraConfigSink(props: util.Map[String, String])
     with NumberRetriesSettings
     with ThreadPoolSettings
     with ConsistencyLevelSettings[ConsistencyLevel] {
+  val connectorPrefix: String = CassandraConfigConstants.CASSANDRA_CONNECTOR_PREFIX
+
   val kcqlConstant: String = CassandraConfigConstants.KCQL
   override val numberRetriesConstant: String = CassandraConfigConstants.NBR_OF_RETRIES
   override val threadPoolConstant: String = CassandraConfigConstants.THREAD_POOL_CONFIG
@@ -359,5 +361,4 @@ case class CassandraConfigSink(props: util.Map[String, String])
 
   def getKcql(): Seq[Kcql] = getString(kcqlConstant).split(";").map(Kcql.parse)
 
-  override val connectorPrefix: String = CassandraConfigConstants.CASSANDRA_CONNECTOR_PREFIX
 }

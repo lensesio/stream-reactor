@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.temp.traits
 
 trait BaseSettings {
-  val connectorPrefix: String
+  def connectorPrefix: String
 
   def getString(key: String): String
 
