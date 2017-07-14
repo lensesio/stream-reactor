@@ -39,7 +39,7 @@ class TestCqlGenerator extends WordSpec with Matchers with BeforeAndAfter with M
     val cqlGenerator = new CqlGenerator(configureMe("INCREMENTALMODE=timestamp"))
     val cqlStatement = cqlGenerator.getCqlStatement
 
-    cqlStatement shouldBe "SELECT timestamp_field,string_field FROM sink_test.cassandra-table WHERE timestamp_field > ? AND timestamp_field <= ? ALLOW FILTERING"
+    cqlStatement shouldBe "SELECT string_field,timestamp_field FROM sink_test.cassandra-table WHERE timestamp_field > ? AND timestamp_field <= ? ALLOW FILTERING"
   }
 
   "CqlGenerator should generate token based CQL statement based on KCQL" in {
@@ -47,7 +47,7 @@ class TestCqlGenerator extends WordSpec with Matchers with BeforeAndAfter with M
     val cqlGenerator = new CqlGenerator(configureMe("INCREMENTALMODE=token"))
     val cqlStatement = cqlGenerator.getCqlStatement
 
-    cqlStatement shouldBe "SELECT timestamp_field,string_field FROM sink_test.cassandra-table WHERE token(timestamp_field) > token(?) LIMIT 200"
+    cqlStatement shouldBe "SELECT string_field,timestamp_field FROM sink_test.cassandra-table WHERE token(timestamp_field) > token(?) LIMIT 200"
   }
   
   "CqlGenerator should generate CQL statement with no offset based on KCQL" in {
@@ -55,7 +55,7 @@ class TestCqlGenerator extends WordSpec with Matchers with BeforeAndAfter with M
     val cqlGenerator = new CqlGenerator(configureMe("INCREMENTALMODE=token"))
     val cqlStatement = cqlGenerator.getCqlStatementNoOffset
 
-    cqlStatement shouldBe "SELECT timestamp_field,string_field FROM sink_test.cassandra-table LIMIT 200"
+    cqlStatement shouldBe "SELECT string_field,timestamp_field FROM sink_test.cassandra-table LIMIT 200"
   }
 
 

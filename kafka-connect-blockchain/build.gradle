@@ -46,7 +46,9 @@ project(":kafka-connect-blockchain") {
         //compile "com.fasterxml.jackson.module:jackson-module-scala_$scalaMajorVersion:$jacksonVersion"
 
         compile "org.json4s:json4s-native_$scalaMajorVersion:3.4.0"
-
+        compile("com.datamountaineer:kcql:$KCQLVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
         //test deps
         testCompile "com.typesafe.akka:akka-http-testkit_$scalaMajorVersion:$akkaVersion"
         testCompile "com.typesafe.akka:akka-stream-testkit_$scalaMajorVersion:$akkaVersion"

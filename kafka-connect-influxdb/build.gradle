@@ -24,6 +24,9 @@ project(":kafka-connect-influxdb") {
         compile ("org.influxdb:influxdb-java:$influxDbVersion") {
             exclude group: 'com.squareup.okhttp', module: 'okhttp'
         }
+        compile("com.datamountaineer:kcql:$KCQLVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
         compile group: 'com.squareup.okhttp', name: 'okhttp', version: '2.7.5'
     }
 }

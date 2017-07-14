@@ -18,12 +18,12 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import java.util.concurrent.Executors
 
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSinkSetting
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
 import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
 import com.datamountaineer.streamreactor.connect.concurrent.FutureAwaitWithFailFastFn
-import com.datamountaineer.streamreactor.connect.converters.source.SinkRecordToJson
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datastax.driver.core.exceptions.SyntaxError
@@ -31,6 +31,8 @@ import com.datastax.driver.core.{PreparedStatement, Session}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 
+import scala.collection.JavaConversions._
+import scala.collection.mutable.{Map => MutableMap}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
@@ -49,8 +51,8 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
 
   private var session: Session = getSession.get
 
-  CassandraUtils.checkCassandraTables(session.getCluster, settings.kcql, session.getLoggedKeyspace)
-  private var preparedCache: Map[String, PreparedStatement] = cachePreparedStatements
+  CassandraUtils.checkCassandraTables(session.getCluster, settings.kcqls, session.getLoggedKeyspace)
+  private var preparedCache: Map[String, Map[String, (PreparedStatement, Kcql)]] = cachePreparedStatements
 
   /**
     * Get a connection to cassandra based on the config
@@ -64,16 +66,21 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
     * Cache the preparedStatements per topic rather than create them every time
     * Each one is an insert statement aligned to topics.
     *
-    * @return A Map of topic->preparedStatements.
+    * @return A Map of topic->(target -> preparedStatements).
     **/
-  private def cachePreparedStatements: Map[String, PreparedStatement] = {
-    settings.kcql.map(r => {
-      val topic = r.getSource
-      val table = r.getTarget
-      val ttl = r.getTTL
-      logger.info(s"Preparing statements for $topic.")
-      topic -> getPreparedStatement(table, ttl).get
-    }).toMap
+  private def cachePreparedStatements = {
+    settings.kcqls
+      .groupBy(_.getSource)
+      .map { case (topic, kcqls) =>
+        val innerMap = kcqls.foldLeft(Map.empty[String, (PreparedStatement, Kcql)]) { case (map, k) =>
+          val table = k.getTarget
+          val ttl = k.getTTL
+          logger.info(s"Preparing statements for $topic->$table")
+          map + (table -> (getPreparedStatement(table, ttl).get, k))
+        }
+
+        topic -> innerMap
+      }
   }
 
   /**
@@ -130,26 +137,32 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
       //futures to insert a record in Cassandra we want to fail immediately rather than waiting on all to finish.
       //If the error occurs it would be down to the error handler to do its thing.
       // NOOP should never be used!! otherwise data could be lost
-      val futures = records.map { record =>
+      val futures = records.flatMap { record =>
 
-        executor.submit {
-          val preparedStatement = preparedCache(record.topic())
-          val json = SinkRecordToJson(record, settings.fields, settings.ignoreField)
+        val tables = preparedCache.getOrElse(record.topic(), throw new IllegalArgumentException(s"Topic ${record.topic()} doesn't have a KSQL setup"))
+        tables.map { case (table, (statement, kcql)) =>
+          executor.submit {
+            val json = Transform(
+              kcql.getFields.map(FieldConverter.apply),
+              kcql.getIgnoredFields.map(FieldConverter.apply),
+              record.valueSchema(),
+              record.value(),
+              kcql.hasRetainStructure())
 
-          try {
-            val bound = preparedStatement.bind(json)
-            session.execute(bound)
-            //we don't care about the ResultSet here
-            ()
-          }
-          catch {
-            case e: SyntaxError =>
-              logger.error(s"Syntax error inserting <$json>", e)
-              throw e
+            try {
+              val bound = statement.bind(json)
+              session.execute(bound)
+              //we don't care about the ResultSet here
+              ()
+            }
+            catch {
+              case e: SyntaxError =>
+                logger.error(s"Syntax error inserting <$json>", e)
+                throw e
+            }
           }
         }
       }
-
       //when the call returns the pool is shutdown
       FutureAwaitWithFailFastFn(executor, futures, 1.hours)
       handleTry(Success(()))

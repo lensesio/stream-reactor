@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.utils
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datastax.driver.core.ColumnDefinitions.Definition
 import com.datastax.driver.core.{Cluster, ColumnDefinitions, DataType, Row}
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -46,9 +46,9 @@ object CassandraUtils {
     * @param routes   A list of route mappings
     * @param keySpace The keyspace to look in for the tables
     **/
-  def checkCassandraTables(cluster: Cluster, routes: Set[Config], keySpace: String): Unit = {
+  def checkCassandraTables(cluster: Cluster, routes: Seq[Kcql], keySpace: String): Unit = {
     val metaData = cluster.getMetadata.getKeyspace(keySpace).getTables
-    val tables: Set[String] = metaData.map(t => t.getName).toSet
+    val tables: Seq[String] = metaData.map(t => t.getName).toSeq
     val topics = routes.map(rm => rm.getTarget)
 
     //check tables
@@ -73,7 +73,7 @@ object CassandraUtils {
 
     val colFiltered = if (ignoreList != null && ignoreList.nonEmpty) {
       cols.filter(cd => !ignoreList.contains(cd.getName)).toList
-    }
+    } 
     else {
       cols.toList
     }

@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.temp.traits
 import com.datamountaineer.streamreactor.temp.const.TraitConfigConst.MAX_RETRIES_PROP_SUFFIX
 
 trait NumberRetriesSettings extends BaseSettings {
-  val numberRetriesConstant: String = s"$connectorPrefix.$MAX_RETRIES_PROP_SUFFIX"
+  def numberRetriesConstant: String = s"$connectorPrefix.$MAX_RETRIES_PROP_SUFFIX"
 
   def getNumberRetries: Int = getInt(numberRetriesConstant)
 }

@@ -18,10 +18,11 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import java.util
 
-import com.datamountaineer.streamreactor.temp.traits._
+import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.streamreactor.temp.traits.{ConsistencyLevelSettings, ErrorPolicySettings, NumberRetriesSettings, ThreadPoolSettings}
 import com.datastax.driver.core.ConsistencyLevel
-import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
+import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 /**
   * Holds the base configuration.
@@ -198,7 +199,7 @@ case class CassandraConfig() {
       ConfigDef.Width.LONG,
       CassandraConfigConstants.ERROR_RETRY_INTERVAL)
 
-   .define(CassandraConfigConstants.FETCH_SIZE,
+    .define(CassandraConfigConstants.FETCH_SIZE,
       Type.INT,
       CassandraConfigConstants.FETCH_SIZE_DEFAULT,
       Importance.MEDIUM,
@@ -281,13 +282,33 @@ object CassandraConfigSource {
       ConfigDef.Width.LONG,
       CassandraConfigConstants.ALLOW_FILTERING)
 
+    .define(CassandraConfigConstants.TIMESTAMP_TYPE,
+      Type.STRING,
+      CassandraConfigConstants.TIMESTAMP_TYPE_DEFAULT,
+      Importance.HIGH,
+      CassandraConfigConstants.TIMESTAMP_TYPE_DOC,
+      "Import",
+      8,
+      ConfigDef.Width.LONG,
+      CassandraConfigConstants.TIMESTAMP_TYPE)
+
 }
 
 case class CassandraConfigSource(props: util.Map[String, String])
-  extends BaseConfig(CassandraConfigConstants.CASSANDRA_CONNECTOR_PREFIX, CassandraConfigSource.sourceConfig, props)
+  extends AbstractConfig(CassandraConfigSource.sourceConfig, props)
     with ErrorPolicySettings
-    with KcqlSettings
-    with ConsistencyLevelSettings[ConsistencyLevel]
+    with ConsistencyLevelSettings[ConsistencyLevel] {
+  val kcqlConstant: String = CassandraConfigConstants.KCQL
+
+  override def consistencyLevelConstant: String = CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG
+
+  def getKcql(): Seq[Kcql] = getString(kcqlConstant).split(";").map(Kcql.parse)
+
+  def getIncrementalMode(routes: Seq[Kcql]): Map[String, String] = {
+    routes.map(r => (r.getSource, r.getIncrementalMode)).toMap
+  }
+  val connectorPrefix: String = CassandraConfigConstants.CASSANDRA_CONNECTOR_PREFIX
+}
 
 /**
   * Holds the extra configurations for the sink on top of
@@ -326,9 +347,18 @@ object CassandraConfigSink {
 }
 
 case class CassandraConfigSink(props: util.Map[String, String])
-  extends BaseConfig(CassandraConfigConstants.CASSANDRA_CONNECTOR_PREFIX, CassandraConfigSink.sinkConfig, props)
+  extends AbstractConfig(CassandraConfigSink.sinkConfig, props)
     with ErrorPolicySettings
     with NumberRetriesSettings
-    with KcqlSettings
     with ThreadPoolSettings
-    with ConsistencyLevelSettings[ConsistencyLevel]
+    with ConsistencyLevelSettings[ConsistencyLevel] {
+  val connectorPrefix: String = CassandraConfigConstants.CASSANDRA_CONNECTOR_PREFIX
+
+  val kcqlConstant: String = CassandraConfigConstants.KCQL
+  override val numberRetriesConstant: String = CassandraConfigConstants.NBR_OF_RETRIES
+  override val threadPoolConstant: String = CassandraConfigConstants.THREAD_POOL_CONFIG
+  override val consistencyLevelConstant: String = CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG
+
+  def getKcql(): Seq[Kcql] = getString(kcqlConstant).split(";").map(Kcql.parse)
+
+}

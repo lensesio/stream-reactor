@@ -27,7 +27,9 @@ project(":kafka-connect-hbase") {
           //  exclude group: 'com.google.guava', module: 'guava'
         }
         //compile group: 'com.google.guava', name: 'guava', version: '19.0'
-
+        compile("com.datamountaineer:kcql:$KCQLVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
         testCompile("org.kitesdk:kite-minicluster:$kiteMiniClusterVersion")
         testCompile("org.apache.hbase:hbase-server:$hbaseServerVersion")
         testCompile("org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion")

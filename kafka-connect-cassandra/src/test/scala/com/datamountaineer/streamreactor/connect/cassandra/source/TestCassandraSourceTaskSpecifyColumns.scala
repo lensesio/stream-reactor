@@ -343,7 +343,7 @@ class TestCassandraSourceTaskSpecifyColumns extends WordSpec with Matchers with 
     sourceRecord.keySchema shouldBe null
     sourceRecord.key shouldBe null
     sourceRecord.valueSchema shouldBe Schema.STRING_SCHEMA
-    sourceRecord.value shouldBe "3,magic_string"
+    sourceRecord.value shouldBe "magic_string,3"
 
     //stop task
     task.stop()

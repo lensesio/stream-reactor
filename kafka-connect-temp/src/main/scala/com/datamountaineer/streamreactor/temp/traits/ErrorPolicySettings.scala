@@ -20,7 +20,7 @@ import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolic
 import com.datamountaineer.streamreactor.temp.const.TraitConfigConst.ERROR_POLICY_PROP_SUFFIX
 
 trait ErrorPolicySettings extends BaseSettings {
-  val errorPolicyConst = s"$connectorPrefix.$ERROR_POLICY_PROP_SUFFIX"
+  def errorPolicyConst = s"$connectorPrefix.$ERROR_POLICY_PROP_SUFFIX"
 
   def getErrorPolicy: ErrorPolicy = ErrorPolicy(ErrorPolicyEnum.withName(getString(errorPolicyConst).toUpperCase))
 }

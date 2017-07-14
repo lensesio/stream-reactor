@@ -22,5 +22,8 @@ project(":kafka-connect-voltdb") {
 
     dependencies {
         compile "org.voltdb:voltdbclient:$voltVersion"
+        compile("com.datamountaineer:kcql:$KCQLVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
     }
 }

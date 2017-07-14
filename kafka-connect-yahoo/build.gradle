@@ -31,6 +31,9 @@ project(":kafka-connect-yahoo") {
     dependencies {
         compile "com.yahoofinance-api:YahooFinanceAPI:$yahooVersion"
         compile 'joda-time:joda-time:2.9.4'
+        compile("com.datamountaineer:kcql:$KCQLVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
         testCompile "com.google.code.findbugs:jsr305:1.3.9"
 
     }
