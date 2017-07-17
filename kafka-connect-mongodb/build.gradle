@@ -22,6 +22,9 @@ project(":kafka-connect-mongodb") {
     dependencies {
         // https://mvnrepository.com/artifact/org.mongodb/mongo-java-driver
         compile "org.mongodb:mongo-java-driver:$mongoVersion"
+        compile("com.datamountaineer:kcql:$KCQLVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
         testCompile "com.datamountaineer:kafka-testkit:$dataMountaineerTestKitVersion"
         testCompile "org.json4s:json4s-native_$scalaMajorVersion:3.4.0"
         testCompile "de.flapdoodle.embed:de.flapdoodle.embed.mongo:1.50.5"

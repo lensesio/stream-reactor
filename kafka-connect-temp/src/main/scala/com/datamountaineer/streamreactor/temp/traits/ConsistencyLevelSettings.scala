@@ -23,7 +23,7 @@ import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
 trait ConsistencyLevelSettings[T <: Enum[T]] extends BaseSettings {
-  val consistencyLevelConstant: String = s"$connectorPrefix.$CONSISTENCY_LEVEL_PROP_SUFFIX"
+  def consistencyLevelConstant: String = s"$connectorPrefix.$CONSISTENCY_LEVEL_PROP_SUFFIX"
 
   def getConsistencyLevel(implicit ct: ClassTag[T]): Option[T] = {
 

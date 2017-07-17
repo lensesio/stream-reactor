@@ -20,5 +20,8 @@ project(":kafka-connect-temp") {
     }
 
     dependencies {
+        compile("com.datamountaineer:kcql:$KCQLVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
     }
 }

@@ -33,6 +33,10 @@ project(":kafka-connect-druid") {
         }
         compile group: 'com.squareup.okhttp', name: 'okhttp', version: '2.7.5'
         compile group: 'com.google.guava', name: 'guava', version: '19.0'
+        compile("com.datamountaineer:kcql:$KCQLVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
+
         testCompile('io.druid:druid-integration-tests:0.9.2') {
             exclude group: 'io.druid.extensions', module: 'mysql-metadata-storage'
         }

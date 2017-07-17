@@ -55,8 +55,15 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   val TABLE2 = "table2"
   val TABLE3 = TOPIC2
   val TABLE4 = "table4"
-  val TOPIC4 =  "topic4"
+  val TOPIC4 = "topic4"
   val TABLE5 = "table5"
+  val TABLE6 = "table6"
+  val TABLE7 = "table7"
+  val TOPIC67 = "topic67"
+  val TABLE8 = "table8"
+  val TOPIC8 = "topic8"
+  val TABLE9 = "table9"
+  val TOPIC9 = "topic9"
 
   val TTL = 100000
 
@@ -132,6 +139,40 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.KCQL -> QUERY_SELECTION
+    ).asJava
+  }
+
+
+  def getCassandraConfigSinkProps2Tables = {
+    Map(
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.KCQL -> s"INSERT INTO $TABLE6 SELECT id, int_field1, double_field1,timestamp_field1 FROM $TOPIC67; INSERT INTO $TABLE7 SELECT id, int_field2, double_field2,timestamp_field2 FROM $TOPIC67",
+      CassandraConfigConstants.ERROR_POLICY -> ErrorPolicyEnum.NOOP.toString
+    ).asJava
+  }
+
+  def getCassandraConfigSinkPropsNestedFieldsTables = {
+    Map(
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.KCQL -> s"INSERT INTO $TABLE8 SELECT id, inner1.int_field, inner2.* FROM $TOPIC8",
+      CassandraConfigConstants.ERROR_POLICY -> ErrorPolicyEnum.NOOP.toString
+    ).asJava
+  }
+
+  def getCassandraConfigSinkPropsNestedFieldsStructTables = {
+    Map(
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.KCQL -> s"INSERT INTO $TABLE9 SELECT id, inner1.int_field, inner2.* FROM $TOPIC9",
+      CassandraConfigConstants.ERROR_POLICY -> ErrorPolicyEnum.NOOP.toString
     ).asJava
   }
 
@@ -276,7 +317,47 @@ trait TestConfig extends StrictLogging with MockitoSugar {
             string_field text, 
             another_time_field timeuuid, 
             PRIMARY KEY ((id), another_time_field))""".stripMargin)
-            
+
+    session.execute(
+      s"""
+         |CREATE TABLE IF NOT EXISTS $keyspace.$TABLE6
+         |(id text,
+         |int_field1 int,
+         |double_field1 double,
+         |timestamp_field1 timeuuid,
+         |PRIMARY KEY(id,timestamp_field1)) WITH CLUSTERING ORDER BY (timestamp_field1 asc)""".stripMargin)
+
+
+    session.execute(
+      s"""
+         |CREATE TABLE IF NOT EXISTS $keyspace.$TABLE7
+         |(id text,
+         |int_field2 int,
+         |double_field2 double,
+         |timestamp_field2 timeuuid,
+         |PRIMARY KEY(id,timestamp_field2)) WITH CLUSTERING ORDER BY (timestamp_field2 asc)""".stripMargin)
+
+
+    session.execute(
+      s"""
+         |CREATE TABLE IF NOT EXISTS $keyspace.$TABLE8
+         |(id text,
+         |int_field int,
+         |double_field double,
+         |timestamp_field timeuuid,
+         |long_field bigint,
+         |PRIMARY KEY(id,timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)""".stripMargin)
+
+    session.execute(
+      s"""
+         |CREATE TABLE IF NOT EXISTS $keyspace.$TABLE9
+         |(id text,
+         |int_field int,
+         |double_field double,
+         |timestamp_field timeuuid,
+         |long_field bigint,
+         |PRIMARY KEY(id,timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)""".stripMargin)
+
     session
   }
 
@@ -362,10 +443,10 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     Thread.sleep(10000)
   }
 
-  def startEmbeddedCassandra(yamlFile:String) = {
+  def startEmbeddedCassandra(yamlFile: String) = {
     EmbeddedCassandraServerHelper.startEmbeddedCassandra(yamlFile, "cass-test", 25000)
   }
-  
+
   def startEmbeddedCassandra() = {
     EmbeddedCassandraServerHelper.startEmbeddedCassandra("cassandra.yaml", 25000)
   }

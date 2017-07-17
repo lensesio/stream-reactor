@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import java.util
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.errors.RetryErrorPolicy
 import com.datastax.driver.core.ConsistencyLevel
@@ -40,7 +40,7 @@ class TestCassandraSinkSettings extends WordSpec with Matchers with MockitoSugar
     val taskConfig = CassandraConfigSink(getCassandraConfigSinkPropsRetry)
     val settings = CassandraSettings.configureSink(taskConfig)
 
-    val parsedConf: List[Config] = settings.kcql.toList
+    val parsedConf: List[Kcql] = settings.kcqls.toList
     parsedConf.size shouldBe 2
 
     parsedConf.head.getTarget shouldBe TABLE1
@@ -86,7 +86,7 @@ class TestCassandraSinkSettings extends WordSpec with Matchers with MockitoSugar
   "CassandraSettings should throw an exception if the consistency level is not valid for a source" in {
     val map = new util.HashMap[String, String](getCassandraConfigSourcePropsIncr)
     map.put(CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG, "InvaliD")
-    intercept[ConfigException]{
+    intercept[ConfigException] {
       CassandraSettings.configureSource(CassandraConfigSource(map))
     }
   }

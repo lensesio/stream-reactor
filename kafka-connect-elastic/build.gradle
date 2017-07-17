@@ -28,6 +28,9 @@ project(":kafka-connect-elastic") {
             exclude group: "org.scalactic", module: "scalactic_2.11"
         }
         compile "com.sun.jna:jna:$jnaVersion"
+        compile("com.datamountaineer:kcql:$KCQLVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
         testCompile "org.elasticsearch:elasticsearch:$elasticVersion"
     }
 }
