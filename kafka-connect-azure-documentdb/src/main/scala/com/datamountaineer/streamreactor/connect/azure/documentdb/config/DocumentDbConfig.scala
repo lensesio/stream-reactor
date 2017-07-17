@@ -18,14 +18,15 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.config
 
 import java.util
 
+import com.datamountaineer.streamreactor.temp.traits._
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
-import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
+import org.apache.kafka.common.config.ConfigDef
 
 object DocumentDbConfig {
-  val configDef: ConfigDef = new ConfigDef()
+  val config: ConfigDef = new ConfigDef()
     .define(DocumentDbConfigConstants.CONNECTION_CONFIG, Type.STRING, Importance.HIGH, DocumentDbConfigConstants.CONNECTION_CONFIG_DOC, "Connection", 1, ConfigDef.Width.LONG, DocumentDbConfigConstants.CONNECTION_DISPLAY)
     .define(DocumentDbConfigConstants.MASTER_KEY_CONFIG, Type.PASSWORD, Importance.HIGH, DocumentDbConfigConstants.MASTER_KEY_DOC, "Connection", 2, ConfigDef.Width.LONG, DocumentDbConfigConstants.MASTER_KEY_CONFIG)
-    .define(DocumentDbConfigConstants.CONSISTENCY_CONFIG, Type.STRING, DocumentDbConfigConstants.CONSISTENCY_DEFAULT, Importance.HIGH, DocumentDbConfigConstants.CONSITENSCY_DOC, "Connection", 3, ConfigDef.Width.LONG, DocumentDbConfigConstants.CONSISTENCY_DISPLAY)
+    .define(DocumentDbConfigConstants.CONSISTENCY_CONFIG, Type.STRING, DocumentDbConfigConstants.CONSISTENCY_DEFAULT, Importance.HIGH, DocumentDbConfigConstants.CONSISTENCY_DOC, "Connection", 3, ConfigDef.Width.LONG, DocumentDbConfigConstants.CONSISTENCY_DISPLAY)
     .define(DocumentDbConfigConstants.DATABASE_CONFIG, Type.STRING, Importance.HIGH, DocumentDbConfigConstants.DATABASE_CONFIG_DOC, "Connection", 4, ConfigDef.Width.MEDIUM, DocumentDbConfigConstants.DATABASE_CONFIG)
     .define(DocumentDbConfigConstants.CREATE_DATABASE_CONFIG, Type.BOOLEAN, DocumentDbConfigConstants.CREATE_DATABASE_DEFAULT, Importance.MEDIUM, DocumentDbConfigConstants.CREATE_DATABASE_DOC, "Connection", 5, ConfigDef.Width.MEDIUM, DocumentDbConfigConstants.CREATE_DATABASE_DISPLAY)
     .define(DocumentDbConfigConstants.PROXY_HOST_CONFIG, Type.STRING, null, Importance.LOW, DocumentDbConfigConstants.PROXY_HOST_DOC, "Connection", 5, ConfigDef.Width.MEDIUM, DocumentDbConfigConstants.PROXY_HOST_DISPLAY)
@@ -36,4 +37,9 @@ object DocumentDbConfig {
     .define(DocumentDbConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, DocumentDbConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT, Importance.MEDIUM, DocumentDbConfigConstants.PROGRESS_COUNTER_ENABLED_DOC, "Metrics", 1, ConfigDef.Width.MEDIUM, DocumentDbConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 }
 
-case class DocumentDbConfig(props: util.Map[String, String]) extends AbstractConfig(DocumentDbConfig.configDef, props)
+case class DocumentDbConfig(props: util.Map[String, String])
+  extends BaseConfig(DocumentDbConfigConstants.CONNECTOR_PREFIX, DocumentDbConfig.config, props)
+    with KcqlSettings
+    with DatabaseSettings
+    with RetryIntervalSettings
+    with ErrorPolicySettings

@@ -103,7 +103,7 @@ class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => D
 
   override def version(): String = getClass.getPackage.getImplementationVersion
 
-  override def config(): ConfigDef = DocumentDbConfig.configDef
+  override def config(): ConfigDef = DocumentDbConfig.config
 
   private def readOrCreateCollections(database: Database, settings: DocumentDbSinkSettings)(implicit documentClient: DocumentClient) = {
     //check all collection exists and if not create them

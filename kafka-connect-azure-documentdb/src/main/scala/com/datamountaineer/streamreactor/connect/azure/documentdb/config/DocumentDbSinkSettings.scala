@@ -45,7 +45,7 @@ case class DocumentDbSinkSettings(endpoint: String,
 
 object DocumentDbSinkSettings extends StrictLogging {
 
-  def apply(config: AbstractConfig): DocumentDbSinkSettings = {
+  def apply(config: DocumentDbConfig): DocumentDbSinkSettings = {
     val endpoint = config.getString(DocumentDbConfigConstants.CONNECTION_CONFIG)
     require(endpoint.nonEmpty, s"Invalid endpoint provided.${DocumentDbConfigConstants.CONNECTION_CONFIG_DOC}")
 
@@ -54,36 +54,18 @@ object DocumentDbSinkSettings extends StrictLogging {
       .getOrElse(throw new ConfigException(s"Missing ${DocumentDbConfigConstants.MASTER_KEY_CONFIG}"))
     require(masterKey.trim.nonEmpty, s"Invalid ${DocumentDbConfigConstants.MASTER_KEY_CONFIG}")
 
-    val database = config.getString(DocumentDbConfigConstants.DATABASE_CONFIG)
-    if (database == null || database.trim.length == 0)
-      throw new ConfigException(s"Invalid ${DocumentDbConfigConstants.DATABASE_CONFIG}")
-    val kcql = config.getString(DocumentDbConfigConstants.KCQL_CONFIG)
-    val routes = kcql.split(";").map(r => Try(Config.parse(r)) match {
-      case Success(query) => query
-      case Failure(t) => throw new ConfigException(s"Invalid ${DocumentDbConfigConstants.KCQL_CONFIG}.${t.getMessage}", t)
-    })
-    if (routes.isEmpty)
-      throw new ConfigException(s"Invalid ${DocumentDbConfigConstants.KCQL_CONFIG}. You need to provide at least one route")
+    val database = config.getDatabase
 
-    //val batchSize = config.getInt(DocumentDbConfigConstants.BATCH_SIZE_CONFIG)
-    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(DocumentDbConfigConstants.ERROR_POLICY_CONFIG).toUpperCase)
-    val errorPolicy = ErrorPolicy(errorPolicyE)
-    val retries = config.getInt(DocumentDbConfigConstants.NBR_OF_RETRIES_CONFIG)
+    if (database.isEmpty) {
+      throw new ConfigException(s"Missing ${DocumentDbConfigConstants.DATABASE_CONFIG}.")
+    }
 
-    val rowKeyBuilderMap = routes
-      .filter(c => c.getWriteMode == WriteModeEnum.UPSERT)
-      .map { r =>
-        val keys = r.getPrimaryKeys.toSet
-        if (keys.isEmpty) throw new ConfigException(s"${r.getTarget} is set up with upsert, you need primary keys setup")
-        (r.getSource, keys)
-      }.toMap
-
-
-    val fieldsMap = routes.map { rm =>
-      (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)
-    }.toMap
-
-    val ignoreFields = routes.map(r => (r.getSource, r.getIgnoredField.toSet)).toMap
+    val kcql = config.getKCQL
+    val errorPolicy= config.getErrorPolicy
+    val retries = config.getRetryInterval
+    val rowKeyBuilderMap = config.getUpsertKeys(kcql)
+    val fieldsMap = config.getFields(kcql)
+    val ignoreFields = config.getIgnoreFields(kcql)
 
     val consistencyLevel = Try(ConsistencyLevel.valueOf(config.getString(DocumentDbConfigConstants.CONSISTENCY_CONFIG))) match {
       case Failure(_) => throw new ConfigException(
@@ -93,10 +75,11 @@ object DocumentDbSinkSettings extends StrictLogging {
 
       case Success(c) => c
     }
+
     new DocumentDbSinkSettings(endpoint,
       masterKey,
       database,
-      routes,
+      kcql.toSeq,
       rowKeyBuilderMap,
       fieldsMap,
       ignoreFields,
