@@ -52,16 +52,16 @@ case class HazelCastSinkSettings(client: HazelcastInstance,
 object HazelCastSinkSettings {
   def apply(config: HazelCastSinkConfig): HazelCastSinkSettings = {
 
-    val routes = config.getRoutes
-    val fieldMap = config.getFields(routes)
-    val ignoreFields = config.getIgnoreFields(routes)
-    val primaryKeys = config.getPrimaryKeys(routes)
+    val kcql = config.getKCQL
+    val fieldMap = config.getFields(kcql)
+    val ignoreFields = config.getIgnoreFields(kcql)
+    val primaryKeys = config.getPrimaryKeys(kcql)
     val allowParallel = config.getAllowParallel
-    val format = config.getFormat(this.getFormatType, routes)
+    val format = config.getFormat(this.getFormatType, kcql)
     val errorPolicy = config.getErrorPolicy
     val maxRetries = config.getNumberRetries
     val threadPoolSize = config.getThreadPoolSize
-    val topicTables = getTopicTables(routes)
+    val topicTables = getTopicTables(kcql)
 
     ensureGroupNameExists(config)
 
@@ -70,7 +70,7 @@ object HazelCastSinkSettings {
 
     new HazelCastSinkSettings(
       client,
-      routes,
+      kcql,
       topicTables,
       fieldMap,
       ignoreFields,

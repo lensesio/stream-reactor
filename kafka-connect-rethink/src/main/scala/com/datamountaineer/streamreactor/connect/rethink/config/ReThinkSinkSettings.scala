@@ -39,7 +39,7 @@ case class ReThinkSinkSetting(database: String,
 
 object ReThinkSinkSettings {
   def apply(config: ReThinkSinkConfig): ReThinkSinkSetting = {
-    val routes = config.getRoutes
+    val routes = config.getKCQL
 
     //only allow one primary key for rethink.
     routes

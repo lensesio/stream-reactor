@@ -25,7 +25,7 @@ case class ReThinkSourceSetting(db: String, source: String, target: String, batc
 
 object ReThinkSourceSettings {
   def apply(config: ReThinkSourceConfig): Set[ReThinkSourceSetting] = {
-    val routes = config.getRoutes
+    val routes = config.getKCQL
     routes.map(r => new ReThinkSourceSetting(config.getDatabase, r.getSource, r.getTarget, r.getBatchSize, r.isInitialize))
   }
 }
