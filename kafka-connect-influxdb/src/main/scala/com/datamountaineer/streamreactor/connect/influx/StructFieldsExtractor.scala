@@ -67,7 +67,7 @@ case class StructFieldsExtractor(includeAllFields: Boolean,
           case s: Short => s.toLong
           case i: Int => i.toLong
           case l: Long => l
-          case s: String => Try(Instant.parse(s).toEpochMilli).getOrElse(throw new IllegalArgumentException(s"${s} is not a valid format for timestamp"))
+          case s: String => Try(Instant.parse(s).toEpochMilli).getOrElse(throw new IllegalArgumentException(s"${s} is not a valid format for timestamp, expected 'yyyy-MM-DDTHH:mm:ss.SSSZ'"))
           case _ => throw new ConfigException(s"${timestampField.get} is not a valid field for the timestamp")
         }
       }.getOrElse(System.currentTimeMillis())
