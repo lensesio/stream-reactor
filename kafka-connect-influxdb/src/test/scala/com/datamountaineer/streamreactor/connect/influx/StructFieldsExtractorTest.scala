@@ -61,7 +61,7 @@ class StructFieldsExtractorTest extends WordSpec with Matchers {
       }
     }
 
-    "throw an exception if the timestamp field is a string/double/float" in {
+    "throw an exception if the timestamp field is a double/float" in {
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("abc", Schema.STRING_SCHEMA)
         .field("d", Schema.FLOAT64_SCHEMA)
@@ -73,15 +73,27 @@ class StructFieldsExtractorTest extends WordSpec with Matchers {
         .put("f", -5.93.toFloat)
 
       intercept[ConfigException] {
-        StructFieldsExtractor(true, Map.empty, Some("abc"), Set.empty).get(struct)
-      }
-
-      intercept[ConfigException] {
         StructFieldsExtractor(true, Map.empty, Some("d"), Set.empty).get(struct)
       }
 
       intercept[ConfigException] {
         StructFieldsExtractor(true, Map.empty, Some("f"), Set.empty).get(struct)
+      }
+    }
+
+    "throw an exception if the timestamp field is a string and incorrect format" in {
+      val schema = SchemaBuilder.struct().name("com.example.Person")
+        .field("good", Schema.STRING_SCHEMA)
+        .field("bad", Schema.STRING_SCHEMA).build()
+
+      val struct = new Struct(schema)
+        .put("good", "2017-01-01T00:00:00Z")
+        .put("bad", "not a time")
+
+      StructFieldsExtractor(true, Map.empty, Some("good"), Set.empty).get(struct).timestamp shouldBe 1483228800000L
+
+      intercept[IllegalArgumentException] {
+        StructFieldsExtractor(true, Map.empty, Some("bad"), Set.empty).get(struct)
       }
     }
 

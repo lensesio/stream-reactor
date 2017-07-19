@@ -18,12 +18,14 @@ package com.datamountaineer.streamreactor.connect.influx
 
 import java.text.SimpleDateFormat
 import java.util.TimeZone
+import java.time.Instant
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import io.confluent.common.config.ConfigException
 import org.apache.kafka.connect.data._
 
 import scala.collection.JavaConversions._
+import scala.util.Try
 
 case class RecordData(timestamp: Long, fields: Seq[(String, Any)])
 
@@ -65,6 +67,7 @@ case class StructFieldsExtractor(includeAllFields: Boolean,
           case s: Short => s.toLong
           case i: Int => i.toLong
           case l: Long => l
+          case s: String => Try(Instant.parse(s).toEpochMilli).getOrElse(throw new IllegalArgumentException(s"${s} is not a valid format for timestamp"))
           case _ => throw new ConfigException(s"${timestampField.get} is not a valid field for the timestamp")
         }
       }.getOrElse(System.currentTimeMillis())
