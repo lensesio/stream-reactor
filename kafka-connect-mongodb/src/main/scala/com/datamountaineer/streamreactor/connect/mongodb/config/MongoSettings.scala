@@ -20,6 +20,7 @@ import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
 import com.mongodb.AuthenticationMechanism
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
 
 
@@ -44,6 +45,11 @@ object MongoSettings extends StrictLogging {
     require(hostsConfig.nonEmpty, s"Invalid hosts provided.${MongoConfigConstants.CONNECTION_CONFIG_DOC}")
 
     val database = config.getDatabase
+
+    if (database.contains("-")) {
+      throw new ConfigException(s"${MongoConfigConstants.DATABASE_CONFIG} contains an '-' which are invalid characters for mongo collections")
+    }
+
     require(database.nonEmpty, s"${MongoConfigConstants.DATABASE_CONFIG} is empty")
 
     val kcql = config.getKCQL
