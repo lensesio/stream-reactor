@@ -16,22 +16,41 @@
 
 package com.datamountaineer.streamreactor.connect.mongodb.config
 
-object MongoSinkConfigConstants {
+import com.datamountaineer.streamreactor.temp.const.TraitConfigConst._
 
-  val DATABASE_CONFIG = "connect.mongo.database"
+object MongoConfigConstants {
+
+  val CONNECTOR_PREFIX= "connect.mongo"
+
+  val DATABASE_CONFIG = s"$CONNECTOR_PREFIX.$DATABASE_PROP_SUFFIX"
   val DATABASE_CONFIG_DOC = "The mongodb target database."
 
-
-  val CONNECTION_CONFIG = "connect.mongo.connection"
+  val CONNECTION_CONFIG = s"$CONNECTOR_PREFIX.connection"
   val CONNECTION_CONFIG_DOC = "The mongodb connection in the format mongodb://[username:password@]host1[:port1][,host2[:port2],...[,hostN[:portN]]][/[database][?options]]."
 
-  val BATCH_SIZE_CONFIG = "connect.mongo.sink.batch.size"
+  val USERNAME_CONFIG = s"$CONNECTOR_PREFIX.$USERNAME_SUFFIX"
+  val USERNAME_CONFIG_DEFAULT = ""
+  val USERNAME_CONFIG_DOC = "The username to use when authenticating"
+
+  val PASSWORD_CONFIG = s"$CONNECTOR_PREFIX.$PASSWORD_SUFFIX"
+  val PASSWORD_CONFIG_DEFAULT = ""
+  val PASSWORD_CONFIG_DOC = "The password for the use when authenticating"
+
+  val AUTHENTICATION_MECHANISM = s"$CONNECTOR_PREFIX.$AUTH_MECH_SUFFIX"
+  val AUTHENTICATION_MECHANISM_DEFAULT = "SCRAM-SHA-1"
+  val AUTHENTICATION_MECHANISM_DOC =
+    s"""
+      |The authentication mechanism to use when username and password options are set. This can also be set in ${CONNECTION_CONFIG}" +
+      |but requires the password to be exposed as plain text in the connection string which can leak in Connects logs."
+    """.stringPrefix
+
+  val BATCH_SIZE_CONFIG = s"$CONNECTOR_PREFIX.$BATCH_SIZE_PROP_SUFFIX"
   val BATCH_SIZE_DOC = "The number of records the sink would push to mongo at once."
   val BATCH_SIZE_CONFIG_DEFAULT = 100
 
-  val ERROR_POLICY_CONFIG = "connect.mongo.error.policy"
-  val ERROR_POLICY_DOC: String =
-    """Specifies the action to be taken if an error occurs while inserting the data.
+  val ERROR_POLICY_CONFIG = s"$CONNECTOR_PREFIX.error.policy"
+  val ERROR_POLICY_DOC: String = """
+    Specifies the action to be taken if an error occurs while inserting the data.
       |There are two available options:
       |NOOP - the error is swallowed
       |THROW - the error is allowed to propagate.
@@ -40,15 +59,15 @@ object MongoSinkConfigConstants {
 
   val ERROR_POLICY_DEFAULT = "THROW"
 
-  val ERROR_RETRY_INTERVAL_CONFIG = "connect.mongo.retry.interval"
+  val ERROR_RETRY_INTERVAL_CONFIG = s"$CONNECTOR_PREFIX.retry.interval"
   val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
   val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
 
-  val NBR_OF_RETRIES_CONFIG = "connect.mongo.max.retries"
+  val NBR_OF_RETRIES_CONFIG = s"$CONNECTOR_PREFIX.max.retries"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
-  val KCQL_CONFIG = "connect.mongo.sink.kcql"
+  val KCQL_CONFIG = s"$CONNECTOR_PREFIX.kcql"
   val KCQL_DOC = "KCQL expression describing field selection and data routing to the target mongo db."
 
   val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"

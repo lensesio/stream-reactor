@@ -26,4 +26,7 @@ object TraitConfigConst {
   val THREAD_POLL_PROP_SUFFIX = "threadpool.size"
   val ALLOW_PARALLEL_WRITE_PROP_SUFFIX = "parallel.write"
   val CONSISTENCY_LEVEL_PROP_SUFFIX = "consistency.level"
+  val USERNAME_SUFFIX = "username"
+  val PASSWORD_SUFFIX = "password"
+  val AUTH_MECH_SUFFIX = "auth.mechanism"
 }

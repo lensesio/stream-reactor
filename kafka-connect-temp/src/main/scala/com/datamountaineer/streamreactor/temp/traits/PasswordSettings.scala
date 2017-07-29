@@ -16,16 +16,14 @@
 
 package com.datamountaineer.streamreactor.temp.traits
 
-import org.apache.kafka.common.config.types.Password
+import com.datamountaineer.streamreactor.temp.const.TraitConfigConst.PASSWORD_SUFFIX
 
-trait BaseSettings {
-  def connectorPrefix: String
+/**
+  * Created by andrew@datamountaineer.com on 29/07/2017. 
+  * stream-reactor
+  */
+trait PasswordSettings extends BaseSettings {
+  def passwordConst = s"$connectorPrefix.$PASSWORD_SUFFIX"
 
-  def getString(key: String): String
-
-  def getInt(key: String): Integer
-
-  def getBoolean(key: String): java.lang.Boolean
-
-  def getPassword(key: String): Password
+  def getSecret = getPassword(passwordConst)
 }

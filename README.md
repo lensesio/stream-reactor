@@ -71,6 +71,8 @@ periodically report log messages processed
 *   Fixed Avro double fields mapping to Kudu columns
 *   Removed unused batch size option from DocumentDb
 *   Added TLS support for ReThinkDB, add batch size option to source for draining the internal queues.
+*   Rename MongoDb `connect.mongo.database` to `connect.mongo.db`
+*   Rename MongoDb `connect.mongo.sink.batch.size` to `connect.mongo.batch.size`
 
 **0.2.5 (8 Apr 2017)**
 

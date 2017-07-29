@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.mongodb.sink
 
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSinkSettings
+import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
 import com.datamountaineer.streamreactor.connect.mongodb.converters.SinkRecordConverter
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.kafka.connect.data.{Schema, Struct}
@@ -24,7 +24,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.bson.Document
 
 object SinkRecordToDocument extends ConverterUtil {
-  def apply(record: SinkRecord, keys: Set[String] = Set.empty)(implicit settings: MongoSinkSettings): (Document, Iterable[(String, Any)]) = {
+  def apply(record: SinkRecord, keys: Set[String] = Set.empty)(implicit settings: MongoSettings): (Document, Iterable[(String, Any)]) = {
     val schema = record.valueSchema()
     val value = record.value()
 
