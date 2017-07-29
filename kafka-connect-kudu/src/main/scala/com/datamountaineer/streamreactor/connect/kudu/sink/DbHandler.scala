@@ -24,7 +24,7 @@ import com.datamountaineer.streamreactor.connect.kudu.config.KuduSettings
 import com.datamountaineer.streamreactor.connect.kudu.sink.DbHandler.kuduSchema
 import com.datamountaineer.streamreactor.connect.schemas.SchemaRegistry
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.avro.Schema
+import org.apache.avro.{JsonProperties, Schema}
 import org.apache.kafka.connect.errors.ConnectException
 import org.kududb.ColumnSchema
 import org.kududb.client._
@@ -167,7 +167,7 @@ object DbHandler extends StrictLogging with KuduConverter {
       val fieldName = f.name()
       val alias = if (mappingFields.contains(fieldName)) mappingFields(fieldName) else fieldName
       val col = fromAvro(f.schema(), alias)
-      val default = if (f.defaultVal() != null) f.defaultVal() else null
+      val default = if (f.defaultVal() != null &&  f.defaultVal() != JsonProperties.NULL_VALUE) f.defaultVal() else null
 
       if (pks.contains(alias)) {
         logger.info(s"Setting PK on ${f.name()} for ${config.getTarget}")
