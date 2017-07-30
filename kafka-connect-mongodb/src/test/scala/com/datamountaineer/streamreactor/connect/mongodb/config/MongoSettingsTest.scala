@@ -23,20 +23,20 @@ import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConversions._
 
-class MongoSinkSettingsTest extends WordSpec with Matchers {
+class MongoSettingsTest extends WordSpec with Matchers {
   "MongoSinkSettings" should {
     "default the host if the hosts settings not provided" in {
       val map = Map(
-        MongoSinkConfigConstants.DATABASE_CONFIG -> "database1",
-        MongoSinkConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
-        MongoSinkConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
+        MongoConfigConstants.DATABASE_CONFIG -> "database1",
+        MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
+        MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
       )
 
       val config = MongoConfig(map)
-      val settings = MongoSinkSettings(config)
+      val settings = MongoSettings(config)
       settings.database shouldBe "database1"
       settings.connection shouldBe "mongodb://localhost:27017"
-      settings.batchSize shouldBe MongoSinkConfigConstants.BATCH_SIZE_CONFIG_DEFAULT
+      settings.batchSize shouldBe MongoConfigConstants.BATCH_SIZE_CONFIG_DEFAULT
       settings.keyBuilderMap.size shouldBe 0
       settings.kcql.size shouldBe 1
       settings.errorPolicy shouldBe ThrowErrorPolicy()
@@ -45,16 +45,16 @@ class MongoSinkSettingsTest extends WordSpec with Matchers {
 
     "handle two topics" in {
       val map = Map(
-        MongoSinkConfigConstants.DATABASE_CONFIG -> "database1",
-        MongoSinkConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
-        MongoSinkConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT a as F1, b as F2 FROM topic2"
+        MongoConfigConstants.DATABASE_CONFIG -> "database1",
+        MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
+        MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT a as F1, b as F2 FROM topic2"
       )
 
       val config = MongoConfig(map)
-      val settings = MongoSinkSettings(config)
+      val settings = MongoSettings(config)
       settings.database shouldBe "database1"
       settings.connection shouldBe "mongodb://localhost:27017"
-      settings.batchSize shouldBe MongoSinkConfigConstants.BATCH_SIZE_CONFIG_DEFAULT
+      settings.batchSize shouldBe MongoConfigConstants.BATCH_SIZE_CONFIG_DEFAULT
       settings.keyBuilderMap.size shouldBe 0
       settings.kcql.size shouldBe 2
       settings.errorPolicy shouldBe ThrowErrorPolicy()
@@ -63,16 +63,16 @@ class MongoSinkSettingsTest extends WordSpec with Matchers {
 
     "handle ingore fields" in {
       val map = Map(
-        MongoSinkConfigConstants.DATABASE_CONFIG -> "database1",
-        MongoSinkConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
-        MongoSinkConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1 IGNORE a,b,c"
+        MongoConfigConstants.DATABASE_CONFIG -> "database1",
+        MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
+        MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1 IGNORE a,b,c"
       )
 
       val config = MongoConfig(map)
-      val settings = MongoSinkSettings(config)
+      val settings = MongoSettings(config)
       settings.database shouldBe "database1"
       settings.connection shouldBe "mongodb://localhost:27017"
-      settings.batchSize shouldBe MongoSinkConfigConstants.BATCH_SIZE_CONFIG_DEFAULT
+      settings.batchSize shouldBe MongoConfigConstants.BATCH_SIZE_CONFIG_DEFAULT
       settings.keyBuilderMap.size shouldBe 0
       settings.kcql.size shouldBe 1
       settings.keyBuilderMap.size shouldBe 0
@@ -82,16 +82,16 @@ class MongoSinkSettingsTest extends WordSpec with Matchers {
 
     "handle primary key fields" in {
       val map = Map(
-        MongoSinkConfigConstants.DATABASE_CONFIG -> "database1",
-        MongoSinkConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
-        MongoSinkConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1 PK a,b"
+        MongoConfigConstants.DATABASE_CONFIG -> "database1",
+        MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
+        MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1 PK a,b"
       )
 
       val config = MongoConfig(map)
-      val settings = MongoSinkSettings(config)
+      val settings = MongoSettings(config)
       settings.database shouldBe "database1"
       settings.connection shouldBe "mongodb://localhost:27017"
-      settings.batchSize shouldBe MongoSinkConfigConstants.BATCH_SIZE_CONFIG_DEFAULT
+      settings.batchSize shouldBe MongoConfigConstants.BATCH_SIZE_CONFIG_DEFAULT
       settings.keyBuilderMap.size shouldBe 0
       settings.kcql.size shouldBe 1
       settings.keyBuilderMap.size shouldBe 0
@@ -101,39 +101,53 @@ class MongoSinkSettingsTest extends WordSpec with Matchers {
 
     "throw an exception if the kcql is not valid" in {
       val map = Map(
-        MongoSinkConfigConstants.DATABASE_CONFIG -> "database1",
-        MongoSinkConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
-        MongoSinkConfigConstants.KCQL_CONFIG -> "INSERT INTO  SELECT * FROM topic1"
+        MongoConfigConstants.DATABASE_CONFIG -> "database1",
+        MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
+        MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO  SELECT * FROM topic1"
       )
 
       val config = MongoConfig(map)
-      intercept[ConfigException] {
-        MongoSinkSettings(config)
+      intercept[IllegalArgumentException] {
+        MongoSettings(config)
       }
     }
 
     "throw a ConfigException if the connection is missing" in {
       val map = Map(
-        MongoSinkConfigConstants.DATABASE_CONFIG -> "database1",
-        MongoSinkConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
+        MongoConfigConstants.DATABASE_CONFIG -> "database1",
+        MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
       )
 
       intercept[ConfigException] {
         val config = MongoConfig(map)
-        MongoSinkSettings(config)
+        MongoSettings(config)
       }
     }
 
     "throw an exception if the database is an empty string" in {
       val map = Map(
-        MongoSinkConfigConstants.DATABASE_CONFIG -> "",
-        MongoSinkConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
-        MongoSinkConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
+        MongoConfigConstants.DATABASE_CONFIG -> "",
+        MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
+        MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
+      )
+
+      val config = MongoConfig(map)
+      intercept[IllegalArgumentException] {
+        MongoSettings(config)
+      }
+    }
+
+
+    "throw an exception if the database contains a -" in {
+      val map = Map(
+        MongoConfigConstants.DATABASE_CONFIG -> "andrew-rules",
+        MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
+        MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
       )
 
       val config = MongoConfig(map)
       intercept[ConfigException] {
-        MongoSinkSettings(config)
+        MongoSettings(config)
       }
     }
   }
