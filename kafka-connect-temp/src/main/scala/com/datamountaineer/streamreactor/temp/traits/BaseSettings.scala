@@ -16,6 +16,8 @@
 
 package com.datamountaineer.streamreactor.temp.traits
 
+import java.util
+
 import org.apache.kafka.common.config.types.Password
 
 trait BaseSettings {
@@ -28,4 +30,6 @@ trait BaseSettings {
   def getBoolean(key: String): java.lang.Boolean
 
   def getPassword(key: String): Password
+
+  def getList(key: String): util.List[String]
 }
