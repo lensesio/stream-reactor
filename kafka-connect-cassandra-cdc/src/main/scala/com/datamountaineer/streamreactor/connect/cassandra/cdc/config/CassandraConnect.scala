@@ -69,7 +69,7 @@ object CassandraConnect {
   val KEY_STORE_TYPE_DEFAULT = "JKS"
 
   val FILE_WATCH_INTERVAL = "connect.cassandra.cdc.file.watch.interval"
-  val FILE_WATCH_INTERVAL_DOC = "The time interval in milliseconds to wait before checking again for Cassandra CDC files."
+  val FILE_WATCH_INTERVAL_DOC = "The delay time in milliseconds before the connector checks for Cassandra CDC files."
   val FILE_WATCH_INTERVAL_DEFAULT = 2000L
   val FILE_WATCH_INTERVAL_DISPLAY = "File watch interval"
 
@@ -78,7 +78,7 @@ object CassandraConnect {
   val MUTATION_BUFFER_SIZE_DOC =
     """
       |The maximum number of Cassandra mutation to buffer.
-      |As it reads from the Cassandra CDC files the mutations are buffered befored they
+      |As it reads from the Cassandra CDC files the mutations are buffered before they
       |are handed over to Kafka Connect when the framework calls for new records.
     """.stripMargin
   val MUTATION_BUFFER_SIZE_DEFAULT = 1000000
