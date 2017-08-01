@@ -137,7 +137,7 @@ class CdcCassandra()(implicit config: CdcConfig) extends AutoCloseable with Stri
           case Failure(t) =>
             logger.error(s"There was an error while monitoring and reading Cassandra CDC files.${t.getMessage}", t)
           case _ =>
-            logger.info(s"Finished reading the log files. ${count} mutation/-s read")
+
         }
       }
     }
@@ -152,7 +152,7 @@ class CdcCassandra()(implicit config: CdcConfig) extends AutoCloseable with Stri
   private def readFile(file: File, position: CommitLogPosition) = {
     if (filesToDelete.containsKey(file.getName)) {
       //the file has been processed already
-      logger.warn(s"File $file has already been processed. Skipping...")
+      //logger.warn(s"File $file has already been processed. Skipping...")
     }
     else {
       logger.info(s"Reading mutations from the CDC file:$file. Checking file is still being written...")

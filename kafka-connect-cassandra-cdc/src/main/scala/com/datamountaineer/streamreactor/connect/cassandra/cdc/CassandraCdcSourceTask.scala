@@ -83,8 +83,7 @@ class CassandraCdcSourceTask extends SourceTask with StrictLogging {
     * @return A util.List of SourceRecords.
     */
   override def poll(): util.List[SourceRecord] = {
-    val now = System.currentTimeMillis()
-    emptyRecords
+    cdc.getMutations()
   }
 
 
