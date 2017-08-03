@@ -83,7 +83,11 @@ class CassandraCdcSourceTask extends SourceTask with StrictLogging {
     * @return A util.List of SourceRecords.
     */
   override def poll(): util.List[SourceRecord] = {
-    cdc.getMutations()
+    if (cdc == null) {
+      emptyRecords
+    } else {
+      cdc.getMutations()
+    }
   }
 
 
