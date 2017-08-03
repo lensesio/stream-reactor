@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.kudu.sink
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.kudu.KuduConverter
-import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig, KuduSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduConfigConstants, KuduSettings}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.Schema
@@ -36,8 +36,8 @@ case class SchemaMap(version: Int, schema: Schema)
   * stream-reactor
   */
 object KuduWriter extends StrictLogging {
-  def apply(config: KuduSinkConfig, settings: KuduSettings): KuduWriter = {
-    val kuduMaster = config.getString(KuduSinkConfigConstants.KUDU_MASTER)
+  def apply(config: KuduConfig, settings: KuduSettings): KuduWriter = {
+    val kuduMaster = config.getString(KuduConfigConstants.KUDU_MASTER)
     logger.info(s"Connecting to Kudu Master at $kuduMaster")
     lazy val client = new KuduClient.KuduClientBuilder(kuduMaster).build()
     new KuduWriter(client, settings)
@@ -112,7 +112,7 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
     **/
   private def applyDDLs(record: SinkRecord): SinkRecord = {
     if (!kuduTablesCache.contains(record.topic())) {
-      val mapping = setting.routes.filter(f => f.getSource.equals(record.topic())).head
+      val mapping = setting.kcql.filter(f => f.getSource.equals(record.topic())).head
       val table = DbHandler.createTableFromSinkRecord(mapping, record.valueSchema(), client).get
       logger.info(s"Adding table ${mapping.getTarget} to the table cache")
       kuduTablesCache.put(mapping.getSource, table)

@@ -36,7 +36,7 @@ object ReThinkHelper extends StrictLogging {
     * check tables exist or are marked for auto create
     **/
   def checkAndCreateTables(rethink: RethinkDB, setting: ReThinkSinkSetting, conn: Connection): Unit = {
-    val isAutoCreate = setting.routes.map(r => (r.getTarget, r.isAutoCreate)).toMap
+    val isAutoCreate = setting.kcql.map(r => (r.getTarget, r.isAutoCreate)).toMap
     val tables: java.util.List[String] = rethink.db(setting.database).tableList().run(conn)
 
     setting.topicTableMap
@@ -48,7 +48,7 @@ object ReThinkHelper extends StrictLogging {
 
     //create any tables that are marked for auto create
     setting
-      .routes
+      .kcql
       .filter(r => r.isAutoCreate)
       .filterNot(r => tables.contains(r.getTarget))
       .foreach(r => {

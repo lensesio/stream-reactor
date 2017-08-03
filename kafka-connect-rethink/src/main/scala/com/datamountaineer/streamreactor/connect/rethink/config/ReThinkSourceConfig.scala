@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.rethink.config
 
 import java.util
 
-import com.datamountaineer.streamreactor.temp.traits.{BaseConfig, BatchSizeSettings, DatabaseSettings, KcqlSettings}
+import com.datamountaineer.streamreactor.connect.config.base.traits.{BaseConfig, BatchSizeSettings, DatabaseSettings, KcqlSettings}
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
@@ -26,7 +26,7 @@ import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
   * Created by andrew@datamountaineer.com on 22/09/16. 
   * stream-reactor
   */
-object ReThinkSourceConfig extends ReThinkConfig{
+object ReThinkSourceConfig extends ReThinkConfig {
   val config: ConfigDef = baseConfig
     .define(ReThinkConfigConstants.BATCH_SIZE, Type.INT,
       ReThinkConfigConstants.BATCH_SIZE_DEFAULT,

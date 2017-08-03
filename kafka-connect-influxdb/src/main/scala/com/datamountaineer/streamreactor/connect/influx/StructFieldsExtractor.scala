@@ -17,8 +17,8 @@
 package com.datamountaineer.streamreactor.connect.influx
 
 import java.text.SimpleDateFormat
-import java.util.TimeZone
 import java.time.Instant
+import java.util.TimeZone
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import io.confluent.common.config.ConfigException

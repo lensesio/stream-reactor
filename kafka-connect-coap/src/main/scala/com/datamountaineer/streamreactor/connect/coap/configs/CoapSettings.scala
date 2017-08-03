@@ -20,8 +20,8 @@ import java.io.File
 
 import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
-import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.common.config.ConfigException
+import org.apache.kafka.common.config.types.Password
 
 import scala.collection.JavaConverters._
 
@@ -65,13 +65,10 @@ object CoapSettings {
       throw new ConfigException(s"${CoapConstants.COAP_TRUST_STORE_PATH} is invalid. Can't locate $trustStoreLoc")
     }
 
-    val raw = config.getString(CoapConstants.COAP_KCQL)
-    require(raw != null && !raw.isEmpty, s"No ${CoapConstants.COAP_KCQL} provided!")
-
     val kcql = config.getKCQL
     val sink = if (config.isInstanceOf[CoapSinkConfig]) true else false
     val errorPolicy= if (sink) Some(config.getErrorPolicy) else None
-    val retries = if (sink) Some(config.getRetryInterval) else None
+    val retries = if (sink) Some(config.getNumberRetries) else None
 
     val bindPort = config.getBindPort
     val bindHost = config.getBindHost

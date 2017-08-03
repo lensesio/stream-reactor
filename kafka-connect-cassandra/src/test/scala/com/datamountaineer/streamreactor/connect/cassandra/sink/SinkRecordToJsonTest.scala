@@ -15,16 +15,16 @@
  */
 
 package com.datamountaineer.streamreactor.connect.cassandra.sink
-import scala.collection.JavaConversions._
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSinkSetting
-import com.datamountaineer.streamreactor.connect.converters.source.SinkRecordToJson
 import com.datamountaineer.streamreactor.connect.errors.NoopErrorPolicy
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.landoop.json.sql.JacksonJson
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.{Matchers, WordSpec}
+
+import scala.collection.JavaConversions._
 
 
 class SinkRecordToJsonTest extends WordSpec with Matchers with ConverterUtil {

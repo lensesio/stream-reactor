@@ -16,13 +16,13 @@
 
 package com.datamountaineer.streamreactor.connect.elastic
 
-import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticSinkConfig, ElasticSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticConfig, ElasticConfigConstants}
 
 class TestElasticConfig extends TestElasticBase {
   "A ElasticConfig should return the client mode and hostnames" in {
-    val config = new ElasticSinkConfig(getElasticSinkConfigProps)
-    config.getString(ElasticSinkConfigConstants.URL) shouldBe ELASTIC_SEARCH_HOSTNAMES
-    config.getString(ElasticSinkConfigConstants.ES_CLUSTER_NAME) shouldBe ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT
-    config.getString(ElasticSinkConfigConstants.KCQL) shouldBe QUERY
+    val config = new ElasticConfig(getElasticSinkConfigProps)
+    config.getString(ElasticConfigConstants.URL) shouldBe ELASTIC_SEARCH_HOSTNAMES
+    config.getString(ElasticConfigConstants.ES_CLUSTER_NAME) shouldBe ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT
+    config.getString(ElasticConfigConstants.KCQL) shouldBe QUERY
   }
 }

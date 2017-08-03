@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.config
 
-import com.datamountaineer.streamreactor.temp.const.TraitConfigConst._
+import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
 
 /**
   * Created by andrew@datamountaineer.com on 25/04/16. 

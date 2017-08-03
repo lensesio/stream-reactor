@@ -20,7 +20,6 @@ project(":kafka-connect-mongodb") {
     }
 
     dependencies {
-        compile project(":kafka-connect-temp")
         // https://mvnrepository.com/artifact/org.mongodb/mongo-java-driver
         compile "org.mongodb:mongo-java-driver:$mongoVersion"
         compile("com.datamountaineer:kcql:$KCQLVersion") {

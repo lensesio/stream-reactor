@@ -16,7 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.jms.source.domain
 
-import java.util
 import javax.jms.{BytesMessage, MapMessage, Message, TextMessage}
 
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -24,7 +23,6 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.source.SourceRecord
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable.ListBuffer
 
 /**
   * Created by andrew@datamountaineer.com on 11/03/2017.

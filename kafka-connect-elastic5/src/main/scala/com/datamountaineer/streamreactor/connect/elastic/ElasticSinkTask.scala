@@ -18,9 +18,8 @@ package com.datamountaineer.streamreactor.connect.elastic
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticSinkConfig, ElasticSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticConfig, ElasticConfigConstants}
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
-import com.sksamuel.elastic4s.xpack.security.XPackElasticClient
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -39,9 +38,9 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/elastic-ascii.txt")).mkString)
 
-    ElasticSinkConfig.config.parse(props)
-    val sinkConfig = ElasticSinkConfig(props)
-    enableProgress = sinkConfig.getBoolean(ElasticSinkConfigConstants.PROGRESS_COUNTER_ENABLED)
+    ElasticConfig.config.parse(props)
+    val sinkConfig = ElasticConfig(props)
+    enableProgress = sinkConfig.getBoolean(ElasticConfigConstants.PROGRESS_COUNTER_ENABLED)
     writer = Some(ElasticWriter(config = sinkConfig, context = context))
   }
 

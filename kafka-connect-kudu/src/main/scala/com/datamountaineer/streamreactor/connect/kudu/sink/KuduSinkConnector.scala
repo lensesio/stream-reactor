@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.kudu.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.kudu.config.KuduSinkConfig
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -31,7 +31,7 @@ import scala.collection.JavaConversions._
   * stream-reactor
   */
 class KuduSinkConnector extends SinkConnector with StrictLogging {
-  private val configDef = KuduSinkConfig.config
+  private val configDef = KuduConfig.config
   private var configProps: Option[util.Map[String, String]] = None
 
   /**

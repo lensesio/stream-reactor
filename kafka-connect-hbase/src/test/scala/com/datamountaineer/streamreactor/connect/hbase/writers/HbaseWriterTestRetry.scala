@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.hbase.writers
 
 import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
-import com.datamountaineer.streamreactor.connect.hbase.config.{HbaseSettings, HbaseSinkConfig, HbaseSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.hbase.config.{HBaseConfig, HBaseConfigConstants, HBaseSettings}
 import com.datamountaineer.streamreactor.connect.hbase.{FieldsValuesExtractor, HbaseHelper, HbaseTableHelper, StructFieldsRowKeyBuilderBytes}
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -28,6 +28,8 @@ import org.kitesdk.minicluster._
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
+
+import scala.collection.JavaConverters._
 
 class HbaseWriterTestRetry extends WordSpec with Matchers with MockitoSugar with BeforeAndAfter {
 
@@ -59,19 +61,19 @@ class HbaseWriterTestRetry extends WordSpec with Matchers with MockitoSugar with
       val fieldsExtractor = mock[FieldsValuesExtractor]
       val rowKeyBuilder = mock[StructFieldsRowKeyBuilderBytes]
 
-      val config = mock[HbaseSinkConfig]
       val tableName = "someTable"
       val topic = "someTopic"
       val columnFamily = "somecolumnFamily"
       val QUERY_ALL = s"INSERT INTO $tableName SELECT * FROM $topic PK firstName"
 
-      when(config.getString(HbaseSinkConfigConstants.COLUMN_FAMILY)).thenReturn(columnFamily)
-      when(config.getString(HbaseSinkConfigConstants.EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL)
-      when(config.getString(HbaseSinkConfigConstants.ERROR_POLICY)).thenReturn("RETRY")
-      when(config.getInt(HbaseSinkConfigConstants.NBR_OF_RETRIES)).thenReturn(HbaseSinkConfigConstants.NBR_OF_RETIRES_DEFAULT)
+      val props = Map(
+        HBaseConfigConstants.KCQL_QUERY->QUERY_ALL,
+        HBaseConfigConstants.COLUMN_FAMILY->"somecolumnFamily",
+        HBaseConfigConstants.ERROR_POLICY->"RETRY"
+      ).asJava
 
-      val settings = HbaseSettings(config)
-
+      val config = HBaseConfig(props)
+      val settings = HBaseSettings(config)
       val writer = new HbaseWriter(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Person")

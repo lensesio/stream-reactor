@@ -16,17 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.coap.source
 
-import java.net.URI
 import java.util.logging.Level
 
-import com.datamountaineer.streamreactor.connect.coap.configs.{CoapSettings, CoapSourceConfig}
-import com.datamountaineer.streamreactor.connect.coap.connection.DTLSConnectionFn
 import com.datamountaineer.streamreactor.connect.coap.{Server, TestBase}
 import org.apache.kafka.connect.data.Struct
-import org.eclipse.californium.core.network.CoapEndpoint
-import org.eclipse.californium.core.network.config.NetworkConfig
 import org.eclipse.californium.core.{CaliforniumLogger, CoapClient}
-import org.eclipse.californium.scandium.{DTLSConnector, ScandiumLogger}
+import org.eclipse.californium.scandium.ScandiumLogger
 import org.scalatest.{BeforeAndAfter, WordSpec}
 
 import scala.collection.JavaConversions._

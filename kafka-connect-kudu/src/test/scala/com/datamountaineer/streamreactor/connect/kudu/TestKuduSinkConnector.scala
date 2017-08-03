@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.kudu
 
-import com.datamountaineer.streamreactor.connect.kudu.config.KuduSinkConfigConstants
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfigConstants
 import com.datamountaineer.streamreactor.connect.kudu.sink.{KuduSinkConnector, KuduSinkTask}
 
 import scala.collection.JavaConversions._
@@ -32,7 +32,7 @@ class TestKuduSinkConnector extends TestBase {
     val connector = new KuduSinkConnector()
     connector.start(config)
     val taskConfigs = connector.taskConfigs(1)
-    taskConfigs.head.get(KuduSinkConfigConstants.KUDU_MASTER) shouldBe KUDU_MASTER
+    taskConfigs.head.get(KuduConfigConstants.KUDU_MASTER) shouldBe KUDU_MASTER
     taskConfigs.size() shouldBe 1
     connector.taskClass() shouldBe classOf[KuduSinkTask]
     connector.stop()

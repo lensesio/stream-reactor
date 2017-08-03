@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.hazelcast.sink
 
 import com.datamountaineer.streamreactor.connect.hazelcast.TestBase
-import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkConfig, HazelCastSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkConfigConstants
 
 import scala.collection.JavaConverters._
 

@@ -24,7 +24,7 @@ package com.datamountaineer.streamreactor.connect.kudu
 import java.nio.ByteBuffer
 import java.util
 
-import com.datamountaineer.streamreactor.connect.kudu.config.KuduSinkConfigConstants
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfigConstants
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -90,33 +90,33 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   }
 
   def getConfig = {
-    Map(KuduSinkConfigConstants.KUDU_MASTER -> KUDU_MASTER,
-      KuduSinkConfigConstants.EXPORT_ROUTE_QUERY -> EXPORT_MAP,
-      KuduSinkConfigConstants.ERROR_POLICY -> "THROW"
+    Map(KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
+      KuduConfigConstants.EXPORT_ROUTE_QUERY -> EXPORT_MAP,
+      KuduConfigConstants.ERROR_POLICY -> "THROW"
     ).asJava
   }
 
   def getConfigAutoCreate(url: String) = {
-    Map(KuduSinkConfigConstants.KUDU_MASTER -> KUDU_MASTER,
-      KuduSinkConfigConstants.EXPORT_ROUTE_QUERY -> EXPORT_MAP_AUTOCREATE,
-      KuduSinkConfigConstants.ERROR_POLICY -> "THROW",
-      KuduSinkConfigConstants.SCHEMA_REGISTRY_URL -> url
+    Map(KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
+      KuduConfigConstants.EXPORT_ROUTE_QUERY -> EXPORT_MAP_AUTOCREATE,
+      KuduConfigConstants.ERROR_POLICY -> "THROW",
+      KuduConfigConstants.SCHEMA_REGISTRY_URL -> url
     ).asJava
   }
 
   def getConfigAutoCreateAndEvolve(url: String) = {
-    Map(KuduSinkConfigConstants.KUDU_MASTER -> KUDU_MASTER,
-      KuduSinkConfigConstants.EXPORT_ROUTE_QUERY -> EXPORT_MAP_AUTOCREATE_AUTOEVOLVE,
-      KuduSinkConfigConstants.ERROR_POLICY -> "THROW",
-      KuduSinkConfigConstants.SCHEMA_REGISTRY_URL -> url
+    Map(KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
+      KuduConfigConstants.EXPORT_ROUTE_QUERY -> EXPORT_MAP_AUTOCREATE_AUTOEVOLVE,
+      KuduConfigConstants.ERROR_POLICY -> "THROW",
+      KuduConfigConstants.SCHEMA_REGISTRY_URL -> url
     ).asJava
   }
 
   def getConfigAutoCreateRetry(url: String) = {
-    Map(KuduSinkConfigConstants.KUDU_MASTER -> KUDU_MASTER,
-      KuduSinkConfigConstants.EXPORT_ROUTE_QUERY -> EXPORT_MAP_AUTOCREATE,
-      KuduSinkConfigConstants.ERROR_POLICY -> "RETRY",
-      KuduSinkConfigConstants.SCHEMA_REGISTRY_URL -> url
+    Map(KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
+      KuduConfigConstants.EXPORT_ROUTE_QUERY -> EXPORT_MAP_AUTOCREATE,
+      KuduConfigConstants.ERROR_POLICY -> "RETRY",
+      KuduConfigConstants.SCHEMA_REGISTRY_URL -> url
     ).asJava
   }
 

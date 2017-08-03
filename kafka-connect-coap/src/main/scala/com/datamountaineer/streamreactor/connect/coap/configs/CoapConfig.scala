@@ -18,9 +18,9 @@ package com.datamountaineer.streamreactor.connect.coap.configs
 
 import java.util
 
-import com.datamountaineer.streamreactor.temp.traits._
-import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
+import com.datamountaineer.streamreactor.connect.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
+import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
 import scala.collection.JavaConverters._
 
@@ -94,7 +94,7 @@ case class CoapConfig(props: util.Map[String, String])
 trait CoapConfigBase
   extends KcqlSettings
   with DatabaseSettings
-  with RetryIntervalSettings
+  with NumberRetriesSettings
   with ErrorPolicySettings
   with SSLSettings
   with ConnectionSettings

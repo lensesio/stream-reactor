@@ -16,14 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.coap.sink
 
-import com.datamountaineer.streamreactor.connect.coap.configs.{CoapSettings, CoapSinkConfig}
-import com.datamountaineer.streamreactor.connect.coap.connection.DTLSConnectionFn
 import com.datamountaineer.streamreactor.connect.coap.{Server, TestBase}
 import com.datamountaineer.streamreactor.connect.converters.source.SinkRecordToJson
 import org.eclipse.californium.core.CoapClient
-import org.eclipse.californium.core.network.CoapEndpoint
-import org.eclipse.californium.core.network.config.NetworkConfig
-import org.eclipse.californium.scandium.DTLSConnector
 import org.scalatest.{BeforeAndAfter, WordSpec}
 
 import scala.collection.JavaConverters._

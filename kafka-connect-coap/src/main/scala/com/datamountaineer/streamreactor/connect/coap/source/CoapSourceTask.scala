@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.coap.source
 
 import java.util
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
+import java.util.concurrent.LinkedBlockingQueue
 
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSettings, CoapSourceConfig}
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
@@ -26,7 +26,6 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
-import scala.concurrent.{Await, Future}
 
 /**
   * Created by andrew@datamountaineer.com on 27/12/2016. 

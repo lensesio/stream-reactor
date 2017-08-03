@@ -18,9 +18,9 @@ package com.datamountaineer.streamreactor.connect.mongodb.config
 
 import java.util
 
-import com.datamountaineer.streamreactor.temp.traits._
-import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
+import com.datamountaineer.streamreactor.connect.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
+import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
 object MongoConfig {
 
@@ -65,10 +65,10 @@ object MongoConfig {
 }
 
 
-case class MongoConfig(props: util.Map[String, String]) extends BaseConfig(MongoConfigConstants.CONNECTOR_PREFIX, MongoConfig.config, props)
+case class MongoConfig(props: util.Map[String, String])
+  extends BaseConfig(MongoConfigConstants.CONNECTOR_PREFIX, MongoConfig.config, props)
   with KcqlSettings
   with DatabaseSettings
   with ErrorPolicySettings
-  with RetryIntervalSettings
-  with UsernameSettings
-  with PasswordSettings
+  with NumberRetriesSettings
+  with UserSettings

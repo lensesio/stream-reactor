@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.elastic
 
 import java.util.UUID
 
-import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticSettings, ElasticSinkConfig, ElasticSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.embedded.LocalNode
 import org.apache.kafka.connect.sink.SinkTaskContext
@@ -38,9 +38,9 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecords
     //get config
-    val config = new ElasticSinkConfig(getElasticSinkConfigPropsSelection)
+    val config = new ElasticConfig(getElasticSinkConfigPropsSelection)
 
-    val localNode = LocalNode(ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
+    val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
     val client = localNode.elastic4sclient(true)
     //get writer
 
@@ -52,7 +52,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     Thread.sleep(2000)
     //check counts
     val res = client.execute {
-      search in INDEX
+      search(INDEX)
     }.await
     res.totalHits shouldBe testRecords.size
     //close writer
@@ -70,9 +70,9 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecords
     //get config
-    val config = new ElasticSinkConfig(getElasticSinkUpdateConfigPropsSelection)
+    val config = new ElasticConfig(getElasticSinkUpdateConfigPropsSelection)
 
-    val localNode = LocalNode(ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
+    val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
     val client = localNode.elastic4sclient(true)
     val settings = ElasticSettings(config)
     val writer = new ElasticJsonWriter(client, settings)
@@ -82,7 +82,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     Thread.sleep(2000)
     //check counts
     val res = client.execute {
-      search in INDEX
+      search(INDEX)
     }.await
     res.totalHits shouldBe testRecords.size
 
@@ -94,7 +94,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     Thread.sleep(2000)
     //check counts
     val updateRes = client.execute {
-      search in INDEX
+      search(INDEX)
     }.await
     updateRes.totalHits shouldBe testRecords.size
 

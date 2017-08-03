@@ -5,7 +5,7 @@ import java.time.format.DateTimeFormatter
 
 import com.datamountaineer.connector.config.Config
 import com.datamountaineer.streamreactor.connect.elastic.indexname.CreateIndex
-import org.scalatest.{FlatSpec, Matchers, WordSpec}
+import org.scalatest.{Matchers, WordSpec}
 
 class CreateIndexTest extends WordSpec with Matchers {
   "CreateIndex" should {

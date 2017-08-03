@@ -18,8 +18,9 @@ package com.datamountaineer.streamreactor.connect.mqtt.config
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
-import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
+import org.apache.kafka.common.config.ConfigDef
 
 /**
   * Created by andrew@datamountaineer.com on 22/09/16. 
@@ -27,33 +28,57 @@ import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
   */
 object MqttSourceConfig {
   val config: ConfigDef = new ConfigDef()
-    .define(MqttSourceConfigConstants.HOSTS_CONFIG, Type.STRING, Importance.HIGH, MqttSourceConfigConstants.HOSTS_DOC, "Connection", 1, ConfigDef.Width.MEDIUM, MqttSourceConfigConstants.HOSTS_DISPLAY)
-    .define(MqttSourceConfigConstants.USER_CONFIG, Type.STRING, null, Importance.HIGH, MqttSourceConfigConstants.USER_DOC, "Connection", 2, ConfigDef.Width.MEDIUM, MqttSourceConfigConstants.USER_DISPLAY)
-    .define(MqttSourceConfigConstants.PASSWORD_CONFIG, Type.PASSWORD, null, Importance.HIGH, MqttSourceConfigConstants.PASSWORD_DOC, "Connection", 3, ConfigDef.Width.MEDIUM, MqttSourceConfigConstants.PASSWORD_DISPLAY)
-    .define(MqttSourceConfigConstants.QS_CONFIG, Type.INT, Importance.MEDIUM, MqttSourceConfigConstants.QS_DOC, "Connection", 4, ConfigDef.Width.MEDIUM, MqttSourceConfigConstants.QS_DISPLAY)
-    .define(MqttSourceConfigConstants.CONNECTION_TIMEOUT_CONFIG, Type.INT, MqttSourceConfigConstants.CONNECTION_TIMEOUT_DEFAULT, Importance.LOW, MqttSourceConfigConstants.CONNECTION_TIMEOUT_DOC, "Connection", 5, ConfigDef.Width.MEDIUM, MqttSourceConfigConstants.CONNECTION_TIMEOUT_DISPLAY)
-    .define(MqttSourceConfigConstants.CLEAN_SESSION_CONFIG, Type.BOOLEAN, MqttSourceConfigConstants.CLEAN_CONNECTION_DEFAULT, Importance.LOW, MqttSourceConfigConstants.CLEAN_SESSION_CONFIG, "Connection", 6, ConfigDef.Width.MEDIUM, MqttSourceConfigConstants.CLEAN_CONNECTION_DISPLAY)
-    .define(MqttSourceConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG, Type.INT, MqttSourceConfigConstants.KEEP_ALIVE_INTERVAL_DEFAULT, Importance.LOW, MqttSourceConfigConstants.KEEP_ALIVE_INTERVAL_DOC, "Connection", 7, ConfigDef.Width.MEDIUM, MqttSourceConfigConstants.KEEP_ALIVE_INTERVAL_DISPLAY)
-    .define(MqttSourceConfigConstants.CLIENT_ID_CONFIG, Type.STRING, null, Importance.LOW, MqttSourceConfigConstants.CLIENT_ID_DOC, "Connection", 8, ConfigDef.Width.MEDIUM, MqttSourceConfigConstants.CLIENT_ID_DISPLAY)
+    .define(MqttConfigConstants.HOSTS_CONFIG, Type.STRING, Importance.HIGH, MqttConfigConstants.HOSTS_DOC,
+      "Connection", 1, ConfigDef.Width.MEDIUM, MqttConfigConstants.HOSTS_DISPLAY)
+    .define(MqttConfigConstants.USER_CONFIG, Type.STRING, null, Importance.HIGH, MqttConfigConstants.USER_DOC,
+      "Connection", 2, ConfigDef.Width.MEDIUM, MqttConfigConstants.USER_DISPLAY)
+    .define(MqttConfigConstants.PASSWORD_CONFIG, Type.PASSWORD, null, Importance.HIGH, MqttConfigConstants.PASSWORD_DOC,
+      "Connection", 3, ConfigDef.Width.MEDIUM, MqttConfigConstants.PASSWORD_DISPLAY)
+    .define(MqttConfigConstants.QS_CONFIG, Type.INT, Importance.MEDIUM, MqttConfigConstants.QS_DOC,
+      "Connection", 4, ConfigDef.Width.MEDIUM, MqttConfigConstants.QS_DISPLAY)
+    .define(MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG, Type.INT, MqttConfigConstants.CONNECTION_TIMEOUT_DEFAULT,
+      Importance.LOW, MqttConfigConstants.CONNECTION_TIMEOUT_DOC,
+      "Connection", 5, ConfigDef.Width.MEDIUM, MqttConfigConstants.CONNECTION_TIMEOUT_DISPLAY)
+    .define(MqttConfigConstants.CLEAN_SESSION_CONFIG, Type.BOOLEAN, MqttConfigConstants.CLEAN_CONNECTION_DEFAULT,
+      Importance.LOW, MqttConfigConstants.CLEAN_SESSION_CONFIG,
+      "Connection", 6, ConfigDef.Width.MEDIUM, MqttConfigConstants.CLEAN_CONNECTION_DISPLAY)
+    .define(MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG, Type.INT, MqttConfigConstants.KEEP_ALIVE_INTERVAL_DEFAULT,
+      Importance.LOW, MqttConfigConstants.KEEP_ALIVE_INTERVAL_DOC,
+      "Connection", 7, ConfigDef.Width.MEDIUM, MqttConfigConstants.KEEP_ALIVE_INTERVAL_DISPLAY)
+    .define(MqttConfigConstants.CLIENT_ID_CONFIG, Type.STRING, null, Importance.LOW, MqttConfigConstants.CLIENT_ID_DOC,
+      "Connection", 8, ConfigDef.Width.MEDIUM, MqttConfigConstants.CLIENT_ID_DISPLAY)
 
 
     //ssl
-    .define(MqttSourceConfigConstants.SSL_CA_CERT_CONFIG, Type.STRING, null, Importance.MEDIUM, MqttSourceConfigConstants.SSL_CA_CERT_DOC, "SSL", 1, ConfigDef.Width.MEDIUM, MqttSourceConfigConstants.SSL_CA_CERT_DISPLAY)
-    .define(MqttSourceConfigConstants.SSL_CERT_CONFIG, Type.STRING, null, Importance.MEDIUM, MqttSourceConfigConstants.SSL_CERT_DOC, "SSL", 2, ConfigDef.Width.MEDIUM, MqttSourceConfigConstants.SSL_CERT_DISPLAY)
-    .define(MqttSourceConfigConstants.SSL_CERT_KEY_CONFIG, Type.STRING, null, Importance.MEDIUM, MqttSourceConfigConstants.SSL_CERT_KEY_DOC, "SSL", 3, ConfigDef.Width.MEDIUM, MqttSourceConfigConstants.SSL_CERT_KEY_DISPLAY)
+    .define(MqttConfigConstants.SSL_CA_CERT_CONFIG, Type.STRING, null, Importance.MEDIUM, MqttConfigConstants.SSL_CA_CERT_DOC,
+      "SSL", 1, ConfigDef.Width.MEDIUM, MqttConfigConstants.SSL_CA_CERT_DISPLAY)
+    .define(MqttConfigConstants.SSL_CERT_CONFIG, Type.STRING, null, Importance.MEDIUM, MqttConfigConstants.SSL_CERT_DOC,
+      "SSL", 2, ConfigDef.Width.MEDIUM, MqttConfigConstants.SSL_CERT_DISPLAY)
+    .define(MqttConfigConstants.SSL_CERT_KEY_CONFIG, Type.STRING, null, Importance.MEDIUM, MqttConfigConstants.SSL_CERT_KEY_DOC,
+      "SSL", 3, ConfigDef.Width.MEDIUM, MqttConfigConstants.SSL_CERT_KEY_DISPLAY)
 
 
     //kcql
-    .define(MqttSourceConfigConstants.KCQL_CONFIG, Type.STRING, Importance.HIGH, MqttSourceConfigConstants.KCQL_DOC, "KCQL", 1, ConfigDef.Width.MEDIUM, MqttSourceConfigConstants.KCQL_DISPLAY)
+    .define(MqttConfigConstants.KCQL_CONFIG, Type.STRING, Importance.HIGH, MqttConfigConstants.KCQL_DOC,
+      "KCQL", 1, ConfigDef.Width.MEDIUM, MqttConfigConstants.KCQL_DISPLAY)
 
     //converter
-    .define(MqttSourceConfigConstants.CONVERTER_CONFIG, Type.STRING, null, Importance.HIGH, MqttSourceConfigConstants.CONVERTER_DOC, "Converter", 1, ConfigDef.Width.MEDIUM, MqttSourceConfigConstants.CONVERTER_DISPLAY)
-    .define(MqttSourceConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG, Type.BOOLEAN, MqttSourceConfigConstants.THROW_ON_CONVERT_ERRORS_DEFAULT, Importance.HIGH, MqttSourceConfigConstants.THROW_ON_CONVERT_ERRORS_DOC, "Converter", 2, ConfigDef.Width.MEDIUM, MqttSourceConfigConstants.THROW_ON_CONVERT_ERRORS_DISPLAY)
+    .define(MqttConfigConstants.CONVERTER_CONFIG, Type.STRING, null, Importance.HIGH, MqttConfigConstants.CONVERTER_DOC,
+      "Converter", 1, ConfigDef.Width.MEDIUM, MqttConfigConstants.CONVERTER_DISPLAY)
+    .define(MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG, Type.BOOLEAN, MqttConfigConstants.THROW_ON_CONVERT_ERRORS_DEFAULT,
+      Importance.HIGH, MqttConfigConstants.THROW_ON_CONVERT_ERRORS_DOC,
+      "Converter", 2, ConfigDef.Width.MEDIUM, MqttConfigConstants.THROW_ON_CONVERT_ERRORS_DISPLAY)
 
-    .define(MqttSourceConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, MqttSourceConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
-      Importance.MEDIUM, MqttSourceConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
-      "Metrics", 1, ConfigDef.Width.MEDIUM, MqttSourceConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
+    .define(MqttConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, MqttConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
+      Importance.MEDIUM, MqttConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
+      "Metrics", 1, ConfigDef.Width.MEDIUM, MqttConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 }
 
-case class MqttSourceConfig(props: util.Map[String, String]) extends AbstractConfig(MqttSourceConfig.config, props)
+case class MqttSourceConfig(props: util.Map[String, String])
+  extends BaseConfig(MqttConfigConstants.CONNECTOR_PREFIX, MqttSourceConfig.config, props)
+    with KcqlSettings
+    with ErrorPolicySettings
+    with NumberRetriesSettings
+    with UserSettings
+    with ConnectionSettings
 

@@ -20,7 +20,6 @@ project(":kafka-connect-rethink") {
     }
 
     dependencies {
-        compile project(":kafka-connect-temp")
         compile "com.rethinkdb:rethinkdb-driver:$rethinkDbVersion"
         compile("com.datamountaineer:kcql:$KCQLVersion") {
             exclude group: "com.google.guava", module: "guava"

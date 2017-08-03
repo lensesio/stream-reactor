@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.rethink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkConfigConstants
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}

@@ -41,7 +41,7 @@ project(":kafka-connect-cassandra") {
             exclude group: "com.google.guava", module: "guava"
         }
         compile("com.datastax.cassandra:cassandra-driver-core:$cassandraDriverVersion")
-        compile project(":kafka-connect-temp")
+
         compile group: 'io.netty', name: 'netty-transport-native-epoll', version: '4.0.33.Final', classifier: 'linux-x86_64'
         compile("com.landoop:kafka-connect-smt_2.11:$smt")
 

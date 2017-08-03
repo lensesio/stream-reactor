@@ -32,7 +32,7 @@ import scala.collection.JavaConverters._
   */
 class DruidSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: Option[util.Map[String, String]] = None
-  private val configDef = DruidSinkConfig.config
+  private val configDef = DruidConfig.config
 
   /**
     * States which SinkTask class to use

@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.hazelcast.config
 
 import java.util
 
-import com.datamountaineer.streamreactor.temp.traits._
+import com.datamountaineer.streamreactor.connect.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 

@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.coap.configs
 
-import com.datamountaineer.streamreactor.temp.const.TraitConfigConst._
+import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
 
 /**
   * Created by andrew@datamountaineer.com on 04/01/2017. 
@@ -49,7 +49,7 @@ object CoapConstants {
   val COAP_TRUST_STORE_PATH_DOC = "The path to the truststore."
   val COAP_TRUST_STORE_PATH_DEFAULT = ""
 
-  val COAP_TRUST_CERTS = s"${CONNECTOR_PREFIX}.${CERTIFICATE_SUFFIX}"
+  val COAP_TRUST_CERTS = s"${CONNECTOR_PREFIX}.${CERTIFICATES_SUFFIX}"
   val COAP_TRUST_CERTS_DOC = "The certificates to load from the trust store."
 
   val COAP_KEY_STORE_PASS = s"${CONNECTOR_PREFIX}.${KEYSTORE_PASS_SUFFIX}"
@@ -90,7 +90,7 @@ object CoapConstants {
   val NBR_OF_RETIRES_DEFAULT = 20
 
 
-  val PROGRESS_COUNTER_ENABLED = s"${PROGRESS_ENABLED}"
+  val PROGRESS_COUNTER_ENABLED = s"${PROGRESS_ENABLED_CONST}"
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"

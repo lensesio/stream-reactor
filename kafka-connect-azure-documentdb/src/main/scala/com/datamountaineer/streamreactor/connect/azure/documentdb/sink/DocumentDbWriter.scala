@@ -25,7 +25,7 @@ import com.microsoft.azure.documentdb._
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
 
 /**
   * <h1>DocumentDbWriter</h1>
@@ -114,6 +114,7 @@ object DocumentDbWriter extends StrictLogging {
     }
 
     logger.info(s"Initialising Document Db writer.")
-    new DocumentDbWriter(settings, DocumentClientProvider.get(settings))
+    val provider = DocumentClientProvider.get(settings)
+    new DocumentDbWriter(settings, provider)
   }
 }

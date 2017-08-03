@@ -20,7 +20,7 @@ import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 import java.util
 
-import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkConfig, HazelCastSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkConfigConstants
 import com.hazelcast.core.{Message, MessageListener}
 import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
 import org.apache.avro.io.DecoderFactory

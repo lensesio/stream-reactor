@@ -18,8 +18,9 @@ package com.datamountaineer.streamreactor.connect.jms.config
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.config.base.traits._
+import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
-import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 object JMSConfig {
 
@@ -81,4 +82,11 @@ object JMSConfig {
   *
   * Holds config, extends AbstractConfig.
   **/
-case class JMSConfig(props: util.Map[String, String]) extends AbstractConfig(JMSConfig.config, props)
+case class JMSConfig(props: util.Map[String, String])
+  extends BaseConfig(JMSConfigConstants.CONNECTOR_PREFIX, JMSConfig.config, props)
+    with KcqlSettings
+    with ErrorPolicySettings
+    with NumberRetriesSettings
+    with UserSettings
+    with ConnectionSettings
+
