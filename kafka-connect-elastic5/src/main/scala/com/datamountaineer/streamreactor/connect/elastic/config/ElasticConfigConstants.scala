@@ -49,6 +49,10 @@ object ElasticConfigConstants {
   val WRITE_TIMEOUT_DISPLAY = "Write timeout"
   val WRITE_TIMEOUT_DEFAULT = 300000
 
+  val CLIENT_TYPE_CONFIG = s"$CONNECTOR_PREFIX.use.http"
+  val CLIENT_TYPE_CONFIG_DOC = "TCP or HTTP. Elastic4s client type to use, http or tcp, default is tcp."
+  val CLIENT_TYPE_CONFIG_DEFAULT = "tcp"
+
   val NBR_OF_RETRIES_CONFIG = s"${CONNECTOR_PREFIX}.${MAX_RETRIES_PROP_SUFFIX}"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20

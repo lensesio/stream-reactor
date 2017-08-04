@@ -63,6 +63,7 @@ A collection of components to build a real time ingestion pipeline.
 *   Fixes on JMS properties converter, Invalid schema when extracting properties
 *   Upgraded JMS Connector to JMS 2.0
 *   Moved to Elastic4s 2.4
+*   Added Elastic5s with TCP, TCP+XPACK and HTTP client support
 *   Support for dates in Elastic Indexes and custom document types
 *   Upgrade Azure Documentdb to 1.11.0
 *   Removed unused batch size and bucket size options from Kudu, they are taken from KCQL

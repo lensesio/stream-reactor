@@ -20,7 +20,7 @@ project(":kafka-connect-elastic5") {
         maven { url "https://artifacts.elastic.co/maven" }
     }
     ext {
-        elastic4sVersion = '5.4.3'
+        elastic4sVersion = '5.4.9'
         elasticVersion = '5.4.0'
         jnaVersion = '3.0.9'
     }
@@ -33,6 +33,12 @@ project(":kafka-connect-elastic5") {
 
         // for the tcp client
         compile("com.sksamuel.elastic4s:elastic4s-tcp_$scalaMajorVersion:$elastic4sVersion") {
+            exclude group: "org.scala-lang", module: "scala-library"
+            exclude group: "org.scalactic", module: "scalactic_2.11"
+        }
+
+        // for the http client
+        compile("com.sksamuel.elastic4s:elastic4s-http_$scalaMajorVersion:$elastic4sVersion") {
             exclude group: "org.scala-lang", module: "scala-library"
             exclude group: "org.scalactic", module: "scalactic_2.11"
         }

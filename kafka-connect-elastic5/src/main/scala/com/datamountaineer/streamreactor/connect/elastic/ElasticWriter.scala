@@ -16,11 +16,13 @@
 
 package com.datamountaineer.streamreactor.connect.elastic
 
-import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
+import com.datamountaineer.streamreactor.connect.elastic.config.{ClientType, ElasticConfig, ElasticConfigConstants, ElasticSettings}
+import com.sksamuel.elastic4s.http.HttpClient
 import com.sksamuel.elastic4s.xpack.security.XPackElasticClient
 import com.sksamuel.elastic4s.{ElasticsearchClientUri, TcpClient}
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.elasticsearch.common.settings.Settings
+
 
 object ElasticWriter {
   /**
@@ -41,10 +43,18 @@ object ElasticWriter {
 
     val settings = ElasticSettings(config)
 
-    val client = if (settings.xpackSettings.nonEmpty) {
+    val tcpClient = if (settings.xPackSettings.nonEmpty) {
       XPackElasticClient(essettings, uri, settings.xpackPluggins: _*)
-    } else TcpClient.transport(essettings, uri)
+    } else {
+      TcpClient.transport(essettings, uri)
+    }
 
-    new ElasticJsonWriter(client, settings)
+    val httpClient = if (settings.clientType.equals(ClientType.HTTP)) {
+      Some(HttpClient(uri))
+    } else {
+      None
+    }
+
+    new ElasticJsonWriter(Some(tcpClient), httpClient, settings)
   }
 }

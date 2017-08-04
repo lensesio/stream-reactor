@@ -19,14 +19,16 @@ package com.datamountaineer.streamreactor.connect.elastic
 import java.nio.file.Paths
 import java.util.UUID
 
-import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
+import com.datamountaineer.streamreactor.connect.elastic.config.{ClientType, ElasticConfig, ElasticConfigConstants, ElasticSettings}
 import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.ElasticsearchClientUri
 import com.sksamuel.elastic4s.embedded.LocalNode
+import com.sksamuel.elastic4s.http.HttpClient
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.elasticsearch.common.settings.Settings
 import org.elasticsearch.index.IndexNotFoundException
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 
 import scala.reflect.io.File
 
@@ -48,7 +50,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     //get writer
 
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(client = client, settings = settings)
+    val writer = new ElasticJsonWriter(tcpClient = Some(client), None, settings = settings)
     //write records to elastic
     writer.write(testRecords)
 
@@ -78,7 +80,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
     val client = localNode.elastic4sclient(true)
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(client = client, settings = settings)
+    val writer = new ElasticJsonWriter(tcpClient = Some(client), None, settings = settings)
     //First run writes records to elastic
     writer.write(testRecords)
 
@@ -123,7 +125,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     //get writer
 
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(client = client, settings = settings)
+    val writer = new ElasticJsonWriter(tcpClient = Some(client), None, settings = settings)
     //write records to elastic
     writer.write(testRecords)
 
@@ -139,7 +141,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     TMP.deleteRecursively()
   }
 
-  "it should fail writing to a non-existent index when auto creation is disabled" in {
+  "It should fail writing to a non-existent index when auto creation is disabled" in {
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
     //mock the context to return our assignment when called
@@ -163,7 +165,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     //get writer
 
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(client = client, settings = settings)
+    val writer = new ElasticJsonWriter(tcpClient = Some(client), None, settings = settings)
     //write records to elastic
     writer.write(testRecords)
 
@@ -174,6 +176,53 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
         search(INDEX_WITH_DATE)
       }.await
     }
+    //close writer
+    writer.close()
+    client.close()
+    TMP.deleteRecursively()
+  }
+
+  "A writer should be using TCP by default" in {
+    //get config
+    val config = new ElasticConfig(getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate = false))
+    val settings = ElasticSettings(config)
+    settings.clientType shouldBe ClientType.TCP
+  }
+
+  "A writer should be using HTTP is set" in {
+    //get config
+    val config = new ElasticConfig(getElasticSinkConfigPropsHTTPClient(autoCreate = false))
+    val settings = ElasticSettings(config)
+    settings.clientType shouldBe ClientType.HTTP
+  }
+
+  "A ElasticWriter should insert into Elastic Search a number of records with the HTTP Client" in {
+    val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
+    TMP.createDirectory()
+    //mock the context to return our assignment when called
+    val context = mock[SinkTaskContext]
+    when(context.assignment()).thenReturn(getAssignment)
+    //get test records
+    val testRecords = getTestRecords
+    //get config
+    val config = new ElasticConfig(getElasticSinkConfigPropsHTTPClient(autoCreate = true))
+
+    val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
+    val client = localNode.elastic4sclient(true)
+    val httpClient = HttpClient( ElasticsearchClientUri(s"elasticsearch://${localNode.ipAndPort}"))
+    //get writer
+
+    val settings = ElasticSettings(config)
+    val writer = new ElasticJsonWriter(tcpClient = None, Some(httpClient), settings = settings)
+    //write records to elastic
+    writer.write(testRecords)
+
+    Thread.sleep(2000)
+    //check counts
+    val res = client.execute {
+      search(INDEX)
+    }.await
+    res.totalHits shouldBe testRecords.size
     //close writer
     writer.close()
     client.close()
