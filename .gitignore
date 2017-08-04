@@ -60,3 +60,6 @@ classes/*
 /*/.project
 /*/.settings
 /*/.settings/
+
+/kafka-connect-*/build
+/kafka-connect-*/out
