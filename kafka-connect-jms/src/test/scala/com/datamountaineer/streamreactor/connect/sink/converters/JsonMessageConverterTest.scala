@@ -24,15 +24,23 @@ import com.datamountaineer.streamreactor.connect.jms.sink.converters.JsonMessage
 import com.sksamuel.scalax.io.Using
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+
+import scala.reflect.io.Path
 
 
-class JsonMessageConverterTest extends WordSpec with Matchers with Using with TestBase {
+class JsonMessageConverterTest extends WordSpec with Matchers with Using with TestBase with BeforeAndAfterAll {
+
   val converter = new JsonMessageConverter()
   val props = getPropsMixJNDIWithSink()
   val config = JMSConfig(props)
   val settings = JMSSettings(config, true)
   val setting = settings.settings.head
+
+  override def afterAll(): Unit = {
+    Path(AVRO_FILE).delete()
+  }
+
 
   "JsonMessageConverter" should {
     "create a TextMessage with Json payload" in {
