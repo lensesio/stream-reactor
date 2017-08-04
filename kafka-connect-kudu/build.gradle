@@ -16,11 +16,11 @@
 
 project(":kafka-connect-kudu") {
     ext {
-        kuduVersion = "0.9.1"
+        kuduVersion = "1.4.0"
     }
 
     dependencies {
-        compile "org.kududb:kudu-client:$kuduVersion"
+        compile "org.apache.kudu:kudu-client:$kuduVersion"
         compile("com.datamountaineer:kcql:$KCQLVersion") {
             exclude group: "com.google.guava", module: "guava"
         }

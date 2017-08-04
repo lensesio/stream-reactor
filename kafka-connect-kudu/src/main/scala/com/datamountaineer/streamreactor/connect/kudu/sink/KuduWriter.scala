@@ -23,7 +23,7 @@ import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
-import org.kududb.client._
+import org.apache.kudu.client._
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable

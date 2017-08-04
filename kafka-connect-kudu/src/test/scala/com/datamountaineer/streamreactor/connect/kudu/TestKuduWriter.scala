@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.kudu
 import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduSettings}
 import com.datamountaineer.streamreactor.connect.kudu.sink.KuduWriter
 import org.apache.kafka.connect.errors.RetriableException
-import org.kududb.client._
+import org.apache.kudu.client._
 import org.mockito.Matchers.{any, eq => mockEq}
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar

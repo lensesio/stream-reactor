@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.kudu
 
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.avro.{Schema, SchemaBuilder}
-import org.kududb.client.{KuduTable, Upsert}
+import org.apache.kudu.client.{KuduTable, Upsert}
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 
@@ -96,18 +96,18 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
 
     val kuduFields = schema.getFields.map(f => fromAvro(f.schema(), f.name()).build())
     kuduFields.head.getName shouldBe "string_field"
-    kuduFields.head.getType shouldBe org.kududb.Type.STRING
+    kuduFields.head.getType shouldBe org.apache.kudu.Type.STRING
     kuduFields(1).getName shouldBe "int_field"
-    kuduFields(1).getType shouldBe org.kududb.Type.INT32
+    kuduFields(1).getType shouldBe org.apache.kudu.Type.INT32
     kuduFields(2).getName shouldBe "boolean_field"
-    kuduFields(2).getType shouldBe org.kududb.Type.BOOL
+    kuduFields(2).getType shouldBe org.apache.kudu.Type.BOOL
     kuduFields(3).getName shouldBe "double_field"
-    kuduFields(3).getType shouldBe org.kududb.Type.DOUBLE
+    kuduFields(3).getType shouldBe org.apache.kudu.Type.DOUBLE
     kuduFields(4).getName shouldBe "float_field"
-    kuduFields(4).getType shouldBe org.kududb.Type.FLOAT
+    kuduFields(4).getType shouldBe org.apache.kudu.Type.FLOAT
     kuduFields(5).getName shouldBe "long_field"
-    kuduFields(5).getType shouldBe org.kududb.Type.INT64
+    kuduFields(5).getType shouldBe org.apache.kudu.Type.INT64
     kuduFields(6).getName shouldBe "bytes_field"
-    kuduFields(6).getType shouldBe org.kududb.Type.BINARY
+    kuduFields(6).getType shouldBe org.apache.kudu.Type.BINARY
   }
 }
