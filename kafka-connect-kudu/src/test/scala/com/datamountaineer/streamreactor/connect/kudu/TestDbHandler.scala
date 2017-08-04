@@ -223,4 +223,17 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val ret = DbHandler.createTableFromSinkRecord(settings.kcql.head, record.valueSchema(), client)
     ret.isInstanceOf[Try[KuduTable]] shouldBe true
   }
+
+  "Should not create table as it already exists" in {
+    //set up configs
+    val config = new KuduConfig(getConfigAutoCreate("http://localhost:8081"))
+    val settings = KuduSettings(config)
+
+    //mock out kudu client
+    val client = mock[KuduClient]
+
+    when(client.tableExists(TABLE)).thenReturn(true)
+    val ret = DbHandler.createTables(settings, client)
+    ret.isEmpty shouldBe true
+  }
 }
