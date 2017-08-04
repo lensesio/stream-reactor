@@ -28,17 +28,22 @@ import io.confluent.connect.avro.AvroData
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
+import scala.reflect.io.Path
 
-class AvroMessageConverterTest extends WordSpec with Matchers with Using with TestBase {
+class AvroMessageConverterTest extends WordSpec with Matchers with Using with TestBase with BeforeAndAfterAll {
   val converter = new AvroMessageConverter()
   private lazy val avroData = new AvroData(128)
   val props = getPropsMixJNDIWithSink()
   val config = JMSConfig(props)
   val settings = JMSSettings(config, true)
   val setting = settings.settings.head
+
+  override def afterAll(): Unit = {
+    Path(AVRO_FILE).delete()
+  }
 
   "AvroMessageConverter" should {
     "create a BytesMessage with avro payload" in {

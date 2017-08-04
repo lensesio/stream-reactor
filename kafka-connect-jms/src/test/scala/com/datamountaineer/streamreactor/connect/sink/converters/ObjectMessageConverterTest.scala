@@ -23,16 +23,21 @@ import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSetti
 import com.datamountaineer.streamreactor.connect.jms.sink.converters.ObjectMessageConverter
 import com.sksamuel.scalax.io.Using
 import org.apache.activemq.ActiveMQConnectionFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
+import scala.reflect.io.Path
 
-class ObjectMessageConverterTest extends WordSpec with Matchers with Using with TestBase {
+class ObjectMessageConverterTest extends WordSpec with Matchers with Using with TestBase with BeforeAndAfterAll {
   val converter = new ObjectMessageConverter()
   val props = getPropsMixJNDIWithSink()
   val config = JMSConfig(props)
   val settings = JMSSettings(config, true)
   val setting = settings.settings.head
+
+  override def afterAll(): Unit = {
+    Path(AVRO_FILE).delete()
+  }
 
   "ObjectMessageConverter" should {
     "create an instance of jms ObjectMessage" in {

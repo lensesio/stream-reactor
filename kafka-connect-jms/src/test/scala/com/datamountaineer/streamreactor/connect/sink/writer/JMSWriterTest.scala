@@ -30,9 +30,11 @@ import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
 import org.apache.kafka.connect.json.JsonDeserializer
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.BeforeAndAfter
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 
-class JMSWriterTest extends TestBase with Using with BeforeAndAfter with ConverterUtil {
+import scala.reflect.io.Path
+
+class JMSWriterTest extends TestBase with Using with BeforeAndAfter with ConverterUtil with BeforeAndAfterAll {
   val broker = new BrokerService()
   broker.setPersistent(false)
   broker.setUseJmx(false)
@@ -50,6 +52,10 @@ class JMSWriterTest extends TestBase with Using with BeforeAndAfter with Convert
 
   after {
     broker.stop()
+  }
+
+  override def afterAll(): Unit = {
+    Path(AVRO_FILE).delete()
   }
 
   "JMSWriter" should {

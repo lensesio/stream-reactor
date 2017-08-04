@@ -19,15 +19,23 @@ package com.datamountaineer.streamreactor.connect.source
 import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
 import com.datamountaineer.streamreactor.connect.jms.source.JMSSourceConnector
+import org.scalatest.BeforeAndAfterAll
 
 import scala.collection.JavaConverters._
+import scala.reflect.io.Path
 
 /**
   * Created by andrew@datamountaineer.com on 24/03/2017. 
   * stream-reactor
   */
-class JMSSourceConnectorTest extends TestBase {
- "should start a JMS Source Connector" in {
+class JMSSourceConnectorTest extends TestBase with BeforeAndAfterAll {
+
+  override def afterAll(): Unit = {
+    Path(AVRO_FILE).delete()
+  }
+
+
+  "should start a JMS Source Connector" in {
    val props = getPropsMixCDI()
    val connector = new JMSSourceConnector()
    connector.start(props = props)

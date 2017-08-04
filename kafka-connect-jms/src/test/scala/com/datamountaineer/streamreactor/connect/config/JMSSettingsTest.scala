@@ -20,8 +20,16 @@ import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
 import com.datamountaineer.streamreactor.connect.jms.config._
 import org.apache.kafka.common.config.ConfigException
+import org.scalatest.BeforeAndAfterAll
 
-class JMSSettingsTest extends TestBase {
+import scala.reflect.io.Path
+
+
+class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
+
+  override def afterAll(): Unit = {
+    Path(AVRO_FILE).delete()
+  }
 
   "should create a JMSSettings for a source with only 1 queue for a source" in {
     val props = getProps1Queue()
@@ -33,7 +41,6 @@ class JMSSettingsTest extends TestBase {
     setting.sourceConverters shouldBe None
     setting.destinationType shouldBe QueueDestination
     settings.connectionURL shouldBe JMS_URL
-
   }
 
   "should create a JMSSettings for a source with only 1 topic for a source" in {
