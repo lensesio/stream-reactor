@@ -16,13 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.azure.documentdb.config
 
-import com.datamountaineer.connector.config.{Config, WriteModeEnum}
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum}
+import com.datamountaineer.connector.config.Config
+import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
 import com.microsoft.azure.documentdb.ConsistencyLevel
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
+import org.apache.kafka.common.config.ConfigException
 
-import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
 
 
@@ -62,19 +61,11 @@ object DocumentDbSinkSettings extends StrictLogging {
 
     val kcql = config.getKCQL
     val errorPolicy= config.getErrorPolicy
-    val retries = config.getRetryInterval
-    val rowKeyBuilderMap = config.getUpsertKeys(kcql)
-    val fieldsMap = config.getFields(kcql)
-    val ignoreFields = config.getIgnoreFields(kcql)
-
-    val consistencyLevel = Try(ConsistencyLevel.valueOf(config.getString(DocumentDbConfigConstants.CONSISTENCY_CONFIG))) match {
-      case Failure(_) => throw new ConfigException(
-        s"""
-           |${config.getString(DocumentDbConfigConstants.CONSISTENCY_CONFIG)} is not a valid entry for ${DocumentDbConfigConstants.CONSISTENCY_CONFIG}
-           |Available values are ${ConsistencyLevel.values().mkString(",")}""".stripMargin)
-
-      case Success(c) => c
-    }
+    val retries = config.getNumberRetries
+    val rowKeyBuilderMap = config.getUpsertKeys()
+    val fieldsMap = config.getFields()
+    val ignoreFields = config.getIgnoreFields()
+    val consistencyLevel = config.getConsistencyLevel.get
 
     new DocumentDbSinkSettings(endpoint,
       masterKey,

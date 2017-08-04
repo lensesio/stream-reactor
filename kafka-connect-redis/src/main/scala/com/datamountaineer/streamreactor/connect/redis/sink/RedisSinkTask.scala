@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.redis.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisSinkConfig, RedisSinkConfigConstants, RedisSinkSettings}
+import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisSinkSettings}
 import com.datamountaineer.streamreactor.connect.redis.sink.writer.{RedisCache, RedisInsertSortedSet, RedisMultipleSortedSets, RedisWriter}
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -28,7 +28,6 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 
 /**
   * <h1>RedisSinkTask</h1>
@@ -47,14 +46,14 @@ class RedisSinkTask extends SinkTask with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/redis-ascii.txt")).mkString)
 
-    RedisSinkConfig.config.parse(props)
-    val sinkConfig = new RedisSinkConfig(props)
+    RedisConfig.config.parse(props)
+    val sinkConfig = new RedisConfig(props)
     val settings = RedisSinkSettings(sinkConfig)
-    enableProgress = sinkConfig.getBoolean(RedisSinkConfigConstants.PROGRESS_COUNTER_ENABLED)
+    enableProgress = sinkConfig.getBoolean(RedisConfigConstants.PROGRESS_COUNTER_ENABLED)
 
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getInt(RedisSinkConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+      context.timeout(sinkConfig.getInt(RedisConfigConstants.ERROR_RETRY_INTERVAL).toLong)
     }
 
     //-- Find out the Connector modes (cache | INSERT (SortedSet) | PK (SortedSetS)

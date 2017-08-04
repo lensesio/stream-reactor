@@ -54,10 +54,10 @@ object MongoSettings extends StrictLogging {
 
     val kcql = config.getKCQL
     val errorPolicy= config.getErrorPolicy
-    val retries = config.getRetryInterval
-    val rowKeyBuilderMap = config.getUpsertKeys(kcql)
+    val retries = config.getNumberRetries
+    val rowKeyBuilderMap = config.getUpsertKeys()
     val fieldsMap = config.getFields(kcql)
-    val ignoreFields = config.getIgnoreFields(kcql)
+    val ignoreFields = config.getIgnoreFields()
     val batchSize = config.getInt(MongoConfigConstants.BATCH_SIZE_CONFIG)
 
     val username = config.getUsername

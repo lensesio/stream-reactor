@@ -43,8 +43,8 @@ class DruidSinkTask extends SinkTask with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/druid-ascii.txt")).mkString)
 
-    DruidSinkConfig.config.parse(props)
-    val sinkConfig = new DruidSinkConfig(props)
+    DruidConfig.config.parse(props)
+    val sinkConfig = new DruidConfig(props)
     val settings = DruidSinkSettings(sinkConfig)
     logger.info(
       s"""Settings:

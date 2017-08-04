@@ -20,7 +20,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter._
 import java.util
 
-import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSinkConfigConstants
+import com.datamountaineer.streamreactor.connect.elastic.config.ElasticConfigConstants
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -127,25 +127,25 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
 
   def getBaseElasticSinkConfigProps(query: String) = {
     Map(
-      ElasticSinkConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
-      ElasticSinkConfigConstants.ES_CLUSTER_NAME -> ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT,
-      ElasticSinkConfigConstants.URL_PREFIX -> ElasticSinkConfigConstants.URL_PREFIX_DEFAULT,
-      ElasticSinkConfigConstants.KCQL -> query
+      ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
+      ElasticConfigConstants.ES_CLUSTER_NAME -> ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
+      ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
+      ElasticConfigConstants.KCQL -> query
     ).asJava
   }
 
   def getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate: Boolean) = {
     Map(
-      ElasticSinkConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
-      ElasticSinkConfigConstants.ES_CLUSTER_NAME -> ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT,
-      ElasticSinkConfigConstants.URL_PREFIX -> ElasticSinkConfigConstants.URL_PREFIX_DEFAULT,
-      ElasticSinkConfigConstants.KCQL -> (QUERY + (if (autoCreate) " AUTOCREATE " else "") + " WITHINDEXSUFFIX=_{YYYY-MM-dd}")
+      ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
+      ElasticConfigConstants.ES_CLUSTER_NAME -> ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
+      ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
+      ElasticConfigConstants.KCQL -> (QUERY + (if (autoCreate) " AUTOCREATE " else "") + " WITHINDEXSUFFIX=_{YYYY-MM-dd}")
     ).asJava
   }
 
   def getElasticSinkConfigPropsDefaults = {
     Map(
-      ElasticSinkConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES
+      ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES
     ).asJava
   }
 }

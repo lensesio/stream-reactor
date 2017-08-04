@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.mongodb.sink
 
-import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants}
+import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfigConstants
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConversions._

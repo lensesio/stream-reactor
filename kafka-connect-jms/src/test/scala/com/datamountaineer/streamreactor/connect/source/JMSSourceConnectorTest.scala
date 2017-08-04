@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.source
 
 import com.datamountaineer.streamreactor.connect.TestBase
-import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants}
+import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
 import com.datamountaineer.streamreactor.connect.jms.source.JMSSourceConnector
 
 import scala.collection.JavaConverters._

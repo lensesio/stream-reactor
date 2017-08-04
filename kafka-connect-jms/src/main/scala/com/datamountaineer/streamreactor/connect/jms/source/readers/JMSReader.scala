@@ -25,9 +25,6 @@ import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMess
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
 import scala.util.Try
 
 /**

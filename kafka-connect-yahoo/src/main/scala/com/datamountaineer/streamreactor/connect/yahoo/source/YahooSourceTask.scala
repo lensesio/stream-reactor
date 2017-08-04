@@ -25,7 +25,6 @@ import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 

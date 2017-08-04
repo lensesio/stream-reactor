@@ -18,8 +18,9 @@ package com.datamountaineer.streamreactor.connect.coap.configs
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.config.base.traits._
+import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
-import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 import scala.collection.JavaConverters._
 
@@ -27,7 +28,7 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 27/12/2016. 
   * stream-reactor
   */
-case class CoapConfig() {
+object CoapConfig {
 
   val config: ConfigDef = new ConfigDef()
     .define(CoapConstants.COAP_KCQL, Type.STRING, Importance.HIGH, CoapConstants.COAP_KCQL_DOC,
@@ -60,7 +61,7 @@ case class CoapConfig() {
 }
 
 object CoapSinkConfig {
-  val base: ConfigDef = CoapConfig().config
+  val base: ConfigDef = CoapConfig.config
 
   val config: ConfigDef = base
     .define(CoapConstants.ERROR_POLICY, Type.STRING, CoapConstants.ERROR_POLICY_DEFAULT, Importance.HIGH, CoapConstants.ERROR_POLICY_DOC,
@@ -71,12 +72,29 @@ object CoapSinkConfig {
       "Error", 3, ConfigDef.Width.LONG, CoapConstants.ERROR_RETRY_INTERVAL)
 }
 
-case class CoapSinkConfig(props: util.Map[String, String])
-  extends AbstractConfig(CoapSinkConfig.config, props)
-
 object CoapSourceConfig {
-  val config: ConfigDef = CoapConfig().config
+  val config: ConfigDef = CoapConfig.config
+}
+
+case class CoapSinkConfig(props: util.Map[String, String])
+  extends BaseConfig(CoapConstants.CONNECTOR_PREFIX, CoapSinkConfig.config, props)
+    with CoapConfigBase {
+
 }
 
 case class CoapSourceConfig(props: util.Map[String, String])
-  extends AbstractConfig(CoapSourceConfig.config, props)
+  extends BaseConfig(CoapConstants.CONNECTOR_PREFIX, CoapSourceConfig.config, props)
+    with CoapConfigBase
+
+
+case class CoapConfig(props: util.Map[String, String])
+  extends BaseConfig(CoapConstants.CONNECTOR_PREFIX, CoapConfig.config, props)
+  with CoapConfigBase
+
+trait CoapConfigBase
+  extends KcqlSettings
+  with DatabaseSettings
+  with NumberRetriesSettings
+  with ErrorPolicySettings
+  with SSLSettings
+  with ConnectionSettings

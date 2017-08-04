@@ -40,7 +40,7 @@ class ElasticJsonWriter(client: TcpClient, settings: ElasticSettings) extends Er
   initialize(settings.taskRetries, settings.errorPolicy)
 
   //create the index automatically
-  settings.routes.filter(_.isAutoCreate).foreach(kcql => CreateIndex(kcql)(client))
+  settings.kcql.filter(_.isAutoCreate).foreach(kcql => CreateIndex(kcql)(client))
 
   implicit object SinkRecordIndexable extends Indexable[SinkRecord] {
     override def json(t: SinkRecord): String = convertValueToJson(t).toString
@@ -51,7 +51,7 @@ class ElasticJsonWriter(client: TcpClient, settings: ElasticSettings) extends Er
     **/
   def close(): Unit = client.close()
 
-  private val configMap = settings.routes.map(c => c.getSource -> c).toMap
+  private val configMap = settings.kcql.map(c => c.getSource -> c).toMap
 
   /**
     * Write SinkRecords to Elastic Search if list is not empty

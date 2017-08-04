@@ -20,8 +20,8 @@ import com.datamountaineer.connector.config.WriteModeEnum
 import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
 import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants, MongoSettings}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import com.mongodb.client.model._
 import com.mongodb._
+import com.mongodb.client.model._
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.bson.Document

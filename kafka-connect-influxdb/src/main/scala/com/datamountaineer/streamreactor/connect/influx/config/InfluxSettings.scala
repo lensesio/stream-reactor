@@ -17,13 +17,12 @@
 package com.datamountaineer.streamreactor.connect.influx.config
 
 import com.datamountaineer.connector.config.{Config, Tag}
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.influx.StructFieldsExtractor
 import org.apache.kafka.common.config.ConfigException
 import org.influxdb.InfluxDB.ConsistencyLevel
 
 import scala.collection.JavaConversions._
-import scala.util.{Failure, Success, Try}
 
 case class InfluxSettings(connectionUrl: String,
                           user: String,
@@ -35,7 +34,7 @@ case class InfluxSettings(connectionUrl: String,
                           fieldsExtractorMap: Map[String, StructFieldsExtractor],
                           topicToTagsMap: Map[String, Seq[Tag]],
                           errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                          maxRetries: Int = InfluxSinkConfigConstants.NBR_OF_RETIRES_DEFAULT)
+                          maxRetries: Int = InfluxConfigConstants.NBR_OF_RETIRES_DEFAULT)
 
 object InfluxSettings {
 
@@ -45,37 +44,36 @@ object InfluxSettings {
     * @param config : The map of all provided configurations
     * @return An instance of InfluxSettings
     */
-  def apply(config: InfluxSinkConfig): InfluxSettings = {
-    val url = config.getString(InfluxSinkConfigConstants.INFLUX_URL_CONFIG)
+  def apply(config: InfluxConfig): InfluxSettings = {
+    val url = config.getString(InfluxConfigConstants.INFLUX_URL_CONFIG)
 
     if (url == null || url.trim.length == 0) {
-      throw new ConfigException(s"${InfluxSinkConfigConstants.INFLUX_URL_CONFIG} is not set correctly")
+      throw new ConfigException(s"${InfluxConfigConstants.INFLUX_URL_CONFIG} is not set correctly")
     }
 
-    val user = config.getString(InfluxSinkConfigConstants.INFLUX_CONNECTION_USER_CONFIG)
+    val user = config.getUsername
+
     if (user == null || user.trim.length == 0) {
-      throw new ConfigException(s"${InfluxSinkConfigConstants.INFLUX_CONNECTION_USER_CONFIG} is not set correctly")
+      throw new ConfigException(s"${InfluxConfigConstants.INFLUX_CONNECTION_USER_CONFIG} is not set correctly")
     }
 
-    val passwordRaw = config.getPassword(InfluxSinkConfigConstants.INFLUX_CONNECTION_PASSWORD_CONFIG)
+    val passwordRaw = config.getSecret
 
-    val password = passwordRaw match {
-      case null => null
+    val password = passwordRaw.value() match {
+      case "" => null
       case _ => passwordRaw.value()
     }
 
-    val database = config.getString(InfluxSinkConfigConstants.INFLUX_DATABASE_CONFIG)
-    if (database == null || database.trim.isEmpty) {
-      throw new ConfigException(s"${InfluxSinkConfigConstants.INFLUX_DATABASE_CONFIG} is not set correctly")
-    }
-    val raw = config.getString(InfluxSinkConfigConstants.KCQL_CONFIG)
-    require(raw != null && !raw.isEmpty, s"No ${InfluxSinkConfigConstants.KCQL_CONFIG} provided!")
-    val kcql = raw.split(";").map(r => Config.parse(r)).toSet
-    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(InfluxSinkConfigConstants.ERROR_POLICY_CONFIG).toUpperCase)
-    val errorPolicy = ErrorPolicy(errorPolicyE)
-    val nbrOfRetries = config.getInt(InfluxSinkConfigConstants.NBR_OF_RETRIES_CONFIG)
+    val database = config.getDatabase
 
-    val fields = kcql.map(rm => (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)).toMap
+    if (database == null || database.trim.isEmpty) {
+      throw new ConfigException(s"${InfluxConfigConstants.INFLUX_DATABASE_CONFIG} is not set correctly")
+    }
+
+    val kcql = config.getKCQL
+    val errorPolicy = config.getErrorPolicy
+    val nbrOfRetries = config.getNumberRetries
+    val fields = config.getFields()
 
     val extractorFields = kcql.map { rm =>
       val timestampField = Option(rm.getTimestamp) match {
@@ -85,13 +83,9 @@ object InfluxSettings {
       (rm.getSource, StructFieldsExtractor(rm.isIncludeAllFields, fields(rm.getSource), timestampField, rm.getIgnoredField.toSet))
     }.toMap
 
-    val retentionPolicy = config.getString(InfluxSinkConfigConstants.RETENTION_POLICY_CONFIG)
-    val consistencyLevel = Try {
-      ConsistencyLevel.valueOf(config.getString(InfluxSinkConfigConstants.CONSISTENCY_CONFIG))
-    } match {
-      case Failure(_) => throw new ConfigException(s"${config.getString(InfluxSinkConfigConstants.CONSISTENCY_CONFIG)} is not a valid value for ${InfluxSinkConfigConstants.CONSISTENCY_CONFIG}. Available values are:${ConsistencyLevel.values().mkString(",")}")
-      case Success(cl) => cl
-    }
+    val retentionPolicy = config.getString(InfluxConfigConstants.RETENTION_POLICY_CONFIG)
+
+    val consistencyLevel = config.getConsistencyLevel.get
 
     new InfluxSettings(url,
       user,

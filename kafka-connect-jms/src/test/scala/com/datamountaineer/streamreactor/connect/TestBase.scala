@@ -22,7 +22,7 @@ import java.util.UUID
 import javax.jms.{BytesMessage, Session, TextMessage}
 
 import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
-import com.datamountaineer.streamreactor.connect.jms.config.{DestinationSelector, JMSConfig, JMSConfigConstants}
+import com.datamountaineer.streamreactor.connect.jms.config.{DestinationSelector, JMSConfigConstants}
 import com.sksamuel.avro4s.{AvroOutputStream, SchemaFor}
 import org.apache.activemq.jndi.ActiveMQInitialContextFactory
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}

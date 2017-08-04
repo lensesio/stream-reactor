@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.kudu
 
-import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig}
+import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduSettings}
 import com.datamountaineer.streamreactor.connect.kudu.sink.KuduWriter
 import org.apache.kafka.connect.errors.RetriableException
 import org.kududb.client._
@@ -42,7 +42,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     val client = mock[KuduClient]
     val kuduSession = mock[KuduSession]
 
-    val config = new KuduSinkConfig(getConfigAutoCreate(""))
+    val config = new KuduConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
 
     when(client.newSession()).thenReturn(kuduSession)
@@ -68,7 +68,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     val client = mock[KuduClient]
     val kuduSession = mock[KuduSession]
 
-    val config = new KuduSinkConfig(getConfigAutoCreate(""))
+    val config = new KuduConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
 
     when(client.newSession()).thenReturn(kuduSession)
@@ -101,7 +101,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     val insert = mock[Upsert]
     val atrm = mock[AlterTableResponse]
 
-    val config = new KuduSinkConfig(getConfigAutoCreateAndEvolve(""))
+    val config = new KuduConfig(getConfigAutoCreateAndEvolve(""))
     val settings = KuduSettings(config)
 
     when(client.newSession()).thenReturn(kuduSession)
@@ -131,7 +131,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     val resp = mock[OperationResponse]
     val errorRow = mock[RowError]
 
-    val config = new KuduSinkConfig(getConfigAutoCreateRetry(""))
+    val config = new KuduConfig(getConfigAutoCreateRetry(""))
     val settings = KuduSettings(config)
 
     when(client.newSession()).thenReturn(kuduSession)

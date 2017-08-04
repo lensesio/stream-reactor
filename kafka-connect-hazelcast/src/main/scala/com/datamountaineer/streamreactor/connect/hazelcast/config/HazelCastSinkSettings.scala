@@ -38,7 +38,7 @@ object TargetType extends Enumeration {
 case class HazelCastStoreAsType(name: String, targetType: TargetType)
 
 case class HazelCastSinkSettings(client: HazelcastInstance,
-                                 routes: Set[Config],
+                                 kcql: Set[Config],
                                  topicObject: Map[String, HazelCastStoreAsType],
                                  fieldsMap: Map[String, Map[String, String]],
                                  ignoreFields: Map[String, Set[String]],
@@ -53,9 +53,9 @@ object HazelCastSinkSettings {
   def apply(config: HazelCastSinkConfig): HazelCastSinkSettings = {
 
     val kcql = config.getKCQL
-    val fieldMap = config.getFields(kcql)
-    val ignoreFields = config.getIgnoreFields(kcql)
-    val primaryKeys = config.getPrimaryKeys(kcql)
+    val fieldMap = config.getFields()
+    val ignoreFields = config.getIgnoreFields()
+    val primaryKeys = config.getPrimaryKeys()
     val allowParallel = config.getAllowParallel
     val format = config.getFormat(this.getFormatType, kcql)
     val errorPolicy = config.getErrorPolicy

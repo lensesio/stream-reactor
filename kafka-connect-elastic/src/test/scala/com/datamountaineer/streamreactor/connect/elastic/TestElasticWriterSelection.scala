@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.elastic
 
 import java.util.UUID
 
-import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticSettings, ElasticSinkConfig, ElasticSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.kafka.connect.sink.SinkTaskContext
@@ -39,10 +39,10 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecords
     //get config
-    val config  = new ElasticSinkConfig(getElasticSinkConfigPropsSelection)
+    val config  = new ElasticConfig(getElasticSinkConfigPropsSelection)
 
     val essettings = Settings
-      .settingsBuilder().put(ElasticSinkConfigConstants.ES_CLUSTER_NAME, ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT)
+      .settingsBuilder().put(ElasticConfigConstants.ES_CLUSTER_NAME, ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT)
       .put("path.home", TMP.toString).build()
     val client = ElasticClient.local(essettings)
 
@@ -72,10 +72,10 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecords
     //get config
-    val config  = new ElasticSinkConfig(getElasticSinkUpdateConfigPropsSelection)
+    val config  = new ElasticConfig(getElasticSinkUpdateConfigPropsSelection)
 
     val essettings = Settings
-      .settingsBuilder().put(ElasticSinkConfigConstants.ES_CLUSTER_NAME, ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT)
+      .settingsBuilder().put(ElasticConfigConstants.ES_CLUSTER_NAME, ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT)
       .put("path.home", TMP.toString).build()
     val client = ElasticClient.local(essettings)
     val settings = ElasticSettings(config)

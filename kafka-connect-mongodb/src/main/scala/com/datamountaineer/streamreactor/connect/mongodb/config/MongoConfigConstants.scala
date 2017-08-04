@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.mongodb.config
 
-import com.datamountaineer.streamreactor.temp.const.TraitConfigConst._
+import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
 
 object MongoConfigConstants {
 

@@ -24,11 +24,11 @@ import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfi
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.fasterxml.jackson.databind.JsonNode
 import org.apache.kafka.common.config.ConfigException
+import org.apache.kafka.connect.data.Schema
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
-import org.apache.kafka.connect.data.Schema
 
 /**
  * test incremental mode specifying a subset of table columns

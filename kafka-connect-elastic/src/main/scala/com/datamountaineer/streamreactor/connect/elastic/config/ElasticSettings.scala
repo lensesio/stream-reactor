@@ -16,48 +16,34 @@
 
 package com.datamountaineer.streamreactor.connect.elastic.config
 
-import com.datamountaineer.connector.config.{Config, WriteModeEnum}
-
-import scala.collection.JavaConversions._
-
+import com.datamountaineer.connector.config.Config
 /**
   * Created by andrew@datamountaineer.com on 13/05/16. 
   * stream-reactor-maven
   */
-case class ElasticSettings(routes: List[Config],
+case class ElasticSettings(kcql: Set[Config],
                            fields: Map[String, Map[String, String]],
                            ignoreFields: Map[String, Set[String]],
                            pks: Map[String, String],
                            tableMap: Map[String, String],
-                           writeTimeout: Int = ElasticSinkConfigConstants.WRITE_TIMEOUT_DEFAULT,
-                           throwOnError: Boolean = ElasticSinkConfigConstants.THROW_ON_ERROR_DEFAULT)
+                           writeTimeout: Int = ElasticConfigConstants.WRITE_TIMEOUT_DEFAULT,
+                           throwOnError: Boolean = ElasticConfigConstants.THROW_ON_ERROR_DEFAULT)
 
 object ElasticSettings {
 
-  def apply(config: ElasticSinkConfig): ElasticSettings = {
-    val raw = config.getString(ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY)
-    require(!raw.isEmpty, s"Empty ${ElasticSinkConfigConstants.EXPORT_ROUTE_QUERY_DOC}")
-    val routes = raw.split(";").map(r => Config.parse(r)).toList
+  def apply(config: ElasticConfig): ElasticSettings = {
 
-    val fields = routes.map(
-      rm => (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)
-    ).toMap
+    val kcql = config.getKCQL
+    val fields = config.getFields()
+    val tableMap = config.getTableTopic()
+    val ignoreFields = config.getIgnoreFields()
+    val pks = config.getUpsertKey()
+    val writeTimeout = config.getWriteTimeout
 
-    val tableMap = routes.map(rm => (rm.getSource, rm.getTarget)).toMap
-    val ignoreFields = routes.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
+    //TODO SHOULD THIS NOT BE THE STANDARD ERROR POLICY?????
+    val throwOnError = config.getBoolean(ElasticConfigConstants.THROW_ON_ERROR_CONFIG)
 
-    val pks = routes
-      .filter(c => c.getWriteMode == WriteModeEnum.UPSERT)
-      .map { r =>
-        val keys = r.getPrimaryKeys.toSet
-        require(keys.nonEmpty && keys.size == 1, s"${r.getTarget} is set up with upsert, you need one primary key setup")
-        (r.getSource, keys.head)
-      }.toMap
-
-    val writeTimeout = config.getInt(ElasticSinkConfigConstants.WRITE_TIMEOUT_CONFIG)
-
-    val throwOnError = config.getBoolean(ElasticSinkConfigConstants.THROW_ON_ERROR_CONFIG)
-    ElasticSettings(routes = routes,
+    ElasticSettings(kcql = kcql,
       fields = fields,
       ignoreFields = ignoreFields,
       pks = pks,

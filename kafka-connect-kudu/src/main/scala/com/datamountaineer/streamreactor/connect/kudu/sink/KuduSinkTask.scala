@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.kudu.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig, KuduSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduConfigConstants, KuduSettings}
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -44,14 +44,14 @@ class KuduSinkTask extends SinkTask with StrictLogging {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/kudu-ascii.txt")).mkString)
 
 
-    KuduSinkConfig.config.parse(props)
-    val sinkConfig = new KuduSinkConfig(props)
-    enableProgress = sinkConfig.getBoolean(KuduSinkConfigConstants.PROGRESS_COUNTER_ENABLED)
+    KuduConfig.config.parse(props)
+    val sinkConfig = new KuduConfig(props)
+    enableProgress = sinkConfig.getBoolean(KuduConfigConstants.PROGRESS_COUNTER_ENABLED)
     val settings = KuduSettings(sinkConfig)
 
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getInt(KuduSinkConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+      context.timeout(sinkConfig.getInt(KuduConfigConstants.ERROR_RETRY_INTERVAL).toLong)
     }
 
     writer = Some(KuduWriter(sinkConfig, settings))

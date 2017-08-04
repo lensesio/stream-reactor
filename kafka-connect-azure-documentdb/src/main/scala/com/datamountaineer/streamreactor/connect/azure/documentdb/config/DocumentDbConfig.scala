@@ -18,9 +18,10 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.config
 
 import java.util
 
-import com.datamountaineer.streamreactor.temp.traits._
-import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
+import com.datamountaineer.streamreactor.connect.config.base.traits._
+import com.microsoft.azure.documentdb.ConsistencyLevel
 import org.apache.kafka.common.config.ConfigDef
+import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
 object DocumentDbConfig {
   val config: ConfigDef = new ConfigDef()
@@ -65,5 +66,6 @@ case class DocumentDbConfig(props: util.Map[String, String])
   extends BaseConfig(DocumentDbConfigConstants.CONNECTOR_PREFIX, DocumentDbConfig.config, props)
     with KcqlSettings
     with DatabaseSettings
-    with RetryIntervalSettings
+    with NumberRetriesSettings
     with ErrorPolicySettings
+    with ConsistencyLevelSettings[ConsistencyLevel]

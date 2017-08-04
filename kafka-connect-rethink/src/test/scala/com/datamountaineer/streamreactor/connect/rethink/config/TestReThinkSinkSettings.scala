@@ -30,7 +30,7 @@ class TestReThinkSinkSettings extends TestBase with MockitoSugar {
   "should create a RethinkSetting for INSERT with all fields" in {
     val config = ReThinkSinkConfig(getProps)
     val settings = ReThinkSinkSettings(config)
-    val routes = settings.routes.head
+    val routes = settings.kcql.head
     routes.getSource shouldBe TOPIC
     routes.getTarget shouldBe TABLE
     routes.getWriteMode shouldBe WriteModeEnum.INSERT
@@ -42,7 +42,7 @@ class TestReThinkSinkSettings extends TestBase with MockitoSugar {
   "should create a RethinkSetting for UPSERT with fields selection with RETRY" in {
     val config = ReThinkSinkConfig(getPropsUpsertSelectRetry)
     val settings = ReThinkSinkSettings(config)
-    val routes = settings.routes.head
+    val routes = settings.kcql.head
     routes.getSource shouldBe TOPIC
     routes.getTarget shouldBe TABLE
     routes.getWriteMode shouldBe WriteModeEnum.UPSERT

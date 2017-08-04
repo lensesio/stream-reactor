@@ -17,7 +17,6 @@
 package com.datamountaineer.streamreactor.connect.blockchain.data
 
 import java.util
-import java.util.Collections
 
 import com.datamountaineer.streamreactor.connect.blockchain.data.Input._
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}

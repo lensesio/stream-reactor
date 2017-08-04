@@ -20,8 +20,8 @@ import com.datamountaineer.connector.config.{Config, WriteModeEnum}
 import com.datamountaineer.streamreactor.connect.errors.{NoopErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
 import com.datamountaineer.streamreactor.connect.mongodb.{Json, Transaction}
-import com.mongodb.{AuthenticationMechanism, MongoClient}
 import com.mongodb.client.model.{Filters, InsertOneModel}
+import com.mongodb.{AuthenticationMechanism, MongoClient}
 import de.flapdoodle.embed.mongo.config.{MongodConfigBuilder, Net}
 import de.flapdoodle.embed.mongo.distribution.Version
 import de.flapdoodle.embed.mongo.{MongodExecutable, MongodProcess, MongodStarter}

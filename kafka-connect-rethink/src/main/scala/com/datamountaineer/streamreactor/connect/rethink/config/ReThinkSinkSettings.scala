@@ -27,7 +27,7 @@ import scala.collection.JavaConversions._
   * stream-reactor-maven
   */
 case class ReThinkSinkSetting(database: String,
-                              routes: Set[Config],
+                              kcql: Set[Config],
                               topicTableMap: Map[String, String],
                               fieldMap: Map[String, Map[String, String]],
                               ignoreFields: Map[String, Set[String]],
@@ -39,35 +39,36 @@ case class ReThinkSinkSetting(database: String,
 
 object ReThinkSinkSettings {
   def apply(config: ReThinkSinkConfig): ReThinkSinkSetting = {
-    val routes = config.getKCQL
+    val kcql = config.getKCQL
 
     //only allow one primary key for rethink.
-    routes
+    kcql
       .filter(r => r.getPrimaryKeys.size > 1)
       .foreach(_ => new ConnectException(
         s"""More than one primary key found in ${ReThinkConfigConstants.KCQL}.
            |Only one field can be set.""".stripMargin.replaceAll("\n", "")))
+
     val errorPolicy = config.getErrorPolicy
     val maxRetries = config.getNumberRetries
 
     //check conflict policy
-    val conflictMap = routes.map(m => {
+    val conflictMap = kcql.map(m => {
       (m.getTarget, m.getWriteMode match {
         case WriteModeEnum.INSERT => ReThinkConfigConstants.CONFLICT_ERROR
         case WriteModeEnum.UPSERT => ReThinkConfigConstants.CONFLICT_REPLACE
       })
     }).toMap
 
-    val tableTopicMap = config.getTableTopic(routes)
-    val fieldMap = config.getFields(routes)
+    val tableTopicMap = config.getTableTopic()
+    val fieldMap = config.getFields()
     val database = config.getDatabase
-    val primaryKeys = config.getPrimaryKeys(routes)
-    val ignoreFields = config.getIgnoreFields(routes)
+    val primaryKeys = config.getPrimaryKeys()
+    val ignoreFields = config.getIgnoreFields()
     val retryInterval = config.getRetryInterval.toLong
 
     ReThinkSinkSetting(
       database,
-      routes,
+      kcql,
       tableTopicMap,
       fieldMap,
       ignoreFields,

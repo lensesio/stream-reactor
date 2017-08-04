@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.jms.config
 
 import com.datamountaineer.connector.config.{Config, FormatType}
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.jms.config.DestinationSelector.DestinationSelector
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigException
@@ -53,35 +53,28 @@ object JMSSettings extends StrictLogging {
     * @return An instance of JmsSettings
     */
   def apply(config: JMSConfig, sink: Boolean) : JMSSettings = {
-    val raw = config.getString(JMSConfigConstants.KCQL)
-    require(raw != null && !raw.isEmpty, s"No ${JMSConfigConstants.KCQL} provided!")
 
-    val kcql = raw.split(";").map(r => Config.parse(r))
-    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(JMSConfigConstants.ERROR_POLICY).toUpperCase)
-    val errorPolicy = ErrorPolicy(errorPolicyE)
-    val nbrOfRetries = config.getInt(JMSConfigConstants.NBR_OF_RETRIES)
+    val kcql = config.getKCQL
+    val errorPolicy = config.getErrorPolicy
+    val nbrOfRetries = config.getNumberRetries
+    val url = config.getUrl
+    val user = config.getUsername
+    val password = config.getSecret
+    val sources = kcql.map(_.getSource)
+    val batchSize = config.getInt(JMSConfigConstants.BATCH_SIZE)
+    val fields = config.getFields()
+    val ignoreFields = config.getIgnoreFields()
+
     val initialContextFactoryClass = config.getString(JMSConfigConstants.INITIAL_CONTEXT_FACTORY)
     val clazz = config.getString(JMSConfigConstants.CONNECTION_FACTORY)
     val destinationSelector = DestinationSelector.withName(config.getString(JMSConfigConstants.DESTINATION_SELECTOR).toUpperCase)
+
     val extraProps = config.getList(JMSConfigConstants.EXTRA_PROPS)
-      .map(p => p.split("=").grouped(2).map { case Array(k: String, v: String) => k.trim -> v.trim }.toMap).toList
+                            .map(p => p.split("=").grouped(2)
+                            .map { case Array(k: String, v: String) => k.trim -> v.trim }.toMap)
+                            .toList
 
-    val url = config.getString(JMSConfigConstants.JMS_URL)
-    if (url == null || url.trim.length == 0) {
-      throw new ConfigException(s"${JMSConfigConstants.JMS_URL} has not been set")
-    }
 
-    val user = config.getString(JMSConfigConstants.JMS_USER)
-    val passwordRaw = config.getPassword(JMSConfigConstants.JMS_PASSWORD)
-    val sources = kcql.map(_.getSource).toSet
-    val batchSize = config.getInt(JMSConfigConstants.BATCH_SIZE)
-
-    val fields = kcql.map(rm => (rm.getSource,
-      rm.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)
-    ).toMap
-
-    val ignoreFields = kcql.map(rm => (rm.getSource, rm.getIgnoredField.toSet)).toMap
-    
     val defaultConverter = Option(config.getString(JMSConfigConstants.DEFAULT_CONVERTER_CONFIG))
         .filterNot(c => c.isEmpty).map { c =>
         Try(getClass.getClassLoader.loadClass(c)) match {
@@ -91,12 +84,12 @@ object JMSSettings extends StrictLogging {
               throw new ConfigException(s"Invalid ${JMSConfigConstants.DEFAULT_CONVERTER_CONFIG}. $c is not inheriting Converter")
             }
             logger.info(s"Creating converter instance for $c")
-            val coverter = Try(this.getClass.getClassLoader.loadClass(c).newInstance()) match {
+            val converter = Try(this.getClass.getClassLoader.loadClass(c).newInstance()) match {
               case Success(value) => value.asInstanceOf[Converter]
               case Failure(_) => throw new ConfigException(s"Invalid ${JMSConfigConstants.DEFAULT_CONVERTER_CONFIG} is invalid. $c should have an empty ctor!")
             }
-            coverter.initialize(config.props.toMap)
-            coverter
+            converter.initialize(config.props.toMap)
+            converter
         }
       }
     
@@ -159,7 +152,7 @@ object JMSSettings extends StrictLogging {
       settings,
       Option(jmsSubscriptionName),
       Option(user),
-      Option(passwordRaw),
+      Option(password),
       batchSize,
       errorPolicy,
       nbrOfRetries)

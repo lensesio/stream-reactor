@@ -21,12 +21,12 @@ import java.nio.ByteBuffer
 import java.util.UUID
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import com.datastax.driver.core.{ ColumnDefinitions, Row, TestUtils }
-import org.apache.kafka.connect.data.{ Schema, Struct }
+import com.datastax.driver.core.{ColumnDefinitions, Row, TestUtils}
+import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.errors.DataException
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
-import org.scalatest.{ Matchers, WordSpec }
+import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
 

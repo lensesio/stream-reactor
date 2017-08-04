@@ -16,10 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.rethink
 
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSourceConfig}
+import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkSourceConfig
 import com.rethinkdb.RethinkDB
 import org.apache.kafka.connect.errors.ConnectException
-
 import org.scalatest.mock.MockitoSugar
 
 /**

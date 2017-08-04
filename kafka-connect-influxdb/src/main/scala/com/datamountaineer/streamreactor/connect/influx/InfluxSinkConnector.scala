@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.influx
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.influx.config.InfluxSinkConfig
+import com.datamountaineer.streamreactor.connect.influx.config.InfluxConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -34,7 +34,7 @@ import scala.collection.JavaConverters._
   **/
 class InfluxSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: Option[util.Map[String, String]] = None
-  private val configDef = InfluxSinkConfig.config
+  private val configDef = InfluxConfig.config
 
   /**
     * States which SinkTask class to use

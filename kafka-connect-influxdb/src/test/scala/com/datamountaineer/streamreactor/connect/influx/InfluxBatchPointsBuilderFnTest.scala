@@ -19,18 +19,18 @@ package com.datamountaineer.streamreactor.connect.influx
 import java.util
 
 import com.datamountaineer.connector.config.Tag
-import com.datamountaineer.streamreactor.connect.influx.config.{InfluxSettings, InfluxSinkConfig, InfluxSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.influx.config.{InfluxConfig, InfluxConfigConstants, InfluxSettings}
 import com.datamountaineer.streamreactor.connect.influx.writers.InfluxBatchPointsBuilderFn
 import com.fasterxml.jackson.core.`type`.TypeReference
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.influxdb.InfluxDB.ConsistencyLevel
 import org.influxdb.dto.Point
-import org.mockito.Mockito.when
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 
 class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with MockitoSugar {
@@ -164,14 +164,25 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val database = "mydatabase"
       val user = "myuser"
-      val config = mock[InfluxSinkConfig]
-      when(config.getString(InfluxSinkConfigConstants.INFLUX_URL_CONFIG)).thenReturn("http://localhost:8081")
-      when(config.getString(InfluxSinkConfigConstants.INFLUX_DATABASE_CONFIG)).thenReturn(database)
-      when(config.getString(InfluxSinkConfigConstants.INFLUX_CONNECTION_USER_CONFIG)).thenReturn(user)
-      when(config.getString(InfluxSinkConfigConstants.INFLUX_CONNECTION_PASSWORD_CONFIG)).thenReturn(null)
-      when(config.getString(InfluxSinkConfigConstants.ERROR_POLICY_CONFIG)).thenReturn("THROW")
-      when(config.getString(InfluxSinkConfigConstants.KCQL_CONFIG)).thenReturn(s"INSERT INTO $measurement SELECT * FROM $topic IGNORE ptype, pid WITHTIMESTAMP time WITHTAG (ptype, pid) ")
-      when(config.getString(InfluxSinkConfigConstants.CONSISTENCY_CONFIG)).thenReturn(ConsistencyLevel.QUORUM.toString)
+
+
+      val props = Map(
+        InfluxConfigConstants.INFLUX_URL_CONFIG->"http://localhost:8081",
+        InfluxConfigConstants.INFLUX_DATABASE_CONFIG->database,
+        InfluxConfigConstants.INFLUX_CONNECTION_USER_CONFIG->user,
+        InfluxConfigConstants.KCQL_CONFIG->s"INSERT INTO $measurement SELECT * FROM $topic IGNORE ptype, pid WITHTIMESTAMP time WITHTAG (ptype, pid) ",
+        InfluxConfigConstants.CONSISTENCY_CONFIG->ConsistencyLevel.QUORUM.toString
+      ).asJava
+
+      val config = InfluxConfig(props)
+
+//      when(config.getString(InfluxConfigConstants.INFLUX_URL_CONFIG)).thenReturn("http://localhost:8081")
+//      when(config.getString(InfluxConfigConstants.INFLUX_DATABASE_CONFIG)).thenReturn(database)
+//      when(config.getString(InfluxConfigConstants.INFLUX_CONNECTION_USER_CONFIG)).thenReturn(user)
+//      when(config.getString(InfluxConfigConstants.INFLUX_CONNECTION_PASSWORD_CONFIG)).thenReturn(null)
+//      when(config.getString(InfluxConfigConstants.ERROR_POLICY_CONFIG)).thenReturn("THROW")
+//      when(config.getString(InfluxConfigConstants.KCQL_CONFIG)).thenReturn(s"INSERT INTO $measurement SELECT * FROM $topic IGNORE ptype, pid WITHTIMESTAMP time WITHTAG (ptype, pid) ")
+//      when(config.getString(InfluxConfigConstants.CONSISTENCY_CONFIG)).thenReturn(ConsistencyLevel.QUORUM.toString)
       val settings = InfluxSettings(config)
 
       val before = System.currentTimeMillis()

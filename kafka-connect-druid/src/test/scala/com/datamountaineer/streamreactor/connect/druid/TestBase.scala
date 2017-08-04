@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.druid
 import java.nio.file.Paths
 import java.util
 
-import com.datamountaineer.streamreactor.connect.druid.config.{DruidSinkConfig, DruidSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.druid.config.DruidSinkConfigConstants
 
 import scala.collection.JavaConverters._
 

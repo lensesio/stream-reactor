@@ -65,14 +65,39 @@ A collection of components to build a real time ingestion pipeline.
 *   Support for dates in Elastic Indexes and custom document types
 *   Upgrade Azure Documentdb to 1.11.0
 *   Removed unused batch size and bucket size options from Kudu, they are taken from KCQL
-*   Added optional progress counter to all connectors, it can be enabled with ``connect.progress.enabled`` which will 
-periodically report log messages processed
+*   Added optional progress counter to all connectors, it can be enabled with ``connect.progress.enabled`` which will periodically report log messages processed
 *   Added authentication and TLS to ReThink Connectors
 *   Fixed Avro double fields mapping to Kudu columns
 *   Removed unused batch size option from DocumentDb
 *   Added TLS support for ReThinkDB, add batch size option to source for draining the internal queues.
 *   Rename MongoDb `connect.mongo.database` to `connect.mongo.db`
 *   Rename MongoDb `connect.mongo.sink.batch.size` to `connect.mongo.batch.size`
+*   Rename Druid `connect.druid.sink.kcql` to `connect.druid.kcql`
+*   Rename Druid `connect.druid.sink.conf.file` to `connect.druid.kcql`
+*   Rename Druid `connect.druid.sink.write.timeout` to `connect.druid.write.timeout`
+*   Rename Elastic `connect.elastic.sink.kcql` to `connect.elastic.kcql`
+*   Rename HBase `connect.hbase.sink.column.family` to `connect.hbase.column.family`
+*   Rename HBase `connect.hbase.sink.kcql` to `connect.hbase.kcql`
+*   Rename HBase `connect.hbase.sink.error.policy` to `connect.hbase.error.policy`
+*   Rename HBase `connect.hbase.sink.max.retries` to `connect.hbase.max.retries`
+*   Rename HBase `connect.hbase.sink.retry.interval` to `connect.hbase.retry.interval`
+*   Rename Influx `connect.influx.sink.kcql` to `connect.influx.kcql`
+*   Rename Influx `connect.influx.connection.user` to `connect.influx.username`
+*   Rename Influx `connect.influx.connection.password` to `connect.influx.password`
+*   Rename Influx `connect.influx.connection.database` to `connect.influx.db`
+*   Rename Influx `connect.influx.connection.url` to `connect.influx.url`
+*   Rename Kudu `connect.kudu.sink.kcql` to `connect.kudu.kcql`
+*   Rename Kudu `connect.kudu.sink.error.policy` to `connect.kudu.error.policy`
+*   Rename Kudu `connect.kudu.sink.retry.interval` to `connect.kudu.retry.interval`
+*   Rename Kudu `connect.kudu.sink.schema.registry.url` to `connect.kudu.schema.registry.url`
+*   Rename Redis `connect.redis.connection.password` to `connect.redis.password` 
+*   Rename Redis `connect.redis.sink.kcql` to `connect.redis.kcql`
+*   Rename JMS `connect.jms.user` to `connect.jms.username`
+*   Rename Mqtt `connect.mqtt.source.kcql` to `connect.mqtt.kcql`
+*   Rename Mqtt `connect.mqtt.source.converters` to `connect.mqtt.converters`
+*   Rename Mqtt `connect.mqtt.user` to `connect.mqtt.username`
+*   Rename Mqtt `connect.mqtt.hosts` to `connect.mqtt.connection.hosts`
+
 
 **0.2.5 (8 Apr 2017)**
 

@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.kudu
 
 import com.datamountaineer.kafka.EmbeddedSingleNodeKafkaCluster
 import com.datamountaineer.kafka.schemaregistry.RestApp
-import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig, KuduSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduConfigConstants, KuduSettings}
 import com.datamountaineer.streamreactor.connect.kudu.sink.{CreateTableProps, DbHandler}
 import io.confluent.kafka.schemaregistry.client.rest.RestService
 import org.apache.kafka.connect.errors.ConnectException
@@ -52,7 +52,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
   }
 
   "Should throw because auto create with no distribute by keys" in {
-    val config = new KuduSinkConfig(getConfig)
+    val config = new KuduConfig(getConfig)
     val settings = KuduSettings(config)
     val schema =
       """
@@ -72,15 +72,15 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
       """.stripMargin
 
     intercept[ConnectException] {
-      settings.routes.map(r => DbHandler.getKuduSchema(r, schema))
+      settings.kcql.map(r => DbHandler.getKuduSchema(r, schema))
     }
   }
 
   "Should return a Kudu create schema" in {
-    val config = new KuduSinkConfig(getConfigAutoCreate(""))
+    val config = new KuduConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
 
-    val creates = settings.routes.map(r => DbHandler.getKuduSchema(r, schema))
+    val creates = settings.kcql.map(r => DbHandler.getKuduSchema(r, schema))
     val create = creates.head
     create.getColumnCount shouldBe 8
     create.getPrimaryKeyColumnCount shouldBe 2
@@ -97,10 +97,10 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
   }
 
   "Should return a Kudu Create schema with default" in {
-    val config = new KuduSinkConfig(getConfigAutoCreate(""))
+    val config = new KuduConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
 
-    val creates = settings.routes.map(r => DbHandler.getKuduSchema(r, schemaDefaults))
+    val creates = settings.kcql.map(r => DbHandler.getKuduSchema(r, schemaDefaults))
     val create = creates.head
     create.getColumnCount shouldBe 8
     create.getPrimaryKeyColumnCount shouldBe 2
@@ -127,7 +127,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     when(client.openTable(TABLE)).thenReturn(table)
     when(client.newSession()).thenReturn(kuduSession)
 
-    val config = new KuduSinkConfig(getConfigAutoCreate(""))
+    val config = new KuduConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
     val cache = DbHandler.buildTableCache(settings, client)
     cache(TOPIC) shouldBe table
@@ -144,7 +144,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     when(client.openTable(TABLE)).thenReturn(table)
     when(client.newSession()).thenReturn(kuduSession)
 
-    val config = new KuduSinkConfig(getConfig)
+    val config = new KuduConfig(getConfig)
     val settings = KuduSettings(config)
     intercept[ConnectException] {
       DbHandler.buildTableCache(settings, client)
@@ -178,7 +178,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     srClient.registerSchema(rawSchema, TOPIC)
 
     //set up configs
-    val config = new KuduSinkConfig(getConfigAutoCreate("http://localhost:8081"))
+    val config = new KuduConfig(getConfigAutoCreate("http://localhost:8081"))
     val settings = KuduSettings(config)
 
     //mock out kudu client
@@ -187,13 +187,13 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
 
     val kuduSchemas = DbHandler.createTableProps(
       Set(rawSchema),
-      settings.routes.head,
-      config.getString(KuduSinkConfigConstants.SCHEMA_REGISTRY_URL),
+      settings.kcql.head,
+      config.getString(KuduConfigConstants.SCHEMA_REGISTRY_URL),
       client)
 
     val kuduSchema = kuduSchemas.head.schema
     val cto = new CreateTableOptions
-    val pks = settings.routes.head.getPrimaryKeys.asScala.toList.asJava
+    val pks = settings.kcql.head.getPrimaryKeys.asScala.toList.asJava
     cto.addHashPartitions(pks, 10)
     when(client.createTable(TABLE, kuduSchema, cto)).thenReturn(table)
     val ctp = CreateTableProps(TABLE, kuduSchema, cto)
@@ -218,9 +218,9 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
   "should create table from sinkRecord" in {
     val client = mock[KuduClient]
     val record: SinkRecord = getTestRecords.head
-    val config = new KuduSinkConfig(getConfigAutoCreate(""))
+    val config = new KuduConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
-    val ret = DbHandler.createTableFromSinkRecord(settings.routes.head, record.valueSchema(), client)
+    val ret = DbHandler.createTableFromSinkRecord(settings.kcql.head, record.valueSchema(), client)
     ret.isInstanceOf[Try[KuduTable]] shouldBe true
   }
 }

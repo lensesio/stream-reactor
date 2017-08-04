@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.elastic
 
-import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticSettings, ElasticSinkConfig, ElasticSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
 import com.sksamuel.elastic4s.xpack.security.XPackElasticClient
 import com.sksamuel.elastic4s.{ElasticsearchClientUri, TcpClient}
 import org.apache.kafka.connect.sink.SinkTaskContext
@@ -29,10 +29,10 @@ object ElasticWriter {
     * @param config An elasticSinkConfig to extract settings from.
     * @return An ElasticJsonWriter to write records from Kafka to ElasticSearch.
     **/
-  def apply(config: ElasticSinkConfig, context: SinkTaskContext): ElasticJsonWriter = {
-    val hostNames = config.getString(ElasticSinkConfigConstants.URL)
-    val esClusterName = config.getString(ElasticSinkConfigConstants.ES_CLUSTER_NAME)
-    val esPrefix = config.getString(ElasticSinkConfigConstants.URL_PREFIX)
+  def apply(config: ElasticConfig, context: SinkTaskContext): ElasticJsonWriter = {
+    val hostNames = config.getString(ElasticConfigConstants.URL)
+    val esClusterName = config.getString(ElasticConfigConstants.ES_CLUSTER_NAME)
+    val esPrefix = config.getString(ElasticConfigConstants.URL_PREFIX)
     val essettings = Settings
       .builder()
       .put("cluster.name", esClusterName)

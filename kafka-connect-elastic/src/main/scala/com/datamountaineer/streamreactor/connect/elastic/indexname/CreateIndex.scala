@@ -18,7 +18,7 @@ object CreateIndex {
     client.execute {
       Option(config.getDocType) match {
         case None => create index indexName
-        case Some(documentType) => create index indexName mappings documentType
+        case Some(documentType) => create index indexName mappings (mapping(documentType))
       }
     }
   }

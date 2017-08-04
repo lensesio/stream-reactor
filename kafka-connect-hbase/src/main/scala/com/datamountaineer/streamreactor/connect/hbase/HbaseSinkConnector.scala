@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.hbase
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.hbase.config.HbaseSinkConfig
+import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -34,7 +34,7 @@ import scala.collection.JavaConverters._
   * */
 class HbaseSinkConnector extends SinkConnector with StrictLogging {
   private var configProps : Option[util.Map[String, String]] = None
-  private val configDef = HbaseSinkConfig.config
+  private val configDef = HBaseConfig.config
 
   /**
     * States which SinkTask class to use

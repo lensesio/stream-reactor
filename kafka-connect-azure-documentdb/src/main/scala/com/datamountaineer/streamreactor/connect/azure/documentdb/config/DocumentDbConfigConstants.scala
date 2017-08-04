@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.azure.documentdb.config
 
-import com.datamountaineer.streamreactor.temp.const.TraitConfigConst._
+import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
 
 /**
   * Holds the constants used in the config.
@@ -36,7 +36,7 @@ object DocumentDbConfigConstants {
   val MASTER_KEY_DOC = "The connection master key"
   val MASTER_KEY_DISPLAY = "Master Key"
 
-  val ERROR_POLICY_CONFIG = s"$CONNECTOR_PREFIX.error.policy"
+  val ERROR_POLICY_CONFIG = s"$CONNECTOR_PREFIX.${ERROR_POLICY_PROP_SUFFIX}"
   val ERROR_POLICY_DOC: String =
     """Specifies the action to be taken if an error occurs while inserting the data
       |There are two available options:
@@ -46,18 +46,18 @@ object DocumentDbConfigConstants {
       |The error will be logged automatically""".stripMargin
   val ERROR_POLICY_DEFAULT = "THROW"
 
-  val ERROR_RETRY_INTERVAL_CONFIG = s"$CONNECTOR_PREFIX.retry.interval"
+  val ERROR_RETRY_INTERVAL_CONFIG = s"$CONNECTOR_PREFIX.${RETRY_INTERVAL_PROP_SUFFIX}"
   val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
   val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
 
-  val NBR_OF_RETRIES_CONFIG = s"$CONNECTOR_PREFIX.max.retries"
+  val NBR_OF_RETRIES_CONFIG = s"$CONNECTOR_PREFIX.${MAX_RETRIES_PROP_SUFFIX}"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
-  val KCQL_CONFIG = s"$CONNECTOR_PREFIX.kcql"
+  val KCQL_CONFIG = s"$CONNECTOR_PREFIX.${KCQL_PROP_SUFFIX}"
   val KCQL_DOC = "KCQL expression describing field selection and data routing to the target DocumentDb."
 
-  val CONSISTENCY_CONFIG = s"$CONNECTOR_PREFIX.consistency.level"
+  val CONSISTENCY_CONFIG = s"$CONNECTOR_PREFIX.${CONSISTENCY_LEVEL_PROP_SUFFIX}"
   val CONSISTENCY_DOC = "Determines the write visibility. There are four possible values: Strong,BoundedStaleness,Session or Eventual"
   val CONSISTENCY_DISPLAY = "Writes consistency"
   val CONSISTENCY_DEFAULT = "Session"
@@ -71,7 +71,7 @@ object DocumentDbConfigConstants {
   val PROXY_HOST_DOC = "Specifies the connection proxy details."
   val PROXY_HOST_DISPLAY = "Proxy URI"
 
-  val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"
+  val PROGRESS_COUNTER_ENABLED = PROGRESS_ENABLED_CONST
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"

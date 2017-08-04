@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.hbase.writers
 
 import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
-import com.datamountaineer.streamreactor.connect.hbase.config.{HbaseSettings, HbaseSinkConfig, HbaseSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.hbase.config.{HBaseConfig, HBaseConfigConstants, HBaseSettings}
 import com.datamountaineer.streamreactor.connect.hbase.{FieldsValuesExtractor, HbaseHelper, HbaseTableHelper, StructFieldsRowKeyBuilderBytes}
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -27,6 +27,8 @@ import org.kitesdk.minicluster._
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
+
+import scala.collection.JavaConverters._
 
 class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with BeforeAndAfter {
 
@@ -57,19 +59,19 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
 
       val fieldsExtractor = mock[FieldsValuesExtractor]
       val rowKeyBuilder = mock[StructFieldsRowKeyBuilderBytes]
-
-      val config = mock[HbaseSinkConfig]
       val tableName = "someTable"
       val topic = "someTopic"
       val columnFamily = "somecolumnFamily"
 
+
       val QUERY_ALL = s"INSERT INTO $tableName SELECT * FROM $topic PK firstName"
+      val props = Map(
+        HBaseConfigConstants.KCQL_QUERY->QUERY_ALL,
+        HBaseConfigConstants.COLUMN_FAMILY->"somecolumnFamily"
+      ).asJava
 
-      when(config.getString(HbaseSinkConfigConstants.COLUMN_FAMILY)).thenReturn(columnFamily)
-      when(config.getString(HbaseSinkConfigConstants.EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL)
-      when(config.getString(HbaseSinkConfigConstants.ERROR_POLICY)).thenReturn("THROW")
-
-      val settings = HbaseSettings(config)
+      val config = HBaseConfig(props)
+      val settings = HBaseSettings(config)
 
       val writer = new HbaseWriter(settings)
 
@@ -125,18 +127,18 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
     "write an Hbase row for each SinkRecord provided using GenericRowKeyBuilderBytes" in {
 
       val fieldsExtractor = mock[FieldsValuesExtractor]
-      val config = mock[HbaseSinkConfig]
       val tableName = "someTable"
       val topic = "someTopic"
       val columnFamily = "somecolumnFamily"
       val QUERY_ALL = s"INSERT INTO $tableName SELECT * FROM $topic"
 
-      when(config.getString(HbaseSinkConfigConstants.COLUMN_FAMILY)).thenReturn(columnFamily)
-      when(config.getString(HbaseSinkConfigConstants.EXPORT_ROUTE_QUERY)).thenReturn(QUERY_ALL)
-      when(config.getString(HbaseSinkConfigConstants.ERROR_POLICY)).thenReturn("THROW")
+      val props = Map(
+        HBaseConfigConstants.KCQL_QUERY->QUERY_ALL,
+        HBaseConfigConstants.COLUMN_FAMILY->"somecolumnFamily"
+      ).asJava
 
-      val settings = HbaseSettings(config)
-
+      val config = HBaseConfig(props)
+      val settings = HBaseSettings(config)
       val writer = new HbaseWriter(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Person")

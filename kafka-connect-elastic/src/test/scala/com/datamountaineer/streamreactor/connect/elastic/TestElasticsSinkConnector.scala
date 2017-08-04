@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.elastic
 
-import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticSinkConfig, ElasticSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.elastic.config.ElasticConfigConstants
 
 import scala.collection.JavaConverters._
 
@@ -30,7 +30,7 @@ class TestElasticsSinkConnector extends TestElasticBase {
     connector.start(config)
     //check config
     val taskConfigs = connector.taskConfigs(10)
-    taskConfigs.asScala.head.get(ElasticSinkConfigConstants.URL) shouldBe ELASTIC_SEARCH_HOSTNAMES
+    taskConfigs.asScala.head.get(ElasticConfigConstants.URL) shouldBe ELASTIC_SEARCH_HOSTNAMES
     taskConfigs.size() shouldBe 10
     //check connector
     connector.taskClass() shouldBe classOf[ElasticSinkTask]
