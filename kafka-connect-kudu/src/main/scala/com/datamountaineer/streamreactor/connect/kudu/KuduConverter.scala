@@ -19,9 +19,9 @@ package com.datamountaineer.streamreactor.connect.kudu
 import org.apache.kafka.connect.data.Schema.Type
 import org.apache.kafka.connect.data.{Field, Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.kududb.ColumnSchema
-import org.kududb.ColumnSchema.ColumnSchemaBuilder
-import org.kududb.client.{KuduTable, PartialRow, Upsert}
+import org.apache.kudu.ColumnSchema
+import org.apache.kudu.ColumnSchema.ColumnSchemaBuilder
+import org.apache.kudu.client.{KuduTable, PartialRow, Upsert}
 
 import scala.collection.JavaConversions._
 
@@ -80,15 +80,15 @@ trait KuduConverter {
     *
     * @param record A sinkRecord to get the value schema from
     **/
-  def convertToKuduSchema(record: SinkRecord): org.kududb.Schema = {
+  def convertToKuduSchema(record: SinkRecord): org.apache.kudu.Schema = {
     val connectFields = record.valueSchema().fields()
     val kuduFields = createKuduColumns(connectFields.toSet)
-    new org.kududb.Schema(kuduFields.toList)
+    new org.apache.kudu.Schema(kuduFields.toList)
   }
 
-  def convertToKuduSchema(schema: Schema): org.kududb.Schema = {
+  def convertToKuduSchema(schema: Schema): org.apache.kudu.Schema = {
     val connectFields = createKuduColumns(schema.fields().toSet)
-    new org.kududb.Schema(connectFields.toList)
+    new org.apache.kudu.Schema(connectFields.toList)
   }
 
   def createKuduColumns(fields: Set[Field]): Set[ColumnSchema] = fields.map(cf => convertConnectField(cf))
@@ -104,15 +104,15 @@ trait KuduConverter {
     val fieldType = field.schema().`type`()
     val fieldName = field.name()
     val kudu = fieldType match {
-      case Type.STRING => new ColumnSchemaBuilder(fieldName, org.kududb.Type.STRING)
-      case Type.INT8 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.INT8)
-      case Type.INT16 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.INT16)
-      case Type.INT32 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.INT32)
-      case Type.INT64 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.INT64)
-      case Type.BOOLEAN => new ColumnSchemaBuilder(fieldName, org.kududb.Type.BOOL)
-      case Type.FLOAT32 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.FLOAT)
-      case Type.FLOAT64 => new ColumnSchemaBuilder(fieldName, org.kududb.Type.DOUBLE)
-      case Type.BYTES => new ColumnSchemaBuilder(fieldName, org.kududb.Type.BINARY)
+      case Type.STRING => new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.STRING)
+      case Type.INT8 => new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.INT8)
+      case Type.INT16 => new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.INT16)
+      case Type.INT32 => new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.INT32)
+      case Type.INT64 => new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.INT64)
+      case Type.BOOLEAN => new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.BOOL)
+      case Type.FLOAT32 => new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.FLOAT)
+      case Type.FLOAT64 => new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.DOUBLE)
+      case Type.BYTES => new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.BINARY)
       case _ => throw new UnsupportedOperationException(s"Unknown type $fieldType")
     }
     val default = field.schema().defaultValue()
@@ -136,14 +136,14 @@ trait KuduConverter {
       case org.apache.avro.Schema.Type.UNION =>
         val union = getNonNull(schema)
         fromAvro(union, fieldName)
-      case org.apache.avro.Schema.Type.FIXED => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.BINARY)
-      case org.apache.avro.Schema.Type.STRING => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.STRING)
-      case org.apache.avro.Schema.Type.BYTES => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.BINARY)
-      case org.apache.avro.Schema.Type.INT => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.INT32)
-      case org.apache.avro.Schema.Type.LONG => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.INT64)
-      case org.apache.avro.Schema.Type.FLOAT => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.FLOAT)
-      case org.apache.avro.Schema.Type.DOUBLE => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.DOUBLE)
-      case org.apache.avro.Schema.Type.BOOLEAN => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.kududb.Type.BOOL)
+      case org.apache.avro.Schema.Type.FIXED => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.BINARY)
+      case org.apache.avro.Schema.Type.STRING => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.STRING)
+      case org.apache.avro.Schema.Type.BYTES => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.BINARY)
+      case org.apache.avro.Schema.Type.INT => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.INT32)
+      case org.apache.avro.Schema.Type.LONG => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.INT64)
+      case org.apache.avro.Schema.Type.FLOAT => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.FLOAT)
+      case org.apache.avro.Schema.Type.DOUBLE => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.DOUBLE)
+      case org.apache.avro.Schema.Type.BOOLEAN => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.BOOL)
       case org.apache.avro.Schema.Type.NULL => throw new RuntimeException("Avro type NULL not supported")
       case _ => throw new RuntimeException("Avro type not supported")
     }

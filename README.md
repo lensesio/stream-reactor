@@ -49,6 +49,7 @@ A collection of components to build a real time ingestion pipeline.
 
 **0.2.6 (Pending)**
 
+*   Upgrade Kudu Client to 1.4.0
 *   Fixes for high CPU on CoAP source
 *   Fixes for high CPU on Cassandra source
 *   Add CQL generator to Cassandra source

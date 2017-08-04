@@ -23,7 +23,7 @@ import com.datamountaineer.streamreactor.connect.kudu.sink.{CreateTableProps, Db
 import io.confluent.kafka.schemaregistry.client.rest.RestService
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
-import org.kududb.client._
+import org.apache.kudu.client._
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 
@@ -87,10 +87,10 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val cols = create.getColumns
     val pks = create.getPrimaryKeyColumns
     pks.get(0).getName shouldBe "name"
-    pks.get(0).getType shouldBe org.kududb.Type.STRING
+    pks.get(0).getType shouldBe org.apache.kudu.Type.STRING
 
     pks.get(1).getName shouldBe "adult"
-    pks.get(1).getType shouldBe org.kududb.Type.BOOL
+    pks.get(1).getType shouldBe org.apache.kudu.Type.BOOL
 
     //get nullable since no default in avro
     cols.get(2).isNullable shouldBe true
@@ -107,10 +107,10 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val cols = create.getColumns
     val pks = create.getPrimaryKeyColumns
     pks.get(0).getName shouldBe "name"
-    pks.get(0).getType shouldBe org.kududb.Type.STRING
+    pks.get(0).getType shouldBe org.apache.kudu.Type.STRING
 
     pks.get(1).getName shouldBe "adult"
-    pks.get(1).getType shouldBe org.kududb.Type.BOOL
+    pks.get(1).getType shouldBe org.apache.kudu.Type.BOOL
 
     //get nullable since no default in avro
     cols.get(2).isNullable shouldBe true
