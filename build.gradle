@@ -56,7 +56,7 @@ allprojects {
 
     ext {
         scalaMajorVersion = '2.11'
-        scala = '2.11.7'
+        scala = '2.11.11'
         scalaCheck = '1.11.1'
         scalaTest = '2.2.6'
         junit = '4.11'
@@ -75,8 +75,8 @@ allprojects {
         connectCLIVersion = "1.0.1"
 
         // The following 4 need to align to compile against a particular version
-        confluentVersion = '3.2.0'
-        kafkaVersion = '0.10.2.0'
+        confluentVersion = '3.2.2'
+        kafkaVersion = '0.10.2.1-cp2'
         dataMountaineerCommonVersion = "0.7.9"
         dataMountaineerTestKitVersion = "0.5"
 
