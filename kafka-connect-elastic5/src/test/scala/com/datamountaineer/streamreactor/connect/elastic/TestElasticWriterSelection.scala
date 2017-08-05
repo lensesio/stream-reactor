@@ -45,7 +45,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //get writer
 
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(tcpClient = Some(client), None, settings = settings)
+    val writer = new ElasticJsonWriter(new TcpKElasticClient(client), settings)
     //write records to elastic
     writer.write(testRecords)
 
@@ -75,7 +75,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
     val client = localNode.elastic4sclient(true)
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(Some(client), None, settings)
+    val writer = new ElasticJsonWriter(new TcpKElasticClient(client), settings)
     //First run writes records to elastic
     writer.write(testRecords)
 

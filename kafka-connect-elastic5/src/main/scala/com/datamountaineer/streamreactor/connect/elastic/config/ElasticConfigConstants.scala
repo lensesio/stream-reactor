@@ -67,6 +67,11 @@ object ElasticConfigConstants {
       |The error will be logged automatically""".stripMargin
   val ERROR_POLICY_DEFAULT = "THROW"
 
+  val BATCH_SIZE_CONFIG = s"$CONNECTOR_PREFIX.$BATCH_SIZE_PROP_SUFFIX"
+  val BATCH_SIZE_DOC= "How many records to process at one time. As records are pulled from Kafka it can be 100k+ which will not be feasible to throw at Elastic search at once"
+  val BATCH_SIZE_DISPLAY="Batch size"
+  val BATCH_SIZE_DEFAULT = 4000
+
   /*
   val INDEX_NAME_SUFFIX = s"${CONNECTOR_PREFIX}.index.suffix"
   val INDEX_NAME_SUFFIX_DOC = "Suffix to append to the index name. Supports date time notation inside curly brackets. E.g. 'abc_{YYYY-MM-dd}_def'"

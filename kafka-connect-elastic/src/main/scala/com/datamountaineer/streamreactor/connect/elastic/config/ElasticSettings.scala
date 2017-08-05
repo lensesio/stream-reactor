@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.connect.elastic.config
 
 import com.datamountaineer.connector.config.Config
+
 /**
   * Created by andrew@datamountaineer.com on 13/05/16. 
   * stream-reactor-maven
@@ -27,7 +28,8 @@ case class ElasticSettings(kcql: Set[Config],
                            pks: Map[String, String],
                            tableMap: Map[String, String],
                            writeTimeout: Int = ElasticConfigConstants.WRITE_TIMEOUT_DEFAULT,
-                           throwOnError: Boolean = ElasticConfigConstants.THROW_ON_ERROR_DEFAULT)
+                           throwOnError: Boolean = ElasticConfigConstants.THROW_ON_ERROR_DEFAULT,
+                           batchSize: Int = ElasticConfigConstants.BATCH_SIZE_DEFAULT)
 
 object ElasticSettings {
 
@@ -43,13 +45,15 @@ object ElasticSettings {
     //TODO SHOULD THIS NOT BE THE STANDARD ERROR POLICY?????
     val throwOnError = config.getBoolean(ElasticConfigConstants.THROW_ON_ERROR_CONFIG)
 
+    val batchSize = config.getInt(ElasticConfigConstants.BATCH_SIZE_CONFIG)
     ElasticSettings(kcql = kcql,
       fields = fields,
       ignoreFields = ignoreFields,
       pks = pks,
       tableMap = tableMap,
       writeTimeout,
-      throwOnError)
+      throwOnError,
+      batchSize)
 
   }
 }

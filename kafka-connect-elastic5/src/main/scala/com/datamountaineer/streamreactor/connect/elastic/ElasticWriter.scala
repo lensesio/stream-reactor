@@ -16,11 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.elastic
 
-import com.datamountaineer.streamreactor.connect.elastic.config.{ClientType, ElasticConfig, ElasticConfigConstants, ElasticSettings}
-import com.sksamuel.elastic4s.http.HttpClient
-import com.sksamuel.elastic4s.xpack.security.XPackElasticClient
-import com.sksamuel.elastic4s.{ElasticsearchClientUri, TcpClient}
-import org.apache.kafka.connect.sink.SinkTaskContext
+import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
+import com.sksamuel.elastic4s.ElasticsearchClientUri
 import org.elasticsearch.common.settings.Settings
 
 
@@ -31,30 +28,19 @@ object ElasticWriter {
     * @param config An elasticSinkConfig to extract settings from.
     * @return An ElasticJsonWriter to write records from Kafka to ElasticSearch.
     **/
-  def apply(config: ElasticConfig, context: SinkTaskContext): ElasticJsonWriter = {
+  def apply(config: ElasticConfig): ElasticJsonWriter = {
     val hostNames = config.getString(ElasticConfigConstants.URL)
     val esClusterName = config.getString(ElasticConfigConstants.ES_CLUSTER_NAME)
     val esPrefix = config.getString(ElasticConfigConstants.URL_PREFIX)
-    val essettings = Settings
+    val essettings: Settings = Settings
       .builder()
       .put("cluster.name", esClusterName)
       .build()
-    val uri = ElasticsearchClientUri(s"$esPrefix://$hostNames")
+    val uri: ElasticsearchClientUri = ElasticsearchClientUri(s"$esPrefix://$hostNames")
 
     val settings = ElasticSettings(config)
 
-    val tcpClient = if (settings.xPackSettings.nonEmpty) {
-      XPackElasticClient(essettings, uri, settings.xpackPluggins: _*)
-    } else {
-      TcpClient.transport(essettings, uri)
-    }
 
-    val httpClient = if (settings.clientType.equals(ClientType.HTTP)) {
-      Some(HttpClient(uri))
-    } else {
-      None
-    }
-
-    new ElasticJsonWriter(Some(tcpClient), httpClient, settings)
+    new ElasticJsonWriter(KElasticClient.getClient(settings, essettings, uri), settings)
   }
 }

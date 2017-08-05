@@ -38,8 +38,8 @@ case class ElasticSettings(kcql: Set[Config],
                            writeTimeout: Int = ElasticConfigConstants.WRITE_TIMEOUT_DEFAULT,
                            xPackSettings: Map[String, String] = Map.empty,
                            xpackPluggins: Seq[Class[_ <: Plugin]] = Seq.empty,
-                           clientType: ClientType = ClientType.TCP
-                          )
+                           clientType: ClientType = ClientType.TCP,
+                           batchSize: Int = ElasticConfigConstants.BATCH_SIZE_DEFAULT)
 
 
 object ElasticSettings {
@@ -53,7 +53,7 @@ object ElasticSettings {
     val writeTimeout = config.getWriteTimeout
     val errorPolicy = config.getErrorPolicy
     val retries = config.getNumberRetries
-    val clientType =  ClientType.withName(config.getString(ElasticConfigConstants.CLIENT_TYPE_CONFIG).toUpperCase)
+    val clientType = ClientType.withName(config.getString(ElasticConfigConstants.CLIENT_TYPE_CONFIG).toUpperCase)
 
     val xPackSettings = Option(config.getString(ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS))
       .map { value =>
@@ -85,6 +85,9 @@ object ElasticSettings {
           .toSeq
       }.getOrElse(Seq.empty)
 
+
+    val batchSize = config.getInt(ElasticConfigConstants.BATCH_SIZE_CONFIG)
+
     ElasticSettings(kcql = kcql,
       fields = fields,
       ignoreFields = ignoreFields,
@@ -95,7 +98,8 @@ object ElasticSettings {
       writeTimeout,
       xPackSettings,
       xPackPlugins,
-      clientType
+      clientType,
+      batchSize
     )
   }
 }

@@ -106,7 +106,8 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll {
     val settings = JMSSettings(config, false)
     val reader = JMSReader(settings)
 
-    val messagesRead = reader.poll()
+    val messagesRead = reader.poll().toVector
+    messagesRead.nonEmpty shouldBe true
     val sourceRecord = messagesRead.head._2
 
     sourceRecord.value().isInstanceOf[Struct] shouldBe true

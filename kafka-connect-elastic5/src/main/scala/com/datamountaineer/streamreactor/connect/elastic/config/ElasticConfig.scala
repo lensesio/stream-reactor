@@ -76,8 +76,16 @@ object ElasticConfig {
       5,
       ConfigDef.Width.MEDIUM,
       ElasticConfigConstants.CLIENT_TYPE_CONFIG)
-
-
+    .define(
+      ElasticConfigConstants.BATCH_SIZE_CONFIG,
+      Type.INT,
+      ElasticConfigConstants.BATCH_SIZE_DEFAULT,
+      Importance.MEDIUM,
+      ElasticConfigConstants.BATCH_SIZE_DOC,
+      "Connection",
+      6,
+      ConfigDef.Width.MEDIUM,
+      ElasticConfigConstants.BATCH_SIZE_DISPLAY)
     .define(
       ElasticConfigConstants.ERROR_POLICY_CONFIG,
       Type.STRING,
