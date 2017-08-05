@@ -67,6 +67,18 @@ object ElasticConfig {
       ConfigDef.Width.MEDIUM,
       ElasticConfigConstants.WRITE_TIMEOUT_DISPLAY)
     .define(
+      ElasticConfigConstants.CLIENT_TYPE_CONFIG,
+      Type.STRING,
+      ElasticConfigConstants.CLIENT_TYPE_CONFIG_DEFAULT,
+      Importance.MEDIUM,
+      ElasticConfigConstants.CLIENT_TYPE_CONFIG_DOC,
+      "Connection",
+      5,
+      ConfigDef.Width.MEDIUM,
+      ElasticConfigConstants.CLIENT_TYPE_CONFIG)
+
+
+    .define(
       ElasticConfigConstants.ERROR_POLICY_CONFIG,
       Type.STRING,
       ElasticConfigConstants.ERROR_POLICY_DEFAULT,

@@ -20,7 +20,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter._
 import java.util
 
-import com.datamountaineer.streamreactor.connect.elastic.config.ElasticConfigConstants
+import com.datamountaineer.streamreactor.connect.elastic.config.{ClientType, ElasticConfigConstants}
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -146,6 +146,16 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
   def getElasticSinkConfigPropsDefaults = {
     Map(
       ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES
+    ).asJava
+  }
+
+  def getElasticSinkConfigPropsHTTPClient(autoCreate: Boolean) = {
+    Map(
+      ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
+      ElasticConfigConstants.ES_CLUSTER_NAME -> ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
+      ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
+      ElasticConfigConstants.KCQL -> QUERY,
+      ElasticConfigConstants.CLIENT_TYPE_CONFIG->ClientType.HTTP.toString
     ).asJava
   }
 }

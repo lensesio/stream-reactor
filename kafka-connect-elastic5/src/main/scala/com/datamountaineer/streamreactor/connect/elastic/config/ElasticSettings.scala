@@ -17,7 +17,9 @@
 package com.datamountaineer.streamreactor.connect.elastic.config
 
 import com.datamountaineer.connector.config.Config
+import com.datamountaineer.streamreactor.connect.elastic.config.ClientType.ClientType
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
+import org.apache.kafka.common.config.ConfigException
 import org.elasticsearch.plugins.Plugin
 
 import scala.util.Try
@@ -34,8 +36,10 @@ case class ElasticSettings(kcql: Set[Config],
                            errorPolicy: ErrorPolicy,
                            taskRetries: Int = ElasticConfigConstants.NBR_OF_RETIRES_DEFAULT,
                            writeTimeout: Int = ElasticConfigConstants.WRITE_TIMEOUT_DEFAULT,
-                           xpackSettings: Map[String, String] = Map.empty,
-                           xpackPluggins: Seq[Class[_ <: Plugin]] = Seq.empty)
+                           xPackSettings: Map[String, String] = Map.empty,
+                           xpackPluggins: Seq[Class[_ <: Plugin]] = Seq.empty,
+                           clientType: ClientType = ClientType.TCP
+                          )
 
 
 object ElasticSettings {
@@ -49,16 +53,21 @@ object ElasticSettings {
     val writeTimeout = config.getWriteTimeout
     val errorPolicy = config.getErrorPolicy
     val retries = config.getNumberRetries
+    val clientType =  ClientType.withName(config.getString(ElasticConfigConstants.CLIENT_TYPE_CONFIG).toUpperCase)
 
     val xPackSettings = Option(config.getString(ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS))
       .map { value =>
         value.split(";").map { s =>
           s.split("=") match {
             case Array(k, v) => k -> v
-            case _ => throw new IllegalArgumentException(s"Invalid setting provided for ${ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS}. '$s' is not a valid xpack setting. You need to provide in the format of 'key=value'")
+            case _ => throw new IllegalArgumentException(s"Invalid setting provided for ${ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS}. '$s' is not a valid XPACK setting. You need to provide in the format of 'key=value'")
           }
         }.toMap
       }.getOrElse(Map.empty)
+
+    if (xPackSettings.nonEmpty && clientType.equals(ClientType.HTTP)) {
+      throw new ConfigException("XPACK can not be used with the HTTP client for elastic4s")
+    }
 
     val xPackPlugins = Option(config.getString(ElasticConfigConstants.ES_CLUSTER_XPACK_PLUGINS))
       .map { value =>
@@ -85,7 +94,8 @@ object ElasticSettings {
       retries,
       writeTimeout,
       xPackSettings,
-      xPackPlugins
+      xPackPlugins,
+      clientType
     )
   }
 }

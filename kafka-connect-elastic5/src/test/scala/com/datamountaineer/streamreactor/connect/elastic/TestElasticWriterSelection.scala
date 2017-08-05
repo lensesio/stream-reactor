@@ -23,7 +23,7 @@ import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.embedded.LocalNode
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 
 import scala.reflect.io.File
 
@@ -45,7 +45,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //get writer
 
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(client = client, settings = settings)
+    val writer = new ElasticJsonWriter(tcpClient = Some(client), None, settings = settings)
     //write records to elastic
     writer.write(testRecords)
 
@@ -75,7 +75,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
     val client = localNode.elastic4sclient(true)
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(client, settings)
+    val writer = new ElasticJsonWriter(Some(client), None, settings)
     //First run writes records to elastic
     writer.write(testRecords)
 

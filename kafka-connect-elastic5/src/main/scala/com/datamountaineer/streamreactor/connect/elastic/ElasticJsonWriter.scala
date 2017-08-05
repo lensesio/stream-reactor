@@ -17,11 +17,12 @@
 package com.datamountaineer.streamreactor.connect.elastic
 
 import com.datamountaineer.connector.config.WriteModeEnum
-import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSettings
+import com.datamountaineer.streamreactor.connect.elastic.config.{ClientType, ElasticSettings}
 import com.datamountaineer.streamreactor.connect.elastic.indexname.CreateIndex
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.schemas.{ConverterUtil, StructFieldsExtractor}
 import com.sksamuel.elastic4s.ElasticDsl._
+import com.sksamuel.elastic4s.http.HttpClient
 import com.sksamuel.elastic4s.{Indexable, TcpClient}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.Struct
@@ -33,14 +34,20 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Try
 
-class ElasticJsonWriter(client: TcpClient, settings: ElasticSettings) extends ErrorHandler with StrictLogging with ConverterUtil {
+class ElasticJsonWriter(tcpClient: Option[TcpClient], httpClient: Option[HttpClient], settings: ElasticSettings)
+  extends ErrorHandler with StrictLogging with ConverterUtil {
+
   logger.info("Initialising Elastic Json writer")
 
   //initialize error tracker
   initialize(settings.taskRetries, settings.errorPolicy)
 
   //create the index automatically
-  settings.kcql.filter(_.isAutoCreate).foreach(kcql => CreateIndex(kcql)(client))
+  if (settings.clientType.equals(ClientType.TCP)) {
+    settings.kcql.filter(_.isAutoCreate).foreach(kcql => CreateIndex.tcp(kcql)(tcpClient.get))
+  } else {
+    settings.kcql.filter(_.isAutoCreate).foreach(kcql => CreateIndex.http(kcql)(httpClient.get))
+  }
 
   implicit object SinkRecordIndexable extends Indexable[SinkRecord] {
     override def json(t: SinkRecord): String = convertValueToJson(t).toString
@@ -49,7 +56,10 @@ class ElasticJsonWriter(client: TcpClient, settings: ElasticSettings) extends Er
   /**
     * Close elastic4s client
     **/
-  def close(): Unit = client.close()
+  def close(): Unit = {
+    tcpClient.map(_.close())
+    httpClient.map(_.close())
+  }
 
   private val configMap = settings.kcql.map(c => c.getSource -> c).toMap
 
@@ -98,7 +108,13 @@ class ElasticJsonWriter(client: TcpClient, settings: ElasticSettings) extends Er
             }
           }
 
-        client.execute(bulk(indexes).refresh(RefreshPolicy.IMMEDIATE))
+        // Try tcp first and fall back to http
+        if (settings.clientType.equals(ClientType.TCP)) {
+          tcpClient.get.execute(bulk(indexes).refresh(RefreshPolicy.IMMEDIATE))
+        } else {
+          import com.sksamuel.elastic4s.http.ElasticDsl._
+          httpClient.get.execute(bulk(indexes).refresh(RefreshPolicy.IMMEDIATE))
+        }
     }
 
     handleTry(
