@@ -26,7 +26,7 @@ public class Kcql {
     private String incrementalMode;
     private List<Field> fields = new ArrayList<>();
     private List<Field> ignoredFields = new ArrayList<>();
-    private List<String> primaryKeys = new ArrayList<>();
+    private List<Field> primaryKeys = new ArrayList<>();
     private List<String> partitionBy = new ArrayList<>();
     private int retries = 1;
     private int limit = 5;
@@ -84,7 +84,7 @@ public class Kcql {
         return false;
     }
 
-    private void addPrimaryKey(final String primaryKey) {
+    /*private void addPrimaryKey(final String primaryKey) {
         if (primaryKey == null || primaryKey.trim().length() == 0) {
             throw new IllegalArgumentException("Invalid primaryKey.");
         }
@@ -92,7 +92,7 @@ public class Kcql {
             throw new IllegalArgumentException(String.format("%s has already been defined", primaryKey));
         }
         primaryKeys.add(primaryKey);
-    }
+    }*/
 
     private void addPartitionByField(final String field) {
         if (field == null || field.trim().length() == 0) {
@@ -128,7 +128,7 @@ public class Kcql {
         return writeMode;
     }
 
-    public List<String> getPrimaryKeys() {
+    public List<Field> getPrimaryKeys() {
         return primaryKeys;//.iterator();
     }
 
@@ -256,6 +256,7 @@ public class Kcql {
         final String[] storedAsParameter = {null};
 
         final boolean[] isWithinIgnore = {false};
+
         parser.addParseListener(new ConnectorParserBaseListener() {
 
             @Override
@@ -393,8 +394,23 @@ public class Kcql {
             }
 
             @Override
+            public void enterPk_name(ConnectorParser.Pk_nameContext ctx) {
+                nestedFieldsBuffer.clear();
+            }
+
+            @Override
             public void exitPk_name(ConnectorParser.Pk_nameContext ctx) {
-                kcql.addPrimaryKey(ctx.getText());
+                List<String> parentFields = null;
+                String name = nestedFieldsBuffer.get(nestedFieldsBuffer.size() - 1);
+                nestedFieldsBuffer.remove(nestedFieldsBuffer.size() - 1);
+
+                if (nestedFieldsBuffer.size() > 0) {
+                    parentFields = nestedFieldsBuffer;
+                }
+
+                Field field = Field.from(name, parentFields);
+                kcql.primaryKeys.add(field);
+                //kcql.addPrimaryKey(ctx.getText());
             }
 
             @Override

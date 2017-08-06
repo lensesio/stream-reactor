@@ -88,7 +88,7 @@ ignore_clause
    ;
 
 pk_name
-   : FIELD
+   : column
    ;
 
 primary_key_list

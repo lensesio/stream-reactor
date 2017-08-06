@@ -34,7 +34,9 @@ public class KcqlSelectOnlyTest {
         assertNull(kcql.getTarget());
         assertFalse(kcql.getFields().isEmpty());
         assertTrue(kcql.getFields().get(0).getName().equals("*"));
-        HashSet<String> pks = new HashSet<>(kcql.getPrimaryKeys());
+        HashSet<String> pks = new HashSet<>();
+        kcql.getPrimaryKeys().forEach(f -> pks.add(f.toString()));
+
 
         assertEquals(0, pks.size());
         assertNull(kcql.getConsumerGroup());
@@ -55,7 +57,30 @@ public class KcqlSelectOnlyTest {
     public void testSELECTwithPK() {
         String KCQL = "SELECT temperature, humidity FROM sensorsTopic PK sensorID";
         Kcql kcql = Kcql.parse(KCQL);
-        assertEquals("sensorID", kcql.getPrimaryKeys().get(0));
+        assertEquals("sensorID", kcql.getPrimaryKeys().get(0).getName());
+        assertEquals("sensorID", kcql.getPrimaryKeys().get(0).getAlias());
+        assertNull(kcql.getPrimaryKeys().get(0).getParentFields());
+    }
+
+    @Test
+    public void testSELECTwithNestedFieldsInPK() {
+        String KCQL = "SELECT temperature, humidity FROM sensorsTopic PK metadata.sensorID, metadata.timestamp.ticks";
+        Kcql kcql = Kcql.parse(KCQL);
+
+        assertEquals(2, kcql.getPrimaryKeys().size());
+
+        assertEquals("sensorID", kcql.getPrimaryKeys().get(0).getName());
+        assertEquals("sensorID", kcql.getPrimaryKeys().get(0).getAlias());
+        assertNotNull(kcql.getPrimaryKeys().get(0).getParentFields());
+        assertEquals(1,kcql.getPrimaryKeys().get(0).getParentFields().size());
+        assertEquals("metadata",kcql.getPrimaryKeys().get(0).getParentFields().get(0));
+
+        assertEquals("ticks", kcql.getPrimaryKeys().get(1).getName());
+        assertEquals("ticks", kcql.getPrimaryKeys().get(1).getAlias());
+        assertNotNull(kcql.getPrimaryKeys().get(1).getParentFields());
+        assertEquals(2,kcql.getPrimaryKeys().get(1).getParentFields().size());
+        assertEquals("metadata",kcql.getPrimaryKeys().get(1).getParentFields().get(0));
+        assertEquals("timestamp",kcql.getPrimaryKeys().get(1).getParentFields().get(1));
     }
 
     @Test
@@ -64,7 +89,9 @@ public class KcqlSelectOnlyTest {
         String KCQL = "SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SS";
         Kcql kcql = Kcql.parse(KCQL);
         assertEquals("SS", kcql.getStoredAs());
-        assertEquals("sensorID", kcql.getPrimaryKeys().get(0));
+        assertEquals("sensorID", kcql.getPrimaryKeys().get(0).getName());
+        assertEquals("sensorID", kcql.getPrimaryKeys().get(0).getAlias());
+        assertNull(kcql.getPrimaryKeys().get(0).getParentFields());
     }
 
     @Test
@@ -72,8 +99,9 @@ public class KcqlSelectOnlyTest {
         // RDBMS KCQL should not allow this - but we need flexibility for other target systems
         String KCQL = "SELECT temperature, humidity FROM sensorsTopic PK sensorID WITHUNWRAP";
         Kcql kcql = Kcql.parse(KCQL);
-        assertEquals("sensorID", kcql.getPrimaryKeys().get(0));
-        assertTrue(kcql.isUnwrapping());
+        assertEquals("sensorID", kcql.getPrimaryKeys().get(0).getName());
+        assertEquals("sensorID", kcql.getPrimaryKeys().get(0).getAlias());
+        assertNull(kcql.getPrimaryKeys().get(0).getParentFields());
     }
 
     @Test
@@ -86,7 +114,9 @@ public class KcqlSelectOnlyTest {
         assertNull(kcql.getTarget());
         assertFalse(kcql.getFields().isEmpty());
         assertTrue(kcql.getFields().get(0).getName().equals("*"));
-        HashSet<String> pks = new HashSet<>(kcql.getPrimaryKeys());
+        HashSet<String> pks = new HashSet<>();
+        kcql.getPrimaryKeys().forEach(f -> pks.add(f.toString()));
+
 
         assertEquals(0, pks.size());
         assertEquals(expectedConsumerGroup, kcql.getConsumerGroup());
@@ -105,7 +135,9 @@ public class KcqlSelectOnlyTest {
         assertNull(kcql.getTarget());
         assertFalse(kcql.getFields().isEmpty());
         assertTrue(kcql.getFields().get(0).getName().equals("*"));
-        HashSet<String> pks = new HashSet<>(kcql.getPrimaryKeys());
+        HashSet<String> pks = new HashSet<>();
+        kcql.getPrimaryKeys().forEach(f -> pks.add(f.toString()));
+
 
         assertEquals(0, pks.size());
         assertEquals(expectedConsumerGroup, kcql.getConsumerGroup());
@@ -128,7 +160,9 @@ public class KcqlSelectOnlyTest {
         assertNull(kcql.getTarget());
         assertFalse(kcql.getFields().isEmpty());
         assertTrue(kcql.getFields().get(0).getName().equals("*"));
-        HashSet<String> pks = new HashSet<>(kcql.getPrimaryKeys());
+        HashSet<String> pks = new HashSet<>();
+        kcql.getPrimaryKeys().forEach(f -> pks.add(f.toString()));
+
 
         assertEquals(0, pks.size());
 
@@ -159,7 +193,9 @@ public class KcqlSelectOnlyTest {
         assertEquals(topic, kcql.getSource());
         assertNull(kcql.getTarget());
         assertTrue(kcql.getFields().get(0).getName().equals("*"));
-        HashSet<String> pks = new HashSet<>(kcql.getPrimaryKeys());
+        HashSet<String> pks = new HashSet<>();
+        kcql.getPrimaryKeys().forEach(f -> pks.add(f.toString()));
+
 
         assertEquals(0, pks.size());
         assertNotNull(kcql.getPartitonOffset());

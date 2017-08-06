@@ -3,7 +3,6 @@ package com.datamountaineer.kcql;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ListIterator;
 
 public class Field {
     private final String name;
@@ -45,8 +44,20 @@ public class Field {
     }
 
     public List<String> getParentFields() {
-        if(parentFields == null) return null;
+        if (parentFields == null) return null;
         return new ArrayList<>(parentFields);
+    }
+
+    public String toString() {
+        if (parentFields == null || parentFields.isEmpty()) return name;
+        StringBuilder sb = new StringBuilder(parentFields.get(0));
+        for (int i = 1; i < parentFields.size(); ++i) {
+            sb.append(".");
+            sb.append(parentFields.get(i));
+        }
+        sb.append(".");
+        sb.append(name);
+        return sb.toString();
     }
 
     public static Field from(String name, List<String> parents) {
