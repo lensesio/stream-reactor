@@ -42,7 +42,7 @@ object ReThinkConfigConstants {
 
   val USERNAME = s"$RETHINK_CONNECTOR_PREFIX.rethink.username"
   val USERNAME_DOC = "The user name to connect to rethink with."
-  val USERNAME_DEFAULT= "admin"
+  val USERNAME_DEFAULT= ""
 
   val PASSWORD = s"$RETHINK_CONNECTOR_PREFIX.password"
   val PASSWORD_DOC = "The password for the user."
