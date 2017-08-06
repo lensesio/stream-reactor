@@ -1,10 +1,10 @@
 package com.datamountaineer.streamreactor.connect.elastic
 
 import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.elastic.config.{ClientType, ElasticSettings}
 import com.datamountaineer.streamreactor.connect.elastic.indexname.CreateIndex.getIndexName
 import com.sksamuel.elastic4s.bulk.{BulkDefinition, RichBulkResponse}
-
 import com.sksamuel.elastic4s.http.HttpClient
 import com.sksamuel.elastic4s.mappings.MappingDefinition
 import com.sksamuel.elastic4s.xpack.security.XPackElasticClient
@@ -14,7 +14,7 @@ import org.elasticsearch.common.settings.Settings
 import scala.concurrent.Future
 
 trait KElasticClient extends AutoCloseable {
-  def index(kcql: Config)
+  def index(kcql: Kcql)
 
   def execute(definition: BulkDefinition): Future[Any]
 }
@@ -36,12 +36,12 @@ object KElasticClient {
 
 class TcpKElasticClient(client: TcpClient) extends KElasticClient {
   import com.sksamuel.elastic4s.ElasticDsl._
-  override def index(config: Config): Unit = {
-    require(config.isAutoCreate, s"Auto-creating indexes hasn't been enabled for target:${config.getTarget}")
+  override def index(kcql: Kcql): Unit = {
+    require(kcql.isAutoCreate, s"Auto-creating indexes hasn't been enabled for target:${kcql.getTarget}")
 
-    val indexName = getIndexName(config)
+    val indexName = getIndexName(kcql)
     client.execute {
-      Option(config.getDocType) match {
+      Option(kcql.getDocType) match {
         case None => createIndex(indexName)
         case Some(documentType) => createIndex(indexName).mappings(MappingDefinition(documentType))
       }
@@ -56,12 +56,12 @@ class TcpKElasticClient(client: TcpClient) extends KElasticClient {
 
 class HttpKElasticClient(client: HttpClient) extends KElasticClient {
   import com.sksamuel.elastic4s.http.ElasticDsl._
-  override def index(config: Config): Unit = {
-    require(config.isAutoCreate, s"Auto-creating indexes hasn't been enabled for target:${config.getTarget}")
+  override def index(kcql: Kcql): Unit = {
+    require(kcql.isAutoCreate, s"Auto-creating indexes hasn't been enabled for target:${kcql.getTarget}")
 
-    val indexName = getIndexName(config)
+    val indexName = getIndexName(kcql)
     client.execute {
-      Option(config.getDocType) match {
+      Option(kcql.getDocType) match {
         case None => createIndex(indexName)
         case Some(documentType) => createIndex(indexName).mappings(MappingDefinition(documentType))
       }

@@ -16,18 +16,23 @@
 
 package com.datamountaineer.streamreactor.connect.elastic
 
-import com.datamountaineer.connector.config.WriteModeEnum
+import java.util
+
+import com.datamountaineer.kcql.{Kcql, WriteModeEnum}
 import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSettings
 import com.datamountaineer.streamreactor.connect.elastic.indexname.CreateIndex
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
-import com.datamountaineer.streamreactor.connect.schemas.{ConverterUtil, StructFieldsExtractor}
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.fasterxml.jackson.databind.JsonNode
+import com.landoop.json.sql.Field
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.Indexable
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy
 
+import scala.collection.JavaConversions._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Try
@@ -41,9 +46,30 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
   //initialize error tracker
   initialize(settings.taskRetries, settings.errorPolicy)
 
-  //create the index automatically
+  //create the index automatically if it was set to do so
+  settings.kcqls.filter(_.isAutoCreate).foreach(client.index)
 
-  settings.kcql.filter(_.isAutoCreate).foreach(client.index)
+  settings.kcqls.filter(_.getWriteMode == WriteModeEnum.UPSERT).foreach { kcql =>
+    if (kcql.getPrimaryKeys.size() != 1) {
+      throw new ConfigException(s"UPSERTING into ${kcql.getTarget} needs to have one PK only!")
+    }
+  }
+  private val topicKcqlMap = settings.kcqls.groupBy(_.getSource)
+
+  private val kcqlMap = new util.IdentityHashMap[Kcql, KcqlValues]()
+  settings.kcqls.foreach { kcql =>
+    kcqlMap.put(kcql,
+      KcqlValues(
+        kcql.getFields.map(FieldConverter.apply),
+        kcql.getIgnoredFields.map(FieldConverter.apply),
+        kcql.getPrimaryKeys.map { pk =>
+          val path = Option(pk.getParentFields).map(_.toVector).getOrElse(Vector.empty)
+          path :+ pk.getName
+        }
+      ))
+
+  }
+
 
   implicit object SinkRecordIndexable extends Indexable[SinkRecord] {
     override def json(t: SinkRecord): String = convertValueToJson(t).toString
@@ -54,7 +80,6 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
     **/
   def close(): Unit = client.close()
 
-  private val configMap = settings.kcql.map(c => c.getSource -> c).toMap
 
   /**
     * Write SinkRecords to Elastic Search if list is not empty
@@ -79,31 +104,46 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
   def insert(records: Map[String, Vector[SinkRecord]]): Unit = {
     val fut = records.flatMap {
       case (topic, sinkRecords) =>
-        val fields = settings.fields(topic)
-        val ignoreFields = settings.ignoreFields(topic)
-        val kcql = configMap.getOrElse(topic, throw new IllegalArgumentException(s"$topic hasn't been configured in KCQL"))
-        val i = CreateIndex.getIndexName(kcql)
-        val documentType = Option(kcql.getDocType).getOrElse(i)
+        val kcqls = topicKcqlMap.getOrElse(topic, throw new IllegalArgumentException(s"$topic hasn't been configured in KCQL"))
 
-        sinkRecords.grouped(settings.batchSize)
-          .map { batch =>
-            val indexes = batch.map(r => convert(r, fields, ignoreFields))
-              .map { r =>
-                configMap(r.topic).getWriteMode match {
-                  case WriteModeEnum.INSERT => indexInto(i / documentType).source(r)
+        //we might have multiple inserts from the same Kafka Message
+        kcqls.flatMap { kcql =>
+          val i = CreateIndex.getIndexName(kcql)
+          val documentType = Option(kcql.getDocType).getOrElse(i)
+          val kcqlValue = kcqlMap(kcql)
+          sinkRecords.grouped(settings.batchSize)
+            .map { batch =>
+              val indexes = batch.map { r =>
+
+                kcql.getWriteMode match {
+                  case WriteModeEnum.INSERT =>
+                    val json = Transform(
+                      kcqlValue.fields,
+                      kcqlValue.ignoredFields,
+                      r.valueSchema(),
+                      r.value(),
+                      kcql.hasRetainStructure
+                    )
+
+                    indexInto(i / documentType).source(json.toString)
+
                   case WriteModeEnum.UPSERT =>
-                    // Build a Struct field extractor to get the value from the PK field
-                    val pkField = settings.pks(r.topic)
-                    // Extractor includes all since we already converted the records to have only needed fields
-                    val extractor = StructFieldsExtractor(includeAllFields = true, Map(pkField -> pkField))
-                    val fieldsAndValues = extractor.get(r.value.asInstanceOf[Struct]).toMap
-                    val pkValue = fieldsAndValues(pkField).toString
-                    update(pkValue).in(i / documentType).docAsUpsert(fieldsAndValues)
+                    val (json, pks) = TransformAndExtractPK(
+                      kcqlValue.fields,
+                      kcqlValue.ignoredFields,
+                      kcqlValue.primaryKeysPath,
+                      r.valueSchema(),
+                      r.value(),
+                      kcql.hasRetainStructure
+                    )
+
+                    update(pks.head).in(i / documentType).docAsUpsert(json)(IndexableJsonNode)
                 }
               }
 
-            client.execute(bulk(indexes).refresh(RefreshPolicy.IMMEDIATE))
-          }
+              client.execute(bulk(indexes).refresh(RefreshPolicy.IMMEDIATE))
+            }
+        }
     }
 
     handleTry(
@@ -112,5 +152,14 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
       )
     )
   }
+
+  private case class KcqlValues(fields: Seq[Field],
+                                ignoredFields: Seq[Field],
+                                primaryKeysPath: Seq[Vector[String]])
+
 }
 
+
+case object IndexableJsonNode extends Indexable[JsonNode] {
+  override def json(t: JsonNode): String = t.toString
+}
