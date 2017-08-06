@@ -23,7 +23,8 @@ public class KcqlTest {
         assertFalse(kcql.getFields().isEmpty());
         assertTrue(kcql.getFields().get(0).getName().equals("*"));
         assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
-        HashSet<String> pks = new HashSet<>(kcql.getPrimaryKeys());
+        HashSet<String> pks = new HashSet<>();
+        kcql.getPrimaryKeys().forEach(f-> pks.add(f.toString()));
 
         assertEquals(2, pks.size());
         assertTrue(pks.contains("f1"));
@@ -359,7 +360,9 @@ public class KcqlTest {
         assertEquals("col3", map.get("col3").getAlias());
         assertTrue(kcql.isAutoCreate());
 
-        HashSet<String> pks = new HashSet<>(kcql.getPrimaryKeys());
+        HashSet<String> pks = new HashSet<>();
+        kcql.getPrimaryKeys().forEach(f-> pks.add(f.toString()));
+
         assertEquals(2, pks.size());
         assertTrue(pks.contains("col1"));
         assertTrue(pks.contains("col3"));
@@ -391,7 +394,9 @@ public class KcqlTest {
 
         assertTrue(kcql.isAutoCreate());
 
-        HashSet<String> pks = new HashSet<>(kcql.getPrimaryKeys());
+        HashSet<String> pks = new HashSet<>();
+        kcql.getPrimaryKeys().forEach(f-> pks.add(f.toString()));
+
 
         assertEquals(2, pks.size());
         assertTrue(pks.contains("col1"));
@@ -662,7 +667,9 @@ public class KcqlTest {
         Kcql kcql = Kcql.parse(syntax);
         assertEquals(kcql.getTimestamp(), "ts");
 
-        HashSet<String> pks = new HashSet<>(kcql.getPrimaryKeys());
+        HashSet<String> pks = new HashSet<>();
+        kcql.getPrimaryKeys().forEach(f-> pks.add(f.toString()));
+
 
         assertEquals(2, pks.size());
         assertTrue(pks.contains("type"));
