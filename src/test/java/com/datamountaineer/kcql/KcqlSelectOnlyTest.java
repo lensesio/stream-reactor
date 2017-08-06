@@ -72,15 +72,31 @@ public class KcqlSelectOnlyTest {
         assertEquals("sensorID", kcql.getPrimaryKeys().get(0).getName());
         assertEquals("sensorID", kcql.getPrimaryKeys().get(0).getAlias());
         assertNotNull(kcql.getPrimaryKeys().get(0).getParentFields());
-        assertEquals(1,kcql.getPrimaryKeys().get(0).getParentFields().size());
-        assertEquals("metadata",kcql.getPrimaryKeys().get(0).getParentFields().get(0));
+        assertEquals(1, kcql.getPrimaryKeys().get(0).getParentFields().size());
+        assertEquals("metadata", kcql.getPrimaryKeys().get(0).getParentFields().get(0));
 
         assertEquals("ticks", kcql.getPrimaryKeys().get(1).getName());
         assertEquals("ticks", kcql.getPrimaryKeys().get(1).getAlias());
         assertNotNull(kcql.getPrimaryKeys().get(1).getParentFields());
-        assertEquals(2,kcql.getPrimaryKeys().get(1).getParentFields().size());
-        assertEquals("metadata",kcql.getPrimaryKeys().get(1).getParentFields().get(0));
-        assertEquals("timestamp",kcql.getPrimaryKeys().get(1).getParentFields().get(1));
+        assertEquals(2, kcql.getPrimaryKeys().get(1).getParentFields().size());
+        assertEquals("metadata", kcql.getPrimaryKeys().get(1).getParentFields().get(0));
+        assertEquals("timestamp", kcql.getPrimaryKeys().get(1).getParentFields().get(1));
+    }
+
+    @Test
+    public void testSELECTwithNestedFieldsInPK2() {
+
+        String k = "INSERT INTO index_andrew SELECT id, string_field FROM sink_test";
+        Kcql kcql = Kcql.parse(k);
+        assertEquals(0, kcql.getPrimaryKeys().size());
+
+        k = "INSERT INTO index_andrew SELECT id, nested.string_field FROM sink_test";
+        kcql = Kcql.parse(k);
+        assertEquals(0, kcql.getPrimaryKeys().size());
+        k = "UPSERT INTO sink_test SELECT id, string_field FROM sink_andrew PK id";
+        kcql = Kcql.parse(k);
+        assertEquals(1, kcql.getPrimaryKeys().size());
+
     }
 
     @Test
