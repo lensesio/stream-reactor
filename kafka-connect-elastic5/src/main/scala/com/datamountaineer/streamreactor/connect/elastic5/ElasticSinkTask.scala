@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.elastic5
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.elastic.{ElasticJsonWriter, ElasticWriter}
 import com.datamountaineer.streamreactor.connect.elastic5.config.{ElasticConfig, ElasticConfigConstants}
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging

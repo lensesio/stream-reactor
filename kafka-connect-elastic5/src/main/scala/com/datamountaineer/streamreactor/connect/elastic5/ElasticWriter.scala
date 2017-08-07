@@ -16,7 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.elastic
 
-import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
+import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSettings
+import com.datamountaineer.streamreactor.connect.elastic5.config.{ElasticConfig, ElasticConfigConstants}
 import com.sksamuel.elastic4s.ElasticsearchClientUri
 import org.elasticsearch.common.settings.Settings
 

@@ -1,6 +1,7 @@
 package com.datamountaineer.streamreactor.connect.elastic.indexname
 
 import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.streamreactor.connect.elastic5.indexname.CustomIndexName
 
 /**
   * Creates the index for the given KCQL configuration.

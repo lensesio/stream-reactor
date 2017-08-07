@@ -19,7 +19,9 @@ package com.datamountaineer.streamreactor.connect.elastic
 import java.util.UUID
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
+import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSettings
+import com.datamountaineer.streamreactor.connect.elastic5.TestElasticBase
+import com.datamountaineer.streamreactor.connect.elastic5.config.{ElasticConfig, ElasticConfigConstants}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.embedded.LocalNode
 import org.apache.kafka.connect.sink.SinkTaskContext
