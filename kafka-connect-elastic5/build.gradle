@@ -30,6 +30,9 @@ project(":kafka-connect-elastic5") {
         compile("com.datamountaineer:kcql:$kcql2") {
             exclude group: "com.google.guava", module: "guava"
         }
+        compile("com.datamountaineer:kafka-connect-common:0.8.1"){
+            exclude group: "com.datamountaineer", module: "kcql"
+        }
         compile("com.landoop:kafka-connect-smt_2.11:$smt")
 
 

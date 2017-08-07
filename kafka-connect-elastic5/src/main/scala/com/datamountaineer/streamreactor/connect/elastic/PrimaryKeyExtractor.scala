@@ -91,9 +91,9 @@ object PrimaryKeyExtractor {
         }
       }
 
-      val fieldName = field.name()
+
       if (value == null) {
-        throw new IllegalArgumentException(s"Invalid field selection for '${path.mkString(".")}'. Field '$fieldName' is null")
+        throw new IllegalArgumentException(s"Invalid field selection for '${path.mkString(".")}'. Field '${field.name()}' is null")
       }
       Option(field.schema().name()).collect {
         case Decimal.LOGICAL_NAME =>
@@ -170,24 +170,31 @@ object PrimaryKeyExtractor {
               throw new IllegalArgumentException(s"Invalid field selection for '${path.mkString(".")}'. It doesn't resolve to a primitive field. It resolves to:${field.schema()}")
             }
             val map = value.asInstanceOf[java.util.Map[String, AnyRef]]
-            val f = new Field(fieldName, 0, field.schema().valueSchema())
+            val f = new Field(p.head, 0, field.schema().valueSchema())
 
-            innerExtract(f, map.get(fieldName), p.tail)
+            innerExtract(f, map.get(p.head), p.tail)
 
           case Schema.Type.STRUCT =>
             if (p.isEmpty) {
               throw new IllegalArgumentException(s"Invalid field selection for '${path.mkString(".")}'. It doesn't resolve to a primitive field. It resolves to:${field.schema()}")
             }
-            val childField = Option(field.schema().field(fieldName))
+            val s = value.asInstanceOf[Struct]
+            val childField = Option(s.schema().field(p.head))
               .getOrElse {
-                throw new IllegalArgumentException(s"Invalid field selection for '${path.mkString(".")}'. Can't find ${p.head} field. Field found are:${field.schema().fields().mkString(",")}")
+                throw new IllegalArgumentException(s"Invalid field selection for '${path.mkString(".")}'. Can't find field '${p.head}'. Fields available:${s.schema().fields().map(_.name()).mkString(",")}")
               }
 
-            innerExtract(childField, struct.get(childField), p.tail)
+            innerExtract(childField, s.get(childField), p.tail)
           case other => sys.error(s"$other is not a recognized schema")
         }
         Some(v)
       }
     }
+
+    val field = Option(struct.schema().field(path.head)).getOrElse {
+      throw new IllegalArgumentException(s"Couldn't find field '${path.head}' in the schema:${struct.schema().fields().map(_.name()).mkString(",")}")
+    }
+
+    innerExtract(field, struct.get(field), path.tail)
   }
 }

@@ -75,6 +75,30 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
       .build
   }
 
+  def createSchemaNested: Schema = {
+    SchemaBuilder.struct.name("record")
+      .version(1)
+      .field("id", Schema.STRING_SCHEMA)
+      .field("int_field", Schema.INT32_SCHEMA)
+      .field("long_field", Schema.INT64_SCHEMA)
+      .field("string_field", Schema.STRING_SCHEMA)
+      .field("nested", createSchema)
+      .build
+  }
+
+  def createRecordNested( id: String): Struct = {
+    new Struct(createSchemaNested)
+      .put("id", id)
+      .put("int_field", 11)
+      .put("long_field", 11L)
+      .put("string_field", "11")
+      .put("nested", new Struct(createSchema)
+        .put("id", id)
+        .put("int_field", 21)
+        .put("long_field", 21L)
+        .put("string_field", "21"))
+  }
+
   //build a test record
   def createRecord(schema: Schema, id: String): Struct = {
     new Struct(schema)
@@ -97,6 +121,18 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
     }).toVector
   }
 
+  def getTestRecordsNested: Vector[SinkRecord] = {
+    val schema = createSchemaNested
+    val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
+
+    assignment.flatMap(a => {
+      (1 to 7).map(i => {
+        val record: Struct = createRecordNested(a.topic() + "-" + a.partition() + "-" + i)
+        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
+      })
+    }).toVector
+  }
+
   def getUpdateTestRecord: Vector[SinkRecord] = {
     val schema = createSchema
     val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
@@ -104,6 +140,18 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
     assignment.flatMap(a => {
       (1 to 2).map(i => {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
+        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
+      })
+    }).toVector
+  }
+
+  def getUpdateTestRecordNested: Vector[SinkRecord] = {
+    val schema = createSchemaNested
+    val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
+
+    assignment.flatMap(a => {
+      (1 to 2).map(i => {
+        val record: Struct = createRecordNested(a.topic() + "-" + a.partition() + "-" + i)
         new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
     }).toVector
@@ -155,7 +203,7 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
       ElasticConfigConstants.ES_CLUSTER_NAME -> ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
       ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
       ElasticConfigConstants.KCQL -> QUERY,
-      ElasticConfigConstants.CLIENT_TYPE_CONFIG->ClientType.HTTP.toString
+      ElasticConfigConstants.CLIENT_TYPE_CONFIG -> ClientType.HTTP.toString
     ).asJava
   }
 }

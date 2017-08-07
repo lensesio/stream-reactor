@@ -1,10 +1,9 @@
 package com.datamountaineer.streamreactor.connect.elastic
 
-import com.datamountaineer.connector.config.Config
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.elastic.config.{ClientType, ElasticSettings}
 import com.datamountaineer.streamreactor.connect.elastic.indexname.CreateIndex.getIndexName
-import com.sksamuel.elastic4s.bulk.{BulkDefinition, RichBulkResponse}
+import com.sksamuel.elastic4s.bulk.BulkDefinition
 import com.sksamuel.elastic4s.http.HttpClient
 import com.sksamuel.elastic4s.mappings.MappingDefinition
 import com.sksamuel.elastic4s.xpack.security.XPackElasticClient
@@ -35,7 +34,9 @@ object KElasticClient {
 }
 
 class TcpKElasticClient(client: TcpClient) extends KElasticClient {
+
   import com.sksamuel.elastic4s.ElasticDsl._
+
   override def index(kcql: Kcql): Unit = {
     require(kcql.isAutoCreate, s"Auto-creating indexes hasn't been enabled for target:${kcql.getTarget}")
 
@@ -55,7 +56,9 @@ class TcpKElasticClient(client: TcpClient) extends KElasticClient {
 }
 
 class HttpKElasticClient(client: HttpClient) extends KElasticClient {
+
   import com.sksamuel.elastic4s.http.ElasticDsl._
+
   override def index(kcql: Kcql): Unit = {
     require(kcql.isAutoCreate, s"Auto-creating indexes hasn't been enabled for target:${kcql.getTarget}")
 

@@ -137,6 +137,7 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                       kcql.hasRetainStructure
                     )
 
+                    require(pks.nonEmpty, "Error extracting primary keys")
                     update(pks.head).in(i / documentType).docAsUpsert(json)(IndexableJsonNode)
                 }
               }
