@@ -24,7 +24,7 @@ public class KcqlTest {
         assertTrue(kcql.getFields().get(0).getName().equals("*"));
         assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
         HashSet<String> pks = new HashSet<>();
-        kcql.getPrimaryKeys().forEach(f-> pks.add(f.toString()));
+        kcql.getPrimaryKeys().forEach(f -> pks.add(f.toString()));
 
         assertEquals(2, pks.size());
         assertTrue(pks.contains("f1"));
@@ -361,7 +361,7 @@ public class KcqlTest {
         assertTrue(kcql.isAutoCreate());
 
         HashSet<String> pks = new HashSet<>();
-        kcql.getPrimaryKeys().forEach(f-> pks.add(f.toString()));
+        kcql.getPrimaryKeys().forEach(f -> pks.add(f.toString()));
 
         assertEquals(2, pks.size());
         assertTrue(pks.contains("col1"));
@@ -395,7 +395,7 @@ public class KcqlTest {
         assertTrue(kcql.isAutoCreate());
 
         HashSet<String> pks = new HashSet<>();
-        kcql.getPrimaryKeys().forEach(f-> pks.add(f.toString()));
+        kcql.getPrimaryKeys().forEach(f -> pks.add(f.toString()));
 
 
         assertEquals(2, pks.size());
@@ -668,7 +668,7 @@ public class KcqlTest {
         assertEquals(kcql.getTimestamp(), "ts");
 
         HashSet<String> pks = new HashSet<>();
-        kcql.getPrimaryKeys().forEach(f-> pks.add(f.toString()));
+        kcql.getPrimaryKeys().forEach(f -> pks.add(f.toString()));
 
 
         assertEquals(2, pks.size());
@@ -836,12 +836,13 @@ public class KcqlTest {
     }
 
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void throwAnExceptionIfTagsListIsEmpty() {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
         String syntax = String.format("UPSERT INTO %s SELECT col1,col2 FROM %s WITHTAGS ()", table, topic);
-        Kcql.parse(syntax);
+        Kcql kcql = Kcql.parse(syntax);
+        assertNull(kcql.getTags());
     }
 
 }
