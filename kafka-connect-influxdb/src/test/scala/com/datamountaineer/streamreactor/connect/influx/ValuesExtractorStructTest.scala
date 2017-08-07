@@ -24,7 +24,7 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.{Matchers, WordSpec}
 
 class ValuesExtractorStructTest extends WordSpec with Matchers {
-  "StructFieldsExtractor" should {
+  "ValuesExtractor" should {
     "return all the fields and their values" in {
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)
