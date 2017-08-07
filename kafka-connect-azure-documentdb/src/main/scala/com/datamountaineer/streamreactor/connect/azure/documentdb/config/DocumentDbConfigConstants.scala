@@ -24,9 +24,9 @@ import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigCo
 
 object DocumentDbConfigConstants {
   val CONNECTOR_PREFIX= "connect.documentdb"
+
   val DATABASE_CONFIG = s"$CONNECTOR_PREFIX.$DATABASE_PROP_SUFFIX"
   val DATABASE_CONFIG_DOC = "The Azure DocumentDb target database."
-
 
   val CONNECTION_CONFIG = s"$CONNECTOR_PREFIX.endpoint"
   val CONNECTION_CONFIG_DOC = "The Azure DocumentDb end point."
@@ -62,7 +62,7 @@ object DocumentDbConfigConstants {
   val CONSISTENCY_DISPLAY = "Writes consistency"
   val CONSISTENCY_DEFAULT = "Session"
 
-  val CREATE_DATABASE_CONFIG = s"$CONNECTOR_PREFIX.database.create"
+  val CREATE_DATABASE_CONFIG = s"$CONNECTOR_PREFIX.${DATABASE_PROP_SUFFIX}.create"
   val CREATE_DATABASE_DOC = "If set to true it will create the database if it doesn't exist. If this is set to default(false) an exception will be raised."
   val CREATE_DATABASE_DISPLAY = "Auto-create database"
   val CREATE_DATABASE_DEFAULT = false

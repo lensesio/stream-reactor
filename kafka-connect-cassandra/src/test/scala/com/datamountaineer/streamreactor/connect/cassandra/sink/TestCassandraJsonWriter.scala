@@ -28,25 +28,19 @@ import org.apache.kafka.connect.data.{Decimal, Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
+import org.scalatest.mockito.MockitoSugar
+import org.scalatest._
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
 /**
-  * Created by andrew@datamountaineer.com on 04/05/16. 
+  * Created by andrew@datamountaineer.com on 04/05/16.
   * stream-reactor
   */
-class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar with BeforeAndAfter with TestConfig {
-  before {
-    startEmbeddedCassandra()
-  }
-
-  after {
-    stopEmbeddedCassandra()
-  }
-
+@DoNotDiscover
+class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar with TestConfig {
+  
   def convertR(record: SinkRecord,
                fields: Map[String, String],
                ignoreFields: Set[String] = Set.empty[String],
@@ -97,7 +91,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
 
     val writer = CassandraWriter(taskConfig, context)
     writer.write(testRecords)
-    Thread.sleep(2000)
+    Thread.sleep(1000)
     //check we can get back what we wrote
     val res1 = session.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TABLE1")
     res1.all().size() shouldBe testRecords1.size
@@ -144,7 +138,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
 
     val writer = CassandraWriter(taskConfig, context)
     writer.write(Seq(record))
-    Thread.sleep(2000)
+    Thread.sleep(1000)
     //check we can get back what we wrote
     val res1 = session.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TABLE6")
     val list1 = res1.all()
@@ -297,7 +291,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
 
     val writer = CassandraWriter(taskConfig, context)
     writer.write(testRecords)
-    Thread.sleep(2000)
+    Thread.sleep(1000)
     //check we can get back what we wrote
     val res = session.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TABLE1")
     val rs = res.all().asScala
@@ -399,7 +393,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     //put back table
     val session2 = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
     writer.write(testRecords)
-    Thread.sleep(2000)
+    Thread.sleep(1000)
     //check we can get back what we wrote
     val res = session2.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TABLE1")
     res.all().size() shouldBe testRecords.size

@@ -45,36 +45,36 @@ object HazelCastSinkConfigConstants {
   val PARALLEL_WRITE_DOC = "All the sink to write in parallel the records received from Kafka on each poll."
   val PARALLEL_WRITE_DEFAULT = false
 
-  val CONNECTION_TIMEOUT = s"$HAZELCAST_CONNECTOR_PREFIX.connection.timeout"
+  val CONNECTION_TIMEOUT = s"$HAZELCAST_CONNECTOR_PREFIX.timeout"
   val CONNECTION_TIMEOUT_DOC: String =
     """
       |Connection timeout is the timeout value in milliseconds for nodes to
       |accept client connection requests.""".stripMargin
   val CONNECTION_TIMEOUT_DEFAULT = 5000
 
-  val CONNECTION_RETRY_ATTEMPTS = s"$HAZELCAST_CONNECTOR_PREFIX.connection.retries"
+  val CONNECTION_RETRY_ATTEMPTS = s"$HAZELCAST_CONNECTOR_PREFIX.retries"
   val CONNECTION_RETRY_ATTEMPTS_DOC: String = """Number of times a client will retry the connection at startup.""".stripMargin
   val CONNECTION_RETRY_ATTEMPTS_DEFAULT = 2
 
-  val KEEP_ALIVE = s"$HAZELCAST_CONNECTOR_PREFIX.connection.keep.alive"
+  val KEEP_ALIVE = s"$HAZELCAST_CONNECTOR_PREFIX.keep.alive"
   val KEEP_ALIVE_DOC: String = """Enables/disables the SO_KEEPALIVE socket option. The default value is true.""".stripMargin
   val KEEP_ALIVE_DEFAULT = true
 
-  val TCP_NO_DELAY = s"$HAZELCAST_CONNECTOR_PREFIX.connection.tcp.no.delay"
+  val TCP_NO_DELAY = s"$HAZELCAST_CONNECTOR_PREFIX.tcp.no.delay"
   val TCP_NO_DELAY_DOC: String = """Enables/disables the TCP_NODELAY socket option. The default value is true.""".stripMargin
   val TCP_NO_DELAY_DEFAULT = true
 
-  val REUSE_ADDRESS = s"$HAZELCAST_CONNECTOR_PREFIX.connection.reuse.address"
+  val REUSE_ADDRESS = s"$HAZELCAST_CONNECTOR_PREFIX.reuse.address"
   val REUSE_ADDRESS_DOC: String = """Enables/disables the SO_REUSEADDR socket option. The default value is true.""".stripMargin
   val REUSE_ADDRESS_DEFAULT = true
 
-  val LINGER_SECONDS = s"$HAZELCAST_CONNECTOR_PREFIX.connection.linger.seconds"
+  val LINGER_SECONDS = s"$HAZELCAST_CONNECTOR_PREFIX.linger.seconds"
   val LINGER_SECONDS_DOC: String =
     """Enables/disables SO_LINGER with the specified linger time in seconds.
       |The default value is 3.""".stripMargin
   val LINGER_SECONDS_DEFAULT = 3
 
-  val BUFFER_SIZE = s"$HAZELCAST_CONNECTOR_PREFIX.connection.buffer.size"
+  val BUFFER_SIZE = s"$HAZELCAST_CONNECTOR_PREFIX.buffer.size"
   val BUFFER_SIZE_DOC: String =
     """Sets the SO_SNDBUF and SO_RCVBUF options to the specified value in KB for this Socket.
       |The default value is 32.""".stripMargin

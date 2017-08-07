@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.typesafe.scalalogging.slf4j.StrictLogging
 
 import scala.collection.JavaConverters._
@@ -24,7 +24,7 @@ import scala.collection.JavaConverters._
 trait SortedSetSupport extends StrictLogging {
 
   // How to 'score' each message
-  def getScoreField(kcqlConfig: Config): String = {
+  def getScoreField(kcqlConfig: Kcql): String = {
     val sortedSetParams = kcqlConfig.getStoredAsParameters.asScala
     val scoreField = if (sortedSetParams.keys.exists(k => k.equalsIgnoreCase("score")))
       sortedSetParams.find { case (k, _) => k.equalsIgnoreCase("score") }.get._2

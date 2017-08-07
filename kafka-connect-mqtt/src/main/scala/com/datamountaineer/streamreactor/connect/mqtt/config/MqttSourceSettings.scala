@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.mqtt.config
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.{BytesConverter, Converter}
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
@@ -54,7 +54,7 @@ case class MqttSourceSettings(connection: String,
     sslCertKeyFile.foreach(s => map.put(MqttConfigConstants.SSL_CERT_KEY_CONFIG, s))
     map.put(MqttConfigConstants.QS_CONFIG, mqttQualityOfService.toString)
     map.put(MqttConfigConstants.KCQL_CONFIG, kcql.mkString(";"))
-    map.put(MqttConfigConstants.CONVERTER_CONFIG, kcql.map(Config.parse).map(_.getSource).map(s => s"$s=${sourcesToConverters(s)}").mkString(";"))
+    map.put(MqttConfigConstants.CONVERTER_CONFIG, kcql.map(Kcql.parse).map(_.getSource).map(s => s"$s=${sourcesToConverters(s)}").mkString(";"))
     map
   }
 }

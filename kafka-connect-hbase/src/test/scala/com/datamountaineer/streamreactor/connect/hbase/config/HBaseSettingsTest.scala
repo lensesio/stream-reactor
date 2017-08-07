@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.hbase.config
 import com.datamountaineer.streamreactor.connect.hbase.{GenericRowKeyBuilderBytes, StructFieldsRowKeyBuilderBytes}
 import org.apache.kafka.common.config.ConfigException
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
@@ -52,11 +52,12 @@ class HBaseSettingsTest extends WordSpec with Matchers with MockitoSugar {
 
     val config = HBaseConfig(props)
     val settings = HBaseSettings(config)
-    val route = settings.routes.head
+    val kcql = settings.routes.head
     settings.rowKeyModeMap(TABLE_NAME_RAW).isInstanceOf[StructFieldsRowKeyBuilderBytes] shouldBe true
-    route.isIncludeAllFields shouldBe true
-    route.getTarget shouldBe TABLE_NAME_RAW
-    route.getSource shouldBe TABLE_NAME_RAW
+
+    kcql.getFields.asScala.head.getName shouldBe "*"
+    kcql.getTarget shouldBe TABLE_NAME_RAW
+    kcql.getSource shouldBe TABLE_NAME_RAW
   }
 
   "correctly create a HbaseSettings when no row fields are provided" in {
@@ -68,11 +69,11 @@ class HBaseSettingsTest extends WordSpec with Matchers with MockitoSugar {
     val config = HBaseConfig(props)
     val settings = HBaseSettings(config)
     settings.rowKeyModeMap(TABLE_NAME_RAW).isInstanceOf[GenericRowKeyBuilderBytes] shouldBe true
-    val route = settings.routes.head
+    val kcql = settings.routes.head
 
-    route.isIncludeAllFields shouldBe true
-    route.getSource shouldBe TABLE_NAME_RAW
-    route.getTarget shouldBe TABLE_NAME_RAW
+    kcql.getFields.asScala.head.getName shouldBe "*"
+    kcql.getSource shouldBe TABLE_NAME_RAW
+    kcql.getTarget shouldBe TABLE_NAME_RAW
   }
 
   "correctly create a HbaseSettings when no row fields are provided and selection" in {
@@ -84,17 +85,17 @@ class HBaseSettingsTest extends WordSpec with Matchers with MockitoSugar {
 
     val config = HBaseConfig(props)
     val settings = HBaseSettings(config)
-    val route = settings.routes.head
-    val fields = route.getFieldAlias.asScala.toList
+    val kcql = settings.routes.head
+    val fields = kcql.getFields.asScala.toList
 
     settings.rowKeyModeMap(TABLE_NAME_RAW).isInstanceOf[GenericRowKeyBuilderBytes] shouldBe true
 
-    route.isIncludeAllFields shouldBe false
-    route.getSource shouldBe TABLE_NAME_RAW
-    route.getTarget shouldBe TABLE_NAME_RAW
-    fields.head.getField shouldBe "lastName"
+    kcql.getFields.asScala.head.getName.equals("*") shouldBe false
+    kcql.getSource shouldBe TABLE_NAME_RAW
+    kcql.getTarget shouldBe TABLE_NAME_RAW
+    fields.head.getName shouldBe "lastName"
     fields.head.getAlias shouldBe "surname"
-    fields.last.getField shouldBe "firstName"
+    fields.last.getName shouldBe "firstName"
     fields.last.getAlias shouldBe "firstName"
   }
 
@@ -106,17 +107,17 @@ class HBaseSettingsTest extends WordSpec with Matchers with MockitoSugar {
 
     val config = HBaseConfig(props)
     val settings = HBaseSettings(config)
-    val route = settings.routes.head
-    val fields = route.getFieldAlias.asScala.toList
+    val kcql = settings.routes.head
+    val fields = kcql.getFields.asScala.toList
 
     settings.rowKeyModeMap(TABLE_NAME_RAW).isInstanceOf[StructFieldsRowKeyBuilderBytes] shouldBe true
 
-    route.isIncludeAllFields shouldBe false
-    route.getSource shouldBe TABLE_NAME_RAW
-    route.getTarget shouldBe TABLE_NAME_RAW
-    fields.head.getField shouldBe "lastName"
+    kcql.getFields.asScala.head.getName.equals("*") shouldBe false
+    kcql.getSource shouldBe TABLE_NAME_RAW
+    kcql.getTarget shouldBe TABLE_NAME_RAW
+    fields.head.getName shouldBe "lastName"
     fields.head.getAlias shouldBe "surname"
-    fields.last.getField shouldBe "firstName"
+    fields.last.getName shouldBe "firstName"
     fields.last.getAlias shouldBe "firstName"
   }
 

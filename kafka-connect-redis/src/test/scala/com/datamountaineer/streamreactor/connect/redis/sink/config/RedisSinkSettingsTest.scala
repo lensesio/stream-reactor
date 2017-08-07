@@ -20,7 +20,6 @@ import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSup
 import com.datamountaineer.streamreactor.connect.rowkeys.{StringGenericRowKeyBuilder, StringStructFieldsStringKeyBuilder}
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.{Matchers, WordSpec}
-
 import scala.collection.JavaConverters._
 
 class RedisSinkSettingsTest extends WordSpec with Matchers with RedisMockSupport {
@@ -46,7 +45,7 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with RedisMockSupport
     settings.kcqlSettings.head.builder.isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
     val route = settings.kcqlSettings.head.kcqlConfig
 
-    route.isIncludeAllFields shouldBe true
+    route.getFields.asScala.exists(_.getName.equals("*")) shouldBe true
     route.getSource shouldBe "topicA"
     route.getTarget shouldBe null
   }
@@ -59,7 +58,7 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with RedisMockSupport
 
     settings.kcqlSettings.head.builder.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
 
-    route.isIncludeAllFields shouldBe true
+    route.getFields.asScala.exists(_.getName.equals("*")) shouldBe true
     route.getTarget shouldBe "xx"
     route.getSource shouldBe "topicA"
   }
@@ -69,16 +68,16 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with RedisMockSupport
     val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL))
     val settings = RedisSinkSettings(config).kcqlSettings.head
     val route = settings.kcqlConfig
-    val fields = route.getFieldAlias.asScala.toList
+    val fields = route.getFields.asScala.toList
 
     settings.builder.isInstanceOf[StringGenericRowKeyBuilder] shouldBe true
 
-    route.isIncludeAllFields shouldBe false
+    route.getFields.asScala.exists(_.getName.equals("*")) shouldBe false
     route.getSource shouldBe "topicA"
     route.getTarget shouldBe "xx"
-    fields.head.getField shouldBe "firstName"
+    fields.head.getName shouldBe "firstName"
     fields.head.getAlias shouldBe "firstName"
-    fields.last.getField shouldBe "lastName"
+    fields.last.getName shouldBe "lastName"
     fields.last.getAlias shouldBe "surname"
   }
 
@@ -87,16 +86,16 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with RedisMockSupport
     val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL))
     val settings = RedisSinkSettings(config)
     val route = settings.kcqlSettings.head.kcqlConfig
-    val fields = route.getFieldAlias.asScala.toList
+    val fields = route.getFields.asScala.toList
 
     settings.kcqlSettings.head.builder.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
 
-    route.isIncludeAllFields shouldBe false
+    route.getFields.asScala.exists(_.getName.equals("*")) shouldBe false
     route.getSource shouldBe "topicA"
     route.getTarget shouldBe "xx"
-    fields.head.getField shouldBe "firstName"
+    fields.head.getName shouldBe "firstName"
     fields.head.getAlias shouldBe "firstName"
-    fields.last.getField shouldBe "lastName"
+    fields.last.getName shouldBe "lastName"
     fields.last.getAlias shouldBe "surname"
   }
 

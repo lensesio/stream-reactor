@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.mongodb.config
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
 import com.mongodb.AuthenticationMechanism
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -29,7 +29,7 @@ case class MongoSettings(connection: String,
                          password: Password,
                          authenticationMechanism: AuthenticationMechanism,
                          database: String,
-                         kcql: Set[Config],
+                         kcql: Set[Kcql],
                          keyBuilderMap: Map[String, Set[String]],
                          fields: Map[String, Map[String, String]],
                          ignoredField: Map[String, Set[String]],
@@ -56,8 +56,8 @@ object MongoSettings extends StrictLogging {
     val errorPolicy= config.getErrorPolicy
     val retries = config.getNumberRetries
     val rowKeyBuilderMap = config.getUpsertKeys()
-    val fieldsMap = config.getFields(kcql)
-    val ignoreFields = config.getIgnoreFields()
+    val fieldsMap = config.getFieldsMap(kcql)
+    val ignoreFields = config.getIgnoreFieldsMap()
     val batchSize = config.getInt(MongoConfigConstants.BATCH_SIZE_CONFIG)
 
     val username = config.getUsername

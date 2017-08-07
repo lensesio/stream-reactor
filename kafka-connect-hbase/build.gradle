@@ -22,16 +22,33 @@ project(":kafka-connect-hbase") {
     }
 
     dependencies {
+        configurations.all {
+            resolutionStrategy {
+                force 'xml-apis:xml-apis:1.4.01'
+            }
+        }
         compile("org.apache.hbase:hbase-client:$hbaseClientVersion") {
             exclude group : "com.sun.jersey"
+            exclude group: "tomcat"
           //  exclude group: 'com.google.guava', module: 'guava'
         }
-        //compile group: 'com.google.guava', name: 'guava', version: '19.0'
-        compile("com.datamountaineer:kcql:$KCQLVersion") {
-            exclude group: "com.google.guava", module: "guava"
-        }
+//        compile('com.google.guava:guava:11.0.2') {
+//            force = true
+//        }
+//        compile("com.datamountaineer:kcql:$KCQLVersion") {
+//            exclude group: "com.google.guava", module: "guava"
+//        }
         testCompile("org.kitesdk:kite-minicluster:$kiteMiniClusterVersion")
+//                {
+//            exclude group: "tomcat"
+//        }
         testCompile("org.apache.hbase:hbase-server:$hbaseServerVersion")
+//                {
+//            exclude group: "tomcat"
+//        }
         testCompile("org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion")
+//                {
+//           exclude group: "tomcat"
+//        }
     }
 }

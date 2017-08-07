@@ -54,16 +54,16 @@ object MqttConfigConstants {
   val CLIENT_ID_DOC = "Contains the Mqtt session client id"
   val CLIENT_ID_DISPLAY = "Client id"
 
-  val CONNECTION_TIMEOUT_CONFIG = s"${CONNECTOR_PREFIX}.connection.timeout"
+  val CONNECTION_TIMEOUT_CONFIG = s"${CONNECTOR_PREFIX}.timeout"
   val CONNECTION_TIMEOUT_DOC = "Provides the time interval to establish the mqtt connection"
   val CONNECTION_TIMEOUT_DISPLAY = "Connection timeout"
   val CONNECTION_TIMEOUT_DEFAULT = 3000
 
-  val CLEAN_SESSION_CONFIG = s"${CONNECTOR_PREFIX}.connection.clean"
+  val CLEAN_SESSION_CONFIG = s"${CONNECTOR_PREFIX}.clean"
   val CLEAN_CONNECTION_DISPLAY = "Clean session"
   val CLEAN_CONNECTION_DEFAULT = true
 
-  val KEEP_ALIVE_INTERVAL_CONFIG = s"${CONNECTOR_PREFIX}.connection.keep.alive"
+  val KEEP_ALIVE_INTERVAL_CONFIG = s"${CONNECTOR_PREFIX}.keep.alive"
   val KEEP_ALIVE_INTERVAL_DOC =
     """
       | The keep alive functionality assures that the connection is still open and both broker and client are connected to
@@ -73,15 +73,15 @@ object MqttConfigConstants {
   val KEEP_ALIVE_INTERVAL_DISPLAY = "Keep alive interval"
   val KEEP_ALIVE_INTERVAL_DEFAULT = 5000
 
-  val SSL_CA_CERT_CONFIG = s"${CONNECTOR_PREFIX}.connection.ssl.ca.cert"
+  val SSL_CA_CERT_CONFIG = s"${CONNECTOR_PREFIX}.ssl.ca.cert"
   val SSL_CA_CERT_DOC = "Provides the path to the CA certificate file to use with the Mqtt connection"
   val SSL_CA_CERT_DISPLAY = "CA certificate file path"
 
-  val SSL_CERT_CONFIG = s"${CONNECTOR_PREFIX}.connection.ssl.cert"
+  val SSL_CERT_CONFIG = s"${CONNECTOR_PREFIX}.ssl.cert"
   val SSL_CERT_DOC = "Provides the path to the certificate file to use with the Mqtt connection"
   val SSL_CERT_DISPLAY = "Certificate key file path"
 
-  val SSL_CERT_KEY_CONFIG = s"${CONNECTOR_PREFIX}.connection.ssl.key"
+  val SSL_CERT_KEY_CONFIG = s"${CONNECTOR_PREFIX}.ssl.key"
   val SSL_CERT_KEY_DOC = "Certificate private [config] key file path."
   val SSL_CERT_KEY_DISPLAY = "Certificate private [config] key file path"
 
@@ -102,7 +102,7 @@ object MqttConfigConstants {
   val THROW_ON_CONVERT_ERRORS_DISPLAY = "Throw error on conversion"
   val THROW_ON_CONVERT_ERRORS_DEFAULT = false
 
-  val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"
+  val PROGRESS_COUNTER_ENABLED = PROGRESS_ENABLED_CONST
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"

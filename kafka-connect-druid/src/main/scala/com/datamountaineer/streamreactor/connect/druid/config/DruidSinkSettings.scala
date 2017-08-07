@@ -49,10 +49,10 @@ object DruidSinkSettings {
 
     val kcql = config.getKCQL
     val dataSources = config.getTableTopic()
-    val fields = config.getFields(kcql)
+    val fields = config.getFieldsMap(kcql)
 
     val extractors = kcql.map(r => {
-      val ignore = if (r.getIgnoredField.nonEmpty) true else false
+      val ignore = if (r.getIgnoredFields.nonEmpty) true else false
       (r.getSource, StructFieldsExtractor(ignore, fields(r.getSource)))
     }).toMap
 

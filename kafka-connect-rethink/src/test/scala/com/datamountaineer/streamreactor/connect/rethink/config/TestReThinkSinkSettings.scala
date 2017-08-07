@@ -16,9 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.config
 
-import com.datamountaineer.connector.config.WriteModeEnum
+import com.datamountaineer.kcql.WriteModeEnum
 import com.datamountaineer.streamreactor.connect.rethink.TestBase
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 
 import scala.collection.JavaConverters._
 
@@ -36,7 +36,7 @@ class TestReThinkSinkSettings extends TestBase with MockitoSugar {
     routes.getWriteMode shouldBe WriteModeEnum.INSERT
     val conflict = settings.conflictPolicy(TABLE)
     conflict shouldBe ReThinkConfigConstants.CONFLICT_ERROR
-    routes.isIncludeAllFields shouldBe true
+    routes.getIgnoredFields.isEmpty shouldBe true
   }
 
   "should create a RethinkSetting for UPSERT with fields selection with RETRY" in {
@@ -48,8 +48,8 @@ class TestReThinkSinkSettings extends TestBase with MockitoSugar {
     routes.getWriteMode shouldBe WriteModeEnum.UPSERT
     val conflict = settings.conflictPolicy(TABLE)
     conflict shouldBe ReThinkConfigConstants.CONFLICT_REPLACE
-    routes.isIncludeAllFields shouldBe false
-    val fields = routes.getFieldAlias.asScala.toList
+    routes.getIgnoredFields.isEmpty shouldBe true
+    val fields = routes.getFields.asScala.toList
     fields.size shouldBe 2
   }
 }

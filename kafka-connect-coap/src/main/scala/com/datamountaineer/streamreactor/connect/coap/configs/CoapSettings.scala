@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.coap.configs
 
 import java.io.File
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
@@ -36,7 +36,7 @@ case class CoapSetting(uri: String,
                        trustStorePass: Password,
                        certs: Array[String],
                        chainKey: String,
-                       kcql: Config,
+                       kcql: Kcql,
                        retries: Option[Int],
                        errorPolicy: Option[ErrorPolicy],
                        target: String,
@@ -70,8 +70,8 @@ object CoapSettings {
     val errorPolicy= if (sink) Some(config.getErrorPolicy) else None
     val retries = if (sink) Some(config.getNumberRetries) else None
 
-    val bindPort = config.getBindPort
-    val bindHost = config.getBindHost
+    val bindPort = config.getPort
+    val bindHost = config.getHost
 
     kcql.map(k =>
       CoapSetting(uri,

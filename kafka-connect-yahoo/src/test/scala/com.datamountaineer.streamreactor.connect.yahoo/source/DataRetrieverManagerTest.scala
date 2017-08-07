@@ -21,7 +21,7 @@ import java.util.Calendar
 
 import org.apache.kafka.connect.data.Struct
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 import yahoofinance.Stock
 import yahoofinance.quotes.fx.FxQuote

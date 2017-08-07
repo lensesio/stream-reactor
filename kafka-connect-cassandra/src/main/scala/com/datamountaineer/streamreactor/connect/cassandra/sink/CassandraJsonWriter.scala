@@ -24,6 +24,7 @@ import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSinkS
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
 import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
 import com.datamountaineer.streamreactor.connect.concurrent.FutureAwaitWithFailFastFn
+import com.datamountaineer.streamreactor.connect.converters.{FieldConverter, Transform}
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datastax.driver.core.exceptions.SyntaxError
@@ -32,7 +33,6 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable.{Map => MutableMap}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 

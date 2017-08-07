@@ -22,7 +22,7 @@ import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kudu.client._
 import org.mockito.Matchers.{any, eq => mockEq}
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 
 import scala.collection.JavaConversions._
 

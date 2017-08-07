@@ -22,7 +22,7 @@ import java.nio.file.Paths
 import java.util
 import java.util.UUID
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.MsgKey
 import com.datamountaineer.streamreactor.connect.converters.source._
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
@@ -113,7 +113,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
       val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
         sourcesToConvMap,
         1,
-        Array(Config.parse(s"INSERT INTO $target SELECT * FROM $source")),
+        Array(Kcql.parse(s"INSERT INTO $target SELECT * FROM $source")),
         true)
 
       val messages = Seq("message1", "message2")
@@ -191,7 +191,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
       val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
         sourcesToConvMap,
         1,
-        settings.kcql.map(Config.parse),
+        settings.kcql.map(Kcql.parse),
         true)
 
       val message1 = "message1".getBytes()

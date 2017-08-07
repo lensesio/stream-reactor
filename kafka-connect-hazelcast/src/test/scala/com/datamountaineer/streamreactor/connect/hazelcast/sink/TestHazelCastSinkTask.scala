@@ -22,7 +22,7 @@ import com.hazelcast.config.Config
 import com.hazelcast.core.{Hazelcast, ITopic}
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 
 import scala.collection.JavaConverters._
 

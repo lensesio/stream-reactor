@@ -24,7 +24,7 @@ import com.rethinkdb.RethinkDB
 import com.rethinkdb.gen.ast.{Changes, Db, Table}
 import com.rethinkdb.net.{Connection, Cursor}
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 
 /**
   * Created by andrew@datamountaineer.com on 29/09/16. 

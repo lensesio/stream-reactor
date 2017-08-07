@@ -21,7 +21,7 @@ import com.google.gson.Gson
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import redis.clients.jedis.Jedis
 import redis.embedded.RedisServer
@@ -98,13 +98,6 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
       ).asJava
 
       val config = RedisConfig(props)
-
-//      val config = mock[RedisConfig]
-//      when(config.getString(RedisConfigConstants.REDIS_HOST)).thenReturn("localhost")
-//      when(config.getInt(RedisConfigConstants.REDIS_PORT)).thenReturn(6379)
-//      when(config.getString(RedisConfigConstants.REDIS_PASSWORD)).thenReturn("")
-//      when(config.getString(RedisConfigConstants.KCQL_CONFIG)).thenReturn(QUERY_ALL)
-//      when(config.getString(RedisConfigConstants.ERROR_POLICY)).thenReturn("THROW")
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
@@ -151,13 +144,6 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
       ).asJava
 
       val config = RedisConfig(props)
-
-//      val config = mock[RedisConfig]
-//      when(config.getString(RedisConfigConstants.REDIS_HOST)).thenReturn("localhost")
-//      when(config.getInt(RedisConfigConstants.REDIS_PORT)).thenReturn(6379)
-//      when(config.getString(RedisConfigConstants.REDIS_PASSWORD)).thenReturn("")
-//      when(config.getString(RedisConfigConstants.KCQL_CONFIG)).thenReturn(KCQL)
-//      when(config.getString(RedisConfigConstants.ERROR_POLICY)).thenReturn("THROW")
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
 
       val settings = RedisSinkSettings(config)

@@ -52,7 +52,7 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll {
     val tempDir = System.getProperty(property)
     broker.setDataDirectoryFile( new File(tempDir))
     broker.setTmpDataDirectory( new File(tempDir))
-    val messageCount = 10
+    val messageCount = 9
 
     broker.start()
     val connectionFactory = new ActiveMQConnectionFactory()

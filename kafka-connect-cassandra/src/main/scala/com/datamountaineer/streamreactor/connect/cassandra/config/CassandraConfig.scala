@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 import java.util
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.config.base.traits.{ConsistencyLevelSettings, ErrorPolicySettings, NumberRetriesSettings, ThreadPoolSettings}
+import com.datamountaineer.streamreactor.connect.config.base.traits._
 import com.datastax.driver.core.ConsistencyLevel
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
@@ -295,20 +295,10 @@ object CassandraConfigSource {
 }
 
 case class CassandraConfigSource(props: util.Map[String, String])
-  extends AbstractConfig(CassandraConfigSource.sourceConfig, props)
+  extends BaseConfig(CassandraConfigConstants.CONNECTOR_PREFIX, CassandraConfigSource.sourceConfig, props)
     with ErrorPolicySettings
-    with ConsistencyLevelSettings[ConsistencyLevel] {
-  val kcqlConstant: String = CassandraConfigConstants.KCQL
-
-  override def consistencyLevelConstant: String = CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG
-
-  def getKcql(): Seq[Kcql] = getString(kcqlConstant).split(";").map(Kcql.parse)
-
-  def getIncrementalMode(routes: Seq[Kcql]): Map[String, String] = {
-    routes.map(r => (r.getSource, r.getIncrementalMode)).toMap
-  }
-  val connectorPrefix: String = CassandraConfigConstants.CASSANDRA_CONNECTOR_PREFIX
-}
+    with ConsistencyLevelSettings[ConsistencyLevel]
+    with KcqlSettings
 
 /**
   * Holds the extra configurations for the sink on top of
@@ -347,18 +337,10 @@ object CassandraConfigSink {
 }
 
 case class CassandraConfigSink(props: util.Map[String, String])
-  extends AbstractConfig(CassandraConfigSink.sinkConfig, props)
+ extends BaseConfig(CassandraConfigConstants.CONNECTOR_PREFIX, CassandraConfigSink.sinkConfig, props)
+    with KcqlSettings
     with ErrorPolicySettings
     with NumberRetriesSettings
     with ThreadPoolSettings
     with ConsistencyLevelSettings[ConsistencyLevel] {
-  val connectorPrefix: String = CassandraConfigConstants.CASSANDRA_CONNECTOR_PREFIX
-
-  val kcqlConstant: String = CassandraConfigConstants.KCQL
-  override val numberRetriesConstant: String = CassandraConfigConstants.NBR_OF_RETRIES
-  override val threadPoolConstant: String = CassandraConfigConstants.THREAD_POOL_CONFIG
-  override val consistencyLevelConstant: String = CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG
-
-  def getKcql(): Seq[Kcql] = getString(kcqlConstant).split(";").map(Kcql.parse)
-
 }

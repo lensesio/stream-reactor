@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.hbase.config
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfigConstants._
 import com.datamountaineer.streamreactor.connect.hbase.{GenericRowKeyBuilderBytes, RowKeyBuilderBytes, StructFieldsExtractorBytes, StructFieldsRowKeyBuilderBytes}
@@ -26,7 +26,7 @@ import scala.collection.JavaConverters._
 
 case class HBaseSettings(columnFamilyMap: String,
                          rowKeyModeMap: Map[String, RowKeyBuilderBytes],
-                         routes: List[Config],
+                         routes: List[Kcql],
                          extractorFields: Map[String, StructFieldsExtractorBytes],
                          errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                          maxRetries: Int = HBaseConfigConstants.NBR_OF_RETIRES_DEFAULT
@@ -46,18 +46,20 @@ object HBaseSettings {
     if (columnFamily.trim.length == 0) throw new ConfigException(s"$COLUMN_FAMILY is not set correctly")
 
     val kcql = config.getKCQL
-    val fields = config.getFields()
+    val fields = config.getFieldsMap()
     val errorPolicy = config.getErrorPolicy
     val nbrOfRetries = config.getNumberRetries
 
     val rowKeyModeMap = kcql.map(r => {
-      val keys = r.getPrimaryKeys.asScala.toList
+      val keys = r.getPrimaryKeys.asScala.map(p => p.getName).toList
       if (keys.nonEmpty) (r.getSource, StructFieldsRowKeyBuilderBytes(keys)) else (r.getSource, new GenericRowKeyBuilderBytes())
     }
     ).toMap
 
+
     val extractorFields = kcql.map(rm => {
-      (rm.getSource, StructFieldsExtractorBytes(rm.isIncludeAllFields, fields(rm.getSource)))
+      val allFields = rm.getFields.asScala.exists(_.getName.equals("*"))
+      (rm.getSource, StructFieldsExtractorBytes(allFields, fields(rm.getSource)))
     }).toMap
 
     new HBaseSettings(columnFamily, rowKeyModeMap, kcql.toList, extractorFields, errorPolicy, nbrOfRetries)

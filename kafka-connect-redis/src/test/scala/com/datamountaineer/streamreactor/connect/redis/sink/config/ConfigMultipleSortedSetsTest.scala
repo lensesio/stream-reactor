@@ -42,7 +42,7 @@ class ConfigMultipleSortedSetsTest extends WordSpec with Matchers with RedisMock
     settings.kcqlSettings.head.builder.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
 
     route.getStoredAs shouldBe "SortedSet"
-    route.isIncludeAllFields shouldBe false
+    route.getFields.asScala.exists(_.getName.equals("*")) shouldBe false
     route.getSource shouldBe "sensorsTopic"
     route.getTarget shouldBe null
   }
@@ -54,10 +54,10 @@ class ConfigMultipleSortedSetsTest extends WordSpec with Matchers with RedisMock
     val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL2))
     val settings = RedisSinkSettings(config)
     val route = settings.kcqlSettings.head.kcqlConfig
-    val fields = route.getFieldAlias.asScala.toList
+    val fields = route.getFields.asScala.toList
 
-    route.getPrimaryKeys.next shouldBe "sensorID"
-    route.isIncludeAllFields shouldBe false
+    route.getPrimaryKeys.asScala.head.getName shouldBe "sensorID"
+    route.getFields.asScala.exists(_.getName.equals("*")) shouldBe false
     route.getSource shouldBe "sensorsTopic"
     route.getStoredAs shouldBe "SortedSet"
     route.getTarget shouldBe "SENSOR-"
@@ -72,8 +72,8 @@ class ConfigMultipleSortedSetsTest extends WordSpec with Matchers with RedisMock
     val route = settings.kcqlSettings.head.kcqlConfig
 
     route.getStoredAsParameters.asScala shouldBe Map("score" -> "ts")
-    route.getPrimaryKeys.next shouldBe "sensorID"
-    route.isIncludeAllFields shouldBe true
+    route.getPrimaryKeys.asScala.head.getName shouldBe "sensorID"
+    route.getFields.asScala.exists(_.getName.equals("*")) shouldBe true
     route.getSource shouldBe "sensorsTopic"
     route.getStoredAs shouldBe "SortedSet"
     route.getTarget shouldBe null
@@ -85,10 +85,10 @@ class ConfigMultipleSortedSetsTest extends WordSpec with Matchers with RedisMock
     val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL4))
     val settings = RedisSinkSettings(config)
     val route = settings.kcqlSettings.head.kcqlConfig
-    val fields = route.getFieldAlias.asScala.toList
+    val fields = route.getFields.asScala.toList
 
-    route.getPrimaryKeys.next shouldBe "sensorID"
-    route.isIncludeAllFields shouldBe false
+    route.getPrimaryKeys.asScala.head .getName shouldBe "sensorID"
+    route.getFields.asScala.exists(_.getName.equals("*")) shouldBe false
     route.getSource shouldBe "sensorsTopic"
     route.getStoredAs shouldBe "SortedSet"
     route.getTarget shouldBe null

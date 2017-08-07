@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.config
 
-import com.datamountaineer.connector.config.{Config, FormatType}
+import com.datamountaineer.kcql.{FormatType, Kcql}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
 import com.datamountaineer.streamreactor.connect.hazelcast.config.TargetType.TargetType
@@ -38,7 +38,7 @@ object TargetType extends Enumeration {
 case class HazelCastStoreAsType(name: String, targetType: TargetType)
 
 case class HazelCastSinkSettings(client: HazelcastInstance,
-                                 kcql: Set[Config],
+                                 kcql: Set[Kcql],
                                  topicObject: Map[String, HazelCastStoreAsType],
                                  fieldsMap: Map[String, Map[String, String]],
                                  ignoreFields: Map[String, Set[String]],
@@ -53,8 +53,8 @@ object HazelCastSinkSettings {
   def apply(config: HazelCastSinkConfig): HazelCastSinkSettings = {
 
     val kcql = config.getKCQL
-    val fieldMap = config.getFields()
-    val ignoreFields = config.getIgnoreFields()
+    val fieldMap = config.getFieldsMap()
+    val ignoreFields = config.getIgnoreFieldsMap()
     val primaryKeys = config.getPrimaryKeys()
     val allowParallel = config.getAllowParallel
     val format = config.getFormat(this.getFormatType, kcql)
@@ -84,7 +84,7 @@ object HazelCastSinkSettings {
   }
 
 
-  private def getTopicTables(routes: Set[Config]): Map[String, HazelCastStoreAsType] = {
+  private def getTopicTables(routes: Set[Kcql]): Map[String, HazelCastStoreAsType] = {
     routes.map(r => {
       Try(TargetType.withName(r.getStoredAs.toUpperCase)) match {
         case Success(_) =>
