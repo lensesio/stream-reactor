@@ -186,14 +186,14 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     //get config
     val config = new ElasticConfig(getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate = false))
     val settings = ElasticSettings(config)
-    settings.clientType shouldBe ClientType.TCP
+    settings.clientType.toString shouldBe ClientType.TCP.toString
   }
 
   "A writer should be using HTTP is set" in {
     //get config
     val config = new ElasticConfig(getElasticSinkConfigPropsHTTPClient(autoCreate = false))
     val settings = ElasticSettings(config)
-    settings.clientType shouldBe ClientType.HTTP
+    settings.clientType.toString shouldBe ClientType.HTTP.toString
   }
 
   "A ElasticWriter should insert into Elastic Search a number of records with the HTTP Client" in {
