@@ -41,7 +41,7 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
     ElasticConfig.config.parse(props)
     val sinkConfig = ElasticConfig(props)
     enableProgress = sinkConfig.getBoolean(ElasticConfigConstants.PROGRESS_COUNTER_ENABLED)
-    writer = Some(ElasticWriter(config = sinkConfig, context = context))
+    writer = Some(ElasticWriter(sinkConfig))
   }
 
   /**
@@ -49,8 +49,9 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
     **/
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.foreach(w => w.write(records.toSet))
     val seq = records.toVector
+    writer.foreach(_.write(seq))
+
     if (enableProgress) {
       progressCounter.update(seq)
     }

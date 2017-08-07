@@ -77,6 +77,16 @@ object ElasticConfig {
       ConfigDef.Width.MEDIUM,
       ElasticConfigConstants.THROW_ON_ERROR_DISPLAY)
     .define(
+      ElasticConfigConstants.BATCH_SIZE_CONFIG,
+      Type.INT,
+      ElasticConfigConstants.BATCH_SIZE_DEFAULT,
+      Importance.MEDIUM,
+      ElasticConfigConstants.BATCH_SIZE_DOC,
+      "Connection",
+      6,
+      ConfigDef.Width.MEDIUM,
+      ElasticConfigConstants.BATCH_SIZE_DISPLAY)
+    .define(
       ElasticConfigConstants.KCQL_QUERY,
       Type.STRING,
       Importance.HIGH,
@@ -86,14 +96,14 @@ object ElasticConfig {
       ConfigDef.Width.LONG,
       ElasticConfigConstants.KCQL_QUERY)
     .define(ElasticConfigConstants.PROGRESS_COUNTER_ENABLED,
-        Type.BOOLEAN,
-        ElasticConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
-        Importance.MEDIUM,
-        ElasticConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
-        "Metrics",
-        1,
-        ConfigDef.Width.MEDIUM,
-        ElasticConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
+      Type.BOOLEAN,
+      ElasticConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
+      Importance.MEDIUM,
+      ElasticConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
+      "Metrics",
+      1,
+      ConfigDef.Width.MEDIUM,
+      ElasticConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 
 }
 
@@ -104,5 +114,5 @@ object ElasticConfig {
   **/
 case class ElasticConfig(props: util.Map[String, String])
   extends BaseConfig(ElasticConfigConstants.CONNECTOR_PREFIX, ElasticConfig.config, props)
-  with KcqlSettings
-  with WriteTimeoutSettings
+    with KcqlSettings
+    with WriteTimeoutSettings

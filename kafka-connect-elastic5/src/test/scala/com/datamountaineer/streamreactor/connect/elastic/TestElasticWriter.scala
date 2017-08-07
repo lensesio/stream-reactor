@@ -50,7 +50,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     //get writer
 
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(tcpClient = Some(client), None, settings = settings)
+    val writer = new ElasticJsonWriter(new TcpKElasticClient(client), settings)
     //write records to elastic
     writer.write(testRecords)
 
@@ -80,7 +80,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
     val client = localNode.elastic4sclient(true)
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(tcpClient = Some(client), None, settings = settings)
+    val writer = new ElasticJsonWriter(new TcpKElasticClient(client), settings = settings)
     //First run writes records to elastic
     writer.write(testRecords)
 
@@ -125,7 +125,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     //get writer
 
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(tcpClient = Some(client), None, settings = settings)
+    val writer = new ElasticJsonWriter(new TcpKElasticClient(client), settings)
     //write records to elastic
     writer.write(testRecords)
 
@@ -165,7 +165,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     //get writer
 
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(tcpClient = Some(client), None, settings = settings)
+    val writer = new ElasticJsonWriter(new TcpKElasticClient(client), settings)
     //write records to elastic
     writer.write(testRecords)
 
@@ -209,11 +209,11 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
 
     val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
     val client = localNode.elastic4sclient(true)
-    val httpClient = HttpClient( ElasticsearchClientUri(s"elasticsearch://${localNode.ipAndPort}"))
+    val httpClient = HttpClient(ElasticsearchClientUri(s"elasticsearch://${localNode.ipAndPort}"))
     //get writer
 
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(tcpClient = None, Some(httpClient), settings = settings)
+    val writer = new ElasticJsonWriter(new HttpKElasticClient(httpClient), settings)
     //write records to elastic
     writer.write(testRecords)
 

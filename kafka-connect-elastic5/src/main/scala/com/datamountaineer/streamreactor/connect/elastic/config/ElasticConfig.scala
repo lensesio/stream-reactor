@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.elastic.config
 
 import java.util
 
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
@@ -76,8 +77,16 @@ object ElasticConfig {
       5,
       ConfigDef.Width.MEDIUM,
       ElasticConfigConstants.CLIENT_TYPE_CONFIG)
-
-
+    .define(
+      ElasticConfigConstants.BATCH_SIZE_CONFIG,
+      Type.INT,
+      ElasticConfigConstants.BATCH_SIZE_DEFAULT,
+      Importance.MEDIUM,
+      ElasticConfigConstants.BATCH_SIZE_DOC,
+      "Connection",
+      6,
+      ConfigDef.Width.MEDIUM,
+      ElasticConfigConstants.BATCH_SIZE_DISPLAY)
     .define(
       ElasticConfigConstants.ERROR_POLICY_CONFIG,
       Type.STRING,
@@ -147,7 +156,12 @@ object ElasticConfig {
   **/
 case class ElasticConfig(props: util.Map[String, String])
   extends BaseConfig(ElasticConfigConstants.CONNECTOR_PREFIX, ElasticConfig.config, props)
-    with KcqlSettings
     with WriteTimeoutSettings
     with ErrorPolicySettings
-    with NumberRetriesSettings
+    with NumberRetriesSettings {
+  val kcqlConstant: String = ElasticConfigConstants.KCQL
+
+  def getKcql(): Seq[Kcql] = {
+    getString(kcqlConstant).split(";").filter(_.trim.nonEmpty).map(Kcql.parse)
+  }
+}

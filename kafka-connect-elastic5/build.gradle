@@ -21,11 +21,21 @@ project(":kafka-connect-elastic5") {
     }
     ext {
         elastic4sVersion = '5.4.9'
-        elasticVersion = '5.4.0'
         jnaVersion = '3.0.9'
+        kcql2 = "2.1"
+        smt = "0.1"
     }
 
     dependencies {
+        compile("com.datamountaineer:kcql:$kcql2") {
+            exclude group: "com.google.guava", module: "guava"
+        }
+        compile("com.datamountaineer:kafka-connect-common:0.8.1"){
+            exclude group: "com.datamountaineer", module: "kcql"
+        }
+        compile("com.landoop:kafka-connect-smt_2.11:$smt")
+
+
         compile("com.sksamuel.elastic4s:elastic4s-core_$scalaMajorVersion:$elastic4sVersion") {
             exclude group: "org.scala-lang", module: "scala-library"
             exclude group: "org.scalactic", module: "scalactic_2.11"
@@ -44,9 +54,7 @@ project(":kafka-connect-elastic5") {
         }
         compile "com.sun.jna:jna:$jnaVersion"
         compile("com.sksamuel.elastic4s:elastic4s-xpack-security_$scalaMajorVersion:$elastic4sVersion")
-        compile("com.datamountaineer:kcql:$KCQLVersion") {
-            exclude group: "com.google.guava", module: "guava"
-        }
+
 
         testCompile("com.sksamuel.elastic4s:elastic4s-testkit_$scalaMajorVersion:$elastic4sVersion")
         testCompile("com.sksamuel.elastic4s:elastic4s-embedded_$scalaMajorVersion:$elastic4sVersion")

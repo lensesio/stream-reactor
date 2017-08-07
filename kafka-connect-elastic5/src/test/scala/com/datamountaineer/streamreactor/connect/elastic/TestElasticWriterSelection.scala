@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.elastic
 
 import java.util.UUID
 
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.embedded.LocalNode
@@ -30,6 +31,7 @@ import scala.reflect.io.File
 
 class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
   "A ElasticWriter should insert into Elastic Search a number of records" in {
+
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
     //mock the context to return our assignment when called
@@ -45,7 +47,39 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //get writer
 
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(tcpClient = Some(client), None, settings = settings)
+    val writer = new ElasticJsonWriter(new TcpKElasticClient(client), settings)
+    //write records to elastic
+    writer.write(testRecords)
+
+    Thread.sleep(2000)
+    //check counts
+    val res = client.execute {
+      search(INDEX)
+    }.await
+    res.totalHits shouldBe testRecords.size
+    //close writer
+    writer.close()
+    client.close()
+    TMP.deleteRecursively()
+  }
+
+  "A ElasticWriter should insert into Elastic Search a number of records when nested fields are selected" in {
+    val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
+    TMP.createDirectory()
+    //mock the context to return our assignment when called
+    val context = mock[SinkTaskContext]
+    when(context.assignment()).thenReturn(getAssignment)
+    //get test records
+    val testRecords = getTestRecordsNested
+    //get config
+    val config = new ElasticConfig( getBaseElasticSinkConfigProps(s"INSERT INTO $INDEX SELECT id, nested.string_field FROM $TOPIC"))
+
+    val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
+    val client = localNode.elastic4sclient(true)
+    //get writer
+
+    val settings = ElasticSettings(config)
+    val writer = new ElasticJsonWriter(new TcpKElasticClient(client), settings)
     //write records to elastic
     writer.write(testRecords)
 
@@ -75,7 +109,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
     val client = localNode.elastic4sclient(true)
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(Some(client), None, settings)
+    val writer = new ElasticJsonWriter(new TcpKElasticClient(client), settings)
     //First run writes records to elastic
     writer.write(testRecords)
 
@@ -87,6 +121,49 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     res.totalHits shouldBe testRecords.size
 
     val testUpdateRecords = getUpdateTestRecord
+
+    //Second run just updates
+    writer.write(testUpdateRecords)
+
+    Thread.sleep(2000)
+    //check counts
+    val updateRes = client.execute {
+      search(INDEX)
+    }.await
+    updateRes.totalHits shouldBe testRecords.size
+
+    //close writer
+    writer.close()
+    client.close()
+    TMP.deleteRecursively()
+  }
+
+  "A ElasticWriter should update records in Elastic Search with PK nested field" in {
+    val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
+    TMP.createDirectory()
+    //mock the context to return our assignment when called
+    val context = mock[SinkTaskContext]
+    when(context.assignment()).thenReturn(getAssignment)
+    //get test records
+    val testRecords = getTestRecordsNested
+    //get config
+    val config = new ElasticConfig(getBaseElasticSinkConfigProps(s"UPSERT INTO $INDEX SELECT nested.id, string_field FROM $TOPIC PK nested.id"))
+
+    val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
+    val client = localNode.elastic4sclient(true)
+    val settings = ElasticSettings(config)
+    val writer = new ElasticJsonWriter(new TcpKElasticClient(client), settings)
+    //First run writes records to elastic
+    writer.write(testRecords)
+
+    Thread.sleep(2000)
+    //check counts
+    val res = client.execute {
+      search(INDEX)
+    }.await
+    res.totalHits shouldBe testRecords.size
+
+    val testUpdateRecords = getUpdateTestRecordNested
 
     //Second run just updates
     writer.write(testUpdateRecords)

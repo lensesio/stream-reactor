@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.elastic.config
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.elastic.config.ClientType.ClientType
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
 import org.apache.kafka.common.config.ConfigException
@@ -28,32 +28,24 @@ import scala.util.Try
   * Created by andrew@datamountaineer.com on 13/05/16. 
   * stream-reactor-maven
   */
-case class ElasticSettings(kcql: Set[Config],
-                           fields: Map[String, Map[String, String]],
-                           ignoreFields: Map[String, Set[String]],
-                           pks: Map[String, String],
-                           tableMap: Map[String, String],
+case class ElasticSettings(kcqls: Seq[Kcql],
                            errorPolicy: ErrorPolicy,
                            taskRetries: Int = ElasticConfigConstants.NBR_OF_RETIRES_DEFAULT,
                            writeTimeout: Int = ElasticConfigConstants.WRITE_TIMEOUT_DEFAULT,
                            xPackSettings: Map[String, String] = Map.empty,
                            xpackPluggins: Seq[Class[_ <: Plugin]] = Seq.empty,
-                           clientType: ClientType = ClientType.TCP
-                          )
+                           clientType: ClientType = ClientType.TCP,
+                           batchSize: Int = ElasticConfigConstants.BATCH_SIZE_DEFAULT)
 
 
 object ElasticSettings {
 
   def apply(config: ElasticConfig): ElasticSettings = {
-    val kcql = config.getKCQL
-    val fields = config.getFields()
-    val tableMap = config.getTableTopic()
-    val ignoreFields = config.getIgnoreFields()
-    val pks = config.getUpsertKey()
+    val kcql = config.getKcql()
     val writeTimeout = config.getWriteTimeout
     val errorPolicy = config.getErrorPolicy
     val retries = config.getNumberRetries
-    val clientType =  ClientType.withName(config.getString(ElasticConfigConstants.CLIENT_TYPE_CONFIG).toUpperCase)
+    val clientType = ClientType.withName(config.getString(ElasticConfigConstants.CLIENT_TYPE_CONFIG).toUpperCase)
 
     val xPackSettings = Option(config.getString(ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS))
       .map { value =>
@@ -85,17 +77,17 @@ object ElasticSettings {
           .toSeq
       }.getOrElse(Seq.empty)
 
-    ElasticSettings(kcql = kcql,
-      fields = fields,
-      ignoreFields = ignoreFields,
-      pks = pks,
-      tableMap = tableMap,
+
+    val batchSize = config.getInt(ElasticConfigConstants.BATCH_SIZE_CONFIG)
+
+    ElasticSettings(kcql,
       errorPolicy,
       retries,
       writeTimeout,
       xPackSettings,
       xPackPlugins,
-      clientType
+      clientType,
+      batchSize
     )
   }
 }
