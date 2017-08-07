@@ -16,13 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.influx.config
 
-import com.datamountaineer.connector.config.{Config, Tag}
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
-import com.datamountaineer.streamreactor.connect.influx.StructFieldsExtractor
 import org.apache.kafka.common.config.ConfigException
 import org.influxdb.InfluxDB.ConsistencyLevel
-
-import scala.collection.JavaConversions._
 
 case class InfluxSettings(connectionUrl: String,
                           user: String,
@@ -30,9 +27,10 @@ case class InfluxSettings(connectionUrl: String,
                           database: String,
                           retentionPolicy: String,
                           consistencyLevel: ConsistencyLevel,
-                          topicToMeasurementMap: Map[String, String],
+                          /*topicToMeasurementMap: Map[String, String],
                           fieldsExtractorMap: Map[String, StructFieldsExtractor],
-                          topicToTagsMap: Map[String, Seq[Tag]],
+                          topicToTagsMap: Map[String, Seq[Tag]]*/
+                          kcqls: Seq[Kcql],
                           errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                           maxRetries: Int = InfluxConfigConstants.NBR_OF_RETIRES_DEFAULT)
 
@@ -70,18 +68,19 @@ object InfluxSettings {
       throw new ConfigException(s"${InfluxConfigConstants.INFLUX_DATABASE_CONFIG} is not set correctly")
     }
 
+    //TODO: common lib should not return Set[Kcql] but Seq[Kcq;
     val kcql = config.getKCQL
     val errorPolicy = config.getErrorPolicy
     val nbrOfRetries = config.getNumberRetries
-    val fields = config.getFields()
+    //val fields = config.getFields()
 
-    val extractorFields = kcql.map { rm =>
+    /*val extractorFields = kcql.map { rm =>
       val timestampField = Option(rm.getTimestamp) match {
-        case Some(Config.TIMESTAMP) => None
+        case Some(Kcql.TIMESTAMP) => None
         case other => other
       }
       (rm.getSource, StructFieldsExtractor(rm.isIncludeAllFields, fields(rm.getSource), timestampField, rm.getIgnoredField.toSet))
-    }.toMap
+    }.toMap*/
 
     val retentionPolicy = config.getString(InfluxConfigConstants.RETENTION_POLICY_CONFIG)
 
@@ -93,9 +92,7 @@ object InfluxSettings {
       database,
       retentionPolicy,
       consistencyLevel,
-      kcql.map(r => r.getSource -> r.getTarget).toMap,
-      extractorFields,
-      kcql.map { r => r.getSource -> r.getTags.toSeq }.filter(_._2.nonEmpty).toMap,
+      config.getKCQL.toVector,
       errorPolicy,
       nbrOfRetries)
   }

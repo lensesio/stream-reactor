@@ -18,10 +18,11 @@ package com.datamountaineer.streamreactor.connect.influx
 
 import java.util
 
-import com.datamountaineer.connector.config.Tag
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.influx.config.{InfluxConfig, InfluxConfigConstants, InfluxSettings}
-import com.datamountaineer.streamreactor.connect.influx.writers.InfluxBatchPointsBuilderFn
+import com.datamountaineer.streamreactor.connect.influx.writers.InfluxBatchPointsBuilder
 import com.fasterxml.jackson.core.`type`.TypeReference
+import com.landoop.json.sql.JacksonJson
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.influxdb.InfluxDB.ConsistencyLevel
@@ -30,11 +31,10 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 
 
-class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with MockitoSugar {
-  "InfluxBatchPointsBuilderFn" should {
+class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSugar {
+  "InfluxBatchPointsBuilder" should {
     "convert a sink record with a json string payload when all fields are selected" in {
       val jsonPayload =
         """
@@ -63,10 +63,13 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
-      val extractor = StructFieldsExtractor(true, Map.empty, None, ignoredFields = Set.empty)
+
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+        Seq(Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic"))
+      )
+      val builder = new InfluxBatchPointsBuilder(settings)
+      val batchPoints = builder.build(Seq(record))
+
       val points = batchPoints.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
@@ -125,10 +128,12 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
-      val extractor = StructFieldsExtractor(true, Map.empty, None, ignoredFields = Set.empty)
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map(topic -> Seq(new Tag("abc"))))
-      val points = InfluxBatchPointsBuilderFn(Seq(record), settings)
+        Seq(Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic WITHTAG(abc)")))
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+
+      val points = builder.build(Seq(record))
       points.getPoints.size() shouldBe 1
     }
 
@@ -167,29 +172,23 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
 
       val props = Map(
-        InfluxConfigConstants.INFLUX_URL_CONFIG->"http://localhost:8081",
-        InfluxConfigConstants.INFLUX_DATABASE_CONFIG->database,
-        InfluxConfigConstants.INFLUX_CONNECTION_USER_CONFIG->user,
-        InfluxConfigConstants.KCQL_CONFIG->s"INSERT INTO $measurement SELECT * FROM $topic IGNORE ptype, pid WITHTIMESTAMP time WITHTAG (ptype, pid) ",
-        InfluxConfigConstants.CONSISTENCY_CONFIG->ConsistencyLevel.QUORUM.toString
-      ).asJava
+        InfluxConfigConstants.INFLUX_URL_CONFIG -> "http://localhost:8081",
+        InfluxConfigConstants.INFLUX_DATABASE_CONFIG -> database,
+        InfluxConfigConstants.INFLUX_CONNECTION_USER_CONFIG -> user,
+        InfluxConfigConstants.KCQL_CONFIG -> s"INSERT INTO $measurement SELECT * FROM $topic IGNORE ptype, pid WITHTIMESTAMP time WITHTAG (ptype, pid) ",
+        InfluxConfigConstants.CONSISTENCY_CONFIG -> ConsistencyLevel.QUORUM.toString
+      )
 
       val config = InfluxConfig(props)
 
-//      when(config.getString(InfluxConfigConstants.INFLUX_URL_CONFIG)).thenReturn("http://localhost:8081")
-//      when(config.getString(InfluxConfigConstants.INFLUX_DATABASE_CONFIG)).thenReturn(database)
-//      when(config.getString(InfluxConfigConstants.INFLUX_CONNECTION_USER_CONFIG)).thenReturn(user)
-//      when(config.getString(InfluxConfigConstants.INFLUX_CONNECTION_PASSWORD_CONFIG)).thenReturn(null)
-//      when(config.getString(InfluxConfigConstants.ERROR_POLICY_CONFIG)).thenReturn("THROW")
-//      when(config.getString(InfluxConfigConstants.KCQL_CONFIG)).thenReturn(s"INSERT INTO $measurement SELECT * FROM $topic IGNORE ptype, pid WITHTIMESTAMP time WITHTAG (ptype, pid) ")
-//      when(config.getString(InfluxConfigConstants.CONSISTENCY_CONFIG)).thenReturn(ConsistencyLevel.QUORUM.toString)
       val settings = InfluxSettings(config)
 
       val before = System.currentTimeMillis()
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
-      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+      val builder = new InfluxBatchPointsBuilder(settings)
+      val batchPoints = builder.build(Seq(record))
       val points = batchPoints.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
@@ -238,10 +237,13 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
-      val extractor = StructFieldsExtractor(true, Map.empty, None, ignoredFields = Set.empty)
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map(topic -> Seq(new Tag("eyeColor"), new Tag("c1", "value1"))))
-      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic WITHTAG(eyeColor, c1=value1)")
+        ))
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+      val batchPoints = builder.build(Seq(record))
       val points = batchPoints.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
@@ -300,10 +302,12 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
-      val extractor = StructFieldsExtractor(true, Map.empty, None, ignoredFields = Set.empty)
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map(topic + ":" -> Seq(new Tag("eyeColor"), new Tag("c1", "value1"))))
-      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+        Seq(Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic"))
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+      val batchPoints = builder.build(Seq(record))
       val points = batchPoints.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
@@ -363,10 +367,15 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
-      val extractor = StructFieldsExtractor(true, Map.empty, Some("timestamp"), Set.empty)
+
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+      val batchPoints = builder.build(Seq(record))
       val points = batchPoints.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
@@ -422,11 +431,14 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
-      val extractor = StructFieldsExtractor(true, Map.empty, Some("timestamp"), Set.empty)
+
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
+        Seq(Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp"))
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
       intercept[RuntimeException] {
-        InfluxBatchPointsBuilderFn(Seq(record), settings)
+        builder.build(Seq(record))
       }
     }
 
@@ -458,10 +470,14 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
-      val extractor = StructFieldsExtractor(true, Map.empty, None, Set("longitude", "latitude"))
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic IGNORE longitude, latitude")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+      val batchPoints = builder.build(Seq(record))
       val points = batchPoints.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
@@ -509,26 +525,20 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
           | }
         """.stripMargin
 
-      val
-      topic = "topic1"
-      val measurement =
-        "measurement1"
+      val topic = "topic1"
+      val measurement = "measurement1"
 
-      val before =
+      val before = System.currentTimeMillis()
 
-        System.currentTimeMillis()
+      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
-      val record =
-
-        new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
-
-      val
-
-      extractor = StructFieldsExtractor(true, Map("name" -> "this_is_renamed"), None, Set.empty)
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map
-        (topic -> measurement), Map(topic -> extractor), Map.empty)
-      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT *, name as this_is_renamed FROM $topic")
+        ))
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+      val batchPoints = builder.build(Seq(record))
       val points = batchPoints.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
@@ -553,8 +563,8 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
       map.get("phone") shouldBe "+1 (905) 514-3719"
       map.get("address") shouldBe "316 Hoyt Street, Welda, Puerto Rico, 1474"
       map.get("latitude") shouldBe "-49.817964"
-      map.get("longitude") shouldBe
-        "-141.645812"
+      map.get("longitude") shouldBe "-141.645812"
+      map.containsKey("name") shouldBe false
     }
 
     "convert a sink record with a json string payload with specific fields being selected" in {
@@ -587,11 +597,15 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
-      val extractor = StructFieldsExtractor(false, Map("_id" -> "_id", "name" -> "this_is_renamed", "email" -> "email"), None, Set.empty)
+
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map
-        (topic -> measurement), Map(topic -> extractor), Map.empty)
-      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+      val batchPoints = builder.build(Seq(record))
       val points = batchPoints.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
@@ -638,10 +652,14 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
-      val extractor = StructFieldsExtractor(false, Map("_id" -> "_id", "name" -> "this_is_renamed", "email" -> "email"), None, Set.empty)
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map (topic -> measurement), Map(topic -> extractor), Map(topic -> Seq(new Tag("age"), new Tag("eyeColor"))))
-      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic WITHTAG(age, eyeColor)")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+      val batchPoints = builder.build(Seq(record))
       val points = batchPoints.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
@@ -681,11 +699,15 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
-      val extractor = StructFieldsExtractor(true, Map.empty, None, Set.empty)
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
       intercept[RuntimeException] {
-        InfluxBatchPointsBuilderFn(Seq(record), settings)
+        builder.build(Seq(record))
       }
     }
 
@@ -714,11 +736,15 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
-      val extractor = StructFieldsExtractor(true, Map.empty, None, Set.empty)
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
       intercept[RuntimeException] {
-        InfluxBatchPointsBuilderFn(Seq(record), settings)
+        builder.build(Seq(record))
       }
     }
 
@@ -748,11 +774,16 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
-      val extractor = StructFieldsExtractor(true, Map.empty, Some("timestamp"), Set.empty)
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+
       intercept[RuntimeException] {
-        InfluxBatchPointsBuilderFn(Seq(record), settings)
+        builder.build(Seq(record))
       }
     }
 
@@ -782,10 +813,14 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
-      val extractor = StructFieldsExtractor(true, Map.empty, Some("timestamp"), Set.empty)
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+      val batchPoints = builder.build(Seq(record))
       val points = batchPoints.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
@@ -840,12 +875,15 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
-      val extractor = StructFieldsExtractor(true, Map.empty, Some("timestamp"), Set.empty)
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map(topic -> Seq(new Tag("abc"))))
-      val pb = InfluxBatchPointsBuilderFn(Seq(record), settings)
-      pb
-        .getPoints.size() shouldBe 1
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp WITHTAG(abc)")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+      val pb = builder.build(Seq(record))
+      pb.getPoints.size() shouldBe 1
     }
 
     "convert a schemaless sink record when all fields are selected with the timestamp field within the payload and tags applied" in {
@@ -873,11 +911,14 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
       val before = System.currentTimeMillis()
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-
-      val extractor = StructFieldsExtractor(true, Map.empty, Some("timestamp"), Set.empty)
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map(topic -> Seq(new Tag("xyz", "zyx"), new Tag("age"))))
-      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp WITHTAG(xyz=zyx, age)")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+      val batchPoints = builder.build(Seq(record))
       val points = batchPoints.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
@@ -930,10 +971,15 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
-      val extractor = StructFieldsExtractor(true, Map.empty, None, Set.empty)
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+
+      val batchPoints = builder.build(Seq(record))
       val points = batchPoints.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
@@ -985,10 +1031,15 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
-      val extractor = StructFieldsExtractor(true, Map.empty, None, Set("longitude", "latitude"))
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic IGNORE longitude,latitude")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+
+      val batchPoints = builder.build(Seq(record))
       val points = batchPoints.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
@@ -1039,10 +1090,14 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
-      val extractor = StructFieldsExtractor(true, Map("name" -> "this_is_renamed"), None, Set.empty)
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT *, name as this_is_renamed FROM $topic")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+      val batchPoints = builder.build(Seq(record))
       val points = batchPoints.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
@@ -1094,10 +1149,14 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
-      val extractor = StructFieldsExtractor(false, Map("_id" -> "_id", "name" -> "this_is_renamed", "email" -> "email"), None, Set.empty)
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
-      val batchPoints = InfluxBatchPointsBuilderFn(Seq(record), settings)
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+      val batchPoints = builder.build(Seq(record))
       val points = batchPoints.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
@@ -1139,11 +1198,17 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
       val before = System.currentTimeMillis()
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-      val extractor = StructFieldsExtractor(true, Map.empty, None, Set.empty)
+
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+
       intercept[RuntimeException] {
-        InfluxBatchPointsBuilderFn(Seq(record), settings)
+        builder.build(Seq(record))
       }
     }
 
@@ -1172,11 +1237,16 @@ class InfluxBatchPointsBuilderFnTest extends WordSpec with Matchers with Mockito
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
-      val extractor = StructFieldsExtractor(true, Map.empty, None, Set.empty)
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Map(topic -> measurement), Map(topic -> extractor), Map.empty)
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+
       intercept[RuntimeException] {
-        InfluxBatchPointsBuilderFn(Seq(record), settings)
+        builder.build(Seq(record))
       }
     }
 
