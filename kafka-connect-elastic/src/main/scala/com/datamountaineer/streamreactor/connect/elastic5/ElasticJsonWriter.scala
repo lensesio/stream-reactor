@@ -53,7 +53,7 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
     *
     * @param records A list of SinkRecords
     **/
-  def write(records: Vector[SinkRecord]): Unit = {
+  def write(records: Set[SinkRecord]): Unit = {
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
@@ -68,8 +68,8 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
     *
     * @param records A list of SinkRecords
     **/
-  def insert(records: Map[String, Vector[SinkRecord]]): Unit = {
-    val fut = records.flatMap {
+  def insert(records: Map[String, Set[SinkRecord]]): Unit = {
+    val fut = records.map {
       case (topic, sinkRecords) =>
         val fields = settings.fields(topic)
         val ignoreFields = settings.ignoreFields(topic)
@@ -77,27 +77,24 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
         val i = CreateIndex.getIndexName(kcql)
         val documentType = Option(kcql.getDocType).getOrElse(i)
 
-        sinkRecords
-          .grouped(settings.batchSize)
-          .map { batch =>
-            val indexes = batch.map(r => convert(r, fields, ignoreFields))
-              .map { r =>
-                configMap(r.topic).getWriteMode match {
-                  case WriteModeEnum.INSERT => index into i / documentType source r
-                  case WriteModeEnum.UPSERT =>
-                    // Build a Struct field extractor to get the value from the PK field
-                    val pkField = settings.pks(r.topic)
-                    // Extractor includes all since we already converted the records to have only needed fields
-                    val extractor = StructFieldsExtractor(includeAllFields = true, Map(pkField -> pkField))
-                    val fieldsAndValues = extractor.get(r.value.asInstanceOf[Struct]).toMap
-                    val pkValue = fieldsAndValues(pkField).toString
-                    update id pkValue in i / documentType docAsUpsert fieldsAndValues
-                }
-              }
-            client.execute(bulk(indexes).refresh(true))
+        val indexes = sinkRecords
+          .map(r => convert(r, fields, ignoreFields))
+          .map { r =>
+            configMap(r.topic).getWriteMode match {
+              case WriteModeEnum.INSERT => index into i / documentType source r
+              case WriteModeEnum.UPSERT =>
+                // Build a Struct field extractor to get the value from the PK field
+                val pkField = settings.pks(r.topic)
+                // Extractor includes all since we already converted the records to have only needed fields
+                val extractor = StructFieldsExtractor(includeAllFields = true, Map(pkField -> pkField))
+                val fieldsAndValues = extractor.get(r.value.asInstanceOf[Struct]).toMap
+                val pkValue = fieldsAndValues(pkField).toString
+                update id pkValue in i / documentType docAsUpsert fieldsAndValues
+            }
           }
-    }
 
+        client.execute(bulk(indexes).refresh(true))
+    }
     try {
       Await.result(Future.sequence(fut), settings.writeTimeout.seconds)
     } catch {
@@ -108,6 +105,5 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
         }
     }
   }
-
 }
 

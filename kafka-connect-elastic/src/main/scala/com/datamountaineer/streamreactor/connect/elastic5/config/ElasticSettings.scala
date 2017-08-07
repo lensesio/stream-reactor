@@ -14,46 +14,42 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.elastic.config
+package com.datamountaineer.streamreactor.connect.elastic5.config
 
-import com.datamountaineer.connector.config.Config
-
+import com.datamountaineer.kcql.Kcql
 /**
   * Created by andrew@datamountaineer.com on 13/05/16. 
   * stream-reactor-maven
   */
-case class ElasticSettings(kcql: Set[Config],
+case class ElasticSettings(kcql: Set[Kcql],
                            fields: Map[String, Map[String, String]],
                            ignoreFields: Map[String, Set[String]],
                            pks: Map[String, String],
                            tableMap: Map[String, String],
                            writeTimeout: Int = ElasticConfigConstants.WRITE_TIMEOUT_DEFAULT,
-                           throwOnError: Boolean = ElasticConfigConstants.THROW_ON_ERROR_DEFAULT,
-                           batchSize: Int = ElasticConfigConstants.BATCH_SIZE_DEFAULT)
+                           throwOnError: Boolean = ElasticConfigConstants.THROW_ON_ERROR_DEFAULT)
 
 object ElasticSettings {
 
   def apply(config: ElasticConfig): ElasticSettings = {
 
     val kcql = config.getKCQL
-    val fields = config.getFields()
+    val fields = config.getFieldsMap()
     val tableMap = config.getTableTopic()
-    val ignoreFields = config.getIgnoreFields()
+    val ignoreFields = config.getIgnoreFieldsMap()
     val pks = config.getUpsertKey()
     val writeTimeout = config.getWriteTimeout
 
     //TODO SHOULD THIS NOT BE THE STANDARD ERROR POLICY?????
     val throwOnError = config.getBoolean(ElasticConfigConstants.THROW_ON_ERROR_CONFIG)
 
-    val batchSize = config.getInt(ElasticConfigConstants.BATCH_SIZE_CONFIG)
     ElasticSettings(kcql = kcql,
       fields = fields,
       ignoreFields = ignoreFields,
       pks = pks,
       tableMap = tableMap,
       writeTimeout,
-      throwOnError,
-      batchSize)
+      throwOnError)
 
   }
 }

@@ -85,7 +85,7 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
   }
 
   //generate some test records
-  def getTestRecords: Vector[SinkRecord] = {
+  def getTestRecords: Set[SinkRecord] = {
     val schema = createSchema
     val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
 
@@ -94,10 +94,10 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
         new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
-    }).toVector
+    }).toSet
   }
 
-  def getUpdateTestRecord: Vector[SinkRecord] = {
+  def getUpdateTestRecord: Set[SinkRecord] = {
     val schema = createSchema
     val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
 
@@ -106,7 +106,7 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
         new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
-    }).toVector
+    }).toSet
   }
 
   def getElasticSinkConfigProps = {
