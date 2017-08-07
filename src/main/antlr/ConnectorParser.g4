@@ -303,7 +303,7 @@ tag_definition
     ;
 
 tag_key
-    : FIELD | (DOT|TOPICNAME)+
+    : (FIELD|DOT)+ | (DOT|TOPICNAME)+
     ;
 
 tag_value
