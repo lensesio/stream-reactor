@@ -36,11 +36,12 @@ class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLoggi
 
   private val influxDB = InfluxDBFactory.connect(settings.connectionUrl, settings.user, settings.password)
 
+  private val builder  =new InfluxBatchPointsBuilder(settings)
   override def write(records: Seq[SinkRecord]): Unit = {
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
-      val batchPoints = InfluxBatchPointsBuilderFn(records, settings)
+      val batchPoints = builder.build(records)
       logger.debug(s"Writing ${batchPoints.getPoints.size()} points to the database...")
       val t = Try(influxDB.write(batchPoints))
       t.foreach(_ => logger.debug("Writing complete"))
@@ -49,6 +50,5 @@ class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLoggi
   }
 
   override def close(): Unit = {
-
   }
 }
