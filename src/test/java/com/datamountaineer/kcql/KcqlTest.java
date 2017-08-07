@@ -794,6 +794,48 @@ public class KcqlTest {
         assertTrue(tagsMap.get("c1").isConstant());
     }
 
+    @Test
+    public void parseTagsWithNestedFields() {
+        String topic = "TOPIC_A";
+        String table = "TABLE_A";
+        String syntax = String.format("INSERT INTO %s SELECT * FROM %s WITHTAG (field1.fieldA, c1=v1, field2, c2=v2)", table, topic);
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals(topic, kcql.getSource());
+        assertEquals(table, kcql.getTarget());
+        assertFalse(kcql.getFields().isEmpty());
+        assertTrue(kcql.getFields().get(0).getName().equals("*"));
+        assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
+
+        Map<String, Tag> tagsMap = new HashMap<>();
+        Iterator<Tag> iterTags = kcql.getTags().iterator();
+        while (iterTags.hasNext()) {
+            Tag tag = iterTags.next();
+            tagsMap.put(tag.getKey(), tag);
+        }
+
+        assertEquals(4, tagsMap.size());
+        assertTrue(tagsMap.containsKey("field1.fieldA"));
+        assertFalse(tagsMap.get("field1.fieldA").isConstant());
+        assertTrue(tagsMap.containsKey("field2"));
+        assertFalse(tagsMap.get("field2").isConstant());
+
+        assertTrue(tagsMap.containsKey("c2"));
+        assertTrue(tagsMap.get("c2").isConstant());
+
+        assertTrue(tagsMap.containsKey("c1"));
+        assertTrue(tagsMap.get("c1").isConstant());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void throwExceptionWhenTagsWithNestedFieldsEndsWithDot() {
+        String topic = "TOPIC_A";
+        String table = "TABLE_A";
+        String syntax = String.format("INSERT INTO %s SELECT * FROM %s WITHTAG (field1.fieldA., c1=v1, field2, c2=v2)", table, topic);
+
+        Kcql.parse(syntax);
+    }
+
+
     @Test(expected = IllegalArgumentException.class)
     public void throwAnExceptionIfTagsListIsEmpty() {
         String topic = "TOPIC_A";

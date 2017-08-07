@@ -557,6 +557,9 @@ public class Kcql {
                     if (arr[0].trim().length() == 0) {
                         throw new IllegalArgumentException("Invalid syntax for tags. Missing the key");
                     }
+                    if (arr[0].trim().endsWith(".")) {
+                        throw new IllegalArgumentException("Invalid syntax for tags. Field selection can not end with '.'");
+                    }
                     if (kcql.tags == null) kcql.tags = new ArrayList<>();
                     kcql.tags.add(new Tag(arr[0]));
                 } else {
