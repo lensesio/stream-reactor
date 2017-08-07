@@ -125,7 +125,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
 
       buildPointFields(k,
         ValuesExtractor.extract(map, _),
-        ValuesExtractor.extractAllFields(map, k.IgnoredAndAliasFields)
+        ValuesExtractor.extractAllFieldsCallback(map, k.IgnoredAndAliasFields, _)
       )
 
       k.tagsAndPaths.foreach { case (tag, path) =>
@@ -141,7 +141,6 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
       builder.build()
     }
   }
-
 
 
   /**
@@ -167,7 +166,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
 
       buildPointFields(k,
         ValuesExtractor.extract(json, _),
-        ValuesExtractor.extractAllFields(json, k.IgnoredAndAliasFields)
+        ValuesExtractor.extractAllFieldsCallback(json, k.IgnoredAndAliasFields, _)
       )
 
       k.tagsAndPaths.foreach { case (tag, path) =>
@@ -206,7 +205,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
 
       buildPointFields(k,
         ValuesExtractor.extract(struct, _),
-        ValuesExtractor.extractAllFields(struct, k.IgnoredAndAliasFields)
+        ValuesExtractor.extractAllFieldsCallback(struct, k.IgnoredAndAliasFields, _)
       )
 
       k.tagsAndPaths.foreach { case (tag, path) =>
@@ -232,7 +231,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
     */
   private def buildPointFields(kcqlCache: KcqlCache,
                                extractorFn: Vector[String] => Any,
-                               getAllFieldsFn: => Seq[(String, Any)])(implicit builder: Point.Builder) = {
+                               getAllFieldsFn: ((String, Any) => Unit)=>Unit)(implicit builder: Point.Builder) = {
 
     val populateFieldFn = (field: String, v: Any) => v match {
       case value: Long => builder.addField(field, value)
@@ -254,8 +253,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
     kcqlCache.fieldsAndPaths.filter(p => !kcqlCache.ignoredFields.contains(p._1.toString))
       .foreach { case (field, path) =>
         if (field.getName == "*") {
-          getAllFieldsFn.filter(p => !kcqlCache.ignoredFields.contains(p._1))
-            .foreach { case (f, value) => populateFieldFn(f, value) }
+          getAllFieldsFn({ case (f, value) => populateFieldFn(f, value) })
         }
         else {
           Option(extractorFn(path)).foreach(populateFieldFn(field.getAlias, _))
