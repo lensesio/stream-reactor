@@ -18,7 +18,7 @@ project(":kafka-connect-influxdb") {
 
     ext {
         influxDbVersion = "2.7"
-        kcql2 = "2.1"
+        kcql2 = "2.1.2"
         smt = "0.1"
     }
 
