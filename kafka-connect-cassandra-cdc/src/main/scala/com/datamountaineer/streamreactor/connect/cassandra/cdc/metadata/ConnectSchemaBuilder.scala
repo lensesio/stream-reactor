@@ -24,13 +24,56 @@ import org.apache.kafka.connect.data._
 import scala.collection.JavaConversions._
 
 object ConnectSchemaBuilder {
-  def apply(metadata: CFMetaData)(implicit config: CdcConfig): Schema = {
-    import org.apache.kafka.connect.data.SchemaBuilder
-    val builder: SchemaBuilder = SchemaBuilder.struct.name(metadata.cfName)
-    metadata.allColumns().foreach { cd =>
-      addField(cd, builder)
+  val KeyspaceField = "keyspace"
+  val TableField = "table"
+  val ChangeTypeField = "changeType"
+  val KeysField = "keys"
+  val TimestampField = "timestamp"
+  val DeletedColumnsField = "deleted_columns"
+
+  def keySchema(cf: CFMetaData)(implicit config: CdcConfig): Schema = {
+
+    val builder = SchemaBuilder.struct().name(cf.cfName)
+      .field(KeyspaceField, Schema.STRING_SCHEMA)
+      .field(TableField, Schema.STRING_SCHEMA)
+    //    .field(ChangeTypeField, Schema.STRING_SCHEMA)
+    //    .field(DeletedColumnsField, SchemaBuilder.array(Schema.STRING_SCHEMA).optional().build())
+
+    val pkBuilder = SchemaBuilder.struct().name("primarykeys")
+
+    cf.primaryKeyColumns()
+      .filter { col => col.isPartitionKey }
+      .foreach { col =>
+        pkBuilder.field(col.name.toString, ConnectSchemaBuilder.fromType(col.cellValueType()))
+      }
+
+    cf.clusteringColumns().foreach { col =>
+      pkBuilder.field(col.name.toString, ConnectSchemaBuilder.fromType(col.cellValueType()))
     }
+
+    builder.field(KeysField, pkBuilder.build())
+    //builder.field(TimestampField, Schema.INT64_SCHEMA)
+
     builder.build()
+  }
+
+  def valueSchema(metadata: CFMetaData)(implicit config: CdcConfig): Schema = {
+    import org.apache.kafka.connect.data.SchemaBuilder
+    val cdcBuilder: SchemaBuilder = SchemaBuilder.struct.name(metadata.cfName)
+    metadata.allColumns().foreach { cd =>
+      addField(cd, cdcBuilder)
+    }
+    cdcBuilder.build()
+
+    val metaDataBuilder = SchemaBuilder.struct().name("metadata")
+    metaDataBuilder.field(ChangeTypeField, Schema.STRING_SCHEMA)
+    metaDataBuilder.field(DeletedColumnsField, SchemaBuilder.array(Schema.STRING_SCHEMA).optional().build())
+    metaDataBuilder.field(TimestampField, Schema.INT64_SCHEMA)
+
+    val changeBuilder = SchemaBuilder.struct().name("mutation")
+    changeBuilder.field("metadata", metaDataBuilder.build())
+    changeBuilder.field("cdc", cdcBuilder.build())
+    changeBuilder.build()
   }
 
   private def addField(cd: ColumnDefinition, builder: SchemaBuilder)(implicit config: CdcConfig): Unit = {
