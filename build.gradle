@@ -62,7 +62,7 @@ allprojects {
         junit = '4.11'
         avroVersion="1.7.7"
         scalaLoggingVersion = '2.1.2'
-        mockitoVersion = '2.8.9'
+        mockitoVersion = '1.10.19'
         jacksonDatabind = '2.7.0'
         jacksonxmlVersion = '2.6.5'
         slf4jVersion = "1.7.7"
