@@ -61,15 +61,14 @@ allprojects {
         scalaTest = '3.0.1'
         junit = '4.11'
         scalaLoggingVersion = '2.1.2'
-        mockitoVersion = '1.10.19'
+        mockitoVersion = '2.8.9'
         jacksonDatabind = '2.7.0'
-        avroVersion = '1.7.7'
         jacksonxmlVersion = '2.6.5'
         slf4jVersion = "1.7.7"
         json4sVersion = "3.3.0"
         kiteMiniClusterVersion = "1.0.0-cdh5.12.0"
         gsonVersion = "2.6.2"
-        KCQLVersion = "2.0.16"
+        KCQLVersion = "2.1.2"
         akkaVersion = "2.4.10"
         connectCLIVersion = "1.0.1"
 
