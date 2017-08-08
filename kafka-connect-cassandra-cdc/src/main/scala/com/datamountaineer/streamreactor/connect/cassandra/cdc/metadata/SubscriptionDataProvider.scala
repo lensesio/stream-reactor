@@ -17,7 +17,6 @@ package com.datamountaineer.streamreactor.connect.cassandra.cdc.metadata
 
 import com.datamountaineer.streamreactor.connect.cassandra.cdc.config.CdcConfig
 import org.apache.cassandra.schema.KeyspaceMetadata
-import org.apache.kafka.connect.data
 import org.apache.kafka.connect.data.Schema
 
 import scala.collection.JavaConversions._
@@ -31,29 +30,29 @@ class SubscriptionDataProvider(val keyspaces: Seq[KeyspaceMetadata])(implicit co
     ks -> s.map(_.columnFamily).toSet
   }
 
-  private val cfStructMap = keyspaces.filter(ks => cfMap.contains(ks.name))
+  private val keySchemaMap = keyspaces.filter(ks => cfMap.contains(ks.name))
     .map { ks =>
       val columnFamilies = cfMap(ks.name)
 
       ks.name -> ks.tables.iterator()
         .filter(cf => columnFamilies.contains(cf.cfName))
-        .map(cf => cf.cfName -> ConnectSchemaBuilder(cf))
+        .map(cf => cf.cfName -> ConnectSchemaBuilder.keySchema(cf))
         .toMap
     }.toMap
 
-  private val changeStructMap = keyspaces.filter(ks => cfMap.contains(ks.name))
+  private val cdcSchemaMap = keyspaces.filter(ks => cfMap.contains(ks.name))
     .map { ks =>
       val columnFamilies = cfMap(ks.name)
 
       ks.name -> ks.tables.iterator()
         .filter(cf => columnFamilies.contains(cf.cfName))
-        .map(cf => cf.cfName -> ChangeStructBuilder(cf))
+        .map(cf => cf.cfName -> ConnectSchemaBuilder.cdcSchema(cf))
         .toMap
     }.toMap
 
 
-  def getStruct(keyspaceName: String, columnFamily: String): Option[data.Schema] = {
-    cfStructMap.get(keyspaceName).flatMap(_.get(columnFamily))
+  def getKeySchema(keyspaceName: String, columnFamily: String): Option[Schema] = {
+    keySchemaMap.get(keyspaceName).flatMap(_.get(columnFamily))
   }
 
   def getTopic(keyspaceName: String, columnFamily: String): Option[String] = {
@@ -62,7 +61,7 @@ class SubscriptionDataProvider(val keyspaces: Seq[KeyspaceMetadata])(implicit co
 
   def getColumnFamilies(keyspaceName: String): Option[Set[String]] = cfMap.get(keyspaceName)
 
-  def getChangeSchema(keyspaceName: String, columnFamily: String): Option[Schema] = {
-    changeStructMap.get(keyspaceName).flatMap(_.get(columnFamily))
+  def getCdcSchema(keyspaceName: String, columnFamily: String): Option[Schema] = {
+    cdcSchemaMap.get(keyspaceName).flatMap(_.get(columnFamily))
   }
 }

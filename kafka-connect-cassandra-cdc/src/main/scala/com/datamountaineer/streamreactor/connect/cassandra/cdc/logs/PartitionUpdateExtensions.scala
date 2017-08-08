@@ -19,7 +19,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.cassandra.cdc.ConnectState
 import com.datamountaineer.streamreactor.connect.cassandra.cdc.config.CdcConfig
-import com.datamountaineer.streamreactor.connect.cassandra.cdc.metadata.{ChangeStructBuilder, SubscriptionDataProvider}
+import com.datamountaineer.streamreactor.connect.cassandra.cdc.metadata.{ConnectSchemaBuilder, SubscriptionDataProvider}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.cassandra.db.DeletionTime
 import org.apache.cassandra.db.commitlog.CommitLogDescriptor
@@ -41,39 +41,49 @@ object PartitionUpdateExtensions extends StrictLogging {
         .getTopic(cfMetadata.ksName, cfMetadata.cfName)
         .getOrElse(throw new IllegalArgumentException(s"There was a problem identifying the topic for '${cfMetadata.ksName}.${cfMetadata.cfName}'."))
 
-      val key = KeyValueBuilder(cfMetadata, partitionUpdate)
+      val keyStruct = KeyStructBuilder(cfMetadata, partitionUpdate)
+
+      val metadataStruct = MetadataStructBuilder(partitionUpdate)
 
       val offset = Offset(desc.fileName(), location, desc.id)
-      val valueSchema = dataProvider.getStruct(cfMetadata.ksName, cfMetadata.cfName)
+
+      val cdcSchema = dataProvider.getCdcSchema(cfMetadata.ksName, cfMetadata.cfName)
         .getOrElse(throw new IllegalArgumentException(s"There was a problem identifying the Connect Source Record schema for '${cfMetadata.ksName}.${cfMetadata.cfName}'."))
 
       //do we have a delete?
-      if (!(partitionUpdate.deletionInfo().getPartitionDeletion eq DeletionTime.LIVE)) {
-        //logger.debug(s"DELETE $keyspace.${cfMetadata.cfName} WHERE ${key.get(ChangeStructBuilder.KeysField).asInstanceOf[Struct].}")
-        key.put(ChangeStructBuilder.ChangeTypeField, ChangeType.DELETE.toString)
 
+      if (!(partitionUpdate.deletionInfo().getPartitionDeletion eq DeletionTime.LIVE)) {
+
+        metadataStruct.put(ConnectSchemaBuilder.ChangeTypeField, ChangeType.DELETE.toString)
+
+        val cdcStruct = new Struct(cdcSchema)
+        PopulatePKColumns(cdcStruct, cfMetadata, partitionUpdate)
+
+        val valueStruct = ValueStructBuilder(cdcStruct, metadataStruct)
         val sourceRecord = new SourceRecord(
           ConnectState.Key,
           offset.toMap(),
           topic,
-          key.schema(),
-          key,
-          null,
-          null
+          keyStruct.schema(),
+          keyStruct,
+          valueStruct.schema(),
+          valueStruct
         )
+
         callback(sourceRecord)
-        //}
       } else {
+
         partitionUpdate.foreach { row =>
-          val value = new Struct(valueSchema)
-          PopulatePKColumns(value, cfMetadata, partitionUpdate)
-          PopulateClusteringColumns(value, cfMetadata, row.clustering())
+
+          val cdcStruct = new Struct(cdcSchema)
+          PopulatePKColumns(cdcStruct, cfMetadata, partitionUpdate)
+          PopulateClusteringColumns(cdcStruct, cfMetadata, row.clustering())
 
           val deletedColumns = new util.ArrayList[String]()
           val hasTombstone = row.foldLeft(false) { case (b, cd) =>
-            val (tombstoned, fieldValue) = PutColumnChange(valueSchema.field(cd.column().name.toString).schema(), cd, List(cd.column().name.toString), deletedColumns)
+            val (tombstoned, fieldValue) = PutColumnChange(cdcSchema.field(cd.column().name.toString).schema(), cd, List(cd.column().name.toString), deletedColumns)
 
-            value.put(cd.column().name.toString, fieldValue)
+            cdcStruct.put(cd.column().name.toString, fieldValue)
             b || tombstoned
           }
 
@@ -84,29 +94,30 @@ object PartitionUpdateExtensions extends StrictLogging {
           //so we need to check any cell have been tombstone-ed
           val changeType = if (hasTombstone) {
             //row.hasDeletion(nowInSec) && !(row.deletion().time() eq DeletionTime.LIVE)) {
-            key.put(ChangeStructBuilder.ChangeTypeField, ChangeType.DELETE_COLUMN.toString)
+            metadataStruct.put(ConnectSchemaBuilder.ChangeTypeField, ChangeType.DELETE_COLUMN.toString)
             if (deletedColumns.nonEmpty) {
-              key.put(ChangeStructBuilder.DeletedColumnsField, deletedColumns)
+              metadataStruct.put(ConnectSchemaBuilder.DeletedColumnsField, deletedColumns)
             }
           } else {
-            key.put(ChangeStructBuilder.ChangeTypeField, ChangeType.INSERT.toString)
+            metadataStruct.put(ConnectSchemaBuilder.ChangeTypeField, ChangeType.INSERT.toString)
           }
+
+          val valueStruct = ValueStructBuilder(cdcStruct, metadataStruct)
 
           val sourceRecord = new SourceRecord(
             ConnectState.Key,
             offset.toMap(),
             topic,
-            key.schema(),
-            key,
-            valueSchema,
-            value
+            keyStruct.schema(),
+            keyStruct,
+            valueStruct.schema(),
+            valueStruct
           )
 
           callback(sourceRecord)
         }
       }
     }
-
   }
 
 }

@@ -31,6 +31,14 @@ object ConnectSchemaBuilder {
   val TimestampField = "timestamp"
   val DeletedColumnsField = "deleted_columns"
 
+  val MetadataSchema = {
+    val metaDataBuilder = SchemaBuilder.struct().name("metadata")
+    metaDataBuilder.field(ChangeTypeField, Schema.STRING_SCHEMA)
+    metaDataBuilder.field(DeletedColumnsField, SchemaBuilder.array(Schema.STRING_SCHEMA).optional().build())
+    metaDataBuilder.field(TimestampField, Schema.INT64_SCHEMA)
+    metaDataBuilder.build()
+  }
+
   def keySchema(cf: CFMetaData)(implicit config: CdcConfig): Schema = {
 
     val builder = SchemaBuilder.struct().name(cf.cfName)
@@ -57,7 +65,7 @@ object ConnectSchemaBuilder {
     builder.build()
   }
 
-  def valueSchema(metadata: CFMetaData)(implicit config: CdcConfig): Schema = {
+  def cdcSchema(metadata: CFMetaData)(implicit config: CdcConfig): Schema = {
     import org.apache.kafka.connect.data.SchemaBuilder
     val cdcBuilder: SchemaBuilder = SchemaBuilder.struct.name(metadata.cfName)
     metadata.allColumns().foreach { cd =>
@@ -65,16 +73,8 @@ object ConnectSchemaBuilder {
     }
     cdcBuilder.build()
 
-    val metaDataBuilder = SchemaBuilder.struct().name("metadata")
-    metaDataBuilder.field(ChangeTypeField, Schema.STRING_SCHEMA)
-    metaDataBuilder.field(DeletedColumnsField, SchemaBuilder.array(Schema.STRING_SCHEMA).optional().build())
-    metaDataBuilder.field(TimestampField, Schema.INT64_SCHEMA)
-
-    val changeBuilder = SchemaBuilder.struct().name("mutation")
-    changeBuilder.field("metadata", metaDataBuilder.build())
-    changeBuilder.field("cdc", cdcBuilder.build())
-    changeBuilder.build()
   }
+
 
   private def addField(cd: ColumnDefinition, builder: SchemaBuilder)(implicit config: CdcConfig): Unit = {
     val fieldName = cd.name.toString

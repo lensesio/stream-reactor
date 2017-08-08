@@ -6,7 +6,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.cassandra.cdc.config.{CassandraConfig, CdcConfig, CdcSubscription}
 import com.datamountaineer.streamreactor.connect.cassandra.cdc.logs.CommitLogSegmentManagerCDCExtensions._
-import com.datamountaineer.streamreactor.connect.cassandra.cdc.metadata.ChangeStructBuilder
+import com.datamountaineer.streamreactor.connect.cassandra.cdc.metadata.ConnectSchemaBuilder
 import com.datastax.driver.core.Session
 import org.apache.cassandra.config.DatabaseDescriptor
 import org.apache.cassandra.db.Keyspace
@@ -120,14 +120,18 @@ class CdcCassandraTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
       val m1 = mutations.get(0)
       val key1 = m1.key().asInstanceOf[Struct]
-      key1.get(ChangeStructBuilder.KeyspaceField) shouldBe keyspace
-      key1.get(ChangeStructBuilder.TableField) shouldBe "orders"
-      var tableKeys = key1.get(ChangeStructBuilder.KeysField).asInstanceOf[Struct]
+      key1.get(ConnectSchemaBuilder.KeyspaceField) shouldBe keyspace
+      key1.get(ConnectSchemaBuilder.TableField) shouldBe "orders"
+      var tableKeys = key1.get(ConnectSchemaBuilder.KeysField).asInstanceOf[Struct]
       tableKeys.schema().fields().size() shouldBe 2
       tableKeys.get("id") shouldBe 1
-      key1.get(ChangeStructBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
 
-      val value1 = m1.value().asInstanceOf[Struct]
+
+      var cdcStruct = m1.value().asInstanceOf[Struct]
+      var metadataStruct = cdcStruct.get(ValueStructBuilder.MetadataField).asInstanceOf[Struct]
+      metadataStruct.get(ConnectSchemaBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
+
+      val value1 = cdcStruct.get(ValueStructBuilder.CdcField).asInstanceOf[Struct]
       value1.schema().fields().map(_.name()).toSet shouldBe Set("id", "created", "product", "qty", "price")
       value1.get("id") shouldBe 1
       value1.get("created") != null shouldBe true
@@ -138,14 +142,17 @@ class CdcCassandraTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
       val m2 = mutations.get(1)
       val key2 = m2.key().asInstanceOf[Struct]
-      key2.get(ChangeStructBuilder.KeyspaceField) shouldBe keyspace
-      key2.get(ChangeStructBuilder.TableField) shouldBe "orders"
-      var tableKeys2 = key2.get(ChangeStructBuilder.KeysField).asInstanceOf[Struct]
+      key2.get(ConnectSchemaBuilder.KeyspaceField) shouldBe keyspace
+      key2.get(ConnectSchemaBuilder.TableField) shouldBe "orders"
+      var tableKeys2 = key2.get(ConnectSchemaBuilder.KeysField).asInstanceOf[Struct]
       tableKeys2.schema().fields().size() shouldBe 2
       tableKeys2.get("id") shouldBe 2
-      key2.get(ChangeStructBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
 
-      val value2 = m2.value().asInstanceOf[Struct]
+      cdcStruct = m2.value().asInstanceOf[Struct]
+      metadataStruct = cdcStruct.get(ValueStructBuilder.MetadataField).asInstanceOf[Struct]
+      metadataStruct.get(ConnectSchemaBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
+
+      val value2 = cdcStruct.get(ValueStructBuilder.CdcField).asInstanceOf[Struct]
       value2.schema().fields().map(_.name()).toSet shouldBe Set("id", "created", "product", "qty", "price")
       value2.get("id") shouldBe 2
       value2.get("created") != null shouldBe true
@@ -156,14 +163,17 @@ class CdcCassandraTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
       val m3 = mutations.get(2)
       val key3 = m3.key().asInstanceOf[Struct]
-      key3.get(ChangeStructBuilder.KeyspaceField) shouldBe keyspace
-      key3.get(ChangeStructBuilder.TableField) shouldBe "orders"
-      var tableKeys3 = key3.get(ChangeStructBuilder.KeysField).asInstanceOf[Struct]
+      key3.get(ConnectSchemaBuilder.KeyspaceField) shouldBe keyspace
+      key3.get(ConnectSchemaBuilder.TableField) shouldBe "orders"
+      var tableKeys3 = key3.get(ConnectSchemaBuilder.KeysField).asInstanceOf[Struct]
       tableKeys3.schema().fields().size() shouldBe 2
       tableKeys3.get("id") shouldBe 3
-      key3.get(ChangeStructBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
 
-      val value3 = m3.value().asInstanceOf[Struct]
+      cdcStruct = m3.value().asInstanceOf[Struct]
+      metadataStruct = cdcStruct.get(ValueStructBuilder.MetadataField).asInstanceOf[Struct]
+      metadataStruct.get(ConnectSchemaBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
+
+      val value3 = cdcStruct.get(ValueStructBuilder.CdcField).asInstanceOf[Struct]
       value3.schema().fields().map(_.name()).toSet shouldBe Set("id", "created", "product", "qty", "price")
       value3.get("id") shouldBe 3
       value3.get("created") != null shouldBe true
@@ -208,14 +218,17 @@ class CdcCassandraTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
       val m1 = mutations.get(0)
       val key1 = m1.key().asInstanceOf[Struct]
-      key1.get(ChangeStructBuilder.KeyspaceField) shouldBe keyspace
-      key1.get(ChangeStructBuilder.TableField) shouldBe "orders"
-      var tableKeys = key1.get(ChangeStructBuilder.KeysField).asInstanceOf[Struct]
+      key1.get(ConnectSchemaBuilder.KeyspaceField) shouldBe keyspace
+      key1.get(ConnectSchemaBuilder.TableField) shouldBe "orders"
+      var tableKeys = key1.get(ConnectSchemaBuilder.KeysField).asInstanceOf[Struct]
       tableKeys.schema().fields().size() shouldBe 2
       tableKeys.get("id") shouldBe 1
-      key1.get(ChangeStructBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
 
-      val value1 = m1.value().asInstanceOf[Struct]
+      var cdcStruct = m1.value().asInstanceOf[Struct]
+      var metadataStruct = cdcStruct.get(ValueStructBuilder.MetadataField).asInstanceOf[Struct]
+      metadataStruct.get(ConnectSchemaBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
+
+      val value1 = cdcStruct.get(ValueStructBuilder.CdcField).asInstanceOf[Struct]
       value1.schema().fields().map(_.name()).toSet shouldBe Set("id", "created", "product", "qty", "price")
       value1.get("id") shouldBe 1
       value1.get("created") != null shouldBe true
@@ -226,16 +239,19 @@ class CdcCassandraTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
       val m2 = mutations.get(1)
       val key2 = m2.key().asInstanceOf[Struct]
-      key2.get(ChangeStructBuilder.KeyspaceField) shouldBe keyspace
-      key2.get(ChangeStructBuilder.TableField) shouldBe "orders"
-      var tableKeys2 = key2.get(ChangeStructBuilder.KeysField).asInstanceOf[Struct]
+      key2.get(ConnectSchemaBuilder.KeyspaceField) shouldBe keyspace
+      key2.get(ConnectSchemaBuilder.TableField) shouldBe "orders"
+      var tableKeys2 = key2.get(ConnectSchemaBuilder.KeysField).asInstanceOf[Struct]
       tableKeys2.schema().fields().size() shouldBe 2
       tableKeys2.get("id") shouldBe 1
-      key2.get(ChangeStructBuilder.ChangeTypeField) shouldBe ChangeType.DELETE.toString
 
-      val value2 = m2.value().asInstanceOf[Struct]
-      value2 eq null shouldBe true
+      cdcStruct = m2.value().asInstanceOf[Struct]
+      metadataStruct = cdcStruct.get(ValueStructBuilder.MetadataField).asInstanceOf[Struct]
+      metadataStruct.get(ConnectSchemaBuilder.ChangeTypeField) shouldBe ChangeType.DELETE.toString
 
+      val value2 = cdcStruct.get(ValueStructBuilder.CdcField).asInstanceOf[Struct]
+      value2 eq null shouldBe false
+      value2.get("id") shouldBe 1
 
       cdc.getMutations().size shouldBe 0
       cdc.getMutations().size shouldBe 0
@@ -274,15 +290,19 @@ class CdcCassandraTest extends WordSpec with Matchers with BeforeAndAfterAll {
       mutations.size shouldBe 2
 
       val m1 = mutations.get(0)
+
       val key1 = m1.key().asInstanceOf[Struct]
-      key1.get(ChangeStructBuilder.KeyspaceField) shouldBe keyspace
-      key1.get(ChangeStructBuilder.TableField) shouldBe "orders"
-      var tableKeys = key1.get(ChangeStructBuilder.KeysField).asInstanceOf[Struct]
+      key1.get(ConnectSchemaBuilder.KeyspaceField) shouldBe keyspace
+      key1.get(ConnectSchemaBuilder.TableField) shouldBe "orders"
+      var tableKeys = key1.get(ConnectSchemaBuilder.KeysField).asInstanceOf[Struct]
       tableKeys.schema().fields().size() shouldBe 2
       tableKeys.get("id") shouldBe 1
-      key1.get(ChangeStructBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
 
-      val value1 = m1.value().asInstanceOf[Struct]
+      var cdcStruct = m1.value().asInstanceOf[Struct]
+      var metadataStruct = cdcStruct.get(ValueStructBuilder.MetadataField).asInstanceOf[Struct]
+      metadataStruct.get(ConnectSchemaBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
+
+      val value1 = cdcStruct.get(ValueStructBuilder.CdcField).asInstanceOf[Struct]
       value1.schema().fields().map(_.name()).toSet shouldBe Set("id", "created", "product", "qty", "price")
       value1.get("id") shouldBe 1
       value1.get("created") != null shouldBe true
@@ -293,17 +313,19 @@ class CdcCassandraTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
       val m2 = mutations.get(1)
       val key2 = m2.key().asInstanceOf[Struct]
-      key2.get(ChangeStructBuilder.KeyspaceField) shouldBe keyspace
-      key2.get(ChangeStructBuilder.TableField) shouldBe "orders"
-      var tableKeys2 = key2.get(ChangeStructBuilder.KeysField).asInstanceOf[Struct]
+      key2.get(ConnectSchemaBuilder.KeyspaceField) shouldBe keyspace
+      key2.get(ConnectSchemaBuilder.TableField) shouldBe "orders"
+      var tableKeys2 = key2.get(ConnectSchemaBuilder.KeysField).asInstanceOf[Struct]
       tableKeys2.schema().fields().size() shouldBe 2
       tableKeys2.get("id") shouldBe 1
-      key2.get(ChangeStructBuilder.ChangeTypeField) shouldBe ChangeType.DELETE_COLUMN.toString
-      key2.get(ChangeStructBuilder.DeletedColumnsField) == null shouldBe false
-      key2.get(ChangeStructBuilder.DeletedColumnsField) shouldBe new util.ArrayList[String](Seq("product"))
 
+      cdcStruct = m2.value().asInstanceOf[Struct]
+      metadataStruct = cdcStruct.get(ValueStructBuilder.MetadataField).asInstanceOf[Struct]
+      metadataStruct.get(ConnectSchemaBuilder.ChangeTypeField) shouldBe ChangeType.DELETE_COLUMN.toString
+      metadataStruct.get(ConnectSchemaBuilder.DeletedColumnsField) == null shouldBe false
+      metadataStruct.get(ConnectSchemaBuilder.DeletedColumnsField) shouldBe new util.ArrayList[String](Seq("product"))
 
-      val value2 = m2.value().asInstanceOf[Struct]
+      val value2 = cdcStruct.get(ValueStructBuilder.CdcField).asInstanceOf[Struct]
 
       value2.get("id") shouldBe 1
       value2.get("created") eq null shouldBe false
@@ -351,14 +373,17 @@ class CdcCassandraTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
       val m1 = mutations.get(0)
       val key1 = m1.key().asInstanceOf[Struct]
-      key1.get(ChangeStructBuilder.KeyspaceField) shouldBe keyspace
-      key1.get(ChangeStructBuilder.TableField) shouldBe "orders"
-      var tableKeys = key1.get(ChangeStructBuilder.KeysField).asInstanceOf[Struct]
+      key1.get(ConnectSchemaBuilder.KeyspaceField) shouldBe keyspace
+      key1.get(ConnectSchemaBuilder.TableField) shouldBe "orders"
+      var tableKeys = key1.get(ConnectSchemaBuilder.KeysField).asInstanceOf[Struct]
       tableKeys.schema().fields().size() shouldBe 2
       tableKeys.get("id") shouldBe 1
-      key1.get(ChangeStructBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
 
-      val value1 = m1.value().asInstanceOf[Struct]
+      var cdcStruct = m1.value().asInstanceOf[Struct]
+      var metadataStruct = cdcStruct.get(ValueStructBuilder.MetadataField).asInstanceOf[Struct]
+      metadataStruct.get(ConnectSchemaBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
+
+      val value1 = cdcStruct.get(ValueStructBuilder.CdcField).asInstanceOf[Struct]
       value1.schema().fields().map(_.name()).toSet shouldBe Set("id", "created", "product", "qty", "price")
       value1.get("id") shouldBe 1
       value1.get("created") != null shouldBe true
@@ -369,15 +394,18 @@ class CdcCassandraTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
       val m2 = mutations.get(1)
       val key2 = m2.key().asInstanceOf[Struct]
-      key2.get(ChangeStructBuilder.KeyspaceField) shouldBe keyspace
-      key2.get(ChangeStructBuilder.TableField) shouldBe "orders"
-      var tableKeys2 = key2.get(ChangeStructBuilder.KeysField).asInstanceOf[Struct]
+      key2.get(ConnectSchemaBuilder.KeyspaceField) shouldBe keyspace
+      key2.get(ConnectSchemaBuilder.TableField) shouldBe "orders"
+      var tableKeys2 = key2.get(ConnectSchemaBuilder.KeysField).asInstanceOf[Struct]
       tableKeys2.schema().fields().size() shouldBe 2
       tableKeys2.get("id") shouldBe 1
-      key2.get(ChangeStructBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
+
+      cdcStruct = m2.value().asInstanceOf[Struct]
+      metadataStruct = cdcStruct.get(ValueStructBuilder.MetadataField).asInstanceOf[Struct]
+      metadataStruct.get(ConnectSchemaBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
 
 
-      val value2 = m2.value().asInstanceOf[Struct]
+      val value2 = cdcStruct.get(ValueStructBuilder.CdcField).asInstanceOf[Struct]
       value2.get("id") shouldBe 1
       value2.get("created") shouldBe created
       value2.get("product") shouldBe "abc"
@@ -419,14 +447,17 @@ class CdcCassandraTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
       val m1 = mutations.get(0)
       val key1 = m1.key().asInstanceOf[Struct]
-      key1.get(ChangeStructBuilder.KeyspaceField) shouldBe keyspace
-      key1.get(ChangeStructBuilder.TableField) shouldBe "user"
-      var tableKeys = key1.get(ChangeStructBuilder.KeysField).asInstanceOf[Struct]
+      key1.get(ConnectSchemaBuilder.KeyspaceField) shouldBe keyspace
+      key1.get(ConnectSchemaBuilder.TableField) shouldBe "user"
+      var tableKeys = key1.get(ConnectSchemaBuilder.KeysField).asInstanceOf[Struct]
       tableKeys.schema().fields().size() shouldBe 1
       tableKeys.get("user_id") shouldBe "stef"
-      key1.get(ChangeStructBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
 
-      val value1 = m1.value().asInstanceOf[Struct]
+      var cdcStruct = m1.value().asInstanceOf[Struct]
+      var metadataStruct = cdcStruct.get(ValueStructBuilder.MetadataField).asInstanceOf[Struct]
+      metadataStruct.get(ConnectSchemaBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
+
+      val value1 = cdcStruct.get(ValueStructBuilder.CdcField).asInstanceOf[Struct]
       value1.schema().fields().map(_.name()).toSet shouldBe Set("user_id", "name", "rlist")
       value1.get("user_id") shouldBe "stef"
       value1.get("name") shouldBe "stefan"
@@ -465,14 +496,17 @@ class CdcCassandraTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
       val m1 = mutations.get(0)
       val key1 = m1.key().asInstanceOf[Struct]
-      key1.get(ChangeStructBuilder.KeyspaceField) shouldBe keyspace
-      key1.get(ChangeStructBuilder.TableField) shouldBe "course"
-      var tableKeys = key1.get(ChangeStructBuilder.KeysField).asInstanceOf[Struct]
+      key1.get(ConnectSchemaBuilder.KeyspaceField) shouldBe keyspace
+      key1.get(ConnectSchemaBuilder.TableField) shouldBe "course"
+      var tableKeys = key1.get(ConnectSchemaBuilder.KeysField).asInstanceOf[Struct]
       tableKeys.schema().fields().size() shouldBe 1
       tableKeys.get("id") shouldBe "id1"
-      key1.get(ChangeStructBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
 
-      val value1 = m1.value().asInstanceOf[Struct]
+      var cdcStruct = m1.value().asInstanceOf[Struct]
+      var metadataStruct = cdcStruct.get(ValueStructBuilder.MetadataField).asInstanceOf[Struct]
+      metadataStruct.get(ConnectSchemaBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
+
+      val value1 = cdcStruct.get(ValueStructBuilder.CdcField).asInstanceOf[Struct]
       value1.schema().fields().map(_.name()).toSet shouldBe Set("id", "prereq")
       value1.get("id") shouldBe "id1"
 
@@ -516,14 +550,17 @@ class CdcCassandraTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
       val m1 = mutations.get(0)
       val key1 = m1.key().asInstanceOf[Struct]
-      key1.get(ChangeStructBuilder.KeyspaceField) shouldBe keyspace
-      key1.get(ChangeStructBuilder.TableField) shouldBe table
-      var tableKeys = key1.get(ChangeStructBuilder.KeysField).asInstanceOf[Struct]
+      key1.get(ConnectSchemaBuilder.KeyspaceField) shouldBe keyspace
+      key1.get(ConnectSchemaBuilder.TableField) shouldBe table
+      var tableKeys = key1.get(ConnectSchemaBuilder.KeysField).asInstanceOf[Struct]
       tableKeys.schema().fields().size() shouldBe 1
       tableKeys.get("id") shouldBe "id1"
-      key1.get(ChangeStructBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
 
-      val value1 = m1.value().asInstanceOf[Struct]
+      var cdcStruct = m1.value().asInstanceOf[Struct]
+      var metadataStruct = cdcStruct.get(ValueStructBuilder.MetadataField).asInstanceOf[Struct]
+      metadataStruct.get(ConnectSchemaBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
+
+      val value1 = cdcStruct.get(ValueStructBuilder.CdcField).asInstanceOf[Struct]
       value1.schema().fields().map(_.name()).toSet shouldBe Set("id", "something")
       value1.get("id") shouldBe "id1"
 
@@ -636,14 +673,17 @@ class CdcCassandraTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
       val m1 = mutations.get(0)
       val key1 = m1.key().asInstanceOf[Struct]
-      key1.get(ChangeStructBuilder.KeyspaceField) shouldBe keyspace
-      key1.get(ChangeStructBuilder.TableField) shouldBe table
-      var tableKeys = key1.get(ChangeStructBuilder.KeysField).asInstanceOf[Struct]
+      key1.get(ConnectSchemaBuilder.KeyspaceField) shouldBe keyspace
+      key1.get(ConnectSchemaBuilder.TableField) shouldBe table
+      var tableKeys = key1.get(ConnectSchemaBuilder.KeysField).asInstanceOf[Struct]
       tableKeys.schema().fields().size() shouldBe 1
       tableKeys.get("id") shouldBe "62c36092-82a1-3a00-93d1-46196ee77204"
-      key1.get(ChangeStructBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
 
-      val value1 = m1.value().asInstanceOf[Struct]
+      var cdcStruct = m1.value().asInstanceOf[Struct]
+      var metadataStruct = cdcStruct.get(ValueStructBuilder.MetadataField).asInstanceOf[Struct]
+      metadataStruct.get(ConnectSchemaBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
+
+      val value1 = cdcStruct.get(ValueStructBuilder.CdcField).asInstanceOf[Struct]
       val fields = value1.schema().fields().map(_.name()).toVector.sortBy(identity)
       fields shouldBe Vector("id", "name", "addresses", "other_reports", "direct_reports").sortBy(identity)
       value1.get("id") shouldBe "62c36092-82a1-3a00-93d1-46196ee77204"
@@ -660,14 +700,17 @@ class CdcCassandraTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
       val m2 = mutations.get(1)
       val key2 = m2.key().asInstanceOf[Struct]
-      key2.get(ChangeStructBuilder.KeyspaceField) shouldBe keyspace
-      key2.get(ChangeStructBuilder.TableField) shouldBe table
-      var tableKeys2 = key2.get(ChangeStructBuilder.KeysField).asInstanceOf[Struct]
+      key2.get(ConnectSchemaBuilder.KeyspaceField) shouldBe keyspace
+      key2.get(ConnectSchemaBuilder.TableField) shouldBe table
+      var tableKeys2 = key2.get(ConnectSchemaBuilder.KeysField).asInstanceOf[Struct]
       tableKeys2.schema().fields().size() shouldBe 1
       tableKeys2.get("id") shouldBe "62c36092-82a1-3a00-93d1-46196ee77204"
-      key2.get(ChangeStructBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
 
-      val value2 = m2.value().asInstanceOf[Struct]
+      cdcStruct = m2.value().asInstanceOf[Struct]
+      metadataStruct = cdcStruct.get(ValueStructBuilder.MetadataField).asInstanceOf[Struct]
+      metadataStruct.get(ConnectSchemaBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
+
+      val value2 = cdcStruct.get(ValueStructBuilder.CdcField).asInstanceOf[Struct]
       value2.schema().fields().map(_.name()).toVector.sortBy(identity) shouldBe Vector("id", "name", "addresses", "other_reports", "direct_reports").sortBy(identity)
       value2.get("id") shouldBe "62c36092-82a1-3a00-93d1-46196ee77204"
 
@@ -702,14 +745,17 @@ class CdcCassandraTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
       val m3 = mutations.get(2)
       val key3 = m3.key().asInstanceOf[Struct]
-      key3.get(ChangeStructBuilder.KeyspaceField) shouldBe keyspace
-      key3.get(ChangeStructBuilder.TableField) shouldBe table
-      var tableKeys3 = key3.get(ChangeStructBuilder.KeysField).asInstanceOf[Struct]
+      key3.get(ConnectSchemaBuilder.KeyspaceField) shouldBe keyspace
+      key3.get(ConnectSchemaBuilder.TableField) shouldBe table
+      var tableKeys3 = key3.get(ConnectSchemaBuilder.KeysField).asInstanceOf[Struct]
       tableKeys3.schema().fields().size() shouldBe 1
       tableKeys3.get("id") shouldBe "11c11111-82a1-3a00-93d1-46196ee77204"
-      key3.get(ChangeStructBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
 
-      val value3 = m3.value().asInstanceOf[Struct]
+      cdcStruct = m3.value().asInstanceOf[Struct]
+      metadataStruct = cdcStruct.get(ValueStructBuilder.MetadataField).asInstanceOf[Struct]
+      metadataStruct.get(ConnectSchemaBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
+
+      val value3 = cdcStruct.get(ValueStructBuilder.CdcField).asInstanceOf[Struct]
       value3.schema().fields().map(_.name()).toVector.sortBy(identity) shouldBe Vector("id", "name", "addresses", "direct_reports", "other_reports").sortBy(identity)
       value3.get("id") shouldBe "11c11111-82a1-3a00-93d1-46196ee77204"
 
@@ -730,14 +776,17 @@ class CdcCassandraTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
       val m4 = mutations.get(3)
       val key4 = m4.key().asInstanceOf[Struct]
-      key4.get(ChangeStructBuilder.KeyspaceField) shouldBe keyspace
-      key4.get(ChangeStructBuilder.TableField) shouldBe table
-      var tableKeys4 = key4.get(ChangeStructBuilder.KeysField).asInstanceOf[Struct]
+      key4.get(ConnectSchemaBuilder.KeyspaceField) shouldBe keyspace
+      key4.get(ConnectSchemaBuilder.TableField) shouldBe table
+      var tableKeys4 = key4.get(ConnectSchemaBuilder.KeysField).asInstanceOf[Struct]
       tableKeys4.schema().fields().size() shouldBe 1
       tableKeys4.get("id") shouldBe "22c11111-82a1-3a00-93d1-46196ee77204"
-      key4.get(ChangeStructBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
 
-      val value4 = m4.value().asInstanceOf[Struct]
+      cdcStruct = m4.value().asInstanceOf[Struct]
+      metadataStruct = cdcStruct.get(ValueStructBuilder.MetadataField).asInstanceOf[Struct]
+      metadataStruct.get(ConnectSchemaBuilder.ChangeTypeField) shouldBe ChangeType.INSERT.toString
+
+      val value4 = cdcStruct.get(ValueStructBuilder.CdcField).asInstanceOf[Struct]
       value4.schema().fields().map(_.name()).toVector.sortBy(identity) shouldBe Vector("id", "name", "addresses", "direct_reports", "other_reports").sortBy(identity)
       value4.get("id") shouldBe "22c11111-82a1-3a00-93d1-46196ee77204"
 
@@ -759,16 +808,21 @@ class CdcCassandraTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
       val m5 = mutations.get(4)
       val key5 = m5.key().asInstanceOf[Struct]
-      key5.get(ChangeStructBuilder.KeyspaceField) shouldBe keyspace
-      key5.get(ChangeStructBuilder.TableField) shouldBe table
-      var tableKeys5 = key5.get(ChangeStructBuilder.KeysField).asInstanceOf[Struct]
+      key5.get(ConnectSchemaBuilder.KeyspaceField) shouldBe keyspace
+      key5.get(ConnectSchemaBuilder.TableField) shouldBe table
+      var tableKeys5 = key5.get(ConnectSchemaBuilder.KeysField).asInstanceOf[Struct]
       tableKeys5.schema().fields().size() shouldBe 1
       tableKeys5.get("id") shouldBe "62c36092-82a1-3a00-93d1-46196ee77204"
-      key5.get(ChangeStructBuilder.ChangeTypeField) shouldBe ChangeType.DELETE_COLUMN.toString
-      key5.get(ChangeStructBuilder.DeletedColumnsField) == null shouldBe false
-      key5.get(ChangeStructBuilder.DeletedColumnsField) shouldBe new util.ArrayList[String](Seq("name.firstname"))
 
-      val value5 = m5.value().asInstanceOf[Struct]
+      cdcStruct = m5.value().asInstanceOf[Struct]
+      metadataStruct = cdcStruct.get(ValueStructBuilder.MetadataField).asInstanceOf[Struct]
+      metadataStruct.get(ConnectSchemaBuilder.ChangeTypeField) shouldBe ChangeType.DELETE_COLUMN.toString
+
+      metadataStruct.get(ConnectSchemaBuilder.DeletedColumnsField) == null shouldBe false
+      metadataStruct.get(ConnectSchemaBuilder.DeletedColumnsField) shouldBe new util.ArrayList[String](Seq("name.firstname"))
+      metadataStruct.get(ConnectSchemaBuilder.ChangeTypeField) shouldBe ChangeType.DELETE_COLUMN.toString
+
+      val value5 = cdcStruct.get(ValueStructBuilder.CdcField).asInstanceOf[Struct]
       value5.schema().fields().map(_.name()).toVector.sortBy(identity) shouldBe Vector("id", "name", "addresses", "direct_reports", "other_reports").sortBy(identity)
       value5.get("id") shouldBe "62c36092-82a1-3a00-93d1-46196ee77204"
       value5.get("addresses") == null shouldBe true
