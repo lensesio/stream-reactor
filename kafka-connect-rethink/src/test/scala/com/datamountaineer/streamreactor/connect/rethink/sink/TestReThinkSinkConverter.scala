@@ -29,7 +29,7 @@ import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import org.mockito.Matchers.{any, eq => mockEq}
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 
 import scala.collection.JavaConverters._
 

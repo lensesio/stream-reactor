@@ -16,18 +16,16 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.config
 
-import com.datamountaineer.connector.config.{Config, WriteModeEnum}
+import com.datamountaineer.kcql.{Kcql, WriteModeEnum}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import org.apache.kafka.connect.errors.ConnectException
-
-import scala.collection.JavaConversions._
 
 /**
   * Created by andrew@datamountaineer.com on 13/05/16.
   * stream-reactor-maven
   */
 case class ReThinkSinkSetting(database: String,
-                              kcql: Set[Config],
+                              kcql: Set[Kcql],
                               topicTableMap: Map[String, String],
                               fieldMap: Map[String, Map[String, String]],
                               ignoreFields: Map[String, Set[String]],
@@ -60,10 +58,10 @@ object ReThinkSinkSettings {
     }).toMap
 
     val tableTopicMap = config.getTableTopic()
-    val fieldMap = config.getFields()
+    val fieldMap = config.getFieldsMap()
     val database = config.getDatabase
     val primaryKeys = config.getPrimaryKeys()
-    val ignoreFields = config.getIgnoreFields()
+    val ignoreFields = config.getIgnoreFieldsMap()
     val retryInterval = config.getRetryInterval.toLong
 
     ReThinkSinkSetting(

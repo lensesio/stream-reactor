@@ -20,8 +20,8 @@
 //import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
 //import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 //import com.fasterxml.jackson.databind.JsonNode
-//import org.scalatest.mock.MockitoSugar
-//import org.scalatest.{ BeforeAndAfter, Matchers, WordSpec }
+//import org.scalatest.mockito.MockitoSugar
+//import org.scalatest.{DoNotDiscover, Matchers, WordSpec}
 //
 //import scala.collection.JavaConverters._
 //import com.datastax.driver.core.Session
@@ -31,16 +31,10 @@
 // * test incremental mode specifying a subset of table columns
 // * note: the timestamp column is required as part of SELECT
 // */
-//class TestCassandraSourceTaskTokenCql extends WordSpec with Matchers with BeforeAndAfter with MockitoSugar with TestConfig
+//
+//@DoNotDiscover
+//class TestCassandraSourceTaskTokenCql extends WordSpec with Matchers with MockitoSugar with TestConfig
 //    with ConverterUtil {
-//
-//  before {
-//    startEmbeddedCassandra("cassandra.ByteOrderedPartitioner.yaml")
-//  }
-//
-//  after {
-//    stopEmbeddedCassandra()
-//  }
 //
 //  "A Cassandra SourceTask should read records with only columns specified using Token CQL" in {
 //    val session = createTableAndKeySpace(CASSANDRA_SOURCE_KEYSPACE , secure = true, ssl = false)
@@ -56,7 +50,7 @@
 //        CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
 //        CassandraConfigConstants.USERNAME -> USERNAME,
 //        CassandraConfigConstants.PASSWD -> PASSWD,
-//        CassandraConfigConstants.SOURCE_KCQL_QUERY -> s"INSERT INTO sink_test SELECT id, string_field FROM $TABLE5 PK id BATCH=2 INCREMENTALMODE=TOKEN",
+//        CassandraConfigConstants.KCQL -> s"INSERT INTO sink_test SELECT id, string_field FROM $TABLE5 PK id BATCH=2 INCREMENTALMODE=TOKEN",
 //        CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE5",
 //        CassandraConfigConstants.POLL_INTERVAL -> "1000",
 //        CassandraConfigConstants.FETCH_SIZE -> "10").asJava
@@ -120,7 +114,7 @@
 //
 //    // wait a little for the poll to catch the records
 //    while (task.queueSize(TABLE5) == 0) {
-//      Thread.sleep(5000)
+//      Thread.sleep(1000)
 //    }
 //
 //    // call poll again to drain the queue

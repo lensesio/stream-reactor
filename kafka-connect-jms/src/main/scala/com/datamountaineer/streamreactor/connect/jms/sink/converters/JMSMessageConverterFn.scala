@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
-import com.datamountaineer.connector.config.FormatType
+import com.datamountaineer.kcql.FormatType
 
 object JMSMessageConverterFn {
   def apply(storedAs: FormatType): JMSMessageConverter = {

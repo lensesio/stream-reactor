@@ -16,23 +16,28 @@
 
 package com.datamountaineer.streamreactor.connect.voltdb.config
 
+import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
+
 /**
   * Created by tomasfartaria on 10/04/2017.
   */
 object VoltSinkConfigConstants {
-  val SERVERS_CONFIG = "connect.volt.connection.servers"
+
+  val CONNECTOR_PREFIX = "connect.volt"
+
+  val SERVERS_CONFIG = s"$CONNECTOR_PREFIX.servers"
   val SERVERS_DOC = "Comma separated server[:port]"
 
-  val USER_CONFIG = "connect.volt.connection.user"
+  val USER_CONFIG = s"$CONNECTOR_PREFIX.$USERNAME_SUFFIX"
   val USER_DOC = "The user to connect to the volt database"
 
-  val PASSWORD_CONFIG = "connect.volt.connection.password"
+  val PASSWORD_CONFIG = s"$CONNECTOR_PREFIX.$PASSWORD_SUFFIX"
   val PASSWORD_DOC = "The password for the voltdb user."
 
-  val EXPORT_ROUTE_QUERY_CONFIG = "connect.volt.sink.kcql"
-  val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
+  val KCQL_CONFIG = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
+  val KCQL_CONFIG_DOC = "KCQL expression describing field selection and routes."
 
-  val ERROR_POLICY_CONFIG = "connect.volt.error.policy"
+  val ERROR_POLICY_CONFIG = s"$CONNECTOR_PREFIX.$ERROR_POLICY_PROP_SUFFIX"
   val ERROR_POLICY_DOC: String =
     """Specifies the action to be taken if an error occurs while inserting the data.
       |There are two available options:
@@ -42,15 +47,15 @@ object VoltSinkConfigConstants {
       |The error will be logged automatically""".stripMargin
   val ERROR_POLICY_DEFAULT = "THROW"
 
-  val ERROR_RETRY_INTERVAL_CONFIG = "connect.volt.retry.interval"
+  val ERROR_RETRY_INTERVAL_CONFIG = s"$CONNECTOR_PREFIX.$RETRY_INTERVAL_PROP_SUFFIX"
   val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
   val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
 
-  val NBR_OF_RETRIES_CONFIG = "connect.volt.max.retries"
+  val NBR_OF_RETRIES_CONFIG = s"$CONNECTOR_PREFIX.$MAX_RETRIES_PROP_SUFFIX"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
-  val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"
+  val PROGRESS_COUNTER_ENABLED = PROGRESS_ENABLED_CONST
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"

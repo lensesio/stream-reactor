@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.mqtt.source
 import java.util
 import java.util.concurrent.LinkedBlockingQueue
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigException
@@ -30,7 +30,7 @@ import org.eclipse.paho.client.mqttv3._
 class MqttManager(connectionFn: (MqttCallback) => MqttClient,
                   convertersMap: Map[String, Converter],
                   qualityOfService: Int,
-                  kcql: Array[Config],
+                  kcql: Array[Kcql],
                   throwOnErrors: Boolean) extends AutoCloseable with StrictLogging with MqttCallback {
   private val client: MqttClient = connectionFn(this)
   private val sourceToTopicMap = kcql.map(c => c.getSource -> c).toMap

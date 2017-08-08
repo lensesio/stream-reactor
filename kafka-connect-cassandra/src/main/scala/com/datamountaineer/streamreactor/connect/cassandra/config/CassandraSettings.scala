@@ -76,8 +76,8 @@ object CassandraSettings extends StrictLogging {
 
     val consistencyLevel = config.getConsistencyLevel
     val errorPolicy = config.getErrorPolicy
-    val kcqls = config.getKcql()
-    val primaryKeyCols = kcqls.map(r => (r.getSource, r.getPrimaryKeys.toList)).toMap
+    val kcqls = config.getKCQL
+    val primaryKeyCols = config.getPrimaryKeyCols()
     val fetchSize = config.getInt(CassandraConfigConstants.FETCH_SIZE)
     val incrementalModes = config.getIncrementalMode(kcqls)
 
@@ -103,7 +103,7 @@ object CassandraSettings extends StrictLogging {
         consistencyLevel = consistencyLevel,
         fetchSize = fetchSize
       )
-    }
+    }.toSeq
   }
 
   def configureSink(config: CassandraConfigSink): CassandraSinkSetting = {
@@ -112,9 +112,9 @@ object CassandraSettings extends StrictLogging {
     require(!keySpace.isEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
     val errorPolicy = config.getErrorPolicy
     val retries = config.getNumberRetries
-    val kcqls = config.getKcql()
-    val fields = kcqls.map(k => k.getSource -> k.getFields.toSeq).toMap
-    val ignoreFields = kcqls.map(k => k.getSource -> k.getIgnoredFields.toSeq).toMap
+    val kcqls = config.getKCQL.toSeq
+    val fields = config.getFields()
+    val ignoreFields = config.getIgnoreFields()
     val threadPoolSize = config.getThreadPoolSize
     val consistencyLevel = config.getConsistencyLevel
 

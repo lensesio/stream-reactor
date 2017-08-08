@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisKCQLSetting, RedisSinkSettings}
 import com.datamountaineer.streamreactor.connect.rowkeys.StringStructFieldsStringKeyBuilder
 import com.datamountaineer.streamreactor.connect.schemas.StructFieldsExtractor
@@ -37,7 +37,7 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
 
   apply(sinkSettings)
 
-  val configs: Set[Config] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
+  val configs: Set[Kcql] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
     assert(c.getSource.trim.length > 0, "You need to supply a valid source kafka topic to fetch records from. Review your KCQL syntax")
     assert(c.getPrimaryKeys.length == 1, "The Redis MultipleSortedSets mode requires strictly 1 PK (Primary Key) to be defined")
@@ -68,9 +68,9 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
 
               // Build a Struct field extractor to get the value from the PK field
               val pkField = KCQL.kcqlConfig.getPrimaryKeys.toList.head
-              val extractor = StructFieldsExtractor(includeAllFields = false, Map(pkField -> pkField))
+              val extractor = StructFieldsExtractor(includeAllFields = false, Map(pkField.getName -> pkField.getName))
               val fieldsAndValues = extractor.get(record.value.asInstanceOf[Struct]).toMap
-              val pkValue = fieldsAndValues(pkField).toString
+              val pkValue = fieldsAndValues(pkField.getName).toString
 
               // Use the target (and optionally the prefix) to name the SortedSet
               val optionalPrefix = if (Option(KCQL.kcqlConfig.getTarget).isEmpty) "" else KCQL.kcqlConfig.getTarget.trim

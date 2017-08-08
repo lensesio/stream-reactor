@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.jms.config
 
-import com.datamountaineer.connector.config.FormatType
+import com.datamountaineer.kcql.FormatType
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 
 case class JMSSetting(source: String,

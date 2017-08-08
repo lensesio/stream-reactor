@@ -56,9 +56,9 @@ allprojects {
 
     ext {
         scalaMajorVersion = '2.11'
-        scala = '2.11.11'
-        scalaCheck = '1.11.1'
-        scalaTest = '2.2.6'
+        scala = '2.11.7'
+        scalaCheck = '1.13.4'
+        scalaTest = '3.0.1'
         junit = '4.11'
         scalaLoggingVersion = '2.1.2'
         mockitoVersion = '1.10.19'
@@ -66,18 +66,17 @@ allprojects {
         avroVersion = '1.7.7'
         jacksonxmlVersion = '2.6.5'
         slf4jVersion = "1.7.7"
-        avro4sVersion = "1.6.0"
         json4sVersion = "3.3.0"
-        kiteMiniClusterVersion = "1.1.0"
+        kiteMiniClusterVersion = "1.0.0-cdh5.12.0"
         gsonVersion = "2.6.2"
-        KCQLVersion = "1.0.5"
+        KCQLVersion = "2.0.16"
         akkaVersion = "2.4.10"
         connectCLIVersion = "1.0.1"
 
         // The following 4 need to align to compile against a particular version
         confluentVersion = '3.2.2'
         kafkaVersion = '0.10.2.1-cp2'
-        dataMountaineerCommonVersion = "0.7.9"
+        dataMountaineerCommonVersion = "0.8.1"
         dataMountaineerTestKitVersion = "0.5"
 
         // For 3.1.x versions use
@@ -99,7 +98,7 @@ allprojects {
     }
 
     repositories {
-//        mavenLocal()
+        mavenLocal()
         mavenCentral()
         maven { url "http://packages.confluent.io/maven/" }
         maven { url "http://repo.typesafe.com/typesafe/releases/" }
@@ -128,13 +127,11 @@ allprojects {
             resource = 'reference.conf'
         }
         dependencies {
-            if (project.name != "kafka-socket-streamer") {
-                exclude(dependency("org.apache.avro:.*"))
-                exclude(dependency("org.apache.kafka:.*"))
-                exclude(dependency("io.confluent:.*"))
-                exclude(dependency("org.apache.kafka:.*"))
-                exclude(dependency("org.apache.zookeeper:.*"))
-            }
+            exclude(dependency("org.apache.avro:.*"))
+            exclude(dependency("org.apache.kafka:.*"))
+            exclude(dependency("io.confluent:.*"))
+            exclude(dependency("org.apache.kafka:.*"))
+            exclude(dependency("org.apache.zookeeper:.*"))
         }
     }
 
@@ -143,13 +140,11 @@ allprojects {
         compile "org.scala-lang:scala-compiler:$scala"
         compile "com.typesafe.scala-logging:scala-logging-slf4j_$scalaMajorVersion:$scalaLoggingVersion"
 
-        compile("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion")
-
-        compile "org.apache.kafka:connect-json:$kafkaVersion"
+        compile ("org.apache.kafka:connect-json:$kafkaVersion")
         compile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
         compile "io.confluent:kafka-schema-registry:$confluentVersion"
-        compile "org.apache.avro:avro:$avroVersion"
 
+        compile("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion")
         testCompile "org.mockito:mockito-core:$mockitoVersion"
         testCompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
         testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"

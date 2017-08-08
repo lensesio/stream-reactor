@@ -23,35 +23,16 @@ import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.json4s.DefaultFormats
-import org.kitesdk.minicluster._
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
+import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{ DoNotDiscover, Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
 
-class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with BeforeAndAfter {
+@DoNotDiscover
+class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar {
 
   implicit val formats = DefaultFormats
-  var miniCluster: Option[MiniCluster] = None
-
-  before {
-    val workDir = "target/kite-minicluster-workdir-hbase"
-    miniCluster = Some(new MiniCluster
-    .Builder()
-      .workDir(workDir)
-      .bindIP("localhost")
-      .zkPort(2181)
-      .addService(classOf[HdfsService])
-      .addService(classOf[ZookeeperService])
-      .addService(classOf[HBaseService])
-      .clean(true).build)
-    miniCluster.get.start()
-  }
-
-  after {
-    miniCluster.get.stop()
-  }
 
   "HbaseWriter" should {
 

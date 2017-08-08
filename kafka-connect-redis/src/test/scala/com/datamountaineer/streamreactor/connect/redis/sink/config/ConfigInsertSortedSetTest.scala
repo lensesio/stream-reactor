@@ -41,7 +41,7 @@ class ConfigInsertSortedSetTest extends WordSpec with Matchers with RedisMockSup
     val route = settings.kcqlSettings.head.kcqlConfig
 
     route.getStoredAs shouldBe "SortedSet"
-    route.isIncludeAllFields shouldBe true
+    route.getFields.asScala.exists(_.getName.equals("*")) shouldBe true
     // Store all data on a Redis Sorted Set called <cpu_stats>
     route.getTarget shouldBe "cpu_stats"
     route.getSource shouldBe "cpuTopic"
@@ -53,9 +53,9 @@ class ConfigInsertSortedSetTest extends WordSpec with Matchers with RedisMockSup
     val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL2))
     val settings = RedisSinkSettings(config)
     val route = settings.kcqlSettings.head.kcqlConfig
-    val fields = route.getFieldAlias.asScala.toList
+    val fields = route.getFields.asScala.toList
 
-    route.isIncludeAllFields shouldBe false
+    route.getFields.asScala.exists(_.getName.equals("*")) shouldBe false
     fields.length shouldBe 1
     route.getTarget shouldBe "cpu_stats_SS"
     route.getSource shouldBe "cpuTopic"
@@ -72,7 +72,7 @@ class ConfigInsertSortedSetTest extends WordSpec with Matchers with RedisMockSup
     val settings = RedisSinkSettings(config)
     val route = settings.kcqlSettings.head.kcqlConfig
 
-    route.isIncludeAllFields shouldBe true
+    route.getFields.asScala.exists(_.getName.equals("*")) shouldBe true
     route.getTarget shouldBe "cpu_stats_SS"
     route.getSource shouldBe "cpuTopic"
 

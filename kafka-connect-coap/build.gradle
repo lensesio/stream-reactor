@@ -31,9 +31,7 @@ project(":kafka-connect-coap") {
     dependencies {
         compile ("org.eclipse.californium:californium-core:$califVersion")
         compile ("org.eclipse.californium:scandium:$scandiamVersion")
-        compile("com.datamountaineer:kcql:$KCQLVersion") {
-            exclude group: "com.google.guava", module: "guava"
-        }
+
 //        compile ("org.eclipse.californium:demo-certs:$demoCerts")
     }
 }

@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSinkSetting
+import com.datamountaineer.streamreactor.connect.converters.{FieldConverter, Transform}
 import com.datamountaineer.streamreactor.connect.errors.NoopErrorPolicy
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.landoop.json.sql.JacksonJson

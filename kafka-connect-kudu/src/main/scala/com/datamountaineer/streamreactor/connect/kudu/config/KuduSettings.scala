@@ -16,14 +16,14 @@
 
 package com.datamountaineer.streamreactor.connect.kudu.config
 
-import com.datamountaineer.connector.config.{Config, WriteModeEnum}
+import com.datamountaineer.kcql.{Kcql, WriteModeEnum}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 
 /**
   * Created by andrew@datamountaineer.com on 13/05/16. 
   * stream-reactor-maven
   */
-case class KuduSettings(kcql: List[Config],
+case class KuduSettings(kcql: List[Kcql],
                         topicTables: Map[String, String],
                         allowAutoCreate: Map[String, Boolean],
                         allowAutoEvolve: Map[String, Boolean],
@@ -44,8 +44,8 @@ object KuduSettings {
     val autoCreate = config.getAutoCreate()
     val autoEvolve = config.getAutoEvolve()
     val schemaRegUrl = config.getSchemaRegistryUrl
-    val fieldsMap = config.getFields()
-    val ignoreFields = config.getIgnoreFields()
+    val fieldsMap = config.getFieldsMap()
+    val ignoreFields = config.getIgnoreFieldsMap()
     val writeModeMap = config.getWriteMode()
     val topicTables = config.getTableTopic()
 

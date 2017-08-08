@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.config
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.rowkeys._
 import org.apache.kafka.common.config.ConfigException
@@ -29,7 +29,7 @@ case class RedisConnectionInfo(host: String, port: Int, password: Option[String]
 
 // Sink settings of each Redis KCQL statement
 case class RedisKCQLSetting(topic: String,
-                            kcqlConfig: Config,
+                            kcqlConfig: Kcql,
                             builder: StringKeyBuilder,
                             fieldsAndAliases: Map[String, String],
                             ignoredFields: Set[String])
@@ -54,7 +54,7 @@ object RedisSinkSettings {
     // Get the aliases
     val aliases = config.getFieldsAliases().toSeq
     // Get the ignored fields
-    val ignoredFields = kcqlConfigs.map(r => r.getIgnoredField.asScala.toSet)
+    val ignoredFields = kcqlConfigs.map(r => r.getIgnoredFields.map(f => f.getName).toSet)
     // Get connection info
     val connectionInfo = RedisConnectionInfo(config)
 

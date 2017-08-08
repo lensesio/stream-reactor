@@ -21,7 +21,7 @@ A collection of components to build a real time ingestion pipeline.
 |----------------|--------|-----------------------------------------------------------------------------------------------|------|
 | AzureDocumentDb| Sink   | Kafka connect Azure DocumentDb sink to subscribe to write to the cloud Azure Document Db.     | [Docs](http://docs.datamountaineer.com/en/latest/azuredocumentdb.html)   |
 | BlockChain     | Source | Kafka connect Blockchain source to subscribe to Blockchain streams and write to Kafka.        | [Docs](http://docs.datamountaineer.com/en/latest/blockchain.html)        |
-| Bloomberg      | Source | Kafka connect source to subscribe to Bloomberg streams and write to Kafka.                   | [Docs](http://docs.datamountaineer.com/en/latest/bloomberg.html)         |
+| Bloomberg      | Source | Kafka connect source to subscribe to Bloomberg streams and write to Kafka.                    | [Docs](http://docs.datamountaineer.com/en/latest/bloomberg.html)         |
 | Cassandra      | Source | Kafka connect Cassandra source to read Cassandra and write to Kafka.                          | [Docs](http://docs.datamountaineer.com/en/latest/cassandra-source.html)  |
 | Coap           | Source | Kafka connect Coap source to read from IoT Coap endpoints using Californium.                  | [Docs](http://docs.datamountaineer.com/en/latest/coap-source.html)       |
 | Coap           | Sink   | Kafka connect Coap sink to write kafka topic payload to IoT Coap endpoints using Californium. | [Docs](http://docs.datamountaineer.com/en/latest/coap-sink.html)         |
@@ -33,7 +33,7 @@ A collection of components to build a real time ingestion pipeline.
 | Hazelcast      | Sink   | Kafka connect Hazelcast sink to write Kafka topic payloads to Hazelcast.                      | [Docs](http://docs.datamountaineer.com/en/latest/hazelcast.html)         |
 | Kudu           | Sink   | Kafka connect Kudu sink to write Kafka topic payloads to Kudu.                                | [Docs](http://docs.datamountaineer.com/en/latest/kudu.html)              |
 | InfluxDb       | Sink   | Kafka connect InfluxDb sink to write Kafka topic payloads to InfluxDb.                        | [Docs](http://docs.datamountaineer.com/en/latest/influx.html)            |
-| JMS            | Source | Kafka connect JMS source to write from JMS to Kafka topics.                                  | [Docs](http://docs.datamountaineer.com/en/latest/jms-source.html)               |
+| JMS            | Source | Kafka connect JMS source to write from JMS to Kafka topics.                                   | [Docs](http://docs.datamountaineer.com/en/latest/jms-source.html)               |
 | JMS            | Sink   | Kafka connect JMS sink to write Kafka topic payloads to JMS.                                  | [Docs](http://docs.datamountaineer.com/en/latest/jms.html)               |
 | MongoDB        | Sink   | Kafka connect MongoDB sink to write Kafka topic payloads to MongoDB.                          | [Docs](http://docs.datamountaineer.com/en/latest/mongo-sink.html)        |
 | MQTT           | Source | Kafka connect MQTT source to write data from MQTT to Kafka.                                   | [Docs](http://docs.datamountaineer.com/en/latest/mqtt.html)              |
@@ -49,29 +49,54 @@ A collection of components to build a real time ingestion pipeline.
 
 **0.2.6 (Pending)**
 
-*   Upgrade Kudu Client to 1.4.0
-*   Fixes for high CPU on CoAP source
-*   Fixes for high CPU on Cassandra source
+### Feature
+
+*   Upgrade to KCQL 2x
 *   Add CQL generator to Cassandra source
 *   Add KCQL INCREMENTALMODE support to the Cassandra source, bulk mode and the timestamp column type is now take from KCQL
 *   Support for setting key and truststore type on Cassandra connectors
 *   Added token based paging support for Cassandra source
-*   Major refactor, thanks Marionete
 *   Added default bytes converter to JMS Source
 *   Added default connection factory to JMS Source
 *   Added support for SharedDurableConsumers to JMS Connectors
-*   Fixes on JMS properties converter, Invalid schema when extracting properties
 *   Upgraded JMS Connector to JMS 2.0
 *   Moved to Elastic4s 2.4
 *   Added Elastic5s with TCP, TCP+XPACK and HTTP client support
-*   Support for dates in Elastic Indexes and custom document types
 *   Upgrade Azure Documentdb to 1.11.0
-*   Removed unused batch size and bucket size options from Kudu, they are taken from KCQL
 *   Added optional progress counter to all connectors, it can be enabled with ``connect.progress.enabled`` which will periodically report log messages processed
 *   Added authentication and TLS to ReThink Connectors
-*   Fixed Avro double fields mapping to Kudu columns
-*   Removed unused batch size option from DocumentDb
 *   Added TLS support for ReThinkDB, add batch size option to source for draining the internal queues.
+*   Upgrade Kudu Client to 1.4.0
+*   Support for dates in Elastic Indexes and custom document types
+*   Upgrade CoAP to 2.0.0-M4
+
+### Bug Fixes
+
+*   Fixes for high CPU on CoAP source
+*   Fixes for high CPU on Cassandra source
+*   Fixed Avro double fields mapping to Kudu columns
+*   Fixes on JMS properties converter, Invalid schema when extracting properties
+
+### Misc
+*   Refactored Cassandra Tests to use only one embedded instance
+*   Removed unused batch size and bucket size options from Kudu, they are taken from KCQL
+*   Removed unused batch size option from DocumentDb
+*   Rename Azure DocumentDb `connect.documentdb.db` to `connect.documentdb.db`
+*   Rename Azure DocumentDb `connect.documentdb.database.create` to `connect.documentdb.db.create`
+*   Rename Cassandra Source `connect.cassandra.source.kcql` to `connect.cassandra.kcql`
+*   Rename Cassandra Source `connect.cassandra.source.timestamp.type` to `connect.cassandra.timestamp.type`
+*   Rename Cassandra Source `connect.cassandra.source.import.poll.interval` to `connect.cassandra.import.poll.interval`
+*   Rename Cassandra Source `connect.cassandra.source.error.policy` to `connect.cassandra.error.policy`
+*   Rename Cassandra Source `connect.cassandra.source.max.retries` to `connect.cassandra.max.retries`
+*   Rename Cassandra Sink `connect.cassandra.source.retry.interval` to `connect.cassandra.retry.interval`
+*   Rename Cassandra Sink `connect.cassandra.sink.kcql` to `connect.cassandra.kcql`
+*   Rename Cassandra Sink `connect.cassandra.sink.error.policy` to `connect.cassandra.error.policy`
+*   Rename Cassandra Sink `connect.cassandra.sink.max.retries` to `connect.cassandra.max.retries`
+*   Rename Cassandra Sink Sink `connect.cassandra.sink.retry.interval` to `connect.cassandra.retry.interval`
+*   Rename Coap Source `connect.coap.bind.port` to `connect.coap.port`
+*   Rename Coap Sink `connect.coap.bind.port` to `connect.coap.port`
+*   Rename Coap Source `connect.coap.bind.host` to `connect.coap.host`
+*   Rename Coap Sink `connect.coap.bind.host` to `connect.coap.host`
 *   Rename MongoDb `connect.mongo.database` to `connect.mongo.db`
 *   Rename MongoDb `connect.mongo.sink.batch.size` to `connect.mongo.batch.size`
 *   Rename Druid `connect.druid.sink.kcql` to `connect.druid.kcql`
@@ -91,14 +116,43 @@ A collection of components to build a real time ingestion pipeline.
 *   Rename Kudu `connect.kudu.sink.kcql` to `connect.kudu.kcql`
 *   Rename Kudu `connect.kudu.sink.error.policy` to `connect.kudu.error.policy`
 *   Rename Kudu `connect.kudu.sink.retry.interval` to `connect.kudu.retry.interval`
+*   Rename Kudu `connect.kudu.sink.max.retries` to `connect.kudu.max.reties`
 *   Rename Kudu `connect.kudu.sink.schema.registry.url` to `connect.kudu.schema.registry.url`
 *   Rename Redis `connect.redis.connection.password` to `connect.redis.password` 
 *   Rename Redis `connect.redis.sink.kcql` to `connect.redis.kcql`
+*   Rename Redis `connect.redis.connection.host` to `connect.redis.host`
+*   Rename Redis `connect.redis.connection.port` to `connect.redis.port` 
+*   Rename ReThink `connect.rethink.source.host` to `connect.rethink.host`
+*   Rename ReThink `connect.rethink.source.port` to `connect.rethink.port`
+*   Rename ReThink `connect.rethink.source.db` to `connect.rethink.db`
+*   Rename ReThink `connect.rethink.source.kcql` to `connect.rethink.kcql`
+*   Rename ReThink Sink `connect.rethink.sink.host` to `connect.rethink.host`
+*   Rename ReThink Sink `connect.rethink.sink.port` to `connect.rethink.port`
+*   Rename ReThink Sink `connect.rethink.sink.db` to `connect.rethink.db`
+*   Rename ReThink Sink `connect.rethink.sink.kcql` to `connect.rethink.kcql`
 *   Rename JMS `connect.jms.user` to `connect.jms.username`
+*   Rename JMS `connect.jms.source.converters` to `connect.jms.converters`
 *   Rename Mqtt `connect.mqtt.source.kcql` to `connect.mqtt.kcql`
 *   Rename Mqtt `connect.mqtt.source.converters` to `connect.mqtt.converters`
 *   Rename Mqtt `connect.mqtt.user` to `connect.mqtt.username`
 *   Rename Mqtt `connect.mqtt.hosts` to `connect.mqtt.connection.hosts`
+*   Rename Hazelcast `connect.hazelcast.sink.kcql` to `connect.hazelcast.kcql`
+*   Rename Hazelcast `connect.hazelcast.sink.group.name` to `connect.hazelcast.group.name`
+*   Rename Hazelcast `connect.hazelcast.sink.group.password` to `connect.hazelcast.group.password`
+*   Rename Hazelcast `connect.hazelcast.sink.cluster.members` tp `connect.hazelcast.cluster.members`
+*   Rename Hazelcast `connect.hazelcast.sink.batch.size` to `connect.hazelcast.batch.size`
+*   Rename Hazelcast `connect.hazelcast.sink.error.policy` to `connect.hazelcast.error.policy`
+*   Rename Hazelcast `connect.hazelcast.sink.max.retries` to `connect.hazelcast.max.retries`
+*   Rename Hazelcast `connect.hazelcast.sink.retry.interval` to `connect.hazelcast.retry.interval`
+*   Rename VoltDB `connect.volt.sink.kcql` to `connect.volt.kcql`
+*   Rename VoltDB `connect.volt.sink.connection.servers` to `connect.volt.servers`
+*   Rename VoltDB `connect.volt.sink.connection.user` to `connect.volt.username`
+*   Rename VoltDB `connect.volt.sink.connection.password` to `connect.volt.password`
+*   Rename VoltDB `connect.volt.sink.error.policy` to `connect.volt.error.policy`
+*   Rename VoltDB `connect.volt.sink.max.retries` to `connect.volt.max.retries`
+*   Rename VoltDB `connect.volt.sink.retry.interval` to `connect.volt.retry.interval`
+
+
 
 
 **0.2.5 (8 Apr 2017)**

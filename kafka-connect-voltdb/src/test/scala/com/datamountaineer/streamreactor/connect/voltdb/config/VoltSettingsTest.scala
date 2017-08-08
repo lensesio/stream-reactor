@@ -16,30 +16,29 @@
 
 package com.datamountaineer.streamreactor.connect.voltdb.config
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.ThrowErrorPolicy
 import org.apache.kafka.common.config.ConfigException
-import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
+import scala.collection.JavaConverters._
 
-class VoltSettingsTest extends WordSpec with Matchers with MockitoSugar {
+class VoltSettingsTest extends WordSpec with Matchers {
 
   val MEASURE_NAME = "someMeasurement"
   val TOPIC_NAME = "mykafkatopic"
   val QUERY_ALL = s"INSERT INTO $MEASURE_NAME SELECT * FROM $TOPIC_NAME"
   val QUERY_SELECT = s"INSERT INTO $MEASURE_NAME SELECT lastName as surname, firstName FROM $TOPIC_NAME"
   val QUERY_SELECT_AND_TIMESTAMP = s"INSERT INTO $MEASURE_NAME SELECT * FROM $TOPIC_NAME WITHTIMESTAMP ts"
-  val QUERY_SELECT_AND_TIMESTAMP_SYSTEM = s"INSERT INTO $MEASURE_NAME SELECT * FROM $TOPIC_NAME WITHTIMESTAMP ${Config.TIMESTAMP}"
+  val QUERY_SELECT_AND_TIMESTAMP_SYSTEM = s"INSERT INTO $MEASURE_NAME SELECT * FROM $TOPIC_NAME WITHTIMESTAMP ${Kcql.TIMESTAMP}"
 
   "raise a configuration exception if the connection servers is missing" in {
+    val props = Map(
+      VoltSinkConfigConstants.KCQL_CONFIG->QUERY_ALL
+    ).asJava
+
+
     intercept[ConfigException] {
-      val config = mock[VoltSinkConfig]
-      // when(config.getString(VoltSinkConfigConstants.USER_CONFIG)).thenReturn("myuser")
-      // when(config.getString(VoltSinkConfigConstants.PASSWORD_CONFIG)).thenReturn("apass")
-      when(config.getString(VoltSinkConfigConstants.ERROR_POLICY_CONFIG)).thenReturn("THROW")
-      when(config.getString(VoltSinkConfigConstants.EXPORT_ROUTE_QUERY_CONFIG)).thenReturn(QUERY_ALL)
-      VoltSettings(config)
+      VoltSinkConfig(props)
     }
   }
 
@@ -57,34 +56,36 @@ class VoltSettingsTest extends WordSpec with Matchers with MockitoSugar {
 
   "create a settings with all fields" in {
     val servers = "localhost:8081"
-    val database = "mydatabase"
     val user = "myuser"
-    val config = mock[VoltSinkConfig]
-    when(config.getString(VoltSinkConfigConstants.SERVERS_CONFIG)).thenReturn(servers)
-    // when(config.getString(VoltSinkConfigConstants.USER_CONFIG)).thenReturn(user)
-    //when(config.getString(VoltSinkConfigConstants.PASSWORD_CONFIG)).thenReturn(null)
-    when(config.getString(VoltSinkConfigConstants.ERROR_POLICY_CONFIG)).thenReturn("THROW")
-    when(config.getString(VoltSinkConfigConstants.EXPORT_ROUTE_QUERY_CONFIG)).thenReturn(QUERY_ALL)
+    val pass = "mememe"
+    val props = Map(
+      VoltSinkConfigConstants.USER_CONFIG->user,
+      VoltSinkConfigConstants.KCQL_CONFIG->QUERY_ALL,
+      VoltSinkConfigConstants.SERVERS_CONFIG->servers,
+      VoltSinkConfigConstants.PASSWORD_CONFIG->pass
+    ).asJava
+
+    val config = VoltSinkConfig(props)
     val settings = VoltSettings(config)
     settings.servers shouldBe servers
-    //settings.user shouldBe user
-    //settings.password shouldBe null
     settings.errorPolicy shouldBe ThrowErrorPolicy()
     settings.fieldsExtractorMap.size shouldBe 1
     settings.fieldsExtractorMap(TOPIC_NAME).includeAllFields shouldBe true
-    settings.fieldsExtractorMap(TOPIC_NAME).fieldsAliasMap shouldBe Map.empty
+    settings.fieldsExtractorMap(TOPIC_NAME).fieldsAliasMap shouldBe Map("*"->"*")
   }
 
   "create a settings with selected fields" in {
     val servers = "localhost:8081"
-    val database = "mydatabase"
     val user = "myuser"
-    val config = mock[VoltSinkConfig]
-    when(config.getString(VoltSinkConfigConstants.SERVERS_CONFIG)).thenReturn(servers)
-    when(config.getString(VoltSinkConfigConstants.USER_CONFIG)).thenReturn(user)
-    when(config.getString(VoltSinkConfigConstants.PASSWORD_CONFIG)).thenReturn("mememe")
-    when(config.getString(VoltSinkConfigConstants.ERROR_POLICY_CONFIG)).thenReturn("THROW")
-    when(config.getString(VoltSinkConfigConstants.EXPORT_ROUTE_QUERY_CONFIG)).thenReturn(QUERY_SELECT)
+    val pass = "mememe"
+    val props = Map(
+      VoltSinkConfigConstants.KCQL_CONFIG->QUERY_SELECT,
+      VoltSinkConfigConstants.SERVERS_CONFIG->servers,
+      VoltSinkConfigConstants.USER_CONFIG->user,
+      VoltSinkConfigConstants.PASSWORD_CONFIG->pass
+    ).asJava
+
+    val config = VoltSinkConfig(props)
     val settings = VoltSettings(config)
     settings.servers shouldBe servers
     //settings.user shouldBe user
@@ -97,14 +98,16 @@ class VoltSettingsTest extends WordSpec with Matchers with MockitoSugar {
 
   "create a settings with selected fields with timestamp set to a field" in {
     val servers = "localhost:8081"
-    val database = "mydatabase"
     val user = "myuser"
-    val config = mock[VoltSinkConfig]
-    when(config.getString(VoltSinkConfigConstants.SERVERS_CONFIG)).thenReturn(servers)
-    when(config.getString(VoltSinkConfigConstants.USER_CONFIG)).thenReturn(user)
-    when(config.getString(VoltSinkConfigConstants.PASSWORD_CONFIG)).thenReturn("mememe")
-    when(config.getString(VoltSinkConfigConstants.ERROR_POLICY_CONFIG)).thenReturn("THROW")
-    when(config.getString(VoltSinkConfigConstants.EXPORT_ROUTE_QUERY_CONFIG)).thenReturn(QUERY_SELECT_AND_TIMESTAMP)
+    val pass = "mememe"
+    val props = Map(
+      VoltSinkConfigConstants.KCQL_CONFIG->QUERY_SELECT_AND_TIMESTAMP,
+      VoltSinkConfigConstants.SERVERS_CONFIG->servers,
+      VoltSinkConfigConstants.USER_CONFIG->user,
+      VoltSinkConfigConstants.PASSWORD_CONFIG->pass
+    ).asJava
+
+    val config = VoltSinkConfig(props)
     val settings = VoltSettings(config)
     settings.servers shouldBe servers
     // settings.user shouldBe user
@@ -112,19 +115,21 @@ class VoltSettingsTest extends WordSpec with Matchers with MockitoSugar {
     settings.errorPolicy shouldBe ThrowErrorPolicy()
     settings.fieldsExtractorMap.size shouldBe 1
     settings.fieldsExtractorMap(TOPIC_NAME).includeAllFields shouldBe true
-    settings.fieldsExtractorMap(TOPIC_NAME).fieldsAliasMap shouldBe Map.empty
+    settings.fieldsExtractorMap(TOPIC_NAME).fieldsAliasMap shouldBe Map("*"->"*")
   }
 
   "create a settings with selected fields with timestamp set to a sys_timestamp" in {
     val servers = "localhost:8081"
-    val database = "mydatabase"
     val user = "myuser"
-    val config = mock[VoltSinkConfig]
-    when(config.getString(VoltSinkConfigConstants.SERVERS_CONFIG)).thenReturn(servers)
-    when(config.getString(VoltSinkConfigConstants.USER_CONFIG)).thenReturn(user)
-    when(config.getString(VoltSinkConfigConstants.PASSWORD_CONFIG)).thenReturn("mememe")
-    when(config.getString(VoltSinkConfigConstants.ERROR_POLICY_CONFIG)).thenReturn("THROW")
-    when(config.getString(VoltSinkConfigConstants.EXPORT_ROUTE_QUERY_CONFIG)).thenReturn(QUERY_SELECT_AND_TIMESTAMP_SYSTEM)
+    val pass = "mememe"
+    val props = Map(
+      VoltSinkConfigConstants.KCQL_CONFIG->QUERY_SELECT_AND_TIMESTAMP_SYSTEM,
+      VoltSinkConfigConstants.SERVERS_CONFIG->servers,
+      VoltSinkConfigConstants.USER_CONFIG->user,
+      VoltSinkConfigConstants.PASSWORD_CONFIG->pass
+    ).asJava
+
+    val config = VoltSinkConfig(props)
     val settings = VoltSettings(config)
     settings.servers shouldBe servers
     // settings.user shouldBe user
@@ -132,6 +137,6 @@ class VoltSettingsTest extends WordSpec with Matchers with MockitoSugar {
     settings.errorPolicy shouldBe ThrowErrorPolicy()
     settings.fieldsExtractorMap.size shouldBe 1
     settings.fieldsExtractorMap(TOPIC_NAME).includeAllFields shouldBe true
-    settings.fieldsExtractorMap(TOPIC_NAME).fieldsAliasMap shouldBe Map.empty
+    settings.fieldsExtractorMap(TOPIC_NAME).fieldsAliasMap shouldBe Map("*"->"*")
   }
 }

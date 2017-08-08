@@ -57,7 +57,7 @@ object ReThinkHelper extends StrictLogging {
 
         //set primary keys if we have them
         val pk = r.getPrimaryKeys.toSet
-        val pkName: String = if (pk.isEmpty) "id" else pk.head
+        val pkName = if (pk.isEmpty) "id" else pk.head.getName
         logger.info(s"Setting primary as first field found: $pkName")
 
         val create: java.util.Map[String, Object] = rethink

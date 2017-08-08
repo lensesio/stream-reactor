@@ -34,7 +34,7 @@ import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -296,7 +296,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     session.execute(s"CREATE KEYSPACE $keyspace WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 3}")
     session.execute(s"CREATE TABLE IF NOT EXISTS $keyspace.$TABLE1 (id text PRIMARY KEY, int_field int, long_field bigint," +
       s" string_field text,  timeuuid_field timeuuid, timestamp_field timestamp)")
-    session.execute(s"CREATE TABLE IF NOT EXISTS $keyspace.$TABLE2 (id text, int_field int, long_field bigint," +
+    session.execute(s"CREATE TABLE IF NOT EXISTS $keyspace.$TABLE2 (id text, double_field double, int_field int, long_field bigint," +
       s" string_field text, timestamp_field timeuuid, PRIMARY KEY (id, timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)")
     session.execute(s"CREATE TABLE IF NOT EXISTS $keyspace.$TABLE3 (id text, int_field int, long_field bigint," +
       s" string_field text, timestamp_field timestamp, timeuuid_field timeuuid, PRIMARY KEY (id, timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)")

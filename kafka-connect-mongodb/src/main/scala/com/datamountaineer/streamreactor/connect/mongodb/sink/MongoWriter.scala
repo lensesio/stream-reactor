@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.mongodb.sink
 
-import com.datamountaineer.connector.config.WriteModeEnum
+import com.datamountaineer.kcql.WriteModeEnum
 import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
 import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants, MongoSettings}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil

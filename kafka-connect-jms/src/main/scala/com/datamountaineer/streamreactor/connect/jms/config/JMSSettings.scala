@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.jms.config
 
-import com.datamountaineer.connector.config.{Config, FormatType}
+import com.datamountaineer.kcql.{FormatType, Kcql}
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.jms.config.DestinationSelector.DestinationSelector
@@ -62,8 +62,8 @@ object JMSSettings extends StrictLogging {
     val password = config.getSecret
     val sources = kcql.map(_.getSource)
     val batchSize = config.getInt(JMSConfigConstants.BATCH_SIZE)
-    val fields = config.getFields()
-    val ignoreFields = config.getIgnoreFields()
+    val fields = config.getFieldsMap()
+    val ignoreFields = config.getIgnoreFieldsMap()
 
     val initialContextFactoryClass = config.getString(JMSConfigConstants.INITIAL_CONTEXT_FACTORY)
     val clazz = config.getString(JMSConfigConstants.CONNECTION_FACTORY)
@@ -158,7 +158,7 @@ object JMSSettings extends StrictLogging {
       nbrOfRetries)
   }
 
-  def getFormatType(config: Config) : FormatType = Option(config.getFormatType).getOrElse(FormatType.JSON)
+  def getFormatType(kcql: Kcql) : FormatType = Option(kcql.getFormatType).getOrElse(FormatType.JSON)
 
   def getDestinationType(target: String, queues: Set[String], topics: Set[String]): DestinationType = {
     if (topics.contains(target)) {

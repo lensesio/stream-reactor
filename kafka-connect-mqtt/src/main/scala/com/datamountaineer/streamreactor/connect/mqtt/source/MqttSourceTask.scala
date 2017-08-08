@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.mqtt.source
 import java.io.File
 import java.util
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttSourceConfig, MqttConfigConstants, MqttSourceSettings}
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
@@ -69,7 +69,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
       topic -> converter
     }
     logger.info("Starting Mqtt source...")
-    mqttManager = Some(new MqttManager(MqttClientConnectionFn.apply, convertersMap, settings.mqttQualityOfService, settings.kcql.map(Config.parse), settings.throwOnConversion))
+    mqttManager = Some(new MqttManager(MqttClientConnectionFn.apply, convertersMap, settings.mqttQualityOfService, settings.kcql.map(Kcql.parse), settings.throwOnConversion))
     enableProgress = settings.enableProgress
   }
 

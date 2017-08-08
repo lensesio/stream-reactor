@@ -32,11 +32,11 @@ object CoapConstants {
   val COAP_URI_DOC = "The COAP server to connect to."
   val COAP_URI_DEFAULT = "localhost"
 
-  val COAP_DTLS_BIND_PORT = s"${CONNECTOR_PREFIX}.${BIND_PORT_SUFFIX}"
+  val COAP_DTLS_BIND_PORT = s"${CONNECTOR_PREFIX}.${CONNECTION_PORT_SUFFIX}"
   val COAP_DTLS_BIND_PORT_DEFAULT = 0
   val COAP_DTLS_BIND_PORT_DOC = "The port the DTLS connector will bind to on the Connector host."
 
-  val COAP_DTLS_BIND_HOST = s"${CONNECTOR_PREFIX}.${BIND_HOST_SUFFIX}"
+  val COAP_DTLS_BIND_HOST = s"${CONNECTOR_PREFIX}.${CONNECTION_HOST_SUFFIX}"
   val COAP_DTLS_BIND_HOST_DEFAULT = "localhost"
   val COAP_DTLS_BIND_HOST_DOC = "The hostname the DTLS connector will bind to on the Connector host."
 

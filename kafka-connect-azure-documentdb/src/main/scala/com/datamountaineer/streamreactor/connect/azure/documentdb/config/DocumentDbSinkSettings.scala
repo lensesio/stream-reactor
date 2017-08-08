@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.azure.documentdb.config
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
 import com.microsoft.azure.documentdb.ConsistencyLevel
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -28,7 +28,7 @@ import scala.util.{Failure, Success, Try}
 case class DocumentDbSinkSettings(endpoint: String,
                                   masterKey: String,
                                   database: String,
-                                  kcql: Seq[Config],
+                                  kcql: Seq[Kcql],
                                   keyBuilderMap: Map[String, Set[String]],
                                   fields: Map[String, Map[String, String]],
                                   ignoredField: Map[String, Set[String]],
@@ -63,8 +63,8 @@ object DocumentDbSinkSettings extends StrictLogging {
     val errorPolicy= config.getErrorPolicy
     val retries = config.getNumberRetries
     val rowKeyBuilderMap = config.getUpsertKeys()
-    val fieldsMap = config.getFields()
-    val ignoreFields = config.getIgnoreFields()
+    val fieldsMap = config.getFieldsMap()
+    val ignoreFields = config.getIgnoreFieldsMap()
     val consistencyLevel = config.getConsistencyLevel.get
 
     new DocumentDbSinkSettings(endpoint,
