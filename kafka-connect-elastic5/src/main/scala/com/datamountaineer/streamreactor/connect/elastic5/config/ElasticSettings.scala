@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.elastic.config
+package com.datamountaineer.streamreactor.connect.elastic5.config
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.elastic5.config.ClientType.ClientType

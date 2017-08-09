@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.elastic
+package com.datamountaineer.streamreactor.connect.elastic5
 
 import java.util.UUID
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSettings
-import com.datamountaineer.streamreactor.connect.elastic5.TestElasticBase
+import com.datamountaineer.streamreactor.connect.elastic5.config.ElasticSettings
+import com.datamountaineer.streamreactor.connect.elastic5.{TcpKElasticClient, TestElasticBase}
 import com.datamountaineer.streamreactor.connect.elastic5.config.{ElasticConfig, ElasticConfigConstants}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.embedded.LocalNode
