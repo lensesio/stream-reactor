@@ -1,4 +1,4 @@
-package com.datamountaineer.streamreactor.connect.elastic.indexname
+package com.datamountaineer.streamreactor.connect.elastic5.indexname
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.elastic5.indexname.CustomIndexName

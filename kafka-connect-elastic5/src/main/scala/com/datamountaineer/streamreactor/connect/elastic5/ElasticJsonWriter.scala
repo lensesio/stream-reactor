@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.elastic
+package com.datamountaineer.streamreactor.connect.elastic5
 
 import java.util
 
 import com.datamountaineer.kcql.{Kcql, WriteModeEnum}
-import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSettings
-import com.datamountaineer.streamreactor.connect.elastic.indexname.CreateIndex
+import com.datamountaineer.streamreactor.connect.elastic5.config.ElasticSettings
+import com.datamountaineer.streamreactor.connect.elastic5.indexname.CreateIndex
+import com.datamountaineer.streamreactor.connect.elastic5.{FieldConverter, KElasticClient}
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.fasterxml.jackson.databind.JsonNode

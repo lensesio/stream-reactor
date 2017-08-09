@@ -18,19 +18,19 @@ package com.datamountaineer.streamreactor.connect.elastic5
 
 import java.util.UUID
 
-import com.datamountaineer.streamreactor.connect.elastic5.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
+import com.datamountaineer.streamreactor.connect.elastic5.config.{ElasticConfig, ElasticConfigConstants}
+import com.datamountaineer.streamreactor.connect.elastic5.config.ElasticSettings
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.elasticsearch.common.settings.Settings
-import org.elasticsearch.index.IndexNotFoundException
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 
 import scala.reflect.io.File
 
 
-class TestElasticWriter extends TestElasticBase with MockitoSugar {
+class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
   "A ElasticWriter should insert into Elastic Search a number of records" in {
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
@@ -40,13 +40,11 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecords
     //get config
-    val config  = new ElasticConfig(getElasticSinkConfigProps)
+    val config  = new ElasticConfig(getElasticSinkConfigPropsSelection)
 
     val essettings = Settings
-      .settingsBuilder()
-      .put(ElasticConfigConstants.ES_CLUSTER_NAME, ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT)
-      .put("path.home", TMP.toString)
-      .build()
+      .settingsBuilder().put(ElasticConfigConstants.ES_CLUSTER_NAME, ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT)
+      .put("path.home", TMP.toString).build()
     val client = ElasticClient.local(essettings)
 
     //get writer
@@ -66,7 +64,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     TMP.deleteRecursively()
   }
 
-  "A ElasticWriter should update a number of records in Elastic Search" in {
+  "A ElasticWriter should update records in Elastic Search" in {
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
     //mock the context to return our assignment when called
@@ -75,7 +73,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecords
     //get config
-    val config  = new ElasticConfig(getElasticSinkUpdateConfigProps)
+    val config  = new ElasticConfig(getElasticSinkUpdateConfigPropsSelection)
 
     val essettings = Settings
       .settingsBuilder().put(ElasticConfigConstants.ES_CLUSTER_NAME, ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT)
@@ -101,76 +99,6 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     val updateRes = client.execute { search in INDEX }.await
     updateRes.totalHits shouldBe testRecords.size
 
-    //close writer
-    writer.close()
-    client.close()
-    TMP.deleteRecursively()
-  }
-
-  "A ElasticWriter should update a number of records in Elastic Search with index suffix defined" in {
-    val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
-    TMP.createDirectory()
-    //mock the context to return our assignment when called
-    val context = mock[SinkTaskContext]
-    when(context.assignment()).thenReturn(getAssignment)
-    //get test records
-    val testRecords = getTestRecords
-    //get config
-    val config  = new ElasticConfig(getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate = true))
-
-    val essettings = Settings
-      .settingsBuilder()
-      .put(ElasticConfigConstants.ES_CLUSTER_NAME, ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT)
-      .put("path.home", TMP.toString).build()
-    val client = ElasticClient.local(essettings)
-
-    //get writer
-
-    val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(client = client, settings = settings)
-    //write records to elastic
-    writer.write(testRecords)
-
-    Thread.sleep(2000)
-    //check counts
-    val res = client.execute { search in INDEX_WITH_DATE }.await
-    res.totalHits shouldBe testRecords.size
-    //close writer
-    writer.close()
-    client.close()
-    TMP.deleteRecursively()
-  }
-
-  "it should fail writing to a non-existent index when auto creation is disabled" in {
-    val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
-    TMP.createDirectory()
-    //mock the context to return our assignment when called
-    val context = mock[SinkTaskContext]
-    when(context.assignment()).thenReturn(getAssignment)
-    //get test records
-    val testRecords = getTestRecords
-    //get config
-    val config  = new ElasticConfig(getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate = false))
-
-    val essettings = Settings
-      .settingsBuilder().put(ElasticConfigConstants.ES_CLUSTER_NAME, ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT)
-      .put("path.home", TMP.toString).put("action.auto_create_index", "false").build()
-    val client = ElasticClient.local(essettings)
-
-    //get writer
-
-    val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(client = client, settings = settings)
-    //write records to elastic
-    writer.write(testRecords)
-
-    Thread.sleep(2000)
-    //check counts
-    intercept[IndexNotFoundException] {
-      val res = client.execute {
-        search in INDEX_WITH_DATE
-      }.await
-    }
     //close writer
     writer.close()
     client.close()
