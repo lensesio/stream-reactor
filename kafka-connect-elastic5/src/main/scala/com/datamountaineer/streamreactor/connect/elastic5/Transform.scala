@@ -1,4 +1,4 @@
-package com.datamountaineer.streamreactor.connect.elastic
+package com.datamountaineer.streamreactor.connect.elastic5
 
 import java.nio.ByteBuffer
 
