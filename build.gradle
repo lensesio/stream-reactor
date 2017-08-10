@@ -60,7 +60,7 @@ allprojects {
         scalaCheck = '1.13.4'
         scalaTest = '3.0.1'
         junit = '4.11'
-        avroVersion="1.7.7"
+        //avroVersion="1.8.1"
         scalaLoggingVersion = '2.1.2'
         mockitoVersion = '1.10.19'
         jacksonDatabind = '2.7.0'
