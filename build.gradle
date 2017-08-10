@@ -60,14 +60,14 @@ allprojects {
         scalaCheck = '1.13.4'
         scalaTest = '3.0.1'
         junit = '4.11'
-        avroVersion="1.7.7"
+        //avroVersion="1.8.1"
         scalaLoggingVersion = '2.1.2'
         mockitoVersion = '1.10.19'
         jacksonDatabind = '2.7.0'
         jacksonxmlVersion = '2.6.5'
         slf4jVersion = "1.7.7"
         json4sVersion = "3.3.0"
-        kiteMiniClusterVersion = "1.0.0-cdh5.12.0"
+        kiteMiniClusterVersion = "1.0.0-cdh5.10.0"
         gsonVersion = "2.6.2"
         KCQLVersion = "2.1.2"
         akkaVersion = "2.4.10"
@@ -76,7 +76,7 @@ allprojects {
         // The following 4 need to align to compile against a particular version
         confluentVersion = '3.2.2'
         kafkaVersion = '0.10.2.1-cp2'
-        dataMountaineerCommonVersion = "0.8.1"
+        dataMountaineerCommonVersion = "0.8.1.1"
         dataMountaineerTestKitVersion = "0.5"
 
         // For 3.1.x versions use
@@ -145,6 +145,7 @@ allprojects {
         compile "io.confluent:kafka-schema-registry:$confluentVersion"
 
         compile("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion")
+
         testCompile "org.mockito:mockito-core:$mockitoVersion"
         testCompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
         testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"

@@ -7,6 +7,7 @@ import org.scalatest.{BeforeAndAfterAll, Suites}
   * Created by andrew@datamountaineer.com on 07/08/2017. 
   * stream-reactor
   */
+/*
 class Combiner extends Suites(new HbaseWriterTest, new HbaseWriterTestRetry) with BeforeAndAfterAll {
 
   var miniCluster: Option[MiniCluster] = None
@@ -29,3 +30,4 @@ class Combiner extends Suites(new HbaseWriterTest, new HbaseWriterTestRetry) wit
     miniCluster.get.stop()
   }
 }
+*/
