@@ -60,7 +60,7 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     when(row.getColumnDefinitions).thenReturn(cols)
     mockRow(row)
     val colDefList = CassandraUtils.getStructColumns(row, null)
-    val sr: Struct = CassandraUtils.convert(row, "test", colDefList)
+    val sr: Struct = CassandraUtils.convert(row, "test", colDefList, None)
     val schema = sr.schema()
     checkCols(schema)
     sr.get("timeuuidCol").toString shouldBe uuid.toString
@@ -74,7 +74,7 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     when(row.getColumnDefinitions).thenReturn(cols)
     mockRow(row)
     val colDefList = null
-    val sr: Struct = CassandraUtils.convert(row, "test", colDefList)
+    val sr: Struct = CassandraUtils.convert(row, "test", colDefList, None)
     val schema = sr.schema()
     schema.defaultValue() shouldBe null
   }
@@ -87,7 +87,7 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
 
     val ignoreList = List("intCol", "floatCol")
     val colDefList = CassandraUtils.getStructColumns(row, ignoreList)
-    val sr: Struct = CassandraUtils.convert(row, "test", colDefList)
+    val sr: Struct = CassandraUtils.convert(row, "test", colDefList, None)
 
     sr.get("timeuuidCol").toString shouldBe uuid.toString
     sr.get("mapCol") shouldBe "{}"
@@ -144,7 +144,7 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     schema.field("booleanCol").schema().`type`() shouldBe Schema.OPTIONAL_BOOLEAN_SCHEMA.`type`()
     schema.field("smallintCol").schema().`type`() shouldBe Schema.INT16_SCHEMA.`type`()
     schema.field("intCol").schema().`type`() shouldBe Schema.OPTIONAL_INT32_SCHEMA.`type`()
-    schema.field("decimalCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
+    schema.field("decimalCol").schema().`type`() shouldBe CassandraUtils.OPTIONAL_DECIMAL_SCHEMA.`type`()
     schema.field("floatCol").schema().`type`() shouldBe Schema.OPTIONAL_FLOAT32_SCHEMA.`type`()
     schema.field("counterCol").schema().`type`() shouldBe Schema.OPTIONAL_INT64_SCHEMA.`type`()
     schema.field("bigintCol").schema().`type`() shouldBe Schema.OPTIONAL_INT64_SCHEMA.`type`()
