@@ -60,7 +60,7 @@ allprojects {
         scalaCheck = '1.13.4'
         scalaTest = '3.0.1'
         junit = '4.11'
-        avroVersion="1.7.7"
+        //avroVersion="1.8.1"
         scalaLoggingVersion = '2.1.2'
         mockitoVersion = '1.10.19'
         jacksonDatabind = '2.7.0'
@@ -76,6 +76,7 @@ allprojects {
         // The following 4 need to align to compile against a particular version
         confluentVersion = '3.2.2'
         kafkaVersion = '0.10.2.1-cp2'
+        dataMountaineerCommonVersion = "0.8.1.1"
         dataMountaineerCommonVersion = "0.8.1.2"
         dataMountaineerTestKitVersion = "0.5"
 
