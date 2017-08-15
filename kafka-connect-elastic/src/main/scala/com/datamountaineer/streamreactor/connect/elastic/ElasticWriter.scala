@@ -16,7 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.elastic5
 
-import com.datamountaineer.streamreactor.connect.elastic5.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
+import com.datamountaineer.streamreactor.connect.elastic5.config.{ElasticConfig, ElasticConfigConstants}
+import com.datamountaineer.streamreactor.connect.elastic5.config.ElasticSettings
 import com.sksamuel.elastic4s.{ElasticClient, ElasticsearchClientUri}
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.elasticsearch.common.settings.Settings

@@ -1,8 +1,8 @@
-package com.datamountaineer.streamreactor.connect.elastic
+package com.datamountaineer.streamreactor.connect.elastic5
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSettings
-import com.datamountaineer.streamreactor.connect.elastic.indexname.CreateIndex.getIndexName
+import com.datamountaineer.streamreactor.connect.elastic5.config.ElasticSettings
+import com.datamountaineer.streamreactor.connect.elastic5.indexname.CreateIndex.getIndexName
 import com.datamountaineer.streamreactor.connect.elastic5.config.ClientType
 import com.sksamuel.elastic4s.bulk.BulkDefinition
 import com.sksamuel.elastic4s.http.HttpClient

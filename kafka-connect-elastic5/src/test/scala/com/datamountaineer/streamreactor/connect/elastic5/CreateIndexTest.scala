@@ -1,7 +1,7 @@
-package com.datamountaineer.streamreactor.connect.elastic
+package com.datamountaineer.streamreactor.connect.elastic5
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.elastic.indexname.CreateIndex
+import com.datamountaineer.streamreactor.connect.elastic5.indexname.CreateIndex
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.{Matchers, WordSpec}
 
