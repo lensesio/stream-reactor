@@ -23,7 +23,7 @@ import com.datamountaineer.kcql.Kcql
 import com.datastax.driver.core.ColumnDefinitions.Definition
 import com.datastax.driver.core.{Cluster, ColumnDefinitions, DataType, Row}
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct, Timestamp}
+import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConversions._
@@ -38,6 +38,7 @@ object CassandraUtils {
 
   val OPTIONAL_DATE_SCHEMA = org.apache.kafka.connect.data.Date.builder().optional().build()
   val OPTIONAL_TIMESTAMP_SCHEMA = Timestamp.builder().optional().build()
+  val OPTIONAL_DECIMAL_SCHEMA = Decimal.builder(18).optional().build()
 
   /**
     * Check if we have tables in Cassandra and if we have table named the same as our topic
@@ -73,7 +74,7 @@ object CassandraUtils {
 
     val colFiltered = if (ignoreList != null && ignoreList.nonEmpty) {
       cols.filter(cd => !ignoreList.contains(cd.getName)).toList
-    } 
+    }
     else {
       cols.toList
     }
@@ -86,14 +87,14 @@ object CassandraUtils {
     * @param row The Cassandra resultset row to convert
     * @return a SourceRecord
     **/
-  def convert(row: Row, schemaName: String, colDefList: List[ColumnDefinitions.Definition]): Struct = {
-    val connectSchema = convertToConnectSchema(colDefList, schemaName)
+  def convert(row: Row, schemaName: String, colDefList: List[ColumnDefinitions.Definition], schema: Option[Schema]): Struct = {
+    var connectSchema = schema.getOrElse(convertToConnectSchema(colDefList, schemaName))
     val struct = new Struct(connectSchema)
     if (colDefList != null) {
-      colDefList.map { c =>
+      colDefList.foreach { c =>
         val value = mapTypes(c, row)
         struct.put(c.getName, value)
-      }.head
+      }
     }
     struct
   }
@@ -107,7 +108,11 @@ object CassandraUtils {
     **/
   def mapTypes(columnDef: Definition, row: Row): Any = {
     columnDef.getType.getName match {
-      case DataType.Name.DECIMAL => row.getFloat(columnDef.getName).toString
+      case DataType.Name.DECIMAL =>
+        Option(row.getDecimal(columnDef.getName)).map { d =>
+          d.setScale(18)
+          //Decimal.fromLogical(OPTIONAL_DECIMAL_SCHEMA, )
+        }.orNull
       case DataType.Name.ASCII | DataType.Name.TEXT | DataType.Name.VARCHAR => row.getString(columnDef.getName)
       case DataType.Name.INET => row.getInet(columnDef.getName).toString
       case DataType.Name.MAP => mapper.writeValueAsString(row.getMap(columnDef.getName, classOf[String], classOf[String]))
@@ -174,7 +179,7 @@ object CassandraUtils {
       case DataType.Name.SMALLINT => Schema.OPTIONAL_INT16_SCHEMA
       case DataType.Name.TIMESTAMP => OPTIONAL_TIMESTAMP_SCHEMA
       case DataType.Name.INT => Schema.OPTIONAL_INT32_SCHEMA
-      case DataType.Name.DECIMAL => Schema.OPTIONAL_STRING_SCHEMA
+      case DataType.Name.DECIMAL => OPTIONAL_DECIMAL_SCHEMA
       case DataType.Name.DOUBLE => Schema.OPTIONAL_FLOAT64_SCHEMA
       case DataType.Name.FLOAT => Schema.OPTIONAL_FLOAT32_SCHEMA
       case DataType.Name.COUNTER | DataType.Name.BIGINT | DataType.Name.VARINT | DataType.Name.TIME => Schema.OPTIONAL_INT64_SCHEMA

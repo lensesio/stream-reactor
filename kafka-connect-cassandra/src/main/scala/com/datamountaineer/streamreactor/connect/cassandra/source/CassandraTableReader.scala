@@ -62,6 +62,7 @@ class CassandraTableReader( private val session: Session,
   private val sourcePartition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
   private val schemaName = s"$keySpace.$table".replace('-', '.')
   private val bulk = if (setting.timestampColType.equals(TimestampType.NONE)) true else false
+  private var schema:Option[Schema] = None
 
   /**
    * Build a map of table to offset.
@@ -216,11 +217,11 @@ class CassandraTableReader( private val session: Session,
     })
 
     //On failure, rest and throw
-    future.onFailure({
+    future.onFailure{
       case t: Throwable =>
         reset(tableOffset)
-        throw new ConnectException(s"Error will querying $table.", t)
-    })
+        throw new ConnectException(s"Error querying $table.", t)
+    }
   }
 
   private def getTokenMaxOffsetForRow(maxOffset: Option[String], row: Row): Option[String] = {
@@ -243,7 +244,7 @@ class CassandraTableReader( private val session: Session,
     // convert the cassandra row to a struct
     val ignoreList = config.getIgnoredFields.map(_.getName).toList
     val structColDefs = CassandraUtils.getStructColumns(row, ignoreList)
-    val struct = CassandraUtils.convert(row, schemaName, structColDefs)
+    val struct = CassandraUtils.convert(row, schemaName, structColDefs, schema)
 
     // get the offset for this value
     val offset: String = if (cqlGenerator.isTokenBased()) {
@@ -260,6 +261,7 @@ class CassandraTableReader( private val session: Session,
       val structValue = structColDefs.map(d => d.getName).map(name => row.getObject(name)).mkString(",")
       new SourceRecord(sourcePartition, Map(primaryKeyCol -> offset), topic, Schema.STRING_SCHEMA, structValue)
     } else {
+      schema = Some(struct.schema())
       new SourceRecord(sourcePartition, Map(primaryKeyCol -> offset), topic, struct.schema(), struct)
     }
 
