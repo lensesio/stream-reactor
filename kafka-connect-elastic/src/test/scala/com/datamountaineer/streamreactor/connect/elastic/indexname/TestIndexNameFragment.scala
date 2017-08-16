@@ -1,4 +1,4 @@
-package com.datamountaineer.streamreactor.connect.elastic5.indexname
+package com.datamountaineer.streamreactor.connect.elastic.indexname
 
 import org.scalacheck.Gen
 import org.scalatest.prop.GeneratorDrivenPropertyChecks

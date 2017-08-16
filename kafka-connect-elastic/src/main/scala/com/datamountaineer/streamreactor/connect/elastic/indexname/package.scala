@@ -1,4 +1,4 @@
-package com.datamountaineer.streamreactor.connect.elastic5
+package com.datamountaineer.streamreactor.connect.elastic
 
 package object indexname {
 

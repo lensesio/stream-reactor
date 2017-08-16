@@ -1,4 +1,4 @@
-package com.datamountaineer.streamreactor.connect.elastic5.indexname
+package com.datamountaineer.streamreactor.connect.elastic.indexname
 
 import scala.annotation.tailrec
 

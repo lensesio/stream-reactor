@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.elastic5
+package com.datamountaineer.streamreactor.connect.elastic
 
-import com.datamountaineer.streamreactor.connect.elastic5.ElasticSinkConnector
-import com.datamountaineer.streamreactor.connect.elastic5.config.ElasticConfigConstants
+import com.datamountaineer.streamreactor.connect.elastic.ElasticSinkConnector
+import com.datamountaineer.streamreactor.connect.elastic.config.ElasticConfigConstants
 
 import scala.collection.JavaConverters._
 

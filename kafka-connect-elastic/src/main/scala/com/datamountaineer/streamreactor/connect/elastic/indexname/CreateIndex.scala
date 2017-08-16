@@ -1,4 +1,4 @@
-package com.datamountaineer.streamreactor.connect.elastic5.indexname
+package com.datamountaineer.streamreactor.connect.elastic.indexname
 
 import com.datamountaineer.kcql.Kcql
 import com.sksamuel.elastic4s.ElasticClient

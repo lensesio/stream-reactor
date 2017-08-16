@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.elastic5
+package com.datamountaineer.streamreactor.connect.elastic
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.elastic5.config.ElasticConfig
+import com.datamountaineer.streamreactor.connect.elastic.config.ElasticConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task

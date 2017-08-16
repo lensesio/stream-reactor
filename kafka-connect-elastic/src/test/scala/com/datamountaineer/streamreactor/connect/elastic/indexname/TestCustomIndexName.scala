@@ -1,6 +1,6 @@
-package com.datamountaineer.streamreactor.connect.elastic5.indexname
+package com.datamountaineer.streamreactor.connect.elastic.indexname
 
-import com.datamountaineer.streamreactor.connect.elastic5.indexname.{CustomIndexName, InvalidCustomIndexNameException}
+import com.datamountaineer.streamreactor.connect.elastic.indexname.{CustomIndexName, InvalidCustomIndexNameException}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, TableDrivenPropertyChecks}
 import org.scalatest.{FlatSpec, Matchers}
 

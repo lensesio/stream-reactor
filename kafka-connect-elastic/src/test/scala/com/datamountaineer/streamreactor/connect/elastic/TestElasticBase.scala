@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.elastic5
+package com.datamountaineer.streamreactor.connect.elastic
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter._
 import java.util
 
-import com.datamountaineer.streamreactor.connect.elastic5.config.ElasticConfigConstants
+import com.datamountaineer.streamreactor.connect.elastic.config.ElasticConfigConstants
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}

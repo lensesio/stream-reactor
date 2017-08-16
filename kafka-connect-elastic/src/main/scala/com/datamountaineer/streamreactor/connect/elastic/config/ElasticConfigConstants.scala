@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.elastic5.config
+package com.datamountaineer.streamreactor.connect.elastic.config
 
 import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
 

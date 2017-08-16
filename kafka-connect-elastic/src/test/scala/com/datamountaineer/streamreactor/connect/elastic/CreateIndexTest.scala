@@ -1,10 +1,10 @@
-package com.datamountaineer.streamreactor.connect.elastic5
+package com.datamountaineer.streamreactor.connect.elastic
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.elastic5.indexname.CreateIndex
+import com.datamountaineer.streamreactor.connect.elastic.indexname.CreateIndex
 import org.scalatest.{Matchers, WordSpec}
 
 class CreateIndexTest extends WordSpec with Matchers {

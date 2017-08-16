@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.elastic5
+package com.datamountaineer.streamreactor.connect.elastic
 
 import com.datamountaineer.kcql.WriteModeEnum
-import com.datamountaineer.streamreactor.connect.elastic5.config.ElasticSettings
-import com.datamountaineer.streamreactor.connect.elastic5.indexname.CreateIndex
+import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSettings
+import com.datamountaineer.streamreactor.connect.elastic.indexname.CreateIndex
 import com.datamountaineer.streamreactor.connect.schemas.{ConverterUtil, StructFieldsExtractor}
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._

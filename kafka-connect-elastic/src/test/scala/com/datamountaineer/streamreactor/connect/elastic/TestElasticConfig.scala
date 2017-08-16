@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.elastic5
+package com.datamountaineer.streamreactor.connect.elastic
 
-import com.datamountaineer.streamreactor.connect.elastic5.config.{ElasticConfig, ElasticConfigConstants}
+import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticConfig, ElasticConfigConstants}
 
 class TestElasticConfig extends TestElasticBase {
   "A ElasticConfig should return the client mode and hostnames" in {
