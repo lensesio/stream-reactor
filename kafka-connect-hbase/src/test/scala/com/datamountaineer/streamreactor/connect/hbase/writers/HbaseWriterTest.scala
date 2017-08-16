@@ -15,7 +15,6 @@
  */
 
 // If only the Apache Hadoop will get to refresh dependencies! guava 11.0.2 Freakin 2012!!!!!!!!!!!
-/*
 
 package com.datamountaineer.streamreactor.connect.hbase.writers
 
@@ -189,4 +188,4 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
       }
     }
   }
-}*/
+}

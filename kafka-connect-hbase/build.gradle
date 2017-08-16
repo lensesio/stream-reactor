@@ -17,8 +17,9 @@
 project(":kafka-connect-hbase") {
 
     ext {
-        hbaseClientVersion = "1.2.0"
-        hbaseServerVersion = "1.2.0"
+        hbaseClientVersion = "1.3.1"
+        hbaseServerVersion = "1.3.1"
+        hdfsVersion="2.7.3"
     }
 
     dependencies {
@@ -32,6 +33,8 @@ project(":kafka-connect-hbase") {
             exclude group: "tomcat"
             //  exclude group: 'com.google.guava', module: 'guava'
         }
+
+        compile "org.apache.hadoop:hadoop-hdfs:$hdfsVersion"
 
         testCompile("org.apache.hbase:hbase-server:$hbaseServerVersion") {
             exclude group: "tomcat", module: "jasper-runtime"

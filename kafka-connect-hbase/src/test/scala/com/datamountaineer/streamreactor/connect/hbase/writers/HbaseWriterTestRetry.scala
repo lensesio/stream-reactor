@@ -32,7 +32,6 @@ import org.scalatest.{BeforeAndAfter, DoNotDiscover, Matchers, WordSpec}
 import scala.collection.JavaConverters._
 
 
-/*
 @DoNotDiscover
 class HbaseWriterTestRetry extends WordSpec with Matchers with MockitoSugar {
 
@@ -118,4 +117,4 @@ class HbaseWriterTestRetry extends WordSpec with Matchers with MockitoSugar {
       }
     }
   }
-}*/
+}
