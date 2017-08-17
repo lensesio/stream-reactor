@@ -68,17 +68,9 @@ object CassandraUtils {
     *
     * @return the comma separated columns
     */
-  def getStructColumns(row: Row, ignoreList: List[String]): List[ColumnDefinitions.Definition] = {
+  def getStructColumns(row: Row, ignoreList: Set[String]): List[ColumnDefinitions.Definition] = {
     //TODO do we need to get the list of columns everytime?
-    val cols = row.getColumnDefinitions
-
-    val colFiltered = if (ignoreList != null && ignoreList.nonEmpty) {
-      cols.filter(cd => !ignoreList.contains(cd.getName)).toList
-    }
-    else {
-      cols.toList
-    }
-    colFiltered
+    row.getColumnDefinitions.filter(cd => !ignoreList.contains(cd.getName)).toList
   }
 
   /**
