@@ -35,14 +35,17 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 public class BigQueryRecordConverterTest {
+
   @Test(expected = ConversionConnectException.class)
   public void testTopLevelRecord() {
     SinkRecord kafkaConnectRecord = spoofSinkRecord(Schema.BOOLEAN_SCHEMA, false);
@@ -208,7 +211,7 @@ public class BigQueryRecordConverterTest {
     final String innerFieldStructName = "InnerStruct";
     final String innerFieldStringName = "InnerString";
     final String innerFieldIntegerName = "InnerInt";
-    final String innerStringValue = "42";
+    final String innerStringValue = "forty two";
     final Integer innerIntegerValue = 42;
     final List<Float> middleArrayValue = Arrays.asList(42.0f, 42.4f, 42.42f, 42.424f, 42.4242f);
 
@@ -336,6 +339,53 @@ public class BigQueryRecordConverterTest {
   }
 
   @Test
+  public void testStructArray() {
+    final String innerFieldStringName = "InnerString";
+    final String innerFieldIntegerName = "InnerInt";
+    final String innerStringValue = "42";
+    final Integer innerIntegerValue = 42;
+    Map<String, Object> bigQueryExpectedInnerRecord = new HashMap<>();
+    bigQueryExpectedInnerRecord.put(innerFieldStringName, innerStringValue);
+    bigQueryExpectedInnerRecord.put(innerFieldIntegerName, innerIntegerValue);
+
+    Schema kafkaConnectInnerSchema = SchemaBuilder
+        .struct()
+        .field(innerFieldStringName, Schema.STRING_SCHEMA)
+        .field(innerFieldIntegerName, Schema.INT32_SCHEMA)
+        .build();
+
+    Struct kafkaConnectInnerStruct = new Struct(kafkaConnectInnerSchema);
+    kafkaConnectInnerStruct.put(innerFieldStringName, innerStringValue);
+    kafkaConnectInnerStruct.put(innerFieldIntegerName, innerIntegerValue);
+
+    SinkRecord kafkaConnectInnerSinkRecord =
+        spoofSinkRecord(kafkaConnectInnerSchema, kafkaConnectInnerStruct);
+    Map<String, Object> bigQueryTestInnerRecord =
+        new BigQueryRecordConverter().convertRecord(kafkaConnectInnerSinkRecord);
+    assertEquals(bigQueryExpectedInnerRecord, bigQueryTestInnerRecord);
+
+    final String middleFieldArrayName = "MiddleArray";
+    final List<Map<String, Object>> fieldValue =
+        Arrays.asList(bigQueryTestInnerRecord);
+
+    Map<String, Object> bigQueryExpectedRecord = new HashMap<>();
+    bigQueryExpectedRecord.put(middleFieldArrayName, fieldValue);
+
+    Schema kafkaConnectSchema = SchemaBuilder
+        .struct()
+        .field(middleFieldArrayName, SchemaBuilder.array(kafkaConnectInnerSchema).build())
+        .build();
+
+    Struct kafkaConnectStruct = new Struct(kafkaConnectSchema);
+    kafkaConnectStruct.put(middleFieldArrayName, Arrays.asList(kafkaConnectInnerStruct));
+    SinkRecord kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
+
+    Map<String, Object> bigQueryTestRecord =
+        new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+    assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
+  }
+
+  @Test
   public void testStringArray() {
     final String fieldName = "StringArray";
     final List<String> fieldValue =
@@ -390,7 +440,11 @@ public class BigQueryRecordConverterTest {
         Timestamp.SCHEMA,
         fieldTime
     );
-    final double fieldValueBigQuery = fieldValueKafkaConnect.getTime() / 1000.0;
+    java.util.Date date = new java.util.Date(fieldValueKafkaConnect.getTime());
+    SimpleDateFormat timestampFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    timestampFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+    final String fieldValueBigQuery =
+        timestampFormat.format(date);
 
     Map<String, Object> bigQueryExpectedRecord = new HashMap<>();
     bigQueryExpectedRecord.put(fieldName, fieldValueBigQuery);
@@ -417,7 +471,10 @@ public class BigQueryRecordConverterTest {
         Date.SCHEMA,
         fieldDate
     );
-    final double fieldValueBigQuery = fieldValueKafkaConnect.getTime() / 1000.0;
+    java.util.Date date = new java.util.Date(fieldValueKafkaConnect.getTime());
+    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+    final String fieldValueBigQuery = dateFormat.format(date);
 
     Map<String, Object> bigQueryExpectedRecord = new HashMap<>();
     bigQueryExpectedRecord.put(fieldName, fieldValueBigQuery);

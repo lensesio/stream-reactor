@@ -11,8 +11,6 @@ import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 
 import org.apache.kafka.connect.data.Schema;
 
-import java.util.Set;
-
 /**
  * Class for managing Schemas of BigQuery tables (creating and updating).
  */
@@ -60,14 +58,14 @@ public class SchemaManager {
   TableInfo constructTableInfo(TableId table, Schema kafkaConnectSchema) {
     com.google.cloud.bigquery.Schema bigQuerySchema =
         schemaConverter.convertSchema(kafkaConnectSchema);
-    StandardTableDefinition tableDefinition = StandardTableDefinition.builder()
-        .schema(bigQuerySchema)
-        .timePartitioning(TimePartitioning.of(TimePartitioning.Type.DAY))
+    StandardTableDefinition tableDefinition = StandardTableDefinition.newBuilder()
+        .setSchema(bigQuerySchema)
+        .setTimePartitioning(TimePartitioning.of(TimePartitioning.Type.DAY))
         .build();
     TableInfo.Builder tableInfoBuilder =
-        TableInfo.builder(table, tableDefinition);
+        TableInfo.newBuilder(table, tableDefinition);
     if (kafkaConnectSchema.doc() != null) {
-      tableInfoBuilder.description(kafkaConnectSchema.doc());
+      tableInfoBuilder.setDescription(kafkaConnectSchema.doc());
     }
     return tableInfoBuilder.build();
   }

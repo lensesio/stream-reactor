@@ -75,7 +75,10 @@ public class TopicToTableResolver {
         }
       }
       if (match == null) {
-        match = (sanitize) ? sanitizeTableName(value) : value;
+        match = value;
+      }
+      if (sanitize) {
+        match = sanitizeTableName(match);
       }
       String dataset = topicsToDatasets.get(value);
       matches.put(value, TableId.of(dataset, match));

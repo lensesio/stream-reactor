@@ -178,7 +178,7 @@ public class PartitionedTableId {
      * @param baseTableId existing TableId with a base table name (no partition information).
      */
     public Builder(TableId baseTableId) {
-      this(baseTableId.project(), baseTableId.dataset(), baseTableId.table(), null);
+      this(baseTableId.getProject(), baseTableId.getDataset(), baseTableId.getTable(), null);
     }
 
     private Builder(String project, String dataset, String baseTable, String partition) {

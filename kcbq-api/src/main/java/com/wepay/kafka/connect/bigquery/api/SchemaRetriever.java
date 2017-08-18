@@ -5,7 +5,6 @@ import com.google.cloud.bigquery.TableId;
 import org.apache.kafka.connect.data.Schema;
 
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Interface for retrieving the most up-to-date schemas for a given BigQuery table. Used in

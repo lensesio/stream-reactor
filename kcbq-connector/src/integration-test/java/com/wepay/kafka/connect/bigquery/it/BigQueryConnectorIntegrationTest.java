@@ -114,38 +114,39 @@ public class BigQueryConnectorIntegrationTest {
     if (field.isNull()) {
       return null;
     }
-    switch (field.attribute()) {
+    switch (field.getAttribute()) {
       case PRIMITIVE:
-        switch (fieldSchema.type().value()) {
+        switch (fieldSchema.getType().getValue()) {
           case BOOLEAN:
-            return field.booleanValue();
+            return field.getBooleanValue();
           case BYTES:
             // Do this in order for assertEquals() to work when this is an element of two compared
             // lists
-            return boxByteArray(field.bytesValue());
+            return boxByteArray(field.getBytesValue());
           case FLOAT:
-            return field.doubleValue();
+            return field.getDoubleValue();
           case INTEGER:
-            return field.longValue();
+            return field.getLongValue();
           case STRING:
-            return field.stringValue();
+            return field.getStringValue();
           case TIMESTAMP:
-            return field.timestampValue();
+            return field.getTimestampValue();
           default:
-            throw new RuntimeException("Cannot convert primitive field type " + fieldSchema.type());
+            throw new RuntimeException("Cannot convert primitive field type "
+                                       + fieldSchema.getType());
         }
       case REPEATED:
         List<Object> result = new ArrayList<>();
-        for (FieldValue arrayField : field.repeatedValue()) {
+        for (FieldValue arrayField : field.getRepeatedValue()) {
           result.add(convertField(fieldSchema, arrayField));
         }
         return result;
       case RECORD:
-        List<Field> recordSchemas = fieldSchema.fields();
-        List<FieldValue> recordFields = field.recordValue();
+        List<Field> recordSchemas = fieldSchema.getFields();
+        List<FieldValue> recordFields = field.getRecordValue();
         return convertRow(recordSchemas, recordFields);
       default:
-        throw new RuntimeException("Unknown field attribute: " + field.attribute());
+        throw new RuntimeException("Unknown field attribute: " + field.getAttribute());
     }
   }
 
@@ -162,15 +163,15 @@ public class BigQueryConnectorIntegrationTest {
 
   private List<List<Object>> readAllRows(String tableName) {
     Table table = bigQuery.getTable(dataset, tableName);
-    Schema schema = table.definition().schema();
+    Schema schema = table.getDefinition().getSchema();
     Page<List<FieldValue>> page = table.list();
 
     List<List<Object>> rows = new ArrayList<>();
     while (page != null) {
-      for (List<FieldValue> row : page.values()) {
-        rows.add(convertRow(schema.fields(), row));
+      for (List<FieldValue> row : page.getValues()) {
+        rows.add(convertRow(schema.getFields(), row));
       }
-      page = page.nextPage();
+      page = page.getNextPage();
     }
     return rows;
   }

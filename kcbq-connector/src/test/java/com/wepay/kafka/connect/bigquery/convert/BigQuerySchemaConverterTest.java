@@ -31,6 +31,7 @@ import org.apache.kafka.connect.data.Timestamp;
 import org.junit.Test;
 
 public class BigQuerySchemaConverterTest {
+
   @Test(expected = ConversionConnectException.class)
   public void testTopLevelSchema() {
     new BigQuerySchemaConverter().convertSchema(Schema.BOOLEAN_SCHEMA);
@@ -42,10 +43,10 @@ public class BigQuerySchemaConverterTest {
 
     com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
         com.google.cloud.bigquery.Schema.of(
-            com.google.cloud.bigquery.Field.builder(
+            com.google.cloud.bigquery.Field.newBuilder(
                 fieldName,
                 com.google.cloud.bigquery.Field.Type.bool()
-            ).mode(
+            ).setMode(
                 com.google.cloud.bigquery.Field.Mode.REQUIRED
             ).build()
         );
@@ -66,10 +67,10 @@ public class BigQuerySchemaConverterTest {
 
     com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
         com.google.cloud.bigquery.Schema.of(
-            com.google.cloud.bigquery.Field.builder(
+            com.google.cloud.bigquery.Field.newBuilder(
                 fieldName,
                 com.google.cloud.bigquery.Field.Type.integer()
-            ).mode(
+            ).setMode(
                 com.google.cloud.bigquery.Field.Mode.REQUIRED
             ).build()
         );
@@ -117,10 +118,10 @@ public class BigQuerySchemaConverterTest {
 
     com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
         com.google.cloud.bigquery.Schema.of(
-            com.google.cloud.bigquery.Field.builder(
+            com.google.cloud.bigquery.Field.newBuilder(
                 fieldName,
                 com.google.cloud.bigquery.Field.Type.floatingPoint()
-            ).mode(
+            ).setMode(
                 com.google.cloud.bigquery.Field.Mode.REQUIRED
             ).build()
         );
@@ -149,10 +150,10 @@ public class BigQuerySchemaConverterTest {
 
     com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
         com.google.cloud.bigquery.Schema.of(
-            com.google.cloud.bigquery.Field.builder(
+            com.google.cloud.bigquery.Field.newBuilder(
                 fieldName,
                 com.google.cloud.bigquery.Field.Type.string()
-            ).mode(
+            ).setMode(
                 com.google.cloud.bigquery.Field.Mode.REQUIRED
             ).build()
         );
@@ -177,23 +178,23 @@ public class BigQuerySchemaConverterTest {
     final String innerFieldIntegerName = "InnerInt";
 
     com.google.cloud.bigquery.Field bigQueryInnerRecord =
-        com.google.cloud.bigquery.Field.builder(
+        com.google.cloud.bigquery.Field.newBuilder(
             innerFieldStructName,
             com.google.cloud.bigquery.Field.Type.record(
-                com.google.cloud.bigquery.Field.builder(
+                com.google.cloud.bigquery.Field.newBuilder(
                     innerFieldStringName,
                     com.google.cloud.bigquery.Field.Type.string()
-                ).mode(
+                ).setMode(
                     com.google.cloud.bigquery.Field.Mode.REQUIRED
                 ).build(),
-                com.google.cloud.bigquery.Field.builder(
+                com.google.cloud.bigquery.Field.newBuilder(
                     innerFieldIntegerName,
                     com.google.cloud.bigquery.Field.Type.integer()
-                ).mode(
+                ).setMode(
                     com.google.cloud.bigquery.Field.Mode.REQUIRED
                 ).build()
             )
-        ).mode(
+        ).setMode(
             com.google.cloud.bigquery.Field.Mode.REQUIRED
         ).build();
 
@@ -215,16 +216,16 @@ public class BigQuerySchemaConverterTest {
     assertEquals(bigQueryExpectedInnerSchema, bigQueryTestInnerSchema);
 
     com.google.cloud.bigquery.Field bigQueryMiddleRecord =
-        com.google.cloud.bigquery.Field.builder(
+        com.google.cloud.bigquery.Field.newBuilder(
             middleFieldStructName,
             com.google.cloud.bigquery.Field.Type.record(
                 bigQueryInnerRecord,
-                com.google.cloud.bigquery.Field.builder(
+                com.google.cloud.bigquery.Field.newBuilder(
                     middleFieldArrayName,
                     com.google.cloud.bigquery.Field.Type.floatingPoint()
-                ).mode(com.google.cloud.bigquery.Field.Mode.REPEATED).build()
+                ).setMode(com.google.cloud.bigquery.Field.Mode.REPEATED).build()
             )
-        ).mode(
+        ).setMode(
             com.google.cloud.bigquery.Field.Mode.REQUIRED
         ).build();
 
@@ -246,13 +247,13 @@ public class BigQuerySchemaConverterTest {
     assertEquals(bigQueryExpectedMiddleSchema, bigQueryTestMiddleSchema);
 
     com.google.cloud.bigquery.Field bigQueryOuterRecord =
-        com.google.cloud.bigquery.Field.builder(
+        com.google.cloud.bigquery.Field.newBuilder(
             outerFieldStructName,
             com.google.cloud.bigquery.Field.Type.record(
                 bigQueryInnerRecord,
                 bigQueryMiddleRecord
             )
-        ).mode(
+        ).setMode(
             com.google.cloud.bigquery.Field.Mode.REQUIRED
         ).build();
 
@@ -282,26 +283,26 @@ public class BigQuerySchemaConverterTest {
 
     com.google.cloud.bigquery.Field.Type bigQueryMapEntryType =
         com.google.cloud.bigquery.Field.Type.record(
-            com.google.cloud.bigquery.Field.builder(
+            com.google.cloud.bigquery.Field.newBuilder(
                 keyName,
                 com.google.cloud.bigquery.Field.Type.floatingPoint()
-            ).mode(
+            ).setMode(
                 com.google.cloud.bigquery.Field.Mode.REQUIRED
             ).build(),
-            com.google.cloud.bigquery.Field.builder(
+            com.google.cloud.bigquery.Field.newBuilder(
                 valueName,
                 com.google.cloud.bigquery.Field.Type.string()
-            ).mode(
+            ).setMode(
                 com.google.cloud.bigquery.Field.Mode.REQUIRED
             ).build()
         );
 
     com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
         com.google.cloud.bigquery.Schema.of(
-            com.google.cloud.bigquery.Field.builder(
+            com.google.cloud.bigquery.Field.newBuilder(
                 fieldName,
                 bigQueryMapEntryType
-            ).mode(
+            ).setMode(
                 com.google.cloud.bigquery.Field.Mode.REPEATED
             ).build()
         );
@@ -326,10 +327,10 @@ public class BigQuerySchemaConverterTest {
 
     com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
         com.google.cloud.bigquery.Schema.of(
-            com.google.cloud.bigquery.Field.builder(
+            com.google.cloud.bigquery.Field.newBuilder(
                 fieldName,
                 com.google.cloud.bigquery.Field.Type.integer()
-            ).mode(com.google.cloud.bigquery.Field.Mode.REPEATED).build()
+            ).setMode(com.google.cloud.bigquery.Field.Mode.REPEATED).build()
         );
 
     Schema kafkaConnectArraySchema = SchemaBuilder.array(Schema.INT32_SCHEMA).build();
@@ -349,10 +350,10 @@ public class BigQuerySchemaConverterTest {
 
     com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
         com.google.cloud.bigquery.Schema.of(
-            com.google.cloud.bigquery.Field.builder(
+            com.google.cloud.bigquery.Field.newBuilder(
                 fieldName,
                 com.google.cloud.bigquery.Field.Type.string()
-            ).mode(com.google.cloud.bigquery.Field.Mode.REPEATED).build()
+            ).setMode(com.google.cloud.bigquery.Field.Mode.REPEATED).build()
         );
 
     Schema kafkaConnectArraySchema = SchemaBuilder.array(Schema.STRING_SCHEMA).build();
@@ -372,10 +373,10 @@ public class BigQuerySchemaConverterTest {
 
     com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
         com.google.cloud.bigquery.Schema.of(
-            com.google.cloud.bigquery.Field.builder(
+            com.google.cloud.bigquery.Field.newBuilder(
                 fieldName,
                 com.google.cloud.bigquery.Field.Type.bytes()
-            ).mode(
+            ).setMode(
                 com.google.cloud.bigquery.Field.Mode.REQUIRED
             ).build()
         );
@@ -396,10 +397,10 @@ public class BigQuerySchemaConverterTest {
 
     com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
         com.google.cloud.bigquery.Schema.of(
-            com.google.cloud.bigquery.Field.builder(
+            com.google.cloud.bigquery.Field.newBuilder(
                 fieldName,
                 com.google.cloud.bigquery.Field.Type.timestamp()
-            ).mode(
+            ).setMode(
                 com.google.cloud.bigquery.Field.Mode.REQUIRED
             ).build()
         );
@@ -432,10 +433,10 @@ public class BigQuerySchemaConverterTest {
 
     com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
         com.google.cloud.bigquery.Schema.of(
-            com.google.cloud.bigquery.Field.builder(
+            com.google.cloud.bigquery.Field.newBuilder(
                 fieldName,
-                com.google.cloud.bigquery.Field.Type.timestamp()
-            ).mode(
+                com.google.cloud.bigquery.Field.Type.date()
+            ).setMode(
                 com.google.cloud.bigquery.Field.Mode.REQUIRED
             ).build()
         );
@@ -468,10 +469,10 @@ public class BigQuerySchemaConverterTest {
 
     com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
         com.google.cloud.bigquery.Schema.of(
-            com.google.cloud.bigquery.Field.builder(
+            com.google.cloud.bigquery.Field.newBuilder(
                 fieldName,
                 com.google.cloud.bigquery.Field.Type.floatingPoint()
-            ).mode(
+            ).setMode(
                 com.google.cloud.bigquery.Field.Mode.REQUIRED
             ).build()
         );
@@ -505,16 +506,16 @@ public class BigQuerySchemaConverterTest {
 
     com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
         com.google.cloud.bigquery.Schema.of(
-            com.google.cloud.bigquery.Field.builder(
+            com.google.cloud.bigquery.Field.newBuilder(
                 nullableFieldName,
                 com.google.cloud.bigquery.Field.Type.integer()
-            ).mode(
+            ).setMode(
                 com.google.cloud.bigquery.Field.Mode.NULLABLE
             ).build(),
-            com.google.cloud.bigquery.Field.builder(
+            com.google.cloud.bigquery.Field.newBuilder(
                 requiredFieldName,
                 com.google.cloud.bigquery.Field.Type.integer()
-            ).mode(
+            ).setMode(
                 com.google.cloud.bigquery.Field.Mode.REQUIRED
             ).build()
         );
@@ -537,10 +538,10 @@ public class BigQuerySchemaConverterTest {
 
     com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
         com.google.cloud.bigquery.Schema.of(
-            com.google.cloud.bigquery.Field.builder(fieldName,
+            com.google.cloud.bigquery.Field.newBuilder(fieldName,
                 com.google.cloud.bigquery.Field.Type.string())
-                .mode(com.google.cloud.bigquery.Field.Mode.REQUIRED)
-                .description(fieldDoc)
+                .setMode(com.google.cloud.bigquery.Field.Mode.REQUIRED)
+                .setDescription(fieldDoc)
                 .build()
         );
 

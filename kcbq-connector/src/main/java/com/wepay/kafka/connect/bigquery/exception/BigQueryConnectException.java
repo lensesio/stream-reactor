@@ -54,8 +54,8 @@ public class BigQueryConnectException extends ConnectException {
         messageBuilder.append(String.format(
             "%n\t[row index %d]: %s: %s",
             errorsEntry.getKey(),
-            error.reason(),
-            error.message()
+            error.getReason(),
+            error.getMessage()
         ));
       }
     }

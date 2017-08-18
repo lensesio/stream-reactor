@@ -23,23 +23,13 @@ import com.google.cloud.bigquery.InsertAllRequest;
 
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 
-import com.wepay.kafka.connect.bigquery.utils.MetricsConstants;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.Sensor;
-import org.apache.kafka.common.metrics.stats.Avg;
-import org.apache.kafka.common.metrics.stats.Count;
-import org.apache.kafka.common.metrics.stats.Max;
-import org.apache.kafka.common.metrics.stats.Rate;
-
-import org.apache.kafka.connect.data.Schema;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 
 /**
  * A class for writing lists of rows to a BigQuery table.
@@ -59,9 +49,6 @@ public abstract class BigQueryWriter {
 
   private static final Random random = new Random();
 
-  private final Sensor rowsWritten;
-  private final Sensor requestRetries;
-
   private int retries;
   private long retryWaitMs;
 
@@ -70,40 +57,10 @@ public abstract class BigQueryWriter {
    *                or a service unavailable error.
    * @param retryWaitMs the amount of time to wait in between reattempting a request if BQ returns
    *                    an internal service error or a service unavailable error.
-   * @param metrics kafka {@link Metrics}.
    */
-  public BigQueryWriter(int retries, long retryWaitMs, Metrics metrics) {
+  public BigQueryWriter(int retries, long retryWaitMs) {
     this.retries = retries;
     this.retryWaitMs = retryWaitMs;
-
-    rowsWritten = metrics.sensor("rows-written");
-    rowsWritten.add(metrics.metricName("rows-written-avg",
-                                       MetricsConstants.groupName,
-                                       "The average number of rows written per request"),
-                    new Avg());
-    rowsWritten.add(metrics.metricName("rows-written-max",
-                                       MetricsConstants.groupName,
-                                       "The maximum number of rows written per request"),
-                    new Max());
-    rowsWritten.add(metrics.metricName("rows-written-rate",
-                                       MetricsConstants.groupName,
-                                       "The average number of rows written per second"),
-                    new Rate());
-
-    requestRetries = metrics.sensor("request-retries");
-    requestRetries.add(metrics.metricName("request-retries-avg",
-                                          MetricsConstants.groupName,
-                                          "The average number of retries per request"),
-                       new Avg());
-    requestRetries.add(metrics.metricName("request-retries-max",
-                                          MetricsConstants.groupName,
-                                          "The maximum number of retry attempts made for a single "
-                                          + "request"),
-                       new Max());
-    requestRetries.add(metrics.metricName("request-retries-count",
-                                          MetricsConstants.groupName,
-                                          "The total number of retry attempts made"),
-                       new Count());
   }
 
   /**
@@ -126,9 +83,9 @@ public abstract class BigQueryWriter {
    */
   protected InsertAllRequest createInsertAllRequest(PartitionedTableId tableId,
                                                     List<InsertAllRequest.RowToInsert> rows) {
-    return InsertAllRequest.builder(tableId.getFullTableId(), rows)
-        .ignoreUnknownValues(false)
-        .skipInvalidRows(false)
+    return InsertAllRequest.newBuilder(tableId.getFullTableId(), rows)
+        .setIgnoreUnknownValues(false)
+        .setSkipInvalidRows(false)
         .build();
   }
 
@@ -153,30 +110,28 @@ public abstract class BigQueryWriter {
       }
       try {
         performWriteRequest(table, rows, topic);
-        requestRetries.record(retryCount);
-        rowsWritten.record(rows.size());
         return;
       } catch (BigQueryException err) {
         mostRecentException = err;
-        if (err.code() == INTERNAL_SERVICE_ERROR
-            || err.code() == SERVICE_UNAVAILABLE
-            || err.code() == BAD_GATEWAY) {
+        if (err.getCode() == INTERNAL_SERVICE_ERROR
+            || err.getCode() == SERVICE_UNAVAILABLE
+            || err.getCode() == BAD_GATEWAY) {
           // backend error: https://cloud.google.com/bigquery/troubleshooting-errors
           /* for BAD_GATEWAY: https://cloud.google.com/storage/docs/json_api/v1/status-codes
              todo possibly this page is inaccurate for bigquery, but the message we are getting
              suggest it's an internal backend error and we should retry, so lets take that at face
              value. */
-          logger.warn("BQ backend error: {}, attempting retry", err.code());
+          logger.warn("BQ backend error: {}, attempting retry", err.getCode());
           retryCount++;
-        } else if (err.code() == FORBIDDEN
-                   && err.error() != null
-                   && QUOTA_EXCEEDED_REASON.equals(err.reason())) {
+        } else if (err.getCode() == FORBIDDEN
+                   && err.getError() != null
+                   && QUOTA_EXCEEDED_REASON.equals(err.getReason())) {
           // quota exceeded error
           logger.warn("Quota exceeded for table {}, attempting retry", table);
           retryCount++;
-        } else if (err.code() == FORBIDDEN
-                   && err.error() != null
-                   && RATE_LIMIT_EXCEEDED_REASON.equals(err.reason())) {
+        } else if (err.getCode() == FORBIDDEN
+                   && err.getError() != null
+                   && RATE_LIMIT_EXCEEDED_REASON.equals(err.getReason())) {
           // rate limit exceeded error
           logger.warn("Rate limit exceeded for table {}, attempting retry", table);
           retryCount++;
@@ -185,7 +140,6 @@ public abstract class BigQueryWriter {
         }
       }
     } while (retryCount <= retries);
-    requestRetries.record(retryCount);
     throw new BigQueryConnectException(
         String.format("Exceeded configured %d attempts for write request", retries),
         mostRecentException);

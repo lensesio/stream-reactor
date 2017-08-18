@@ -1,9 +1,0 @@
-<?xml version="1.0"?>
-<FindBugsFilter>
-    <Match>
-        <Class name="com.wepay.kafka.connect.bigquery.write.batch.DynamicBatchWriter" />
-        <Method name="establishedWriteAll" />
-        <Local name="currentIndex" />
-        <Bug pattern="DLS_DEAD_LOCAL_STORE" />
-    </Match>
-</FindBugsFilter>

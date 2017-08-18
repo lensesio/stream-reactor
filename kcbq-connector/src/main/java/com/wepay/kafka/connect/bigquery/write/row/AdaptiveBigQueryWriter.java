@@ -20,6 +20,7 @@ package com.wepay.kafka.connect.bigquery.write.row;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.InsertAllResponse;
 
@@ -27,21 +28,21 @@ import com.wepay.kafka.connect.bigquery.SchemaManager;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.connect.data.Schema;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * A {@link BigQueryWriter} capable of updating BigQuery table schemas.
  */
 public class AdaptiveBigQueryWriter extends BigQueryWriter {
   private static final Logger logger = LoggerFactory.getLogger(AdaptiveBigQueryWriter.class);
+
+  // The maximum number of retries we will attempt to write rows after updating a BQ table schema.
+  private static final int AFTER_UPDATE_RETY_LIMIT = 5;
 
   private final BigQuery bigQuery;
   private final SchemaManager schemaManager;
@@ -51,14 +52,12 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
    * @param schemaManager Used to update BigQuery tables.
    * @param retry How many retries to make in the event of a 500/503 error.
    * @param retryWait How long to wait in between retries.
-   * @param metrics Metrics for kcbq.
    */
   public AdaptiveBigQueryWriter(BigQuery bigQuery,
                                 SchemaManager schemaManager,
                                 int retry,
-                                long retryWait,
-                                Metrics metrics) {
-    super(retry, retryWait, metrics);
+                                long retryWait) {
+    super(retry, retryWait);
     this.bigQuery = bigQuery;
     this.schemaManager = schemaManager;
   }
@@ -80,18 +79,28 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     // Should only perform one schema update attempt; may have to continue insert attempts due to
     // BigQuery schema updates taking up to two minutes to take effect
     if (writeResponse.hasErrors()
-        && onlyContainsInvalidSchemaErrors(writeResponse.insertErrors())) {
-      schemaManager.updateSchema(tableId.getBaseTableId(), topic);
+        && onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors())) {
+      try {
+        schemaManager.updateSchema(tableId.getBaseTableId(), topic);
+      } catch (BigQueryException exception) {
+        throw new BigQueryConnectException("Failed to update table schema", exception);
+      }
     }
 
     // Schema update might be delayed, so multiple insertion attempts may be necessary
+    int attemptCount = 0;
     while (writeResponse.hasErrors()) {
       logger.trace("insertion failed");
-      if (onlyContainsInvalidSchemaErrors(writeResponse.insertErrors())) {
+      if (onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors())) {
         logger.debug("re-attempting insertion");
         writeResponse = bigQuery.insertAll(request);
       } else {
-        throw new BigQueryConnectException(writeResponse.insertErrors());
+        throw new BigQueryConnectException(writeResponse.getInsertErrors());
+      }
+      attemptCount++;
+      if (attemptCount >= AFTER_UPDATE_RETY_LIMIT) {
+        throw new BigQueryConnectException("Failed to write rows after BQ schema update within "
+                                           + AFTER_UPDATE_RETY_LIMIT + " attempts.");
       }
     }
     logger.debug("table insertion completed successfully");
@@ -107,13 +116,22 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
    * This is why we can't have nice things, Google.
    */
   private boolean onlyContainsInvalidSchemaErrors(Map<Long, List<BigQueryError>> errors) {
+    boolean invalidSchemaError = false;
     for (List<BigQueryError> errorList : errors.values()) {
       for (BigQueryError error : errorList) {
-        if (!(error.reason().equals("invalid") && error.message().contains("no such field"))) {
+        if (error.getReason().equals("invalid") && error.getMessage().contains("no such field")) {
+          invalidSchemaError = true;
+        } else if (!error.getReason().equals("stopped")) {
+          /* if some rows are in the old schema format, and others aren't, the old schema
+           * formatted rows will show up as error: stopped. We still want to continue if this is
+           * the case, because these errors don't represent a unique error if there are also
+           * invalidSchemaErrors.
+           */
           return false;
         }
       }
     }
-    return true;
+    // if we only saw "stopped" errors, we want to return false. (otherwise, return true)
+    return invalidSchemaError;
   }
 }

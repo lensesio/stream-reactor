@@ -44,21 +44,6 @@ public class BigQuerySinkTaskConfigTest {
     propertiesFactory.testProperties(config);
   }
 
-  @Test(expected = ConfigException.class)
-  public void testInvalidBufferSize() {
-    Map<String, String> badProperties = propertiesFactory.getProperties();
-    badProperties.put(BigQuerySinkTaskConfig.BUFFER_SIZE_CONFIG, "-1");
-
-    try {
-      new BigQuerySinkTaskConfig(badProperties);
-    } catch (ConfigException err) {
-      fail("Exception encountered before addition of bad configuration field: " + err);
-    }
-
-    badProperties.put(BigQuerySinkTaskConfig.BUFFER_SIZE_CONFIG, "-2");
-    new BigQuerySinkTaskConfig(badProperties);
-  }
-
   @Test()
   public void testMaxWriteSize() {
     // todo: something like this, maybe.

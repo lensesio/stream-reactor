@@ -20,6 +20,10 @@ package com.wepay.kafka.connect.bigquery.convert;
 
 import com.google.cloud.bigquery.InsertAllRequest.RowToInsert;
 
+import com.wepay.kafka.connect.bigquery.convert.logicaltype.DebeziumLogicalConverters;
+import com.wepay.kafka.connect.bigquery.convert.logicaltype.KafkaLogicalConverters;
+import com.wepay.kafka.connect.bigquery.convert.logicaltype.LogicalConverterRegistry;
+import com.wepay.kafka.connect.bigquery.convert.logicaltype.LogicalTypeConverter;
 import com.wepay.kafka.connect.bigquery.exception.ConversionConnectException;
 
 import org.apache.kafka.connect.data.Date;
@@ -49,6 +53,10 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
   private static final Set<String> LOGICAL_SCHEMA_NAMES;
 
   static {
+    // force registration
+    new DebeziumLogicalConverters();
+    new KafkaLogicalConverters();
+
     LOGICAL_SCHEMA_NAMES = new HashSet<>();
     LOGICAL_SCHEMA_NAMES.add(Timestamp.LOGICAL_NAME);
     LOGICAL_SCHEMA_NAMES.add(Date.LOGICAL_NAME);
@@ -88,16 +96,16 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
     }
     Schema.Type kafkaConnectSchemaType = kafkaConnectSchema.type();
     switch (kafkaConnectSchemaType) {
-      case STRUCT:
-        return convertStruct(kafkaConnectObject, kafkaConnectSchema);
+      case ARRAY:
+        return convertArray(kafkaConnectObject, kafkaConnectSchema);
       case MAP:
         return convertMap(kafkaConnectObject, kafkaConnectSchema);
+      case STRUCT:
+        return convertStruct(kafkaConnectObject, kafkaConnectSchema);
       case BYTES:
         ByteBuffer byteBuffer = (ByteBuffer) kafkaConnectObject;
         byte[] bytes = byteBuffer.array();
         return Base64.getEncoder().encodeToString(bytes);
-      case ARRAY:
-        return (List<Object>) kafkaConnectObject;
       case BOOLEAN:
         return (Boolean) kafkaConnectObject;
       case FLOAT32:
@@ -137,6 +145,19 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
   }
 
   @SuppressWarnings("unchecked")
+  private List<Object> convertArray(Object kafkaConnectObject,
+                                    Schema kafkaConnectSchema) {
+    Schema kafkaConnectValueSchema = kafkaConnectSchema.valueSchema();
+    List<Object> bigQueryList = new ArrayList<>();
+    List<Object> kafkaConnectList = (List<Object>) kafkaConnectObject;
+    for (Object kafkaConnectElement : kafkaConnectList) {
+      Object bigQueryValue = convertObject(kafkaConnectElement, kafkaConnectValueSchema);
+      bigQueryList.add(bigQueryValue);
+    }
+    return bigQueryList;
+  }
+
+  @SuppressWarnings("unchecked")
   private List<Map<String, Object>> convertMap(Object kafkaConnectObject,
                                                Schema kafkaConnectSchema) {
     Schema kafkaConnectKeySchema = kafkaConnectSchema.keySchema();
@@ -162,23 +183,8 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
 
   private Object convertLogical(Object kafkaConnectObject,
                                 Schema kafkaConnectSchema) {
-    switch (kafkaConnectSchema.name()) {
-      case Timestamp.LOGICAL_NAME:
-      case Date.LOGICAL_NAME:
-        java.util.Date kafkaConnectDate = (java.util.Date) kafkaConnectObject;
-        // BigQuery timestamps are represented as floating points of seconds since the Unix epoch,
-        // with up to six digits of precision after the decimal. The logical representation for the
-        // Kafka Connect Timestamp and Date types is a Java Date object. Thus, in order to convert
-        // data from Kafka Connect to BigQuery format, return a float containing the Date's number
-        // of milliseconds since the Unix epoch divided by 1000. (BigQuery represents dates
-        // identically to timestamps.)
-        return kafkaConnectDate.getTime() / 1000.0;
-      case Decimal.LOGICAL_NAME:
-        java.math.BigDecimal kafkaConnectDecimal = (java.math.BigDecimal) kafkaConnectObject;
-        return kafkaConnectDecimal;
-      default:
-        throw new ConversionConnectException(
-            "Unaccounted-for logical schema name: " + kafkaConnectSchema.name());
-    }
+    LogicalTypeConverter converter =
+        LogicalConverterRegistry.getConverter(kafkaConnectSchema.name());
+    return converter.convert(kafkaConnectObject);
   }
 }

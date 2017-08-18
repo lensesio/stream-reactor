@@ -29,8 +29,6 @@ import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 import com.wepay.kafka.connect.bigquery.convert.kafkadata.KafkaDataBQRecordConverter;
 import com.wepay.kafka.connect.bigquery.convert.kafkadata.KafkaDataBQSchemaConverter;
 
-import com.wepay.kafka.connect.bigquery.write.batch.BatchWriter;
-import com.wepay.kafka.connect.bigquery.write.batch.DynamicBatchWriter;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
@@ -101,16 +99,6 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final String KEYFILE_DOC =
       "The file containing a JSON key with BigQuery service account credentials";
 
-  public static final String BATCH_WRITER_CONFIG = "batchWriter";
-  private static final ConfigDef.Type BATCH_WRITER_TYPE = ConfigDef.Type.CLASS;
-  public static final Class<? extends BatchWriter> BATCH_WRITER_DEFAULT = DynamicBatchWriter.class;
-  private static final ConfigDef.Importance BATCH_WRITER_IMPORTANCE = ConfigDef.Importance.HIGH;
-  private static final String BATCH_WRITER_DOC =
-      "The batch writer class to be used. At the moment there are only two options: "
-      + "com.wepay.kafka.connect.bigquery.write.batch.DynamicBatchWriter and "
-      + "com.wepay.kafka.connect.bigquery.write.batch.SingleBatchWriter. See these classes for "
-      + "documentation.";
-
   public static final String SANITIZE_TOPICS_CONFIG =                     "sanitizeTopics";
   private static final ConfigDef.Type SANITIZE_TOPICS_TYPE =              ConfigDef.Type.BOOLEAN;
   public static final Boolean SANITIZE_TOPICS_DEFAULT =                   false;
@@ -176,12 +164,6 @@ public class BigQuerySinkConfig extends AbstractConfig {
             KEYFILE_DEFAULT,
             KEYFILE_IMPORTANCE,
             KEYFILE_DOC
-        ).define(
-            BATCH_WRITER_CONFIG,
-            BATCH_WRITER_TYPE,
-            BATCH_WRITER_DEFAULT,
-            BATCH_WRITER_IMPORTANCE,
-            BATCH_WRITER_DOC
         ).define(
             SANITIZE_TOPICS_CONFIG,
             SANITIZE_TOPICS_TYPE,
