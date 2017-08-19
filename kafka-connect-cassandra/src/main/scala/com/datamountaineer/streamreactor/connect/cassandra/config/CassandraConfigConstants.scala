@@ -151,11 +151,6 @@ object CassandraConfigConstants {
   val CONSISTENCY_LEVEL_DISPLAY = "Consistency Level"
   val CONSISTENCY_LEVEL_DEFAULT = ""
 
-
-  val TIMESTAMP_TYPE = "connect.cassandra.source.timestamp.type"
-  val TIMESTAMP_TYPE_DOC = "The Cassandra data type of the timestamp column, either timeuuid (default) or timestamp."
-  val TIMESTAMP_TYPE_DEFAULT = "timeUUID"
-
   val PROGRESS_COUNTER_ENABLED = PROGRESS_ENABLED_CONST
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false

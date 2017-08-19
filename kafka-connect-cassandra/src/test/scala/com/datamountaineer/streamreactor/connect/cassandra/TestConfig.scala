@@ -184,7 +184,8 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.KCQL -> QUERY_ALL,
-      CassandraConfigConstants.ERROR_POLICY -> ErrorPolicyEnum.RETRY.toString
+      CassandraConfigConstants.ERROR_POLICY -> ErrorPolicyEnum.RETRY.toString,
+      CassandraConfigConstants.ERROR_RETRY_INTERVAL->"500"
     ).asJava
   }
 

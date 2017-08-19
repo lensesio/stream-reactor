@@ -35,8 +35,8 @@ object KuduConfig {
       Importance.HIGH, KuduConfigConstants.KUDU_MASTER_DOC,
       "Connection", 1, ConfigDef.Width.MEDIUM, KuduConfigConstants.KUDU_MASTER)
 
-    .define(KuduConfigConstants.EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, KuduConfigConstants.EXPORT_ROUTE_QUERY,
-      "Connection", 2, ConfigDef.Width.MEDIUM, KuduConfigConstants.EXPORT_ROUTE_QUERY)
+    .define(KuduConfigConstants.KCQL, Type.STRING, Importance.HIGH, KuduConfigConstants.KCQL,
+      "Connection", 2, ConfigDef.Width.MEDIUM, KuduConfigConstants.KCQL)
 
     .define(KuduConfigConstants.ERROR_POLICY, Type.STRING, KuduConfigConstants.ERROR_POLICY_DEFAULT,
       Importance.HIGH, KuduConfigConstants.ERROR_POLICY_DOC,

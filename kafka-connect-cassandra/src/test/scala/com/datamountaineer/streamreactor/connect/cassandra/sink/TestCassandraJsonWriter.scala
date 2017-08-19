@@ -75,31 +75,6 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     }
   }
 
-
-  "Cassandra JsonWriter should write records to Cassandra" in {
-    val session = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
-    val context = mock[SinkTaskContext]
-    val assignment = getAssignment
-    when(context.assignment()).thenReturn(assignment)
-    //get test records
-    val testRecords1 = getTestRecords(TABLE1)
-    val testRecords2 = getTestRecords(TOPIC2)
-    val testRecords = testRecords1 ++ testRecords2
-    //get config
-    val props = getCassandraConfigSinkProps
-    val taskConfig = new CassandraConfigSink(props)
-
-    val writer = CassandraWriter(taskConfig, context)
-    writer.write(testRecords)
-    Thread.sleep(1000)
-    //check we can get back what we wrote
-    val res1 = session.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TABLE1")
-    res1.all().size() shouldBe testRecords1.size
-    //check we can get back what we wrote
-    val res2 = session.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TOPIC2")
-    res2.all().size() shouldBe testRecords1.size
-  }
-
   "Cassandra JsonWriter should write records to two Cassandra tables" in {
     val session = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
     val context = mock[SinkTaskContext]

@@ -19,7 +19,6 @@ package com.datamountaineer.streamreactor.connect.elastic5
 import java.nio.file.Paths
 import java.util.UUID
 
-import com.datamountaineer.streamreactor.connect.elastic5.ElasticJsonWriter
 import com.datamountaineer.streamreactor.connect.elastic5.config.ElasticSettings
 import com.datamountaineer.streamreactor.connect.elastic5.config.{ClientType, ElasticConfig, ElasticConfigConstants}
 import com.sksamuel.elastic4s.ElasticDsl._

@@ -18,6 +18,8 @@ package com.datamountaineer.streamreactor.connect.hbase.writers
 
 import com.datamountaineer.streamreactor.connect.hbase.config.HBaseSettings
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.hadoop.hbase.HBaseConfiguration
+import org.apache.hadoop.hbase.client.ConnectionFactory
 
 /**
   * Provides the logic for instantiating the appropriate Hbase writer
@@ -30,6 +32,9 @@ object WriterFactoryFn extends StrictLogging {
     * @param settings HbaseSetting for the writer
     * @return
     */
-  def apply(settings: HBaseSettings): HbaseWriter = new HbaseWriter(settings)
+  def apply(settings: HBaseSettings): HbaseWriter = {
+    val connection = ConnectionFactory.createConnection(HBaseConfiguration.create())
+    new HbaseWriter(settings, connection)
+  }
 
 }

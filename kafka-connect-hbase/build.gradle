@@ -19,32 +19,18 @@ project(":kafka-connect-hbase") {
     ext {
         hbaseClientVersion = "1.3.1"
         hbaseServerVersion = "1.3.1"
-        hdfsVersion="2.7.3"
     }
 
     dependencies {
-        configurations.all {
-            resolutionStrategy {
-                force 'xml-apis:xml-apis:1.4.01'
-            }
+        compile('com.google.guava:guava:12.0.1') {
+            force = true
         }
-        compile("org.apache.hbase:hbase-client:$hbaseClientVersion") {
-            exclude group: "com.sun.jersey"
+        compile("org.apache.hbase:hbase-client:1.3.1") {
             exclude group: "tomcat"
-            //  exclude group: 'com.google.guava', module: 'guava'
         }
-
-        compile "org.apache.hadoop:hadoop-hdfs:$hdfsVersion"
-
-        testCompile("org.apache.hbase:hbase-server:$hbaseServerVersion") {
-            exclude group: "tomcat", module: "jasper-runtime"
-        }
-
-        testCompile("org.kitesdk:kite-minicluster:$kiteMiniClusterVersion") {
-            exclude group: "tomcat", module: "jasper-runtime"
-            exclude group: "org.apache.hive"
+        testCompile('org.apache.hbase:hbase-testing-util:1.3.1') {
+            exclude group: "tomcat"
         }
         testCompile("org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion")
-
     }
 }

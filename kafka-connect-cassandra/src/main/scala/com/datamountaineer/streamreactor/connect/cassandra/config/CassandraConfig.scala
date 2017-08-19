@@ -282,16 +282,6 @@ object CassandraConfigSource {
       ConfigDef.Width.LONG,
       CassandraConfigConstants.ALLOW_FILTERING)
 
-    .define(CassandraConfigConstants.TIMESTAMP_TYPE,
-      Type.STRING,
-      CassandraConfigConstants.TIMESTAMP_TYPE_DEFAULT,
-      Importance.HIGH,
-      CassandraConfigConstants.TIMESTAMP_TYPE_DOC,
-      "Import",
-      8,
-      ConfigDef.Width.LONG,
-      CassandraConfigConstants.TIMESTAMP_TYPE)
-
 }
 
 case class CassandraConfigSource(props: util.Map[String, String])

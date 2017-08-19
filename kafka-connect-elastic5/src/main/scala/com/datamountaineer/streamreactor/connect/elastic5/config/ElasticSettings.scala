@@ -18,7 +18,6 @@ package com.datamountaineer.streamreactor.connect.elastic5.config
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.elastic5.config.ClientType.ClientType
-import com.datamountaineer.streamreactor.connect.elastic5.config.{ClientType, ElasticConfig, ElasticConfigConstants}
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
 import org.apache.kafka.common.config.ConfigException
 import org.elasticsearch.plugins.Plugin
@@ -34,7 +33,7 @@ case class ElasticSettings(kcqls: Seq[Kcql],
                            taskRetries: Int = ElasticConfigConstants.NBR_OF_RETIRES_DEFAULT,
                            writeTimeout: Int = ElasticConfigConstants.WRITE_TIMEOUT_DEFAULT,
                            xPackSettings: Map[String, String] = Map.empty,
-                           xpackPluggins: Seq[Class[_ <: Plugin]] = Seq.empty,
+                           xPackPluggins: Seq[Class[_ <: Plugin]] = Seq.empty,
                            clientType: ClientType = ClientType.TCP,
                            batchSize: Int = ElasticConfigConstants.BATCH_SIZE_DEFAULT)
 

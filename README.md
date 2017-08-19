@@ -225,3 +225,8 @@ To view dependency trees
 gradle dependencies # or
 gradle :kafka-connect-cassandra:dependencies
 ```
+
+## Contributing
+
+We'd love to accept your contributions! Please use GitHub pull requests: fork the repo, develop and test your code, 
+[semantically commit](http://karma-runner.github.io/1.0/dev/git-commit-msg.html) and submit a pull request. Thanks!

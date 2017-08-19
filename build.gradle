@@ -67,16 +67,21 @@ allprojects {
         jacksonxmlVersion = '2.6.5'
         slf4jVersion = "1.7.7"
         json4sVersion = "3.3.0"
-        kiteMiniClusterVersion = "1.0.0-cdh5.12.0"
         gsonVersion = "2.6.2"
         KCQLVersion = "2.1.2"
         akkaVersion = "2.4.10"
         connectCLIVersion = "1.0.1"
 
-        // The following 4 need to align to compile against a particular version
-        confluentVersion = '3.3.0'
-        kafkaVersion = '0.11.0.0'
-        dataMountaineerCommonVersion = "0.8.2.2"
+//        // The following 4 need to align to compile against a particular version
+//        confluentVersion = '3.3.0'
+//        kafkaVersion = '0.11.0.0'
+//        dataMountaineerCommonVersion = "0.8.2.2"
+//        dataMountaineerTestKitVersion = "0.6"
+
+        // Confluent 3.2
+        confluentVersion = '3.2.2'
+        kafkaVersion = '0.10.2.0'
+        dataMountaineerCommonVersion = "0.8.1.1"
         dataMountaineerTestKitVersion = "0.5"
 
         // For 3.1.x versions use

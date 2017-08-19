@@ -42,7 +42,7 @@ class TestCassandraSourceTask extends WordSpec with Matchers with MockitoSugar w
   with ConverterUtil {
 
 
-  "CassandraReader should read a tables records in incremental mode" in {
+  "CassandraReader should read a tables records in incremental mode as timeuuid" in {
     val session =  createTableAndKeySpace(CASSANDRA_SOURCE_KEYSPACE ,secure = true, ssl = false)
 
     val sql = s"INSERT INTO $CASSANDRA_SOURCE_KEYSPACE.$TABLE2" +
@@ -178,59 +178,6 @@ class TestCassandraSourceTask extends WordSpec with Matchers with MockitoSugar w
 
     //wait a little for the poll to catch the records
     while (task.queueSize(TABLE3) == 0) {
-      Thread.sleep(1000)
-    }
-
-    //call poll again to drain the queue
-    val records = task.poll()
-
-    val sourceRecord = records.asScala.head
-    //check a field
-    val json: JsonNode = convertValueToJson(sourceRecord)
-    println(json)
-    json.get("string_field").asText().equals("magic_string") shouldBe true
-    json.get("timestamp_field").asText().size > 0
-    json.get("int_field") shouldBe null
-    //stop task
-    task.stop()
-  }
-
-  "A Cassandra SourceTask should read records with only columns specified" in {
-    val session = createTableAndKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
-
-    val sql = s"INSERT INTO $CASSANDRA_SOURCE_KEYSPACE.$TABLE2" +
-      "(id, double_field, int_field, long_field, string_field, timestamp_field) " +
-      "VALUES ('id1', 111.1, 2, 3, 'magic_string', now());"
-    session.execute(sql)
-
-    //wait for cassandra write a little
-    Thread.sleep(1000)
-
-    val taskContext = getSourceTaskContextDefault
-    //get config
-    val config = {
-      Map(
-        CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-        CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
-        CassandraConfigConstants.USERNAME -> USERNAME,
-        CassandraConfigConstants.PASSWD -> PASSWD,
-        CassandraConfigConstants.KCQL -> s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $TABLE2 PK timestamp_field",
-        CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE2",
-        CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
-    }
-
-    //get task
-    val task = new CassandraSourceTask()
-    //initialise the tasks context
-    task.initialize(taskContext)
-    //start task
-    task.start(config)
-
-    //trigger poll to have the readers execute a query and add to the queue
-    task.poll()
-
-    //wait a little for the poll to catch the records
-    while (task.queueSize(TABLE2) == 0) {
       Thread.sleep(1000)
     }
 
@@ -384,59 +331,6 @@ class TestCassandraSourceTask extends WordSpec with Matchers with MockitoSugar w
     sourceRecord.key shouldBe null
     sourceRecord.valueSchema shouldBe Schema.STRING_SCHEMA
     sourceRecord.value shouldBe "magic_string"
-
-    //stop task
-    task.stop()
-  }
-
-  "A Cassandra SourceTask should read multiple columns and use unwrap" in {
-    val session = createTableAndKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
-
-    val sql = s"INSERT INTO $CASSANDRA_SOURCE_KEYSPACE.$TABLE2" +
-      "(id, double_field, int_field, long_field, string_field, timestamp_field) " +
-      "VALUES ('id1', 111.1, 2, 3, 'magic_string', now());"
-    session.execute(sql)
-
-    //wait for cassandra write a little
-    Thread.sleep(1000)
-
-    val taskContext = getSourceTaskContextDefault
-    //get config
-    val config = {
-      Map(
-        CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-        CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
-        CassandraConfigConstants.USERNAME -> USERNAME,
-        CassandraConfigConstants.PASSWD -> PASSWD,
-        CassandraConfigConstants.KCQL -> s"INSERT INTO sink_test SELECT string_field, long_field, timestamp_field FROM $TABLE2 IGNORE timestamp_field PK timestamp_field WITHUNWRAP INCREMENTALMODE=timeuuid",
-        CassandraConfigConstants.ASSIGNED_TABLES -> s"$TABLE2",
-        CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
-    }
-
-    //get task
-    val task = new CassandraSourceTask()
-    //initialise the tasks context
-    task.initialize(taskContext)
-    //start task
-    task.start(config)
-
-    //trigger poll to have the readers execute a query and add to the queue
-    task.poll()
-
-    //wait a little for the poll to catch the records
-    while (task.queueSize(TABLE2) == 0) {
-      Thread.sleep(1000)
-    }
-
-    //call poll again to drain the queue
-    val records = task.poll()
-
-    // check the source record
-    val sourceRecord = records.asScala.head
-    sourceRecord.keySchema shouldBe null
-    sourceRecord.key shouldBe null
-    sourceRecord.valueSchema shouldBe Schema.STRING_SCHEMA
-    sourceRecord.value shouldBe "magic_string,3"
 
     //stop task
     task.stop()

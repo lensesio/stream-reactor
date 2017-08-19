@@ -27,8 +27,8 @@ object KuduConfigConstants {
   val KUDU_MASTER = s"${CONNECTOR_PREFIX}.master"
   val KUDU_MASTER_DOC = "Kudu master cluster."
   val KUDU_MASTER_DEFAULT = "localhost"
-  val EXPORT_ROUTE_QUERY = s"${CONNECTOR_PREFIX}.${KCQL_PROP_SUFFIX}"
-  val EXPORT_ROUTE_QUERY_DOC = "KCQL expression describing field selection and routes."
+  val KCQL = s"${CONNECTOR_PREFIX}.${KCQL_PROP_SUFFIX}"
+  val KCQL_DOC = "KCQL expression describing field selection and routes."
 
   val ERROR_POLICY = s"${CONNECTOR_PREFIX}.${ERROR_POLICY_PROP_SUFFIX}"
   val ERROR_POLICY_DOC: String =

@@ -57,6 +57,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       |{      "name": "float64",   "type": "double"}
       |]}"
     """.stripMargin
+
   val schemaDefaults =
     """
       |{ "type": "record",
@@ -73,6 +74,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       |{      "name": "float64",   "type": ["null", "double"], "default" : 10.00}
       |]}"
     """.stripMargin
+
   protected val PARTITION: Int = 12
   protected val PARTITION2: Int = 13
   protected val TOPIC_PARTITION: TopicPartition = new TopicPartition(TOPIC, PARTITION)
@@ -91,14 +93,14 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
 
   def getConfig = {
     Map(KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
-      KuduConfigConstants.EXPORT_ROUTE_QUERY -> EXPORT_MAP,
+      KuduConfigConstants.KCQL -> EXPORT_MAP,
       KuduConfigConstants.ERROR_POLICY -> "THROW"
     ).asJava
   }
 
   def getConfigAutoCreate(url: String) = {
     Map(KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
-      KuduConfigConstants.EXPORT_ROUTE_QUERY -> EXPORT_MAP_AUTOCREATE,
+      KuduConfigConstants.KCQL -> EXPORT_MAP_AUTOCREATE,
       KuduConfigConstants.ERROR_POLICY -> "THROW",
       KuduConfigConstants.SCHEMA_REGISTRY_URL -> url
     ).asJava
@@ -106,7 +108,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
 
   def getConfigAutoCreateAndEvolve(url: String) = {
     Map(KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
-      KuduConfigConstants.EXPORT_ROUTE_QUERY -> EXPORT_MAP_AUTOCREATE_AUTOEVOLVE,
+      KuduConfigConstants.KCQL -> EXPORT_MAP_AUTOCREATE_AUTOEVOLVE,
       KuduConfigConstants.ERROR_POLICY -> "THROW",
       KuduConfigConstants.SCHEMA_REGISTRY_URL -> url
     ).asJava
@@ -114,7 +116,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
 
   def getConfigAutoCreateRetry(url: String) = {
     Map(KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
-      KuduConfigConstants.EXPORT_ROUTE_QUERY -> EXPORT_MAP_AUTOCREATE,
+      KuduConfigConstants.KCQL -> EXPORT_MAP_AUTOCREATE,
       KuduConfigConstants.ERROR_POLICY -> "RETRY",
       KuduConfigConstants.SCHEMA_REGISTRY_URL -> url
     ).asJava
