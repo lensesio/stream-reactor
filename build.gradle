@@ -73,16 +73,16 @@ allprojects {
         connectCLIVersion = "1.0.1"
 
 //        // The following 4 need to align to compile against a particular version
-//        confluentVersion = '3.3.0'
-//        kafkaVersion = '0.11.0.0'
-//        dataMountaineerCommonVersion = "0.8.2.2"
-//        dataMountaineerTestKitVersion = "0.6"
+        confluentVersion = '3.3.0'
+        kafkaVersion = '0.11.0.0'
+        dataMountaineerCommonVersion = "0.8.2.2"
+        dataMountaineerTestKitVersion = "0.6"
 
-        // Confluent 3.2
-        confluentVersion = '3.2.2'
-        kafkaVersion = '0.10.2.0'
-        dataMountaineerCommonVersion = "0.8.1.1"
-        dataMountaineerTestKitVersion = "0.5"
+//        // Confluent 3.2
+//        confluentVersion = '3.2.2'
+//        kafkaVersion = '0.10.2.0'
+//        dataMountaineerCommonVersion = "0.8.1.1"
+//        dataMountaineerTestKitVersion = "0.5"
 
         // For 3.1.x versions use
         // confluentVersion = '3.1.2'
