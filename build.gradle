@@ -63,14 +63,13 @@ allprojects {
         //avroVersion="1.8.1"
         scalaLoggingVersion = '2.1.2'
         mockitoVersion = '1.10.19'
-        jacksonDatabind = '2.7.0'
-        jacksonxmlVersion = '2.6.5'
+        jacksonDatabind = '2.8.5'
         slf4jVersion = "1.7.7"
-        json4sVersion = "3.3.0"
+        json4sVersion = "3.5.3"
         gsonVersion = "2.6.2"
         KCQLVersion = "2.1.2"
         akkaVersion = "2.4.10"
-        connectCLIVersion = "1.0.1"
+        connectCLIVersion = "1.0.2"
 
 //        // The following 4 need to align to compile against a particular version
         confluentVersion = '3.3.0'
@@ -192,7 +191,7 @@ allprojects {
 
     task compile(dependsOn: 'compileScala')
 
-    task fatJar(dependsOn: [clean, test, shadowJar])
+    task fatJar(dependsOn: [test, shadowJar])
 
     task collectJars(type: Copy) {
         into "${buildDir}/libs-dependencies"
