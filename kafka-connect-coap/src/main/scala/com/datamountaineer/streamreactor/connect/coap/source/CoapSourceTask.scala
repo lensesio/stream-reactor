@@ -32,15 +32,16 @@ import scala.collection.JavaConversions._
   * stream-reactor
   */
 class CoapSourceTask extends SourceTask with StrictLogging {
-  private var readers : Set[CoapReader] = _
+  private var readers: Set[CoapReader] = _
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
   private val queue = new LinkedBlockingQueue[SourceRecord]()
-  private var batchSize : Int = CoapConstants.BATCH_SIZE_DEFAULT
+  private var batchSize: Int = CoapConstants.BATCH_SIZE_DEFAULT
   private var lingerTimeout = CoapConstants.SOURCE_LINGER_MS_DEFAULT
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-source-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-source-ascii.txt")).mkString + s" v $version")
+
     val config = CoapSourceConfig(props)
     enableProgress = config.getBoolean(CoapConstants.PROGRESS_COUNTER_ENABLED)
     val settings = CoapSettings(config)
@@ -63,9 +64,9 @@ class CoapSourceTask extends SourceTask with StrictLogging {
 
   override def stop(): Unit = {
     logger.info("Stopping Coap source and closing connections.")
-    readers.foreach(_.stop)
+    readers.foreach(_.stop())
     progressCounter.empty
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 }

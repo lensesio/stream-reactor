@@ -32,7 +32,7 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
 
   private var taskConfig: Option[AbstractConfig] = None
   private var blockchainManager: Option[BlockchainManager] = None
-  private val progressCounter = new ProgressCounter()
+  private val progressCounter = ProgressCounter()
   private var enableProgress: Boolean = false
 
   /**
@@ -41,7 +41,7 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
     * @param props A map of supplied properties.
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/blockchain-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/blockchain-ascii.txt")).mkString + s" v $version")
     logger.info("Blockchain Task configuration")
     props.foreach { case (k, v) => logger.info("   Key= " + k + "     Value=" + v) }
     //get configuration for this task
@@ -90,6 +90,6 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
     *
     * @return
     */
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 
 }

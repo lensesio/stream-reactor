@@ -44,7 +44,7 @@ class VoltSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/voltdb-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/voltdb-ascii.txt")).mkString + s" v $version")
 
     VoltSinkConfig.config.parse(props)
     val sinkConfig = VoltSinkConfig(props)
@@ -85,7 +85,7 @@ class VoltSinkTask extends SinkTask with StrictLogging {
     writer.foreach(w => w.close())
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 
   override def flush(offsets: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
 }

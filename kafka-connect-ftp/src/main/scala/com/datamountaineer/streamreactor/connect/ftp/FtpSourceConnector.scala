@@ -29,7 +29,7 @@ import scala.collection.JavaConverters._
 import scala.util.{Failure, Try}
 
 class FtpSourceConnector extends SourceConnector with StrictLogging {
-  private var configProps : Option[util.Map[String, String]] = None
+  private var configProps: Option[util.Map[String, String]] = None
 
   override def taskClass(): Class[_ <: Task] = classOf[FtpSourceTask]
 
@@ -46,7 +46,7 @@ class FtpSourceConnector extends SourceConnector with StrictLogging {
   }
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/ftp-source-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/ftp-source-ascii.txt")).mkString + s" v $version")
     // logger.info(s"start FtpSourceConnector ${GitRepositoryState.summary}")
 
     configProps = Some(props)
@@ -56,7 +56,7 @@ class FtpSourceConnector extends SourceConnector with StrictLogging {
     }
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 
   override def config(): ConfigDef = FtpSourceConfig.definition
 }

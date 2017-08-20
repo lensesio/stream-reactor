@@ -41,14 +41,14 @@ class DruidSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/druid-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/druid-ascii.txt")).mkString + s" v $version")
 
     DruidConfig.config.parse(props)
     val sinkConfig = new DruidConfig(props)
     val settings = DruidSinkSettings(sinkConfig)
     logger.info(
       s"""Settings:
-          |$settings
+         |$settings
       """.stripMargin)
     writer = Some(new DruidDbWriter(settings))
     enableProgress = sinkConfig.getBoolean(DruidSinkConfigConstants.PROGRESS_COUNTER_ENABLED)
@@ -79,10 +79,10 @@ class DruidSinkTask extends SinkTask with StrictLogging {
     //writer.foreach(w => w.close())
   }
 
-  override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]) : Unit = {
+  override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {
     //TODO
     //have the writer expose a is busy; can expose an await using a countdownlatch internally
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 }
