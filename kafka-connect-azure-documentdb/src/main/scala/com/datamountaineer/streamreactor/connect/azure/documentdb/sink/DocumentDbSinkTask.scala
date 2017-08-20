@@ -55,7 +55,7 @@ class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => Do
       case Success(s) => s
     }
 
-    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/documentdb-sink-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/documentdb-sink-ascii.txt")).mkString + s" v $version")
 
     implicit val settings = DocumentDbSinkSettings(taskConfig)
     //if error policy is retry set retry interval
@@ -89,5 +89,5 @@ class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => Do
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 }

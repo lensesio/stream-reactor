@@ -70,7 +70,7 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
     * @param map A map of configuration properties for this task
     */
   override def start(map: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/bloomberg-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/bloomberg-ascii.txt")).mkString + s" v $version")
 
     try {
       settings = Some(BloombergSettings(new BloombergSourceConfig(map)))
@@ -87,7 +87,7 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
     }
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 
   /**
     * Called by the framework. It returns all the accumulated records since the previous call.
@@ -139,7 +139,7 @@ object BloombergSessionCreateFn extends StrictLogging {
     * @param handler  : Instance of EventHandler providing the callbacks for Bloomberg events
     * @return The Bloomberg session
     */
-  def apply(settings: BloombergSettings, handler: EventHandler) : Session = {
+  def apply(settings: BloombergSettings, handler: EventHandler): Session = {
     val options = new SessionOptions
     options.setKeepAliveEnabled(true)
     options.setServerHost(settings.serverHost)

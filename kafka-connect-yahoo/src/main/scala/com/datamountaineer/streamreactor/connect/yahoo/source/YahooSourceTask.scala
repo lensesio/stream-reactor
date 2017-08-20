@@ -42,7 +42,7 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
     * @param props A map of supplied properties.
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/yahoo-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/yahoo-ascii.txt")).mkString + s" v $version")
 
     //get configuration for this task
     taskConfig = Try(new AbstractConfig(configDef, props)) match {
@@ -98,6 +98,6 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
     *
     * @return
     */
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 
 }

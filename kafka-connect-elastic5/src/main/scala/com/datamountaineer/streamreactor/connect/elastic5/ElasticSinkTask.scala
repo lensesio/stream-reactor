@@ -36,7 +36,7 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/elastic-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/elastic-ascii.txt")).mkString + s" v $version")
 
     ElasticConfig.config.parse(props)
     val sinkConfig = ElasticConfig(props)
@@ -70,5 +70,5 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
     logger.info("Flushing Elastic Sink")
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 }
