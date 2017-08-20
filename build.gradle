@@ -96,7 +96,7 @@ allprojects {
         confDir = "${versionDir}/conf"
         libsDir = "${versionDir}/libs"
         tarName = "${project.description}-${project.version}-${confluentVersion}.tar.gz"
-        cliUrl = "https://github.com/datamountaineer/kafka-connect-tools/releases/download/v${connectCLIVersion}/kafka-connect-cli-${connectCLIVersion}-all.jar"
+        cliUrl = "https://github.com/datamountaineer/kafka-connect-tools/releases/download/v${connectCLIVersion}/connect-cli"
         srCliUrlDarwin = "https://github.com/datamountaineer/schema-registry/releases/download/0.0.1/sr-cli-osx"
         srCliUrlLinux = "https://github.com/datamountaineer/schema-registry/releases/download/0.0.1/sr-cli-linux"
     }
@@ -111,6 +111,11 @@ allprojects {
         maven {
             url 'http://dl.bintray.com/andsel/maven/'
         }
+    }
+
+    configurations {
+        provided
+        compile.extendsFrom provided
     }
 
     shadowJar {
@@ -144,9 +149,9 @@ allprojects {
         compile "org.scala-lang:scala-compiler:$scala"
         compile "com.typesafe.scala-logging:scala-logging-slf4j_$scalaMajorVersion:$scalaLoggingVersion"
 
-        compile ("org.apache.kafka:connect-json:$kafkaVersion")
-        compile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
-        compile "io.confluent:kafka-schema-registry:$confluentVersion"
+        provided ("org.apache.kafka:connect-json:$kafkaVersion")
+        provided "io.confluent:kafka-connect-avro-converter:$confluentVersion"
+        provided "io.confluent:kafka-schema-registry:$confluentVersion"
 
         compile("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion")
         testCompile "org.mockito:mockito-core:$mockitoVersion"
@@ -193,9 +198,27 @@ allprojects {
 
     task fatJar(dependsOn: [test, shadowJar])
 
+    jar {
+        dependsOn configurations.runtime
+        from {
+            (configurations.runtime - configurations.provided).collect {
+                it.isDirectory() ? it : zipTree(it)
+            }
+        } {
+            exclude "META-INF/*.SF"
+            exclude "META-INF/*.DSA"
+            exclude "META-INF/*.RSA"
+        }
+        jar.archiveName = "$project.name-$project.version-$confluentVersion-all.jar"
+    }
+
     task collectJars(type: Copy) {
         into "${buildDir}/libs-dependencies"
-        from configurations.runtime
+        from {
+            (configurations.runtime - configurations.provided).collect {
+                it.isDirectory() ? it : zipTree(it)
+            }
+        }
     }
 
     scalaStyle {
@@ -220,7 +243,7 @@ task prepareReleaseDir(type: Copy) {
         def libs = new File(libsDir)
         def conf = new File(confDir)
 
-        root.deleteDir()
+        //root.deleteDir()
         root.mkdirs()
         version.mkdirs()
         libs.mkdirs()
