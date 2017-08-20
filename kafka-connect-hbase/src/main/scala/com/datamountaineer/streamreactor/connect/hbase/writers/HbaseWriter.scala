@@ -31,7 +31,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import scala.collection.JavaConversions._
 import scala.util.Try
 
-class HbaseWriter(settings: HBaseSettings, private var connection: Connection
+class HbaseWriter(settings: HBaseSettings
                  ) extends DbWriter with StrictLogging with ConverterUtil with ErrorHandler {
 
 
@@ -44,7 +44,7 @@ class HbaseWriter(settings: HBaseSettings, private var connection: Connection
   initialize(settings.maxRetries, settings.errorPolicy)
 
   private var columnsBytesMap = Map.empty[String, Array[Byte]]
-  //private var connection = ConnectionFactory.createConnection(HBaseConfiguration.create())
+  private var connection = ConnectionFactory.createConnection(HBaseConfiguration.create())
   private val tables = routeMapping.map(rm => (rm.getSource, connection.getTable(TableName.valueOf(rm.getTarget)))).toMap
   private val rowKeyMap = settings.rowKeyModeMap
 

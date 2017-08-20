@@ -21,11 +21,11 @@ import org.apache.hadoop.hbase.{HColumnDescriptor, HTableDescriptor, TableName}
 
 object HbaseTableHelper {
 
-  def createTable(tableName: String, columnFamily: String, connection: Connection): Unit = {
-    createTable(TableName.valueOf(tableName), columnFamily, connection)
+  def createTable(tableName: String, columnFamily: String)(implicit connection: Connection): Unit = {
+    createTable(TableName.valueOf(tableName), columnFamily)
   }
 
-  def createTable(tableName: TableName, columnFamily: String, connection: Connection): Unit = {
+  def createTable(tableName: TableName, columnFamily: String)(implicit connection: Connection): Unit = {
     HbaseHelper.autoclose(connection.getAdmin) { admin =>
       if (admin.tableExists(tableName))
         throw new IllegalArgumentException(s"${tableName.getNameAsString}")
@@ -39,14 +39,14 @@ object HbaseTableHelper {
     }
   }
 
-  def deleteTable(tableName: TableName, connection: Connection): Unit = {
+  def deleteTable(tableName: TableName)(implicit connection: Connection): Unit = {
     HbaseHelper.autoclose(connection.getAdmin) { admin =>
       admin.disableTable(tableName)
       admin.deleteTable(tableName)
     }
   }
 
-  def deleteTable(tableName: String, connection: Connection): Unit = {
-    deleteTable(TableName.valueOf(tableName), connection)
+  def deleteTable(tableName: String)(implicit connection: Connection): Unit = {
+    deleteTable(TableName.valueOf(tableName))
   }
 }

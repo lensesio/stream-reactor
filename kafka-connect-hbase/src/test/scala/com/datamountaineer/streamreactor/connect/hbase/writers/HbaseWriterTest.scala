@@ -21,12 +21,11 @@ package com.datamountaineer.streamreactor.connect.hbase.writers
 import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
 import com.datamountaineer.streamreactor.connect.hbase.config.{HBaseConfig, HBaseConfigConstants, HBaseSettings}
 import com.datamountaineer.streamreactor.connect.hbase.{FieldsValuesExtractor, HbaseHelper, HbaseTableHelper, StructFieldsRowKeyBuilderBytes}
-import org.apache.hadoop.hbase.HBaseTestingUtility
-import org.apache.hadoop.hbase.client.Connection
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kafka.connect.sink.SinkRecord
+import org.kitesdk.minicluster.{HBaseService, HdfsService, MiniCluster, ZookeeperService}
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
@@ -34,19 +33,39 @@ import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import scala.collection.JavaConverters._
 
 class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with BeforeAndAfterAll {
+//
+//  var miniCluster: Option[HBaseTestingUtility] = None
+//  var connection : Option[Connection] = None
+//
+//  override def beforeAll(): Unit = {
+//    miniCluster = Some(new HBaseTestingUtility())
+//    miniCluster.get.startMiniCluster(1)
+//    connection = Some(miniCluster.get.getConnection())
+//  }
+//
+//  override def afterAll() {
+////    connection.get.close()
+////    miniCluster.get.shutdownMiniCluster()
+//  }
 
-  var miniCluster: Option[HBaseTestingUtility] = None
-  var connection : Option[Connection] = None
+  var miniCluster: Option[MiniCluster] = None
 
-  override def beforeAll(): Unit = {
-    miniCluster = Some(new HBaseTestingUtility())
-    miniCluster.get.startMiniCluster(1)
-    connection = Some(miniCluster.get.getConnection())
+  override def beforeAll() {
+    val workDir = "target/kite-minicluster-workdir-hbase"
+    miniCluster = Some(new MiniCluster
+    .Builder()
+      .workDir(workDir)
+      .bindIP("localhost")
+      .zkPort(2181)
+      .addService(classOf[HdfsService])
+      .addService(classOf[ZookeeperService])
+      .addService(classOf[HBaseService])
+      .clean(true).build)
+    miniCluster.get.start()
   }
 
   override def afterAll() {
-//    connection.get.close()
-//    miniCluster.get.shutdownMiniCluster()
+    miniCluster.get.stop()
   }
 
   "HbaseWriter" should {
@@ -69,7 +88,7 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
       val config = HBaseConfig(props)
       val settings = HBaseSettings(config)
 
-      val writer = new HbaseWriter(settings, connection.get)
+      val writer = new HbaseWriter(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)
@@ -88,34 +107,43 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
       when(fieldsExtractor.get(struct1)).thenReturn(Seq("firstName" -> "Alex".fromString(), "age" -> 30.fromInt()))
       when(fieldsExtractor.get(struct2)).thenReturn(Seq("firstName" -> "Mara".fromString(), "age" -> 22.fromInt(), "threshold" -> 12.4.fromDouble()))
 
-      miniCluster.get.createTable(Bytes.toBytes(tableName), Bytes.toBytes(columnFamily))
+      HbaseHelper.autoclose(HbaseReaderHelper.createConnection) { connection =>
+        implicit val conn = connection
+        try {
+          HbaseTableHelper.createTable(tableName, columnFamily)
+          writer.write(Seq(sinkRecord1, sinkRecord2))
 
-      writer.write(Seq(sinkRecord1, sinkRecord2))
+          val data = HbaseReaderHelper.getAllRecords(tableName, columnFamily)
 
-      val data = HbaseReaderHelper.getAllRecords(tableName, columnFamily, connection.get)
+          data.size shouldBe 2
 
-      data.size shouldBe 2
+          val row1 = data.filter { r => Bytes.toString(r.key) == "Alex" }.head
+          row1.cells.size shouldBe 2
 
-      val row1 = data.filter { r => Bytes.toString(r.key) == "Alex" }.head
-      row1.cells.size shouldBe 2
+          Bytes.toString(row1.cells("firstName")) shouldBe "Alex"
+          Bytes.toInt(row1.cells("age")) shouldBe 30
 
-      Bytes.toString(row1.cells("firstName")) shouldBe "Alex"
-      Bytes.toInt(row1.cells("age")) shouldBe 30
 
-      val row2 = data.filter { r => Bytes.toString(r.key) == "Mara" }.head
-      row2.cells.size shouldBe 3
+          val row2 = data.filter { r => Bytes.toString(r.key) == "Mara" }.head
+          row2.cells.size shouldBe 3
 
-      Bytes.toString(row2.cells("firstName")) shouldBe "Mara"
-      Bytes.toInt(row2.cells("age")) shouldBe 22
-      Bytes.toDouble(row2.cells("threshold")) shouldBe 12.4
+          Bytes.toString(row2.cells("firstName")) shouldBe "Mara"
+          Bytes.toInt(row2.cells("age")) shouldBe 22
+          Bytes.toDouble(row2.cells("threshold")) shouldBe 12.4
+
+        }
+        finally {
+          HbaseTableHelper.deleteTable(tableName)
+        }
+      }
     }
 
 
     "write an Hbase row for each SinkRecord provided using GenericRowKeyBuilderBytes" in {
 
       val fieldsExtractor = mock[FieldsValuesExtractor]
-      val tableName = "someTable2"
-      val topic = "someTopic2"
+      val tableName = "someTable"
+      val topic = "someTopic"
       val columnFamily = "somecolumnFamily"
       val QUERY_ALL = s"INSERT INTO $tableName SELECT * FROM $topic"
 
@@ -126,7 +154,7 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
 
       val config = HBaseConfig(props)
       val settings = HBaseSettings(config)
-      val writer = new HbaseWriter(settings, connection.get)
+      val writer = new HbaseWriter(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)
@@ -142,33 +170,43 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
       when(fieldsExtractor.get(struct1)).thenReturn(Seq("firstName" -> "Alex".fromString(), "age" -> 30.fromInt()))
       when(fieldsExtractor.get(struct2)).thenReturn(Seq("firstName" -> "Mara".fromString(), "age" -> 22.fromInt(), "threshold" -> 12.4.fromDouble()))
 
-      miniCluster.get.createTable(Bytes.toBytes(tableName), Bytes.toBytes(columnFamily))
-      writer.write(Seq(sinkRecord1, sinkRecord2))
+      HbaseHelper.autoclose(HbaseReaderHelper.createConnection) { connection =>
+        implicit val conn = connection
+        try {
+          HbaseTableHelper.createTable(tableName, columnFamily)
+          writer.write(Seq(sinkRecord1, sinkRecord2))
 
-      val data = HbaseReaderHelper.getAllRecords(tableName, columnFamily, connection.get)
+          val data = HbaseReaderHelper.getAllRecords(tableName, columnFamily)
 
-      data.size shouldBe 2
+          data.size shouldBe 2
 
-      val row1 = data.filter { r => Bytes.toString(r.key).equals(s"$topic|1|0") }.head
-      row1.cells.size shouldBe 2
+          val row1 = data.filter { r => Bytes.toString(r.key).equals(s"$topic|1|0") }.head
+          row1.cells.size shouldBe 2
 
-      Bytes.toString(row1.cells("firstName")) shouldBe "Alex"
-      Bytes.toInt(row1.cells("age")) shouldBe 30
+          Bytes.toString(row1.cells("firstName")) shouldBe "Alex"
+          Bytes.toInt(row1.cells("age")) shouldBe 30
 
-      val row2 = data.filter { r => Bytes.toString(r.key).equals(s"$topic|1|1") }.head
-      row2.cells.size shouldBe 3
 
-      Bytes.toString(row2.cells("firstName")) shouldBe "Mara"
-      Bytes.toInt(row2.cells("age")) shouldBe 22
-      Bytes.toDouble(row2.cells("threshold")) shouldBe 12.4
+          val row2 = data.filter { r => Bytes.toString(r.key).equals(s"$topic|1|1") }.head
+          row2.cells.size shouldBe 3
+
+          Bytes.toString(row2.cells("firstName")) shouldBe "Mara"
+          Bytes.toInt(row2.cells("age")) shouldBe 22
+          Bytes.toDouble(row2.cells("threshold")) shouldBe 12.4
+
+        }
+        finally {
+          HbaseTableHelper.deleteTable(tableName)
+        }
+      }
     }
 
-    "HBase Writer should recover from failure when RETRY set" in {
+    "should recover from failure if set to retry" in {
 
       val fieldsExtractor = mock[FieldsValuesExtractor]
       val rowKeyBuilder = mock[StructFieldsRowKeyBuilderBytes]
 
-      val tableName = "someTable3"
+      val tableName = "someTable"
       val topic = "someTopic"
       val columnFamily = "somecolumnFamily"
       val QUERY_ALL = s"INSERT INTO $tableName SELECT * FROM $topic PK firstName"
@@ -181,7 +219,7 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
 
       val config = HBaseConfig(props)
       val settings = HBaseSettings(config)
-      val writer = new HbaseWriter(settings, connection.get)
+      val writer = new HbaseWriter(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)
@@ -200,35 +238,45 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
       when(fieldsExtractor.get(struct1)).thenReturn(Seq("firstName" -> "Alex".fromString(), "age" -> 30.fromInt()))
       when(fieldsExtractor.get(struct2)).thenReturn(Seq("firstName" -> "Mara".fromString(), "age" -> 22.fromInt(), "threshold" -> 12.4.fromDouble()))
 
-      //write should now error and retry, no table
+      HbaseHelper.autoclose(HbaseReaderHelper.createConnection) { connection =>
+        implicit val conn = connection
+        try {
+          //HbaseTableHelper.createTable(tableName, columnFamily)
 
-      intercept[RetriableException] {
-        writer.write(Seq(sinkRecord1, sinkRecord2))
+          //write should now error and retry
+
+          intercept[RetriableException] {
+            writer.write(Seq(sinkRecord1, sinkRecord2))
+          }
+
+          HbaseTableHelper.createTable(tableName, columnFamily)
+
+          //write again, should recover
+          writer.write(Seq(sinkRecord1, sinkRecord2))
+
+          val data = HbaseReaderHelper.getAllRecords(tableName, columnFamily)
+
+          data.size shouldBe 2
+
+          val row1 = data.filter { r => Bytes.toString(r.key) == "Alex" }.head
+          row1.cells.size shouldBe 2
+
+          Bytes.toString(row1.cells("firstName")) shouldBe "Alex"
+          Bytes.toInt(row1.cells("age")) shouldBe 30
+
+
+          val row2 = data.filter { r => Bytes.toString(r.key) == "Mara" }.head
+          row2.cells.size shouldBe 3
+
+          Bytes.toString(row2.cells("firstName")) shouldBe "Mara"
+          Bytes.toInt(row2.cells("age")) shouldBe 22
+          Bytes.toDouble(row2.cells("threshold")) shouldBe 12.4
+
+        }
+        finally {
+          HbaseTableHelper.deleteTable(tableName)
+        }
       }
-
-      miniCluster.get.createTable(Bytes.toBytes(tableName), Bytes.toBytes(columnFamily))
-
-      //write again, should recover
-      writer.write(Seq(sinkRecord1, sinkRecord2))
-
-      val data = HbaseReaderHelper.getAllRecords(tableName, columnFamily, connection.get)
-
-      data.size shouldBe 2
-
-      val row1 = data.filter { r => Bytes.toString(r.key) == "Alex" }.head
-      row1.cells.size shouldBe 2
-
-      Bytes.toString(row1.cells("firstName")) shouldBe "Alex"
-      Bytes.toInt(row1.cells("age")) shouldBe 30
-
-
-      val row2 = data.filter { r => Bytes.toString(r.key) == "Mara" }.head
-      row2.cells.size shouldBe 3
-
-      Bytes.toString(row2.cells("firstName")) shouldBe "Mara"
-      Bytes.toInt(row2.cells("age")) shouldBe 22
-      Bytes.toDouble(row2.cells("threshold")) shouldBe 12.4
-
     }
   }
 }

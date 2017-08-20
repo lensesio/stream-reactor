@@ -32,7 +32,7 @@ object HbaseHelper extends StrictLogging {
     }
   }
 
-  def withTable[T](tableName: TableName, connection: Connection)(thunk: Table => T): T = {
+  def withTable[T](tableName: TableName)(thunk: Table => T)(implicit connection: Connection): T = {
     autoclose(connection.getTable(tableName))(thunk)
   }
 }
