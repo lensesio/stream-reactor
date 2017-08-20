@@ -149,9 +149,9 @@ allprojects {
         compile "org.scala-lang:scala-compiler:$scala"
         compile "com.typesafe.scala-logging:scala-logging-slf4j_$scalaMajorVersion:$scalaLoggingVersion"
 
-        provided ("org.apache.kafka:connect-json:$kafkaVersion")
-        provided "io.confluent:kafka-connect-avro-converter:$confluentVersion"
-        provided "io.confluent:kafka-schema-registry:$confluentVersion"
+        compile ("org.apache.kafka:connect-json:$kafkaVersion")
+        compile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
+        compile "io.confluent:kafka-schema-registry:$confluentVersion"
 
         compile("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion")
         testCompile "org.mockito:mockito-core:$mockitoVersion"
@@ -212,13 +212,23 @@ allprojects {
         jar.archiveName = "$project.name-$project.version-$confluentVersion-all.jar"
     }
 
-    task collectJars(type: Copy) {
-        into "${buildDir}/libs-dependencies"
+    jar {
+        dependsOn configurations.runtime
         from {
             (configurations.runtime - configurations.provided).collect {
                 it.isDirectory() ? it : zipTree(it)
             }
+        } {
+            exclude "META-INF/*.SF"
+            exclude "META-INF/*.DSA"
+            exclude "META-INF/*.RSA"
         }
+        jar.archiveName = "$project.name-$project.version-$confluentVersion-all.jar"
+    }
+
+    task collectJars(type: Copy) {
+        into "${buildDir}/libs-dependencies"
+        from configurations.runtime
     }
 
     scalaStyle {
@@ -243,7 +253,7 @@ task prepareReleaseDir(type: Copy) {
         def libs = new File(libsDir)
         def conf = new File(confDir)
 
-        //root.deleteDir()
+        root.deleteDir()
         root.mkdirs()
         version.mkdirs()
         libs.mkdirs()
