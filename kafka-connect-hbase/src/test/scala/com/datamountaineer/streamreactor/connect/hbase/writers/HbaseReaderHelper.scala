@@ -29,8 +29,8 @@ object HbaseReaderHelper {
     ConnectionFactory.createConnection(HBaseConfiguration.create())
   }
 
-  def getAllRecords(tableName: String, columnFamily: String, connection: Connection): List[HbaseRowData] = {
-    HbaseHelper.withTable(TableName.valueOf(tableName), connection) { tbl =>
+  def getAllRecords(tableName: String, columnFamily: String)(implicit connection: Connection): List[HbaseRowData] = {
+    HbaseHelper.withTable(TableName.valueOf(tableName)) { tbl =>
       val scan = new Scan()
       scan.addFamily(columnFamily.fromString())
       val scanner = tbl.getScanner(scan)

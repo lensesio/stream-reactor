@@ -33,8 +33,7 @@ object WriterFactoryFn extends StrictLogging {
     * @return
     */
   def apply(settings: HBaseSettings): HbaseWriter = {
-    val connection = ConnectionFactory.createConnection(HBaseConfiguration.create())
-    new HbaseWriter(settings, connection)
+    new HbaseWriter(settings)
   }
 
 }
