@@ -37,7 +37,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
 
   override def start(props: util.Map[String, String]): Unit = {
 
-    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/mqtt-source-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/mqtt-source-ascii.txt")).mkString + s" v $version")
     implicit val settings = MqttSourceSettings(MqttSourceConfig(props))
 
     settings.sslCACertFile.foreach { file =>
@@ -99,5 +99,5 @@ class MqttSourceTask extends SourceTask with StrictLogging {
     progressCounter.empty
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 }

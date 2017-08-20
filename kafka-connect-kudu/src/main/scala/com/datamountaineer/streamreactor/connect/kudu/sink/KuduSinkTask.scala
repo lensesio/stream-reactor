@@ -41,8 +41,7 @@ class KuduSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/kudu-ascii.txt")).mkString)
-
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/kudu-ascii.txt")).mkString + s" v $version")
 
     KuduConfig.config.parse(props)
     val sinkConfig = new KuduConfig(props)
@@ -84,5 +83,5 @@ class KuduSinkTask extends SinkTask with StrictLogging {
     writer.foreach(w => w.flush())
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 }

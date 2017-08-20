@@ -33,12 +33,12 @@ import scala.collection.mutable
   * stream-reactor
   */
 class JMSSourceTask extends SourceTask with StrictLogging {
-  var reader : JMSReader = _
+  var reader: JMSReader = _
   val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-source-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-source-ascii.txt")).mkString + s" v $version")
     JMSConfig.config.parse(props)
     val config = new JMSConfig(props)
     val settings = JMSSettings(config, sink = false)
@@ -52,13 +52,13 @@ class JMSSourceTask extends SourceTask with StrictLogging {
   }
 
   override def poll(): util.List[SourceRecord] = {
-    var records : mutable.Seq[SourceRecord] = mutable.Seq.empty[SourceRecord]
-    var messages : mutable.Seq[Message] = mutable.Seq.empty[Message]
+    var records: mutable.Seq[SourceRecord] = mutable.Seq.empty[SourceRecord]
+    var messages: mutable.Seq[Message] = mutable.Seq.empty[Message]
 
     try {
-       val polled = reader.poll()
-       records = collection.mutable.Seq(polled.map({ case (_, record) =>  record}).toSeq: _*)
-       messages = collection.mutable.Seq(polled.map({ case (message, _) => message}).toSeq: _*)
+      val polled = reader.poll()
+      records = collection.mutable.Seq(polled.map({ case (_, record) => record }).toSeq: _*)
+      messages = collection.mutable.Seq(polled.map({ case (message, _) => message }).toSeq: _*)
     } finally {
       messages.foreach(m => m.acknowledge())
     }
@@ -70,5 +70,5 @@ class JMSSourceTask extends SourceTask with StrictLogging {
     records
   }
 
-  override def version(): String =  getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 }

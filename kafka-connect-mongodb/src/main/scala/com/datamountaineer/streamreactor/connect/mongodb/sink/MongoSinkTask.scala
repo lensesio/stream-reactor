@@ -52,7 +52,7 @@ class MongoSinkTask extends SinkTask with StrictLogging {
       case Success(s) => s
     }
 
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/mongo-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/mongo-ascii.txt")).mkString + s" v $version")
 
     writer = Some(MongoWriter(taskConfig, context = context))
     enableProgress = taskConfig.getBoolean(MongoConfigConstants.PROGRESS_COUNTER_ENABLED)
@@ -79,5 +79,5 @@ class MongoSinkTask extends SinkTask with StrictLogging {
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 }

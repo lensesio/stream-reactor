@@ -44,7 +44,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/redis-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/redis-ascii.txt")).mkString + s" v $version")
 
     RedisConfig.config.parse(props)
     val sinkConfig = new RedisConfig(props)
@@ -111,5 +111,5 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     //have the writer expose a is busy; can expose an await using a countdownlatch internally
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 }

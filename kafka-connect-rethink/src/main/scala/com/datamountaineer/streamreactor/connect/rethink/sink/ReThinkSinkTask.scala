@@ -40,7 +40,7 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/rethink-sink-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/rethink-sink-ascii.txt")).mkString + s" v $version")
     val sinkConfig = ReThinkSinkConfig(props)
     enableProgress = sinkConfig.getBoolean(ReThinkConfigConstants.PROGRESS_COUNTER_ENABLED)
     writer = Some(ReThinkWriter(config = sinkConfig, context = context))
@@ -70,6 +70,6 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 
 }
