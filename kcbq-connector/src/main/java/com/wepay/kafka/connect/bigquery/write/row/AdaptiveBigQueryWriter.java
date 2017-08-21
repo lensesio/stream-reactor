@@ -83,7 +83,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
       try {
         schemaManager.updateSchema(tableId.getBaseTableId(), topic);
       } catch (BigQueryException exception) {
-        throw new BigQueryConnectException("Failed to update table schema", exception);
+        throw new BigQueryConnectException("Failed to update table schema for: " + tableId.getBaseTableId(), exception);
       }
     }
 
@@ -100,7 +100,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
       attemptCount++;
       if (attemptCount >= AFTER_UPDATE_RETY_LIMIT) {
         throw new BigQueryConnectException("Failed to write rows after BQ schema update within "
-                                           + AFTER_UPDATE_RETY_LIMIT + " attempts.");
+                                           + AFTER_UPDATE_RETY_LIMIT + " attempts for: " + tableId.getBaseTableId());
       }
     }
     logger.debug("table insertion completed successfully");
