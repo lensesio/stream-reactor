@@ -23,6 +23,6 @@ class TestElasticConfig extends TestElasticBase {
     val config = new ElasticConfig(getElasticSinkConfigProps)
     config.getString(ElasticConfigConstants.URL) shouldBe ELASTIC_SEARCH_HOSTNAMES
     config.getString(ElasticConfigConstants.ES_CLUSTER_NAME) shouldBe ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT
-    config.getString(ElasticConfigConstants.KCQL_QUERY) shouldBe QUERY
+    config.getString(ElasticConfigConstants.KCQL) shouldBe QUERY
   }
 }

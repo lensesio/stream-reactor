@@ -36,7 +36,7 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfter {
   val TABLE = "rethink_table"
   val TOPIC = "rethink_topic"
   val BATCH_SIZE = 10
-  val ROUTE = s"INSERT INTO $TABLE SELECT * FROM $TOPIC BATCH = $BATCH_SIZE"
+  val KCQL = s"INSERT INTO $TABLE SELECT * FROM $TOPIC BATCH = $BATCH_SIZE"
   val DB = "test"
   val ROUTE_SELECT_UPSERT = s"UPSERT INTO $TABLE SELECT string_id, int_field FROM $TOPIC AUTOCREATE BATCH = $BATCH_SIZE"
   val IMPORT_ROUTE = s"INSERT INTO $TOPIC SELECT * FROM $TABLE BATCH = $BATCH_SIZE initialize"
@@ -53,7 +53,9 @@ trait TestBase extends WordSpec with Matchers with BeforeAndAfter {
   ASSIGNMENT.add(TOPIC_PARTITION)
 
   def getProps: util.Map[String, String] = {
-    Map(ReThinkConfigConstants.KCQL -> ROUTE,
+    Map(
+      "topics" -> TOPIC,
+      ReThinkConfigConstants.KCQL -> KCQL,
       ReThinkConfigConstants.RETHINK_HOST -> "localhost",
       ReThinkConfigConstants.USERNAME->"admin",
       ReThinkConfigConstants.PASSWORD->"yourBrandNewKey",

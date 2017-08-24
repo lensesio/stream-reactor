@@ -125,12 +125,13 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
     getBaseElasticSinkConfigProps(UPDATE_QUERY_SELECTION)
   }
 
-  def getBaseElasticSinkConfigProps(query: String) = {
+  def getBaseElasticSinkConfigProps(query: String, topics: String = TOPIC) = {
     Map(
+      "topics" -> topics,
       ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
       ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
-      ElasticConfigConstants.KCQL_QUERY -> query
+      ElasticConfigConstants.KCQL -> query
     ).asJava
   }
 
@@ -139,7 +140,7 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
       ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
       ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
-      ElasticConfigConstants.KCQL_QUERY -> (QUERY + (if (autoCreate) " AUTOCREATE " else "") + " WITHINDEXSUFFIX=_{YYYY-MM-dd}")
+      ElasticConfigConstants.KCQL -> (QUERY + (if (autoCreate) " AUTOCREATE " else "") + " WITHINDEXSUFFIX=_{YYYY-MM-dd}")
     ).asJava
   }
 

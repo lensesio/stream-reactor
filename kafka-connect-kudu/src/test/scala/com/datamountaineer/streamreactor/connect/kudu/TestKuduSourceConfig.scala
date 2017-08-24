@@ -26,6 +26,6 @@ class TestKuduSourceConfig extends TestBase {
   "A KuduSinkConfig should return Kudu Master" in {
     val config = new KuduConfig(getConfig)
     config.getString(KuduConfigConstants.KUDU_MASTER) shouldBe KUDU_MASTER
-    config.getString(KuduConfigConstants.KCQL) shouldBe EXPORT_MAP
+    config.getString(KuduConfigConstants.KCQL) shouldBe KCQL_MAP
   }
 }

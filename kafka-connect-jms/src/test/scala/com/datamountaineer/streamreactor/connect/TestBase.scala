@@ -76,7 +76,9 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
   }
 
   def getProps1Queue(url: String = JMS_URL) = {
-    Map(JMSConfigConstants.KCQL -> KCQL_SOURCE_QUEUE,
+    Map(
+      "topics" -> QUEUE1,
+      JMSConfigConstants.KCQL -> KCQL_SOURCE_QUEUE,
       JMSConfigConstants.JMS_USER -> JMS_USER,
       JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
       JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,

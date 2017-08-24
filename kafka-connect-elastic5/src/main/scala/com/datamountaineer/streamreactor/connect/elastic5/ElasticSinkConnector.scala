@@ -18,13 +18,15 @@ package com.datamountaineer.streamreactor.connect.elastic5
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.elastic5.config.ElasticConfig
+import com.datamountaineer.streamreactor.connect.config.Helpers
+import com.datamountaineer.streamreactor.connect.elastic5.config.{ElasticConfig, ElasticConfigConstants}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 class ElasticSinkConnector extends SinkConnector with StrictLogging {
   private var configProps : Option[util.Map[String, String]] = None
@@ -53,6 +55,7 @@ class ElasticSinkConnector extends SinkConnector with StrictLogging {
     * */
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Elastic sink task.")
+    Helpers.checkInputTopics(ElasticConfigConstants.KCQL, props.asScala.toMap)
     configProps = Some(props)
   }
 

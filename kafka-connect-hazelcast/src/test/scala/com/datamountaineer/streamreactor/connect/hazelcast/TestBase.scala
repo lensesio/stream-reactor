@@ -40,18 +40,18 @@ import scala.collection.mutable
 trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   val TOPIC = "sink_test"
   val TABLE = "table1"
-  val EXPORT_MAP=s"INSERT INTO ${TABLE}_avro SELECT * FROM $TOPIC WITHFORMAT avro"
-  val EXPORT_MAP_RB=s"INSERT INTO ${TABLE}_rb SELECT * FROM $TOPIC WITHFORMAT json STOREAS RING_BUFFER"
-  val EXPORT_MAP_JSON_QUEUE=s"INSERT INTO ${TABLE}_queue SELECT * FROM $TOPIC WITHFORMAT json STOREAS QUEUE"
-  val EXPORT_MAP_JSON_SET=s"INSERT INTO ${TABLE}_set SELECT * FROM $TOPIC WITHFORMAT json STOREAS SET"
-  val EXPORT_MAP_JSON_LIST=s"INSERT INTO ${TABLE}_list SELECT * FROM $TOPIC WITHFORMAT json STOREAS LIST"
-  val EXPORT_MAP_MULTIMAP_DEFAULT_PK=s"INSERT INTO ${TABLE}_multi SELECT * FROM $TOPIC WITHFORMAT json STOREAS MULTI_MAP"
-  val EXPORT_MAP_IMAP_DEFAULT_PK=s"INSERT INTO ${TABLE}_multi SELECT * FROM $TOPIC WITHFORMAT json STOREAS IMAP"
-  val EXPORT_MAP_JSON_ICACHE=s"INSERT INTO ${TABLE}_icache SELECT * FROM $TOPIC WITHFORMAT json STOREAS ICACHE"
+  val KCQL_MAP=s"INSERT INTO ${TABLE}_avro SELECT * FROM $TOPIC WITHFORMAT avro"
+  val KCQL_MAP_RB=s"INSERT INTO ${TABLE}_rb SELECT * FROM $TOPIC WITHFORMAT json STOREAS RING_BUFFER"
+  val KCQL_MAP_JSON_QUEUE=s"INSERT INTO ${TABLE}_queue SELECT * FROM $TOPIC WITHFORMAT json STOREAS QUEUE"
+  val KCQL_MAP_JSON_SET=s"INSERT INTO ${TABLE}_set SELECT * FROM $TOPIC WITHFORMAT json STOREAS SET"
+  val KCQL_MAP_JSON_LIST=s"INSERT INTO ${TABLE}_list SELECT * FROM $TOPIC WITHFORMAT json STOREAS LIST"
+  val KCQL_MAP_MULTIMAP_DEFAULT_PK=s"INSERT INTO ${TABLE}_multi SELECT * FROM $TOPIC WITHFORMAT json STOREAS MULTI_MAP"
+  val KCQL_MAP_IMAP_DEFAULT_PK=s"INSERT INTO ${TABLE}_multi SELECT * FROM $TOPIC WITHFORMAT json STOREAS IMAP"
+  val KCQL_MAP_JSON_ICACHE=s"INSERT INTO ${TABLE}_icache SELECT * FROM $TOPIC WITHFORMAT json STOREAS ICACHE"
 
-  val EXPORT_MAP_JSON=s"INSERT INTO $TABLE SELECT * FROM $TOPIC WITHFORMAT json"
-  val EXPORT_MAP_SELECTION = s"INSERT INTO $TABLE SELECT a, b, c FROM $TOPIC"
-  val EXPORT_MAP_IGNORED = s"INSERT INTO $TABLE SELECT * FROM $TOPIC IGNORE a"
+  val KCQL_MAP_JSON=s"INSERT INTO $TABLE SELECT * FROM $TOPIC WITHFORMAT json"
+  val KCQL_MAP_SELECTION = s"INSERT INTO $TABLE SELECT a, b, c FROM $TOPIC"
+  val KCQL_MAP_IGNORED = s"INSERT INTO $TABLE SELECT * FROM $TOPIC IGNORE a"
   val TESTS_GROUP_NAME = "dev"
   val json = "{\"id\":\"sink_test-12-1\",\"int_field\":12,\"long_field\":12,\"string_field\":\"foo\",\"float_field\":0.1,\"float64_field\":0.199999,\"boolean_field\":true,\"byte_field\":\"Ynl0ZXM=\"}"
 
@@ -62,63 +62,65 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   ASSIGNMENT.add(TOPIC_PARTITION)
 
   def getProps = {
-    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP,
+    Map(
+      "topics" -> TOPIC,
+      HazelCastSinkConfigConstants.KCQL->KCQL_MAP,
       HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsRB = {
-    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_RB,
+    Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_RB,
       HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJsonQueue = {
-    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON_QUEUE,
+    Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_JSON_QUEUE,
       HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJsonSet = {
-    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON_SET,
+    Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_JSON_SET,
       HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJsonList = {
-    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON_LIST,
+    Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_JSON_LIST,
       HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJsonMultiMapDefaultPKS = {
-    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_MULTIMAP_DEFAULT_PK,
+    Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_MULTIMAP_DEFAULT_PK,
       HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJsonICache = {
-    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON_ICACHE,
+    Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_JSON_ICACHE,
       HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJsonMapDefaultPKS = {
-    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_IMAP_DEFAULT_PK,
+    Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_IMAP_DEFAULT_PK,
       HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     ).asJava
   }
 
   def getPropsJson = {
-    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_JSON,
+    Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_JSON,
       HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
 
@@ -126,7 +128,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   }
 
   def getPropsSelection = {
-    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_SELECTION,
+    Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_SELECTION,
       HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
         HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
 
@@ -134,7 +136,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   }
 
   def getPropsIgnored = {
-    Map(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY->EXPORT_MAP_IGNORED,
+    Map(HazelCastSinkConfigConstants.KCQL->KCQL_MAP_IGNORED,
       HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     ).asJava

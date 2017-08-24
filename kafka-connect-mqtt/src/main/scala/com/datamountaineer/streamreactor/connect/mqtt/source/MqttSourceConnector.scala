@@ -19,7 +19,8 @@ package com.datamountaineer.streamreactor.connect.mqtt.source
 import java.util
 import java.util.Collections
 
-import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttSourceConfig, MqttSourceSettings}
+import com.datamountaineer.streamreactor.connect.config.Helpers
+import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -71,6 +72,7 @@ class MqttSourceConnector extends SourceConnector with StrictLogging {
     * @param props A map of properties for the connector and worker
     **/
   override def start(props: util.Map[String, String]): Unit = {
+    Helpers.checkInputTopics(MqttConfigConstants.KCQL_CONFIG, props.asScala.toMap)
     configProps = props
   }
 

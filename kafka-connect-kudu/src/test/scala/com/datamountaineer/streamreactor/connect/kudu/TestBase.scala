@@ -38,9 +38,9 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   val TOPIC = "sink_test"
   val TABLE = "table1"
   val KUDU_MASTER = "127.0.0.1"
-  val EXPORT_MAP = s"INSERT INTO $TABLE SELECT * FROM $TOPIC"
-  val EXPORT_MAP_AUTOCREATE = EXPORT_MAP + " AUTOCREATE DISTRIBUTEBY name,adult INTO 10 BUCKETS"
-  val EXPORT_MAP_AUTOCREATE_AUTOEVOLVE = EXPORT_MAP + " AUTOCREATE AUTOEVOLVE DISTRIBUTEBY name,adult INTO 10 BUCKETS"
+  val KCQL_MAP = s"INSERT INTO $TABLE SELECT * FROM $TOPIC"
+  val KCQL_MAP_AUTOCREATE = KCQL_MAP + " AUTOCREATE DISTRIBUTEBY name,adult INTO 10 BUCKETS"
+  val KCQL_MAP_AUTOCREATE_AUTOEVOLVE = KCQL_MAP + " AUTOCREATE AUTOEVOLVE DISTRIBUTEBY name,adult INTO 10 BUCKETS"
   val schema =
     """
       |{ "type": "record",
@@ -92,15 +92,17 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   }
 
   def getConfig = {
-    Map(KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
-      KuduConfigConstants.KCQL -> EXPORT_MAP,
+    Map(
+      "topics" -> TOPIC,
+      KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
+      KuduConfigConstants.KCQL -> KCQL_MAP,
       KuduConfigConstants.ERROR_POLICY -> "THROW"
     ).asJava
   }
 
   def getConfigAutoCreate(url: String) = {
     Map(KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
-      KuduConfigConstants.KCQL -> EXPORT_MAP_AUTOCREATE,
+      KuduConfigConstants.KCQL -> KCQL_MAP_AUTOCREATE,
       KuduConfigConstants.ERROR_POLICY -> "THROW",
       KuduConfigConstants.SCHEMA_REGISTRY_URL -> url
     ).asJava
@@ -108,7 +110,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
 
   def getConfigAutoCreateAndEvolve(url: String) = {
     Map(KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
-      KuduConfigConstants.KCQL -> EXPORT_MAP_AUTOCREATE_AUTOEVOLVE,
+      KuduConfigConstants.KCQL -> KCQL_MAP_AUTOCREATE_AUTOEVOLVE,
       KuduConfigConstants.ERROR_POLICY -> "THROW",
       KuduConfigConstants.SCHEMA_REGISTRY_URL -> url
     ).asJava
@@ -116,7 +118,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
 
   def getConfigAutoCreateRetry(url: String) = {
     Map(KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
-      KuduConfigConstants.KCQL -> EXPORT_MAP_AUTOCREATE,
+      KuduConfigConstants.KCQL -> KCQL_MAP_AUTOCREATE,
       KuduConfigConstants.ERROR_POLICY -> "RETRY",
       KuduConfigConstants.SCHEMA_REGISTRY_URL -> url
     ).asJava

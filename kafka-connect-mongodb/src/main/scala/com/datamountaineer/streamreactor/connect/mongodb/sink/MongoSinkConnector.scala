@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.mongodb.sink
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.config.Helpers
 import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
@@ -25,6 +26,7 @@ import org.apache.kafka.connect.connector.{Connector, Task}
 import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.{Failure, Try}
 
 /**
@@ -73,6 +75,7 @@ class MongoSinkConnector extends Connector with StrictLogging {
     * @param props A map of properties for the connector and worker
     **/
   override def start(props: util.Map[String, String]): Unit = {
+    Helpers.checkInputTopics(MongoConfigConstants.KCQL_CONFIG, props.asScala.toMap)
     Try(MongoConfig(props)) match {
       case Failure(f) => throw new ConnectException(s"Couldn't start Mongo sink due to configuration error: ${f.getMessage}", f)
       case _ =>

@@ -77,14 +77,14 @@ object ElasticConfig {
       ConfigDef.Width.MEDIUM,
       ElasticConfigConstants.THROW_ON_ERROR_DISPLAY)
     .define(
-      ElasticConfigConstants.KCQL_QUERY,
+      ElasticConfigConstants.KCQL,
       Type.STRING,
       Importance.HIGH,
       ElasticConfigConstants.KCQL_DOC,
       "Target",
       1,
       ConfigDef.Width.LONG,
-      ElasticConfigConstants.KCQL_QUERY)
+      ElasticConfigConstants.KCQL)
     .define(ElasticConfigConstants.PROGRESS_COUNTER_ENABLED,
         Type.BOOLEAN,
         ElasticConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,

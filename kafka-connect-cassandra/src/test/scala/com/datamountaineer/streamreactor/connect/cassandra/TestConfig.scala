@@ -114,6 +114,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
 
   def getCassandraConfigSinkProps = {
     Map(
+      "topics" -> s"$TOPIC1, $TOPIC2",
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
       CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
       CassandraConfigConstants.USERNAME -> USERNAME,

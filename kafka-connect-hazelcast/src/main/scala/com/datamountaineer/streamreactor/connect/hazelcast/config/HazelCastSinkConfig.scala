@@ -49,8 +49,8 @@ object HazelCastSinkConfig {
       "Connection", 8, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.GROUP_NAME)
     .define(HazelCastSinkConfigConstants.GROUP_PASSWORD, Type.PASSWORD, HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DEFAULT, Importance.MEDIUM, HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DOC,
       "Connection", 9, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.GROUP_PASSWORD)
-    .define(HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY, Type.STRING, Importance.HIGH, HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY,
-      "Target", 1, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.EXPORT_ROUTE_QUERY)
+    .define(HazelCastSinkConfigConstants.KCQL, Type.STRING, Importance.HIGH, HazelCastSinkConfigConstants.KCQL,
+      "Target", 1, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.KCQL)
     .define(HazelCastSinkConfigConstants.ERROR_POLICY, Type.STRING, HazelCastSinkConfigConstants.ERROR_POLICY_DEFAULT, Importance.HIGH, HazelCastSinkConfigConstants.ERROR_POLICY_DOC,
       "Target", 2, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.ERROR_POLICY)
     .define(HazelCastSinkConfigConstants.ERROR_RETRY_INTERVAL, Type.INT, HazelCastSinkConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM, HazelCastSinkConfigConstants.ERROR_RETRY_INTERVAL_DOC,

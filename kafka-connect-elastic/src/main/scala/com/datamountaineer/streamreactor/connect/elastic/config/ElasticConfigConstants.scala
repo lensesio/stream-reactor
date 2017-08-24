@@ -32,7 +32,7 @@ object ElasticConfigConstants {
   val URL_PREFIX = s"$URL.prefix"
   val URL_PREFIX_DOC = "URL connection string prefix"
   val URL_PREFIX_DEFAULT = "elasticsearch"
-  val KCQL_QUERY = s"$CONNECTOR_PREFIX.kcql"
+  val KCQL = s"$CONNECTOR_PREFIX.kcql"
   val KCQL_DOC = "KCQL expression describing field selection and routes."
 
   val WRITE_TIMEOUT_CONFIG = s"$CONNECTOR_PREFIX.$WRITE_TIMEOUT_SUFFIX"

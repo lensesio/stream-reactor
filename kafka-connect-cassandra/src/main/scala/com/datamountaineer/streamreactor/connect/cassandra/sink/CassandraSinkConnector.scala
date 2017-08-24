@@ -18,13 +18,15 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSink}
+import com.datamountaineer.streamreactor.connect.config.Helpers
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.{Connector, Task}
 import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.{Failure, Try}
 
 /**
@@ -59,6 +61,8 @@ class CassandraSinkConnector extends Connector with StrictLogging {
     * @param props A map of properties for the connector and worker
     **/
   override def start(props: util.Map[String, String]): Unit = {
+    //check input topics
+    Helpers.checkInputTopics(CassandraConfigConstants.KCQL, props.asScala.toMap)
     configProps = props
     Try(new CassandraConfigSink(props)) match {
       case Failure(f) =>

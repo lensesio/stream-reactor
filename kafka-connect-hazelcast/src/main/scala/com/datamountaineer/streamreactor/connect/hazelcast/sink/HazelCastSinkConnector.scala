@@ -18,13 +18,15 @@ package com.datamountaineer.streamreactor.connect.hazelcast.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkConfig
+import com.datamountaineer.streamreactor.connect.config.Helpers
+import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkConfig, HazelCastSinkConfigConstants}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 10/08/16. 
@@ -57,6 +59,7 @@ class HazelCastSinkConnector extends SinkConnector with StrictLogging {
     **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Hazelcast sink task.")
+    Helpers.checkInputTopics(HazelCastSinkConfigConstants.KCQL, props.asScala.toMap)
     configProps = Some(props)
   }
 

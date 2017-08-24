@@ -69,6 +69,7 @@ A collection of components to build a real time ingestion pipeline.
 *   Upgrade Kudu Client to 1.4.0
 *   Support for dates in Elastic Indexes and custom document types
 *   Upgrade CoAP to 2.0.0-M4
+*   Upgrade Hazelcast to 3.8.4
 
 ### Bug Fixes
 

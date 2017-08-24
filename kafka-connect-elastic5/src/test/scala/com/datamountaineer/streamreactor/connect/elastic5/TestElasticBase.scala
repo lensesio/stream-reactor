@@ -175,6 +175,7 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
 
   def getBaseElasticSinkConfigProps(query: String) = {
     Map(
+      "topics" -> TOPIC,
       ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
       ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,

@@ -88,7 +88,9 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
 
 
   def getPropsInsecureSink: util.Map[String, String] = {
-    Map(CoapConstants.COAP_KCQL->SINK_KCQL_INSECURE,
+    Map(
+      "topics" -> TOPIC,
+      CoapConstants.COAP_KCQL->SINK_KCQL_INSECURE,
       CoapConstants.COAP_URI->SINK_URI_INSECURE
     ).asJava
   }

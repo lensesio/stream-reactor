@@ -16,7 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.elastic
 
-import com.datamountaineer.streamreactor.connect.elastic.ElasticSinkConnector
 import com.datamountaineer.streamreactor.connect.elastic.config.ElasticConfigConstants
 
 import scala.collection.JavaConverters._

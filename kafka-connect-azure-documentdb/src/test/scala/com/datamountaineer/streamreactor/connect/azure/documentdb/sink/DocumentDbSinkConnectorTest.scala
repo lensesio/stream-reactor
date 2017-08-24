@@ -31,6 +31,7 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
   "DocumentDbSinkConnector" should {
     "return one task config when one route is provided" in {
       val map = Map(
+        "topics" -> "topic1",
         DocumentDbConfigConstants.DATABASE_CONFIG -> "database1",
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
@@ -56,6 +57,7 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
 
     "return one task when multiple routes are provided but maxTasks is 1" in {
       val map = Map(
+        "topics" -> "topic1, topicA",
         DocumentDbConfigConstants.DATABASE_CONFIG -> "database1",
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
@@ -85,6 +87,7 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
 
     "return 2 configs when 3 routes are provided and maxTasks is 2" in {
       val map = Map(
+        "topics" -> "topic1, topicA, topicB",
         DocumentDbConfigConstants.DATABASE_CONFIG -> "database1",
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
@@ -119,6 +122,7 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
 
     "return 3 configs when 3 routes are provided and maxTasks is 3" in {
       val map = Map(
+        "topics" -> "topic1, topicA, topicB",
         DocumentDbConfigConstants.DATABASE_CONFIG -> "database1",
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
@@ -154,6 +158,7 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
 
     "return 2 configs when 4 routes are provided and maxTasks is 2" in {
       val map = Map(
+        "topics" -> "topic1, topicA, topicB, topicC",
         DocumentDbConfigConstants.DATABASE_CONFIG -> "database1",
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",

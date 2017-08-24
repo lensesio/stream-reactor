@@ -25,6 +25,7 @@ class MongoSinkConnectorTest extends WordSpec with Matchers {
   "MongoSinkConnector" should {
     "return one task config when one route is provided" in {
       val map = Map(
+        "topics" -> "topic1",
         MongoConfigConstants.DATABASE_CONFIG -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
@@ -36,6 +37,7 @@ class MongoSinkConnectorTest extends WordSpec with Matchers {
     }
     "return one task when multiple routes are provided but maxTasks is 1" in {
       val map = Map(
+        "topics" -> "topic1, topicA",
         MongoConfigConstants.DATABASE_CONFIG -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1; INSERT INTO coll2 SELECT * FROM topicA"
@@ -48,6 +50,7 @@ class MongoSinkConnectorTest extends WordSpec with Matchers {
 
     "return 2 configs when 3 routes are provided and maxTasks is 2" in {
       val map = Map(
+        "topics" -> "topic1, topicA, topicB",
         MongoConfigConstants.DATABASE_CONFIG -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA;INSERT INTO coll3 SELECT * FROM topicB"
@@ -63,6 +66,7 @@ class MongoSinkConnectorTest extends WordSpec with Matchers {
 
     "return 3 configs when 3 routes are provided and maxTasks is 3" in {
       val map = Map(
+        "topics" -> "topic1, topicA, topicB",
         MongoConfigConstants.DATABASE_CONFIG -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA;INSERT INTO coll3 SELECT * FROM topicB"
@@ -79,6 +83,7 @@ class MongoSinkConnectorTest extends WordSpec with Matchers {
 
     "return 2 configs when 4 routes are provided and maxTasks is 2" in {
       val map = Map(
+        "topics" -> "topic1, topicA, topicB, topicC",
         MongoConfigConstants.DATABASE_CONFIG -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA;INSERT INTO coll3 SELECT * FROM topicB;INSERT INTO coll4 SELECT * FROM topicC"

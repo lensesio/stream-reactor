@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.rethink.sink
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.config.Helpers
 import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkConfigConstants, ReThinkSinkConfig, ReThinkSinkSettings}
 import com.rethinkdb.RethinkDB
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -59,6 +60,7 @@ class ReThinkSinkConnector extends SinkConnector with StrictLogging {
     **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting ReThinkDB sink connector")
+    Helpers.checkInputTopics(ReThinkConfigConstants.KCQL, props.asScala.toMap)
 
     /**
       * ReThinkDb allows creation of tables with the same name at the same time
