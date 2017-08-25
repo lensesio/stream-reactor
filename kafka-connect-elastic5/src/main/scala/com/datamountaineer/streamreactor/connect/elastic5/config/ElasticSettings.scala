@@ -33,7 +33,7 @@ case class ElasticSettings(kcqls: Seq[Kcql],
                            taskRetries: Int = ElasticConfigConstants.NBR_OF_RETIRES_DEFAULT,
                            writeTimeout: Int = ElasticConfigConstants.WRITE_TIMEOUT_DEFAULT,
                            xPackSettings: Map[String, String] = Map.empty,
-                           xPackPluggins: Seq[Class[_ <: Plugin]] = Seq.empty,
+                           xPackPlugins: Seq[Class[_ <: Plugin]] = Seq.empty,
                            clientType: ClientType = ClientType.TCP,
                            batchSize: Int = ElasticConfigConstants.BATCH_SIZE_DEFAULT)
 
