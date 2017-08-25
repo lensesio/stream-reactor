@@ -28,7 +28,7 @@ import scala.collection.JavaConverters._
   * stream-reactor
   */
 class TestCoapSink extends WordSpec  with BeforeAndAfter with TestBase {
-  val server = new Server(SINK_PORT_SECURE, SINK_PORT_INSECURE)
+  val server = new Server(SINK_PORT_SECURE, SINK_PORT_INSECURE, KEY_PORT_INSECURE)
 
   before { server.start() }
   after { server.stop() }
@@ -63,8 +63,6 @@ class TestCoapSink extends WordSpec  with BeforeAndAfter with TestBase {
     json.contains(response9.getResponseText) shouldBe true
     val response10 = client.get()
     json.contains(response10.getResponseText) shouldBe true
-    val response11 = client.get()
-    response11 shouldBe null
 
     task.stop()
   }
