@@ -43,10 +43,11 @@ abstract class CoapManager(setting: CoapSetting) extends StrictLogging {
 
   def buildClient(uri: URI): CoapClient = {
     val client = new CoapClient(uri)
-    //Use DTLS is key stores defined
-    if (setting.keyStoreLoc != null && setting.keyStoreLoc.nonEmpty) {
-      logger.info("Creating secure client")
-      client.setEndpoint(new CoapEndpoint(new DTLSConnector(DTLSConnectionFn(setting)), NetworkConfig.getStandard()))
+    val builder = DTLSConnectionFn(setting)
+
+    builder match {
+      case Left(b) => client.setEndpoint(new CoapEndpoint(new DTLSConnector(b), NetworkConfig.getStandard))
+      case Right(_) =>
     }
 
     import scala.collection.JavaConverters._

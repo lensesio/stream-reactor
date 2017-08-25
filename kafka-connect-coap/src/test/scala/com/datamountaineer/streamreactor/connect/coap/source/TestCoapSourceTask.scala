@@ -31,7 +31,7 @@ import scala.collection.JavaConversions._
   * stream-reactor
   */
 class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase {
-  val server = new Server(SOURCE_PORT_SECURE, SOURCE_PORT_INSECURE)
+  val server = new Server(SOURCE_PORT_SECURE, SOURCE_PORT_INSECURE, KEY_PORT_INSECURE)
 
   before {
     server.start()

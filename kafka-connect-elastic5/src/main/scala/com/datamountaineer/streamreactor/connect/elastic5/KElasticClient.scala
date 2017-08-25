@@ -26,7 +26,7 @@ object KElasticClient {
       new HttpKElasticClient(HttpClient(uri))
     }
     else if (settings.xPackSettings.nonEmpty) {
-      new TcpKElasticClient(XPackElasticClient(essettings, uri, settings.xPackPluggins: _*))
+      new TcpKElasticClient(XPackElasticClient(essettings, uri, settings.xPackPlugins: _*))
     } else {
       new TcpKElasticClient(TcpClient.transport(essettings, uri))
     }

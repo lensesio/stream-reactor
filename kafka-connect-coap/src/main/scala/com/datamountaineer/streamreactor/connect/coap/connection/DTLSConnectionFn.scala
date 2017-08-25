@@ -21,34 +21,62 @@ import java.net.{InetAddress, InetSocketAddress}
 import java.security.cert.Certificate
 import java.security.{KeyStore, PrivateKey}
 
-import com.datamountaineer.streamreactor.connect.coap.configs.CoapSetting
+import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSetting}
+import org.apache.kafka.common.config.ConfigException
 import org.eclipse.californium.scandium.config.DtlsConnectorConfig
+import org.eclipse.californium.scandium.dtls.cipher.CipherSuite
+import org.eclipse.californium.scandium.dtls.pskstore.InMemoryPskStore
 
 /**
   * Created by andrew@datamountaineer.com on 27/12/2016. 
   * stream-reactor
   */
 object DTLSConnectionFn {
-  def apply(setting: CoapSetting): DtlsConnectorConfig = {
-    val keyStore = KeyStore.getInstance("JKS")
-    val inKey = new FileInputStream(setting.keyStoreLoc)
-    keyStore.load(inKey, setting.keyStorePass.value().toCharArray())
-    inKey.close()
-
-    val trustStore = KeyStore.getInstance("JKS")
-    val inTrust = new FileInputStream(setting.trustStoreLoc)
-    trustStore.load(inTrust, setting.trustStorePass.value().toCharArray())
-    inTrust.close()
-
-    val certificates: Array[Certificate] = setting.certs.map(c => trustStore.getCertificate(c))
-    val privateKey = keyStore.getKey(setting.chainKey, setting.keyStorePass.value().toCharArray).asInstanceOf[PrivateKey]
-    val certChain = keyStore.getCertificateChain(setting.chainKey)
-
+  def apply(setting: CoapSetting): Either[DtlsConnectorConfig, Unit] = {
     val addr = new InetSocketAddress(InetAddress.getByName(setting.bindHost), setting.bindPort)
-    val builder = new DtlsConnectorConfig.Builder(addr)
-    //builder.setPskStore(new StaticPskStore("Client_identity", "secretPSK".getBytes()))
-    builder.setIdentity(privateKey, certChain, true)
-    builder.setTrustStore(certificates)
-    builder.build()
+    val builder = new DtlsConnectorConfig.Builder
+    builder.setAddress(addr)
+
+    if (setting.keyStoreLoc != null && setting.keyStoreLoc.nonEmpty) {
+      val keyStore = KeyStore.getInstance("JKS")
+      val inKey = new FileInputStream(setting.keyStoreLoc)
+      keyStore.load(inKey, setting.keyStorePass.value().toCharArray())
+      inKey.close()
+
+      val trustStore = KeyStore.getInstance("JKS")
+      val inTrust = new FileInputStream(setting.trustStoreLoc)
+      trustStore.load(inTrust, setting.trustStorePass.value().toCharArray())
+      inTrust.close()
+
+      val certificates: Array[Certificate] = setting.certs.map(c => trustStore.getCertificate(c))
+      val privateKey = keyStore.getKey(setting.chainKey, setting.keyStorePass.value().toCharArray).asInstanceOf[PrivateKey]
+      val certChain = keyStore.getCertificateChain(setting.chainKey)
+
+      builder.setIdentity(privateKey, certChain, true)
+      builder.setTrustStore(certificates)
+      Left(builder.build())
+
+    } else if (setting.identity.nonEmpty) {
+
+      if (!setting.privateKey.isDefined) {
+        throw new ConfigException(s"${CoapConstants.COAP_PRIVATE_KEY_FILE} not defined")
+      }
+
+      if (!setting.publicKey.isDefined) {
+        throw new ConfigException(s"${CoapConstants.COAP_PUBLIC_KEY_FILE} not defined")
+      }
+
+      val psk = new InMemoryPskStore()
+      builder.setSupportedCipherSuites(Array[CipherSuite](CipherSuite.TLS_PSK_WITH_AES_128_CCM_8, CipherSuite.TLS_PSK_WITH_AES_128_CBC_SHA256))
+      psk.setKey(setting.identity, setting.secret.value().getBytes())
+      psk.addKnownPeer(addr, setting.identity, setting.secret.value().getBytes())
+      builder.setPskStore(psk)
+      builder.setIdentity(setting.privateKey.get, setting.publicKey.get)
+
+      Left(builder.build())
+
+    } else {
+      Right(())
+    }
   }
 }

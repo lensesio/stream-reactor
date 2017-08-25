@@ -41,6 +41,33 @@ object CoapConstants {
   val COAP_DTLS_BIND_HOST_DOC = "The hostname the DTLS connector will bind to on the Connector host."
 
   //Security
+
+  //PSK
+  val COAP_IDENTITY = s"$CONNECTOR_PREFIX.$USERNAME_SUFFIX"
+  val COAP_IDENTITY_DEFAULT = ""
+  val COAP_IDENTITY_DOC = "CoAP PSK identity."
+
+  val COAP_SECRET = s"$CONNECTOR_PREFIX.$PASSWORD_SUFFIX"
+  val COAP_SECRET_DEFAULT = ""
+  val COAP_SECRET_DOC = "CoAP PSK secret."
+
+  //PUBLIC/PRIVATE KEYS
+  val COAP_PUBLIC_KEY_FILE = s"$CONNECTOR_PREFIX.public.key.file"
+  val COAP_PUBLIC_KEY_FILE_DEFAULT = ""
+  val COAP_PUBLIC_KEY_FILE_DOC = "Path to the public key file for use in with PSK credentials"
+
+  val COAP_PRIVATE_KEY_FILE = s"$CONNECTOR_PREFIX.private.key.file"
+  val COAP_PRIVATE_KEY_FILE_DEFAULT = ""
+  val COAP_PRIVATE_KEY_FILE_DOC =
+    """
+      | Path to the private key file for use in with PSK credentials in PKCS8 rather than PKCS1
+      | Use open SSL to convert.
+      |
+      | `openssl pkcs8 -in privatekey.pem -topk8 -nocrypt -out privatekey-pkcs8.pem`
+      |
+      | Only cipher suites TLS_PSK_WITH_AES_128_CCM_8 and TLS_PSK_WITH_AES_128_CBC_SHA256 are currently supported.
+    """.stripMargin
+
   val COAP_TRUST_STORE_PASS = s"${CONNECTOR_PREFIX}.${TRUSTSTORE_PASS_SUFFIX}"
   val COAP_TRUST_STORE_PASS_DOC = "The password of the trust store."
   val COAP_TRUST_STORE_PASS_DEFAULT = "rootPass"
