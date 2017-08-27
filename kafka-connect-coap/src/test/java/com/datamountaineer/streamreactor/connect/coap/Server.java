@@ -130,8 +130,8 @@ public class Server {
     try {
       String PRIVATE_KEY = classLoader.getResource("keys/privatekey-pkcs8.pem").getPath();
       String PUBLIC_KEY = classLoader.getResource("keys/publickey.pem").getPath();
-      config.setIdentity(loadPrivateKey(PRIVATE_KEY), loadPublicKey(PUBLIC_KEY));
-      config.setSupportedCipherSuites(new CipherSuite[]{CipherSuite.TLS_PSK_WITH_AES_128_CCM_8, CipherSuite.TLS_PSK_WITH_AES_128_CBC_SHA256});
+     // config.setIdentity(loadPrivateKey(PRIVATE_KEY), loadPublicKey(PUBLIC_KEY));
+     // config.setSupportedCipherSuites(new CipherSuite[]{CipherSuite.TLS_PSK_WITH_AES_128_CCM_8, CipherSuite.TLS_PSK_WITH_AES_128_CBC_SHA256});
       InMemoryPskStore psk = new InMemoryPskStore();
       psk.setKey("andrew","kebab".getBytes());
       psk.addKnownPeer(addr, "andrew","kebab".getBytes());
