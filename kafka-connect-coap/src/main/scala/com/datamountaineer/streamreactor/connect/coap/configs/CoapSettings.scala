@@ -92,12 +92,18 @@ object CoapSettings {
     Security.addProvider(new BouncyCastleProvider)
 
     val privateKey = if (privateKeyPathStr.nonEmpty) {
+      if (!new File(privateKeyPathStr).exists()) {
+        throw new ConfigException(s"${CoapConstants.COAP_PRIVATE_KEY_FILE} is invalid. Can't locate $privateKeyPathStr")
+      }
       Some(loadPrivateKey(privateKeyPathStr, factory))
     } else {
       None
     }
 
     val publicKey = if (publicKeyPathStr.nonEmpty) {
+      if (!new File(publicKeyPathStr).exists()) {
+        throw new ConfigException(s"${CoapConstants.COAP_PUBLIC_KEY_FILE} is invalid. Can't locate $publicKeyPathStr")
+      }
       Some(loadPublicKey(publicKeyPathStr, factory))
     } else {
       None

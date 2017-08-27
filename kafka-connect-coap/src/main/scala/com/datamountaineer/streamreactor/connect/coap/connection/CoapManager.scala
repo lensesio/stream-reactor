@@ -31,24 +31,10 @@ import org.eclipse.californium.scandium.DTLSConnector
   */
 abstract class CoapManager(setting: CoapSetting) extends StrictLogging {
 
-  val configUri = new URI(setting.uri)
+  val client: CoapClient = buildClient
 
-  val uri: URI = configUri.getHost match {
-    case CoapConstants.COAP_DISCOVER_IP4 => discoverServer(CoapConstants.COAP_DISCOVER_IP4_ADDRESS, configUri)
-    case CoapConstants.COAP_DISCOVER_IP6 => discoverServer(CoapConstants.COAP_DISCOVER_IP6_ADDRESS, configUri)
-    case _ => configUri
-  }
-
-  val client: CoapClient = buildClient(uri)
-
-  def buildClient(uri: URI): CoapClient = {
-    val client = new CoapClient(uri)
-    val builder = DTLSConnectionFn(setting)
-
-    builder match {
-      case Left(b) => client.setEndpoint(new CoapEndpoint(new DTLSConnector(b), NetworkConfig.getStandard))
-      case Right(_) =>
-    }
+  def buildClient(): CoapClient = {
+    val client = DTLSConnectionFn(setting)
 
     import scala.collection.JavaConverters._
     //discover and check the requested resources
@@ -64,32 +50,4 @@ abstract class CoapManager(setting: CoapSetting) extends StrictLogging {
   }
 
   def delete(): CoapResponse = client.delete()
-
-  /**
-    * Discover servers on the local network
-    * and return the first one
-    *
-    * @param address The multicast address (ip4 or ip6)
-    * @param uri  The original URI
-    * @return A new URI of the server
-    **/
-  def discoverServer(address: String, uri: URI): URI = {
-    val client = new CoapClient(s"${uri.getScheme}://$address:${uri.getPort.toString}/.well-known/core")
-    client.useNONs()
-    val response = client.get()
-
-    if (response != null) {
-      logger.info(s"Discovered Server ${response.advanced().getSource.toString}.")
-      new URI(uri.getScheme,
-        uri.getUserInfo,
-        response.advanced().getSource.getHostName,
-        response.advanced().getSourcePort,
-        uri.getPath,
-        uri.getQuery,
-        uri.getFragment)
-    } else {
-      logger.error(s"Unable to find any servers on local network with multicast address $address.")
-      throw new ConnectException(s"Unable to find any servers on local network with multicast address $address.")
-    }
-  }
 }

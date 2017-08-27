@@ -84,6 +84,16 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
     ).asJava
   }
 
+  def getPropsSecurePSK: util.Map[String, String] = {
+    Map(
+      CoapConstants.COAP_IDENTITY->"andrew",
+      CoapConstants.COAP_SECRET->"kebab",
+      CoapConstants.COAP_KCQL->SOURCE_KCQL_SECURE,
+      CoapConstants.COAP_URI->KEY_URI,
+      CoapConstants.COAP_DTLS_BIND_PORT->s"$kEY_PORT_SECURE"
+    ).asJava
+  }
+
   def getPropsSecurePEM: util.Map[String, String] = {
     Map(
       CoapConstants.COAP_IDENTITY->"andrew",
