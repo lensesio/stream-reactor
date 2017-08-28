@@ -26,6 +26,7 @@ import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.MsgKey
 import com.datamountaineer.streamreactor.connect.converters.source._
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
+import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
 import com.datamountaineer.streamreactor.connect.serialization.AvroSerializer
 import com.sksamuel.avro4s.{RecordFormat, SchemaFor}
 import io.confluent.connect.avro.AvroData
@@ -42,8 +43,6 @@ import scala.util.Try
 class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
 
   val classPathConfig = new ClasspathConfig()
-
-
   val connection = "tcp://0.0.0.0:1883"
   val clientId = "MqttManagerTest"
   val qs = 1
@@ -90,6 +89,70 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
 
 
   "MqttManager" should {
+    "process the messages on topic A and create source records with Bytes schema with Wildcards" in {
+      val source = "/mqttSourceTopic/+/test"
+      val target = "kafkaTopic"
+      val sourcesToConvMap = Map(source -> new BytesConverter)
+      implicit val settings = MqttSourceSettings(
+        connection,
+        None,
+        None,
+        clientId,
+        sourcesToConvMap.map { case (k, v) => k -> v.getClass.getCanonicalName },
+        true,
+        Array(s"INSERT INTO $target SELECT * FROM $source"),
+        qs,
+        connectionTimeout,
+        true,
+        keepAlive,
+        None,
+        None,
+        None
+      )
+      val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
+        sourcesToConvMap,
+        1,
+        Array(Kcql.parse(s"INSERT INTO $target SELECT * FROM $source")),
+        true)
+
+      val messages = Seq("message1", "message2")
+
+      publishMessage("/mqttSourceTopic/A/test", messages.head.getBytes)
+      publishMessage("/mqttSourceTopic/B/test", messages.last.getBytes)
+
+      Thread.sleep(2000)
+
+      var records = new util.LinkedList[SourceRecord]()
+      mqttManager.getRecords(records)
+
+      records.size() shouldBe 2
+      records.get(0).topic() shouldBe target
+      records.get(1).topic() shouldBe target
+
+      records.get(0).value() shouldBe messages(0).getBytes()
+      records.get(1).value() shouldBe messages(1).getBytes()
+
+
+      records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
+      records.get(1).valueSchema() shouldBe Schema.BYTES_SCHEMA
+
+      val msg3 = "message3".getBytes
+      publishMessage("/mqttSourceTopic/C/test", msg3)
+
+      Thread.sleep(500)
+
+      records = new util.LinkedList[SourceRecord]()
+      mqttManager.getRecords(records)
+
+      records.size() shouldBe 1
+      records.get(0).topic() shouldBe target
+      records.get(0).value() shouldBe msg3
+      records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
+
+      mqttManager.close()
+    }
+
+
     "process the messages on topic A and create source records with Bytes schema" in {
       val source = "/mqttSourceTopic"
       val target = "kafkaTopic"

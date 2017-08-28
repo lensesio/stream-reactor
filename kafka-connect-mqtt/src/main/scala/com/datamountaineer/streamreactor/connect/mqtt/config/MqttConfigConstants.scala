@@ -85,13 +85,6 @@ object MqttConfigConstants {
   val SSL_CERT_KEY_DOC = "Certificate private [config] key file path."
   val SSL_CERT_KEY_DISPLAY = "Certificate private [config] key file path"
 
-  val CONVERTER_CONFIG = s"${CONNECTOR_PREFIX}.converters"
-  val CONVERTER_DOC =
-    """Contains a tuple (Mqtt source topic and the canonical class name for the converter of a raw Mqtt message bytes to a SourceRecord).
-      |If the source topic is not matched it will default to the BytesConverter
-      |i.e. $mqtt_source1=com.datamountaineer.streamreactor.connect.source.converters.AvroConverter;$mqtt_source2=com.datamountaineer.streamreactor.connect.source.converters.JsonConverter""".stripMargin
-  val CONVERTER_DISPLAY = "Converter class"
-
   val THROW_ON_CONVERT_ERRORS_CONFIG = s"${CONNECTOR_PREFIX}.converter.throw.on.error"
   val THROW_ON_CONVERT_ERRORS_DOC =
     """
@@ -106,4 +99,21 @@ object MqttConfigConstants {
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
+
+  val ERROR_POLICY = s"${CONNECTOR_PREFIX}.${ERROR_POLICY_PROP_SUFFIX}"
+  val ERROR_POLICY_DOC: String =
+    """Specifies the action to be taken if an error occurs while inserting the data.
+      |There are two available options:
+      |NOOP - the error is swallowed
+      |THROW - the error is allowed to propagate.
+      |RETRY - The exception causes the Connect framework to retry the message. The number of retries is based on
+      |The error will be logged automatically""".stripMargin
+  val ERROR_POLICY_DEFAULT = "THROW"
+
+  val ERROR_RETRY_INTERVAL = s"${CONNECTOR_PREFIX}.${RETRY_INTERVAL_PROP_SUFFIX}"
+  val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
+  val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
+  val NBR_OF_RETRIES = s"${CONNECTOR_PREFIX}.max.retries"
+  val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
+  val NBR_OF_RETIRES_DEFAULT = 20
 }

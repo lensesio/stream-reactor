@@ -29,8 +29,7 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
       val settings = MqttSourceSettings {
         MqttSourceConfig(Map(
           MqttConfigConstants.HOSTS_CONFIG -> "mqtt://localhost:61612?wireFormat.maxFrameSize=100000",
-          MqttConfigConstants.CONVERTER_CONFIG -> s"mqttSource=${classOf[AvroConverter].getCanonicalName}",
-          MqttConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM mqttSource",
+          MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM mqttSource WITHCONVERTER=${classOf[AvroConverter].getCanonicalName}",
           MqttConfigConstants.QS_CONFIG -> "1",
           MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
           MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
@@ -144,8 +143,7 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
     "throw an config exception if the converter class can't be found" in {
       intercept[ConfigException] {
         MqttSourceConfig(Map(
-          MqttConfigConstants.CONVERTER_CONFIG -> "kTopic=com.non.existance.SomeConverter",
-          MqttConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM mqttSource",
+          MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM mqttSource WITHCONVERTER=com.non.existance.SomeConverter",
           MqttConfigConstants.QS_CONFIG -> "1",
           MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
           MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
@@ -161,8 +159,7 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
     "throw an config exception if the converter settings with invalid source" in {
       intercept[ConfigException] {
         MqttSourceConfig(Map(
-          MqttConfigConstants.CONVERTER_CONFIG -> s"kTopic=${classOf[AvroConverter].getCanonicalName}",
-          MqttConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM mqttSource",
+          MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM mqttSource WITHCONVERTER=${classOf[AvroConverter].getCanonicalName}",
           MqttConfigConstants.QS_CONFIG -> "1",
           MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
           MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
@@ -178,8 +175,7 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
     "throw an config exception if the converter topic doesn't match the KCQL settings" in {
       intercept[ConfigException] {
         MqttSourceConfig(Map(
-          MqttConfigConstants.CONVERTER_CONFIG -> s"kTopicA=${classOf[AvroConverter].getCanonicalName}",
-          MqttConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM mqttSource",
+          MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM mqttSource WITHCONVERTER=${classOf[AvroConverter].getCanonicalName}",
           MqttConfigConstants.QS_CONFIG -> "1",
           MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
           MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",

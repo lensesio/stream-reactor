@@ -33,25 +33,21 @@ object JMSConfig {
       "Connection", 3, ConfigDef.Width.MEDIUM, JMSConfigConstants.CONNECTION_FACTORY)
     .define(JMSConfigConstants.KCQL, Type.STRING, Importance.HIGH, JMSConfigConstants.KCQL,
       "Connection", 4, ConfigDef.Width.MEDIUM, JMSConfigConstants.KCQL)
-    .define(JMSConfigConstants.QUEUE_LIST, Type.LIST, new util.ArrayList[String], Importance.HIGH, JMSConfigConstants.QUEUE_LIST_DOC,
-      "Connection", 5, ConfigDef.Width.MEDIUM, JMSConfigConstants.QUEUE_LIST)
-    .define(JMSConfigConstants.TOPIC_LIST, Type.LIST, new util.ArrayList[String], Importance.HIGH, JMSConfigConstants.TOPIC_LIST_DOC,
-      "Connection", 6, ConfigDef.Width.MEDIUM, JMSConfigConstants.TOPIC_LIST)
     .define(JMSConfigConstants.TOPIC_SUBSCRIPTION_NAME, Type.STRING, null, Importance.HIGH, JMSConfigConstants.TOPIC_SUBSCRIPTION_NAME_DOC,
-      "Connection", 6, ConfigDef.Width.MEDIUM, JMSConfigConstants.TOPIC_SUBSCRIPTION_NAME)
+      "Connection", 5, ConfigDef.Width.MEDIUM, JMSConfigConstants.TOPIC_SUBSCRIPTION_NAME)
     .define(JMSConfigConstants.JMS_PASSWORD, Type.PASSWORD, null, Importance.HIGH, JMSConfigConstants.JMS_PASSWORD_DOC,
-      "Connection", 7, ConfigDef.Width.MEDIUM, JMSConfigConstants.JMS_PASSWORD)
+      "Connection", 6, ConfigDef.Width.MEDIUM, JMSConfigConstants.JMS_PASSWORD)
     .define(JMSConfigConstants.JMS_USER, Type.STRING, null, Importance.HIGH, JMSConfigConstants.JMS_USER_DOC,
-      "Connection", 8, ConfigDef.Width.MEDIUM, JMSConfigConstants.JMS_USER)
+      "Connection", 7, ConfigDef.Width.MEDIUM, JMSConfigConstants.JMS_USER)
     .define(JMSConfigConstants.ERROR_POLICY, Type.STRING, JMSConfigConstants.ERROR_POLICY_DEFAULT, Importance.HIGH,
       JMSConfigConstants.ERROR_POLICY_DOC,
-      "Connection", 9, ConfigDef.Width.MEDIUM, JMSConfigConstants.ERROR_POLICY)
+      "Connection", 8, ConfigDef.Width.MEDIUM, JMSConfigConstants.ERROR_POLICY)
     .define(JMSConfigConstants.ERROR_RETRY_INTERVAL, Type.INT, JMSConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT,
       Importance.MEDIUM, JMSConfigConstants.ERROR_RETRY_INTERVAL_DOC,
-      "Connection", 10, ConfigDef.Width.MEDIUM, JMSConfigConstants.ERROR_RETRY_INTERVAL)
+      "Connection", 9, ConfigDef.Width.MEDIUM, JMSConfigConstants.ERROR_RETRY_INTERVAL)
     .define(JMSConfigConstants.NBR_OF_RETRIES, Type.INT, JMSConfigConstants.NBR_OF_RETIRES_DEFAULT,
       Importance.MEDIUM, JMSConfigConstants.NBR_OF_RETRIES_DOC,
-      "Connection", 11, ConfigDef.Width.MEDIUM, JMSConfigConstants.NBR_OF_RETRIES)
+      "Connection", 10, ConfigDef.Width.MEDIUM, JMSConfigConstants.NBR_OF_RETRIES)
     .define(JMSConfigConstants.DESTINATION_SELECTOR, Type.STRING, JMSConfigConstants.DESTINATION_SELECTOR_DEFAULT,
       Importance.MEDIUM, JMSConfigConstants.DESTINATION_SELECTOR_DOC,
       "Connection", 11, ConfigDef.Width.MEDIUM, JMSConfigConstants.DESTINATION_SELECTOR)
@@ -60,11 +56,10 @@ object JMSConfig {
       "Connection", 12, ConfigDef.Width.MEDIUM, JMSConfigConstants.EXTRA_PROPS)
     .define(JMSConfigConstants.BATCH_SIZE, Type.INT, JMSConfigConstants.BATCH_SIZE_DEFAULT, Importance.MEDIUM,
       JMSConfigConstants.BATCH_SIZE_DOC,
-      "Connection", 12, ConfigDef.Width.MEDIUM, JMSConfigConstants.BATCH_SIZE)
+      "Connection", 13, ConfigDef.Width.MEDIUM, JMSConfigConstants.BATCH_SIZE)
 
     //converters
-    .define(JMSConfigConstants.CONVERTER_CONFIG, Type.STRING, "", Importance.HIGH, JMSConfigConstants.CONVERTER_DOC,
-      "Converter", 1, ConfigDef.Width.MEDIUM, JMSConfigConstants.CONVERTER_DISPLAY)
+
     .define(JMSConfigConstants.DEFAULT_CONVERTER_CONFIG, Type.STRING, "", Importance.HIGH, JMSConfigConstants.DEFAULT_CONVERTER_DOC,
       "Converter", 1, ConfigDef.Width.MEDIUM, JMSConfigConstants.DEFAULT_CONVERTER_DISPLAY)
     .define(JMSConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG, Type.BOOLEAN, JMSConfigConstants.THROW_ON_CONVERT_ERRORS_DEFAULT,

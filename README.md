@@ -49,8 +49,10 @@ A collection of components to build a real time ingestion pipeline.
 
 **0.2.6 (Pending)**
 
-### Feature
+### Features
 
+*   Added MQTT Sink
+*   Upgrade to Confluent 3.2.2
 *   Upgrade to KCQL 2x
 *   Add CQL generator to Cassandra source
 *   Add KCQL INCREMENTALMODE support to the Cassandra source, bulk mode and the timestamp column type is now take from KCQL
@@ -69,9 +71,11 @@ A collection of components to build a real time ingestion pipeline.
 *   Upgrade Kudu Client to 1.4.0
 *   Support for dates in Elastic Indexes and custom document types
 *   Upgrade CoAP to 2.0.0-M4
-*   Upgrade Hazelcast to 3.8.4
+*   Upgrade Connect CLI to 1.0.2 (Renamed to connect-cli)
+*   Add MQTT wildcard support.
 
 ### Bug Fixes
+
 
 *   Fixes for high CPU on CoAP source
 *   Fixes for high CPU on Cassandra source
@@ -79,6 +83,7 @@ A collection of components to build a real time ingestion pipeline.
 *   Fixes on JMS properties converter, Invalid schema when extracting properties
 
 ### Misc
+
 *   Refactored Cassandra Tests to use only one embedded instance
 *   Removed unused batch size and bucket size options from Kudu, they are taken from KCQL
 *   Removed unused batch size option from DocumentDb
@@ -133,10 +138,15 @@ A collection of components to build a real time ingestion pipeline.
 *   Rename ReThink Sink `connect.rethink.sink.kcql` to `connect.rethink.kcql`
 *   Rename JMS `connect.jms.user` to `connect.jms.username`
 *   Rename JMS `connect.jms.source.converters` to `connect.jms.converters`
+*   Remove JMS `connect.jms.converters` and replace my kcql `withConverters`
+*   Remove JMS `connect.jms.queues` and replace my kcql `withType QUEUE`
+*   Remove JMS `connect.jms.topics` and replace my kcql `withType TOPIC`
 *   Rename Mqtt `connect.mqtt.source.kcql` to `connect.mqtt.kcql`
-*   Rename Mqtt `connect.mqtt.source.converters` to `connect.mqtt.converters`
 *   Rename Mqtt `connect.mqtt.user` to `connect.mqtt.username`
 *   Rename Mqtt `connect.mqtt.hosts` to `connect.mqtt.connection.hosts`
+*   Remove Mqtt `connect.mqtt.converters` and replace my kcql `withConverters`
+*   Remove Mqtt `connect.mqtt.queues` and replace my kcql `withType=QUEUE`
+*   Remove Mqtt `connect.mqtt.topics` and replace my kcql `withType=TOPIC`
 *   Rename Hazelcast `connect.hazelcast.sink.kcql` to `connect.hazelcast.kcql`
 *   Rename Hazelcast `connect.hazelcast.sink.group.name` to `connect.hazelcast.group.name`
 *   Rename Hazelcast `connect.hazelcast.sink.group.password` to `connect.hazelcast.group.password`
@@ -152,8 +162,6 @@ A collection of components to build a real time ingestion pipeline.
 *   Rename VoltDB `connect.volt.sink.error.policy` to `connect.volt.error.policy`
 *   Rename VoltDB `connect.volt.sink.max.retries` to `connect.volt.max.retries`
 *   Rename VoltDB `connect.volt.sink.retry.interval` to `connect.volt.retry.interval`
-
-
 
 
 **0.2.5 (8 Apr 2017)**

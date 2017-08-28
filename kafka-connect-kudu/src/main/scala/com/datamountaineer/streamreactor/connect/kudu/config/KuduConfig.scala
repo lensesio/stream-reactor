@@ -44,8 +44,8 @@ object KuduConfig {
 
     .define(KuduConfigConstants.ERROR_RETRY_INTERVAL, Type.INT, KuduConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT,
       Importance.MEDIUM, KuduConfigConstants.ERROR_RETRY_INTERVAL_DOC,
-
       "Connection", 4, ConfigDef.Width.MEDIUM, KuduConfigConstants.ERROR_RETRY_INTERVAL)
+
     .define(KuduConfigConstants.NBR_OF_RETRIES, Type.INT, KuduConfigConstants.NBR_OF_RETIRES_DEFAULT,
       Importance.MEDIUM, KuduConfigConstants.NBR_OF_RETRIES_DOC,
       "Connection", 5, ConfigDef.Width.MEDIUM, KuduConfigConstants.NBR_OF_RETRIES)

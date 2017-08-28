@@ -45,16 +45,23 @@ class MqttManager(connectionFn: (MqttCallback) => MqttClient,
     client.close()
   }
 
-  override def deliveryComplete(token: IMqttDeliveryToken): Unit = {
+  override def deliveryComplete(token: IMqttDeliveryToken): Unit = {}
 
+  def compareTopic(actualTopic: String, subscribedTopic: String): Boolean = {
+    actualTopic.matches(subscribedTopic.replaceAll("\\+", "[^/]+").replaceAll("#", ".+"))
   }
 
   override def messageArrived(topic: String, message: MqttMessage): Unit = {
+    val matched = sourceToTopicMap
+                    .filter(t => compareTopic(topic, t._1))
+                    .map(t => t._2.getSource)
+
+    val wildcard = matched.head
     val kafkaTopic = sourceToTopicMap
-      .getOrElse(topic, throw new ConfigException(s"Topic $topic is not configured. Available topics are:${sourceToTopicMap.keySet.mkString(",")}"))
+      .getOrElse(wildcard, throw new ConfigException(s"Topic $topic is not configured. Available topics are:${sourceToTopicMap.keySet.mkString(",")}"))
       .getTarget
 
-    val converter = convertersMap.getOrElse(topic, throw new RuntimeException(s"$topic topic is missing the converter instance."))
+    val converter = convertersMap.getOrElse(wildcard, throw new RuntimeException(s"$wildcard topic is missing the converter instance."))
     if (!message.isDuplicate) {
       try {
         Option(converter.convert(kafkaTopic, topic, message.getId.toString, message.getPayload)) match {

@@ -93,9 +93,8 @@ class MqttSourceTaskTest extends WordSpec with Matchers with BeforeAndAfter {
     task.start(Map(
       MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
       MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> connectionTimeout.toString,
-      MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $target1 SELECT * FROM $source1;INSERT INTO $target2 SELECT * FROM $source2;INSERT INTO $target3 SELECT * FROM $source3",
+      MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $target1 SELECT * FROM $source1 WITHCONVERTER=${classOf[BytesConverter].getCanonicalName};INSERT INTO $target2 SELECT * FROM $source2 WITHCONVERTER=${classOf[JsonSimpleConverter].getCanonicalName};INSERT INTO $target3 SELECT * FROM $source3 WITHCONVERTER=${classOf[AvroConverter].getCanonicalName}",
       MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> keepAlive.toString,
-      MqttConfigConstants.CONVERTER_CONFIG -> s"$source1=${classOf[BytesConverter].getCanonicalName};$source2=${classOf[JsonSimpleConverter].getCanonicalName};$source3=${classOf[AvroConverter].getCanonicalName};",
       AvroConverter.SCHEMA_CONFIG -> s"$source3=${getSchemaFile(source3, studentSchema)}",
       MqttConfigConstants.CLIENT_ID_CONFIG -> clientId,
       MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",

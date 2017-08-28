@@ -43,7 +43,7 @@ class JMSReader(settings: JMSSettings) extends StrictLogging {
 
     val messages = consumers
                       .flatMap({ case (source, consumer)=>
-                        (1 to settings.batchSize)
+                        (0 to settings.batchSize)
                           .flatMap(_ => Option(consumer.receiveNoWait()))
                           .map(m => (m, convert(source, topicsMap(source), m)))
                       })

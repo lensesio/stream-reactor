@@ -61,20 +61,12 @@ object JMSConfigConstants {
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
-  val CONVERTER_CONFIG = s"${CONNECTOR_PREFIX}.source.converters"
-  private[config] val CONVERTER_DOC =
-    """
-      |Contains a tuple (JMS source topic and the canonical class name for the converter of a raw JMS message bytes to a SourceRecord).
-      |If the source topic is not matched it will default to the BytesConverter
-      |i.e. $jms_source1=com.datamountaineer.streamreactor.connect.source.converters.AvroConverter;$jms_source2=com.datamountaineer.streamreactor.connect.source.converters.JsonConverter""".stripMargin
-  private[config] val CONVERTER_DISPLAY = "Converter class"
-
 
   val DEFAULT_CONVERTER_CONFIG = s"${CONNECTOR_PREFIX}.source.default.converter"
   private[config] val DEFAULT_CONVERTER_DOC =
     """
       |Contains a canonical class name for the default converter of a raw JMS message bytes to a SourceRecord.
-      |Overides to the default can be done by using connect.jms.source.converters still.
+      |Overrides to the default can be done by using connect.jms.source.converters still.
       |i.e. com.datamountaineer.streamreactor.connect.source.converters.AvroConverter""".stripMargin
   private[config] val DEFAULT_CONVERTER_DISPLAY = "Default Converter class"
 
@@ -88,14 +80,8 @@ object JMSConfigConstants {
   val DESTINATION_SELECTOR_DOC = "Selector to use for destination lookup. Either CDI or JNDI."
   val DESTINATION_SELECTOR_DEFAULT = "CDI"
 
-  val TOPIC_LIST = s"${CONNECTOR_PREFIX}.topics"
-  val TOPIC_LIST_DOC = "A comma separated list of JMS topics, must match the KCQL source or target JMS topics."
-
   val TOPIC_SUBSCRIPTION_NAME = s"${CONNECTOR_PREFIX}.subscription.name"
   val TOPIC_SUBSCRIPTION_NAME_DOC = "subscription name to use when subscribing to a topic, specifying this makes a durable subscription for topics"
-
-  val QUEUE_LIST = s"${CONNECTOR_PREFIX}.queues"
-  val QUEUE_LIST_DOC = "A comma separated list of JMS topics, must match the KCQL source or target JMS queues."
 
   val EXTRA_PROPS = s"${CONNECTOR_PREFIX}.initial.context.extra.params"
   private[config] val EXTRA_PROPS_DOC = "List (comma separated) of extra properties as key/value pairs with a colon delimiter to " +

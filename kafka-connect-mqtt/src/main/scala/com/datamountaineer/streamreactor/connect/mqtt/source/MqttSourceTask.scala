@@ -21,7 +21,8 @@ import java.util
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
-import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttSourceConfig, MqttConfigConstants, MqttSourceSettings}
+import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}
+import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
@@ -62,7 +63,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
       logger.info(s"Creating converter instance for $clazz")
       val converter = Try(this.getClass.getClassLoader.loadClass(clazz).newInstance()) match {
         case Success(value) => value.asInstanceOf[Converter]
-        case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.CONVERTER_CONFIG} is invalid. $clazz should have an empty ctor!")
+        case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
       }
       import scala.collection.JavaConverters._
       converter.initialize(props.asScala.toMap)

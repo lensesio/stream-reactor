@@ -19,7 +19,6 @@ package com.datamountaineer.streamreactor.connect.mqtt.config
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.{BytesConverter, Converter}
 import org.apache.kafka.common.config.ConfigException
-import org.apache.kafka.common.config.types.Password
 import org.eclipse.paho.client.mqttv3.MqttClient
 
 import scala.util.{Failure, Success, Try}
@@ -54,7 +53,6 @@ case class MqttSourceSettings(connection: String,
     sslCertKeyFile.foreach(s => map.put(MqttConfigConstants.SSL_CERT_KEY_CONFIG, s))
     map.put(MqttConfigConstants.QS_CONFIG, mqttQualityOfService.toString)
     map.put(MqttConfigConstants.KCQL_CONFIG, kcql.mkString(";"))
-    map.put(MqttConfigConstants.CONVERTER_CONFIG, kcql.map(Kcql.parse).map(_.getSource).map(s => s"$s=${sourcesToConverters(s)}").mkString(";"))
     map
   }
 }
@@ -68,7 +66,6 @@ object MqttSourceSettings {
     val kcqlStr = config.getKCQLRaw
     val user = Some(config.getUsername)
     val password =  Option(config.getSecret).map(_.value())
-    val sources = kcql.map(_.getSource)
     val connection = config.getHosts
     val clientId = Option(config.getString(MqttConfigConstants.CLIENT_ID_CONFIG)).getOrElse(MqttClient.generateClientId())
 
@@ -84,35 +81,22 @@ object MqttSourceSettings {
 
     val progressEnabled = config.getBoolean(MqttConfigConstants.PROGRESS_COUNTER_ENABLED)
 
-    val sourcesToConverterMap = Option(config.getString(MqttConfigConstants.CONVERTER_CONFIG))
-      .map { c =>
-        c.split(';')
-          .map(_.trim)
-          .filter(_.nonEmpty)
-          .map { e =>
-            e.split('=') match {
-              case Array(source: String, clazz: String) =>
+    val converters = kcql.map(k => {
+      (k.getSource, if (k.getWithConverter == null) classOf[BytesConverter].getCanonicalName else k.getWithConverter)
+    }).toMap
 
-                if (!sources.contains(source)) {
-                  throw new ConfigException(s"Invalid ${MqttConfigConstants.CONVERTER_CONFIG}. Source '$source' is not found in ${MqttConfigConstants.KCQL_CONFIG}. Defined sources:${sources.mkString(",")}")
-                }
-                Try(getClass.getClassLoader.loadClass(clazz)) match {
-                  case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.CONVERTER_CONFIG}.$clazz can't be found")
-                  case Success(clz) =>
-                    if (!classOf[Converter].isAssignableFrom(clz)) {
-                      throw new ConfigException(s"Invalid ${MqttConfigConstants.CONVERTER_CONFIG}. $clazz is not inheriting MqttConverter")
-                    }
-                }
-
-                source -> clazz
-              case _ => throw new ConfigException(s"Invalid ${MqttConfigConstants.CONVERTER_CONFIG}. '$e' is not correct. Expecting source = className")
-            }
-          }.toMap
-      }.getOrElse(Map.empty[String, String])
-
-    val sourcesToConverterMap1 = sources.filterNot(sourcesToConverterMap.contains)
-                                        .map { s => s -> classOf[BytesConverter].getCanonicalName }
-                                        .foldLeft(sourcesToConverterMap)(_ + _)
+    converters.map( {
+        case (mqtt_source, clazz) => {
+          Try(getClass.getClassLoader.loadClass(clazz)) match {
+            case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG}. $clazz can't be found for $mqtt_source")
+            case Success(clz) =>
+              if (!classOf[Converter].isAssignableFrom(clz)) {
+                throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG}. $clazz is not inheriting Converter for $mqtt_source")
+              }
+          }
+        }
+      }
+    )
 
     val qs = config.getInt(MqttConfigConstants.QS_CONFIG)
     if (qs < 0 || qs > 2) {
@@ -124,7 +108,7 @@ object MqttSourceSettings {
       user,
       password,
       clientId,
-      sourcesToConverterMap1,
+      converters,
       config.getBoolean(MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG),
       kcqlStr,
       qs,
