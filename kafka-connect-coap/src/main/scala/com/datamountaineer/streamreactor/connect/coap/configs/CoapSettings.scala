@@ -16,12 +16,17 @@
 
 package com.datamountaineer.streamreactor.connect.coap.configs
 
-import java.io.File
+import java.io.{File, FileInputStream, InputStreamReader}
+import java.security.spec.{PKCS8EncodedKeySpec, X509EncodedKeySpec}
+import java.security._
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.util.io.pem.PemReader
+import org.eclipse.californium.scandium.dtls.cipher.CipherSuite
 
 import scala.collection.JavaConverters._
 
@@ -41,7 +46,11 @@ case class CoapSetting(uri: String,
                        errorPolicy: Option[ErrorPolicy],
                        target: String,
                        bindHost: String,
-                       bindPort: Int
+                       bindPort: Int,
+                       identity: String,
+                       secret: Password,
+                       privateKey: Option[PrivateKey],
+                       publicKey: Option[PublicKey]
                       )
 
 object CoapSettings {
@@ -67,11 +76,32 @@ object CoapSettings {
 
     val kcql = config.getKCQL
     val sink = if (config.isInstanceOf[CoapSinkConfig]) true else false
-    val errorPolicy= if (sink) Some(config.getErrorPolicy) else None
+    val errorPolicy = if (sink) Some(config.getErrorPolicy) else None
     val retries = if (sink) Some(config.getNumberRetries) else None
 
     val bindPort = config.getPort
     val bindHost = config.getHost
+
+    val identity = config.getUsername
+    val secret = config.getSecret
+
+    val privateKeyPathStr = config.getString(CoapConstants.COAP_PRIVATE_KEY_FILE)
+    val publicKeyPathStr = config.getString(CoapConstants.COAP_PUBLIC_KEY_FILE)
+
+    val factory = KeyFactory.getInstance("RSA")
+    Security.addProvider(new BouncyCastleProvider)
+
+    val privateKey = if (privateKeyPathStr.nonEmpty) {
+      Some(loadPrivateKey(privateKeyPathStr, factory))
+    } else {
+      None
+    }
+
+    val publicKey = if (publicKeyPathStr.nonEmpty) {
+      Some(loadPublicKey(publicKeyPathStr, factory))
+    } else {
+      None
+    }
 
     kcql.map(k =>
       CoapSetting(uri,
@@ -86,8 +116,27 @@ object CoapSettings {
         errorPolicy,
         if (sink) k.getTarget else k.getSource,
         bindHost,
-        bindPort
+        bindPort,
+        identity,
+        secret,
+        privateKey,
+        publicKey
       )
     )
   }
+
+  def loadPrivateKey(path: String, factory: KeyFactory) : PrivateKey = {
+    val pemReader = getPemReader(path)
+    val content = new PKCS8EncodedKeySpec(pemReader.readPemObject().getContent)
+    factory.generatePrivate(content)
+  }
+
+  def loadPublicKey(path: String, factory: KeyFactory): PublicKey = {
+    val pemReader = getPemReader(path)
+    val content = new X509EncodedKeySpec(pemReader.readPemObject().getContent)
+    factory.generatePublic(content)
+  }
+
+  def getPemReader(path: String) = new PemReader(new InputStreamReader(new FileInputStream(path)))
+
 }
