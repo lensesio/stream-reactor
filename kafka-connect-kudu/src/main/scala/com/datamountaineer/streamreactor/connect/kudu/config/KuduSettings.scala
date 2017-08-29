@@ -32,7 +32,8 @@ case class KuduSettings(kcql: List[Kcql],
                         writeModeMap: Map[String, WriteModeEnum],
                         errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                         maxRetries: Int = KuduConfigConstants.NBR_OF_RETIRES_DEFAULT,
-                        schemaRegistryUrl: String)
+                        schemaRegistryUrl: String,
+                        writeFlushMode: WriteFlushMode.WriteFlushMode)
 
 object KuduSettings {
 
@@ -48,6 +49,7 @@ object KuduSettings {
     val ignoreFields = config.getIgnoreFieldsMap()
     val writeModeMap = config.getWriteMode()
     val topicTables = config.getTableTopic()
+    val writeFlushMode = config.getWriteFlushMode()
 
     new KuduSettings(kcql = kcql.toList,
       topicTables = topicTables,
@@ -58,7 +60,9 @@ object KuduSettings {
       writeModeMap = writeModeMap,
       errorPolicy = errorPolicy,
       maxRetries = maxRetries,
-      schemaRegistryUrl = schemaRegUrl)
+      schemaRegistryUrl = schemaRegUrl,
+      writeFlushMode = writeFlushMode
+     )
   }
 }
 
