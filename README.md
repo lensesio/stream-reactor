@@ -47,6 +47,15 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
+**3.0.0 (Pending)**
+
+*   Upgrade CoAP to 2.0.0-M4
+*   Upgrade to Confluent 3.3 and Kafka 0.11.0.0.
+*   Added MQTT Sink.
+*   Add MQTT wildcard support.
+*   Upgrade CoAP to 2.0.0-M4.
+*   Added WITHCONVERTERS and WITHTYPE to JMS and MQTT connectors in KCQL to simplify configuration.
+
 **0.2.6 (Pending)**
 
 ### Features
@@ -70,9 +79,7 @@ A collection of components to build a real time ingestion pipeline.
 *   Added TLS support for ReThinkDB, add batch size option to source for draining the internal queues.
 *   Upgrade Kudu Client to 1.4.0
 *   Support for dates in Elastic Indexes and custom document types
-*   Upgrade CoAP to 2.0.0-M4
 *   Upgrade Connect CLI to 1.0.2 (Renamed to connect-cli)
-*   Add MQTT wildcard support.
 
 ### Bug Fixes
 
