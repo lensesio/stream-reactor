@@ -17,12 +17,18 @@
 package com.datamountaineer.streamreactor.connect.coap.connection
 
 import java.io.FileInputStream
-import java.net.{InetAddress, InetSocketAddress}
+import java.net.{ConnectException, InetAddress, InetSocketAddress, URI}
 import java.security.cert.Certificate
 import java.security.{KeyStore, PrivateKey}
 
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSetting}
+import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigException
+import org.eclipse.californium.core.coap.CoAP
+import org.eclipse.californium.core.CoapClient
+import org.eclipse.californium.core.network.CoapEndpoint
+import org.eclipse.californium.core.network.config.NetworkConfig
+import org.eclipse.californium.scandium.DTLSConnector
 import org.eclipse.californium.scandium.config.DtlsConnectorConfig
 import org.eclipse.californium.scandium.dtls.cipher.CipherSuite
 import org.eclipse.californium.scandium.dtls.pskstore.InMemoryPskStore
@@ -31,52 +37,86 @@ import org.eclipse.californium.scandium.dtls.pskstore.InMemoryPskStore
   * Created by andrew@datamountaineer.com on 27/12/2016. 
   * stream-reactor
   */
-object DTLSConnectionFn {
-  def apply(setting: CoapSetting): Either[DtlsConnectorConfig, Unit] = {
+object DTLSConnectionFn extends StrictLogging {
+  def apply(setting: CoapSetting): CoapClient = {
+
+    val configUri = new URI(setting.uri)
+
+    val uri: URI = configUri.getHost match {
+      case CoapConstants.COAP_DISCOVER_IP4 => discoverServer(CoapConstants.COAP_DISCOVER_IP4_ADDRESS, configUri)
+      case CoapConstants.COAP_DISCOVER_IP6 => discoverServer(CoapConstants.COAP_DISCOVER_IP6_ADDRESS, configUri)
+      case _ => configUri
+    }
+
+    val client: CoapClient = new CoapClient(uri)
     val addr = new InetSocketAddress(InetAddress.getByName(setting.bindHost), setting.bindPort)
     val builder = new DtlsConnectorConfig.Builder
     builder.setAddress(addr)
 
-    if (setting.keyStoreLoc != null && setting.keyStoreLoc.nonEmpty) {
-      val keyStore = KeyStore.getInstance("JKS")
-      val inKey = new FileInputStream(setting.keyStoreLoc)
-      keyStore.load(inKey, setting.keyStorePass.value().toCharArray())
-      inKey.close()
+    if (uri.getScheme.equals(CoAP.COAP_SECURE_URI_SCHEME)) {
 
-      val trustStore = KeyStore.getInstance("JKS")
-      val inTrust = new FileInputStream(setting.trustStoreLoc)
-      trustStore.load(inTrust, setting.trustStorePass.value().toCharArray())
-      inTrust.close()
+      //Use SSL
+      if (setting.identity.isEmpty) {
+        val keyStore = KeyStore.getInstance("JKS")
+        val inKey = new FileInputStream(setting.keyStoreLoc)
+        keyStore.load(inKey, setting.keyStorePass.value().toCharArray())
+        inKey.close()
 
-      val certificates: Array[Certificate] = setting.certs.map(c => trustStore.getCertificate(c))
-      val privateKey = keyStore.getKey(setting.chainKey, setting.keyStorePass.value().toCharArray).asInstanceOf[PrivateKey]
-      val certChain = keyStore.getCertificateChain(setting.chainKey)
+        val trustStore = KeyStore.getInstance("JKS")
+        val inTrust = new FileInputStream(setting.trustStoreLoc)
+        trustStore.load(inTrust, setting.trustStorePass.value().toCharArray())
+        inTrust.close()
 
-      builder.setIdentity(privateKey, certChain, true)
-      builder.setTrustStore(certificates)
-      Left(builder.build())
+        val certificates: Array[Certificate] = setting.certs.map(c => trustStore.getCertificate(c))
+        val privateKey = keyStore.getKey(setting.chainKey, setting.keyStorePass.value().toCharArray).asInstanceOf[PrivateKey]
+        val certChain = keyStore.getCertificateChain(setting.chainKey)
 
-    } else if (setting.identity.nonEmpty) {
+        builder.setIdentity(privateKey, certChain, true)
+        builder.setTrustStore(certificates)
 
-      if (!setting.privateKey.isDefined) {
-        throw new ConfigException(s"${CoapConstants.COAP_PRIVATE_KEY_FILE} not defined")
+      } else {
+
+        val psk = new InMemoryPskStore()
+        psk.setKey(setting.identity, setting.secret.value().getBytes())
+        psk.addKnownPeer(addr, setting.identity, setting.secret.value().getBytes())
+        builder.setPskStore(psk)
+
+        if (setting.privateKey.isDefined) {
+          builder.setSupportedCipherSuites(Array[CipherSuite](CipherSuite.TLS_PSK_WITH_AES_128_CCM_8, CipherSuite.TLS_PSK_WITH_AES_128_CBC_SHA256))
+          builder.setIdentity(setting.privateKey.get, setting.publicKey.get)
+        }
       }
 
-      if (!setting.publicKey.isDefined) {
-        throw new ConfigException(s"${CoapConstants.COAP_PUBLIC_KEY_FILE} not defined")
-      }
+      client.setEndpoint(new CoapEndpoint(new DTLSConnector(builder.build()), NetworkConfig.getStandard))
+    }
+    client.setURI(s"${setting.uri}/${setting.target}")
+  }
 
-      val psk = new InMemoryPskStore()
-      builder.setSupportedCipherSuites(Array[CipherSuite](CipherSuite.TLS_PSK_WITH_AES_128_CCM_8, CipherSuite.TLS_PSK_WITH_AES_128_CBC_SHA256))
-      psk.setKey(setting.identity, setting.secret.value().getBytes())
-      psk.addKnownPeer(addr, setting.identity, setting.secret.value().getBytes())
-      builder.setPskStore(psk)
-      builder.setIdentity(setting.privateKey.get, setting.publicKey.get)
+  /**
+    * Discover servers on the local network
+    * and return the first one
+    *
+    * @param address The multicast address (ip4 or ip6)
+    * @param uri  The original URI
+    * @return A new URI of the server
+    **/
+  def discoverServer(address: String, uri: URI): URI = {
+    val client = new CoapClient(s"${uri.getScheme}://$address:${uri.getPort.toString}/.well-known/core")
+    client.useNONs()
+    val response = client.get()
 
-      Left(builder.build())
-
+    if (response != null) {
+      logger.info(s"Discovered Server ${response.advanced().getSource.toString}.")
+      new URI(uri.getScheme,
+        uri.getUserInfo,
+        response.advanced().getSource.getHostName,
+        response.advanced().getSourcePort,
+        uri.getPath,
+        uri.getQuery,
+        uri.getFragment)
     } else {
-      Right(())
+      logger.error(s"Unable to find any servers on local network with multicast address $address.")
+      throw new ConnectException(s"Unable to find any servers on local network with multicast address $address.")
     }
   }
 }
