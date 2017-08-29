@@ -76,6 +76,10 @@ allprojects {
 //        kafkaVersion = '0.11.0.0'
 //        dataMountaineerCommonVersion = "0.8.2.2"
 //        dataMountaineerTestKitVersion = "0.6"
+        confluentVersion = '3.3.0'
+        kafkaVersion = '0.11.0.0'
+        dataMountaineerCommonVersion = "0.8.1.3"
+        dataMountaineerTestKitVersion = "0.6"
 
         // Confluent 3.2
          confluentVersion = '3.2.2'
