@@ -16,15 +16,15 @@ import org.scalatest.BeforeAndAfter
   */
 class TestDTLSConnection extends TestBase with BeforeAndAfter {
 
-  val server = new Server(SINK_PORT_SECURE, SINK_PORT_INSECURE, kEY_PORT_SECURE)
-
-  before { server.start() }
-  after { server.stop() }
-
-  CaliforniumLogger.initialize()
-  CaliforniumLogger.setLevel(Level.INFO)
-  ScandiumLogger.initialize()
-  ScandiumLogger.setLevel(Level.INFO)
+//  val server = new Server(SINK_PORT_SECURE, SINK_PORT_INSECURE, kEY_PORT_SECURE)
+//
+//  before { server.start() }
+//  after { server.stop() }
+//
+//  CaliforniumLogger.initialize()
+//  CaliforniumLogger.setLevel(Level.INFO)
+//  ScandiumLogger.initialize()
+//  ScandiumLogger.setLevel(Level.INFO)
 
   "should create a DTSConnection with Public/Private PEM keys" in {
     val props = getPropsSecurePEM
@@ -40,6 +40,5 @@ class TestDTLSConnection extends TestBase with BeforeAndAfter {
     val settings = CoapSettings(config)
     val client = DTLSConnectionFn(settings.head)
     client.isInstanceOf[CoapClient] shouldBe true
-    client.post("message1", 0)
   }
 }
