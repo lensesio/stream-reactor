@@ -119,7 +119,7 @@ object ElasticConfig {
       ElasticConfigConstants.KCQL)
     .define(
       ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS,
-      Type.STRING,
+      Type.PASSWORD,
       ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS_DEFAULT,
       Importance.MEDIUM,
       ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS_DOC,

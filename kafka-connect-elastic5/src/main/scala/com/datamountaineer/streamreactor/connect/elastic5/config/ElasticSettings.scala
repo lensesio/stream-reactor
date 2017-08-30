@@ -20,6 +20,7 @@ import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.elastic5.config.ClientType.ClientType
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
 import org.apache.kafka.common.config.ConfigException
+import org.apache.kafka.common.config.types.Password
 import org.elasticsearch.plugins.Plugin
 
 import scala.util.Try
@@ -46,10 +47,11 @@ object ElasticSettings {
     val errorPolicy = config.getErrorPolicy
     val retries = config.getNumberRetries
     val clientType = ClientType.withName(config.getString(ElasticConfigConstants.CLIENT_TYPE_CONFIG).toUpperCase)
+    val rawXPack = Option(config.getPassword(ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS))
 
-    val xPackSettings = Option(config.getString(ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS))
-      .map { value =>
-        value.split(";").map { s =>
+    val xPackSettings = rawXPack
+      .map { password =>
+        password.value().split(";").map { s =>
           s.split("=") match {
             case Array(k, v) => k -> v
             case _ => throw new IllegalArgumentException(s"Invalid setting provided for ${ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS}. '$s' is not a valid XPACK setting. You need to provide in the format of 'key=value'")
