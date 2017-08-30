@@ -24,7 +24,7 @@ package com.datamountaineer.streamreactor.connect.kudu
 import java.nio.ByteBuffer
 import java.util
 
-import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfigConstants
+import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfigConstants, WriteFlushMode}
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -121,6 +121,15 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       KuduConfigConstants.KCQL -> KCQL_MAP_AUTOCREATE,
       KuduConfigConstants.ERROR_POLICY -> "RETRY",
       KuduConfigConstants.SCHEMA_REGISTRY_URL -> url
+    ).asJava
+  }
+
+  def getConfigAutoCreateRetryWithBackgroundFlush(url: String) = {
+    Map(KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
+      KuduConfigConstants.KCQL -> KCQL_MAP_AUTOCREATE,
+      KuduConfigConstants.ERROR_POLICY -> "RETRY",
+      KuduConfigConstants.SCHEMA_REGISTRY_URL -> url,
+      KuduConfigConstants.WRITE_FLUSH_MODE -> "BATCH_BACKGROUND"
     ).asJava
   }
 

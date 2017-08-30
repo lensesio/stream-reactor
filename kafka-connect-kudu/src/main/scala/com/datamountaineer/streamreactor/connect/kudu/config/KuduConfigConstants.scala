@@ -55,4 +55,15 @@ object KuduConfigConstants {
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
+
+  val WRITE_FLUSH_MODE = s"${CONNECTOR_PREFIX}.write.flush.mode"
+  val WRITE_FLUSH_MODE_DOC =
+    """Specify kudu write mode:
+      |SYNC - flush each sink record. Batching is disabled.
+      |BATCH_BACKGROUND - flush batch of sink records in background thread.
+      |BATCH_SYNC - flush batch of sink records.
+    """.stripMargin
+  val WRITE_FLUSH_MODE_DEFAULT = "SYNC"
+
+
 }

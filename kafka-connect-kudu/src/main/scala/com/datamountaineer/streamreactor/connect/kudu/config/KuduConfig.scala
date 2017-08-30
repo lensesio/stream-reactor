@@ -55,9 +55,16 @@ object KuduConfig {
       "Connection", 6, ConfigDef.Width.MEDIUM,
       KuduConfigConstants.SCHEMA_REGISTRY_URL)
 
+    .define(KuduConfigConstants.WRITE_FLUSH_MODE, Type.STRING, KuduConfigConstants.WRITE_FLUSH_MODE_DEFAULT,
+        Importance.MEDIUM, KuduConfigConstants.WRITE_FLUSH_MODE_DOC,
+        "Connection", 7, ConfigDef.Width.MEDIUM,
+        KuduConfigConstants.WRITE_FLUSH_MODE)
+
     .define(KuduConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, KuduConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
       Importance.MEDIUM, KuduConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
       "Metrics", 1, ConfigDef.Width.MEDIUM, KuduConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
+
+
 }
 
 class KuduConfig(props: util.Map[String, String])
@@ -66,4 +73,13 @@ class KuduConfig(props: util.Map[String, String])
     with DatabaseSettings
     with ErrorPolicySettings
     with NumberRetriesSettings
-    with ConnectionSettings
+    with ConnectionSettings {
+
+  def getWriteFlushMode() = WriteFlushMode.withName(
+    props.getOrDefault(
+      KuduConfigConstants.WRITE_FLUSH_MODE,
+      KuduConfigConstants.WRITE_FLUSH_MODE_DEFAULT).toUpperCase)
+
+}
+
+
