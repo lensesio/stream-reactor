@@ -60,6 +60,11 @@ object KuduConfig {
         "Connection", 7, ConfigDef.Width.MEDIUM,
         KuduConfigConstants.WRITE_FLUSH_MODE)
 
+    .define(KuduConfigConstants.MUTATION_BUFFER_SPACE, Type.INT, KuduConfigConstants.MUTATION_BUFFER_SPACE_DEFAULT,
+      Importance.MEDIUM, KuduConfigConstants.MUTATION_BUFFER_SPACE_DOC,
+      "Connection", 8, ConfigDef.Width.MEDIUM,
+      KuduConfigConstants.MUTATION_BUFFER_SPACE)
+
     .define(KuduConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, KuduConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
       Importance.MEDIUM, KuduConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
       "Metrics", 1, ConfigDef.Width.MEDIUM, KuduConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)

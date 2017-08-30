@@ -47,7 +47,7 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
-**3.0.0 (Pending)**
+**3.0.0**
 
 *   Upgrade CoAP to 2.0.0-M4
 *   Upgrade to Confluent 3.3 and Kafka 0.11.0.0.
@@ -55,8 +55,9 @@ A collection of components to build a real time ingestion pipeline.
 *   Add MQTT wildcard support.
 *   Upgrade CoAP to 2.0.0-M4.
 *   Added WITHCONVERTERS and WITHTYPE to JMS and MQTT connectors in KCQL to simplify configuration.
+*   Added FLUSH MODE to Kudu. Thanks! @patsak
 
-**0.2.6 (Pending)**
+**0.2.6**
 
 ### Features
 

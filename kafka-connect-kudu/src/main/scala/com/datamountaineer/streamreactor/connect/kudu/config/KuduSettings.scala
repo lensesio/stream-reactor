@@ -33,7 +33,9 @@ case class KuduSettings(kcql: List[Kcql],
                         errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                         maxRetries: Int = KuduConfigConstants.NBR_OF_RETIRES_DEFAULT,
                         schemaRegistryUrl: String,
-                        writeFlushMode: WriteFlushMode.WriteFlushMode)
+                        writeFlushMode: WriteFlushMode.WriteFlushMode,
+                        mutationBufferSpace: Int
+                       )
 
 object KuduSettings {
 
@@ -50,6 +52,7 @@ object KuduSettings {
     val writeModeMap = config.getWriteMode()
     val topicTables = config.getTableTopic()
     val writeFlushMode = config.getWriteFlushMode()
+    val mutationBufferSpace = config.getInt(KuduConfigConstants.MUTATION_BUFFER_SPACE)
 
     new KuduSettings(kcql = kcql.toList,
       topicTables = topicTables,
@@ -61,7 +64,8 @@ object KuduSettings {
       errorPolicy = errorPolicy,
       maxRetries = maxRetries,
       schemaRegistryUrl = schemaRegUrl,
-      writeFlushMode = writeFlushMode
+      writeFlushMode = writeFlushMode,
+      mutationBufferSpace = mutationBufferSpace
      )
   }
 }

@@ -65,5 +65,8 @@ object KuduConfigConstants {
     """.stripMargin
   val WRITE_FLUSH_MODE_DEFAULT = "SYNC"
 
+  val MUTATION_BUFFER_SPACE = s"${CONNECTOR_PREFIX}.mutation.buffer.space"
+  val MUTATION_BUFFER_SPACE_DOC = "Kudu Session mutation buffer space"
+  val MUTATION_BUFFER_SPACE_DEFAULT = 1000
 
 }

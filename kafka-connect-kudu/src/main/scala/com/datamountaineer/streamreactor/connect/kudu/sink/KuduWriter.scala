@@ -50,7 +50,7 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
   with ErrorHandler with ConverterUtil {
   logger.info("Initialising Kudu writer")
 
-  private val MUTATION_BUFFER_SPACE = 1000
+  private val MUTATION_BUFFER_SPACE = setting.mutationBufferSpace
 
   //pre create tables
   Try(DbHandler.createTables(setting, client)) match {
