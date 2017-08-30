@@ -72,7 +72,6 @@ class MqttSourceConnector extends SourceConnector with StrictLogging {
     * @param props A map of properties for the connector and worker
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    Helpers.checkInputTopics(MqttConfigConstants.KCQL_CONFIG, props.asScala.toMap)
     configProps = props
   }
 
