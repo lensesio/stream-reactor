@@ -203,6 +203,7 @@ allprojects {
     task fatJar(dependsOn: [test, shadowJar])
 
     jar {
+        zip64 true
         dependsOn configurations.runtime
         from {
             (configurations.runtime - configurations.provided).collect {
