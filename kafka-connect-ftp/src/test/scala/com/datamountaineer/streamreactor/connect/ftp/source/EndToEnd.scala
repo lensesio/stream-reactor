@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.ftp
+package com.datamountaineer.streamreactor.connect.ftp.source
 
 import java.nio.file.Path
 import java.util
 
 import better.files._
-import com.datamountaineer.streamreactor.connect.ftp.KeyStyle.KeyStyle
-import com.datamountaineer.streamreactor.connect.ftp.config.{FtpSourceConfig, FtpSourceConfigConstants}
+import com.datamountaineer.streamreactor.connect.ftp.source.KeyStyle.KeyStyle
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.ftpserver.listener.ListenerFactory
 import org.apache.ftpserver.usermanager.PropertiesUserManagerFactory
@@ -52,7 +51,7 @@ class EmbeddedFtpServer extends StrictLogging {
   val port = 22221 // TODO: find free port
   val rootDir = File.newTemporaryDirectory().path
 
-  var server: FtpServer = _
+  var server: FtpServer = null
 
   def start() = {
     val userManagerFactory = new PropertiesUserManagerFactory()
@@ -85,7 +84,7 @@ case class Update(body:Array[Byte]) extends FileChange
 case class Append(body:Array[Byte]) extends FileChange
 
 class FileSystem(rootDir:Path) {
-  def clear = {
+  def clear() = {
     require(File(rootDir).isDirectory)
     File(rootDir).clear()
     this
@@ -99,13 +98,15 @@ class FileSystem(rootDir:Path) {
 
   def applyChanges(chgs: Seq[(String, FileChange)]): Seq[(String, FileDiff)] = {
     chgs.flatMap { case (fn, chg) => chg match {
-      case Update(body) =>
+      case Update(body) => {
         file(fn).writeBytes(body.iterator)
         Some(fn -> FileDiff(body, 0))
-      case Append(body) if body.length > 0 =>
+      }
+      case Append(body) if body.length > 0 => {
         val oldSize = if (file(fn).exists) file(fn).size else 0
         file(fn).appendBytes(body.iterator)
         Some(fn -> FileDiff(body, oldSize))
+      }
       case _ => None
     }
     }
@@ -116,7 +117,7 @@ class FileSystem(rootDir:Path) {
 class EndToEndTests extends FunSuite with Matchers with BeforeAndAfter with StrictLogging {
   val sEmpty = new Array[Byte](0)
   val s0 = (0 to 255).map(_.toByte).toArray
-  val s1 = "Hebban olla vogala nestas hagunnan hinase hic enda thu wat unbidan we nu\r\n\t:)".getBytes
+  val s1 = "Hebban olla vogala nestas hagunnan hinase hic enda thu wat unbidan we nu\r\n\t\u0000:)".getBytes
   val s2 = "<mandatory quote to show off erudition here>".getBytes
   val s3 = "!".getBytes
 
@@ -151,14 +152,14 @@ class EndToEndTests extends FunSuite with Matchers with BeforeAndAfter with Stri
 
   val server = new EmbeddedFtpServer
 
-  val defaultConfig = Map(FtpSourceConfigConstants.ADDRESS -> s"${server.host}:${server.port}",
-    FtpSourceConfigConstants.USER -> server.username,
-    FtpSourceConfigConstants.PASSWORD -> server.password,
-    FtpSourceConfigConstants.REFRESH_RATE -> "PT0S",
-    FtpSourceConfigConstants.MONITOR_TAIL -> "/tails/:tails",
-    FtpSourceConfigConstants.MONITOR_UPDATE -> "/updates/:updates",
-    FtpSourceConfigConstants.FILE_MAX_AGE -> "P7D",
-    FtpSourceConfigConstants.KEY_STYLE -> "string"
+  val defaultConfig = Map(FtpSourceConfig.Address -> s"${server.host}:${server.port}",
+    FtpSourceConfig.User -> server.username,
+    FtpSourceConfig.Password -> server.password,
+    FtpSourceConfig.RefreshRate -> "PT0S",
+    FtpSourceConfig.MonitorTail -> "/tails/:tails",
+    FtpSourceConfig.MonitorUpdate -> "/updates/:updates",
+    FtpSourceConfig.FileMaxAge -> "P7D",
+    FtpSourceConfig.KeyStyle -> "string"
   )
 
   def validateSourceRecords(recs:Seq[SourceRecord], diffs:Seq[(String,String,FileDiff)], keyStyle: KeyStyle = KeyStyle.String) = {
@@ -175,7 +176,7 @@ class EndToEndTests extends FunSuite with Matchers with BeforeAndAfter with Stri
         })
     }
       exist shouldBe true
-      logger.info(s"got a source record that corresponds with the changes on $fileName")
+      logger.info(s"got a source record that corresponds with the changes on ${fileName}")
     }
   }
 
@@ -185,7 +186,7 @@ class EndToEndTests extends FunSuite with Matchers with BeforeAndAfter with Stri
     val fs = new FileSystem(server.rootDir).clear
     server.start()
 
-    val cfg = new FtpSourceConfig(defaultConfig.updated(FtpSourceConfigConstants.KEY_STYLE,"struct").asJava)
+    val cfg = new FtpSourceConfig(defaultConfig.updated(FtpSourceConfig.KeyStyle,"struct").asJava)
 
     val offsets = new DummyOffsetStorage
     val poller = new FtpSourcePoller(cfg, offsets)
@@ -203,7 +204,7 @@ class EndToEndTests extends FunSuite with Matchers with BeforeAndAfter with Stri
     val fs = new FileSystem(server.rootDir).clear
     server.start()
 
-    val cfg = new FtpSourceConfig(defaultConfig.updated(FtpSourceConfigConstants.KEY_STYLE,"string").asJava)
+    val cfg = new FtpSourceConfig(defaultConfig.updated(FtpSourceConfig.KeyStyle,"string").asJava)
 
     val offsets = new DummyOffsetStorage
     val poller = new FtpSourcePoller(cfg, offsets)
@@ -213,6 +214,33 @@ class EndToEndTests extends FunSuite with Matchers with BeforeAndAfter with Stri
       val diffs = fs.applyChanges(changeSet)
       validateSourceRecords(poller.poll(), diffs.map { case (f, d) => (fileToTopic(f), f, d) },keyStyle = KeyStyle.String)
     })
+
+    server.stop()
+  }
+
+  test("Streaming flow: files are only fetched when the records are polled") {
+    logger.info("Start test")
+    val fs = new FileSystem(server.rootDir).clear
+    server.start()
+
+    val cfg = new FtpSourceConfig(
+      defaultConfig
+        .updated(FtpSourceConfig.KeyStyle,"string")
+        .updated(FtpSourceConfig.FtpMaxPollRecords, "1").asJava
+    )
+
+    val offsets = new DummyOffsetStorage
+    val poller = new FtpSourcePoller(cfg, offsets)
+    poller.poll() shouldBe empty
+
+    fs.applyChanges(changeSets.head)
+    poller.poll().size shouldBe 1
+
+    // clear the ftp directory and the poll will return an empty record,
+    // if not it succeeds then the file was pulled before it was needed
+    fs.clear()
+    poller.poll() // This will return the single cached record
+    poller.poll().size shouldBe 0 // Empty because the files have been removed.
 
     server.stop()
   }

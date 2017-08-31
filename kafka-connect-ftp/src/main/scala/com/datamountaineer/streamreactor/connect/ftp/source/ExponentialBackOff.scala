@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.ftp
+package com.datamountaineer.streamreactor.connect.ftp.source
 
 import java.time.{Duration, Instant}
 
 class ExponentialBackOff(step: Duration, cap: Duration, iteration: Int = 0) {
-  val endTime: Instant = Instant.now.plus(interval(iteration))
+  val endTime = Instant.now.plus(interval(iteration))
 
   private def interval(i: Int) = Duration.ofMillis(
     Math.min(
@@ -32,7 +32,7 @@ class ExponentialBackOff(step: Duration, cap: Duration, iteration: Int = 0) {
 
   def passed: Boolean = Instant.now.isAfter(this.endTime)
 
-  def nextSuccess: ExponentialBackOff = new ExponentialBackOff(step, cap)
+  def nextSuccess(): ExponentialBackOff = new ExponentialBackOff(step, cap)
 
-  def nextFailure: ExponentialBackOff = new ExponentialBackOff(step, cap, iteration + 1)
+  def nextFailure(): ExponentialBackOff = new ExponentialBackOff(step, cap, iteration + 1)
 }

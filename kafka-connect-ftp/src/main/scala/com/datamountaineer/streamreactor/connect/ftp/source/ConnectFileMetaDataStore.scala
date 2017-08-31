@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.ftp
+package com.datamountaineer.streamreactor.connect.ftp.source
 
 import java.time.Instant
 import java.util
@@ -38,7 +38,7 @@ class ConnectFileMetaDataStore(offsetStorage: OffsetStorageReader) extends FileM
     })
 
   override def set(path: String, fileMetaData: FileMetaData): Unit = {
-    logger.info(s"ConnectFileMetaDataStore set $path")
+    logger.info(s"ConnectFileMetaDataStore set ${path}")
     cache.put(path, fileMetaData)
   }
 
@@ -46,10 +46,10 @@ class ConnectFileMetaDataStore(offsetStorage: OffsetStorageReader) extends FileM
   def getFromStorage(path: String): Option[FileMetaData] =
     offsetStorage.offset(Map("path" -> path).asJava) match {
       case null =>
-        logger.info(s"meta store storage HASN'T $path")
+        logger.info(s"meta store storage HASN'T ${path}")
         None
       case o =>
-        logger.info(s"meta store storage has $path")
+        logger.info(s"meta store storage has ${path}")
         Some(connectOffsetToFileMetas(path, o))
     }
 
@@ -59,12 +59,17 @@ class ConnectFileMetaDataStore(offsetStorage: OffsetStorageReader) extends FileM
 
   def connectOffsetToFileMetas(path:String, o:AnyRef): FileMetaData = {
     val jm = o.asInstanceOf[java.util.Map[String, AnyRef]]
-    FileMetaData(FileAttributes(path, jm.get("size").asInstanceOf[Long],
-      Instant.ofEpochMilli(jm.get("timestamp").asInstanceOf[Long])
-    ), jm.get("hash").asInstanceOf[String],
+    FileMetaData(
+      FileAttributes(
+        path,
+        jm.get("size").asInstanceOf[Long],
+        Instant.ofEpochMilli(jm.get("timestamp").asInstanceOf[Long])
+      ),
+      jm.get("hash").asInstanceOf[String],
       Instant.ofEpochMilli(jm.get("firstfetched").asInstanceOf[Long]),
       Instant.ofEpochMilli(jm.get("lastmodified").asInstanceOf[Long]),
-      Instant.ofEpochMilli(jm.get("lastinspected").asInstanceOf[Long])
+      Instant.ofEpochMilli(jm.get("lastinspected").asInstanceOf[Long]),
+      jm.asScala.getOrElse("offset", -1L).asInstanceOf[Long]
     )
   }
 
@@ -74,7 +79,8 @@ class ConnectFileMetaDataStore(offsetStorage: OffsetStorageReader) extends FileM
       "hash" -> meta.hash,
       "firstfetched" -> meta.firstFetched.toEpochMilli,
       "lastmodified" -> meta.lastModified.toEpochMilli,
-      "lastinspected" -> meta.lastInspected.toEpochMilli
+      "lastinspected" -> meta.lastInspected.toEpochMilli,
+      "offset" -> meta.offset
     ).asJava
   }
 }

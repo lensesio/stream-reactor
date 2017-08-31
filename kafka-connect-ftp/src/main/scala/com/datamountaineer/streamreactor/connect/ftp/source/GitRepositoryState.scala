@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.ftp
+package com.datamountaineer.streamreactor.connect.ftp.source
 
 import java.util.Properties
 
 object GitRepositoryState {
-  val props: Properties = {
+  val props = {
     val p = new Properties()
     p.load(getClass.getClassLoader.getResourceAsStream("git.properties"))
     p

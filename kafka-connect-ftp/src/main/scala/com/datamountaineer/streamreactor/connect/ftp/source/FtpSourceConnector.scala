@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.ftp
+package com.datamountaineer.streamreactor.connect.ftp.source
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.ftp.config.FtpSourceConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceConnector
@@ -29,7 +27,7 @@ import scala.collection.JavaConverters._
 import scala.util.{Failure, Try}
 
 class FtpSourceConnector extends SourceConnector with StrictLogging {
-  private var configProps: Option[util.Map[String, String]] = None
+  private var configProps : Option[util.Map[String, String]] = None
 
   override def taskClass(): Class[_ <: Task] = classOf[FtpSourceTask]
 
@@ -47,7 +45,7 @@ class FtpSourceConnector extends SourceConnector with StrictLogging {
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/ftp-source-ascii.txt")).mkString + s" v $version")
-    // logger.info(s"start FtpSourceConnector ${GitRepositoryState.summary}")
+    logger.info(s"start FtpSourceConnector ${GitRepositoryState.summary}")
 
     configProps = Some(props)
     Try(new FtpSourceConfig(props)) match {
@@ -56,7 +54,7 @@ class FtpSourceConnector extends SourceConnector with StrictLogging {
     }
   }
 
-  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
+  override def version(): String = getClass.getPackage.getImplementationVersion
 
-  override def config(): ConfigDef = FtpSourceConfig.definition
+  override def config() = FtpSourceConfig.definition
 }

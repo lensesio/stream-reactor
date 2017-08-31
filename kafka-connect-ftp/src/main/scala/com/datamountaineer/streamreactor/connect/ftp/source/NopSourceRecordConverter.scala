@@ -14,19 +14,17 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.ftp
+package com.datamountaineer.streamreactor.connect.ftp.source
 
 import java.util
 
-import org.apache.kafka.common.Configurable
 import org.apache.kafka.connect.source.SourceRecord
-
 import scala.collection.JavaConverters._
 
-trait SourceRecordConverter extends Configurable {
-  def convert(in:SourceRecord) : java.util.List[SourceRecord]
-}
-
+/**
+  * Created by andrew@datamountaineer.com on 31/08/2017. 
+  * Default (Template) Project
+  */
 class NopSourceRecordConverter extends SourceRecordConverter{
   override def configure(props: util.Map[String, _]): Unit = {}
 
