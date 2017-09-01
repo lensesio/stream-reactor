@@ -204,31 +204,6 @@ allprojects {
 
     jar {
         zip64 true
-        dependsOn configurations.runtime
-        from {
-            (configurations.runtime - configurations.provided).collect {
-                it.isDirectory() ? it : zipTree(it)
-            }
-        } {
-            exclude "META-INF/*.SF"
-            exclude "META-INF/*.DSA"
-            exclude "META-INF/*.RSA"
-        }
-        jar.archiveName = "$project.name-$project.version-$confluentVersion-all.jar"
-    }
-
-    jar {
-        dependsOn configurations.runtime
-        from {
-            (configurations.runtime - configurations.provided).collect {
-                it.isDirectory() ? it : zipTree(it)
-            }
-        } {
-            exclude "META-INF/*.SF"
-            exclude "META-INF/*.DSA"
-            exclude "META-INF/*.RSA"
-        }
-        jar.archiveName = "$project.name-$project.version-$confluentVersion-all.jar"
     }
 
     task collectJars(type: Copy) {
