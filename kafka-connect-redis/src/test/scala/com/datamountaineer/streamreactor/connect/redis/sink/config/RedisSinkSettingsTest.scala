@@ -36,7 +36,7 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with RedisMockSupport
     settings.connectionInfo.password shouldBe None
   }
 
-  "work with KCQL : SELECT * FROM topicA" in {
+  "should throw an expection as no PK set in Cache Mode : SELECT * FROM topicA" in {
     val QUERY_ALL = "SELECT * FROM topicA"
     val config = getRedisSinkConfig(password = true, KCQL = Option(QUERY_ALL))
     val settings = RedisSinkSettings(config)
