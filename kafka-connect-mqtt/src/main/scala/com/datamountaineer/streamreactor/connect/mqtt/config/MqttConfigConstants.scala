@@ -95,6 +95,10 @@ object MqttConfigConstants {
   val THROW_ON_CONVERT_ERRORS_DISPLAY = "Throw error on conversion"
   val THROW_ON_CONVERT_ERRORS_DEFAULT = false
 
+  val AVRO_CONVERTERS_SCHEMA_FILES = "connect.converter.avro.schemas"
+  val AVRO_CONVERTERS_SCHEMA_FILES_DOC = "If the AvroConverter is used you need to provide an avro Schema to be able to read and translate the raw bytes to an avro record. The format is $MQTT_TOPIC=$PATH_TO_AVRO_SCHEMA_FILE"
+  val AVRO_CONVERTERS_SCHEMA_FILES_DEFAULT = ""
+
   val PROGRESS_COUNTER_ENABLED = PROGRESS_ENABLED_CONST
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
