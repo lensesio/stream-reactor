@@ -72,6 +72,9 @@ object MqttSourceConfig {
     .define(MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG, Type.BOOLEAN, MqttConfigConstants.THROW_ON_CONVERT_ERRORS_DEFAULT,
       Importance.HIGH, MqttConfigConstants.THROW_ON_CONVERT_ERRORS_DOC,
       "Converter", 1, ConfigDef.Width.MEDIUM, MqttConfigConstants.THROW_ON_CONVERT_ERRORS_DISPLAY)
+    .define(MqttConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES, Type.STRING, MqttConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_DEFAULT,
+      Importance.HIGH, MqttConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_DOC, "Converter", 3, ConfigDef.Width.MEDIUM,
+      MqttConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES)
     //manager
     .define(MqttConfigConstants.POLLING_TIMEOUT_CONFIG, Type.INT, MqttConfigConstants.POLLING_TIMEOUT_DEFAULT,
       Importance.LOW, MqttConfigConstants.POLLING_TIMEOUT_DOC,

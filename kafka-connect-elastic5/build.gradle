@@ -20,7 +20,7 @@ project(":kafka-connect-elastic5") {
         maven { url "https://artifacts.elastic.co/maven" }
     }
     ext {
-        elastic4sVersion = '5.4.9'
+        elastic4sVersion = '5.4.11'
         jnaVersion = '3.0.9'
     }
 

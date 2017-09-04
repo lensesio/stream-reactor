@@ -22,8 +22,9 @@ import com.datamountaineer.streamreactor.connect.config.Helpers
 import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.connect.connector.{Connector, Task}
+import org.apache.kafka.connect.connector.{Task}
 import org.apache.kafka.connect.errors.ConnectException
+import org.apache.kafka.connect.sink.SinkConnector
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
@@ -35,7 +36,7 @@ import scala.util.{Failure, Try}
   *
   * Sets up MongoSinkTask and configurations for the tasks.
   **/
-class MongoSinkConnector extends Connector with StrictLogging {
+class MongoSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
 
 

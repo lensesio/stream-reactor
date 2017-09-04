@@ -61,6 +61,9 @@ object JMSConfigConstants {
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
+  val AVRO_CONVERTERS_SCHEMA_FILES = "connect.converter.avro.schemas"
+  val AVRO_CONVERTERS_SCHEMA_FILES_DOC = "If the AvroConverter is used you need to provide an avro Schema to be able to read and translate the raw bytes to an avro record. The format is $MQTT_TOPIC=$PATH_TO_AVRO_SCHEMA_FILE"
+  val AVRO_CONVERTERS_SCHEMA_FILES_DEFAULT = ""
 
   val DEFAULT_CONVERTER_CONFIG = s"${CONNECTOR_PREFIX}.source.default.converter"
   private[config] val DEFAULT_CONVERTER_DOC =
