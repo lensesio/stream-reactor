@@ -59,6 +59,11 @@ object MqttConfigConstants {
   val CONNECTION_TIMEOUT_DISPLAY = "Connection timeout"
   val CONNECTION_TIMEOUT_DEFAULT = 3000
 
+  val POLLING_TIMEOUT_CONFIG = s"${CONNECTOR_PREFIX}.polling.timeout"
+  val POLLING_TIMEOUT_DOC = "Provides the timeout to poll incoming messages"
+  val POLLING_TIMEOUT_DISPLAY = "Polling timeout"
+  val POLLING_TIMEOUT_DEFAULT = 1000
+
   val CLEAN_SESSION_CONFIG = s"${CONNECTOR_PREFIX}.clean"
   val CLEAN_CONNECTION_DISPLAY = "Clean session"
   val CLEAN_CONNECTION_DEFAULT = true

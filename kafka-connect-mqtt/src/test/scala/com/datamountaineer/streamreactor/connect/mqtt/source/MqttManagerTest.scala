@@ -47,6 +47,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
   val clientId = "MqttManagerTest"
   val qs = 1
   val connectionTimeout = 1000
+  val pollingTimeout = 500
   val keepAlive = 1000
 
   var mqttBroker: Option[Server] = None
@@ -103,6 +104,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
         Array(s"INSERT INTO $target SELECT * FROM $source"),
         qs,
         connectionTimeout,
+        pollingTimeout,
         true,
         keepAlive,
         None,
@@ -113,7 +115,8 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
         sourcesToConvMap,
         1,
         Array(Kcql.parse(s"INSERT INTO $target SELECT * FROM $source")),
-        true)
+        true,
+        settings.pollingTimeout)
 
       val messages = Seq("message1", "message2")
 
@@ -167,6 +170,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
         Array(s"INSERT INTO $target SELECT * FROM $source"),
         qs,
         connectionTimeout,
+        pollingTimeout,
         true,
         keepAlive,
         None,
@@ -177,7 +181,8 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
         sourcesToConvMap,
         1,
         Array(Kcql.parse(s"INSERT INTO $target SELECT * FROM $source")),
-        true)
+        true,
+        settings.pollingTimeout)
 
       val messages = Seq("message1", "message2")
       messages.foreach { m =>
@@ -244,6 +249,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
           s"INSERT INTO $target3 SELECT * FROM $source3"),
         qs,
         connectionTimeout,
+        pollingTimeout,
         cleanSession = true,
         keepAlive,
         None,
@@ -255,7 +261,8 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
         sourcesToConvMap,
         1,
         settings.kcql.map(Kcql.parse),
-        true)
+        true,
+        settings.pollingTimeout)
 
       val message1 = "message1".getBytes()
 

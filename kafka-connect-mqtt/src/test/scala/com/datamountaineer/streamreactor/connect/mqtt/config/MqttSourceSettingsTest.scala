@@ -35,6 +35,7 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
           MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
           MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
           MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+          MqttConfigConstants.POLLING_TIMEOUT_CONFIG -> "500",
           MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
           MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
           MqttConfigConstants.USER_CONFIG -> "user"
@@ -49,6 +50,7 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
       settings.user shouldBe Some("user")
       settings.keepAliveInterval shouldBe 1000
       settings.connectionTimeout shouldBe 1000
+      settings.pollingTimeout shouldBe 500
       settings.connection shouldBe "mqtt://localhost:61612?wireFormat.maxFrameSize=100000"
     }
 
@@ -62,6 +64,7 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
           MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
           MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
           MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+          MqttConfigConstants.POLLING_TIMEOUT_CONFIG -> "500",
           MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
           MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
           MqttConfigConstants.USER_CONFIG -> "user"
@@ -80,6 +83,7 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
           MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
           MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
           MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+          MqttConfigConstants.POLLING_TIMEOUT_CONFIG -> "500",
           MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
           MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
           MqttConfigConstants.USER_CONFIG -> "user"
@@ -98,6 +102,7 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
             MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
             MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
             MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+            MqttConfigConstants.POLLING_TIMEOUT_CONFIG -> "500",
             MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
             MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
             MqttConfigConstants.USER_CONFIG -> "user"
@@ -116,6 +121,7 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
             MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
             MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
             MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+            MqttConfigConstants.POLLING_TIMEOUT_CONFIG -> "500",
             MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
             MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
             MqttConfigConstants.USER_CONFIG -> "user"
@@ -133,6 +139,7 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
             MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
             MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
             MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+            MqttConfigConstants.POLLING_TIMEOUT_CONFIG -> "500",
             MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
             MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
             MqttConfigConstants.USER_CONFIG -> "user"
@@ -149,6 +156,7 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
           MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
           MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
           MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+          MqttConfigConstants.POLLING_TIMEOUT_CONFIG -> "500",
           MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
           MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
           MqttConfigConstants.USER_CONFIG -> "user"
@@ -165,6 +173,7 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
           MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
           MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
           MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+          MqttConfigConstants.POLLING_TIMEOUT_CONFIG -> "500",
           MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
           MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
           MqttConfigConstants.USER_CONFIG -> "user"
@@ -181,6 +190,7 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
           MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
           MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
           MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+          MqttConfigConstants.POLLING_TIMEOUT_CONFIG -> "500",
           MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
           MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
           MqttConfigConstants.USER_CONFIG -> "user"
