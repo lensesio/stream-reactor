@@ -67,10 +67,15 @@ object MqttConfig {
 }
 
 object MqttSourceConfig {
-  val config = MqttConfig.config //converter
+  val config = MqttConfig.config
+    //converter
     .define(MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG, Type.BOOLEAN, MqttConfigConstants.THROW_ON_CONVERT_ERRORS_DEFAULT,
       Importance.HIGH, MqttConfigConstants.THROW_ON_CONVERT_ERRORS_DOC,
       "Converter", 1, ConfigDef.Width.MEDIUM, MqttConfigConstants.THROW_ON_CONVERT_ERRORS_DISPLAY)
+    //manager
+    .define(MqttConfigConstants.POLLING_TIMEOUT_CONFIG, Type.INT, MqttConfigConstants.POLLING_TIMEOUT_DEFAULT,
+      Importance.LOW, MqttConfigConstants.POLLING_TIMEOUT_DOC,
+      "Manager", 1, ConfigDef.Width.MEDIUM, MqttConfigConstants.POLLING_TIMEOUT_DISPLAY)
 
 }
 

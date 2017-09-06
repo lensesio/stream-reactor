@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import java.util
 import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
@@ -31,7 +32,8 @@ class MqttManager(connectionFn: (MqttCallback) => MqttClient,
                   convertersMap: Map[String, Converter],
                   qualityOfService: Int,
                   kcql: Array[Kcql],
-                  throwOnErrors: Boolean) extends AutoCloseable with StrictLogging with MqttCallback {
+                  throwOnErrors: Boolean,
+                  pollingTimeout: Int) extends AutoCloseable with StrictLogging with MqttCallback {
   private val client: MqttClient = connectionFn(this)
   private val sourceToTopicMap = kcql.map(c => c.getSource -> c).toMap
   require(kcql.nonEmpty, s"Invalid $kcql parameter. At least one statement needs to be provided")
@@ -88,5 +90,13 @@ class MqttManager(connectionFn: (MqttCallback) => MqttClient,
     logger.warn("Connection lost. Re-connecting is set to true", cause)
   }
 
-  def getRecords(target: util.Collection[SourceRecord]): Int = queue.drainTo(target)
+  def getRecords(target: util.Collection[SourceRecord]): Int = {
+    Option(queue.poll(pollingTimeout, TimeUnit.MILLISECONDS)) match {
+      case Some(x) =>
+        target.add(x)
+        queue.drainTo(target) + 1
+      case None =>
+        0
+    }
+  }
 }
