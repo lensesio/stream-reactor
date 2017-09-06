@@ -21,9 +21,10 @@ import java.nio.file.Paths
 import java.time.{Duration, Instant}
 import java.util
 
+import com.datamountaineer.streamreactor.connect.ftp.source.FtpProtocol.FtpProtocol
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.commons.codec.digest.DigestUtils
-import org.apache.commons.net.ftp.{FTP, FTPClient, FTPReply}
+import org.apache.commons.net.ftp.{FTP, FTPClient, FTPReply, FTPSClient}
 import org.apache.commons.net.{ProtocolCommandEvent, ProtocolCommandListener}
 
 import scala.util.{Failure, Success, Try}
@@ -41,12 +42,15 @@ case class FileBody(bytes:Array[Byte], offset:Long)
 object EmptyFileBody extends FileBody(Array[Byte](), 0)
 
 // instructs the FtpMonitor how to do its things
-case class FtpMonitorSettings(host:String, port:Option[Int], user:String, pass:String, maxAge: Option[Duration], directories: Seq[MonitoredPath], timeoutMs:Int)
+case class FtpMonitorSettings(host:String, port:Option[Int], user:String, pass:String, maxAge: Option[Duration], directories: Seq[MonitoredPath], timeoutMs:Int, protocol: FtpProtocol)
 
 class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) extends StrictLogging {
   val MaxAge = settings.maxAge.getOrElse(Duration.ofDays(Long.MaxValue))
 
-  val ftp = new FTPClient()
+  val ftp = settings.protocol match {
+    case FtpProtocol.FTP => new FTPClient()
+    case FtpProtocol.FTPS => new FTPSClient()
+  }
 
   def requiresFetch(file: AbsoluteFtpFile, metadata: Option[FileMetaData]): Boolean = metadata match {
     case None => logger.debug(s"${file.name} hasn't been seen before"); true
