@@ -32,6 +32,7 @@ case class MqttSourceSettings(connection: String,
                               kcql: Array[String],
                               mqttQualityOfService: Int,
                               connectionTimeout: Int,
+                              pollingTimeout: Int,
                               cleanSession: Boolean,
                               keepAliveInterval: Int,
                               sslCACertFile: Option[String],
@@ -46,6 +47,7 @@ case class MqttSourceSettings(connection: String,
     password.foreach(p => map.put(MqttConfigConstants.PASSWORD_CONFIG, p))
     map.put(MqttConfigConstants.CLIENT_ID_CONFIG, clientId)
     map.put(MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG, connectionTimeout.toString)
+    map.put(MqttConfigConstants.POLLING_TIMEOUT_CONFIG, pollingTimeout.toString)
     map.put(MqttConfigConstants.CLEAN_SESSION_CONFIG, cleanSession.toString)
     map.put(MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG, keepAliveInterval.toString)
     sslCACertFile.foreach(s => map.put(MqttConfigConstants.SSL_CA_CERT_CONFIG, s))
@@ -113,6 +115,7 @@ object MqttSourceSettings {
       kcqlStr,
       qs,
       config.getInt(MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG),
+      config.getInt(MqttConfigConstants.POLLING_TIMEOUT_CONFIG),
       config.getBoolean(MqttConfigConstants.CLEAN_SESSION_CONFIG),
       config.getInt(MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG),
       sslCACertFile,
