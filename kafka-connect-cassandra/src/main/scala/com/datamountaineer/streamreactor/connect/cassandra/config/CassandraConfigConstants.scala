@@ -155,4 +155,18 @@ object CassandraConfigConstants {
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
+  
+  val DELETE_ROW_PREFIX = "delete"
+  
+  val DELETE_ROW_ENABLED = s"$CONNECTOR_PREFIX.$DELETE_ROW_PREFIX.enabled"
+  val DELETE_ROW_ENABLED_DOC = "Enables row deletion from cassandra"
+  val DELETE_ROW_ENABLED_DEFAULT = false
+  val DELETE_ROW_ENABLED_DISPLAY = "Enable delete row"
+  
+  val DELETE_ROW_STATEMENT = s"$CONNECTOR_PREFIX.$DELETE_ROW_PREFIX.statement"
+  val DELETE_ROW_STATEMENT_DOC = "Delete statement for cassandra"
+  val DELETE_ROW_STATEMENT_DEFAULT = ""
+  val DELETE_ROW_STATEMENT_DISPLAY = "Enable delete row"
+  val DELETE_ROW_STATEMENT_MISSING = s"If $DELETE_ROW_ENABLED is true, $DELETE_ROW_STATEMENT is required."
+
 }
