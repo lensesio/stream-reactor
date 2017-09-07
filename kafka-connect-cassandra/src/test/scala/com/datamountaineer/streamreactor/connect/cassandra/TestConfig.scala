@@ -64,6 +64,8 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   val TOPIC8 = "topic8"
   val TABLE9 = "table9"
   val TOPIC9 = "topic9"
+  val TABLE10 = "table10"
+  val TOPIC10 = "topic10"
 
   val TTL = 100000
 
@@ -140,6 +142,17 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.USERNAME -> USERNAME,
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.KCQL -> QUERY_SELECTION
+    ).asJava
+  }
+
+  def getCassandraConfigSinkPropsDeletePrimitive = {
+    Map(
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.KCQL -> QUERY_SELECTION,
+      CassandraConfigConstants.DELETE_ROW_ENABLED -> "true"
     ).asJava
   }
 
@@ -293,7 +306,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       cluster.withSSL()
     }
 
-    val session = cluster.build().connect()
+     val session = cluster.build().connect()
     session.execute(s"DROP KEYSPACE IF EXISTS $keyspace")
     session.execute(s"CREATE KEYSPACE $keyspace WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 3}")
     session.execute(s"CREATE TABLE IF NOT EXISTS $keyspace.$TABLE1 (id text PRIMARY KEY, int_field int, long_field bigint," +
@@ -359,6 +372,13 @@ trait TestConfig extends StrictLogging with MockitoSugar {
          |timestamp_field timeuuid,
          |long_field bigint,
          |PRIMARY KEY(id,timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)""".stripMargin)
+
+    session.execute(
+      s"""
+         |CREATE TABLE IF NOT EXISTS $keyspace.$TABLE10
+         |(id int,
+         |name text,
+         |PRIMARY KEY(id, name)) WITH CLUSTERING ORDER BY (name asc)""".stripMargin)
 
     session
   }

@@ -54,6 +54,8 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
   CassandraUtils.checkCassandraTables(session.getCluster, settings.kcqls, session.getLoggedKeyspace)
   private var preparedCache: Map[String, Map[String, (PreparedStatement, Kcql)]] = cachePreparedStatements
 
+  private var deleteCache: Option[PreparedStatement] = cacheDeleteStatement
+
   /**
     * Get a connection to cassandra based on the config
     **/
@@ -81,6 +83,12 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
 
         topic -> innerMap
       }
+  }
+
+  private def cacheDeleteStatement: Option[PreparedStatement] = {
+    if (settings.deleteEnabled)
+        Some(session.prepare(settings.deleteStatement))
+    else None
   }
 
   /**
@@ -119,7 +127,8 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
         session = getSession.get
         preparedCache = cachePreparedStatements
       }
-      insert(records)
+      insert(records.filter( r => Option(r.value()).isDefined) )
+      delete(records.filter( r => Option(r.value()).isEmpty) )
     }
   }
 
@@ -175,6 +184,49 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
     }
   }
 
+
+  private def delete(records: Seq[SinkRecord]) = {
+    val executor = Executors.newFixedThreadPool(settings.threadPoolSize)
+
+    try {
+      val futures = records map { record =>
+        executor.submit {
+          try {
+            if (record.keySchema().`type`().isPrimitive) {
+              logger.trace("key schema is a primitive type, this is easy...")
+              deleteCache match {
+                case Some(d) =>
+                  val bound = d.bind(record.key())
+                  session.execute(bound)
+                  ()
+                case None => throw new IllegalArgumentException("Sink is missing delete statement.")
+              }
+            }
+            else {
+              logger.trace("key schema is a STRUCT, dig into the key...")
+
+              ()
+            }
+          }
+          catch {
+            case e: SyntaxError =>
+              logger.error(s"Syntax error deleting <>", e)
+              throw e
+          }
+        }
+      }
+
+      //when the call returns the pool is shutdown
+      FutureAwaitWithFailFastFn(executor, futures, 1.hours)
+      handleTry(Success(()))
+      logger.debug(s"Processed ${futures.size} records.")
+    }
+    catch {
+      case t: Throwable =>
+        logger.error(s"There was an error deleting the records ${t.getMessage}", t)
+        handleTry(Failure(t))
+    }
+  }
 
   /**
     * Closed down the driver session and cluster.

@@ -466,4 +466,38 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
       two shouldBe 0
     }
   }
+
+  "Cassandra JSONWriter should handle deletion of records where keySchema is a primitive" in {
+    val session = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
+
+    val idField = Int.box(UUIDs.timeBased().toString.hashCode)
+    val nameField = "Unit Test"
+    val otherField = "Something Random"
+
+    val insert = session.prepare(s"INSERT INTO $CASSANDRA_SINK_KEYSPACE.$TABLE10 (id, name) VALUES (?, ?)").bind(idField, nameField)
+    session.execute(insert)
+
+    // now run the test...
+    val record = new SinkRecord(TOPIC10, 0, Schema.INT64_SCHEMA, idField, null, null, 1)
+
+    val context = mock[SinkTaskContext]
+    val assignment = getAssignment
+    when(context.assignment()).thenReturn(assignment)
+
+    //get config
+    val props = Map(
+      CassandraConfigConstants.DELETE_ROW_STATEMENT -> s"delete from $CASSANDRA_SINK_KEYSPACE.$TABLE10 where id = ?").asJava ++
+      getCassandraConfigSinkPropsDeletePrimitive
+
+    val taskConfig = new CassandraConfigSink(props)
+
+    val writer = CassandraWriter(taskConfig, context)
+    writer.write(Seq(record))
+    Thread.sleep(1000)
+
+    val validate = session.prepare(s"select * from $CASSANDRA_SINK_KEYSPACE.$TABLE10 where id = ?").bind(idField)
+    val inserted = session.execute(validate)
+    // data is in the table...
+    (inserted.isEmpty) shouldBe true
+  }
 }
