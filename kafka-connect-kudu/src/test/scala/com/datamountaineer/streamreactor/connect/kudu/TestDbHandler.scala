@@ -122,10 +122,13 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val table = mock[KuduTable]
     val client = mock[KuduClient]
     val kuduSession = mock[KuduSession]
+    val resp = mock[ListTablesResponse]
 
     when(client.tableExists(TABLE)).thenReturn(true)
     when(client.openTable(TABLE)).thenReturn(table)
     when(client.newSession()).thenReturn(kuduSession)
+    when(client.getTablesList).thenReturn(resp)
+    when(resp.getTablesList).thenReturn(List.empty[String].asJava)
 
     val config = new KuduConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
@@ -138,11 +141,14 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val table = mock[KuduTable]
     val client = mock[KuduClient]
     val kuduSession = mock[KuduSession]
+    val resp = mock[ListTablesResponse]
 
     //force table not found
     when(client.tableExists(TABLE)).thenReturn(false)
     when(client.openTable(TABLE)).thenReturn(table)
     when(client.newSession()).thenReturn(kuduSession)
+    when(client.getTablesList).thenReturn(resp)
+    when(resp.getTablesList).thenReturn(List.empty[String].asJava)
 
     val config = new KuduConfig(getConfig)
     val settings = KuduSettings(config)

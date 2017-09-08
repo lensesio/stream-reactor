@@ -31,6 +31,7 @@ import org.apache.kudu.ColumnSchema
 import org.apache.kudu.client._
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -57,11 +58,11 @@ object DbHandler extends StrictLogging with KuduConverter {
   def buildTableCache(settings: KuduSettings, client: KuduClient): Map[String, KuduTable] = {
 
     val tables = settings.kcql.map(s => s.getTarget.trim).toSet
-    val missing = tables.filterNot(t => client.tableExists(t))
+    val missing = tables diff client.getTablesList.getTablesList.toSet
     logger.warn(s"Found missing tables ${missing.mkString}")
     //filter for autocreate as the schema may not exist yet in the registry, they will be create on arrival of the first message if
     //set to auto create
-    val finalList = missing.flatMap(m => settings.kcql.filter(f => f.getTarget.equals(m) && !f.isAutoCreate))
+    val finalList = missing.flatMap(m => settings.kcql.filter(f => f.getTarget.trim.equals(m) && !f.isAutoCreate))
 
     if (finalList.nonEmpty) {
       throw new ConnectException(s"The following tables are not found and not set for autocreate" +
@@ -124,7 +125,7 @@ object DbHandler extends StrictLogging with KuduConverter {
     if (schema.nonEmpty) {
       val kuduSchema = getKuduSchema(kcql, schema)
       val cto = getCreateTableOptions(kcql)
-      val createTableProps = CreateTableProps(kcql.getSource, kuduSchema, cto)
+      val createTableProps = CreateTableProps(kcql.getTarget, kuduSchema, cto)
       Set(createTableProps)
     } else {
       Set.empty[CreateTableProps]
