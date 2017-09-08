@@ -55,19 +55,20 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @return A Map of topic -> KuduRowInsert
     **/
   def buildTableCache(settings: KuduSettings, client: KuduClient): Map[String, KuduTable] = {
-    //create any tables we need
-    createTables(settings, client)
-    val tables = settings.kcql.map(s => s.getTarget).toSet
+
+    val tables = settings.kcql.map(s => s.getTarget.trim).toSet
     val missing = tables.filterNot(t => client.tableExists(t))
+    logger.warn(s"Found missing tables ${missing.mkString}")
     //filter for autocreate as the schema may not exist yet in the registry, they will be create on arrival of the first message if
     //set to auto create
     val finalList = missing.flatMap(m => settings.kcql.filter(f => f.getTarget.equals(m) && !f.isAutoCreate))
 
     if (finalList.nonEmpty) {
       throw new ConnectException(s"The following tables are not found and not set for autocreate" +
-        s" ${finalList.mkString(",")}")
+        s" ${finalList.map(f => f.getTarget).mkString(",")}")
     }
 
+    createTables(settings, client)
     settings.kcql.map(s => (s.getSource, client.openTable(s.getTarget))).toMap
   }
 
