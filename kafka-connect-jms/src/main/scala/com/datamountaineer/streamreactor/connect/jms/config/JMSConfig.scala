@@ -65,6 +65,9 @@ object JMSConfig {
     .define(JMSConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG, Type.BOOLEAN, JMSConfigConstants.THROW_ON_CONVERT_ERRORS_DEFAULT,
       Importance.HIGH, JMSConfigConstants.THROW_ON_CONVERT_ERRORS_DOC, "Converter", 2, ConfigDef.Width.MEDIUM,
       JMSConfigConstants.THROW_ON_CONVERT_ERRORS_DISPLAY)
+    .define(JMSConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES, Type.STRING, JMSConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_DEFAULT,
+        Importance.HIGH, JMSConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_DOC, "Converter", 3, ConfigDef.Width.MEDIUM,
+        JMSConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES)
 
     .define(JMSConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, JMSConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
         Importance.MEDIUM, JMSConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
