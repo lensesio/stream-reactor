@@ -39,21 +39,21 @@ object FtpProtocol extends Enumeration {
 import com.datamountaineer.streamreactor.connect.ftp.source.KeyStyle._
 
 object FtpSourceConfig {
-  val Address = "ftp.address"
-  val User = "ftp.user"
-  val Password = "ftp.password"
-  val MaxBackoff = "ftp.max.backoff"
-  val RefreshRate = "ftp.refresh"
-  val MonitorTail = "ftp.monitor.tail"
-  val MonitorUpdate = "ftp.monitor.update"
-  val FileMaxAge = "ftp.file.maxage"
-  val KeyStyle = "ftp.keystyle"
+  val Address = "connect.ftp.address"
+  val User = "connect.ftp.user"
+  val Password = "connect.ftp.password"
+  val MaxBackoff = "connect.ftp.max.backoff"
+  val RefreshRate = "connect.ftp.refresh"
+  val MonitorTail = "connect.ftp.monitor.tail"
+  val MonitorUpdate = "connect.ftp.monitor.update"
+  val FileMaxAge = "connect.ftp.file.maxage"
+  val KeyStyle = "connect.ftp.keystyle"
   val StringKeyStyle = "string"
   val StructKeyStyle = "struct"
-  val FileConverter = "ftp.fileconverter"
-  val SourceRecordConverter = "ftp.sourcerecordconverter"
-  val FtpMaxPollRecords = "ftp.max.poll.records"
-  val protocol = "ftp.protocol"
+  val FileConverter = "connect.ftp.fileconverter"
+  val SourceRecordConverter = "connect.ftp.sourcerecordconverter"
+  val FtpMaxPollRecords = "connect.ftp.max.poll.records"
+  val protocol = "connect.ftp.protocol"
 
   val definition: ConfigDef = new ConfigDef()
     .define(Address, Type.STRING, Importance.HIGH, "ftp address[:port]")
