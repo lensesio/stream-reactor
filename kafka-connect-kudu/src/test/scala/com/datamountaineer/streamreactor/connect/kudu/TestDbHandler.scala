@@ -223,6 +223,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
 
   "should create table from sinkRecord" in {
     val client = mock[KuduClient]
+
     val record: SinkRecord = getTestRecords.head
     val config = new KuduConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
@@ -236,9 +237,16 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val settings = KuduSettings(config)
 
     //mock out kudu client
+    val table = mock[KuduTable]
     val client = mock[KuduClient]
+    val kuduSession = mock[KuduSession]
+    val resp = mock[ListTablesResponse]
 
     when(client.tableExists(TABLE)).thenReturn(true)
+    when(client.openTable(TABLE)).thenReturn(table)
+    when(client.newSession()).thenReturn(kuduSession)
+    when(client.getTablesList).thenReturn(resp)
+    when(resp.getTablesList).thenReturn(List(TABLE).asJava)
     val ret = DbHandler.createTables(settings, client)
     ret.isEmpty shouldBe true
   }
