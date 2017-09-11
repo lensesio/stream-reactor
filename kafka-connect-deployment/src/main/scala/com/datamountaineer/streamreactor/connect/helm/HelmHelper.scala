@@ -38,8 +38,6 @@ object HelmHelper {
     val keys = config.configKeys().asScala.toMap
     val chartName = if (name.contains("elastic5")){
       "kafka-connect-elastic5s-sink"
-    } else if (name.contains("FtpSourceConnector")) {
-      "kafka-connect-ftp-source"
     } else if (name.contains("kudu")) {
       "kafka-connect-kudu-sink"
     } else {
@@ -92,7 +90,7 @@ object HelmHelper {
     keys
         .map({
           case (name, key) => {
-            val envName = toENV(name)
+            val envName = s"CONNECTOR_${toENV(name)}"
             val helmValName = toCamelCase(name)
 
             //  Create config map for avro schemas
@@ -148,7 +146,7 @@ object HelmHelper {
   }
 
   def toCamelCase(name: String): String = {
-    val drop = if (name.contains("ftp")) name.split("\\.") else name.split("\\.").drop(2)
+    val drop = name.split("\\.").drop(2)
     val ret = new StringBuilder(drop.mkString.length)
 
     drop
