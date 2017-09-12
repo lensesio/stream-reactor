@@ -36,6 +36,9 @@ import scala.collection.JavaConversions._
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
+import scala.reflect.runtime.{universe => ru}
+import ru._
+
 /**
   * <h1>CassandraJsonWriter</h1>
   * Cassandra Json writer for Kafka connect
@@ -55,6 +58,8 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
   private var preparedCache: Map[String, Map[String, (PreparedStatement, Kcql)]] = cachePreparedStatements
 
   private var deleteCache: Option[PreparedStatement] = cacheDeleteStatement
+
+  private val deleteStructFlds: Seq[String] = settings.structFlds
 
   /**
     * Get a connection to cassandra based on the config
@@ -192,25 +197,33 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
       val futures = records map { record =>
         executor.submit {
           try {
-            if (record.keySchema().`type`().isPrimitive) {
-              logger.trace("key schema is a primitive type, this is easy...")
-              deleteCache match {
-                case Some(d) =>
-                  val bound = d.bind(record.key())
-                  session.execute(bound)
-                  ()
-                case None => throw new IllegalArgumentException("Sink is missing delete statement.")
-              }
-            }
-            else {
-              logger.trace("key schema is a STRUCT, dig into the key...")
+            deleteCache match {
+              case Some(d) =>
+                val bindingFields = {
+                  val recordKey = record.key()
 
-              ()
+                  if (record.keySchema().`type`().isPrimitive) {
+                    logger.trace("key schema is a primitive type, this is easy...")
+                    Seq(record.key())
+                  }
+                  else {
+                    logger.trace("key schema is a STRUCT, dig into the key...")
+                    deleteStructFlds map { f =>
+                      val clazz = recordKey.getClass
+                      val field = clazz.getDeclaredField(f)
+                      field.setAccessible(true)
+                      field.get(recordKey)
+                    }
+                  }
+                }
+                session.execute(d.bind(bindingFields:_*))
+                ()
+              case None => throw new IllegalArgumentException("Sink is missing delete statement.")
             }
           }
           catch {
             case e: SyntaxError =>
-              logger.error(s"Syntax error deleting <>", e)
+              logger.error("Syntax error deleting record.", e)
               throw e
           }
         }

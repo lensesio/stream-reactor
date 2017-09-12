@@ -500,4 +500,42 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     // data is in the table...
     (inserted.isEmpty) shouldBe true
   }
+
+  "Cassandra JSONWriter should handle deletion of records where key schema is a struct type" in {
+    val session = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
+
+    val uuid = UUIDs.timeBased()
+    val key1 = Int.box(uuid.hashCode)
+    val key2 = uuid.toString
+    val name = "Unit Test"
+
+    val insert = session.prepare(s"INSERT INTO $CASSANDRA_SINK_KEYSPACE.$TABLE11 (key1, key2, name) VALUES (?,?,?)").bind(key1, key2, name)
+    session.execute(insert)
+
+    // TODO create the delete SinkRecord and scenario here...
+    case class KeyObject(key1: Int, key2: String)
+
+    val record = new SinkRecord(TOPIC10, 0, SchemaBuilder.struct.build, KeyObject(key1, key2), null, null, 1)
+    val context = mock[SinkTaskContext]
+    val assignment = getAssignment
+    when(context.assignment()).thenReturn(assignment)
+
+    //get config
+    val props = Map(
+      CassandraConfigConstants.DELETE_ROW_STATEMENT -> s"delete from $CASSANDRA_SINK_KEYSPACE.$TABLE11 where key1 = ? AND key2 = ?",
+      CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS -> s"key1,key2").asJava ++
+      getCassandraConfigSinkPropsDeletePrimitive
+
+    val taskConfig = new CassandraConfigSink(props)
+
+    val writer = CassandraWriter(taskConfig, context)
+    writer.write(Seq(record))
+    Thread.sleep(1000)
+
+
+    val validate = session.prepare(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TABLE11 WHERE key1 = ? AND key2 = ?").bind(key1, key2)
+    val result = session.execute(validate)
+
+    (result.isEmpty) shouldBe true
+  }
 }

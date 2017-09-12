@@ -61,7 +61,11 @@ case class CassandraSinkSetting(keySpace: String,
                                 taskRetries: Int = CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT,
                                 enableProgress: Boolean = CassandraConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
                                 deleteEnabled: Boolean = CassandraConfigConstants.DELETE_ROW_ENABLED_DEFAULT,
-                                deleteStatement: String = CassandraConfigConstants.DELETE_ROW_STATEMENT_DEFAULT) extends CassandraSetting
+                                deleteStatement: String = CassandraConfigConstants.DELETE_ROW_STATEMENT_DEFAULT,
+                                deleteStructFields: String = CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS) extends CassandraSetting {
+
+  def structFlds: Seq[String] = deleteStructFields.split(",").map(s => s).toSeq
+}
 
 /**
   * Cassandra Setting used for both Readers and writers
@@ -128,6 +132,8 @@ object CassandraSettings extends StrictLogging {
     // validate
     if (deleteEnabled) require(deleteStmt.nonEmpty, CassandraConfigConstants.DELETE_ROW_STATEMENT_MISSING)
 
+    val structFlds = config.getString(CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS)
+
     CassandraSinkSetting(keySpace,
       kcqls,
       fields,
@@ -138,6 +144,7 @@ object CassandraSettings extends StrictLogging {
       retries,
       enableCounter,
       deleteEnabled,
-      deleteStmt)
+      deleteStmt,
+      structFlds)
   }
 }

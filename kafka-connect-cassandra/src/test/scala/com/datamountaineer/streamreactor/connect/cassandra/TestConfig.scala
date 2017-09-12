@@ -66,6 +66,8 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   val TOPIC9 = "topic9"
   val TABLE10 = "table10"
   val TOPIC10 = "topic10"
+  val TABLE11 = "table11"
+  val TOPIC11 = "topic11"
 
   val TTL = 100000
 
@@ -306,7 +308,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       cluster.withSSL()
     }
 
-     val session = cluster.build().connect()
+    val session = cluster.build().connect()
     session.execute(s"DROP KEYSPACE IF EXISTS $keyspace")
     session.execute(s"CREATE KEYSPACE $keyspace WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 3}")
     session.execute(s"CREATE TABLE IF NOT EXISTS $keyspace.$TABLE1 (id text PRIMARY KEY, int_field int, long_field bigint," +
@@ -379,6 +381,14 @@ trait TestConfig extends StrictLogging with MockitoSugar {
          |(id int,
          |name text,
          |PRIMARY KEY(id, name)) WITH CLUSTERING ORDER BY (name asc)""".stripMargin)
+
+    session.execute(
+      s"""
+         |CREATE TABLE IF NOT EXISTS $keyspace.$TABLE11
+         |(key1 int,
+         |key2 text,
+         |name text,
+         |PRIMARY KEY((key1, key2), name)) WITH CLUSTERING ORDER BY (name asc)""".stripMargin)
 
     session
   }
