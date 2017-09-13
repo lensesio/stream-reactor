@@ -57,7 +57,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
 
   private var deleteCache: Option[PreparedStatement] = cacheDeleteStatement
 
-  private val deleteStructFlds: Seq[String] = settings.structFlds
+  private val deleteStructFlds: Seq[String] = settings.deleteStructFields
 
   /**
     * Get a connection to cassandra based on the config
