@@ -512,10 +512,15 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     val insert = session.prepare(s"INSERT INTO $CASSANDRA_SINK_KEYSPACE.$TABLE11 (key1, key2, name) VALUES (?,?,?)").bind(key1, key2, name)
     session.execute(insert)
 
-    // TODO create the delete SinkRecord and scenario here...
-    case class KeyObject(key1: Int, key2: String)
+    val keySchema = SchemaBuilder.struct
+        .field("key1", Schema.INT32_SCHEMA)
+        .field("key2", Schema.STRING_SCHEMA)
+        .build
+    val keyStruct = new Struct(keySchema)
+    keyStruct.put("key1", key1)
+    keyStruct.put("key2", key2)
 
-    val record = new SinkRecord(TOPIC10, 0, SchemaBuilder.struct.build, KeyObject(key1, key2), null, null, 1)
+    val record = new SinkRecord(TOPIC10, 0, keySchema, keyStruct, null, null, 1)
     val context = mock[SinkTaskContext]
     val assignment = getAssignment
     when(context.assignment()).thenReturn(assignment)

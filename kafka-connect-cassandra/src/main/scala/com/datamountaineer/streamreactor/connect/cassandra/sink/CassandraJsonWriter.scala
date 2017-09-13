@@ -30,14 +30,12 @@ import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datastax.driver.core.exceptions.SyntaxError
 import com.datastax.driver.core.{PreparedStatement, Session}
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.collection.JavaConversions._
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
-
-import scala.reflect.runtime.{universe => ru}
-import ru._
 
 /**
   * <h1>CassandraJsonWriter</h1>
@@ -200,20 +198,14 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
             deleteCache match {
               case Some(d) =>
                 val bindingFields = {
-                  val recordKey = record.key()
-
                   if (record.keySchema().`type`().isPrimitive) {
                     logger.trace("key schema is a primitive type, this is easy...")
                     Seq(record.key())
                   }
                   else {
                     logger.trace("key schema is a STRUCT, dig into the key...")
-                    deleteStructFlds map { f =>
-                      val clazz = recordKey.getClass
-                      val field = clazz.getDeclaredField(f)
-                      field.setAccessible(true)
-                      field.get(recordKey)
-                    }
+                    val recordKey = record.key.asInstanceOf[Struct]
+                    deleteStructFlds map { f => recordKey.get(f) }
                   }
                 }
                 session.execute(d.bind(bindingFields:_*))
