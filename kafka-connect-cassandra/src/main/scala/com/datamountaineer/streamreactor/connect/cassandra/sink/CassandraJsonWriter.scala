@@ -29,8 +29,9 @@ import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datastax.driver.core.exceptions.SyntaxError
 import com.datastax.driver.core.{PreparedStatement, Session}
+import com.jayway.jsonpath.{Configuration, JsonPath}
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.collection.JavaConversions._
@@ -198,14 +199,30 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
             deleteCache match {
               case Some(d) =>
                 val bindingFields = {
-                  if (record.keySchema().`type`().isPrimitive) {
-                    logger.trace("key schema is a primitive type, this is easy...")
-                    Seq(record.key())
+                  if (record.keySchema() == null) {
+                    throw new IllegalArgumentException("Missing key schema.")
                   }
                   else {
-                    logger.trace("key schema is a STRUCT, dig into the key...")
-                    val recordKey = record.key.asInstanceOf[Struct]
-                    deleteStructFlds map { f => recordKey.get(f) }
+                    val key = record.key()
+                    val schema = record.keySchema()
+                    if (schema.`type`().isPrimitive) {
+                      if (schema.`type`() == Schema.Type.STRING) {
+                        // treat key string as JSON
+                        logger.trace("key schema is a String type, treat it like JSON...")
+                        val document = Configuration.defaultConfiguration.jsonProvider.parse(key.toString)
+                        deleteStructFlds map { f => JsonPath.read(document, f).asInstanceOf[Object] }
+                      }
+                      else {
+                        logger.trace("key schema is a primitive type, this is easy...")
+                        Seq(record.key())
+                      }
+                    }
+                    else {
+                      logger.trace("key schema is a STRUCT, dig into the key...")
+                      // TODO need to handle nested values...
+                      val recordKey = record.key.asInstanceOf[Struct]
+                      deleteStructFlds map { f => recordKey.get(f) }
+                    }
                   }
                 }
                 session.execute(d.bind(bindingFields:_*))
