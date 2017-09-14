@@ -29,7 +29,9 @@ import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datastax.driver.core.exceptions.SyntaxError
 import com.datastax.driver.core.{PreparedStatement, Session}
+import com.jayway.jsonpath.{Configuration, JsonPath}
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.collection.JavaConversions._
@@ -53,6 +55,10 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
 
   CassandraUtils.checkCassandraTables(session.getCluster, settings.kcqls, session.getLoggedKeyspace)
   private var preparedCache: Map[String, Map[String, (PreparedStatement, Kcql)]] = cachePreparedStatements
+
+  private var deleteCache: Option[PreparedStatement] = cacheDeleteStatement
+
+  private val deleteStructFlds: Seq[String] = settings.deleteStructFields
 
   /**
     * Get a connection to cassandra based on the config
@@ -81,6 +87,12 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
 
         topic -> innerMap
       }
+  }
+
+  private def cacheDeleteStatement: Option[PreparedStatement] = {
+    if (settings.deleteEnabled)
+        Some(session.prepare(settings.deleteStatement))
+    else None
   }
 
   /**
@@ -119,7 +131,8 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
         session = getSession.get
         preparedCache = cachePreparedStatements
       }
-      insert(records)
+      insert(records.filter( r => Option(r.value()).isDefined) )
+      delete(records.filter( r => Option(r.value()).isEmpty) )
     }
   }
 
@@ -175,6 +188,67 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
     }
   }
 
+
+  private def delete(records: Seq[SinkRecord]) = {
+    val executor = Executors.newFixedThreadPool(settings.threadPoolSize)
+
+    try {
+      val futures = records map { record =>
+        executor.submit {
+          try {
+            deleteCache match {
+              case Some(d) =>
+                val bindingFields = {
+                  if (record.keySchema() == null) {
+                    throw new IllegalArgumentException("Missing key schema.")
+                  }
+                  else {
+                    val key = record.key()
+                    val schema = record.keySchema()
+                    if (schema.`type`().isPrimitive) {
+                      if (schema.`type`() == Schema.Type.STRING) {
+                        // treat key string as JSON
+                        logger.trace("key schema is a String type, treat it like JSON...")
+                        val document = Configuration.defaultConfiguration.jsonProvider.parse(key.toString)
+                        deleteStructFlds map { f => JsonPath.read(document, f).asInstanceOf[Object] }
+                      }
+                      else {
+                        logger.trace("key schema is a primitive type, this is easy...")
+                        Seq(record.key())
+                      }
+                    }
+                    else {
+                      logger.trace("key schema is a STRUCT, dig into the key...")
+                      // TODO need to handle nested values...
+                      val recordKey = record.key.asInstanceOf[Struct]
+                      deleteStructFlds map { f => recordKey.get(f) }
+                    }
+                  }
+                }
+                session.execute(d.bind(bindingFields:_*))
+                ()
+              case None => throw new IllegalArgumentException("Sink is missing delete statement.")
+            }
+          }
+          catch {
+            case e: SyntaxError =>
+              logger.error("Syntax error deleting record.", e)
+              throw e
+          }
+        }
+      }
+
+      //when the call returns the pool is shutdown
+      FutureAwaitWithFailFastFn(executor, futures, 1.hours)
+      handleTry(Success(()))
+      logger.debug(s"Processed ${futures.size} records.")
+    }
+    catch {
+      case t: Throwable =>
+        logger.error(s"There was an error deleting the records ${t.getMessage}", t)
+        handleTry(Failure(t))
+    }
+  }
 
   /**
     * Closed down the driver session and cluster.

@@ -48,7 +48,7 @@ target/
 /kafka-connect-coap/Californium.properties
 Californium.properties
 /gradle/wrapper/gradle-wrapper.properties
-/.DS_Store
+.DS_Store
 classes/*
 
 /kafka-connect-jms/*-*-*-*-*

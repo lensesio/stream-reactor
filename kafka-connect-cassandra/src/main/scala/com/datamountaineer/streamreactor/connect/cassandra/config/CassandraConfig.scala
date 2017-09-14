@@ -324,6 +324,33 @@ object CassandraConfigSink {
       1,
       ConfigDef.Width.MEDIUM,
       CassandraConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
+    .define(CassandraConfigConstants.DELETE_ROW_ENABLED,
+      Type.BOOLEAN,
+      CassandraConfigConstants.DELETE_ROW_ENABLED_DEFAULT,
+      Importance.LOW,
+      CassandraConfigConstants.DELETE_ROW_ENABLED_DOC,
+      "Mappings",
+      1,
+      ConfigDef.Width.MEDIUM,
+      CassandraConfigConstants.DELETE_ROW_ENABLED_DISPLAY)
+    .define(CassandraConfigConstants.DELETE_ROW_STATEMENT,
+      Type.STRING,
+      CassandraConfigConstants.DELETE_ROW_STATEMENT_DEFAULT,
+      Importance.LOW,
+      CassandraConfigConstants.DELETE_ROW_STATEMENT_DOC,
+      "Mappings",
+      1,
+      ConfigDef.Width.MEDIUM,
+      CassandraConfigConstants.DELETE_ROW_STATEMENT_DISPLAY)
+    .define(CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS,
+      Type.LIST,
+      CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS_DEFAULT,
+      Importance.LOW,
+      CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS_DOC,
+      "Mappings",
+      1,
+      ConfigDef.Width.MEDIUM,
+      CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS_DISPLAY)
 }
 
 case class CassandraConfigSink(props: util.Map[String, String])

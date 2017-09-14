@@ -59,7 +59,10 @@ case class CassandraSinkSetting(keySpace: String,
                                 threadPoolSize: Int,
                                 consistencyLevel: Option[ConsistencyLevel],
                                 taskRetries: Int = CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT,
-                                enableProgress: Boolean = CassandraConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT) extends CassandraSetting
+                                enableProgress: Boolean = CassandraConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
+                                deleteEnabled: Boolean = CassandraConfigConstants.DELETE_ROW_ENABLED_DEFAULT,
+                                deleteStatement: String = CassandraConfigConstants.DELETE_ROW_STATEMENT_DEFAULT,
+                                deleteStructFields: Seq[String] = Seq.empty) extends CassandraSetting
 
 /**
   * Cassandra Setting used for both Readers and writers
@@ -119,6 +122,15 @@ object CassandraSettings extends StrictLogging {
     val consistencyLevel = config.getConsistencyLevel
 
     val enableCounter = config.getBoolean(CassandraConfigConstants.PROGRESS_COUNTER_ENABLED)
+
+    // support for deletion
+    val deleteEnabled = config.getBoolean(CassandraConfigConstants.DELETE_ROW_ENABLED)
+    val deleteStmt = config.getString(CassandraConfigConstants.DELETE_ROW_STATEMENT)
+    // validate
+    if (deleteEnabled) require(deleteStmt.nonEmpty, CassandraConfigConstants.DELETE_ROW_STATEMENT_MISSING)
+
+    val structFlds = config.getList(CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS)
+
     CassandraSinkSetting(keySpace,
       kcqls,
       fields,
@@ -127,6 +139,9 @@ object CassandraSettings extends StrictLogging {
       threadPoolSize,
       consistencyLevel,
       retries,
-      enableCounter)
+      enableCounter,
+      deleteEnabled,
+      deleteStmt,
+      structFlds)
   }
 }
