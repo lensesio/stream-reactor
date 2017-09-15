@@ -20,10 +20,6 @@ project(":kafka-connect-rethink") {
     }
 
     dependencies {
-        compile project(":kafka-connect-temp")
         compile "com.rethinkdb:rethinkdb-driver:$rethinkDbVersion"
-        compile "com.typesafe.akka:akka-actor_$scalaMajorVersion:$akkaVersion"
-        compile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
-        compile "com.sksamuel.avro4s:avro4s-json_$scalaMajorVersion:$avro4sVersion"
     }
 }

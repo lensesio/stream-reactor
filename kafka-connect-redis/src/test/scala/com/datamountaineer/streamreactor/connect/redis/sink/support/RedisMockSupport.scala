@@ -16,25 +16,28 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.support
 
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisSinkConfig, RedisSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants}
 import org.apache.kafka.common.config.types.Password
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
+import scala.collection.JavaConverters._
 
 trait RedisMockSupport extends MockitoSugar {
 
-  def getMockRedisSinkConfig(password: Boolean, KCQL: Option[String]) = {
-    val config = mock[RedisSinkConfig]
-    when(config.getString(RedisSinkConfigConstants.REDIS_HOST)).thenReturn("localhost")
-    when(config.getInt(RedisSinkConfigConstants.REDIS_PORT)).thenReturn(8453)
-    when(config.getString(RedisSinkConfigConstants.ERROR_POLICY)).thenReturn("THROW")
+  def getRedisSinkConfig(password: Boolean, KCQL: Option[String]) = {
+
+    var baseProps = scala.collection.mutable.Map[String, String]()
+    baseProps += (RedisConfigConstants.REDIS_HOST->"localhost", RedisConfigConstants.REDIS_PORT->"8453")
+
+
     if (password) {
-      when(config.getPassword(RedisSinkConfigConstants.REDIS_PASSWORD)).thenReturn(new Password("secret"))
-      when(config.getString(RedisSinkConfigConstants.REDIS_PASSWORD)).thenReturn("secret")
+      baseProps += RedisConfigConstants.REDIS_PASSWORD->"secret"
     }
-    if (KCQL.isDefined)
-      when(config.getString(RedisSinkConfigConstants.KCQL_CONFIG)).thenReturn(KCQL.get)
-    config
+
+    if (KCQL.isDefined) {
+      baseProps += RedisConfigConstants.KCQL_CONFIG->KCQL.get
+    }
+    RedisConfig(baseProps.asJava)
   }
 
 }

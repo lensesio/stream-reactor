@@ -20,13 +20,16 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
+import com.datamountaineer.streamreactor.connect.config.Helpers
 import com.microsoft.azure.documentdb._
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.{ConfigDef, ConfigException}
-import org.apache.kafka.connect.connector.{Connector, Task}
+import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
+import org.apache.kafka.connect.sink.SinkConnector
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -35,7 +38,7 @@ import scala.util.{Failure, Success, Try}
   *
   * Sets up DocumentDbSinkTask and configurations for the tasks.
   **/
-class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => DocumentClient) extends Connector with StrictLogging {
+class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => DocumentClient) extends SinkConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
 
   def this() = this(DocumentClientProvider.get)
@@ -56,6 +59,7 @@ class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => D
     logger.info(s"Setting task configurations for $maxTasks workers.")
 
     val kcql = configProps.get(DocumentDbConfigConstants.KCQL_CONFIG).split(";")
+
     if (maxTasks == 1 || kcql.length == 1) {
       List(configProps)
     }
@@ -83,7 +87,11 @@ class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => D
     }
     configProps = props
 
+    //check input topics
+    Helpers.checkInputTopics(DocumentDbConfigConstants.KCQL_CONFIG, props.asScala.toMap)
+
     val settings = DocumentDbSinkSettings(config)
+
     implicit var documentClient: DocumentClient = null
 
     try {
@@ -103,7 +111,7 @@ class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => D
 
   override def version(): String = getClass.getPackage.getImplementationVersion
 
-  override def config(): ConfigDef = DocumentDbConfig.configDef
+  override def config(): ConfigDef = DocumentDbConfig.config
 
   private def readOrCreateCollections(database: Database, settings: DocumentDbSinkSettings)(implicit documentClient: DocumentClient) = {
     //check all collection exists and if not create them

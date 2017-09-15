@@ -55,7 +55,7 @@ class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => Do
       case Success(s) => s
     }
 
-    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/documentdb-sink-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/documentdb-sink-ascii.txt")).mkString + s" v $version")
 
     implicit val settings = DocumentDbSinkSettings(taskConfig)
     //if error policy is retry set retry interval
@@ -65,6 +65,7 @@ class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => Do
 
     logger.info(s"Initialising Document Db writer.")
     writer = Some(new DocumentDbWriter(settings, builder(settings)))
+    enableProgress = taskConfig.getBoolean(DocumentDbConfigConstants.PROGRESS_COUNTER_ENABLED)
   }
 
   /**
@@ -83,9 +84,10 @@ class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => Do
   override def stop(): Unit = {
     logger.info("Stopping Azure Document DB sink.")
     writer.foreach(w => w.close())
+    progressCounter.empty()
   }
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 }

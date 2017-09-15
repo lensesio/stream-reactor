@@ -22,12 +22,12 @@ import java.util.UUID
 import javax.jms.{BytesMessage, Session, TextMessage}
 
 import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
-import com.datamountaineer.streamreactor.connect.jms.config.{DestinationSelector, JMSConfig, JMSConfigConstants}
+import com.datamountaineer.streamreactor.connect.jms.config.{DestinationSelector, JMSConfigConstants}
 import com.sksamuel.avro4s.{AvroOutputStream, SchemaFor}
 import org.apache.activemq.jndi.ActiveMQInitialContextFactory
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
@@ -44,10 +44,10 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
   val TOPIC2 = "topic2"
   val QUEUE1 = "queue1"
   val JMS_TOPIC1 = TOPIC1
-  val KCQL_SOURCE_QUEUE = s"INSERT INTO $TOPIC1 SELECT * FROM $QUEUE1"
-  val KCQL_SINK_QUEUE = s"INSERT INTO $QUEUE1 SELECT * FROM $TOPIC2"
-  val KCQL_SOURCE_TOPIC = s"INSERT INTO $TOPIC1 SELECT * FROM $TOPIC1"
-  val KCQL_SINK_TOPIC = s"INSERT INTO $TOPIC1 SELECT * FROM $TOPIC1"
+  val KCQL_SOURCE_QUEUE = s"INSERT INTO $TOPIC1 SELECT * FROM $QUEUE1 WITHTYPE QUEUE"
+  val KCQL_SINK_QUEUE = s"INSERT INTO $QUEUE1 SELECT * FROM $TOPIC2 WITHTYPE QUEUE"
+  val KCQL_SOURCE_TOPIC = s"INSERT INTO $TOPIC1 SELECT * FROM $TOPIC1 WITHTYPE TOPIC"
+  val KCQL_SINK_TOPIC = s"INSERT INTO $TOPIC1 SELECT * FROM $TOPIC1  WITHTYPE TOPIC"
   val KCQL_MIX = s"$KCQL_SOURCE_QUEUE;$KCQL_SOURCE_TOPIC"
   val KCQL_MIX_SINK = s"$KCQL_SINK_QUEUE;$KCQL_SINK_TOPIC"
   val JMS_USER = ""
@@ -60,10 +60,12 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
   val TOPIC_LIST = TOPIC1
   val SELECTOR = DestinationSelector.CDI.toString
   val AVRO_QUEUE = "avro_queue"
-  val KCQL_AVRO_SOURCE = s"INSERT INTO $TOPIC1 SELECT * FROM $AVRO_QUEUE"
+  val QUEUE_CONVERTER = s"com.datamountaineer.streamreactor.connect.converters.source.AvroConverter"
+  val KCQL_AVRO_SOURCE = s"INSERT INTO $TOPIC1 SELECT * FROM $AVRO_QUEUE WITHCONVERTER=$QUEUE_CONVERTER WITHTYPE QUEUE"
   val KCQL_AVRO_SOURCE_MIX = s"$KCQL_AVRO_SOURCE;$KCQL_SOURCE_TOPIC"
-  val QUEUE_CONVERTER = s"$AVRO_QUEUE=com.datamountaineer.streamreactor.connect.converters.source.AvroConverter"
-  val AVRO_SCHEMA_CONFIG = s"${AVRO_QUEUE}=${getSchemaFile()}"
+
+  val AVRO_FILE = getSchemaFile()
+  val AVRO_SCHEMA_CONFIG = s"${AVRO_QUEUE}=${AVRO_FILE}"
 
   def getSchemaFile(): String = {
     val schemaFile = Paths.get(UUID.randomUUID().toString)
@@ -75,13 +77,14 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
   }
 
   def getProps1Queue(url: String = JMS_URL) = {
-    Map(JMSConfigConstants.KCQL -> KCQL_SOURCE_QUEUE,
+    Map(
+      "topics" -> QUEUE1,
+      JMSConfigConstants.KCQL -> KCQL_SOURCE_QUEUE,
       JMSConfigConstants.JMS_USER -> JMS_USER,
       JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
       JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfigConstants.JMS_URL -> url,
-      JMSConfigConstants.QUEUE_LIST -> QUEUE_LIST
+      JMSConfigConstants.JMS_URL -> url
     ).asJava
   }
 
@@ -91,8 +94,7 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
       JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
       JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfigConstants.CONNECTION_FACTORY -> "plop",
-      JMSConfigConstants.JMS_URL -> JMS_URL,
-      JMSConfigConstants.QUEUE_LIST -> QUEUE_LIST
+      JMSConfigConstants.JMS_URL -> JMS_URL
     ).asJava
   }
 
@@ -102,8 +104,7 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
       JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
       JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfigConstants.JMS_URL -> JMS_URL,
-      JMSConfigConstants.TOPIC_LIST -> TOPIC_LIST
+      JMSConfigConstants.JMS_URL -> JMS_URL
     ).asJava
   }
 
@@ -114,19 +115,17 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
       JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
       JMSConfigConstants.JMS_URL -> JMS_URL,
-      JMSConfigConstants.TOPIC_LIST -> TOPIC_LIST,
       JMSConfigConstants.DESTINATION_SELECTOR -> DestinationSelector.JNDI.toString
     ).asJava
   }
 
   def getPropsTopicListIncorrect = {
-    Map(JMSConfigConstants.KCQL -> KCQL_SOURCE_TOPIC,
+    Map(JMSConfigConstants.KCQL -> s"INSERT INTO $TOPIC1 SELECT * FROM $TOPIC1",
       JMSConfigConstants.JMS_USER -> JMS_USER,
       JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
       JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
       JMSConfigConstants.JMS_URL -> JMS_URL,
-      JMSConfigConstants.TOPIC_LIST -> "foo",
       JMSConfigConstants.DESTINATION_SELECTOR -> DestinationSelector.JNDI.toString
     ).asJava
   }
@@ -138,8 +137,6 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
       JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
       JMSConfigConstants.JMS_URL -> url,
-      JMSConfigConstants.TOPIC_LIST -> TOPIC_LIST,
-      JMSConfigConstants.QUEUE_LIST -> QUEUE_LIST,
       JMSConfigConstants.DESTINATION_SELECTOR -> DestinationSelector.CDI.toString
     ).asJava
   }
@@ -151,10 +148,7 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
       JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
       JMSConfigConstants.JMS_URL -> url,
-      JMSConfigConstants.QUEUE_LIST -> AVRO_QUEUE,
-      JMSConfigConstants.TOPIC_LIST -> TOPIC1,
       JMSConfigConstants.DESTINATION_SELECTOR -> DestinationSelector.CDI.toString,
-      JMSConfigConstants.CONVERTER_CONFIG -> QUEUE_CONVERTER,
       AvroConverter.SCHEMA_CONFIG -> AVRO_SCHEMA_CONFIG
     ).asJava
   }
@@ -166,8 +160,6 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
       JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
       JMSConfigConstants.JMS_URL -> url,
-      JMSConfigConstants.TOPIC_LIST -> TOPIC_LIST,
-      JMSConfigConstants.QUEUE_LIST -> QUEUE_LIST,
       JMSConfigConstants.DESTINATION_SELECTOR -> DestinationSelector.JNDI.toString
     ).asJava
   }
@@ -179,10 +171,7 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
       JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
       JMSConfigConstants.JMS_URL -> JMS_URL,
-      JMSConfigConstants.TOPIC_LIST -> TOPIC_LIST,
-      JMSConfigConstants.QUEUE_LIST -> AVRO_QUEUE,
       JMSConfigConstants.DESTINATION_SELECTOR -> SELECTOR,
-      JMSConfigConstants.CONVERTER_CONFIG -> QUEUE_CONVERTER,
       AvroConverter.SCHEMA_CONFIG -> AVRO_SCHEMA_CONFIG
     ).asJava
   }
@@ -194,10 +183,7 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
       JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
       JMSConfigConstants.JMS_URL -> url,
-      JMSConfigConstants.TOPIC_LIST -> TOPIC_LIST,
-      JMSConfigConstants.QUEUE_LIST -> QUEUE_LIST,
-      JMSConfigConstants.DESTINATION_SELECTOR -> SELECTOR,
-      JMSConfigConstants.CONVERTER_CONFIG -> QUEUE_CONVERTER
+      JMSConfigConstants.DESTINATION_SELECTOR -> SELECTOR
     ).asJava
   }
 
@@ -208,8 +194,6 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
       JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
       JMSConfigConstants.JMS_URL -> url,
-      JMSConfigConstants.TOPIC_LIST -> TOPIC_LIST,
-      JMSConfigConstants.QUEUE_LIST -> QUEUE_LIST,
       JMSConfigConstants.DESTINATION_SELECTOR -> SELECTOR
     ).asJava
   }

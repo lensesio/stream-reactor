@@ -18,7 +18,8 @@ package com.datamountaineer.streamreactor.connect.voltdb
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.voltdb.config.VoltSinkConfig
+import com.datamountaineer.streamreactor.connect.config.Helpers
+import com.datamountaineer.streamreactor.connect.voltdb.config.{VoltSinkConfig, VoltSinkConfigConstants}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -59,6 +60,7 @@ class VoltSinkConnector extends SinkConnector with StrictLogging {
     **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting VoltDb sink connector.")
+    Helpers.checkInputTopics(VoltSinkConfigConstants.KCQL_CONFIG, props.asScala.toMap)
     configProps = Some(props)
   }
 

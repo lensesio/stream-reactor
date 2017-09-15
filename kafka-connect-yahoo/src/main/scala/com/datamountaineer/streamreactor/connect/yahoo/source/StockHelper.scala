@@ -78,10 +78,10 @@ object StockHelper {
 
       val structWithQuote = Option(stock.getQuote(false)).foldLeft(structWithDividend) { (s, q) =>
         s.put("ask", q.getAsk.doubleValue())
-          .put("ask_size", q.getAskSize)
+          .put("ask_size", q.getAskSize.toInt)
           .put("ask_avg_volume", q.getAvgVolume)
           .put("bid", q.getBid.doubleValue())
-          .put("bid_size", q.getBidSize)
+          .put("bid_size", q.getBidSize.toInt)
           .put("change", q.getChange.doubleValue())
           .put("change_percentage", q.getChangeInPercent.doubleValue())
           .put("change_from_avg50", q.getChangeFromAvg50.doubleValue())
@@ -92,7 +92,7 @@ object StockHelper {
           .put("change_from_year_low_percentage", q.getChangeFromYearLowInPercent.doubleValue())
           .put("day_high", q.getDayHigh.doubleValue())
           .put("day_low", q.getDayLow.doubleValue())
-          .put("last_trade_size", q.getLastTradeSize)
+          .put("last_trade_size", q.getLastTradeSize.toInt)
           .put("last_trade_time", q.getLastTradeTime.getTimeInMillis)
           .put("open", q.getOpen.doubleValue())
           .put("previous_close", q.getPreviousClose.doubleValue())

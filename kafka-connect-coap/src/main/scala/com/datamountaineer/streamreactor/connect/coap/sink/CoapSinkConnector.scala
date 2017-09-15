@@ -18,7 +18,8 @@ package com.datamountaineer.streamreactor.connect.coap.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.coap.configs.CoapSinkConfig
+import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSinkConfig}
+import com.datamountaineer.streamreactor.connect.config.Helpers
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -35,7 +36,10 @@ class CoapSinkConnector extends SinkConnector with StrictLogging {
   private val configDef = CoapSinkConfig.config
 
   override def taskClass(): Class[_ <: Task] = classOf[CoapSinkTask]
-  override def start(props: util.Map[String, String]): Unit = configProps = props
+  override def start(props: util.Map[String, String]): Unit = {
+    Helpers.checkInputTopics(CoapConstants.COAP_KCQL, props.asScala.toMap)
+    configProps = props
+  }
 
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")

@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.influx
 import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.influx.config.{InfluxSettings, InfluxSinkConfig, InfluxSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.influx.config.{InfluxConfig, InfluxConfigConstants, InfluxSettings}
 import com.datamountaineer.streamreactor.connect.influx.writers.{InfluxDbWriter, WriterFactoryFn}
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -28,7 +28,6 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 
 /**
   * <h1>InfluxSinkTask</h1>
@@ -45,15 +44,16 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/influx-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/influx-ascii.txt")).mkString + s" v $version")
 
-    InfluxSinkConfig.config.parse(props)
-    val sinkConfig = InfluxSinkConfig(props)
+    InfluxConfig.config.parse(props)
+    val sinkConfig = InfluxConfig(props)
+    enableProgress = sinkConfig.getBoolean(InfluxConfigConstants.PROGRESS_COUNTER_ENABLED)
     val influxSettings = InfluxSettings(sinkConfig)
 
     //if error policy is retry set retry interval
     if (influxSettings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getInt(InfluxSinkConfigConstants.ERROR_RETRY_INTERVAL_CONFIG).toLong)
+      context.timeout(sinkConfig.getInt(InfluxConfigConstants.ERROR_RETRY_INTERVAL_CONFIG).toLong)
     }
 
     writer = Some(WriterFactoryFn(influxSettings))
@@ -87,7 +87,7 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
     progressCounter.empty
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 
   override def flush(offsets: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
 }

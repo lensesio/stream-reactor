@@ -18,13 +18,16 @@ package com.datamountaineer.streamreactor.connect.mongodb.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.config.Helpers
+import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.connect.connector.{Connector, Task}
+import org.apache.kafka.connect.connector.{Task}
 import org.apache.kafka.connect.errors.ConnectException
+import org.apache.kafka.connect.sink.SinkConnector
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.{Failure, Try}
 
 /**
@@ -33,7 +36,7 @@ import scala.util.{Failure, Try}
   *
   * Sets up MongoSinkTask and configurations for the tasks.
   **/
-class MongoSinkConnector extends Connector with StrictLogging {
+class MongoSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
 
 
@@ -51,7 +54,7 @@ class MongoSinkConnector extends Connector with StrictLogging {
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
 
-    val kcql = configProps.get(MongoSinkConfigConstants.KCQL_CONFIG).split(";")
+    val kcql = configProps.get(MongoConfigConstants.KCQL_CONFIG).split(";")
     if (maxTasks == 1 || kcql.length == 1) {
       List(configProps)
     }
@@ -61,7 +64,7 @@ class MongoSinkConnector extends Connector with StrictLogging {
         .map(_.mkString(";"))
         .map { routes =>
           val taskProps = new util.HashMap[String, String](configProps)
-          taskProps.put(MongoSinkConfigConstants.KCQL_CONFIG, routes)
+          taskProps.put(MongoConfigConstants.KCQL_CONFIG, routes)
           taskProps
         }.toList
     }
@@ -73,6 +76,7 @@ class MongoSinkConnector extends Connector with StrictLogging {
     * @param props A map of properties for the connector and worker
     **/
   override def start(props: util.Map[String, String]): Unit = {
+    Helpers.checkInputTopics(MongoConfigConstants.KCQL_CONFIG, props.asScala.toMap)
     Try(MongoConfig(props)) match {
       case Failure(f) => throw new ConnectException(s"Couldn't start Mongo sink due to configuration error: ${f.getMessage}", f)
       case _ =>
@@ -85,5 +89,5 @@ class MongoSinkConnector extends Connector with StrictLogging {
 
   override def version(): String = getClass.getPackage.getImplementationVersion
 
-  override def config(): ConfigDef = MongoConfig.configDef
+  override def config(): ConfigDef = MongoConfig.config
 }

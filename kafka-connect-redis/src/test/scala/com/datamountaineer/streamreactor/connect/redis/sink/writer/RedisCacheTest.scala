@@ -16,13 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
-import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkConfig._
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConnectionInfo, RedisSinkConfig, RedisSinkConfigConstants, RedisSinkSettings}
+import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
 import com.google.gson.Gson
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import redis.clients.jedis.Jedis
 import redis.embedded.RedisServer
@@ -42,15 +41,15 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
     "write Kafka records to Redis using CACHE mode" in {
 
       val TOPIC = "topic"
-      val TABLE_NAME_RAW = "someTable"
       val QUERY_ALL = s"SELECT * FROM $TOPIC PK firstName"
 
-      val config = mock[RedisSinkConfig]
-      when(config.getString(RedisSinkConfigConstants.REDIS_HOST)).thenReturn("localhost")
-      when(config.getInt(RedisSinkConfigConstants.REDIS_PORT)).thenReturn(6379)
-      when(config.getString(RedisSinkConfigConstants.REDIS_PASSWORD)).thenReturn("")
-      when(config.getString(RedisSinkConfigConstants.KCQL_CONFIG)).thenReturn(QUERY_ALL)
-      when(config.getString(RedisSinkConfigConstants.ERROR_POLICY)).thenReturn("THROW")
+      val props = Map(
+        RedisConfigConstants.REDIS_HOST->"localhost",
+        RedisConfigConstants.REDIS_PORT->"6379",
+        RedisConfigConstants.KCQL_CONFIG->QUERY_ALL
+      ).asJava
+
+      val config = RedisConfig(props)
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
@@ -90,15 +89,15 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
     "write Kafka records to Redis using CACHE mode and PK field is not in the selected fields" in {
 
       val TOPIC = "topic"
-      val TABLE_NAME_RAW = "someTable"
       val QUERY_ALL = s"SELECT age FROM $TOPIC PK firstName"
 
-      val config = mock[RedisSinkConfig]
-      when(config.getString(RedisSinkConfigConstants.REDIS_HOST)).thenReturn("localhost")
-      when(config.getInt(RedisSinkConfigConstants.REDIS_PORT)).thenReturn(6379)
-      when(config.getString(RedisSinkConfigConstants.REDIS_PASSWORD)).thenReturn("")
-      when(config.getString(RedisSinkConfigConstants.KCQL_CONFIG)).thenReturn(QUERY_ALL)
-      when(config.getString(RedisSinkConfigConstants.ERROR_POLICY)).thenReturn("THROW")
+      val props = Map(
+        RedisConfigConstants.REDIS_HOST->"localhost",
+        RedisConfigConstants.REDIS_PORT->"6379",
+        RedisConfigConstants.KCQL_CONFIG->QUERY_ALL
+      ).asJava
+
+      val config = RedisConfig(props)
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
@@ -138,12 +137,13 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
       val TOPIC = "topic2"
       val KCQL = s"INSERT INTO KEY_PREFIX_ SELECT * FROM $TOPIC PK firstName"
 
-      val config = mock[RedisSinkConfig]
-      when(config.getString(RedisSinkConfigConstants.REDIS_HOST)).thenReturn("localhost")
-      when(config.getInt(RedisSinkConfigConstants.REDIS_PORT)).thenReturn(6379)
-      when(config.getString(RedisSinkConfigConstants.REDIS_PASSWORD)).thenReturn("")
-      when(config.getString(RedisSinkConfigConstants.KCQL_CONFIG)).thenReturn(KCQL)
-      when(config.getString(RedisSinkConfigConstants.ERROR_POLICY)).thenReturn("THROW")
+      val props = Map(
+        RedisConfigConstants.REDIS_HOST->"localhost",
+        RedisConfigConstants.REDIS_PORT->"6379",
+        RedisConfigConstants.KCQL_CONFIG->KCQL
+      ).asJava
+
+      val config = RedisConfig(props)
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
 
       val settings = RedisSinkSettings(config)

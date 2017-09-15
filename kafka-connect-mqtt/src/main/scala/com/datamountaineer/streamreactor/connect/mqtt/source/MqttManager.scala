@@ -18,8 +18,9 @@ package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import java.util
 import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigException
@@ -30,8 +31,9 @@ import org.eclipse.paho.client.mqttv3._
 class MqttManager(connectionFn: (MqttCallback) => MqttClient,
                   convertersMap: Map[String, Converter],
                   qualityOfService: Int,
-                  kcql: Array[Config],
-                  throwOnErrors: Boolean) extends AutoCloseable with StrictLogging with MqttCallback {
+                  kcql: Array[Kcql],
+                  throwOnErrors: Boolean,
+                  pollingTimeout: Int) extends AutoCloseable with StrictLogging with MqttCallback {
   private val client: MqttClient = connectionFn(this)
   private val sourceToTopicMap = kcql.map(c => c.getSource -> c).toMap
   require(kcql.nonEmpty, s"Invalid $kcql parameter. At least one statement needs to be provided")
@@ -45,16 +47,23 @@ class MqttManager(connectionFn: (MqttCallback) => MqttClient,
     client.close()
   }
 
-  override def deliveryComplete(token: IMqttDeliveryToken): Unit = {
+  override def deliveryComplete(token: IMqttDeliveryToken): Unit = {}
 
+  def compareTopic(actualTopic: String, subscribedTopic: String): Boolean = {
+    actualTopic.matches(subscribedTopic.replaceAll("\\+", "[^/]+").replaceAll("#", ".+"))
   }
 
   override def messageArrived(topic: String, message: MqttMessage): Unit = {
+    val matched = sourceToTopicMap
+                    .filter(t => compareTopic(topic, t._1))
+                    .map(t => t._2.getSource)
+
+    val wildcard = matched.head
     val kafkaTopic = sourceToTopicMap
-      .getOrElse(topic, throw new ConfigException(s"Topic $topic is not configured. Available topics are:${sourceToTopicMap.keySet.mkString(",")}"))
+      .getOrElse(wildcard, throw new ConfigException(s"Topic $topic is not configured. Available topics are:${sourceToTopicMap.keySet.mkString(",")}"))
       .getTarget
 
-    val converter = convertersMap.getOrElse(topic, throw new RuntimeException(s"$topic topic is missing the converter instance."))
+    val converter = convertersMap.getOrElse(wildcard, throw new RuntimeException(s"$wildcard topic is missing the converter instance."))
     if (!message.isDuplicate) {
       try {
         Option(converter.convert(kafkaTopic, topic, message.getId.toString, message.getPayload)) match {
@@ -81,5 +90,13 @@ class MqttManager(connectionFn: (MqttCallback) => MqttClient,
     logger.warn("Connection lost. Re-connecting is set to true", cause)
   }
 
-  def getRecords(target: util.Collection[SourceRecord]): Int = queue.drainTo(target)
+  def getRecords(target: util.Collection[SourceRecord]): Int = {
+    Option(queue.poll(pollingTimeout, TimeUnit.MILLISECONDS)) match {
+      case Some(x) =>
+        target.add(x)
+        queue.drainTo(target) + 1
+      case None =>
+        0
+    }
+  }
 }

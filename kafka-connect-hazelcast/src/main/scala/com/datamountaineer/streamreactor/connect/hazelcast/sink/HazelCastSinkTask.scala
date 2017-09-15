@@ -42,9 +42,10 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/hazelcast-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/hazelcast-ascii.txt")).mkString + s" v $version")
     HazelCastSinkConfig.config.parse(props)
     val sinkConfig = new HazelCastSinkConfig(props)
+    enableProgress = sinkConfig.getBoolean(HazelCastSinkConfigConstants.PROGRESS_COUNTER_ENABLED)
     val settings = HazelCastSinkSettings(sinkConfig)
 
     //if error policy is retry set retry interval
@@ -80,9 +81,9 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.foreach(w => w.flush)
+    writer.foreach(w => w.flush())
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 }
 

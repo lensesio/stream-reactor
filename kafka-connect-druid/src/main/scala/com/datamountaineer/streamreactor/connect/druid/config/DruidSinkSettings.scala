@@ -18,8 +18,6 @@ package com.datamountaineer.streamreactor.connect.druid.config
 
 import java.io.File
 
-import com.datamountaineer.connector.config.Config
-import com.datamountaineer.streamreactor.connect.druid.config.DruidSinkConfig._
 import com.datamountaineer.streamreactor.connect.schemas.StructFieldsExtractor
 import org.apache.kafka.common.config.ConfigException
 
@@ -37,7 +35,7 @@ object DruidSinkSettings {
     * @param config : The map of all provided configurations
     * @return An instance of DruidSinkSettings
     */
-  def apply(config: DruidSinkConfig): DruidSinkSettings = {
+  def apply(config: DruidConfig): DruidSinkSettings = {
     val file = config.getString(DruidSinkConfigConstants.CONFIG_FILE)
     if (file.trim.length == 0 || !new File(file).exists()) {
       throw new ConfigException(s"${DruidSinkConfigConstants.CONFIG_FILE} is not set correctly.")
@@ -49,21 +47,15 @@ object DruidSinkSettings {
       throw new ConfigException(s"Empty ${DruidSinkConfigConstants.CONFIG_FILE}.")
     }
 
-    val routes = config.getString(DruidSinkConfigConstants.KCQL).split(";").map(r => Config.parse(r)).toList
-    val dataSources = routes.map(r => (r.getSource, r.getTarget)).toMap
-    val fields = routes.map(rm =>
-      (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField,fa.getAlias)).toMap)
-    ).toMap
+    val kcql = config.getKCQL
+    val dataSources = config.getTableTopic()
+    val fields = config.getFieldsMap(kcql)
 
-    val extractors = routes.map(r => {
-      val ignore = if (r.getIgnoredField.nonEmpty) true else false
+    val extractors = kcql.map(r => {
+      val ignore = if (r.getIgnoredFields.nonEmpty) true else false
       (r.getSource, StructFieldsExtractor(ignore, fields(r.getSource)))
     }).toMap
 
-    DruidSinkSettings(
-      dataSources,
-      scala.io.Source.fromFile(file).mkString,
-      extractors
-    )
+    DruidSinkSettings(dataSources, scala.io.Source.fromFile(file).mkString, extractors)
   }
 }

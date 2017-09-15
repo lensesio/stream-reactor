@@ -38,8 +38,8 @@ class CoapWriter(setting: CoapSetting) extends CoapManager(setting) with ErrorHa
   //initialize error tracker
   initialize(setting.retries.get, setting.errorPolicy.get)
 
-  val fields = Map(setting.kcql.getSource -> setting.kcql.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)
-  val ignoredFields = Map(setting.kcql.getSource -> setting.kcql.getIgnoredField.toSet)
+  val fields = Map(setting.kcql.getSource -> setting.kcql.getFields.map(fa => (fa.getName, fa.getAlias)).toMap)
+  val ignoredFields = Map(setting.kcql.getSource -> setting.kcql.getIgnoredFields.map(f => f.getName).toSet)
 
   def write(records: List[SinkRecord]): Option[Unit] = {
     val responses = Try(records

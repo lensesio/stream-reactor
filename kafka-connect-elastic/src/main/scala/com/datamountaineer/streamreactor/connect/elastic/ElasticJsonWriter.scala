@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.elastic
 
-import com.datamountaineer.connector.config.WriteModeEnum
+import com.datamountaineer.kcql.WriteModeEnum
 import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSettings
 import com.datamountaineer.streamreactor.connect.elastic.indexname.CreateIndex
 import com.datamountaineer.streamreactor.connect.schemas.{ConverterUtil, StructFieldsExtractor}
@@ -35,7 +35,7 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
   logger.info("Initialising Elastic Json writer")
 
   //create the index automatically
-  settings.routes.filter(_.isAutoCreate).foreach(kcql => CreateIndex(kcql)(client))
+  settings.kcql.filter(_.isAutoCreate).foreach(kcql => CreateIndex(kcql)(client))
 
   implicit object SinkRecordIndexable extends Indexable[SinkRecord] {
     override def json(t: SinkRecord): String = convertValueToJson(t).toString
@@ -46,7 +46,7 @@ class ElasticJsonWriter(client: ElasticClient, settings: ElasticSettings) extend
     **/
   def close(): Unit = client.close()
 
-  private val configMap = settings.routes.map(c => c.getSource -> c).toMap
+  private val configMap = settings.kcql.map(c => c.getSource -> c).toMap
 
   /**
     * Write SinkRecords to Elastic Search if list is not empty

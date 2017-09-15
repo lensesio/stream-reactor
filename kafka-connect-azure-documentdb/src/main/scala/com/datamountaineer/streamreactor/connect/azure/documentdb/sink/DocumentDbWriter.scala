@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
-import com.datamountaineer.connector.config.WriteModeEnum
+import com.datamountaineer.kcql.WriteModeEnum
 import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
@@ -25,7 +25,7 @@ import com.microsoft.azure.documentdb._
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
 
 /**
   * <h1>DocumentDbWriter</h1>
@@ -69,10 +69,7 @@ class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: Documen
     try {
       records.groupBy(_.topic()).foreach { case (_, groupedRecords) =>
         groupedRecords.foreach { record =>
-          val (document, keysAndValues) = SinkRecordToDocument(
-            record,
-            settings.keyBuilderMap.getOrElse(record.topic(), Set.empty)
-          )(settings)
+          val (document, keysAndValues) = SinkRecordToDocument(record, settings.keyBuilderMap.getOrElse(record.topic(), Set.empty))(settings)
 
           val key = keysAndValues.flatMap { case (_, v) => Option(v) }.mkString(".")
           if (key.nonEmpty) {
@@ -114,6 +111,7 @@ object DocumentDbWriter extends StrictLogging {
     }
 
     logger.info(s"Initialising Document Db writer.")
-    new DocumentDbWriter(settings, DocumentClientProvider.get(settings))
+    val provider = DocumentClientProvider.get(settings)
+    new DocumentDbWriter(settings, provider)
   }
 }

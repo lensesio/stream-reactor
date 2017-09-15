@@ -44,10 +44,11 @@ class JMSSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-sink-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-sink-ascii.txt")).mkString + s" v $version")
     JMSConfig.config.parse(props)
     val sinkConfig = new JMSConfig(props)
     val settings = JMSSettings(sinkConfig, sink = true)
+    enableProgress = sinkConfig.getBoolean(JMSConfigConstants.PROGRESS_COUNTER_ENABLED)
 
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
@@ -82,5 +83,5 @@ class JMSSinkTask extends SinkTask with StrictLogging {
     //have the writer expose a is busy; can expose an await using a countdownlatch internally
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 }

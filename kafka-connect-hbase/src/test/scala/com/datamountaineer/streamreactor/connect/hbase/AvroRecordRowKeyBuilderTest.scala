@@ -22,7 +22,7 @@ import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 
 class AvroRecordRowKeyBuilderTest extends WordSpec with Matchers with MockitoSugar {

@@ -18,14 +18,14 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import java.util
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.errors.RetryErrorPolicy
 import com.datastax.driver.core.ConsistencyLevel
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 
 /**
@@ -40,7 +40,7 @@ class TestCassandraSinkSettings extends WordSpec with Matchers with MockitoSugar
     val taskConfig = CassandraConfigSink(getCassandraConfigSinkPropsRetry)
     val settings = CassandraSettings.configureSink(taskConfig)
 
-    val parsedConf: List[Config] = settings.routes.toList
+    val parsedConf: List[Kcql] = settings.kcqls.toList
     parsedConf.size shouldBe 2
 
     parsedConf.head.getTarget shouldBe TABLE1
@@ -70,14 +70,14 @@ class TestCassandraSinkSettings extends WordSpec with Matchers with MockitoSugar
 
   "CassandraSettings should allow setting the sink thread pool to 64" in {
     val map = new util.HashMap[String, String](getCassandraConfigSinkPropsRetry)
-    map.put(CassandraConfigConstants.SINK_THREAD_POOL_CONFIG, "64")
+    map.put(CassandraConfigConstants.THREAD_POOL_CONFIG, "64")
     val settings = CassandraSettings.configureSink(CassandraConfigSink(map))
     settings.threadPoolSize shouldBe 64
   }
 
   "CassandraSettings should handle setting the sink thread pool to 0 and return a non zero value" in {
     val map = new util.HashMap[String, String](getCassandraConfigSinkPropsRetry)
-    map.put(CassandraConfigConstants.SINK_THREAD_POOL_CONFIG, "0")
+    map.put(CassandraConfigConstants.THREAD_POOL_CONFIG, "0")
     val settings = CassandraSettings.configureSink(CassandraConfigSink(map))
     settings.threadPoolSize shouldBe 4 * Runtime.getRuntime.availableProcessors()
   }
@@ -86,7 +86,7 @@ class TestCassandraSinkSettings extends WordSpec with Matchers with MockitoSugar
   "CassandraSettings should throw an exception if the consistency level is not valid for a source" in {
     val map = new util.HashMap[String, String](getCassandraConfigSourcePropsIncr)
     map.put(CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG, "InvaliD")
-    intercept[ConfigException]{
+    intercept[ConfigException] {
       CassandraSettings.configureSource(CassandraConfigSource(map))
     }
   }

@@ -79,7 +79,7 @@ object JMSSessionProvider extends StrictLogging {
       case Some(user) => connectionFactory.createConnection(user, settings.password.get.value())
     }
 
-    val session = Try(connection.createSession(true, Session.AUTO_ACKNOWLEDGE)) match {
+    val session = Try(connection.createSession(true, Session.CLIENT_ACKNOWLEDGE)) match {
       case Success(s) =>
         logger.info("Created session")
         s

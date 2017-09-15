@@ -16,12 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.voltdb.config
 
-import com.datamountaineer.connector.config.{Config, WriteModeEnum}
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
+import com.datamountaineer.kcql.WriteModeEnum
+import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.voltdb.StructFieldsExtractor
 import org.apache.kafka.common.config.ConfigException
+import scala.collection.JavaConverters._
 
-import scala.collection.JavaConversions._
 
 case class VoltSettings(servers: String,
                         user: String,
@@ -45,28 +45,22 @@ object VoltSettings {
       throw new ConfigException(s"${VoltSinkConfigConstants.SERVERS_CONFIG} is not set correctly")
     }
 
-    val user = config.getString(VoltSinkConfigConstants.USER_CONFIG)
-    //    if (user == null || user.trim.length == 0)
-    //      throw new ConfigException(s"${VoltSinkConfigConstants.USER_CONFIG} is not set correctly")
-
-    val passwordRaw = config.getPassword(VoltSinkConfigConstants.PASSWORD_CONFIG)
+    val user = config.getUsername
+    val passwordRaw = config.getSecret
 
     val password = passwordRaw match {
       case null => null
       case _ => passwordRaw.value()
     }
 
-    val raw = config.getString(VoltSinkConfigConstants.EXPORT_ROUTE_QUERY_CONFIG)
-    require(raw != null && !raw.isEmpty, s"No ${VoltSinkConfigConstants.EXPORT_ROUTE_QUERY_CONFIG} provided!")
-    val routes = raw.split(";").map(r => Config.parse(r)).toSet
-    val errorPolicyE = ErrorPolicyEnum.withName(config.getString(VoltSinkConfigConstants.ERROR_POLICY_CONFIG).toUpperCase)
-    val errorPolicy = ErrorPolicy(errorPolicyE)
-    val nbrOfRetries = config.getInt(VoltSinkConfigConstants.NBR_OF_RETRIES_CONFIG)
+    val kcql = config.getKCQL
+    val errorPolicy = config.getErrorPolicy
+    val nbrOfRetries = config.getNumberRetries
+    val fields = config.getFieldsMap()
 
-    val fields = routes.map(rm => (rm.getSource, rm.getFieldAlias.map(fa => (fa.getField, fa.getAlias)).toMap)).toMap
-
-    val extractorFields = routes.map { rm =>
-      (rm.getSource, StructFieldsExtractor(rm.getTarget, rm.isIncludeAllFields, fields(rm.getSource), rm.getWriteMode == WriteModeEnum.UPSERT))
+    val extractorFields = kcql.map { rm =>
+      val allFields = rm.getFields.asScala.exists(_.getName.equals("*"))
+      (rm.getSource, StructFieldsExtractor(rm.getTarget, allFields, fields(rm.getSource), rm.getWriteMode == WriteModeEnum.UPSERT))
     }.toMap
 
     new VoltSettings(servers,

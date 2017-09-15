@@ -21,19 +21,19 @@ import java.nio.ByteBuffer
 import java.util.UUID
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import com.datastax.driver.core.{ ColumnDefinitions, Row, TestUtils }
-import org.apache.kafka.connect.data.{ Schema, Struct }
+import com.datastax.driver.core.{ColumnDefinitions, Row, TestUtils}
+import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.errors.DataException
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.{ Matchers, WordSpec }
+import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
 
 /**
- * Created by andrew@datamountaineer.com on 21/04/16.
- * stream-reactor
- */
+  * Created by andrew@datamountaineer.com on 21/04/16.
+  * stream-reactor
+  */
 class TestSchemaConverter extends WordSpec with TestConfig with Matchers with MockitoSugar {
 
   val uuid = UUID.randomUUID()
@@ -59,8 +59,8 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     val cols = TestUtils.getColumnDefs
     when(row.getColumnDefinitions).thenReturn(cols)
     mockRow(row)
-    val colDefList = CassandraUtils.getStructColumns(row, null)
-    val sr: Struct = CassandraUtils.convert(row, "test", colDefList)
+    val colDefList = CassandraUtils.getStructColumns(row, Set.empty)
+    val sr: Struct = CassandraUtils.convert(row, "test", colDefList, None)
     val schema = sr.schema()
     checkCols(schema)
     sr.get("timeuuidCol").toString shouldBe uuid.toString
@@ -74,7 +74,7 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     when(row.getColumnDefinitions).thenReturn(cols)
     mockRow(row)
     val colDefList = null
-    val sr: Struct = CassandraUtils.convert(row, "test", colDefList)
+    val sr: Struct = CassandraUtils.convert(row, "test", colDefList, None)
     val schema = sr.schema()
     schema.defaultValue() shouldBe null
   }
@@ -85,9 +85,9 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     when(row.getColumnDefinitions).thenReturn(cols)
     mockRow(row)
 
-    val ignoreList = List("intCol", "floatCol")
+    val ignoreList = Set("intCol", "floatCol")
     val colDefList = CassandraUtils.getStructColumns(row, ignoreList)
-    val sr: Struct = CassandraUtils.convert(row, "test", colDefList)
+    val sr: Struct = CassandraUtils.convert(row, "test", colDefList, None)
 
     sr.get("timeuuidCol").toString shouldBe uuid.toString
     sr.get("mapCol") shouldBe "{}"
@@ -144,7 +144,7 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     schema.field("booleanCol").schema().`type`() shouldBe Schema.OPTIONAL_BOOLEAN_SCHEMA.`type`()
     schema.field("smallintCol").schema().`type`() shouldBe Schema.INT16_SCHEMA.`type`()
     schema.field("intCol").schema().`type`() shouldBe Schema.OPTIONAL_INT32_SCHEMA.`type`()
-    schema.field("decimalCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
+    schema.field("decimalCol").schema().`type`() shouldBe CassandraUtils.OPTIONAL_DECIMAL_SCHEMA.`type`()
     schema.field("floatCol").schema().`type`() shouldBe Schema.OPTIONAL_FLOAT32_SCHEMA.`type`()
     schema.field("counterCol").schema().`type`() shouldBe Schema.OPTIONAL_INT64_SCHEMA.`type`()
     schema.field("bigintCol").schema().`type`() shouldBe Schema.OPTIONAL_INT64_SCHEMA.`type`()
@@ -153,7 +153,7 @@ class TestSchemaConverter extends WordSpec with TestConfig with Matchers with Mo
     schema.field("timeuuidCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
     schema.field("blobCol").schema().`type`() shouldBe Schema.OPTIONAL_BYTES_SCHEMA.`type`()
     schema.field("timeCol").schema().`type`() shouldBe Schema.OPTIONAL_INT64_SCHEMA.`type`()
-    schema.field("timestampCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
-    schema.field("dateCol").schema().`type`() shouldBe Schema.OPTIONAL_STRING_SCHEMA.`type`()
+    schema.field("timestampCol").schema().`type`() shouldBe CassandraUtils.OPTIONAL_TIMESTAMP_SCHEMA.`type`()
+    schema.field("dateCol").schema().`type`() shouldBe CassandraUtils.OPTIONAL_DATE_SCHEMA.`type`()
   }
 }

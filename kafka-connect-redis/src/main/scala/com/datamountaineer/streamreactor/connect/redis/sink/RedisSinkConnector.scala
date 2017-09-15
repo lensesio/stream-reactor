@@ -18,7 +18,8 @@ package com.datamountaineer.streamreactor.connect.redis.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkConfig
+import com.datamountaineer.streamreactor.connect.config.Helpers
+import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -34,7 +35,7 @@ import scala.collection.JavaConverters._
   **/
 class RedisSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
-  private val configDef = RedisSinkConfig.config
+  private val configDef = RedisConfig.config
 
   /**
     * States which SinkTask class to use
@@ -59,6 +60,7 @@ class RedisSinkConnector extends SinkConnector with StrictLogging {
     **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Redis sink task with ${props.toString}.")
+    Helpers.checkInputTopics(RedisConfigConstants.KCQL_CONFIG, props.asScala.toMap)
     configProps = props
   }
 

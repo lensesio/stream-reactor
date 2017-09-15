@@ -25,9 +25,6 @@ import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMess
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
 import scala.util.Try
 
 /**
@@ -46,7 +43,7 @@ class JMSReader(settings: JMSSettings) extends StrictLogging {
 
     val messages = consumers
                       .flatMap({ case (source, consumer)=>
-                        (1 to settings.batchSize)
+                        (0 to settings.batchSize)
                           .flatMap(_ => Option(consumer.receiveNoWait()))
                           .map(m => (m, convert(source, topicsMap(source), m)))
                       })

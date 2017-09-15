@@ -30,11 +30,13 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.json.JsonDeserializer
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.mockito.Mockito._
-import org.scalatest.BeforeAndAfter
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.mockito.MockitoSugar
+
+import scala.reflect.io.Path
 
 
-class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfter with MockitoSugar {
+class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfterAll with MockitoSugar {
   val broker = new BrokerService()
   broker.setPersistent(false)
   broker.setUseJmx(false)
@@ -46,12 +48,14 @@ class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfter with Mocki
   val tempDir = System.getProperty(property)
   broker.setDataDirectoryFile( new File(tempDir))
 
-  before {
+  override def beforeAll {
     broker.start()
   }
 
-  after {
+
+  override def afterAll(): Unit = {
     broker.stop()
+    Path(AVRO_FILE).delete()
   }
 
   "JMSSinkTask" should {

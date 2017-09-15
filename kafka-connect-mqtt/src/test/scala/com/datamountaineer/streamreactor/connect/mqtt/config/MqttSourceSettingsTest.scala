@@ -28,17 +28,17 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
     "create an instance of settings" in {
       val settings = MqttSourceSettings {
         MqttSourceConfig(Map(
-          MqttSourceConfigConstants.HOSTS_CONFIG -> "mqtt://localhost:61612?wireFormat.maxFrameSize=100000",
-          MqttSourceConfigConstants.CONVERTER_CONFIG -> s"mqttSource=${classOf[AvroConverter].getCanonicalName}",
-          MqttSourceConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM mqttSource",
-          MqttSourceConfigConstants.QS_CONFIG -> "1",
-          MqttSourceConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
-          MqttSourceConfigConstants.CLEAN_SESSION_CONFIG -> "true",
-          MqttSourceConfigConstants.CLIENT_ID_CONFIG -> "someid",
-          MqttSourceConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
-          MqttSourceConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
-          MqttSourceConfigConstants.PASSWORD_CONFIG -> "somepassw",
-          MqttSourceConfigConstants.USER_CONFIG -> "user"
+          MqttConfigConstants.HOSTS_CONFIG -> "mqtt://localhost:61612?wireFormat.maxFrameSize=100000",
+          MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM mqttSource WITHCONVERTER=${classOf[AvroConverter].getCanonicalName}",
+          MqttConfigConstants.QS_CONFIG -> "1",
+          MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
+          MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
+          MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
+          MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+          MqttConfigConstants.POLLING_TIMEOUT_CONFIG -> "500",
+          MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
+          MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
+          MqttConfigConstants.USER_CONFIG -> "user"
         ))
       }
       settings.mqttQualityOfService shouldBe 1
@@ -50,22 +50,24 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
       settings.user shouldBe Some("user")
       settings.keepAliveInterval shouldBe 1000
       settings.connectionTimeout shouldBe 1000
+      settings.pollingTimeout shouldBe 500
       settings.connection shouldBe "mqtt://localhost:61612?wireFormat.maxFrameSize=100000"
     }
 
     "converted defaults to BytesConverter if not provided" in {
       val settings = MqttSourceSettings {
         MqttSourceConfig(Map(
-          MqttSourceConfigConstants.HOSTS_CONFIG -> "mqtt://localhost:61612?wireFormat.maxFrameSize=100000",
-          MqttSourceConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM mqttSource",
-          MqttSourceConfigConstants.QS_CONFIG -> "1",
-          MqttSourceConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
-          MqttSourceConfigConstants.CLEAN_SESSION_CONFIG -> "true",
-          MqttSourceConfigConstants.CLIENT_ID_CONFIG -> "someid",
-          MqttSourceConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
-          MqttSourceConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
-          MqttSourceConfigConstants.PASSWORD_CONFIG -> "somepassw",
-          MqttSourceConfigConstants.USER_CONFIG -> "user"
+          MqttConfigConstants.HOSTS_CONFIG -> "mqtt://localhost:61612?wireFormat.maxFrameSize=100000",
+          MqttConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM mqttSource",
+          MqttConfigConstants.QS_CONFIG -> "1",
+          MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
+          MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
+          MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
+          MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+          MqttConfigConstants.POLLING_TIMEOUT_CONFIG -> "500",
+          MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
+          MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
+          MqttConfigConstants.USER_CONFIG -> "user"
         ))
       }
 
@@ -75,15 +77,16 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
     "throw an config exception if no kcql is set" in {
       intercept[ConfigException] {
         MqttSourceConfig(Map(
-          MqttSourceConfigConstants.QS_CONFIG -> "1",
-          MqttSourceConfigConstants.HOSTS_CONFIG -> "mqtt://localhost:61612?wireFormat.maxFrameSize=100000",
-          MqttSourceConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
-          MqttSourceConfigConstants.CLEAN_SESSION_CONFIG -> "true",
-          MqttSourceConfigConstants.CLIENT_ID_CONFIG -> "someid",
-          MqttSourceConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
-          MqttSourceConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
-          MqttSourceConfigConstants.PASSWORD_CONFIG -> "somepassw",
-          MqttSourceConfigConstants.USER_CONFIG -> "user"
+          MqttConfigConstants.QS_CONFIG -> "1",
+          MqttConfigConstants.HOSTS_CONFIG -> "mqtt://localhost:61612?wireFormat.maxFrameSize=100000",
+          MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
+          MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
+          MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
+          MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+          MqttConfigConstants.POLLING_TIMEOUT_CONFIG -> "500",
+          MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
+          MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
+          MqttConfigConstants.USER_CONFIG -> "user"
         ))
       }
     }
@@ -92,16 +95,17 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
       intercept[ConfigException] {
         MqttSourceSettings(
           MqttSourceConfig(Map(
-            MqttSourceConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM mqttSource",
-            MqttSourceConfigConstants.QS_CONFIG -> "-1",
-            MqttSourceConfigConstants.HOSTS_CONFIG -> "mqtt://localhost:61612?wireFormat.maxFrameSize=100000",
-            MqttSourceConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
-            MqttSourceConfigConstants.CLEAN_SESSION_CONFIG -> "true",
-            MqttSourceConfigConstants.CLIENT_ID_CONFIG -> "someid",
-            MqttSourceConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
-            MqttSourceConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
-            MqttSourceConfigConstants.PASSWORD_CONFIG -> "somepassw",
-            MqttSourceConfigConstants.USER_CONFIG -> "user"
+            MqttConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM mqttSource",
+            MqttConfigConstants.QS_CONFIG -> "-1",
+            MqttConfigConstants.HOSTS_CONFIG -> "mqtt://localhost:61612?wireFormat.maxFrameSize=100000",
+            MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
+            MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
+            MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
+            MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+            MqttConfigConstants.POLLING_TIMEOUT_CONFIG -> "500",
+            MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
+            MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
+            MqttConfigConstants.USER_CONFIG -> "user"
           )))
       }
     }
@@ -110,16 +114,17 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
       intercept[ConfigException] {
         MqttSourceSettings(
           MqttSourceConfig(Map(
-            MqttSourceConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM mqttSource",
-            MqttSourceConfigConstants.QS_CONFIG -> "3",
-            MqttSourceConfigConstants.HOSTS_CONFIG -> "mqtt://localhost:61612?wireFormat.maxFrameSize=100000",
-            MqttSourceConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
-            MqttSourceConfigConstants.CLEAN_SESSION_CONFIG -> "true",
-            MqttSourceConfigConstants.CLIENT_ID_CONFIG -> "someid",
-            MqttSourceConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
-            MqttSourceConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
-            MqttSourceConfigConstants.PASSWORD_CONFIG -> "somepassw",
-            MqttSourceConfigConstants.USER_CONFIG -> "user"
+            MqttConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM mqttSource",
+            MqttConfigConstants.QS_CONFIG -> "3",
+            MqttConfigConstants.HOSTS_CONFIG -> "mqtt://localhost:61612?wireFormat.maxFrameSize=100000",
+            MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
+            MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
+            MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
+            MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+            MqttConfigConstants.POLLING_TIMEOUT_CONFIG -> "500",
+            MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
+            MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
+            MqttConfigConstants.USER_CONFIG -> "user"
           )))
       }
     }
@@ -128,15 +133,16 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
       intercept[ConfigException] {
         MqttSourceSettings(
           MqttSourceConfig(Map(
-            MqttSourceConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM mqttSource",
-            MqttSourceConfigConstants.QS_CONFIG -> "1",
-            MqttSourceConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
-            MqttSourceConfigConstants.CLEAN_SESSION_CONFIG -> "true",
-            MqttSourceConfigConstants.CLIENT_ID_CONFIG -> "someid",
-            MqttSourceConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
-            MqttSourceConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
-            MqttSourceConfigConstants.PASSWORD_CONFIG -> "somepassw",
-            MqttSourceConfigConstants.USER_CONFIG -> "user"
+            MqttConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM mqttSource",
+            MqttConfigConstants.QS_CONFIG -> "1",
+            MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
+            MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
+            MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
+            MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+            MqttConfigConstants.POLLING_TIMEOUT_CONFIG -> "500",
+            MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
+            MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
+            MqttConfigConstants.USER_CONFIG -> "user"
           )))
       }
     }
@@ -144,16 +150,16 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
     "throw an config exception if the converter class can't be found" in {
       intercept[ConfigException] {
         MqttSourceConfig(Map(
-          MqttSourceConfigConstants.CONVERTER_CONFIG -> "kTopic=com.non.existance.SomeConverter",
-          MqttSourceConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM mqttSource",
-          MqttSourceConfigConstants.QS_CONFIG -> "1",
-          MqttSourceConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
-          MqttSourceConfigConstants.CLEAN_SESSION_CONFIG -> "true",
-          MqttSourceConfigConstants.CLIENT_ID_CONFIG -> "someid",
-          MqttSourceConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
-          MqttSourceConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
-          MqttSourceConfigConstants.PASSWORD_CONFIG -> "somepassw",
-          MqttSourceConfigConstants.USER_CONFIG -> "user"
+          MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM mqttSource WITHCONVERTER=com.non.existance.SomeConverter",
+          MqttConfigConstants.QS_CONFIG -> "1",
+          MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
+          MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
+          MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
+          MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+          MqttConfigConstants.POLLING_TIMEOUT_CONFIG -> "500",
+          MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
+          MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
+          MqttConfigConstants.USER_CONFIG -> "user"
         ))
       }
     }
@@ -161,16 +167,16 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
     "throw an config exception if the converter settings with invalid source" in {
       intercept[ConfigException] {
         MqttSourceConfig(Map(
-          MqttSourceConfigConstants.CONVERTER_CONFIG -> s"kTopic=${classOf[AvroConverter].getCanonicalName}",
-          MqttSourceConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM mqttSource",
-          MqttSourceConfigConstants.QS_CONFIG -> "1",
-          MqttSourceConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
-          MqttSourceConfigConstants.CLEAN_SESSION_CONFIG -> "true",
-          MqttSourceConfigConstants.CLIENT_ID_CONFIG -> "someid",
-          MqttSourceConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
-          MqttSourceConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
-          MqttSourceConfigConstants.PASSWORD_CONFIG -> "somepassw",
-          MqttSourceConfigConstants.USER_CONFIG -> "user"
+          MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM mqttSource WITHCONVERTER=${classOf[AvroConverter].getCanonicalName}",
+          MqttConfigConstants.QS_CONFIG -> "1",
+          MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
+          MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
+          MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
+          MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+          MqttConfigConstants.POLLING_TIMEOUT_CONFIG -> "500",
+          MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
+          MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
+          MqttConfigConstants.USER_CONFIG -> "user"
         ))
       }
     }
@@ -178,16 +184,16 @@ class MqttSourceSettingsTest extends WordSpec with Matchers {
     "throw an config exception if the converter topic doesn't match the KCQL settings" in {
       intercept[ConfigException] {
         MqttSourceConfig(Map(
-          MqttSourceConfigConstants.CONVERTER_CONFIG -> s"kTopicA=${classOf[AvroConverter].getCanonicalName}",
-          MqttSourceConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM mqttSource",
-          MqttSourceConfigConstants.QS_CONFIG -> "1",
-          MqttSourceConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
-          MqttSourceConfigConstants.CLEAN_SESSION_CONFIG -> "true",
-          MqttSourceConfigConstants.CLIENT_ID_CONFIG -> "someid",
-          MqttSourceConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
-          MqttSourceConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
-          MqttSourceConfigConstants.PASSWORD_CONFIG -> "somepassw",
-          MqttSourceConfigConstants.USER_CONFIG -> "user"
+          MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM mqttSource WITHCONVERTER=${classOf[AvroConverter].getCanonicalName}",
+          MqttConfigConstants.QS_CONFIG -> "1",
+          MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
+          MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
+          MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
+          MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+          MqttConfigConstants.POLLING_TIMEOUT_CONFIG -> "500",
+          MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
+          MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
+          MqttConfigConstants.USER_CONFIG -> "user"
         ))
       }
     }

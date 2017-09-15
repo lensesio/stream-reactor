@@ -24,7 +24,7 @@ package com.datamountaineer.streamreactor.connect.kudu
 import java.nio.ByteBuffer
 import java.util
 
-import com.datamountaineer.streamreactor.connect.kudu.config.KuduSinkConfigConstants
+import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfigConstants, WriteFlushMode}
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -38,9 +38,9 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   val TOPIC = "sink_test"
   val TABLE = "table1"
   val KUDU_MASTER = "127.0.0.1"
-  val EXPORT_MAP = s"INSERT INTO $TABLE SELECT * FROM $TOPIC"
-  val EXPORT_MAP_AUTOCREATE = EXPORT_MAP + " AUTOCREATE DISTRIBUTEBY name,adult INTO 10 BUCKETS"
-  val EXPORT_MAP_AUTOCREATE_AUTOEVOLVE = EXPORT_MAP + " AUTOCREATE AUTOEVOLVE DISTRIBUTEBY name,adult INTO 10 BUCKETS"
+  val KCQL_MAP = s"INSERT INTO $TABLE SELECT * FROM $TOPIC"
+  val KCQL_MAP_AUTOCREATE = KCQL_MAP + " AUTOCREATE DISTRIBUTEBY name,adult INTO 10 BUCKETS"
+  val KCQL_MAP_AUTOCREATE_AUTOEVOLVE = KCQL_MAP + " AUTOCREATE AUTOEVOLVE DISTRIBUTEBY name,adult INTO 10 BUCKETS"
   val schema =
     """
       |{ "type": "record",
@@ -57,6 +57,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       |{      "name": "float64",   "type": "double"}
       |]}"
     """.stripMargin
+
   val schemaDefaults =
     """
       |{ "type": "record",
@@ -73,6 +74,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       |{      "name": "float64",   "type": ["null", "double"], "default" : 10.00}
       |]}"
     """.stripMargin
+
   protected val PARTITION: Int = 12
   protected val PARTITION2: Int = 13
   protected val TOPIC_PARTITION: TopicPartition = new TopicPartition(TOPIC, PARTITION)
@@ -90,33 +92,44 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   }
 
   def getConfig = {
-    Map(KuduSinkConfigConstants.KUDU_MASTER -> KUDU_MASTER,
-      KuduSinkConfigConstants.EXPORT_ROUTE_QUERY -> EXPORT_MAP,
-      KuduSinkConfigConstants.ERROR_POLICY -> "THROW"
+    Map(
+      "topics" -> TOPIC,
+      KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
+      KuduConfigConstants.KCQL -> KCQL_MAP,
+      KuduConfigConstants.ERROR_POLICY -> "THROW"
     ).asJava
   }
 
   def getConfigAutoCreate(url: String) = {
-    Map(KuduSinkConfigConstants.KUDU_MASTER -> KUDU_MASTER,
-      KuduSinkConfigConstants.EXPORT_ROUTE_QUERY -> EXPORT_MAP_AUTOCREATE,
-      KuduSinkConfigConstants.ERROR_POLICY -> "THROW",
-      KuduSinkConfigConstants.SCHEMA_REGISTRY_URL -> url
+    Map(KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
+      KuduConfigConstants.KCQL -> KCQL_MAP_AUTOCREATE,
+      KuduConfigConstants.ERROR_POLICY -> "THROW",
+      KuduConfigConstants.SCHEMA_REGISTRY_URL -> url
     ).asJava
   }
 
   def getConfigAutoCreateAndEvolve(url: String) = {
-    Map(KuduSinkConfigConstants.KUDU_MASTER -> KUDU_MASTER,
-      KuduSinkConfigConstants.EXPORT_ROUTE_QUERY -> EXPORT_MAP_AUTOCREATE_AUTOEVOLVE,
-      KuduSinkConfigConstants.ERROR_POLICY -> "THROW",
-      KuduSinkConfigConstants.SCHEMA_REGISTRY_URL -> url
+    Map(KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
+      KuduConfigConstants.KCQL -> KCQL_MAP_AUTOCREATE_AUTOEVOLVE,
+      KuduConfigConstants.ERROR_POLICY -> "THROW",
+      KuduConfigConstants.SCHEMA_REGISTRY_URL -> url
     ).asJava
   }
 
   def getConfigAutoCreateRetry(url: String) = {
-    Map(KuduSinkConfigConstants.KUDU_MASTER -> KUDU_MASTER,
-      KuduSinkConfigConstants.EXPORT_ROUTE_QUERY -> EXPORT_MAP_AUTOCREATE,
-      KuduSinkConfigConstants.ERROR_POLICY -> "RETRY",
-      KuduSinkConfigConstants.SCHEMA_REGISTRY_URL -> url
+    Map(KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
+      KuduConfigConstants.KCQL -> KCQL_MAP_AUTOCREATE,
+      KuduConfigConstants.ERROR_POLICY -> "RETRY",
+      KuduConfigConstants.SCHEMA_REGISTRY_URL -> url
+    ).asJava
+  }
+
+  def getConfigAutoCreateRetryWithBackgroundFlush(url: String) = {
+    Map(KuduConfigConstants.KUDU_MASTER -> KUDU_MASTER,
+      KuduConfigConstants.KCQL -> KCQL_MAP_AUTOCREATE,
+      KuduConfigConstants.ERROR_POLICY -> "RETRY",
+      KuduConfigConstants.SCHEMA_REGISTRY_URL -> url,
+      KuduConfigConstants.WRITE_FLUSH_MODE -> "BATCH_BACKGROUND"
     ).asJava
   }
 

@@ -17,13 +17,24 @@
 project(":kafka-connect-influxdb") {
 
     ext {
-        influxDbVersion = "2.3"
+        influxDbVersion = "2.7"
+        kcql2 = "2.1.2"
+        smt = "0.1"
     }
 
     dependencies {
-        compile ("org.influxdb:influxdb-java:$influxDbVersion") {
-            exclude group: 'com.squareup.okhttp', module: 'okhttp'
+        compile("com.datamountaineer:kcql:$kcql2") {
+            exclude group: "com.google.guava", module: "guava"
         }
-        compile group: 'com.squareup.okhttp', name: 'okhttp', version: '2.7.5'
+        compile("com.datamountaineer:kafka-connect-common:0.8.1"){
+            exclude group: "com.datamountaineer", module: "kcql"
+        }
+        compile("com.landoop:kafka-connect-smt_2.11:$smt")
+
+
+        compile ("org.influxdb:influxdb-java:$influxDbVersion") {
+            //exclude group: 'com.squareup.okhttp', module: 'okhttp'
+        }
+        //compile group: 'com.squareup.okhttp', name: 'okhttp', version: '2.7.5'
     }
 }

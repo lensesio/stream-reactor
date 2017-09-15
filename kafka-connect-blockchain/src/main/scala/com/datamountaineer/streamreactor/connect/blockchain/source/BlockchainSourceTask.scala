@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.blockchain.source
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.blockchain.config.{BlockchainConfig, BlockchainSettings}
+import com.datamountaineer.streamreactor.connect.blockchain.config.{BlockchainConfig, BlockchainConfigConstants, BlockchainSettings}
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import io.confluent.common.config.ConfigException
@@ -26,14 +26,13 @@ import org.apache.kafka.common.config.AbstractConfig
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 class BlockchainSourceTask extends SourceTask with StrictLogging {
 
   private var taskConfig: Option[AbstractConfig] = None
   private var blockchainManager: Option[BlockchainManager] = None
-  private val progressCounter = new ProgressCounter()
+  private val progressCounter = ProgressCounter()
   private var enableProgress: Boolean = false
 
   /**
@@ -42,7 +41,7 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
     * @param props A map of supplied properties.
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/blockchain-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/blockchain-ascii.txt")).mkString + s" v $version")
     logger.info("Blockchain Task configuration")
     props.foreach { case (k, v) => logger.info("   Key= " + k + "     Value=" + v) }
     //get configuration for this task
@@ -50,6 +49,7 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
       case Failure(f) => throw new ConfigException("Couldn't start BlockchainSource due to configuration error.", f)
       case Success(s) => Some(s)
     }
+    enableProgress = taskConfig.get.getBoolean(BlockchainConfigConstants.PROGRESS_COUNTER_ENABLED)
 
     val settings = BlockchainSettings(taskConfig.get)
 
@@ -90,6 +90,6 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
     *
     * @return
     */
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 
 }

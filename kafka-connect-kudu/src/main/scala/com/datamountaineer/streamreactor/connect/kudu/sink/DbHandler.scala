@@ -18,16 +18,17 @@ package com.datamountaineer.streamreactor.connect.kudu.sink
 
 import java.util
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.kudu.KuduConverter
 import com.datamountaineer.streamreactor.connect.kudu.config.KuduSettings
 import com.datamountaineer.streamreactor.connect.kudu.sink.DbHandler.kuduSchema
 import com.datamountaineer.streamreactor.connect.schemas.SchemaRegistry
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.avro.Schema
+import org.apache.avro.{JsonProperties, Schema}
 import org.apache.kafka.connect.errors.ConnectException
-import org.kududb.ColumnSchema
-import org.kududb.client._
+import org.apache.kudu.client.{KuduClient, KuduTable}
+import org.apache.kudu.ColumnSchema
+import org.apache.kudu.client._
 
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
@@ -42,10 +43,31 @@ case class CreateTableProps(name: String, schema: kuduSchema, cto: CreateTableOp
 
 object DbHandler extends StrictLogging with KuduConverter {
 
-  type kuduSchema = org.kududb.Schema
+  type kuduSchema = org.apache.kudu.Schema
   type avroSchema = org.apache.avro.Schema
   type avroField = org.apache.avro.Schema.Field
   type connectSchema = org.apache.kafka.connect.data.Schema
+
+  def checkTables(client: KuduClient, settings: KuduSettings) = {
+    val kuduTables = client.getTablesList.getTablesList
+    logger.info(s"Found the following tables in Kudu, ${kuduTables.mkString(",")}")
+    val tables = settings.kcql.map(s => s.getTarget.trim).toSet
+    val missing = tables diff kuduTables.toSet
+
+    //filter for autocreate as the schema may not exist yet in the registry, they will be create on arrival of the first message if
+    //set to auto create
+    missing
+      .flatMap(m => settings.kcql.filter(f => f.getTarget.trim.equals(m) && f.isAutoCreate))
+      .foreach(a => logger.warn(s"Kudu table $a does not exist in Kudu and is marked for AutoCreate!"))
+
+    val finalList = missing.flatMap(m => settings.kcql.filter(f => f.getTarget.trim.equals(m) && !f.isAutoCreate))
+
+    if (finalList.nonEmpty) {
+      throw new ConnectException(s"The following tables are not found and not set for autocreate" +
+        s" ${finalList.map(f => f.getTarget).mkString(",")}. Check you aren't missing the namespace (impala::database.table) " +
+        s"for Impala managed tables!")
+    }
+  }
 
   /**
     * Build a cache of Kudu insert statements per topic and check tables exists for topics
@@ -54,17 +76,8 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @return A Map of topic -> KuduRowInsert
     **/
   def buildTableCache(settings: KuduSettings, client: KuduClient): Map[String, KuduTable] = {
-    createTables(settings, client)
-    val tables = settings.routes.map(s => s.getTarget).toSet
-    val missing = tables.filterNot(t => client.tableExists(t))
-    val finalList = missing.flatMap(m => settings.routes.filter(f => f.getTarget.equals(m) && !f.isAutoCreate))
-
-    if (finalList.nonEmpty) {
-      throw new ConnectException(s"The following tables are not found and not set for autocreate" +
-        s" ${finalList.mkString(",")}")
-    }
-
-    settings.routes.map(s => (s.getSource, client.openTable(s.getTarget))).toMap
+    checkTables(client, settings)
+    settings.kcql.map(s => (s.getSource, client.openTable(s.getTarget))).toMap
   }
 
 
@@ -77,6 +90,7 @@ object DbHandler extends StrictLogging with KuduConverter {
   def createTables(setting: KuduSettings,
                    client: KuduClient): Set[KuduTable] = {
 
+    checkTables(client, setting)
     //check the schema registry for the a schema for this topic
     val url = setting.schemaRegistryUrl
     val subjects = SchemaRegistry.getSubjects(url).toSet
@@ -84,8 +98,8 @@ object DbHandler extends StrictLogging with KuduConverter {
     subjects
       .flatMap(_ => {
         setting
-          .routes
-          .filter(r => r.isAutoCreate)
+          .kcql
+          .filter(r => r.isAutoCreate && !client.tableExists(r.getTarget)) //don't try to create existing tables
           .map(m => createTableProps(subjects, m, url, client))
       }).flatten
       .map(ctp => executeCreateTable(ctp, client))
@@ -95,15 +109,15 @@ object DbHandler extends StrictLogging with KuduConverter {
     * Create a Kudu table
     *
     * @param schemas A list of the schemas available
-    * @param mapping The mapping configuration to create
+    * @param kcql The mapping configuration to create
     * @param client  The kudu client to use
     **/
   def createTableProps(schemas: Set[String],
-                       mapping: Config,
+                       kcql: Kcql,
                        url: String,
                        client: KuduClient): Set[CreateTableProps] = {
     //do we have our topic
-    var lkTopic = mapping.getSource
+    var lkTopic = kcql.getSource
 
     //the schema registry
     //console producer tags -value on end of topic name so check for it
@@ -117,9 +131,9 @@ object DbHandler extends StrictLogging with KuduConverter {
     val schema = SchemaRegistry.getSchema(url, lkTopic)
 
     if (schema.nonEmpty) {
-      val kuduSchema = getKuduSchema(mapping, schema)
-      val cto = getCreateTableOptions(mapping)
-      val createTableProps = CreateTableProps(lkTopic, kuduSchema, cto)
+      val kuduSchema = getKuduSchema(kcql, schema)
+      val cto = getCreateTableOptions(kcql)
+      val createTableProps = CreateTableProps(kcql.getTarget, kuduSchema, cto)
       Set(createTableProps)
     } else {
       Set.empty[CreateTableProps]
@@ -133,7 +147,7 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @param schema The topics schema
     * @return The kudu schema
     **/
-  def getKuduSchema(config: Config, schema: String): kuduSchema = {
+  def getKuduSchema(config: Kcql, schema: String): kuduSchema = {
 
     //get the latest schema from the schema registry
     val avroFields = new Schema.Parser().parse(schema)
@@ -146,18 +160,24 @@ object DbHandler extends StrictLogging with KuduConverter {
   /**
     * Convert Avro fields to Kudu columns
     *
-    * @param config     The config containing the fields and mappings set for the sink
+    * @param kcql     The config containing the fields and mappings set for the sink
     * @param avroFields The avro fields
     * @return A list of Kudu Columns
     **/
-  private def getKuduCols(config: Config, avroFields: avroSchema): util.List[ColumnSchema] = {
-    logger.info(config.getFieldAlias.mkString(","))
-    val mappingFields = config.getFieldAlias.map(f => (f.getField, f.getAlias)).toMap
-    val ignored = config.getIgnoredField.toSet
+  private def getKuduCols(kcql: Kcql, avroFields: avroSchema): util.List[ColumnSchema] = {
+
+    if (kcql.getFields.head.equals("*")) {
+      logger.info(s"All fields from topic will be used to create Kudu table ${kcql.getTarget}. ")
+    } else {
+      logger.info(s"Using fields ${kcql.getFields.mkString(",")} to create the ${kcql.getTarget}")
+    }
+
+    val mappingFields = kcql.getFields.map(f => (f.getName, f.getAlias)).toMap
+    val ignored = kcql.getIgnoredFields.toSet
     val fields = avroFields.getFields.filterNot(f => ignored.contains(f.name()))
 
     //only allow auto creation if distribute by and bucketing are specified
-    val pks = Try(config.getBucketing.getBucketNames.toSet) match {
+    val pks = Try(kcql.getBucketing.getBucketNames.toSet) match {
       case Success(s) => s
       case Failure(_) => throw new ConnectException("DISTRIBUTEBY columns INTO BUCKETS n must be specified for table " +
         "auto creation!")
@@ -167,10 +187,10 @@ object DbHandler extends StrictLogging with KuduConverter {
       val fieldName = f.name()
       val alias = if (mappingFields.contains(fieldName)) mappingFields(fieldName) else fieldName
       val col = fromAvro(f.schema(), alias)
-      val default = if (f.defaultVal() != null) f.defaultVal() else null
+      val default = if (f.defaultValue() != JsonProperties.NULL_VALUE) f.defaultValue() else null
 
       if (pks.contains(alias)) {
-        logger.info(s"Setting PK on ${f.name()} for ${config.getTarget}")
+        logger.info(s"Setting PK on ${f.name()} for ${kcql.getTarget}")
         col.key(true)
       } else {
         col.nullable(true)
@@ -179,7 +199,7 @@ object DbHandler extends StrictLogging with KuduConverter {
       col.build()
     }).toList
 
-    logger.info(s"Setting columns as ${cols.mkString(",")} for ${config.getTarget}")
+    logger.info(s"Setting columns as ${cols.mkString(",")} for ${kcql.getTarget}")
     cols
   }
 
@@ -241,14 +261,14 @@ object DbHandler extends StrictLogging with KuduConverter {
     logger.info(s"Altered table $target. Added ${ato.toString}")
   }
 
-  def createTableFromSinkRecord(mapping: Config, schema: connectSchema, client: KuduClient): Try[KuduTable] = {
-    if (mapping.isAutoCreate) {
-      val cto = getCreateTableOptions(mapping)
+  def createTableFromSinkRecord(kcql: Kcql, schema: connectSchema, client: KuduClient): Try[KuduTable] = {
+    if (kcql.isAutoCreate) {
+      val cto = getCreateTableOptions(kcql)
       val kuduSchema = convertToKuduSchema(schema)
-      val ctp = CreateTableProps(mapping.getTarget, kuduSchema, cto)
+      val ctp = CreateTableProps(kcql.getTarget, kuduSchema, cto)
       Success(executeCreateTable(ctp, client))
     } else {
-      Failure(new ConnectException(s"Mapping ${mapping.toString} not configured for Auto table creation"))
+      Failure(new ConnectException(s"Mapping ${kcql.toString} not configured for Auto table creation"))
     }
   }
 
@@ -259,8 +279,10 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @param client A client to use to execute the DDL
     **/
   private[kudu] def executeCreateTable(ctp: CreateTableProps, client: KuduClient): KuduTable = {
-    logger.info(s"Executing create table on ${ctp.name} with ${ctp.schema.toString}")
-    client.createTable(ctp.name, ctp.schema, ctp.cto)
+    logger.info(s"Executing create table on ${ctp.name} with ${ctp.schema.toString} and props ${ctp.cto.toString}")
+    val table = client.createTable(ctp.name, ctp.schema, ctp.cto)
+    logger.info(s"Table ${ctp.name} created.")
+    table
   }
 
   /**
@@ -269,7 +291,7 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @param config The mapping config
     * @return a CreateTableConfig
     **/
-  private def getCreateTableOptions(config: Config): CreateTableOptions = {
+  private def getCreateTableOptions(config: Kcql): CreateTableOptions = {
     new CreateTableOptions()
       .addHashPartitions(config.getBucketing.getBucketNames.toList, config.getBucketing.getBucketsNumber)
   }

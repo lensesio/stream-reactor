@@ -33,7 +33,7 @@ class TestHazelCastSinkSettings extends TestBase {
 
   before {
     val configApp1 = new Config()
-    configApp1.getGroupConfig.setName(GROUP_NAME).setPassword(HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DEFAULT)
+    configApp1.getGroupConfig.setName(TESTS_GROUP_NAME).setPassword(HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DEFAULT)
     instance = Hazelcast.newHazelcastInstance(configApp1)
   }
 
@@ -48,7 +48,7 @@ class TestHazelCastSinkSettings extends TestBase {
 
     settings.topicObject(TOPIC) shouldBe HazelCastStoreAsType(s"${TABLE}_avro", TargetType.RELIABLE_TOPIC)
     settings.ignoreFields(TOPIC).size shouldBe 0
-    settings.routes.head.isIncludeAllFields shouldBe true
+    settings.kcql.head.getIgnoredFields.isEmpty shouldBe true
     settings.errorPolicy.isInstanceOf[ThrowErrorPolicy] shouldBe true
   }
 
@@ -59,7 +59,7 @@ class TestHazelCastSinkSettings extends TestBase {
 
     settings.topicObject(TOPIC) shouldBe HazelCastStoreAsType(TABLE, TargetType.RELIABLE_TOPIC)
     settings.ignoreFields(TOPIC).size shouldBe 0
-    settings.routes.head.isIncludeAllFields shouldBe false
+    settings.kcql.head.getIgnoredFields.isEmpty shouldBe true
     settings.errorPolicy.isInstanceOf[ThrowErrorPolicy] shouldBe true
     val fields  = settings.fieldsMap(TOPIC)
     fields("a") shouldBe "a"
@@ -75,7 +75,7 @@ class TestHazelCastSinkSettings extends TestBase {
 
     settings.topicObject(TOPIC) shouldBe HazelCastStoreAsType(TABLE, TargetType.RELIABLE_TOPIC)
     settings.ignoreFields(TOPIC).size shouldBe 1
-    settings.routes.head.getIgnoredField.asScala.toSeq.head shouldBe "a"
+    settings.kcql.head.getIgnoredFields.asScala.head.getName shouldBe "a"
     settings.errorPolicy.isInstanceOf[ThrowErrorPolicy] shouldBe true
   }
 }

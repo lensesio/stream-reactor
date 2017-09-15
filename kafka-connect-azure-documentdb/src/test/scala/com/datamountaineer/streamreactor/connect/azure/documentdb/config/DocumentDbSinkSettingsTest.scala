@@ -129,7 +129,7 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
       )
 
       val config = DocumentDbConfig(map)
-      intercept[ConfigException] {
+      intercept[IllegalArgumentException] {
         DocumentDbSinkSettings(config)
       }
     }

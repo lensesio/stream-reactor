@@ -31,9 +31,9 @@ class TestCassandraSourceConnector extends WordSpec with Matchers with TestConfi
     val connector = new CassandraSourceConnector()
     connector.start(props)
     val taskConfigs = connector.taskConfigs(1)
-    taskConfigs.asScala.head.get(CassandraConfigConstants.SOURCE_KCQL_QUERY) shouldBe IMPORT_QUERY_ALL
+    taskConfigs.asScala.head.get(CassandraConfigConstants.KCQL) shouldBe IMPORT_QUERY_ALL
     taskConfigs.asScala.head.get(CassandraConfigConstants.CONTACT_POINTS) shouldBe CONTACT_POINT
-    taskConfigs.asScala.head.get(CassandraConfigConstants.KEY_SPACE) shouldBe TOPIC1
+    taskConfigs.asScala.head.get(CassandraConfigConstants.KEY_SPACE) shouldBe CASSANDRA_SOURCE_KEYSPACE
     taskConfigs.asScala.head.get(CassandraConfigConstants.ASSIGNED_TABLES) shouldBe ASSIGNED_TABLES
     taskConfigs.size() shouldBe 1
     connector.taskClass() shouldBe classOf[CassandraSourceTask]

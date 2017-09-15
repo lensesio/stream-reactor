@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.hazelcast.writers
 
 import java.io.ByteArrayOutputStream
 
-import com.datamountaineer.connector.config.FormatType
+import com.datamountaineer.kcql.FormatType
 import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.fasterxml.jackson.databind.JsonNode

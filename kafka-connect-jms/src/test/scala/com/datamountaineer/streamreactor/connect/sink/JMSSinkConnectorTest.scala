@@ -18,12 +18,20 @@ package com.datamountaineer.streamreactor.connect.sink
 
 import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.sink.JMSSinkConnector
+import org.scalatest.BeforeAndAfterAll
+
+import scala.reflect.io.Path
 
 /**
   * Created by andrew@datamountaineer.com on 24/03/2017. 
   * stream-reactor
   */
-class JMSSinkConnectorTest extends TestBase {
+class JMSSinkConnectorTest extends TestBase  with BeforeAndAfterAll {
+
+  override def afterAll(): Unit = {
+    Path(AVRO_FILE).delete()
+  }
+
   "should start a JMSSinkConnector" in {
     val props = getProps1Queue()
     val connector = new JMSSinkConnector()

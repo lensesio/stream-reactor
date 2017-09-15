@@ -54,7 +54,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
 
     val sinkSettings = CassandraSettings.configureSink(taskConfig)
     enableProgress = sinkSettings.enableProgress
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-sink-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-sink-ascii.txt")).mkString + s" v $version")
     writer = Some(CassandraWriter(connectorConfig = taskConfig, context = context))
   }
 
@@ -83,5 +83,5 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
 
-  override def version(): String = "1"
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 }

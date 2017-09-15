@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.config
 
-import com.datamountaineer.connector.config.{Config, FormatType}
+import com.datamountaineer.kcql.{FormatType, Kcql}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
 import com.datamountaineer.streamreactor.connect.hazelcast.config.TargetType.TargetType
@@ -38,7 +38,7 @@ object TargetType extends Enumeration {
 case class HazelCastStoreAsType(name: String, targetType: TargetType)
 
 case class HazelCastSinkSettings(client: HazelcastInstance,
-                                 routes: Set[Config],
+                                 kcql: Set[Kcql],
                                  topicObject: Map[String, HazelCastStoreAsType],
                                  fieldsMap: Map[String, Map[String, String]],
                                  ignoreFields: Map[String, Set[String]],
@@ -52,16 +52,16 @@ case class HazelCastSinkSettings(client: HazelcastInstance,
 object HazelCastSinkSettings {
   def apply(config: HazelCastSinkConfig): HazelCastSinkSettings = {
 
-    val routes = config.getRoutes
-    val fieldMap = config.getFields(routes)
-    val ignoreFields = config.getIgnoreFields(routes)
-    val primaryKeys = config.getPrimaryKeys(routes)
+    val kcql = config.getKCQL
+    val fieldMap = config.getFieldsMap()
+    val ignoreFields = config.getIgnoreFieldsMap()
+    val primaryKeys = config.getPrimaryKeys()
     val allowParallel = config.getAllowParallel
-    val format = config.getFormat(this.getFormatType, routes)
+    val format = config.getFormat(this.getFormatType, kcql)
     val errorPolicy = config.getErrorPolicy
     val maxRetries = config.getNumberRetries
     val threadPoolSize = config.getThreadPoolSize
-    val topicTables = getTopicTables(routes)
+    val topicTables = getTopicTables(kcql)
 
     ensureGroupNameExists(config)
 
@@ -70,7 +70,7 @@ object HazelCastSinkSettings {
 
     new HazelCastSinkSettings(
       client,
-      routes,
+      kcql,
       topicTables,
       fieldMap,
       ignoreFields,
@@ -84,7 +84,7 @@ object HazelCastSinkSettings {
   }
 
 
-  private def getTopicTables(routes: Set[Config]): Map[String, HazelCastStoreAsType] = {
+  private def getTopicTables(routes: Set[Kcql]): Map[String, HazelCastStoreAsType] = {
     routes.map(r => {
       Try(TargetType.withName(r.getStoredAs.toUpperCase)) match {
         case Success(_) =>
@@ -96,8 +96,8 @@ object HazelCastSinkSettings {
   }
 
   private def ensureGroupNameExists(config: HazelCastSinkConfig): Unit = {
-    val groupName = config.getString(HazelCastSinkConfigConstants.SINK_GROUP_NAME)
-    require(groupName.nonEmpty, s"No ${HazelCastSinkConfigConstants.SINK_GROUP_NAME} provided!")
+    val groupName = config.getString(HazelCastSinkConfigConstants.GROUP_NAME)
+    require(groupName.nonEmpty, s"No ${HazelCastSinkConfigConstants.GROUP_NAME} provided!")
   }
 
   private def getFormatType(format: FormatType): FormatType = {

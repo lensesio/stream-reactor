@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.kudu
 
-import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSinkConfig, KuduSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduConfigConstants}
 
 /**
   * Created by andrew@datamountaineer.com on 24/02/16. 
@@ -24,8 +24,8 @@ import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSinkConfig, Ku
   */
 class TestKuduSourceConfig extends TestBase {
   "A KuduSinkConfig should return Kudu Master" in {
-    val config = new KuduSinkConfig(getConfig)
-    config.getString(KuduSinkConfigConstants.KUDU_MASTER) shouldBe KUDU_MASTER
-    config.getString(KuduSinkConfigConstants.EXPORT_ROUTE_QUERY) shouldBe EXPORT_MAP
+    val config = new KuduConfig(getConfig)
+    config.getString(KuduConfigConstants.KUDU_MASTER) shouldBe KUDU_MASTER
+    config.getString(KuduConfigConstants.KCQL) shouldBe KCQL_MAP
   }
 }

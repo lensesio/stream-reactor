@@ -23,17 +23,22 @@ import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSetti
 import com.datamountaineer.streamreactor.connect.jms.sink.converters.MapMessageConverter
 import com.sksamuel.scalax.io.Using
 import org.apache.activemq.ActiveMQConnectionFactory
-import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
+import scala.reflect.io.Path
 
-class MapMessageConverterTest extends WordSpec with Matchers with Using with BeforeAndAfter with TestBase {
+class MapMessageConverterTest extends WordSpec with Matchers with Using with BeforeAndAfterAll with TestBase {
   val converter = new MapMessageConverter()
 
   val props = getPropsMixJNDIWithSink()
   val config = JMSConfig(props)
   val settings = JMSSettings(config, true)
   val setting = settings.settings.head
+
+  override def afterAll(): Unit = {
+    Path(AVRO_FILE).delete()
+  }
 
   "MapMessageConverter" should {
     "create a JMS MapMessage" in {

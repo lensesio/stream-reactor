@@ -20,6 +20,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.druid.config._
 import com.datamountaineer.streamreactor.connect.druid.writer.DruidDbWriter
+import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -33,21 +34,24 @@ import scala.collection.JavaConversions._
   */
 class DruidSinkTask extends SinkTask with StrictLogging {
   var writer: Option[DruidDbWriter] = None
+  private val progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
 
   /**
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/druid-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/druid-ascii.txt")).mkString + s" v $version")
 
-    DruidSinkConfig.config.parse(props)
-    val sinkConfig = new DruidSinkConfig(props)
+    DruidConfig.config.parse(props)
+    val sinkConfig = new DruidConfig(props)
     val settings = DruidSinkSettings(sinkConfig)
     logger.info(
       s"""Settings:
-          |$settings
+         |$settings
       """.stripMargin)
     writer = Some(new DruidDbWriter(settings))
+    enableProgress = sinkConfig.getBoolean(DruidSinkConfigConstants.PROGRESS_COUNTER_ENABLED)
   }
 
   /**
@@ -61,6 +65,10 @@ class DruidSinkTask extends SinkTask with StrictLogging {
       require(writer.nonEmpty, "Writer is not set!")
       writer.foreach(w => w.write(records.toSeq))
     }
+
+    if (enableProgress) {
+      progressCounter.update(records.toVector)
+    }
   }
 
   /**
@@ -71,10 +79,10 @@ class DruidSinkTask extends SinkTask with StrictLogging {
     //writer.foreach(w => w.close())
   }
 
-  override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]) : Unit = {
+  override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {
     //TODO
     //have the writer expose a is busy; can expose an await using a countdownlatch internally
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 }

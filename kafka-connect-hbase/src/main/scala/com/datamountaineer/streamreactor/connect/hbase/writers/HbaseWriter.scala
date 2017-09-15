@@ -18,11 +18,11 @@ package com.datamountaineer.streamreactor.connect.hbase.writers
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.hbase._
-import com.datamountaineer.streamreactor.connect.hbase.config.HbaseSettings
+import com.datamountaineer.streamreactor.connect.hbase.config.HBaseSettings
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.sink.DbWriter
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.hadoop.hbase.client.{ConnectionFactory, Put}
+import org.apache.hadoop.hbase.client.{Connection, ConnectionFactory, Put}
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.hadoop.hbase.{HBaseConfiguration, TableName}
 import org.apache.kafka.connect.data.Struct
@@ -31,7 +31,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import scala.collection.JavaConversions._
 import scala.util.Try
 
-class HbaseWriter(settings: HbaseSettings
+class HbaseWriter(settings: HBaseSettings
                  ) extends DbWriter with StrictLogging with ConverterUtil with ErrorHandler {
 
 

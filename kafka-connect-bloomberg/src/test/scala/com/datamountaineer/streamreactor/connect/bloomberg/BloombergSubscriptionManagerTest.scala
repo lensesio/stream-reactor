@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.bloomberg
 import com.bloomberglp.blpapi.Event.EventType
 import com.bloomberglp.blpapi._
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConverters._

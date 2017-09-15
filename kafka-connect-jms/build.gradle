@@ -19,6 +19,7 @@ project(":kafka-connect-jms") {
     ext {
         jmsVersion = "2.0.1"
         scalaxVersion = "1.26.0"
+        avro4sVersion = "1.6.4"
     }
 
     dependencies {
@@ -27,7 +28,7 @@ project(":kafka-connect-jms") {
         testCompile("org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion")
         testCompile("com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion")
         testCompile("com.sksamuel.avro4s:avro4s-macros_$scalaMajorVersion:$avro4sVersion")
-        testCompile("com.sksamuel.avro4s:avro4s-generator_$scalaMajorVersion:$avro4sVersion")
+        testCompile("com.sksamuel.avro4s:avro4s-generator_$scalaMajorVersion:1.6.0")
         testCompile("com.sksamuel.scalax:scalax_2.11:$scalaxVersion")
     }
 }

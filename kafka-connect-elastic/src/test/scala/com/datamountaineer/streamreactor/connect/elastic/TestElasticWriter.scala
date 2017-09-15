@@ -18,14 +18,15 @@ package com.datamountaineer.streamreactor.connect.elastic
 
 import java.util.UUID
 
-import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticSettings, ElasticSinkConfig, ElasticSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticConfig, ElasticConfigConstants}
+import com.datamountaineer.streamreactor.connect.elastic.config.ElasticSettings
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.elasticsearch.common.settings.Settings
 import org.elasticsearch.index.IndexNotFoundException
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 
 import scala.reflect.io.File
 
@@ -40,11 +41,11 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecords
     //get config
-    val config  = new ElasticSinkConfig(getElasticSinkConfigProps)
+    val config  = new ElasticConfig(getElasticSinkConfigProps)
 
     val essettings = Settings
       .settingsBuilder()
-      .put(ElasticSinkConfigConstants.ES_CLUSTER_NAME, ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT)
+      .put(ElasticConfigConstants.ES_CLUSTER_NAME, ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT)
       .put("path.home", TMP.toString)
       .build()
     val client = ElasticClient.local(essettings)
@@ -75,10 +76,10 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecords
     //get config
-    val config  = new ElasticSinkConfig(getElasticSinkUpdateConfigProps)
+    val config  = new ElasticConfig(getElasticSinkUpdateConfigProps)
 
     val essettings = Settings
-      .settingsBuilder().put(ElasticSinkConfigConstants.ES_CLUSTER_NAME, ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT)
+      .settingsBuilder().put(ElasticConfigConstants.ES_CLUSTER_NAME, ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT)
       .put("path.home", TMP.toString).build()
     val client = ElasticClient.local(essettings)
     val settings = ElasticSettings(config)
@@ -116,11 +117,11 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecords
     //get config
-    val config  = new ElasticSinkConfig(getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate = true))
+    val config  = new ElasticConfig(getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate = true))
 
     val essettings = Settings
       .settingsBuilder()
-      .put(ElasticSinkConfigConstants.ES_CLUSTER_NAME, ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT)
+      .put(ElasticConfigConstants.ES_CLUSTER_NAME, ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT)
       .put("path.home", TMP.toString).build()
     val client = ElasticClient.local(essettings)
 
@@ -150,10 +151,10 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecords
     //get config
-    val config  = new ElasticSinkConfig(getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate = false))
+    val config  = new ElasticConfig(getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate = false))
 
     val essettings = Settings
-      .settingsBuilder().put(ElasticSinkConfigConstants.ES_CLUSTER_NAME, ElasticSinkConfigConstants.ES_CLUSTER_NAME_DEFAULT)
+      .settingsBuilder().put(ElasticConfigConstants.ES_CLUSTER_NAME, ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT)
       .put("path.home", TMP.toString).put("action.auto_create_index", "false").build()
     val client = ElasticClient.local(essettings)
 

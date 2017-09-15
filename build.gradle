@@ -24,11 +24,11 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.github.maiflai:gradle-scalatest:0.14'
-        classpath 'net.researchgate:gradle-release:2.3.4'
-        classpath "org.github.ngbinh.scalastyle:gradle-scalastyle-plugin_2.11:0.8.2"
-        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
-        classpath 'de.undercouch:gradle-download-task:3.1.2'
+        classpath 'com.github.maiflai:gradle-scalatest:0.16'
+        classpath 'net.researchgate:gradle-release:2.4.0'
+        classpath "org.github.ngbinh.scalastyle:gradle-scalastyle-plugin_2.11:0.9.0"
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
+        classpath 'de.undercouch:gradle-download-task:3.2.0'
     }
 }
 
@@ -47,7 +47,6 @@ allprojects {
     apply plugin: 'scala'
     apply plugin: 'maven'
     apply plugin: 'com.github.maiflai.scalatest'
-    apply plugin: 'net.researchgate.release'
     apply plugin: 'scalaStyle'
     apply plugin: 'com.github.johnrengelman.shadow'
     apply plugin: 'de.undercouch.download'
@@ -58,28 +57,31 @@ allprojects {
     ext {
         scalaMajorVersion = '2.11'
         scala = '2.11.7'
-        scalaCheck = '1.11.1'
-        scalaTest = '2.2.6'
+        scalaCheck = '1.13.4'
+        scalaTest = '3.0.1'
         junit = '4.11'
+        //avroVersion="1.8.1"
         scalaLoggingVersion = '2.1.2'
         mockitoVersion = '1.10.19'
-        jacksonDatabind = '2.7.0'
-        avroVersion = '1.7.7'
-        jacksonxmlVersion = '2.6.5'
+        jacksonDatabind = '2.8.5'
         slf4jVersion = "1.7.7"
-        avro4sVersion = "1.6.0"
-        json4sVersion = "3.3.0"
-        kiteMiniClusterVersion = "1.1.0"
+        json4sVersion = "3.5.3"
         gsonVersion = "2.6.2"
-        dataMountaineerKCQLVersion = "1.0.5"
+        KCQLVersion = "2.1.3"
         akkaVersion = "2.4.10"
-        connectCLIVersion = "1.0.1"
+        connectCLIVersion = "1.0.2"
 
-        // The following 4 need to align to compile against a particular version
-        confluentVersion = '3.2.0'
-        kafkaVersion = '0.10.2.0'
-        dataMountaineerCommonVersion = "0.7.6"
-        dataMountaineerTestKitVersion = "0.5"
+//        // The following 4 need to align to compile against a particular version
+        confluentVersion = '3.3.0'
+        kafkaVersion = '0.11.0.0'
+        dataMountaineerCommonVersion = "0.8.2.6"
+        dataMountaineerTestKitVersion = "0.6"
+
+//        // Confluent 3.2
+//        confluentVersion = '3.2.2'
+//        kafkaVersion = '0.10.2.0'
+//        dataMountaineerCommonVersion = "0.8.1.1"
+//        dataMountaineerTestKitVersion = "0.5"
 
         // For 3.1.x versions use
         // confluentVersion = '3.1.2'
@@ -129,13 +131,11 @@ allprojects {
             resource = 'reference.conf'
         }
         dependencies {
-            if (project.name != "kafka-socket-streamer") {
-                exclude(dependency("org.apache.avro:.*"))
-                exclude(dependency("org.apache.kafka:.*"))
-                exclude(dependency("io.confluent:.*"))
-                exclude(dependency("org.apache.kafka:.*"))
-                exclude(dependency("org.apache.zookeeper:.*"))
-            }
+            exclude(dependency("org.apache.avro:.*"))
+            exclude(dependency("org.apache.kafka:.*"))
+            exclude(dependency("io.confluent:.*"))
+            exclude(dependency("org.apache.kafka:.*"))
+            exclude(dependency("org.apache.zookeeper:.*"))
         }
     }
 
@@ -143,16 +143,12 @@ allprojects {
         compile "org.scala-lang:scala-library:$scala"
         compile "org.scala-lang:scala-compiler:$scala"
         compile "com.typesafe.scala-logging:scala-logging-slf4j_$scalaMajorVersion:$scalaLoggingVersion"
-        compile("com.datamountaineer:kcql:$dataMountaineerKCQLVersion") {
-            exclude group: "com.google.guava", module: "guava"
-        }
-        compile("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion")
 
-        compile "org.apache.kafka:connect-json:$kafkaVersion"
+        compile ("org.apache.kafka:connect-json:$kafkaVersion")
         compile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
         compile "io.confluent:kafka-schema-registry:$confluentVersion"
-        compile "org.apache.avro:avro:$avroVersion"
 
+        compile("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion")
         testCompile "org.mockito:mockito-core:$mockitoVersion"
         testCompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
         testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
@@ -195,7 +191,7 @@ allprojects {
 
     task compile(dependsOn: 'compileScala')
 
-    task fatJar(dependsOn: [clean, test, shadowJar])
+    task fatJar(dependsOn: [test, shadowJar])
 
     task collectJars(type: Copy) {
         into "${buildDir}/libs-dependencies"
@@ -213,6 +209,7 @@ allprojects {
         from "${buildDir}/libs"
         into libsDir
     }
+
 }
 
 task prepareReleaseDir(type: Copy) {

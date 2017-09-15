@@ -1,3 +1,4 @@
+cass-test
 /*/*.iml
 /*/build
 /build
@@ -47,7 +48,7 @@ target/
 /kafka-connect-coap/Californium.properties
 Californium.properties
 /gradle/wrapper/gradle-wrapper.properties
-/.DS_Store
+.DS_Store
 classes/*
 
 /kafka-connect-jms/*-*-*-*-*
@@ -60,3 +61,7 @@ classes/*
 /*/.project
 /*/.settings
 /*/.settings/
+
+/kafka-connect-*/build
+/kafka-connect-*/out
+/charts/

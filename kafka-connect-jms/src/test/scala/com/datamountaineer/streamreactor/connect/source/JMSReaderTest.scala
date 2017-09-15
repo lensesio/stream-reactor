@@ -26,13 +26,20 @@ import com.datamountaineer.streamreactor.connect.jms.source.readers.JMSReader
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
 import org.apache.kafka.connect.data.Struct
-import org.scalatest.BeforeAndAfter
+import org.scalatest.BeforeAndAfterAll
+
+import scala.reflect.io.Path
 
 /**
   * Created by andrew@datamountaineer.com on 20/03/2017. 
   * stream-reactor
   */
-class JMSReaderTest extends TestBase with BeforeAndAfter {
+class JMSReaderTest extends TestBase with BeforeAndAfterAll {
+
+  override def afterAll(): Unit = {
+    Path(AVRO_FILE).delete()
+  }
+
   "should read message from JMS queue without converters" in {
     val broker = new BrokerService()
     broker.setPersistent(false)
@@ -45,7 +52,7 @@ class JMSReaderTest extends TestBase with BeforeAndAfter {
     val tempDir = System.getProperty(property)
     broker.setDataDirectoryFile( new File(tempDir))
     broker.setTmpDataDirectory( new File(tempDir))
-    val messageCount = 10
+    val messageCount = 9
 
     broker.start()
     val connectionFactory = new ActiveMQConnectionFactory()
@@ -99,7 +106,8 @@ class JMSReaderTest extends TestBase with BeforeAndAfter {
     val settings = JMSSettings(config, false)
     val reader = JMSReader(settings)
 
-    val messagesRead = reader.poll()
+    val messagesRead = reader.poll().toVector
+    messagesRead.nonEmpty shouldBe true
     val sourceRecord = messagesRead.head._2
 
     sourceRecord.value().isInstanceOf[Struct] shouldBe true

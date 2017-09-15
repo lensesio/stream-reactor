@@ -16,17 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.coap.source
 
-import java.net.URI
 import java.util.logging.Level
 
-import com.datamountaineer.streamreactor.connect.coap.configs.{CoapSettings, CoapSourceConfig}
-import com.datamountaineer.streamreactor.connect.coap.connection.DTLSConnectionFn
 import com.datamountaineer.streamreactor.connect.coap.{Server, TestBase}
 import org.apache.kafka.connect.data.Struct
-import org.eclipse.californium.core.network.CoapEndpoint
-import org.eclipse.californium.core.network.config.NetworkConfig
 import org.eclipse.californium.core.{CaliforniumLogger, CoapClient}
-import org.eclipse.californium.scandium.{DTLSConnector, ScandiumLogger}
+import org.eclipse.californium.scandium.ScandiumLogger
 import org.scalatest.{BeforeAndAfter, WordSpec}
 
 import scala.collection.JavaConversions._
@@ -36,7 +31,7 @@ import scala.collection.JavaConversions._
   * stream-reactor
   */
 class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase {
-  val server = new Server(SOURCE_PORT_SECURE, SOURCE_PORT_INSECURE)
+  val server = new Server(SOURCE_PORT_SECURE, SOURCE_PORT_INSECURE, KEY_PORT_INSECURE)
 
   before {
     server.start()
@@ -52,30 +47,30 @@ class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase {
   ScandiumLogger.initialize()
   ScandiumLogger.setLevel(Level.INFO)
 
-  "should create a secure task and read a message" in {
-    val props = getPropsSecure
-    val producerConfig = CoapSourceConfig(getTestSourceProps)
-    val producerSettings = CoapSettings(producerConfig)
-
-    val task = new CoapSourceTask
-    task.start(props)
-
-    //get secure client to put messages in
-    val dtlsConnector = new DTLSConnector(DTLSConnectionFn(producerSettings.head))
-    val client = new CoapClient(new URI(s"$SOURCE_URI_SECURE/$RESOURCE_SECURE"))
-    client.setEndpoint(new CoapEndpoint(dtlsConnector, NetworkConfig.getStandard()))
-    client.post("Message1", 0)
-    Thread.sleep(5000)
-
-//    //ask for records
-    val records = task.poll()
-    records.size() shouldBe 1
-    val record = records.head
-    val struct = record.value().asInstanceOf[Struct]
-    struct.getString("payload") shouldBe "Message1"
-    struct.getString("type") shouldBe "ACK"
-    task.stop
-  }
+//  "should create a secure task and read a message" in {
+//    val props = getPropsSecure
+//    val producerConfig = CoapSourceConfig(getTestSourceProps)
+//    val producerSettings = CoapSettings(producerConfig)
+//
+//    val task = new CoapSourceTask
+//    task.start(props)
+//
+//    //get secure client to put messages in
+//    val dtlsConnector = new DTLSConnector(DTLSConnectionFn(producerSettings.head))
+//    val client = new CoapClient(new URI(s"$SOURCE_URI_SECURE/$RESOURCE_SECURE"))
+//    client.setEndpoint(new CoapEndpoint(dtlsConnector, NetworkConfig.getStandard()))
+//    client.post("Message1", 0)
+//    Thread.sleep(5000)
+//
+////    //ask for records
+//    val records = task.poll()
+//    records.size() shouldBe 1
+//    val record = records.head
+//    val struct = record.value().asInstanceOf[Struct]
+//    struct.getString("payload") shouldBe "Message1"
+//    struct.getString("type") shouldBe "ACK"
+//    task.stop
+//  }
 
   "should create a task and receive messages" in {
       val props = getPropsInsecure

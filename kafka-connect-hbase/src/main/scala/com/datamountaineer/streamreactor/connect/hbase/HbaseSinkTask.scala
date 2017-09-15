@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.hbase
 import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.hbase.config.{HbaseSettings, HbaseSinkConfig, HbaseSinkConfigConstants}
+import com.datamountaineer.streamreactor.connect.hbase.config.{HBaseConfig, HBaseConfigConstants, HBaseSettings}
 import com.datamountaineer.streamreactor.connect.hbase.writers.{HbaseWriter, WriterFactoryFn}
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -47,13 +47,14 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/hbase-ascii.txt")).mkString)
 
-    HbaseSinkConfig.config.parse(props)
-    val sinkConfig = HbaseSinkConfig(props)
-    val hbaseSettings = HbaseSettings(sinkConfig)
+    HBaseConfig.config.parse(props)
+    val sinkConfig = HBaseConfig(props)
+    enableProgress = sinkConfig.getBoolean(HBaseConfigConstants.PROGRESS_COUNTER_ENABLED)
+    val hbaseSettings = HBaseSettings(sinkConfig)
 
     //if error policy is retry set retry interval
     if (hbaseSettings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getInt(HbaseSinkConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+      context.timeout(sinkConfig.getInt(HBaseConfigConstants.ERROR_RETRY_INTERVAL).toLong)
     }
 
     logger.info(

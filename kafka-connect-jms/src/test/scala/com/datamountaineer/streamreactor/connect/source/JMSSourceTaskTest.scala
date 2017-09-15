@@ -24,14 +24,22 @@ import com.datamountaineer.streamreactor.connect.jms.source.JMSSourceTask
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
+import org.scalatest.BeforeAndAfterAll
 
 import scala.collection.JavaConverters._
+import scala.reflect.io.Path
 
 /**
   * Created by andrew@datamountaineer.com on 24/03/2017. 
   * stream-reactor
   */
-class JMSSourceTaskTest extends TestBase {
+class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll {
+
+  override def afterAll(): Unit = {
+    Path(AVRO_FILE).delete()
+  }
+
+
   "should start a JMSSourceTask and read records" in {
     val broker = new BrokerService()
     broker.setPersistent(false)
@@ -56,16 +64,21 @@ class JMSSourceTaskTest extends TestBase {
     connectionFactory.setBrokerURL(brokerUrl)
     val conn = connectionFactory.createConnection()
     conn.start()
-    val session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)
+    val session = conn.createSession(false, Session.CLIENT_ACKNOWLEDGE)
     val queue = session.createQueue(QUEUE1)
     val queueProducer = session.createProducer(queue)
     val messages = getTextMessages(10, session)
-    messages.foreach(m => queueProducer.send(m))
+    messages.foreach(m => {
+      queueProducer.send(m)
+      m.acknowledge()
+    })
 
+    Thread.sleep(1000)
     val records = task.poll().asScala
     records.size shouldBe 10
 
     records.head.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
     task.stop()
+    Path(AVRO_FILE).delete()
   }
 }

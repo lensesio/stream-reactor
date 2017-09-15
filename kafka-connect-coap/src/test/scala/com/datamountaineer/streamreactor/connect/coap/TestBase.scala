@@ -48,14 +48,18 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   val SINK_KCQL_SECURE = s"INSERT INTO $RESOURCE_SECURE SELECT * FROM $TOPIC"
   val DTLS_PORT = 5684
   val PORT = 5683
+  val KEY_PORT = 5682
 
   val SOURCE_PORT_SECURE = DTLS_PORT
   val SOURCE_PORT_INSECURE = PORT
   val SINK_PORT_SECURE: Int = DTLS_PORT + 1000
   val SINK_PORT_INSECURE: Int = PORT + 1000
+  val KEY_PORT_INSECURE: Int = KEY_PORT
+  val kEY_PORT_SECURE = KEY_PORT + 1000
   val DISCOVER_URI = s"coap://${CoapConstants.COAP_DISCOVER_IP4}:${SOURCE_PORT_INSECURE}"
   val SOURCE_URI_INSECURE = s"coap://localhost:$SOURCE_PORT_INSECURE"
   val SOURCE_URI_SECURE = s"coaps://localhost:$SOURCE_PORT_SECURE"
+  val KEY_URI = s"coaps://localhost:$kEY_PORT_SECURE"
 
   val SINK_URI_INSECURE = s"coap://localhost:$SINK_PORT_INSECURE"
   val SINK_URI_SECURE = s"coaps://localhost:$SINK_PORT_SECURE"
@@ -63,10 +67,10 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   val KEYSTORE_PASS = "endPass"
   val TRUSTSTORE_PASS = "rootPass"
 
-  //val TRUSTSTORE_PATH = System.getProperty("truststore")
-  //val KEYSTORE_PATH = System.getProperty("keystore")
-  val KEYSTORE_PATH: String =  getClass.getResource("/certs2/keyStore.jks").getPath
-  val TRUSTSTORE_PATH: String = getClass.getResource("/certs2/trustStore.jks").getPath
+  val KEYSTORE_PATH =  getClass.getResource("/certs2/keyStore.jks").getPath
+  val TRUSTSTORE_PATH = getClass.getResource("/certs2/trustStore.jks").getPath
+  val PRIVATE_KEY_PATH = getClass.getResource("/keys/privatekey-pkcs8.pem").getPath
+  val PUBLIC_KEY_PATH = getClass.getResource("/keys/publickey.pem").getPath
 
   protected val PARTITION: Int = 12
   protected val TOPIC_PARTITION: TopicPartition = new TopicPartition(TOPIC, PARTITION)
@@ -80,6 +84,28 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
     ).asJava
   }
 
+  def getPropsSecurePSK: util.Map[String, String] = {
+    Map(
+      CoapConstants.COAP_IDENTITY->"andrew",
+      CoapConstants.COAP_SECRET->"kebab",
+      CoapConstants.COAP_KCQL->SOURCE_KCQL_SECURE,
+      CoapConstants.COAP_URI->KEY_URI,
+      CoapConstants.COAP_DTLS_BIND_PORT->s"$kEY_PORT_SECURE"
+    ).asJava
+  }
+
+  def getPropsSecurePEM: util.Map[String, String] = {
+    Map(
+      CoapConstants.COAP_IDENTITY->"andrew",
+      CoapConstants.COAP_SECRET->"kebab",
+      CoapConstants.COAP_PRIVATE_KEY_FILE->PRIVATE_KEY_PATH,
+      CoapConstants.COAP_PUBLIC_KEY_FILE->PUBLIC_KEY_PATH,
+      CoapConstants.COAP_KCQL->SOURCE_KCQL_SECURE,
+      CoapConstants.COAP_URI->KEY_URI,
+      CoapConstants.COAP_DTLS_BIND_PORT->s"$kEY_PORT_SECURE"
+    ).asJava
+  }
+
   def getPropsInsecureDisco: util.Map[String, String] = {
     Map(CoapConstants.COAP_KCQL->SOURCE_KCQL_INSECURE,
       CoapConstants.COAP_URI->DISCOVER_URI
@@ -88,7 +114,9 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
 
 
   def getPropsInsecureSink: util.Map[String, String] = {
-    Map(CoapConstants.COAP_KCQL->SINK_KCQL_INSECURE,
+    Map(
+      "topics" -> TOPIC,
+      CoapConstants.COAP_KCQL->SINK_KCQL_INSECURE,
       CoapConstants.COAP_URI->SINK_URI_INSECURE
     ).asJava
   }

@@ -39,15 +39,16 @@ class CoapSinkTask extends SinkTask with StrictLogging {
   private var enableProgress: Boolean = false
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-sink-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-sink-ascii.txt")).mkString + s" v $version")
     val sinkConfig = CoapSinkConfig(props)
+    enableProgress = sinkConfig.getBoolean(CoapConstants.PROGRESS_COUNTER_ENABLED)
     val settings = CoapSettings(sinkConfig)
 
     //if error policy is retry set retry interval
-    if (settings.head.equals(ErrorPolicyEnum.RETRY)) {
+    if (settings.head.errorPolicy.equals(Option(ErrorPolicyEnum.RETRY))) {
       context.timeout(sinkConfig.getString(CoapConstants.ERROR_RETRY_INTERVAL).toLong)
     }
-    settings.map(s => (s.kcql.getSource, CoapWriter(s))).map({ case (k,v) => writers.put(k,v)})
+    settings.map(s => (s.kcql.getSource, CoapWriter(s))).map({ case (k, v) => writers.put(k, v) })
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
@@ -64,8 +65,10 @@ class CoapSinkTask extends SinkTask with StrictLogging {
       w.stop()
     })
     progressCounter.empty
-
   }
+
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
-  override def version(): String = "1"
+
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
+
 }
