@@ -56,8 +56,11 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
       cfg.getPassword(FtpSourceConfig.Password).value,
       Some(Duration.parse(cfg.getString(FtpSourceConfig.FileMaxAge))),
       monitor2topic.keys.toSeq,
-      cfg.timeoutMs()),
-      fileConverter)
+      cfg.timeoutMs(),
+      cfg.getProtocol
+    ),
+      fileConverter
+    )
   }
 
   def poll(): Stream[SourceRecord] = {

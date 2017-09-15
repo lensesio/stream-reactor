@@ -24,6 +24,7 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.{Connector, Task}
 import org.apache.kafka.connect.errors.ConnectException
+import org.apache.kafka.connect.sink.SinkConnector
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
@@ -35,7 +36,7 @@ import scala.util.{Failure, Try}
   *
   * Sets up CassandraSinkTask and configurations for the tasks.
   **/
-class CassandraSinkConnector extends Connector with StrictLogging {
+class CassandraSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
   private val configDef = CassandraConfigSink.sinkConfig
 

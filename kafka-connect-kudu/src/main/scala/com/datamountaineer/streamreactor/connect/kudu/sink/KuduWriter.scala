@@ -50,14 +50,12 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
   with ErrorHandler with ConverterUtil {
   logger.info("Initialising Kudu writer")
 
-  private val MUTATION_BUFFER_SPACE = setting.mutationBufferSpace
-
-  //pre create tables
   Try(DbHandler.createTables(setting, client)) match {
     case Success(_) =>
     case Failure(f) => logger.warn("Unable to create tables at startup! Tables will be created on delivery of the first record", f)
   }
-  //cache tables
+
+  private val MUTATION_BUFFER_SPACE = setting.mutationBufferSpace
   private lazy val kuduTablesCache = collection.mutable.Map(DbHandler.buildTableCache(setting, client).toSeq: _*)
   private lazy val session = client.newSession()
 

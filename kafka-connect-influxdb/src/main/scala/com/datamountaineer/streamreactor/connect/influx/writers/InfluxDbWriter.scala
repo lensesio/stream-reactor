@@ -33,10 +33,9 @@ class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLoggi
 
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
-
   private val influxDB = InfluxDBFactory.connect(settings.connectionUrl, settings.user, settings.password)
+  private val builder = new InfluxBatchPointsBuilder(settings)
 
-  private val builder  =new InfluxBatchPointsBuilder(settings)
   override def write(records: Seq[SinkRecord]): Unit = {
     if (records.isEmpty) {
       logger.debug("No records received.")
@@ -49,6 +48,5 @@ class InfluxDbWriter(settings: InfluxSettings) extends DbWriter with StrictLoggi
     }
   }
 
-  override def close(): Unit = {
-  }
+  override def close(): Unit = {}
 }

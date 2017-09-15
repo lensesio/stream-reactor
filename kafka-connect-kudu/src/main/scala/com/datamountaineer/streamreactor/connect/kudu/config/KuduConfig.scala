@@ -56,9 +56,9 @@ object KuduConfig {
       KuduConfigConstants.SCHEMA_REGISTRY_URL)
 
     .define(KuduConfigConstants.WRITE_FLUSH_MODE, Type.STRING, KuduConfigConstants.WRITE_FLUSH_MODE_DEFAULT,
-        Importance.MEDIUM, KuduConfigConstants.WRITE_FLUSH_MODE_DOC,
-        "Connection", 7, ConfigDef.Width.MEDIUM,
-        KuduConfigConstants.WRITE_FLUSH_MODE)
+      Importance.MEDIUM, KuduConfigConstants.WRITE_FLUSH_MODE_DOC,
+      "Connection", 7, ConfigDef.Width.MEDIUM,
+      KuduConfigConstants.WRITE_FLUSH_MODE)
 
     .define(KuduConfigConstants.MUTATION_BUFFER_SPACE, Type.INT, KuduConfigConstants.MUTATION_BUFFER_SPACE_DEFAULT,
       Importance.MEDIUM, KuduConfigConstants.MUTATION_BUFFER_SPACE_DOC,
