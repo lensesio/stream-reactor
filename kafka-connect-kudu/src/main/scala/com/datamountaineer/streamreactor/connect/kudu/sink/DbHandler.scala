@@ -48,6 +48,27 @@ object DbHandler extends StrictLogging with KuduConverter {
   type avroField = org.apache.avro.Schema.Field
   type connectSchema = org.apache.kafka.connect.data.Schema
 
+  def checkTables(client: KuduClient, settings: KuduSettings) = {
+    val kuduTables = client.getTablesList.getTablesList
+    logger.info(s"Found the following tables in Kudu, ${kuduTables.mkString(",")}")
+    val tables = settings.kcql.map(s => s.getTarget.trim).toSet
+    val missing = tables diff kuduTables.toSet
+
+    //filter for autocreate as the schema may not exist yet in the registry, they will be create on arrival of the first message if
+    //set to auto create
+    missing
+      .flatMap(m => settings.kcql.filter(f => f.getTarget.trim.equals(m) && f.isAutoCreate))
+      .foreach(a => logger.warn(s"Kudu table $a does not exist in Kudu and is marked for AutoCreate!"))
+
+    val finalList = missing.flatMap(m => settings.kcql.filter(f => f.getTarget.trim.equals(m) && !f.isAutoCreate))
+
+    if (finalList.nonEmpty) {
+      throw new ConnectException(s"The following tables are not found and not set for autocreate" +
+        s" ${finalList.map(f => f.getTarget).mkString(",")}. Check you aren't missing the namespace (impala::database.table) " +
+        s"for Impala managed tables!")
+    }
+  }
+
   /**
     * Build a cache of Kudu insert statements per topic and check tables exists for topics
     *
@@ -55,19 +76,7 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @return A Map of topic -> KuduRowInsert
     **/
   def buildTableCache(settings: KuduSettings, client: KuduClient): Map[String, KuduTable] = {
-    //create any tables we need
-    createTables(settings, client)
-    val tables = settings.kcql.map(s => s.getTarget).toSet
-    val missing = tables.filterNot(t => client.tableExists(t))
-    //filter for autocreate as the schema may not exist yet in the registry, they will be create on arrival of the first message if
-    //set to auto create
-    val finalList = missing.flatMap(m => settings.kcql.filter(f => f.getTarget.equals(m) && !f.isAutoCreate))
-
-    if (finalList.nonEmpty) {
-      throw new ConnectException(s"The following tables are not found and not set for autocreate" +
-        s" ${finalList.mkString(",")}")
-    }
-
+    checkTables(client, settings)
     settings.kcql.map(s => (s.getSource, client.openTable(s.getTarget))).toMap
   }
 
@@ -81,6 +90,7 @@ object DbHandler extends StrictLogging with KuduConverter {
   def createTables(setting: KuduSettings,
                    client: KuduClient): Set[KuduTable] = {
 
+    checkTables(client, setting)
     //check the schema registry for the a schema for this topic
     val url = setting.schemaRegistryUrl
     val subjects = SchemaRegistry.getSubjects(url).toSet
@@ -123,7 +133,7 @@ object DbHandler extends StrictLogging with KuduConverter {
     if (schema.nonEmpty) {
       val kuduSchema = getKuduSchema(kcql, schema)
       val cto = getCreateTableOptions(kcql)
-      val createTableProps = CreateTableProps(kcql.getSource, kuduSchema, cto)
+      val createTableProps = CreateTableProps(kcql.getTarget, kuduSchema, cto)
       Set(createTableProps)
     } else {
       Set.empty[CreateTableProps]
@@ -150,19 +160,24 @@ object DbHandler extends StrictLogging with KuduConverter {
   /**
     * Convert Avro fields to Kudu columns
     *
-    * @param config     The config containing the fields and mappings set for the sink
+    * @param kcql     The config containing the fields and mappings set for the sink
     * @param avroFields The avro fields
     * @return A list of Kudu Columns
     **/
-  private def getKuduCols(config: Kcql, avroFields: avroSchema): util.List[ColumnSchema] = {
-    logger.info(config.getFields.mkString(","))
+  private def getKuduCols(kcql: Kcql, avroFields: avroSchema): util.List[ColumnSchema] = {
 
-    val mappingFields = config.getFields.map(f => (f.getName, f.getAlias)).toMap
-    val ignored = config.getIgnoredFields.toSet
+    if (kcql.getFields.head.equals("*")) {
+      logger.info(s"All fields from topic will be used to create Kudu table ${kcql.getTarget}. ")
+    } else {
+      logger.info(s"Using fields ${kcql.getFields.mkString(",")} to create the ${kcql.getTarget}")
+    }
+
+    val mappingFields = kcql.getFields.map(f => (f.getName, f.getAlias)).toMap
+    val ignored = kcql.getIgnoredFields.toSet
     val fields = avroFields.getFields.filterNot(f => ignored.contains(f.name()))
 
     //only allow auto creation if distribute by and bucketing are specified
-    val pks = Try(config.getBucketing.getBucketNames.toSet) match {
+    val pks = Try(kcql.getBucketing.getBucketNames.toSet) match {
       case Success(s) => s
       case Failure(_) => throw new ConnectException("DISTRIBUTEBY columns INTO BUCKETS n must be specified for table " +
         "auto creation!")
@@ -175,7 +190,7 @@ object DbHandler extends StrictLogging with KuduConverter {
       val default = if (f.defaultValue() != JsonProperties.NULL_VALUE) f.defaultValue() else null
 
       if (pks.contains(alias)) {
-        logger.info(s"Setting PK on ${f.name()} for ${config.getTarget}")
+        logger.info(s"Setting PK on ${f.name()} for ${kcql.getTarget}")
         col.key(true)
       } else {
         col.nullable(true)
@@ -184,7 +199,7 @@ object DbHandler extends StrictLogging with KuduConverter {
       col.build()
     }).toList
 
-    logger.info(s"Setting columns as ${cols.mkString(",")} for ${config.getTarget}")
+    logger.info(s"Setting columns as ${cols.mkString(",")} for ${kcql.getTarget}")
     cols
   }
 
@@ -264,8 +279,10 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @param client A client to use to execute the DDL
     **/
   private[kudu] def executeCreateTable(ctp: CreateTableProps, client: KuduClient): KuduTable = {
-    logger.info(s"Executing create table on ${ctp.name} with ${ctp.schema.toString}")
-    client.createTable(ctp.name, ctp.schema, ctp.cto)
+    logger.info(s"Executing create table on ${ctp.name} with ${ctp.schema.toString} and props ${ctp.cto.toString}")
+    val table = client.createTable(ctp.name, ctp.schema, ctp.cto)
+    logger.info(s"Table ${ctp.name} created.")
+    table
   }
 
   /**

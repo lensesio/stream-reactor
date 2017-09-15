@@ -47,6 +47,13 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
+**3.0.1** (Pending)
+
+*   Add FTPS support to FTP connector, new configuration option `ftp.protocol` introduced, either ftp (default) or ftps.
+*   Fix for MQTT source High CPU Thanks @masahirom!
+*   Improve logging on Kudu
+*   Added Helm Chart generator
+
 **3.0.0**
 
 *   Upgrade CoAP to 2.0.0-M4
