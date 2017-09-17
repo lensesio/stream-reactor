@@ -37,6 +37,7 @@ A collection of components to build a real time ingestion pipeline.
 | JMS            | Sink   | Kafka connect JMS sink to write Kafka topic payloads to JMS.                                  | [Docs](http://docs.datamountaineer.com/en/latest/jms.html)               |
 | MongoDB        | Sink   | Kafka connect MongoDB sink to write Kafka topic payloads to MongoDB.                          | [Docs](http://docs.datamountaineer.com/en/latest/mongo-sink.html)        |
 | MQTT           | Source | Kafka connect MQTT source to write data from MQTT to Kafka.                                   | [Docs](http://docs.datamountaineer.com/en/latest/mqtt.html)              |
+| MQTT           | Sink   | Kafka connect MQTT sink to write data from Kafka to MQTT.                                     | [Docs](http://docs.datamountaineer.com/en/latest/mqtt-sink.html)              |
 | Redis          | Sink   | Kafka connect Redis sink to write Kafka topic payloads to Redis.                              | [Docs](http://docs.datamountaineer.com/en/latest/redis.html)                                    |
 | ReThinkDB      | Source | Kafka connect RethinkDb source subscribe to ReThinkDB changefeeds and write to Kafka.         | [Docs](http://docs.datamountaineer.com/en/latest/rethink_source.html)    |
 | ReThinkDB      | Sink   | Kafka connect RethinkDb sink to write Kafka topic payloads to RethinkDb.                      | [Docs](http://docs.datamountaineer.com/en/latest/rethink.html)           |
@@ -53,6 +54,8 @@ A collection of components to build a real time ingestion pipeline.
 *   Fix for MQTT source High CPU Thanks @masahirom!
 *   Improve logging on Kudu
 *   Added Helm Chart generator
+*   DELETE functionality add to the Cassandra sink, deletion now possible for null payloads, thanks @sandonjacobs !
+*   Fix in kafka-connect-common to handle primary keys with doc strings thanks, @medvekoma !
 
 **3.0.0**
 
