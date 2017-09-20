@@ -84,7 +84,7 @@ private[bloomberg] object BloombergFieldValueFn {
       0
     }
     val offset = ZoneOffset.ofTotalSeconds(offsetSeconds)
-    OffsetTime.of(dt.hour(), dt.minute(), dt.second(), dt.nanosecond(), offset).toString
+    OffsetTime.of(dt.hour()-1, dt.minute(), dt.second(), dt.nanosecond(), offset).toString
   }
 
   def localDate(dt: Datetime): String = {

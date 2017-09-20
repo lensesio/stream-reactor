@@ -47,7 +47,7 @@ private[bloomberg] object BloombergData {
     * @return
     */
   def apply(ticker: String, element: Element): BloombergData = {
-    val fields = (0 until element.numValues())
+    val fields = (0 until element.numElements())
       .map(element.getElement)
       .filter(f => !f.isNull)
       .foldLeft {
