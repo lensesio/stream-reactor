@@ -41,10 +41,10 @@ import scala.util.{Failure, Success, Try}
   * Created by andrew@datamountaineer.com on 20/04/16.
   * stream-reactor
   */
-class CassandraTableReader( private val session: Session,
-                            private val setting: CassandraSourceSetting,
-                            private val context: SourceTaskContext,
-                            var queue: LinkedBlockingQueue[SourceRecord]) extends StrictLogging {
+class CassandraTableReader(private val session: Session,
+                           private val setting: CassandraSourceSetting,
+                           private val context: SourceTaskContext,
+                           var queue: LinkedBlockingQueue[SourceRecord]) extends StrictLogging {
 
   private val config = setting.kcql
   private val cqlGenerator = new CqlGenerator(setting)
@@ -390,9 +390,9 @@ class CassandraTableReader( private val session: Session,
 
 object CassandraTableReader {
   def apply(session: Session,
-    setting: CassandraSourceSetting,
-    context: SourceTaskContext,
-    queue: LinkedBlockingQueue[SourceRecord]): CassandraTableReader = {
+            setting: CassandraSourceSetting,
+            context: SourceTaskContext,
+            queue: LinkedBlockingQueue[SourceRecord]): CassandraTableReader = {
     //return a reader
     new CassandraTableReader(session = session,
       setting = setting,
