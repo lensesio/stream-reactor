@@ -59,6 +59,9 @@ class CassandraTableReader(private val session: Session,
   private val preparedStatementNoOffset = getPreparedStatementNoOffset
   private val preparedStatement = getPreparedStatements
   private var tableOffset: Option[String] = buildOffsetMap(context)
+  // TODO: add this to configuration
+  private val timeSliceDuration: Long = 10000
+  private var timeSliceValue: Long = timeSliceDuration
   private val sourcePartition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
   private val schemaName = s"$keySpace.$table".replace('-', '.')
   private val bulk = if (setting.timestampColType.equals(TimestampType.NONE)) true else false
@@ -139,15 +142,31 @@ class CassandraTableReader(private val session: Session,
     * @return a ResultSet.
     */
   private def bindAndFireTimebasedQuery() = {
-    // time based key column
+    // get the lower bound for the timebased query
+    // using either the default value or the timestamp of the last 
+    // row that was processed (captured in the offset) 
     val previous = dateFormatter.parse(cqlGenerator.getDefaultOffsetValue(tableOffset).get)
-    // set the upper bound to now
+
+    // set the upper bound
     val now = new Date()
-    //bind the offset and db time
+    val nextTimeSlice = if (previous.getYear == 0) {
+      // TODO: we can't do small time slices if default is Jan 1, 1900
+      // so for now advance to current date time
+      now
+    } else {
+      // we want to process in small time slices but never in the future
+      val upperBound = previous.getTime + timeSliceValue
+      val upperDate = new Date(upperBound)
+      if (now.getTime < upperBound) now else new Date(upperBound)
+    }
+
+    // logging the CQL
     val formattedPrevious = dateFormatter.format(previous)
-    val formattedNow = dateFormatter.format(now)
-    val bound = preparedStatement.bind(previous, now)
+    val formattedNow = dateFormatter.format(nextTimeSlice)
     logger.debug(s"Query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow).")
+
+    // bind the offset and db time
+    val bound = preparedStatement.bind(previous, nextTimeSlice)
     session.executeAsync(bound)
   }
 
@@ -223,6 +242,22 @@ class CassandraTableReader(private val session: Session,
           }
         }
         logger.info(s"Processed $counter row(-s) for table $topic.$table")
+
+        // if no rows are processed using the timebased approach
+        // we want to increase the range of time we look for and
+        // process data so that we don't get stuck
+        // this is needed because the current algorithm uses
+        // the time stamp/time UUID of the last row processed
+        // (see bindAndFireTimebasedQuery)
+        timeSliceValue = if (counter == 0) {
+          // keep adding polling interval to duration when we don't get any hits
+          timeSliceValue + timeSliceDuration + setting.pollInterval
+        } else {
+          // set value back to config
+          timeSliceDuration
+        }
+        logger.debug(s"the time slice value is now $timeSliceValue ms")
+
         //set as the new high watermark.
         reset(maxOffset)
     })
