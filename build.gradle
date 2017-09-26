@@ -50,6 +50,9 @@ allprojects {
     apply plugin: 'scalaStyle'
     apply plugin: 'com.github.johnrengelman.shadow'
     apply plugin: 'de.undercouch.download'
+    apply plugin: 'net.researchgate.release'
+    apply plugin: 'maven-publish'
+    apply plugin: 'signing'
 
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
@@ -209,6 +212,72 @@ allprojects {
         from "${buildDir}/libs"
         into libsDir
     }
+
+    artifacts {
+        archives javadocJar, scaladocJar, sourcesJar
+    }
+
+    signing {
+        sign configurations.archives
+    }
+
+    if (project.hasProperty('release') && project.name != "kafka-connect-deployment") {
+        // OSSRH publication
+        uploadArchives {
+            repositories {
+                mavenDeployer {
+                    // POM signature
+                    beforeDeployment { MavenDeployment deployment ->
+                        signing.signPom(deployment)
+                    }
+                    // Target repository
+                    repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                        authentication(userName: ossrhUsername, password: ossrhPassword)
+                    }
+                    pom.project {
+                        name project.name
+                        description project.description
+                        packaging 'jar'
+                        url 'https://github.com/datamountaineer/stream-reactor'
+
+                        scm {
+                            connection 'scm:git:https://github.com/datamountaineer/stream-reactor.git'
+                            developerConnection 'scm:git:git@github.com:datamountaineer/stream-reactor.git'
+                            url 'https://github.com/datamountaineer/stream-reactor.git'
+                        }
+
+                        licenses {
+                            license {
+                                name 'Apache License 2.0'
+                                url 'http://www.apache.org/licenses/LICENSE-2.0.html'
+                                distribution 'repo'
+                            }
+                        }
+
+                        developers {
+                            developer {
+                                id = 'andrewstevenson'
+                                name = 'Andrew Stevenson'
+                                email = 'andrew@landoop.com'
+                            }
+                            developer {
+                                id = 'stheppi'
+                                name = 'Stefan Bocutiu'
+                                email = 'stefan@landoop.com'
+                            }
+                            developer {
+                                id = 'antwins'
+                                name = 'Antonios Chalkiopoulos'
+                                email = 'antonios@landoop.com'
+                            }
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+
 
 }
 

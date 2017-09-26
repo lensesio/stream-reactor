@@ -65,3 +65,4 @@ classes/*
 /kafka-connect-*/build
 /kafka-connect-*/out
 /charts/
+/.vscode
