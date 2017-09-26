@@ -21,7 +21,7 @@ import java.util.concurrent.Executors
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSinkSetting
-import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
+import com.datamountaineer.streamreactor.connect.cassandra.utils.{CassandraUtils, KeyUtils}
 import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
 import com.datamountaineer.streamreactor.connect.concurrent.FutureAwaitWithFailFastFn
 import com.datamountaineer.streamreactor.connect.converters.{FieldConverter, Transform}
@@ -29,7 +29,6 @@ import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datastax.driver.core.exceptions.SyntaxError
 import com.datastax.driver.core.{PreparedStatement, Session}
-import com.jayway.jsonpath.{Configuration, JsonPath}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
@@ -209,8 +208,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
                       if (schema.`type`() == Schema.Type.STRING) {
                         // treat key string as JSON
                         logger.trace("key schema is a String type, treat it like JSON...")
-                        val document = Configuration.defaultConfiguration.jsonProvider.parse(key.toString)
-                        deleteStructFields map { f => JsonPath.read(document, f).asInstanceOf[Object] }
+                        KeyUtils.keysFromJson(key.toString, deleteStructFleids)
                       }
                       else {
                         logger.trace("key schema is a primitive type, this is easy...")
@@ -219,9 +217,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
                     }
                     else {
                       logger.trace("key schema is a STRUCT, dig into the key...")
-                      // TODO need to handle nested values...
-                      val recordKey = record.key.asInstanceOf[Struct]
-                      deleteStructFields map { f => recordKey.get(f) }
+                      KeyUtils.keysFromStruct(key.asInstanceOf[Struct], schema, deleteStructFlds)
                     }
                   }
                 }
