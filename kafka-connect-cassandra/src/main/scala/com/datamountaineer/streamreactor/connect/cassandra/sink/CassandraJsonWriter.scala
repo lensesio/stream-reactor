@@ -208,7 +208,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
                       if (schema.`type`() == Schema.Type.STRING) {
                         // treat key string as JSON
                         logger.trace("key schema is a String type, treat it like JSON...")
-                        KeyUtils.keysFromJson(key.toString, deleteStructFleids)
+                        KeyUtils.keysFromJson(key.toString, deleteStructFields)
                       }
                       else {
                         logger.trace("key schema is a primitive type, this is easy...")
@@ -217,7 +217,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
                     }
                     else {
                       logger.trace("key schema is a STRUCT, dig into the key...")
-                      KeyUtils.keysFromStruct(key.asInstanceOf[Struct], schema, deleteStructFlds)
+                      KeyUtils.keysFromStruct(key.asInstanceOf[Struct], schema, deleteStructFields)
                     }
                   }
                 }
