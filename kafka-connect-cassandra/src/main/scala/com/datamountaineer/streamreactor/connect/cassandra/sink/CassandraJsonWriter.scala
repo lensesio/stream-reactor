@@ -54,11 +54,11 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
   private var session: Session = getSession.get
 
   CassandraUtils.checkCassandraTables(session.getCluster, settings.kcqls, session.getLoggedKeyspace)
-  private var preparedCache: Map[String, Map[String, (PreparedStatement, Kcql)]] = cachePreparedStatements
+  private var preparedCache = cachePreparedStatements
 
-  private var deleteCache: Option[PreparedStatement] = cacheDeleteStatement
+  private var deleteCache = cacheDeleteStatement
 
-  private val deleteStructFlds: Seq[String] = settings.deleteStructFields
+  private val deleteStructFields = settings.deleteStructFields
 
   /**
     * Get a connection to cassandra based on the config
@@ -210,7 +210,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
                         // treat key string as JSON
                         logger.trace("key schema is a String type, treat it like JSON...")
                         val document = Configuration.defaultConfiguration.jsonProvider.parse(key.toString)
-                        deleteStructFlds map { f => JsonPath.read(document, f).asInstanceOf[Object] }
+                        deleteStructFields map { f => JsonPath.read(document, f).asInstanceOf[Object] }
                       }
                       else {
                         logger.trace("key schema is a primitive type, this is easy...")
@@ -221,7 +221,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
                       logger.trace("key schema is a STRUCT, dig into the key...")
                       // TODO need to handle nested values...
                       val recordKey = record.key.asInstanceOf[Struct]
-                      deleteStructFlds map { f => recordKey.get(f) }
+                      deleteStructFields map { f => recordKey.get(f) }
                     }
                   }
                 }

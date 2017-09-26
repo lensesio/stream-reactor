@@ -68,6 +68,9 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   val TOPIC10 = "topic10"
   val TABLE11 = "table11"
   val TOPIC11 = "topic11"
+  val TABLE12 = "table12"
+  val TOPIC12 = "topic12"
+  val TOPIC13 = "topic13"
 
   val TTL = 100000
 
@@ -167,6 +170,17 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.PASSWD -> PASSWD,
       CassandraConfigConstants.KCQL -> s"INSERT INTO $TABLE6 SELECT id, int_field1, double_field1,timestamp_field1 FROM $TOPIC67; INSERT INTO $TABLE7 SELECT id, int_field2, double_field2,timestamp_field2 FROM $TOPIC67",
       CassandraConfigConstants.ERROR_POLICY -> ErrorPolicyEnum.NOOP.toString
+    ).asJava
+  }
+
+  def getCassandraConfigSinkProps2TablesSameTarget = {
+    Map(
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.KCQL -> s"INSERT INTO $TABLE12 SELECT * FROM $TOPIC12; INSERT INTO $TABLE12 SELECT * FROM $TOPIC11",
+      CassandraConfigConstants.ERROR_POLICY -> ErrorPolicyEnum.THROW.toString
     ).asJava
   }
 
@@ -389,6 +403,15 @@ trait TestConfig extends StrictLogging with MockitoSugar {
          |key2 text,
          |name text,
          |PRIMARY KEY((key1, key2), name)) WITH CLUSTERING ORDER BY (name asc)""".stripMargin)
+
+    session.execute(
+      s"""
+         |CREATE TABLE IF NOT EXISTS $keyspace.$TABLE12
+         |(id text,
+         |int_field1 int,
+         |double_field1 double,
+         |timestamp_field1 timeuuid,
+         |PRIMARY KEY(id,timestamp_field1)) WITH CLUSTERING ORDER BY (timestamp_field1 asc)""".stripMargin)
 
     session
   }
