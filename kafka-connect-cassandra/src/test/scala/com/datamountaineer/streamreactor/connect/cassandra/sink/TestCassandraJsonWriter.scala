@@ -136,51 +136,51 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     }
   }
 
-  "Cassandra JsonWriter should write records from two topics to one Cassandra table" in {
-    val session = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
-    val context = mock[SinkTaskContext]
-    val assignment = getAssignment
-    when(context.assignment()).thenReturn(assignment)
-    //get test records
-    val schema = SchemaBuilder.struct.name("record")
-      .version(1)
-      .field("id", Schema.STRING_SCHEMA)
-      .field("int_field1", Schema.INT32_SCHEMA)
-      .field("double_field1", Schema.FLOAT64_SCHEMA)
-      .field("timestamp_field1", Schema.STRING_SCHEMA)
-      .build
+  // "Cassandra JsonWriter should write records from two topics to one Cassandra table" in {
+  //   val session = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
+  //   val context = mock[SinkTaskContext]
+  //   val assignment = getAssignment
+  //   when(context.assignment()).thenReturn(assignment)
+  //   //get test records
+  //   val schema = SchemaBuilder.struct.name("record")
+  //     .version(1)
+  //     .field("id", Schema.STRING_SCHEMA)
+  //     .field("int_field1", Schema.INT32_SCHEMA)
+  //     .field("double_field1", Schema.FLOAT64_SCHEMA)
+  //     .field("timestamp_field1", Schema.STRING_SCHEMA)
+  //     .build
 
-    val d1 = UUIDs.timeBased().toString
-    Thread.sleep(1000)
-    val d2 = UUIDs.timeBased().toString
+  //   val d1 = UUIDs.timeBased().toString
+  //   Thread.sleep(1000)
+  //   val d2 = UUIDs.timeBased().toString
 
-    val struct1 = new Struct(schema)
-      .put("id", "id1")
-      .put("int_field1", 11)
-      .put("double_field1", 11.11)
-      .put("timestamp_field1", d1)
+  //   val struct1 = new Struct(schema)
+  //     .put("id", "id1")
+  //     .put("int_field1", 11)
+  //     .put("double_field1", 11.11)
+  //     .put("timestamp_field1", d1)
 
-    val struct2 = new Struct(schema)
-      .put("id", "id2")
-      .put("int_field1", 11)
-      .put("double_field1", 11.11)
-      .put("timestamp_field1", d2)
+  //   val struct2 = new Struct(schema)
+  //     .put("id", "id2")
+  //     .put("int_field1", 11)
+  //     .put("double_field1", 11.11)
+  //     .put("timestamp_field1", d2)
 
-    val record1 = new SinkRecord(TOPIC11, 0, null, null, schema, struct1, 0, System.currentTimeMillis(), TimestampType.CREATE_TIME)
-    val record2 = new SinkRecord(TOPIC12, 0, null, null, schema, struct2, 0, System.currentTimeMillis(), TimestampType.CREATE_TIME)
+  //   val record1 = new SinkRecord(TOPIC11, 0, null, null, schema, struct1, 0, System.currentTimeMillis(), TimestampType.CREATE_TIME)
+  //   val record2 = new SinkRecord(TOPIC12, 0, null, null, schema, struct2, 0, System.currentTimeMillis(), TimestampType.CREATE_TIME)
 
-    //get config
-    val props = getCassandraConfigSinkProps2TablesSameTarget
-    val taskConfig = new CassandraConfigSink(props)
+  //   //get config
+  //   val props = getCassandraConfigSinkProps2TablesSameTarget
+  //   val taskConfig = new CassandraConfigSink(props)
 
-    val writer = CassandraWriter(taskConfig, context)
-    writer.write(Seq(record1, record2))
-    Thread.sleep(1000)
-    //check we can get back what we wrote
-    val res1 = session.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TABLE12")
-    val list1 = res1.all()
-    list1.size() shouldBe 2
-  }
+  //   val writer = CassandraWriter(taskConfig, context)
+  //   writer.write(Seq(record1, record2))
+  //   Thread.sleep(1000)
+  //   //check we can get back what we wrote
+  //   val res1 = session.execute(s"SELECT * FROM $CASSANDRA_SINK_KEYSPACE.$TABLE12")
+  //   val list1 = res1.all()
+  //   list1.size() shouldBe 2
+  // }
 
   "Cassandra JsonWriter should write records using nested fields in Cassandra tables - STRING SCHEMA" in {
     val session = createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
