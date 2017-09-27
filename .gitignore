@@ -2,6 +2,7 @@ cass-test
 /*/*.iml
 /*/build
 /build
+/*/bin
 /kafka-connect-druid/kafka-connect-druid.iml
 /kafka-connect-utils/kafka-connect-utils.iml
 # sbt specific
