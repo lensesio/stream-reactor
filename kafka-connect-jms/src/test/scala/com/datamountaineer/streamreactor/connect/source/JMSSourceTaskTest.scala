@@ -77,6 +77,8 @@ class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll {
     val records = task.poll().asScala
     records.size shouldBe 10
 
+    task.commit()
+
     val browser = session.createBrowser(queue, null)
     val messagesLeft = browser.getEnumeration.asScala.size
     browser.close()
