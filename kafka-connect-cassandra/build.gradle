@@ -28,6 +28,10 @@ project(":kafka-connect-cassandra") {
         pegDownversion = "1.6.0"
     }
 
+    configurations {
+        testCompile.exclude group: "org.slf4j", module: "slf4j-log4j12"
+    }
+
     dependencies {
 
         compile("com.datastax.cassandra:cassandra-driver-core:$cassandraDriverVersion")
