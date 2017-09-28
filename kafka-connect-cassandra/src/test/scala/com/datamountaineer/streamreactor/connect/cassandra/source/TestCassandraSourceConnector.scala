@@ -27,7 +27,16 @@ import scala.collection.JavaConverters._
   */
 class TestCassandraSourceConnector extends WordSpec with Matchers with TestConfig {
   "Should start a Cassandra Source Connector" in {
-    val props = getCassandraConfigSourcePropsBulk
+    val props =  Map(
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.KCQL -> IMPORT_QUERY_ALL,
+      CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES,
+      CassandraConfigConstants.POLL_INTERVAL -> "1000"
+    ).asJava
+
     val connector = new CassandraSourceConnector()
     connector.start(props)
     val taskConfigs = connector.taskConfigs(1)

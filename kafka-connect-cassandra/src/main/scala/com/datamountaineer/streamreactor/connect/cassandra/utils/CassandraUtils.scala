@@ -49,8 +49,8 @@ object CassandraUtils {
     **/
   def checkCassandraTables(cluster: Cluster, routes: Seq[Kcql], keySpace: String): Unit = {
     val metaData = cluster.getMetadata.getKeyspace(keySpace).getTables
-    val tables = metaData.map(t => t.getName).toSeq
-    val topics = routes.map(rm => rm.getTarget)
+    val tables = metaData.map(t => t.getName.toLowerCase).toSeq
+    val topics = routes.map(rm => rm.getTarget.toLowerCase)
 
     //check tables
     if (tables.isEmpty) throw new ConnectException(s"No tables found in Cassandra for keyspace $keySpace")

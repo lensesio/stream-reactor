@@ -20,6 +20,7 @@ import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 28/04/16. 
@@ -27,7 +28,17 @@ import scala.collection.JavaConversions._
   */
 class TestCassandraSourceSettings extends WordSpec with Matchers with TestConfig {
   "CassandraSettings should return setting for a source" in {
-    val taskConfig = CassandraConfigSource(getCassandraConfigSourcePropsBulk)
+    val props =  Map(
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.KCQL -> IMPORT_QUERY_ALL,
+      CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES,
+      CassandraConfigConstants.POLL_INTERVAL -> "1000"
+    ).asJava
+
+    val taskConfig = CassandraConfigSource(props)
     val assigned = List(TABLE1, TABLE2)
     val settings = CassandraSettings.configureSource(taskConfig).toList
     settings.size shouldBe 2
