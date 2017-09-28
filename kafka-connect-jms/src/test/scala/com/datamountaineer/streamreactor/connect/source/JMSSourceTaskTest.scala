@@ -40,7 +40,7 @@ class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll {
   }
 
 
-  "should start a JMSSourceTask and read records" in {
+  "should start a JMSSourceTask, read records and ack messages" in {
     val broker = new BrokerService()
     broker.setPersistent(false)
     broker.setUseJmx(false)
@@ -76,6 +76,12 @@ class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll {
     Thread.sleep(1000)
     val records = task.poll().asScala
     records.size shouldBe 10
+
+    val browser = session.createBrowser(queue, null)
+    val messagesLeft = browser.getEnumeration.asScala.size
+    browser.close()
+
+    messagesLeft shouldBe 0
 
     records.head.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
     task.stop()

@@ -21,6 +21,7 @@ import java.util.logging.Logger
 
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.datamountaineer.streamreactor.connect.yahoo.config.{YahooSettings, YahooSourceConfig}
+import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
@@ -28,8 +29,8 @@ import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
 
 
-class YahooSourceTask extends SourceTask with YahooSourceConfig {
-  val logger: Logger = Logger.getLogger(getClass.getName)
+class YahooSourceTask extends SourceTask with YahooSourceConfig with StrictLogging{
+
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
 
@@ -74,7 +75,7 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig {
     * @return A util.List of SourceRecords.
     **/
   override def poll(): util.List[SourceRecord] = {
-    logger.info("Polling for Yahoo records...")
+    logger.debug("Polling for Yahoo records...")
     val records = dataManager.map(_.getRecords).getOrElse(new util.ArrayList[SourceRecord]())
     if (enableProgress) {
       progressCounter.update(records.toVector)
