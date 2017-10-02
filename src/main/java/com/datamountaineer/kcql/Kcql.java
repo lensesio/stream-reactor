@@ -46,6 +46,7 @@ public class Kcql {
     private List<Tag> tags;
     private boolean retainStructure = false;
     private String withConverter;
+    private String withJmsSelector;
     private long ttl;
 
     public void setTTL(long ttl) {
@@ -233,6 +234,10 @@ public class Kcql {
         return withConverter;
     }
 
+    public String getWithJmsSelector() {
+        return withJmsSelector;
+    }
+
     public static Kcql parse(final String syntax) {
         final ConnectorLexer lexer = new ConnectorLexer(new ANTLRInputStream(syntax));
         final CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -336,6 +341,11 @@ public class Kcql {
             @Override
             public void exitWith_converter_value(ConnectorParser.With_converter_valueContext ctx) {
                 kcql.withConverter = escape(ctx.getText());
+            }
+
+            @Override
+            public void exitJms_selector_value(ConnectorParser.Jms_selector_valueContext ctx) {
+                kcql.withJmsSelector = escape(ctx.getText());
             }
 
             @Override

@@ -364,4 +364,16 @@ public class KcqlNestedFieldTest {
         kcql = Kcql.parse(syntax);
         assertEquals("com.datamountaineer.ConverterA", kcql.getWithConverter());
     }
+
+    @Test
+    public void parseWithJmsSelector() {
+        String syntax = "SELECT * FROM topicA WITHJMSSELECTOR=`apples > 10`";
+        Kcql kcql = Kcql.parse(syntax);
+        System.out.println(kcql.getWithJmsSelector());
+        assertEquals("apples > 10", kcql.getWithJmsSelector());
+
+        syntax = "SELECT * FROM topicA WITHJMSSELECTOR= `apples > 10` ";
+        kcql = Kcql.parse(syntax);
+        assertEquals("apples > 10", kcql.getWithJmsSelector());
+    }
 }
