@@ -77,7 +77,7 @@ allprojects {
         kiteMiniClusterVersion = "1.1.0"
         gsonVersion = "2.6.2"
         dataMountaineerKCQLVersion = "0.9.9"
-        confluentVersion = '3.0.1'
+        confluentVersion = '3.1.1'
         akkaVersion = "2.4.10"
         connectCLIVersion = "0.9"
 
