@@ -644,6 +644,15 @@ public class KcqlTest {
     }
 
     @Test
+    public void handleTypeAsOneOfTheFields() {
+        String topic = "TOPIC_A";
+        String table = "TABLE_A";
+        String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITHTYPE QUEUE", table, topic);
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals("QUEUE",kcql.getWithType());
+    }
+
+    @Test
     public void handleTimestampWhenAllFieldIncluded() {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
