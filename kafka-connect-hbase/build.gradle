@@ -19,21 +19,16 @@
 project(":kafka-connect-hbase") {
 
     ext {
-        hbaseClientVersion = "1.1.2"
-        hbaseServerVersion = "1.1.2"
+        hbaseClientVersion = "1.2.0"
+        hbaseServerVersion = "1.2.0"
     }
 
     dependencies {
         compile("org.apache.hbase:hbase-client:$hbaseClientVersion") {
             exclude group : "com.sun.jersey"
-			exclude group: 'org.apache.hadoop', module:'hadoop-common'
           //  exclude group: 'com.google.guava', module: 'guava'
         }
-		
         //compile group: 'com.google.guava', name: 'guava', version: '19.0'
-		compile ("org.apache.hadoop:hadoop-common:2.6.0"){
-                 exclude group : "com.sun.jersey"
-                }
 
         testCompile("org.kitesdk:kite-minicluster:$kiteMiniClusterVersion")
         testCompile("org.apache.hbase:hbase-server:$hbaseServerVersion")
