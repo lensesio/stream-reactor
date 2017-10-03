@@ -37,7 +37,6 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 28/04/16.
   * stream-reactor
   */
-@DoNotDiscover
 class TestCassandraSourceTask extends WordSpec with Matchers with MockitoSugar with TestConfig
   with ConverterUtil {
 

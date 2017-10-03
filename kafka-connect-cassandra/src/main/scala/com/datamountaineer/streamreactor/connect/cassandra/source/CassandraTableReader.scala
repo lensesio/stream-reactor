@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import java.text.SimpleDateFormat
+import java.time.{Instant}
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 import java.util.{Collections, Date}
@@ -144,29 +145,27 @@ class CassandraTableReader(private val session: Session,
   private def bindAndFireTimebasedQuery() = {
     // get the lower bound for the timebased query
     // using either the default value or the timestamp of the last 
-    // row that was processed (captured in the offset) 
-    val previous = dateFormatter.parse(cqlGenerator.getDefaultOffsetValue(tableOffset).get)
-
+    // row that was processed (captured in the offset)
+    val previousDate = dateFormatter.parse(cqlGenerator.getDefaultOffsetValue(tableOffset).get)
+    val previous = previousDate.toInstant
     // set the upper bound
-    val now = new Date()
-    val nextTimeSlice = if (previous.getYear == 0) {
+    val now = Instant.now()
+    val nextTimeSlice = if (previousDate.getYear == 0) {
       // TODO: we can't do small time slices if default is Jan 1, 1900
       // so for now advance to current date time
       now
     } else {
       // we want to process in small time slices but never in the future
-      val upperBound = previous.getTime + timeSliceValue
-      val upperDate = new Date(upperBound)
-      if (now.getTime < upperBound) now else new Date(upperBound)
+      val upperBound = previous.plusMillis(timeSliceValue)
+      if (now.compareTo(upperBound) <= 0) now else upperBound
     }
 
     // logging the CQL
-    val formattedPrevious = dateFormatter.format(previous)
-    val formattedNow = dateFormatter.format(nextTimeSlice)
+    val formattedPrevious = previous.toString()
+    val formattedNow = nextTimeSlice.toString()
     logger.debug(s"Query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow).")
-
     // bind the offset and db time
-    val bound = preparedStatement.bind(previous, nextTimeSlice)
+    val bound = preparedStatement.bind(Date.from(previous), Date.from(nextTimeSlice))
     session.executeAsync(bound)
   }
 
