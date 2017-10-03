@@ -36,6 +36,7 @@ class JMSSourceTask extends SourceTask with StrictLogging {
   var reader: JMSReader = _
   val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
+  private var ackMessage: Option[Message] = None
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-source-ascii.txt")).mkString + s" v $version")
@@ -60,7 +61,7 @@ class JMSSourceTask extends SourceTask with StrictLogging {
       records = collection.mutable.Seq(polled.map({ case (_, record) => record }).toSeq: _*)
       messages = collection.mutable.Seq(polled.map({ case (message, _) => message }).toSeq: _*)
     } finally {
-      messages.foreach(m => m.acknowledge())
+      ackMessage = messages.headOption
     }
 
     if (enableProgress) {
@@ -68,6 +69,11 @@ class JMSSourceTask extends SourceTask with StrictLogging {
     }
 
     records
+  }
+
+  override def commit(): Unit = {
+    ackMessage.foreach(_.acknowledge())
+    ackMessage = None
   }
 
   override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
