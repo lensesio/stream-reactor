@@ -84,7 +84,7 @@ class TestCassandraSinkSettings extends WordSpec with Matchers with MockitoSugar
 
 
   "CassandraSettings should throw an exception if the consistency level is not valid for a source" in {
-    val map = new util.HashMap[String, String](getCassandraConfigSourcePropsIncr)
+    val map = new util.HashMap[String, String](getCassandraConfigSourcePropsTimeuuidIncr)
     map.put(CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG, "InvaliD")
     intercept[ConfigException] {
       CassandraSettings.configureSource(CassandraConfigSource(map))
@@ -92,7 +92,7 @@ class TestCassandraSinkSettings extends WordSpec with Matchers with MockitoSugar
   }
 
   "CassandraSettings should allow setting the consistency level as Quorum for a source" in {
-    val map = new util.HashMap[String, String](getCassandraConfigSourcePropsIncr)
+    val map = new util.HashMap[String, String](getCassandraConfigSourcePropsTimeuuidIncr)
     map.put(CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG, ConsistencyLevel.QUORUM.name())
     val settingsSet = CassandraSettings.configureSource(CassandraConfigSource(map))
     settingsSet.head.consistencyLevel shouldBe Some(ConsistencyLevel.QUORUM)

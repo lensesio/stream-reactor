@@ -86,7 +86,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
   val QUERY_SELECTION = s"INSERT INTO $TABLE1 SELECT id, long_field FROM $TOPIC1"
 
   val IMPORT_QUERY_ALL = s"INSERT INTO $TOPIC1 SELECT * FROM $TABLE1;INSERT INTO $TOPIC2 SELECT * FROM $TABLE2"
-  val IMPORT_QUERY_INCR = s"INSERT INTO $TOPIC1 SELECT * FROM $TABLE2 PK timestamp_field INCREMENTALMODE=timeuuid"
+  val IMPORT_QUERY_INCR = s"INSERT INTO $TOPIC1 SELECT * FROM $TABLE2 PK timeuuid_field INCREMENTALMODE=timeuuid"
 
   val ASSIGNED_TABLES = s"$TABLE1,$TABLE2"
   //val TIMESTAMP_COL_MAP = s"$TABLE2:timestamp_field"
@@ -282,7 +282,7 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     ).asJava
   }
 
-  def getCassandraConfigSourcePropsIncr = {
+  def getCassandraConfigSourcePropsTimeuuidIncr = {
     Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
       CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
@@ -293,6 +293,18 @@ trait TestConfig extends StrictLogging with MockitoSugar {
       CassandraConfigConstants.POLL_INTERVAL -> "1000"
     ).asJava
   }
+  
+  def getCassandraConfigSourcePropsTimestampIncr = {
+    Map(
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.KCQL -> s"INSERT INTO $TOPIC1 SELECT * FROM $TABLE3 PK timestamp_field INCREMENTALMODE=timestamp",
+      CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES,
+      CassandraConfigConstants.POLL_INTERVAL -> "1000"
+    ).asJava
+  }  
 
   def getCassandraConfigSourcePropsDoubleIncr = {
     Map(
@@ -327,10 +339,29 @@ trait TestConfig extends StrictLogging with MockitoSugar {
     session.execute(s"CREATE KEYSPACE $keyspace WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 3}")
     session.execute(s"CREATE TABLE IF NOT EXISTS $keyspace.$TABLE1 (id text PRIMARY KEY, int_field int, long_field bigint," +
       s" string_field text,  timeuuid_field timeuuid, timestamp_field timestamp)")
-    session.execute(s"CREATE TABLE IF NOT EXISTS $keyspace.$TABLE2 (id text, double_field double, int_field int, long_field bigint," +
-      s" string_field text, timestamp_field timeuuid, PRIMARY KEY (id, timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)")
-    session.execute(s"CREATE TABLE IF NOT EXISTS $keyspace.$TABLE3 (id text, int_field int, long_field bigint," +
-      s" string_field text, timestamp_field timestamp, timeuuid_field timeuuid, PRIMARY KEY (id, timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)")
+    
+    session.execute(
+      s"""CREATE TABLE IF NOT EXISTS $keyspace.$TABLE2
+        |(id text, 
+        |double_field double,
+        |int_field int, 
+        |long_field bigint,
+        |string_field text, 
+        |timestamp_field timestamp, 
+        |timeuuid_field timeuuid, 
+        |PRIMARY KEY (id, timeuuid_field)) WITH CLUSTERING ORDER BY (timeuuid_field asc)""".stripMargin)
+
+    session.execute(
+      s"""
+        |CREATE TABLE IF NOT EXISTS $keyspace.$TABLE3
+        |(id text, 
+        |int_field int, 
+        |long_field bigint,
+        |string_field text, 
+        |timestamp_field timestamp, 
+        |timeuuid_field timeuuid, 
+        |PRIMARY KEY (id, timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)""".stripMargin)
+    
     session.execute(
       s"""
          |CREATE TABLE IF NOT EXISTS $keyspace.$TABLE4
