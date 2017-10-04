@@ -93,6 +93,10 @@ WITHSTRUCTURE
     : 'withstructure' | 'WITHSTRUCTURE'
     ;
 
+WITHTYPE
+    : 'withtype' | 'WITHTYPE'
+    ;
+
 PK
    : 'pk' | 'PK'
    ;

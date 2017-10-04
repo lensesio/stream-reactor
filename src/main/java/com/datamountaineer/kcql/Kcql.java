@@ -3,10 +3,19 @@ package com.datamountaineer.kcql;
 import com.datamountaineer.kcql.antlr4.ConnectorLexer;
 import com.datamountaineer.kcql.antlr4.ConnectorParser;
 import com.datamountaineer.kcql.antlr4.ConnectorParserBaseListener;
-import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Parsing support for Kafka Connect Query Language.
@@ -46,8 +55,9 @@ public class Kcql {
     private List<Tag> tags;
     private boolean retainStructure = false;
     private String withConverter;
-    private String withJmsSelector;
     private long ttl;
+    private String withType;
+    private String withJmsSelector;
 
     public void setTTL(long ttl) {
         this.ttl = ttl;
@@ -217,6 +227,9 @@ public class Kcql {
         return unwrapping;
     }
 
+    public String getWithType() {
+        return this.withType;
+    }
 
     public String getIncrementalMode() {
         return this.incrementalMode;
@@ -277,6 +290,11 @@ public class Kcql {
             @Override
             public void exitWith_unwrap_clause(ConnectorParser.With_unwrap_clauseContext ctx) {
                 kcql.unwrapping = true;
+            }
+
+            @Override
+            public void exitWith_type_value(ConnectorParser.With_type_valueContext ctx) {
+                kcql.withType = escape(ctx.getText());
             }
 
             @Override
