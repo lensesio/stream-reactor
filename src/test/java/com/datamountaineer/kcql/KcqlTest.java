@@ -653,17 +653,15 @@ public class KcqlTest {
     }
 
     @Test
-    public void handleTypeAsOneOfTheFields1() {
+    public void handleCompoundWITHFields() {
         String topic = "TOPIC_A";
         String table = "TABLE_A";
-        String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITHCONVERTER=`hdhd.d.d.d` WITHTYPE QUEUE", table, topic);
-        try {
-            Kcql.parse(syntax);
-        } catch(Exception e) {
-            System.out.println(e.getMessage());
-        }
+        String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITHTYPE QUEUE WITHCONVERTER=`com.blah.Converter` WITHJMSSELECTOR=`apples > 10`", table, topic);
+
         Kcql kcql = Kcql.parse(syntax);
         assertEquals("QUEUE",kcql.getWithType());
+        assertEquals("com.blah.Converter",kcql.getWithConverter());
+        assertEquals("apples > 10",kcql.getWithJmsSelector());
     }
 
     @Test
