@@ -653,6 +653,18 @@ public class KcqlTest {
     }
 
     @Test
+    public void handleCompoundWITHFields() {
+        String topic = "TOPIC_A";
+        String table = "TABLE_A";
+        String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITHTYPE QUEUE WITHCONVERTER=`com.blah.Converter` WITHJMSSELECTOR=`apples > 10`", table, topic);
+
+        Kcql kcql = Kcql.parse(syntax);
+        assertEquals("QUEUE",kcql.getWithType());
+        assertEquals("com.blah.Converter",kcql.getWithConverter());
+        assertEquals("apples > 10",kcql.getWithJmsSelector());
+    }
+
+    @Test
     public void handleTimestampWhenAllFieldIncluded() {
         String topic = "TOPIC_A";
         String table = "TABLE_A";

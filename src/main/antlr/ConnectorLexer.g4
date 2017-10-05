@@ -149,6 +149,10 @@ WITHCONVERTER
     : 'WITHCONVERTER' | 'withconverter'
     ;
 
+WITHJMSSELECTOR
+    : 'WITHJMSSELECTOR' | 'withjmsselector'
+    ;
+
 
 TTL
    : 'TTL'|'ttl'
