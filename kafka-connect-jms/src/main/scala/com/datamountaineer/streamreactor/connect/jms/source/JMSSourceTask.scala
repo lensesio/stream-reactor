@@ -61,7 +61,7 @@ class JMSSourceTask extends SourceTask with StrictLogging {
       records = collection.mutable.Seq(polled.map({ case (_, record) => record }).toSeq: _*)
       messages = collection.mutable.Seq(polled.map({ case (message, _) => message }).toSeq: _*)
     } finally {
-      ackMessage = messages.headOption
+      if(messages.size > 0) ackMessage = messages.headOption
     }
 
     if (enableProgress) {

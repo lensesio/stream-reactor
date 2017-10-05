@@ -24,6 +24,7 @@ import com.datamountaineer.streamreactor.connect.jms.source.JMSSourceTask
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
+import org.apache.activemq.broker.jmx.QueueViewMBean
 import org.scalatest.BeforeAndAfterAll
 
 import scala.collection.JavaConverters._
@@ -43,7 +44,7 @@ class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll {
   "should start a JMSSourceTask, read records and ack messages" in {
     val broker = new BrokerService()
     broker.setPersistent(false)
-    broker.setUseJmx(false)
+    broker.setUseJmx(true)
     broker.setDeleteAllMessagesOnStartup(true)
     val brokerUrl = "tcp://localhost:61640"
     broker.addConnector(brokerUrl)
@@ -77,11 +78,13 @@ class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll {
     val records = task.poll().asScala
     records.size shouldBe 10
 
+    task.poll()
     task.commit()
 
-    val browser = session.createBrowser(queue, null)
-    val messagesLeft = browser.getEnumeration.asScala.size
-    browser.close()
+    val messagesLeft = broker.getManagementContext()
+      .newProxyInstance(broker.getAdminView.getQueues()(0), classOf[QueueViewMBean], false)
+      .asInstanceOf[QueueViewMBean]
+      .getQueueSize
 
     messagesLeft shouldBe 0
 
