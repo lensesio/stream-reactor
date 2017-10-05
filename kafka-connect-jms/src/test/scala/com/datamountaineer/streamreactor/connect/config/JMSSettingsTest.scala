@@ -41,6 +41,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     setting.target shouldBe TOPIC1
     setting.sourceConverters shouldBe None
     setting.destinationType shouldBe QueueDestination
+    setting.messageSelector shouldBe None
     settings.connectionURL shouldBe JMS_URL
   }
 
@@ -53,6 +54,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     setting.target shouldBe TOPIC1
     setting.sourceConverters shouldBe None
     setting.destinationType shouldBe TopicDestination
+    setting.messageSelector shouldBe None
     settings.connectionURL shouldBe JMS_URL
   }
 
@@ -65,6 +67,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     setting.target shouldBe TOPIC1
     setting.sourceConverters shouldBe None
     setting.destinationType shouldBe TopicDestination
+    setting.messageSelector shouldBe None
     settings.destinationSelector shouldBe DestinationSelector.JNDI
     settings.connectionURL shouldBe JMS_URL
   }
@@ -78,12 +81,14 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     queue.target shouldBe TOPIC1
     queue.sourceConverters shouldBe None
     queue.destinationType shouldBe QueueDestination
+    queue.messageSelector shouldBe None
 
     val topic = settings.settings.last
     topic.source shouldBe TOPIC1
     topic.target shouldBe TOPIC1
     topic.sourceConverters shouldBe None
     topic.destinationType shouldBe TopicDestination
+    topic.messageSelector shouldBe None
 
     settings.destinationSelector shouldBe DestinationSelector.JNDI
     settings.connectionURL shouldBe JMS_URL
@@ -98,12 +103,14 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     queue.target shouldBe TOPIC1
     queue.sourceConverters.get.isInstanceOf[AvroConverter] shouldBe true
     queue.destinationType shouldBe QueueDestination
+    queue.messageSelector shouldBe None
 
     val topic = settings.settings.last
     topic.source shouldBe TOPIC1
     topic.target shouldBe TOPIC1
     topic.destinationType shouldBe TopicDestination
     topic.sourceConverters.getOrElse(None) shouldBe None
+    topic.messageSelector shouldBe None
 
     settings.destinationSelector shouldBe DestinationSelector.CDI
     settings.connectionURL shouldBe JMS_URL
@@ -117,11 +124,29 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     queue.source shouldBe TOPIC2
     queue.target shouldBe QUEUE1
     queue.sourceConverters shouldBe None
+    queue.messageSelector shouldBe None
 
     val topic = settings.settings.last
     topic.source shouldBe TOPIC1
     topic.target shouldBe TOPIC1
     topic.destinationType shouldBe TopicDestination
+    topic.messageSelector shouldBe None
+
+    settings.destinationSelector shouldBe DestinationSelector.CDI
+    settings.connectionURL shouldBe JMS_URL
+  }
+
+  "should create a JMSSettings for a source with only 1 topic with a message selector" in {
+    val props = getProps1TopicWithMessageSelector()
+    val config = JMSConfig(props)
+    val settings = JMSSettings(config, false)
+
+    val topic = settings.settings.head
+    topic.source shouldBe TOPIC1
+    topic.target shouldBe TOPIC1
+    topic.sourceConverters shouldBe None
+    topic.destinationType shouldBe TopicDestination
+    topic.messageSelector shouldBe Some(MESSAGE_SELECTOR)
 
     settings.destinationSelector shouldBe DestinationSelector.CDI
     settings.connectionURL shouldBe JMS_URL
