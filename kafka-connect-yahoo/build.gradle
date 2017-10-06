@@ -18,7 +18,7 @@ project(":kafka-connect-yahoo") {
 
     ext {
         snappyVersion = "1.1.2.1"
-        yahooVersion = "3.8.0"
+        yahooVersion = "3.11.0"
     }
 
     test {

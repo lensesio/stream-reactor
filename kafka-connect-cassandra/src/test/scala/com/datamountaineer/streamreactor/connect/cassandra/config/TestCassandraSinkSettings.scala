@@ -20,7 +20,7 @@ import java.util
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import com.datamountaineer.streamreactor.connect.errors.RetryErrorPolicy
+import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicyEnum, RetryErrorPolicy}
 import com.datastax.driver.core.ConsistencyLevel
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkTaskContext
@@ -28,11 +28,27 @@ import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 
+import scala.collection.JavaConverters._
+
 /**
   * Created by andrew@datamountaineer.com on 28/04/16. 
   * stream-reactor
   */
 class TestCassandraSinkSettings extends WordSpec with Matchers with MockitoSugar with TestConfig {
+
+  def getCassandraConfigSinkPropsRetry = {
+    Map(
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.KCQL -> QUERY_ALL,
+      CassandraConfigConstants.ERROR_POLICY -> ErrorPolicyEnum.RETRY.toString,
+      CassandraConfigConstants.ERROR_RETRY_INTERVAL->"500"
+    ).asJava
+  }
+
+
   "CassandraSettings should return setting for a sink" in {
     val context = mock[SinkTaskContext]
     //mock the assignment to simulate getting a list of assigned topics
@@ -82,9 +98,19 @@ class TestCassandraSinkSettings extends WordSpec with Matchers with MockitoSugar
     settings.threadPoolSize shouldBe 4 * Runtime.getRuntime.availableProcessors()
   }
 
-
   "CassandraSettings should throw an exception if the consistency level is not valid for a source" in {
-    val map = new util.HashMap[String, String](getCassandraConfigSourcePropsTimeuuidIncr)
+
+    val props =  Map(
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.KCQL -> "INSERT INTO TABLE SELECT * FROM TOPIC",
+      CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES,
+      CassandraConfigConstants.POLL_INTERVAL -> "1000"
+    ).asJava
+
+    val map = new util.HashMap[String, String](props)
     map.put(CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG, "InvaliD")
     intercept[ConfigException] {
       CassandraSettings.configureSource(CassandraConfigSource(map))
@@ -92,7 +118,18 @@ class TestCassandraSinkSettings extends WordSpec with Matchers with MockitoSugar
   }
 
   "CassandraSettings should allow setting the consistency level as Quorum for a source" in {
-    val map = new util.HashMap[String, String](getCassandraConfigSourcePropsTimeuuidIncr)
+    val props =  Map(
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.KCQL -> "INSERT INTO TABLE SELECT * FROM TOPIC",
+      CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES,
+      CassandraConfigConstants.POLL_INTERVAL -> "1000"
+    ).asJava
+
+
+    val map = new util.HashMap[String, String](props)
     map.put(CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG, ConsistencyLevel.QUORUM.name())
     val settingsSet = CassandraSettings.configureSource(CassandraConfigSource(map))
     settingsSet.head.consistencyLevel shouldBe Some(ConsistencyLevel.QUORUM)

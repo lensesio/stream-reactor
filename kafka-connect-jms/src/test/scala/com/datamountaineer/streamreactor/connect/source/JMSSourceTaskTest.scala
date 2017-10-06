@@ -24,7 +24,9 @@ import com.datamountaineer.streamreactor.connect.jms.source.JMSSourceTask
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
+import org.apache.activemq.broker.jmx.QueueViewMBean
 import org.scalatest.BeforeAndAfterAll
+import org.scalatest.concurrent.Eventually
 
 import scala.collection.JavaConverters._
 import scala.reflect.io.Path
@@ -33,17 +35,17 @@ import scala.reflect.io.Path
   * Created by andrew@datamountaineer.com on 24/03/2017. 
   * stream-reactor
   */
-class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll {
+class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll with Eventually {
 
   override def afterAll(): Unit = {
     Path(AVRO_FILE).delete()
   }
 
 
-  "should start a JMSSourceTask and read records" in {
-    val broker = new BrokerService()
+  "should start a JMSSourceTask, read records and ack messages" in {
+    implicit val broker = new BrokerService()
     broker.setPersistent(false)
-    broker.setUseJmx(false)
+    broker.setUseJmx(true)
     broker.setDeleteAllMessagesOnStartup(true)
     val brokerUrl = "tcp://localhost:61640"
     broker.addConnector(brokerUrl)
@@ -73,12 +75,28 @@ class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll {
       m.acknowledge()
     })
 
-    Thread.sleep(1000)
-    val records = task.poll().asScala
-    records.size shouldBe 10
+    eventually {
+      val records = task.poll().asScala
+      records.size shouldBe 10
+      records.head.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
+    }
 
-    records.head.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
+    messagesLeftToAckShouldBe(10)
+
+    task.poll()
+    task.commit()
+
+    messagesLeftToAckShouldBe(0)
+
     task.stop()
     Path(AVRO_FILE).delete()
+  }
+
+  private def messagesLeftToAckShouldBe(numLeft: Int)(implicit broker: BrokerService) = eventually {
+    val messagesLeft = broker.getManagementContext()
+      .newProxyInstance(broker.getAdminView.getQueues()(0), classOf[QueueViewMBean], false)
+      .asInstanceOf[QueueViewMBean]
+      .getQueueSize
+    messagesLeft shouldBe numLeft
   }
 }

@@ -16,8 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigSink
-import org.scalatest.{ DoNotDiscover, Matchers, WordSpec}
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSink}
+import org.scalatest.{DoNotDiscover, Matchers, WordSpec}
+import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 14/04/16.
@@ -27,8 +28,16 @@ import org.scalatest.{ DoNotDiscover, Matchers, WordSpec}
 class TestCassandraConnectionSecure extends WordSpec with Matchers with TestConfig {
 
   "should return a secured session" in {
-    createTableAndKeySpace(CASSANDRA_SINK_KEYSPACE, secure = true, ssl = false)
-    val taskConfig = CassandraConfigSink(getCassandraConfigSinkPropsSecure)
+    createTableAndKeySpace("connection", secure = true, ssl = false)
+    val props = Map(
+      CassandraConfigConstants.CONTACT_POINTS -> "localhost",
+      CassandraConfigConstants.KEY_SPACE -> "connection",
+      CassandraConfigConstants.USERNAME -> "cassandra",
+      CassandraConfigConstants.PASSWD -> "cassandra",
+      CassandraConfigConstants.KCQL -> "INSERT INTO TABLE SELECT * FROM TOPIC"
+    ).asJava
+
+    val taskConfig = CassandraConfigSink(props)
     val conn = CassandraConnection(taskConfig)
     val session = conn.session
     session should not be null
@@ -39,4 +48,3 @@ class TestCassandraConnectionSecure extends WordSpec with Matchers with TestConf
     cluster.close()
   }
 }
-

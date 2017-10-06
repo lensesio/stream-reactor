@@ -47,9 +47,11 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
   val KCQL_SOURCE_QUEUE = s"INSERT INTO $TOPIC1 SELECT * FROM $QUEUE1 WITHTYPE QUEUE"
   val KCQL_SINK_QUEUE = s"INSERT INTO $QUEUE1 SELECT * FROM $TOPIC2 WITHTYPE QUEUE"
   val KCQL_SOURCE_TOPIC = s"INSERT INTO $TOPIC1 SELECT * FROM $TOPIC1 WITHTYPE TOPIC"
-  val KCQL_SINK_TOPIC = s"INSERT INTO $TOPIC1 SELECT * FROM $TOPIC1  WITHTYPE TOPIC"
+  val KCQL_SINK_TOPIC = s"INSERT INTO $TOPIC1 SELECT * FROM $TOPIC1 WITHTYPE TOPIC"
   val KCQL_MIX = s"$KCQL_SOURCE_QUEUE;$KCQL_SOURCE_TOPIC"
   val KCQL_MIX_SINK = s"$KCQL_SINK_QUEUE;$KCQL_SINK_TOPIC"
+  val MESSAGE_SELECTOR = "a > b"
+  val KCQL_SOURCE_TOPIC_WITH_JMS_SELECTOR = kcqlWithMessageSelector(MESSAGE_SELECTOR)
   val JMS_USER = ""
   val JMS_PASSWORD = ""
   val CONNECTION_FACTORY = "ConnectionFactory"
@@ -60,8 +62,8 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
   val TOPIC_LIST = TOPIC1
   val SELECTOR = DestinationSelector.CDI.toString
   val AVRO_QUEUE = "avro_queue"
-  val QUEUE_CONVERTER = s"com.datamountaineer.streamreactor.connect.converters.source.AvroConverter"
-  val KCQL_AVRO_SOURCE = s"INSERT INTO $TOPIC1 SELECT * FROM $AVRO_QUEUE WITHCONVERTER=$QUEUE_CONVERTER WITHTYPE QUEUE"
+  val QUEUE_CONVERTER = s"`com.datamountaineer.streamreactor.connect.converters.source.AvroConverter`"
+  val KCQL_AVRO_SOURCE = s"INSERT INTO $TOPIC1 SELECT * FROM $AVRO_QUEUE WITHTYPE QUEUE WITHCONVERTER=$QUEUE_CONVERTER"
   val KCQL_AVRO_SOURCE_MIX = s"$KCQL_AVRO_SOURCE;$KCQL_SOURCE_TOPIC"
 
   val AVRO_FILE = getSchemaFile()
@@ -107,6 +109,12 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
       JMSConfigConstants.JMS_URL -> JMS_URL
     ).asJava
   }
+
+  def getProps1TopicWithMessageSelector(url: String = JMS_URL, msgSelector: String = MESSAGE_SELECTOR) = {
+    getProps1Topic.asScala ++
+      Map(JMSConfigConstants.KCQL -> kcqlWithMessageSelector(msgSelector),
+        JMSConfigConstants.JMS_URL -> url)
+  }.asJava
 
   def getProps1TopicJNDI = {
     Map(JMSConfigConstants.KCQL -> KCQL_SOURCE_TOPIC,
@@ -258,4 +266,7 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     output.close()
     baos.toByteArray
   }
+
+  def kcqlWithMessageSelector(msgSelector: String) =
+    s"INSERT INTO $TOPIC1 SELECT * FROM $JMS_TOPIC1 WITHTYPE TOPIC WITHJMSSELECTOR=`$msgSelector`"
  }

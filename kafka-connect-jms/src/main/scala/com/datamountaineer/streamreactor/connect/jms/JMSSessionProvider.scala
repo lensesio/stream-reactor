@@ -79,7 +79,7 @@ object JMSSessionProvider extends StrictLogging {
       case Some(user) => connectionFactory.createConnection(user, settings.password.get.value())
     }
 
-    val session = Try(connection.createSession(true, Session.CLIENT_ACKNOWLEDGE)) match {
+    val session = Try(connection.createSession(sink, Session.CLIENT_ACKNOWLEDGE)) match {
       case Success(s) =>
         logger.info("Created session")
         s
@@ -89,36 +89,37 @@ object JMSSessionProvider extends StrictLogging {
     }
 
     val topicsConsumers = configureDestination(TopicDestination, context, session, settings, sink)
-                            .flatMap({ case (source, topic) => createConsumers(source, session, topic, settings.subscriptionName)}).toMap
+                            .flatMap({ case (source, ms, topic) => createConsumers(source, session, topic, settings.subscriptionName, ms)}).toMap
 
     val queueConsumers = configureDestination(QueueDestination, context, session, settings, sink)
-                            .flatMap({ case (source, queue) => createConsumers(source, session, queue, settings.subscriptionName) }).toMap
+                            .flatMap({ case (source, ms, queue) => createConsumers(source, session, queue, settings.subscriptionName, ms) }).toMap
 
 
     val topicProducers = configureDestination(TopicDestination, context, session, settings, sink)
-                            .flatMap({ case (source, topic) => createProducers(source, session, topic) }).toMap
+                            .flatMap({ case (source, _, topic) => createProducers(source, session, topic) }).toMap
 
     val queueProducers = configureDestination(QueueDestination, context, session, settings, sink)
-                            .flatMap({ case (source, queue) => createProducers(source, session, queue) }).toMap
+                            .flatMap({ case (source, _, queue) => createProducers(source, session, queue) }).toMap
 
     new JMSSessionProvider(queueConsumers, topicsConsumers, queueProducers, topicProducers, session, connection, context)
   }
 
-  def configureDestination(destinationType: DestinationType, context: InitialContext, session: Session, settings: JMSSettings, sink: Boolean = false): List[(String, Destination)] = {
+  def configureDestination(destinationType: DestinationType, context: InitialContext, session: Session, settings: JMSSettings, sink: Boolean = false): List[(String, Option[String], Destination)] = {
     settings.settings
       .filter(f => f.destinationType.equals(destinationType))
-      .map(t => (t.source, getDestination(if (sink) t.target else t.source, context, settings.destinationSelector, destinationType, session)))
+      .map(t => (t.source, t.messageSelector, getDestination(if (sink) t.target else t.source, context, settings.destinationSelector, destinationType, session)))
   }
 
   def createProducers(source: String, session: Session, destination: Destination) = Map(source -> session.createProducer(destination))
 
-  def createConsumers(source: String, session: Session, destination: Destination, subscriptionName: Option[String]) = Map(source -> {
+  def createConsumers(source: String, session: Session, destination: Destination, subscriptionName: Option[String], messageSelector: Option[String]) = Map(source -> {
+    val selector = messageSelector.getOrElse(null)
     subscriptionName match {
-      case None =>  session.createConsumer(destination)
+      case None => session.createConsumer(destination, selector)
       case Some(name) => 
         destination match {
-          case destination: Topic => session.createSharedDurableConsumer(destination, name)
-          case _ => session.createConsumer(destination)
+          case destination: Topic => session.createSharedDurableConsumer(destination, name, selector)
+          case _ => session.createConsumer(destination, selector)
         }
     }
   })

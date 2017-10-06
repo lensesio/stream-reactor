@@ -24,7 +24,15 @@ import scala.collection.JavaConverters._
 
 class TestCassandraSinkConnector extends WordSpec with BeforeAndAfter with Matchers with TestConfig {
   "Should start a Cassandra Sink Connector" in {
-    val props = getCassandraConfigSinkProps
+    val props =  Map(
+      "topics" -> s"$TOPIC1, $TOPIC2",
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.KCQL -> QUERY_ALL
+    ).asJava
+
     val connector = new CassandraSinkConnector()
     connector.start(props)
     val taskConfigs = connector.taskConfigs(1)

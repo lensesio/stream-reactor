@@ -58,6 +58,8 @@ A collection of components to build a real time ingestion pipeline.
 *   DELETE functionality add to the Cassandra sink, deletion now possible for null payloads, thanks @sandonjacobs !
 *   Fix in kafka-connect-common to handle primary keys with doc strings thanks, @medvekoma !
 *   Fix writing multiple topics to the same table in Cassandra #284
+*   Upgrade to Cassandra driver 3.3.0 and refactor Cassandra tests
+*   Fix on JMS source transacted queues #285 thanks @matthedude !
 
 **3.0.0**
 

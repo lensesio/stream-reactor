@@ -33,8 +33,8 @@ case class JMSSetting(source: String,
                       ignoreField: Set[String],
                       destinationType: DestinationType,
                       format: FormatType = FormatType.JSON,
-                      sourceConverters: Option[Converter]
-                     )
+                      sourceConverters: Option[Converter],
+                      messageSelector: Option[String])
 
 case class JMSSettings(connectionURL: String,
                        initialContextClass: String,
@@ -145,7 +145,8 @@ object JMSSettings extends StrictLogging {
                 ignoreFields(r.getSource),
                 getDestinationType(jmsName, jmsQueues, jmsTopics),
                 getFormatType(r),
-                converter)
+                converter,
+                Option(r.getWithJmsSelector()))
     }).toList
 
     new JMSSettings(

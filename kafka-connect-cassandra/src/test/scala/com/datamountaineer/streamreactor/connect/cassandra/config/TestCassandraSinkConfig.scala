@@ -18,11 +18,20 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
+import scala.collection.JavaConverters._
 
 class TestCassandraSinkConfig extends WordSpec with BeforeAndAfter with Matchers with TestConfig {
 
   "A CassandraConfig should return configured for username and password" in {
-    val taskConfig = CassandraConfigSink(getCassandraConfigSinkPropsSecure)
+    val props = Map(
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.KCQL -> QUERY_ALL
+    ).asJava
+
+    val taskConfig = CassandraConfigSink(props)
     taskConfig.getString(CassandraConfigConstants.CONTACT_POINTS) shouldBe CONTACT_POINT
     taskConfig.getString(CassandraConfigConstants.KEY_SPACE) shouldBe CASSANDRA_SINK_KEYSPACE
     taskConfig.getString(CassandraConfigConstants.USERNAME) shouldBe USERNAME
@@ -32,7 +41,18 @@ class TestCassandraSinkConfig extends WordSpec with BeforeAndAfter with Matchers
   }
 
   "A CassandraConfig should return configured for SSL" in {
-    val taskConfig  = CassandraConfigSink(getCassandraConfigSinkPropsSecureSSL)
+    val props = Map(
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.SSL_ENABLED -> "true",
+      CassandraConfigConstants.TRUST_STORE_PATH -> TRUST_STORE_PATH,
+      CassandraConfigConstants.TRUST_STORE_PASSWD -> TRUST_STORE_PASSWORD,
+      CassandraConfigConstants.KCQL -> QUERY_ALL
+    ).asJava
+
+    val taskConfig  = CassandraConfigSink(props)
     taskConfig.getString(CassandraConfigConstants.CONTACT_POINTS) shouldBe CONTACT_POINT
     taskConfig.getString(CassandraConfigConstants.KEY_SPACE) shouldBe CASSANDRA_SINK_KEYSPACE
     taskConfig.getString(CassandraConfigConstants.USERNAME) shouldBe USERNAME
@@ -45,7 +65,21 @@ class TestCassandraSinkConfig extends WordSpec with BeforeAndAfter with Matchers
   }
 
   "A CassandraConfig should return configured for SSL without client certficate authentication" in {
-    val taskConfig  = CassandraConfigSink(getCassandraConfigSinkPropsSecureSSLwithoutClient)
+    val props =     Map(
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SINK_KEYSPACE,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.SSL_ENABLED -> "true",
+      CassandraConfigConstants.TRUST_STORE_PATH -> TRUST_STORE_PATH,
+      CassandraConfigConstants.TRUST_STORE_PASSWD -> TRUST_STORE_PASSWORD,
+      CassandraConfigConstants.USE_CLIENT_AUTH -> "false",
+      CassandraConfigConstants.KEY_STORE_PATH -> KEYSTORE_PATH,
+      CassandraConfigConstants.KEY_STORE_PASSWD -> KEYSTORE_PASSWORD,
+      CassandraConfigConstants.KCQL -> QUERY_ALL
+    ).asJava
+
+    val taskConfig  = CassandraConfigSink(props)
     taskConfig.getString(CassandraConfigConstants.CONTACT_POINTS) shouldBe CONTACT_POINT
     taskConfig.getString(CassandraConfigConstants.KEY_SPACE) shouldBe CASSANDRA_SINK_KEYSPACE
     taskConfig.getString(CassandraConfigConstants.USERNAME) shouldBe USERNAME
