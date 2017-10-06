@@ -64,6 +64,7 @@ trait TestConfig extends MockitoSugar {
   val QUERY_ALL_TTL = s"INSERT INTO $TABLE1 SELECT * FROM $TOPIC1 TTL=$TTL;INSERT INTO $TABLE3 SELECT * FROM $TOPIC2"
   val QUERY_SELECTION = s"INSERT INTO $TABLE1 SELECT id, long_field FROM $TOPIC1"
   val IMPORT_QUERY_ALL = s"INSERT INTO $TOPIC1 SELECT * FROM $TABLE1;INSERT INTO $TOPIC2 SELECT * FROM $TABLE2"
+
   val ASSIGNED_TABLES = s"$TABLE1,$TABLE2"
 
   protected val PARTITION: Int = 12
@@ -76,6 +77,52 @@ trait TestConfig extends MockitoSugar {
   ASSIGNMENT.add(TOPIC_PARTITION)
   ASSIGNMENT.add(TOPIC_PARTITION2)
 
+  def getCassandraConfigSourcePropsTimeuuidIncr = {
+    Map(
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.KCQL -> s"INSERT INTO $TOPIC1 SELECT * FROM $TABLE2 PK timeuuid_field INCREMENTALMODE=timeuuid",
+      CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES,
+      CassandraConfigConstants.POLL_INTERVAL -> "1000"
+    ).asJava
+  }
+  
+  def getCassandraConfigSourcePropsTimestampIncr = {
+    Map(
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> CASSANDRA_SOURCE_KEYSPACE,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.KCQL -> s"INSERT INTO $TOPIC1 SELECT * FROM $TABLE3 PK timestamp_field INCREMENTALMODE=timestamp",
+      CassandraConfigConstants.ASSIGNED_TABLES -> ASSIGNED_TABLES,
+      CassandraConfigConstants.POLL_INTERVAL -> "1000"
+    ).asJava
+  }  
+
+  def createTableAndKeySpace(keyspace: String, secure: Boolean = false, ssl: Boolean = false, port: Int = CASSANDRA_PORT): Session = {
+    val cluster: Builder = Cluster
+      .builder()
+      .addContactPoints(CONTACT_POINT)
+      .withPort(port)
+
+    if (secure) cluster.withCredentials(USERNAME.trim, PASSWD.trim)
+    if (ssl) {
+      //use system properties for testing
+      System.setProperty("javax.net.ssl.trustStore", System.getProperty("truststore"))
+      System.setProperty("javax.net.ssl.trustStorePassword", TRUST_STORE_PASSWORD)
+      System.setProperty("javax.net.ssl.keyStore", System.getProperty("keystore"))
+      System.setProperty("javax.net.ssl.keyStorePassword", KEYSTORE_PASSWORD)
+      cluster.withSSL()
+    }
+
+    val session = cluster.build().connect()
+    session.execute(s"DROP KEYSPACE IF EXISTS $keyspace")
+    session.execute(s"CREATE KEYSPACE $keyspace WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 3}")
+    session
+  }  
+  
 
   //get the assignment of topic partitions for the sinkTask
   def getAssignment: util.Set[TopicPartition] = ASSIGNMENT
@@ -148,28 +195,6 @@ trait TestConfig extends MockitoSugar {
     val offsetColumn = "my_timeuuid_col"
     val table = TABLE1
     getSourceTaskContext(lookupPartitionKey, offsetValue, offsetColumn, table)
-  }
-
-  def createTableAndKeySpace(keyspace: String, secure: Boolean = false, ssl: Boolean = false, port: Int = CASSANDRA_PORT): Session = {
-    val cluster: Builder = Cluster
-      .builder()
-      .addContactPoints(CONTACT_POINT)
-      .withPort(port)
-
-    if (secure) cluster.withCredentials(USERNAME.trim, PASSWD.trim)
-    if (ssl) {
-      //use system properties for testing
-      System.setProperty("javax.net.ssl.trustStore", System.getProperty("truststore"))
-      System.setProperty("javax.net.ssl.trustStorePassword", TRUST_STORE_PASSWORD)
-      System.setProperty("javax.net.ssl.keyStore", System.getProperty("keystore"))
-      System.setProperty("javax.net.ssl.keyStorePassword", KEYSTORE_PASSWORD)
-      cluster.withSSL()
-    }
-
-    val session = cluster.build().connect()
-    session.execute(s"DROP KEYSPACE IF EXISTS $keyspace")
-    session.execute(s"CREATE KEYSPACE $keyspace WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 3}")
-    session
   }
 
   def startEmbeddedCassandraSecure() = {

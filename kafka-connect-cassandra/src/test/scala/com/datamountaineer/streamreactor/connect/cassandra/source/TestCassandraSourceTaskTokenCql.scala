@@ -45,7 +45,8 @@
 //
 ///**
 // * test incremental mode specifying a subset of table columns
-// * note: the timestamp column is required as part of SELECT
+// * note: the id column is required as part of SELECT
+// * note: Cassandra must use Byte Ordered Partitioner
 // */
 //
 //@DoNotDiscover

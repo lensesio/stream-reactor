@@ -242,20 +242,7 @@ class CassandraTableReader(private val session: Session,
         }
         logger.info(s"Processed $counter row(-s) for table $topic.$table")
 
-        // if no rows are processed using the timebased approach
-        // we want to increase the range of time we look for and
-        // process data so that we don't get stuck
-        // this is needed because the current algorithm uses
-        // the time stamp/time UUID of the last row processed
-        // (see bindAndFireTimebasedQuery)
-        timeSliceValue = if (counter == 0) {
-          // keep adding polling interval to duration when we don't get any hits
-          timeSliceValue + timeSliceDuration + setting.pollInterval
-        } else {
-          // set value back to config
-          timeSliceDuration
-        }
-        logger.debug(s"the time slice value is now $timeSliceValue ms")
+        alterTimeSliceValueBasedOnRowsProcessess(counter)
 
         //set as the new high watermark.
         reset(maxOffset)
@@ -267,6 +254,23 @@ class CassandraTableReader(private val session: Session,
         reset(tableOffset)
         throw new ConnectException(s"Error querying $table.", t)
     }
+  }
+  
+  private def alterTimeSliceValueBasedOnRowsProcessess(rowsProcessed: Int) = {
+    // if no rows are processed using the timebased approach
+    // we want to increase the range of time we look for and
+    // process data so that we don't get stuck
+    // this is needed because the current algorithm uses
+    // the time stamp/time UUID of the last row processed
+    // (see bindAndFireTimebasedQuery)
+    timeSliceValue = if (rowsProcessed == 0) {
+      // keep adding polling interval to duration when we don't get any hits
+      timeSliceValue + timeSliceDuration + setting.pollInterval
+    } else {
+      // set value back to configured value
+      timeSliceDuration
+    }
+    logger.info(s"the time slice value is now $timeSliceValue ms")
   }
 
   private def getTokenMaxOffsetForRow(maxOffset: Option[String], row: Row): Option[String] = {
