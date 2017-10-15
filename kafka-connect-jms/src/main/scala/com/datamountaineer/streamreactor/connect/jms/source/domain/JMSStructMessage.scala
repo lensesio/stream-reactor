@@ -16,6 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.jms.source.domain
 
+import java.util
 import javax.jms.{BytesMessage, MapMessage, Message, TextMessage}
 
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -31,16 +32,8 @@ import scala.collection.JavaConversions._
   object JMSStructMessage {
     val mapper = new ObjectMapper()
       val schema = getSchema()
-      val propertySchema = getPropertySchema()
       private val sourcePartition =  Map.empty[String, String]
       private val offset = Map.empty[String, String]
-
-      def getPropertySchema() : Schema = {
-        SchemaBuilder.struct().name("properties")
-        .field("key", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("value", Schema.OPTIONAL_STRING_SCHEMA)
-        .build()
-      }
 
       def getSchema(): Schema = {
         SchemaBuilder.struct().name("com.datamountaineer.streamreactor.connect.jms")
@@ -54,7 +47,7 @@ import scala.collection.JavaConversions._
           .field("type", Schema.OPTIONAL_STRING_SCHEMA)
           .field("priority", Schema.OPTIONAL_INT32_SCHEMA)
           .field("bytes_payload", Schema.OPTIONAL_BYTES_SCHEMA)
-          .field("properties", SchemaBuilder.array(getPropertySchema()).optional())
+          .field("properties", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA).optional())
           .build()
       }
 
@@ -78,18 +71,10 @@ import scala.collection.JavaConversions._
         new SourceRecord(sourcePartition, offset, target, null, null, struct.schema(), struct)
       }
 
-      def getProperties(message: Message) = {
-        val list = scala.collection.mutable.ListBuffer[Struct]()
-        val props = message.getPropertyNames
-        while (props.hasMoreElements) {
-          val property = new Struct(propertySchema)
-          val name = props.nextElement().toString
-          property.put("key", name)
-          property.put("value", message.getStringProperty(name))
-          list += property
-        }
-        seqAsJavaList(list)
-      }
+      def getProperties(message: Message): util.Map[String, String] =
+        message.getPropertyNames.foldLeft(Map.empty[String, String])( (acc, propertyName) =>
+            acc + (propertyName.toString -> message.getStringProperty(propertyName.toString))
+        )
 
       def getPayload(message: Message): Array[Byte] = {
         message match {
