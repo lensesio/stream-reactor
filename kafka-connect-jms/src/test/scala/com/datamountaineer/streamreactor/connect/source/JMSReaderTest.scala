@@ -29,6 +29,7 @@ import org.apache.kafka.connect.data.Struct
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 
+import scala.collection.JavaConverters._
 import scala.reflect.io.Path
 
 /**
@@ -118,7 +119,13 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
       messagesRead.keySet.foreach { msg =>
         msg.getStringProperty("Fruit") shouldBe "apples"
       }
-      messagesRead.head._2.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
+
+      val sourceRecord = messagesRead.head._2
+      sourceRecord.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
+      sourceRecord.value().isInstanceOf[Struct] shouldBe true
+
+      val struct = sourceRecord.value().asInstanceOf[Struct]
+      struct.getMap("properties").asScala shouldBe Map("Fruit" -> "apples")
     }
   }
 
