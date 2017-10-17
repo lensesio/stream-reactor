@@ -151,10 +151,30 @@ object SinkRecordConverter {
 
               case other =>
                 schema.name() match {
-                  case Decimal.LOGICAL_NAME => Decimal.toLogical(schema, value.asInstanceOf[Array[Byte]])
-                  case Date.LOGICAL_NAME => ISO_DATE_FORMAT.format(Date.toLogical(schema, value.asInstanceOf[Int]))
-                  case Time.LOGICAL_NAME => TIME_FORMAT.format(Time.toLogical(schema, value.asInstanceOf[Int]))
-                  case Timestamp.LOGICAL_NAME => ISO_DATE_FORMAT.format(Timestamp.toLogical(schema, value.asInstanceOf[Long]))
+                  case Decimal.LOGICAL_NAME =>
+                    value match {
+                      case bd: BigDecimal => bd
+                      case bb: ByteBuffer => Decimal.toLogical(schema, bb.array())
+                      case _ => Decimal.toLogical(schema, value.asInstanceOf[Array[Byte]])
+                    }
+                  case Date.LOGICAL_NAME =>
+                    value match {
+                      case d: Date => ISO_DATE_FORMAT.format(d)
+                      case _ => ISO_DATE_FORMAT.format(Date.toLogical(schema, value.asInstanceOf[Int]))
+                    }
+
+                  case Time.LOGICAL_NAME =>
+                    value match {
+                      case d: Date => TIME_FORMAT.format(d)
+                      case _ => TIME_FORMAT.format(Time.toLogical(schema, value.asInstanceOf[Int]))
+                    }
+
+                  case Timestamp.LOGICAL_NAME =>
+                    value match {
+                      case d: Date => ISO_DATE_FORMAT.format(d)
+                      case _ => ISO_DATE_FORMAT.format(Timestamp.toLogical(schema, value.asInstanceOf[Long]))
+                    }
+
                   case _ => sys.error(s"$other is not a recognized schema")
                 }
             }
