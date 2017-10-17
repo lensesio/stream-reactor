@@ -159,19 +159,19 @@ object SinkRecordConverter {
                     }
                   case Date.LOGICAL_NAME =>
                     value match {
-                      case d: Date => ISO_DATE_FORMAT.format(d)
+                      case d: java.util.Date => ISO_DATE_FORMAT.format(d)
                       case _ => ISO_DATE_FORMAT.format(Date.toLogical(schema, value.asInstanceOf[Int]))
                     }
 
                   case Time.LOGICAL_NAME =>
                     value match {
-                      case d: Date => TIME_FORMAT.format(d)
+                      case d: java.util.Date => TIME_FORMAT.format(d)
                       case _ => TIME_FORMAT.format(Time.toLogical(schema, value.asInstanceOf[Int]))
                     }
 
                   case Timestamp.LOGICAL_NAME =>
                     value match {
-                      case d: Date => ISO_DATE_FORMAT.format(d)
+                      case d: java.util.Date => ISO_DATE_FORMAT.format(d)
                       case _ => ISO_DATE_FORMAT.format(Timestamp.toLogical(schema, value.asInstanceOf[Long]))
                     }
 
