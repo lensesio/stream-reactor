@@ -2,8 +2,13 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import com.datastax.driver.core._
 import java.util.UUID
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
+import scala.collection.JavaConverters._
+import java.util.Date
+import java.text.SimpleDateFormat
 
-trait TestTableUtil {
+trait TestTableUtil extends TestConfig {
 
   def createTimestampTable(session: Session, keySpace: String): String = {
     val table = "A" + UUID.randomUUID().toString.replace("-", "_")
@@ -67,4 +72,33 @@ trait TestTableUtil {
     Thread.sleep(1000)
   }
 
+  def getFormattedDateNow() = {
+    val formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ")
+    val now = new Date()
+    formatter.format(now)
+  }
+
+  def pollAndWait(task: CassandraSourceTask, tableName: String) = {
+    //trigger poll to have the readers execute a query and add to the queue
+    task.poll()
+
+    //wait a little for the poll to catch the records
+    while (task.queueSize(tableName) == 0) {
+      Thread.sleep(1000)
+    }
+
+    //call poll again to drain the queue
+    task.poll()
+  }  
+  
+  def getCassandraConfig(keyspace: String, tableName: String, kcql: String) = {
+    Map(
+      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+      CassandraConfigConstants.KEY_SPACE -> keyspace,
+      CassandraConfigConstants.USERNAME -> USERNAME,
+      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.KCQL -> kcql,
+      CassandraConfigConstants.ASSIGNED_TABLES -> tableName,
+      CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
+  }
 }

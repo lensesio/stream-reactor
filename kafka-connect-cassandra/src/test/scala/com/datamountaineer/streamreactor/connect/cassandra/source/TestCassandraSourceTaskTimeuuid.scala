@@ -60,8 +60,6 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
   }
 
   "A Cassandra SourceTask should read in incremental mode with timeuuid and time slices" in {
-    val session = createKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
-
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigDefault
     val task = new CassandraSourceTask()
@@ -70,9 +68,9 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
     //start task
     task.start(config)
 
-    insertIntoTimeuuidTable(session, keyspace, tableName, "id1", "magic_string") 
+    insertIntoTimeuuidTable(session, keyspace, tableName, "id1", "magic_string")
 
-    var records = pollAndWaitTimeuuidTable(task)
+    var records = pollAndWait(task, tableName)
     var sourceRecord = records.asScala.head
     //check a field
     var json: JsonNode = convertValueToJson(sourceRecord)
@@ -84,7 +82,7 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
     
     insertIntoTimeuuidTable(session, keyspace, tableName, "id2", "magic_string2") 
     
-    records = pollAndWaitTimeuuidTable(task)
+    records = pollAndWait(task, tableName)
     sourceRecord = records.asScala.head
     //check a field
     json = convertValueToJson(sourceRecord)
@@ -98,8 +96,6 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
   }
   
   "A Cassandra SourceTask should read in incremental mode with timeuuid and time slices and use ignore and unwrap" in {
-    val session = createKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
-
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigWithUnwrap
     val task = new CassandraSourceTask()
@@ -110,7 +106,7 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
 
     insertIntoTimeuuidTable(session, keyspace, tableName, "id1", "magic_string") 
 
-    val records = pollAndWaitTimeuuidTable(task)
+    val records = pollAndWait(task, tableName)
     val sourceRecord = records.asScala.head
     sourceRecord.keySchema shouldBe null
     sourceRecord.key shouldBe null
@@ -122,8 +118,6 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
   }  
   
   "A Cassandra SourceTask should throw exception when timeuuid column is not specified" in {
-    val session = createKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
-
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigWithKcqlNoPrimaryKeyInSelect
     val task = new CassandraSourceTask()
@@ -142,54 +136,18 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
 
   private def getCassandraConfigWithKcqlNoPrimaryKeyInSelect() = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field FROM $tableName PK timeuuid_field INCREMENTALMODE=timeuuid"
-    getCassandraConfig(myKcql)
+    getCassandraConfig(keyspace, tableName, myKcql)
   }
 
   private def getCassandraConfigWithUnwrap() = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field, timeuuid_field FROM $tableName IGNORE timeuuid_field PK timeuuid_field WITHUNWRAP INCREMENTALMODE=timeuuid"
-    getCassandraConfig(myKcql)
+    getCassandraConfig(keyspace, tableName, myKcql)
   }
   
   private def getCassandraConfigDefault() = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field, timeuuid_field FROM $tableName PK timeuuid_field INCREMENTALMODE=timeuuid"
-    getCassandraConfig(myKcql)
+    getCassandraConfig(keyspace, tableName, myKcql)
   }
   
-  private def getCassandraConfig(kcql: String) = {
-    Map(
-      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
-      CassandraConfigConstants.KEY_SPACE -> keyspace,
-      CassandraConfigConstants.USERNAME -> USERNAME,
-      CassandraConfigConstants.PASSWD -> PASSWD,
-      CassandraConfigConstants.KCQL -> kcql,
-      CassandraConfigConstants.ASSIGNED_TABLES -> tableName,
-      CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
-  }
-
-//  private def insertIntoTableTwo(session: Session, anId: String, stringValue: String) {
-//    val sql = s"""INSERT INTO $CASSANDRA_SOURCE_KEYSPACE.$TABLE2
-//      (id, int_field, long_field, string_field, timeuuid_field)
-//      VALUES
-//      ('$anId', 2, 3, '$stringValue', now());"""
-//
-//    // insert
-//    session.execute(sql)
-//
-//    // wait for Cassandra write
-//    Thread.sleep(1000)
-//  }
-
-  private def pollAndWaitTimeuuidTable(task: CassandraSourceTask) = {
-    //trigger poll to have the readers execute a query and add to the queue
-    task.poll()
-
-    //wait a little for the poll to catch the records
-    while (task.queueSize(tableName) == 0) {
-      Thread.sleep(1000)
-    }
-
-    //call poll again to drain the queue
-    task.poll()
-  }
 }
 
