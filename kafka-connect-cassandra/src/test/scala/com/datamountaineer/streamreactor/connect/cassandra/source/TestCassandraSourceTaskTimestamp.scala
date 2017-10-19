@@ -50,7 +50,8 @@ class TestCassandraSourceTaskTimestamp extends WordSpec
   var tableName: String = _
 
   override def beforeAll {
-    session = createTableAndKeySpace(keyspace, secure = true, ssl = false)
+    session = createKeySpace(keyspace, secure = true, ssl = false)
+    // ? new TestTableUtil(session, keyspace, tableName);
     tableName = createTimestampTable(session, keyspace)
   }
 

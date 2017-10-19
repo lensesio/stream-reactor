@@ -43,7 +43,7 @@ class TestCassandraSourceTaskTimeuuidLong extends WordSpec
   with ConverterUtil {
 
   "CassandraReader should read in incremental mode with timeuuid and time slices (long)" in {
-    val session =  createTableAndKeySpace(CASSANDRA_SOURCE_KEYSPACE ,secure = true, ssl = false)
+    val session =  createKeySpace(CASSANDRA_SOURCE_KEYSPACE ,secure = true, ssl = false)
 
     val taskContext = getSourceTaskContextDefault
     val taskConfig  = new CassandraConfigSource(getCassandraConfigSourcePropsTimeuuidIncr)

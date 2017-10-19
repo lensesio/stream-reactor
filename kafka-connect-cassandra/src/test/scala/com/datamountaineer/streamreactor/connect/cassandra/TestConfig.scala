@@ -101,7 +101,7 @@ trait TestConfig extends MockitoSugar {
     ).asJava
   }  
 
-  def createTableAndKeySpace(keyspace: String, secure: Boolean = false, ssl: Boolean = false, port: Int = CASSANDRA_PORT): Session = {
+  def createKeySpace(keyspace: String, secure: Boolean = false, ssl: Boolean = false, port: Int = CASSANDRA_PORT): Session = {
     val cluster: Builder = Cluster
       .builder()
       .addContactPoints(CONTACT_POINT)

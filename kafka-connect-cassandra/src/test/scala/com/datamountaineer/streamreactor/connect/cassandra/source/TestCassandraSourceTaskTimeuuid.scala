@@ -50,7 +50,7 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
   var tableName: String = _
 
   override def beforeAll {
-    session = createTableAndKeySpace(keyspace, secure = true, ssl = false)
+    session = createKeySpace(keyspace, secure = true, ssl = false)
     tableName = createTimeuuidTable(session, keyspace)
   }
 
@@ -60,7 +60,7 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
   }
 
   "A Cassandra SourceTask should read in incremental mode with timeuuid and time slices" in {
-    val session = createTableAndKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
+    val session = createKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
 
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigDefault
@@ -98,7 +98,7 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
   }
   
   "A Cassandra SourceTask should read in incremental mode with timeuuid and time slices and use ignore and unwrap" in {
-    val session = createTableAndKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
+    val session = createKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
 
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigWithUnwrap
@@ -122,7 +122,7 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
   }  
   
   "A Cassandra SourceTask should throw exception when timeuuid column is not specified" in {
-    val session = createTableAndKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
+    val session = createKeySpace(CASSANDRA_SOURCE_KEYSPACE, secure = true, ssl = false)
 
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigWithKcqlNoPrimaryKeyInSelect

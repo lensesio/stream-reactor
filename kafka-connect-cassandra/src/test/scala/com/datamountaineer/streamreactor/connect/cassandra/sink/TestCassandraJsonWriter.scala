@@ -49,7 +49,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
   var session : Session = _
 
   override def beforeAll {
-    session = createTableAndKeySpace(keyspace ,secure = true, ssl = false)
+    session = createKeySpace(keyspace ,secure = true, ssl = false)
   }
 
   override def afterAll(): Unit = {
