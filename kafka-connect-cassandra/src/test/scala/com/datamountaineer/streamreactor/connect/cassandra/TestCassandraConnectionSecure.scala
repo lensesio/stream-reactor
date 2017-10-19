@@ -28,7 +28,7 @@ import scala.collection.JavaConverters._
 class TestCassandraConnectionSecure extends WordSpec with Matchers with TestConfig {
 
   "should return a secured session" in {
-    createTableAndKeySpace("connection", secure = true, ssl = false)
+    createKeySpace("connection", secure = true, ssl = false)
     val props = Map(
       CassandraConfigConstants.CONTACT_POINTS -> "localhost",
       CassandraConfigConstants.KEY_SPACE -> "connection",

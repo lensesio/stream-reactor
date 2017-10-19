@@ -124,21 +124,22 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     * @param table The table to query and drain
     * @return A list of Source records
     */
-  def process(table: String): List[SourceRecord] = {
-    val reader = readers(table)
+  def process(tableName: String): List[SourceRecord] = {
+    val reader = readers(tableName)
+    val queue = queues(tableName)
+    logger.info(s"the queue size for $tableName is: ${queue.size}")
     if (!reader.isQuerying) {
       //query
       reader.read()
-      val queue = queues(table)
       if (!queue.isEmpty) {
-        logger.debug(s"Attempting to draining $batchSize from the queue for table $table")
-        val records = QueueHelpers.drainQueue(queues(table), batchSize.get).toList
+        logger.debug(s"Attempting to drain $batchSize items from the queue for table $tableName")
+        val records = QueueHelpers.drainQueue(queue, batchSize.get).toList
         records
       } else {
         List[SourceRecord]()
       }
     } else {
-      logger.info(s"Reader for table $table is still querying")
+      logger.info(s"Reader for table $tableName is still querying")
       List[SourceRecord]()
     }
   }
