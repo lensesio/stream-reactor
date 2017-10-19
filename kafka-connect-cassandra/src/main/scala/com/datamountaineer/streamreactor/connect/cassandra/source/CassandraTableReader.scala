@@ -229,8 +229,7 @@ class CassandraTableReader(private val session: Session,
               } else {
                 getTimebasedMaxOffsetForRow(maxOffset, row)
               }
-// TODO: set logger back to debug              
-              logger.info(s"Max Offset is currently: ${maxOffset.get}")
+              logger.debug(s"Max Offset is currently: ${maxOffset.get}")
             }
             processRow(row)
             counter += 1
@@ -305,8 +304,7 @@ class CassandraTableReader(private val session: Session,
       val rowOffset: Date = if (bulk) dateFormatter.parse(tableOffset.get) else extractTimestamp(row)
       dateFormatter.format(rowOffset)
     }
-//TODO: set the logger to debug    
-    logger.info(s"processing row with offset: $offset")
+    logger.debug(s"processing row with offset: $offset")
 
     // create source record
     val record = if (config.isUnwrapping) {
@@ -321,8 +319,6 @@ class CassandraTableReader(private val session: Session,
 
     // add source record to queue
     while (!queue.offer(record, 1, TimeUnit.SECONDS)) {
-// TODO: remove logging statement
-      logger.info(s"adding the record with offset ($offset) to the queue...")
     }
   }
 
@@ -360,11 +356,9 @@ class CassandraTableReader(private val session: Session,
   private def reset(offset: Option[String]) = {
     //set the offset to the 'now' bind value
     val table = config.getTarget
-// TODO: change back to debug
-    logger.info(s"Setting offset for $keySpace.$table to $offset.")
+    logger.debug(s"Setting offset for $keySpace.$table to $offset.")
     tableOffset = offset.orElse(tableOffset)
     //switch to not querying
-// TODO: change back to debug    
     logger.info(s"Setting querying for $keySpace.$table to false.")
     querying.set(false)
   }
