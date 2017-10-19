@@ -129,19 +129,19 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     val queue = queues(tableName)
     
     logger.info(s"@ start of poll cycle the queue size for $tableName is: ${queue.size}")
-    
+
     // minimized the changes but still fix #300
     // depending on buffer size, batch size, and volume of data coming in
-    // we could lots of data on the internal queue coming off slower
+    // we could see data on the internal queue coming off slower
     // than we are putting data into it
-    
-    // if we are in the middle of working 
-    // on data from the last polling cycle
-    // we will not attempt to get more data
+
     if (!reader.isQuerying) {
       // start another query 
       reader.read
     } else {
+      // if we are in the middle of working 
+      // on data from the last polling cycle
+      // we will not attempt to get more data
       logger.info(s"Reader for table $tableName is still querying...")
     }
     
@@ -153,24 +153,6 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     } else {
       List[SourceRecord]()
     }
-    
-
-    
-
-//    val records = if (!reader.isQuerying) {
-//      //query
-//      reader.read()
-//      if (!queue.isEmpty) {
-//        logger.debug(s"Attempting to drain $batchSize items from the queue for table $tableName")
-//        val records = QueueHelpers.drainQueue(queue, batchSize.get).toList
-//        records
-//      } else {
-//        List[SourceRecord]()
-//      }
-//    } else {
-//      logger.info(s"Reader for table $tableName is still querying...")
-//      List[SourceRecord]()
-//    }
     
     logger.info(s"@ end of poll cycle the queue size for $tableName is: ${queue.size}")
     
