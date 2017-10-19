@@ -41,7 +41,7 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
     with Matchers
     with MockitoSugar
     with TestConfig
-    with TestTableUtil
+    with TestCassandraSourceUtil
     with ConverterUtil 
     with BeforeAndAfterAll {
 

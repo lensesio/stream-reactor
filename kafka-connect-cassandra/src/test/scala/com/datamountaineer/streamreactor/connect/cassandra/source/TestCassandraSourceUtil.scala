@@ -6,9 +6,10 @@ import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfi
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import scala.collection.JavaConverters._
 import java.util.Date
+import java.util.Map
 import java.text.SimpleDateFormat
 
-trait TestTableUtil extends TestConfig {
+trait TestCassandraSourceUtil {
 
   def createTimestampTable(session: Session, keySpace: String): String = {
     val table = "A" + UUID.randomUUID().toString.replace("-", "_")
@@ -91,12 +92,16 @@ trait TestTableUtil extends TestConfig {
     task.poll()
   }  
   
-  def getCassandraConfig(keyspace: String, tableName: String, kcql: String) = {
-    Map(
-      CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
+  def getCassandraConfig(keyspace: String, tableName: String, kcql: String): Map[String, String] = {
+    getCassandraConfig("localhost", "cassandra", "cassandra", keyspace, tableName, kcql)
+  }
+
+  def getCassandraConfig(contactPoints: String, user: String, password: String, keyspace: String, tableName: String, kcql: String): Map[String, String] = {
+    scala.collection.immutable.Map(
+      CassandraConfigConstants.CONTACT_POINTS -> contactPoints,
       CassandraConfigConstants.KEY_SPACE -> keyspace,
-      CassandraConfigConstants.USERNAME -> USERNAME,
-      CassandraConfigConstants.PASSWD -> PASSWD,
+      CassandraConfigConstants.USERNAME -> user,
+      CassandraConfigConstants.PASSWD -> password,
       CassandraConfigConstants.KCQL -> kcql,
       CassandraConfigConstants.ASSIGNED_TABLES -> tableName,
       CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava

@@ -43,7 +43,7 @@ class TestCassandraSourceTaskTimestampLong extends WordSpec
     with TestConfig
     with ConverterUtil
     with BeforeAndAfterAll
-    with TestTableUtil {
+    with TestCassandraSourceUtil {
 
   var session: Session = _
   val keyspace = "source"
