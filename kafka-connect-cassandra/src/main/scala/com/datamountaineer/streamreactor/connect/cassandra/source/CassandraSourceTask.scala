@@ -127,21 +127,36 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
   def process(tableName: String): List[SourceRecord] = {
     val reader = readers(tableName)
     val queue = queues(tableName)
-    logger.info(s"the queue size for $tableName is: ${queue.size}")
+    
+    logger.info(s"@ start of poll cycle the queue size for $tableName is: ${queue.size}")
+
+    // minimized the changes but still fix #300
+    // depending on buffer size, batch size, and volume of data coming in
+    // we could see data on the internal queue coming off slower
+    // than we are putting data into it
+
     if (!reader.isQuerying) {
-      //query
-      reader.read()
-      if (!queue.isEmpty) {
-        logger.debug(s"Attempting to drain $batchSize items from the queue for table $tableName")
-        val records = QueueHelpers.drainQueue(queue, batchSize.get).toList
-        records
-      } else {
-        List[SourceRecord]()
-      }
+      // start another query 
+      reader.read
     } else {
-      logger.info(s"Reader for table $tableName is still querying")
+      // if we are in the middle of working 
+      // on data from the last polling cycle
+      // we will not attempt to get more data
+      logger.info(s"Reader for table $tableName is still querying...")
+    }
+    
+    // let's make some of the data on the queue 
+    // available for publishing to Kafka
+    val records = if (!queue.isEmpty) {
+      logger.info(s"Attempting to drain $batchSize items from the queue for table $tableName")
+      QueueHelpers.drainQueue(queue, batchSize.get).toList
+    } else {
       List[SourceRecord]()
     }
+    
+    logger.info(s"@ end of poll cycle the queue size for $tableName is: ${queue.size}")
+    
+    records
   }
 
   /**
