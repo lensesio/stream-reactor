@@ -73,18 +73,47 @@ object SinkRecordConverter {
 
               case Schema.Type.INT8 | Schema.Type.INT16 | Schema.Type.BOOLEAN | Schema.Type.FLOAT32 | Schema.Type.FLOAT64 => value
               case Schema.Type.INT32 =>
-                if (schema != null && Date.LOGICAL_NAME == schema.name) ISO_DATE_FORMAT.format(Date.toLogical(schema, value.asInstanceOf[Int]))
-                else if (schema != null && Time.LOGICAL_NAME == schema.name) TIME_FORMAT.format(Time.toLogical(schema, value.asInstanceOf[Int]))
-                else value
+                if(schema != null) {
+                  schema.name() match {
+                    case Date.LOGICAL_NAME =>
+                      value match {
+                        case d: java.util.Date => ISO_DATE_FORMAT.format(d)
+                        case _ => ISO_DATE_FORMAT.format(Date.toLogical(schema, value.asInstanceOf[Int]))
+                      }
+
+                    case Time.LOGICAL_NAME =>
+                      value match {
+                        case d: java.util.Date => TIME_FORMAT.format(d)
+                        case _ => TIME_FORMAT.format(Time.toLogical(schema, value.asInstanceOf[Int]))
+                      }
+
+                    case _=> value
+                  }
+                } else value
 
               case Schema.Type.INT64 =>
-                if (schema != null && Timestamp.LOGICAL_NAME == schema.name) Timestamp.toLogical(schema, value.asInstanceOf[Long])
+                if (schema != null) {
+                  schema.name match {
+                    case Timestamp.LOGICAL_NAME =>
+                      value match {
+                        case d: java.util.Date => ISO_DATE_FORMAT.format(d)
+                        case _ => ISO_DATE_FORMAT.format(Timestamp.toLogical(schema, value.asInstanceOf[Long]))
+                      }
+                    case _ => value
+                  }
+                }
                 else value
 
               case Schema.Type.STRING => value.asInstanceOf[CharSequence].toString
 
               case Schema.Type.BYTES =>
-                if (schema != null && Decimal.LOGICAL_NAME == schema.name) Decimal.toLogical(schema, value.asInstanceOf[Array[Byte]])
+                if (schema != null && Decimal.LOGICAL_NAME == schema.name) {
+                  value match {
+                    case bd: BigDecimal => bd.bigDecimal
+                    case bb: ByteBuffer => Decimal.toLogical(schema, bb.array())
+                    case _ => Decimal.toLogical(schema, value.asInstanceOf[Array[Byte]])
+                  }
+                }
                 else value match {
                   case arrayByte: Array[Byte] => arrayByte
                   case buffer: ByteBuffer => buffer.array
@@ -153,7 +182,7 @@ object SinkRecordConverter {
                 schema.name() match {
                   case Decimal.LOGICAL_NAME =>
                     value match {
-                      case bd: BigDecimal => bd
+                      case bd: BigDecimal => bd.bigDecimal
                       case bb: ByteBuffer => Decimal.toLogical(schema, bb.array())
                       case _ => Decimal.toLogical(schema, value.asInstanceOf[Array[Byte]])
                     }
