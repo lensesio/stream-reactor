@@ -62,6 +62,8 @@ class CassandraTableReader(private val session: Session,
   private var tableOffset: Option[String] = buildOffsetMap(context)
   // TODO: add this to configuration
   private val timeSliceDuration: Long = 10000
+  // TODO: add this to configuration
+  private val timeSliceDelay: Long = 0
   private var timeSliceValue: Long = timeSliceDuration
   private val sourcePartition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
   private val schemaName = s"$keySpace.$table".replace('-', '.')
@@ -148,24 +150,31 @@ class CassandraTableReader(private val session: Session,
     // row that was processed (captured in the offset)
     val previousDate = dateFormatter.parse(cqlGenerator.getDefaultOffsetValue(tableOffset).get)
     val previous = previousDate.toInstant
-    // set the upper bound
-    val now = Instant.now()
-    val nextTimeSlice = if (previousDate.getYear == 0) {
+    // we want to manage how close our query is to the "present"
+    // so we don't miss data 
+    // and we also don't want to have the upper bound
+    // be less than the last offset (previous)
+    val nowWithDelay = Instant.now().minusMillis(timeSliceDelay)
+    val potentialUpperBound = if (nowWithDelay.compareTo(previous) <= 0) previous else nowWithDelay
+    
+    val upperBound = if (previousDate.getYear == 0) {
       // TODO: we can't do small time slices if default is Jan 1, 1900
       // so for now advance to current date time
-      now
+      potentialUpperBound
     } else {
       // we want to process in small time slices but never in the future
-      val upperBound = previous.plusMillis(timeSliceValue)
-      if (now.compareTo(upperBound) <= 0) now else upperBound
+      // and we also need to have a time slice that grows
+      // when no data was found
+      val maxTimeSlice = previous.plusMillis(timeSliceValue)
+      if (potentialUpperBound.compareTo(maxTimeSlice) <= 0) potentialUpperBound else maxTimeSlice
     }
 
     // logging the CQL
     val formattedPrevious = previous.toString()
-    val formattedNow = nextTimeSlice.toString()
+    val formattedNow = upperBound.toString()
     logger.info(s"Query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow).")
     // bind the offset and db time
-    val bound = preparedStatement.bind(Date.from(previous), Date.from(nextTimeSlice))
+    val bound = preparedStatement.bind(Date.from(previous), Date.from(upperBound))
     session.executeAsync(bound)
   }
 
