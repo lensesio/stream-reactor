@@ -66,7 +66,7 @@ public class DebeziumLogicalConverters {
 
     @Override
     public String convert(Object kafkaConnectObject) {
-      Long daysSinceEpoch = (Long) kafkaConnectObject;
+      Integer daysSinceEpoch = (Integer) kafkaConnectObject;
       long msSinceEpoch = TimeUnit.DAYS.toMillis(daysSinceEpoch);
       java.util.Date date = new java.util.Date(msSinceEpoch);
       return getBQDateFormat().format(date);

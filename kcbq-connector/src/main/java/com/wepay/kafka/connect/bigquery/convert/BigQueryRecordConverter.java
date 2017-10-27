@@ -50,17 +50,10 @@ import java.util.Set;
  */
 public class BigQueryRecordConverter implements RecordConverter<Map<String, Object>> {
 
-  private static final Set<String> LOGICAL_SCHEMA_NAMES;
-
   static {
     // force registration
     new DebeziumLogicalConverters();
     new KafkaLogicalConverters();
-
-    LOGICAL_SCHEMA_NAMES = new HashSet<>();
-    LOGICAL_SCHEMA_NAMES.add(Timestamp.LOGICAL_NAME);
-    LOGICAL_SCHEMA_NAMES.add(Date.LOGICAL_NAME);
-    LOGICAL_SCHEMA_NAMES.add(Decimal.LOGICAL_NAME);
   }
 
   /**
@@ -91,7 +84,7 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
             kafkaConnectSchema.name() + " is not optional, but converting object had null value");
       }
     }
-    if (LOGICAL_SCHEMA_NAMES.contains(kafkaConnectSchema.name())) {
+    if (LogicalConverterRegistry.isRegisteredLogicalType(kafkaConnectSchema.name())) {
       return convertLogical(kafkaConnectObject, kafkaConnectSchema);
     }
     Schema.Type kafkaConnectSchemaType = kafkaConnectSchema.type();

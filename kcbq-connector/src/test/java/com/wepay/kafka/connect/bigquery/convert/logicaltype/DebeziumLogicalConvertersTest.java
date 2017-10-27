@@ -38,7 +38,7 @@ public class DebeziumLogicalConvertersTest {
 
   //corresponds to March 1 2017, 22:20:38.808(123) UTC
   //              (March 1 2017, 14:20:38.808(123)-8:00)
-  private static final Long DAYS_TIMESTAMP = 17226L;
+  private static final Integer DAYS_TIMESTAMP = 17226;
   private static final Long MILLI_TIMESTAMP = 1488406838808L;
   private static final Long MICRO_TIMESTAMP = 1488406838808123L;
 
