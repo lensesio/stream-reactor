@@ -1,0 +1,10 @@
+project(":kafka-connect-azure-queue") {
+    ext {
+        azureStorageSDKVersion = "5.5.0"
+    }
+
+    dependencies {
+       compile("com.microsoft.azure:azure-storage:$azureStorageSDKVersion")
+    }
+
+}

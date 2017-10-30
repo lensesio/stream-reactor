@@ -16,17 +16,13 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.concurrent.LinkedBlockingQueue
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import com.datamountaineer.streamreactor.connect.cassandra.config.{ CassandraConfigConstants, CassandraConfigSource, CassandraSettings }
+import com.datamountaineer.streamreactor.connect.cassandra.config.{ CassandraConfigSource, CassandraSettings }
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.fasterxml.jackson.databind.JsonNode
-import org.apache.kafka.common.config.ConfigException
-import org.apache.kafka.connect.data.{ Schema, Struct }
 import org.apache.kafka.connect.source.SourceRecord
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{ DoNotDiscover, Matchers, WordSpec }
@@ -35,8 +31,7 @@ import scala.collection.JavaConverters._
 import com.datastax.driver.core.Session
 import org.scalatest.BeforeAndAfterAll
 
-/**
- */
+@DoNotDiscover
 class TestCassandraSourceTaskTimestampLong extends WordSpec
     with Matchers
     with MockitoSugar

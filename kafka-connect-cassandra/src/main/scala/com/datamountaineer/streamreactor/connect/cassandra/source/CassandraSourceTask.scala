@@ -61,7 +61,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
       case Failure(f) => throw new ConnectException("Couldn't start CassandraSource due to configuration error.", f)
       case Success(s) => Some(s)
     }
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-source-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-source-ascii.txt")).mkString)
 
     //get the list of assigned tables this sink
     val assigned = taskConfig.get.getString(CassandraConfigConstants.ASSIGNED_TABLES).split(",").toList
@@ -121,7 +121,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     * Get the reader can call read, if querying it will return then drain it's queue
     * else if will start a new query then drain.
     *
-    * @param table The table to query and drain
+    * @param tableName The table to query and drain
     * @return A list of Source records
     */
   def process(tableName: String): List[SourceRecord] = {

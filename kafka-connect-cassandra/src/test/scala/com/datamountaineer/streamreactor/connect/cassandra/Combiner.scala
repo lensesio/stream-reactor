@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.connect.cassandra
 
 import com.datamountaineer.streamreactor.connect.cassandra.sink.TestCassandraJsonWriter
+import com.datamountaineer.streamreactor.connect.cassandra.source.{TestCassandraSourceTaskTimestamp, TestCassandraSourceTaskTimestampLong, TestCassandraSourceTaskTimeuuid, TestCassandraSourceTaskTimeuuidLong}
 import org.scalatest.{BeforeAndAfterAll, Suites}
 
 /**
@@ -24,7 +25,12 @@ import org.scalatest.{BeforeAndAfterAll, Suites}
   * stream-reactor
   */
 class Combiner extends Suites(new TestCassandraJsonWriter,
-                              new TestCassandraConnectionSecure) with TestConfig with BeforeAndAfterAll {
+                              new TestCassandraConnectionSecure,
+                              new TestCassandraSourceTaskTimestamp,
+                              new TestCassandraSourceTaskTimestampLong,
+                              new TestCassandraSourceTaskTimeuuid,
+                              new TestCassandraSourceTaskTimeuuidLong
+) with TestConfig with BeforeAndAfterAll {
   override def beforeAll() {
     startEmbeddedCassandra()
   }

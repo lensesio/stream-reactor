@@ -25,8 +25,7 @@ import com.datamountaineer.streamreactor.connect.converters.MsgKey
 import com.datamountaineer.streamreactor.connect.converters.source.{AvroConverter, BytesConverter, JsonSimpleConverter}
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
 import com.datamountaineer.streamreactor.connect.serialization.AvroSerializer
-import com.sksamuel.avro4s.{RecordFormat, SchemaFor}
-import io.confluent.connect.avro.AvroData
+import com.sksamuel.avro4s.{SchemaFor}
 import io.moquette.proto.messages.{AbstractMessage, PublishMessage}
 import io.moquette.server.Server
 import io.moquette.server.config.ClasspathConfig
@@ -93,7 +92,7 @@ class MqttSourceTaskTest extends WordSpec with Matchers with BeforeAndAfter {
     task.start(Map(
       MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
       MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> connectionTimeout.toString,
-      MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $target1 SELECT * FROM $source1 WITHCONVERTER=${classOf[BytesConverter].getCanonicalName};INSERT INTO $target2 SELECT * FROM $source2 WITHCONVERTER=${classOf[JsonSimpleConverter].getCanonicalName};INSERT INTO $target3 SELECT * FROM $source3 WITHCONVERTER=${classOf[AvroConverter].getCanonicalName}",
+      MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $target1 SELECT * FROM $source1 WITHCONVERTER=`${classOf[BytesConverter].getCanonicalName}`;INSERT INTO $target2 SELECT * FROM $source2 WITHCONVERTER=`${classOf[JsonSimpleConverter].getCanonicalName}`;INSERT INTO $target3 SELECT * FROM $source3 WITHCONVERTER=`${classOf[AvroConverter].getCanonicalName}`",
       MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> keepAlive.toString,
       AvroConverter.SCHEMA_CONFIG -> s"$source3=${getSchemaFile(source3, studentSchema)}",
       MqttConfigConstants.CLIENT_ID_CONFIG -> clientId,

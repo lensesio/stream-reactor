@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import java.text.DateFormat
+import java.text.SimpleDateFormat
 import de.undercouch.gradle.tasks.download.Download
 
 buildscript {
@@ -25,7 +27,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.github.maiflai:gradle-scalatest:0.16'
-        classpath 'net.researchgate:gradle-release:2.4.0'
+        classpath 'net.researchgate:gradle-release:2.6.0'
         classpath "org.github.ngbinh.scalastyle:gradle-scalastyle-plugin_2.11:0.9.0"
         classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
         classpath 'de.undercouch:gradle-download-task:3.2.0'
@@ -38,6 +40,29 @@ ScalaCompileOptions.metaClass.fork = true
 ScalaCompileOptions.metaClass.useAnt = false
 ScalaCompileOptions.metaClass.useCompileDaemon = false
 
+def getDateTime() {
+    DateFormat df = new SimpleDateFormat("YYYYMMDDHHmm");
+
+    return df.format(new Date());
+}
+
+def getGitHash = { ->
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'rev-parse', 'HEAD'
+        standardOutput = stdout
+    }
+    return stdout.toString().trim()
+}
+
+def getGitTag = { ->
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'describe', '--abbrev=0', '--tags'
+        standardOutput = stdout
+    }
+    return stdout.toString().trim()
+}
 
 allprojects {
     group = 'com.datamountaineer'
@@ -116,6 +141,19 @@ allprojects {
         }
     }
 
+    jar {
+        manifest {
+            attributes( "Implementation-Title": "Stream Reactor",
+                        "Implementation-Version": project.version,
+                        "Created-By" : "DataMountaineer",
+                        "Created-At" : getDateTime(),
+                        "Git-Commit-Hash": getGitHash(),
+                        "Git-Tag": getGitTag(),
+                        "Documentation" : "http://docs.datamountaineer.com/en/${project.version}/"
+            )
+        }
+    }
+
     shadowJar {
         configurations = [project.configurations.runtime]
         baseName = "${project.name}-${project.version}-${confluentVersion}-all"
@@ -123,6 +161,17 @@ allprojects {
         version = null
 
         zip64 true
+
+        manifest {
+            attributes( "Implementation-Title": "Stream Reactor",
+                        "Implementation-Version": project.version,
+                        "Created-By" : "DataMountaineer",
+                        "Created-At" : getDateTime(),
+                        "Git-Commit-Hash": getGitHash(),
+                        "Git-Tag": getGitTag(),
+                        "Documentation" : "http://docs.datamountaineer.com/en/${project.version}/"
+            )
+        }
 
         mergeServiceFiles {
             exclude "META-INF/*.SF"
