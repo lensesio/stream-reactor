@@ -23,6 +23,7 @@ import com.google.cloud.bigquery.TableId;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 public class PartitionedTableIdTest {
@@ -71,6 +72,29 @@ public class PartitionedTableIdTest {
         new PartitionedTableId.Builder(dataset, table).setDayPartition(partitionDate).build();
 
     final String expectedPartition = "20160921";
+
+    Assert.assertEquals(dataset, partitionedTableId.getDataset());
+    Assert.assertEquals(table, partitionedTableId.getBaseTableName());
+    Assert.assertEquals(table + "$" + expectedPartition, partitionedTableId.getFullTableName());
+
+    final TableId expectedBaseTableId = TableId.of(dataset, table);
+    final TableId expectedFullTableId = TableId.of(dataset, table + "$" + expectedPartition);
+
+    Assert.assertEquals(expectedBaseTableId, partitionedTableId.getBaseTableId());
+    Assert.assertEquals(expectedFullTableId, partitionedTableId.getFullTableId());
+  }
+
+  @Test
+  public void testWithEpochTimePartition() {
+    final String dataset = "dataset";
+    final String table = "table";
+
+    final long utcTime = 1509007584334L;
+
+    final PartitionedTableId partitionedTableId =
+            new PartitionedTableId.Builder(dataset, table).setDayPartition(utcTime).build();
+
+    final String expectedPartition = "20171026";
 
     Assert.assertEquals(dataset, partitionedTableId.getDataset());
     Assert.assertEquals(table, partitionedTableId.getBaseTableName());

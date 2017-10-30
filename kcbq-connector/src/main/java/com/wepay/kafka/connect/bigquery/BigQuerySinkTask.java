@@ -46,6 +46,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.ConfigException;
 
+import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
@@ -72,6 +73,7 @@ public class BigQuerySinkTask extends SinkTask {
   private BigQuerySinkTaskConfig config;
   private RecordConverter<Map<String, Object>> recordConverter;
   private Map<String, TableId> topicsToBaseTableIds;
+  private boolean useMessageTimeDatePartitioning;
 
   private TopicPartitionManager topicPartitionManager;
 
@@ -110,7 +112,19 @@ public class BigQuerySinkTask extends SinkTask {
 
   private PartitionedTableId getRecordTable(SinkRecord record) {
     TableId baseTableId = topicsToBaseTableIds.get(record.topic());
-    return new PartitionedTableId.Builder(baseTableId).setDayPartitionForNow().build();
+
+    PartitionedTableId.Builder builder = new PartitionedTableId.Builder(baseTableId);
+    if (useMessageTimeDatePartitioning) {
+      if (record.timestampType() == TimestampType.NO_TIMESTAMP_TYPE) {
+        throw new ConnectException("Message has no timestamp type, cannot use message timestamp to partition.");
+      }
+
+      builder.setDayPartition(record.timestamp());
+    } else {
+      builder.setDayPartitionForNow();
+    }
+
+    return builder.build();
   }
 
   private String getRowId(SinkRecord record) {
@@ -215,6 +229,7 @@ public class BigQuerySinkTask extends SinkTask {
     recordConverter = getConverter();
     executor = new KCBQThreadPoolExecutor(config, new LinkedBlockingQueue<>());
     topicPartitionManager = new TopicPartitionManager();
+    useMessageTimeDatePartitioning = config.getBoolean(config.BIGQUERY_MESSAGE_TIME_PARTITIONING_CONFIG);
   }
 
   @Override
