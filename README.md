@@ -257,6 +257,12 @@ gradle dependencies # or
 gradle :kafka-connect-cassandra:dependencies
 ```
 
+To build a particular project
+
+```
+gradle :kafka-connect-elastic5:build
+```
+
 ## Contributing
 
 We'd love to accept your contributions! Please use GitHub pull requests: fork the repo, develop and test your code, 
