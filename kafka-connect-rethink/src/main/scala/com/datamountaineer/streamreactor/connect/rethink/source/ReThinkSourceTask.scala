@@ -20,12 +20,13 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkConfigConstants, ReThinkSourceConfig}
-import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
 import com.rethinkdb.RethinkDB
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
+import scala.util.{Failure, Success, Try}
 
 
 /**
@@ -40,6 +41,10 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/rethink-source-ascii.txt")).mkString + s" v $version")
+    Try(logger.info(ReadManifest.mainfest())) match {
+      case Failure(_) => logger.info("No manifest details found")
+      case Success(_) =>
+    }
     val config = ReThinkSourceConfig(props)
     enableProgress = config.getBoolean(ReThinkConfigConstants.PROGRESS_COUNTER_ENABLED)
     lingerTimeout = config.getLong(ReThinkConfigConstants.SOURCE_LINGER_MS)

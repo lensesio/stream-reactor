@@ -19,13 +19,14 @@ package com.datamountaineer.streamreactor.connect.elastic
 import java.util
 
 import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticConfig, ElasticConfigConstants}
-import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
+import scala.util.{Failure, Success, Try}
 
 class ElasticSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[ElasticJsonWriter] = None
@@ -37,6 +38,10 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
     **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/elastic-ascii.txt")).mkString + s" v $version")
+    Try(logger.info(ReadManifest.mainfest())) match {
+      case Failure(_) => logger.info("No manifest details found")
+      case Success(_) =>
+    }
 
     ElasticConfig.config.parse(props)
     val sinkConfig = ElasticConfig(props)

@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigSink, CassandraSettings}
-import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -54,7 +54,11 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
 
     val sinkSettings = CassandraSettings.configureSink(taskConfig)
     enableProgress = sinkSettings.enableProgress
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-sink-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-sink-ascii.txt")).mkString + s" v $version")
+    Try(logger.info(ReadManifest.mainfest())) match {
+      case Failure(_) => logger.info("No manifest details found")
+      case Success(_) =>
+    }
     writer = Some(CassandraWriter(connectorConfig = taskConfig, context = context))
   }
 

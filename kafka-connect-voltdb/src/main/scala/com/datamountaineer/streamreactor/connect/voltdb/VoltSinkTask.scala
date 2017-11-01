@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.voltdb
 import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
 import com.datamountaineer.streamreactor.connect.voltdb.config.{VoltSettings, VoltSinkConfig, VoltSinkConfigConstants}
 import com.datamountaineer.streamreactor.connect.voltdb.writers.VoltDbWriter
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -28,6 +28,7 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
+import scala.util.{Failure, Success, Try}
 
 /**
   * <h1>VoltSinkTask</h1>
@@ -45,6 +46,10 @@ class VoltSinkTask extends SinkTask with StrictLogging {
     **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/voltdb-ascii.txt")).mkString + s" v $version")
+    Try(logger.info(ReadManifest.mainfest())) match {
+      case Failure(_) => logger.info("No manifest details found")
+      case Success(_) =>
+    }
 
     VoltSinkConfig.config.parse(props)
     val sinkConfig = VoltSinkConfig(props)

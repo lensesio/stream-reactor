@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.ftp.source
 import java.time.Duration
 import java.util
 
+import com.datamountaineer.streamreactor.connect.utils.ReadManifest
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
@@ -26,7 +27,7 @@ import org.apache.kafka.connect.storage.OffsetStorageReader
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.Stream.Empty
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 // holds functions that translate a file meta+body into a source record
 
@@ -102,6 +103,10 @@ class FtpSourceTask extends SourceTask with StrictLogging {
   }
 
   override def start(props: util.Map[String, String]): Unit = {
+    Try(logger.info(ReadManifest.mainfest())) match {
+      case Failure(_) => logger.info("No manifest details found")
+      case Success(_) =>
+    }
     logger.info("start")
     val sourceConfig = new FtpSourceConfig(props)
     sourceConfig.ftpMonitorConfigs.foreach(cfg => {

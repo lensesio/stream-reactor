@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.blockchain.source
 import java.util
 
 import com.datamountaineer.streamreactor.connect.blockchain.config.{BlockchainConfig, BlockchainConfigConstants, BlockchainSettings}
-import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import io.confluent.common.config.ConfigException
 import org.apache.kafka.common.config.AbstractConfig
@@ -42,8 +42,10 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
     **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/blockchain-ascii.txt")).mkString + s" v $version")
-    logger.info("Blockchain Task configuration")
-    props.foreach { case (k, v) => logger.info("   Key= " + k + "     Value=" + v) }
+    Try(logger.info(ReadManifest.mainfest())) match {
+      case Failure(_) => logger.info("No manifest details found")
+      case Success(_) =>
+    }
     //get configuration for this task
     taskConfig = Try(new AbstractConfig(BlockchainConfig.config, props)) match {
       case Failure(f) => throw new ConfigException("Couldn't start BlockchainSource due to configuration error.", f)

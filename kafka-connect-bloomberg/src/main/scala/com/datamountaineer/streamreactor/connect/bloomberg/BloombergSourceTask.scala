@@ -20,11 +20,13 @@ import java.util
 
 import com.bloomberglp.blpapi._
 import com.datamountaineer.streamreactor.connect.bloomberg.config.BloombergSourceConfig
+import com.datamountaineer.streamreactor.connect.utils.ReadManifest
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConverters._
+import scala.util.{Failure, Success, Try}
 
 /**
   * <h1>BloombergSourceTask</h1>
@@ -71,6 +73,10 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
     */
   override def start(map: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/bloomberg-ascii.txt")).mkString + s" v $version")
+    Try(logger.info(ReadManifest.mainfest())) match {
+      case Failure(_) => logger.info("No manifest details found")
+      case Success(_) =>
+    }
 
     try {
       settings = Some(BloombergSettings(new BloombergSourceConfig(map)))

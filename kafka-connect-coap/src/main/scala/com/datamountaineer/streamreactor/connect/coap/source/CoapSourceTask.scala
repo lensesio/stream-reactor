@@ -21,11 +21,12 @@ import java.util.concurrent.LinkedBlockingQueue
 
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSettings, CoapSourceConfig}
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
-import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andrew@datamountaineer.com on 27/12/2016. 
@@ -41,6 +42,10 @@ class CoapSourceTask extends SourceTask with StrictLogging {
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-source-ascii.txt")).mkString + s" v $version")
+    Try(logger.info(ReadManifest.mainfest())) match {
+      case Failure(_) => logger.info("No manifest details found")
+      case Success(_) =>
+    }
 
     val config = CoapSourceConfig(props)
     enableProgress = config.getBoolean(CoapConstants.PROGRESS_COUNTER_ENABLED)

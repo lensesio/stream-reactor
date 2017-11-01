@@ -23,7 +23,7 @@ import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
-import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
@@ -39,6 +39,10 @@ class MqttSourceTask extends SourceTask with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
 
     logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/mqtt-source-ascii.txt")).mkString + s" v $version")
+    Try(logger.info(ReadManifest.mainfest())) match {
+      case Failure(_) => logger.info("No manifest details found")
+      case Success(_) =>
+    }
     implicit val settings = MqttSourceSettings(MqttSourceConfig(props))
 
     settings.sslCACertFile.foreach { file =>

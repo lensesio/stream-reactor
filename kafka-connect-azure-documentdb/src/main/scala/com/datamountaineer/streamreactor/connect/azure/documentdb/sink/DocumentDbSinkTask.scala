@@ -21,7 +21,7 @@ import java.util
 import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
 import com.microsoft.azure.documentdb.DocumentClient
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -56,6 +56,11 @@ class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => Do
     }
 
     logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/documentdb-sink-ascii.txt")).mkString + s" v $version")
+    Try(logger.info(ReadManifest.mainfest())) match {
+      case Failure(_) => logger.info("No manifest details found")
+      case Success(_) =>
+    }
+
 
     implicit val settings = DocumentDbSinkSettings(taskConfig)
     //if error policy is retry set retry interval

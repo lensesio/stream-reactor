@@ -21,13 +21,14 @@ import java.util
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkConfig, HazelCastSinkConfigConstants, HazelCastSinkSettings}
 import com.datamountaineer.streamreactor.connect.hazelcast.writers.HazelCastWriter
-import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andrew@datamountaineer.com on 10/08/16. 
@@ -43,6 +44,10 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
     **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/hazelcast-ascii.txt")).mkString + s" v $version")
+    Try(logger.info(ReadManifest.mainfest())) match {
+      case Failure(_) => logger.info("No manifest details found")
+      case Success(_) =>
+    }
     HazelCastSinkConfig.config.parse(props)
     val sinkConfig = new HazelCastSinkConfig(props)
     enableProgress = sinkConfig.getBoolean(HazelCastSinkConfigConstants.PROGRESS_COUNTER_ENABLED)

@@ -21,12 +21,13 @@ import javax.jms.Message
 
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.source.readers.JMSReader
-import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andrew@datamountaineer.com on 10/03/2017. 
@@ -40,6 +41,10 @@ class JMSSourceTask extends SourceTask with StrictLogging {
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-source-ascii.txt")).mkString + s" v $version")
+    Try(logger.info(ReadManifest.mainfest())) match {
+      case Failure(_) => logger.info("No manifest details found")
+      case Success(_) =>
+    }
     JMSConfig.config.parse(props)
     val config = new JMSConfig(props)
     val settings = JMSSettings(config, sink = false)
