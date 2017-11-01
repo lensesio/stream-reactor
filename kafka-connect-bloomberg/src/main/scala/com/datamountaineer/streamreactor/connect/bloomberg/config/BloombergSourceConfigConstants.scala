@@ -25,7 +25,11 @@ object BloombergSourceConfigConstants {
   val SERVER_PORT_DOC = "The port on which the bloomberg service runs (8124-is the default)"
 
   val SERVICE_URI = "connect.bloomberg.service.uri"
-  val SERVICE_URI_DOC = "The Bloomberg service type: Market Data(//blp/mktdata);Reference Data(//blp/refdata)"
+  val SERVICE_URI_DOC = "The Bloomberg service type: Market Data(//blp/mktdata);Message scrape(//blp/msgscrape)"
+
+  val SERVICE_AUTHORIZATION = "connect.bloomberg.service.authorization"
+  val SERVICE_AUTHORIZATION_DOC: String = "Does this service need authorization? true in normal case, false if running in simulator" +
+    "Example: ture|false"
 
   val AUTHENTICATION_MODE = "connect.bloomberg.authentication.mode"
   val AUTHENTICATION_MODE_DOC: String = "Optional parameter setting how the authentication should be done. " +
@@ -46,7 +50,8 @@ object BloombergSourceConfigConstants {
   val PAYLOAD_TYPE_DOC: String = "Specifies the way the information is serialized and sent over kafka. " +
     "There are two modes supported: json(default) and avro."
 
-  val BloombergServicesUris = Set("//blp/mktdata", "//blp/refdata")
+  // //blp/refdata service doesn't support subscription.  It is used for request/response only.
+  val BloombergServicesUris = Set("//blp/mktdata", "//blp/msgscrape")
   val PayloadTypes = Set("json", "avro")
 
 

@@ -39,7 +39,8 @@ case class BloombergSettings(serverHost: String,
                              kafkaTopic: String,
                              authenticationMode: Option[String] = None,
                              bufferSize: Int = 2048,
-                             payloadType: PayloadTye = JsonPayload) {
+                             payloadType: PayloadTye = JsonPayload,
+                             serviceAuthorization: Boolean = false) {
 
   def asMap(): java.util.Map[String, String] = {
     val map = new java.util.HashMap[String, String]()
@@ -51,6 +52,7 @@ case class BloombergSettings(serverHost: String,
     authenticationMode.foreach(v => map.put(BloombergSourceConfigConstants.AUTHENTICATION_MODE, v))
     map.put(BloombergSourceConfigConstants.BUFFER_SIZE, bufferSize.toString)
     map.put(BloombergSourceConfigConstants.PAYLOAD_TYPE, payloadType.toString)
+    map.put(BloombergSourceConfigConstants.SERVICE_AUTHORIZATION, serviceAuthorization.toString)
     map
   }
 }
@@ -94,6 +96,8 @@ object BloombergSettings {
       }
     }
 
+    val serviceAuthorization = connectorConfig.getBoolean(BloombergSourceConfigConstants.SERVICE_AUTHORIZATION)
+
     new BloombergSettings(serverHost,
       serverPort,
       bloombergService,
@@ -101,7 +105,8 @@ object BloombergSettings {
       kafkaTopic,
       authenticationMode,
       bufferSize,
-      payloadType)
+      payloadType,
+      serviceAuthorization)
   }
 }
 

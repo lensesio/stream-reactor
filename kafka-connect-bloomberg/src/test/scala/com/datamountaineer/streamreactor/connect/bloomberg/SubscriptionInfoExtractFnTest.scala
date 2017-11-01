@@ -27,18 +27,18 @@ class SubscriptionInfoExtractFnTest extends WordSpec with Matchers {
     }
 
     "handle one ticker subscription" in {
-      SubscriptionInfoExtractFn("ticker1: field1, field2, field3") shouldBe Seq(
-        SubscriptionInfo("ticker1", List("FIELD1", "FIELD2", "FIELD3"))
+      SubscriptionInfoExtractFn("ticker1?fields= field1, field2, field3") shouldBe Seq(
+        SubscriptionInfo("ticker1", List("FIELD1", "FIELD2", "FIELD3"), "ticker1?fields= field1, field2, field3")
       )
     }
     "handle multiple tickers subscription" in {
-      SubscriptionInfoExtractFn("ticker1: field1, field2, field3; ticker2:field1;ticker3:fieldA") shouldBe List(
-        SubscriptionInfo("ticker1", List("FIELD1", "FIELD2", "FIELD3")),
-        SubscriptionInfo("ticker2", List("FIELD1")),
-        SubscriptionInfo("ticker3", List("FIELDA"))
+      SubscriptionInfoExtractFn("ticker1?fields= field1, field2, field3; ticker2?fields=field1;ticker3?fields=fieldA") shouldBe List(
+        SubscriptionInfo("ticker1", List("FIELD1", "FIELD2", "FIELD3"), "ticker1?fields= field1, field2, field3"),
+        SubscriptionInfo("ticker2", List("FIELD1"), "ticker2?fields=field1"),
+        SubscriptionInfo("ticker3", List("FIELDA"), "ticker3?fields=fieldA")
       )
     }
-    "handle missing : between ticker and fields" in {
+    "handle missing ? between ticker and fields" in {
       intercept[IllegalArgumentException] {
         SubscriptionInfoExtractFn("ticker field1, field2, field3")
       }
@@ -46,7 +46,13 @@ class SubscriptionInfoExtractFnTest extends WordSpec with Matchers {
 
     "handle missing fields for a ticker subscription" in {
       intercept[IllegalArgumentException] {
-        SubscriptionInfoExtractFn("ticker1:f1,f2;ticker2:")
+        SubscriptionInfoExtractFn("ticker1?fields=f1,f2;ticker2?fields=")
+      }
+    }
+
+    "handle missing fields= for a ticker subscription" in {
+      intercept[IllegalArgumentException] {
+        SubscriptionInfoExtractFn("ticker1?fields=f1,f2;ticker2?f3")
       }
     }
   }
