@@ -57,9 +57,14 @@ def getGitHash = { ->
 
 def getGitTag = { ->
     def stdout = new ByteArrayOutputStream()
-    exec {
-        commandLine 'git', 'describe', '--abbrev=0', '--tags'
-        standardOutput = stdout
+    try {
+        exec {
+            commandLine 'git', 'describe', '--abbrev=0', '--tags'
+            standardOutput = stdout
+        }
+    } catch (Throwable e) {
+        println("No tag found setting to project version ${project.version}")
+        return project.version
     }
     return stdout.toString().trim()
 }
