@@ -25,6 +25,7 @@ object MockElementFn extends MockitoSugar {
   def apply(value: Boolean, fieldName: String): Element = {
     val elem = mock[Element]
     when(elem.isNull).thenReturn(false)
+    when(elem.isArray).thenReturn(false)
     when(elem.datatype()).thenReturn(Datatype.BOOL)
     when(elem.getValueAsBool).thenReturn(value)
     when(elem.name()).thenReturn(new Name(fieldName))
@@ -34,6 +35,7 @@ object MockElementFn extends MockitoSugar {
   def apply(value: Int, fieldName: String): Element = {
     val elem = mock[Element]
     when(elem.isNull).thenReturn(false)
+    when(elem.isArray).thenReturn(false)
     when(elem.datatype()).thenReturn(Datatype.INT32)
     when(elem.getValueAsInt32).thenReturn(value)
     when(elem.name()).thenReturn(new Name(fieldName))
@@ -43,6 +45,7 @@ object MockElementFn extends MockitoSugar {
   def apply(value: Long, fieldName: String): Element = {
     val elem = mock[Element]
     when(elem.isNull).thenReturn(false)
+    when(elem.isArray).thenReturn(false)
     when(elem.datatype()).thenReturn(Datatype.INT64)
     when(elem.getValueAsInt64).thenReturn(value)
     when(elem.name()).thenReturn(new Name(fieldName))
@@ -52,6 +55,7 @@ object MockElementFn extends MockitoSugar {
   def apply(value: String, fieldName: String): Element = {
     val elem = mock[Element]
     when(elem.isNull).thenReturn(false)
+    when(elem.isArray).thenReturn(false)
     when(elem.datatype()).thenReturn(Datatype.STRING)
     when(elem.getValueAsString).thenReturn(value)
     when(elem.name()).thenReturn(new Name(fieldName))
@@ -61,6 +65,7 @@ object MockElementFn extends MockitoSugar {
   def apply(value: Double, fieldName: String): Element = {
     val elem = mock[Element]
     when(elem.isNull).thenReturn(false)
+    when(elem.isArray).thenReturn(false)
     when(elem.datatype()).thenReturn(Datatype.FLOAT64)
     when(elem.getValueAsFloat64).thenReturn(value)
     when(elem.name()).thenReturn(new Name(fieldName))
@@ -70,6 +75,7 @@ object MockElementFn extends MockitoSugar {
   def apply(value: Float, fieldName: String): Element = {
     val elem = mock[Element]
     when(elem.isNull).thenReturn(false)
+    when(elem.isArray).thenReturn(false)
     when(elem.datatype()).thenReturn(Datatype.FLOAT32)
     when(elem.getValueAsFloat32).thenReturn(value)
     when(elem.name()).thenReturn(new Name(fieldName))
@@ -79,6 +85,7 @@ object MockElementFn extends MockitoSugar {
   def apply(value: Datetime, fieldName: String, hasTime: Boolean): Element = {
     val elem = mock[Element]
     when(elem.isNull).thenReturn(false)
+    when(elem.isArray).thenReturn(false)
     if (hasTime) {
       when(elem.datatype()).thenReturn(Datatype.DATETIME)
       when(elem.getValueAsDatetime).thenReturn(value)
@@ -94,12 +101,14 @@ object MockElementFn extends MockitoSugar {
   def apply(elements: Seq[Element]): Element = {
     val parentElement = mock[Element]
     when(parentElement.isNull).thenReturn(false)
-    when(parentElement.numElements()).thenReturn(elements.size)
+    when(parentElement.isArray).thenReturn(true)
+    // numElements applies to SEQUENCE element, it doesn't apply to array of elements
+    //when(parentElement.numElements()).thenReturn(elements.size)
     when(parentElement.numValues()).thenReturn(elements.size)
     elements.zipWithIndex.foreach { case (e, i) =>
-      when(parentElement.getElement(i)).thenReturn(e)
+      when(parentElement.getValueAsElement(i)).thenReturn(e)
     }
-
+    
     parentElement
   }
 }

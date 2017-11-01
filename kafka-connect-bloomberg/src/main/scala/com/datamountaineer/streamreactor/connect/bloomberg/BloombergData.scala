@@ -47,20 +47,31 @@ private[bloomberg] object BloombergData {
     * @return
     */
   def apply(ticker: String, element: Element): BloombergData = {
-    val fields = (0 until element.numValues())
-      .map(element.getElement)
-      .filter(f => !f.isNull)
-      .foldLeft {
-        val map = new util.LinkedHashMap[String, Any]()
-        map.put(SubscriptionFieldKey, ticker)
-        map
-      } { case (map, f) =>
-        val value = BloombergFieldValueFn(f)
-        map.put(f.name().toString, value)
-        map
-      }
-
-    BloombergData(fields)
+    // numValues applies to array element and getValueAsElement(i) get correponding element in array element.
+    // numElements applies to SEQUENCE element and getElement(i) get correponding element in SEQUENCE element.
+    // It's a bug to use numValues and getElement and it won't get data for non-array element.
+    if(element.isArray) {
+      val fields = (0 until element.numValues())
+        //.map(element.getElement)
+        .map(element.getValueAsElement)
+        .filter(f => !f.isNull)
+        .foldLeft {
+          val map = new util.LinkedHashMap[String, Any]()
+          map.put(SubscriptionFieldKey, ticker)
+          map
+        } { case (map, f) =>
+          val value = BloombergFieldValueFn(f)
+          map.put(f.name().toString, value)
+          map
+        }
+      BloombergData(fields)
+    } else {
+      val fields = new util.LinkedHashMap[String, Any]()
+      fields.put(SubscriptionFieldKey, ticker)
+      val value = BloombergFieldValueFn(element)
+      fields.put(element.name().toString, value)
+      BloombergData(fields)
+    }
   }
 
   implicit class BloombergDataToSourceRecordConverter(val data: BloombergData) extends AnyVal {

@@ -27,6 +27,7 @@ import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
+import scala.util.control.Breaks._
 
 /**
   * <h1>BloombergSourceTask</h1>
@@ -40,7 +41,7 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
   var session: Option[Session] = None
 
   var subscriptionManager: Option[BloombergSubscriptionManager] = None
-
+  
   /**
     * Un-subscribes the tickers and stops the Bloomberg session
     */
@@ -86,7 +87,13 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
       subscriptionManager = Some(new BloombergSubscriptionManager(correlationToTicketMap))
       session = Some(BloombergSessionCreateFn(settings.get, subscriptionManager.get))
 
-      session.get.subscribe(subscriptions.get)
+      val authorization = settings.get.serviceAuthorization
+      if(authorization) {
+        val identity = BloombergSessionAuthorizationFn(session.get)
+        session.get.subscribe(subscriptions.get, identity)
+      } else {
+        session.get.subscribe(subscriptions.get)
+      }
     }
     catch {
       case t: Throwable => throw new ConnectException("Could not start the task because of invalid configuration.", t)
@@ -127,9 +134,16 @@ object SubscriptionsBuilderFn extends StrictLogging {
         throw new IllegalArgumentException(s"Following fields are not recognized: ${unrecognizedFields.mkString(",")}")
       }
 
+      /*
       val fields = config.fields.map(_.trim.toUpperCase).mkString(",")
       logger.debug(s"Creating a Bloomberg subscription for ${config.ticket} with $fields and correlation:$i")
       val subscription = new Subscription(config.ticket, fields, new CorrelationID(i))
+      */
+      // Topic is needed for ticker, otherwise, //blp/mktdata will be used as default
+      val topic = settings.serviceUri
+      val subscriptionString = if(config.subscription.startsWith("/")) topic + config.subscription else topic + '/' + config.subscription
+      logger.info(s"Creating a Bloomberg subscription for $subscriptionString and correlation:$i")
+      val subscription = new Subscription(subscriptionString, new CorrelationID(i))
       subscriptions.add(subscription)
     }
     logger.info(s"Created subscriptions for ${subscriptions.asScala.mkString(",")}")
@@ -159,9 +173,78 @@ object BloombergSessionCreateFn extends StrictLogging {
       sys.error(s"Could not start the session for ${settings.serverHost}:${settings.serverPort}")
     }
 
+    // For subscription, don't need open service.  Service is indicated as prefix in Subscription.
+    /*
     if (!session.openService(settings.serviceUri)) {
       sys.error(s"Could not open service ${settings.serviceUri}")
     }
+    */
     session
+  }
+}
+
+object BloombergSessionAuthorizationFn extends StrictLogging {
+  /**
+    * Perform authentication and authorization for a bloomberg session.
+    *
+    * @param session : a bloomberg started session
+    * @return Identity for bloomberg session
+    */
+  def apply(session: Session) : Identity = {
+    val tokenEventQueue = new EventQueue();
+    try {
+      session.generateToken(new CorrelationID("generateTokenID"), tokenEventQueue);
+    }
+    catch {
+      case t: Throwable => logger.error("Generate token failed")
+    }
+    var token: String = null;
+    val timeoutMilliSeconds = 10000;
+    val event = tokenEventQueue.nextEvent(timeoutMilliSeconds);
+    if (event.eventType().intValue == Event.EventType.Constants.TOKEN_STATUS) {
+    val iter = event.messageIterator();
+    while (iter.hasNext()) {
+        var msg = iter.next();
+        if (msg.messageType().toString == "TokenGenerationSuccess") {
+          token = msg.getElementAsString("token");
+        }
+      }
+    }
+    if (token == null) {
+	    sys.error("Failed to get token");
+    }
+
+    val apiIdentity = session.createIdentity();
+    if (session.openService("//blp/apiauth")) {
+      val authService = session.getService("//blp/apiauth");
+      val authRequest = authService.createAuthorizationRequest();
+      authRequest.set("token", token);
+
+      logger.info("Sending out authRequest with token[{}]", token);
+      val eventQueue = new EventQueue();
+      session.sendAuthorizationRequest(authRequest, apiIdentity, eventQueue, new CorrelationID(apiIdentity));
+      breakable {  
+        while (true) {
+          val authEvent = eventQueue.nextEvent();
+          val eventType = authEvent.eventType().intValue
+          if (eventType == Event.EventType.Constants.RESPONSE || eventType == Event.EventType.Constants.PARTIAL_RESPONSE
+            || eventType == Event.EventType.Constants.REQUEST_STATUS) {
+            val msgIter = authEvent.messageIterator();
+            while (msgIter.hasNext()) {
+              val msg = msgIter.next();
+              logger.info(s"---- Authorization [$msg] ----");
+              if (msg.messageType().toString == "AuthorizationSuccess") {
+                logger.info("---- Authorization successful ----");
+                break;
+              } else {
+                sys.error(s"---- Authorization failed msg [$msg] ----");
+                break;
+              }
+            } // while (msgIter.hasNext())
+          }
+        } // while (true)
+      } // breakable
+    } // if (session.openService("//blp/apiauth"))
+    apiIdentity
   }
 }
