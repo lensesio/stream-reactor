@@ -42,7 +42,8 @@ import scala.util.{Failure, Success, Try}
   * Created by andrew@datamountaineer.com on 20/04/16.
   * stream-reactor
   */
-class CassandraTableReader(private val session: Session,
+class CassandraTableReader(private val name: String,
+                           private val session: Session,
                            private val setting: CassandraSourceSetting,
                            private val context: SourceTaskContext,
                            var queue: LinkedBlockingQueue[SourceRecord]) extends StrictLogging {
@@ -84,7 +85,7 @@ class CassandraTableReader(private val session: Session,
     val tables = List(table)
     val recoveredOffsets = OffsetHandler.recoverOffsets(offsetStorageKey, tables, context)
     val offset = OffsetHandler.recoverOffset[String](recoveredOffsets, offsetStorageKey, table, primaryKeyCol)
-    offset.foreach(s => logger.info(s"Recovered offset $s"))
+    offset.foreach(s => logger.info(s"Recovered offset $s for connector $name"))
     cqlGenerator.getDefaultOffsetValue(offset)
   }
 
@@ -172,7 +173,7 @@ class CassandraTableReader(private val session: Session,
     // logging the CQL
     val formattedPrevious = previous.toString()
     val formattedNow = upperBound.toString()
-    logger.info(s"Query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow).")
+    logger.info(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow).")
     // bind the offset and db time
     val bound = preparedStatement.bind(Date.from(previous), Date.from(upperBound))
     session.executeAsync(bound)
@@ -186,7 +187,7 @@ class CassandraTableReader(private val session: Session,
     */
   private def bindAndFireTokenQuery(lastToken: String) = {
     val bound = preparedStatement.bind(java.util.UUID.fromString(lastToken))
-    logger.debug(s"Query ${preparedStatement.getQueryString} executing with bindings ($lastToken).")
+    logger.debug(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($lastToken).")
     session.executeAsync(bound)
   }
 
@@ -199,7 +200,7 @@ class CassandraTableReader(private val session: Session,
     //bind the offset and db time
     val bound = ps.bind()
     //execute the query
-    logger.debug(s"Query ${ps.getQueryString} executing.")
+    logger.debug(s"Connector $name query ${ps.getQueryString} executing.")
     session.executeAsync(bound)
   }
 
@@ -215,7 +216,7 @@ class CassandraTableReader(private val session: Session,
     //on success start writing the row to the queue
     future.onSuccess({
       case rs: ResultSet =>
-        logger.info(s"Processing results for $keySpace.$table.")
+        logger.info(s"Connector $name processing results for $keySpace.$table.")
         val iter = rs.iterator()
         var counter = 0
 
@@ -238,18 +239,18 @@ class CassandraTableReader(private val session: Session,
               } else {
                 getTimebasedMaxOffsetForRow(maxOffset, row)
               }
-              logger.debug(s"Max Offset is currently: ${maxOffset.get}")
+              logger.debug(s"Connector $name max Offset is currently: ${maxOffset.get}")
             }
             processRow(row)
             counter += 1
           } match {
             case Failure(e) =>
               reset(tableOffset)
-              throw new ConnectException(s"Error processing row ${row.toString} for table $table.", e)
+              throw new ConnectException(s"Connector $name error processing row ${row.toString} for table $table.", e)
             case Success(_) =>
           }
         }
-        logger.info(s"Processed $counter row(-s) for table $topic.$table")
+        logger.info(s"Connector $name processed $counter row(-s) for table $topic.$table")
 
         alterTimeSliceValueBasedOnRowsProcessess(counter)
 
@@ -260,9 +261,9 @@ class CassandraTableReader(private val session: Session,
     //On failure, reset and throw
     future.onFailure {
       case t: Throwable =>
-        logger.warn(s"Error querying $table.", t)
+        logger.warn(s"Connector $name error querying $table.", t)
         reset(tableOffset)
-        throw new ConnectException(s"Error querying $table.", t)
+        throw new ConnectException(s"Connector $name error querying $table.", t)
     }
   }
   
@@ -280,7 +281,7 @@ class CassandraTableReader(private val session: Session,
       // set value back to configured value
       timeSliceDuration
     }
-    logger.info(s"the time slice value is now $timeSliceValue ms")
+    logger.debug(s"Connector $name time slice value is now $timeSliceValue ms")
   }
 
   private def getTokenMaxOffsetForRow(maxOffset: Option[String], row: Row): Option[String] = {
@@ -313,7 +314,7 @@ class CassandraTableReader(private val session: Session,
       val rowOffset: Date = if (bulk) dateFormatter.parse(tableOffset.get) else extractTimestamp(row)
       dateFormatter.format(rowOffset)
     }
-    logger.debug(s"processing row with offset: $offset")
+    logger.debug(s"Connector $name processing row with offset: $offset")
 
     // create source record
     val record = if (config.isUnwrapping) {
@@ -365,10 +366,10 @@ class CassandraTableReader(private val session: Session,
   private def reset(offset: Option[String]) = {
     //set the offset to the 'now' bind value
     val table = config.getTarget
-    logger.debug(s"Setting offset for $keySpace.$table to $offset.")
+    logger.debug(s"Connector $name setting offset for $keySpace.$table to $offset.")
     tableOffset = offset.orElse(tableOffset)
     //switch to not querying
-    logger.info(s"Setting querying for $keySpace.$table to false.")
+    logger.debug(s"Connector $name setting querying for $keySpace.$table to false.")
     querying.set(false)
   }
 
@@ -376,9 +377,9 @@ class CassandraTableReader(private val session: Session,
     * Closed down the driver session and cluster.
     */
   def close(): Unit = {
-    logger.info("Shutting down Queries.")
+    logger.info(s"Connector $name shutting down queries.")
     stopQuerying()
-    logger.info("All stopped.")
+    logger.info(s"Connector $name all stopped.")
   }
 
   /**
@@ -388,10 +389,10 @@ class CassandraTableReader(private val session: Session,
     val table = config.getTarget
     stop.set(true)
     while (querying.get()) {
-      logger.debug(s"Waiting for querying to stop for $keySpace.$table.")
+      logger.debug(s"Connector $name waiting for querying to stop for $keySpace.$table.")
       Thread.sleep(2000)
     }
-    logger.info(s"Querying stopped for $keySpace.$table.")
+    logger.info(s"Connector $name querying stopped for $keySpace.$table.")
   }
 
   /**
@@ -403,12 +404,15 @@ class CassandraTableReader(private val session: Session,
 }
 
 object CassandraTableReader {
-  def apply(session: Session,
+  def apply(name: String,
+            session: Session,
             setting: CassandraSourceSetting,
             context: SourceTaskContext,
             queue: LinkedBlockingQueue[SourceRecord]): CassandraTableReader = {
     //return a reader
-    new CassandraTableReader(session = session,
+    new CassandraTableReader(
+      name = name,
+      session = session,
       setting = setting,
       context = context,
       queue = queue)

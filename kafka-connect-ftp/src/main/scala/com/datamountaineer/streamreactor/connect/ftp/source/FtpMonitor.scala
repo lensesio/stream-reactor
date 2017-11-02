@@ -42,14 +42,15 @@ case class FileBody(bytes:Array[Byte], offset:Long)
 object EmptyFileBody extends FileBody(Array[Byte](), 0)
 
 // instructs the FtpMonitor how to do its things
-case class FtpMonitorSettings(host:String, port:Option[Int], user:String, pass:String, maxAge: Option[Duration], directories: Seq[MonitoredPath], timeoutMs:Int, protocol: FtpProtocol)
+case class FtpMonitorSettings(host:String, port:Option[Int], user:String, pass:String, maxAge: Option[Duration],
+                              directories: Seq[MonitoredPath], timeoutMs:Int, protocol: FtpProtocol)
 
 class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) extends StrictLogging {
   val MaxAge = settings.maxAge.getOrElse(Duration.ofDays(Long.MaxValue))
 
   val ftp = settings.protocol match {
     case FtpProtocol.FTP => new FTPClient()
-    case FtpProtocol.FTPS => new FTPSClient()
+    case FtpProtocol.SFTP => new FTPSClient()
   }
 
   def requiresFetch(file: AbsoluteFtpFile, metadata: Option[FileMetaData]): Boolean = metadata match {

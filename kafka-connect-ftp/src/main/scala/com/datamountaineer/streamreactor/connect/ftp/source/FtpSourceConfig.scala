@@ -33,7 +33,7 @@ object KeyStyle extends Enumeration {
 
 object FtpProtocol extends Enumeration {
   type FtpProtocol = Value
-  val FTPS, FTP = Value
+  val SFTP, FTP = Value
 }
 
 import com.datamountaineer.streamreactor.connect.ftp.source.KeyStyle._

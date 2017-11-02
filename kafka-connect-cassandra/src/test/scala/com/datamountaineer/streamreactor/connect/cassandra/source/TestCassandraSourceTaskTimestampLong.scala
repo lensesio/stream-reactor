@@ -62,7 +62,7 @@ class TestCassandraSourceTaskTimestampLong extends WordSpec
     val queue = new LinkedBlockingQueue[SourceRecord](100)
     val setting = CassandraSettings.configureSource(taskConfig).head
 
-    val reader = CassandraTableReader(session = session, setting = setting, context = taskContext, queue = queue)
+    val reader = CassandraTableReader(name = "test", session = session, setting = setting, context = taskContext, queue = queue)
 
     insertIntoTimestampTable(session, keyspace, tableName, "id1", "magic_string", getFormattedDateNow)
 
