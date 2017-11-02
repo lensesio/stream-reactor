@@ -22,27 +22,34 @@ package com.datamountaineer.streamreactor.connect.bloomberg
   * @param ticket The ticker/security identifier (i.e. '/ticker/GOOG US Equity'/'MSFT US Equity')
   * @param fields Sequence of fields to receive data for
   */
-case class SubscriptionInfo(ticket: String, fields: Seq[String]) {
-  override def toString : String = s"$ticket:${fields.mkString(",")}"
+case class SubscriptionInfo(ticket: String, fields: Seq[String], subscription: String = "") {
+  override def toString : String = if(subscription=="") s"$ticket?fields=${fields.mkString(",")}" else subscription
 }
 
 /**
   * From the configuration it will provide a sequence of SubscriptionInfo. The configuration template is
-  * ticker1:FIELD1,FIELD2,..;ticker2:FIELD11,FIELD12,..;ticker3:FIELD31,FIELD31,...
+  * ticker1?fields=FIELD1,FIELD2,..[&interval=5.0];ticker2?fields=FIELD11,FIELD12,..;ticker3?fields=FIELD31,FIELD31,...
   * All the allowed fields are defined by BloombergConstants.SubscriptionFields
   */
 object SubscriptionInfoExtractFn {
   def apply(source: String): Seq[SubscriptionInfo] = {
-    require(source != null && source.trim.nonEmpty, "Invalid subscription setting.The format is <Ticker:Field1,Field2[;Ticker2:field1,field2;...]")
+    require(source != null && source.trim.nonEmpty, "Invalid subscription setting.The format is <Ticker?fields=Field1,Field2[;Ticker2?fields=field1,field2;...]")
     source.split(";").map { subscription =>
-      val index = subscription.indexOf(":")
+      val index = subscription.indexOf("?")
       if (index < 0) {
-        throw new IllegalArgumentException("Invalid configuration. Missing \":\". The format is <Ticker:Field1,Field2[;Ticker2:field1,field2;...]")
+        throw new IllegalArgumentException(s"Invalid configuration [$subscription]. Missing ?. The format is <Ticker?fields=Field1,Field2[;Ticker2?fields=field1,field2;...]")
       }
       val ticker = subscription.substring(0, index).trim
-      val fields = subscription.substring(index + 1).split(",").map(_.trim.toUpperCase).filterNot(_.isEmpty).toSet.toList
+      val FIELDS_TAG = "fields="
+      val fieldsStart = subscription.indexOf(FIELDS_TAG)
+      if (fieldsStart < 0) {
+        throw new IllegalArgumentException(s"Invalid configuration [$subscription]. Missing $FIELDS_TAG The format is <Ticker?fields=Field1,Field2[;Ticker2?fields=field1,field2;...]")
+      }
+      val delimitIndex = subscription.indexOf("&", fieldsStart)
+      val fieldsEnd = if(delimitIndex < 0) subscription.length() else delimitIndex
+      val fields = subscription.substring(fieldsStart + FIELDS_TAG.length(), fieldsEnd).split(",").map(_.trim.toUpperCase).filterNot(_.isEmpty).toSet.toList
       require(fields.nonEmpty, s"You need to provide at least one field for $subscription")
-      SubscriptionInfo(ticker, fields)
+      SubscriptionInfo(ticker, fields, subscription.trim)
     }.toList
   }
 }
