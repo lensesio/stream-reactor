@@ -153,6 +153,9 @@ WITHJMSSELECTOR
     : 'WITHJMSSELECTOR' | 'withjmsselector'
     ;
 
+WITHTARGET
+    : 'WITHTARGET' | 'withtarget'
+    ;
 
 TTL
    : 'TTL'|'ttl'

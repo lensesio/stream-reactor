@@ -57,6 +57,8 @@ public class Kcql {
   private String withConverter;
   private long ttl;
   private String withType;
+  private String withJmsSelector;
+  private String dynamicTarget;
 
   public void setTTL(long ttl) {
     this.ttl = ttl;
@@ -246,6 +248,10 @@ public class Kcql {
     return withConverter;
   }
 
+  public String getWithJmsSelector() {
+    return withJmsSelector;
+  }
+
   public static Kcql parse(final String syntax) {
     final ConnectorLexer lexer = new ConnectorLexer(new ANTLRInputStream(syntax));
     final CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -270,6 +276,9 @@ public class Kcql {
 
     final boolean[] isWithinIgnore = {false};
 
+    final String[] tagValue = {null};
+    final String[] tagKey = {null};
+
     parser.addParseListener(new ConnectorParserBaseListener() {
 
       @Override
@@ -291,7 +300,6 @@ public class Kcql {
       public void exitWith_type_value(ConnectorParser.With_type_valueContext ctx) {
         kcql.withType = escape(ctx.getText());
       }
-
 
       @Override
       public void exitWith_structure(ConnectorParser.With_structureContext ctx) {
@@ -355,6 +363,11 @@ public class Kcql {
       @Override
       public void exitWith_converter_value(ConnectorParser.With_converter_valueContext ctx) {
         kcql.withConverter = escape(ctx.getText());
+      }
+
+      @Override
+      public void exitJms_selector_value(ConnectorParser.Jms_selector_valueContext ctx) {
+        kcql.withJmsSelector = escape(ctx.getText());
       }
 
       @Override
@@ -570,24 +583,42 @@ public class Kcql {
       }
 
       @Override
-      public void exitTag_definition(ConnectorParser.Tag_definitionContext ctx) {
-        String[] arr = ctx.getText().trim().split("=");
-        if (arr.length == 1) {
-          if (arr[0].trim().length() == 0) {
-            throw new IllegalArgumentException("Invalid syntax for tags. Missing the key");
-          }
-          if (arr[0].trim().endsWith(".")) {
-            throw new IllegalArgumentException("Invalid syntax for tags. Field selection can not end with '.'");
-          }
-          if (kcql.tags == null) kcql.tags = new ArrayList<>();
-          kcql.tags.add(new Tag(arr[0]));
-        } else {
-          if (arr.length != 2) {
-            throw new IllegalArgumentException("Invalid syntax for tags. Can't distinguish the key and value. The format is <key>=format or <key> ['" + ctx.getText() + "']");
-          }
-          if (kcql.tags == null) kcql.tags = new ArrayList<>();
-          kcql.tags.add(new Tag(arr[0], arr[1]));
+      public void exitWith_target_value(ConnectorParser.With_target_valueContext ctx) {
+        kcql.setDynamicTarget(ctx.getText());
+      }
+
+      @Override
+      public void exitTag_value(ConnectorParser.Tag_valueContext ctx) {
+        tagValue[0] = ctx.getText();
+      }
+
+      @Override
+      public void exitTag_key(ConnectorParser.Tag_keyContext ctx) {
+        if (ctx.getText().trim().endsWith(".")) {
+          throw new IllegalArgumentException("Invalid syntax for tags. Field selection can not end with '.'");
         }
+        tagKey[0] = ctx.getText();
+      }
+
+      @Override
+      public void exitTag_definition(ConnectorParser.Tag_definitionContext ctx) {
+        String txt = ctx.getText();
+        Tag.TagType type = Tag.TagType.DEFAULT;
+        if (tagValue[0] != null) {
+          String tmp = txt.replace(tagKey[0], "").trim();
+          if (tmp.startsWith("=")) {
+            type = Tag.TagType.CONSTANT;
+          } else if (tmp.toLowerCase().startsWith("as")) {
+            type = Tag.TagType.ALIAS;
+          } else {
+            throw new IllegalArgumentException("Invalid syntax for tags. Needs to be 'tag1 [as x]' or 'tag1' or 'tag1 = constant'");
+          }
+        }
+
+        if (kcql.tags == null) kcql.tags = new ArrayList<>();
+        kcql.tags.add(new Tag(tagKey[0], tagValue[0], type));
+        tagKey[0] = null;
+        tagValue[0] = null;
       }
     });
 
@@ -596,12 +627,6 @@ public class Kcql {
     } catch (Throwable ex) {
       throw new IllegalArgumentException("Invalid syntax." + ex.getMessage(), ex);
     }
-
-        /*final HashSet<String> pks = new HashSet<>();
-        final Iterator<String> iter = kcql.getPrimaryKeys();
-        while (iter.hasNext()) {
-            pks.add(iter.next());
-        }*/
 
     final HashSet<String> cols = new HashSet<>();
     for (Field alias : kcql.fields) {
@@ -649,4 +674,11 @@ public class Kcql {
   }
 
 
+  public void setDynamicTarget(String dynamicTarget) {
+    this.dynamicTarget = dynamicTarget;
+  }
+
+  public String getDynamicTarget() {
+    return dynamicTarget;
+  }
 }

@@ -1,31 +1,37 @@
 package com.datamountaineer.kcql;
 
 public class Tag {
-    private final String key;
-    private final String value;
-    private final boolean isConstant;
+  private final String key;
+  private final String value;
+  private final TagType type;
 
-    public Tag(String key, String value) {
-        this.key = key;
-        this.value = value;
-        this.isConstant = true;
-    }
+  public Tag(String key, String value, TagType type) {
+    this.key = key;
+    this.value = value;
+    this.type = type;
+  }
 
-    public Tag(String key) {
-        this.key = key;
-        this.value = null;
-        this.isConstant = false;
-    }
+  public Tag(String key) {
+    this.key = key;
+    this.value = null;
+    this.type = TagType.DEFAULT;
+  }
 
-    public String getKey() {
-        return key;
-    }
+  public String getKey() {
+    return key;
+  }
 
-    public String getValue() {
-        return value;
-    }
+  public String getValue() {
+    return value;
+  }
 
-    public boolean isConstant() {
-        return isConstant;
-    }
+  public TagType getType() {
+    return type;
+  }
+
+  public enum TagType {
+    DEFAULT,
+    ALIAS,
+    CONSTANT
+  }
 }
