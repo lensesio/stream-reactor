@@ -36,7 +36,7 @@ schema_name
    ;
 
 insert_from_clause
-   : write_mode table_name select_clause_basic ( autocreate )? (with_structure)? ( PK primary_key_list)? (with_target)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? ( project_to )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( with_format_clause )? (with_unwrap_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_type)? (with_doc_type)? (with_index_suffix)? (ttl_clause)? (with_converter)? (with_jms_selector)?
+   : write_mode table_name select_clause_basic ( autocreate )? (with_structure)? ( PK primary_key_list)? (with_target)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? ( project_to )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? (timestamp_unit_clause)? ( with_format_clause )? (with_unwrap_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_type)? (with_doc_type)? (with_index_suffix)? (ttl_clause)? (with_converter)? (with_jms_selector)?
    ;
 
 select_clause
@@ -150,6 +150,14 @@ timestamp_clause
 
 timestamp_value
    : FIELD | SYS_TIME
+   ;
+
+timestamp_unit_clause
+   : TIMESTAMPUNIT EQUAL timestamp_unit_value
+   ;
+
+timestamp_unit_value
+   : FIELD
    ;
 
 buckets_number

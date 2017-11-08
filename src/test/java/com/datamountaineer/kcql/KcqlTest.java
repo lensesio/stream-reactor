@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -790,6 +791,15 @@ public class KcqlTest {
     String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s", table, topic);
     Kcql kcql = Kcql.parse(syntax);
     assertEquals(topic, kcql.getSource());
+  }
+
+  @Test
+  public void handleTimestampUnit() {
+    String topic = "/TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s TIMESTAMPUNIT=SECONDS", table, topic);
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(TimeUnit.SECONDS, kcql.getTimestampUnit());
   }
 
 
