@@ -679,6 +679,119 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       tags shouldBe Map("age" -> "27", "eyeColor" -> "brown")
     }
 
+    "convert a sink record with a json string payload with specific fields being selected and tags are applied with dynamic measurements" in {
+      val jsonPayload =
+        """
+          | {
+          |    "_id": "580151bca6f3a2f0577baaac",
+          |    "index": 0,
+          |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
+          |    "isActive": false,
+          |    "balance": 3589.15,
+          |    "age": 27,
+          |    "eyeColor": "brown",
+          |    "name": "Clements Crane",
+          |    "company": "TERRAGEN",
+          |    "email": "clements.crane@terragen.io",
+          |    "phone": "+1 (905) 514-3719",
+          |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
+          |    "latitude": "-49.817964",
+          |    "longitude": "-141.645812"
+          | }
+        """.
+          stripMargin
+
+      val topic = "topic1"
+      val measurement = "measurement1"
+
+      val before = System.currentTimeMillis()
+
+      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
+
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic WITHTARGET=company WITHTAG(age, eyeColor)")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+      val batchPoints = builder.build(Seq(record))
+      val points = batchPoints.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      PointMapFieldGetter.measurement(point) shouldBe "TERRAGEN"
+      val time = PointMapFieldGetter.time(point)
+      before <= time shouldBe true
+      time <= System.currentTimeMillis() shouldBe true
+
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 3
+
+      map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
+      map.get("this_is_renamed") shouldBe "Clements Crane"
+      map.get("email") shouldBe "clements.crane@terragen.io"
+
+      val tags = PointMapFieldGetter.tags(point)
+      tags shouldBe Map("age" -> "27", "eyeColor" -> "brown")
+    }
+
+    "convert a sink record with a json string payload with specific fields being selected and tags are applied with aliased tag" in {
+      val jsonPayload =
+        """
+          | {
+          |    "_id": "580151bca6f3a2f0577baaac",
+          |    "index": 0,
+          |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
+          |    "isActive": false,
+          |    "balance": 3589.15,
+          |    "age": 27,
+          |    "eyeColor": "brown",
+          |    "name": "Clements Crane",
+          |    "company": "TERRAGEN",
+          |    "email": "clements.crane@terragen.io",
+          |    "phone": "+1 (905) 514-3719",
+          |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
+          |    "latitude": "-49.817964",
+          |    "longitude": "-141.645812"
+          | }
+        """.
+          stripMargin
+
+      val topic = "topic1"
+      val measurement = "measurement1"
+
+      val before = System.currentTimeMillis()
+
+      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
+
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic WITHTARGET=company WITHTAG(age as AgeTag, eyeColor)")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+      val batchPoints = builder.build(Seq(record))
+      val points = batchPoints.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      PointMapFieldGetter.measurement(point) shouldBe "TERRAGEN"
+      val time = PointMapFieldGetter.time(point)
+      before <= time shouldBe true
+      time <= System.currentTimeMillis() shouldBe true
+
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 3
+
+      map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
+      map.get("this_is_renamed") shouldBe "Clements Crane"
+      map.get("email") shouldBe "clements.crane@terragen.io"
+
+      val tags = PointMapFieldGetter.tags(point)
+      tags shouldBe Map("AgeTag" -> "27", "eyeColor" -> "brown")
+    }
+
+
     "throw an error of if nested json since there is no flattening of json for a sink record with string json payload" in {
       val jsonPayload =
         """
@@ -1161,6 +1274,56 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
+      val time = PointMapFieldGetter.time(point)
+      before <= time shouldBe true
+      time <= System.currentTimeMillis() shouldBe true
+
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 3
+
+      map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
+      map.get("this_is_renamed") shouldBe "Clements Crane"
+      map.get("email") shouldBe "clements.crane@terragen.io"
+
+    }
+
+
+    "convert a schemaless sink record with specific fields being selected and dynamic measurement" in {
+      val sourceMap = new util.HashMap[String, Any]()
+      sourceMap.put("_id", "580151bca6f3a2f0577baaac")
+      sourceMap.put("index", 0)
+      sourceMap.put("guid", "dynamic1")
+      sourceMap.put("isActive", false)
+      sourceMap.put("balance", 3589.15)
+      sourceMap.put("age", 27)
+      sourceMap.put("eyeColor", "brown")
+      sourceMap.put("name", "Clements Crane")
+      sourceMap.put("company", "TERRAGEN")
+      sourceMap.put("email", "clements.crane@terragen.io")
+      sourceMap.put("phone", "+1 (905) 514-3719")
+      sourceMap.put("address", "316 Hoyt Street, Welda, Puerto Rico, 1474")
+      sourceMap.put("latitude", "-49.817964")
+      sourceMap.put("longitude", "-141.645812")
+
+      val topic = "topic1"
+      val measurement = "measurement1"
+
+      val before = System.currentTimeMillis()
+
+      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
+
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Seq(
+          Kcql.parse(s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic WITHTARGET=guid")
+        )
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings)
+      val batchPoints = builder.build(Seq(record))
+      val points = batchPoints.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      PointMapFieldGetter.measurement(point) shouldBe "dynamic1"
       val time = PointMapFieldGetter.time(point)
       before <= time shouldBe true
       time <= System.currentTimeMillis() shouldBe true
