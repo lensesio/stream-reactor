@@ -157,6 +157,10 @@ WITHTARGET
     : 'WITHTARGET' | 'withtarget'
     ;
 
+TIMESTAMPUNIT
+    : 'TIMESTAMPUNIT' | 'timestampunit'
+    ;
+
 TTL
    : 'TTL'|'ttl'
    ;

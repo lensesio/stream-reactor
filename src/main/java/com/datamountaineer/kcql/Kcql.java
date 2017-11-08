@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Parsing support for Kafka Connect Query Language.
@@ -59,6 +60,7 @@ public class Kcql {
   private String withType;
   private String withJmsSelector;
   private String dynamicTarget;
+  private TimeUnit timestampUnit = TimeUnit.MILLISECONDS;
 
   public void setTTL(long ttl) {
     this.ttl = ttl;
@@ -565,6 +567,23 @@ public class Kcql {
       }
 
       @Override
+      public void exitTimestamp_unit_value(ConnectorParser.Timestamp_unit_valueContext ctx) {
+        String value = ctx.getText().toUpperCase();
+        try {
+          kcql.setTimestampUnit(TimeUnit.valueOf(value));
+        } catch (Throwable t) {
+          TimeUnit[] units = TimeUnit.values();
+          StringBuilder sb = new StringBuilder();
+          sb.append(units[0].toString());
+          for (int i = 1; i < units.length; ++i) {
+            sb.append(",");
+            sb.append(units[i].toString());
+          }
+          throw new IllegalArgumentException(("Invalid 'TIMESTAMPUNIT'. Available values are : " + sb.toString()));
+        }
+      }
+
+      @Override
       public void exitSample_value(ConnectorParser.Sample_valueContext ctx) {
         Integer value = Integer.parseInt(ctx.getText());
         kcql.sampleCount = value;
@@ -674,11 +693,19 @@ public class Kcql {
   }
 
 
-  public void setDynamicTarget(String dynamicTarget) {
+  private void setDynamicTarget(String dynamicTarget) {
     this.dynamicTarget = dynamicTarget;
   }
 
   public String getDynamicTarget() {
     return dynamicTarget;
+  }
+
+  public TimeUnit getTimestampUnit() {
+    return timestampUnit;
+  }
+
+  private void setTimestampUnit(TimeUnit timestampUnit) {
+    this.timestampUnit = timestampUnit;
   }
 }
