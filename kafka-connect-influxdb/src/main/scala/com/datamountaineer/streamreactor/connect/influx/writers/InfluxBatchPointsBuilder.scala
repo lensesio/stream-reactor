@@ -16,8 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.influx.writers
 
-import java.util.concurrent.TimeUnit
-
 import com.datamountaineer.kcql.{Field, Kcql, Tag}
 import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
 import com.landoop.json.sql.JacksonJson
@@ -58,7 +56,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
 
       val tags = Option(kcql.getTags).map { tags =>
         tags.map { tag =>
-          if (tag.isConstant) tag -> Vector.empty
+          if (tag.getType == Tag.TagType.CONSTANT) tag -> Vector.empty
           else tag -> tag.getKey.split('.').toVector
         }
       }.getOrElse(Vector.empty)
@@ -120,8 +118,8 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
         TimestampValueCoerce(tsRaw)
       }.getOrElse(System.currentTimeMillis())
 
-      implicit val builder = Point.measurement(k.kcql.getTarget)
-        .time(timestamp, TimeUnit.MILLISECONDS)
+      val measurement = getMeasurement(k) { fieldPath => ValuesExtractor.extract(map, fieldPath) }
+      implicit val builder = Point.measurement(measurement).time(timestamp, k.kcql.getTimestampUnit)
 
       buildPointFields(k,
         ValuesExtractor.extract(map, _),
@@ -129,12 +127,19 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
       )
 
       k.tagsAndPaths.foreach { case (tag, path) =>
-        if (tag.isConstant) {
-          builder.tag(tag.getKey, tag.getValue)
-        } else {
-          Option(ValuesExtractor.extract(map, path)).foreach { v =>
-            builder.tag(tag.getKey, v.toString)
-          }
+        tag.getType match {
+          case Tag.TagType.CONSTANT =>
+            builder.tag(tag.getKey, tag.getValue)
+
+          case Tag.TagType.ALIAS =>
+            Option(ValuesExtractor.extract(map, path)).foreach { v =>
+              builder.tag(tag.getValue, v.toString)
+            }
+
+          case _ =>
+            Option(ValuesExtractor.extract(map, path)).foreach { v =>
+              builder.tag(tag.getKey, v.toString)
+            }
         }
       }
 
@@ -162,7 +167,8 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
         TimestampValueCoerce(tsRaw)
       }.getOrElse(System.currentTimeMillis())
 
-      implicit val builder = Point.measurement(k.kcql.getTarget).time(timestamp, TimeUnit.MILLISECONDS)
+      val measurement = getMeasurement(k) { fieldPath => ValuesExtractor.extract(json, fieldPath) }
+      implicit val builder = Point.measurement(measurement).time(timestamp, k.kcql.getTimestampUnit)
 
       buildPointFields(k,
         ValuesExtractor.extract(json, _),
@@ -170,17 +176,31 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
       )
 
       k.tagsAndPaths.foreach { case (tag, path) =>
-        if (tag.isConstant) {
-          builder.tag(tag.getKey, tag.getValue)
-        } else {
-          Option(ValuesExtractor.extract(json, path)).foreach { v =>
-            builder.tag(tag.getKey, v.toString)
-          }
+        tag.getType match {
+          case Tag.TagType.CONSTANT =>
+            builder.tag(tag.getKey, tag.getValue)
+
+          case Tag.TagType.ALIAS =>
+            Option(ValuesExtractor.extract(json, path)).foreach { v =>
+              builder.tag(tag.getValue, v.toString)
+            }
+
+          case other =>
+            Option(ValuesExtractor.extract(json, path)).foreach { v =>
+              builder.tag(tag.getKey, v.toString)
+            }
         }
       }
 
       builder.build()
     }
+  }
+
+  private def getMeasurement(k: KcqlCache)(thunk: Vector[String] => Any): String = {
+    k.DynamicTarget
+      .map { fieldPath =>
+        Option(thunk(fieldPath)).map(_.toString).getOrElse(k.kcql.getTarget)
+      }.getOrElse(k.kcql.getTarget)
   }
 
   /**
@@ -201,7 +221,8 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
         TimestampValueCoerce(tsRaw)
       }.getOrElse(System.currentTimeMillis())
 
-      implicit val builder = Point.measurement(k.kcql.getTarget).time(timestamp, TimeUnit.MILLISECONDS)
+      val measurement = getMeasurement(k) { fieldPath => ValuesExtractor.extract(struct, fieldPath) }
+      implicit val builder = Point.measurement(measurement).time(timestamp, k.kcql.getTimestampUnit)
 
       buildPointFields(k,
         ValuesExtractor.extract(struct, _),
@@ -209,12 +230,19 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
       )
 
       k.tagsAndPaths.foreach { case (tag, path) =>
-        if (tag.isConstant) {
-          builder.tag(tag.getKey, tag.getValue)
-        } else {
-          Option(ValuesExtractor.extract(struct, path)).foreach { v =>
-            builder.tag(tag.getKey, v.toString)
-          }
+        tag.getType match {
+          case Tag.TagType.CONSTANT =>
+            builder.tag(tag.getKey, tag.getValue)
+
+          case Tag.TagType.ALIAS =>
+            Option(ValuesExtractor.extract(struct, path)).foreach { v =>
+              builder.tag(tag.getValue, v.toString)
+            }
+
+          case other =>
+            Option(ValuesExtractor.extract(struct, path)).foreach { v =>
+              builder.tag(tag.getKey, v.toString)
+            }
         }
       }
 
@@ -231,7 +259,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
     */
   private def buildPointFields(kcqlCache: KcqlCache,
                                extractorFn: Vector[String] => Any,
-                               getAllFieldsFn: ((String, Any) => Unit)=>Unit)(implicit builder: Point.Builder) = {
+                               getAllFieldsFn: ((String, Any) => Unit) => Unit)(implicit builder: Point.Builder) = {
 
     val populateFieldFn = (field: String, v: Any) => v match {
       case value: Long => builder.addField(field, value)
@@ -285,4 +313,6 @@ case class KcqlCache(kcql: Kcql,
       .foldLeft(ignoredFields) { case (acc, f) => acc + f.toString }
     allIgnored
   }
+
+  val DynamicTarget = Option(kcql.getDynamicTarget).map(_.split('.').toVector)
 }
