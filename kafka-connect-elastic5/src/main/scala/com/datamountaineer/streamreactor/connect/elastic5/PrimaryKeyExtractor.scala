@@ -203,7 +203,7 @@ object PrimaryKeyExtractor {
             innerExtract(childField, s.get(childField), p.tail)
           case other => sys.error(s"$other is not a recognized schema")
         }
-        Some(v)
+        v
       }
     }
 
