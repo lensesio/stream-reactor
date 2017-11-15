@@ -69,6 +69,7 @@ public class BigQuerySinkTask extends SinkTask {
   private static final Logger logger = LoggerFactory.getLogger(BigQuerySinkTask.class);
 
   private final BigQuery testBigQuery;
+  private SchemaRetriever schemaRetriever;
   private BigQueryWriter bigQueryWriter;
   private BigQuerySinkTaskConfig config;
   private RecordConverter<Map<String, Object>> recordConverter;
@@ -81,11 +82,13 @@ public class BigQuerySinkTask extends SinkTask {
 
   public BigQuerySinkTask() {
     testBigQuery = null;
+    schemaRetriever = null;
   }
 
   // For testing purposes only; will never be called by the Kafka Connect framework
-  BigQuerySinkTask(BigQuery testBigQuery) {
+  BigQuerySinkTask(BigQuery testBigQuery, SchemaRetriever schemaRetriever) {
     this.testBigQuery = testBigQuery;
+    this.schemaRetriever = schemaRetriever;
   }
 
   @Override
@@ -150,6 +153,10 @@ public class BigQuerySinkTask extends SinkTask {
     for (SinkRecord record : records) {
       if (record.value() != null) {
         PartitionedTableId table = getRecordTable(record);
+        if (schemaRetriever != null) {
+          schemaRetriever.setLastSeenSchema(table.getBaseTableId(), record.topic(), record.valueSchema());
+        }
+
         if (!tableWriterBuilders.containsKey(table)) {
           TableWriter.Builder tableWriterBuilder =
               new TableWriter.Builder(bigQueryWriter, table, record.topic());
@@ -191,7 +198,7 @@ public class BigQuerySinkTask extends SinkTask {
   }
 
   private SchemaManager getSchemaManager(BigQuery bigQuery) {
-    SchemaRetriever schemaRetriever = config.getSchemaRetriever();
+    schemaRetriever = config.getSchemaRetriever();
     SchemaConverter<com.google.cloud.bigquery.Schema> schemaConverter =
         config.getSchemaConverter();
     return new SchemaManager(schemaRetriever, schemaConverter, bigQuery);

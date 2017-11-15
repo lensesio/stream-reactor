@@ -25,4 +25,12 @@ public interface SchemaRetriever {
    * @return The Schema for the given table.
    */
   public Schema retrieveSchema(TableId table, String topic);
+
+  /**
+   * Set the last seen schema for a given topic
+   * @param table The table that will be created.
+   * @param topic The topic to retrieve a schema for.
+   * @param schema The last seen Kafka Connect Schema
+   */
+  public void setLastSeenSchema(TableId table, String topic, Schema schema);
 }

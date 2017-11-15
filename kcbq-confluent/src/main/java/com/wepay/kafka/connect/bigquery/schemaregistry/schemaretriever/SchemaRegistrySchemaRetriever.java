@@ -71,6 +71,9 @@ public class SchemaRegistrySchemaRetriever implements SchemaRetriever {
     }
   }
 
+  @Override
+  public void setLastSeenSchema(TableId table, String topic, Schema schema) { }
+
   private String getSubject(String topic) {
     return topic + "-value";
   }
