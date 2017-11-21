@@ -16,6 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.influx.writers
 
+import java.util.concurrent.TimeUnit
+
 import com.datamountaineer.kcql.{Field, Kcql, Tag}
 import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
 import com.landoop.json.sql.JacksonJson
@@ -26,6 +28,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.influxdb.dto.{BatchPoints, Point}
 
 import scala.collection.JavaConversions._
+import scala.concurrent.duration.TimeUnit
 
 
 /**
@@ -113,13 +116,17 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
 
     kcqls.map { k =>
 
+      var tsUnit :Option[TimeUnit] = None
       val timestamp = k.timestampField.map { implicit fieldPath =>
         val tsRaw = ValuesExtractor.extract(map, fieldPath)
         TimestampValueCoerce(tsRaw)
-      }.getOrElse(System.currentTimeMillis())
+      }.getOrElse {
+        tsUnit = Some(TimeUnit.NANOSECONDS)
+        System.nanoTime()
+      }
 
       val measurement = getMeasurement(k) { fieldPath => ValuesExtractor.extract(map, fieldPath) }
-      implicit val builder = Point.measurement(measurement).time(timestamp, k.kcql.getTimestampUnit)
+      implicit val builder = Point.measurement(measurement).time(timestamp, tsUnit.getOrElse(k.kcql.getTimestampUnit))
 
       buildPointFields(k,
         ValuesExtractor.extract(map, _),
@@ -162,13 +169,18 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
     val kcqls = kcqlMap.getOrElse(record.topic(), throw new ConfigException(s"Topic '${record.topic()}' is missing KCQL mapping."))
 
     kcqls.map { k =>
+
+      var tsUnit :Option[TimeUnit] = None
       val timestamp = k.timestampField.map { implicit fieldPath =>
         val tsRaw = ValuesExtractor.extract(json, fieldPath)
         TimestampValueCoerce(tsRaw)
-      }.getOrElse(System.currentTimeMillis())
+      }.getOrElse {
+        tsUnit = Some(TimeUnit.NANOSECONDS)
+        System.nanoTime()
+      }
 
       val measurement = getMeasurement(k) { fieldPath => ValuesExtractor.extract(json, fieldPath) }
-      implicit val builder = Point.measurement(measurement).time(timestamp, k.kcql.getTimestampUnit)
+      implicit val builder = Point.measurement(measurement).time(timestamp,tsUnit.getOrElse(k.kcql.getTimestampUnit))
 
       buildPointFields(k,
         ValuesExtractor.extract(json, _),
@@ -216,13 +228,17 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
     val kcqls = kcqlMap.getOrElse(record.topic(), throw new ConfigException(s"Topic '${record.topic()}' is missing KCQL mapping."))
 
     kcqls.map { k =>
+      var tsUnit :Option[TimeUnit] = None
       val timestamp = k.timestampField.map { implicit fieldPath =>
         val tsRaw = ValuesExtractor.extract(struct, fieldPath)
         TimestampValueCoerce(tsRaw)
-      }.getOrElse(System.currentTimeMillis())
+      }.getOrElse {
+        tsUnit = Some(TimeUnit.NANOSECONDS)
+        System.nanoTime()
+      }
 
       val measurement = getMeasurement(k) { fieldPath => ValuesExtractor.extract(struct, fieldPath) }
-      implicit val builder = Point.measurement(measurement).time(timestamp, k.kcql.getTimestampUnit)
+      implicit val builder = Point.measurement(measurement).time(timestamp, tsUnit.getOrElse(k.kcql.getTimestampUnit))
 
       buildPointFields(k,
         ValuesExtractor.extract(struct, _),
