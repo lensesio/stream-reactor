@@ -59,7 +59,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
@@ -76,7 +76,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       PointMapFieldGetter.measurement(point) shouldBe measurement
       val time = PointMapFieldGetter.time(point)
       before <= time shouldBe true
-      time <= System.currentTimeMillis() shouldBe true
+      time <= System.nanoTime() shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
       map.size shouldBe 14
@@ -124,7 +124,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
@@ -183,7 +183,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val settings = InfluxSettings(config)
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
@@ -233,7 +233,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
@@ -250,7 +250,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       PointMapFieldGetter.measurement(point) shouldBe measurement
       val time = PointMapFieldGetter.time(point)
       before <= time shouldBe true
-      time <= System.currentTimeMillis() shouldBe true
+      time <= System.nanoTime() shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
       map.size shouldBe 14
@@ -298,7 +298,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
@@ -314,7 +314,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       PointMapFieldGetter.measurement(point) shouldBe measurement
       val time = PointMapFieldGetter.time(point)
       before <= time shouldBe true
-      time <= System.currentTimeMillis() shouldBe true
+      time <= System.nanoTime() shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
       map.size shouldBe 14
@@ -363,7 +363,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
@@ -427,7 +427,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
@@ -466,7 +466,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
@@ -484,7 +484,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       PointMapFieldGetter.measurement(point) shouldBe measurement
       val time = PointMapFieldGetter.time(point)
       before <= time shouldBe true
-      time <= System.currentTimeMillis() shouldBe true
+      time <= System.nanoTime() shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
       map.size shouldBe 12
@@ -528,7 +528,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
@@ -545,7 +545,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       PointMapFieldGetter.measurement(point) shouldBe measurement
       val time = PointMapFieldGetter.time(point)
       before <= time shouldBe true
-      time <= System.currentTimeMillis() shouldBe true
+      time <= System.nanoTime() shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
       map.size shouldBe 14
@@ -593,7 +593,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
@@ -612,7 +612,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       PointMapFieldGetter.measurement(point) shouldBe measurement
       val time = PointMapFieldGetter.time(point)
       before <= time shouldBe true
-      time <= System.currentTimeMillis() shouldBe true
+      time <= System.nanoTime() shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
       map.size shouldBe 3
@@ -648,7 +648,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
@@ -666,7 +666,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       PointMapFieldGetter.measurement(point) shouldBe measurement
       val time = PointMapFieldGetter.time(point)
       before <= time shouldBe true
-      time <= System.currentTimeMillis() shouldBe true
+      time <= System.nanoTime() shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
       map.size shouldBe 3
@@ -704,7 +704,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
@@ -722,7 +722,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       PointMapFieldGetter.measurement(point) shouldBe "TERRAGEN"
       val time = PointMapFieldGetter.time(point)
       before <= time shouldBe true
-      time <= System.currentTimeMillis() shouldBe true
+      time <= System.nanoTime() shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
       map.size shouldBe 3
@@ -760,7 +760,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
@@ -778,7 +778,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       PointMapFieldGetter.measurement(point) shouldBe "TERRAGEN"
       val time = PointMapFieldGetter.time(point)
       before <= time shouldBe true
-      time <= System.currentTimeMillis() shouldBe true
+      time <= System.nanoTime() shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
       map.size shouldBe 3
@@ -808,7 +808,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
@@ -845,7 +845,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
@@ -883,7 +883,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
@@ -922,7 +922,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
@@ -984,7 +984,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
@@ -1021,7 +1021,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
@@ -1080,7 +1080,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
@@ -1099,7 +1099,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       PointMapFieldGetter.measurement(point) shouldBe measurement
       val time = PointMapFieldGetter.time(point)
       before <= time shouldBe true
-      time <= System.currentTimeMillis() shouldBe true
+      time <= System.nanoTime() shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
       map.size shouldBe 14
@@ -1140,7 +1140,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
@@ -1159,7 +1159,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       PointMapFieldGetter.measurement(point) shouldBe measurement
       val time = PointMapFieldGetter.time(point)
       before <= time shouldBe true
-      time <= System.currentTimeMillis() shouldBe true
+      time <= System.nanoTime() shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
       map.size shouldBe 12
@@ -1199,7 +1199,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
@@ -1217,7 +1217,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       PointMapFieldGetter.measurement(point) shouldBe measurement
       val time = PointMapFieldGetter.time(point)
       before <= time shouldBe true
-      time <= System.currentTimeMillis() shouldBe true
+      time <= System.nanoTime() shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
       map.size shouldBe 14
@@ -1258,7 +1258,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
@@ -1276,7 +1276,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       PointMapFieldGetter.measurement(point) shouldBe measurement
       val time = PointMapFieldGetter.time(point)
       before <= time shouldBe true
-      time <= System.currentTimeMillis() shouldBe true
+      time <= System.nanoTime() shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
       map.size shouldBe 3
@@ -1308,7 +1308,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
@@ -1326,7 +1326,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       PointMapFieldGetter.measurement(point) shouldBe "dynamic1"
       val time = PointMapFieldGetter.time(point)
       before <= time shouldBe true
-      time <= System.currentTimeMillis() shouldBe true
+      time <= System.nanoTime() shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
       map.size shouldBe 3
@@ -1358,7 +1358,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
@@ -1396,7 +1396,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = System.currentTimeMillis()
+      val before = System.nanoTime()
 
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
