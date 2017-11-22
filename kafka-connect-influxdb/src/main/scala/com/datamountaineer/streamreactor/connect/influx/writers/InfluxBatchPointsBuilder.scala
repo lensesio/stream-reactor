@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.influx.writers
 import java.util.concurrent.TimeUnit
 
 import com.datamountaineer.kcql.{Field, Kcql, Tag}
+import com.datamountaineer.streamreactor.connect.influx.NanoClock
 import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
 import com.landoop.json.sql.JacksonJson
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -40,7 +41,9 @@ import scala.concurrent.duration.TimeUnit
   *
   * @param settings - An instance of [[InfluxSettings]]
   */
-class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
+class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) extends StrictLogging {
+//  private val nanoClock = new NanoClock()
+
   //We build a map to cache the field paths. Avoids creating it everytime
   private val kcqlMap = settings.kcqls.groupBy(_.getSource).map { case (topic, kcqls) =>
     def buildFieldPath(field: Field) = {
@@ -122,7 +125,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
         TimestampValueCoerce(tsRaw)
       }.getOrElse {
         tsUnit = Some(TimeUnit.NANOSECONDS)
-        System.nanoTime()
+        nanoClock.getEpochNanos
       }
 
       val measurement = getMeasurement(k) { fieldPath => ValuesExtractor.extract(map, fieldPath) }
@@ -176,7 +179,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
         TimestampValueCoerce(tsRaw)
       }.getOrElse {
         tsUnit = Some(TimeUnit.NANOSECONDS)
-        System.nanoTime()
+        nanoClock.getEpochNanos
       }
 
       val measurement = getMeasurement(k) { fieldPath => ValuesExtractor.extract(json, fieldPath) }
@@ -234,7 +237,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings) extends StrictLogging {
         TimestampValueCoerce(tsRaw)
       }.getOrElse {
         tsUnit = Some(TimeUnit.NANOSECONDS)
-        System.nanoTime()
+        nanoClock.getEpochNanos
       }
 
       val measurement = getMeasurement(k) { fieldPath => ValuesExtractor.extract(struct, fieldPath) }
