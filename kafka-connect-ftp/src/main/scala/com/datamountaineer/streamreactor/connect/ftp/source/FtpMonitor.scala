@@ -43,7 +43,7 @@ object EmptyFileBody extends FileBody(Array[Byte](), 0)
 
 // instructs the FtpMonitor how to do its things
 case class FtpMonitorSettings(host:String, port:Option[Int], user:String, pass:String, maxAge: Option[Duration],
-                              directories: Seq[MonitoredPath], timeoutMs:Int, protocol: FtpProtocol)
+                              directories: Seq[MonitoredPath], timeoutMs:Int, protocol: FtpProtocol, filter:String)
 
 class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) extends StrictLogging {
   val MaxAge = settings.maxAge.getOrElse(Duration.ofDays(Long.MaxValue))
@@ -128,7 +128,9 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
 
   // fetches files from a monitored directory when needed
   def fetchFromMonitoredPlaces(w:MonitoredPath): Stream[(FileMetaData, FileBody)] = {
-    val files = FtpFileLister(ftp).listFiles(w.p.toString).filter(f => !MaxAge.minus(f.age).isNegative)
+
+    val files = FtpFileLister(ftp).listFiles(w.p.toString).filter(f => !MaxAge.minus(f.age).isNegative && f.name.matches(settings.filter) )
+
     logger.info(s"Found ${files.length} items in ${w.p}")
 
     files.toStream
