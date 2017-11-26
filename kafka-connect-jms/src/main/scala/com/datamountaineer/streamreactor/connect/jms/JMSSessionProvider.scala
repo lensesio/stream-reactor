@@ -88,20 +88,24 @@ object JMSSessionProvider extends StrictLogging {
         throw new ConnectException(f)
     }
 
-    val topicsConsumers = configureDestination(TopicDestination, context, session, settings, sink)
-                            .flatMap({ case (source, ms, topic) => createConsumers(source, session, topic, settings.subscriptionName, ms)}).toMap
 
-    val queueConsumers = configureDestination(QueueDestination, context, session, settings, sink)
-                            .flatMap({ case (source, ms, queue) => createConsumers(source, session, queue, settings.subscriptionName, ms) }).toMap
+    sink match {
+      case false => {
+        val topicsConsumers = configureDestination(TopicDestination, context, session, settings, sink)
+          .flatMap({ case (source, ms, topic) => createConsumers(source, session, topic, settings.subscriptionName, ms)}).toMap
+        val queueConsumers = configureDestination(QueueDestination, context, session, settings, sink)
+          .flatMap({ case (source, ms, queue) => createConsumers(source, session, queue, settings.subscriptionName, ms) }).toMap
+        new JMSSessionProvider(queueConsumers, topicsConsumers, Map[String, MessageProducer](), Map[String, MessageProducer](), session, connection, context)
+      }
+      case true => {
+        val topicProducers = configureDestination(TopicDestination, context, session, settings, sink)
+          .flatMap({ case (source, _, topic) => createProducers(source, session, topic) }).toMap
 
-
-    val topicProducers = configureDestination(TopicDestination, context, session, settings, sink)
-                            .flatMap({ case (source, _, topic) => createProducers(source, session, topic) }).toMap
-
-    val queueProducers = configureDestination(QueueDestination, context, session, settings, sink)
-                            .flatMap({ case (source, _, queue) => createProducers(source, session, queue) }).toMap
-
-    new JMSSessionProvider(queueConsumers, topicsConsumers, queueProducers, topicProducers, session, connection, context)
+        val queueProducers = configureDestination(QueueDestination, context, session, settings, sink)
+          .flatMap({ case (source, _, queue) => createProducers(source, session, queue) }).toMap
+        new JMSSessionProvider(Map[String, MessageConsumer](), Map[String, MessageConsumer](), queueProducers, topicProducers, session, connection, context)
+      }
+    }
   }
 
   def configureDestination(destinationType: DestinationType, context: InitialContext, session: Session, settings: JMSSettings, sink: Boolean = false): List[(String, Option[String], Destination)] = {

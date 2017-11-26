@@ -46,7 +46,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
   }
 
   "should create a JMSSettings for a source with only 1 topic for a source" in {
-    val props = getProps1Topic
+    val props = getProps1Topic()
     val config = JMSConfig(props)
     val settings = JMSSettings(config, false)
     val setting = settings.settings.head
