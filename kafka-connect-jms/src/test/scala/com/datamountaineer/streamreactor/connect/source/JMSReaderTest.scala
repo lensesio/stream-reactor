@@ -42,7 +42,7 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
     Path(AVRO_FILE).delete()
   }
 
-  "should read message from JMS queue without converters" in testWithBrokerOnPort() { (conn, brokerUrl) =>
+  "should read message from JMS queue without converters" in testWithBrokerOnPort { (conn, brokerUrl) =>
 
     val messageCount = 9
 
@@ -64,7 +64,7 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
     }
   }
 
-  "should read and convert to avro" in testWithBrokerOnPort() { (conn, brokerUrl) =>
+  "should read and convert to avro" in testWithBrokerOnPort { (conn, brokerUrl) =>
 
     val messageCount = 10
 
@@ -89,7 +89,7 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
     }
   }
 
-  "should read messages from JMS queue with message selector" in testWithBrokerOnPort() { (conn, brokerUrl) =>
+  "should read messages from JMS queue with message selector" in testWithBrokerOnPort { (conn, brokerUrl) =>
     val messageCount = 10
 
     val session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)

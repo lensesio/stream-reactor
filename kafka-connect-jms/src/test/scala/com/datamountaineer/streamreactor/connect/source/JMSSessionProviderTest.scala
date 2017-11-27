@@ -11,7 +11,7 @@ class JMSSessionProviderTest extends TestBase with BeforeAndAfterAll with Eventu
   val forAJmsConsumer = false
   val forAJmsProducer = true
 
-  "should only create JMS Queue Consumer when reading from JMS Queue" in testWithBrokerOnPort() { (conn, brokerUrl) =>
+  "should only create JMS Queue Consumer when reading from JMS Queue" in testWithBrokerOnPort { (conn, brokerUrl) =>
     val props = getProps1Queue(brokerUrl)
     val config = JMSConfig(props)
     val settings = JMSSettings(config, forAJmsConsumer)
@@ -23,7 +23,7 @@ class JMSSessionProviderTest extends TestBase with BeforeAndAfterAll with Eventu
     provider.topicProducers.size shouldBe 0
   }
 
-  "should only create JMS Topic Consumer when reading from JMS Topic" in testWithBrokerOnPort() { (conn, brokerUrl) =>
+  "should only create JMS Topic Consumer when reading from JMS Topic" in testWithBrokerOnPort { (conn, brokerUrl) =>
     val props = getProps1Topic(brokerUrl)
     val config = JMSConfig(props)
     val settings = JMSSettings(config, forAJmsConsumer)
@@ -35,7 +35,7 @@ class JMSSessionProviderTest extends TestBase with BeforeAndAfterAll with Eventu
     provider.topicProducers.size shouldBe 0
   }
 
-  "should only create JMS Queue Producer when writing to JMS Queue" in testWithBrokerOnPort() { (conn, brokerUrl) =>
+  "should only create JMS Queue Producer when writing to JMS Queue" in testWithBrokerOnPort { (conn, brokerUrl) =>
     val props = getProps1Queue(brokerUrl)
     val config = JMSConfig(props)
     val settings = JMSSettings(config, forAJmsProducer)
@@ -47,7 +47,7 @@ class JMSSessionProviderTest extends TestBase with BeforeAndAfterAll with Eventu
     provider.topicProducers.size shouldBe 0
   }
 
-  "should only create JMS Topic Producer when writing to JMS Topic" in testWithBrokerOnPort() { (conn, brokerUrl) =>
+  "should only create JMS Topic Producer when writing to JMS Topic" in testWithBrokerOnPort { (conn, brokerUrl) =>
     val props = getProps1Topic(brokerUrl)
     val config = JMSConfig(props)
     val settings = JMSSettings(config, forAJmsProducer)

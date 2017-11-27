@@ -273,13 +273,15 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
   def kcqlWithMessageSelector(msgSelector: String) =
     s"INSERT INTO $TOPIC1 SELECT * FROM $JMS_TOPIC1 WITHTYPE TOPIC WITHJMSSELECTOR=`$msgSelector`"
 
-  def getFreePort() = {
+  def getFreePort:Int = {
     val socket = new ServerSocket(0)
     socket.setReuseAddress(true)
     socket.getLocalPort
   }
 
-  def testWithBrokerOnPort(port: Int = getFreePort())(test: (Connection, String) => Unit) = {
+  def testWithBrokerOnPort(test: (Connection, String) => Unit):Unit = testWithBrokerOnPort() (test: (Connection, String) => Unit)
+
+  def testWithBrokerOnPort(port: Int = getFreePort) (test: (Connection, String) => Unit): Unit = {
     val broker = new BrokerService()
     broker.setPersistent(false)
     broker.setUseJmx(false)
