@@ -16,14 +16,17 @@
 
 package com.datamountaineer.streamreactor.connect
 
-import java.io.{BufferedWriter, ByteArrayOutputStream, FileWriter}
+import java.io.{BufferedWriter, ByteArrayOutputStream, File, FileWriter}
+import java.net.ServerSocket
 import java.nio.file.Paths
 import java.util.UUID
-import javax.jms.{BytesMessage, Session, TextMessage}
+import javax.jms.{BytesMessage, Connection, Session, TextMessage}
 
 import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
 import com.datamountaineer.streamreactor.connect.jms.config.{DestinationSelector, JMSConfigConstants}
 import com.sksamuel.avro4s.{AvroOutputStream, SchemaFor}
+import org.apache.activemq.ActiveMQConnectionFactory
+import org.apache.activemq.broker.BrokerService
 import org.apache.activemq.jndi.ActiveMQInitialContextFactory
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
@@ -100,18 +103,18 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     ).asJava
   }
 
-  def getProps1Topic = {
+  def getProps1Topic(url: String = JMS_URL)  = {
     Map(JMSConfigConstants.KCQL -> KCQL_SOURCE_TOPIC,
       JMSConfigConstants.JMS_USER -> JMS_USER,
       JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
       JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfigConstants.JMS_URL -> JMS_URL
+      JMSConfigConstants.JMS_URL -> url
     ).asJava
   }
 
   def getProps1TopicWithMessageSelector(url: String = JMS_URL, msgSelector: String = MESSAGE_SELECTOR) = {
-    getProps1Topic.asScala ++
+    getProps1Topic(url).asScala ++
       Map(JMSConfigConstants.KCQL -> kcqlWithMessageSelector(msgSelector),
         JMSConfigConstants.JMS_URL -> url)
   }.asJava
@@ -269,4 +272,34 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
 
   def kcqlWithMessageSelector(msgSelector: String) =
     s"INSERT INTO $TOPIC1 SELECT * FROM $JMS_TOPIC1 WITHTYPE TOPIC WITHJMSSELECTOR=`$msgSelector`"
+
+  def getFreePort:Int = {
+    val socket = new ServerSocket(0)
+    socket.setReuseAddress(true)
+    socket.getLocalPort
+  }
+
+  def testWithBrokerOnPort(test: (Connection, String) => Unit):Unit = testWithBrokerOnPort() (test: (Connection, String) => Unit)
+
+  def testWithBrokerOnPort(port: Int = getFreePort) (test: (Connection, String) => Unit): Unit = {
+    val broker = new BrokerService()
+    broker.setPersistent(false)
+    broker.setUseJmx(false)
+    broker.setDeleteAllMessagesOnStartup(true)
+    val brokerUrl = s"tcp://localhost:$port"
+    broker.addConnector(brokerUrl)
+    broker.setUseShutdownHook(false)
+    val property = "java.io.tmpdir"
+    val tempDir = System.getProperty(property)
+    broker.setDataDirectoryFile( new File(tempDir))
+    broker.setTmpDataDirectory( new File(tempDir))
+    broker.start()
+
+    val connectionFactory = new ActiveMQConnectionFactory()
+    connectionFactory.setBrokerURL(brokerUrl)
+    val conn = connectionFactory.createConnection()
+    conn.start()
+
+    test(conn, brokerUrl)
+  }
  }

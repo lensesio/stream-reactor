@@ -42,7 +42,7 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
     Path(AVRO_FILE).delete()
   }
 
-  "should read message from JMS queue without converters" in testWithBrokerOnPort(61631) { (conn, brokerUrl) =>
+  "should read message from JMS queue without converters" in testWithBrokerOnPort { (conn, brokerUrl) =>
 
     val messageCount = 9
 
@@ -64,7 +64,7 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
     }
   }
 
-  "should read and convert to avro" in testWithBrokerOnPort(61632) { (conn, brokerUrl) =>
+  "should read and convert to avro" in testWithBrokerOnPort { (conn, brokerUrl) =>
 
     val messageCount = 10
 
@@ -89,7 +89,7 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
     }
   }
 
-  "should read messages from JMS queue with message selector" in testWithBrokerOnPort(61633) { (conn, brokerUrl) =>
+  "should read messages from JMS queue with message selector" in testWithBrokerOnPort { (conn, brokerUrl) =>
     val messageCount = 10
 
     val session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)
@@ -129,25 +129,4 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
     }
   }
 
-  def testWithBrokerOnPort(port: Int)(test: (Connection, String) => Unit) = {
-    val broker = new BrokerService()
-    broker.setPersistent(false)
-    broker.setUseJmx(false)
-    broker.setDeleteAllMessagesOnStartup(true)
-    val brokerUrl = s"tcp://localhost:$port"
-    broker.addConnector(brokerUrl)
-    broker.setUseShutdownHook(false)
-    val property = "java.io.tmpdir"
-    val tempDir = System.getProperty(property)
-    broker.setDataDirectoryFile( new File(tempDir))
-    broker.setTmpDataDirectory( new File(tempDir))
-    broker.start()
-
-    val connectionFactory = new ActiveMQConnectionFactory()
-    connectionFactory.setBrokerURL(brokerUrl)
-    val conn = connectionFactory.createConnection()
-    conn.start()
-
-    test(conn, brokerUrl)
-  }
 }
