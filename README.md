@@ -3,9 +3,16 @@
 [<img src="https://img.shields.io/badge/latest%20release-0.3.0-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22)
 
 
-Join us on slack
+Join us on slack [![Alt text](images/slack.jpeg)](http://datamountaineer.com/contact/)
 
-[![Alt text](images/slack.jpeg)](http://datamountaineer.com/contact/)
+# Lenses for Apache Kafka
+
+Lenses offers SQL (for data browsing and Kafka Streams), Kafka Connect connector management, cluster monitoring and more.
+
+You can find more on [landoop.com!](http://www.landoop.com/kafka-lenses/)
+
+![Alt text](http://www.landoop.com/docs/lenses/_images/lenses-data-management-platform.png)
+
 
 # Stream Reactor
 Streaming reference architecture built around Kafka. 
