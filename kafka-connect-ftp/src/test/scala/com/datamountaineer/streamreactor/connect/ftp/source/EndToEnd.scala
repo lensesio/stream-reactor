@@ -48,7 +48,7 @@ class EmbeddedFtpServer extends StrictLogging {
   val username = "my-User_name7"
   val password = "=541%2@$;;'`"
   val host = "localhost"
-  val port = 22221 // TODO: find free port
+  val port = 3332 // TODO: find free port
   val rootDir = File.newTemporaryDirectory().path
 
   var server: FtpServer = null
@@ -120,7 +120,6 @@ class EndToEndTests extends FunSuite with Matchers with BeforeAndAfter with Stri
   val s1 = "Hebban olla vogala nestas hagunnan hinase hic enda thu wat unbidan we nu\r\n\t\u0000:)".getBytes
   val s2 = "<mandatory quote to show off erudition here>".getBytes
   val s3 = "!".getBytes
-
   val t0 = "/tails/t0"
   val t1 = "/tails/t1"
   val u0 = "/updates/u0"
@@ -159,7 +158,9 @@ class EndToEndTests extends FunSuite with Matchers with BeforeAndAfter with Stri
     FtpSourceConfig.MonitorTail -> "/tails/:tails",
     FtpSourceConfig.MonitorUpdate -> "/updates/:updates",
     FtpSourceConfig.FileMaxAge -> "P7D",
-    FtpSourceConfig.KeyStyle -> "string"
+    FtpSourceConfig.KeyStyle -> "string",
+    FtpSourceConfig.fileFilter -> ".*"
+
   )
 
   def validateSourceRecords(recs:Seq[SourceRecord], diffs:Seq[(String,String,FileDiff)], keyStyle: KeyStyle = KeyStyle.String) = {
@@ -183,6 +184,8 @@ class EndToEndTests extends FunSuite with Matchers with BeforeAndAfter with Stri
   val fileToTopic = Map(t0 -> "tails", t1 -> "tails", u0 -> "updates", u1 -> "updates")
 
   test("Happy flow: file updates are properly reflected by corresponding SourceRecords with structured keys") {
+
+
     val fs = new FileSystem(server.rootDir).clear
     server.start()
 
@@ -199,6 +202,7 @@ class EndToEndTests extends FunSuite with Matchers with BeforeAndAfter with Stri
 
     server.stop()
   }
+
 
   test("Happy flow: file updates are properly reflected by corresponding SourceRecords with stringed keys") {
     val fs = new FileSystem(server.rootDir).clear

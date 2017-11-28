@@ -58,7 +58,8 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
       Some(Duration.parse(cfg.getString(FtpSourceConfig.FileMaxAge))),
       monitor2topic.keys.toSeq,
       cfg.timeoutMs(),
-      cfg.getProtocol
+      cfg.getProtocol,
+      cfg.getString(FtpSourceConfig.fileFilter)
     ),
       fileConverter
     )
