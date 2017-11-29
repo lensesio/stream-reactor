@@ -17,7 +17,7 @@
 project(":kafka-connect-pulsar") {
 
     ext {
-        pulsarVersion = "1.19.0-incubating"
+        pulsarVersion = "1.20.0-incubating"
         json4s = "3.5.0"
         avro4sVersion = "1.6.4"
     }
