@@ -34,13 +34,13 @@ class MqttManager(connectionFn: (MqttCallback) => MqttClient,
                   kcql: Array[Kcql],
                   throwOnErrors: Boolean,
                   pollingTimeout: Int) extends AutoCloseable with StrictLogging with MqttCallback {
+  private val queue = new LinkedBlockingQueue[SourceRecord]() // This queue is used in messageArrived() callback of MqttClient,
+                                                              // hence instantiation should be prior to MqttClient.
   private val client: MqttClient = connectionFn(this)
   private val sourceToTopicMap = kcql.map(c => c.getSource -> c).toMap
   require(kcql.nonEmpty, s"Invalid $kcql parameter. At least one statement needs to be provided")
 
   client.subscribe(sourceToTopicMap.keySet.toArray, Array.fill(sourceToTopicMap.keySet.size)(qualityOfService))
-
-  private val queue = new LinkedBlockingQueue[SourceRecord]()
 
   override def close(): Unit = {
     client.disconnect(5000)
