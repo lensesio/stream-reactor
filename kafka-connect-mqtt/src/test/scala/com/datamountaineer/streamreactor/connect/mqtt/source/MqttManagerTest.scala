@@ -45,6 +45,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
   val classPathConfig = new ClasspathConfig()
   val connection = "tcp://0.0.0.0:1883"
   val clientId = "MqttManagerTest"
+  val clientPersistentId = "MqttManagerTestDisableClean"
   val qs = 1
   val connectionTimeout = 1000
   val pollingTimeout = 500
@@ -221,7 +222,64 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
       mqttManager.close()
     }
 
-    "handle each mqtt source based on the converter" in {
+    "process the messages published before subscribing" in {
+      val source = "/mqttSourceTopic"
+      val target = "kafkaTopic"
+      val sourcesToConvMap = Map(source -> new BytesConverter)
+      implicit val settings = MqttSourceSettings(
+        connection,
+        None,
+        None,
+        clientPersistentId,
+        sourcesToConvMap.map { case (k, v) => k -> v.getClass.getCanonicalName },
+        true,
+        Array(s"INSERT INTO $target SELECT * FROM $source"),
+        qs,
+        connectionTimeout,
+        pollingTimeout,
+        cleanSession = false,
+        keepAlive,
+        None,
+        None,
+        None
+      )
+
+      val mqttManagerTmp = new MqttManager(MqttClientConnectionFn.apply,
+        sourcesToConvMap,
+        1,
+        Array(Kcql.parse(s"INSERT INTO $target SELECT * FROM $source")),
+        true,
+        settings.pollingTimeout)
+      Thread.sleep(2000)
+      mqttManagerTmp.close()
+      Thread.sleep(2000)
+
+      val messages = Seq("message1")
+      messages.foreach { m =>
+        publishMessage(source, m.getBytes())
+      }
+      Thread.sleep(2000)
+
+      val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
+        sourcesToConvMap,
+        1,
+        Array(Kcql.parse(s"INSERT INTO $target SELECT * FROM $source")),
+        true,
+        settings.pollingTimeout)
+      Thread.sleep(2000)
+
+      var records = new util.LinkedList[SourceRecord]()
+      mqttManager.getRecords(records)
+
+      records.size() shouldBe 1
+      records.get(0).topic() shouldBe target
+      records.get(0).value() shouldBe messages(0).getBytes()
+      records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
+
+      mqttManager.close()
+    }
+
+"handle each mqtt source based on the converter" in {
       val source1 = "/mqttSource1"
       val source2 = "/mqttSource2"
       val source3 = "/mqttSource3"
