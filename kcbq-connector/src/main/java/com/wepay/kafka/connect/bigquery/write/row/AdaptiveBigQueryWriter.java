@@ -65,7 +65,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
   private boolean isTableMissingSchema(BigQueryException e) {
     // If a table is missing a schema, it will raise a BigQueryException that the input is invalid
     // For more information about BigQueryExceptions, see: https://cloud.google.com/bigquery/troubleshooting-errors
-    return e.getReason().equalsIgnoreCase("invalid");
+    return e.getReason() != null && e.getReason().equalsIgnoreCase("invalid");
   }
 
   /**
