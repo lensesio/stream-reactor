@@ -151,7 +151,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
       // NOOP should never be used!! otherwise data could be lost
       val futures = records.flatMap { record =>
 
-        val tables = preparedCache.getOrElse(record.topic(), throw new IllegalArgumentException(s"Topic ${record.topic()} doesn't have a KSQL setup"))
+        val tables = preparedCache.getOrElse(record.topic(), throw new IllegalArgumentException(s"Topic ${record.topic()} doesn't have a KCQL setup"))
         tables.map { case (table, (statement, kcql)) =>
           executor.submit {
             val json = Transform(
