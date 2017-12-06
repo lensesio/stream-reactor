@@ -25,8 +25,8 @@ import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstant
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
 import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
-import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}

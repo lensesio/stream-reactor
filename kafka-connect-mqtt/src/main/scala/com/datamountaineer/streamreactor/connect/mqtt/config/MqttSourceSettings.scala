@@ -16,7 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.mqtt.config
 
-import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.{BytesConverter, Converter}
 import org.apache.kafka.common.config.ConfigException
 import org.eclipse.paho.client.mqttv3.MqttClient
