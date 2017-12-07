@@ -56,7 +56,7 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
-**3.0.1** (Pending)
+**0.4.0** (Pending)
 
 *   Add FTPS support to FTP connector, new configuration option `ftp.protocol` introduced, either ftp (default) or ftps.
 *   Fix for MQTT source High CPU Thanks @masahirom!
@@ -68,7 +68,7 @@ A collection of components to build a real time ingestion pipeline.
 *   Upgrade to Cassandra driver 3.3.0 and refactor Cassandra tests
 *   Fix on JMS source transacted queues #285 thanks @matthedude !
 
-**3.0.0**
+**0.3.0**
 
 *   Upgrade CoAP to 2.0.0-M4
 *   Upgrade to Confluent 3.3 and Kafka 0.11.0.0.
