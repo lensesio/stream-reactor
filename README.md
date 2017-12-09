@@ -11,8 +11,9 @@ Lenses offers SQL (for data browsing and Kafka Streams), Kafka Connect connector
 
 You can find more on [landoop.com!](http://www.landoop.com/kafka-lenses/)
 
-![Alt text](http://www.landoop.com/docs/lenses/_images/lenses-data-management-platform.png)
-
+<p align="center">
+  <a href="http://www.landoop.com/kafka-lenses/" target="_blank"><img src="http://www.landoop.com/docs/lenses/_images/lenses-data-management-platform.png"/></a>
+</p>
 
 # Stream Reactor
 Streaming reference architecture built around Kafka. 
