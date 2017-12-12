@@ -42,7 +42,7 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
   val configs: Set[Kcql] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
     assert(c.getSource.trim.length > 0, "You need to supply a valid source kafka topic to fetch records from. Review your KCQL syntax")
-    assert(c.getPrimaryKeys.length == 1, "The Redis CACHE mode requires strictly 1 PK (Primary Key) to be defined")
+    assert(c.getPrimaryKeys.nonEmpty, "The Redis CACHE mode requires at least 1 PK (Primary Key) to be defined")
     assert(c.getStoredAs == null, "The Redis CACHE mode does not support STOREAS")
   }
 
@@ -71,7 +71,7 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
                 // We can prefix the name of the <KEY> using the target
                 val optionalPrefix = if (Option(KCQL.kcqlConfig.getTarget).isEmpty) "" else KCQL.kcqlConfig.getTarget.trim
                 // Use first primary key's value and (optional) prefix
-                val keyBuilder = StringStructFieldsStringKeyBuilder(Seq(KCQL.kcqlConfig.getPrimaryKeys.head.getName))
+                val keyBuilder = StringStructFieldsStringKeyBuilder(KCQL.kcqlConfig.getPrimaryKeys.map(_.getName))
                 val extracted = convert(record, fields = KCQL.fieldsAndAliases, ignoreFields = KCQL.ignoredFields)
                 val key = optionalPrefix + keyBuilder.build(record)
                 val payload = convertValueToJson(extracted).toString
