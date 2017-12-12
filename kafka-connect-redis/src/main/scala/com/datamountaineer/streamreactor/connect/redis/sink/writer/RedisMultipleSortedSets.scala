@@ -40,7 +40,7 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
   val configs: Set[Kcql] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
     assert(c.getSource.trim.length > 0, "You need to supply a valid source kafka topic to fetch records from. Review your KCQL syntax")
-    assert(c.getPrimaryKeys.length == 1, "The Redis MultipleSortedSets mode requires strictly 1 PK (Primary Key) to be defined")
+    assert(c.getPrimaryKeys.length > 1, "The Redis MultipleSortedSets mode requires at least 1 PK (Primary Key) to be defined")
     assert(c.getStoredAs.equalsIgnoreCase("SortedSet"), "The Redis MultipleSortedSets mode requires the KCQL syntax: STOREAS SortedSet")
   }
 
@@ -67,10 +67,10 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
             topicSettings.map { KCQL =>
 
               // Build a Struct field extractor to get the value from the PK field
-              val pkField = KCQL.kcqlConfig.getPrimaryKeys.toList.head
-              val extractor = StructFieldsExtractor(includeAllFields = false, Map(pkField.getName -> pkField.getName))
+              //val pkField = KCQL.kcqlConfig.getPrimaryKeys.toList.head
+              val extractor = StructFieldsExtractor(includeAllFields = false, KCQL.kcqlConfig.getPrimaryKeys.map(f=>f.getName-> f.getName).toMap)
               val fieldsAndValues = extractor.get(record.value.asInstanceOf[Struct]).toMap
-              val pkValue = fieldsAndValues(pkField.getName).toString
+              val pkValue = KCQL.kcqlConfig.getPrimaryKeys.map(pk=>fieldsAndValues(pk.getName).toString).mkString(":")
 
               // Use the target (and optionally the prefix) to name the SortedSet
               val optionalPrefix = if (Option(KCQL.kcqlConfig.getTarget).isEmpty) "" else KCQL.kcqlConfig.getTarget.trim
