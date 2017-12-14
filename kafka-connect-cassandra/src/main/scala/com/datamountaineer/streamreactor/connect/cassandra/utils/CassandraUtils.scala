@@ -108,7 +108,7 @@ object CassandraUtils {
       case DataType.Name.ASCII | DataType.Name.TEXT | DataType.Name.VARCHAR => row.getString(columnDef.getName)
       case DataType.Name.INET => row.getInet(columnDef.getName).toString
       case DataType.Name.MAP => mapper.writeValueAsString(row.getMap(columnDef.getName, classOf[String], classOf[String]))
-      case DataType.Name.LIST => mapper.writeValueAsString(row.getList(columnDef.getName, classOf[String]))
+      case DataType.Name.LIST => mapper.writeValueAsString(Option(row.getObject(columnDef.getName)).map(_.toString).orNull)
       case DataType.Name.SET => mapper.writeValueAsString(row.getSet(columnDef.getName, classOf[String]))
       case DataType.Name.UUID =>
         //need to convert to string since the schema is set to String
