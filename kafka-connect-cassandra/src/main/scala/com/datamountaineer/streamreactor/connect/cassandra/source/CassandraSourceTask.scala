@@ -64,11 +64,8 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
       case Failure(f) => throw new ConnectException("Couldn't start CassandraSource due to configuration error.", f)
       case Success(s) => Some(s)
     }
+
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-source-ascii.txt")).mkString + s" v $version")
-    Try(logger.info(ReadManifest.mainfest())) match {
-      case Failure(_) => logger.info("No manifest details found")
-      case Success(_) =>
-    }
 
     //get the list of assigned tables this sink
     val assigned = taskConfig.get.getString(CassandraConfigConstants.ASSIGNED_TABLES).split(",").toList

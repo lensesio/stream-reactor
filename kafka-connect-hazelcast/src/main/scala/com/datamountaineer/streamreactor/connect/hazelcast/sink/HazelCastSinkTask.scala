@@ -44,10 +44,6 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
     **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/hazelcast-ascii.txt")).mkString + s" v $version")
-    Try(logger.info(ReadManifest.mainfest())) match {
-      case Failure(_) => logger.info("No manifest details found")
-      case Success(_) =>
-    }
     HazelCastSinkConfig.config.parse(props)
     val sinkConfig = new HazelCastSinkConfig(props)
     enableProgress = sinkConfig.getBoolean(HazelCastSinkConfigConstants.PROGRESS_COUNTER_ENABLED)

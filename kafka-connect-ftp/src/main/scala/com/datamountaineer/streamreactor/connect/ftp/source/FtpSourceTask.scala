@@ -104,10 +104,6 @@ class FtpSourceTask extends SourceTask with StrictLogging {
   }
 
   override def start(props: util.Map[String, String]): Unit = {
-    Try(logger.info(ReadManifest.mainfest())) match {
-      case Failure(_) => logger.info("No manifest details found")
-      case Success(_) =>
-    }
     logger.info("start")
     val sourceConfig = new FtpSourceConfig(props)
     sourceConfig.ftpMonitorConfigs.foreach(cfg => {

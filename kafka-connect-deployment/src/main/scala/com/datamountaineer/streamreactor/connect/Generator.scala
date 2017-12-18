@@ -33,7 +33,7 @@ object Generator {
   val classes = finder.getClasses()
 
   def main(args: Array[String]): Unit = {
-    val version = "0.3.0"
+    val version = "1.0.0"
     println("Looking for Source Connectors")
     generateSources(version)
     println("Looking for Sink Connectors")

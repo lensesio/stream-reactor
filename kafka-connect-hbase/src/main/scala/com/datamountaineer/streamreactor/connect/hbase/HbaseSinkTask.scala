@@ -47,11 +47,6 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
     **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/hbase-ascii.txt")).mkString)
-    Try(logger.info(ReadManifest.mainfest())) match {
-      case Failure(_) => logger.info("No manifest details found")
-      case Success(_) =>
-    }
-
     HBaseConfig.config.parse(props)
     val sinkConfig = HBaseConfig(props)
     enableProgress = sinkConfig.getBoolean(HBaseConfigConstants.PROGRESS_COUNTER_ENABLED)

@@ -41,10 +41,6 @@ class JMSSourceTask extends SourceTask with StrictLogging {
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-source-ascii.txt")).mkString + s" v $version")
-    Try(logger.info(ReadManifest.mainfest())) match {
-      case Failure(_) => logger.info("No manifest details found")
-      case Success(_) =>
-    }
     JMSConfig.config.parse(props)
     val config = new JMSConfig(props)
     val settings = JMSSettings(config, sink = false)

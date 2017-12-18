@@ -40,7 +40,7 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
   val configs: Set[Kcql] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
     assert(c.getSource.trim.length > 0, "You need to supply a valid source kafka topic to fetch records from. Review your KCQL syntax")
-    assert(c.getPrimaryKeys.length > 1, "The Redis MultipleSortedSets mode requires at least 1 PK (Primary Key) to be defined")
+    assert(c.getPrimaryKeys.length >= 1, "The Redis MultipleSortedSets mode requires at least 1 PK (Primary Key) to be defined")
     assert(c.getStoredAs.equalsIgnoreCase("SortedSet"), "The Redis MultipleSortedSets mode requires the KCQL syntax: STOREAS SortedSet")
   }
 

@@ -42,11 +42,6 @@ class CoapSourceTask extends SourceTask with StrictLogging {
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-source-ascii.txt")).mkString + s" v $version")
-    Try(logger.info(ReadManifest.mainfest())) match {
-      case Failure(_) => logger.info("No manifest details found")
-      case Success(_) =>
-    }
-
     val config = CoapSourceConfig(props)
     enableProgress = config.getBoolean(CoapConstants.PROGRESS_COUNTER_ENABLED)
     val settings = CoapSettings(config)

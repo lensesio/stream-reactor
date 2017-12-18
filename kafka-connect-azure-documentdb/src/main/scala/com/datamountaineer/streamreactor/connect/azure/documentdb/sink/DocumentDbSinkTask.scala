@@ -56,12 +56,6 @@ class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => Do
     }
 
     logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/documentdb-sink-ascii.txt")).mkString + s" v $version")
-    Try(logger.info(ReadManifest.mainfest())) match {
-      case Failure(_) => logger.info("No manifest details found")
-      case Success(_) =>
-    }
-
-
     implicit val settings = DocumentDbSinkSettings(taskConfig)
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {

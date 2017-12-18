@@ -46,10 +46,6 @@ class JMSSinkTask extends SinkTask with StrictLogging {
     **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-sink-ascii.txt")).mkString + s" v $version")
-    Try(logger.info(ReadManifest.mainfest())) match {
-      case Failure(_) => logger.info("No manifest details found")
-      case Success(_) =>
-    }
     JMSConfig.config.parse(props)
     val sinkConfig = new JMSConfig(props)
     val settings = JMSSettings(sinkConfig, sink = true)

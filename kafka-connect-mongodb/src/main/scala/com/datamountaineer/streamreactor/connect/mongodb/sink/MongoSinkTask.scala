@@ -53,11 +53,6 @@ class MongoSinkTask extends SinkTask with StrictLogging {
     }
 
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/mongo-ascii.txt")).mkString + s" v $version")
-    Try(logger.info(ReadManifest.mainfest())) match {
-      case Failure(_) => logger.info("No manifest details found")
-      case Success(_) =>
-    }
-
     writer = Some(MongoWriter(taskConfig, context = context))
     enableProgress = taskConfig.getBoolean(MongoConfigConstants.PROGRESS_COUNTER_ENABLED)
   }

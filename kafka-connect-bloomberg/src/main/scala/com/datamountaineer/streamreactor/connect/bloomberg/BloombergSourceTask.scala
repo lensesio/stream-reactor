@@ -74,10 +74,6 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
     */
   override def start(map: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/bloomberg-ascii.txt")).mkString + s" v $version")
-    Try(logger.info(ReadManifest.mainfest())) match {
-      case Failure(_) => logger.info("No manifest details found")
-      case Success(_) =>
-    }
 
     try {
       settings = Some(BloombergSettings(new BloombergSourceConfig(map)))

@@ -39,10 +39,6 @@ class MqttSourceTask extends SourceTask with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
 
     logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/mqtt-source-ascii.txt")).mkString + s" v $version")
-    Try(logger.info(ReadManifest.mainfest())) match {
-      case Failure(_) => logger.info("No manifest details found")
-      case Success(_) =>
-    }
     implicit val settings = MqttSourceSettings(MqttSourceConfig(props))
 
     settings.sslCACertFile.foreach { file =>

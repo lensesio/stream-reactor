@@ -46,10 +46,6 @@ class VoltSinkTask extends SinkTask with StrictLogging {
     **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/voltdb-ascii.txt")).mkString + s" v $version")
-    Try(logger.info(ReadManifest.mainfest())) match {
-      case Failure(_) => logger.info("No manifest details found")
-      case Success(_) =>
-    }
 
     VoltSinkConfig.config.parse(props)
     val sinkConfig = VoltSinkConfig(props)

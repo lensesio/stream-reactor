@@ -43,11 +43,6 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig with StrictLoggi
     **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/yahoo-ascii.txt")).mkString + s" v $version")
-    Try(logger.info(ReadManifest.mainfest())) match {
-      case Failure(_) => logger.info("No manifest details found")
-      case Success(_) =>
-    }
-
     //get configuration for this task
     taskConfig = Try(new AbstractConfig(configDef, props)) match {
       case Failure(f) => throw new ConfigException("Couldn't start YahooSource due to configuration error.", f)

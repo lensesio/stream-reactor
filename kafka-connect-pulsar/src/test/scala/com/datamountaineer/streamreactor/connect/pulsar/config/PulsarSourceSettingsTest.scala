@@ -29,12 +29,12 @@ class PulsarSourceSettingsTest extends WordSpec with Matchers {
       val settings = PulsarSourceSettings {
         PulsarSourceConfig(Map(
           PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-          PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM pulsarSource WITHCONVERTER=${classOf[AvroConverter].getCanonicalName}",
+          PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM pulsarSource WITHCONVERTER=`${classOf[AvroConverter].getCanonicalName}`",
           PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
           PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
         ))
       }
-      settings.sourcesToConverters shouldBe Map("mqttSource" -> classOf[AvroConverter].getCanonicalName)
+      settings.sourcesToConverters shouldBe Map("pulsarSource" -> classOf[AvroConverter].getCanonicalName)
       settings.throwOnConversion shouldBe true
       settings.pollingTimeout shouldBe 500
       settings.connection shouldBe "pulsar://localhost:6650"
@@ -77,7 +77,7 @@ class PulsarSourceSettingsTest extends WordSpec with Matchers {
     "throw an config exception if the converter class can't be found" in {
       intercept[ConfigException] {
         PulsarSourceConfig(Map(
-          PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM pulsarSource WITHCONVERTER=com.non.existance.SomeConverter",
+          PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM pulsarSource WITHCONVERTER=`com.non.existance.SomeConverter`",
           PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
           PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
         ))
@@ -87,7 +87,7 @@ class PulsarSourceSettingsTest extends WordSpec with Matchers {
     "throw an config exception if the converter settings with invalid source" in {
       intercept[ConfigException] {
         PulsarSourceConfig(Map(
-          PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM pulsarSource WITHCONVERTER=${classOf[AvroConverter].getCanonicalName}",
+          PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM pulsarSource WITHCONVERTER=`${classOf[AvroConverter].getCanonicalName}`",
           PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
           PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
         ))
@@ -97,7 +97,7 @@ class PulsarSourceSettingsTest extends WordSpec with Matchers {
     "throw an config exception if the converter topic doesn't match the KCQL settings" in {
       intercept[ConfigException] {
         PulsarSourceConfig(Map(
-          PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM pulsarSource WITHCONVERTER=${classOf[AvroConverter].getCanonicalName}",
+          PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM pulsarSource WITHCONVERTER=`${classOf[AvroConverter].getCanonicalName}`",
           PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
           PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
         ))

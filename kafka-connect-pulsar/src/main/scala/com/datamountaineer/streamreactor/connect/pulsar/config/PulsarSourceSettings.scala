@@ -46,8 +46,8 @@ object PulsarSourceSettings {
 
     val kcql = config.getKCQL
     val kcqlStr = config.getKCQLRaw
-    val user = Some(config.getUsername)
-    val password = Option(config.getSecret).map(_.value())
+//    val user = Some(config.getUsername)
+//    val password = Option(config.getSecret).map(_.value())
     val connection = config.getHosts
 
     val progressEnabled = config.getBoolean(PulsarConfigConstants.PROGRESS_COUNTER_ENABLED)

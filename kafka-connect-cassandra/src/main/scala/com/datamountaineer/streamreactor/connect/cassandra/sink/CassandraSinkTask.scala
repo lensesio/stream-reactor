@@ -55,10 +55,6 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
     val sinkSettings = CassandraSettings.configureSink(taskConfig)
     enableProgress = sinkSettings.enableProgress
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-sink-ascii.txt")).mkString + s" v $version")
-    Try(logger.info(ReadManifest.mainfest())) match {
-      case Failure(_) => logger.info("No manifest details found")
-      case Success(_) =>
-    }
     writer = Some(CassandraWriter(connectorConfig = taskConfig, context = context))
   }
 
