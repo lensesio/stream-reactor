@@ -30,9 +30,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
   private val selectColumns = getSelectColumns
   private val incrementMode = setting.timestampColType
   private val limitRowsSize = kcql.getBatchSize
-  // TODO: add this to setting so it can be configured
-  private val timeSliceMinAge: String = "PTH3"
-  private val defaultTimestamp = "1900-01-01 00:00:00.0000000Z"
+  private val defaultTimestamp = setting.initialOffset
 
   /**
    * Build the CQL for the given table.

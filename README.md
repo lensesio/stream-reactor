@@ -68,6 +68,9 @@ A collection of components to build a real time ingestion pipeline.
 *   Fix writing multiple topics to the same table in Cassandra #284
 *   Upgrade to Cassandra driver 3.3.0 and refactor Cassandra tests
 *   Fix on JMS source transacted queues #285 thanks @matthedude !
+*   Fix on Cassandra source, configurable timespan queries. You can now control the timespan the Connector will query for
+*   Allow setting initial query timestamp on Cassandra source
+*   Allow multiple primary keys on the redis sink
 
 **0.3.0**
 

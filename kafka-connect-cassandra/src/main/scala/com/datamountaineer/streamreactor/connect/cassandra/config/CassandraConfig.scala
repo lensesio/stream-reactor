@@ -292,6 +292,16 @@ object CassandraConfigSource {
       ConfigDef.Width.SHORT,
       CassandraConfigConstants.TIMESLICE_DURATION)
 
+    .define(CassandraConfigConstants.INITIAL_OFFSET,
+      Type.STRING,
+      CassandraConfigConstants.INITIAL_OFFSET_DEFAULT,
+      Importance.MEDIUM,
+      CassandraConfigConstants.INITIAL_OFFSET_DOC,
+      "Import",
+      9,
+      ConfigDef.Width.MEDIUM,
+      CassandraConfigConstants.INITIAL_OFFSET)
+
 }
 
 case class CassandraConfigSource(props: util.Map[String, String])

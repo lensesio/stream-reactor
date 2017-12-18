@@ -178,4 +178,8 @@ object CassandraConfigConstants {
   val TIMESLICE_DURATION_DEFAULT = 10000L
   val TIMESLICE_DURATION_DOC = "Duration to query for in target Cassandra table. Used to restrict query timestamp span"
 
+  val INITIAL_OFFSET = s"$CONNECTOR_PREFIX.initial.offset"
+  val INITIAL_OFFSET_DEFAULT = "1900-01-01 00:00:00.0000000Z"
+  val INITIAL_OFFSET_DOC = "The inital timestamp to start querying in Cassandra from (yyyy-MM-dd HH:mm:ss.SSS'Z'). Default 1900-01-01 00:00:00.0000000Z "
+
 }
