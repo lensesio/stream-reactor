@@ -50,7 +50,9 @@ case class CassandraSourceSetting(kcql: Kcql,
                                   taskRetires: Int = CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT,
                                   fetchSize: Int = CassandraConfigConstants.FETCH_SIZE_DEFAULT,
                                   timeSliceDuration: Long = CassandraConfigConstants.TIMESLICE_DURATION_DEFAULT,
-                                  initialOffset: String = CassandraConfigConstants.INITIAL_OFFSET_DEFAULT
+                                  timeSliceDelay: Long = CassandraConfigConstants.TIMESLICE_DELAY_DEFAULT,
+                                  initialOffset: String = CassandraConfigConstants.INITIAL_OFFSET_DEFAULT,
+                                  timeSliceMillis: Long = CassandraConfigConstants.TIME_SLICE_MILLIS_DEFAULT
                                  ) extends CassandraSetting
 
 case class CassandraSinkSetting(keySpace: String,
@@ -86,7 +88,9 @@ object CassandraSettings extends StrictLogging {
     val fetchSize = config.getInt(CassandraConfigConstants.FETCH_SIZE)
     val incrementalModes = config.getIncrementalMode(kcqls)
     val timeSliceDuration = config.getLong(CassandraConfigConstants.TIMESLICE_DURATION)
+    val timeSliceDelay = config.getLong(CassandraConfigConstants.TIMESLICE_DELAY)
     val initialOffset = config.getString(CassandraConfigConstants.INITIAL_OFFSET)
+    val timeSliceMillis = config.getLong(CassandraConfigConstants.TIME_SLICE_MILLIS)
 
     kcqls.map { r =>
       val tCols = primaryKeyCols(r.getSource)
@@ -110,7 +114,9 @@ object CassandraSettings extends StrictLogging {
         consistencyLevel = consistencyLevel,
         fetchSize = fetchSize,
         timeSliceDuration = timeSliceDuration,
-        initialOffset = initialOffset
+        timeSliceDelay = timeSliceDelay,
+        initialOffset = initialOffset,
+        timeSliceMillis = timeSliceMillis
       )
     }.toSeq
   }

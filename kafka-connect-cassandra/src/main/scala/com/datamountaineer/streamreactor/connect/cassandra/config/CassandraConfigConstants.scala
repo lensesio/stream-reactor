@@ -19,13 +19,13 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
 
 /**
-  * Created by andrew@datamountaineer.com on 25/04/16. 
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 25/04/16.
+ * stream-reactor
+ */
 
 /**
-  * Holds the constants used in the config.
-  **/
+ * Holds the constants used in the config.
+ */
 
 object CassandraConfigConstants {
   val CONNECTOR_PREFIX = "connect.cassandra"
@@ -98,6 +98,10 @@ object CassandraConfigConstants {
   val READER_BUFFER_SIZE_DOC = "The size of the queue as read writes to."
   val READER_BUFFER_SIZE_DEFAULT = 10000
 
+  val TIME_SLICE_MILLIS = s"$CONNECTOR_PREFIX.time.slice.ms"
+  val TIME_SLICE_MILLIS_DOC = "The range of time in milliseconds the source task the timestamp/timeuuid will use for query"
+  val TIME_SLICE_MILLIS_DEFAULT = 10000
+
   val ALLOW_FILTERING = s"$CONNECTOR_PREFIX.import.allow.filtering"
   val ALLOW_FILTERING_DOC = "Enable ALLOW FILTERING in incremental selects."
   val ALLOW_FILTERING_DEFAULT = true
@@ -129,7 +133,6 @@ object CassandraConfigConstants {
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
-
   val KCQL = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
   val KCQL_DOC = "KCQL expression describing field selection and routes."
 
@@ -155,14 +158,14 @@ object CassandraConfigConstants {
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
-  
+
   val DELETE_ROW_PREFIX = "delete"
-  
+
   val DELETE_ROW_ENABLED = s"$CONNECTOR_PREFIX.$DELETE_ROW_PREFIX.enabled"
   val DELETE_ROW_ENABLED_DOC = "Enables row deletion from cassandra"
   val DELETE_ROW_ENABLED_DEFAULT = false
   val DELETE_ROW_ENABLED_DISPLAY = "Enable delete row"
-  
+
   val DELETE_ROW_STATEMENT = s"$CONNECTOR_PREFIX.$DELETE_ROW_PREFIX.statement"
   val DELETE_ROW_STATEMENT_DOC = "Delete statement for cassandra"
   val DELETE_ROW_STATEMENT_DEFAULT = ""
@@ -175,8 +178,12 @@ object CassandraConfigConstants {
   val DELETE_ROW_STRUCT_FLDS_DISPLAY = "Field names in Key Struct"
 
   val TIMESLICE_DURATION = s"$CONNECTOR_PREFIX.slice.duration"
-  val TIMESLICE_DURATION_DEFAULT = 10000L
+  val TIMESLICE_DURATION_DEFAULT = 10000
   val TIMESLICE_DURATION_DOC = "Duration to query for in target Cassandra table. Used to restrict query timestamp span"
+
+  val TIMESLICE_DELAY = s"$CONNECTOR_PREFIX.slice.delay.ms"
+  val TIMESLICE_DELAY_DEFAULT = 30000
+  val TIMESLICE_DELAY_DOC = "the delay between the current time and the time range of the query. Used to insure all of the data in the time slice is available"
 
   val INITIAL_OFFSET = s"$CONNECTOR_PREFIX.initial.offset"
   val INITIAL_OFFSET_DEFAULT = "1900-01-01 00:00:00.0000000Z"

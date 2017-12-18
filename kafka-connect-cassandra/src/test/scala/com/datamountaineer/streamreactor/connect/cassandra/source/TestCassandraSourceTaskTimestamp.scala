@@ -29,7 +29,6 @@ import com.datastax.driver.core.Session
 import org.apache.kafka.connect.data.Schema
 import org.scalatest.BeforeAndAfterAll
 
-@DoNotDiscover
 class TestCassandraSourceTaskTimestamp extends WordSpec
     with Matchers
     with MockitoSugar
@@ -62,10 +61,10 @@ class TestCassandraSourceTaskTimestamp extends WordSpec
     task.start(config)
 
     insertIntoTimestampTable(session, keyspace, tableName, "id1", "magic_string", getFormattedDateNow)
-
+    
     var records = pollAndWait(task, tableName)
     var sourceRecord = records.asScala.head
-    //check a field
+    // check JSON fields
     var json: JsonNode = convertValueToJson(sourceRecord)
     println(json)
     json.get("string_field").asText().equals("magic_string") shouldBe true
@@ -76,7 +75,7 @@ class TestCassandraSourceTaskTimestamp extends WordSpec
 
     records = pollAndWait(task, tableName)
     sourceRecord = records.asScala.head
-    //check a field
+    // check JSON fields
     json = convertValueToJson(sourceRecord)
     println(json)
     json.get("string_field").asText().equals("magic_string2") shouldBe true

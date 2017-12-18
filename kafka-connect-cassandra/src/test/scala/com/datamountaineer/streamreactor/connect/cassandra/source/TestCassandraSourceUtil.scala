@@ -55,7 +55,7 @@ trait TestCassandraSourceUtil {
         |timeuuid_field timeuuid, 
         |PRIMARY KEY (id, timeuuid_field)) WITH CLUSTERING ORDER BY (timeuuid_field asc)""".stripMargin)
 
-    println(s"creating table $table")
+    println(s"creating table $keySpace.$table")
 
     table
   }
@@ -104,6 +104,8 @@ trait TestCassandraSourceUtil {
       CassandraConfigConstants.PASSWD -> password,
       CassandraConfigConstants.KCQL -> kcql,
       CassandraConfigConstants.ASSIGNED_TABLES -> tableName,
-      CassandraConfigConstants.POLL_INTERVAL -> "1000").asJava
+      CassandraConfigConstants.TIMESLICE_DURATION -> "10000",
+      CassandraConfigConstants.TIMESLICE_DELAY -> "0",
+      CassandraConfigConstants.POLL_INTERVAL -> "500").asJava
   }
 }
