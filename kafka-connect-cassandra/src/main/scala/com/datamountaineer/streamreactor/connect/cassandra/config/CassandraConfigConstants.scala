@@ -174,4 +174,8 @@ object CassandraConfigConstants {
   val DELETE_ROW_STRUCT_FLDS_DEFAULT = ""
   val DELETE_ROW_STRUCT_FLDS_DISPLAY = "Field names in Key Struct"
 
+  val TIMESLICE_DURATION = s"$CONNECTOR_PREFIX.slice.duration"
+  val TIMESLICE_DURATION_DEFAULT = 10000L
+  val TIMESLICE_DURATION_DOC = "Duration to query for in target Cassandra table. Used to restrict query timestamp span"
+
 }

@@ -62,7 +62,7 @@ class CassandraTableReader(private val name: String,
   private val preparedStatement = getPreparedStatements
   private var tableOffset: Option[String] = buildOffsetMap(context)
   // TODO: add this to configuration
-  private val timeSliceDuration: Long = 10000
+  private val timeSliceDuration: Long = setting.timeSliceDuration
   // TODO: add this to configuration
   private val timeSliceDelay: Long = 0
   private var timeSliceValue: Long = timeSliceDuration

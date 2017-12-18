@@ -48,7 +48,8 @@ case class CassandraSourceSetting(kcql: Kcql,
                                   consistencyLevel: Option[ConsistencyLevel],
                                   errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                                   taskRetires: Int = CassandraConfigConstants.NBR_OF_RETIRES_DEFAULT,
-                                  fetchSize: Int = CassandraConfigConstants.FETCH_SIZE_DEFAULT
+                                  fetchSize: Int = CassandraConfigConstants.FETCH_SIZE_DEFAULT,
+                                  timeSliceDuration: Long = CassandraConfigConstants.TIMESLICE_DURATION_DEFAULT
                                  ) extends CassandraSetting
 
 case class CassandraSinkSetting(keySpace: String,
@@ -83,6 +84,7 @@ object CassandraSettings extends StrictLogging {
     val primaryKeyCols = config.getPrimaryKeyCols()
     val fetchSize = config.getInt(CassandraConfigConstants.FETCH_SIZE)
     val incrementalModes = config.getIncrementalMode(kcqls)
+    val timeSliceDuration = config.getLong(CassandraConfigConstants.TIMESLICE_DURATION)
 
     kcqls.map { r =>
       val tCols = primaryKeyCols(r.getSource)
@@ -104,7 +106,8 @@ object CassandraSettings extends StrictLogging {
         pollInterval = pollInterval,
         errorPolicy = errorPolicy,
         consistencyLevel = consistencyLevel,
-        fetchSize = fetchSize
+        fetchSize = fetchSize,
+        timeSliceDuration = timeSliceDuration
       )
     }.toSeq
   }

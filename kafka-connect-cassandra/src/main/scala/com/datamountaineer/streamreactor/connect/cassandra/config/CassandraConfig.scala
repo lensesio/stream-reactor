@@ -282,6 +282,16 @@ object CassandraConfigSource {
       ConfigDef.Width.LONG,
       CassandraConfigConstants.ALLOW_FILTERING)
 
+    .define(CassandraConfigConstants.TIMESLICE_DURATION,
+      Type.LONG,
+      CassandraConfigConstants.TIMESLICE_DURATION_DEFAULT,
+      Importance.MEDIUM,
+      CassandraConfigConstants.TIMESLICE_DURATION_DOC,
+      "Import",
+      8,
+      ConfigDef.Width.SHORT,
+      CassandraConfigConstants.TIMESLICE_DURATION)
+
 }
 
 case class CassandraConfigSource(props: util.Map[String, String])
