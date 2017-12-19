@@ -61,10 +61,8 @@ class CassandraTableReader(private val name: String,
   private val preparedStatementNoOffset = getPreparedStatementNoOffset
   private val preparedStatement = getPreparedStatements
   private var tableOffset: Option[String] = buildOffsetMap(context)
-  // TODO: add this to configuration
   private val timeSliceDuration: Long = setting.timeSliceDuration
-  // TODO: add this to configuration
-  private val timeSliceDelay: Long = 0
+  private val timeSliceDelay: Long = setting.timeSliceDelay
   private var timeSliceValue: Long = timeSliceDuration
   private val sourcePartition = Collections.singletonMap(CassandraConfigConstants.ASSIGNED_TABLES, table)
   private val schemaName = s"$keySpace.$table".replace('-', '.')
@@ -246,11 +244,11 @@ class CassandraTableReader(private val name: String,
           } match {
             case Failure(e) =>
               reset(tableOffset)
-              throw new ConnectException(s"Connector $name error processing row ${row.toString} for table $table.", e)
+              throw new ConnectException(s"Connector $name error processing row ${row.toString} for table $keySpace.$table.", e)
             case Success(_) =>
           }
         }
-        logger.info(s"Connector $name processed $counter row(-s) for table $topic.$table")
+        logger.info(s"Connector $name processed $counter row(-s) into $topic topic for table $table")
 
         alterTimeSliceValueBasedOnRowsProcessess(counter)
 
