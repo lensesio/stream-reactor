@@ -717,6 +717,15 @@ public class KcqlTest {
   }
 
   @Test
+  public void handleAtCharacterInFields() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT @col1, col2,col3 FROM %s WITHTIMESTAMP " + Kcql.TIMESTAMP, table, topic);
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(kcql.getFields().get(0).getName(), "@col1");
+  }
+
+  @Test
   public void handleStoredAs() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
