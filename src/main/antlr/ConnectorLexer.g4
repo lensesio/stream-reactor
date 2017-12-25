@@ -89,6 +89,14 @@ WITHTAG
     :   'withtag' | 'WITHTAG'
     ;
 
+WITHKEY
+    :   'withkey' | 'WITHKEY'
+    ;
+
+KEYDELIM
+    :  'keydelimiter' | 'KEYDELIMITER'
+    ;
+
 WITHSTRUCTURE
     : 'withstructure' | 'WITHSTRUCTURE'
     ;
@@ -202,6 +210,10 @@ FIELD
 
 TOPICNAME
    : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' | '-' | '+' | '/' |'{'|'}'|':' )+ | ESCAPED_TOPIC
+   ;
+
+KEYDELIMVALUE
+   : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' | '-' | '+' | '/' |'{'|'}'|':'|'|'|'#'|'@'|'`' )+ | ESCAPED_TOPIC
    ;
 
 fragment ESCAPED_TOPIC
