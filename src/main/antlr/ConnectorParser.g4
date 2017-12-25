@@ -36,7 +36,7 @@ schema_name
    ;
 
 insert_from_clause
-   : write_mode table_name select_clause_basic ( autocreate )? (with_structure)? ( PK primary_key_list)? (with_target)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? ( project_to )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? (timestamp_unit_clause)? ( with_format_clause )? (with_unwrap_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_type)? (with_doc_type)? (with_index_suffix)? (ttl_clause)? (with_converter)? (with_jms_selector)?
+   : write_mode table_name select_clause_basic ( autocreate )? (with_structure)? ( PK primary_key_list)? (with_target)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? ( project_to )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? (timestamp_unit_clause)? ( with_format_clause )? (with_unwrap_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_type)? (with_doc_type)? (with_index_suffix)? (ttl_clause)? (with_converter)? (with_jms_selector)? (with_key)? (key_delimiter)?
    ;
 
 select_clause
@@ -272,6 +272,22 @@ storeas_value
 
 with_tags
     : WITHTAG (LEFT_PARAN tag_definition ( COMMA tag_definition )* RIGHT_PARAN)
+    ;
+
+with_key
+    : WITHKEY (LEFT_PARAN with_key_value (COMMA with_key_value)* RIGHT_PARAN)
+    ;
+
+with_key_value
+    : FIELD | TOPICNAME | INT
+    ;
+
+key_delimiter
+    : KEYDELIM  EQUAL key_delimiter_value
+    ;
+
+key_delimiter_value
+    : KEYDELIMVALUE
     ;
 
 with_inc_mode

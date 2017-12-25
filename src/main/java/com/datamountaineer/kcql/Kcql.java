@@ -60,6 +60,8 @@ public class Kcql {
   private String withType;
   private String withJmsSelector;
   private String dynamicTarget;
+  private List<String> withKeys = null;
+  private String keyDelimeter = ".";
   private TimeUnit timestampUnit = TimeUnit.MILLISECONDS;
 
   public void setTTL(long ttl) {
@@ -220,6 +222,14 @@ public class Kcql {
 
   public List<Tag> getTags() {
     return tags;
+  }
+
+  public List<String> getWithKeys(){
+    return withKeys;
+  }
+
+  public String getKeyDelimeter() {
+    return keyDelimeter;
   }
 
   public boolean hasRetainStructure() {
@@ -638,6 +648,23 @@ public class Kcql {
         kcql.tags.add(new Tag(tagKey[0], tagValue[0], type));
         tagKey[0] = null;
         tagValue[0] = null;
+      }
+
+      @Override
+      public void exitWith_key_value(ConnectorParser.With_key_valueContext ctx) {
+        String key = ctx.getText();
+        if(kcql.withKeys ==null){
+          kcql.withKeys = new ArrayList<>();
+        }
+        kcql.withKeys.add(key);
+      }
+
+      @Override
+      public void exitKey_delimiter_value(ConnectorParser.Key_delimiter_valueContext ctx) {
+        kcql.keyDelimeter = ctx.getText().replace("`","");
+        if(kcql.keyDelimeter.trim().length()==0){
+          throw new IllegalArgumentException("Invalid key delimiter. Needs to be a non empty string.");
+        }
       }
     });
 
