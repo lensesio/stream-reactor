@@ -17,8 +17,7 @@
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import java.util
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
@@ -27,6 +26,7 @@ import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.source.SourceRecord
 import org.eclipse.paho.client.mqttv3._
 
+import scala.collection.JavaConversions._
 
 class MqttManager(connectionFn: (MqttCallback) => MqttClient,
                   convertersMap: Map[String, Converter],
@@ -35,7 +35,7 @@ class MqttManager(connectionFn: (MqttCallback) => MqttClient,
                   throwOnErrors: Boolean,
                   pollingTimeout: Int) extends AutoCloseable with StrictLogging with MqttCallback {
   private val queue = new LinkedBlockingQueue[SourceRecord]() // This queue is used in messageArrived() callback of MqttClient,
-                                                              // hence instantiation should be prior to MqttClient.
+  // hence instantiation should be prior to MqttClient.
   private val client: MqttClient = connectionFn(this)
   private val sourceToTopicMap = kcql.map(c => c.getSource -> c).toMap
   require(kcql.nonEmpty, s"Invalid $kcql parameter. At least one statement needs to be provided")
@@ -55,18 +55,22 @@ class MqttManager(connectionFn: (MqttCallback) => MqttClient,
 
   override def messageArrived(topic: String, message: MqttMessage): Unit = {
     val matched = sourceToTopicMap
-                    .filter(t => compareTopic(topic, t._1))
-                    .map(t => t._2.getSource)
+      .filter(t => compareTopic(topic, t._1))
+      .map(t => t._2.getSource)
 
     val wildcard = matched.head
-    val kafkaTopic = sourceToTopicMap
+    val kcql = sourceToTopicMap
       .getOrElse(wildcard, throw new ConfigException(s"Topic $topic is not configured. Available topics are:${sourceToTopicMap.keySet.mkString(",")}"))
-      .getTarget
+    val kafkaTopic = kcql.getTarget
 
     val converter = convertersMap.getOrElse(wildcard, throw new RuntimeException(s"$wildcard topic is missing the converter instance."))
     if (!message.isDuplicate) {
       try {
-        Option(converter.convert(kafkaTopic, topic, message.getId.toString, message.getPayload)) match {
+        val keys = Option(kcql.getWithKeys).map { l =>
+          val scalaList: Seq[String] = l
+          scalaList
+        }.getOrElse(Seq.empty[String])
+        Option(converter.convert(kafkaTopic, topic, message.getId.toString, message.getPayload, keys, kcql.getKeyDelimeter)) match {
           case Some(record) =>
             queue.add(record)
             message.setRetained(false)
