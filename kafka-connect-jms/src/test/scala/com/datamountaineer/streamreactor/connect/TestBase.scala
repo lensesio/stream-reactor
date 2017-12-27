@@ -103,7 +103,7 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     ).asJava
   }
 
-  def getProps1Topic(url: String = JMS_URL)  = {
+  def getProps1Topic(url: String = JMS_URL) = {
     Map(JMSConfigConstants.KCQL -> KCQL_SOURCE_TOPIC,
       JMSConfigConstants.JMS_USER -> JMS_USER,
       JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
@@ -141,7 +141,7 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     ).asJava
   }
 
-  def getPropsMixCDI(url : String = JMS_URL) = {
+  def getPropsMixCDI(url: String = JMS_URL) = {
     Map(JMSConfigConstants.KCQL -> KCQL_MIX,
       JMSConfigConstants.JMS_USER -> JMS_USER,
       JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
@@ -152,7 +152,7 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     ).asJava
   }
 
-  def getPropsMixCDIWithConverters(url : String = JMS_URL) = {
+  def getPropsMixCDIWithConverters(url: String = JMS_URL) = {
     Map(JMSConfigConstants.KCQL -> KCQL_AVRO_SOURCE_MIX,
       JMSConfigConstants.JMS_USER -> JMS_USER,
       JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
@@ -164,7 +164,7 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     ).asJava
   }
 
-  def getPropsMixJNDI(url : String = JMS_URL) = {
+  def getPropsMixJNDI(url: String = JMS_URL) = {
     Map(JMSConfigConstants.KCQL -> KCQL_MIX,
       JMSConfigConstants.JMS_USER -> JMS_USER,
       JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
@@ -243,18 +243,18 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
       .put("mapNonStringKeys", Map(1 -> 1).asJava)
   }
 
-  def getSinkRecords  = {
+  def getSinkRecords = {
     List(new SinkRecord(TOPIC1, 0, null, null, getSchema, getStruct(getSchema), 1),
-        new SinkRecord(TOPIC2, 0, null, null, getSchema, getStruct(getSchema), 5))
+      new SinkRecord(TOPIC2, 0, null, null, getSchema, getStruct(getSchema), 5))
   }
 
 
-  def getTextMessages(n : Int, session: Session) : Seq[TextMessage] = {
-    (1 to n).map( i => session.createTextMessage(s"Message $i"))
+  def getTextMessages(n: Int, session: Session): Seq[TextMessage] = {
+    (1 to n).map(i => session.createTextMessage(s"Message $i"))
   }
 
-  def getBytesMessage(n : Int, session: Session) : Seq[BytesMessage] = {
-    (1 to n).map( i => {
+  def getBytesMessage(n: Int, session: Session): Seq[BytesMessage] = {
+    (1 to n).map(i => {
       val s = Student(s"andrew", i, i.toDouble)
       val msg = session.createBytesMessage()
       msg.writeBytes(getAvro(s))
@@ -262,7 +262,7 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     })
   }
 
-  def getAvro(s : Student): Array[Byte] = {
+  def getAvro(s: Student): Array[Byte] = {
     val baos = new ByteArrayOutputStream()
     val output = AvroOutputStream.binary[Student](baos)
     output.write(s)
@@ -273,15 +273,17 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
   def kcqlWithMessageSelector(msgSelector: String) =
     s"INSERT INTO $TOPIC1 SELECT * FROM $JMS_TOPIC1 WITHTYPE TOPIC WITHJMSSELECTOR=`$msgSelector`"
 
-  def getFreePort:Int = {
+  def getFreePort: Int = {
     val socket = new ServerSocket(0)
     socket.setReuseAddress(true)
-    socket.getLocalPort
+    val port = socket.getLocalPort
+    socket.close()
+    port
   }
 
-  def testWithBrokerOnPort(test: (Connection, String) => Unit):Unit = testWithBrokerOnPort() (test: (Connection, String) => Unit)
+  def testWithBrokerOnPort(test: (Connection, String) => Unit): Unit = testWithBrokerOnPort()(test: (Connection, String) => Unit)
 
-  def testWithBrokerOnPort(port: Int = getFreePort) (test: (Connection, String) => Unit): Unit = {
+  def testWithBrokerOnPort(port: Int = getFreePort)(test: (Connection, String) => Unit): Unit = {
     val broker = new BrokerService()
     broker.setPersistent(false)
     broker.setUseJmx(false)
@@ -291,8 +293,8 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     broker.setUseShutdownHook(false)
     val property = "java.io.tmpdir"
     val tempDir = System.getProperty(property)
-    broker.setDataDirectoryFile( new File(tempDir))
-    broker.setTmpDataDirectory( new File(tempDir))
+    broker.setDataDirectoryFile(new File(tempDir))
+    broker.setTmpDataDirectory(new File(tempDir))
     broker.start()
 
     val connectionFactory = new ActiveMQConnectionFactory()
@@ -302,4 +304,4 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
 
     test(conn, brokerUrl)
   }
- }
+}

@@ -18,7 +18,7 @@ project(":kafka-connect-influxdb") {
 
     ext {
         influxDbVersion = "2.7"
-        kcql2 = "2.2.0"
+        kcql2 = "2.4.0"
         smt = "0.1"
     }
 
@@ -26,7 +26,7 @@ project(":kafka-connect-influxdb") {
         compile("com.datamountaineer:kcql:$kcql2") {
             exclude group: "com.google.guava", module: "guava"
         }
-        compile("com.datamountaineer:kafka-connect-common:0.9.0"){
+        compile("com.datamountaineer:kafka-connect-common:0.9.3"){
             exclude group: "com.datamountaineer", module: "kcql"
         }
         compile("com.landoop:kafka-connect-smt_2.11:$smt")
