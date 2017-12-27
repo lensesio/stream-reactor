@@ -29,6 +29,7 @@ import com.datastax.driver.core.Session
 import org.apache.kafka.connect.data.Schema
 import org.scalatest.BeforeAndAfterAll
 
+@DoNotDiscover
 class TestCassandraSourceTaskTimestamp extends WordSpec
     with Matchers
     with MockitoSugar

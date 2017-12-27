@@ -32,6 +32,7 @@ import scala.collection.JavaConverters._
 import com.datastax.driver.core.Session
 import org.scalatest.BeforeAndAfterAll
 
+@DoNotDiscover
 class TestCassandraSourceTaskTimeuuid extends WordSpec 
     with Matchers
     with MockitoSugar
