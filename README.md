@@ -273,6 +273,11 @@ To build a particular project
 ```
 gradle :kafka-connect-elastic5:build
 ```
+To create a jar of a particular project:
+
+```
+gradle :kafka-connect-elastic5:shadowJar
+```
 
 ## Contributing
 
