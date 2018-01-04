@@ -315,6 +315,9 @@ object ValuesExtractor {
               case bd: BigDecimal =>
                 checkValidPath()
                 bd
+              case bd: java.math.BigDecimal=>
+                checkValidPath()
+                bd
               case array: Array[Byte] =>
                 checkValidPath()
                 Decimal.toLogical(field.schema, value.asInstanceOf[Array[Byte]])

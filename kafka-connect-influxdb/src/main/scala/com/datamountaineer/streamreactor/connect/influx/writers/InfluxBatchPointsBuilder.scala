@@ -290,6 +290,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
       case value: Float => builder.addField(field, value)
       case value: Boolean => builder.addField(field, value)
       case value: java.math.BigDecimal => builder.addField(field, value)
+      case value: BigDecimal => builder.addField(field, value.bigDecimal)
       case value: String => builder.addField(field, value)
       case value: java.util.Date => builder.addField(field, value.getTime)
       //we should never reach this since the extractor should not allow it
