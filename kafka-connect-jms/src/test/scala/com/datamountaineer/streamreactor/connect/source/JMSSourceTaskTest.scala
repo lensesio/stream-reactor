@@ -75,16 +75,15 @@ class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll with Eventually 
       m.acknowledge()
     })
 
-    eventually {
+    val processedRecords = eventually {
       val records = task.poll().asScala
       records.size shouldBe 10
       records.head.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
+      messagesLeftToAckShouldBe(10)
+      records
     }
 
-    messagesLeftToAckShouldBe(10)
-
-    task.poll()
-    task.commit()
+    processedRecords.foreach(task.commitRecord)
 
     messagesLeftToAckShouldBe(0)
 

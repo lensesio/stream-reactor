@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.connect.jms.source
 
 import java.util
+import java.util.concurrent.ConcurrentHashMap
 import javax.jms.Message
 
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants, JMSSettings}
@@ -26,8 +27,9 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
+
 import scala.collection.mutable
-import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andrew@datamountaineer.com on 10/03/2017. 
@@ -38,6 +40,7 @@ class JMSSourceTask extends SourceTask with StrictLogging {
   val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
   private var ackMessage: Option[Message] = None
+  private val recordsToCommit = new ConcurrentHashMap[SourceRecord, SourceRecord]()
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-source-ascii.txt")).mkString + s" v $version")
@@ -62,7 +65,11 @@ class JMSSourceTask extends SourceTask with StrictLogging {
       records = collection.mutable.Seq(polled.map({ case (_, record) => record }).toSeq: _*)
       messages = collection.mutable.Seq(polled.map({ case (message, _) => message }).toSeq: _*)
     } finally {
-      if(messages.size > 0) ackMessage = messages.headOption
+      if (messages.size > 0) {
+        ackMessage = messages.headOption
+        val polledRecordsToCommit = records.zip(records).toMap.asJava
+        recordsToCommit.putAll(polledRecordsToCommit)
+      }
     }
 
     if (enableProgress) {
@@ -72,9 +79,13 @@ class JMSSourceTask extends SourceTask with StrictLogging {
     records
   }
 
-  override def commit(): Unit = {
-    ackMessage.foreach(_.acknowledge())
-    ackMessage = None
+  override def commitRecord(record: SourceRecord): Unit = {
+    recordsToCommit.remove(record)
+
+    if (recordsToCommit.isEmpty) {
+      ackMessage.foreach(_.acknowledge())
+      ackMessage = None
+    }
   }
 
   override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
