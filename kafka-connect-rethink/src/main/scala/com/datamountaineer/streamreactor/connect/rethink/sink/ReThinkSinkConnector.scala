@@ -20,6 +20,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.config.Helpers
 import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkConfigConstants, ReThinkSinkConfig, ReThinkSinkSettings}
+import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.rethinkdb.RethinkDB
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
@@ -36,6 +37,7 @@ import scala.collection.JavaConverters._
 class ReThinkSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
   private val configDef = ReThinkSinkConfig.config
+  private val manifest = JarManifest()
 
   /**
     * States which SinkTask class to use
@@ -85,7 +87,7 @@ class ReThinkSinkConnector extends SinkConnector with StrictLogging {
 
   override def stop(): Unit = {}
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version(): String = manifest.version()
 
   override def config(): ConfigDef = configDef
 }

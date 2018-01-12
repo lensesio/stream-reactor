@@ -20,7 +20,7 @@ import java.util
 
 import com.bloomberglp.blpapi._
 import com.datamountaineer.streamreactor.connect.bloomberg.config.BloombergSourceConfig
-import com.datamountaineer.streamreactor.connect.utils.ReadManifest
+import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
@@ -41,6 +41,7 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
   var session: Option[Session] = None
 
   var subscriptionManager: Option[BloombergSubscriptionManager] = None
+  private val manifest = JarManifest()
   
   /**
     * Un-subscribes the tickers and stops the Bloomberg session
@@ -74,6 +75,7 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
     */
   override def start(map: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/bloomberg-ascii.txt")).mkString + s" v $version")
+    logger.info(manifest.printManifest())
 
     try {
       settings = Some(BloombergSettings(new BloombergSourceConfig(map)))
@@ -96,7 +98,7 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
     }
   }
 
-  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
+  override def version: String = manifest.version()
 
   /**
     * Called by the framework. It returns all the accumulated records since the previous call.

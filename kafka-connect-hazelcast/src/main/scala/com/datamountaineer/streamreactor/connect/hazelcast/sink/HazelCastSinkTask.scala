@@ -21,14 +21,13 @@ import java.util
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkConfig, HazelCastSinkConfigConstants, HazelCastSinkSettings}
 import com.datamountaineer.streamreactor.connect.hazelcast.writers.HazelCastWriter
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
-import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andrew@datamountaineer.com on 10/08/16. 
@@ -38,12 +37,15 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[HazelCastWriter] = None
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
+  private val manifest = JarManifest()
 
   /**
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/hazelcast-ascii.txt")).mkString + s" v $version")
+    logger.info(manifest.printManifest())
+
     HazelCastSinkConfig.config.parse(props)
     val sinkConfig = new HazelCastSinkConfig(props)
     enableProgress = sinkConfig.getBoolean(HazelCastSinkConfigConstants.PROGRESS_COUNTER_ENABLED)
@@ -55,7 +57,6 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
     }
 
     writer = Some(HazelCastWriter(settings))
-
   }
 
   /**
@@ -85,6 +86,6 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
     writer.foreach(w => w.flush())
   }
 
-  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
+  override def version: String = manifest.version()
 }
 

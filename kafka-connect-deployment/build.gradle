@@ -42,30 +42,31 @@ project(":kafka-connect-deployment") {
     }
 
     dependencies {
-//        provided project((':kafka-connect-azure-documentdb'))
-//        provided project(':kafka-connect-blockchain')
-//        provided project(':kafka-connect-bloomberg')
-//        provided project(':kafka-connect-cassandra')
-//        provided project(':kafka-connect-coap')
-//        provided project(':kafka-connect-druid')
-//        provided project(':kafka-connect-elastic')
-//        provided (project(':kafka-connect-elastic5')) {
-//            transitive = false
-//        }
-//        provided project(':kafka-connect-ftp')
-//        provided project(':kafka-connect-hazelcast')
-//        provided project(':kafka-connect-hbase')
-//        provided project(':kafka-connect-influxdb')
-//        provided project(':kafka-connect-jms')
-//        compile (project(':kafka-connect-kudu')) {
-//            transitive = false
-//        }
-//        provided project(':kafka-connect-mongodb')
-//        provided project(':kafka-connect-mqtt')
-//        provided project(':kafka-connect-redis')
-//        provided project(':kafka-connect-rethink')
-//        provided project(':kafka-connect-voltdb')
-//        provided project(':kafka-connect-yahoo')
+        provided project((':kafka-connect-azure-documentdb'))
+        provided project(':kafka-connect-blockchain')
+        provided project(':kafka-connect-bloomberg')
+        provided project(':kafka-connect-cassandra')
+        provided project(':kafka-connect-coap')
+        provided project(':kafka-connect-druid')
+        provided project(':kafka-connect-elastic')
+        provided (project(':kafka-connect-elastic5')) {
+            transitive = false
+        }
+        provided project(':kafka-connect-ftp')
+        provided project(':kafka-connect-hazelcast')
+        provided project(':kafka-connect-hbase')
+        provided project(':kafka-connect-influxdb')
+        provided project(':kafka-connect-jms')
+        compile (project(':kafka-connect-kudu')) {
+            transitive = false
+        }
+        provided project(':kafka-connect-pulsar')
+        provided project(':kafka-connect-mongodb')
+        provided project(':kafka-connect-mqtt')
+        provided project(':kafka-connect-redis')
+        provided project(':kafka-connect-rethink')
+        provided project(':kafka-connect-voltdb')
+        provided project(':kafka-connect-yahoo')
         compile("org.clapper:classutil_$scalaMajorVersion:$classUtilVersion")
     }
 }

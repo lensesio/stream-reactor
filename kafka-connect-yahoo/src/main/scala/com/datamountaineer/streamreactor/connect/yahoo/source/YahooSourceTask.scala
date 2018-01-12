@@ -35,6 +35,7 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig with StrictLoggi
 
   private var taskConfig: Option[AbstractConfig] = None
   private var dataManager: Option[DataRetrieverManager] = None
+  private val manifest = JarManifest()
 
   /**
     * Starts the Yahoo source, parsing the options and setting up the reader.
@@ -43,6 +44,8 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig with StrictLoggi
     **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/yahoo-ascii.txt")).mkString + s" v $version")
+    logger.info(manifest.printManifest())
+
     //get configuration for this task
     taskConfig = Try(new AbstractConfig(configDef, props)) match {
       case Failure(f) => throw new ConfigException("Couldn't start YahooSource due to configuration error.", f)
@@ -97,6 +100,6 @@ class YahooSourceTask extends SourceTask with YahooSourceConfig with StrictLoggi
     *
     * @return
     */
-  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
+  override def version: String = manifest.version()
 
 }

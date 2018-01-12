@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.mongodb.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants}
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -37,6 +37,7 @@ import scala.util.{Failure, Success, Try}
   **/
 class MongoSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[MongoWriter] = None
+  private val manifest = JarManifest()
 
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
@@ -53,6 +54,7 @@ class MongoSinkTask extends SinkTask with StrictLogging {
     }
 
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/mongo-ascii.txt")).mkString + s" v $version")
+    logger.info(manifest.printManifest())
     writer = Some(MongoWriter(taskConfig, context = context))
     enableProgress = taskConfig.getBoolean(MongoConfigConstants.PROGRESS_COUNTER_ENABLED)
   }
@@ -78,5 +80,5 @@ class MongoSinkTask extends SinkTask with StrictLogging {
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
 
-  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
+  override def version: String = manifest.version()
 }

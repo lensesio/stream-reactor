@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.yahoo.source
 import java.util
 import java.util.logging.Logger
 
+import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.datamountaineer.streamreactor.connect.yahoo.config.{DistributeConfigurationFn, YahooSourceConfig}
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -35,6 +36,7 @@ import scala.collection.JavaConverters._
 class YahooSourceConnector extends SourceConnector with YahooSourceConfig {
   val logger: Logger = Logger.getLogger(getClass.getName)
   private var configProps: Option[util.Map[String, String]] = None
+  private val manifest = JarManifest()
 
   /**
     * Defines the source class to use
@@ -70,7 +72,7 @@ class YahooSourceConnector extends SourceConnector with YahooSourceConfig {
     *
     * @return
     */
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version(): String = manifest.version()
 
   override def config(): ConfigDef = configDef
 }

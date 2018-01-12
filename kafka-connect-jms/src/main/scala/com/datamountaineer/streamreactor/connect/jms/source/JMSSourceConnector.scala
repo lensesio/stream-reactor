@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.jms.source
 import java.util
 
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants}
+import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -35,6 +36,7 @@ import scala.collection.JavaConverters._
 class JMSSourceConnector extends SourceConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
   private val configDef = JMSConfig.config
+  private val manifest = JarManifest()
 
   override def taskClass(): Class[_ <: Task] = classOf[JMSSourceTask]
 
@@ -63,5 +65,5 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
 
   override def stop(): Unit = {}
 
-  override def version(): String =  getClass.getPackage.getImplementationVersion
+  override def version(): String =  manifest.version()
 }

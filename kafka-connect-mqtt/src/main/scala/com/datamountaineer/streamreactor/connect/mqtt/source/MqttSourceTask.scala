@@ -23,7 +23,7 @@ import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
@@ -35,10 +35,13 @@ class MqttSourceTask extends SourceTask with StrictLogging {
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
   private var mqttManager: Option[MqttManager] = None
+  private val manifest = JarManifest()
 
   override def start(props: util.Map[String, String]): Unit = {
 
     logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/mqtt-source-ascii.txt")).mkString + s" v $version")
+    logger.info(manifest.printManifest())
+
     implicit val settings = MqttSourceSettings(MqttSourceConfig(props))
 
     settings.sslCACertFile.foreach { file =>
@@ -69,6 +72,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
       converter.initialize(props.asScala.toMap)
       topic -> converter
     }
+
     logger.info("Starting Mqtt source...")
     mqttManager = Some(new MqttManager(MqttClientConnectionFn.apply, convertersMap, settings.mqttQualityOfService, settings.kcql.map(Kcql.parse), settings.throwOnConversion, settings.pollingTimeout))
     enableProgress = settings.enableProgress
@@ -100,5 +104,5 @@ class MqttSourceTask extends SourceTask with StrictLogging {
     progressCounter.empty
   }
 
-  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
+  override def version: String = manifest.version()
 }

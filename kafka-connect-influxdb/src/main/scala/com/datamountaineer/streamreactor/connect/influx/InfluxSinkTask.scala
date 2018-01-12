@@ -21,14 +21,13 @@ import java.util
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.influx.config.{InfluxConfig, InfluxConfigConstants, InfluxSettings}
 import com.datamountaineer.streamreactor.connect.influx.writers.{InfluxDbWriter, WriterFactoryFn}
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
-import scala.util.{Failure, Success, Try}
 
 /**
   * <h1>InfluxSinkTask</h1>
@@ -40,12 +39,15 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
   var writer: Option[InfluxDbWriter] = None
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
+  private val manifest = JarManifest()
 
   /**
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/influx-ascii.txt")).mkString + s" v $version")
+    logger.info(manifest.printManifest())
+
     InfluxConfig.config.parse(props)
     val sinkConfig = InfluxConfig(props)
     enableProgress = sinkConfig.getBoolean(InfluxConfigConstants.PROGRESS_COUNTER_ENABLED)
@@ -87,7 +89,7 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
     progressCounter.empty
   }
 
-  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
+  override def version: String = manifest.version()
 
   override def flush(offsets: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
 }

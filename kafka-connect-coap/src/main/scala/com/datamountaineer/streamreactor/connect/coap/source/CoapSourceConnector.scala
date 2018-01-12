@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.coap.source
 import java.util
 
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSourceConfig}
+import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
@@ -34,6 +35,7 @@ import scala.collection.JavaConverters._
 class CoapSourceConnector extends SourceConnector {
   private var configProps: util.Map[String, String] = _
   private val configDef = CoapSourceConfig.config
+  private val manifest = JarManifest()
 
   override def taskClass(): Class[_ <: Task] = classOf[CoapSourceTask]
 
@@ -62,5 +64,5 @@ class CoapSourceConnector extends SourceConnector {
 
   override def stop(): Unit = {}
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version(): String = manifest.version()
 }

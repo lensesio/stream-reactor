@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.ftp.source
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
@@ -28,6 +29,7 @@ import scala.util.{Failure, Try}
 
 class FtpSourceConnector extends SourceConnector with StrictLogging {
   private var configProps : Option[util.Map[String, String]] = None
+  private val manifest = JarManifest()
 
   override def taskClass(): Class[_ <: Task] = classOf[FtpSourceTask]
 
@@ -54,7 +56,7 @@ class FtpSourceConnector extends SourceConnector with StrictLogging {
     }
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version(): String = manifest.version()
 
   override def config() = FtpSourceConfig.definition
 }

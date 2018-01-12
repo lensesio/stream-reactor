@@ -20,7 +20,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSettings, CoapSinkConfig}
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -28,7 +28,6 @@ import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
-import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andrew@datamountaineer.com on 29/12/2016. 
@@ -38,9 +37,11 @@ class CoapSinkTask extends SinkTask with StrictLogging {
   private val writers = mutable.Map.empty[String, CoapWriter]
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
+  private val manifest = JarManifest()
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-sink-ascii.txt")).mkString + s" v $version")
+    logger.info(manifest.printManifest())
     val sinkConfig = CoapSinkConfig(props)
     enableProgress = sinkConfig.getBoolean(CoapConstants.PROGRESS_COUNTER_ENABLED)
     val settings = CoapSettings(sinkConfig)
@@ -70,6 +71,6 @@ class CoapSinkTask extends SinkTask with StrictLogging {
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
 
-  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
+  override def version: String = manifest.version()
 
 }

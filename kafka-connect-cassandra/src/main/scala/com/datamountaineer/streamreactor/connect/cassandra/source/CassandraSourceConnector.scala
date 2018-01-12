@@ -20,6 +20,7 @@ import java.util
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource}
+import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -38,6 +39,7 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
 
   private var configProps: Option[util.Map[String, String]] = None
   private val configDef = CassandraConfigSource.sourceConfig
+  private val manifest = JarManifest()
 
   /**
     * Defines the sink class to use
@@ -88,7 +90,7 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
     *
     * @return
     */
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version(): String = manifest.version()
 
   override def config(): ConfigDef = configDef
 }

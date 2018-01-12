@@ -21,14 +21,13 @@ import java.util
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisSinkSettings}
 import com.datamountaineer.streamreactor.connect.redis.sink.writer.{RedisCache, RedisInsertSortedSet, RedisMultipleSortedSets, RedisWriter}
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
-import scala.util.{Failure, Success, Try}
 
 /**
   * <h1>RedisSinkTask</h1>
@@ -40,12 +39,15 @@ class RedisSinkTask extends SinkTask with StrictLogging {
   var writer: List[RedisWriter] = List[RedisWriter]()
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
+  private val manifest = JarManifest()
 
   /**
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/redis-ascii.txt")).mkString + s" v $version")
+    logger.info(manifest.printManifest())
+
     RedisConfig.config.parse(props)
     val sinkConfig = new RedisConfig(props)
     val settings = RedisSinkSettings(sinkConfig)
@@ -113,5 +115,5 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     //have the writer expose a is busy; can expose an await using a countdownlatch internally
   }
 
-  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
+  override def version: String = manifest.version()
 }

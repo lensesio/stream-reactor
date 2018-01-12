@@ -107,4 +107,4 @@ spec:
             fieldRef:
               fieldPath: status.podIP
         - name:  CONNECT_PLUGINS_PATH
-          value: "/etc/datamountaineer/jars"
+          value: "/etc/landoop/jars"

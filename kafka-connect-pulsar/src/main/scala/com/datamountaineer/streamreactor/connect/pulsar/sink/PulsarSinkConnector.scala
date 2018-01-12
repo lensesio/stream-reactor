@@ -20,6 +20,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.config.Helpers
 import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSinkConfig}
+import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -31,6 +32,7 @@ import scala.collection.JavaConversions._
 class PulsarSinkConnector extends SinkConnector with StrictLogging {
   private val configDef = PulsarSinkConfig.config
   private var configProps: Option[util.Map[String, String]] = None
+  private val manifest = JarManifest()
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Starting Pulsar sink connector.")
@@ -40,7 +42,7 @@ class PulsarSinkConnector extends SinkConnector with StrictLogging {
 
   override def taskClass(): Class[_ <: Task] = classOf[PulsarSinkTask]
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version(): String = manifest.version()
 
   override def stop(): Unit = {}
 

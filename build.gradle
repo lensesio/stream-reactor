@@ -26,7 +26,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.github.maiflai:gradle-scalatest:0.16'
+        classpath 'com.github.maiflai:gradle-scalatest:0.18'
         classpath 'net.researchgate:gradle-release:2.6.0'
         classpath "org.github.ngbinh.scalastyle:gradle-scalastyle-plugin_2.11:0.9.0"
         classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
@@ -128,7 +128,7 @@ allprojects {
         // The following 4 need to align to compile against a particular version
         confluentVersion = '3.3.0'
         kafkaVersion = '0.11.0.0'
-        dataMountaineerCommonVersion = "0.9.6.2"
+        dataMountaineerCommonVersion = "0.9.6.3"
         dataMountaineerTestKitVersion = "0.6"
 
 //        // Confluent 3.2
@@ -191,13 +191,15 @@ allprojects {
         zip64 true
 
         manifest {
-            attributes( "Implementation-Title": "Stream Reactor",
-                        "Implementation-Version": project.version,
-                        "Created-By" : "DataMountaineer",
-                        "Created-At" : getDateTime(),
-                        "Git-Commit-Hash": getGitHash(),
-                        "Git-Tag": getGitTag(),
-                        "Documentation" : "http://docs.datamountaineer.com/en/${project.version}/"
+            attributes( "StreamReactor-Version": project.version,
+                    "KCQL-Version" : "${KCQLVersion}",
+                    "Kafka-Version": "${kafkaVersion}",
+                    "Created-By" : "Landoop",
+                    "Created-At" : getDateTime(),
+                    "Git-Repo": getGitRepo(),
+                    "Git-Commit-Hash": getGitHash(),
+                    "Git-Tag": getGitTag(),
+                    "StreamReactor-Docs" : "https://lenses.stream/"
             )
         }
 

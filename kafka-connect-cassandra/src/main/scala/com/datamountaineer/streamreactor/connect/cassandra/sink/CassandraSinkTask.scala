@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigSink, CassandraSettings}
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -40,6 +40,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[CassandraJsonWriter] = None
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
+  private val manifest = JarManifest()
   logger.info("Task initialising")
 
 
@@ -55,6 +56,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
     val sinkSettings = CassandraSettings.configureSink(taskConfig)
     enableProgress = sinkSettings.enableProgress
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-sink-ascii.txt")).mkString + s" v $version")
+    logger.info(manifest.printManifest())
     writer = Some(CassandraWriter(connectorConfig = taskConfig, context = context))
   }
 
@@ -83,5 +85,5 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
 
-  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
+  override def version: String = manifest.version()
 }

@@ -3,7 +3,7 @@
 [<img src="https://img.shields.io/badge/latest%20release-0.3.0-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22)
 
 
-Join us on slack [![Alt text](images/slack.jpeg)](http://datamountaineer.com/contact/)
+Join us on slack [![Alt text](images/slack.jpeg)](https://launchpass.com/landoop-community)
 
 # Lenses for Apache Kafka
 
@@ -35,7 +35,7 @@ A collection of components to build a real time ingestion pipeline.
 | Coap           | Source | Kafka connect Coap source to read from IoT Coap endpoints using Californium.                  | [Docs](https://lenses.stream/connectors/source/coap.html)                 |
 | Coap           | Sink   | Kafka connect Coap sink to write kafka topic payload to IoT Coap endpoints using Californium. | [Docs](https://lenses.stream/connectors/sink/coap.html)                   |
 | *DSE Cassandra | Sink   | Certified DSE Kafka connect Cassandra sink task to write Kafka topic payloads to Cassandra.   | [Docs](https://lenses.stream/connectors/sink/cassandra.html)              |
-| Druid          | Sink   | Kafka connect Druid sink to write Kafka topic payloads to Druid.                              | [Docs](http://docs.datamountaineer.com/en/latest/druid.html)             |
+| Druid          | Sink   | Kafka connect Druid sink to write Kafka topic payloads to Druid.                              |             |
 | Elastic        | Sink   | Kafka connect Elastic Search sink to write Kafka topic payloads to Elastic Search 2.x         | [Docs](https://lenses.stream/connectors/sink/elastic.html)                |
 | Elastic 5      | Sink   | Kafka connect Elastic Search sink to write payloads to Elastic Search 5.x w. tcp or http      | [Docs](https://lenses.stream/connectors/sink/elastic5.html)               |
 | FTP/HTTP       | Source | Kafka connect FTP and HTTP source to write file data into Kafka topics.                       | [Docs](https://lenses.stream/connectors/source/ftp.html)                  |

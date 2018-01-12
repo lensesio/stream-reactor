@@ -20,7 +20,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSinkConfig, PulsarSinkSettings}
-import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -37,9 +37,11 @@ class PulsarSinkTask extends SinkTask with StrictLogging {
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
   private var writer: Option[PulsarWriter] = None
+  private val manifest = JarManifest()
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/pulsar-sink-ascii.txt")).mkString + s" v $version")
+    logger.info(manifest.printManifest())
 
     PulsarSinkConfig.config.parse(props)
     val sinkConfig = new PulsarSinkConfig(props)
@@ -78,5 +80,5 @@ class PulsarSinkTask extends SinkTask with StrictLogging {
     writer.foreach(w => w.flush)
   }
 
-  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
+  override def version: String = manifest.version()
 }

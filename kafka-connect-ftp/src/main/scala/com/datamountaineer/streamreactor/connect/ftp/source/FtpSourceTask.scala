@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.ftp.source
 import java.time.Duration
 import java.util
 
-import com.datamountaineer.streamreactor.connect.utils.ReadManifest
+import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
@@ -27,7 +27,7 @@ import org.apache.kafka.connect.storage.OffsetStorageReader
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.Stream.Empty
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 // holds functions that translate a file meta+body into a source record
 
@@ -97,6 +97,7 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
 
 class FtpSourceTask extends SourceTask with StrictLogging {
   var poller: Option[FtpSourcePoller] = None
+  private val manifest = JarManifest()
 
   override def stop(): Unit = {
     logger.info("stop")
@@ -105,6 +106,7 @@ class FtpSourceTask extends SourceTask with StrictLogging {
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info("start")
+    logger.info(manifest.printManifest())
     val sourceConfig = new FtpSourceConfig(props)
     sourceConfig.ftpMonitorConfigs.foreach(cfg => {
       val style = if (cfg.tail) "tail" else "updates"
@@ -113,7 +115,7 @@ class FtpSourceTask extends SourceTask with StrictLogging {
     poller = Some(new FtpSourcePoller(sourceConfig, context.offsetStorageReader))
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version(): String = manifest.version()
 
   override def poll(): util.List[SourceRecord] = poller match {
     case Some(poller) => poller.poll().asJava

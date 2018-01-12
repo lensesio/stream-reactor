@@ -21,7 +21,7 @@ import java.util
 import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
 import com.microsoft.azure.documentdb.DocumentClient
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -40,6 +40,7 @@ import scala.util.{Failure, Success, Try}
   **/
 class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => DocumentClient) extends SinkTask with StrictLogging {
   private var writer: Option[DocumentDbWriter] = None
+  private val manifest = JarManifest()
 
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
@@ -56,6 +57,8 @@ class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => Do
     }
 
     logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/documentdb-sink-ascii.txt")).mkString + s" v $version")
+    logger.info(manifest.printManifest())
+
     implicit val settings = DocumentDbSinkSettings(taskConfig)
     //if error policy is retry set retry interval
     if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
@@ -88,5 +91,5 @@ class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => Do
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
 
-  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
+  override def version: String = manifest.version()
 }

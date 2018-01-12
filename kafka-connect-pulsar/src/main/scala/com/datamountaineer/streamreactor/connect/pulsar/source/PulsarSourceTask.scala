@@ -21,7 +21,7 @@ import java.util
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSourceConfig, PulsarSourceSettings}
-import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import org.apache.pulsar.client.api.PulsarClient
@@ -34,10 +34,12 @@ class PulsarSourceTask extends SourceTask with StrictLogging {
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
   private var pulsarManager: Option[PulsarManager] = None
+  private val manifest = JarManifest()
 
   override def start(props: util.Map[String, String]): Unit = {
 
     logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/Pulsar-source-ascii.txt")).mkString + s" v $version")
+    logger.info(manifest.printManifest())
     implicit val settings = PulsarSourceSettings(PulsarSourceConfig(props))
 
     val convertersMap = settings.sourcesToConverters.map { case (topic, clazz) =>
@@ -81,5 +83,5 @@ class PulsarSourceTask extends SourceTask with StrictLogging {
     progressCounter.empty
   }
 
-  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
+  override def version: String = manifest.version()
 }

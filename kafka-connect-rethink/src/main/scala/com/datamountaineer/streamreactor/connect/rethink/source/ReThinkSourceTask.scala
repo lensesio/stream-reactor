@@ -20,14 +20,12 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkConfigConstants, ReThinkSourceConfig}
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
 import com.rethinkdb.RethinkDB
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
-import scala.util.{Failure, Success, Try}
-
 
 /**
   * Created by andrew@datamountaineer.com on 22/09/16. 
@@ -38,9 +36,12 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
   private var lingerTimeout = ReThinkConfigConstants.SOURCE_LINGER_MS_DEFAULT
+  private val manifest = JarManifest()
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/rethink-source-ascii.txt")).mkString + s" v $version")
+    logger.info(manifest.printManifest())
+
     val config = ReThinkSourceConfig(props)
     enableProgress = config.getBoolean(ReThinkConfigConstants.PROGRESS_COUNTER_ENABLED)
     lingerTimeout = config.getLong(ReThinkConfigConstants.SOURCE_LINGER_MS)
@@ -74,5 +75,5 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
     progressCounter.empty
   }
 
-  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
+  override def version: String = manifest.version()
 }

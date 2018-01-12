@@ -19,8 +19,8 @@ package com.datamountaineer.streamreactor.connect.pulsar.source
 import java.util
 import java.util.Collections
 
-import com.datamountaineer.streamreactor.connect.config.Helpers
 import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarSourceConfig, PulsarSourceSettings}
+import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -31,6 +31,7 @@ import scala.collection.JavaConverters._
 class PulsarSourceConnector extends SourceConnector with StrictLogging {
   private val configDef = PulsarSourceConfig.config
   private var configProps: util.Map[String, String] = _
+  private val manifest = JarManifest()
 
   /**
     * States which SinkTask class to use
@@ -79,5 +80,5 @@ class PulsarSourceConnector extends SourceConnector with StrictLogging {
 
   override def config(): ConfigDef = configDef
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version(): String = manifest.version()
 }

@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.blockchain.source
 import java.util
 
 import com.datamountaineer.streamreactor.connect.blockchain.config.BlockchainConfig
+import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -28,6 +29,7 @@ import scala.collection.JavaConversions._
 
 class BlockchainSourceConnector extends SourceConnector with StrictLogging {
   private var configProps: Option[util.Map[String, String]] = None
+  private val manifest = JarManifest()
 
   /**
     * Defines the source class to use
@@ -61,7 +63,7 @@ class BlockchainSourceConnector extends SourceConnector with StrictLogging {
     *
     * @return
     */
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version(): String = manifest.version()
 
   override def config(): ConfigDef = BlockchainConfig.config
 }

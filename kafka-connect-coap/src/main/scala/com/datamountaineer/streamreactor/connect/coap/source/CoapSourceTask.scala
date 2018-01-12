@@ -21,7 +21,7 @@ import java.util.concurrent.LinkedBlockingQueue
 
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSettings, CoapSourceConfig}
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, ReadManifest}
+import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
@@ -39,9 +39,11 @@ class CoapSourceTask extends SourceTask with StrictLogging {
   private val queue = new LinkedBlockingQueue[SourceRecord]()
   private var batchSize: Int = CoapConstants.BATCH_SIZE_DEFAULT
   private var lingerTimeout = CoapConstants.SOURCE_LINGER_MS_DEFAULT
+  private val manifest = JarManifest()
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-source-ascii.txt")).mkString + s" v $version")
+    logger.info(manifest.printManifest())
     val config = CoapSourceConfig(props)
     enableProgress = config.getBoolean(CoapConstants.PROGRESS_COUNTER_ENABLED)
     val settings = CoapSettings(config)
@@ -68,5 +70,5 @@ class CoapSourceTask extends SourceTask with StrictLogging {
     progressCounter.empty
   }
 
-  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
+  override def version: String = manifest.version()
 }

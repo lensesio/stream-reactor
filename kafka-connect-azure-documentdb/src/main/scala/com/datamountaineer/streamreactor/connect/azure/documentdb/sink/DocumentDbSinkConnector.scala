@@ -21,6 +21,7 @@ import java.util
 import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
 import com.datamountaineer.streamreactor.connect.config.Helpers
+import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.microsoft.azure.documentdb._
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.{ConfigDef, ConfigException}
@@ -40,6 +41,7 @@ import scala.util.{Failure, Success, Try}
   **/
 class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => DocumentClient) extends SinkConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
+  private val manifest = JarManifest()
 
   def this() = this(DocumentClientProvider.get)
 
@@ -106,10 +108,9 @@ class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => D
     }
   }
 
-  override def stop(): Unit = {
-  }
+  override def stop(): Unit = {}
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version(): String = manifest.version()
 
   override def config(): ConfigDef = DocumentDbConfig.config
 
