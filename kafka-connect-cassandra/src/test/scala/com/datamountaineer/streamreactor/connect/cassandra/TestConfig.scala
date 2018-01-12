@@ -24,8 +24,6 @@ import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfi
 import com.datastax.driver.core.Cluster.Builder
 import com.datastax.driver.core._
 import com.datastax.driver.core.utils.UUIDs
-import org.apache.cassandra.config.DatabaseDescriptor
-import org.apache.cassandra.service.CassandraDaemon
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -104,16 +102,6 @@ trait TestConfig extends MockitoSugar {
   }  
 
   def createKeySpace(keyspace: String, secure: Boolean = false, ssl: Boolean = false, port: Int = CASSANDRA_PORT): Session = {
-    val file = getClass.getResource("/cassandra.yaml").toURI.toString
-    System.setProperty("cassandra.config", file)
-    System.setProperty("cassandra-foreground", "true")
-    System.setProperty("cassandra.native.epoll.enabled", "false") // JNA doesnt cope with relocated netty
-    System.setProperty("cassandra.unsafesystem", "true") // disable fsync for a massive speedup on old platters
-
-
-    DatabaseDescriptor.daemonInitialization()
-    val cassandraDaemon = new CassandraDaemon
-    cassandraDaemon.activate()
 
     val cluster: Builder = Cluster
       .builder()

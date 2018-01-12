@@ -120,6 +120,12 @@ allprojects {
         connectCLIVersion = "1.0.3"
 
 //        // The following 4 need to align to compile against a particular version
+//        confluentVersion = '4.0.0'
+//        kafkaVersion = '1.0.0'
+//        dataMountaineerCommonVersion = "1.0"
+//        dataMountaineerTestKitVersion = "0.7"
+
+        // The following 4 need to align to compile against a particular version
         confluentVersion = '3.3.0'
         kafkaVersion = '0.11.0.0'
         dataMountaineerCommonVersion = "0.9.6.2"
@@ -144,9 +150,9 @@ allprojects {
         libsDir = "${versionDir}/libs"
         binDir = "${versionDir}/bin"
         tarName = "${project.description}-${project.version}-${confluentVersion}.tar.gz"
-        cliUrl = "https://github.com/datamountaineer/kafka-connect-tools/releases/download/v${connectCLIVersion}/connect-cli"
-        srCliUrlDarwin = "https://github.com/datamountaineer/schema-registry/releases/download/0.0.1/sr-cli-osx"
-        srCliUrlLinux = "https://github.com/datamountaineer/schema-registry/releases/download/0.0.1/sr-cli-linux"
+        cliUrl = "https://github.com/landoop/kafka-connect-tools/releases/download/v${connectCLIVersion}/connect-cli"
+        srCliUrlDarwin = "https://github.com/landoop/schema-registry/releases/download/0.0.1/sr-cli-osx"
+        srCliUrlLinux = "https://github.com/landoop/schema-registry/releases/download/0.0.1/sr-cli-linux"
     }
 
     repositories {
@@ -166,12 +172,12 @@ allprojects {
             attributes( "StreamReactor-Version": project.version,
                         "KCQL-Version" : "${KCQLVersion}",
                         "Kafka-Version": "${kafkaVersion}",
-                        "Created-By" : "DataMountaineer",
+                        "Created-By" : "Landoop",
                         "Created-At" : getDateTime(),
                         "Git-Repo": getGitRepo(),
                         "Git-Commit-Hash": getGitHash(),
                         "Git-Tag": getGitTag(),
-                        "StreamReactor-Docs" : "http://docs.datamountaineer.com/en/${project.version}/"
+                        "StreamReactor-Docs" : "https://lenses.stream/"
             )
         }
     }
