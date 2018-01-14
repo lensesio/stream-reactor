@@ -119,17 +119,17 @@ allprojects {
         akkaVersion = "2.4.10"
         connectCLIVersion = "1.0.3"
 
-//        // The following 4 need to align to compile against a particular version
-//        confluentVersion = '4.0.0'
-//        kafkaVersion = '1.0.0'
-//        dataMountaineerCommonVersion = "1.0"
-//        dataMountaineerTestKitVersion = "0.7"
-
         // The following 4 need to align to compile against a particular version
-        confluentVersion = '3.3.0'
-        kafkaVersion = '0.11.0.0'
-        dataMountaineerCommonVersion = "0.9.7"
-        dataMountaineerTestKitVersion = "0.6"
+        confluentVersion = '4.0.0'
+        kafkaVersion = '1.0.0'
+        dataMountaineerCommonVersion = "1.0.3"
+        dataMountaineerTestKitVersion = "0.7"
+
+//        // The following 4 need to align to compile against a particular version
+//        confluentVersion = '3.3.0'
+//        kafkaVersion = '0.11.0.0'
+//        dataMountaineerCommonVersion = "0.9.7"
+//        dataMountaineerTestKitVersion = "0.6"
 
 //        // Confluent 3.2
 //        confluentVersion = '3.2.2'
