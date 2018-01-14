@@ -54,7 +54,7 @@ spec:
         livenessProbe:
           exec:
             command:
-            - /etc/confluent/liveliness.sh
+            - /etc/landoop/liveliness.sh
           initialDelaySeconds: 30
           timeoutSeconds: 5
         resources:
