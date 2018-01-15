@@ -40,6 +40,10 @@ object HelmHelper {
       "kafka-connect-elastic5s-sink"
     } else if (name.contains("kudu")) {
       "kafka-connect-kudu-sink"
+    } else if (name.contains("PulsarSink")) {
+      "kafka-connect-pulsar-sink"
+    } else if (name.contains("PulsarSource")) {
+      "kafka-connect-pulsar-source"
     } else {
       s"kafka-${keys.head._2.name.split("\\.").take(2).mkString("-")}${if (sink) "-sink" else "-source"}"
     }

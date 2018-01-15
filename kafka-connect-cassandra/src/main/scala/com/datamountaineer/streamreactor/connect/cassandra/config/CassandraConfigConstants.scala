@@ -183,10 +183,10 @@ object CassandraConfigConstants {
 
   val TIMESLICE_DELAY = s"$CONNECTOR_PREFIX.slice.delay.ms"
   val TIMESLICE_DELAY_DEFAULT = 30000
-  val TIMESLICE_DELAY_DOC = "the delay between the current time and the time range of the query. Used to insure all of the data in the time slice is available"
+  val TIMESLICE_DELAY_DOC = "The delay between the current time and the time range of the query. Used to insure all of the data in the time slice is available"
 
   val INITIAL_OFFSET = s"$CONNECTOR_PREFIX.initial.offset"
   val INITIAL_OFFSET_DEFAULT = "1900-01-01 00:00:00.0000000Z"
-  val INITIAL_OFFSET_DOC = "The inital timestamp to start querying in Cassandra from (yyyy-MM-dd HH:mm:ss.SSS'Z'). Default 1900-01-01 00:00:00.0000000Z "
+  val INITIAL_OFFSET_DOC = "The initial timestamp to start querying in Cassandra from (yyyy-MM-dd HH:mm:ss.SSS'Z'). Default 1900-01-01 00:00:00.0000000Z"
 
 }
