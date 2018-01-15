@@ -63,7 +63,6 @@ A collection of components to build a real time ingestion pipeline.
 *   Add FTPS support to FTP connector, new configuration option `ftp.protocol` introduced, either ftp (default) or ftps.
 *   Fix for MQTT source High CPU Thanks @masahirom!
 *   Improve logging on Kudu
-*   Added Helm Chart generator
 *   DELETE functionality add to the Cassandra sink, deletion now possible for null payloads, thanks @sandonjacobs !
 *   Fix in kafka-connect-common to handle primary keys with doc strings thanks, @medvekoma !
 *   Fix writing multiple topics to the same table in Cassandra #284
