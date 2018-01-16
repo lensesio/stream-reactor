@@ -298,14 +298,14 @@ allprojects {
         archives javadocJar, scaladocJar, sourcesJar
     }
 
-
+/*
     signing {
         ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
         required { isReleaseVersion }
         // required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
         sign configurations.archives
     }
-
+*/
 
     if (project.hasProperty('release') && project.name != "kafka-connect-deployment") {
         // OSSRH publication
