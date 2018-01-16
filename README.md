@@ -59,6 +59,10 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
+**1.0.0**
+
+* Kafka 1.0.o Support
+
 **0.4.0**
 
 *   Add FTPS support to FTP connector, new configuration option `ftp.protocol` introduced, either ftp (default) or ftps.
