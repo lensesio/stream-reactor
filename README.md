@@ -48,6 +48,8 @@ A collection of components to build a real time ingestion pipeline.
 | MongoDB        | Sink   | Kafka connect MongoDB sink to write Kafka topic payloads to MongoDB.                          | [Docs](https://lenses.stream/connectors/sink/mongo.html)                  |
 | MQTT           | Source | Kafka connect MQTT source to write data from MQTT to Kafka.                                   | [Docs](https://lenses.stream/connectors/source/mqtt.html)                 |
 | MQTT           | Sink   | Kafka connect MQTT sink to write data from Kafka to MQTT.                                     | [Docs](https://lenses.stream/connectors/sink/mqtt.html)                   |
+| Pulsar         | Source | Kafka connect Pulsar source to write data from Pulsar to Kafka.                               | [Docs](https://lenses.stream/connectors/source/pulsar.html)                 |
+| Pulsar         | Sink   | Kafka connect Pulsar sink to write data from Kafka to Pulsar.                                 | [Docs](https://lenses.stream/connectors/sink/pulsar.html)                   |
 | Redis          | Sink   | Kafka connect Redis sink to write Kafka topic payloads to Redis.                              | [Docs](https://lenses.stream/connectors/sink/redis.html)                  |
 | ReThinkDB      | Source | Kafka connect RethinkDb source subscribe to ReThinkDB changefeeds and write to Kafka.         | [Docs](https://lenses.stream/connectors/source/rethink.html)              |
 | ReThinkDB      | Sink   | Kafka connect RethinkDb sink to write Kafka topic payloads to RethinkDb.                      | [Docs](https://lenses.stream/connectors/sink/rethink.html)                |
