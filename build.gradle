@@ -117,7 +117,7 @@ allprojects {
         gsonVersion = "2.6.2"
         KCQLVersion = "2.4.0"
         akkaVersion = "2.4.10"
-        connectCLIVersion = "1.0.3"
+        connectCLIVersion = "1.0.6"
 
         // The following 4 need to align to compile against a particular version
         confluentVersion = '4.0.0'
