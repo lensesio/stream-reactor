@@ -51,7 +51,6 @@ A collection of components to build a real time ingestion pipeline.
 | Redis          | Sink   | Kafka connect Redis sink to write Kafka topic payloads to Redis.                              | [Docs](https://lenses.stream/connectors/sink/redis.html)                  |
 | ReThinkDB      | Source | Kafka connect RethinkDb source subscribe to ReThinkDB changefeeds and write to Kafka.         | [Docs](https://lenses.stream/connectors/source/rethink.html)              |
 | ReThinkDB      | Sink   | Kafka connect RethinkDb sink to write Kafka topic payloads to RethinkDb.                      | [Docs](https://lenses.stream/connectors/sink/rethink.html)                |
-| Yahoo Finance  | Source | Kafka connect Yahoo Finance source to write to Kafka.                                         | [Docs](https://lenses.stream/connectors/source/yahoo.html)                |
 | VoltDB         | Sink   | Kafka connect Voltdb sink to write Kafka topic payloads to Voltdb.                            | [Docs](https://lenses.stream/connectors/sink/voltdb.html)                 |
 
 
