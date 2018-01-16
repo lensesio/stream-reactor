@@ -1,6 +1,6 @@
 [![Build Status](https://datamountaineer.ci.landoop.com/buildStatus/icon?job=stream-reactor&style=flat&.png)](https://datamountaineer.ci.landoop.com/job/stream-reactor/)
-[![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://docs.datamountaineer.com/en/latest/?badge=latest)
-[<img src="https://img.shields.io/badge/latest%20release-0.3.0-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22)
+[<img src="https://img.shields.io/badge/docs--orange.svg?"/>](http://lenses.stream/connectors/index.html)
+[<img src="https://img.shields.io/badge/latest%20release-0.4.0-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22)
 
 
 Join us on slack [![Alt text](images/slack.jpeg)](https://launchpass.com/landoop-community)
