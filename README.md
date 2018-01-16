@@ -59,7 +59,7 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
-**0.4.0** (Pending)
+**0.4.0**
 
 *   Add FTPS support to FTP connector, new configuration option `ftp.protocol` introduced, either ftp (default) or ftps.
 *   Fix for MQTT source High CPU Thanks @masahirom!
