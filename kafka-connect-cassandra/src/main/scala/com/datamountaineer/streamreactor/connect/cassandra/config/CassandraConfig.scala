@@ -322,6 +322,16 @@ object CassandraConfigSource {
       ConfigDef.Width.MEDIUM,
       CassandraConfigConstants.INITIAL_OFFSET)
 
+    .define(CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON,
+      Type.BOOLEAN,
+      CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON_DEFAULT,
+      Importance.MEDIUM,
+      CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON_DOC,
+      "Import",
+      11,
+      ConfigDef.Width.LONG,
+      CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON)
+
 }
 
 case class CassandraConfigSource(props: util.Map[String, String])

@@ -70,6 +70,8 @@ class CassandraTableReader(private val name: String,
   private var schema: Option[Schema] = None
   private val ignoreList = config.getIgnoredFields.map(_.getName).toSet
   private val isTokenBased = cqlGenerator.isTokenBased()
+  private val cassandraTypeConverter : CassandraTypeConverter =
+    new CassandraTypeConverter(session.getCluster.getConfiguration.getCodecRegistry, setting)
   private var structColDefs: List[ColumnDefinitions.Definition] = _
 
   /**
@@ -302,9 +304,9 @@ class CassandraTableReader(private val name: String,
   private def processRow(row: Row) = {
     // convert the cassandra row to a struct
     if (structColDefs == null) {
-      structColDefs = CassandraUtils.getStructColumns(row, ignoreList)
+      structColDefs = cassandraTypeConverter.getStructColumns(row, ignoreList)
     }
-    val struct = CassandraUtils.convert(row, schemaName, structColDefs, schema)
+    val struct = cassandraTypeConverter.convert(row, schemaName, structColDefs, schema)
 
     // get the offset for this value
     val offset: String = if (isTokenBased) {

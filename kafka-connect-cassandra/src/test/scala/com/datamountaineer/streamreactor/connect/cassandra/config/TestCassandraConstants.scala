@@ -48,6 +48,7 @@ class TestCassandraConstants extends WordSpec with Matchers {
   val ROUTE_QUERY = "connect.cassandra.kcql"
   val THREAD_POOL_CONFIG = "connect.cassandra.threadpool.size"
   val CONSISTENCY_LEVEL_CONFIG = "connect.cassandra.consistency.level"
+  val MAPPING_COLLECTION_TO_JSON = "connect.cassandra.mapping.collection.to.json"
 
   "POLL_INTERVAL should have the same key in CassandraConfigConstants" in {
     assert(POLL_INTERVAL.equals(CassandraConfigConstants.POLL_INTERVAL))
@@ -120,5 +121,8 @@ class TestCassandraConstants extends WordSpec with Matchers {
   }
   "CONSISTENCY_LEVEL_CONFIG should have the same key in CassandraConfigConstants" in {
     assert(CONSISTENCY_LEVEL_CONFIG.equals(CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG))
+  }
+  "MAPPING_COLLECTION_TO_JSON should have the same key in CassandraConfigConstants" in {
+    assert(MAPPING_COLLECTION_TO_JSON.equals(CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON))
   }
 }
