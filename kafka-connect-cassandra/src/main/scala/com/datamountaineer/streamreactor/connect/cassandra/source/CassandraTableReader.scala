@@ -243,6 +243,7 @@ class CassandraTableReader(private val name: String,
             counter += 1
           } match {
             case Failure(e) =>
+              logger.error(s"Connector $name error processing row ${row.toString} for table $keySpace.$table.", e)
               reset(tableOffset)
               throw new ConnectException(s"Connector $name error processing row ${row.toString} for table $keySpace.$table.", e)
             case Success(_) =>
