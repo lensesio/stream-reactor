@@ -24,6 +24,7 @@ project(":kafka-connect-pulsar") {
 
     dependencies {
         compile "org.apache.pulsar:pulsar-client:$pulsarVersion"
+        compile "org.apache.pulsar:pulsar-checksum:$pulsarVersion@jar"
         compile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
         compile "com.sksamuel.avro4s:avro4s-json_$scalaMajorVersion:$avro4sVersion"
 
