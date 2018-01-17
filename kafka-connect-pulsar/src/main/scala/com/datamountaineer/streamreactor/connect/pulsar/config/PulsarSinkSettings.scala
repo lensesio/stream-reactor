@@ -41,12 +41,10 @@ object PulsarSinkSettings {
     //val password =  Option(config.getSecret).map(_.value())
     val connection = config.getHosts
 
-
     val progressEnabled = config.getBoolean(PulsarConfigConstants.PROGRESS_COUNTER_ENABLED)
 
     val errorPolicy = config.getErrorPolicy
     val maxRetries = config.getNumberRetries
-
 
     new PulsarSinkSettings(
       connection,

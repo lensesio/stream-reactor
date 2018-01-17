@@ -1,6 +1,6 @@
 [![Build Status](https://datamountaineer.ci.landoop.com/buildStatus/icon?job=stream-reactor&style=flat&.png)](https://datamountaineer.ci.landoop.com/job/stream-reactor/)
-[![Documentation Status](https://readthedocs.org/projects/streamreactor/badge/?version=latest)](http://docs.datamountaineer.com/en/latest/?badge=latest)
-[<img src="https://img.shields.io/badge/latest%20release-0.3.0-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22)
+[<img src="https://img.shields.io/badge/docs--orange.svg?"/>](http://lenses.stream/connectors/index.html)
+[<img src="https://img.shields.io/badge/latest%20release-1.0.0-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22)
 
 
 Join us on slack [![Alt text](images/slack.jpeg)](https://launchpass.com/landoop-community)
@@ -48,10 +48,11 @@ A collection of components to build a real time ingestion pipeline.
 | MongoDB        | Sink   | Kafka connect MongoDB sink to write Kafka topic payloads to MongoDB.                          | [Docs](https://lenses.stream/connectors/sink/mongo.html)                  |
 | MQTT           | Source | Kafka connect MQTT source to write data from MQTT to Kafka.                                   | [Docs](https://lenses.stream/connectors/source/mqtt.html)                 |
 | MQTT           | Sink   | Kafka connect MQTT sink to write data from Kafka to MQTT.                                     | [Docs](https://lenses.stream/connectors/sink/mqtt.html)                   |
+| Pulsar         | Source | Kafka connect Pulsar source to write data from Pulsar to Kafka.                               | [Docs](https://lenses.stream/connectors/source/pulsar.html)                 |
+| Pulsar         | Sink   | Kafka connect Pulsar sink to write data from Kafka to Pulsar.                                 | [Docs](https://lenses.stream/connectors/sink/pulsar.html)                   |
 | Redis          | Sink   | Kafka connect Redis sink to write Kafka topic payloads to Redis.                              | [Docs](https://lenses.stream/connectors/sink/redis.html)                  |
 | ReThinkDB      | Source | Kafka connect RethinkDb source subscribe to ReThinkDB changefeeds and write to Kafka.         | [Docs](https://lenses.stream/connectors/source/rethink.html)              |
 | ReThinkDB      | Sink   | Kafka connect RethinkDb sink to write Kafka topic payloads to RethinkDb.                      | [Docs](https://lenses.stream/connectors/sink/rethink.html)                |
-| Yahoo Finance  | Source | Kafka connect Yahoo Finance source to write to Kafka.                                         | [Docs](https://lenses.stream/connectors/source/yahoo.html)                |
 | VoltDB         | Sink   | Kafka connect Voltdb sink to write Kafka topic payloads to Voltdb.                            | [Docs](https://lenses.stream/connectors/sink/voltdb.html)                 |
 
 
@@ -63,7 +64,6 @@ A collection of components to build a real time ingestion pipeline.
 *   Add FTPS support to FTP connector, new configuration option `ftp.protocol` introduced, either ftp (default) or ftps.
 *   Fix for MQTT source High CPU Thanks @masahirom!
 *   Improve logging on Kudu
-*   Added Helm Chart generator
 *   DELETE functionality add to the Cassandra sink, deletion now possible for null payloads, thanks @sandonjacobs !
 *   Fix in kafka-connect-common to handle primary keys with doc strings thanks, @medvekoma !
 *   Fix writing multiple topics to the same table in Cassandra #284

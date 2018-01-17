@@ -25,7 +25,7 @@ import com.datamountaineer.streamreactor.connect.elastic5.indexname.CreateIndex
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.fasterxml.jackson.databind.JsonNode
-import com.landoop.json.sql.Field
+import com.landoop.sql.Field
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.Indexable
 import com.typesafe.scalalogging.slf4j.StrictLogging
