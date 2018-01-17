@@ -52,7 +52,8 @@ case class CassandraSourceSetting(kcql: Kcql,
                                   timeSliceDuration: Long = CassandraConfigConstants.TIMESLICE_DURATION_DEFAULT,
                                   timeSliceDelay: Long = CassandraConfigConstants.TIMESLICE_DELAY_DEFAULT,
                                   initialOffset: String = CassandraConfigConstants.INITIAL_OFFSET_DEFAULT,
-                                  timeSliceMillis: Long = CassandraConfigConstants.TIME_SLICE_MILLIS_DEFAULT
+                                  timeSliceMillis: Long = CassandraConfigConstants.TIME_SLICE_MILLIS_DEFAULT,
+                                  mappingCollectionToJson: Boolean = CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON_DEFAULT
                                  ) extends CassandraSetting
 
 case class CassandraSinkSetting(keySpace: String,
@@ -91,6 +92,7 @@ object CassandraSettings extends StrictLogging {
     val timeSliceDelay = config.getLong(CassandraConfigConstants.TIMESLICE_DELAY)
     val initialOffset = config.getString(CassandraConfigConstants.INITIAL_OFFSET)
     val timeSliceMillis = config.getLong(CassandraConfigConstants.TIME_SLICE_MILLIS)
+    val mappingCollectionToJson = config.getBoolean(CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON)
 
     kcqls.map { r =>
       val tCols = primaryKeyCols(r.getSource)
@@ -116,7 +118,8 @@ object CassandraSettings extends StrictLogging {
         timeSliceDuration = timeSliceDuration,
         timeSliceDelay = timeSliceDelay,
         initialOffset = initialOffset,
-        timeSliceMillis = timeSliceMillis
+        timeSliceMillis = timeSliceMillis,
+        mappingCollectionToJson = mappingCollectionToJson
       )
     }.toSeq
   }
