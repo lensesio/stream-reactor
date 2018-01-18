@@ -28,8 +28,8 @@ import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
-
 import scala.collection.mutable
+import scala.util.{Failure, Success}
 
 /**
   * Created by andrew@datamountaineer.com on 10/03/2017. 
@@ -56,7 +56,11 @@ class JMSSourceTask extends SourceTask with StrictLogging {
 
   override def stop(): Unit = {
     logger.info("Stopping JMS readers")
-    reader.stop
+
+    reader.stop match {
+      case Failure(t) => logger.error(s"Error encountered while stopping JMS Source Task. $t")
+      case Success(_) => logger.info("Successfully stopped JMS Source Task.")
+    }
   }
 
   override def poll(): util.List[SourceRecord] = {

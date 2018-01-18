@@ -1,10 +1,14 @@
 package com.datamountaineer.streamreactor.connect.source
 
+import javax.jms.Session
+
 import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
+
+import scala.util.Try
 
 class JMSSessionProviderTest extends TestBase with BeforeAndAfterAll with Eventually {
 
@@ -57,5 +61,15 @@ class JMSSessionProviderTest extends TestBase with BeforeAndAfterAll with Eventu
     provider.queueProducers.size shouldBe 0
     provider.topicsConsumers.size shouldBe 0
     provider.topicProducers.size shouldBe 1
+  }
+
+  "should close the connection when the task is stopped" in testWithBrokerOnPort { (conn, brokerUrl) =>
+    val props = getProps1Topic(brokerUrl)
+    val config = JMSConfig(props)
+    val settings = JMSSettings(config, forAJmsProducer)
+    val provider = JMSSessionProvider(settings, forAJmsProducer)
+
+    provider.close().isSuccess shouldBe true
+    Try(provider.connection.createSession(false, Session.CLIENT_ACKNOWLEDGE)).isFailure shouldBe true
   }
 }
