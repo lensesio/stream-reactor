@@ -45,29 +45,11 @@ case class JMSSessionProvider(queueConsumers: Map[String, MessageConsumer],
     connection.start()
   }
 
-  def close(): Try[Unit] = {
-    topicsConsumers.foreach({ case(source, consumer) =>
-      logger.info(s"Stopping topic consumer for $source")
-      consumer.close()
-    })
-    queueConsumers.foreach({ case(source, consumer) =>
-      logger.info(s"Stopping queue consumer for $source")
-      consumer.close()
-    })
-
-    topicProducers.foreach({ case(source, producer) =>
-      logger.info(s"Stopping topic producer for $source")
-      producer.close()
-    })
-
-    queueProducers.foreach({ case(source, producer) =>
-      logger.info(s"Stopping queue producer for $source")
-      producer.close()
-    })
-
-    Try(session.close())
-    Try(context.close())
-  }
+  def close(): Try[Unit] =
+    for {
+      _ <- Try(connection.close())
+      _ <- Try(context.close())
+    } yield ()
 }
 
 object JMSSessionProvider extends StrictLogging {
