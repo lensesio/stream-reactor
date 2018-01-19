@@ -12,13 +12,13 @@ Lenses offers SQL (for data browsing and Kafka Streams), Kafka Connect connector
 You can find more on [landoop.com!](http://www.landoop.com/kafka-lenses/)
 
 <p align="center">
-  <a href="http://www.landoop.com/kafka-lenses/" target="_blank"><img src="http://www.landoop.com/docs/lenses/_images/lenses-data-management-platform.png"/></a>
+  <a href="http://www.landoop.com/kafka-lenses/" target="_blank"><img src="https://www.landoop.com/images/new/bg-12.gif"/></a>
 </p>
 
 # Stream Reactor
-Streaming reference architecture built around Kafka. 
 
-![Alt text](https://datamountaineer.com/wp-content/uploads/2016/01/stream-reactor-1.jpg)
+
+![Alt text](images/streamreactor-logo.png)
 
 A collection of components to build a real time ingestion pipeline.
 
