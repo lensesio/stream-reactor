@@ -39,16 +39,13 @@ class PulsarWriter(client: PulsarClient, settings: PulsarSinkSettings) extends S
   // Enable compression
   //TODO: pick it up from settings
   conf.setCompressionType(CompressionType.LZ4)
-  private var producersMap = scala.collection.mutable.Map.empty[String, Producer]
+  private val producersMap = scala.collection.mutable.Map.empty[String, Producer]
 
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
   private val mappings: Map[String, Set[Kcql]] = settings.kcql.groupBy(k => k.getSource)
-  private val kcql = settings.kcql
 
   def write(records: Iterable[SinkRecord]) = {
-
-    val grouped = records.groupBy(r => r.topic())
 
     val t = Try {
       records.foreach { record =>
@@ -86,6 +83,7 @@ class PulsarWriter(client: PulsarClient, settings: PulsarSinkSettings) extends S
   def flush = {}
 
   def close = {
+    logger.info("Closing client")
     client.close()
   }
 }
