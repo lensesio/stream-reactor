@@ -12,7 +12,7 @@ Lenses offers SQL (for data browsing and Kafka Streams), Kafka Connect connector
 You can find more on [landoop.com!](http://www.landoop.com/kafka-lenses/)
 
 <p align="center">
-  <a href="http://www.landoop.com/kafka-lenses/" target="_blank"><img src="https://www.landoop.com/images/new/bg-12.gif"/></a>
+  <a href="http://www.landoop.com/kafka-lenses/" target="_blank"><img src="https://www.landoop.com/images/new/bg-12.gif" style="width:500px;height:600px;/></a>
 </p>
 
 # Stream Reactor
