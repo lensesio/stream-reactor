@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/datamountaineer/kafka-connect-query-language.svg?branch=master)](https://travis-ci.org/landoop/kafka-connect-query-language)
+[![Build Status](https://travis-ci.org/Landoop/kafka-connect-query-language.svg?branch=master)](https://travis-ci.org/Landoop/kafka-connect-query-language)
 [<img src="https://img.shields.io/badge/latest%20release-v2.1-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22%20AND%20a%3A%22kcql%22)
 
 
