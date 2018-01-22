@@ -55,7 +55,7 @@ class PulsarSourceConnector extends SourceConnector with StrictLogging {
 
       settings.kcql.grouped(groups)
         .zipWithIndex
-        .map { case (p, index) =>
+        .map { case (p, _) =>
           val map = settings.copy(kcql = p).asMap()
           import scala.collection.JavaConversions._
           configProps

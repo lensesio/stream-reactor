@@ -25,16 +25,19 @@ import scala.collection.JavaConversions._
 class PulsarSourceSettingsTest extends WordSpec with Matchers {
   "PulsarSourceSetting" should {
 
+    val pulsarTopic = "persistent://landoop/standalone/connect/kafka-topic"
+
     "create an instance of settings" in {
       val settings = PulsarSourceSettings {
         PulsarSourceConfig(Map(
           PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-          PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM pulsarSource WITHCONVERTER=`${classOf[AvroConverter].getCanonicalName}`",
+          PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM $pulsarTopic WITHCONVERTER=`${classOf[AvroConverter].getCanonicalName}`",
           PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
           PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
         ))
       }
-      settings.sourcesToConverters shouldBe Map("pulsarSource" -> classOf[AvroConverter].getCanonicalName)
+
+      settings.sourcesToConverters shouldBe Map(pulsarTopic -> classOf[AvroConverter].getCanonicalName)
       settings.throwOnConversion shouldBe true
       settings.pollingTimeout shouldBe 500
       settings.connection shouldBe "pulsar://localhost:6650"

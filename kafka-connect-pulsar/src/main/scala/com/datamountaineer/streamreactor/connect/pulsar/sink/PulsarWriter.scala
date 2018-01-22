@@ -27,56 +27,36 @@ import org.apache.pulsar.client.api._
 import scala.collection.JavaConversions._
 import scala.util.Try
 
-object PulsarWriter {
-  def apply(settings: PulsarSinkSettings): PulsarWriter = {
-    new PulsarWriter(PulsarClient.create(settings.connection), settings)
+object PulsarMessageFactory {
+  def apply(settings: PulsarSinkSettings): PulsarMessages = {
+    new PulsarMessages(settings)
   }
 }
 
-class PulsarWriter(client: PulsarClient, settings: PulsarSinkSettings) extends StrictLogging with ErrorHandler {
-
-  private val conf = new ProducerConfiguration
-  // Enable compression
-  //TODO: pick it up from settings
-  conf.setCompressionType(CompressionType.LZ4)
-  private val producersMap = scala.collection.mutable.Map.empty[String, Producer]
-
+class PulsarWriter(settings: PulsarSinkSettings) extends StrictLogging with ErrorHandler {
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
-  private val mappings: Map[String, Set[Kcql]] = settings.kcql.groupBy(k => k.getSource)
+
+  private val producersMap = scala.collection.mutable.Map.empty[String, Producer]
+  val msgFactory = PulsarMessageFactory(settings)
+
+  //TODO move to a connection factory, add TLS, batching options.
+  private val conf = new ProducerConfiguration
+  conf.setCompressionType(CompressionType.LZ4)
+  val client = PulsarClient.create(settings.connection)
 
   def write(records: Iterable[SinkRecord]) = {
+    val messages = msgFactory.create(records)
 
-    val t = Try {
-      records.foreach { record =>
-        val topic = record.topic()
-        //get the kcql statements for this topic
-        val kcqls = mappings(topic)
-        kcqls.foreach { k =>
-          val pulsarTopic = k.getTarget
-          //optimise this via a map
-          val fields = k.getFields.map(FieldConverter.apply)
-          val ignoredFields = k.getIgnoredFields.map(FieldConverter.apply)
-          //for all the records in the group transform
-
-          val json = Transform(
-            fields,
-            ignoredFields,
-            record.valueSchema(),
-            record.value(),
-            k.hasRetainStructure
-          )
-
-          val producer = producersMap.getOrElseUpdate(pulsarTopic, client.createProducer(pulsarTopic, conf))
-          val msg = MessageBuilder.create.setContent(json.getBytes).build
-
-          // Send a message (waits until the message is persisted)
-          producer.send(msg)
+    val t = Try{
+      messages.foreach{
+        case (topic, message) => {
+          val producer = producersMap.getOrElseUpdate(topic, client.createProducer(topic, conf))
+          producer.send(message)
         }
       }
     }
 
-    //handle any errors according to the policy.
     handleTry(t)
   }
 
@@ -85,5 +65,35 @@ class PulsarWriter(client: PulsarClient, settings: PulsarSinkSettings) extends S
   def close = {
     logger.info("Closing client")
     client.close()
+  }
+}
+
+class PulsarMessages(settings: PulsarSinkSettings) extends StrictLogging with ErrorHandler {
+
+  private val mappings: Map[String, Set[Kcql]] = settings.kcql.groupBy(k => k.getSource)
+
+  def create(records: Iterable[SinkRecord]): Iterable[(String, Message)] = {
+    records.flatMap{ record =>
+      val topic = record.topic()
+      //get the kcql statements for this topic
+      val kcqls = mappings(topic)
+      kcqls.map { k =>
+        val pulsarTopic = k.getTarget
+        //optimise this via a map
+        val fields = k.getFields.map(FieldConverter.apply)
+        val ignoredFields = k.getIgnoredFields.map(FieldConverter.apply)
+        //for all the records in the group transform
+
+        val json = Transform(
+          fields,
+          ignoredFields,
+          record.valueSchema(),
+          record.value(),
+          k.hasRetainStructure
+        )
+
+        (pulsarTopic, MessageBuilder.create.setContent(json.getBytes).build)
+      }
+    }
   }
 }

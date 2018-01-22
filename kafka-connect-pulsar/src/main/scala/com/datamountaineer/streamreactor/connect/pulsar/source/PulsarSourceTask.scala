@@ -38,7 +38,7 @@ class PulsarSourceTask extends SourceTask with StrictLogging {
 
   override def start(props: util.Map[String, String]): Unit = {
 
-    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/Pulsar-source-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/pulsar-source-ascii.txt")).mkString + s" v $version")
     logger.info(manifest.printManifest())
     implicit val settings = PulsarSourceSettings(PulsarSourceConfig(props))
 
