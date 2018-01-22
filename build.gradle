@@ -28,9 +28,8 @@ allprojects {
     targetCompatibility = 1.8
 
     ext {
-        antlrVersion = "4.6"
+        antlrVersion = "4.7"
         junitVersion = "4.12"
-        mockitoVersion = "1.10.19"
     }
 
     repositories {
@@ -42,15 +41,15 @@ allprojects {
 
     dependencies {
         antlr "org.antlr:antlr4:$antlrVersion"
-        testCompile "org.antlr:antlr4-maven-plugin:$antlrVersion"
         compile "org.antlr:antlr4-runtime:$antlrVersion"
-        testCompile "org.testng:testng:6.9.9"
+        testCompile "org.antlr:antlr4-maven-plugin:$antlrVersion"
+        testCompile "junit:junit:$junitVersion"
 
     }
 
     generateGrammarSource {
-        arguments += [ "-package" , "com.datamountaineer.connector.config.antlr4"]
-        outputDirectory = new File("${project.projectDir}/src/main/java/com/datamountaineer/connector/config/antlr4")
+        arguments += ["-package", "com.datamountaineer.kcql.antlr4"]
+        outputDirectory = new File("${project.projectDir}/src/main/java/com/datamountaineer/kcql/antlr4")
     }
 
     test {
@@ -95,6 +94,7 @@ allprojects {
     task fatJarNoTest(dependsOn: 'shadowJar')
 
     signing {
+        required { gradle.taskGraph.hasTask("uploadArchives") }
         sign configurations.archives
     }
 

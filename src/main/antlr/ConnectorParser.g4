@@ -24,7 +24,7 @@ upsert_into
    ;
 
 upsert_pk_into
-   : UPSERT pk ID into
+   : ( UPSERT pk FIELD into)
    ;
 
 write_mode
@@ -32,35 +32,39 @@ write_mode
    ;
 
 schema_name
-   : ID
+   : FIELD
    ;
 
 insert_from_clause
-   : write_mode table_name select_clause_basic ( autocreate )? ( PK primary_key_list)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? (with_unwrap_clause)? ( project_to )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? ( with_format_clause )?  (storeas_clause)? (with_tags)? (with_inc_mode)? (with_doc_type)? (with_index_suffix)? (ttl_clause)? (with_converter)?
+   : write_mode table_name select_clause_basic ( autocreate )? (with_structure)? ( PK primary_key_list)? (with_target)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? ( project_to )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? (timestamp_unit_clause)? ( with_format_clause )? (with_unwrap_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_type)? (with_doc_type)? (with_index_suffix)? (ttl_clause)? (with_converter)? (with_jms_selector)? (with_key)? (key_delimiter)?
    ;
 
 select_clause
-   : select_clause_basic ( PK primary_key_list)? (with_format_clause)? (with_consumer_group)? (with_offset_list)? (sample_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_doc_type)? (with_index_suffix)? (with_converter)?
+   : select_clause_basic ( PK primary_key_list)? (with_structure)? (with_format_clause)? (with_unwrap_clause)? (with_consumer_group)? (with_offset_list)? (sample_clause)? (limit_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_doc_type)? (with_index_suffix)? (with_converter)?
    ;
 
 select_clause_basic
-   : SELECT column_list FROM topic_name ( IGNORE ignore_clause )?
+   : SELECT column_list FROM topic_name ( with_ignore )?
    ;
 
 topic_name
-   : ID | TOPICNAME
+   : ( FIELD | TOPICNAME | DOT )+
    ;
 
 table_name
-   : ID | TOPICNAME
+   : ( FIELD | TOPICNAME | DOT )+
    ;
 
 column_name
-   : ID ( AS column_name_alias )? | ASTERISK
+   : column ( AS column_name_alias )? | ASTERISK
+   ;
+
+column
+   : FIELD ( DOT FIELD )* (DOT ASTERISK)?
    ;
 
 column_name_alias
-   : ID
+   : FIELD
    ;
 
 column_list
@@ -72,15 +76,19 @@ from_clause
    ;
 
 ignored_name
-   : ID
+   : FIELD | TOPICNAME
+   ;
+
+with_ignore
+   : IGNORE ignore_clause
    ;
 
 ignore_clause
-   : ignored_name ( COMMA ignored_name )*
+   : column_name ( COMMA column_name )*
    ;
 
 pk_name
-   : ID
+   : column
    ;
 
 primary_key_list
@@ -112,7 +120,7 @@ initialize
    ;
 
 partition_name
-   : ID
+   : FIELD
    ;
 
 partition_list
@@ -125,7 +133,7 @@ partitionby
 
 
 distribute_name
-   : ID
+   : FIELD
    ;
 
 distribute_list
@@ -141,7 +149,15 @@ timestamp_clause
    ;
 
 timestamp_value
-   : ID | SYS_TIME
+   : FIELD | SYS_TIME
+   ;
+
+timestamp_unit_clause
+   : TIMESTAMPUNIT EQUAL timestamp_unit_value
+   ;
+
+timestamp_unit_value
+   : FIELD
    ;
 
 buckets_number
@@ -149,7 +165,7 @@ buckets_number
     ;
 
 clusterby_name
-    : ID
+    : FIELD
     ;
 
 clusterby_list
@@ -165,7 +181,7 @@ with_consumer_group
     ;
 
 with_consumer_group_value
-    :  INT|ID|TOPICNAME
+    :  INT|FIELD| TOPICNAME
     ;
 
 
@@ -185,6 +201,13 @@ with_offset_list
     : WITHOFFSET partition_offset_list
     ;
 
+limit_clause
+    : LIMIT limit_value
+    ;
+
+limit_value
+    : INT
+    ;
 
 sample_clause
     : SAMPLE sample_value EVERY sample_period
@@ -198,8 +221,16 @@ sample_period
     : INT
     ;
 
+with_unwrap_clause
+    : WITHUNWRAP
+    ;
+
 with_format_clause
     : WITHFORMAT with_format
+    ;
+
+with_structure
+    : WITHSTRUCTURE
     ;
 
 with_format
@@ -219,7 +250,7 @@ storeas_clause
     ;
 
 storeas_type
-    : ID | TOPICNAME
+    : FIELD | ( DOT | TOPICNAME )+
     ;
 
 storeas_parameters
@@ -232,15 +263,31 @@ storeas_parameters_tuple
     ;
 
 storeas_parameter
-    : ID | TOPICNAME
+    : FIELD | ( DOT | TOPICNAME )+
     ;
 
 storeas_value
-    : ID | TOPICNAME | INT
+    : FIELD | (DOT|TOPICNAME)+ | INT
     ;
 
 with_tags
     : WITHTAG (LEFT_PARAN tag_definition ( COMMA tag_definition )* RIGHT_PARAN)
+    ;
+
+with_key
+    : WITHKEY (LEFT_PARAN with_key_value (COMMA with_key_value)* RIGHT_PARAN)
+    ;
+
+with_key_value
+    : FIELD | TOPICNAME | INT
+    ;
+
+key_delimiter
+    : KEYDELIM  EQUAL key_delimiter_value
+    ;
+
+key_delimiter_value
+    : KEYDELIMVALUE
     ;
 
 with_inc_mode
@@ -248,7 +295,16 @@ with_inc_mode
     ;
 
 inc_mode
-    : ID | TOPICNAME
+    : FIELD | TOPICNAME
+    ;
+
+with_type
+    : WITHTYPE with_type_value
+    ;
+
+
+with_type_value
+    : FIELD
     ;
 
 with_doc_type
@@ -256,7 +312,7 @@ with_doc_type
     ;
 
 doc_type
-    : ID | TOPICNAME | INT
+    : FIELD | TOPICNAME | INT
     ;
 
 with_index_suffix
@@ -264,7 +320,7 @@ with_index_suffix
     ;
 
 index_suffix
-    : ID | TOPICNAME | INT
+    : FIELD | TOPICNAME | INT
     ;
 
 with_converter
@@ -275,21 +331,34 @@ with_converter_value
     : ID | TOPICNAME
     ;
 
+with_target
+    : WITHTARGET EQUAL with_target_value
+    ;
+
+with_target_value
+    : (FIELD|DOT)+ | (DOT|TOPICNAME)+
+    ;
+
+with_jms_selector
+    : WITHJMSSELECTOR EQUAL jms_selector_value
+    ;
+
+jms_selector_value
+   : ID | TOPICNAME
+   ;
+
 tag_definition
-    : tag_key ( EQUAL tag_value)?
+    : tag_key ( (EQUAL tag_value)| (AS tag_value))?
     ;
 
 tag_key
-    : ID | TOPICNAME
+    : (FIELD|DOT)+ | (DOT|TOPICNAME)+
     ;
 
 tag_value
-    : ID | TOPICNAME | INT
+    : FIELD | (DOT|TOPICNAME)+ | INT
     ;
 
-with_unwrap_clause
-    : WITHUNWRAP
-    ;
 
 ttl_clause
     : TTL EQUAL ttl_type

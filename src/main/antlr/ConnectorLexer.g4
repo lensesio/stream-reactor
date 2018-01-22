@@ -89,6 +89,22 @@ WITHTAG
     :   'withtag' | 'WITHTAG'
     ;
 
+WITHKEY
+    :   'withkey' | 'WITHKEY'
+    ;
+
+KEYDELIM
+    :  'keydelimiter' | 'KEYDELIMITER'
+    ;
+
+WITHSTRUCTURE
+    : 'withstructure' | 'WITHSTRUCTURE'
+    ;
+
+WITHTYPE
+    : 'withtype' | 'WITHTYPE'
+    ;
+
 PK
    : 'pk' | 'PK'
    ;
@@ -106,7 +122,7 @@ WITHFORMAT
     ;
 
 WITHUNWRAP
-    : 'WITHUNWRAP' | 'withunwrap'
+    : 'WITHUNWRAP'| 'withunwrap'
     ;
 
 FORMAT
@@ -119,6 +135,10 @@ PROJECTTO
 
 STOREAS
     : 'STOREAS'|'storeas'
+    ;
+
+LIMIT
+    : 'LIMIT' | 'limit'
     ;
 
 INCREMENTALMODE
@@ -137,15 +157,26 @@ WITHCONVERTER
     : 'WITHCONVERTER' | 'withconverter'
     ;
 
+WITHJMSSELECTOR
+    : 'WITHJMSSELECTOR' | 'withjmsselector'
+    ;
+
+WITHTARGET
+    : 'WITHTARGET' | 'withtarget'
+    ;
+
+TIMESTAMPUNIT
+    : 'TIMESTAMPUNIT' | 'timestampunit'
+    ;
 
 TTL
    : 'TTL'|'ttl'
    ;
 
+
 EQUAL
    : '='
    ;
-
 
 INT
    : '0' .. '9'+
@@ -171,14 +202,23 @@ RIGHT_PARAN
     : ')'
     ;
 
-ID
-   : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' )+
+
+FIELD
+   : ( 'a' .. 'z' | 'A' .. 'Z' | '@' |'_' | '0' .. '9' )+
    ;
 
 
 TOPICNAME
-   :( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9'| '.' | '-' | '+' | '/' |'{'|'}'| ':' )+
+   : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' | '-' | '+' | '/' |'{'|'}'|':' )+ | ESCAPED_TOPIC
    ;
+
+KEYDELIMVALUE
+   : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' | '-' | '+' | '/' |'{'|'}'|':'|'|'|'#'|'@'|'`' )+ | ESCAPED_TOPIC
+   ;
+
+fragment ESCAPED_TOPIC
+    : ( '`' (~'`')+ '`')
+    ;
 
 NEWLINE
    : '\r'? '\n' -> skip
@@ -188,3 +228,4 @@ NEWLINE
 WS
    : ( ' ' | '\t' | '\n' | '\r' )+ -> skip
    ;
+
