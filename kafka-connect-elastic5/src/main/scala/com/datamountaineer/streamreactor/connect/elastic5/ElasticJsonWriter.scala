@@ -50,11 +50,6 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
   //create the index automatically if it was set to do so
   settings.kcqls.filter(_.isAutoCreate).foreach(client.index)
 
-  settings.kcqls.filter(_.getWriteMode == WriteModeEnum.UPSERT).foreach { kcql =>
-    if (kcql.getPrimaryKeys.size() != 1) {
-      throw new ConfigException(s"UPSERTING into ${kcql.getTarget} needs to have one PK only!")
-    }
-  }
   private val topicKcqlMap = settings.kcqls.groupBy(_.getSource)
 
   private val kcqlMap = new util.IdentityHashMap[Kcql, KcqlValues]()
@@ -139,7 +134,7 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                     )
 
                     require(pks.nonEmpty, "Error extracting primary keys")
-                    update(pks.head).in(i / documentType).docAsUpsert(json)(IndexableJsonNode)
+                    update(pks.mkString(".")).in(i / documentType).docAsUpsert(json)(IndexableJsonNode)
                 }
               }
 
