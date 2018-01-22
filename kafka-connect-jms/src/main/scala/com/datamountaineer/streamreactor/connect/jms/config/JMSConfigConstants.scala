@@ -99,4 +99,9 @@ object JMSConfigConstants {
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
+
+  val POLLING_TIMEOUT_CONFIG = s"$CONNECTOR_PREFIX.polling.timeout"
+  val POLLING_TIMEOUT_DOC = "Provides the timeout to poll incoming messages"
+  val POLLING_TIMEOUT_DISPLAY = "Polling timeout"
+  val POLLING_TIMEOUT_DEFAULT = 1000L
 }
