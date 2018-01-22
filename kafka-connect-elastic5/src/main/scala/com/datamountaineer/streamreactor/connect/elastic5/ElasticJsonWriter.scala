@@ -105,7 +105,7 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
   def insert(records: Map[String, Vector[SinkRecord]]): Unit = {
     val fut = records.flatMap {
       case (topic, sinkRecords) =>
-        val kcqls = topicKcqlMap.getOrElse(topic, throw new IllegalArgumentException(s"$topic hasn't been configured in KCQL. Configured topics is ${topicKcqlMap}"))
+        val kcqls = topicKcqlMap.getOrElse(topic, throw new IllegalArgumentException(s"$topic hasn't been configured in KCQL. Configured topics is ${topicKcqlMap.keys.mkString(",")}"))
 
         //we might have multiple inserts from the same Kafka Message
         kcqls.flatMap { kcql =>
