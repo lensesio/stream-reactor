@@ -233,3 +233,9 @@ WS
    : ( ' ' | '\t' | '\n' | '\r' )+ -> skip
    ;
 
+
+WITHCOMPRESSION
+   : 'WITHCOMPRESSION' | 'withcompression'
+   ;
+
+

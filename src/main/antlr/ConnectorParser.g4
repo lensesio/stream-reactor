@@ -36,7 +36,7 @@ schema_name
    ;
 
 insert_from_clause
-   : write_mode table_name select_clause_basic ( autocreate )? (with_structure)? ( PK primary_key_list)? (with_target)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? ( project_to )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? (timestamp_unit_clause)? ( with_format_clause )? (with_unwrap_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_type)? (with_doc_type)? (with_index_suffix)? (ttl_clause)? (with_converter)? (with_jms_selector)? (with_key)? (key_delimiter)? (with_pipeline_clause)?
+   : write_mode table_name select_clause_basic ( autocreate )? (with_structure)? ( PK primary_key_list)? (with_target)? ( autoevolve )? ( batching )? ( capitalize )? ( initialize )? ( project_to )? (partitionby)? (distributeby)? (clusterby)? (timestamp_clause)? (timestamp_unit_clause)? ( with_format_clause )? (with_unwrap_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_type)? (with_doc_type)? (with_index_suffix)? (ttl_clause)? (with_converter)? (with_jms_selector)? (with_key)? (key_delimiter)? (with_compression_clause)? (with_pipeline_clause)?
    ;
 
 select_clause
@@ -374,4 +374,12 @@ with_pipeline_clause
 
 pipeline_value
     :  (FIELD | (DOT|TOPICNAME)+ | INT)+
+    ;
+
+with_compression_clause
+    : WITHCOMPRESSION EQUAL with_compression_type
+    ;
+
+with_compression_type
+    : FIELD
     ;

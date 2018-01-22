@@ -938,4 +938,12 @@ public class KcqlTest {
     Kcql kcql = Kcql.parse(syntax);
     assertEquals("field1.field2.field3", kcql.getPipeline());
   }
+
+  @Test
+  public void handleWithCompression() {
+    String syntax = "INSERT INTO A SELECT * FROM B WITHCOMPRESSION=SNAPPY";
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals("SNAPPY", kcql.getCompression());
+  }
+
 }

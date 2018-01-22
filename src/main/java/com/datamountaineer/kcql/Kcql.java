@@ -64,6 +64,15 @@ public class Kcql {
   private String keyDelimeter = ".";
   private TimeUnit timestampUnit = TimeUnit.MILLISECONDS;
   private String pipeline;
+  private CompressionType compression;
+
+  public void setCompression(CompressionType compression) {
+    this.compression = compression;
+  }
+
+  public CompressionType getCompression() {
+    return this.compression;
+  }
 
   public void setTTL(long ttl) {
     this.ttl = ttl;
@@ -371,6 +380,11 @@ public class Kcql {
         }
       }
 
+      @Override
+      public void exitWith_compression_clause(ConnectorParser.With_compression_clauseContext ctx) {
+        CompressionType compressionType = CompressionType.valueOf(ctx.getText());
+        kcql.setCompression(compressionType);
+      }
 
       @Override
       public void exitDoc_type(ConnectorParser.Doc_typeContext ctx) {
@@ -745,6 +759,4 @@ public class Kcql {
   private void setTimestampUnit(TimeUnit timestampUnit) {
     this.timestampUnit = timestampUnit;
   }
-
-
 }
