@@ -36,13 +36,16 @@ case class ElasticSettings(kcqls: Seq[Kcql],
                            xPackSettings: Map[String, String] = Map.empty,
                            xPackPlugins: Seq[Class[_ <: Plugin]] = Seq.empty,
                            clientType: ClientType = ClientType.TCP,
-                           batchSize: Int = ElasticConfigConstants.BATCH_SIZE_DEFAULT)
+                           batchSize: Int = ElasticConfigConstants.BATCH_SIZE_DEFAULT,
+                           pkJoinerSeparator: String = ElasticConfigConstants.PK_JOINER_SEPARATOR_DEFAULT
+                          )
 
 
 object ElasticSettings {
 
   def apply(config: ElasticConfig): ElasticSettings = {
     val kcql = config.getKcql()
+    val pkJoinerSeparator = config.getString(ElasticConfigConstants.PK_JOINER_SEPARATOR)
     val writeTimeout = config.getWriteTimeout
     val errorPolicy = config.getErrorPolicy
     val retries = config.getNumberRetries
@@ -89,7 +92,8 @@ object ElasticSettings {
       xPackSettings,
       xPackPlugins,
       clientType,
-      batchSize
+      batchSize,
+      pkJoinerSeparator
     )
   }
 }

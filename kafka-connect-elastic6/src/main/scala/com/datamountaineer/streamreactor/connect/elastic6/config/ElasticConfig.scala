@@ -118,6 +118,16 @@ object ElasticConfig {
       ConfigDef.Width.LONG,
       ElasticConfigConstants.KCQL)
     .define(
+      ElasticConfigConstants.PK_JOINER_SEPARATOR,
+      Type.STRING,
+      ElasticConfigConstants.PK_JOINER_SEPARATOR_DEFAULT,
+      Importance.LOW,
+      ElasticConfigConstants.PK_JOINER_SEPARATOR_DOC,
+      "KCQL",
+      2,
+      ConfigDef.Width.SHORT,
+      ElasticConfigConstants.PK_JOINER_SEPARATOR)
+    .define(
       ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS,
       Type.PASSWORD,
       ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS_DEFAULT,
