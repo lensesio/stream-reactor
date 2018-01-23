@@ -28,6 +28,7 @@ object MqttClientConnectionFn extends StrictLogging {
       val options = buildBaseClient(settings.connectionTimeout,
                                     settings.keepAliveInterval,
                                     settings.cleanSession,
+                                    settings.user,
                                     settings.password,
                                     settings.sslCertFile,
                                     settings.sslCACertFile,
@@ -48,6 +49,7 @@ object MqttClientConnectionFn extends StrictLogging {
     val options = buildBaseClient(settings.connectionTimeout,
                                   settings.keepAliveInterval,
                                   settings.cleanSession,
+                                  settings.user,
                                   settings.password,
                                   settings.sslCertFile,
                                   settings.sslCACertFile,
@@ -64,6 +66,7 @@ object MqttClientConnectionFn extends StrictLogging {
   def buildBaseClient(connectionTimeout: Int,
                       keepAliveInterval: Int,
                       cleanSession: Boolean,
+                      username: Option[String],
                       password: Option[String],
                       sslCertFile: Option[String],
                       sslCACertFile: Option[String],
@@ -73,6 +76,7 @@ object MqttClientConnectionFn extends StrictLogging {
     options.setConnectionTimeout(connectionTimeout)
     options.setKeepAliveInterval(keepAliveInterval)
     options.setCleanSession(cleanSession)
+    username.foreach(n => options.setUserName(n))
     password.foreach(p => options.setPassword(p.toCharArray))
     options.setAutomaticReconnect(true)
 
