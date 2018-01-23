@@ -47,7 +47,8 @@ case class JMSSettings(connectionURL: String,
                        password: Option[Password],
                        batchSize: Int,
                        errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                       retries: Int) {
+                       retries: Int,
+                       pollingTimeout: Long) {
   require(connectionURL != null && connectionURL.trim.length > 0, "Invalid connection URL")
   require(connectionFactoryClass != null, "Invalid class for connection factory")
 }
@@ -72,6 +73,7 @@ object JMSSettings extends StrictLogging {
     val batchSize = config.getInt(JMSConfigConstants.BATCH_SIZE)
     val fields = config.getFieldsMap()
     val ignoreFields = config.getIgnoreFieldsMap()
+    val pollingTimeout = config.getLong(JMSConfigConstants.POLLING_TIMEOUT_CONFIG)
 
     val initialContextFactoryClass = config.getString(JMSConfigConstants.INITIAL_CONTEXT_FACTORY)
     val clazz = config.getString(JMSConfigConstants.CONNECTION_FACTORY)
@@ -161,7 +163,8 @@ object JMSSettings extends StrictLogging {
       Option(password),
       batchSize,
       errorPolicy,
-      nbrOfRetries)
+      nbrOfRetries,
+      pollingTimeout)
   }
 
   def getFormatType(kcql: Kcql) : FormatType = Option(kcql.getFormatType).getOrElse(FormatType.JSON)

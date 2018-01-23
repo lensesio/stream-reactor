@@ -57,6 +57,9 @@ object JMSConfig {
     .define(JMSConfigConstants.BATCH_SIZE, Type.INT, JMSConfigConstants.BATCH_SIZE_DEFAULT, Importance.MEDIUM,
       JMSConfigConstants.BATCH_SIZE_DOC,
       "Connection", 13, ConfigDef.Width.MEDIUM, JMSConfigConstants.BATCH_SIZE)
+    .define(JMSConfigConstants.POLLING_TIMEOUT_CONFIG, Type.LONG, JMSConfigConstants.POLLING_TIMEOUT_DEFAULT, Importance.MEDIUM,
+        JMSConfigConstants.POLLING_TIMEOUT_DOC,
+        "Connection", 14, ConfigDef.Width.MEDIUM, JMSConfigConstants.POLLING_TIMEOUT_CONFIG)
 
     //converters
 

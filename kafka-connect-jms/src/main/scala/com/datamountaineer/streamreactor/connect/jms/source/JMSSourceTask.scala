@@ -18,11 +18,12 @@ package com.datamountaineer.streamreactor.connect.jms.source
 
 import java.util
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 import javax.jms.Message
 
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.source.readers.JMSReader
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
+import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
@@ -39,6 +40,7 @@ class JMSSourceTask extends SourceTask with StrictLogging {
   var reader: JMSReader = _
   val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
+  private val pollingTimeout: AtomicLong = new AtomicLong(0L)
   private var ackMessage: Option[Message] = None
   private val recordsToCommit = new ConcurrentHashMap[SourceRecord, SourceRecord]()
   private val manifest = JarManifest()
@@ -52,10 +54,15 @@ class JMSSourceTask extends SourceTask with StrictLogging {
     val settings = JMSSettings(config, sink = false)
     reader = JMSReader(settings)
     enableProgress = config.getBoolean(JMSConfigConstants.PROGRESS_COUNTER_ENABLED)
+    pollingTimeout.set(settings.pollingTimeout)
   }
 
   override def stop(): Unit = {
     logger.info("Stopping JMS readers")
+
+    synchronized {
+      this.notifyAll()
+    }
 
     reader.stop match {
       case Failure(t) => logger.error(s"Error encountered while stopping JMS Source Task. $t")
@@ -69,8 +76,15 @@ class JMSSourceTask extends SourceTask with StrictLogging {
 
     try {
       val polled = reader.poll()
-      records = collection.mutable.Seq(polled.map({ case (_, record) => record }).toSeq: _*)
-      messages = collection.mutable.Seq(polled.map({ case (message, _) => message }).toSeq: _*)
+
+      if(polled.isEmpty) {
+        synchronized {
+          this.wait(pollingTimeout.get())
+        }
+      } else {
+        records = collection.mutable.Seq(polled.map({ case (_, record) => record }).toSeq: _*)
+        messages = collection.mutable.Seq(polled.map({ case (message, _) => message }).toSeq: _*)
+      }
     } finally {
       if (messages.size > 0) {
         ackMessage = messages.headOption
