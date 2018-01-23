@@ -239,3 +239,9 @@ WITHCOMPRESSION
    ;
 
 
+WITHDELAY
+   : 'WITHDELAY' | 'withdelay'
+   ;
+
+
+

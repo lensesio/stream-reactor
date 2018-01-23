@@ -927,4 +927,24 @@ public interface ConnectorParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitWith_compression_type(ConnectorParser.With_compression_typeContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#with_delay_clause}.
+	 * @param ctx the parse tree
+	 */
+	void enterWith_delay_clause(ConnectorParser.With_delay_clauseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#with_delay_clause}.
+	 * @param ctx the parse tree
+	 */
+	void exitWith_delay_clause(ConnectorParser.With_delay_clauseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#with_delay_value}.
+	 * @param ctx the parse tree
+	 */
+	void enterWith_delay_value(ConnectorParser.With_delay_valueContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#with_delay_value}.
+	 * @param ctx the parse tree
+	 */
+	void exitWith_delay_value(ConnectorParser.With_delay_valueContext ctx);
 }

@@ -66,6 +66,16 @@ public class Kcql {
   private String pipeline;
   private CompressionType compression;
 
+  private int delay;
+
+  public int getDelay() {
+    return this.delay;
+  }
+
+  public void setDelay(Integer delay) {
+    this.delay = delay;
+  }
+
   public void setCompression(CompressionType compression) {
     this.compression = compression;
   }
@@ -307,6 +317,7 @@ public class Kcql {
 
     parser.addParseListener(new ConnectorParserBaseListener() {
 
+
       @Override
       public void exitColumn(ConnectorParser.ColumnContext ctx) {
         for (TerminalNode tn : ctx.FIELD()) {
@@ -382,9 +393,14 @@ public class Kcql {
 
       @Override
       public void exitWith_compression_clause(ConnectorParser.With_compression_clauseContext ctx) {
-        CompressionType compressionType = CompressionType.valueOf(ctx.getText());
+        CompressionType compressionType = CompressionType.valueOf(escape(ctx.getText()));
         kcql.setCompression(compressionType);
       }
+
+      public void exitWith_delay_clause(ConnectorParser.With_delay_clauseContext ctx) {
+        kcql.delay = Integer.parseInt(ctx.getText());
+      }
+
 
       @Override
       public void exitDoc_type(ConnectorParser.Doc_typeContext ctx) {

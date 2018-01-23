@@ -941,9 +941,16 @@ public class KcqlTest {
 
   @Test
   public void handleWithCompression() {
-    String syntax = "INSERT INTO A SELECT * FROM B WITHCOMPRESSION=SNAPPY";
+    String syntax = "INSERT INTO A SELECT * FROM B WITHCOMPRESSION=`SNAPPY`";
     Kcql kcql = Kcql.parse(syntax);
     assertEquals("SNAPPY", kcql.getCompression());
+  }
+
+  @Test
+  public void handleWithDelay() {
+    String syntax = "INSERT INTO A SELECT * FROM B WITHDELAY=1000";
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(Integer.parseInt("1000"), kcql.getDelay());
   }
 
 }

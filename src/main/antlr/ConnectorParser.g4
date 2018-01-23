@@ -383,3 +383,11 @@ with_compression_clause
 with_compression_type
     : FIELD
     ;
+
+with_delay_clause
+   : WITHDELAY EQUAL with_delay_value
+   ;
+
+with_delay_value
+   : INT
+   ;
