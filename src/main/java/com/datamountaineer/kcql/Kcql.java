@@ -392,15 +392,16 @@ public class Kcql {
       }
 
       @Override
-      public void exitWith_compression_clause(ConnectorParser.With_compression_clauseContext ctx) {
-        CompressionType compressionType = CompressionType.valueOf(escape(ctx.getText()));
+      public void exitWith_compression_type(ConnectorParser.With_compression_typeContext ctx) {
+        String type = escape(ctx.getText()).toUpperCase();
+        CompressionType compressionType = CompressionType.valueOf(type);
         kcql.setCompression(compressionType);
       }
 
-      public void exitWith_delay_clause(ConnectorParser.With_delay_clauseContext ctx) {
+      @Override
+      public void exitWith_delay_value(ConnectorParser.With_delay_valueContext ctx) {
         kcql.delay = Integer.parseInt(ctx.getText());
       }
-
 
       @Override
       public void exitDoc_type(ConnectorParser.Doc_typeContext ctx) {

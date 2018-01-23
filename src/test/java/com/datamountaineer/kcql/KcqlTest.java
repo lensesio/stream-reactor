@@ -943,7 +943,7 @@ public class KcqlTest {
   public void handleWithCompression() {
     String syntax = "INSERT INTO A SELECT * FROM B WITHCOMPRESSION=`SNAPPY`";
     Kcql kcql = Kcql.parse(syntax);
-    assertEquals("SNAPPY", kcql.getCompression());
+    assertEquals(CompressionType.SNAPPY, kcql.getCompression());
   }
 
   @Test

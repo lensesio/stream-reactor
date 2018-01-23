@@ -381,7 +381,7 @@ with_compression_clause
     ;
 
 with_compression_type
-    : FIELD
+    : TOPICNAME
     ;
 
 with_delay_clause

@@ -165,6 +165,14 @@ WITHTARGET
     : 'WITHTARGET' | 'withtarget'
     ;
 
+WITHCOMPRESSION
+   : 'WITHCOMPRESSION'|'withcompression'
+   ;
+
+WITHDELAY
+   : 'WITHDELAY'|'withdelay'
+   ;
+
 TIMESTAMPUNIT
     : 'TIMESTAMPUNIT' | 'timestampunit'
     ;
@@ -176,7 +184,6 @@ WITHPIPELINE
 TTL
    : 'TTL'|'ttl'
    ;
-
 
 EQUAL
    : '='
@@ -232,16 +239,3 @@ NEWLINE
 WS
    : ( ' ' | '\t' | '\n' | '\r' )+ -> skip
    ;
-
-
-WITHCOMPRESSION
-   : 'WITHCOMPRESSION' | 'withcompression'
-   ;
-
-
-WITHDELAY
-   : 'WITHDELAY' | 'withdelay'
-   ;
-
-
-
