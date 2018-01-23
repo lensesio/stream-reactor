@@ -35,6 +35,7 @@ A collection of components to build a real time ingestion pipeline.
 | Druid          | Sink   | Kafka connect Druid sink to write Kafka topic payloads to Druid.                              |             |
 | Elastic        | Sink   | Kafka connect Elastic Search sink to write Kafka topic payloads to Elastic Search 2.x         | [Docs](https://lenses.stream/connectors/sink/elastic.html)                |
 | Elastic 5      | Sink   | Kafka connect Elastic Search sink to write payloads to Elastic Search 5.x w. tcp or http      | [Docs](https://lenses.stream/connectors/sink/elastic5.html)               |
+| Elastic 6      | Sink   | Kafka connect Elastic Search sink to write payloads to Elastic Search 6.x w. tcp or http      | [Docs](https://lenses.stream/connectors/sink/elastic6.html)               |
 | FTP/HTTP       | Source | Kafka connect FTP and HTTP source to write file data into Kafka topics.                       | [Docs](https://lenses.stream/connectors/source/ftp.html)                  |
 | HBase          | Sink   | Kafka connect HBase sink to write Kafka topic payloads to HBase.                              | [Docs](https://lenses.stream/connectors/sink/hbase.html)                  |
 | Hazelcast      | Sink   | Kafka connect Hazelcast sink to write Kafka topic payloads to Hazelcast.                      | [Docs](https://lenses.stream/connectors/sink/hazelcast.html)              |
