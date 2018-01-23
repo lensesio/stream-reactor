@@ -29,15 +29,14 @@ import com.landoop.sql.Field
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.Indexable
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy
 
 import scala.collection.JavaConversions._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.util.Try
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
   extends ErrorHandler with StrictLogging with ConverterUtil {
@@ -134,7 +133,7 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                     )
 
                     require(pks.nonEmpty, "Error extracting primary keys")
-                    update(pks.mkString(".")).in(i / documentType).docAsUpsert(json)(IndexableJsonNode)
+                    update(pks.mkString(settings.pkJoinerSeparator)).in(i / documentType).docAsUpsert(json)(IndexableJsonNode)
                 }
               }
 
