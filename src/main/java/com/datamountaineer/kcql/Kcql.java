@@ -392,7 +392,7 @@ public class Kcql {
 
       @Override
       public void exitWith_compression_type(ConnectorParser.With_compression_typeContext ctx) {
-        String type = escape(ctx.getText()).toUpperCase();
+        String type = unescape(ctx.getText()).toUpperCase();
         CompressionType compressionType = CompressionType.valueOf(type);
         kcql.setCompression(compressionType);
       }

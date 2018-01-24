@@ -908,6 +908,26 @@ public interface ConnectorParserListener extends ParseTreeListener {
 	 */
 	void exitTtl_type(ConnectorParser.Ttl_typeContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#with_pipeline_clause}.
+	 * @param ctx the parse tree
+	 */
+	void enterWith_pipeline_clause(ConnectorParser.With_pipeline_clauseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#with_pipeline_clause}.
+	 * @param ctx the parse tree
+	 */
+	void exitWith_pipeline_clause(ConnectorParser.With_pipeline_clauseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#pipeline_value}.
+	 * @param ctx the parse tree
+	 */
+	void enterPipeline_value(ConnectorParser.Pipeline_valueContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#pipeline_value}.
+	 * @param ctx the parse tree
+	 */
+	void exitPipeline_value(ConnectorParser.Pipeline_valueContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link ConnectorParser#with_compression_clause}.
 	 * @param ctx the parse tree
 	 */
