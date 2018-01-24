@@ -130,7 +130,7 @@ public class KcqlTest {
     String topic = "TOPIC-A";
     String table = "TABLE_A";
     String batchSize = "500";
-    String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f2 as col2 FROM %s BATCH %s", table, topic, batchSize);
+    String syntax = String.format("INSERT INTO %s SELECT f1 as col1, f2 as col2 FROM %s BATCH = %s", table, topic, batchSize);
     Kcql kcql = Kcql.parse(syntax);
     assertEquals(topic, kcql.getSource());
     assertEquals(table, kcql.getTarget());
@@ -300,7 +300,7 @@ public class KcqlTest {
   public void parseWithInitialize() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
-    String syntax = String.format("INSERT INTO %s SELECT * FROM %s batch 100 initialize", table, topic);
+    String syntax = String.format("INSERT INTO %s SELECT * FROM %s batch = 100 initialize", table, topic);
     Kcql kcql = Kcql.parse(syntax);
     assertTrue(kcql.isInitialize());
   }
@@ -318,7 +318,7 @@ public class KcqlTest {
   public void parseWithProject() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
-    String syntax = String.format("INSERT INTO %s SELECT * FROM %s batch 100 initialize projectTo 1", table, topic);
+    String syntax = String.format("INSERT INTO %s SELECT * FROM %s batch = 100 initialize projectTo 1", table, topic);
     Kcql kcql = Kcql.parse(syntax);
     assertTrue(kcql.getProjectTo().equals(1));
   }
@@ -940,14 +940,14 @@ public class KcqlTest {
 
   @Test
   public void handleWithCompression() {
-    String syntax = "INSERT INTO A SELECT * FROM B WITHCOMPRESSION SNAPPY";
+    String syntax = "INSERT INTO A SELECT * FROM B WITHCOMPRESSION = SNAPPY";
     Kcql kcql = Kcql.parse(syntax);
     assertEquals(CompressionType.SNAPPY, kcql.getCompression());
   }
 
   @Test
   public void handleWithDelay() {
-    String syntax = "INSERT INTO A SELECT * FROM B WITHDELAY 1000";
+    String syntax = "INSERT INTO A SELECT * FROM B WITHDELAY = 1000";
     Kcql kcql = Kcql.parse(syntax);
     assertEquals(Integer.parseInt("1000"), kcql.getDelay());
   }

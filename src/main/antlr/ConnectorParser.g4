@@ -108,7 +108,7 @@ batch_size
     ;
 
 batching
-   : BATCH batch_size
+   : BATCH EQUAL batch_size
    ;
 
 capitalize
@@ -377,7 +377,7 @@ pipeline_value
     ;
 
 with_compression_clause
-    : WITHCOMPRESSION with_compression_type
+    : WITHCOMPRESSION EQUAL with_compression_type
     ;
 
 with_compression_type
@@ -385,7 +385,7 @@ with_compression_type
     ;
 
 with_delay_clause
-   : WITHDELAY with_delay_value
+   : WITHDELAY EQUAL with_delay_value
    ;
 
 with_delay_value
