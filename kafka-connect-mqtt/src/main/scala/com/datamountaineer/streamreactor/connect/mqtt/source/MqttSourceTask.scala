@@ -64,7 +64,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
 
     val convertersMap = settings.sourcesToConverters.map { case (topic, clazz) =>
       logger.info(s"Creating converter instance for $clazz")
-      val converter = Try(this.getClass.getClassLoader.loadClass(clazz).newInstance()) match {
+      val converter = Try(Class.forName(clazz).newInstance()) match {
         case Success(value) => value.asInstanceOf[Converter]
         case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
       }
