@@ -169,6 +169,10 @@ TIMESTAMPUNIT
     : 'TIMESTAMPUNIT' | 'timestampunit'
     ;
 
+WITHPIPELINE
+    : 'WITHPIPELINE' | 'withpipeline'
+    ;
+
 TTL
    : 'TTL'|'ttl'
    ;

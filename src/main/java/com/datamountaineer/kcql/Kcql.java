@@ -63,6 +63,7 @@ public class Kcql {
   private List<String> withKeys = null;
   private String keyDelimeter = ".";
   private TimeUnit timestampUnit = TimeUnit.MILLISECONDS;
+  private String pipeline;
 
   public void setTTL(long ttl) {
     this.ttl = ttl;
@@ -224,7 +225,7 @@ public class Kcql {
     return tags;
   }
 
-  public List<String> getWithKeys(){
+  public List<String> getWithKeys() {
     return withKeys;
   }
 
@@ -262,6 +263,10 @@ public class Kcql {
 
   public String getWithJmsSelector() {
     return withJmsSelector;
+  }
+
+  public String getPipeline() {
+    return pipeline;
   }
 
   public static Kcql parse(final String syntax) {
@@ -310,7 +315,7 @@ public class Kcql {
 
       @Override
       public void exitWith_type_value(ConnectorParser.With_type_valueContext ctx) {
-        kcql.withType = escape(ctx.getText());
+        kcql.withType = unescape(ctx.getText());
       }
 
       @Override
@@ -369,22 +374,22 @@ public class Kcql {
 
       @Override
       public void exitDoc_type(ConnectorParser.Doc_typeContext ctx) {
-        kcql.docType = escape(ctx.getText());
+        kcql.docType = unescape(ctx.getText());
       }
 
       @Override
       public void exitWith_converter_value(ConnectorParser.With_converter_valueContext ctx) {
-        kcql.withConverter = escape(ctx.getText());
+        kcql.withConverter = unescape(ctx.getText());
       }
 
       @Override
       public void exitJms_selector_value(ConnectorParser.Jms_selector_valueContext ctx) {
-        kcql.withJmsSelector = escape(ctx.getText());
+        kcql.withJmsSelector = unescape(ctx.getText());
       }
 
       @Override
       public void exitIndex_suffix(ConnectorParser.Index_suffixContext ctx) {
-        kcql.indexSuffix = escape(ctx.getText());
+        kcql.indexSuffix = unescape(ctx.getText());
       }
 
       @Override
@@ -404,7 +409,7 @@ public class Kcql {
 
       @Override
       public void exitTable_name(ConnectorParser.Table_nameContext ctx) {
-        kcql.target = escape(ctx.getText());
+        kcql.target = unescape(ctx.getText());
       }
 
       @Override
@@ -419,7 +424,7 @@ public class Kcql {
 
       @Override
       public void exitTopic_name(ConnectorParser.Topic_nameContext ctx) {
-        kcql.source = escape(ctx.getText());
+        kcql.source = unescape(ctx.getText());
       }
 
       @Override
@@ -553,7 +558,7 @@ public class Kcql {
 
       @Override
       public void exitWith_consumer_group_value(ConnectorParser.With_consumer_group_valueContext ctx) {
-        String value = escape(ctx.getText());
+        String value = unescape(ctx.getText());
         kcql.consumerGroup = value;
       }
 
@@ -653,7 +658,7 @@ public class Kcql {
       @Override
       public void exitWith_key_value(ConnectorParser.With_key_valueContext ctx) {
         String key = ctx.getText();
-        if(kcql.withKeys ==null){
+        if (kcql.withKeys == null) {
           kcql.withKeys = new ArrayList<>();
         }
         kcql.withKeys.add(key);
@@ -661,10 +666,15 @@ public class Kcql {
 
       @Override
       public void exitKey_delimiter_value(ConnectorParser.Key_delimiter_valueContext ctx) {
-        kcql.keyDelimeter = ctx.getText().replace("`","");
-        if(kcql.keyDelimeter.trim().length()==0){
+        kcql.keyDelimeter = ctx.getText().replace("`", "");
+        if (kcql.keyDelimeter.trim().length() == 0) {
           throw new IllegalArgumentException("Invalid key delimiter. Needs to be a non empty string.");
         }
+      }
+
+      @Override
+      public void exitPipeline_value(ConnectorParser.Pipeline_valueContext ctx) {
+        kcql.pipeline = unescape(ctx.getText());
       }
     });
 
@@ -712,7 +722,7 @@ public class Kcql {
     return kcql;
   }
 
-  private static String escape(String value) {
+  private static String unescape(String value) {
     if (value.startsWith("`")) {
       return value.substring(1, value.length() - 1);
     }
@@ -735,4 +745,6 @@ public class Kcql {
   private void setTimestampUnit(TimeUnit timestampUnit) {
     this.timestampUnit = timestampUnit;
   }
+
+
 }
