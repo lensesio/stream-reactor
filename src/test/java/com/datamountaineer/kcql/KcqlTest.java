@@ -930,4 +930,12 @@ public class KcqlTest {
     assertNull(kcql.getTags());
   }
 
+  @Test
+  public void handleWithPipeline() {
+    String topic = "/TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITHPIPELINE = field1.field2.field3", table, topic);
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals("field1.field2.field3", kcql.getPipeline());
+  }
 }
