@@ -28,14 +28,13 @@ class PulsarSourceSettingsTest extends WordSpec with Matchers {
     val pulsarTopic = "persistent://landoop/standalone/connect/kafka-topic"
 
     "create an instance of settings" in {
-      val settings = PulsarSourceSettings {
-        PulsarSourceConfig(Map(
-          PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-          PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM $pulsarTopic WITHCONVERTER=`${classOf[AvroConverter].getCanonicalName}`",
-          PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
-          PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
-        ))
-      }
+      val config = PulsarSourceConfig(Map(
+        PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
+        PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM $pulsarTopic WITHCONVERTER=`${classOf[AvroConverter].getCanonicalName}`",
+        PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
+        PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
+      ))
+      val settings = PulsarSourceSettings(config, 1)
 
       settings.sourcesToConverters shouldBe Map(pulsarTopic -> classOf[AvroConverter].getCanonicalName)
       settings.throwOnConversion shouldBe true
@@ -44,15 +43,13 @@ class PulsarSourceSettingsTest extends WordSpec with Matchers {
     }
 
     "converted defaults to BytesConverter if not provided" in {
-      val settings = PulsarSourceSettings {
-        PulsarSourceConfig(Map(
-          PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-          PulsarConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM pulsarSource",
-          PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
-          PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
-        ))
-      }
-
+      val config = PulsarSourceConfig(Map(
+        PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
+        PulsarConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM pulsarSource",
+        PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
+        PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
+      ))
+      val settings = PulsarSourceSettings (config, 1)
       settings.sourcesToConverters shouldBe Map("pulsarSource" -> classOf[BytesConverter].getCanonicalName)
     }
 
@@ -68,12 +65,12 @@ class PulsarSourceSettingsTest extends WordSpec with Matchers {
 
     "throw an config exception if HOSTS_CONFIG is not defined" in {
       intercept[ConfigException] {
-        PulsarSourceSettings(
-          PulsarSourceConfig(Map(
-            PulsarConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM pulsarSource",
-            PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
-            PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
-          )))
+        val config = PulsarSourceConfig(Map(
+          PulsarConfigConstants.KCQL_CONFIG -> "INSERT INTO kTopic SELECT * FROM pulsarSource",
+          PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
+          PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
+        ))
+        PulsarSourceSettings(config, 1)
       }
     }
 
@@ -107,5 +104,16 @@ class PulsarSourceSettingsTest extends WordSpec with Matchers {
       }
     }
 
+    "throw an config exception if exclusive and max tasks > 1" in {
+      intercept[ConfigException] {
+        val config = PulsarSourceConfig(Map(
+          PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
+          PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM $pulsarTopic WITHTYPE exclusive",
+          PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
+          PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
+        ))
+        val settings = PulsarSourceSettings(config, 2)
+      }
+    }
   }
 }

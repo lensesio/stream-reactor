@@ -47,7 +47,7 @@ object PulsarConfigConstants {
   val AVRO_CONVERTERS_SCHEMA_FILES_DEFAULT = ""
 
   val POLLING_TIMEOUT_CONFIG = s"$CONNECTOR_PREFIX.polling.timeout"
-  val POLLING_TIMEOUT_DOC = "Provides the timeout to poll incoming messages"
+  val POLLING_TIMEOUT_DOC = s"Provides the timeout to poll incoming messages. Connect will write to Kafka is this reached of the $CONNECTOR_PREFIX.$BATCH_SIZE_PROP_SUFFIX. Which ever is first."
   val POLLING_TIMEOUT_DISPLAY = "Polling timeout"
   val POLLING_TIMEOUT_DEFAULT = 1000
 
@@ -72,4 +72,20 @@ object PulsarConfigConstants {
   val NBR_OF_RETRIES = s"$CONNECTOR_PREFIX.max.retries"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
+
+  val INTERNAL_BATCH_SIZE = s"$CONNECTOR_PREFIX.$BATCH_SIZE_PROP_SUFFIX"
+  val INTERNAL_BATCH_SIZE_DOC = s"The number of records Connect will wait before writing to Kafka. The connector will return if $CONNECTOR_PREFIX.polling.timeout is reached first."
+  val INTERNAL_BATCH_SIZE_DEFAULT = 100
+
+  val SSL_CA_CERT_CONFIG = s"${CONNECTOR_PREFIX}.tls.ca.cert"
+  val SSL_CA_CERT_DOC = "Provides the path to the CA certificate file to use with the Pulsar connection"
+  val SSL_CA_CERT_DISPLAY = "CA certificate file path"
+
+  val SSL_CERT_CONFIG = s"${CONNECTOR_PREFIX}.tls.cert"
+  val SSL_CERT_DOC = "Provides the path to the certificate file to use with the Pulsar connection"
+  val SSL_CERT_DISPLAY = "Certificate key file path"
+
+  val SSL_CERT_KEY_CONFIG = s"${CONNECTOR_PREFIX}.tls.key"
+  val SSL_CERT_KEY_DOC = "Certificate private [config] key file path."
+  val SSL_CERT_KEY_DISPLAY = "Certificate private [config] key file path"
 }

@@ -16,34 +16,46 @@
 
 package com.datamountaineer.streamreactor.connect.pulsar.sink
 
-import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.kcql.{Field, Kcql}
 import com.datamountaineer.streamreactor.connect.converters.{FieldConverter, Transform}
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
+import com.datamountaineer.streamreactor.connect.pulsar.ProducerConfigFactory
 import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSinkSettings
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.pulsar.client.api.ProducerConfiguration.MessageRoutingMode
 import org.apache.pulsar.client.api._
+import org.apache.pulsar.client.impl.auth.AuthenticationTls
 
 import scala.collection.JavaConversions._
 import scala.util.Try
 
-object PulsarMessageFactory {
-  def apply(settings: PulsarSinkSettings): PulsarMessages = {
-    new PulsarMessages(settings)
+
+object PulsarWriter {
+  def apply(name: String, settings: PulsarSinkSettings): PulsarWriter = {
+    val clientConf = new ClientConfiguration()
+
+    settings.sslCACertFile.foreach(f => {
+      clientConf.setUseTls(true)
+      clientConf.setTlsTrustCertsFilePath(f)
+
+      val authParams = settings.sslCertFile.map(f => ("tlsCertFile", f)).toMap ++ settings.sslCertKeyFile.map(f => ("tlsKeyFile", f)).toMap
+      clientConf.setAuthentication(classOf[AuthenticationTls].getName, authParams)
+    })
+
+    lazy val client = PulsarClient.create(settings.connection, clientConf)
+    new PulsarWriter(client, name, settings)
   }
 }
 
-class PulsarWriter(settings: PulsarSinkSettings) extends StrictLogging with ErrorHandler {
+case class PulsarWriter(client: PulsarClient, name: String, settings: PulsarSinkSettings) extends StrictLogging with ErrorHandler {
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
 
   private val producersMap = scala.collection.mutable.Map.empty[String, Producer]
-  val msgFactory = PulsarMessageFactory(settings)
+  val msgFactory = PulsarMessageBuilder(settings)
+  val configs = ProducerConfigFactory(name, settings.kcql)
 
-  //TODO move to a connection factory, add TLS, batching options.
-  private val conf = new ProducerConfiguration
-  conf.setCompressionType(CompressionType.LZ4)
-  val client = PulsarClient.create(settings.connection)
 
   def write(records: Iterable[SinkRecord]) = {
     val messages = msgFactory.create(records)
@@ -51,7 +63,7 @@ class PulsarWriter(settings: PulsarSinkSettings) extends StrictLogging with Erro
     val t = Try{
       messages.foreach{
         case (topic, message) => {
-          val producer = producersMap.getOrElseUpdate(topic, client.createProducer(topic, conf))
+          val producer = producersMap.getOrElseUpdate(topic, client.createProducer(topic, configs(topic)))
           producer.send(message)
         }
       }
@@ -64,11 +76,12 @@ class PulsarWriter(settings: PulsarSinkSettings) extends StrictLogging with Erro
 
   def close = {
     logger.info("Closing client")
+    producersMap.foreach({ case (_, producer) => producer.close()})
     client.close()
   }
 }
 
-class PulsarMessages(settings: PulsarSinkSettings) extends StrictLogging with ErrorHandler {
+case class PulsarMessageBuilder(settings: PulsarSinkSettings) extends StrictLogging with ErrorHandler {
 
   private val mappings: Map[String, Set[Kcql]] = settings.kcql.groupBy(k => k.getSource)
 
@@ -79,6 +92,7 @@ class PulsarMessages(settings: PulsarSinkSettings) extends StrictLogging with Er
       val kcqls = mappings(topic)
       kcqls.map { k =>
         val pulsarTopic = k.getTarget
+
         //optimise this via a map
         val fields = k.getFields.map(FieldConverter.apply)
         val ignoredFields = k.getIgnoredFields.map(FieldConverter.apply)
@@ -92,7 +106,31 @@ class PulsarMessages(settings: PulsarSinkSettings) extends StrictLogging with Er
           k.hasRetainStructure
         )
 
-        (pulsarTopic, MessageBuilder.create.setContent(json.getBytes).build)
+        val recordTime = if (record.timestamp() != null) record.timestamp().longValue() else System.currentTimeMillis()
+
+        val msg = MessageBuilder
+                    .create
+                    .setContent(json.getBytes)
+                    .setEventTime(recordTime)
+
+        // don't set the key if in singlePartition mode
+        val mode = ProducerConfigFactory.getMessageRouting(k)
+
+        if (mode != MessageRoutingMode.SinglePartition && record.key() != null) {
+          val keyFields =  k.getPrimaryKeys.map(FieldConverter.apply)
+
+          val jsonKey = Transform(
+            keyFields,
+            List.empty[Field].map(FieldConverter.apply),
+            record.keySchema(),
+            record.key(),
+            k.hasRetainStructure
+          )
+          msg.setKey(jsonKey)
+        }
+
+        val built = msg.build()
+        (pulsarTopic, built)
       }
     }
   }
