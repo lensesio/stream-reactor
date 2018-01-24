@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 public class Kcql {
 
   public final static String TIMESTAMP = "sys_time()";
-  public final static int DEFAULT_BATCH_SIZE = 3000;
   private boolean autoCreate;
   private boolean autoEvolve;
   private boolean enableCapitalize;
@@ -40,7 +39,7 @@ public class Kcql {
   private List<String> partitionBy = new ArrayList<>();
   private int retries = 1;
   private int limit = 5;
-  private int batchSize = DEFAULT_BATCH_SIZE;
+  private int batchSize;
   private Bucketing bucketing;
   private String timestamp;
   private String storedAs;
