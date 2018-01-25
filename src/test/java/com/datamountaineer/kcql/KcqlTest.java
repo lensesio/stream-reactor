@@ -940,9 +940,9 @@ public class KcqlTest {
 
   @Test
   public void handleWithCompression() {
-    String syntax = "INSERT INTO A SELECT * FROM B WITHCOMPRESSION = SNAPPY";
+    String syntax = "INSERT INTO A SELECT * FROM B WITHPARTITIONER = SinglePartition WITHDELAY = 1000";
     Kcql kcql = Kcql.parse(syntax);
-    assertEquals(CompressionType.SNAPPY, kcql.getCompression());
+    assertEquals(CompressionType.ZLIB, kcql.getCompression());
   }
 
   @Test
