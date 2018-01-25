@@ -55,7 +55,7 @@ class TestPulsarMessageBuilder extends WordSpec with Matchers with BeforeAndAfte
   }
 
 
-  "should create json messages with no key for singlePartition mode" in {
+  "should create json messages singlePartition mode" in {
     val config = PulsarSinkConfig(Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
       PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHPARTITIONER = SinglePartition WITHCOMPRESSION = ZLIB WITHDELAY =  1000"
@@ -71,7 +71,6 @@ class TestPulsarMessageBuilder extends WordSpec with Matchers with BeforeAndAfte
     val messages = builder.create(List(record1))
 
     messages.head._1 shouldBe pulsarTopic
-    messages.head._2.getKey shouldBe ""
     messages.head._2.getData.map(_.toChar).mkString shouldBe "{\"int8\":12,\"int16\":12,\"int32\":12,\"int64\":12,\"float32\":12.2,\"float64\":12.2,\"boolean\":true,\"string\":\"foo\"}"
   }
 

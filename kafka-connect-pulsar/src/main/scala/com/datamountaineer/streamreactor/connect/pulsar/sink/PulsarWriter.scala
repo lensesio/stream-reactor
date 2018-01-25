@@ -114,15 +114,12 @@ case class PulsarMessageBuilder(settings: PulsarSinkSettings) extends StrictLogg
                     .setContent(json.getBytes)
                     .setEventTime(recordTime)
 
-        // don't set the key if in singlePartition mode
-        val mode = ProducerConfigFactory.getMessageRouting(k)
 
-
-        if (mode != MessageRoutingMode.SinglePartition) {
+        if (k.getWithKeys != null && k.getWithKeys().size() > 0) {
           val parentFields = null
 
           // Get the fields to construct the key for pulsar
-          val (partitionBy, schema, value) = if (record.key() != null & k.getWithKeys().size() > 0) {
+          val (partitionBy, schema, value) = if (k.getWithKeys != null && k.getWithKeys().size() > 0) {
             (k.getWithKeys.map(f => Field.from(f, f, parentFields)),
               if (record.key() != null) record.keySchema() else record.valueSchema(),
               if (record.key() != null) record.key() else record.value()

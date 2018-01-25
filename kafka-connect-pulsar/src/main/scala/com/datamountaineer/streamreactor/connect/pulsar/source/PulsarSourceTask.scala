@@ -72,7 +72,7 @@ class PulsarSourceTask extends SourceTask with StrictLogging {
   def buildConvertersMap(props: util.Map[String, String], settings: PulsarSourceSettings): Map[String, Converter] = {
     settings.sourcesToConverters.map { case (topic, clazz) =>
       logger.info(s"Creating converter instance for $clazz")
-      val converter = Try(this.getClass.getClassLoader.loadClass(clazz).newInstance()) match {
+      val converter = Try(Class.forName(clazz).newInstance()) match {
         case Success(value) => value.asInstanceOf[Converter]
         case Failure(_) => throw new ConfigException(s"Invalid ${PulsarConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
       }

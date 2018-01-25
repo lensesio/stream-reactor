@@ -59,7 +59,7 @@ object PulsarSourceSettings {
     }).toMap
 
     converters.foreach { case (pulsar_source, clazz) =>
-      Try(getClass.getClassLoader.loadClass(clazz)) match {
+      Try(Class.forName(clazz)) match {
         case Failure(_) => throw new ConfigException(s"Invalid ${PulsarConfigConstants.KCQL_CONFIG}. $clazz can't be found for $pulsar_source")
         case Success(clz) =>
           if (!classOf[Converter].isAssignableFrom(clz)) {

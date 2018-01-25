@@ -57,6 +57,17 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
+**1.0.1** Pending
+
+*   Added SSL, subscription, partitioning, batching and key selection to Puslar source and sink
+*   Elastic6 connector @caiooliveiraeti !
+*   Add polling timeout on the JMS source connector to avoid high CPU in the source connector poll thanks #373 @matthedude
+*   Fixes on the elastic priimary key separator thanks @caiooliveiraeti!
+*   Fix on the MQTT class loader
+*   Fix on the JMS class loader
+*   Fix on JMS to close down connections cleanly #363 thanks @matthedude!
+*   Fix on MQTT to correctly handle authentication 
+
 **1.0.0**
 
 * Kafka 1.0.o Support
