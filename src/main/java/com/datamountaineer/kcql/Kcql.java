@@ -85,19 +85,19 @@ public class Kcql {
     this.subscription = name;
   }
 
-  public int getDelay() {
+  public int getWithDelay() {
     return this.delay;
   }
 
-  public void setDelay(Integer delay) {
+  public void setWithDelay(Integer delay) {
     this.delay = delay;
   }
 
-  public void setCompression(CompressionType compression) {
+  public void setWithCompression(CompressionType compression) {
     this.compression = compression;
   }
 
-  public CompressionType getCompression() {
+  public CompressionType getWithCompression() {
     return this.compression;
   }
 
@@ -421,7 +421,7 @@ public class Kcql {
       public void exitWith_compression_type(ConnectorParser.With_compression_typeContext ctx) {
         String type = unescape(ctx.getText()).toUpperCase();
         CompressionType compressionType = CompressionType.valueOf(type);
-        kcql.setCompression(compressionType);
+        kcql.setWithCompression(compressionType);
       }
 
       @Override

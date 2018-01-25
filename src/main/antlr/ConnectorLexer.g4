@@ -169,10 +169,6 @@ WITHCOMPRESSION
     : 'WITHCOMPRESSION'|'withcompression'
     ;
 
-WITHDELAY
-    : 'WITHDELAY'|'withdelay'
-    ;
-
 WITHPARTITIONER
     : 'WITHPARTITIONER' | 'withpartitioner'
     ;
@@ -187,6 +183,10 @@ TIMESTAMPUNIT
 
 WITHPIPELINE
     : 'WITHPIPELINE' | 'withpipeline'
+    ;
+
+WITHDELAY
+    : 'WITHDELAY'|'withdelay'
     ;
 
 TTL

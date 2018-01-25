@@ -940,16 +940,20 @@ public class KcqlTest {
 
   @Test
   public void handleWithCompression() {
-    String syntax = "INSERT INTO A SELECT * FROM B WITHPARTITIONER = SinglePartition WITHDELAY = 1000";
+
+    String syntax = "INSERT INTO A SELECT * FROM B WITHPARTITIONER = SinglePartition WITHSUBSCRIPTION = shared WITHCOMPRESSION = SNAPPY WITHDELAY = 1000";
     Kcql kcql = Kcql.parse(syntax);
-    assertEquals(CompressionType.ZLIB, kcql.getCompression());
+    assertEquals(CompressionType.SNAPPY, kcql.getWithCompression());
+    assertEquals("SinglePartition", kcql.getWithPartitioner());
+    assertEquals(1000, kcql.getWithDelay());
+    assertEquals("shared", kcql.getWithSubscription());
   }
 
   @Test
   public void handleWithDelay() {
     String syntax = "INSERT INTO A SELECT * FROM B WITHDELAY = 1000";
     Kcql kcql = Kcql.parse(syntax);
-    assertEquals(Integer.parseInt("1000"), kcql.getDelay());
+    assertEquals(Integer.parseInt("1000"), kcql.getWithDelay());
   }
 
   @Test

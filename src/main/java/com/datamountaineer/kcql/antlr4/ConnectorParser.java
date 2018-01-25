@@ -24,8 +24,8 @@ public class ConnectorParser extends Parser {
 		WITHTYPE=25, PK=26, SAMPLE=27, EVERY=28, WITHFORMAT=29, WITHUNWRAP=30, 
 		FORMAT=31, PROJECTTO=32, STOREAS=33, LIMIT=34, INCREMENTALMODE=35, WITHDOCTYPE=36, 
 		WITHINDEXSUFFIX=37, WITHCONVERTER=38, WITHJMSSELECTOR=39, WITHTARGET=40, 
-		WITHCOMPRESSION=41, WITHDELAY=42, WITHPARTITIONER=43, WITHSUBSCRIPTION=44, 
-		TIMESTAMPUNIT=45, WITHPIPELINE=46, TTL=47, EQUAL=48, INT=49, ASTERISK=50, 
+		WITHCOMPRESSION=41, WITHPARTITIONER=42, WITHSUBSCRIPTION=43, TIMESTAMPUNIT=44, 
+		WITHPIPELINE=45, WITHDELAY=46, TTL=47, EQUAL=48, INT=49, ASTERISK=50, 
 		COMMA=51, DOT=52, LEFT_PARAN=53, RIGHT_PARAN=54, FIELD=55, TOPICNAME=56, 
 		KEYDELIMVALUE=57, NEWLINE=58, WS=59, ID=60;
 	public static final int
@@ -57,9 +57,9 @@ public class ConnectorParser extends Parser {
 		RULE_with_target_value = 82, RULE_with_jms_selector = 83, RULE_jms_selector_value = 84, 
 		RULE_tag_definition = 85, RULE_tag_key = 86, RULE_tag_value = 87, RULE_ttl_clause = 88, 
 		RULE_ttl_type = 89, RULE_with_pipeline_clause = 90, RULE_pipeline_value = 91, 
-		RULE_with_compression_clause = 92, RULE_with_compression_type = 93, RULE_with_delay_clause = 94, 
-		RULE_with_delay_value = 95, RULE_with_partitioner_clause = 96, RULE_with_partitioner_value = 97, 
-		RULE_with_subscription_clause = 98, RULE_with_subscription_value = 99;
+		RULE_with_partitioner_clause = 92, RULE_with_partitioner_value = 93, RULE_with_subscription_clause = 94, 
+		RULE_with_subscription_value = 95, RULE_with_compression_clause = 96, 
+		RULE_with_compression_type = 97, RULE_with_delay_clause = 98, RULE_with_delay_value = 99;
 	public static final String[] ruleNames = {
 		"stat", "into", "pk", "insert_into", "upsert_into", "upsert_pk_into", 
 		"write_mode", "schema_name", "insert_from_clause", "select_clause", "select_clause_basic", 
@@ -81,9 +81,9 @@ public class ConnectorParser extends Parser {
 		"with_converter", "with_converter_value", "with_target", "with_target_value", 
 		"with_jms_selector", "jms_selector_value", "tag_definition", "tag_key", 
 		"tag_value", "ttl_clause", "ttl_type", "with_pipeline_clause", "pipeline_value", 
-		"with_compression_clause", "with_compression_type", "with_delay_clause", 
-		"with_delay_value", "with_partitioner_clause", "with_partitioner_value", 
-		"with_subscription_clause", "with_subscription_value"
+		"with_partitioner_clause", "with_partitioner_value", "with_subscription_clause", 
+		"with_subscription_value", "with_compression_clause", "with_compression_type", 
+		"with_delay_clause", "with_delay_value"
 	};
 
 	private static final String[] _LITERAL_NAMES = {
@@ -100,10 +100,10 @@ public class ConnectorParser extends Parser {
 		"WITHTAG", "WITHKEY", "KEYDELIM", "WITHSTRUCTURE", "WITHTYPE", "PK", "SAMPLE", 
 		"EVERY", "WITHFORMAT", "WITHUNWRAP", "FORMAT", "PROJECTTO", "STOREAS", 
 		"LIMIT", "INCREMENTALMODE", "WITHDOCTYPE", "WITHINDEXSUFFIX", "WITHCONVERTER", 
-		"WITHJMSSELECTOR", "WITHTARGET", "WITHCOMPRESSION", "WITHDELAY", "WITHPARTITIONER", 
-		"WITHSUBSCRIPTION", "TIMESTAMPUNIT", "WITHPIPELINE", "TTL", "EQUAL", "INT", 
-		"ASTERISK", "COMMA", "DOT", "LEFT_PARAN", "RIGHT_PARAN", "FIELD", "TOPICNAME", 
-		"KEYDELIMVALUE", "NEWLINE", "WS", "ID"
+		"WITHJMSSELECTOR", "WITHTARGET", "WITHCOMPRESSION", "WITHPARTITIONER", 
+		"WITHSUBSCRIPTION", "TIMESTAMPUNIT", "WITHPIPELINE", "WITHDELAY", "TTL", 
+		"EQUAL", "INT", "ASTERISK", "COMMA", "DOT", "LEFT_PARAN", "RIGHT_PARAN", 
+		"FIELD", "TOPICNAME", "KEYDELIMVALUE", "NEWLINE", "WS", "ID"
 	};
 	public static final Vocabulary VOCABULARY = new VocabularyImpl(_LITERAL_NAMES, _SYMBOLIC_NAMES);
 
@@ -616,12 +616,6 @@ public class ConnectorParser extends Parser {
 		public Key_delimiterContext key_delimiter() {
 			return getRuleContext(Key_delimiterContext.class,0);
 		}
-		public With_compression_clauseContext with_compression_clause() {
-			return getRuleContext(With_compression_clauseContext.class,0);
-		}
-		public With_delay_clauseContext with_delay_clause() {
-			return getRuleContext(With_delay_clauseContext.class,0);
-		}
 		public With_pipeline_clauseContext with_pipeline_clause() {
 			return getRuleContext(With_pipeline_clauseContext.class,0);
 		}
@@ -630,6 +624,12 @@ public class ConnectorParser extends Parser {
 		}
 		public With_subscription_clauseContext with_subscription_clause() {
 			return getRuleContext(With_subscription_clauseContext.class,0);
+		}
+		public With_compression_clauseContext with_compression_clause() {
+			return getRuleContext(With_compression_clauseContext.class,0);
+		}
+		public With_delay_clauseContext with_delay_clause() {
+			return getRuleContext(With_delay_clauseContext.class,0);
 		}
 		public Insert_from_clauseContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -933,50 +933,50 @@ public class ConnectorParser extends Parser {
 			setState(312);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if (_la==WITHCOMPRESSION) {
+			if (_la==WITHPIPELINE) {
 				{
 				setState(311);
-				with_compression_clause();
+				with_pipeline_clause();
 				}
 			}
 
 			setState(315);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if (_la==WITHDELAY) {
+			if (_la==WITHPARTITIONER) {
 				{
 				setState(314);
-				with_delay_clause();
+				with_partitioner_clause();
 				}
 			}
 
 			setState(318);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if (_la==WITHPIPELINE) {
+			if (_la==WITHSUBSCRIPTION) {
 				{
 				setState(317);
-				with_pipeline_clause();
+				with_subscription_clause();
 				}
 			}
 
 			setState(321);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if (_la==WITHPARTITIONER) {
+			if (_la==WITHCOMPRESSION) {
 				{
 				setState(320);
-				with_partitioner_clause();
+				with_compression_clause();
 				}
 			}
 
 			setState(324);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if (_la==WITHSUBSCRIPTION) {
+			if (_la==WITHDELAY) {
 				{
 				setState(323);
-				with_subscription_clause();
+				with_delay_clause();
 				}
 			}
 
@@ -5488,170 +5488,6 @@ public class ConnectorParser extends Parser {
 		return _localctx;
 	}
 
-	public static class With_compression_clauseContext extends ParserRuleContext {
-		public TerminalNode WITHCOMPRESSION() { return getToken(ConnectorParser.WITHCOMPRESSION, 0); }
-		public TerminalNode EQUAL() { return getToken(ConnectorParser.EQUAL, 0); }
-		public With_compression_typeContext with_compression_type() {
-			return getRuleContext(With_compression_typeContext.class,0);
-		}
-		public With_compression_clauseContext(ParserRuleContext parent, int invokingState) {
-			super(parent, invokingState);
-		}
-		@Override public int getRuleIndex() { return RULE_with_compression_clause; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof ConnectorParserListener ) ((ConnectorParserListener)listener).enterWith_compression_clause(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof ConnectorParserListener ) ((ConnectorParserListener)listener).exitWith_compression_clause(this);
-		}
-	}
-
-	public final With_compression_clauseContext with_compression_clause() throws RecognitionException {
-		With_compression_clauseContext _localctx = new With_compression_clauseContext(_ctx, getState());
-		enterRule(_localctx, 184, RULE_with_compression_clause);
-		try {
-			enterOuterAlt(_localctx, 1);
-			{
-			setState(748);
-			match(WITHCOMPRESSION);
-			setState(749);
-			match(EQUAL);
-			setState(750);
-			with_compression_type();
-			}
-		}
-		catch (RecognitionException re) {
-			_localctx.exception = re;
-			_errHandler.reportError(this, re);
-			_errHandler.recover(this, re);
-		}
-		finally {
-			exitRule();
-		}
-		return _localctx;
-	}
-
-	public static class With_compression_typeContext extends ParserRuleContext {
-		public TerminalNode FIELD() { return getToken(ConnectorParser.FIELD, 0); }
-		public With_compression_typeContext(ParserRuleContext parent, int invokingState) {
-			super(parent, invokingState);
-		}
-		@Override public int getRuleIndex() { return RULE_with_compression_type; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof ConnectorParserListener ) ((ConnectorParserListener)listener).enterWith_compression_type(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof ConnectorParserListener ) ((ConnectorParserListener)listener).exitWith_compression_type(this);
-		}
-	}
-
-	public final With_compression_typeContext with_compression_type() throws RecognitionException {
-		With_compression_typeContext _localctx = new With_compression_typeContext(_ctx, getState());
-		enterRule(_localctx, 186, RULE_with_compression_type);
-		try {
-			enterOuterAlt(_localctx, 1);
-			{
-			setState(752);
-			match(FIELD);
-			}
-		}
-		catch (RecognitionException re) {
-			_localctx.exception = re;
-			_errHandler.reportError(this, re);
-			_errHandler.recover(this, re);
-		}
-		finally {
-			exitRule();
-		}
-		return _localctx;
-	}
-
-	public static class With_delay_clauseContext extends ParserRuleContext {
-		public TerminalNode WITHDELAY() { return getToken(ConnectorParser.WITHDELAY, 0); }
-		public TerminalNode EQUAL() { return getToken(ConnectorParser.EQUAL, 0); }
-		public With_delay_valueContext with_delay_value() {
-			return getRuleContext(With_delay_valueContext.class,0);
-		}
-		public With_delay_clauseContext(ParserRuleContext parent, int invokingState) {
-			super(parent, invokingState);
-		}
-		@Override public int getRuleIndex() { return RULE_with_delay_clause; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof ConnectorParserListener ) ((ConnectorParserListener)listener).enterWith_delay_clause(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof ConnectorParserListener ) ((ConnectorParserListener)listener).exitWith_delay_clause(this);
-		}
-	}
-
-	public final With_delay_clauseContext with_delay_clause() throws RecognitionException {
-		With_delay_clauseContext _localctx = new With_delay_clauseContext(_ctx, getState());
-		enterRule(_localctx, 188, RULE_with_delay_clause);
-		try {
-			enterOuterAlt(_localctx, 1);
-			{
-			setState(754);
-			match(WITHDELAY);
-			setState(755);
-			match(EQUAL);
-			setState(756);
-			with_delay_value();
-			}
-		}
-		catch (RecognitionException re) {
-			_localctx.exception = re;
-			_errHandler.reportError(this, re);
-			_errHandler.recover(this, re);
-		}
-		finally {
-			exitRule();
-		}
-		return _localctx;
-	}
-
-	public static class With_delay_valueContext extends ParserRuleContext {
-		public TerminalNode INT() { return getToken(ConnectorParser.INT, 0); }
-		public With_delay_valueContext(ParserRuleContext parent, int invokingState) {
-			super(parent, invokingState);
-		}
-		@Override public int getRuleIndex() { return RULE_with_delay_value; }
-		@Override
-		public void enterRule(ParseTreeListener listener) {
-			if ( listener instanceof ConnectorParserListener ) ((ConnectorParserListener)listener).enterWith_delay_value(this);
-		}
-		@Override
-		public void exitRule(ParseTreeListener listener) {
-			if ( listener instanceof ConnectorParserListener ) ((ConnectorParserListener)listener).exitWith_delay_value(this);
-		}
-	}
-
-	public final With_delay_valueContext with_delay_value() throws RecognitionException {
-		With_delay_valueContext _localctx = new With_delay_valueContext(_ctx, getState());
-		enterRule(_localctx, 190, RULE_with_delay_value);
-		try {
-			enterOuterAlt(_localctx, 1);
-			{
-			setState(758);
-			match(INT);
-			}
-		}
-		catch (RecognitionException re) {
-			_localctx.exception = re;
-			_errHandler.reportError(this, re);
-			_errHandler.recover(this, re);
-		}
-		finally {
-			exitRule();
-		}
-		return _localctx;
-	}
-
 	public static class With_partitioner_clauseContext extends ParserRuleContext {
 		public TerminalNode WITHPARTITIONER() { return getToken(ConnectorParser.WITHPARTITIONER, 0); }
 		public TerminalNode EQUAL() { return getToken(ConnectorParser.EQUAL, 0); }
@@ -5674,15 +5510,15 @@ public class ConnectorParser extends Parser {
 
 	public final With_partitioner_clauseContext with_partitioner_clause() throws RecognitionException {
 		With_partitioner_clauseContext _localctx = new With_partitioner_clauseContext(_ctx, getState());
-		enterRule(_localctx, 192, RULE_with_partitioner_clause);
+		enterRule(_localctx, 184, RULE_with_partitioner_clause);
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(760);
+			setState(748);
 			match(WITHPARTITIONER);
-			setState(761);
+			setState(749);
 			match(EQUAL);
-			setState(762);
+			setState(750);
 			with_partitioner_value();
 			}
 		}
@@ -5715,11 +5551,11 @@ public class ConnectorParser extends Parser {
 
 	public final With_partitioner_valueContext with_partitioner_value() throws RecognitionException {
 		With_partitioner_valueContext _localctx = new With_partitioner_valueContext(_ctx, getState());
-		enterRule(_localctx, 194, RULE_with_partitioner_value);
+		enterRule(_localctx, 186, RULE_with_partitioner_value);
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(764);
+			setState(752);
 			match(FIELD);
 			}
 		}
@@ -5756,15 +5592,15 @@ public class ConnectorParser extends Parser {
 
 	public final With_subscription_clauseContext with_subscription_clause() throws RecognitionException {
 		With_subscription_clauseContext _localctx = new With_subscription_clauseContext(_ctx, getState());
-		enterRule(_localctx, 196, RULE_with_subscription_clause);
+		enterRule(_localctx, 188, RULE_with_subscription_clause);
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(766);
+			setState(754);
 			match(WITHSUBSCRIPTION);
-			setState(767);
+			setState(755);
 			match(EQUAL);
-			setState(768);
+			setState(756);
 			with_subscription_value();
 			}
 		}
@@ -5797,12 +5633,176 @@ public class ConnectorParser extends Parser {
 
 	public final With_subscription_valueContext with_subscription_value() throws RecognitionException {
 		With_subscription_valueContext _localctx = new With_subscription_valueContext(_ctx, getState());
-		enterRule(_localctx, 198, RULE_with_subscription_value);
+		enterRule(_localctx, 190, RULE_with_subscription_value);
+		try {
+			enterOuterAlt(_localctx, 1);
+			{
+			setState(758);
+			match(FIELD);
+			}
+		}
+		catch (RecognitionException re) {
+			_localctx.exception = re;
+			_errHandler.reportError(this, re);
+			_errHandler.recover(this, re);
+		}
+		finally {
+			exitRule();
+		}
+		return _localctx;
+	}
+
+	public static class With_compression_clauseContext extends ParserRuleContext {
+		public TerminalNode WITHCOMPRESSION() { return getToken(ConnectorParser.WITHCOMPRESSION, 0); }
+		public TerminalNode EQUAL() { return getToken(ConnectorParser.EQUAL, 0); }
+		public With_compression_typeContext with_compression_type() {
+			return getRuleContext(With_compression_typeContext.class,0);
+		}
+		public With_compression_clauseContext(ParserRuleContext parent, int invokingState) {
+			super(parent, invokingState);
+		}
+		@Override public int getRuleIndex() { return RULE_with_compression_clause; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof ConnectorParserListener ) ((ConnectorParserListener)listener).enterWith_compression_clause(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof ConnectorParserListener ) ((ConnectorParserListener)listener).exitWith_compression_clause(this);
+		}
+	}
+
+	public final With_compression_clauseContext with_compression_clause() throws RecognitionException {
+		With_compression_clauseContext _localctx = new With_compression_clauseContext(_ctx, getState());
+		enterRule(_localctx, 192, RULE_with_compression_clause);
+		try {
+			enterOuterAlt(_localctx, 1);
+			{
+			setState(760);
+			match(WITHCOMPRESSION);
+			setState(761);
+			match(EQUAL);
+			setState(762);
+			with_compression_type();
+			}
+		}
+		catch (RecognitionException re) {
+			_localctx.exception = re;
+			_errHandler.reportError(this, re);
+			_errHandler.recover(this, re);
+		}
+		finally {
+			exitRule();
+		}
+		return _localctx;
+	}
+
+	public static class With_compression_typeContext extends ParserRuleContext {
+		public TerminalNode FIELD() { return getToken(ConnectorParser.FIELD, 0); }
+		public With_compression_typeContext(ParserRuleContext parent, int invokingState) {
+			super(parent, invokingState);
+		}
+		@Override public int getRuleIndex() { return RULE_with_compression_type; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof ConnectorParserListener ) ((ConnectorParserListener)listener).enterWith_compression_type(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof ConnectorParserListener ) ((ConnectorParserListener)listener).exitWith_compression_type(this);
+		}
+	}
+
+	public final With_compression_typeContext with_compression_type() throws RecognitionException {
+		With_compression_typeContext _localctx = new With_compression_typeContext(_ctx, getState());
+		enterRule(_localctx, 194, RULE_with_compression_type);
+		try {
+			enterOuterAlt(_localctx, 1);
+			{
+			setState(764);
+			match(FIELD);
+			}
+		}
+		catch (RecognitionException re) {
+			_localctx.exception = re;
+			_errHandler.reportError(this, re);
+			_errHandler.recover(this, re);
+		}
+		finally {
+			exitRule();
+		}
+		return _localctx;
+	}
+
+	public static class With_delay_clauseContext extends ParserRuleContext {
+		public TerminalNode WITHDELAY() { return getToken(ConnectorParser.WITHDELAY, 0); }
+		public TerminalNode EQUAL() { return getToken(ConnectorParser.EQUAL, 0); }
+		public With_delay_valueContext with_delay_value() {
+			return getRuleContext(With_delay_valueContext.class,0);
+		}
+		public With_delay_clauseContext(ParserRuleContext parent, int invokingState) {
+			super(parent, invokingState);
+		}
+		@Override public int getRuleIndex() { return RULE_with_delay_clause; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof ConnectorParserListener ) ((ConnectorParserListener)listener).enterWith_delay_clause(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof ConnectorParserListener ) ((ConnectorParserListener)listener).exitWith_delay_clause(this);
+		}
+	}
+
+	public final With_delay_clauseContext with_delay_clause() throws RecognitionException {
+		With_delay_clauseContext _localctx = new With_delay_clauseContext(_ctx, getState());
+		enterRule(_localctx, 196, RULE_with_delay_clause);
+		try {
+			enterOuterAlt(_localctx, 1);
+			{
+			setState(766);
+			match(WITHDELAY);
+			setState(767);
+			match(EQUAL);
+			setState(768);
+			with_delay_value();
+			}
+		}
+		catch (RecognitionException re) {
+			_localctx.exception = re;
+			_errHandler.reportError(this, re);
+			_errHandler.recover(this, re);
+		}
+		finally {
+			exitRule();
+		}
+		return _localctx;
+	}
+
+	public static class With_delay_valueContext extends ParserRuleContext {
+		public TerminalNode INT() { return getToken(ConnectorParser.INT, 0); }
+		public With_delay_valueContext(ParserRuleContext parent, int invokingState) {
+			super(parent, invokingState);
+		}
+		@Override public int getRuleIndex() { return RULE_with_delay_value; }
+		@Override
+		public void enterRule(ParseTreeListener listener) {
+			if ( listener instanceof ConnectorParserListener ) ((ConnectorParserListener)listener).enterWith_delay_value(this);
+		}
+		@Override
+		public void exitRule(ParseTreeListener listener) {
+			if ( listener instanceof ConnectorParserListener ) ((ConnectorParserListener)listener).exitWith_delay_value(this);
+		}
+	}
+
+	public final With_delay_valueContext with_delay_value() throws RecognitionException {
+		With_delay_valueContext _localctx = new With_delay_valueContext(_ctx, getState());
+		enterRule(_localctx, 198, RULE_with_delay_value);
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(770);
-			match(FIELD);
+			match(INT);
 			}
 		}
 		catch (RecognitionException re) {
@@ -5939,9 +5939,9 @@ public class ConnectorParser extends Parser {
 		"U\2\u0131\u0130\3\2\2\2\u0131\u0132\3\2\2\2\u0132\u0134\3\2\2\2\u0133"+
 		"\u0135\5\u0088E\2\u0134\u0133\3\2\2\2\u0134\u0135\3\2\2\2\u0135\u0137"+
 		"\3\2\2\2\u0136\u0138\5\u008cG\2\u0137\u0136\3\2\2\2\u0137\u0138\3\2\2"+
-		"\2\u0138\u013a\3\2\2\2\u0139\u013b\5\u00ba^\2\u013a\u0139\3\2\2\2\u013a"+
-		"\u013b\3\2\2\2\u013b\u013d\3\2\2\2\u013c\u013e\5\u00be`\2\u013d\u013c"+
-		"\3\2\2\2\u013d\u013e\3\2\2\2\u013e\u0140\3\2\2\2\u013f\u0141\5\u00b6\\"+
+		"\2\u0138\u013a\3\2\2\2\u0139\u013b\5\u00b6\\\2\u013a\u0139\3\2\2\2\u013a"+
+		"\u013b\3\2\2\2\u013b\u013d\3\2\2\2\u013c\u013e\5\u00ba^\2\u013d\u013c"+
+		"\3\2\2\2\u013d\u013e\3\2\2\2\u013e\u0140\3\2\2\2\u013f\u0141\5\u00be`"+
 		"\2\u0140\u013f\3\2\2\2\u0140\u0141\3\2\2\2\u0141\u0143\3\2\2\2\u0142\u0144"+
 		"\5\u00c2b\2\u0143\u0142\3\2\2\2\u0143\u0144\3\2\2\2\u0144\u0146\3\2\2"+
 		"\2\u0145\u0147\5\u00c6d\2\u0146\u0145\3\2\2\2\u0146\u0147\3\2\2\2\u0147"+
@@ -5998,7 +5998,7 @@ public class ConnectorParser extends Parser {
 		"\u01e2\u01e3\7\22\2\2\u01e3\u01e4\5D#\2\u01e4\u01e5\7\5\2\2\u01e5\u01e6"+
 		"\5P)\2\u01e6\u01e7\7\r\2\2\u01e7G\3\2\2\2\u01e8\u01e9\7\23\2\2\u01e9\u01ea"+
 		"\5J&\2\u01eaI\3\2\2\2\u01eb\u01ec\t\4\2\2\u01ecK\3\2\2\2\u01ed\u01ee\7"+
-		"/\2\2\u01ee\u01ef\7\62\2\2\u01ef\u01f0\5N(\2\u01f0M\3\2\2\2\u01f1\u01f2"+
+		".\2\2\u01ee\u01ef\7\62\2\2\u01ef\u01f0\5N(\2\u01f0M\3\2\2\2\u01f1\u01f2"+
 		"\79\2\2\u01f2O\3\2\2\2\u01f3\u01f4\7\63\2\2\u01f4Q\3\2\2\2\u01f5\u01f6"+
 		"\79\2\2\u01f6S\3\2\2\2\u01f7\u01fc\5R*\2\u01f8\u01f9\7\65\2\2\u01f9\u01fb"+
 		"\5R*\2\u01fa\u01f8\3\2\2\2\u01fb\u01fe\3\2\2\2\u01fc\u01fa\3\2\2\2\u01fc"+
@@ -6072,26 +6072,26 @@ public class ConnectorParser extends Parser {
 		"\u02d8\3\2\2\2\u02d6\u02d8\7\63\2\2\u02d7\u02d0\3\2\2\2\u02d7\u02d2\3"+
 		"\2\2\2\u02d7\u02d6\3\2\2\2\u02d8\u00b1\3\2\2\2\u02d9\u02da\7\61\2\2\u02da"+
 		"\u02db\7\62\2\2\u02db\u02dc\5\u00b4[\2\u02dc\u00b3\3\2\2\2\u02dd\u02de"+
-		"\7\63\2\2\u02de\u00b5\3\2\2\2\u02df\u02e0\7\60\2\2\u02e0\u02e1\7\62\2"+
-		"\2\u02e1\u02e2\5\u00b8]\2\u02e2\u00b7\3\2\2\2\u02e3\u02eb\79\2\2\u02e4"+
-		"\u02e6\t\6\2\2\u02e5\u02e4\3\2\2\2\u02e6\u02e7\3\2\2\2\u02e7\u02e5\3\2"+
-		"\2\2\u02e7\u02e8\3\2\2\2\u02e8\u02eb\3\2\2\2\u02e9\u02eb\7\63\2\2\u02ea"+
-		"\u02e3\3\2\2\2\u02ea\u02e5\3\2\2\2\u02ea\u02e9\3\2\2\2\u02eb\u02ec\3\2"+
-		"\2\2\u02ec\u02ea\3\2\2\2\u02ec\u02ed\3\2\2\2\u02ed\u00b9\3\2\2\2\u02ee"+
-		"\u02ef\7+\2\2\u02ef\u02f0\7\62\2\2\u02f0\u02f1\5\u00bc_\2\u02f1\u00bb"+
-		"\3\2\2\2\u02f2\u02f3\79\2\2\u02f3\u00bd\3\2\2\2\u02f4\u02f5\7,\2\2\u02f5"+
-		"\u02f6\7\62\2\2\u02f6\u02f7\5\u00c0a\2\u02f7\u00bf\3\2\2\2\u02f8\u02f9"+
-		"\7\63\2\2\u02f9\u00c1\3\2\2\2\u02fa\u02fb\7-\2\2\u02fb\u02fc\7\62\2\2"+
-		"\u02fc\u02fd\5\u00c4c\2\u02fd\u00c3\3\2\2\2\u02fe\u02ff\79\2\2\u02ff\u00c5"+
-		"\3\2\2\2\u0300\u0301\7.\2\2\u0301\u0302\7\62\2\2\u0302\u0303\5\u00c8e"+
-		"\2\u0303\u00c7\3\2\2\2\u0304\u0305\79\2\2\u0305\u00c9\3\2\2\2W\u00cc\u00e0"+
-		"\u00e8\u00eb\u00ef\u00f2\u00f5\u00f8\u00fb\u00fe\u0101\u0104\u0107\u010a"+
-		"\u010d\u0110\u0113\u0116\u0119\u011c\u011f\u0122\u0125\u0128\u012b\u012e"+
-		"\u0131\u0134\u0137\u013a\u013d\u0140\u0143\u0146\u014b\u014e\u0151\u0154"+
-		"\u0157\u015a\u015d\u0160\u0163\u0166\u0169\u016c\u016f\u0172\u0179\u017e"+
-		"\u0183\u0188\u018b\u0192\u0197\u01a0\u01b0\u01ba\u01d2\u01df\u01fc\u020d"+
-		"\u0218\u023f\u0246\u0248\u0250\u025d\u025f\u0265\u0268\u0271\u027d\u02ae"+
-		"\u02b3\u02b5\u02c2\u02c7\u02cc\u02ce\u02d4\u02d7\u02e7\u02ea\u02ec";
+		"\7\63\2\2\u02de\u00b5\3\2\2\2\u02df\u02e0\7/\2\2\u02e0\u02e1\7\62\2\2"+
+		"\u02e1\u02e2\5\u00b8]\2\u02e2\u00b7\3\2\2\2\u02e3\u02eb\79\2\2\u02e4\u02e6"+
+		"\t\6\2\2\u02e5\u02e4\3\2\2\2\u02e6\u02e7\3\2\2\2\u02e7\u02e5\3\2\2\2\u02e7"+
+		"\u02e8\3\2\2\2\u02e8\u02eb\3\2\2\2\u02e9\u02eb\7\63\2\2\u02ea\u02e3\3"+
+		"\2\2\2\u02ea\u02e5\3\2\2\2\u02ea\u02e9\3\2\2\2\u02eb\u02ec\3\2\2\2\u02ec"+
+		"\u02ea\3\2\2\2\u02ec\u02ed\3\2\2\2\u02ed\u00b9\3\2\2\2\u02ee\u02ef\7,"+
+		"\2\2\u02ef\u02f0\7\62\2\2\u02f0\u02f1\5\u00bc_\2\u02f1\u00bb\3\2\2\2\u02f2"+
+		"\u02f3\79\2\2\u02f3\u00bd\3\2\2\2\u02f4\u02f5\7-\2\2\u02f5\u02f6\7\62"+
+		"\2\2\u02f6\u02f7\5\u00c0a\2\u02f7\u00bf\3\2\2\2\u02f8\u02f9\79\2\2\u02f9"+
+		"\u00c1\3\2\2\2\u02fa\u02fb\7+\2\2\u02fb\u02fc\7\62\2\2\u02fc\u02fd\5\u00c4"+
+		"c\2\u02fd\u00c3\3\2\2\2\u02fe\u02ff\79\2\2\u02ff\u00c5\3\2\2\2\u0300\u0301"+
+		"\7\60\2\2\u0301\u0302\7\62\2\2\u0302\u0303\5\u00c8e\2\u0303\u00c7\3\2"+
+		"\2\2\u0304\u0305\7\63\2\2\u0305\u00c9\3\2\2\2W\u00cc\u00e0\u00e8\u00eb"+
+		"\u00ef\u00f2\u00f5\u00f8\u00fb\u00fe\u0101\u0104\u0107\u010a\u010d\u0110"+
+		"\u0113\u0116\u0119\u011c\u011f\u0122\u0125\u0128\u012b\u012e\u0131\u0134"+
+		"\u0137\u013a\u013d\u0140\u0143\u0146\u014b\u014e\u0151\u0154\u0157\u015a"+
+		"\u015d\u0160\u0163\u0166\u0169\u016c\u016f\u0172\u0179\u017e\u0183\u0188"+
+		"\u018b\u0192\u0197\u01a0\u01b0\u01ba\u01d2\u01df\u01fc\u020d\u0218\u023f"+
+		"\u0246\u0248\u0250\u025d\u025f\u0265\u0268\u0271\u027d\u02ae\u02b3\u02b5"+
+		"\u02c2\u02c7\u02cc\u02ce\u02d4\u02d7\u02e7\u02ea\u02ec";
 	public static final ATN _ATN =
 		new ATNDeserializer().deserialize(_serializedATN.toCharArray());
 	static {

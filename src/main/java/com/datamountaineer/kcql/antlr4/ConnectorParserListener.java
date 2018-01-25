@@ -928,46 +928,6 @@ public interface ConnectorParserListener extends ParseTreeListener {
 	 */
 	void exitPipeline_value(ConnectorParser.Pipeline_valueContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link ConnectorParser#with_compression_clause}.
-	 * @param ctx the parse tree
-	 */
-	void enterWith_compression_clause(ConnectorParser.With_compression_clauseContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link ConnectorParser#with_compression_clause}.
-	 * @param ctx the parse tree
-	 */
-	void exitWith_compression_clause(ConnectorParser.With_compression_clauseContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link ConnectorParser#with_compression_type}.
-	 * @param ctx the parse tree
-	 */
-	void enterWith_compression_type(ConnectorParser.With_compression_typeContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link ConnectorParser#with_compression_type}.
-	 * @param ctx the parse tree
-	 */
-	void exitWith_compression_type(ConnectorParser.With_compression_typeContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link ConnectorParser#with_delay_clause}.
-	 * @param ctx the parse tree
-	 */
-	void enterWith_delay_clause(ConnectorParser.With_delay_clauseContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link ConnectorParser#with_delay_clause}.
-	 * @param ctx the parse tree
-	 */
-	void exitWith_delay_clause(ConnectorParser.With_delay_clauseContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link ConnectorParser#with_delay_value}.
-	 * @param ctx the parse tree
-	 */
-	void enterWith_delay_value(ConnectorParser.With_delay_valueContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link ConnectorParser#with_delay_value}.
-	 * @param ctx the parse tree
-	 */
-	void exitWith_delay_value(ConnectorParser.With_delay_valueContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link ConnectorParser#with_partitioner_clause}.
 	 * @param ctx the parse tree
 	 */
@@ -1007,4 +967,44 @@ public interface ConnectorParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitWith_subscription_value(ConnectorParser.With_subscription_valueContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#with_compression_clause}.
+	 * @param ctx the parse tree
+	 */
+	void enterWith_compression_clause(ConnectorParser.With_compression_clauseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#with_compression_clause}.
+	 * @param ctx the parse tree
+	 */
+	void exitWith_compression_clause(ConnectorParser.With_compression_clauseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#with_compression_type}.
+	 * @param ctx the parse tree
+	 */
+	void enterWith_compression_type(ConnectorParser.With_compression_typeContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#with_compression_type}.
+	 * @param ctx the parse tree
+	 */
+	void exitWith_compression_type(ConnectorParser.With_compression_typeContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#with_delay_clause}.
+	 * @param ctx the parse tree
+	 */
+	void enterWith_delay_clause(ConnectorParser.With_delay_clauseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#with_delay_clause}.
+	 * @param ctx the parse tree
+	 */
+	void exitWith_delay_clause(ConnectorParser.With_delay_clauseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#with_delay_value}.
+	 * @param ctx the parse tree
+	 */
+	void enterWith_delay_value(ConnectorParser.With_delay_valueContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#with_delay_value}.
+	 * @param ctx the parse tree
+	 */
+	void exitWith_delay_value(ConnectorParser.With_delay_valueContext ctx);
 }
