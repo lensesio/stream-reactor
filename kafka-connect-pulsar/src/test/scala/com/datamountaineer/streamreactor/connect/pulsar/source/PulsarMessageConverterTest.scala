@@ -22,7 +22,7 @@ class PulsarMessageConverterTest extends WordSpec with Matchers with ConverterUt
   "should convert messages" in {
     val props =  Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kafka_topic SELECT * FROM $pulsarTopic BATCH 10",
+      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kafka_topic SELECT * FROM $pulsarTopic BATCH = 10",
       PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
       PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
     ).asJava

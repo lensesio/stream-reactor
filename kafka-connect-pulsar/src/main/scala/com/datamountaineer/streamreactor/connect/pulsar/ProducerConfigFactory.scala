@@ -23,19 +23,19 @@ object ProducerConfigFactory extends StrictLogging {
         conf.setBatchingEnabled(true)
         conf.setBatchingMaxMessages(kcql.getBatchSize)
 
-        if (kcql.getDelay > 0) {
-          conf.setBatchingMaxPublishDelay(kcql.getDelay, TimeUnit.MILLISECONDS)
+        if (kcql.getWithDelay > 0) {
+          conf.setBatchingMaxPublishDelay(kcql.getWithDelay, TimeUnit.MILLISECONDS)
         }
       }
 
       // set compression type
-      if (kcql.getCompression != null) {
+      if (kcql.getWithCompression != null) {
 
-        val compressionType = kcql.getCompression match {
+        val compressionType = kcql.getWithCompression match {
           case com.datamountaineer.kcql.CompressionType.LZ4 => CompressionType.LZ4
           case com.datamountaineer.kcql.CompressionType.ZLIB => CompressionType.ZLIB
           case _ =>
-            logger.warn(s"Unknown supported compression type ${kcql.getCompression.toString}. Defaulting to LZ4")
+            logger.warn(s"Unknown supported compression type ${kcql.getWithCompression.toString}. Defaulting to LZ4")
             CompressionType.LZ4
         }
 
@@ -53,8 +53,8 @@ object ProducerConfigFactory extends StrictLogging {
   def getMessageRouting(kcql: Kcql): MessageRoutingMode = {
     // set routing mode
     // match on strings as not enums and Puslar are camelcase
-    if (kcql.getWithType != null) {
-      kcql.getWithType.trim.toUpperCase match {
+    if (kcql.getWithPartitioner != null) {
+      kcql.getWithPartitioner.trim.toUpperCase match {
         case "SINGLEPARTITION" =>
           MessageRoutingMode.SinglePartition
 

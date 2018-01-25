@@ -17,7 +17,7 @@ class ConsumerConfigFactoryTest extends WordSpec with Matchers {
 
     val config = PulsarSourceConfig(Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kafka_topic SELECT * FROM $pulsarTopic BATCH 10",
+      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kafka_topic SELECT * FROM $pulsarTopic BATCH = 10",
       PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
       PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
     ).asJava)
@@ -33,7 +33,7 @@ class ConsumerConfigFactoryTest extends WordSpec with Matchers {
 
     val config = PulsarSourceConfig(Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kafka_topic SELECT * FROM $pulsarTopic BATCH 10 WITHTYPE failOver",
+      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kafka_topic SELECT * FROM $pulsarTopic BATCH = 10 WITHSUBSCRIPTION = failOver",
       PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
       PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
     ).asJava)
@@ -49,7 +49,7 @@ class ConsumerConfigFactoryTest extends WordSpec with Matchers {
   "should create a config with exclusive mode" in {
     val config = PulsarSourceConfig(Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kafka_topic SELECT * FROM $pulsarTopic BATCH 10 WITHTYPE Exclusive",
+      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kafka_topic SELECT * FROM $pulsarTopic BATCH = 10 WITHSUBSCRIPTION = Exclusive",
       PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
       PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
     ).asJava)
@@ -66,7 +66,7 @@ class ConsumerConfigFactoryTest extends WordSpec with Matchers {
   "should create a config with shared mode" in {
     val config = PulsarSourceConfig(Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kafka_topic SELECT * FROM $pulsarTopic BATCH 10 WITHTYPE shared",
+      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kafka_topic SELECT * FROM $pulsarTopic BATCH = 10 WITHSUBSCRIPTION = shared",
       PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
       PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
     ).asJava)

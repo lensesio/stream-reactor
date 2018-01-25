@@ -21,6 +21,7 @@ import com.datamountaineer.streamreactor.connect.converters.{FieldConverter, Tra
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.pulsar.ProducerConfigFactory
 import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSinkSettings
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.pulsar.client.api.ProducerConfiguration.MessageRoutingMode
@@ -116,14 +117,30 @@ case class PulsarMessageBuilder(settings: PulsarSinkSettings) extends StrictLogg
         // don't set the key if in singlePartition mode
         val mode = ProducerConfigFactory.getMessageRouting(k)
 
-        if (mode != MessageRoutingMode.SinglePartition && record.key() != null) {
-          val keyFields =  k.getPrimaryKeys.map(FieldConverter.apply)
+
+        if (mode != MessageRoutingMode.SinglePartition) {
+          val parentFields = null
+
+          // Get the fields to construct the key for pulsar
+          val (partitionBy, schema, value) = if (record.key() != null & k.getWithKeys().size() > 0) {
+            (k.getWithKeys.map(f => Field.from(f, f, parentFields)),
+              if (record.key() != null) record.keySchema() else record.valueSchema(),
+              if (record.key() != null) record.key() else record.value()
+            )
+          }
+          else {
+            (Seq(Field.from("*", "*", parentFields)),
+              if (record.key() != null) record.keySchema() else record.valueSchema(),
+              if (record.key() != null) record.key() else record.value())
+          }
+
+          val keyFields = partitionBy.map(FieldConverter.apply)
 
           val jsonKey = Transform(
             keyFields,
             List.empty[Field].map(FieldConverter.apply),
-            record.keySchema(),
-            record.key(),
+            schema,
+            value,
             k.hasRetainStructure
           )
           msg.setKey(jsonKey)

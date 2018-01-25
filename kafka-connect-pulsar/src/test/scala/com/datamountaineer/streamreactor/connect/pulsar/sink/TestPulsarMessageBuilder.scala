@@ -58,7 +58,7 @@ class TestPulsarMessageBuilder extends WordSpec with Matchers with BeforeAndAfte
   "should create json messages with no key for singlePartition mode" in {
     val config = PulsarSinkConfig(Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH 10 WITHTYPE SinglePartition WITHCOMPRESSION ZLIB WITHDELAY 1000"
+      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHPARTITIONER = SinglePartition WITHCOMPRESSION = ZLIB WITHDELAY =  1000"
     ).asJava)
 
 
@@ -78,7 +78,7 @@ class TestPulsarMessageBuilder extends WordSpec with Matchers with BeforeAndAfte
   "should create json messages with key for key hash" in {
     val config = PulsarSinkConfig(Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic PK string BATCH 10 WITHTYPE CustomPartition WITHCOMPRESSION ZLIB WITHDELAY 1000"
+      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic WITHKEY(string) WITHPARTITIONER = CustomPartition WITHCOMPRESSION = ZLIB WITHDELAY = 1000"
     ).asJava)
 
 
@@ -102,7 +102,7 @@ class TestPulsarMessageBuilder extends WordSpec with Matchers with BeforeAndAfte
   "should create json message with key for round robin" in {
     val config = PulsarSinkConfig(Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic PK string BATCH 10 WITHTYPE RoundRobinPartition WITHCOMPRESSION ZLIB WITHDELAY 1000"
+      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHKEY(string)  WITHPARTITIONER = RoundRobinPartition WITHDELAY = 1000"
     ).asJava)
 
 

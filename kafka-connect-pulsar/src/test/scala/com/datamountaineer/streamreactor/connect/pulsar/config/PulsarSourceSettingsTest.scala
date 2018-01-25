@@ -108,7 +108,7 @@ class PulsarSourceSettingsTest extends WordSpec with Matchers {
       intercept[ConfigException] {
         val config = PulsarSourceConfig(Map(
           PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-          PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM $pulsarTopic WITHTYPE exclusive",
+          PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO kTopic SELECT * FROM $pulsarTopic WITHSUBSCRIPTION = exclusive",
           PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
           PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
         ))

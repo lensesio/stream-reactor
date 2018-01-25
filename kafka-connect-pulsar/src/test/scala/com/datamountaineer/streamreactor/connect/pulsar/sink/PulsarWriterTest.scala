@@ -50,7 +50,7 @@ class PulsarWriterTest extends WordSpec with MockitoSugar with Matchers {
 
     val config = PulsarSinkConfig(Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH 10 WITHTYPE SinglePartition WITHCOMPRESSION ZLIB WITHDELAY 1000"
+      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHPARTITIONER = SinglePartition WITHCOMPRESSION = ZLIB WITHDELAY = 1000"
     ).asJava)
 
     val schema = getSchema

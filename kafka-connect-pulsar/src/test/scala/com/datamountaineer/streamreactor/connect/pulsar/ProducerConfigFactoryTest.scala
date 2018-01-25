@@ -18,7 +18,7 @@ class ProducerConfigFactoryTest extends WordSpec with Matchers {
   "should create a SinglePartition with batching" in {
     val config = PulsarSinkConfig(Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH 10 WITHTYPE SinglePartition WITHCOMPRESSION ZLIB WITHDELAY 1000"
+      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH = 10 WITHPARTITIONER = SinglePartition WITHCOMPRESSION = ZLIB WITHDELAY = 1000"
     ).asJava)
 
 
@@ -35,7 +35,7 @@ class ProducerConfigFactoryTest extends WordSpec with Matchers {
   "should create a CustomPartition with no batching and no compression" in {
     val config = PulsarSinkConfig(Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic WITHTYPE CustomPartition"
+      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic WITHPARTITIONER = CustomPartition"
     ).asJava)
 
 
@@ -49,7 +49,7 @@ class ProducerConfigFactoryTest extends WordSpec with Matchers {
   "should create a roundrobin with batching and no compression no delay" in {
     val config = PulsarSinkConfig(Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH 10 WITHTYPE ROUNDROBINPARTITION"
+      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $pulsarTopic SELECT * FROM kafka_topic BATCH  = 10 WITHPARTITIONER = ROUNDROBINPARTITION"
     ).asJava)
 
 

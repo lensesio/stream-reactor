@@ -29,7 +29,7 @@ class PulsarSinkSettingsTest extends WordSpec with Matchers {
   "should have messagemode SinglePartititon" in {
     val config = PulsarSinkConfig(Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $topic SELECT * FROM kafka_topic WITHTYPE singlepartition",
+      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $topic SELECT * FROM kafka_topic WITHPARTITIONER = singlepartition",
       PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
       PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
     ).asJava)
@@ -37,13 +37,13 @@ class PulsarSinkSettingsTest extends WordSpec with Matchers {
 
     val settings = PulsarSinkSettings(config)
     settings.kcql.head.getTarget shouldBe topic
-    settings.kcql.head.getWithType shouldBe "singlepartition"
+    settings.kcql.head.getWithPartitioner shouldBe "singlepartition"
   }
 
   "should have messagemode RoundRobinPartition" in {
     val config = PulsarSinkConfig(Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $topic SELECT * FROM kafka_topic WITHTYPE RoundRobinPartition",
+      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $topic SELECT * FROM kafka_topic WITHPARTITIONER = RoundRobinPartition",
       PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
       PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
     ).asJava)
@@ -51,13 +51,13 @@ class PulsarSinkSettingsTest extends WordSpec with Matchers {
 
     val settings = PulsarSinkSettings(config)
     settings.kcql.head.getTarget shouldBe topic
-    settings.kcql.head.getWithType shouldBe "RoundRobinPartition"
+    settings.kcql.head.getWithPartitioner shouldBe "RoundRobinPartition"
   }
 
   "should have messagemode CustomPartition" in {
     val config = PulsarSinkConfig(Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $topic SELECT * FROM kafka_topic WITHTYPE CustomPartition",
+      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $topic SELECT * FROM kafka_topic WITHPARTITIONER = CustomPartition",
       PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
       PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
     ).asJava)
@@ -65,13 +65,13 @@ class PulsarSinkSettingsTest extends WordSpec with Matchers {
 
     val settings = PulsarSinkSettings(config)
     settings.kcql.head.getTarget shouldBe topic
-    settings.kcql.head.getWithType shouldBe "CustomPartition"
+    settings.kcql.head.getWithPartitioner shouldBe "CustomPartition"
   }
 
   "should have compression" in {
     val config = PulsarSinkConfig(Map(
       PulsarConfigConstants.HOSTS_CONFIG -> "pulsar://localhost:6650",
-      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $topic SELECT * FROM kafka_topic WITHCOMPRESSION LZ4",
+      PulsarConfigConstants.KCQL_CONFIG -> s"INSERT INTO $topic SELECT * FROM kafka_topic WITHCOMPRESSION = LZ4",
       PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
       PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
     ).asJava)
@@ -79,6 +79,6 @@ class PulsarSinkSettingsTest extends WordSpec with Matchers {
 
     val settings = PulsarSinkSettings(config)
     settings.kcql.head.getTarget shouldBe topic
-    settings.kcql.head.getCompression shouldBe CompressionType.LZ4
+    settings.kcql.head.getWithCompression shouldBe CompressionType.LZ4
   }
 }

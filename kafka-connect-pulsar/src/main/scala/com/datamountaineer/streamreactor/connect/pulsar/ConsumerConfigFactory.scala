@@ -27,8 +27,8 @@ object ConsumerConfigFactory extends StrictLogging {
 
   def getSubscriptionType(kcql: Kcql): SubscriptionType = {
 
-    if (kcql.getWithType != null) {
-      kcql.getWithType.toUpperCase.trim match {
+    if (kcql.getWithSubscription() != null) {
+      kcql.getWithSubscription.toUpperCase.trim match {
         case "EXCLUSIVE" =>
           SubscriptionType.Exclusive
 
