@@ -963,7 +963,7 @@ public class KcqlTest {
   public void handleWithPartitioner() {
     String syntax = "INSERT INTO A SELECT * FROM B WITHPARTITIONER = shared";
     Kcql kcql = Kcql.parse(syntax);
-    assertEquals("shared", kcql.getWithParititoner());
+    assertEquals("shared", kcql.getWithPartitioner());
   }
 
 }
