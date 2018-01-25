@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
 public class Kcql {
 
   public final static String TIMESTAMP = "sys_time()";
-  public final static int DEFAULT_BATCH_SIZE = 3000;
   private boolean autoCreate;
   private boolean autoEvolve;
   private boolean enableCapitalize;
@@ -40,7 +39,7 @@ public class Kcql {
   private List<String> partitionBy = new ArrayList<>();
   private int retries = 1;
   private int limit = 5;
-  private int batchSize = DEFAULT_BATCH_SIZE;
+  private int batchSize;
   private Bucketing bucketing;
   private String timestamp;
   private String storedAs;
@@ -64,6 +63,43 @@ public class Kcql {
   private String keyDelimeter = ".";
   private TimeUnit timestampUnit = TimeUnit.MILLISECONDS;
   private String pipeline;
+  private CompressionType compression;
+  private String subscription;
+  private String partitioner;
+
+  private int delay;
+
+  public String getWithPartitioner() {
+    return this.partitioner;
+  }
+
+  public void setWithPartitioner(String name) {
+    this.partitioner = name;
+  }
+
+  public String getWithSubscription() {
+    return this.subscription;
+  }
+
+  public void SetWithSubscription(String name) {
+    this.subscription = name;
+  }
+
+  public int getWithDelay() {
+    return this.delay;
+  }
+
+  public void setWithDelay(Integer delay) {
+    this.delay = delay;
+  }
+
+  public void setWithCompression(CompressionType compression) {
+    this.compression = compression;
+  }
+
+  public CompressionType getWithCompression() {
+    return this.compression;
+  }
 
   public void setTTL(long ttl) {
     this.ttl = ttl;
@@ -299,6 +335,16 @@ public class Kcql {
     parser.addParseListener(new ConnectorParserBaseListener() {
 
       @Override
+      public void exitWith_subscription_value(ConnectorParser.With_subscription_valueContext ctx) {
+        kcql.subscription = unescape(ctx.getText());
+      }
+
+      @Override
+      public void exitWith_partitioner_value(ConnectorParser.With_partitioner_valueContext ctx) {
+        kcql.partitioner = unescape(ctx.getText());
+      }
+
+      @Override
       public void exitColumn(ConnectorParser.ColumnContext ctx) {
         for (TerminalNode tn : ctx.FIELD()) {
           nestedFieldsBuffer.add(tn.getText());
@@ -371,6 +417,17 @@ public class Kcql {
         }
       }
 
+      @Override
+      public void exitWith_compression_type(ConnectorParser.With_compression_typeContext ctx) {
+        String type = unescape(ctx.getText()).toUpperCase();
+        CompressionType compressionType = CompressionType.valueOf(type);
+        kcql.setWithCompression(compressionType);
+      }
+
+      @Override
+      public void exitWith_delay_value(ConnectorParser.With_delay_valueContext ctx) {
+        kcql.delay = Integer.parseInt(ctx.getText());
+      }
 
       @Override
       public void exitDoc_type(ConnectorParser.Doc_typeContext ctx) {
@@ -745,6 +802,4 @@ public class Kcql {
   private void setTimestampUnit(TimeUnit timestampUnit) {
     this.timestampUnit = timestampUnit;
   }
-
-
 }

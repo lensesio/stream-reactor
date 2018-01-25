@@ -165,6 +165,18 @@ WITHTARGET
     : 'WITHTARGET' | 'withtarget'
     ;
 
+WITHCOMPRESSION
+    : 'WITHCOMPRESSION'|'withcompression'
+    ;
+
+WITHPARTITIONER
+    : 'WITHPARTITIONER' | 'withpartitioner'
+    ;
+
+WITHSUBSCRIPTION
+    : 'WITHSUBSCRIPTION' | 'withsubscription'
+    ;
+
 TIMESTAMPUNIT
     : 'TIMESTAMPUNIT' | 'timestampunit'
     ;
@@ -173,10 +185,13 @@ WITHPIPELINE
     : 'WITHPIPELINE' | 'withpipeline'
     ;
 
+WITHDELAY
+    : 'WITHDELAY'|'withdelay'
+    ;
+
 TTL
    : 'TTL'|'ttl'
    ;
-
 
 EQUAL
    : '='
@@ -232,4 +247,3 @@ NEWLINE
 WS
    : ( ' ' | '\t' | '\n' | '\r' )+ -> skip
    ;
-

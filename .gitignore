@@ -25,3 +25,4 @@ project/plugins/project/
 .scala_dependencies
 .worksheet
 src/main/java/com/datamountaineer/connector/config/antlr4/
+/src/main/java/com/datamountaineer/kcql/antlr4/

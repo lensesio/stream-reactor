@@ -123,7 +123,6 @@ public class KcqlTest {
     assertTrue(map.containsKey("f2"));
     assertEquals("col2", map.get("f2").getAlias());
     assertEquals(WriteModeEnum.INSERT, kcql.getWriteMode());
-    assertEquals(kcql.DEFAULT_BATCH_SIZE, kcql.getBatchSize());
   }
 
   @Test
@@ -938,4 +937,37 @@ public class KcqlTest {
     Kcql kcql = Kcql.parse(syntax);
     assertEquals("field1.field2.field3", kcql.getPipeline());
   }
+
+  @Test
+  public void handleWithCompression() {
+
+    String syntax = "INSERT INTO A SELECT * FROM B WITHPARTITIONER = SinglePartition WITHSUBSCRIPTION = shared WITHCOMPRESSION = SNAPPY WITHDELAY = 1000";
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(CompressionType.SNAPPY, kcql.getWithCompression());
+    assertEquals("SinglePartition", kcql.getWithPartitioner());
+    assertEquals(1000, kcql.getWithDelay());
+    assertEquals("shared", kcql.getWithSubscription());
+  }
+
+  @Test
+  public void handleWithDelay() {
+    String syntax = "INSERT INTO A SELECT * FROM B WITHDELAY = 1000";
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(Integer.parseInt("1000"), kcql.getWithDelay());
+  }
+
+  @Test
+  public void handleWithSubscription() {
+    String syntax = "INSERT INTO A SELECT * FROM B WITHSUBSCRIPTION = shared";
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals("shared", kcql.getWithSubscription());
+  }
+
+  @Test
+  public void handleWithPartitioner() {
+    String syntax = "INSERT INTO A SELECT * FROM B WITHPARTITIONER = shared";
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals("shared", kcql.getWithPartitioner());
+  }
+
 }
