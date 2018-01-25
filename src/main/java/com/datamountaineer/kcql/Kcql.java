@@ -69,7 +69,7 @@ public class Kcql {
 
   private int delay;
 
-  public String getWithParititoner() {
+  public String getWithPartitioner() {
     return this.partitioner;
   }
 
