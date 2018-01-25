@@ -1163,6 +1163,54 @@ public class ConnectorParserBaseListener implements ConnectorParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitWith_delay_value(ConnectorParser.With_delay_valueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterWith_partitioner_clause(ConnectorParser.With_partitioner_clauseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitWith_partitioner_clause(ConnectorParser.With_partitioner_clauseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterWith_partitioner_value(ConnectorParser.With_partitioner_valueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitWith_partitioner_value(ConnectorParser.With_partitioner_valueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterWith_subscription_clause(ConnectorParser.With_subscription_clauseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitWith_subscription_clause(ConnectorParser.With_subscription_clauseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterWith_subscription_value(ConnectorParser.With_subscription_valueContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitWith_subscription_value(ConnectorParser.With_subscription_valueContext ctx) { }
 
 	/**
 	 * {@inheritDoc}

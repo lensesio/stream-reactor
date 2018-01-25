@@ -64,8 +64,26 @@ public class Kcql {
   private TimeUnit timestampUnit = TimeUnit.MILLISECONDS;
   private String pipeline;
   private CompressionType compression;
+  private String subscription;
+  private String partitioner;
 
   private int delay;
+
+  public String getWithParititoner() {
+    return this.partitioner;
+  }
+
+  public void setWithPartitioner(String name) {
+    this.partitioner = name;
+  }
+
+  public String getWithSubscription() {
+    return this.subscription;
+  }
+
+  public void SetWithSubscription(String name) {
+    this.subscription = name;
+  }
 
   public int getDelay() {
     return this.delay;
@@ -316,6 +334,15 @@ public class Kcql {
 
     parser.addParseListener(new ConnectorParserBaseListener() {
 
+      @Override
+      public void exitWith_subscription_value(ConnectorParser.With_subscription_valueContext ctx) {
+        kcql.subscription = unescape(ctx.getText());
+      }
+
+      @Override
+      public void exitWith_partitioner_value(ConnectorParser.With_partitioner_valueContext ctx) {
+        kcql.partitioner = unescape(ctx.getText());
+      }
 
       @Override
       public void exitColumn(ConnectorParser.ColumnContext ctx) {

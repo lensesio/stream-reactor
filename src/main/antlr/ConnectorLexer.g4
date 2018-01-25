@@ -166,12 +166,20 @@ WITHTARGET
     ;
 
 WITHCOMPRESSION
-   : 'WITHCOMPRESSION'|'withcompression'
-   ;
+    : 'WITHCOMPRESSION'|'withcompression'
+    ;
 
 WITHDELAY
-   : 'WITHDELAY'|'withdelay'
-   ;
+    : 'WITHDELAY'|'withdelay'
+    ;
+
+WITHPARTITIONER
+    : 'WITHPARTITIONER' | 'withpartitioner'
+    ;
+
+WITHSUBSCRIPTION
+    : 'WITHSUBSCRIPTION' | 'withsubscription'
+    ;
 
 TIMESTAMPUNIT
     : 'TIMESTAMPUNIT' | 'timestampunit'

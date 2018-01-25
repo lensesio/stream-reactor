@@ -967,4 +967,44 @@ public interface ConnectorParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitWith_delay_value(ConnectorParser.With_delay_valueContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#with_partitioner_clause}.
+	 * @param ctx the parse tree
+	 */
+	void enterWith_partitioner_clause(ConnectorParser.With_partitioner_clauseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#with_partitioner_clause}.
+	 * @param ctx the parse tree
+	 */
+	void exitWith_partitioner_clause(ConnectorParser.With_partitioner_clauseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#with_partitioner_value}.
+	 * @param ctx the parse tree
+	 */
+	void enterWith_partitioner_value(ConnectorParser.With_partitioner_valueContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#with_partitioner_value}.
+	 * @param ctx the parse tree
+	 */
+	void exitWith_partitioner_value(ConnectorParser.With_partitioner_valueContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#with_subscription_clause}.
+	 * @param ctx the parse tree
+	 */
+	void enterWith_subscription_clause(ConnectorParser.With_subscription_clauseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#with_subscription_clause}.
+	 * @param ctx the parse tree
+	 */
+	void exitWith_subscription_clause(ConnectorParser.With_subscription_clauseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link ConnectorParser#with_subscription_value}.
+	 * @param ctx the parse tree
+	 */
+	void enterWith_subscription_value(ConnectorParser.With_subscription_valueContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link ConnectorParser#with_subscription_value}.
+	 * @param ctx the parse tree
+	 */
+	void exitWith_subscription_value(ConnectorParser.With_subscription_valueContext ctx);
 }

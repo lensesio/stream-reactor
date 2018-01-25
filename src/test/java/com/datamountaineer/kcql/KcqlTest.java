@@ -952,4 +952,18 @@ public class KcqlTest {
     assertEquals(Integer.parseInt("1000"), kcql.getDelay());
   }
 
+  @Test
+  public void handleWithSubscription() {
+    String syntax = "INSERT INTO A SELECT * FROM B WITHSUBSCRIPTION = shared";
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals("shared", kcql.getWithSubscription());
+  }
+
+  @Test
+  public void handleWithPartitioner() {
+    String syntax = "INSERT INTO A SELECT * FROM B WITHPARTITIONER = shared";
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals("shared", kcql.getWithParititoner());
+  }
+
 }
