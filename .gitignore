@@ -67,3 +67,4 @@ classes/*
 /kafka-connect-*/out
 /charts/
 /.vscode
+/data

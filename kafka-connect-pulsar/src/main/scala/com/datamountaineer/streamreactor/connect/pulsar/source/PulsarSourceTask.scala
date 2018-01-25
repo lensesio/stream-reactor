@@ -17,14 +17,15 @@
 package com.datamountaineer.streamreactor.connect.pulsar.source
 
 import java.util
+import java.util.UUID
 
-import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSourceConfig, PulsarSourceSettings}
 import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
-import org.apache.pulsar.client.api.PulsarClient
+import org.apache.pulsar.client.api.{ClientConfiguration, PulsarClient}
+import org.apache.pulsar.client.impl.auth.AuthenticationTls
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 
 import scala.collection.JavaConversions._
@@ -38,13 +39,40 @@ class PulsarSourceTask extends SourceTask with StrictLogging {
 
   override def start(props: util.Map[String, String]): Unit = {
 
-    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/Pulsar-source-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/pulsar-source-ascii.txt")).mkString + s" v $version")
     logger.info(manifest.printManifest())
-    implicit val settings = PulsarSourceSettings(PulsarSourceConfig(props))
+    implicit val settings = PulsarSourceSettings(PulsarSourceConfig(props), props.getOrDefault("tasks.max", "1").toInt)
 
-    val convertersMap = settings.sourcesToConverters.map { case (topic, clazz) =>
+    logger.info("Starting Pulsar source...")
+
+    val name = props.getOrDefault("name", s"kafka-connect-pulsar-source-${UUID.randomUUID().toString}")
+    val convertersMap = buildConvertersMap(props, settings)
+
+    val messageConverter = PulsarMessageConverter(
+      convertersMap,
+      settings.kcql,
+      settings.throwOnConversion,
+      settings.pollingTimeout,
+      settings.batchSize)
+
+    val clientConf = new ClientConfiguration()
+
+    settings.sslCACertFile.foreach(f => {
+      clientConf.setUseTls(true)
+      clientConf.setTlsTrustCertsFilePath(f)
+
+      val authParams = settings.sslCertFile.map(f => ("tlsCertFile", f)).toMap ++ settings.sslCertKeyFile.map(f => ("tlsKeyFile", f)).toMap
+      clientConf.setAuthentication(classOf[AuthenticationTls].getName, authParams)
+    })
+
+    pulsarManager = Some(new PulsarManager(PulsarClient.create(settings.connection, clientConf), name, settings.kcql, messageConverter))
+    enableProgress = settings.enableProgress
+  }
+
+  def buildConvertersMap(props: util.Map[String, String], settings: PulsarSourceSettings): Map[String, Converter] = {
+    settings.sourcesToConverters.map { case (topic, clazz) =>
       logger.info(s"Creating converter instance for $clazz")
-      val converter = Try(this.getClass.getClassLoader.loadClass(clazz).newInstance()) match {
+      val converter = Try(Class.forName(clazz).newInstance()) match {
         case Success(value) => value.asInstanceOf[Converter]
         case Failure(_) => throw new ConfigException(s"Invalid ${PulsarConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
       }
@@ -52,9 +80,6 @@ class PulsarSourceTask extends SourceTask with StrictLogging {
       converter.initialize(props.asScala.toMap)
       topic -> converter
     }
-    logger.info("Starting Pulsar source...")
-    pulsarManager = Some(new PulsarManager(PulsarClient.create(settings.connection), convertersMap, settings.kcql.map(Kcql.parse), settings.throwOnConversion, settings.pollingTimeout))
-    enableProgress = settings.enableProgress
   }
 
   /**
@@ -63,7 +88,7 @@ class PulsarSourceTask extends SourceTask with StrictLogging {
   override def poll(): util.List[SourceRecord] = {
 
     val records = pulsarManager.map { manager =>
-      val list = new util.LinkedList[SourceRecord]()
+      val list = new util.ArrayList[SourceRecord]()
       manager.getRecords(list)
       list
     }.orNull

@@ -27,9 +27,17 @@ object PulsarConfig {
     .define(PulsarConfigConstants.HOSTS_CONFIG, Type.STRING, Importance.HIGH, PulsarConfigConstants.HOSTS_DOC,
       "Connection", 1, ConfigDef.Width.MEDIUM, PulsarConfigConstants.HOSTS_DISPLAY)
 
+    //ssl
+    .define(PulsarConfigConstants.SSL_CA_CERT_CONFIG, Type.STRING, null, Importance.MEDIUM, PulsarConfigConstants.SSL_CA_CERT_DOC,
+      "TLS", 1, ConfigDef.Width.MEDIUM, PulsarConfigConstants.SSL_CA_CERT_DISPLAY)
+    .define(PulsarConfigConstants.SSL_CERT_CONFIG, Type.STRING, null, Importance.MEDIUM, PulsarConfigConstants.SSL_CERT_DOC,
+      "TLS", 2, ConfigDef.Width.MEDIUM, PulsarConfigConstants.SSL_CERT_DISPLAY)
+    .define(PulsarConfigConstants.SSL_CERT_KEY_CONFIG, Type.STRING, null, Importance.MEDIUM, PulsarConfigConstants.SSL_CERT_KEY_DOC,
+      "TLS", 3, ConfigDef.Width.MEDIUM, PulsarConfigConstants.SSL_CERT_KEY_DISPLAY)
+
     //kcql
     .define(PulsarConfigConstants.KCQL_CONFIG, Type.STRING, Importance.HIGH, PulsarConfigConstants.KCQL_DOC,
-    "KCQL", 1, ConfigDef.Width.MEDIUM, PulsarConfigConstants.KCQL_DISPLAY)
+      "KCQL", 1, ConfigDef.Width.MEDIUM, PulsarConfigConstants.KCQL_DISPLAY)
 
     .define(PulsarConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, PulsarConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
       Importance.MEDIUM, PulsarConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
@@ -40,15 +48,18 @@ object PulsarSourceConfig {
   val config = PulsarConfig.config
     //converter
     .define(PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG, Type.BOOLEAN, PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_DEFAULT,
-    Importance.HIGH, PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_DOC,
-    "Converter", 1, ConfigDef.Width.MEDIUM, PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_DISPLAY)
+      Importance.HIGH, PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_DOC,
+      "Converter", 1, ConfigDef.Width.MEDIUM, PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_DISPLAY)
     .define(PulsarConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES, Type.STRING, PulsarConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_DEFAULT,
       Importance.HIGH, PulsarConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_DOC, "Converter", 3, ConfigDef.Width.MEDIUM,
       PulsarConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES)
     //manager
     .define(PulsarConfigConstants.POLLING_TIMEOUT_CONFIG, Type.INT, PulsarConfigConstants.POLLING_TIMEOUT_DEFAULT,
-    Importance.LOW, PulsarConfigConstants.POLLING_TIMEOUT_DOC,
-    "Manager", 1, ConfigDef.Width.MEDIUM, PulsarConfigConstants.POLLING_TIMEOUT_DISPLAY)
+      Importance.LOW, PulsarConfigConstants.POLLING_TIMEOUT_DOC,
+      "Manager", 1, ConfigDef.Width.MEDIUM, PulsarConfigConstants.POLLING_TIMEOUT_DISPLAY)
+    .define(PulsarConfigConstants.INTERNAL_BATCH_SIZE, Type.INT, PulsarConfigConstants.INTERNAL_BATCH_SIZE_DEFAULT,
+      Importance.LOW, PulsarConfigConstants.INTERNAL_BATCH_SIZE_DOC,
+      "Manager", 2, ConfigDef.Width.MEDIUM, PulsarConfigConstants.INTERNAL_BATCH_SIZE)
 
 }
 

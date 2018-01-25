@@ -88,7 +88,7 @@ object MqttSourceSettings {
 
     converters.map( {
         case (mqtt_source, clazz) => {
-          Try(getClass.getClassLoader.loadClass(clazz)) match {
+          Try(Class.forName(clazz)) match {
             case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG}. $clazz can't be found for $mqtt_source")
             case Success(clz) =>
               if (!classOf[Converter].isAssignableFrom(clz)) {

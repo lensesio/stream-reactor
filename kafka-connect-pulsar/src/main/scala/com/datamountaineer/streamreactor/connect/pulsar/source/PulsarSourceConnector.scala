@@ -19,7 +19,8 @@ package com.datamountaineer.streamreactor.connect.pulsar.source
 import java.util
 import java.util.Collections
 
-import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarSourceConfig, PulsarSourceSettings}
+import com.datamountaineer.streamreactor.connect.config.Helpers
+import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSourceConfig, PulsarSourceSettings}
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
@@ -27,6 +28,7 @@ import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 
 import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 
 class PulsarSourceConnector extends SourceConnector with StrictLogging {
   private val configDef = PulsarSourceConfig.config
@@ -45,26 +47,11 @@ class PulsarSourceConnector extends SourceConnector with StrictLogging {
     * @return a List of configuration properties per worker
     **/
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
-
-    val settings = PulsarSourceSettings(PulsarSourceConfig(configProps))
-    val kcql = settings.kcql
-    if (maxTasks == 1 || kcql.length == 1) {
-      Collections.singletonList(configProps)
-    } else {
-      val groups = kcql.length / maxTasks + kcql.length % maxTasks
-
-      settings.kcql.grouped(groups)
-        .zipWithIndex
-        .map { case (p, index) =>
-          val map = settings.copy(kcql = p).asMap()
-          import scala.collection.JavaConversions._
-          configProps
-            .filterNot { case (k, _) => map.containsKey(k) }
-            .foreach { case (k, v) => map.put(k, v) }
-          map
-        }
-        .toList.asJava
-    }
+    logger.info(s"Setting task configurations for $maxTasks workers.")
+    // call settings here makes sure we don't have an exclusive subscription over more than one worker
+    PulsarSourceSettings(PulsarSourceConfig(configProps), maxTasks)
+    // distribute all kcqls to all workers and let the Pulsar subscription type handle the routing
+    (1 to maxTasks).map(_ => configProps).toList
   }
 
   /**
@@ -73,6 +60,7 @@ class PulsarSourceConnector extends SourceConnector with StrictLogging {
     * @param props A map of properties for the connector and worker
     **/
   override def start(props: util.Map[String, String]): Unit = {
+    logger.info(s"Starting Pulsar source connector.")
     configProps = props
   }
 
