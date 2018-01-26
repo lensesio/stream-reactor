@@ -126,18 +126,18 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                     r.value(),
                     kcql.hasRetainStructure)
                 }
-                val id = pks.mkString(settings.pkJoinerSeparator);
+                val idFromPk = pks.mkString(settings.pkJoinerSeparator);
 
                 kcql.getWriteMode match {
                   case WriteModeEnum.INSERT =>
-                    val insert = indexInto(i / documentType)
+                    indexInto(i / documentType)
+                      .id(if (idFromPk.isEmpty) autoGenId(r) else idFromPk)
                       .pipeline(kcql.getPipeline)
                       .source(json.toString)
 
-                    if (pks.nonEmpty) insert.id(id) else insert
                   case WriteModeEnum.UPSERT =>
                     require(pks.nonEmpty, "Error extracting primary keys")
-                    update(id)
+                    update(idFromPk)
                       .in(i / documentType)
                       .docAsUpsert(json)(IndexableJsonNode)
                 }
@@ -153,6 +153,16 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
         Await.result(Future.sequence(fut), settings.writeTimeout.seconds)
       )
     )
+  }
+
+  /**
+    * Create id from record infos
+    *
+    * @param record One SinkRecord
+    **/
+  def autoGenId(record: SinkRecord): String = {
+    val pks = Seq(record.topic(), record.kafkaPartition(), record.kafkaOffset())
+    pks.mkString(settings.pkJoinerSeparator)
   }
 
   private case class KcqlValues(fields: Seq[Field],

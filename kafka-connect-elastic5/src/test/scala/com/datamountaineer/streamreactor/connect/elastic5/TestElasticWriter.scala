@@ -308,7 +308,7 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     val resUpdate = client.execute {
       search(INDEX)
     }.await
-    resUpdate.totalHits shouldBe testRecords.size * 2
+    resUpdate.totalHits shouldBe testRecords.size
 
     //close writer
     writer.close()
