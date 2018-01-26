@@ -30,7 +30,6 @@ project(":kafka-connect-elastic5") {
             exclude group: "org.scala-lang", module: "scala-library"
             exclude group: "org.scalactic", module: "scalactic_2.11"
         }
-        compile("org.apache.logging.log4j:log4j-core:$log4jVersion")
         compile("org.apache.logging.log4j:log4j-1.2-api:$log4jVersion")
 
         // for the tcp client
