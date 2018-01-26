@@ -108,31 +108,37 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
           sinkRecords.grouped(settings.batchSize)
             .map { batch =>
               val indexes = batch.map { r =>
+                val (json, pks) = if(kcqlValue.primaryKeysPath.isEmpty) {
+                  (Transform(
+                    kcqlValue.fields,
+                    kcqlValue.ignoredFields,
+                    r.valueSchema(),
+                    r.value(),
+                    kcql.hasRetainStructure
+                  ), Seq.empty)
+                } else {
+                  TransformAndExtractPK(
+                    kcqlValue.fields,
+                    kcqlValue.ignoredFields,
+                    kcqlValue.primaryKeysPath,
+                    r.valueSchema(),
+                    r.value(),
+                    kcql.hasRetainStructure)
+                }
+                val id = pks.mkString(settings.pkJoinerSeparator);
 
                 kcql.getWriteMode match {
                   case WriteModeEnum.INSERT =>
-                    val json = Transform(
-                      kcqlValue.fields,
-                      kcqlValue.ignoredFields,
-                      r.valueSchema(),
-                      r.value(),
-                      kcql.hasRetainStructure
-                    )
+                    val insert = indexInto(i / documentType)
+                      .pipeline(kcql.getPipeline)
+                      .source(json.toString)
 
-                    indexInto(i / documentType).pipeline(kcql.getPipeline).source(json.toString)
-
+                    if (pks.nonEmpty) insert.id(id) else insert
                   case WriteModeEnum.UPSERT =>
-                    val (json, pks) = TransformAndExtractPK(
-                      kcqlValue.fields,
-                      kcqlValue.ignoredFields,
-                      kcqlValue.primaryKeysPath,
-                      r.valueSchema(),
-                      r.value(),
-                      kcql.hasRetainStructure
-                    )
-
                     require(pks.nonEmpty, "Error extracting primary keys")
-                    update(pks.mkString(settings.pkJoinerSeparator)).in(i / documentType).docAsUpsert(json)(IndexableJsonNode)
+                    update(id)
+                      .in(i / documentType)
+                      .docAsUpsert(json)(IndexableJsonNode)
                 }
               }
 
