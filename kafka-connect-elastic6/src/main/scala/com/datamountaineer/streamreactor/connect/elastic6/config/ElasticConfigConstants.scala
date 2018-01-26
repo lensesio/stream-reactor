@@ -94,6 +94,6 @@ object ElasticConfigConstants {
 
   val PK_JOINER_SEPARATOR =  s"$CONNECTOR_PREFIX.pk.separator"
   val PK_JOINER_SEPARATOR_DOC = "Separator used when have more that one field in PK"
-  val PK_JOINER_SEPARATOR_DEFAULT = "."
+  val PK_JOINER_SEPARATOR_DEFAULT = "-"
   val PK_JOINER_SEPARATOR_DISPLAY = "PK joiner separator"
 }
