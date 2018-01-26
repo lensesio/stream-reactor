@@ -119,7 +119,7 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                       kcql.hasRetainStructure
                     )
 
-                    indexInto(i / documentType).source(json.toString)
+                    indexInto(i / documentType).pipeline(kcql.getPipeline).source(json.toString)
 
                   case WriteModeEnum.UPSERT =>
                     val (json, pks) = TransformAndExtractPK(
