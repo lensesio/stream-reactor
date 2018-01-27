@@ -66,6 +66,7 @@ public class KCBQThreadPoolExecutor extends ThreadPoolExecutor {
       logger.error("Task failed with {} error: {}",
                    throwable.getClass().getName(),
                    throwable.getMessage());
+      logger.debug("Error Task Stacktrace:", throwable);
       encounteredErrors.add(throwable);
     }
   }

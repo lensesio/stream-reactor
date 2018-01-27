@@ -9,12 +9,17 @@ import com.google.cloud.bigquery.TimePartitioning;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 
+import com.wepay.kafka.connect.bigquery.write.row.AdaptiveBigQueryWriter;
 import org.apache.kafka.connect.data.Schema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Class for managing Schemas of BigQuery tables (creating and updating).
  */
 public class SchemaManager {
+  private static final Logger logger = LoggerFactory.getLogger(SchemaManager.class);
+
   private final SchemaRetriever schemaRetriever;
   private final SchemaConverter<com.google.cloud.bigquery.Schema> schemaConverter;
   private final BigQuery bigQuery;
@@ -51,6 +56,7 @@ public class SchemaManager {
    */
   public void updateSchema(TableId table, String topic) {
     Schema kafkaConnectSchema = schemaRetriever.retrieveSchema(table, topic);
+    logger.info("Attempting to update table `{}` with schema {}", table, kafkaConnectSchema);
     bigQuery.update(constructTableInfo(table, kafkaConnectSchema));
   }
 
