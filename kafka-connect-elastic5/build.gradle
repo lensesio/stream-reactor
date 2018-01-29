@@ -20,7 +20,8 @@ project(":kafka-connect-elastic5") {
         maven { url "https://artifacts.elastic.co/maven" }
     }
     ext {
-        elastic4sVersion = '5.4.11'
+        elastic4sVersion = '5.6.1'
+        log4jVersion = '2.9.1'
         jnaVersion = '3.0.9'
     }
 
@@ -29,6 +30,7 @@ project(":kafka-connect-elastic5") {
             exclude group: "org.scala-lang", module: "scala-library"
             exclude group: "org.scalactic", module: "scalactic_2.11"
         }
+        compile("org.apache.logging.log4j:log4j-1.2-api:$log4jVersion")
 
         // for the tcp client
         compile("com.sksamuel.elastic4s:elastic4s-tcp_$scalaMajorVersion:$elastic4sVersion") {

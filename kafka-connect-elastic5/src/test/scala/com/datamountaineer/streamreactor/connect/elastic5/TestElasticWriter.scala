@@ -229,4 +229,90 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     client.close()
     TMP.deleteRecursively()
   }
+
+  "A ElasticWriter should insert into with PK Elastic Search a number of records" in {
+    val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
+    TMP.createDirectory()
+    //mock the context to return our assignment when called
+    val context = mock[SinkTaskContext]
+    when(context.assignment()).thenReturn(getAssignment)
+    //get test records
+    val testRecords = getTestRecords
+    //get config
+    val config = new ElasticConfig(getElasticSinkConfigPropsPk)
+
+    val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
+    val client = localNode.elastic4sclient(true)
+    //get writer
+
+    val settings = ElasticSettings(config)
+    val writer = new ElasticJsonWriter(new TcpKElasticClient(client), settings)
+    //write records to elastic
+    writer.write(testRecords)
+
+    Thread.sleep(2000)
+    //check counts
+    val res = client.execute {
+      search(INDEX)
+    }.await
+    res.totalHits shouldBe testRecords.size
+
+    //write records to elastic
+    writer.write(testRecords)
+
+    Thread.sleep(2000)
+    //check counts
+    val resUpdate = client.execute {
+      search(INDEX)
+    }.await
+    resUpdate.totalHits shouldBe testRecords.size
+
+    //close writer
+    writer.close()
+    client.close()
+    TMP.deleteRecursively()
+  }
+
+  "A ElasticWriter should insert into without PK Elastic Search a number of records" in {
+    val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
+    TMP.createDirectory()
+    //mock the context to return our assignment when called
+    val context = mock[SinkTaskContext]
+    when(context.assignment()).thenReturn(getAssignment)
+    //get test records
+    val testRecords = getTestRecords
+    //get config
+    val config = new ElasticConfig(getElasticSinkConfigProps)
+
+    val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
+    val client = localNode.elastic4sclient(true)
+    //get writer
+
+    val settings = ElasticSettings(config)
+    val writer = new ElasticJsonWriter(new TcpKElasticClient(client), settings)
+    //write records to elastic
+    writer.write(testRecords)
+
+    Thread.sleep(2000)
+    //check counts
+    val res = client.execute {
+      search(INDEX)
+    }.await
+    res.totalHits shouldBe testRecords.size
+
+    //write records to elastic
+    writer.write(testRecords)
+
+    Thread.sleep(2000)
+    //check counts
+    val resUpdate = client.execute {
+      search(INDEX)
+    }.await
+    resUpdate.totalHits shouldBe testRecords.size
+
+    //close writer
+    writer.close()
+    client.close()
+    TMP.deleteRecursively()
+  }
 }

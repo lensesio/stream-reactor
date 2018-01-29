@@ -37,6 +37,7 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
   val INDEX_WITH_DATE = s"${INDEX}_${LocalDateTime.now.format(ofPattern("YYYY-MM-dd"))}"
   //var TMP : File = _
   val QUERY = s"INSERT INTO $INDEX SELECT * FROM $TOPIC"
+  val QUERY_PK = s"INSERT INTO $INDEX SELECT * FROM $TOPIC PK id"
   val QUERY_SELECTION = s"INSERT INTO $INDEX SELECT id, string_field FROM $TOPIC"
   val UPDATE_QUERY = s"UPSERT INTO $INDEX SELECT * FROM $TOPIC PK id"
   val UPDATE_QUERY_SELECTION = s"UPSERT INTO $INDEX SELECT id, string_field FROM $TOPIC PK id"
@@ -163,6 +164,10 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
 
   def getElasticSinkConfigPropsSelection = {
     getBaseElasticSinkConfigProps(QUERY_SELECTION)
+  }
+
+  def getElasticSinkConfigPropsPk = {
+    getBaseElasticSinkConfigProps(QUERY_PK)
   }
 
   def getElasticSinkUpdateConfigProps = {
