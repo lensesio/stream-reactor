@@ -39,7 +39,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
   var writer: List[RedisWriter] = List[RedisWriter]()
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
-  private val manifest = JarManifest()
+  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Parse the configurations and setup the writer

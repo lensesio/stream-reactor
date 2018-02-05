@@ -41,7 +41,7 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
   var session: Option[Session] = None
 
   var subscriptionManager: Option[BloombergSubscriptionManager] = None
-  private val manifest = JarManifest()
+  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
   
   /**
     * Un-subscribes the tickers and stops the Bloomberg session

@@ -36,7 +36,7 @@ import scala.collection.JavaConverters._
 class JMSSourceConnector extends SourceConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
   private val configDef = JMSConfig.config
-  private val manifest = JarManifest()
+  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def taskClass(): Class[_ <: Task] = classOf[JMSSourceTask]
 

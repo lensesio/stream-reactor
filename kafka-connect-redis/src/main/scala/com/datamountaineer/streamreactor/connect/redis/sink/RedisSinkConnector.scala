@@ -37,7 +37,7 @@ import scala.collection.JavaConverters._
 class RedisSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
   private val configDef = RedisConfig.config
-  private val manifest = JarManifest()
+  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * States which SinkTask class to use

@@ -35,7 +35,7 @@ import scala.collection.JavaConverters._
 class CoapSourceConnector extends SourceConnector {
   private var configProps: util.Map[String, String] = _
   private val configDef = CoapSourceConfig.config
-  private val manifest = JarManifest()
+  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def taskClass(): Class[_ <: Task] = classOf[CoapSourceTask]
 

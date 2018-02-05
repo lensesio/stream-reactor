@@ -41,7 +41,7 @@ import scala.util.{Failure, Success, Try}
   **/
 class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => DocumentClient) extends SinkConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
-  private val manifest = JarManifest()
+  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   def this() = this(DocumentClientProvider.get)
 

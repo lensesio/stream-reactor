@@ -36,7 +36,7 @@ import scala.collection.JavaConverters._
 class KuduSinkConnector extends SinkConnector with StrictLogging {
   private val configDef = KuduConfig.config
   private var configProps: Option[util.Map[String, String]] = None
-  private val manifest = JarManifest()
+  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * States which SinkTask class to use
