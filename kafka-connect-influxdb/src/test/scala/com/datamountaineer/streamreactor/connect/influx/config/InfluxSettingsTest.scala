@@ -20,7 +20,7 @@ import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.ThrowErrorPolicy
 import org.apache.kafka.common.config.ConfigException
 import org.influxdb.InfluxDB.ConsistencyLevel
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConversions._

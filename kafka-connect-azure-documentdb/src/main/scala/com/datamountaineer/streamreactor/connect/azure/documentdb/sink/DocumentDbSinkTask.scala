@@ -40,7 +40,7 @@ import scala.util.{Failure, Success, Try}
   **/
 class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => DocumentClient) extends SinkTask with StrictLogging {
   private var writer: Option[DocumentDbWriter] = None
-  private val manifest = JarManifest()
+  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false

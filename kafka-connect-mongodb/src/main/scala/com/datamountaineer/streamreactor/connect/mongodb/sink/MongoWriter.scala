@@ -74,13 +74,15 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient) extends Str
     try {
       records.groupBy(_.topic()).foreach { case (topic, groupedRecords) =>
         val collection = collectionMap(topic)
+        val config = configMap.getOrElse(topic, sys.error(s"$topic is not handled by the configuration."))
+        val batchSize = if (config.getBatchSize == 0) MongoConfigConstants.BATCH_SIZE_CONFIG_DEFAULT else config.getBatchSize
         groupedRecords.map { record =>
           val (document, keysAndValues) = SinkRecordToDocument(
             record,
             settings.keyBuilderMap.getOrElse(record.topic(), Set.empty)
           )(settings)
 
-          val config = configMap.getOrElse(record.topic(), sys.error(s"${record.topic()} is not handled by the configuration."))
+
           config.getWriteMode match {
             case WriteModeEnum.INSERT => new InsertOneModel[Document](document)
             case WriteModeEnum.UPSERT =>
@@ -91,7 +93,7 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient) extends Str
                 document,
                 MongoWriter.UpdateOptions.upsert(true))
           }
-        }.grouped(settings.batchSize)
+        }.grouped(batchSize)
           .foreach { batch =>
             collection.bulkWrite(batch.toList)
           }

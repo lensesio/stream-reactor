@@ -39,7 +39,7 @@ class CoapSourceTask extends SourceTask with StrictLogging {
   private val queue = new LinkedBlockingQueue[SourceRecord]()
   private var batchSize: Int = CoapConstants.BATCH_SIZE_DEFAULT
   private var lingerTimeout = CoapConstants.SOURCE_LINGER_MS_DEFAULT
-  private val manifest = JarManifest()
+  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-source-ascii.txt")).mkString + s" v $version")

@@ -39,7 +39,7 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
 
   private var configProps: Option[util.Map[String, String]] = None
   private val configDef = CassandraConfigSource.sourceConfig
-  private val manifest = JarManifest()
+  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Defines the sink class to use

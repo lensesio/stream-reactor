@@ -38,7 +38,7 @@ import scala.collection.JavaConverters._
 class BloombergSourceConnector extends SourceConnector with StrictLogging {
   private var bloombergSettings: Option[BloombergSettings] = None
   private val configDef = BloombergSourceConfig.config
-  private val manifest = JarManifest()
+  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Defines the sink class to use

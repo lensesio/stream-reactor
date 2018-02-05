@@ -18,7 +18,9 @@ package com.datamountaineer.streamreactor.connect.elastic6
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticSettings
 import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticConfigConstants}
+import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -31,7 +33,7 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[ElasticJsonWriter] = None
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
-  private val manifest = JarManifest()
+  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Parse the configurations and setup the writer
@@ -42,6 +44,13 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
     ElasticConfig.config.parse(props)
     val sinkConfig = ElasticConfig(props)
     enableProgress = sinkConfig.getBoolean(ElasticConfigConstants.PROGRESS_COUNTER_ENABLED)
+
+    val settings = ElasticSettings(sinkConfig)
+    if (settings.errorPolicy.equals(Option(ErrorPolicyEnum.RETRY))) {
+      context.timeout(sinkConfig.getString(ElasticConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+    }
+
+
     writer = Some(ElasticWriter(sinkConfig))
   }
 

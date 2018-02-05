@@ -29,7 +29,7 @@ import scala.collection.JavaConversions._
 
 class BlockchainSourceConnector extends SourceConnector with StrictLogging {
   private var configProps: Option[util.Map[String, String]] = None
-  private val manifest = JarManifest()
+  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Defines the source class to use

@@ -45,6 +45,10 @@ object ElasticConfigConstants {
   val THROW_ON_ERROR_DISPLAY = "Throw on errors"
   val THROW_ON_ERROR_DEFAULT = true
 
+  val ERROR_RETRY_INTERVAL = s"${CONNECTOR_PREFIX}.${RETRY_INTERVAL_PROP_SUFFIX}"
+  val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
+  val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
+
   /*
   val INDEX_NAME_SUFFIX = s"${CONNECTOR_PREFIX}.index.suffix"
   val INDEX_NAME_SUFFIX_DOC = "Suffix to append to the index name. Supports date time notation inside curly brackets. E.g. 'abc_{YYYY-MM-dd}_def'"

@@ -34,7 +34,7 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
   private var blockchainManager: Option[BlockchainManager] = None
   private val progressCounter = ProgressCounter()
   private var enableProgress: Boolean = false
-  private val manifest = JarManifest()
+  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Starts the Blockchain source, parsing the options and setting up the reader.

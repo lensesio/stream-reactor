@@ -108,6 +108,10 @@ object ElasticConfig {
       ConfigDef.Width.SHORT,
       ElasticConfigConstants.NBR_OF_RETRIES_CONFIG
     )
+    .define(ElasticConfigConstants.ERROR_RETRY_INTERVAL, Type.INT,
+      ElasticConfigConstants.ERROR_RETRY_INTERVAL_DEFAULT, Importance.MEDIUM,
+      ElasticConfigConstants.ERROR_RETRY_INTERVAL_DOC,
+      "Error", 3, ConfigDef.Width.LONG, ElasticConfigConstants.ERROR_RETRY_INTERVAL)
     .define(
       ElasticConfigConstants.KCQL,
       Type.STRING,

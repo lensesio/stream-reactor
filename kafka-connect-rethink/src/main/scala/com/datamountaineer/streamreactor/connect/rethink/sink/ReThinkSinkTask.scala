@@ -35,7 +35,7 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[ReThinkWriter] = None
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
-  private val manifest = JarManifest()
+  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * Parse the configurations and setup the writer

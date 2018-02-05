@@ -36,7 +36,6 @@ class MongoSettingsTest extends WordSpec with Matchers {
       val settings = MongoSettings(config)
       settings.database shouldBe "database1"
       settings.connection shouldBe "mongodb://localhost:27017"
-      settings.batchSize shouldBe MongoConfigConstants.BATCH_SIZE_CONFIG_DEFAULT
       settings.keyBuilderMap.size shouldBe 0
       settings.kcql.size shouldBe 1
       settings.errorPolicy shouldBe ThrowErrorPolicy()
@@ -54,7 +53,6 @@ class MongoSettingsTest extends WordSpec with Matchers {
       val settings = MongoSettings(config)
       settings.database shouldBe "database1"
       settings.connection shouldBe "mongodb://localhost:27017"
-      settings.batchSize shouldBe MongoConfigConstants.BATCH_SIZE_CONFIG_DEFAULT
       settings.keyBuilderMap.size shouldBe 0
       settings.kcql.size shouldBe 2
       settings.errorPolicy shouldBe ThrowErrorPolicy()
@@ -72,7 +70,6 @@ class MongoSettingsTest extends WordSpec with Matchers {
       val settings = MongoSettings(config)
       settings.database shouldBe "database1"
       settings.connection shouldBe "mongodb://localhost:27017"
-      settings.batchSize shouldBe MongoConfigConstants.BATCH_SIZE_CONFIG_DEFAULT
       settings.keyBuilderMap.size shouldBe 0
       settings.kcql.size shouldBe 1
       settings.keyBuilderMap.size shouldBe 0
@@ -91,7 +88,6 @@ class MongoSettingsTest extends WordSpec with Matchers {
       val settings = MongoSettings(config)
       settings.database shouldBe "database1"
       settings.connection shouldBe "mongodb://localhost:27017"
-      settings.batchSize shouldBe MongoConfigConstants.BATCH_SIZE_CONFIG_DEFAULT
       settings.keyBuilderMap.size shouldBe 0
       settings.kcql.size shouldBe 1
       settings.keyBuilderMap.size shouldBe 0

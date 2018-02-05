@@ -45,9 +45,6 @@ object MongoConfig {
 
     .define(MongoConfigConstants.KCQL_CONFIG, Type.STRING, Importance.HIGH, MongoConfigConstants.KCQL_DOC,
       "Mappings", 1, ConfigDef.Width.LONG, MongoConfigConstants.KCQL_CONFIG)
-    .define(MongoConfigConstants.BATCH_SIZE_CONFIG, Type.INT, MongoConfigConstants.BATCH_SIZE_CONFIG_DEFAULT,
-      Importance.MEDIUM, MongoConfigConstants.BATCH_SIZE_DOC, "Mappings", 2, ConfigDef.Width.MEDIUM,
-      MongoConfigConstants.BATCH_SIZE_CONFIG)
     .define(MongoConfigConstants.ERROR_POLICY_CONFIG, Type.STRING, MongoConfigConstants.ERROR_POLICY_DEFAULT,
       Importance.HIGH, MongoConfigConstants.ERROR_POLICY_DOC, "Error", 1, ConfigDef.Width.LONG,
       MongoConfigConstants.ERROR_POLICY_CONFIG)

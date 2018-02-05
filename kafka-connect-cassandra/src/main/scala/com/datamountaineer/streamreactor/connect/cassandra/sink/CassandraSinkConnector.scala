@@ -40,7 +40,7 @@ import scala.util.{Failure, Try}
 class CassandraSinkConnector extends SinkConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
   private val configDef = CassandraConfigSink.sinkConfig
-  private val manifest = JarManifest()
+  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
     * States which SinkTask class to use

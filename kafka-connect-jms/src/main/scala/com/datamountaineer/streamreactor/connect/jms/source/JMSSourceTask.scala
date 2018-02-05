@@ -43,7 +43,7 @@ class JMSSourceTask extends SourceTask with StrictLogging {
   private val pollingTimeout: AtomicLong = new AtomicLong(0L)
   private var ackMessage: Option[Message] = None
   private val recordsToCommit = new ConcurrentHashMap[SourceRecord, SourceRecord]()
-  private val manifest = JarManifest()
+  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-source-ascii.txt")).mkString + s" v $version")

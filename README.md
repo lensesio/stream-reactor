@@ -59,14 +59,17 @@ A collection of components to build a real time ingestion pipeline.
 
 **1.0.1** Pending
 
-*   Added SSL, subscription, partitioning, batching and key selection to Puslar source and sink
+*   Added SSL, subscription, partitioning, batching and key selection to Pulsar source and sink
 *   Elastic6 connector @caiooliveiraeti !
 *   Add polling timeout on the JMS source connector to avoid high CPU in the source connector poll thanks #373 @matthedude
-*   Fixes on the elastic priimary key separator thanks @caiooliveiraeti!
+*   Fixes on the elastic primary key separator thanks @caiooliveiraeti!
 *   Fix on the MQTT class loader
 *   Fix on the JMS class loader
 *   Fix on JMS to close down connections cleanly #363 thanks @matthedude!
 *   Fix on MQTT to correctly handle authentication 
+*   Moved MongoDB batch size to KCQL. ``connect.mongodb.batch.size`` is deprecated
+*   Added ``connect.mapping.collection.to.json`` to treat maps, list, sets as json when inserting into Cassandra
+*   Added support for Elastic Pipelines thanks @caiooliveiraeti!
 
 **1.0.0**
 
