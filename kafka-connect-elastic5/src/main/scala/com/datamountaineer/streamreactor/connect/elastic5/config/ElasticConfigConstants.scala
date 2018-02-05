@@ -58,6 +58,10 @@ object ElasticConfigConstants {
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
+  val ERROR_RETRY_INTERVAL = s"${CONNECTOR_PREFIX}.${RETRY_INTERVAL_PROP_SUFFIX}"
+  val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
+  val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
+
   val ERROR_POLICY_CONFIG = s"${CONNECTOR_PREFIX}.${ERROR_POLICY_PROP_SUFFIX}"
   val ERROR_POLICY_DOC: String =
     """Specifies the action to be taken if an error occurs while inserting the data

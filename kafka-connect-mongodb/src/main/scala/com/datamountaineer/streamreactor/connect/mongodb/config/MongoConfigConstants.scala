@@ -44,8 +44,7 @@ object MongoConfigConstants {
       |but requires the password to be exposed as plain text in the connection string which can leak in Connects logs."
     """.stringPrefix
 
-  val BATCH_SIZE_CONFIG = s"$CONNECTOR_PREFIX.$BATCH_SIZE_PROP_SUFFIX"
-  val BATCH_SIZE_DOC = "The number of records the sink would push to mongo at once."
+
   val BATCH_SIZE_CONFIG_DEFAULT = 100
 
   val ERROR_POLICY_CONFIG = s"$CONNECTOR_PREFIX.error.policy"

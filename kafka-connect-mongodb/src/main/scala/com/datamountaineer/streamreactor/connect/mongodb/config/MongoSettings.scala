@@ -34,8 +34,7 @@ case class MongoSettings(connection: String,
                          fields: Map[String, Map[String, String]],
                          ignoredField: Map[String, Set[String]],
                          errorPolicy: ErrorPolicy,
-                         taskRetries: Int = MongoConfigConstants.NBR_OF_RETIRES_DEFAULT,
-                         batchSize: Int = MongoConfigConstants.BATCH_SIZE_CONFIG_DEFAULT)
+                         taskRetries: Int = MongoConfigConstants.NBR_OF_RETIRES_DEFAULT)
 
 
 object MongoSettings extends StrictLogging {
@@ -58,7 +57,6 @@ object MongoSettings extends StrictLogging {
     val rowKeyBuilderMap = config.getUpsertKeys()
     val fieldsMap = config.getFieldsMap(kcql)
     val ignoreFields = config.getIgnoreFieldsMap()
-    val batchSize = config.getInt(MongoConfigConstants.BATCH_SIZE_CONFIG)
 
     val username = config.getUsername
     val password = config.getSecret
@@ -76,8 +74,7 @@ object MongoSettings extends StrictLogging {
         fieldsMap,
         ignoreFields,
         errorPolicy,
-        retries,
-        batchSize
+        retries
     )
   }
 }
