@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
 import org.apache.kafka.connect.data.Schema.Type
-import org.apache.kafka.connect.data.{Field, Schema, Struct}
+import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kudu.ColumnSchema
 import org.apache.kudu.ColumnSchema.ColumnSchemaBuilder
@@ -60,17 +60,46 @@ trait KuduConverter {
     val fieldName = field.name()
     val struct = record.value().asInstanceOf[Struct]
 
-    fieldType match {
-      case Type.STRING => row.addString(fieldName, struct.getString(fieldName))
-      case Type.INT8 => row.addByte(fieldName, struct.getInt8(fieldName).asInstanceOf[Byte])
-      case Type.INT16 => row.addShort(fieldName, struct.getInt16(fieldName))
-      case Type.INT32 => row.addInt(fieldName, struct.getInt32(fieldName))
-      case Type.INT64 => row.addLong(fieldName, struct.getInt64(fieldName))
-      case Type.BOOLEAN => row.addBoolean(fieldName, struct.get(fieldName).asInstanceOf[Boolean])
-      case Type.FLOAT32 => row.addFloat(fieldName, struct.getFloat32(fieldName))
-      case Type.FLOAT64 => row.addDouble(fieldName, struct.getFloat64(fieldName))
-      case Type.BYTES => row.addBinary(fieldName, struct.getBytes(fieldName))
-      case _ => throw new UnsupportedOperationException(s"Unknown type $fieldType")
+    field.schema().name() match {
+      case Time.LOGICAL_NAME =>
+        Option(struct.get(fieldName)).foreach {
+          case d: java.util.Date => row.addLong(fieldName, d.getTime)
+          case i: Integer => row.addLong(fieldName, i.toLong)
+          case other => throw new UnsupportedOperationException(s"Unsupported value ${other.getClass.getCanonicalName}")
+        }
+      case Timestamp.LOGICAL_NAME =>
+        Option(struct.get(fieldName)).foreach {
+          case d: java.util.Date => row.addLong(fieldName, d.getTime)
+          case l: java.lang.Long => row.addLong(fieldName, l)
+          case other => throw new UnsupportedOperationException(s"Unsupported value ${other.getClass.getCanonicalName}")
+        }
+
+      case Date.LOGICAL_NAME =>
+        Option(struct.get(fieldName)).foreach {
+          case d: java.util.Date => row.addLong(fieldName, d.getTime)
+          case i: Integer => row.addLong(fieldName, i.toLong)
+          case other => throw new UnsupportedOperationException(s"Unsupported value ${other.getClass.getCanonicalName}")
+        }
+      case Decimal.LOGICAL_NAME =>
+        val binary = struct.get(field.name()) match {
+          case a: Array[_] => a.asInstanceOf[Array[Byte]]
+          case bd: java.math.BigDecimal => Decimal.fromLogical(field.schema(), bd)
+          case bd: BigDecimal => Decimal.fromLogical(field.schema(), bd.bigDecimal)
+        }
+        row.addBinary(fieldName, binary)
+      case _ =>
+        fieldType match {
+          case Type.STRING => row.addString(fieldName, struct.getString(fieldName))
+          case Type.INT8 => row.addByte(fieldName, struct.getInt8(fieldName).asInstanceOf[Byte])
+          case Type.INT16 => row.addShort(fieldName, struct.getInt16(fieldName))
+          case Type.INT32 => row.addInt(fieldName, struct.getInt32(fieldName))
+          case Type.INT64 => row.addLong(fieldName, struct.getInt64(fieldName))
+          case Type.BOOLEAN => row.addBoolean(fieldName, struct.get(fieldName).asInstanceOf[Boolean])
+          case Type.FLOAT32 => row.addFloat(fieldName, struct.getFloat32(fieldName))
+          case Type.FLOAT64 => row.addDouble(fieldName, struct.getFloat64(fieldName))
+          case Type.BYTES => row.addBinary(fieldName, struct.getBytes(fieldName))
+          case _ => throw new UnsupportedOperationException(s"Unknown type $fieldType")
+        }
     }
     row
   }
