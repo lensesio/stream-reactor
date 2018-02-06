@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import java.util
 import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.atomic.AtomicBoolean
 
 import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource, CassandraSettings, CassandraSourceSetting}
@@ -28,7 +29,6 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
@@ -42,6 +42,7 @@ import scala.util.{Failure, Success, Try}
 class CassandraSourceTask extends SourceTask with StrictLogging {
   private var queues = mutable.Map.empty[String, LinkedBlockingQueue[SourceRecord]]
   private val readers = mutable.Map.empty[String, CassandraTableReader]
+  private val stopControl = new AtomicBoolean(false)
   private var taskConfig: Option[CassandraConfigSource] = None
   private var connection: Option[CassandraConnection] = None
   private var settings: Seq[CassandraSourceSetting] = _
@@ -97,6 +98,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     })
 
     pollInterval = settings.head.pollInterval
+    stopControl.set(false)
   }
 
   /**
@@ -107,20 +109,34 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     * @return A util.List of SourceRecords.
     */
   override def poll(): util.List[SourceRecord] = {
+    settings
+      .map(s => s.kcql)
+      .flatten(r => process(r.getSource))
+      .toList
+  }
+
+  /**
+    * Waiting Poll Interval
+    *
+    * Wait a poll interval and check if is stopped witch 1000 ms.
+    *
+    */
+  private def waitPollInterval = {
     val now = System.currentTimeMillis()
     if (tracker + pollInterval <= now) {
       tracker = now
-      settings
-        .map(s => s.kcql)
-        .flatten(r => process(r.getSource))
-        .toList
     } else {
       logger.debug(s"Waiting for poll interval to pass")
-      Thread.sleep(pollInterval)
-      List[SourceRecord]()
+      val sleepInterval = 1000
+      var shouldStop = stopControl.get();
+      var index = pollInterval
+      while (index > 0 & !shouldStop) {
+        Thread.sleep(if(index > sleepInterval) sleepInterval else index)
+        index -= sleepInterval
+        shouldStop = stopControl.get();
+      }
     }
   }
-
 
   /**
     * Process the table
@@ -143,6 +159,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     // than we are putting data into it
 
     if (!reader.isQuerying) {
+      waitPollInterval
       // start another query 
       reader.read
     } else {
@@ -171,6 +188,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     */
   override def stop(): Unit = {
     logger.info(s"Stopping Cassandra source $name.")
+    stopControl.set(true)
     readers.foreach({ case (_, v) => v.close() })
     val cluster = connection.get.session.getCluster
     logger.info(s"Shutting down Cassandra driver connections for $name.")

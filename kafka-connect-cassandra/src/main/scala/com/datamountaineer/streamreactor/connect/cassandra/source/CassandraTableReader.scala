@@ -176,6 +176,7 @@ class CassandraTableReader(private val name: String,
     logger.info(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow).")
     // bind the offset and db time
     val bound = preparedStatement.bind(Date.from(previous), Date.from(upperBound))
+    bound.setFetchSize(setting.fetchSize)
     session.executeAsync(bound)
   }
 
@@ -188,6 +189,7 @@ class CassandraTableReader(private val name: String,
   private def bindAndFireTokenQuery(lastToken: String) = {
     val bound = preparedStatement.bind(java.util.UUID.fromString(lastToken))
     logger.debug(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($lastToken).")
+    bound.setFetchSize(setting.fetchSize)
     session.executeAsync(bound)
   }
 
@@ -201,6 +203,7 @@ class CassandraTableReader(private val name: String,
     val bound = ps.bind()
     //execute the query
     logger.debug(s"Connector $name query ${ps.getQueryString} executing.")
+    bound.setFetchSize(setting.fetchSize)
     session.executeAsync(bound)
   }
 
@@ -230,6 +233,10 @@ class CassandraTableReader(private val name: String,
             index = 100
             shouldStop = stop.get()
           }
+
+          // this is asynchronous
+          if ((rs.getAvailableWithoutFetching == setting.fetchSize / 2) && !rs.isFullyFetched) rs.fetchMoreResults
+
           val row = iter.next()
           Try {
             // if not bulk get the maxOffset value 
