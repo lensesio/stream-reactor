@@ -35,7 +35,7 @@ object SinkRecordToDocument extends ConverterUtil {
           val extracted = convertSchemalessJson(record, settings.fields(record.topic()), settings.ignoredField(record.topic()))
           //not ideal; but the implementation is hashmap anyway
 
-          SinkRecordConverter.fromMap(extracted.asInstanceOf[java.util.HashMap[String, AnyRef]]) ->
+          SinkRecordConverter.fromMap(extracted.asInstanceOf[java.util.Map[String, AnyRef]]) ->
             keys.headOption.map(_ => KeysExtractor.fromMap(extracted, keys)).getOrElse(Iterable.empty)
         case _ => sys.error("For schemaless record only String and Map types are supported")
       }

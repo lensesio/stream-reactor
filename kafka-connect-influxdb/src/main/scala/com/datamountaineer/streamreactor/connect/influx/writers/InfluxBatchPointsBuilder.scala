@@ -109,7 +109,7 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
     * @return An instance [[Seq[Point]]. The reason for sequence is because we might have multiple KCQL on the same topic
     */
   private def buildPointFromMap(record: SinkRecord): Seq[Point] = {
-    require(record.value() != null && record.value().getClass == classOf[java.util.HashMap[_, _]],
+    require(record.value() != null && record.value().isInstanceOf[java.util.Map[_, _]],
       "The SinkRecord payload should be of type java.util.Map[String, Any]")
 
     val map = record.value().asInstanceOf[java.util.Map[String, Any]]

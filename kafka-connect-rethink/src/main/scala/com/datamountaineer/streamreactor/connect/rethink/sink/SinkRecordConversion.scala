@@ -63,7 +63,7 @@ object SinkRecordConversion {
     * @param primaryKeys - The primary keys list
     * @return
     */
-  def fromMap(record: SinkRecord, map: java.util.HashMap[String, Any], primaryKeys: Set[String]): java.util.HashMap[String, Any] = {
+  def fromMap(record: SinkRecord, map: util.Map[String, Any], primaryKeys: Set[String]): java.util.Map[String, Any] = {
     val connectKey = s"${record.topic()}-${record.kafkaPartition().toString}-${record.kafkaOffset().toString}"
 
     //set id field
@@ -111,7 +111,7 @@ object SinkRecordConversion {
     * @param struct The struct to extract the value from
     * @param hm     The HashMap
     **/
-  private def buildField(field: Field, struct: Struct, hm: java.util.HashMap[String, Any]): java.util.HashMap[String, Any] = {
+  private def buildField(field: Field, struct: Struct, hm: java.util.Map[String, Any]): java.util.Map[String, Any] = {
     field.schema().`type`() match {
       case Type.STRUCT =>
         val nested = struct.getStruct(field.name())
@@ -151,7 +151,7 @@ object SinkRecordConversion {
     * @param hm
     * @return
     */
-  private def buildField(key: String, value: Any, hm: java.util.HashMap[String, Any]): java.util.HashMap[String, Any] = {
+  private def buildField(key: String, value: Any, hm: java.util.Map[String, Any]): java.util.Map[String, Any] = {
     value match {
       case map: Map[_, _] =>
         val mo = new util.HashMap[String, Any]()

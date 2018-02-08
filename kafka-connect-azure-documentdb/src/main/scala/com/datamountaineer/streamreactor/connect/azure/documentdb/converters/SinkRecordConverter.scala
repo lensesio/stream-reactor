@@ -42,7 +42,7 @@ object SinkRecordConverter {
     * @param map
     * @return
     */
-  def fromMap(map: util.HashMap[String, AnyRef]): Document = new Document(Json.toJson(map))
+  def fromMap(map: util.Map[String, AnyRef]): Document = new Document(Json.toJson(map))
 
   /**
     * Creates an Azure DocumentDb document from a the Kafka Struct
