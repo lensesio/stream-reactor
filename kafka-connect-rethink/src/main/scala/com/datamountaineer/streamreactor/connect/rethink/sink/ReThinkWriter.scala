@@ -98,7 +98,7 @@ class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSinkSe
     logger.debug(s"Wrote ${writes.length} to rethink.")
   }
 
-  private def handleSinkRecord(record: SinkRecord): java.util.HashMap[String, Any] = {
+  private def handleSinkRecord(record: SinkRecord): java.util.Map[String, Any] = {
     val schema = record.valueSchema()
     val value = record.value()
     val pks = setting.primaryKeys(record.topic)
@@ -109,7 +109,7 @@ class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSinkSe
         case _: java.util.Map[_, _] =>
           val extracted = convertSchemalessJson(record, setting.fieldMap(record.topic()), setting.ignoreFields(record.topic()))
           //not ideal; but the implementation is hashmap anyway
-          SinkRecordConversion.fromMap(record, extracted.asInstanceOf[java.util.HashMap[String, Any]], pks)
+          SinkRecordConversion.fromMap(record, extracted.asInstanceOf[java.util.Map[String, Any]], pks)
         case _ => sys.error("For schemaless record only String and Map types are supported")
       }
     } else {
