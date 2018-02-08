@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect
 import java.io.{BufferedWriter, ByteArrayOutputStream, File, FileWriter}
 import java.net.ServerSocket
 import java.nio.file.Paths
+import java.util
 import java.util.UUID
 import javax.jms.{BytesMessage, Connection, Session, TextMessage}
 
@@ -26,8 +27,10 @@ import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
 import com.datamountaineer.streamreactor.connect.jms.config.{DestinationSelector, JMSConfigConstants}
 import com.sksamuel.avro4s.{AvroOutputStream, SchemaFor}
 import org.apache.activemq.ActiveMQConnectionFactory
-import org.apache.activemq.broker.BrokerService
+import org.apache.activemq.broker.{BrokerService, ConnectionContext}
+import org.apache.activemq.command.Message
 import org.apache.activemq.jndi.ActiveMQInitialContextFactory
+import org.apache.activemq.security.MessageAuthorizationPolicy
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.mockito.MockitoSugar
@@ -281,14 +284,23 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     port
   }
 
-  def testWithBrokerOnPort(test: (Connection, String) => Unit): Unit = testWithBrokerOnPort()(test: (Connection, String) => Unit)
+  def testWithBrokerOnPort(test: (Connection, String) => Unit): Unit = testWithBrokerOnPort()(test)
 
-  def testWithBrokerOnPort(port: Int = getFreePort)(test: (Connection, String) => Unit): Unit = {
+  def testWithBrokerOnPort(port: Int = getFreePort)(test: (Connection, String) => Unit): Unit =
+    testWithBroker(port, None) { brokerUrl =>
+      val connectionFactory = new ActiveMQConnectionFactory()
+      connectionFactory.setBrokerURL(brokerUrl)
+      val conn = connectionFactory.createConnection()
+      conn.start()
+      test(conn, brokerUrl)
+    }
+
+  def testWithBroker(port: Int = getFreePort, clientID: Option[String])(test: String => Unit): Unit = {
     val broker = new BrokerService()
     broker.setPersistent(false)
     broker.setUseJmx(false)
     broker.setDeleteAllMessagesOnStartup(true)
-    val brokerUrl = s"tcp://localhost:$port"
+    val brokerUrl = s"tcp://localhost:$port${clientID.fold("")(id => s"?jms.clientID=$id")}"
     broker.addConnector(brokerUrl)
     broker.setUseShutdownHook(false)
     val property = "java.io.tmpdir"
@@ -296,12 +308,6 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     broker.setDataDirectoryFile(new File(tempDir))
     broker.setTmpDataDirectory(new File(tempDir))
     broker.start()
-
-    val connectionFactory = new ActiveMQConnectionFactory()
-    connectionFactory.setBrokerURL(brokerUrl)
-    val conn = connectionFactory.createConnection()
-    conn.start()
-
-    test(conn, brokerUrl)
+    test(brokerUrl)
   }
 }
