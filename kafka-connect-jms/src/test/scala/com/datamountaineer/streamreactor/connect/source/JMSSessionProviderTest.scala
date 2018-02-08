@@ -1,10 +1,13 @@
 package com.datamountaineer.streamreactor.connect.source
 
+import javax.naming.NameNotFoundException
+
 import javax.jms.Session
 
 import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
-import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
+import com.datamountaineer.streamreactor.connect.jms.config.{DestinationSelector, JMSConfig, JMSSettings}
+import org.apache.activemq.ActiveMQConnection
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 
@@ -72,4 +75,19 @@ class JMSSessionProviderTest extends TestBase with BeforeAndAfterAll with Eventu
     provider.close().isSuccess shouldBe true
     Try(provider.connection.createSession(false, Session.CLIENT_ACKNOWLEDGE)).isFailure shouldBe true
   }
+
+  "should close connection and free resources on exception when configuring session provider" in
+    testWithBroker(clientID = Some("static-client-id")) { brokerUrl =>
+      val props = getProps1Topic(brokerUrl)
+      val config = JMSConfig(props)
+      val validSettings = JMSSettings(config, forAJmsConsumer)
+      val invalidSettings = validSettings.copy(destinationSelector = DestinationSelector.JNDI)
+
+      assertThrows[NameNotFoundException] {
+        JMSSessionProvider(invalidSettings, forAJmsConsumer)
+      }
+      val provider = JMSSessionProvider(validSettings, forAJmsConsumer)
+      provider.connection.asInstanceOf[ActiveMQConnection].isClosed shouldBe false
+      provider.connection.close()
+    }
 }

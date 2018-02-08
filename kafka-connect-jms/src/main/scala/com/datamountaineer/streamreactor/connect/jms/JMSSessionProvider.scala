@@ -26,6 +26,7 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.errors.ConnectException
 
+import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -53,37 +54,31 @@ case class JMSSessionProvider(queueConsumers: Map[String, MessageConsumer],
 }
 
 object JMSSessionProvider extends StrictLogging {
-  def apply(settings: JMSSettings, sink: Boolean = false): JMSSessionProvider ={
-    val context =  new InitialContext(getProps(settings))
-    val connectionFactory = context.lookup(settings.connectionFactoryClass).asInstanceOf[ConnectionFactory]
-    val connection = settings.user match {
-      case None => connectionFactory.createConnection()
-      case Some(user) => connectionFactory.createConnection(user, settings.password.get.value())
-    }
+  def apply(settings: JMSSettings, sink: Boolean = false): JMSSessionProvider =
+    withConnection(settings){ (context, connection) =>
+      val session = Try(connection.createSession(sink, Session.CLIENT_ACKNOWLEDGE)) match {
+        case Success(s) =>
+          logger.info("Created session")
+          s
+        case Failure(f) =>
+          logger.error("Failed to create session", f.getMessage)
+          throw new ConnectException(f)
+      }
 
-    val session = Try(connection.createSession(sink, Session.CLIENT_ACKNOWLEDGE)) match {
-      case Success(s) =>
-        logger.info("Created session")
-        s
-      case Failure(f) =>
-        logger.error("Failed to create session", f.getMessage)
-        throw new ConnectException(f)
-    }
+      if (sink) {
+        val topicProducers = configureDestination(TopicDestination, context, session, settings, sink)
+          .flatMap({ case (source, _, topic) => createProducers(source, session, topic) }).toMap
 
-    if (sink) {
-      val topicProducers = configureDestination(TopicDestination, context, session, settings, sink)
-        .flatMap({ case (source, _, topic) => createProducers(source, session, topic) }).toMap
-
-      val queueProducers = configureDestination(QueueDestination, context, session, settings, sink)
-        .flatMap({ case (source, _, queue) => createProducers(source, session, queue) }).toMap
-      new JMSSessionProvider(Map[String, MessageConsumer](), Map[String, MessageConsumer](), queueProducers, topicProducers, session, connection, context)
-    } else {
-      val topicsConsumers = configureDestination(TopicDestination, context, session, settings, sink)
-        .flatMap({ case (source, ms, topic) => createConsumers(source, session, topic, settings.subscriptionName, ms)}).toMap
-      val queueConsumers = configureDestination(QueueDestination, context, session, settings, sink)
-        .flatMap({ case (source, ms, queue) => createConsumers(source, session, queue, settings.subscriptionName, ms) }).toMap
-      new JMSSessionProvider(queueConsumers, topicsConsumers, Map[String, MessageProducer](), Map[String, MessageProducer](), session, connection, context)
-    }
+        val queueProducers = configureDestination(QueueDestination, context, session, settings, sink)
+          .flatMap({ case (source, _, queue) => createProducers(source, session, queue) }).toMap
+        new JMSSessionProvider(Map[String, MessageConsumer](), Map[String, MessageConsumer](), queueProducers, topicProducers, session, connection, context)
+      } else {
+        val topicsConsumers = configureDestination(TopicDestination, context, session, settings, sink)
+          .flatMap({ case (source, ms, topic) => createConsumers(source, session, topic, settings.subscriptionName, ms) }).toMap
+        val queueConsumers = configureDestination(QueueDestination, context, session, settings, sink)
+          .flatMap({ case (source, ms, queue) => createConsumers(source, session, queue, settings.subscriptionName, ms) }).toMap
+        new JMSSessionProvider(queueConsumers, topicsConsumers, Map[String, MessageProducer](), Map[String, MessageProducer](), session, connection, context)
+      }
   }
 
   def configureDestination(destinationType: DestinationType, context: InitialContext, session: Session, settings: JMSSettings, sink: Boolean = false): List[(String, Option[String], Destination)] = {
@@ -105,6 +100,22 @@ object JMSSessionProvider extends StrictLogging {
         }
     }
   })
+
+  private def withConnection[T](settings: JMSSettings)(f: (InitialContext, Connection) => T): T = {
+    val context: InitialContext =  new InitialContext(getProps(settings))
+    val connectionFactory = context.lookup(settings.connectionFactoryClass).asInstanceOf[ConnectionFactory]
+    val connection = settings.user match {
+      case None => connectionFactory.createConnection()
+      case Some(user) => connectionFactory.createConnection(user, settings.password.get.value())
+    }
+    try {
+      f(context, connection)
+    } catch {
+      case NonFatal(e) =>
+        connection.close()
+        throw e
+    }
+  }
 
   private def getDestination(name: String, context: InitialContext, selector: DestinationSelector,
                              destination: DestinationType, session: Session): Destination = {
