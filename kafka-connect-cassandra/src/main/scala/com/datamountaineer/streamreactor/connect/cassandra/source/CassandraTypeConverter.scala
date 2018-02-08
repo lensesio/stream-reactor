@@ -16,6 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
+import java.math.RoundingMode
 import java.util.Date
 
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSourceSetting
@@ -84,8 +85,7 @@ class CassandraTypeConverter(private val codecRegistry: CodecRegistry,
     columnDef.getType.getName match {
       case DataType.Name.DECIMAL =>
         Option(row.getDecimal(columnDef.getName)).map { d =>
-          d.setScale(18)
-          //Decimal.fromLogical(OPTIONAL_DECIMAL_SCHEMA, )
+          d.setScale(18, RoundingMode.HALF_UP)
         }.orNull
       case DataType.Name.ASCII | DataType.Name.TEXT | DataType.Name.VARCHAR => row.getString(columnDef.getName)
       case DataType.Name.INET => row.getInet(columnDef.getName).toString
