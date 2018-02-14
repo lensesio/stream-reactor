@@ -20,7 +20,7 @@ import java.util
 import java.util.concurrent.LinkedBlockingQueue
 
 import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource, CassandraSettings, CassandraSourceSetting}
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource, CassandraSourceSettings, CassandraSourceSetting}
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -84,7 +84,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
 
     //Setup queues for readers to put records into
     assigned.map(table => queues += table -> new LinkedBlockingQueue[SourceRecord](bufferSize.get))
-    settings = CassandraSettings.configureSource(taskConfig.get)
+    settings = CassandraSourceSettings.configureSource(taskConfig.get)
     name = props.getOrDefault("name", "")
 
     //set up readers

@@ -32,7 +32,7 @@ class MongoSettingsTest extends WordSpec with Matchers {
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
       )
 
-      val config = MongoConfig(map)
+      val config = MongoSinkConfig(map)
       val settings = MongoSettings(config)
       settings.database shouldBe "database1"
       settings.connection shouldBe "mongodb://localhost:27017"
@@ -49,7 +49,7 @@ class MongoSettingsTest extends WordSpec with Matchers {
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT a as F1, b as F2 FROM topic2"
       )
 
-      val config = MongoConfig(map)
+      val config = MongoSinkConfig(map)
       val settings = MongoSettings(config)
       settings.database shouldBe "database1"
       settings.connection shouldBe "mongodb://localhost:27017"
@@ -66,7 +66,7 @@ class MongoSettingsTest extends WordSpec with Matchers {
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1 IGNORE a,b,c"
       )
 
-      val config = MongoConfig(map)
+      val config = MongoSinkConfig(map)
       val settings = MongoSettings(config)
       settings.database shouldBe "database1"
       settings.connection shouldBe "mongodb://localhost:27017"
@@ -84,7 +84,7 @@ class MongoSettingsTest extends WordSpec with Matchers {
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1 PK a,b"
       )
 
-      val config = MongoConfig(map)
+      val config = MongoSinkConfig(map)
       val settings = MongoSettings(config)
       settings.database shouldBe "database1"
       settings.connection shouldBe "mongodb://localhost:27017"
@@ -102,7 +102,7 @@ class MongoSettingsTest extends WordSpec with Matchers {
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO  SELECT * FROM topic1"
       )
 
-      val config = MongoConfig(map)
+      val config = MongoSinkConfig(map)
       intercept[IllegalArgumentException] {
         MongoSettings(config)
       }
@@ -115,7 +115,7 @@ class MongoSettingsTest extends WordSpec with Matchers {
       )
 
       intercept[ConfigException] {
-        val config = MongoConfig(map)
+        val config = MongoSinkConfig(map)
         MongoSettings(config)
       }
     }
@@ -127,7 +127,7 @@ class MongoSettingsTest extends WordSpec with Matchers {
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
       )
 
-      val config = MongoConfig(map)
+      val config = MongoSinkConfig(map)
       intercept[IllegalArgumentException] {
         MongoSettings(config)
       }
@@ -141,7 +141,7 @@ class MongoSettingsTest extends WordSpec with Matchers {
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
       )
 
-      val config = MongoConfig(map)
+      val config = MongoSinkConfig(map)
       intercept[ConfigException] {
         MongoSettings(config)
       }

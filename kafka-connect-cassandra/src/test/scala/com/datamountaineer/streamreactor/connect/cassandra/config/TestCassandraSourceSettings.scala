@@ -40,7 +40,7 @@ class TestCassandraSourceSettings extends WordSpec with Matchers with TestConfig
 
     val taskConfig = CassandraConfigSource(props)
     val assigned = List(TABLE1, TABLE2)
-    val settings = CassandraSettings.configureSource(taskConfig).toList
+    val settings = CassandraSourceSettings.configureSource(taskConfig).toList
     settings.size shouldBe 2
     settings.head.kcql.getSource shouldBe TABLE1
     settings.head.kcql.getTarget shouldBe TABLE1 //no table mapping provided so should be the table
@@ -60,7 +60,7 @@ class TestCassandraSourceSettings extends WordSpec with Matchers with TestConfig
       CassandraConfigConstants.POLL_INTERVAL -> "1000"
     )
     val taskConfig = CassandraConfigSource(map)
-    val settings = CassandraSettings.configureSource(taskConfig).toList
+    val settings = CassandraSourceSettings.configureSource(taskConfig).toList
     settings.size shouldBe 1
   }
 }

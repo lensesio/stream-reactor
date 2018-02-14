@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbSinkConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
 import com.microsoft.azure.documentdb.DocumentClient
@@ -51,7 +51,7 @@ class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => Do
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    val taskConfig = Try(DocumentDbConfig(props)) match {
+    val taskConfig = Try(DocumentDbSinkConfig(props)) match {
       case Failure(f) => throw new ConnectException("Couldn't start Azure Document DB Sink due to configuration error.", f)
       case Success(s) => s
     }

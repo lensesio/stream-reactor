@@ -34,7 +34,7 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
       )
 
       intercept[ConfigException] {
-        DocumentDbConfig(map)
+        DocumentDbSinkConfig(map)
       }
     }
 
@@ -46,7 +46,7 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
       )
 
       intercept[ConfigException] {
-        DocumentDbConfig(map)
+        DocumentDbSinkConfig(map)
       }
     }
 
@@ -59,7 +59,7 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
         DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT a as F1, b as F2 FROM topic2"
       )
 
-      val config = DocumentDbConfig(map)
+      val config = DocumentDbSinkConfig(map)
       val settings = DocumentDbSinkSettings(config)
       settings.database shouldBe "dbs/database1"
       settings.endpoint shouldBe connection
@@ -77,7 +77,7 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
         DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1 IGNORE a,b,c"
       )
 
-      val config = DocumentDbConfig(map)
+      val config = DocumentDbSinkConfig(map)
       val settings = DocumentDbSinkSettings(config)
       settings.database shouldBe "db/database1"
       settings.endpoint shouldBe connection
@@ -96,7 +96,7 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
         DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1 PK a,b"
       )
 
-      val config = DocumentDbConfig(map)
+      val config = DocumentDbSinkConfig(map)
       val settings = DocumentDbSinkSettings(config)
       settings.keyBuilderMap.size shouldBe 0
       settings.kcql.size shouldBe 1
@@ -114,7 +114,7 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
         DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1 PK a,b"
       )
 
-      val config = DocumentDbConfig(map)
+      val config = DocumentDbSinkConfig(map)
       intercept[ConfigException] {
         DocumentDbSinkSettings(config)
       }
@@ -128,7 +128,7 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
         DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO  SELECT * FROM topic1"
       )
 
-      val config = DocumentDbConfig(map)
+      val config = DocumentDbSinkConfig(map)
       intercept[IllegalArgumentException] {
         DocumentDbSinkSettings(config)
       }
@@ -143,7 +143,7 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
         DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
       )
 
-      val config = DocumentDbConfig(map)
+      val config = DocumentDbSinkConfig(map)
       intercept[ConfigException] {
         DocumentDbSinkSettings(config)
       }

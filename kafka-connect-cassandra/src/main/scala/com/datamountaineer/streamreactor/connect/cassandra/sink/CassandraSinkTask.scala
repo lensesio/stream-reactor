@@ -18,8 +18,8 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigSink, CassandraSettings}
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigSink, CassandraSinkSettings}
+import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -53,7 +53,7 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
       case Success(s) => s
     }
 
-    val sinkSettings = CassandraSettings.configureSink(taskConfig)
+    val sinkSettings = CassandraSinkSettings.configureSink(taskConfig)
     enableProgress = sinkSettings.enableProgress
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-sink-ascii.txt")).mkString + s" v $version")
     logger.info(manifest.printManifest())

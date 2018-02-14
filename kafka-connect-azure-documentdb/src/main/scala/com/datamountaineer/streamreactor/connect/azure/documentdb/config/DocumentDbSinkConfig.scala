@@ -23,7 +23,7 @@ import com.microsoft.azure.documentdb.ConsistencyLevel
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
-object DocumentDbConfig {
+object DocumentDbSinkConfig {
   val config: ConfigDef = new ConfigDef()
     .define(DocumentDbConfigConstants.CONNECTION_CONFIG, Type.STRING, Importance.HIGH,
       DocumentDbConfigConstants.CONNECTION_CONFIG_DOC, "Connection", 1, ConfigDef.Width.LONG,
@@ -62,8 +62,8 @@ object DocumentDbConfig {
       DocumentDbConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 }
 
-case class DocumentDbConfig(props: util.Map[String, String])
-  extends BaseConfig(DocumentDbConfigConstants.CONNECTOR_PREFIX, DocumentDbConfig.config, props)
+case class DocumentDbSinkConfig(props: util.Map[String, String])
+  extends BaseConfig(DocumentDbConfigConstants.CONNECTOR_PREFIX, DocumentDbSinkConfig.config, props)
     with KcqlSettings
     with DatabaseSettings
     with NumberRetriesSettings

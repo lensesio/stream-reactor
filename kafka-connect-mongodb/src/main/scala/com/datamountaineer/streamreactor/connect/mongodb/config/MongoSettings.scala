@@ -39,7 +39,7 @@ case class MongoSettings(connection: String,
 
 object MongoSettings extends StrictLogging {
 
-  def apply(config: MongoConfig): MongoSettings = {
+  def apply(config: MongoSinkConfig): MongoSettings = {
     val hostsConfig = config.getString(MongoConfigConstants.CONNECTION_CONFIG)
     require(hostsConfig.nonEmpty, s"Invalid hosts provided.${MongoConfigConstants.CONNECTION_CONFIG_DOC}")
 

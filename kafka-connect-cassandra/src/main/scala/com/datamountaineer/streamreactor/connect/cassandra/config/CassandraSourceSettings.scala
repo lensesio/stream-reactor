@@ -74,7 +74,7 @@ case class CassandraSinkSetting(keySpace: String,
   * Holds the table, topic, import mode and timestamp columns
   * Import mode and timestamp columns are only applicable for the source.
   **/
-object CassandraSettings extends StrictLogging {
+object CassandraSourceSettings extends StrictLogging {
 
   def configureSource(config: CassandraConfigSource): Seq[CassandraSourceSetting] = {
     //get keyspace
@@ -123,6 +123,10 @@ object CassandraSettings extends StrictLogging {
       )
     }.toSeq
   }
+
+}
+
+object CassandraSinkSettings extends StrictLogging {
 
   def configureSink(config: CassandraConfigSink): CassandraSinkSetting = {
     //get keyspace

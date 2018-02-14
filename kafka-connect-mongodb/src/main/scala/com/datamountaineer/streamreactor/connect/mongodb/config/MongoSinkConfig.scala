@@ -22,7 +22,7 @@ import com.datamountaineer.streamreactor.connect.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
-object MongoConfig {
+object MongoSinkConfig {
 
   val config = new ConfigDef()
     .define(MongoConfigConstants.CONNECTION_CONFIG, Type.STRING, Importance.HIGH,
@@ -62,8 +62,8 @@ object MongoConfig {
 }
 
 
-case class MongoConfig(props: util.Map[String, String])
-  extends BaseConfig(MongoConfigConstants.CONNECTOR_PREFIX, MongoConfig.config, props)
+case class MongoSinkConfig(props: util.Map[String, String])
+  extends BaseConfig(MongoConfigConstants.CONNECTOR_PREFIX, MongoSinkConfig.config, props)
   with KcqlSettings
   with DatabaseSettings
   with ErrorPolicySettings
