@@ -110,6 +110,31 @@ class TestCassandraSourceTaskTimestamp extends WordSpec
     task.stop()
   }
 
+  "A Cassandra SourceTask should read in incremental mode with fetchSize" in {
+
+    val taskContext = getSourceTaskContextDefault
+    val config = getCassandraConfigDefault()
+    val task = new CassandraSourceTask()
+
+    truncateTable(session, keyspace, tableName)
+
+    task.initialize(taskContext)
+
+    //start task
+    task.start(config)
+
+    for (i <- 1 to 10){
+      insertIntoTimestampTable(session, keyspace, tableName, s"id$i", s"magic_string_$i", getFormattedDateNow)
+    }
+
+    val records = pollAndWait(task, tableName)
+
+    records.size shouldBe 10
+
+    //stop task
+    task.stop()
+  }
+
   "A Cassandra SourceTask should throw exception when timestamp column is not specified" in {
 
     val taskContext = getSourceTaskContextDefault

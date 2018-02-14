@@ -60,6 +60,12 @@ trait TestCassandraSourceUtil {
     table
   }
 
+  def truncateTable(session: Session, keySpace: String, table: String) = {
+    session.execute(s"TRUNCATE TABLE $keySpace.$table".stripMargin)
+
+    println(s"truncate table $keySpace.$table")
+  }
+
   def insertIntoTimeuuidTable(session: Session, keyspace: String, tableName: String, anId: String, stringValue: String) {
     val sql = s"""INSERT INTO $keyspace.$tableName
       (id, int_field, long_field, string_field, timeuuid_field)
@@ -106,6 +112,8 @@ trait TestCassandraSourceUtil {
       CassandraConfigConstants.ASSIGNED_TABLES -> tableName,
       CassandraConfigConstants.TIMESLICE_DURATION -> "10000",
       CassandraConfigConstants.TIMESLICE_DELAY -> "0",
-      CassandraConfigConstants.POLL_INTERVAL -> "500").asJava
+      CassandraConfigConstants.POLL_INTERVAL -> "500",
+      CassandraConfigConstants.FETCH_SIZE -> "2"
+    ).asJava
   }
 }

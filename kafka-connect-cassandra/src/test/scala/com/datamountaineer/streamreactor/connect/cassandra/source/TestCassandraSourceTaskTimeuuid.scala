@@ -111,8 +111,32 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
 
     //stop task
     task.stop()
-  }  
-  
+  }
+
+  "A Cassandra SourceTask should read in incremental mode with fetchSize" in {
+    val taskContext = getSourceTaskContextDefault
+    val config = getCassandraConfigWithUnwrap
+    val task = new CassandraSourceTask()
+
+    truncateTable(session, keyspace, tableName)
+
+    task.initialize(taskContext)
+
+    //start task
+    task.start(config)
+
+    for (i <- 1 to 10){
+      insertIntoTimeuuidTable(session, keyspace, tableName, s"id$i", s"magic_string_$i")
+    }
+
+    val records = pollAndWait(task, tableName)
+
+    records.size shouldBe 10
+
+    //stop task
+    task.stop()
+  }
+
   "A Cassandra SourceTask should throw exception when timeuuid column is not specified" in {
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigWithKcqlNoPrimaryKeyInSelect
