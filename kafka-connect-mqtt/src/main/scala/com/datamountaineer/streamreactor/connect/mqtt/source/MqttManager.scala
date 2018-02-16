@@ -50,7 +50,10 @@ class MqttManager(connectionFn: (MqttCallback) => MqttClient,
   override def deliveryComplete(token: IMqttDeliveryToken): Unit = {}
 
   def compareTopic(actualTopic: String, subscribedTopic: String): Boolean = {
-    actualTopic.matches(subscribedTopic.replaceAll("\\+", "[^/]+").replaceAll("#", ".+"))
+    actualTopic.matches(
+      subscribedTopic.replaceAll("\\+", "[^/]+")
+        .replaceAll("#", ".+")
+        .replace("$",".+"))
   }
 
   override def messageArrived(topic: String, message: MqttMessage): Unit = {
