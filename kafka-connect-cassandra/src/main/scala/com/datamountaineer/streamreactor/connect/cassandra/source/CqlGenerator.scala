@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraSourceSetting, TimestampType}
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSourceSetting, TimestampType}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 
@@ -29,7 +29,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
   private val keySpace = setting.keySpace
   private val selectColumns = getSelectColumns
   private val incrementMode = setting.timestampColType
-  private val limitRowsSize = kcql.getBatchSize
+  private val limitRowsSize = if (kcql.getBatchSize == 0) CassandraConfigConstants.BATCH_SIZE_DEFAULT else kcql.getBatchSize
   private val defaultTimestamp = setting.initialOffset
 
   /**

@@ -28,10 +28,6 @@ import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
   */
 object ReThinkSourceConfig extends ReThinkConfig {
   val config: ConfigDef = baseConfig
-    .define(ReThinkConfigConstants.BATCH_SIZE, Type.INT,
-      ReThinkConfigConstants.BATCH_SIZE_DEFAULT,
-      Importance.MEDIUM, ReThinkConfigConstants.BATCH_SIZE_DOC,
-      "Connection", 9, ConfigDef.Width.MEDIUM, ReThinkConfigConstants.BATCH_SIZE)
 
     .define(ReThinkConfigConstants.SOURCE_LINGER_MS, Type.LONG,
       ReThinkConfigConstants.SOURCE_LINGER_MS_DEFAULT,
