@@ -15,7 +15,7 @@ object ConsumerConfigFactory extends StrictLogging {
     kcqls.map(kcql => {
       val config = new ConsumerConfiguration
 
-      if (kcql.getBatchSize != null) {
+      if (kcql.getBatchSize != null || kcql.getBatchSize == 0) {
         config.setReceiverQueueSize(kcql.getBatchSize())
       }
 

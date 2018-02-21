@@ -47,7 +47,7 @@ object PulsarConfigConstants {
   val AVRO_CONVERTERS_SCHEMA_FILES_DEFAULT = ""
 
   val POLLING_TIMEOUT_CONFIG = s"$CONNECTOR_PREFIX.polling.timeout"
-  val POLLING_TIMEOUT_DOC = s"Provides the timeout to poll incoming messages. Connect will write to Kafka is this reached of the $CONNECTOR_PREFIX.$BATCH_SIZE_PROP_SUFFIX. Which ever is first."
+  val POLLING_TIMEOUT_DOC = s"Provides the timeout to poll incoming messages in milliseconds. Connect will write to Kafka is this reached of the $CONNECTOR_PREFIX.$BATCH_SIZE_PROP_SUFFIX. Which ever is first."
   val POLLING_TIMEOUT_DISPLAY = "Polling timeout"
   val POLLING_TIMEOUT_DEFAULT = 1000
 

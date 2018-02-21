@@ -81,7 +81,5 @@ object ReThinkConfigConstants {
   val SOURCE_LINGER_MS_DOC = "The number of milliseconds to wait before flushing the received messages to Kafka. The records will" +
     "be flushed if the batch size is reached before the linger period has expired."
 
-  val BATCH_SIZE = s"$RETHINK_CONNECTOR_PREFIX.$BATCH_SIZE_PROP_SUFFIX"
-  val BATCH_SIZE_DOC = "The number of records to drain from the internal queue on each poll."
   val BATCH_SIZE_DEFAULT = 1000
 }

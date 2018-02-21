@@ -60,8 +60,4 @@ class TestReThinkSinkConstants extends WordSpec {
   "NBR_OF_RETRIES should have the same key in ReThinkSinkConfigConstants" in {
     assert(NBR_OF_RETRIES.equals(ReThinkConfigConstants.NBR_OF_RETRIES))
   }
-
-  "BATCH_SIZE should have the same key in ReThinkSinkConfigConstants" in {
-    assert(BATCH_SIZE.equals(ReThinkConfigConstants.BATCH_SIZE))
-  }
 }

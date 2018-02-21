@@ -56,7 +56,7 @@ class CoapSourceTask extends SourceTask with StrictLogging {
   override def poll(): util.List[SourceRecord] = {
     val records = new util.ArrayList[SourceRecord]()
 
-    QueueHelpers.drainWithTimeoutNoGauva(records, batchSize, lingerTimeout, queue)
+    QueueHelpers.drainWithTimeoutNoGauva(records, batchSize, lingerTimeout * 1000000 , queue)
 
     if (enableProgress) {
       progressCounter.update(records.toVector)

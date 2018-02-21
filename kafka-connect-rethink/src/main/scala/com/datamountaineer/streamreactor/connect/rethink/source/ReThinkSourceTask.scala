@@ -56,7 +56,7 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
   override def poll(): util.List[SourceRecord] = {
     val records = readers.flatMap(r => {
       val records = new util.ArrayList[SourceRecord]()
-      QueueHelpers.drainWithTimeoutNoGauva(records, r.batchSize, lingerTimeout, r.queue)
+      QueueHelpers.drainWithTimeoutNoGauva(records, r.batchSize, lingerTimeout * 1000000, r.queue)
       records
     }).toList
 
