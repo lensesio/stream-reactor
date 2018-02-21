@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 import java.lang.Boolean
 
 import com.datamountaineer.kcql.{Field, Kcql}
+import com.datamountaineer.streamreactor.connect.cassandra.config.DefaultValueServeStrategy.DefaultValueServeStrategy
 import com.datamountaineer.streamreactor.connect.cassandra.config.TimestampType.TimestampType
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datastax.driver.core.ConsistencyLevel
@@ -67,7 +68,8 @@ case class CassandraSinkSetting(keySpace: String,
                                 enableProgress: Boolean = CassandraConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
                                 deleteEnabled: Boolean = CassandraConfigConstants.DELETE_ROW_ENABLED_DEFAULT,
                                 deleteStatement: String = CassandraConfigConstants.DELETE_ROW_STATEMENT_DEFAULT,
-                                deleteStructFields: Seq[String] = Seq.empty) extends CassandraSetting
+                                deleteStructFields: Seq[String] = Seq.empty,
+                                defaultValueStrategy: Option[DefaultValueServeStrategy] = None) extends CassandraSetting
 
 /**
   * Cassandra Setting used for both Readers and writers
@@ -146,6 +148,8 @@ object CassandraSettings extends StrictLogging {
 
     val structFlds = config.getList(CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS)
 
+    val defaultValueStrategy  = DefaultValueServeStrategy.of(config.getString(CassandraConfigConstants.DEFAULT_VALUE_SERVE_STRATEGY_PROPERTY))
+
     CassandraSinkSetting(keySpace,
       kcqls,
       fields,
@@ -157,6 +161,17 @@ object CassandraSettings extends StrictLogging {
       enableCounter,
       deleteEnabled,
       deleteStmt,
-      structFlds)
+      structFlds,
+      defaultValueStrategy)
+  }
+}
+
+
+object DefaultValueServeStrategy extends Enumeration {
+  type DefaultValueServeStrategy = Value
+  val NULL, UNSET = Value
+
+  def of(value: String): Option[DefaultValueServeStrategy] = {
+    Try(withName(value)).toOption
   }
 }

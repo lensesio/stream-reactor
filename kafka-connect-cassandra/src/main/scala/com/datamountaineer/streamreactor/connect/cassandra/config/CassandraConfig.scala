@@ -401,6 +401,15 @@ object CassandraConfigSink {
       1,
       ConfigDef.Width.MEDIUM,
       CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS_DISPLAY)
+    .define(CassandraConfigConstants.DEFAULT_VALUE_SERVE_STRATEGY_PROPERTY,
+      Type.STRING,
+      CassandraConfigConstants.DEFAULT_VALUE_SERVE_STRATEGY_DEFAULT,
+      Importance.LOW,
+      CassandraConfigConstants.DEFAULT_VALUE_SERVE_STRATEGY_DOC,
+      "Mappings",
+      1,
+      ConfigDef.Width.MEDIUM,
+      CassandraConfigConstants.DEFAULT_VALUE_SERVE_STRATEGY_DISPLAY)
 }
 
 case class CassandraConfigSink(props: util.Map[String, String])

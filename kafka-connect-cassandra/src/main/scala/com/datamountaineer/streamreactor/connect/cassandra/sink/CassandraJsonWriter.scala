@@ -20,7 +20,7 @@ import java.util.concurrent.Executors
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSinkSetting
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraSinkSetting, DefaultValueServeStrategy}
 import com.datamountaineer.streamreactor.connect.cassandra.utils.{CassandraUtils, KeyUtils}
 import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
 import com.datamountaineer.streamreactor.connect.concurrent.FutureAwaitWithFailFastFn
@@ -102,11 +102,15 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
     **/
   private def getPreparedStatement(table: String, ttl: Long): Option[PreparedStatement] = {
     val t: Try[PreparedStatement] = Try {
-      val statement = if (ttl.equals(0)) {
-        session.prepare(s"INSERT INTO ${session.getLoggedKeyspace}.$table JSON ?")
-      } else {
-        session.prepare(s"INSERT INTO ${session.getLoggedKeyspace}.$table JSON ? USING TTL $ttl")
-      }
+      val sb = StringBuilder.newBuilder
+      sb.append(s"INSERT INTO ${session.getLoggedKeyspace}.$table JSON ?")
+
+      if (settings.defaultValueStrategy.getOrElse(DefaultValueServeStrategy.NULL) == DefaultValueServeStrategy.UNSET)
+        sb.append(" DEFAULT UNSET")
+      if (ttl > 0L)
+        sb.append(s" USING TTL $ttl")
+
+      val statement = session.prepare(sb.mkString)
       settings.consistencyLevel.foreach(statement.setConsistencyLevel)
       statement
     }
