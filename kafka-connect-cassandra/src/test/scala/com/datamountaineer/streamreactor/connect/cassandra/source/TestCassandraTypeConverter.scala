@@ -5,7 +5,7 @@ import java.nio.ByteBuffer
 import java.util.UUID
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource, CassandraSettings}
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource, CassandraSourceSettings}
 import com.datastax.driver.core.{CodecRegistry, _}
 import org.apache.kafka.connect.data.{Decimal, Schema, Struct, Timestamp}
 import org.apache.kafka.connect.errors.DataException
@@ -243,8 +243,8 @@ class TestCassandraTypeConverter extends WordSpec
       CassandraConfigConstants.POLL_INTERVAL -> "1000",
       CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON -> mappingCollectionToJson.toString
     )
-    val taskConfig = CassandraConfigSource(config);
-    CassandraSettings.configureSource(taskConfig).toList.head
+    val taskConfig = CassandraConfigSource(config)
+    CassandraSourceSettings.configureSource(taskConfig).toList.head
   }
 
 }

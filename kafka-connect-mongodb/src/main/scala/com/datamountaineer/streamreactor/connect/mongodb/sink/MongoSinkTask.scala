@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.mongodb.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants}
+import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoSinkConfig, MongoConfigConstants}
 import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -48,7 +48,7 @@ class MongoSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    val taskConfig = Try(MongoConfig(props)) match {
+    val taskConfig = Try(MongoSinkConfig(props)) match {
       case Failure(f) => throw new ConnectException("Couldn't start Mongo Sink due to configuration error.", f)
       case Success(s) => s
     }

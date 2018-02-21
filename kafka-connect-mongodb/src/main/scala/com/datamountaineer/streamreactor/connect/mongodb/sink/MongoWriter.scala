@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.mongodb.sink
 
 import com.datamountaineer.kcql.WriteModeEnum
 import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
-import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants, MongoSettings}
+import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoSinkConfig, MongoConfigConstants, MongoSettings}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.mongodb._
 import com.mongodb.client.model._
@@ -116,7 +116,7 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient) extends Str
 object MongoWriter {
   private val UpdateOptions = new UpdateOptions().upsert(true)
 
-  def apply(connectorConfig: MongoConfig, context: SinkTaskContext): MongoWriter = {
+  def apply(connectorConfig: MongoSinkConfig, context: SinkTaskContext): MongoWriter = {
 
     val settings = MongoSettings(connectorConfig)
     //if error policy is retry set retry interval

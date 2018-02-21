@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbSinkConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
 import com.datamountaineer.streamreactor.connect.config.Helpers
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.microsoft.azure.documentdb._
@@ -83,7 +83,7 @@ class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => D
     * @param props A map of properties for the connector and worker
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    val config = Try(DocumentDbConfig(props)) match {
+    val config = Try(DocumentDbSinkConfig(props)) match {
       case Failure(f) => throw new ConnectException(s"Couldn't start Azure DocumentDb sink due to configuration error: ${f.getMessage}", f)
       case Success(c) => c
     }
@@ -112,7 +112,7 @@ class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => D
 
   override def version(): String = manifest.version()
 
-  override def config(): ConfigDef = DocumentDbConfig.config
+  override def config(): ConfigDef = DocumentDbSinkConfig.config
 
   private def readOrCreateCollections(database: Database, settings: DocumentDbSinkSettings)(implicit documentClient: DocumentClient) = {
     //check all collection exists and if not create them

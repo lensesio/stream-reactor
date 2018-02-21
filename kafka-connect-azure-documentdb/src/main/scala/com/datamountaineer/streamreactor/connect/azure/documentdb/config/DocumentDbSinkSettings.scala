@@ -44,7 +44,7 @@ case class DocumentDbSinkSettings(endpoint: String,
 
 object DocumentDbSinkSettings extends StrictLogging {
 
-  def apply(config: DocumentDbConfig): DocumentDbSinkSettings = {
+  def apply(config: DocumentDbSinkConfig): DocumentDbSinkSettings = {
     val endpoint = config.getString(DocumentDbConfigConstants.CONNECTION_CONFIG)
     require(endpoint.nonEmpty, s"Invalid endpoint provided.${DocumentDbConfigConstants.CONNECTION_CONFIG_DOC}")
 

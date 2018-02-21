@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource, CassandraSettings, CassandraSourceSetting}
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource, CassandraSourceSettings, CassandraSourceSetting}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{Matchers, WordSpec}
@@ -77,7 +77,7 @@ class TestCqlGenerator extends WordSpec
         CassandraConfigConstants.BATCH_SIZE -> "800").asJava
     }
     val configSource = new CassandraConfigSource(configMap)
-    CassandraSettings.configureSource(configSource).head
+    CassandraSourceSettings.configureSource(configSource).head
   }
 
 }

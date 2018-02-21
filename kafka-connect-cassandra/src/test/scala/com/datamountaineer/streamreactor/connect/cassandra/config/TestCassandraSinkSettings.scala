@@ -54,7 +54,7 @@ class TestCassandraSinkSettings extends WordSpec with Matchers with MockitoSugar
     //mock the assignment to simulate getting a list of assigned topics
     when(context.assignment()).thenReturn(getAssignment)
     val taskConfig = CassandraConfigSink(getCassandraConfigSinkPropsRetry)
-    val settings = CassandraSettings.configureSink(taskConfig)
+    val settings = CassandraSinkSettings.configureSink(taskConfig)
 
     val parsedConf: List[Kcql] = settings.kcqls.toList
     parsedConf.size shouldBe 2
@@ -73,28 +73,28 @@ class TestCassandraSinkSettings extends WordSpec with Matchers with MockitoSugar
     val map = new util.HashMap[String, String](getCassandraConfigSinkPropsRetry)
     map.put(CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG, "INvalid")
     intercept[ConfigException] {
-      CassandraSettings.configureSink(CassandraConfigSink(map))
+      CassandraSinkSettings.configureSink(CassandraConfigSink(map))
     }
   }
 
   "CassandraSettings should allow setting the consistency level as Quorum for a sink" in {
     val map = new util.HashMap[String, String](getCassandraConfigSinkPropsRetry)
     map.put(CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG, ConsistencyLevel.QUORUM.name())
-    val settings = CassandraSettings.configureSink(CassandraConfigSink(map))
+    val settings = CassandraSinkSettings.configureSink(CassandraConfigSink(map))
     settings.consistencyLevel shouldBe Some(ConsistencyLevel.QUORUM)
   }
 
   "CassandraSettings should allow setting the sink thread pool to 64" in {
     val map = new util.HashMap[String, String](getCassandraConfigSinkPropsRetry)
     map.put(CassandraConfigConstants.THREAD_POOL_CONFIG, "64")
-    val settings = CassandraSettings.configureSink(CassandraConfigSink(map))
+    val settings = CassandraSinkSettings.configureSink(CassandraConfigSink(map))
     settings.threadPoolSize shouldBe 64
   }
 
   "CassandraSettings should handle setting the sink thread pool to 0 and return a non zero value" in {
     val map = new util.HashMap[String, String](getCassandraConfigSinkPropsRetry)
     map.put(CassandraConfigConstants.THREAD_POOL_CONFIG, "0")
-    val settings = CassandraSettings.configureSink(CassandraConfigSink(map))
+    val settings = CassandraSinkSettings.configureSink(CassandraConfigSink(map))
     settings.threadPoolSize shouldBe 4 * Runtime.getRuntime.availableProcessors()
   }
 
@@ -113,7 +113,7 @@ class TestCassandraSinkSettings extends WordSpec with Matchers with MockitoSugar
     val map = new util.HashMap[String, String](props)
     map.put(CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG, "InvaliD")
     intercept[ConfigException] {
-      CassandraSettings.configureSource(CassandraConfigSource(map))
+      CassandraSourceSettings.configureSource(CassandraConfigSource(map))
     }
   }
 
@@ -131,7 +131,7 @@ class TestCassandraSinkSettings extends WordSpec with Matchers with MockitoSugar
 
     val map = new util.HashMap[String, String](props)
     map.put(CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG, ConsistencyLevel.QUORUM.name())
-    val settingsSet = CassandraSettings.configureSource(CassandraConfigSource(map))
+    val settingsSet = CassandraSourceSettings.configureSource(CassandraConfigSource(map))
     settingsSet.head.consistencyLevel shouldBe Some(ConsistencyLevel.QUORUM)
   }
 }

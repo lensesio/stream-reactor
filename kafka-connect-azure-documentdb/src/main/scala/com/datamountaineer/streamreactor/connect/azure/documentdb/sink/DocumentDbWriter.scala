@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
 import com.datamountaineer.kcql.WriteModeEnum
 import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbSinkConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
 import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.microsoft.azure.documentdb._
@@ -102,7 +102,7 @@ class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: Documen
 
 //Factory to build
 object DocumentDbWriter extends StrictLogging {
-  def apply(connectorConfig: DocumentDbConfig, context: SinkTaskContext): DocumentDbWriter = {
+  def apply(connectorConfig: DocumentDbSinkConfig, context: SinkTaskContext): DocumentDbWriter = {
 
     implicit val settings = DocumentDbSinkSettings(connectorConfig)
     //if error policy is retry set retry interval

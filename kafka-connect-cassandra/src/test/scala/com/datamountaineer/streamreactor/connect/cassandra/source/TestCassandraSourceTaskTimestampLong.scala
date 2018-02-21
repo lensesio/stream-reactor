@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 import java.util.concurrent.LinkedBlockingQueue
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import com.datamountaineer.streamreactor.connect.cassandra.config.{ CassandraConfigSource, CassandraSettings }
+import com.datamountaineer.streamreactor.connect.cassandra.config.{ CassandraConfigSource, CassandraSourceSettings }
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.fasterxml.jackson.databind.JsonNode
@@ -60,7 +60,7 @@ class TestCassandraSourceTaskTimestampLong extends WordSpec
 
     // queue for reader to put records in
     val queue = new LinkedBlockingQueue[SourceRecord](100)
-    val setting = CassandraSettings.configureSource(taskConfig).head
+    val setting = CassandraSourceSettings.configureSource(taskConfig).head
 
     val reader = CassandraTableReader(name = "test", session = session, setting = setting, context = taskContext, queue = queue)
 
