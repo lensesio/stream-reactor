@@ -70,6 +70,7 @@ A collection of components to build a real time ingestion pipeline.
 *   Moved MongoDB batch size to KCQL. ``connect.mongodb.batch.size`` is deprecated
 *   Added ``connect.mapping.collection.to.json`` to treat maps, list, sets as json when inserting into Cassandra
 *   Added support for Elastic Pipelines thanks @caiooliveiraeti!
+*   Moved ReThinkDB batch size to KCQL ``connect.rethink.batch.size`` is deprecated
 
 **1.0.0**
 
