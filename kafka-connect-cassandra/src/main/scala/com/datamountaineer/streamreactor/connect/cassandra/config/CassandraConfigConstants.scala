@@ -192,4 +192,14 @@ object CassandraConfigConstants {
   val MAPPING_COLLECTION_TO_JSON = s"$CONNECTOR_PREFIX.mapping.collection.to.json"
   val MAPPING_COLLECTION_TO_JSON_DOC = "Mapping columns with type Map, List and Set like json"
   val MAPPING_COLLECTION_TO_JSON_DEFAULT = true
+
+  val DEFAULT_VALUE_SERVE_STRATEGY_PROPERTY = s"$CONNECTOR_PREFIX.default.value"
+  val DEFAULT_VALUE_SERVE_STRATEGY_DOC =
+    """
+      |By default a column omitted from the ``JSON`` map will be set to ``NULL``.
+      |Alternatively, if set ``UNSET``, pre-existing value  will be preserved.
+    """.stripMargin
+
+  val DEFAULT_VALUE_SERVE_STRATEGY_DEFAULT = ""
+  val DEFAULT_VALUE_SERVE_STRATEGY_DISPLAY = "Default value serve strategy"
 }
