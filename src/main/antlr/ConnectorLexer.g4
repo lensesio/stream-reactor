@@ -189,6 +189,11 @@ WITHDELAY
     : 'WITHDELAY'|'withdelay'
     ;
 
+
+WITHREGEX
+    : 'WITHREGEX'|'withregex'
+    ;
+
 TTL
    : 'TTL'|'ttl'
    ;
@@ -232,8 +237,10 @@ TOPICNAME
    ;
 
 KEYDELIMVALUE
-   : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' | '-' | '+' | '/' |'{'|'}'|':'|'|'|'#'|'@'|'`' )+ | ESCAPED_TOPIC
+   : ( 'a' .. 'z' | 'A' .. 'Z' | '_' | '0' .. '9' | '-' | '+' | '/' |'{'|'}'|':'|'|'|'#'|'@'|'`'|'^'|'['|']'|'*'|'?'|'$' )+ | ESCAPED_TOPIC
    ;
+
+
 
 fragment ESCAPED_TOPIC
     : ( '`' (~'`')+ '`')
@@ -247,3 +254,4 @@ NEWLINE
 WS
    : ( ' ' | '\t' | '\n' | '\r' )+ -> skip
    ;
+
