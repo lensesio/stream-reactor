@@ -28,7 +28,6 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
@@ -42,6 +41,7 @@ import scala.util.{Failure, Success, Try}
 class CassandraSourceTask extends SourceTask with StrictLogging {
   private var queues = mutable.Map.empty[String, LinkedBlockingQueue[SourceRecord]]
   private val readers = mutable.Map.empty[String, CassandraTableReader]
+  private val stopControl = new Object()
   private var taskConfig: Option[CassandraConfigSource] = None
   private var connection: Option[CassandraConnection] = None
   private var settings: Seq[CassandraSourceSetting] = _
@@ -107,20 +107,27 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     * @return A util.List of SourceRecords.
     */
   override def poll(): util.List[SourceRecord] = {
+    settings
+      .map(s => s.kcql)
+      .flatten(r => process(r.getSource))
+      .toList
+  }
+
+  /**
+    * Waiting Poll Interval
+    *
+    */
+  private def waitPollInterval = {
     val now = System.currentTimeMillis()
     if (tracker + pollInterval <= now) {
       tracker = now
-      settings
-        .map(s => s.kcql)
-        .flatten(r => process(r.getSource))
-        .toList
     } else {
       logger.debug(s"Waiting for poll interval to pass")
-      Thread.sleep(pollInterval)
-      List[SourceRecord]()
+      stopControl.synchronized{
+        stopControl.wait(pollInterval)
+      }
     }
   }
-
 
   /**
     * Process the table
@@ -134,7 +141,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
   def process(tableName: String): List[SourceRecord] = {
     val reader = readers(tableName)
     val queue = queues(tableName)
-    
+
     logger.info(s"Connector $name start of poll queue size for $tableName is: ${queue.size}")
 
     // minimized the changes but still fix #300
@@ -143,16 +150,17 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     // than we are putting data into it
 
     if (!reader.isQuerying) {
-      // start another query 
+      waitPollInterval
+      // start another query
       reader.read
     } else {
-      // if we are in the middle of working 
+      // if we are in the middle of working
       // on data from the last polling cycle
       // we will not attempt to get more data
       logger.info(s"Connector $name reader for table $tableName is still querying...")
     }
-    
-    // let's make some of the data on the queue 
+
+    // let's make some of the data on the queue
     // available for publishing to Kafka
     val records = if (!queue.isEmpty) {
       logger.info(s"Connector $name attempting to drain $batchSize items from the queue for table $tableName")
@@ -160,9 +168,9 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     } else {
       List[SourceRecord]()
     }
-    
+
     logger.info(s"Connector $name end of poll queue size for $tableName is: ${queue.size}")
-    
+
     records
   }
 
@@ -171,6 +179,9 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     */
   override def stop(): Unit = {
     logger.info(s"Stopping Cassandra source $name.")
+    stopControl.synchronized {
+      stopControl.notifyAll
+    }
     readers.foreach({ case (_, v) => v.close() })
     val cluster = connection.get.session.getCluster
     logger.info(s"Shutting down Cassandra driver connections for $name.")

@@ -336,7 +336,12 @@ class CassandraTableReader(private val name: String,
     }
 
     // add source record to queue
-    while (!queue.offer(record, 1, TimeUnit.SECONDS)) {
+    var shouldStop = false
+    while (!queue.offer(record, 1, TimeUnit.SECONDS) & !shouldStop) {
+      shouldStop = stop.get()
+    }
+    if(shouldStop){
+      throw new ConnectException(s"Connector $name stopped for table $keySpace.$table.")
     }
   }
 
