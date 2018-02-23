@@ -66,6 +66,7 @@ public class Kcql {
   private CompressionType compression;
   private String subscription;
   private String partitioner;
+  private String withRegex;
 
   private int delay;
 
@@ -303,6 +304,11 @@ public class Kcql {
 
   public String getPipeline() {
     return pipeline;
+  }
+
+  public String getWithRegex(){return  withRegex;}
+  private void setWithRegex(String withRegex) {
+    this.withRegex = withRegex;
   }
 
   public static Kcql parse(final String syntax) {
@@ -732,6 +738,11 @@ public class Kcql {
       @Override
       public void exitPipeline_value(ConnectorParser.Pipeline_valueContext ctx) {
         kcql.pipeline = unescape(ctx.getText());
+      }
+
+      @Override
+      public void exitWith_regex_value(ConnectorParser.With_regex_valueContext ctx) {
+        kcql.withRegex = unescape(ctx.getText());
       }
     });
 

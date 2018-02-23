@@ -970,4 +970,12 @@ public class KcqlTest {
     assertEquals("shared", kcql.getWithPartitioner());
   }
 
+  @Test
+  public void handleWithRegex() {
+    String topic = "/TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITHREGEX=`/^#?([a-f0-9]{6}|[a-f0-9]{3})$/`", table, topic);
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals("/^#?([a-f0-9]{6}|[a-f0-9]{3})$/", kcql.getWithRegex());
+  }
 }
