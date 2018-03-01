@@ -88,6 +88,26 @@ object ElasticConfig {
       ConfigDef.Width.MEDIUM,
       ElasticConfigConstants.BATCH_SIZE_DISPLAY)
     .define(
+      ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME,
+      Type.STRING,
+      ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
+      Importance.LOW,
+      ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DOC,
+      "Connection",
+      7,
+      ConfigDef.Width.MEDIUM,
+      ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME)
+    .define(
+      ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD,
+      Type.STRING,
+      ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD_DEFAULT,
+      Importance.LOW,
+      ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD_DOC,
+      "Connection",
+      8,
+      ConfigDef.Width.MEDIUM,
+      ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD)
+    .define(
       ElasticConfigConstants.ERROR_POLICY_CONFIG,
       Type.STRING,
       ElasticConfigConstants.ERROR_POLICY_DEFAULT,

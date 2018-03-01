@@ -25,7 +25,7 @@ import org.elasticsearch.plugins.Plugin
 import scala.util.Try
 
 /**
-  * Created by andrew@datamountaineer.com on 13/05/16. 
+  * Created by andrew@datamountaineer.com on 13/05/16.
   * stream-reactor-maven
   */
 case class ElasticSettings(kcqls: Seq[Kcql],
@@ -36,7 +36,9 @@ case class ElasticSettings(kcqls: Seq[Kcql],
                            xPackPlugins: Seq[Class[_ <: Plugin]] = Seq.empty,
                            clientType: ClientType = ClientType.TCP,
                            batchSize: Int = ElasticConfigConstants.BATCH_SIZE_DEFAULT,
-                           pkJoinerSeparator: String = ElasticConfigConstants.PK_JOINER_SEPARATOR_DEFAULT
+                           pkJoinerSeparator: String = ElasticConfigConstants.PK_JOINER_SEPARATOR_DEFAULT,
+                           httpBasicAuthUsername: String = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT,
+                           httpBasicAuthPassword: String = ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT
                           )
 
 
@@ -49,6 +51,8 @@ object ElasticSettings {
     val errorPolicy = config.getErrorPolicy
     val retries = config.getNumberRetries
     val clientType = ClientType.withName(config.getString(ElasticConfigConstants.CLIENT_TYPE_CONFIG).toUpperCase)
+    val httpBasicAuthUsername = config.getString(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME)
+    val httpBasicAuthPassword = config.getString(ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD)
     val rawXPack = Option(config.getPassword(ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS))
 
     val xPackSettings = rawXPack
@@ -92,7 +96,9 @@ object ElasticSettings {
       xPackPlugins,
       clientType,
       batchSize,
-      pkJoinerSeparator
+      pkJoinerSeparator,
+      httpBasicAuthUsername,
+      httpBasicAuthPassword
     )
   }
 }
