@@ -32,6 +32,8 @@ import scala.collection.mutable
 
 trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
   val ELASTIC_SEARCH_HOSTNAMES = "localhost:9300"
+  val BASIC_AUTH_USERNAME = "usertest"
+  val BASIC_AUTH_PASSWORD = "userpassword"
   val TOPIC = "sink_test"
   val INDEX = "index_andrew"
   val INDEX_WITH_DATE = s"${INDEX}_${LocalDateTime.now.format(ofPattern("YYYY-MM-dd"))}"
@@ -203,13 +205,15 @@ trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
     ).asJava
   }
 
-  def getElasticSinkConfigPropsHTTPClient(autoCreate: Boolean) = {
+  def getElasticSinkConfigPropsHTTPClient(autoCreate: Boolean, auth: Boolean = false) = {
     Map(
       ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
       ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
       ElasticConfigConstants.KCQL -> QUERY,
-      ElasticConfigConstants.CLIENT_TYPE_CONFIG -> ClientType.HTTP.toString
+      ElasticConfigConstants.CLIENT_TYPE_CONFIG -> ClientType.HTTP.toString,
+      ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME -> (if (auth) BASIC_AUTH_USERNAME else ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT),
+      ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD -> (if (auth) BASIC_AUTH_PASSWORD else ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD_DEFAULT)
     ).asJava
   }
 }

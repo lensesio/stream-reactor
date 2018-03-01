@@ -19,9 +19,9 @@ package com.datamountaineer.streamreactor.connect.elastic6.config
 import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
 
 object ElasticConfigConstants {
-  
+
   val CONNECTOR_PREFIX = "connect.elastic"
-  
+
   val URL = s"${CONNECTOR_PREFIX}.${URL_SUFFIX}"
   val URL_DOC = "Url including port for Elastic Search cluster node."
   val URL_DEFAULT = "localhost:9300"
@@ -53,6 +53,12 @@ object ElasticConfigConstants {
   val CLIENT_TYPE_CONFIG = s"$CONNECTOR_PREFIX.use.http"
   val CLIENT_TYPE_CONFIG_DOC = "TCP or HTTP. Elastic4s client type to use, http or tcp, default is tcp."
   val CLIENT_TYPE_CONFIG_DEFAULT = "tcp"
+  val CLIENT_HTTP_BASIC_AUTH_USERNAME = s"$CONNECTOR_PREFIX.use.http.username"
+  val CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT = null
+  val CLIENT_HTTP_BASIC_AUTH_USERNAME_DOC = "Username if HTTP Basic Auth required default is null."
+  val CLIENT_HTTP_BASIC_AUTH_PASSWORD = s"$CONNECTOR_PREFIX.use.http.password"
+  val CLIENT_HTTP_BASIC_AUTH_PASSWORD_DEFAULT = null
+  val CLIENT_HTTP_BASIC_AUTH_PASSWORD_DOC = "Password if HTTP Basic Auth required default is null."
 
   val NBR_OF_RETRIES_CONFIG = s"${CONNECTOR_PREFIX}.${MAX_RETRIES_PROP_SUFFIX}"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
