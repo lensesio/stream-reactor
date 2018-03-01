@@ -197,6 +197,14 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar {
     settings.clientType.toString shouldBe ClientType.HTTP.toString
   }
 
+  "A writer should be using HTTP is set with HTTP Basic Auth Credentials" in {
+    //get config
+    val config = new ElasticConfig(getElasticSinkConfigPropsHTTPClient(autoCreate = false, auth = true))
+    val settings = ElasticSettings(config)
+    settings.httpBasicAuthUsername shouldBe BASIC_AUTH_USERNAME
+    settings.httpBasicAuthPassword shouldBe BASIC_AUTH_PASSWORD
+  }
+
   "A ElasticWriter should insert into Elastic Search a number of records with the HTTP Client" in {
     val TMP = File(System.getProperty("java.io.tmpdir") + "/elastic-" + UUID.randomUUID())
     TMP.createDirectory()
