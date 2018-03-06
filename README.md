@@ -71,6 +71,7 @@ A collection of components to build a real time ingestion pipeline.
 *   Added ``connect.mapping.collection.to.json`` to treat maps, list, sets as json when inserting into Cassandra
 *   Added support for Elastic Pipelines thanks @caiooliveiraeti!
 *   Moved ReThinkDB batch size to KCQL ``connect.rethink.batch.size`` is deprecated
+*   MQTT source allows full control of matching the topic ``INSERT INTO targetTopic SELECT * FROM mqttTopic ... WITHREGEX=`$THE_REGEX` ``
 
 **1.0.0**
 

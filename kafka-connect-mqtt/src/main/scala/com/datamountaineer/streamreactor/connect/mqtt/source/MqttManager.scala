@@ -31,14 +31,16 @@ import scala.collection.JavaConversions._
 class MqttManager(connectionFn: (MqttCallback) => MqttClient,
                   convertersMap: Map[String, Converter],
                   qualityOfService: Int,
-                  kcql: Array[Kcql],
+                  kcqlArray: Array[Kcql],
                   throwOnErrors: Boolean,
                   pollingTimeout: Int) extends AutoCloseable with StrictLogging with MqttCallback {
   private val queue = new LinkedBlockingQueue[SourceRecord]() // This queue is used in messageArrived() callback of MqttClient,
   // hence instantiation should be prior to MqttClient.
   private val client: MqttClient = connectionFn(this)
-  private val sourceToTopicMap = kcql.map(c => c.getSource -> c).toMap
-  require(kcql.nonEmpty, s"Invalid $kcql parameter. At least one statement needs to be provided")
+  private val sourceToTopicMap = kcqlArray.map(c => c.getSource -> c).toMap
+  require(kcqlArray.nonEmpty, s"Invalid $kcqlArray parameter. At least one statement needs to be provided")
+
+  private val regexMap = kcqlArray.filter(_.getWithRegex != null).map(k => k -> k.getWithRegex.r).toMap
 
   client.subscribe(sourceToTopicMap.keySet.toArray, Array.fill(sourceToTopicMap.keySet.size)(qualityOfService))
 
@@ -49,19 +51,27 @@ class MqttManager(connectionFn: (MqttCallback) => MqttClient,
 
   override def deliveryComplete(token: IMqttDeliveryToken): Unit = {}
 
-  def compareTopic(actualTopic: String, subscribedTopic: String): Boolean = {
+  private def compareTopic(actualTopic: String, subscribedTopic: String): Boolean = {
     actualTopic.matches(
       subscribedTopic.replaceAll("\\+", "[^/]+")
         .replaceAll("#", ".+")
-        .replace("$",".+"))
+        .replace("$", ".+"))
   }
+
+  private def checkTopic(topic: String, kcql: Kcql): Boolean = {
+    regexMap.get(kcql).map(r => r.pattern.matcher(topic).matches())
+      .getOrElse(compareTopic(topic, kcql.getSource))
+  }
+
 
   override def messageArrived(topic: String, message: MqttMessage): Unit = {
     val matched = sourceToTopicMap
-      .filter(t => compareTopic(topic, t._1))
+      .filter(t => checkTopic(topic, t._2))
       .map(t => t._2.getSource)
 
-    val wildcard = matched.head
+    val wildcard = matched.headOption.getOrElse{
+      throw new ConfigException(s"Topic '$topic' can not be matched with a source defined by KCQL.")
+    }
     val kcql = sourceToTopicMap
       .getOrElse(wildcard, throw new ConfigException(s"Topic $topic is not configured. Available topics are:${sourceToTopicMap.keySet.mkString(",")}"))
     val kafkaTopic = kcql.getTarget
