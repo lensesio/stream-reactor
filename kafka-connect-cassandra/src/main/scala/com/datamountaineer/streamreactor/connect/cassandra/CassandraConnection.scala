@@ -24,6 +24,8 @@ import com.datastax.driver.core.{Cluster, JdkSSLOptions, QueryOptions, Session}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.AbstractConfig
 
+import scala.io.Source
+
 /**
   * Set up a Casssandra connection
   **/
@@ -74,7 +76,15 @@ object CassandraConnection extends StrictLogging {
     **/
   private def addAuthMode(connectorConfig: AbstractConfig, builder: Builder): Builder = {
     val username = connectorConfig.getString(CassandraConfigConstants.USERNAME)
-    val password = connectorConfig.getPassword(CassandraConfigConstants.PASSWD).value
+
+    val password = {
+      if (connectorConfig.originals().containsKey(CassandraConfigConstants.PASSWD_FILE)) {
+        val passwordFile = connectorConfig.getString(CassandraConfigConstants.PASSWD_FILE)
+        Source.fromFile(passwordFile).getLines.mkString
+      }
+      else
+        connectorConfig.getPassword(CassandraConfigConstants.PASSWD).value
+    }
 
     if (username.length > 0 && password.length > 0) {
       builder.withCredentials(username.trim, password.toString.trim)

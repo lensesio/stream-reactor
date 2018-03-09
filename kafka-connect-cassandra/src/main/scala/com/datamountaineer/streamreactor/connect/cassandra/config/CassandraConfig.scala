@@ -169,6 +169,15 @@ case class CassandraConfig() {
       ConfigDef.Width.MEDIUM,
       CassandraConfigConstants.CONSISTENCY_LEVEL_DISPLAY)
 
+    .define(CassandraConfigConstants.PASSWD_FILE,
+      Type.STRING, "",
+      Importance.LOW,
+      CassandraConfigConstants.PASSWD_FILE_DOC,
+      "Connection",
+      15,
+      ConfigDef.Width.LONG,
+      CassandraConfigConstants.PASSWD_FILE)
+
     .define(CassandraConfigConstants.ERROR_POLICY,
       Type.STRING,
       CassandraConfigConstants.ERROR_POLICY_DEFAULT,

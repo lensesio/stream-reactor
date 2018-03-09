@@ -56,6 +56,9 @@ object CassandraConfigConstants {
   val USERNAME_DOC = "Username to connect to Cassandra with."
   val USERNAME_DEFAULT = "cassandra.cassandra"
 
+  val PASSWD_FILE = s"$CONNECTOR_PREFIX.$PASSWORD_SUFFIX.file"
+  val PASSWD_FILE_DOC = "File containing the password for the username to connect to Cassandra with."
+
   val PASSWD = s"$CONNECTOR_PREFIX.$PASSWORD_SUFFIX"
   val PASSWD_DOC = "Password for the username to connect to Cassandra with."
   val PASSWD_DEFAULT = "cassandra"
