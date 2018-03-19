@@ -747,6 +747,18 @@ public class KcqlTest {
   }
 
   @Test
+  public void handleWithKeyEscaped() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = "INSERT INTO %s SELECT @col1, col2,col3 FROM %s WITHKEY(`col1`, `col2`)";
+    Kcql kcql = Kcql.parse(syntax);
+    List<String> withKeys = kcql.getWithKeys();
+    assertEquals("col1", withKeys.get(0));
+    assertEquals("col2", withKeys.get(1));
+    assertEquals(2, withKeys.size());
+  }
+
+  @Test
   public void handleStoredAs() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
