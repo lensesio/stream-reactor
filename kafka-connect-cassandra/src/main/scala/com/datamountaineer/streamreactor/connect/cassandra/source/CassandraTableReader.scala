@@ -224,11 +224,8 @@ class CassandraTableReader(private val name: String,
           val iter = rs.iterator()
           var counter = 0
 
-          var index = 100
-          var shouldStop = stop.get()
           // process results unless told to stop
-          while (iter.hasNext & !shouldStop) {
-
+          while (iter.hasNext & !stop.get()) {
             // this is asynchronous
             if ((rs.getAvailableWithoutFetching == setting.fetchSize / 2) && !rs.isFullyFetched) rs.fetchMoreResults
 
@@ -243,20 +240,14 @@ class CassandraTableReader(private val name: String,
                 }
                 logger.debug(s"Connector $name max Offset is currently: ${maxOffset.get}")
               }
-              processRow(row)
-              counter += 1
+              if(processRow(row)) {
+                counter += 1
+              }
             } match {
               case Failure(e) =>
                 logger.error(s"Connector $name error processing row ${row.toString} for table $keySpace.$table.", e)
                 throw new ConnectException(s"Connector $name error processing row ${row.toString} for table $keySpace.$table.", e)
               case Success(_) =>
-            }
-
-            //buffer the value to avoid going to memory everytime via the volatile variable
-            index -= 1
-            if (index == 0) {
-              index = 100
-              shouldStop = stop.get()
             }
           }
           logger.info(s"Connector $name processed $counter row(-s) into $topic topic for table $table")
@@ -312,7 +303,7 @@ class CassandraTableReader(private val name: String,
     * @param row The Cassandra row to process.
     *
     */
-  private def processRow(row: Row): Unit = {
+  private def processRow(row: Row): Boolean = {
     // convert the cassandra row to a struct
     if (structColDefs == null) {
       structColDefs = cassandraTypeConverter.getStructColumns(row, ignoreList)
@@ -340,10 +331,11 @@ class CassandraTableReader(private val name: String,
     }
 
     // add source record to queue
-    var shouldStop = false
-    while (!queue.offer(record, 1, TimeUnit.SECONDS) & !shouldStop) {
-      shouldStop = stop.get()
+    var added = false
+    while (!stop.get() && !added) {
+      added = queue.offer(record, 1000, TimeUnit.MILLISECONDS)
     }
+    added
   }
 
   /**
