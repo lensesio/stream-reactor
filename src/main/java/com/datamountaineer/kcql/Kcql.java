@@ -724,7 +724,7 @@ public class Kcql {
         if (kcql.withKeys == null) {
           kcql.withKeys = new ArrayList<>();
         }
-        kcql.withKeys.add(key);
+        kcql.withKeys.add(unescape(key));
       }
 
       @Override
@@ -791,7 +791,7 @@ public class Kcql {
   }
 
   private static String unescape(String value) {
-    if (value.startsWith("`")) {
+    if (value.startsWith("`") && value.endsWith("`")) {
       return value.substring(1, value.length() - 1);
     }
     return value;
