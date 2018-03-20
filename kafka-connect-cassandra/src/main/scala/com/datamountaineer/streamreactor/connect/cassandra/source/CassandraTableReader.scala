@@ -230,24 +230,17 @@ class CassandraTableReader(private val name: String,
             if ((rs.getAvailableWithoutFetching == setting.fetchSize / 2) && !rs.isFullyFetched) rs.fetchMoreResults
 
             val row = iter.next()
-            Try {
-              // if not bulk get the maxOffset value
-              if (!bulk) {
-                maxOffset = if (isTokenBased) {
-                  getTokenMaxOffsetForRow(maxOffset, row)
-                } else {
-                  getTimebasedMaxOffsetForRow(maxOffset, row)
-                }
-                logger.debug(s"Connector $name max Offset is currently: ${maxOffset.get}")
+            // if not bulk get the maxOffset value
+            if (!bulk) {
+              maxOffset = if (isTokenBased) {
+                getTokenMaxOffsetForRow(maxOffset, row)
+              } else {
+                getTimebasedMaxOffsetForRow(maxOffset, row)
               }
-              if(processRow(row)) {
-                counter += 1
-              }
-            } match {
-              case Failure(e) =>
-                logger.error(s"Connector $name error processing row ${row.toString} for table $keySpace.$table.", e)
-                throw new ConnectException(s"Connector $name error processing row ${row.toString} for table $keySpace.$table.", e)
-              case Success(_) =>
+              logger.debug(s"Connector $name max Offset is currently: ${maxOffset.get}")
+            }
+            if (processRow(row)) {
+              counter += 1
             }
           }
           logger.info(s"Connector $name processed $counter row(-s) into $topic topic for table $table")
