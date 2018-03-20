@@ -152,7 +152,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     if (!reader.isQuerying) {
       waitPollInterval
       // start another query
-      reader.read
+      reader.read()
     } else {
       // if we are in the middle of working
       // on data from the last polling cycle

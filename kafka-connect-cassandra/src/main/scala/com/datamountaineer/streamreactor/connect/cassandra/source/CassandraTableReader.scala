@@ -114,7 +114,7 @@ class CassandraTableReader(private val name: String,
     */
   def read(): Unit = if (!stop.get() && !querying.get()) query()
 
-  private def query() = {
+  private def query(): Unit = {
     // we are going to execute the query
     querying.set(true)
 
@@ -213,33 +213,24 @@ class CassandraTableReader(private val name: String,
     *
     * @param future Cassandra Future ResultSet to iterate over.
     */
-  private def process(future: Future[ResultSet]) = {
+  private def process(future: Future[ResultSet]): Unit = {
     //get the max offset per query
     var maxOffset: Option[String] = None
     //on success start writing the row to the queue
-    future.onSuccess({
+    future.onSuccess {
       case rs: ResultSet =>
-        logger.info(s"Connector $name processing results for $keySpace.$table.")
-        val iter = rs.iterator()
-        var counter = 0
+        try {
+          logger.info(s"Connector $name processing results for $keySpace.$table.")
+          val iter = rs.iterator()
+          var counter = 0
 
-        var index = 100
-        var shouldStop = stop.get()
-        // process results unless told to stop
-        while (iter.hasNext & !shouldStop) {
-          //buffer the value to avoid going to memory everytime via the volatile variable
-          index -= 1
-          if (index == 0) {
-            index = 100
-            shouldStop = stop.get()
-          }
+          // process results unless told to stop
+          while (iter.hasNext & !stop.get()) {
+            // this is asynchronous
+            if ((rs.getAvailableWithoutFetching == setting.fetchSize / 2) && !rs.isFullyFetched) rs.fetchMoreResults
 
-          // this is asynchronous
-          if ((rs.getAvailableWithoutFetching == setting.fetchSize / 2) && !rs.isFullyFetched) rs.fetchMoreResults
-
-          val row = iter.next()
-          Try {
-            // if not bulk get the maxOffset value 
+            val row = iter.next()
+            // if not bulk get the maxOffset value
             if (!bulk) {
               maxOffset = if (isTokenBased) {
                 getTokenMaxOffsetForRow(maxOffset, row)
@@ -248,30 +239,27 @@ class CassandraTableReader(private val name: String,
               }
               logger.debug(s"Connector $name max Offset is currently: ${maxOffset.get}")
             }
-            processRow(row)
-            counter += 1
-          } match {
-            case Failure(e) =>
-              logger.error(s"Connector $name error processing row ${row.toString} for table $keySpace.$table.", e)
-              reset(tableOffset)
-              throw new ConnectException(s"Connector $name error processing row ${row.toString} for table $keySpace.$table.", e)
-            case Success(_) =>
+            if (processRow(row)) {
+              counter += 1
+            }
           }
+          logger.info(s"Connector $name processed $counter row(-s) into $topic topic for table $table")
+
+          alterTimeSliceValueBasedOnRowsProcessess(counter)
+          reset(maxOffset)
         }
-        logger.info(s"Connector $name processed $counter row(-s) into $topic topic for table $table")
-
-        alterTimeSliceValueBasedOnRowsProcessess(counter)
-
-        //set as the new high watermark.
-        reset(maxOffset)
-    })
+        catch {
+          case t: Throwable =>
+            logger.error(s"Connector $name error processing table $keySpace.$table.", t)
+            reset(tableOffset)
+        }
+    }
 
     //On failure, reset and throw
     future.onFailure {
       case t: Throwable =>
         logger.warn(s"Connector $name error querying $table.", t)
         reset(tableOffset)
-        throw new ConnectException(s"Connector $name error querying $table.", t)
     }
   }
   
@@ -308,7 +296,7 @@ class CassandraTableReader(private val name: String,
     * @param row The Cassandra row to process.
     *
     */
-  private def processRow(row: Row) = {
+  private def processRow(row: Row): Boolean = {
     // convert the cassandra row to a struct
     if (structColDefs == null) {
       structColDefs = cassandraTypeConverter.getStructColumns(row, ignoreList)
@@ -336,13 +324,11 @@ class CassandraTableReader(private val name: String,
     }
 
     // add source record to queue
-    var shouldStop = false
-    while (!queue.offer(record, 1, TimeUnit.SECONDS) & !shouldStop) {
-      shouldStop = stop.get()
+    var added = false
+    while (!stop.get() && !added) {
+      added = queue.offer(record, 1000, TimeUnit.MILLISECONDS)
     }
-    if(shouldStop){
-      throw new ConnectException(s"Connector $name stopped for table $keySpace.$table.")
-    }
+    added
   }
 
   /**
