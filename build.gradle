@@ -115,14 +115,14 @@ allprojects {
         slf4jVersion = "1.7.7"
         json4sVersion = "3.5.3"
         gsonVersion = "2.6.2"
-        KCQLVersion = "2.4.0"
+        KCQLVersion = "2.6.1"
         akkaVersion = "2.4.10"
         connectCLIVersion = "1.0.6"
 
         // The following 4 need to align to compile against a particular version
         confluentVersion = '4.0.0'
         kafkaVersion = '1.0.0'
-        dataMountaineerCommonVersion = "1.0.7"
+        dataMountaineerCommonVersion = "1.0.8"
         dataMountaineerTestKitVersion = "0.7"
 
 //        // The following 4 need to align to compile against a particular version
