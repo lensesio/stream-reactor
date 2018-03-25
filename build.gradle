@@ -71,14 +71,14 @@ allprojects {
         json4sVersion = "3.5.3"
         gsonVersion = "2.6.2"
 
-        dataMountaineerKCQLVersion = "0.9.9"
-            //Uncomment line below to compile against CP3.1.1 amd HBase v1.1.2
+            //Uncomment 2 lines below to compile against CP3.1.1 and HBase v1.1.2
             //confluentVersion = '3.1.1'
-        confluentVersion = '3.0.1'
-        KCQLVersion = "2.1.3"
+            //KCQLVersion = "2.1.3"
 
+        confluentVersion = '3.0.1'
         akkaVersion = "2.4.10"
         connectCLIVersion = "1.0.3"
+        dataMountaineerKCQLVersion = "0.9.9"
 
 //        // The following 4 need to align to compile against a particular version
         confluentVersion = '3.3.0'
