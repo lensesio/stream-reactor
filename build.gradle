@@ -1,19 +1,17 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 import de.undercouch.gradle.tasks.download.Download
@@ -26,11 +24,11 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.github.maiflai:gradle-scalatest:0.14'
-        classpath 'net.researchgate:gradle-release:2.3.4'
-        classpath "org.github.ngbinh.scalastyle:gradle-scalastyle-plugin_2.11:0.8.2"
-        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
-        classpath 'de.undercouch:gradle-download-task:3.1.2'
+        classpath 'com.github.maiflai:gradle-scalatest:0.16'
+        classpath 'net.researchgate:gradle-release:2.4.0'
+        classpath "org.github.ngbinh.scalastyle:gradle-scalastyle-plugin_2.11:0.9.0"
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
+        classpath 'de.undercouch:gradle-download-task:3.2.0'
     }
 }
 
@@ -43,16 +41,18 @@ ScalaCompileOptions.metaClass.useCompileDaemon = false
 
 allprojects {
     group = 'com.datamountaineer'
-    version =  project.version
+    version = project.version
     description = "stream-reactor"
     apply plugin: 'java'
     apply plugin: 'scala'
     apply plugin: 'maven'
     apply plugin: 'com.github.maiflai.scalatest'
-    apply plugin: 'net.researchgate.release'
     apply plugin: 'scalaStyle'
     apply plugin: 'com.github.johnrengelman.shadow'
     apply plugin: 'de.undercouch.download'
+    apply plugin: 'net.researchgate.release'
+    apply plugin: 'maven-publish'
+    apply plugin: 'signing'
 
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
@@ -60,43 +60,58 @@ allprojects {
     ext {
         scalaMajorVersion = '2.11'
         scala = '2.11.7'
-        scalaCheck = '1.11.1'
-        scalaTest = '2.2.6'
+        scalaCheck = '1.13.4'
+        scalaTest = '3.0.1'
         junit = '4.11'
+        //avroVersion="1.8.1"
         scalaLoggingVersion = '2.1.2'
-        kafkaVersion = '0.10.0.1'
         mockitoVersion = '1.10.19'
-        jacksonDatabind = '2.7.0'
-        avroVersion = '1.7.7'
-        jacksonxmlVersion = '2.6.5'
+        jacksonDatabind = '2.8.5'
         slf4jVersion = "1.7.7"
-        dataMountaineerCommonVersion = "0.6.6"
-        dataMountaineerTestKitVersion = "0.2"
-        avro4sVersion = "1.6.0"
-        json4sVersion = "3.3.0"
-        kiteMiniClusterVersion = "1.1.0"
+        json4sVersion = "3.5.3"
         gsonVersion = "2.6.2"
+
         dataMountaineerKCQLVersion = "0.9.9"
-        //Uncomment line below for CP3.1.1 amd HBase v1.1.2
-        //confluentVersion = '3.1.1'
+            //Uncomment line below to compile against CP3.1.1 amd HBase v1.1.2
+            //confluentVersion = '3.1.1'
         confluentVersion = '3.0.1'
+        KCQLVersion = "2.1.3"
+
         akkaVersion = "2.4.10"
-        connectCLIVersion = "0.9"
+        connectCLIVersion = "1.0.3"
+
+//        // The following 4 need to align to compile against a particular version
+        confluentVersion = '3.3.0'
+        kafkaVersion = '0.11.0.0'
+        dataMountaineerCommonVersion = "0.8.2.7"
+        dataMountaineerTestKitVersion = "0.6"
+
+//        // Confluent 3.2
+//        confluentVersion = '3.2.2'
+//        kafkaVersion = '0.10.2.0'
+//        dataMountaineerCommonVersion = "0.8.1.1"
+//        dataMountaineerTestKitVersion = "0.5"
+
+        // For 3.1.x versions use
+        // confluentVersion = '3.1.2'
+        // kafkaVersion = '0.10.1.1'
+        // dataMountaineerCommonVersion = "0.7.0"
+        // dataMountaineerTestKitVersion = "0.4"
 
         //release
         rootRelease = "${project.rootDir}/release/"
         versionDir = "${rootRelease}/${project.description}-${project.version}-${confluentVersion}"
-        binDir = "${versionDir}/bin"
         confDir = "${versionDir}/conf"
         libsDir = "${versionDir}/libs"
+        binDir = "${versionDir}/bin"
         tarName = "${project.description}-${project.version}-${confluentVersion}.tar.gz"
-        cliUrl = "https://github.com/datamountaineer/kafka-connect-tools/releases/download/v${connectCLIVersion}/kafka-connect-cli-${connectCLIVersion}-all.jar"
+        cliUrl = "https://github.com/datamountaineer/kafka-connect-tools/releases/download/v${connectCLIVersion}/connect-cli"
         srCliUrlDarwin = "https://github.com/datamountaineer/schema-registry/releases/download/0.0.1/sr-cli-osx"
         srCliUrlLinux = "https://github.com/datamountaineer/schema-registry/releases/download/0.0.1/sr-cli-linux"
     }
 
     repositories {
-        //mavenLocal()
+        mavenLocal()
         mavenCentral()
         maven { url "http://packages.confluent.io/maven/" }
         maven { url "http://repo.typesafe.com/typesafe/releases/" }
@@ -115,7 +130,7 @@ allprojects {
 
         zip64 true
 
-        mergeServiceFiles{
+        mergeServiceFiles {
             exclude "META-INF/*.SF"
             exclude "META-INF/*.DSA"
             exclude "META-INF/*.RSA"
@@ -124,14 +139,12 @@ allprojects {
         transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer) {
             resource = 'reference.conf'
         }
-        dependencies{
-            if (project.name != "kafka-socket-streamer") {
-                exclude(dependency("org.apache.avro:.*"))
-                exclude(dependency("org.apache.kafka:.*"))
-                exclude(dependency("io.confluent:.*"))
-                exclude(dependency("org.apache.kafka:.*"))
-                exclude(dependency("org.apache.zookeeper:.*"))
-            }
+        dependencies {
+            exclude(dependency("org.apache.avro:.*"))
+            exclude(dependency("org.apache.kafka:.*"))
+            exclude(dependency("io.confluent:.*"))
+            exclude(dependency("org.apache.kafka:.*"))
+            exclude(dependency("org.apache.zookeeper:.*"))
         }
     }
 
@@ -139,17 +152,13 @@ allprojects {
         compile "org.scala-lang:scala-library:$scala"
         compile "org.scala-lang:scala-compiler:$scala"
         compile "com.typesafe.scala-logging:scala-logging-slf4j_$scalaMajorVersion:$scalaLoggingVersion"
-        compile ("com.datamountaineer:kcql:$dataMountaineerKCQLVersion") {
-            exclude group: "com.google.guava", module: "guava"
-        }
-        compile ("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion")
 
-        compile "org.apache.kafka:connect-json:$kafkaVersion"
+        compile ("org.apache.kafka:connect-json:$kafkaVersion")
         compile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
         compile "io.confluent:kafka-schema-registry:$confluentVersion"
-        compile "org.apache.avro:avro:$avroVersion"
 
-        testCompile "org.mockito:mockito-all:$mockitoVersion"
+        compile("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion")
+        testCompile "org.mockito:mockito-core:$mockitoVersion"
         testCompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
         testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
         testCompile "junit:junit:$junit"
@@ -191,9 +200,9 @@ allprojects {
 
     task compile(dependsOn: 'compileScala')
 
-    task fatJar(dependsOn: [clean, test, shadowJar])
+    task fatJar(dependsOn: [test, shadowJar])
 
-    task collectJars(type: Copy){
+    task collectJars(type: Copy) {
         into "${buildDir}/libs-dependencies"
         from configurations.runtime
     }
@@ -205,9 +214,74 @@ allprojects {
         testSource = "src/test/scala"
     }
 
-    task collectFatJar (type: Copy, dependsOn: [fatJar]){
+    task collectFatJar(type: Copy, dependsOn: [fatJar]) {
         from "${buildDir}/libs"
         into libsDir
+    }
+
+    artifacts {
+        archives javadocJar, scaladocJar, sourcesJar
+    }
+
+    signing {
+        sign configurations.archives
+    }
+
+    if (project.hasProperty('release') && project.name != "kafka-connect-deployment") {
+        // OSSRH publication
+        uploadArchives {
+            repositories {
+                mavenDeployer {
+                    // POM signature
+                    beforeDeployment { MavenDeployment deployment ->
+                        signing.signPom(deployment)
+                    }
+                    // Target repository
+                    repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                        authentication(userName: ossrhUsername, password: ossrhPassword)
+                    }
+                    pom.project {
+                        name project.name
+                        description project.description
+                        packaging 'jar'
+                        url 'https://github.com/datamountaineer/stream-reactor'
+
+                        scm {
+                            connection 'scm:git:https://github.com/datamountaineer/stream-reactor.git'
+                            developerConnection 'scm:git:git@github.com:datamountaineer/stream-reactor.git'
+                            url 'https://github.com/datamountaineer/stream-reactor.git'
+                        }
+
+                        licenses {
+                            license {
+                                name 'Apache License 2.0'
+                                url 'http://www.apache.org/licenses/LICENSE-2.0.html'
+                                distribution 'repo'
+                            }
+                        }
+
+                        developers {
+                            developer {
+                                id = 'andrewstevenson'
+                                name = 'Andrew Stevenson'
+                                email = 'andrew@landoop.com'
+                            }
+                            developer {
+                                id = 'stheppi'
+                                name = 'Stefan Bocutiu'
+                                email = 'stefan@landoop.com'
+                            }
+                            developer {
+                                id = 'antwins'
+                                name = 'Antonios Chalkiopoulos'
+                                email = 'antonios@landoop.com'
+                            }
+                        }
+                    }
+                }
+
+            }
+        }
     }
 }
 
@@ -226,22 +300,22 @@ task prepareReleaseDir(type: Copy) {
         conf.mkdirs()
         bin.mkdirs()
     }
-    from ("${project.rootDir}") {
+    from("${project.rootDir}") {
         include "README.md"
         include "LICENSE"
     }
     into versionDir
 }
 
-task downloadCli(type: Download,  dependsOn: prepareReleaseDir) {
+task downloadCli(type: Download, dependsOn: prepareReleaseDir) {
     overwrite false
     src cliUrl
-    dest libsDir
+    dest binDir
 }
 
 task downloadSchemaCli(type: Download, dependsOn: prepareReleaseDir) {
     overwrite false
-    src ([srCliUrlDarwin, srCliUrlLinux])
+    src([srCliUrlDarwin, srCliUrlLinux])
     dest binDir
 }
 
@@ -252,9 +326,9 @@ task collectConfs(type: Copy, dependsOn: prepareReleaseDir) {
 }
 
 task collectBin(type: Copy, dependsOn: prepareReleaseDir) {
-    from ("${project.rootDir}/bin") {
-        filter { it.replaceAll('@@CLI_VERSION@@', connectCLIVersion)}
-        filter { it.replaceAll('@@STREAM_REACTOR_VERSION@@', "${project.version}-${confluentVersion}")}
+    from("${project.rootDir}/bin") {
+        filter { it.replaceAll('@@CLI_VERSION@@', connectCLIVersion) }
+        filter { it.replaceAll('@@STREAM_REACTOR_VERSION@@', "${project.version}-${confluentVersion}") }
     }
     into binDir
 }

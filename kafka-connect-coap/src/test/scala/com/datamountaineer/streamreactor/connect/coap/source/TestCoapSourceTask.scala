@@ -1,48 +1,37 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.coap.source
 
-import java.net.URI
 import java.util.logging.Level
 
-import akka.actor.ActorSystem
-import akka.pattern.ask
-import akka.util.Timeout
-import com.datamountaineer.streamreactor.connect.coap.configs.{CoapSettings, CoapSourceConfig}
-import com.datamountaineer.streamreactor.connect.coap.connection.DTLSConnectionFn
 import com.datamountaineer.streamreactor.connect.coap.{Server, TestBase}
 import org.apache.kafka.connect.data.Struct
-import org.eclipse.californium.core.network.CoapEndpoint
-import org.eclipse.californium.core.network.config.NetworkConfig
 import org.eclipse.californium.core.{CaliforniumLogger, CoapClient}
-import org.eclipse.californium.scandium.{DTLSConnector, ScandiumLogger}
+import org.eclipse.californium.scandium.ScandiumLogger
 import org.scalatest.{BeforeAndAfter, WordSpec}
 
 import scala.collection.JavaConversions._
-import scala.concurrent.duration._
 
 /**
   * Created by andrew@datamountaineer.com on 28/12/2016. 
   * stream-reactor
   */
 class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase {
-  val server = new Server(SOURCE_PORT_SECURE, SOURCE_PORT_INSECURE)
+  val server = new Server(SOURCE_PORT_SECURE, SOURCE_PORT_INSECURE, KEY_PORT_INSECURE)
 
   before {
     server.start()
@@ -58,39 +47,32 @@ class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase {
   ScandiumLogger.initialize()
   ScandiumLogger.setLevel(Level.INFO)
 
-  "should create a secure reader and read a message" in {
-    implicit val system = ActorSystem()
-    implicit val timeout = Timeout(60 seconds)
-    val props = getPropsSecure
-    val config = CoapSourceConfig(props)
-    val producerConfig = CoapSourceConfig(getTestSourceProps)
-    val settings = CoapSettings(config)
-    val producerSettings = CoapSettings(producerConfig)
-    val actorProps = CoapReader(settings)
-    val reader = system.actorOf(actorProps.head._2, actorProps.head._1)
-    //start the reader
-    reader ? StartChangeFeed
-
-    //get secure client to put messages in
-    val dtlsConnector = new DTLSConnector(DTLSConnectionFn(producerSettings.head))
-    val client = new CoapClient(new URI(s"$SOURCE_URI_SECURE/$RESOURCE_SECURE"))
-    client.setEndpoint(new CoapEndpoint(dtlsConnector, NetworkConfig.getStandard()))
-    client.post("Message1", 0)
-    Thread.sleep(5000)
-
-    //ask for records
-    val records = ActorHelper.askForRecords(reader)
-    records.size() shouldBe 1
-    val record = records.head
-    val struct = record.value().asInstanceOf[Struct]
-    struct.getString("payload") shouldBe "Message1"
-    struct.getString("type") shouldBe "ACK"
-    reader ? StopChangeFeed
-  }
+//  "should create a secure task and read a message" in {
+//    val props = getPropsSecure
+//    val producerConfig = CoapSourceConfig(getTestSourceProps)
+//    val producerSettings = CoapSettings(producerConfig)
+//
+//    val task = new CoapSourceTask
+//    task.start(props)
+//
+//    //get secure client to put messages in
+//    val dtlsConnector = new DTLSConnector(DTLSConnectionFn(producerSettings.head))
+//    val client = new CoapClient(new URI(s"$SOURCE_URI_SECURE/$RESOURCE_SECURE"))
+//    client.setEndpoint(new CoapEndpoint(dtlsConnector, NetworkConfig.getStandard()))
+//    client.post("Message1", 0)
+//    Thread.sleep(5000)
+//
+////    //ask for records
+//    val records = task.poll()
+//    records.size() shouldBe 1
+//    val record = records.head
+//    val struct = record.value().asInstanceOf[Struct]
+//    struct.getString("payload") shouldBe "Message1"
+//    struct.getString("type") shouldBe "ACK"
+//    task.stop
+//  }
 
   "should create a task and receive messages" in {
-      implicit val system = ActorSystem()
-      implicit val timeout = Timeout(60 seconds)
       val props = getPropsInsecure
       val task = new CoapSourceTask()
       task.start(props)

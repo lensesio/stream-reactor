@@ -1,26 +1,24 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.coap.connection
 
 import java.net.{ConnectException, URI}
 
-import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConfig, CoapConstants, CoapSetting}
+import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSetting}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.eclipse.californium.core.network.CoapEndpoint
 import org.eclipse.californium.core.network.config.NetworkConfig
@@ -33,27 +31,14 @@ import org.eclipse.californium.scandium.DTLSConnector
   */
 abstract class CoapManager(setting: CoapSetting) extends StrictLogging {
 
-  val configUri = new URI(setting.uri)
+  val client: CoapClient = buildClient
 
-  val uri = configUri.getHost match {
-    case CoapConstants.COAP_DISCOVER_IP4 => discoverServer(CoapConstants.COAP_DISCOVER_IP4_ADDRESS, configUri)
-    case CoapConstants.COAP_DISCOVER_IP6 => discoverServer(CoapConstants.COAP_DISCOVER_IP6_ADDRESS, configUri)
-    case _ => configUri
-  }
-
-  val client = buildClient(uri)
-
-  def buildClient(uri: URI): CoapClient = {
-    val client = new CoapClient(uri)
-    //Use DTLS is key stores defined
-    if (setting.keyStoreLoc.nonEmpty) {
-      logger.info("Creating secure client")
-      client.setEndpoint(new CoapEndpoint(new DTLSConnector(DTLSConnectionFn(setting)), NetworkConfig.getStandard()))
-    }
+  def buildClient(): CoapClient = {
+    val client = DTLSConnectionFn(setting)
 
     import scala.collection.JavaConverters._
     //discover and check the requested resources
-    val resources = Option(client.discover())
+    Option(client.discover())
       .map(_.asScala)
       .getOrElse(Set.empty).map(r => {
       logger.info(s"Discovered resources ${r.getURI}")
@@ -64,36 +49,5 @@ abstract class CoapManager(setting: CoapSetting) extends StrictLogging {
     client
   }
 
-  def delete(): CoapResponse = {
-    client.delete()
-  }
-
-
-  /**
-    * Discover servers on the local network
-    * and return the first one
-    *
-    * @param address The multicast address (ip4 or ip6)
-    * @param oldUri  The original URI
-    * @return A new URI of the server
-    **/
-  def discoverServer(address: String, oldUri: URI): URI = {
-    val client = new CoapClient(s"${oldUri.getScheme}://$address:${oldUri.getPort.toString}/.well-known/core")
-    client.useNONs()
-    val response = client.get()
-
-    if (response != null) {
-      logger.info(s"Discovered Server ${response.advanced().getSource.toString}.")
-      new URI(oldUri.getScheme,
-        oldUri.getUserInfo,
-        response.advanced().getSource.getHostName,
-        response.advanced().getSourcePort,
-        oldUri.getPath,
-        oldUri.getQuery,
-        oldUri.getFragment)
-    } else {
-      logger.error(s"Unable to find any servers on local network with multicast address $address.")
-      throw new ConnectException(s"Unable to find any servers on local network with multicast address $address.")
-    }
-  }
+  def delete(): CoapResponse = client.delete()
 }

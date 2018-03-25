@@ -1,31 +1,30 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.kudu.sink
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.kudu.KuduConverter
-import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig}
+import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduConfigConstants, KuduSettings, WriteFlushMode}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
-import org.kududb.client._
+import org.apache.kudu.client.SessionConfiguration.FlushMode
+import org.apache.kudu.client._
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -38,8 +37,9 @@ case class SchemaMap(version: Int, schema: Schema)
   * stream-reactor
   */
 object KuduWriter extends StrictLogging {
-  def apply(config: KuduSinkConfig, settings: KuduSettings): KuduWriter = {
-    val kuduMaster = config.getString(KuduSinkConfig.KUDU_MASTER)
+
+  def apply(config: KuduConfig, settings: KuduSettings): KuduWriter = {
+    val kuduMaster = config.getString(KuduConfigConstants.KUDU_MASTER)
     logger.info(s"Connecting to Kudu Master at $kuduMaster")
     lazy val client = new KuduClient.KuduClientBuilder(kuduMaster).build()
     new KuduWriter(client, settings)
@@ -50,14 +50,25 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
   with ErrorHandler with ConverterUtil {
   logger.info("Initialising Kudu writer")
 
-  //pre create tables
   Try(DbHandler.createTables(setting, client)) match {
     case Success(_) =>
     case Failure(f) => logger.warn("Unable to create tables at startup! Tables will be created on delivery of the first record", f)
   }
-  //cache tables
+
+  private val MUTATION_BUFFER_SPACE = setting.mutationBufferSpace
   private lazy val kuduTablesCache = collection.mutable.Map(DbHandler.buildTableCache(setting, client).toSeq: _*)
   private lazy val session = client.newSession()
+
+  session.setFlushMode(setting.writeFlushMode match {
+    case WriteFlushMode.SYNC =>
+      FlushMode.AUTO_FLUSH_SYNC
+    case WriteFlushMode.BATCH_SYNC =>
+      FlushMode.MANUAL_FLUSH
+    case WriteFlushMode.BATCH_BACKGROUND =>
+      FlushMode.AUTO_FLUSH_BACKGROUND
+  })
+
+  session.setMutationBufferSpace(MUTATION_BUFFER_SPACE)
 
   //ignore duplicate in case of redelivery
   session.isIgnoreAllDuplicateRows
@@ -95,12 +106,13 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
     **/
   private def applyInsert(records: Set[SinkRecord], session: KuduSession) = {
     val t = Try({
-      records
+      records.iterator
         .map(r => convert(r, setting.fieldsMap(r.topic), setting.ignoreFields(r.topic)))
         .map(r => applyDDLs(r))
         .map(r => convertToKuduUpsert(r, kuduTablesCache(r.topic)))
-        .foreach(i => session.apply(i))
-      flush()
+        .map(i => session.apply(i))
+        .grouped(MUTATION_BUFFER_SPACE-1)
+        .foreach(_ => flush())
     })
     handleTry(t)
     logger.debug(s"Written ${records.size}")
@@ -114,7 +126,7 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
     **/
   private def applyDDLs(record: SinkRecord): SinkRecord = {
     if (!kuduTablesCache.contains(record.topic())) {
-      val mapping = setting.routes.filter(f => f.getSource.equals(record.topic())).head
+      val mapping = setting.kcql.filter(f => f.getSource.equals(record.topic())).head
       val table = DbHandler.createTableFromSinkRecord(mapping, record.valueSchema(), client).get
       logger.info(s"Adding table ${mapping.getTarget} to the table cache")
       kuduTablesCache.put(mapping.getSource, table)
@@ -176,18 +188,27 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
 
       //throw and let error policy handle it, don't want to throw RetriableException.
       //May want to die if error policy is Throw
-      val flush = session.flush()
-      if (flush != null) {
-        val errors = flush.asScala
-          .flatMap(r => Option(r))
-          .withFilter(_.hasRowError)
-          .map(_.getRowError.toString)
-          .mkString(";")
-
-        if (errors.nonEmpty) {
-          throw new RuntimeException(s"Failed to flush one or more changes:$errors")
-        }
+      val errors : String = session.getFlushMode match {
+        case FlushMode.AUTO_FLUSH_SYNC | FlushMode.MANUAL_FLUSH =>
+          val flush = session.flush()
+          if (flush != null) {
+            flush.asScala
+              .flatMap(r => Option(r))
+              .withFilter(_.hasRowError)
+              .map(_.getRowError.toString)
+              .mkString(";")
+          } else {
+            ""
+          }
+        case FlushMode.AUTO_FLUSH_BACKGROUND =>
+          session.getPendingErrors.getRowErrors
+            .map(_.toString)
+            .mkString(";")
       }
+      if (errors.nonEmpty) {
+        throw new RuntimeException(s"Failed to flush one or more changes:$errors")
+      }
+
     }
   }
 }

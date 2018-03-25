@@ -1,27 +1,26 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.rethink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSourceConfig}
+import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkConfigConstants
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
@@ -31,58 +30,101 @@ import scala.collection.mutable
 
 /**
   * Created by andrew@datamountaineer.com on 21/06/16. 
-  * stream-reactor-maven
+  * stream-reactor
   */
-trait TestBase  extends WordSpec with Matchers with BeforeAndAfter {
+trait TestBase extends WordSpec with Matchers with BeforeAndAfter {
   val TABLE = "rethink_table"
   val TOPIC = "rethink_topic"
-  val ROUTE = s"INSERT INTO $TABLE SELECT * FROM $TOPIC"
+  val BATCH_SIZE = 10
+  val KCQL = s"INSERT INTO $TABLE SELECT * FROM $TOPIC BATCH = $BATCH_SIZE"
   val DB = "test"
-  val ROUTE_SELECT_UPSERT = s"UPSERT INTO $TABLE SELECT string_id, int_field FROM $TOPIC AUTOCREATE"
-  val IMPORT_ROUTE = s"INSERT INTO $TOPIC SELECT * FROM $TABLE initialize "
-  val IMPORT_ROUTE_DELTA = s"INSERT INTO $TOPIC SELECT * FROM $TABLE"
-  val IMPORT_ROUTE_2: String = s"INSERT INTO $TOPIC SELECT * FROM $TABLE initialize;" +
-    s"INSERT INTO ${TOPIC}_2 SELECT * FROM ${TABLE}_2 initialize"
+  val ROUTE_SELECT_UPSERT = s"UPSERT INTO $TABLE SELECT string_id, int_field FROM $TOPIC AUTOCREATE BATCH = $BATCH_SIZE"
+  val IMPORT_ROUTE = s"INSERT INTO $TOPIC SELECT * FROM $TABLE BATCH = $BATCH_SIZE initialize"
+  val IMPORT_ROUTE_DELTA = s"INSERT INTO $TOPIC SELECT * FROM $TABLE BATCH = $BATCH_SIZE"
+  val IMPORT_ROUTE_2: String = s"INSERT INTO $TOPIC SELECT * FROM $TABLE BATCH = $BATCH_SIZE initialize;" +
+    s"INSERT INTO ${TOPIC}_2 SELECT * FROM ${TABLE}_2 initialize BATCH = $BATCH_SIZE initialize"
 
   protected val PARTITION: Int = 12
   protected val PARTITION2: Int = 13
   protected val TOPIC_PARTITION: TopicPartition = new TopicPartition(TOPIC, PARTITION)
   protected val TOPIC_PARTITION2: TopicPartition = new TopicPartition(TOPIC, PARTITION2)
-  protected val ASSIGNMENT: util.Set[TopicPartition] =  new util.HashSet[TopicPartition]
+  protected val ASSIGNMENT: util.Set[TopicPartition] = new util.HashSet[TopicPartition]
   //Set topic assignments
   ASSIGNMENT.add(TOPIC_PARTITION)
 
   def getProps: util.Map[String, String] = {
-    Map(ReThinkSinkConfig.EXPORT_ROUTE_QUERY->ROUTE,
-      ReThinkSinkConfig.RETHINK_HOST->"localhost",
-      ReThinkSinkConfig.RETHINK_DB->DB).asJava
+    Map(
+      "topics" -> TOPIC,
+      ReThinkConfigConstants.KCQL -> KCQL,
+      ReThinkConfigConstants.RETHINK_HOST -> "localhost",
+      ReThinkConfigConstants.USERNAME->"admin",
+      ReThinkConfigConstants.PASSWORD->"yourBrandNewKey",
+      ReThinkConfigConstants.RETHINK_DB -> DB).asJava
   }
 
   def getPropsSource: util.Map[String, String] = {
-    Map(ReThinkSourceConfig.IMPORT_ROUTE_QUERY->IMPORT_ROUTE,
-      ReThinkSourceConfig.RETHINK_HOST->"localhost",
-      ReThinkSourceConfig.RETHINK_DB->DB).asJava
+    Map(ReThinkConfigConstants.KCQL -> IMPORT_ROUTE,
+      ReThinkConfigConstants.RETHINK_HOST -> "localhost",
+      ReThinkConfigConstants.USERNAME->"admin",
+      ReThinkConfigConstants.PASSWORD->"yourBrandNewKey",
+      ReThinkConfigConstants.RETHINK_DB -> DB).asJava
   }
 
   def getPropsSourceDelta: util.Map[String, String] = {
-    Map(ReThinkSourceConfig.IMPORT_ROUTE_QUERY->IMPORT_ROUTE_DELTA,
-      ReThinkSourceConfig.RETHINK_HOST->"localhost",
-      ReThinkSourceConfig.RETHINK_DB->DB).asJava
+    Map(ReThinkConfigConstants.KCQL -> IMPORT_ROUTE_DELTA,
+      ReThinkConfigConstants.RETHINK_HOST -> "localhost",
+      ReThinkConfigConstants.USERNAME->"admin",
+      ReThinkConfigConstants.PASSWORD->"yourBrandNewKey",
+      ReThinkConfigConstants.RETHINK_DB -> DB).asJava
   }
 
   def getPropsSource2: util.Map[String, String] = {
-    Map(ReThinkSourceConfig.IMPORT_ROUTE_QUERY->IMPORT_ROUTE_2,
-      ReThinkSourceConfig.RETHINK_HOST->"localhost",
-      ReThinkSourceConfig.RETHINK_DB->DB).asJava
+    Map(ReThinkConfigConstants.KCQL -> IMPORT_ROUTE_2,
+      ReThinkConfigConstants.RETHINK_HOST -> "localhost",
+      ReThinkConfigConstants.USERNAME->"admin",
+      ReThinkConfigConstants.PASSWORD->"yourBrandNewKey",
+      ReThinkConfigConstants.RETHINK_DB -> DB).asJava
   }
 
   def getPropsUpsertSelectRetry: util.Map[String, String] = {
-    Map(ReThinkSinkConfig.EXPORT_ROUTE_QUERY->ROUTE_SELECT_UPSERT,
-      ReThinkSinkConfig.RETHINK_HOST->"localhost",
-      ReThinkSinkConfig.RETHINK_DB->DB,
-      ReThinkSinkConfig.ERROR_POLICY->"RETRY").asJava
+    Map(ReThinkConfigConstants.KCQL -> ROUTE_SELECT_UPSERT,
+      ReThinkConfigConstants.RETHINK_HOST -> "localhost",
+      ReThinkConfigConstants.RETHINK_DB -> DB,
+      ReThinkConfigConstants.USERNAME->"admin",
+      ReThinkConfigConstants.PASSWORD->"yourBrandNewKey",
+      ReThinkConfigConstants.ERROR_POLICY -> "RETRY").asJava
   }
 
+  def getPropsConnTestNoAuth: util.Map[String, String] = {
+    Map(ReThinkConfigConstants.KCQL -> IMPORT_ROUTE_2,
+      ReThinkConfigConstants.RETHINK_HOST -> "localhost",
+      ReThinkConfigConstants.RETHINK_DB -> DB,
+      ReThinkConfigConstants.CERT_FILE->"cert.pem",
+      ReThinkConfigConstants.USERNAME->"admin",
+      ReThinkConfigConstants.PASSWORD->"yourBrandNewKey"
+    ).asJava
+  }
+
+  def getPropsConnTestNoCert: util.Map[String, String] = {
+    Map(ReThinkConfigConstants.KCQL -> IMPORT_ROUTE_2,
+      ReThinkConfigConstants.RETHINK_HOST -> "localhost",
+      ReThinkConfigConstants.RETHINK_DB -> DB,
+      ReThinkConfigConstants.USERNAME->"admin",
+      ReThinkConfigConstants.PASSWORD->"yourBrandNewKey",
+      ReThinkConfigConstants.AUTH_KEY->"test"
+    ).asJava
+  }
+
+  def test() : util.Map[String, String] = {
+    Map(ReThinkConfigConstants.KCQL -> "INSERT INTO rethink-topic SELECT * FROM source_test",
+    ReThinkConfigConstants.RETHINK_HOST -> "localhost",
+    ReThinkConfigConstants.RETHINK_DB -> "test",
+    ReThinkConfigConstants.USERNAME->"admin",
+    ReThinkConfigConstants.PASSWORD->"yourBrandNewKey"
+    //ReThinkConfigConstants.AUTH_KEY->"yourBrandNewKey",
+    //ReThinkConfigConstants.CERT_FILE->"/Users/andrew/workspace/projects/datamountaineer/stream-reactor/cert.pem"
+    ).asJava
+  }
 
   //build a test record schema
   def createSchema: Schema = {
@@ -111,14 +153,14 @@ trait TestBase  extends WordSpec with Matchers with BeforeAndAfter {
 
 
   //generate some test records
-  def getTestRecords: List[SinkRecord]= {
+  def getTestRecords: List[SinkRecord] = {
     val schema = createSchema
     val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
 
     assignment.flatMap(a => {
       (1 to 1).map(i => {
         val record: Struct = createRecord(schema, a.topic() + "-" + a.partition() + "-" + i)
-        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i)
+        new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
     }).toList
   }

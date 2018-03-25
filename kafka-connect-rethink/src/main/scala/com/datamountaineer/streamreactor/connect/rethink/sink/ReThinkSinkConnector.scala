@@ -1,26 +1,25 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSinkSettings}
+import com.datamountaineer.streamreactor.connect.config.Helpers
+import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkConfigConstants, ReThinkSinkConfig, ReThinkSinkSettings}
 import com.rethinkdb.RethinkDB
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
@@ -60,23 +59,24 @@ class ReThinkSinkConnector extends SinkConnector with StrictLogging {
     * @param props A map of properties for the connector and worker
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(s"Starting ReThinkDB sink task")
+    logger.info(s"Starting ReThinkDB sink connector")
+    Helpers.checkInputTopics(ReThinkConfigConstants.KCQL, props.asScala.toMap)
 
     /**
       * ReThinkDb allows creation of tables with the same name at the same time
       * Moved the table creation here, it means we parse the config twice as we
       * need the target and primary keys from KCQL.
-      * */
+      **/
     val rethink = RethinkDB.r
     initializeTables(rethink, props)
     configProps = props
   }
 
-  def initializeTables(rethink: RethinkDB,props: util.Map[String, String]): Unit = {
-    val config =  ReThinkSinkConfig(props)
+  def initializeTables(rethink: RethinkDB, props: util.Map[String, String]): Unit = {
+    val config = ReThinkSinkConfig(props)
     val settings = ReThinkSinkSettings(config)
-    val rethinkHost = config.getString(ReThinkSinkConfig.RETHINK_HOST)
-    val port = config.getInt(ReThinkSinkConfig.RETHINK_PORT)
+    val rethinkHost = config.getString(ReThinkConfigConstants.RETHINK_HOST)
+    val port = config.getInt(ReThinkConfigConstants.RETHINK_PORT)
 
     val conn = rethink.connection().hostname(rethinkHost).port(port).connect()
     ReThinkHelper.checkAndCreateTables(rethink, settings, conn)

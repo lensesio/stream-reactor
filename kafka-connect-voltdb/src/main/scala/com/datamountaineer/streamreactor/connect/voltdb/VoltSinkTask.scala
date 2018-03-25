@@ -1,28 +1,26 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.voltdb
 
 import java.util
-import java.util.{Timer, TimerTask}
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.voltdb.config.{VoltSettings, VoltSinkConfig}
+import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.voltdb.config.{VoltSettings, VoltSinkConfig, VoltSinkConfigConstants}
 import com.datamountaineer.streamreactor.connect.voltdb.writers.VoltDbWriter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -30,7 +28,6 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable
 
 /**
   * <h1>VoltSinkTask</h1>
@@ -39,48 +36,25 @@ import scala.collection.mutable
   **/
 class VoltSinkTask extends SinkTask with StrictLogging {
 
+  private val progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
   var writer: Option[VoltDbWriter] = None
-  private val counter = mutable.Map.empty[String, Long]
-  private var timestamp: Long = 0
-
-  class LoggerTask extends TimerTask {
-    override def run(): Unit = logCounts()
-  }
-
-  def logCounts(): mutable.Map[String, Long] = {
-    counter.foreach( { case (k,v) => logger.info(s"Delivered $v records for $k.") })
-    counter.empty
-  }
 
   /**
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(
-      """
-        | _____                                                    _
-        |(____ \       _                                 _        (_)
-        | _   \ \ ____| |_  ____ ____   ___  _   _ ____ | |_  ____ _ ____   ____ ____  ____
-        || |   | / _  |  _)/ _  |    \ / _ \| | | |  _ \|  _)/ _  | |  _ \ / _  ) _  )/ ___)
-        || |__/ ( ( | | |_( ( | | | | | |_| | |_| | | | | |_( ( | | | | | ( (/ ( (/ /| |
-        ||_____/ \_||_|\___)_||_|_|_|_|\___/ \____|_| |_|\___)_||_|_|_| |_|\____)____)_|
-        |                                    by Stefan Bocutiu
-        | _    _     _      _____   _           _    _       _
-        || |  | |   | |_   (____ \ | |         | |  (_)     | |
-        || |  | |__ | | |_  _   \ \| | _        \ \  _ ____ | |  _
-        | \ \/ / _ \| |  _)| |   | | || \        \ \| |  _ \| | / )
-        |  \  / |_| | | |__| |__/ /| |_) )   _____) ) | | | | |< (
-        |   \/ \___/|_|\___)_____/ |____/   (______/|_|_| |_|_| \_)
-        | """.stripMargin)
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/voltdb-ascii.txt")).mkString + s" v $version")
 
     VoltSinkConfig.config.parse(props)
     val sinkConfig = VoltSinkConfig(props)
     val voltSettings = VoltSettings(sinkConfig)
+    enableProgress = sinkConfig.getBoolean(VoltSinkConfigConstants.PROGRESS_COUNTER_ENABLED)
 
 
     //if error policy is retry set retry interval
     if (voltSettings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getInt(VoltSinkConfig.ERROR_RETRY_INTERVAL_CONFIG).toLong)
+      context.timeout(sinkConfig.getInt(VoltSinkConfigConstants.ERROR_RETRY_INTERVAL_CONFIG).toLong)
     }
     writer = Some(new VoltDbWriter(voltSettings))
 
@@ -95,15 +69,11 @@ class VoltSinkTask extends SinkTask with StrictLogging {
     }
     else {
       require(writer.nonEmpty, "Writer is not set!")
-      logger.info(s"Received ${records.size()} record(-s)")
-      writer.foreach(w => w.write(records.toSeq))
-      logger.info("Records handled")
-      records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
-      val newTimestamp = System.currentTimeMillis()
-      if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
-        logCounts()
+      val seq = records.toVector
+      writer.foreach(w => w.write(seq))
+      if (enableProgress) {
+        progressCounter.update(seq)
       }
-      timestamp = newTimestamp
     }
   }
 
@@ -115,7 +85,7 @@ class VoltSinkTask extends SinkTask with StrictLogging {
     writer.foreach(w => w.close())
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 
   override def flush(offsets: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {}
 }

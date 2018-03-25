@@ -1,72 +1,61 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import java.io.File
 import java.util
-import java.util.{Timer, TimerTask}
 
-import com.datamountaineer.connector.config.Config
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
-import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttSourceConfig, MqttSourceSettings}
+import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}
+import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
+import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 class MqttSourceTask extends SourceTask with StrictLogging {
+  private val progressCounter = new ProgressCounter
+  private var enableProgress: Boolean = false
   private var mqttManager: Option[MqttManager] = None
-  private val counter = mutable.Map.empty[String, Long]
-  private var timestamp: Long = 0
-
-  class LoggerTask extends TimerTask {
-    override def run(): Unit = logCounts()
-  }
-
-  def logCounts(): mutable.Map[String, Long] = {
-    counter.foreach( { case (k,v) => logger.info(s"Delivered $v records for $k.") })
-    counter.empty
-  }
 
   override def start(props: util.Map[String, String]): Unit = {
 
-    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/mqtt-source-ascii.txt")).mkString)
+    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/mqtt-source-ascii.txt")).mkString + s" v $version")
     implicit val settings = MqttSourceSettings(MqttSourceConfig(props))
 
     settings.sslCACertFile.foreach { file =>
       if (!new File(file).exists()) {
-        throw new ConfigException(s"${MqttSourceConfig.SSL_CA_CERT_CONFIG} is invalid. Can't locate $file")
+        throw new ConfigException(s"${MqttConfigConstants.SSL_CA_CERT_CONFIG} is invalid. Can't locate $file")
       }
     }
 
     settings.sslCertFile.foreach { file =>
       if (!new File(file).exists()) {
-        throw new ConfigException(s"${MqttSourceConfig.SSL_CERT_CONFIG} is invalid. Can't locate $file")
+        throw new ConfigException(s"${MqttConfigConstants.SSL_CERT_CONFIG} is invalid. Can't locate $file")
       }
     }
 
     settings.sslCertKeyFile.foreach { file =>
       if (!new File(file).exists()) {
-        throw new ConfigException(s"${MqttSourceConfig.SSL_CERT_KEY_CONFIG} is invalid. Can't locate $file")
+        throw new ConfigException(s"${MqttConfigConstants.SSL_CERT_KEY_CONFIG} is invalid. Can't locate $file")
       }
     }
 
@@ -74,15 +63,15 @@ class MqttSourceTask extends SourceTask with StrictLogging {
       logger.info(s"Creating converter instance for $clazz")
       val converter = Try(this.getClass.getClassLoader.loadClass(clazz).newInstance()) match {
         case Success(value) => value.asInstanceOf[Converter]
-        case Failure(_) => throw new ConfigException(s"Invalid ${MqttSourceConfig.CONVERTER_CONFIG} is invalid. $clazz should have an empty ctor!")
+        case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
       }
       import scala.collection.JavaConverters._
       converter.initialize(props.asScala.toMap)
       topic -> converter
     }
     logger.info("Starting Mqtt source...")
-    mqttManager = Some(new MqttManager(MqttClientConnectionFn.apply, convertersMap, settings.mqttQualityOfService, settings.kcql.map(Config.parse), settings.throwOnConversion))
-
+    mqttManager = Some(new MqttManager(MqttClientConnectionFn.apply, convertersMap, settings.mqttQualityOfService, settings.kcql.map(Kcql.parse), settings.throwOnConversion, settings.pollingTimeout))
+    enableProgress = settings.enableProgress
   }
 
   /**
@@ -96,14 +85,9 @@ class MqttSourceTask extends SourceTask with StrictLogging {
       list
     }.orNull
 
-    records.foreach(r => counter.put(r.topic() , counter.getOrElse(r.topic(), 0L) + 1L))
-
-    val newTimestamp = System.currentTimeMillis()
-    if (counter.nonEmpty && scala.concurrent.duration.SECONDS.toSeconds(newTimestamp - timestamp) >= 60) {
-      logCounts()
+    if (enableProgress) {
+      progressCounter.update(records.toVector)
     }
-    timestamp = newTimestamp
-
     records
   }
 
@@ -113,7 +97,8 @@ class MqttSourceTask extends SourceTask with StrictLogging {
   override def stop(): Unit = {
     logger.info("Stopping Mqtt source.")
     mqttManager.foreach(_.close())
+    progressCounter.empty
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 }

@@ -1,19 +1,17 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.bloomberg
@@ -21,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.bloomberg
 import java.util
 
 import com.bloomberglp.blpapi._
+import com.datamountaineer.streamreactor.connect.bloomberg.config.BloombergSourceConfig
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
@@ -49,14 +48,14 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
       session.get.unsubscribe(subscriptions.get)
     }
     catch {
-      case t: Throwable =>
+      case _: Throwable =>
         logger.error(s"Unexpected exception un-subscribing for correlation=${CorrelationIdsExtractorFn(subscriptions.get)}")
     }
     try {
       session.get.stop()
     }
     catch {
-      case e: InterruptedException =>
+      case _: InterruptedException =>
         logger.error(s"There was an error stopping the bloomberg session for correlation=${CorrelationIdsExtractorFn(subscriptions.get)}")
     }
     session = None
@@ -71,28 +70,10 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
     * @param map A map of configuration properties for this task
     */
   override def start(map: util.Map[String, String]): Unit = {
-
-    logger.info(
-      """
-        |
-        |    ____        __        __  ___                  __        _
-        |   / __ \____ _/ /_____ _/  |/  /___  __  ______  / /_____ _(_)___  ___  ___  _____
-        |  / / / / __ `/ __/ __ `/ /|_/ / __ \/ / / / __ \/ __/ __ `/ / __ \/ _ \/ _ \/ ___/
-        | / /_/ / /_/ / /_/ /_/ / /  / / /_/ / /_/ / / / / /_/ /_/ / / / / /  __/  __/ /
-        |/_____/\__,_/\__/\__,_/_/  /_/\____/\__,_/_/ /_/\__/\__,_/_/_/ /_/\___/\___/_/
-        |       ____  __                      __                    _____
-        |      / __ )/ /___  ____  ____ ___  / /_  ___  _________ _/ ___/____  __  _______________
-        |     / __  / / __ \/ __ \/ __ `__ \/ __ \/ _ \/ ___/ __ `/\__ \/ __ \/ / / / ___/ ___/ _ \
-        |    / /_/ / / /_/ / /_/ / / / / / / /_/ /  __/ /  / /_/ /___/ / /_/ / /_/ / /  / /__/  __/
-        |   /_____/_/\____/\____/_/ /_/ /_/_.___/\___/_/   \__, //____/\____/\__,_/_/   \___/\___/
-        |                                                 /____/
-        |
-        |By Stefan Bocutiu
-      """.stripMargin)
-
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/bloomberg-ascii.txt")).mkString + s" v $version")
 
     try {
-      settings = Some(BloombergSettings(new ConnectorConfig(map)))
+      settings = Some(BloombergSettings(new BloombergSourceConfig(map)))
       subscriptions = Some(SubscriptionsBuilderFn(settings.get))
 
       val correlationToTicketMap = subscriptions.get.asScala.map { s => s.correlationID().value() -> s.subscriptionString() }.toMap
@@ -106,7 +87,7 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
     }
   }
 
-  override def version(): String = getClass.getPackage.getImplementationVersion
+  override def version: String = Option(getClass.getPackage.getImplementationVersion).getOrElse("")
 
   /**
     * Called by the framework. It returns all the accumulated records since the previous call.
@@ -158,7 +139,7 @@ object BloombergSessionCreateFn extends StrictLogging {
     * @param handler  : Instance of EventHandler providing the callbacks for Bloomberg events
     * @return The Bloomberg session
     */
-  def apply(settings: BloombergSettings, handler: EventHandler) : Session = {
+  def apply(settings: BloombergSettings, handler: EventHandler): Session = {
     val options = new SessionOptions
     options.setKeepAliveEnabled(true)
     options.setServerHost(settings.serverHost)

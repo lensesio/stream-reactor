@@ -163,7 +163,8 @@ row_cache_save_period: 0
 # saved caches
 saved_caches_directory: target/embeddedCassandra/saved_caches
 
-#hints_directory: target/embeddedCassandra/hints
+hints_directory: target/embeddedCassandra/hints
+cdc_raw_directory: target/embeddedCassandra/cdc
 
 # commitlog_sync may be either "periodic" or "batch."
 # When in batch mode, Cassandra won't ack writes until the commit log

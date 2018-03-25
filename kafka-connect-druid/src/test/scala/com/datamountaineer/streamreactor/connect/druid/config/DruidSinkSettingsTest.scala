@@ -1,19 +1,17 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.druid.config
@@ -23,28 +21,34 @@ import java.nio.file.Paths
 import com.datamountaineer.streamreactor.connect.druid.TestBase
 import com.datamountaineer.streamreactor.connect.schemas.StructFieldsExtractor
 import org.apache.kafka.common.config.ConfigException
-import org.mockito.Mockito._
 import org.scalatest._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
+
+import scala.collection.JavaConverters._
 
 class DruidSinkSettingsTest extends WordSpec with TestBase with Matchers with MockitoSugar {
   "DruidSinkSettings" should {
     "raise an exception if the config file is not specified" in {
       intercept[ConfigException] {
-        val config = new DruidSinkConfig(getPropsNoFile())
+        val config = new DruidConfig(getPropsNoFile())
         DruidSinkSettings(config)
       }
     }
     "raise an exception if the config file specified doesn't exist" in {
       intercept[ConfigException] {
-        val config = new DruidSinkConfig(getPropWrongPath())
+        val config = new DruidConfig(getPropWrongPath())
         DruidSinkSettings(config)
       }
     }
     "create an instance of DruidSinkSettings with field alias" in {
-      val config = mock[DruidSinkConfig]
-      when(config.getString(DruidSinkConfig.KCQL)).thenReturn(KCQL)
-      when(config.getString(DruidSinkConfig.CONFIG_FILE)).thenReturn(Paths.get(getClass.getResource(s"/ds-template.json").toURI).toAbsolutePath.toString)
+      val configFile = Paths.get(getClass.getResource(s"/ds-template.json").toURI).toString
+
+      val props = Map(
+        DruidSinkConfigConstants.KCQL -> KCQL,
+        DruidSinkConfigConstants.CONFIG_FILE->configFile
+      ).asJava
+
+      val config = DruidConfig(props)
       val settings = DruidSinkSettings(config)
 
       settings.datasourceNames shouldBe Map(TOPIC->DATA_SOURCE)

@@ -1,22 +1,23 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.voltdb
+
+import java.text.SimpleDateFormat
+import java.util.TimeZone
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data.{Field, Struct, _}
@@ -53,14 +54,30 @@ case class StructFieldsExtractor(targetTable: String,
     //need to select all fields including null. the stored proc needs a fixed set of params
     fields.map { field =>
       val schema = field.schema()
-      val value =  Option(struct.get(field))
+      val value = Option(struct.get(field))
         .map { value =>
           //handle specific schema
           schema.name() match {
-            case Decimal.LOGICAL_NAME => Decimal.toLogical(schema, value.asInstanceOf[Array[Byte]])
-            case Date.LOGICAL_NAME => Date.toLogical(schema, value.asInstanceOf[Int])
-            case Time.LOGICAL_NAME => Time.toLogical(schema, value.asInstanceOf[Int])
-            case Timestamp.LOGICAL_NAME => Timestamp.toLogical(schema, value.asInstanceOf[Long])
+            case Decimal.LOGICAL_NAME =>
+              value.asInstanceOf[Any] match {
+                case _:java.math.BigDecimal => value
+                case arr: Array[Byte] => Decimal.toLogical(schema, arr)
+                case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
+              }
+            case Time.LOGICAL_NAME =>
+              value.asInstanceOf[Any] match {
+                case i: Int => StructFieldsExtractor.TimeFormat.format(Time.toLogical(schema, i))
+                case d:java.util.Date => StructFieldsExtractor.TimeFormat.format(d)
+                case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
+              }
+
+            case Timestamp.LOGICAL_NAME =>
+              value.asInstanceOf[Any] match {
+                case d:java.util.Date => StructFieldsExtractor.DateFormat.format(d)
+                case l: Long => StructFieldsExtractor.DateFormat.format(Timestamp.toLogical(schema, l))
+                case _ => throw new IllegalArgumentException(s"${field.name()} is not handled for value:$value")
+              }
+
             case _ => value
           }
         }.orNull
@@ -71,3 +88,8 @@ case class StructFieldsExtractor(targetTable: String,
 }
 
 
+object StructFieldsExtractor {
+  val DateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+  val TimeFormat: SimpleDateFormat = new SimpleDateFormat("HH:mm:ss.SSSZ")
+  DateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
+}

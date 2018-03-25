@@ -1,31 +1,29 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.kudu
 
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.avro.{Schema, SchemaBuilder}
-import org.kududb.client.{KuduTable, Upsert}
+import org.apache.kudu.client.{KuduTable, Upsert}
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 
-import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 04/03/16. 
@@ -45,7 +43,7 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
 
   "Should convert a SinkRecord into a Kudu Insert operation" in {
     val record = getTestRecords.head
-    val fields = record.valueSchema().fields().asScala.map(f=>(f.name(), f.name())).toMap
+    val fields = record.valueSchema().fields().asScala.map(f => (f.name(), f.name())).toMap
     val kuduSchema = convertToKuduSchema(record)
     val kuduRow = kuduSchema.newPartialRow()
     val insert = mock[Upsert]
@@ -59,7 +57,7 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
   }
 
   "Should convert a SinkRecord into a Kudu Insert operation with Field Selection" in {
-    val fields = Map("id"->"id", "long_field"->"new_field_name")
+    val fields = Map("id" -> "id", "long_field" -> "new_field_name")
     val record = getTestRecords.head
     val converted = convert(record, fields)
     val kuduSchema = convertToKuduSchema(converted)
@@ -76,8 +74,8 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
 
   "Should convert an Avro to Kudu" in {
     val stringSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.STRING)).asJava)
-    val intSchema =  Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.INT)).asJava)
-    val booleanSchema =  Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.BOOLEAN)).asJava)
+    val intSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.INT)).asJava)
+    val booleanSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.BOOLEAN)).asJava)
     val doubleSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.DOUBLE)).asJava)
     val floatSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.FLOAT)).asJava)
     val longSchema = Schema.createUnion(List(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.LONG)).asJava)
@@ -96,20 +94,20 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
       .endRecord()
 
 
-    val kuduFields = schema.getFields.map(f=>fromAvro(f.schema(), f.name()).build())
+    val kuduFields = schema.getFields.map(f => fromAvro(f.schema(), f.name()).build())
     kuduFields.head.getName shouldBe "string_field"
-    kuduFields.head.getType shouldBe org.kududb.Type.STRING
+    kuduFields.head.getType shouldBe org.apache.kudu.Type.STRING
     kuduFields(1).getName shouldBe "int_field"
-    kuduFields(1).getType shouldBe org.kududb.Type.INT32
+    kuduFields(1).getType shouldBe org.apache.kudu.Type.INT32
     kuduFields(2).getName shouldBe "boolean_field"
-    kuduFields(2).getType shouldBe org.kududb.Type.BOOL
+    kuduFields(2).getType shouldBe org.apache.kudu.Type.BOOL
     kuduFields(3).getName shouldBe "double_field"
-    kuduFields(3).getType shouldBe org.kududb.Type.FLOAT
+    kuduFields(3).getType shouldBe org.apache.kudu.Type.DOUBLE
     kuduFields(4).getName shouldBe "float_field"
-    kuduFields(4).getType shouldBe org.kududb.Type.FLOAT
+    kuduFields(4).getType shouldBe org.apache.kudu.Type.FLOAT
     kuduFields(5).getName shouldBe "long_field"
-    kuduFields(5).getType shouldBe org.kududb.Type.INT64
+    kuduFields(5).getType shouldBe org.apache.kudu.Type.INT64
     kuduFields(6).getName shouldBe "bytes_field"
-    kuduFields(6).getType shouldBe org.kududb.Type.BINARY
+    kuduFields(6).getType shouldBe org.apache.kudu.Type.BINARY
   }
 }

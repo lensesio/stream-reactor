@@ -1,28 +1,28 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.mongodb
 
 import com.datamountaineer.streamreactor.connect.errors.NoopErrorPolicy
 import com.datamountaineer.streamreactor.connect.mongodb.Transaction._
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSinkSettings
+import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
 import com.datamountaineer.streamreactor.connect.mongodb.sink.SinkRecordToDocument
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.mongodb.AuthenticationMechanism
+import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.bson.Document
@@ -37,10 +37,13 @@ class SinkRecordToDocumentTest extends WordSpec with Matchers with ConverterUtil
 
         val record = new SinkRecord("topic1", 0, null, null, Transaction.ConnectSchema, tx.toStruct(), 0)
 
-        implicit val settings = MongoSinkSettings(
+        implicit val settings = MongoSettings(
           "",
+          "",
+          new Password(""),
+          AuthenticationMechanism.SCRAM_SHA_1,
           "database",
-          Seq.empty,
+          Set.empty,
           Map("topic1" -> Set.empty),
           Map("topic1" -> Map.empty[String, String]),
           Map("topic1" -> Set.empty),
@@ -59,10 +62,13 @@ class SinkRecordToDocumentTest extends WordSpec with Matchers with ConverterUtil
 
         val record = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
-        implicit val settings = MongoSinkSettings(
+        implicit val settings = MongoSettings(
           "",
+          "",
+          new Password(""),
+          AuthenticationMechanism.SCRAM_SHA_1,
           "database",
-          Seq.empty,
+          Set.empty,
           Map("topic1" -> Set.empty),
           Map("topic1" -> Map.empty[String, String]),
           Map("topic1" -> Set.empty),
@@ -82,10 +88,13 @@ class SinkRecordToDocumentTest extends WordSpec with Matchers with ConverterUtil
 
         val record = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
-        implicit val settings = MongoSinkSettings(
+        implicit val settings = MongoSettings(
           "",
+          "",
+          new Password(""),
+          AuthenticationMechanism.SCRAM_SHA_1,
           "database",
-          Seq.empty,
+          Set.empty,
           Map("topic1" -> Set.empty),
           Map("topic1" -> Map.empty[String, String]),
           Map("topic1" -> Set.empty),

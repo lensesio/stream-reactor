@@ -1,19 +1,17 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.coap.domain
@@ -33,7 +31,7 @@ import scala.collection.JavaConverters._
 
 case class CoapMessageConverter() {
 
-  val keySchema = SchemaBuilder
+  val keySchema: Schema = SchemaBuilder
     .struct()
     .version(1)
     .field("source", Schema.OPTIONAL_STRING_SCHEMA)
@@ -41,9 +39,10 @@ case class CoapMessageConverter() {
     .field("message_id", Schema.OPTIONAL_INT32_SCHEMA)
     .build()
 
-  val schema = SchemaBuilder
+  val schema: Schema = SchemaBuilder
     .struct()
     .version(1)
+    .field("ingest_time", Schema.OPTIONAL_INT64_SCHEMA)
     .field("message_id", Schema.OPTIONAL_INT32_SCHEMA)
     .field("type", Schema.OPTIONAL_STRING_SCHEMA)
     .field("code", Schema.OPTIONAL_STRING_SCHEMA)
@@ -104,6 +103,7 @@ case class CoapMessageConverter() {
       .put("message_id", response.getMID)
 
     val rec = new Struct(schema)
+      .put("ingest_time", System.currentTimeMillis())
       .put("message_id", response.getMID)
       .put("type", response.getType.toString)
       .put("code", response.getCode.toString)

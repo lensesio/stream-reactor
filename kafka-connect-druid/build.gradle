@@ -1,19 +1,17 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 project(":kafka-connect-druid") {
@@ -32,11 +30,19 @@ project(":kafka-connect-druid") {
             exclude group : "com.sun.jersey"
             exclude group: 'com.squareup.okhttp', module: 'okhttp'
             exclude group: 'com.google.guava', module: 'guava'
+            exclude group: 'io.druid', module: 'druid-aws-common'
+            exclude group: 'org.apache.zookeeper'
         }
         compile group: 'com.squareup.okhttp', name: 'okhttp', version: '2.7.5'
         compile group: 'com.google.guava', name: 'guava', version: '19.0'
+
         testCompile('io.druid:druid-integration-tests:0.9.2') {
             exclude group: 'io.druid.extensions', module: 'mysql-metadata-storage'
+            exclude group: 'io.druid.extensions', module: 'mysql-metadata-storage'
+            exclude group: 'io.druid', module: 'druid-aws-common'
+            exclude group: 'io.druid.extensions', module: 'druid-kafka-eight'
+            exclude group: 'io.druid.extensions', module: 'druid-kafka-indexing-service'
+            exclude group: 'org.apache.kafka'
         }
         compile group: 'org.apache.curator', name: 'curator-test', version: '3.2.1'
     }

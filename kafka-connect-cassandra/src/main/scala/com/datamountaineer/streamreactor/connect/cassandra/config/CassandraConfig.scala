@@ -1,25 +1,26 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import java.util
 
+import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.streamreactor.connect.config.base.traits._
+import com.datastax.driver.core.ConsistencyLevel
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
@@ -108,13 +109,33 @@ case class CassandraConfig() {
       ConfigDef.Width.LONG,
       CassandraConfigConstants.TRUST_STORE_PASSWD)
 
+    .define(CassandraConfigConstants.TRUST_STORE_TYPE,
+      Type.STRING,
+      CassandraConfigConstants.TRUST_STORE_TYPE_DEFAULT,
+      Importance.MEDIUM,
+      CassandraConfigConstants.TRUST_STORE_TYPE_DOC,
+      "Connection",
+      9,
+      ConfigDef.Width.MEDIUM,
+      CassandraConfigConstants.TRUST_STORE_TYPE)
+
+    .define(CassandraConfigConstants.KEY_STORE_TYPE,
+      Type.STRING,
+      CassandraConfigConstants.KEY_STORE_TYPE_DEFAULT,
+      Importance.MEDIUM,
+      CassandraConfigConstants.KEY_STORE_TYPE_DOC,
+      "Connection",
+      10,
+      ConfigDef.Width.MEDIUM,
+      CassandraConfigConstants.KEY_STORE_TYPE)
+
     .define(CassandraConfigConstants.USE_CLIENT_AUTH,
       Type.BOOLEAN,
       CassandraConfigConstants.USE_CLIENT_AUTH_DEFAULT,
       Importance.LOW,
       CassandraConfigConstants.USE_CLIENT_AUTH_DOC,
       "Connection",
-      9,
+      11,
       ConfigDef.Width.LONG,
       CassandraConfigConstants.USE_CLIENT_AUTH)
 
@@ -124,7 +145,7 @@ case class CassandraConfig() {
       Importance.LOW,
       CassandraConfigConstants.KEY_STORE_PATH_DOC,
       "Connection",
-      10,
+      12,
       ConfigDef.Width.LONG,
       CassandraConfigConstants.KEY_STORE_PATH)
 
@@ -134,7 +155,7 @@ case class CassandraConfig() {
       Importance.LOW,
       CassandraConfigConstants.KEY_STORE_PASSWD_DOC,
       "Connection",
-      11,
+      13,
       ConfigDef.Width.LONG,
       CassandraConfigConstants.KEY_STORE_PASSWD)
 
@@ -144,7 +165,7 @@ case class CassandraConfig() {
       Importance.MEDIUM,
       CassandraConfigConstants.CONSISTENCY_LEVEL_DOC,
       "Connection",
-      12,
+      14,
       ConfigDef.Width.MEDIUM,
       CassandraConfigConstants.CONSISTENCY_LEVEL_DISPLAY)
 
@@ -178,6 +199,16 @@ case class CassandraConfig() {
       ConfigDef.Width.LONG,
       CassandraConfigConstants.ERROR_RETRY_INTERVAL)
 
+    .define(CassandraConfigConstants.FETCH_SIZE,
+      Type.INT,
+      CassandraConfigConstants.FETCH_SIZE_DEFAULT,
+      Importance.MEDIUM,
+      CassandraConfigConstants.FETCH_SIZE_DOC,
+      "Connection",
+      15,
+      ConfigDef.Width.LONG,
+      CassandraConfigConstants.FETCH_SIZE)
+
 }
 
 
@@ -188,17 +219,10 @@ case class CassandraConfig() {
 object CassandraConfigSource {
   val base: ConfigDef = CassandraConfig().configDef
   val sourceConfig: ConfigDef = base
-    .define(CassandraConfigConstants.IMPORT_MODE,
-      Type.STRING,
-      Importance.HIGH,
-      CassandraConfigConstants.IMPORT_MODE_DOC,
-      "Import",
-      1,
-      ConfigDef.Width.LONG,
-      CassandraConfigConstants.IMPORT_MODE)
 
     .define(CassandraConfigConstants.ASSIGNED_TABLES,
       Type.STRING,
+      "",
       Importance.LOW,
       CassandraConfigConstants.ASSIGNED_TABLES_DOC,
       "Import",
@@ -206,14 +230,14 @@ object CassandraConfigSource {
       ConfigDef.Width.LONG,
       CassandraConfigConstants.ASSIGNED_TABLES)
 
-    .define(CassandraConfigConstants.SOURCE_KCQL_QUERY,
+    .define(CassandraConfigConstants.KCQL,
       Type.STRING,
       Importance.HIGH,
-      CassandraConfigConstants.SOURCE_KCQL_DOC,
+      CassandraConfigConstants.KCQL_DOC,
       "Mappings",
       2,
       ConfigDef.Width.LONG,
-      CassandraConfigConstants.SOURCE_KCQL_QUERY)
+      CassandraConfigConstants.KCQL)
 
 
     .define(CassandraConfigConstants.READER_BUFFER_SIZE,
@@ -261,34 +285,79 @@ object CassandraConfigSource {
 }
 
 case class CassandraConfigSource(props: util.Map[String, String])
-  extends AbstractConfig(CassandraConfigSource.sourceConfig, props)
+  extends BaseConfig(CassandraConfigConstants.CONNECTOR_PREFIX, CassandraConfigSource.sourceConfig, props)
+    with ErrorPolicySettings
+    with ConsistencyLevelSettings[ConsistencyLevel]
+    with KcqlSettings
 
 /**
   * Holds the extra configurations for the sink on top of
   * the base.
   **/
 object CassandraConfigSink {
-  val base = CassandraConfig().configDef
+  val base: ConfigDef = CassandraConfig().configDef
   val sinkConfig = base
-    .define(CassandraConfigConstants.SINK_KCQL,
+    .define(CassandraConfigConstants.KCQL,
       Type.STRING,
       Importance.HIGH,
-      CassandraConfigConstants.SINK_KCQL_DOC,
+      CassandraConfigConstants.KCQL_DOC,
       "Mappings",
       1,
       ConfigDef.Width.LONG,
-      CassandraConfigConstants.SINK_KCQL)
-    .define(CassandraConfigConstants.SINK_THREAD_POOL_CONFIG,
+      CassandraConfigConstants.KCQL)
+    .define(CassandraConfigConstants.THREAD_POOL_CONFIG,
       Type.INT,
-      CassandraConfigConstants.SINK_THREAD_POOL_DEFAULT,
+      CassandraConfigConstants.THREAD_POOL_DEFAULT,
       Importance.MEDIUM,
-      CassandraConfigConstants.SINK_THREAD_POOL_DOC,
+      CassandraConfigConstants.THREAD_POOL_DOC,
       "Import",
       8,
       ConfigDef.Width.MEDIUM,
-      CassandraConfigConstants.SINK_THREAD_POOL_DISPLAY
+      CassandraConfigConstants.THREAD_POOL_DISPLAY
     )
+    .define(CassandraConfigConstants.PROGRESS_COUNTER_ENABLED,
+      Type.BOOLEAN,
+      CassandraConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
+      Importance.MEDIUM,
+      CassandraConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
+      "Metrics",
+      1,
+      ConfigDef.Width.MEDIUM,
+      CassandraConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
+    .define(CassandraConfigConstants.DELETE_ROW_ENABLED,
+      Type.BOOLEAN,
+      CassandraConfigConstants.DELETE_ROW_ENABLED_DEFAULT,
+      Importance.LOW,
+      CassandraConfigConstants.DELETE_ROW_ENABLED_DOC,
+      "Mappings",
+      1,
+      ConfigDef.Width.MEDIUM,
+      CassandraConfigConstants.DELETE_ROW_ENABLED_DISPLAY)
+    .define(CassandraConfigConstants.DELETE_ROW_STATEMENT,
+      Type.STRING,
+      CassandraConfigConstants.DELETE_ROW_STATEMENT_DEFAULT,
+      Importance.LOW,
+      CassandraConfigConstants.DELETE_ROW_STATEMENT_DOC,
+      "Mappings",
+      1,
+      ConfigDef.Width.MEDIUM,
+      CassandraConfigConstants.DELETE_ROW_STATEMENT_DISPLAY)
+    .define(CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS,
+      Type.LIST,
+      CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS_DEFAULT,
+      Importance.LOW,
+      CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS_DOC,
+      "Mappings",
+      1,
+      ConfigDef.Width.MEDIUM,
+      CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS_DISPLAY)
 }
 
 case class CassandraConfigSink(props: util.Map[String, String])
-  extends AbstractConfig(CassandraConfigSink.sinkConfig, props)
+ extends BaseConfig(CassandraConfigConstants.CONNECTOR_PREFIX, CassandraConfigSink.sinkConfig, props)
+    with KcqlSettings
+    with ErrorPolicySettings
+    with NumberRetriesSettings
+    with ThreadPoolSettings
+    with ConsistencyLevelSettings[ConsistencyLevel] {
+}

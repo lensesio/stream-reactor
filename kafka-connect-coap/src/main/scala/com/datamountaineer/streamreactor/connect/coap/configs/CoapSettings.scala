@@ -1,29 +1,32 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.coap.configs
 
-import java.io.File
+import java.io.{File, FileInputStream, InputStreamReader}
+import java.security.spec.{PKCS8EncodedKeySpec, X509EncodedKeySpec}
+import java.security._
 
-import com.datamountaineer.connector.config.Config
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ErrorPolicyEnum}
+import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
+import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
-import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.util.io.pem.PemReader
+import org.eclipse.californium.scandium.dtls.cipher.CipherSuite
 
 import scala.collection.JavaConverters._
 
@@ -38,60 +41,108 @@ case class CoapSetting(uri: String,
                        trustStorePass: Password,
                        certs: Array[String],
                        chainKey: String,
-                       kcql : Config,
+                       kcql: Kcql,
                        retries: Option[Int],
                        errorPolicy: Option[ErrorPolicy],
-                       target : String,
+                       target: String,
                        bindHost: String,
                        bindPort: Int,
-                       sink: Boolean)
+                       identity: String,
+                       secret: Password,
+                       privateKey: Option[PrivateKey],
+                       publicKey: Option[PublicKey]
+                      )
 
 object CoapSettings {
-  def apply(config: AbstractConfig): Set[CoapSetting] = {
-    val uri = config.getString(CoapConstants.COAP_URI)
-    val keyStoreLoc = config.getString(CoapConstants.COAP_KEY_STORE_PATH)
-    val keyStorePass = config.getPassword(CoapConstants.COAP_KEY_STORE_PASS)
-    val trustStoreLoc = config.getString(CoapConstants.COAP_TRUST_STORE_PATH)
-    val trustStorePass = config.getPassword(CoapConstants.COAP_TRUST_STORE_PASS)
-    val certs = config.getList(CoapConstants.COAP_TRUST_CERTS).asScala.toArray
-    val certChainKey = config.getString(CoapConstants.COAP_CERT_CHAIN_KEY)
 
-    if (keyStoreLoc.nonEmpty && !new File(keyStoreLoc).exists()) {
+  def apply(config: CoapConfigBase): Set[CoapSetting] = {
+    val uri = config.getUri
+
+    val keyStoreLoc = config.getKeyStorePath
+    val keyStorePass = config.getKeyStorePass
+    val trustStoreLoc = config.getTrustStorePath
+    val trustStorePass = config.getTrustStorePass
+
+    val certs = config.getCertificates.asScala.toArray
+    val certChainKey = config.getCertificateKeyChain
+
+    if (keyStoreLoc != null && keyStoreLoc.nonEmpty && !new File(keyStoreLoc).exists()) {
       throw new ConfigException(s"${CoapConstants.COAP_KEY_STORE_PATH} is invalid. Can't locate $keyStoreLoc")
     }
 
-    if (trustStoreLoc.nonEmpty && !new File(trustStoreLoc).exists()) {
+    if (trustStoreLoc != null && trustStoreLoc.nonEmpty && !new File(trustStoreLoc).exists()) {
       throw new ConfigException(s"${CoapConstants.COAP_TRUST_STORE_PATH} is invalid. Can't locate $trustStoreLoc")
     }
 
-    val raw = config.getString(CoapConstants.COAP_KCQL)
-    require(raw != null && !raw.isEmpty, s"No ${CoapConstants.COAP_KCQL} provided!")
-    val routes = raw.split(";").map(r => Config.parse(r)).toSet
-
+    val kcql = config.getKCQL
     val sink = if (config.isInstanceOf[CoapSinkConfig]) true else false
-    val bindPort = if (sink) config.getInt(CoapConstants.COAP_DTLS_BIND_PORT) else config.getInt(CoapConstants.COAP_DTLS_BIND_PORT)
-    val bindHost = if (sink) config.getString(CoapConstants.COAP_DTLS_BIND_HOST) else config.getString(CoapConstants.COAP_DTLS_BIND_HOST)
+    val errorPolicy = if (sink) Some(config.getErrorPolicy) else None
+    val retries = if (sink) Some(config.getNumberRetries) else None
 
+    val bindPort = config.getPort
+    val bindHost = config.getHost
 
-    val errorPolicyE = if (sink) Some(ErrorPolicyEnum.withName(config.getString(CoapConstants.ERROR_POLICY).toUpperCase)) else None
-    val errorPolicy = if (sink) Some(ErrorPolicy(errorPolicyE.get)) else None
-    val retries = if (sink) Some(config.getInt(CoapConstants.NBR_OF_RETRIES).toInt) else None
+    val identity = config.getUsername
+    val secret = config.getSecret
 
-    routes.map(r =>
-                  new CoapSetting(uri,
-                  keyStoreLoc,
-                  keyStorePass,
-                  trustStoreLoc,
-                  trustStorePass,
-                  certs,
-                  certChainKey,
-                  r,
-                  retries,
-                  errorPolicy,
-                  if (sink) r.getTarget else r.getSource,
-                  bindHost,
-                  bindPort,
-                  sink)
+    val privateKeyPathStr = config.getString(CoapConstants.COAP_PRIVATE_KEY_FILE)
+    val publicKeyPathStr = config.getString(CoapConstants.COAP_PUBLIC_KEY_FILE)
+
+    val factory = KeyFactory.getInstance("RSA")
+    Security.addProvider(new BouncyCastleProvider)
+
+    val privateKey = if (privateKeyPathStr.nonEmpty) {
+      if (!new File(privateKeyPathStr).exists()) {
+        throw new ConfigException(s"${CoapConstants.COAP_PRIVATE_KEY_FILE} is invalid. Can't locate $privateKeyPathStr")
+      }
+      Some(loadPrivateKey(privateKeyPathStr, factory))
+    } else {
+      None
+    }
+
+    val publicKey = if (publicKeyPathStr.nonEmpty) {
+      if (!new File(publicKeyPathStr).exists()) {
+        throw new ConfigException(s"${CoapConstants.COAP_PUBLIC_KEY_FILE} is invalid. Can't locate $publicKeyPathStr")
+      }
+      Some(loadPublicKey(publicKeyPathStr, factory))
+    } else {
+      None
+    }
+
+    kcql.map(k =>
+      CoapSetting(uri,
+        keyStoreLoc,
+        keyStorePass,
+        trustStoreLoc,
+        trustStorePass,
+        certs,
+        certChainKey,
+        k,
+        retries,
+        errorPolicy,
+        if (sink) k.getTarget else k.getSource,
+        bindHost,
+        bindPort,
+        identity,
+        secret,
+        privateKey,
+        publicKey
+      )
     )
   }
+
+  def loadPrivateKey(path: String, factory: KeyFactory) : PrivateKey = {
+    val pemReader = getPemReader(path)
+    val content = new PKCS8EncodedKeySpec(pemReader.readPemObject().getContent)
+    factory.generatePrivate(content)
+  }
+
+  def loadPublicKey(path: String, factory: KeyFactory): PublicKey = {
+    val pemReader = getPemReader(path)
+    val content = new X509EncodedKeySpec(pemReader.readPemObject().getContent)
+    factory.generatePublic(content)
+  }
+
+  def getPemReader(path: String) = new PemReader(new InputStreamReader(new FileInputStream(path)))
+
 }

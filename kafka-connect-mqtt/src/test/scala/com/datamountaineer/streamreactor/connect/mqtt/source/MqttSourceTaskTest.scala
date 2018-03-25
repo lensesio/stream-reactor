@@ -1,19 +1,17 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.mqtt.source
@@ -23,8 +21,9 @@ import java.nio.ByteBuffer
 import java.nio.file.Paths
 import java.util.UUID
 
-import com.datamountaineer.streamreactor.connect.converters.source.{AvroConverter, BytesConverter, JsonSimpleConverter, MsgKey}
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceConfig
+import com.datamountaineer.streamreactor.connect.converters.MsgKey
+import com.datamountaineer.streamreactor.connect.converters.source.{AvroConverter, BytesConverter, JsonSimpleConverter}
+import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
 import com.datamountaineer.streamreactor.connect.serialization.AvroSerializer
 import com.sksamuel.avro4s.{RecordFormat, SchemaFor}
 import io.confluent.connect.avro.AvroData
@@ -63,6 +62,7 @@ class MqttSourceTaskTest extends WordSpec with Matchers with BeforeAndAfter {
 
   private def getSchemaFile(mqttSource: String, schema: org.apache.avro.Schema) = {
     val schemaFile = Paths.get(UUID.randomUUID().toString)
+
     def writeSchema(schema: org.apache.avro.Schema): File = {
 
       val bw = new BufferedWriter(new FileWriter(schemaFile.toFile))
@@ -91,27 +91,21 @@ class MqttSourceTaskTest extends WordSpec with Matchers with BeforeAndAfter {
     val studentSchema = SchemaFor[Student]()
     val task = new MqttSourceTask
     task.start(Map(
-      MqttSourceConfig.CLEAN_SESSION_CONFIG -> "true",
-      MqttSourceConfig.CONNECTION_TIMEOUT_CONFIG -> connectionTimeout.toString,
-      MqttSourceConfig.KCQL_CONFIG -> s"INSERT INTO $target1 SELECT * FROM $source1;INSERT INTO $target2 SELECT * FROM $source2;INSERT INTO $target3 SELECT * FROM $source3",
-      MqttSourceConfig.KEEP_ALIVE_INTERVAL_CONFIG -> keepAlive.toString,
-      MqttSourceConfig.CONVERTER_CONFIG -> s"$source1=${classOf[BytesConverter].getCanonicalName};$source2=${classOf[JsonSimpleConverter].getCanonicalName};$source3=${classOf[AvroConverter].getCanonicalName};",
+      MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
+      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> connectionTimeout.toString,
+      MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $target1 SELECT * FROM $source1 WITHCONVERTER=${classOf[BytesConverter].getCanonicalName};INSERT INTO $target2 SELECT * FROM $source2 WITHCONVERTER=${classOf[JsonSimpleConverter].getCanonicalName};INSERT INTO $target3 SELECT * FROM $source3 WITHCONVERTER=${classOf[AvroConverter].getCanonicalName}",
+      MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> keepAlive.toString,
       AvroConverter.SCHEMA_CONFIG -> s"$source3=${getSchemaFile(source3, studentSchema)}",
-      MqttSourceConfig.CLIENT_ID_CONFIG -> clientId,
-      MqttSourceConfig.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
-      MqttSourceConfig.HOSTS_CONFIG -> connection,
-      MqttSourceConfig.QS_CONFIG -> qs.toString
+      MqttConfigConstants.CLIENT_ID_CONFIG -> clientId,
+      MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
+      MqttConfigConstants.HOSTS_CONFIG -> connection,
+      MqttConfigConstants.QS_CONFIG -> qs.toString
     ))
 
 
     val message1 = "message1".getBytes()
-
-
     val student = Student("Mike Bush", 19, 9.3)
     val message2 = JacksonJson.toJson(student).getBytes
-
-    val recordFormat = RecordFormat[Student]
-
     val message3 = AvroSerializer.getBytes(student)
 
     publishMessage(source1, message1)
@@ -122,12 +116,11 @@ class MqttSourceTaskTest extends WordSpec with Matchers with BeforeAndAfter {
     val records = task.poll()
     records.size() shouldBe 3
 
-    val avroData = new AvroData(4)
-
     records.foreach { record =>
 
       record.keySchema() shouldBe MsgKey.schema
       val source = record.key().asInstanceOf[Struct].get("topic")
+
       record.topic() match {
         case `target1` =>
           source shouldBe source1

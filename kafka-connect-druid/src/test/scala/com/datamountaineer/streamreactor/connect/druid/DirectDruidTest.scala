@@ -1,19 +1,17 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.druid
@@ -28,18 +26,18 @@ import com.google.common.io.{CharStreams, Files}
 import com.google.inject.Injector
 import com.metamx.collections.spatial.search.RectangularBound
 import com.metamx.common.lifecycle.Lifecycle
-import com.metamx.common.scala.{Jackson, Logging}
 import com.metamx.common.scala.Predef._
 import com.metamx.common.scala.concurrent._
 import com.metamx.common.scala.control._
 import com.metamx.common.scala.timekeeper.Timekeeper
 import com.metamx.common.scala.untyped._
+import com.metamx.common.scala.{Jackson, Logging}
 import io.druid.cli.{CliBroker, CliCoordinator, CliOverlord, GuiceRunnable}
 import io.druid.granularity.QueryGranularities
 import io.druid.guice.GuiceInjectors
-import io.druid.query.{Druids, Query}
 import io.druid.query.aggregation.{AggregatorFactory, LongSumAggregatorFactory}
 import io.druid.query.filter.SpatialDimFilter
+import io.druid.query.{Druids, Query}
 import io.druid.server.ClientQuerySegmentWalker
 import org.apache.curator.framework.{CuratorFramework, CuratorFrameworkFactory}
 import org.apache.curator.retry.BoundedExponentialBackoffRetry
@@ -242,7 +240,7 @@ trait DruidIntegrationSuite extends Logging with CuratorRequiringSuite
         brokerObjectMapper.writeValueAsBytes(query.run(walker, Map.empty[String, AnyRef].asJava))
       )
       val gotAsString = got.toString match {
-        case x if x.size > 1024 => x.take(1024) + " ..."
+        case x if x.length > 1024 => x.take(1024) + " ..."
         case x => x
       }
       if (got != expected) {

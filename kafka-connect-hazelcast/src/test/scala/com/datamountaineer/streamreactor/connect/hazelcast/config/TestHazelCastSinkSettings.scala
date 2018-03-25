@@ -1,19 +1,17 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.hazelcast.config
@@ -22,7 +20,6 @@ import com.datamountaineer.streamreactor.connect.errors.ThrowErrorPolicy
 import com.datamountaineer.streamreactor.connect.hazelcast.TestBase
 import com.hazelcast.config.Config
 import com.hazelcast.core.{Hazelcast, HazelcastInstance}
-import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConverters._
 
@@ -36,7 +33,7 @@ class TestHazelCastSinkSettings extends TestBase {
 
   before {
     val configApp1 = new Config()
-    configApp1.getGroupConfig.setName(GROUP_NAME).setPassword(HazelCastSinkConfig.SINK_GROUP_PASSWORD_DEFAULT)
+    configApp1.getGroupConfig.setName(TESTS_GROUP_NAME).setPassword(HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DEFAULT)
     instance = Hazelcast.newHazelcastInstance(configApp1)
   }
 
@@ -51,7 +48,7 @@ class TestHazelCastSinkSettings extends TestBase {
 
     settings.topicObject(TOPIC) shouldBe HazelCastStoreAsType(s"${TABLE}_avro", TargetType.RELIABLE_TOPIC)
     settings.ignoreFields(TOPIC).size shouldBe 0
-    settings.routes.head.isIncludeAllFields shouldBe true
+    settings.kcql.head.getIgnoredFields.isEmpty shouldBe true
     settings.errorPolicy.isInstanceOf[ThrowErrorPolicy] shouldBe true
   }
 
@@ -62,7 +59,7 @@ class TestHazelCastSinkSettings extends TestBase {
 
     settings.topicObject(TOPIC) shouldBe HazelCastStoreAsType(TABLE, TargetType.RELIABLE_TOPIC)
     settings.ignoreFields(TOPIC).size shouldBe 0
-    settings.routes.head.isIncludeAllFields shouldBe false
+    settings.kcql.head.getIgnoredFields.isEmpty shouldBe true
     settings.errorPolicy.isInstanceOf[ThrowErrorPolicy] shouldBe true
     val fields  = settings.fieldsMap(TOPIC)
     fields("a") shouldBe "a"
@@ -78,7 +75,7 @@ class TestHazelCastSinkSettings extends TestBase {
 
     settings.topicObject(TOPIC) shouldBe HazelCastStoreAsType(TABLE, TargetType.RELIABLE_TOPIC)
     settings.ignoreFields(TOPIC).size shouldBe 1
-    settings.routes.head.getIgnoredField.asScala.toSeq.head shouldBe "a"
+    settings.kcql.head.getIgnoredFields.asScala.head.getName shouldBe "a"
     settings.errorPolicy.isInstanceOf[ThrowErrorPolicy] shouldBe true
   }
 }

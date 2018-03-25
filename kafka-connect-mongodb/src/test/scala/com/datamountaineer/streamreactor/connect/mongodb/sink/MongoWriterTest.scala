@@ -1,33 +1,32 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.mongodb.sink
 
-import com.datamountaineer.connector.config.{Config, WriteModeEnum}
+import com.datamountaineer.kcql.{Kcql, WriteModeEnum}
 import com.datamountaineer.streamreactor.connect.errors.{NoopErrorPolicy, ThrowErrorPolicy}
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSinkSettings
+import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
 import com.datamountaineer.streamreactor.connect.mongodb.{Json, Transaction}
-import com.mongodb.MongoClient
 import com.mongodb.client.model.{Filters, InsertOneModel}
+import com.mongodb.{AuthenticationMechanism, MongoClient}
 import de.flapdoodle.embed.mongo.config.{MongodConfigBuilder, Net}
 import de.flapdoodle.embed.mongo.distribution.Version
 import de.flapdoodle.embed.mongo.{MongodExecutable, MongodProcess, MongodStarter}
 import de.flapdoodle.embed.process.runtime.Network
+import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.bson.Document
@@ -61,9 +60,12 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
   "MongoWriter" should {
     "insert records into the target Mongo collection with Schema.String and payload json" in {
-      val settings = MongoSinkSettings("localhost",
+      val settings = MongoSettings("localhost",
+        "",
+        new Password(""),
+        AuthenticationMechanism.SCRAM_SHA_1,
         "local",
-        Seq(Config.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
+        Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
         Map.empty,
         Map("topicA" -> Map.empty),
         Map("topicA" -> Set.empty),
@@ -78,9 +80,12 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
     }
 
     "upsert records into the target Mongo collection with Schema.String and payload json" in {
-      val settings = MongoSinkSettings("localhost",
+      val settings = MongoSettings("localhost",
+        "",
+        new Password(""),
+        AuthenticationMechanism.SCRAM_SHA_1,
         "local",
-        Seq(Config.parse("UPSERT INTO upsert_string_json SELECT * FROM topicA PK lock_time")),
+        Set(Kcql.parse("UPSERT INTO upsert_string_json SELECT * FROM topicA PK lock_time")),
         Map("topicA" -> Set("lock_time")),
         Map("topicA" -> Map.empty),
         Map("topicA" -> Set.empty),
@@ -98,9 +103,12 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
 
     "insert records into the target Mongo collection with Schema.Struct and payload Struct" in {
-      val settings = MongoSinkSettings("localhost",
+      val settings = MongoSettings("localhost",
+        "",
+        new Password(""),
+        AuthenticationMechanism.SCRAM_SHA_1,
         "local",
-        Seq(Config.parse("INSERT INTO insert_struct SELECT * FROM topicA")),
+        Set(Kcql.parse("INSERT INTO insert_struct SELECT * FROM topicA")),
         Map.empty,
         Map("topicA" -> Map.empty),
         Map("topicA" -> Set.empty),
@@ -116,9 +124,12 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
     }
 
     "upsert records into the target Mongo collection with Schema.Struct and payload Struct" in {
-      val settings = MongoSinkSettings("localhost",
+      val settings = MongoSettings("localhost",
+        "",
+        new Password(""),
+        AuthenticationMechanism.SCRAM_SHA_1,
         "local",
-        Seq(Config.parse("UPSERT INTO upsert_struct SELECT * FROM topicA PK lock_time")),
+        Set(Kcql.parse("UPSERT INTO upsert_struct SELECT * FROM topicA PK lock_time")),
         Map("topicA" -> Set("lock_time")),
         Map("topicA" -> Map.empty),
         Map("topicA" -> Set.empty),
@@ -134,9 +145,12 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
     }
 
     "insert records into the target Mongo collection with schemaless records and payload as json" in {
-      val settings = MongoSinkSettings("localhost",
+      val settings = MongoSettings("localhost",
+        "",
+        new Password(""),
+        AuthenticationMechanism.SCRAM_SHA_1,
         "local",
-        Seq(Config.parse("INSERT INTO insert_schemaless_json SELECT * FROM topicA")),
+        Set(Kcql.parse("INSERT INTO insert_schemaless_json SELECT * FROM topicA")),
         Map.empty,
         Map("topicA" -> Map.empty),
         Map("topicA" -> Set.empty),
@@ -152,9 +166,12 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
     }
 
     "upsert records into the target Mongo collection with schemaless records and payload as json" in {
-      val settings = MongoSinkSettings("localhost",
+      val settings = MongoSettings("localhost",
+        "",
+        new Password(""),
+        AuthenticationMechanism.SCRAM_SHA_1,
         "local",
-        Seq(Config.parse("INSERT INTO upsert_schemaless_json SELECT * FROM topicA")),
+        Set(Kcql.parse("INSERT INTO upsert_schemaless_json SELECT * FROM topicA")),
         Map("topicA" -> Set("lock_time")),
         Map("topicA" -> Map.empty),
         Map("topicA" -> Set.empty),
@@ -168,9 +185,113 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
       }
       runInserts(records, settings)
     }
+
+    "MongoClientProvider should set authentication mechanism to plain" in {
+      val settings = MongoSettings("mongodb://localhost",
+        "test",
+        new Password("test"),
+        AuthenticationMechanism.PLAIN,
+        "local",
+        Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
+        Map.empty,
+        Map("topicA" -> Map.empty),
+        Map("topicA" -> Set.empty),
+        NoopErrorPolicy())
+
+      val client = MongoClientProvider(settings = settings)
+      val auth = client.getCredentialsList.head
+      auth.getAuthenticationMechanism shouldBe (AuthenticationMechanism.PLAIN)
+    }
+
+    "MongoClientProvider should set authentication mechanism to GSSAPI" in {
+      val settings = MongoSettings("mongodb://localhost",
+        "test",
+        new Password("test"),
+        AuthenticationMechanism.GSSAPI,
+        "local",
+        Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
+        Map.empty,
+        Map("topicA" -> Map.empty),
+        Map("topicA" -> Set.empty),
+        NoopErrorPolicy())
+
+      val client = MongoClientProvider(settings = settings)
+      val auth = client.getCredentialsList.head
+      auth.getAuthenticationMechanism shouldBe (AuthenticationMechanism.GSSAPI)
+    }
+
+    "MongoClientProvider should set authentication mechanism to SCRAM_SHA_1" in {
+      val settings = MongoSettings("mongodb://localhost",
+        "test",
+        new Password("test"),
+        AuthenticationMechanism.SCRAM_SHA_1,
+        "local",
+        Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
+        Map.empty,
+        Map("topicA" -> Map.empty),
+        Map("topicA" -> Set.empty),
+        NoopErrorPolicy())
+
+      val client = MongoClientProvider(settings = settings)
+      val auth = client.getCredentialsList.head
+      auth.getAuthenticationMechanism shouldBe (AuthenticationMechanism.SCRAM_SHA_1)
+    }
+
+    "MongoClientProvider should set authentication mechanism to MONGODB_CR" in {
+      val settings = MongoSettings("mongodb://localhost",
+        "test",
+        new Password("test"),
+        AuthenticationMechanism.MONGODB_CR,
+        "local",
+        Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
+        Map.empty,
+        Map("topicA" -> Map.empty),
+        Map("topicA" -> Set.empty),
+        NoopErrorPolicy())
+
+      val client = MongoClientProvider(settings = settings)
+      val auth = client.getCredentialsList.head
+      auth.getAuthenticationMechanism shouldBe (AuthenticationMechanism.MONGODB_CR)
+    }
+
+    "MongoClientProvider should set have ssl enabled" in {
+      val settings = MongoSettings("mongodb://localhost/?ssl=true",
+        "test",
+        new Password("test"),
+        AuthenticationMechanism.MONGODB_CR,
+        "local",
+        Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
+        Map.empty,
+        Map("topicA" -> Map.empty),
+        Map("topicA" -> Set.empty),
+        NoopErrorPolicy())
+
+      val client = MongoClientProvider(settings = settings)
+      val auth = client.getCredentialsList.head
+      auth.getAuthenticationMechanism shouldBe (AuthenticationMechanism.MONGODB_CR)
+      client.getMongoClientOptions.isSslEnabled shouldBe true
+    }
+
+    "MongoClientProvider should set authentication mechanism to SCRAM_SHA_1 as username not set and it is the mongo default" in {
+      val settings = MongoSettings("mongodb://localhost",
+        "",
+        new Password(""),
+        AuthenticationMechanism.MONGODB_CR,
+        "local",
+        Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
+        Map.empty,
+        Map("topicA" -> Map.empty),
+        Map("topicA" -> Set.empty),
+        NoopErrorPolicy())
+
+      val client = MongoClientProvider(settings = settings)
+      client.getCredentialsList.size shouldBe 0
+      client.getMongoClientOptions.isSslEnabled shouldBe false
+    }
+
   }
 
-  private def runInserts(records: Seq[SinkRecord], settings: MongoSinkSettings) = {
+  private def runInserts(records: Seq[SinkRecord], settings: MongoSettings) = {
     val mongoWriter = new MongoWriter(settings, mongoClient.get)
     mongoWriter.write(records)
 
@@ -196,7 +317,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
   }
 
 
-  private def runUpserts(records: Seq[SinkRecord], settings: MongoSinkSettings) = {
+  private def runUpserts(records: Seq[SinkRecord], settings: MongoSettings) = {
     require(settings.kcql.size == 1)
     require(settings.kcql.head.getWriteMode == WriteModeEnum.UPSERT)
     val db = mongoClient.get.getDatabase(settings.database)

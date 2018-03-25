@@ -1,32 +1,32 @@
 /*
- * *
- *   * Copyright 2016 Datamountaineer.
- *   *
- *   * Licensed under the Apache License, Version 2.0 (the "License");
- *   * you may not use this file except in compliance with the License.
- *   * You may obtain a copy of the License at
- *   *
- *   * http://www.apache.org/licenses/LICENSE-2.0
- *   *
- *   * Unless required by applicable law or agreed to in writing, software
- *   * distributed under the License is distributed on an "AS IS" BASIS,
- *   * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *   * See the License for the specific language governing permissions and
- *   * limitations under the License.
- *   *
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.kudu
 
-import com.datamountaineer.streamreactor.connect.kudu.config.{KuduSettings, KuduSinkConfig}
+import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduSettings}
 import com.datamountaineer.streamreactor.connect.kudu.sink.KuduWriter
 import org.apache.kafka.connect.errors.RetriableException
-import org.kududb.client._
+import org.apache.kudu.client.SessionConfiguration.FlushMode
+import org.apache.kudu.client._
 import org.mockito.Matchers.{any, eq => mockEq}
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 04/03/16. 
@@ -43,8 +43,9 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     val table = mock[KuduTable]
     val client = mock[KuduClient]
     val kuduSession = mock[KuduSession]
+    val resp = mock[ListTablesResponse]
 
-    val config = new KuduSinkConfig(getConfigAutoCreate(""))
+    val config = new KuduConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
 
     when(client.newSession()).thenReturn(kuduSession)
@@ -53,6 +54,9 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     when(table.newUpsert()).thenReturn(insert)
     when(insert.getRow).thenReturn(kuduRow)
     when(table.getSchema).thenReturn(kuduSchema)
+    when(kuduSession.getFlushMode).thenReturn(FlushMode.AUTO_FLUSH_SYNC)
+    when(client.getTablesList).thenReturn(resp)
+    when(resp.getTablesList).thenReturn(List.empty[String].asJava)
 
     val writer = new KuduWriter(client, settings)
     writer.write(getTestRecords)
@@ -69,8 +73,9 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     val table = mock[KuduTable]
     val client = mock[KuduClient]
     val kuduSession = mock[KuduSession]
+    val resp = mock[ListTablesResponse]
 
-    val config = new KuduSinkConfig(getConfigAutoCreate(""))
+    val config = new KuduConfig(getConfigAutoCreate(""))
     val settings = KuduSettings(config)
 
     when(client.newSession()).thenReturn(kuduSession)
@@ -79,6 +84,10 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     when(table.newUpsert()).thenReturn(insert)
     when(insert.getRow).thenReturn(kuduRow)
     when(table.getSchema).thenReturn(kuduSchema)
+    when(kuduSession.getFlushMode).thenReturn(FlushMode.AUTO_FLUSH_SYNC)
+    when(client.getTablesList).thenReturn(resp)
+    when(resp.getTablesList).thenReturn(List.empty[String].asJava)
+
 
     val writer = new KuduWriter(client, settings)
     writer.write(getTestRecords)
@@ -86,7 +95,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
   }
 
   "should identify schema change from source records" in {
-    val schema1 =  createSchema
+    val schema1 = createSchema
     val schema2 = createSchema5
 
     val rec1 = createSinkRecord(createRecord(schema1, "1"), TOPIC, 1)
@@ -102,8 +111,9 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     val table = mock[KuduTable]
     val insert = mock[Upsert]
     val atrm = mock[AlterTableResponse]
+    val resp = mock[ListTablesResponse]
 
-    val config = new KuduSinkConfig(getConfigAutoCreateAndEvolve(""))
+    val config = new KuduConfig(getConfigAutoCreateAndEvolve(""))
     val settings = KuduSettings(config)
 
     when(client.newSession()).thenReturn(kuduSession)
@@ -114,6 +124,10 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
     when(insert.getRow).thenReturn(kuduRow2)
     when(client.alterTable(mockEq(TABLE), any[AlterTableOptions])).thenReturn(atrm)
     when(client.isAlterTableDone(TABLE)).thenReturn(true)
+    when(kuduSession.getFlushMode).thenReturn(FlushMode.AUTO_FLUSH_SYNC)
+    when(client.getTablesList).thenReturn(resp)
+    when(resp.getTablesList).thenReturn(List.empty[String].asJava)
+
     val writer = new KuduWriter(client, settings)
 
     writer.write(Set(rec1))
@@ -121,36 +135,80 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
   }
 
   "A Kudu Writer should throw retry on flush errors" in {
-      val record = getTestRecords.head
-      val kuduSchema = convertToKuduSchema(record)
-      val kuduRow = kuduSchema.newPartialRow()
+    val record = getTestRecords.head
+    val kuduSchema = convertToKuduSchema(record)
+    val kuduRow = kuduSchema.newPartialRow()
 
-      //mock out kudu client
-      val insert = mock[Upsert]
-      val table = mock[KuduTable]
-      val client = mock[KuduClient]
-      val kuduSession = mock[KuduSession]
-      val resp = mock[OperationResponse]
-      val errorRow = mock[RowError]
+    //mock out kudu client
+    val insert = mock[Upsert]
+    val table = mock[KuduTable]
+    val client = mock[KuduClient]
+    val kuduSession = mock[KuduSession]
+    val resp = mock[OperationResponse]
+    val errorRow = mock[RowError]
+    val tableresp = mock[ListTablesResponse]
 
-      val config = new KuduSinkConfig(getConfigAutoCreateRetry(""))
-      val settings = KuduSettings(config)
+    val config = new KuduConfig(getConfigAutoCreateRetry(""))
+    val settings = KuduSettings(config)
 
-      when(client.newSession()).thenReturn(kuduSession)
-      when(client.tableExists(TABLE)).thenReturn(true)
-      when(client.openTable(TABLE)).thenReturn(table)
-      when(table.newUpsert()).thenReturn(insert)
-      when(table.getSchema).thenReturn(kuduSchema)
-      when(insert.getRow).thenReturn(kuduRow)
-      when(resp.hasRowError).thenReturn(true)
-      when(errorRow.toString).thenReturn("Test error string")
-      when(resp.getRowError).thenReturn(errorRow)
-      when(kuduSession.flush()).thenReturn(List(resp))
+    when(client.newSession()).thenReturn(kuduSession)
+    when(client.tableExists(TABLE)).thenReturn(true)
+    when(client.openTable(TABLE)).thenReturn(table)
+    when(table.newUpsert()).thenReturn(insert)
+    when(table.getSchema).thenReturn(kuduSchema)
+    when(insert.getRow).thenReturn(kuduRow)
+    when(resp.hasRowError).thenReturn(true)
+    when(errorRow.toString).thenReturn("Test error string")
+    when(resp.getRowError).thenReturn(errorRow)
+    when(kuduSession.flush()).thenReturn(List(resp))
+    when(kuduSession.getFlushMode).thenReturn(FlushMode.AUTO_FLUSH_SYNC)
+    when(client.getTablesList).thenReturn(tableresp)
+    when(tableresp.getTablesList).thenReturn(List.empty[String].asJava)
 
-      val writer = new KuduWriter(client, settings)
+    val writer = new KuduWriter(client, settings)
 
-      intercept[RetriableException] {
-        writer.write(getTestRecords)
-      }
+    intercept[RetriableException] {
+      writer.write(getTestRecords)
     }
+  }
+
+  "A Kudu Writer should check pending errors and throw exception" in {
+    val record = getTestRecords.head
+    val kuduSchema = convertToKuduSchema(record)
+    val kuduRow = kuduSchema.newPartialRow()
+
+    //mock out kudu client
+    val insert = mock[Upsert]
+    val table = mock[KuduTable]
+    val client = mock[KuduClient]
+    val kuduSession = mock[KuduSession]
+    val errorRow = mock[RowError]
+    val rowErrorsAndOverflowStatus = mock[RowErrorsAndOverflowStatus]
+    val resp = mock[ListTablesResponse]
+    when(rowErrorsAndOverflowStatus.getRowErrors()).thenReturn(Array[RowError](errorRow))
+
+    val config = new KuduConfig(getConfigAutoCreateRetryWithBackgroundFlush(""))
+    val settings = KuduSettings(config)
+
+    when(client.newSession()).thenReturn(kuduSession)
+    when(client.tableExists(TABLE)).thenReturn(true)
+    when(client.openTable(TABLE)).thenReturn(table)
+    when(table.newUpsert()).thenReturn(insert)
+    when(table.getSchema).thenReturn(kuduSchema)
+    when(insert.getRow).thenReturn(kuduRow)
+    when(errorRow.toString).thenReturn("Test error string")
+    when(kuduSession.getFlushMode).thenReturn(FlushMode.AUTO_FLUSH_BACKGROUND)
+    when(kuduSession.getPendingErrors()).thenReturn(rowErrorsAndOverflowStatus)
+    when(client.getTablesList).thenReturn(resp)
+    when(resp.getTablesList).thenReturn(List.empty[String].asJava)
+
+
+    val writer = new KuduWriter(client, settings)
+    verify(kuduSession, times(1)).setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND)
+    intercept[RetriableException] {
+      writer.write(getTestRecords)
+    }
+    verify(kuduSession, times(1)).getPendingErrors
+
+  }
 }
