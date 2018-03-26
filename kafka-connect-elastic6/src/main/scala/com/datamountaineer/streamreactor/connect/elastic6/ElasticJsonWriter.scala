@@ -108,7 +108,7 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
           sinkRecords.grouped(settings.batchSize)
             .map { batch =>
               val indexes = batch.map { r =>
-                val (json, pks) = if(kcqlValue.primaryKeysPath.isEmpty) {
+                val (json, pks) = if (kcqlValue.primaryKeysPath.isEmpty) {
                   (Transform(
                     kcqlValue.fields,
                     kcqlValue.ignoredFields,
@@ -125,13 +125,13 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                     r.value(),
                     kcql.hasRetainStructure)
                 }
-                val idFromPk = pks.mkString(settings.pkJoinerSeparator);
+                val idFromPk = pks.mkString(settings.pkJoinerSeparator)
 
                 kcql.getWriteMode match {
                   case WriteModeEnum.INSERT =>
                     indexInto(i / documentType)
-                      .pipeline(kcql.getPipeline)
                       .id(if (idFromPk.isEmpty) autoGenId(r) else idFromPk)
+                      .pipeline(kcql.getPipeline)
                       .source(json.toString)
 
                   case WriteModeEnum.UPSERT =>

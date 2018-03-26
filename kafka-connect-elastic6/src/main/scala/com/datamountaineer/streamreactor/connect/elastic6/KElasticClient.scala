@@ -44,14 +44,14 @@ trait KElasticClient extends AutoCloseable {
 object KElasticClient {
   def getClient(settings: ElasticSettings, essettings: Settings, uri: ElasticsearchClientUri): KElasticClient = {
     if (settings.clientType.equals(ClientType.HTTP)) {
-      if(settings.httpBasicAuthUsername.nonEmpty && settings.httpBasicAuthPassword.nonEmpty){
+      if (settings.httpBasicAuthUsername.nonEmpty && settings.httpBasicAuthPassword.nonEmpty) {
         lazy val provider = {
           val provider = new BasicCredentialsProvider
           val credentials = new UsernamePasswordCredentials(settings.httpBasicAuthUsername, settings.httpBasicAuthPassword)
-            provider.setCredentials(AuthScope.ANY, credentials)
-            provider
+          provider.setCredentials(AuthScope.ANY, credentials)
+          provider
         }
-          new HttpKElasticClient(HttpClient(uri, new RequestConfigCallback  {
+        new HttpKElasticClient(HttpClient(uri, new RequestConfigCallback {
           override def customizeRequestConfig(requestConfigBuilder: Builder) = {
             requestConfigBuilder
           }
@@ -61,7 +61,7 @@ object KElasticClient {
           }
         }))
       } else {
-          new HttpKElasticClient(HttpClient(uri))
+        new HttpKElasticClient(HttpClient(uri))
       }
 
     }

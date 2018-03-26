@@ -29,9 +29,9 @@ A collection of components to build a real time ingestion pipeline.
 | BlockChain     | Source | Kafka connect Blockchain source to subscribe to Blockchain streams and write to Kafka.        | [Docs](https://lenses.stream/connectors/source/blockchain.html)           |
 | Bloomberg      | Source | Kafka connect source to subscribe to Bloomberg streams and write to Kafka.                    | [Docs](https://lenses.stream/connectors/source/bloomberg.html)            |
 | Cassandra      | Source | Kafka connect Cassandra source to read Cassandra and write to Kafka.                          | [Docs](https://lenses.stream/connectors/source/cassandra.html)            |
+| *Cassandra     | Sink   | Certified DSE Kafka connect Cassandra sink task to write Kafka topic payloads to Cassandra.   | [Docs](https://lenses.stream/connectors/sink/cassandra.html)              |
 | Coap           | Source | Kafka connect Coap source to read from IoT Coap endpoints using Californium.                  | [Docs](https://lenses.stream/connectors/source/coap.html)                 |
 | Coap           | Sink   | Kafka connect Coap sink to write kafka topic payload to IoT Coap endpoints using Californium. | [Docs](https://lenses.stream/connectors/sink/coap.html)                   |
-| *DSE Cassandra | Sink   | Certified DSE Kafka connect Cassandra sink task to write Kafka topic payloads to Cassandra.   | [Docs](https://lenses.stream/connectors/sink/cassandra.html)              |
 | Druid          | Sink   | Kafka connect Druid sink to write Kafka topic payloads to Druid.                              |             |
 | Elastic        | Sink   | Kafka connect Elastic Search sink to write Kafka topic payloads to Elastic Search 2.x         | [Docs](https://lenses.stream/connectors/sink/elastic.html)                |
 | Elastic 5      | Sink   | Kafka connect Elastic Search sink to write payloads to Elastic Search 5.x w. tcp or http      | [Docs](https://lenses.stream/connectors/sink/elastic5.html)               |
@@ -57,10 +57,11 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
-**1.0.1** Pending
+**1.1.0** Pending
 
 *   Added SSL, subscription, partitioning, batching and key selection to Pulsar source and sink
 *   Elastic6 connector @caiooliveiraeti !
+*   HTTP Basic Auth for Elasticsearch http client thanks @justinsoong !
 *   Add polling timeout on the JMS source connector to avoid high CPU in the source connector poll thanks #373 @matthedude
 *   Fixes on the elastic primary key separator thanks @caiooliveiraeti!
 *   Fix on the MQTT class loader

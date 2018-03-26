@@ -44,7 +44,6 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
     val sinkConfig = ElasticConfig(props)
     enableProgress = sinkConfig.getBoolean(ElasticConfigConstants.PROGRESS_COUNTER_ENABLED)
 
-
     //if error policy is retry set retry interval
     val settings = ElasticSettings(sinkConfig)
     if (settings.errorPolicy.equals(Option(ErrorPolicyEnum.RETRY))) {
