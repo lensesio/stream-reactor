@@ -18,8 +18,7 @@ package com.datamountaineer.streamreactor.connect.elastic6
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticSettings
-import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticConfigConstants}
+import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -45,11 +44,11 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
     val sinkConfig = ElasticConfig(props)
     enableProgress = sinkConfig.getBoolean(ElasticConfigConstants.PROGRESS_COUNTER_ENABLED)
 
+    //if error policy is retry set retry interval
     val settings = ElasticSettings(sinkConfig)
     if (settings.errorPolicy.equals(Option(ErrorPolicyEnum.RETRY))) {
       context.timeout(sinkConfig.getString(ElasticConfigConstants.ERROR_RETRY_INTERVAL).toLong)
     }
-
 
     writer = Some(ElasticWriter(sinkConfig))
   }

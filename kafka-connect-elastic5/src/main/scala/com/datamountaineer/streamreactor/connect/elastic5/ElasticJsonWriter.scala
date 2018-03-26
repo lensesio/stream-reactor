@@ -126,7 +126,7 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
                     r.value(),
                     kcql.hasRetainStructure)
                 }
-                val idFromPk = pks.mkString(settings.pkJoinerSeparator);
+                val idFromPk = pks.mkString(settings.pkJoinerSeparator)
 
                 kcql.getWriteMode match {
                   case WriteModeEnum.INSERT =>

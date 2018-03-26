@@ -19,9 +19,9 @@ package com.datamountaineer.streamreactor.connect.elastic5.config
 import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
 
 object ElasticConfigConstants {
-  
+
   val CONNECTOR_PREFIX = "connect.elastic"
-  
+
   val URL = s"${CONNECTOR_PREFIX}.${URL_SUFFIX}"
   val URL_DOC = "Url including port for Elastic Search cluster node."
   val URL_DEFAULT = "localhost:9300"
@@ -53,14 +53,16 @@ object ElasticConfigConstants {
   val CLIENT_TYPE_CONFIG = s"$CONNECTOR_PREFIX.use.http"
   val CLIENT_TYPE_CONFIG_DOC = "TCP or HTTP. Elastic4s client type to use, http or tcp, default is tcp."
   val CLIENT_TYPE_CONFIG_DEFAULT = "tcp"
+  val CLIENT_HTTP_BASIC_AUTH_USERNAME = s"$CONNECTOR_PREFIX.use.http.username"
+  val CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT = null
+  val CLIENT_HTTP_BASIC_AUTH_USERNAME_DOC = "Username if HTTP Basic Auth required default is null."
+  val CLIENT_HTTP_BASIC_AUTH_PASSWORD = s"$CONNECTOR_PREFIX.use.http.password"
+  val CLIENT_HTTP_BASIC_AUTH_PASSWORD_DEFAULT = null
+  val CLIENT_HTTP_BASIC_AUTH_PASSWORD_DOC = "Password if HTTP Basic Auth required default is null."
 
   val NBR_OF_RETRIES_CONFIG = s"${CONNECTOR_PREFIX}.${MAX_RETRIES_PROP_SUFFIX}"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
-
-  val ERROR_RETRY_INTERVAL = s"${CONNECTOR_PREFIX}.${RETRY_INTERVAL_PROP_SUFFIX}"
-  val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
-  val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
 
   val ERROR_POLICY_CONFIG = s"${CONNECTOR_PREFIX}.${ERROR_POLICY_PROP_SUFFIX}"
   val ERROR_POLICY_DOC: String =
@@ -73,9 +75,13 @@ object ElasticConfigConstants {
   val ERROR_POLICY_DEFAULT = "THROW"
 
   val BATCH_SIZE_CONFIG = s"$CONNECTOR_PREFIX.$BATCH_SIZE_PROP_SUFFIX"
-  val BATCH_SIZE_DOC= "How many records to process at one time. As records are pulled from Kafka it can be 100k+ which will not be feasible to throw at Elastic search at once"
-  val BATCH_SIZE_DISPLAY="Batch size"
+  val BATCH_SIZE_DOC = "How many records to process at one time. As records are pulled from Kafka it can be 100k+ which will not be feasible to throw at Elastic search at once"
+  val BATCH_SIZE_DISPLAY = "Batch size"
   val BATCH_SIZE_DEFAULT = 4000
+
+  val ERROR_RETRY_INTERVAL = s"${CONNECTOR_PREFIX}.${RETRY_INTERVAL_PROP_SUFFIX}"
+  val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
+  val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
 
   /*
   val INDEX_NAME_SUFFIX = s"${CONNECTOR_PREFIX}.index.suffix"
@@ -96,7 +102,7 @@ object ElasticConfigConstants {
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 
-  val PK_JOINER_SEPARATOR =  s"$CONNECTOR_PREFIX.pk.separator"
+  val PK_JOINER_SEPARATOR = s"$CONNECTOR_PREFIX.pk.separator"
   val PK_JOINER_SEPARATOR_DOC = "Separator used when have more that one field in PK"
   val PK_JOINER_SEPARATOR_DEFAULT = "-"
   val PK_JOINER_SEPARATOR_DISPLAY = "PK joiner separator"

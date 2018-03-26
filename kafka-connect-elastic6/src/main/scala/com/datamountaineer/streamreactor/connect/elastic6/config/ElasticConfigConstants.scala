@@ -75,8 +75,8 @@ object ElasticConfigConstants {
   val ERROR_POLICY_DEFAULT = "THROW"
 
   val BATCH_SIZE_CONFIG = s"$CONNECTOR_PREFIX.$BATCH_SIZE_PROP_SUFFIX"
-  val BATCH_SIZE_DOC= "How many records to process at one time. As records are pulled from Kafka it can be 100k+ which will not be feasible to throw at Elastic search at once"
-  val BATCH_SIZE_DISPLAY="Batch size"
+  val BATCH_SIZE_DOC = "How many records to process at one time. As records are pulled from Kafka it can be 100k+ which will not be feasible to throw at Elastic search at once"
+  val BATCH_SIZE_DISPLAY = "Batch size"
   val BATCH_SIZE_DEFAULT = 4000
 
   val ERROR_RETRY_INTERVAL = s"${CONNECTOR_PREFIX}.${RETRY_INTERVAL_PROP_SUFFIX}"
@@ -102,7 +102,7 @@ object ElasticConfigConstants {
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 
-  val PK_JOINER_SEPARATOR =  s"$CONNECTOR_PREFIX.pk.separator"
+  val PK_JOINER_SEPARATOR = s"$CONNECTOR_PREFIX.pk.separator"
   val PK_JOINER_SEPARATOR_DOC = "Separator used when have more that one field in PK"
   val PK_JOINER_SEPARATOR_DEFAULT = "-"
   val PK_JOINER_SEPARATOR_DISPLAY = "PK joiner separator"

@@ -26,6 +26,11 @@ import com.sksamuel.elastic4s.mappings.MappingDefinition
 import com.sksamuel.elastic4s.xpack.security.XPackElasticClient
 import com.sksamuel.elastic4s.{ElasticsearchClientUri, TcpClient}
 import org.elasticsearch.common.settings.Settings
+import org.elasticsearch.client.RestClientBuilder.{RequestConfigCallback, HttpClientConfigCallback}
+import org.apache.http.client.config.RequestConfig.Builder
+import org.apache.http.impl.client.BasicCredentialsProvider
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder
+import org.apache.http.auth.{UsernamePasswordCredentials, AuthScope}
 
 import scala.concurrent.Future
 
@@ -39,7 +44,25 @@ trait KElasticClient extends AutoCloseable {
 object KElasticClient {
   def getClient(settings: ElasticSettings, essettings: Settings, uri: ElasticsearchClientUri): KElasticClient = {
     if (settings.clientType.equals(ClientType.HTTP)) {
-      new HttpKElasticClient(HttpClient(uri))
+      if (settings.httpBasicAuthUsername.nonEmpty && settings.httpBasicAuthPassword.nonEmpty) {
+        lazy val provider = {
+          val provider = new BasicCredentialsProvider
+          val credentials = new UsernamePasswordCredentials(settings.httpBasicAuthUsername, settings.httpBasicAuthPassword)
+          provider.setCredentials(AuthScope.ANY, credentials)
+          provider
+        }
+        new HttpKElasticClient(HttpClient(uri, new RequestConfigCallback {
+          override def customizeRequestConfig(requestConfigBuilder: Builder) = {
+            requestConfigBuilder
+          }
+        }, new HttpClientConfigCallback {
+          override def customizeHttpClient(httpClientBuilder: HttpAsyncClientBuilder) = {
+            httpClientBuilder.setDefaultCredentialsProvider(provider)
+          }
+        }))
+      } else {
+        new HttpKElasticClient(HttpClient(uri))
+      }
     }
     else if (settings.xPackSettings.nonEmpty) {
       new TcpKElasticClient(XPackElasticClient(essettings, uri, settings.xPackPlugins: _*))
