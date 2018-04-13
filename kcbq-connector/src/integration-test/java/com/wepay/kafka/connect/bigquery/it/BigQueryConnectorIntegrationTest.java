@@ -18,9 +18,10 @@ package com.wepay.kafka.connect.bigquery.it;
  */
 
 
+import static com.google.cloud.bigquery.LegacySQLTypeName.*;
 import static org.junit.Assert.assertEquals;
 
-import com.google.cloud.Page;
+import com.google.api.gax.paging.Page;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
@@ -116,24 +117,23 @@ public class BigQueryConnectorIntegrationTest {
     }
     switch (field.getAttribute()) {
       case PRIMITIVE:
-        switch (fieldSchema.getType().getValue()) {
-          case BOOLEAN:
-            return field.getBooleanValue();
-          case BYTES:
-            // Do this in order for assertEquals() to work when this is an element of two compared
-            // lists
-            return boxByteArray(field.getBytesValue());
-          case FLOAT:
-            return field.getDoubleValue();
-          case INTEGER:
-            return field.getLongValue();
-          case STRING:
-            return field.getStringValue();
-          case TIMESTAMP:
-            return field.getTimestampValue();
-          default:
-            throw new RuntimeException("Cannot convert primitive field type "
-                                       + fieldSchema.getType());
+        if (fieldSchema.getType().getValue().equals(BOOLEAN)) {
+          return field.getBooleanValue();
+        } else if (fieldSchema.getType().getValue().equals(BYTES)) {
+          // Do this in order for assertEquals() to work when this is an element of two compared
+          // lists
+          return boxByteArray(field.getBytesValue());
+        } else if (fieldSchema.getType().getValue().equals(FLOAT)) {
+          return field.getDoubleValue();
+        } else if (fieldSchema.getType().getValue().equals(INTEGER)) {
+          return field.getLongValue();
+        } else if (fieldSchema.getType().getValue().equals(STRING)) {
+          return field.getStringValue();
+        } else if (fieldSchema.getType().getValue().equals(TIMESTAMP)) {
+          return field.getTimestampValue();
+        } else {
+          throw new RuntimeException("Cannot convert primitive field type "
+                  + fieldSchema.getType());
         }
       case REPEATED:
         List<Object> result = new ArrayList<>();

@@ -18,18 +18,21 @@ package com.wepay.kafka.connect.bigquery.write.row;
  */
 
 
+import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest;
 
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
-
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 /**
  * A class for writing lists of rows to a BigQuery table.
@@ -69,10 +72,11 @@ public abstract class BigQueryWriter {
    * @param tableId The PartitionedTableId.
    * @param rows The rows to write.
    * @param topic The Kafka topic that the row data came from.
+   * @return map from failed row id to the BigQueryError.
    */
-  protected abstract void performWriteRequest(PartitionedTableId tableId,
-                                              List<InsertAllRequest.RowToInsert> rows,
-                                              String topic)
+  protected abstract Map<Long, List<BigQueryError>> performWriteRequest(PartitionedTableId tableId,
+                                                                        List<InsertAllRequest.RowToInsert> rows,
+                                                                        String topic)
       throws BigQueryException, BigQueryConnectException;
 
   /**
@@ -102,6 +106,7 @@ public abstract class BigQueryWriter {
     logger.debug("writing {} row{} to table {}", rows.size(), rows.size() != 1 ? "s" : "", table);
 
     Exception mostRecentException = null;
+    Map<Long, List<BigQueryError>> failedRowsMap = null;
 
     int retryCount = 0;
     do {
@@ -109,8 +114,20 @@ public abstract class BigQueryWriter {
         waitRandomTime();
       }
       try {
-        performWriteRequest(table, rows, topic);
-        return;
+        failedRowsMap = performWriteRequest(table, rows, topic);
+        if (failedRowsMap.isEmpty()) {
+          // table insertion completed with no reported errors
+          return;
+        } else if (isPartialFailure(rows, failedRowsMap)) {
+            logger.info("{} rows succeeded, {} rows failed", rows.size() - failedRowsMap.size(), failedRowsMap.size());
+            // update insert rows and retry in case of partial failure
+            rows = getFailedRows(rows, failedRowsMap.keySet());
+            mostRecentException = new BigQueryConnectException(failedRowsMap);
+            retryCount++;
+        } else {
+            // throw an exception in case of complete failure
+            throw new BigQueryConnectException(failedRowsMap);
+        }
       } catch (BigQueryException err) {
         mostRecentException = err;
         if (err.getCode() == INTERNAL_SERVICE_ERROR
@@ -143,6 +160,34 @@ public abstract class BigQueryWriter {
     throw new BigQueryConnectException(
         String.format("Exceeded configured %d attempts for write request", retries),
         mostRecentException);
+  }
+
+  /**
+   * Decide whether the failure is a partial failure or complete failure
+   * @param rows The rows to write.
+   * @param failedRowsMap A map from failed row index to the BigQueryError.
+   * @return isPartialFailure.
+   */
+  private boolean isPartialFailure(List<InsertAllRequest.RowToInsert> rows, Map<Long, List<BigQueryError>> failedRowsMap) {
+    return failedRowsMap.size() < rows.size();
+  }
+
+  /**
+   * Filter out succeed rows, and return a list of failed rows.
+   * @param rows The rows to write.
+   * @param failRowsSet A set of failed row index.
+   * @return A list of failed rows.
+   */
+  private List<InsertAllRequest.RowToInsert> getFailedRows(List<InsertAllRequest.RowToInsert> rows,
+                                                           Set<Long> failRowsSet) {
+    List<InsertAllRequest.RowToInsert> failRows = new ArrayList<>();
+    for (int index = 0; index < rows.size(); index++) {
+      if (failRowsSet.contains((long)index)) {
+        logger.debug("[row with index {}]: failed", index);
+        failRows.add(rows.get(index));
+      }
+    }
+    return failRows;
   }
 
   /**

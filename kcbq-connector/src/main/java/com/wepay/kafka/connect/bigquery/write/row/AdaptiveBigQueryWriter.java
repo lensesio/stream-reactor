@@ -32,6 +32,7 @@ import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -72,14 +73,12 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
    * Sends the request to BigQuery, then checks the response to see if any errors have occurred. If
    * any have, and all errors can be blamed upon invalid columns in the rows sent, attempts to
    * update the schema of the table in BigQuery and then performs the same write request.
-   * @param tableId The PartitionedTableId.
-   * @param rows The rows to write.
-   * @param topic The Kafka topic that the row data came from.
+   * @see BigQueryWriter#performWriteRequest(PartitionedTableId, List, String)
    */
   @Override
-  public void performWriteRequest(PartitionedTableId tableId,
-                                  List<InsertAllRequest.RowToInsert> rows,
-                                  String topic) {
+  public Map<Long, List<BigQueryError>> performWriteRequest(PartitionedTableId tableId,
+                                                               List<InsertAllRequest.RowToInsert> rows,
+                                                               String topic) {
     InsertAllResponse writeResponse = null;
     InsertAllRequest request = null;
 
@@ -113,7 +112,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
           // no-op, we want to keep retrying the insert
         }
       } else {
-        throw new BigQueryConnectException(writeResponse.getInsertErrors());
+        return writeResponse.getInsertErrors();
       }
       attemptCount++;
       if (attemptCount >= AFTER_UPDATE_RETY_LIMIT) {
@@ -122,6 +121,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
       }
     }
     logger.debug("table insertion completed successfully");
+    return new HashMap<>();
   }
 
   private void attemptSchemaUpdate(PartitionedTableId tableId, String topic) {

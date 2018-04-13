@@ -86,7 +86,7 @@ public class BigQuerySinkTask extends SinkTask {
   }
 
   // For testing purposes only; will never be called by the Kafka Connect framework
-  BigQuerySinkTask(BigQuery testBigQuery, SchemaRetriever schemaRetriever) {
+  public BigQuerySinkTask(BigQuery testBigQuery, SchemaRetriever schemaRetriever) {
     this.testBigQuery = testBigQuery;
     this.schemaRetriever = schemaRetriever;
   }
