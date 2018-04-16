@@ -37,6 +37,9 @@ import org.junit.Test;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -123,6 +126,13 @@ public class BigQueryConnectorIntegrationTest {
           // Do this in order for assertEquals() to work when this is an element of two compared
           // lists
           return boxByteArray(field.getBytesValue());
+        } else if (fieldSchema.getType().getValue().equals(DATE)) {
+          DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+          long millisecondsSinceEpoch = LocalDate.parse(field.getStringValue(), dateFormatter)
+                  .atStartOfDay(ZoneOffset.UTC)
+                  .toInstant()
+                  .toEpochMilli();
+          return millisecondsSinceEpoch;
         } else if (fieldSchema.getType().getValue().equals(FLOAT)) {
           return field.getDoubleValue();
         } else if (fieldSchema.getType().getValue().equals(INTEGER)) {
@@ -263,9 +273,9 @@ public class BigQueryConnectorIntegrationTest {
     // {"row": 1, "timestamp-test": 0, "date-test": 0}
     expectedRows.add(Arrays.asList(1L, 0L, 0L));
     // {"row": 2, "timestamp-test": 42000000, "date-test": 4200}
-    expectedRows.add(Arrays.asList(2L, 42000000000L, 362880000000000L));
+    expectedRows.add(Arrays.asList(2L, 42000000000L, 362880000000L));
     // {"row": 3, "timestamp-test": 1468275102000, "date-test": 16993}
-    expectedRows.add(Arrays.asList(3L, 1468275102000000L, 1468195200000000L));
+    expectedRows.add(Arrays.asList(3L, 1468275102000000L, 1468195200000L));
 
     testRows(expectedRows, readAllRows("kcbq_test_logical_types"));
   }
