@@ -100,6 +100,7 @@ class MqttSourceTaskTest extends WordSpec with Matchers with BeforeAndAfter {
       MqttConfigConstants.HOSTS_CONFIG -> connection,
       MqttConfigConstants.QS_CONFIG -> qs.toString
     ))
+    Thread.sleep(2000) // TODO NIEPEE: This thread.sleep was missing.
 
 
     val message1 = "message1".getBytes()
