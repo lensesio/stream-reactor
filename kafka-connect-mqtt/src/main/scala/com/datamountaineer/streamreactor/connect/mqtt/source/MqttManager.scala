@@ -21,28 +21,32 @@ import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
+import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.source.SourceRecord
 import org.eclipse.paho.client.mqttv3._
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 import scala.collection.JavaConversions._
 
-class MqttManager(connectionFn: (MqttCallback) => MqttClient,
+class MqttManager(connectionFn: (MqttSourceSettings) => MqttConnectOptions,
                   convertersMap: Map[String, Converter],
-                  qualityOfService: Int,
-                  kcqlArray: Array[Kcql],
-                  throwOnErrors: Boolean,
-                  pollingTimeout: Int) extends AutoCloseable with StrictLogging with MqttCallback {
-  private val queue = new LinkedBlockingQueue[SourceRecord]() // This queue is used in messageArrived() callback of MqttClient,
-  // hence instantiation should be prior to MqttClient.
-  private val client: MqttClient = connectionFn(this)
+                  settings: MqttSourceSettings) extends AutoCloseable with StrictLogging with MqttCallbackExtended {
+  private val kcqlArray = settings.kcql.map(Kcql.parse)
+
+  // This queue is used in messageArrived() callback of MqttClient, hence instantiation should be prior to MqttClient.
+  private val queue = new LinkedBlockingQueue[SourceRecord]()
   private val sourceToTopicMap = kcqlArray.map(c => c.getSource -> c).toMap
   require(kcqlArray.nonEmpty, s"Invalid $kcqlArray parameter. At least one statement needs to be provided")
-
   private val regexMap = kcqlArray.filter(_.getWithRegex != null).map(k => k -> k.getWithRegex.r).toMap
+  private val options = connectionFn(settings)
+  private val client = new MqttClient(settings.connection, settings.clientId, new MemoryPersistence())
+  client.setCallback(this)
 
-  client.subscribe(sourceToTopicMap.keySet.toArray, Array.fill(sourceToTopicMap.keySet.size)(qualityOfService))
+  logger.info(s"Connecting to ${settings.connection}")
+  client.connect(options)
+  logger.info(s"Connected to ${settings.connection} as ${settings.clientId}")
 
   override def close(): Unit = {
     client.disconnect(5000)
@@ -62,7 +66,6 @@ class MqttManager(connectionFn: (MqttCallback) => MqttClient,
     regexMap.get(kcql).map(r => r.pattern.matcher(topic).matches())
       .getOrElse(compareTopic(topic, kcql.getSource))
   }
-
 
   override def messageArrived(topic: String, message: MqttMessage): Unit = {
     val matched = sourceToTopicMap
@@ -90,14 +93,14 @@ class MqttManager(connectionFn: (MqttCallback) => MqttClient,
           //message.setPayload(Array.empty)
           case None =>
             logger.warn(s"Error converting message with id:${message.getId} on topic:$topic. 'null' record returned by converter")
-            if (throwOnErrors)
+            if (settings.throwOnConversion)
               throw new RuntimeException(s"Error converting message with id:${message.getId} on topic:$topic. 'null' record returned by converter")
         }
 
       } catch {
         case e: Exception =>
           logger.error(s"Error handling message with id:${message.getId} on topic:$topic", e)
-          if (throwOnErrors) throw e
+          if (settings.throwOnConversion) throw e
           else logger.warn(s"Error is handled. Message will be lost! Id = ${message.getId} on topic=$topic")
       }
     }
@@ -108,12 +111,24 @@ class MqttManager(connectionFn: (MqttCallback) => MqttClient,
   }
 
   def getRecords(target: util.Collection[SourceRecord]): Int = {
-    Option(queue.poll(pollingTimeout, TimeUnit.MILLISECONDS)) match {
+    Option(queue.poll(settings.pollingTimeout, TimeUnit.MILLISECONDS)) match {
       case Some(x) =>
         target.add(x)
         queue.drainTo(target) + 1
       case None =>
         0
     }
+  }
+
+  override def connectComplete(reconnect: Boolean, serverURI: String): Unit = {
+    val topic = sourceToTopicMap.keySet.toArray
+    val qos = Array.fill(sourceToTopicMap.keySet.size)(settings.mqttQualityOfService)
+
+    if (reconnect)
+      logger.warn(s"Reconnected. Resubscribing to topic $topic...")
+    client.subscribe(topic, qos)
+    if (reconnect)
+      logger.warn(s"Resubscribed to topic $topic with QoS $qos")
+    else logger.info(s"Subscribed to topic $topic with QoS $qos")
   }
 }

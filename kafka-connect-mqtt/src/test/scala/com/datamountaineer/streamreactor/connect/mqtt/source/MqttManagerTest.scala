@@ -52,12 +52,21 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
   val keepAlive = 1000
 
   var mqttBroker: Option[Server] = None
+
   before {
+    startNewMockMqttBroker()
+  }
+
+  after {
+    stopMockMqttBroker()
+  }
+
+  private def startNewMockMqttBroker(): Unit ={
     mqttBroker = Some(new Server())
     mqttBroker.foreach(_.startServer(classPathConfig))
   }
 
-  after {
+  private def stopMockMqttBroker(): Unit ={
     mqttBroker.foreach {
       _.stopServer()
     }
@@ -95,7 +104,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
       val source = "/mqttSourceTopic/+/test"
       val target = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)
-      implicit val settings = MqttSourceSettings(
+      val settings = MqttSourceSettings(
         connection,
         None,
         None,
@@ -114,10 +123,8 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
       )
       val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
         sourcesToConvMap,
-        1,
-        Array(Kcql.parse(s"INSERT INTO $target SELECT * FROM $source")),
-        true,
-        settings.pollingTimeout)
+        settings)
+      Thread.sleep(2000)
 
       val messages = Seq("message1", "message2")
 
@@ -129,31 +136,34 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
       var records = new util.LinkedList[SourceRecord]()
       mqttManager.getRecords(records)
 
-      records.size() shouldBe 2
-      records.get(0).topic() shouldBe target
-      records.get(1).topic() shouldBe target
+      try {
+        records.size() shouldBe 2
+        records.get(0).topic() shouldBe target
+        records.get(1).topic() shouldBe target
 
-      records.get(0).value() shouldBe messages(0).getBytes()
-      records.get(1).value() shouldBe messages(1).getBytes()
+        records.get(0).value() shouldBe messages(0).getBytes()
+        records.get(1).value() shouldBe messages(1).getBytes()
 
 
-      records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
-      records.get(1).valueSchema() shouldBe Schema.BYTES_SCHEMA
+        records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
+        records.get(1).valueSchema() shouldBe Schema.BYTES_SCHEMA
 
-      val msg3 = "message3".getBytes
-      publishMessage("/mqttSourceTopic/C/test", msg3)
+        val msg3 = "message3".getBytes
+        publishMessage("/mqttSourceTopic/C/test", msg3)
 
-      Thread.sleep(500)
+        Thread.sleep(500)
 
-      records = new util.LinkedList[SourceRecord]()
-      mqttManager.getRecords(records)
+        records = new util.LinkedList[SourceRecord]()
+        mqttManager.getRecords(records)
 
-      records.size() shouldBe 1
-      records.get(0).topic() shouldBe target
-      records.get(0).value() shouldBe msg3
-      records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
-
-      mqttManager.close()
+        records.size() shouldBe 1
+        records.get(0).topic() shouldBe target
+        records.get(0).value() shouldBe msg3
+        records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
+      }
+      finally {
+        mqttManager.close()
+      }
     }
 
 
@@ -161,7 +171,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
       val source = "/mqttSourceTopic"
       val target = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)
-      implicit val settings = MqttSourceSettings(
+      val settings = MqttSourceSettings(
         connection,
         None,
         None,
@@ -180,10 +190,8 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
       )
       val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
         sourcesToConvMap,
-        1,
-        Array(Kcql.parse(s"INSERT INTO $target SELECT * FROM $source")),
-        true,
-        settings.pollingTimeout)
+        settings)
+      Thread.sleep(2000)
 
       val messages = Seq("message1", "message2")
       messages.foreach { m =>
@@ -195,38 +203,42 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
       var records = new util.LinkedList[SourceRecord]()
       mqttManager.getRecords(records)
 
-      records.size() shouldBe 2
-      records.get(0).topic() shouldBe target
-      records.get(1).topic() shouldBe target
+      try {
+        records.size() shouldBe 2
+        records.get(0).topic() shouldBe target
+        records.get(1).topic() shouldBe target
 
-      records.get(0).value() shouldBe messages(0).getBytes()
-      records.get(1).value() shouldBe messages(1).getBytes()
+        records.get(0).value() shouldBe messages(0).getBytes()
+        records.get(1).value() shouldBe messages(1).getBytes()
 
 
-      records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
-      records.get(1).valueSchema() shouldBe Schema.BYTES_SCHEMA
+        records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
+        records.get(1).valueSchema() shouldBe Schema.BYTES_SCHEMA
 
-      val msg3 = "message3".getBytes
-      publishMessage(source, msg3)
+        val msg3 = "message3".getBytes
+        publishMessage(source, msg3)
 
-      Thread.sleep(500)
+        Thread.sleep(500)
 
-      records = new util.LinkedList[SourceRecord]()
-      mqttManager.getRecords(records)
+        records = new util.LinkedList[SourceRecord]()
+        mqttManager.getRecords(records)
 
-      records.size() shouldBe 1
-      records.get(0).topic() shouldBe target
-      records.get(0).value() shouldBe msg3
-      records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
+        records.size() shouldBe 1
+        records.get(0).topic() shouldBe target
+        records.get(0).value() shouldBe msg3
+        records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
+      }
+      finally {
+        mqttManager.close()
+      }
 
-      mqttManager.close()
     }
 
     "process the messages published before subscribing" in {
       val source = "/mqttSourceTopic"
       val target = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)
-      implicit val settings = MqttSourceSettings(
+      val settings = MqttSourceSettings(
         connection,
         None,
         None,
@@ -246,10 +258,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
 
       val mqttManagerTmp = new MqttManager(MqttClientConnectionFn.apply,
         sourcesToConvMap,
-        1,
-        Array(Kcql.parse(s"INSERT INTO $target SELECT * FROM $source")),
-        true,
-        settings.pollingTimeout)
+        settings)
       Thread.sleep(2000)
       mqttManagerTmp.close()
       Thread.sleep(2000)
@@ -262,24 +271,26 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
 
       val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
         sourcesToConvMap,
-        1,
-        Array(Kcql.parse(s"INSERT INTO $target SELECT * FROM $source")),
-        true,
-        settings.pollingTimeout)
+        settings)
       Thread.sleep(2000)
 
       var records = new util.LinkedList[SourceRecord]()
       mqttManager.getRecords(records)
 
-      records.size() shouldBe 1
-      records.get(0).topic() shouldBe target
-      records.get(0).value() shouldBe messages(0).getBytes()
-      records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
+      try {
+        records.size() shouldBe 1
+        records.get(0).topic() shouldBe target
+        records.get(0).value() shouldBe messages(0).getBytes()
+        records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
 
-      mqttManager.close()
+      }
+      finally {
+        mqttManager.close()
+      }
+
     }
 
-"handle each mqtt source based on the converter" in {
+    "handle each mqtt source based on the converter" in {
       val source1 = "/mqttSource1"
       val source2 = "/mqttSource2"
       val source3 = "/mqttSource3"
@@ -295,7 +306,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
         source2 -> new JsonSimpleConverter,
         source3 -> avroConverter)
 
-      implicit val settings = MqttSourceSettings(
+      val settings = MqttSourceSettings(
         connection,
         None,
         None,
@@ -317,10 +328,8 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
 
       val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
         sourcesToConvMap,
-        1,
-        settings.kcql.map(Kcql.parse),
-        true,
-        settings.pollingTimeout)
+        settings)
+      Thread.sleep(2000)
 
       val message1 = "message1".getBytes()
 
@@ -339,56 +348,114 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
       val records = new util.LinkedList[SourceRecord]()
       mqttManager.getRecords(records)
 
-      records.size() shouldBe 3
+      try {
+        records.size() shouldBe 3
 
-      val avroData = new AvroData(4)
+        val avroData = new AvroData(4)
 
-      records.foreach { record =>
+        records.foreach { record =>
 
-        record.keySchema() shouldBe MsgKey.schema
-        val source = record.key().asInstanceOf[Struct].get("topic")
-        record.topic() match {
-          case `target1` =>
-            source shouldBe source1
-            record.valueSchema() shouldBe Schema.BYTES_SCHEMA
-            record.value() shouldBe message1
+          record.keySchema() shouldBe MsgKey.schema
+          val source = record.key().asInstanceOf[Struct].get("topic")
+          record.topic() match {
+            case `target1` =>
+              source shouldBe source1
+              record.valueSchema() shouldBe Schema.BYTES_SCHEMA
+              record.value() shouldBe message1
 
-          case `target2` =>
-            source shouldBe source2
+            case `target2` =>
+              source shouldBe source2
 
-            record.valueSchema().field("name").schema() shouldBe Schema.STRING_SCHEMA
-            record.valueSchema().field("name").index() shouldBe 0
-            record.valueSchema().field("age").schema() shouldBe Schema.INT64_SCHEMA
-            record.valueSchema().field("age").index() shouldBe 1
-            record.valueSchema().field("note").schema() shouldBe Schema.FLOAT64_SCHEMA
-            record.valueSchema().field("note").index() shouldBe 2
+              record.valueSchema().field("name").schema() shouldBe Schema.STRING_SCHEMA
+              record.valueSchema().field("name").index() shouldBe 0
+              record.valueSchema().field("age").schema() shouldBe Schema.INT64_SCHEMA
+              record.valueSchema().field("age").index() shouldBe 1
+              record.valueSchema().field("note").schema() shouldBe Schema.FLOAT64_SCHEMA
+              record.valueSchema().field("note").index() shouldBe 2
 
-            val struct = record.value().asInstanceOf[Struct]
-            struct.getString("name") shouldBe student.name
-            struct.getInt64("age") shouldBe student.age.toLong
-            struct.getFloat64("note") shouldBe student.note
+              val struct = record.value().asInstanceOf[Struct]
+              struct.getString("name") shouldBe student.name
+              struct.getInt64("age") shouldBe student.age.toLong
+              struct.getFloat64("note") shouldBe student.note
 
-          case `target3` =>
-            source shouldBe source3
+            case `target3` =>
+              source shouldBe source3
 
-            record.valueSchema().field("name").schema() shouldBe Schema.STRING_SCHEMA
-            record.valueSchema().field("name").index() shouldBe 0
-            record.valueSchema().field("age").schema() shouldBe Schema.INT32_SCHEMA
-            record.valueSchema().field("age").index() shouldBe 1
-            record.valueSchema().field("note").schema() shouldBe Schema.FLOAT64_SCHEMA
-            record.valueSchema().field("note").index() shouldBe 2
+              record.valueSchema().field("name").schema() shouldBe Schema.STRING_SCHEMA
+              record.valueSchema().field("name").index() shouldBe 0
+              record.valueSchema().field("age").schema() shouldBe Schema.INT32_SCHEMA
+              record.valueSchema().field("age").index() shouldBe 1
+              record.valueSchema().field("note").schema() shouldBe Schema.FLOAT64_SCHEMA
+              record.valueSchema().field("note").index() shouldBe 2
 
-            val struct = record.value().asInstanceOf[Struct]
-            struct.getString("name") shouldBe student.name
-            struct.getInt32("age") shouldBe student.age
-            struct.getFloat64("note") shouldBe student.note
+              val struct = record.value().asInstanceOf[Struct]
+              struct.getString("name") shouldBe student.name
+              struct.getInt32("age") shouldBe student.age
+              struct.getFloat64("note") shouldBe student.note
 
-          case other => fail(s"$other is not a valid topic")
+            case other => fail(s"$other is not a valid topic")
+          }
+
         }
-
       }
+      finally {
+        mqttManager.close()
+      }
+    }
+    "resubscribe after losing the connection with the broker" in {
+      val source = "mqttSourceTopic"
+      val target = "kafkaTopic"
+      val sourcesToConvMap = Map(source -> new BytesConverter)
+      val settings = MqttSourceSettings(
+        connection,
+        None,
+        None,
+        clientId,
+        sourcesToConvMap.map { case (k, v) => k -> v.getClass.getCanonicalName },
+        true,
+        Array(s"INSERT INTO $target SELECT * FROM $source"),
+        qs,
+        connectionTimeout,
+        pollingTimeout,
+        true,
+        keepAlive,
+        None,
+        None,
+        None
+      )
 
-      mqttManager.close()
+      // Instantiate the mqtt manager. It will subscribe to topic $source, at the currently active broker.
+      val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
+        sourcesToConvMap,
+        settings)
+      Thread.sleep(2000)
+
+      // The broker "crashes" and loses all state. The mqttManager should reconnect and resubscribe.
+      stopMockMqttBroker()
+      Thread.sleep(5000)
+
+      // A new broker starts up. The MqttManager should now reconnect and resubscribe.
+      startNewMockMqttBroker()
+      Thread.sleep(5000)
+
+      // Publish a message to the topic the manager should have resubscribed to.
+      val message = "message1"
+      publishMessage(source, message.getBytes())
+      Thread.sleep(2000)
+
+      val records = new util.LinkedList[SourceRecord]()
+      mqttManager.getRecords(records)
+
+      // Verify that the records were received by the manager.
+      try {
+        records.size() shouldBe 1
+        records.get(0).topic() shouldBe target
+        records.get(0).value() shouldBe message.getBytes()
+        records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
+      }
+      finally {
+        mqttManager.close()
+      }
     }
   }
 

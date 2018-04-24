@@ -42,7 +42,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
     logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/mqtt-source-ascii.txt")).mkString + s" v $version")
     logger.info(manifest.printManifest())
 
-    implicit val settings = MqttSourceSettings(MqttSourceConfig(props))
+    val settings = MqttSourceSettings(MqttSourceConfig(props))
 
     settings.sslCACertFile.foreach { file =>
       if (!new File(file).exists()) {
@@ -74,7 +74,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
     }
 
     logger.info("Starting Mqtt source...")
-    mqttManager = Some(new MqttManager(MqttClientConnectionFn.apply, convertersMap, settings.mqttQualityOfService, settings.kcql.map(Kcql.parse), settings.throwOnConversion, settings.pollingTimeout))
+    mqttManager = Some(new MqttManager(MqttClientConnectionFn.apply, convertersMap, settings))
     enableProgress = settings.enableProgress
   }
 

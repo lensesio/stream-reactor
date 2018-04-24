@@ -23,9 +23,9 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.eclipse.paho.client.mqttv3.{MqttCallback, MqttClient, MqttConnectOptions}
 
 object MqttClientConnectionFn extends StrictLogging {
-  def apply(callback: MqttCallback)(implicit settings: MqttSourceSettings): MqttClient = {
+  def apply(settings: MqttSourceSettings): MqttConnectOptions = {
     {
-      val options = buildBaseClient(settings.connectionTimeout,
+      buildBaseClient(settings.connectionTimeout,
                                     settings.keepAliveInterval,
                                     settings.cleanSession,
                                     settings.user,
@@ -34,14 +34,6 @@ object MqttClientConnectionFn extends StrictLogging {
                                     settings.sslCACertFile,
                                     settings.sslCertKeyFile
                                   )
-
-      val c = new MqttClient(settings.connection, settings.clientId, new MemoryPersistence())
-      c.setCallback(callback)
-
-      logger.info(s"Connecting to ${settings.connection}")
-      c.connect(options)
-      logger.info(s"Connected to ${settings.connection} as ${settings.clientId}")
-      c
     }
   }
 
