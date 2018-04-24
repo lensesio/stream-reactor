@@ -16,7 +16,7 @@
 
 project(":kafka-connect-kudu") {
     ext {
-        kuduVersion = "1.4.0"
+        kuduVersion = "1.6.0"
     }
 
     dependencies {
