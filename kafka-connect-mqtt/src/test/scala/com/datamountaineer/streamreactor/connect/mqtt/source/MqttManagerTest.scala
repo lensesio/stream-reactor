@@ -434,10 +434,11 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
       stopMockMqttBroker()
       Thread.sleep(5000)
 
+      // A new broker starts up. The MqttManager should now reconnect and resubscribe.
       startNewMockMqttBroker()
       Thread.sleep(5000)
 
-
+      // Publish a message to the topic the manager should have resubscribed to.
       val message = "message1"
       publishMessage(source, message.getBytes())
       Thread.sleep(2000)
@@ -445,6 +446,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
       val records = new util.LinkedList[SourceRecord]()
       mqttManager.getRecords(records)
 
+      // Verify that the records were received by the manager.
       try {
         records.size() shouldBe 1
         records.get(0).topic() shouldBe target
