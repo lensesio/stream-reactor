@@ -91,7 +91,7 @@ A collection of components to build a real time ingestion pipeline.
 
 **1.0.0**
 
-* Kafka 1.0.o Support
+* Kafka 1.0.0 Support
 
 **0.4.0**
 
