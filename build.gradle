@@ -26,8 +26,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.github.maiflai:gradle-scalatest:0.18'
-        classpath 'net.researchgate:gradle-release:2.6.0'
+        //classpath 'com.github.maiflai:gradle-scalatest:0.18'
         classpath "org.github.ngbinh.scalastyle:gradle-scalastyle-plugin_2.11:0.9.0"
         classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
         classpath 'de.undercouch:gradle-download-task:3.2.0'
@@ -80,7 +79,7 @@ def getGitRepo = { ->
         }
     } catch (Throwable e) {
         println("No git repo found")
-        return "https://github.com/datamountaineer"
+        return "https://github.com/landoop"
     }
     return stdout.toString().trim()
 }
@@ -96,7 +95,6 @@ allprojects {
     apply plugin: 'scalaStyle'
     apply plugin: 'com.github.johnrengelman.shadow'
     apply plugin: 'de.undercouch.download'
-    apply plugin: 'net.researchgate.release'
     apply plugin: 'maven-publish'
     apply plugin: 'signing'
 
@@ -123,8 +121,7 @@ allprojects {
         // The following 4 need to align to compile against a particular version
         confluentVersion = '4.0.0'
         kafkaVersion = '1.0.0'
-        dataMountaineerCommonVersion = "1.0.8"
-        dataMountaineerTestKitVersion = "0.7"
+        dataMountaineerCommonVersion = "1.1.0"
 
 //        // The following 4 need to align to compile against a particular version
 //        confluentVersion = '3.3.0'
@@ -157,7 +154,7 @@ allprojects {
     }
 
     repositories {
-        //mavenLocal()
+        mavenLocal()
         mavenCentral()
         maven { url "http://packages.confluent.io/maven/" }
         maven { url "http://repo.typesafe.com/typesafe/releases/" }

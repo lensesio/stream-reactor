@@ -17,7 +17,7 @@
 project(":kafka-connect-cassandra") {
 
     ext {
-        cassandraDriverVersion = "3.3.0"
+        cassandraDriverVersion = "3.5.0"
         cassandraVersion = "3.11.0"
         cassandraUnitVersion = "3.3.0.2"
         jPountzVersion = "1.3.0"

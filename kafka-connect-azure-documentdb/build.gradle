@@ -16,17 +16,15 @@
 
 project(":kafka-connect-azure-documentdb") {
     ext {
-        documentDbVersion = "1.11.0"
+        documentDbVersion = "1.16.0"
         avro4sVersion = "1.6.4"
     }
 
     dependencies {
         compile "com.microsoft.azure:azure-documentdb:$documentDbVersion"
-        testCompile "com.datamountaineer:kafka-testkit:$dataMountaineerTestKitVersion"
         testCompile "org.json4s:json4s-native_$scalaMajorVersion:3.4.0"
         testCompile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
         testCompile "org.scalatest:scalatest_$scalaMajorVersion:3.0.1"
         testCompile "org.mockito:mockito-core:2.7.7"
     }
-
 }
