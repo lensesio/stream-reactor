@@ -16,13 +16,12 @@
 
 project(":kafka-connect-mongodb") {
     ext {
-        mongoVersion = "3.3.0"
+        mongoVersion = "3.6.3"
         avro4sVersion = "1.6.4"
     }
 
     dependencies {
         compile "org.mongodb:mongo-java-driver:$mongoVersion"
-        testCompile "com.datamountaineer:kafka-testkit:$dataMountaineerTestKitVersion"
         testCompile "org.json4s:json4s-native_$scalaMajorVersion:3.4.0"
         testCompile "de.flapdoodle.embed:de.flapdoodle.embed.mongo:1.50.5"
         testCompile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"

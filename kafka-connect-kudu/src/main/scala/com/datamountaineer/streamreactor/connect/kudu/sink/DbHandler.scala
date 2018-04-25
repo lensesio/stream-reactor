@@ -101,7 +101,17 @@ object DbHandler extends StrictLogging with KuduConverter {
         setting
           .kcql
           .filter(r => r.isAutoCreate && !client.tableExists(r.getTarget)) //don't try to create existing tables
-          .map(m => createTableProps(subjects, m, url, client))
+          .map(m => {
+            var lkTopic = m.getSource
+
+            if (!subjects.contains(lkTopic)) {
+              if (subjects.contains(lkTopic + "-value")) {
+                lkTopic = lkTopic + "-value"
+              }
+            }
+
+            createTableProps(SchemaRegistry.getSchema(url, lkTopic), m, url, client)
+        })
       }).flatten
       .map(ctp => executeCreateTable(ctp, client))
   }
@@ -109,27 +119,15 @@ object DbHandler extends StrictLogging with KuduConverter {
   /**
     * Create a Kudu table
     *
-    * @param schemas A list of the schemas available
+    * @param schema The avro schema
     * @param kcql The mapping configuration to create
     * @param client  The kudu client to use
     **/
-  def createTableProps(schemas: Set[String],
+  def createTableProps(schema: String,
                        kcql: Kcql,
                        url: String,
                        client: KuduClient): Set[CreateTableProps] = {
-    //do we have our topic
-    var lkTopic = kcql.getSource
 
-    //the schema registry
-    //console producer tags -value on end of topic name so check for it
-    if (!schemas.contains(lkTopic)) {
-      if (schemas.contains(lkTopic + "-value")) {
-        lkTopic = lkTopic + "-value"
-      }
-    }
-
-    //get the latest schema
-    val schema = SchemaRegistry.getSchema(url, lkTopic)
 
     if (schema.nonEmpty) {
       val kuduSchema = getKuduSchema(kcql, schema)
@@ -188,7 +186,7 @@ object DbHandler extends StrictLogging with KuduConverter {
       val fieldName = f.name()
       val alias = if (mappingFields.contains(fieldName)) mappingFields(fieldName) else fieldName
       val col = fromAvro(f.schema(), alias)
-      val default = if (f.defaultVal() != JsonProperties.NULL_VALUE) f.defaultVal() else null
+      val default = if (f.defaultValue() != JsonProperties.NULL_VALUE) f.defaultValue() else null
 
       if (pks.contains(alias)) {
         logger.info(s"Setting PK on ${f.name()} for ${kcql.getTarget}")

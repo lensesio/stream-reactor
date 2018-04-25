@@ -26,8 +26,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.github.maiflai:gradle-scalatest:0.18'
-        classpath 'net.researchgate:gradle-release:2.6.0'
+        //classpath 'com.github.maiflai:gradle-scalatest:0.18'
         classpath "org.github.ngbinh.scalastyle:gradle-scalastyle-plugin_2.11:0.9.0"
         classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
         classpath 'de.undercouch:gradle-download-task:3.2.0'
@@ -52,7 +51,6 @@ allprojects {
     apply plugin: 'scalaStyle'
     apply plugin: 'com.github.johnrengelman.shadow'
     apply plugin: 'de.undercouch.download'
-    apply plugin: 'net.researchgate.release'
     apply plugin: 'maven-publish'
     apply plugin: 'signing'
 
@@ -79,8 +77,7 @@ allprojects {
         // The following 4 need to align to compile against a particular version
         confluentVersion = '4.0.0'
         kafkaVersion = '1.0.0'
-        dataMountaineerCommonVersion = "1.0.8"
-        dataMountaineerTestKitVersion = "0.7"
+        dataMountaineerCommonVersion = "1.1.0"
 
         gitCommitHash = ("git rev-parse HEAD").execute().text.trim()
         gitTag = ("git describe --abbrev=0 --tags").execute().text.trim()
