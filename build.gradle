@@ -41,50 +41,6 @@ ScalaCompileOptions.metaClass.fork = true
 ScalaCompileOptions.metaClass.useAnt = false
 ScalaCompileOptions.metaClass.useCompileDaemon = false
 
-def getDateTime() {
-    DateFormat df = new SimpleDateFormat("YYYYMMDDHHmm");
-
-    return df.format(new Date());
-}
-
-def getGitHash = { ->
-    def stdout = new ByteArrayOutputStream()
-    exec {
-        commandLine 'git', 'rev-parse', 'HEAD'
-        standardOutput = stdout
-    }
-    return stdout.toString().trim()
-}
-
-def getGitTag = { ->
-    def stdout = new ByteArrayOutputStream()
-    try {
-        exec {
-            commandLine 'git', 'describe', '--abbrev=0', '--tags'
-            standardOutput = stdout
-        }
-    } catch (Throwable e) {
-        println("No tag found setting to project version ${project.version}")
-        return project.version
-    }
-    return stdout.toString().trim()
-}
-
-def getGitRepo = { ->
-    def stdout = new ByteArrayOutputStream()
-    try {
-        exec {
-            commandLine 'git', 'remote', 'get-url', 'origin'
-
-            standardOutput = stdout
-        }
-    } catch (Throwable e) {
-        println("No git repo found")
-        return "https://github.com/datamountaineer"
-    }
-    return stdout.toString().trim()
-}
-
 allprojects {
     group = 'com.datamountaineer'
     version = project.version
@@ -125,6 +81,10 @@ allprojects {
         kafkaVersion = '1.0.0'
         dataMountaineerCommonVersion = "1.0.8"
         dataMountaineerTestKitVersion = "0.7"
+
+        gitCommitHash = ("git rev-parse HEAD").execute().text.trim()
+        gitTag = ("git describe --abbrev=0 --tags").execute().text.trim()
+        gitRepo = ("git remote get-url origin").execute().text.trim()
 
 //        // The following 4 need to align to compile against a particular version
 //        confluentVersion = '3.3.0'
@@ -174,10 +134,10 @@ allprojects {
                         "KCQL-Version" : "${KCQLVersion}",
                         "Kafka-Version": "${kafkaVersion}",
                         "Created-By" : "Landoop",
-                        "Created-At" : getDateTime(),
-                        "Git-Repo": getGitRepo(),
-                        "Git-Commit-Hash": getGitHash(),
-                        "Git-Tag": getGitTag(),
+                        "Created-At" :  new Date().format("YYYYMMDDHHmm"),
+                        "Git-Repo": "${gitRepo}",
+                        "Git-Commit-Hash": "${gitCommitHash}",
+                        "Git-Tag": "${gitTag}",
                         "StreamReactor-Docs" : "https://lenses.stream/"
             )
         }
@@ -196,10 +156,10 @@ allprojects {
                     "KCQL-Version" : "${KCQLVersion}",
                     "Kafka-Version": "${kafkaVersion}",
                     "Created-By" : "Landoop",
-                    "Created-At" : getDateTime(),
-                    "Git-Repo": getGitRepo(),
-                    "Git-Commit-Hash": getGitHash(),
-                    "Git-Tag": getGitTag(),
+                    "Created-At" : new Date().format("YYYYMMDDHHmm"),
+                    "Git-Repo": "${gitRepo}",
+                    "Git-Commit-Hash": "${gitCommitHash}",
+                    "Git-Tag": "${gitTag}",
                     "StreamReactor-Docs" : "https://lenses.stream/"
             )
         }
