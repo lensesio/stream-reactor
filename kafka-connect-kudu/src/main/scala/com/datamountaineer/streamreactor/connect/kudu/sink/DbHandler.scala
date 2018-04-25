@@ -29,6 +29,7 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kudu.client.{KuduClient, KuduTable}
 import org.apache.kudu.ColumnSchema
 import org.apache.kudu.client._
+import org.codehaus.jackson.JsonNode
 
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
@@ -187,7 +188,7 @@ object DbHandler extends StrictLogging with KuduConverter {
       val fieldName = f.name()
       val alias = if (mappingFields.contains(fieldName)) mappingFields(fieldName) else fieldName
       val col = fromAvro(f.schema(), alias)
-      val default = if (f.defaultValue() != JsonProperties.NULL_VALUE) f.defaultValue() else null
+      val default = if (f.defaultVal() != JsonProperties.NULL_VALUE) f.defaultVal() else null
 
       if (pks.contains(alias)) {
         logger.info(s"Setting PK on ${f.name()} for ${kcql.getTarget}")
@@ -199,7 +200,7 @@ object DbHandler extends StrictLogging with KuduConverter {
       col.build()
     }).toList
 
-    logger.info(s"Setting columns as ${cols.mkString(",")} for ${kcql.getTarget}")
+    logger.info(s"Setting columns as ${cols.map(c => c.getName).mkString(",")} for ${kcql.getTarget}")
     cols
   }
 
