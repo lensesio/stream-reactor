@@ -40,6 +40,7 @@ ScalaCompileOptions.metaClass.fork = true
 ScalaCompileOptions.metaClass.useAnt = false
 ScalaCompileOptions.metaClass.useCompileDaemon = false
 
+
 allprojects {
     group = 'com.datamountaineer'
     version = project.version
@@ -83,6 +84,7 @@ allprojects {
         gitTag = ("git describe --abbrev=0 --tags").execute().text.trim()
         gitRepo = ("git remote get-url origin").execute().text.trim()
 
+
 //        // The following 4 need to align to compile against a particular version
 //        confluentVersion = '3.3.0'
 //        kafkaVersion = '0.11.0.0'
@@ -114,7 +116,7 @@ allprojects {
     }
 
     repositories {
-        //mavenLocal()
+        mavenLocal()
         mavenCentral()
         maven { url "http://packages.confluent.io/maven/" }
         maven { url "http://repo.typesafe.com/typesafe/releases/" }
