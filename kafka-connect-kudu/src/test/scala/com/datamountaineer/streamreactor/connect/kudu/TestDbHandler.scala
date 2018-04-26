@@ -16,11 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.kudu
 
-import com.datamountaineer.kafka.EmbeddedSingleNodeKafkaCluster
-import com.datamountaineer.kafka.schemaregistry.RestApp
+
 import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduConfigConstants, KuduSettings}
 import com.datamountaineer.streamreactor.connect.kudu.sink.{CreateTableProps, DbHandler}
-import io.confluent.kafka.schemaregistry.client.rest.RestService
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kudu.client._
@@ -158,13 +156,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
   }
 
   "Should create table" in {
-    val cluster = new EmbeddedSingleNodeKafkaCluster(1)
-    cluster.start()
-    val sr = new RestApp(8081, cluster.zKConnectString(), "_schemas")
-    sr.start()
-    Thread.sleep(3000)
-    val srClient = new RestService("http://localhost:8081")
-    val rawSchema: String =
+    val rawSchema =
       """
         |{"type":"record","name":"myrecord",
         |"fields":[
@@ -180,9 +172,6 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
         |]}";
       """.stripMargin
 
-    //register the schema for topic1
-    srClient.registerSchema(rawSchema, TOPIC)
-
     //set up configs
     val config = new KuduConfig(getConfigAutoCreate("http://localhost:8081"))
     val settings = KuduSettings(config)
@@ -192,7 +181,7 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val client = mock[KuduClient]
 
     val kuduSchemas = DbHandler.createTableProps(
-      Set(rawSchema),
+      rawSchema,
       settings.kcql.head,
       config.getString(KuduConfigConstants.SCHEMA_REGISTRY_URL),
       client)

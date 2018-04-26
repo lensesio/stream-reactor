@@ -140,7 +140,7 @@ object MongoClientProvider extends StrictLogging {
       val credentials = getCredentials(settings)
       val servers = connectionString.getHosts.map(h => new ServerAddress(h))
       val options = MongoClientOptions.builder().sslEnabled(connectionString.getOptions.isSslEnabled)
-      new MongoClient(servers, List(credentials), options.build())
+      new MongoClient(servers, credentials, options.build())
     } else {
       new MongoClient(connectionString)
     }

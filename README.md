@@ -59,6 +59,7 @@ A collection of components to build a real time ingestion pipeline.
 
 **1.1.0** Pending
 
+*   Upgrade to Kafka 1.1.0
 *   Added SSL, subscription, partitioning, batching and key selection to Pulsar source and sink
 *   Elastic6 connector @caiooliveiraeti !
 *   HTTP Basic Auth for Elasticsearch http client thanks @justinsoong !
@@ -73,10 +74,24 @@ A collection of components to build a real time ingestion pipeline.
 *   Added support for Elastic Pipelines thanks @caiooliveiraeti!
 *   Moved ReThinkDB batch size to KCQL ``connect.rethink.batch.size`` is deprecated
 *   MQTT source allows full control of matching the topic ``INSERT INTO targetTopic SELECT * FROM mqttTopic ... WITHREGEX=`$THE_REGEX` ``
+*   Upgrade Kudu Client to 0.7
+*   Upgrade Azure documentDB client to 1.16.0
+*   Upgrade Elastic5 to elastic4s 5.6.5
+*   Upgrade Elastic6 to elastic4s 6.2.5
+*   Upgrade Hazelcast client to 3.10
+*   Upgrade InfluxDB client to 2.9
+*   Upgrade MongoDB client to 3.6.3
+*   Upgrade Redis client to 2.9
+*   Kudu connector now accepts a comma separated list of master addresses
+*   Added missing ``connect.elastic.retry.interval`` to elastic5 and elastic6
+*   Added a default value set property to Cassandra to allow ``DEFAULT UNSET`` to be added on insert. Omitted columns from maps default to null.
+    Alternatively, if set ``UNSET``, pre-existing value  will be preserved
+*   Cassandra source batch size now in KCQL. ``connect.cassandra.batch.size`` is deprecated .   
+
 
 **1.0.0**
 
-* Kafka 1.0.o Support
+* Kafka 1.0.0 Support
 
 **0.4.0**
 
