@@ -89,15 +89,33 @@ trait KuduConverter {
         row.addBinary(fieldName, binary)
       case _ =>
         fieldType match {
-          case Type.STRING => row.addString(fieldName, struct.getString(fieldName))
-          case Type.INT8 => row.addByte(fieldName, struct.getInt8(fieldName).asInstanceOf[Byte])
-          case Type.INT16 => row.addShort(fieldName, struct.getInt16(fieldName))
-          case Type.INT32 => row.addInt(fieldName, struct.getInt32(fieldName))
-          case Type.INT64 => row.addLong(fieldName, struct.getInt64(fieldName))
-          case Type.BOOLEAN => row.addBoolean(fieldName, struct.get(fieldName).asInstanceOf[Boolean])
-          case Type.FLOAT32 => row.addFloat(fieldName, struct.getFloat32(fieldName))
-          case Type.FLOAT64 => row.addDouble(fieldName, struct.getFloat64(fieldName))
-          case Type.BYTES => row.addBinary(fieldName, struct.getBytes(fieldName))
+          case Type.STRING =>
+            Option(struct.getString(fieldName)).foreach(_ => row.addString(fieldName, struct.getString(fieldName)))
+
+          case Type.INT8 =>
+            Option(struct.getInt8(fieldName)).foreach(_ => row.addByte(fieldName, struct.getInt8(fieldName).asInstanceOf[Byte]))
+
+          case Type.INT16 =>
+            Option(struct.getInt16(fieldName)).foreach(_ => row.addShort(fieldName, struct.getInt16(fieldName)))
+
+          case Type.INT32 =>
+            Option(struct.getInt32(fieldName)).foreach(_ => row.addInt(fieldName, struct.getInt32(fieldName)))
+
+          case Type.INT64 =>
+            Option(struct.getInt64(fieldName)).foreach(_ => row.addLong(fieldName, struct.getInt64(fieldName)))
+
+          case Type.BOOLEAN =>
+            Option(struct.getBoolean(fieldName)).foreach(_ => row.addBoolean(fieldName, struct.getBoolean(fieldName)))
+
+          case Type.FLOAT32 =>
+            Option(struct.get(fieldName)).foreach(_ => row.addFloat(fieldName, struct.getFloat32(fieldName)))
+
+          case Type.FLOAT64 =>
+            Option(struct.getFloat64(fieldName)).foreach(_ => row.addDouble(fieldName, struct.getFloat64(fieldName)))
+
+          case Type.BYTES =>
+            Option(struct.getBytes(fieldName)).foreach(_ => row.addBinary(fieldName, struct.getBytes(fieldName)))
+
           case _ => throw new UnsupportedOperationException(s"Unknown type $fieldType")
         }
     }
