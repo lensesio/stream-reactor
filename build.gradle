@@ -76,8 +76,8 @@ allprojects {
         connectCLIVersion = "1.0.6"
 
         // The following 4 need to align to compile against a particular version
-        confluentVersion = '4.0.0'
-        kafkaVersion = '1.0.0'
+        confluentVersion = '4.1.0'
+        kafkaVersion = '1.1.0'
         dataMountaineerCommonVersion = "1.1.0"
 
         gitCommitHash = ("git rev-parse HEAD").execute().text.trim()
