@@ -397,3 +397,6 @@ task tar(type: Tar, dependsOn: prepareRelease) {
     destinationDir = file(rootRelease)
     compression = Compression.GZIP
 }
+
+project.tasks.compileScala.scalaCompileOptions.additionalParameters = ["-target:jvm-1.8"]
+project.tasks.compileTestScala.scalaCompileOptions.additionalParameters = ["-target:jvm-1.8"]
