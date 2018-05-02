@@ -58,6 +58,11 @@ allprojects {
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
 
+    compileJava {
+        println project.name + " source compatibility " + project.sourceCompatibility
+        println project.name + " target compatibility " + project.targetCompatibility
+    }
+
     ext {
         scalaMajorVersion = '2.11'
         scala = '2.11.7'
