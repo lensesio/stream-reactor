@@ -33,4 +33,7 @@ project(":kafka-connect-pulsar") {
         //testCompile("org.apache.activemq:activemq-core:$activeMq")
 
     }
+
+    project.tasks.compileScala.scalaCompileOptions.additionalParameters = ["-target:jvm-1.8"]
+    project.tasks.compileTestScala.scalaCompileOptions.additionalParameters = ["-target:jvm-1.8"]
 }
