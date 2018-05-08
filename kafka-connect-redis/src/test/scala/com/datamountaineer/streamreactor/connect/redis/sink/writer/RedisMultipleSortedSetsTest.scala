@@ -16,6 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
+import com.datamountaineer.streamreactor.connect.redis.sink.RedisSinkTask
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
@@ -69,8 +70,6 @@ class RedisMultipleSortedSetsTest extends WordSpec with Matchers with BeforeAndA
       val sinkRecord3 = new SinkRecord(TOPIC, 0, null, null, schema, struct3, 3)
 
       val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
-      // Clean up in-memory jedis
-      jedis.flushAll()
 
       writer.write(Seq(sinkRecord1))
       writer.write(Seq(sinkRecord2, sinkRecord3))
@@ -84,6 +83,62 @@ class RedisMultipleSortedSetsTest extends WordSpec with Matchers with BeforeAndA
 
     }
 
-  }
+    "multiple sorted sets task check" in {
+      val TOPIC = "sensorsTopic"
+      val KCQL = s"SELECT temperature, humidity FROM $TOPIC PK sensorID STOREAS SortedSet(score=ts)"
 
+      val props = Map(
+        RedisConfigConstants.REDIS_HOST->"localhost",
+        RedisConfigConstants.REDIS_PORT->"6379",
+        RedisConfigConstants.KCQL_CONFIG->KCQL
+      ).asJava
+
+      val task = new RedisSinkTask
+      task.start(props)
+
+      val schema = SchemaBuilder.struct().name("com.example.device")
+        .field("sensorID", Schema.STRING_SCHEMA)
+        .field("temperature", Schema.FLOAT64_SCHEMA)
+        .field("humidity", Schema.FLOAT64_SCHEMA)
+        .field("ts", Schema.INT64_SCHEMA).build()
+
+      val struct1 = new Struct(schema).put("sensorID", "sensor-sink-task").put("temperature", 60.4).put("humidity", 90.1).put("ts", 1482180657010L)
+      val sinkRecord1 = new SinkRecord(TOPIC, 0, null, null, schema, struct1, 1)
+
+      task.put(List(sinkRecord1).asJava)
+
+      val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
+      val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
+      jedis.zcard("sensor-sink-task") shouldBe 1
+    }
+
+    "multiple sorted sets task check with prefix" in {
+      val TOPIC = "sensorsTopic"
+      val KCQL = s"INSERT INTO PREFIX- SELECT temperature, humidity FROM $TOPIC PK sensorID STOREAS SortedSet(score=ts)"
+
+      val props = Map(
+        RedisConfigConstants.REDIS_HOST->"localhost",
+        RedisConfigConstants.REDIS_PORT->"6379",
+        RedisConfigConstants.KCQL_CONFIG->KCQL
+      ).asJava
+
+      val task = new RedisSinkTask
+      task.start(props)
+
+      val schema = SchemaBuilder.struct().name("com.example.device")
+        .field("sensorID", Schema.STRING_SCHEMA)
+        .field("temperature", Schema.FLOAT64_SCHEMA)
+        .field("humidity", Schema.FLOAT64_SCHEMA)
+        .field("ts", Schema.INT64_SCHEMA).build()
+
+      val struct1 = new Struct(schema).put("sensorID", "sensor-sink-task-prefix").put("temperature", 60.4).put("humidity", 90.1).put("ts", 1482180657010L)
+      val sinkRecord1 = new SinkRecord(TOPIC, 0, null, null, schema, struct1, 1)
+
+      task.put(List(sinkRecord1).asJava)
+
+      val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
+      val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
+      jedis.zcard("PREFIX-sensor-sink-task-prefix") shouldBe 1
+    }
+  }
 }

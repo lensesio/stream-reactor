@@ -61,11 +61,24 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     //-- Find out the Connector modes (cache | INSERT (SortedSet) | PK (SortedSetS)
 
     // Cache mode requires >= 1 PK and *NO* STOREAS SortedSet setting
-    val modeCache = settings.copy(kcqlSettings = settings.kcqlSettings.filter(_.kcqlConfig.getStoredAs == null).filter(_.kcqlConfig.getPrimaryKeys.size() >= 1))
+    val modeCache = settings.copy(kcqlSettings =
+      settings.kcqlSettings
+        .filter(k => k.kcqlConfig.getStoredAs == null
+          && k.kcqlConfig.getPrimaryKeys.size() >= 1))
+
     // Insert Sorted Set mode requires: target name of SortedSet to be defined and STOREAS SortedSet syntax to be provided
-    val mode_INSERT_SS = settings.copy(kcqlSettings = settings.kcqlSettings.filter(_.kcqlConfig.getStoredAs == "SortedSet").filter(_.kcqlConfig.getTarget.length > 0))
+    val mode_INSERT_SS = settings.copy(kcqlSettings =
+      settings.kcqlSettings
+      .filter(k => k.kcqlConfig.getStoredAs.toUpperCase == "SORTEDSET"
+        && k.kcqlConfig.getTarget != null
+        && k.kcqlConfig.getPrimaryKeys == null)
+    )
+
     // Multiple Sorted Sets mode requires: 1 Primary Key to be defined and STORE SortedSet syntax to be provided
-    val mode_PK_SS = settings.copy(kcqlSettings = settings.kcqlSettings.filter(_.kcqlConfig.getStoredAs == "SortedSet").filter(_.kcqlConfig.getPrimaryKeys.length == 1))
+    val mode_PK_SS = settings.copy(kcqlSettings =
+      settings.kcqlSettings
+        .filter(k => k.kcqlConfig.getStoredAs.toUpperCase == "SORTEDSET"
+          && k.kcqlConfig.getPrimaryKeys.length == 1))
 
     //-- Start as many writers as required
     writer =
@@ -77,7 +90,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
         List(new RedisInsertSortedSet(mode_INSERT_SS))
       } ++ mode_PK_SS.kcqlSettings.headOption.map { _ =>
         logger.info("Starting " + mode_PK_SS.kcqlSettings.size + " KCQLs with Redis Multiple Sorted Sets mode")
-        List(new RedisMultipleSortedSets(modeCache))
+        List(new RedisMultipleSortedSets(mode_PK_SS))
       }).flatten.toList
 
     require(writer.nonEmpty, s"No writers set for ${RedisConfigConstants.KCQL_CONFIG}!")
