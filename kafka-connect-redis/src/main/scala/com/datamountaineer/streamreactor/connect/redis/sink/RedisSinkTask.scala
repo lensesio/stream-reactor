@@ -78,7 +78,9 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     // Multiple Sorted Sets mode requires: 1 Primary Key to be defined and STORE SortedSet syntax to be provided
     val mode_PK_SS = settings.copy(kcqlSettings =
       settings.kcqlSettings
-        .filter(k => k.kcqlConfig.getStoredAs.toUpperCase == "SORTEDSET"
+        .filter(k =>
+          k.kcqlConfig.getStoredAs != null
+          && k.kcqlConfig.getStoredAs.toUpperCase == "SORTEDSET"
           && k.kcqlConfig.getPrimaryKeys.length == 1))
 
     //-- Start as many writers as required
