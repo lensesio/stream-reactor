@@ -21,7 +21,7 @@ import java.util
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisSinkSettings}
 import com.datamountaineer.streamreactor.connect.redis.sink.writer.{RedisCache, RedisInsertSortedSet, RedisMultipleSortedSets, RedisWriter}
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
+import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -69,16 +69,20 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     // Insert Sorted Set mode requires: target name of SortedSet to be defined and STOREAS SortedSet syntax to be provided
     val mode_INSERT_SS = settings.copy(kcqlSettings =
       settings.kcqlSettings
-      .filter(k => k.kcqlConfig.getStoredAs.toUpperCase == "SORTEDSET"
-        && k.kcqlConfig.getTarget != null
-        && k.kcqlConfig.getPrimaryKeys == null)
+        .filter { k =>
+          Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SORTEDSET") &&
+            k.kcqlConfig.getTarget != null &&
+            k.kcqlConfig.getPrimaryKeys == null
+        }
     )
 
     // Multiple Sorted Sets mode requires: 1 Primary Key to be defined and STORE SortedSet syntax to be provided
     val mode_PK_SS = settings.copy(kcqlSettings =
       settings.kcqlSettings
-        .filter(k => k.kcqlConfig.getStoredAs.toUpperCase == "SORTEDSET"
-          && k.kcqlConfig.getPrimaryKeys.length == 1))
+        .filter { k =>
+          Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SORTEDSET") &&
+            k.kcqlConfig.getPrimaryKeys.length == 1
+        })
 
     //-- Start as many writers as required
     writer =
