@@ -69,7 +69,8 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     // Insert Sorted Set mode requires: target name of SortedSet to be defined and STOREAS SortedSet syntax to be provided
     val mode_INSERT_SS = settings.copy(kcqlSettings =
       settings.kcqlSettings
-      .filter(k => k.kcqlConfig.getStoredAs.toUpperCase == "SORTEDSET"
+      .filter(k => k.kcqlConfig.getStoredAs != null
+        && k.kcqlConfig.getStoredAs.toUpperCase == "SORTEDSET"
         && k.kcqlConfig.getTarget != null
         && k.kcqlConfig.getPrimaryKeys == null)
     )
