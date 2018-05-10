@@ -57,7 +57,7 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
-**1.1.0** Pending
+**1.1.0**
 
 *   Upgrade to Kafka 1.1.0
 *   Added SSL, subscription, partitioning, batching and key selection to Pulsar source and sink
