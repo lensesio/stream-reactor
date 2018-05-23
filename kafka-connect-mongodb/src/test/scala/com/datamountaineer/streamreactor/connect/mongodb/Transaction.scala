@@ -53,6 +53,7 @@ case class Transaction(lock_time: Long,
     val outArr = new util.ArrayList[Any]()
     out.foreach(o => outArr.add(o.toHashMap))
     map.put("out", outArr)
+    map.put("_id", lock_time)
     map
   }
 }

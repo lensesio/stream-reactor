@@ -327,6 +327,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
       val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath).mkString
       val tx = Json.fromJson[Transaction](json)
       val doc = new Document(tx.toHashMap.asInstanceOf[java.util.Map[String, AnyRef]])
+
       new InsertOneModel[Document](doc)
     }
     collection.bulkWrite(inserts)

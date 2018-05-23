@@ -81,13 +81,29 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient) extends Str
             record,
             settings.keyBuilderMap.getOrElse(record.topic(), Set.empty)
           )(settings)
-
+          val keysAndValuesList = keysAndValues.toList
+          if (keysAndValuesList.nonEmpty) {
+            if (keysAndValuesList.size > 1) {
+              val compositeKey = keysAndValuesList.foldLeft(new Document()) { case (d, (k, v)) => d.append(k, v) }
+              document.append("_id", compositeKey)
+            } else {
+              document.append("_id", keysAndValuesList.head._2)
+            }
+          }
 
           config.getWriteMode match {
             case WriteModeEnum.INSERT => new InsertOneModel[Document](document)
+
             case WriteModeEnum.UPSERT =>
               require(keysAndValues.nonEmpty, "Need to provide keys and values to identify the record to upsert")
-              val filter = Filters.and(keysAndValues.map { case (k, v) => Filters.eq(k, v) }.toList: _*)
+              val filter = {
+                if (keysAndValuesList.size == 1) {
+                  Filters.eq("_id", keysAndValuesList.head._2)
+                } else {
+                  Filters.and(keysAndValues.map { case (k, v) => Filters.eq(s"_id.$k", v) }.toList: _*)
+                }
+              }
+
               new ReplaceOneModel[Document](
                 filter,
                 document,
@@ -132,7 +148,7 @@ object MongoWriter {
 object MongoClientProvider extends StrictLogging {
   def apply(settings: MongoSettings) = getClient(settings)
 
-  private def getClient(settings: MongoSettings) : MongoClient = {
+  private def getClient(settings: MongoSettings): MongoClient = {
     val connectionString = new MongoClientURI(settings.connection)
     logger.info(s"Initialising Mongo writer. Connection to $connectionString")
 
@@ -146,7 +162,7 @@ object MongoClientProvider extends StrictLogging {
     }
   }
 
-  private def getCredentials(settings: MongoSettings) : MongoCredential = {
+  private def getCredentials(settings: MongoSettings): MongoCredential = {
     val authenticationMechanism = settings.authenticationMechanism
     authenticationMechanism match {
       case AuthenticationMechanism.GSSAPI => MongoCredential.createGSSAPICredential(settings.username)
