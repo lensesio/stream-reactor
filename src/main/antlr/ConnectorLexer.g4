@@ -189,13 +189,40 @@ WITHDELAY
     : 'WITHDELAY'|'withdelay'
     ;
 
-
 WITHREGEX
     : 'WITHREGEX'|'withregex'
     ;
 
+WITH_FLUSH_INTERVAL
+    : 'WITH_FLUSH_INTERVAL' | 'with_flush_interval'
+    ;
+
+WITH_FLUSH_SIZE
+    : 'WITH_FLUSH_SIZE' | 'with_flush_size'
+    ;
+
+WITH_FLUSH_COUNT
+    : 'WITH_FLUSH_COUNT' | 'with_flush_count'
+    ;
+
+WITH_SCHEMA_EVOLUTION
+    : 'WITH_SCHEMA_EVOLUTION'|'with_schema_evolution'
+    ;
+
+WITH_TABLE_LOCATION
+    : 'WITH_TABLE_LOCATION' | 'with_table_location'
+    ;
+
+WITH_OVERWRITE
+    : 'WITH_OVERWRITE' | 'with_overwrite'
+    ;
+
+WITH_PARTITIONING
+    : 'WITH_PARTITIONING' | 'with_partitioning'
+    ;
+
 TTL
-   : 'TTL'|'ttl'
+   : 'TT'|'ttl'
    ;
 
 EQUAL
