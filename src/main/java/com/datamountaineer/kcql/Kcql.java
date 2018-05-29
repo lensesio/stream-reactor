@@ -3,19 +3,10 @@ package com.datamountaineer.kcql;
 import com.datamountaineer.kcql.antlr4.ConnectorLexer;
 import com.datamountaineer.kcql.antlr4.ConnectorParser;
 import com.datamountaineer.kcql.antlr4.ConnectorParserBaseListener;
-import org.antlr.v4.runtime.ANTLRInputStream;
-import org.antlr.v4.runtime.BaseErrorListener;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -67,6 +58,13 @@ public class Kcql {
   private String subscription;
   private String partitioner;
   private String withRegex;
+  private long withFlushInterval;
+  private long withFlushSize;
+  private long withFlushCount;
+  private SchemaEvolution withSchemaEvolution = SchemaEvolution.MATCH;
+  private String withTableLocation;
+  private boolean withOverwrite;
+  private PartitioningStrategy withPartitioningStrategy;
 
   private int delay;
 
@@ -306,9 +304,84 @@ public class Kcql {
     return pipeline;
   }
 
-  public String getWithRegex(){return  withRegex;}
+  public String getWithRegex() {
+    return withRegex;
+  }
+
   private void setWithRegex(String withRegex) {
     this.withRegex = withRegex;
+  }
+
+  public long getWithFlushInterval() {
+    return withFlushInterval;
+  }
+
+  public long getWithFlushSize() {
+    return withFlushSize;
+  }
+
+  private void setWithFlushCount(long withFlushCount) {
+    this.withFlushCount = withFlushCount;
+  }
+
+  public long getWithFlushCount() {
+    return withFlushCount;
+  }
+
+  private void setDynamicTarget(String dynamicTarget) {
+    this.dynamicTarget = dynamicTarget;
+  }
+
+  public String getDynamicTarget() {
+    return dynamicTarget;
+  }
+
+  public TimeUnit getTimestampUnit() {
+    return timestampUnit;
+  }
+
+  private void setTimestampUnit(TimeUnit timestampUnit) {
+    this.timestampUnit = timestampUnit;
+  }
+
+  private void setWithFlushInterval(long withFlushInterval) {
+    this.withFlushInterval = withFlushInterval;
+  }
+
+  private void setWithFlushSize(long withFlushSize) {
+    this.withFlushSize = withFlushSize;
+  }
+
+  public SchemaEvolution getWithSchemaEvolution() {
+    return withSchemaEvolution;
+  }
+
+  private void setWithSchemaEvolution(SchemaEvolution withSchemaEvolution) {
+    this.withSchemaEvolution = withSchemaEvolution;
+  }
+
+  public String getWithTableLocation() {
+    return withTableLocation;
+  }
+
+  private void setWithTableLocation(String withTableLocation) {
+    this.withTableLocation = withTableLocation;
+  }
+
+  public boolean getWithOverwrite() {
+    return withOverwrite;
+  }
+
+  private void setWithOverwrite(boolean withOverwrite) {
+    this.withOverwrite = withOverwrite;
+  }
+
+  public PartitioningStrategy getWithPartitioningStrategy() {
+    return withPartitioningStrategy;
+  }
+
+  private void setWithPartitioningStrategy(PartitioningStrategy withPartitioningStrategy) {
+    this.withPartitioningStrategy = withPartitioningStrategy;
   }
 
   public static Kcql parse(final String syntax) {
@@ -634,7 +707,6 @@ public class Kcql {
           kcql.partitions = new ArrayList<>();
         }
 
-
         int partition = Integer.parseInt(split[0]);
         if (split.length == 1) {
           kcql.partitions.add(new PartitionOffset(partition));
@@ -744,6 +816,79 @@ public class Kcql {
       public void exitWith_regex_value(ConnectorParser.With_regex_valueContext ctx) {
         kcql.withRegex = unescape(ctx.getText());
       }
+
+
+      @Override
+      public void exitWith_flush_bytes_value(ConnectorParser.With_flush_bytes_valueContext ctx) {
+        try {
+          long size = Long.parseLong(ctx.getText());
+          if (size <= 0) {
+            throw new IllegalArgumentException("Invalid value specified for WITH_FLUSH_SIZE. Expecting a LONG number greater than 0.");
+          }
+          kcql.setWithFlushSize(size);
+        } catch (NumberFormatException ex) {
+          throw new IllegalArgumentException("Invalid value specified for WITH_FLUSH_SIZE. Expecting a LONG number greater than 0.");
+        }
+      }
+
+      @Override
+      public void exitWith_flush_interval_value(ConnectorParser.With_flush_interval_valueContext ctx) {
+        try {
+          long interval = Long.parseLong(ctx.getText());
+          if (interval <= 0) {
+            throw new IllegalArgumentException("Invalid value specified for WITH_FLUSH_INTERVAL. Expecting a LONG number greater than 0.");
+          }
+          kcql.setWithFlushInterval(interval);
+        } catch (NumberFormatException ex) {
+          throw new IllegalArgumentException("Invalid value specified for WITH_FLUSH_INTERVAL. Expecting a LONG number greater than 0.");
+        }
+      }
+
+      @Override
+      public void exitWith_flush_records_value(ConnectorParser.With_flush_records_valueContext ctx) {
+        try {
+          long interval = Long.parseLong(ctx.getText());
+          if (interval <= 0) {
+            throw new IllegalArgumentException("Invalid value specified for WITH_FLUSH_COUNT. Expecting a LONG number greater than 0.");
+          }
+          kcql.setWithFlushCount(interval);
+        } catch (NumberFormatException ex) {
+          throw new IllegalArgumentException("Invalid value specified for WITH_FLUSH_COUNT. Expecting a LONG number greater than 0.");
+        }
+      }
+
+      @Override
+      public void exitWith_schema_evolution_value(ConnectorParser.With_schema_evolution_valueContext ctx) {
+        String value = ctx.getText().toUpperCase();
+        try {
+          SchemaEvolution schemaEvolution = Enum.valueOf(SchemaEvolution.class, value);
+          kcql.setWithSchemaEvolution(schemaEvolution);
+        } catch (Throwable t) {
+          throw new IllegalArgumentException("Invalid value specified for WITH_SCHEMA_EVOLUTION. Expecting one of the values:" + EnumsHelper.mkString(SchemaEvolution.values()));
+        }
+      }
+
+      @Override
+      public void exitWith_table_location_value(ConnectorParser.With_table_location_valueContext ctx) {
+        kcql.setWithTableLocation(unescape(ctx.getText()));
+      }
+
+      @Override
+      public void exitWith_overwrite_clause(ConnectorParser.With_overwrite_clauseContext ctx) {
+        kcql.setWithOverwrite(true);
+      }
+
+      @Override
+      public void exitWith_partitioning_value(ConnectorParser.With_partitioning_valueContext ctx) {
+        //_dynamic_ and _static_
+        String value = ctx.getText().toUpperCase();
+        try {
+          PartitioningStrategy strategy = Enum.valueOf(PartitioningStrategy.class, value);
+          kcql.setWithPartitioningStrategy(strategy);
+        } catch (Throwable t) {
+          throw new IllegalArgumentException("Invalid value specified for WITH_SCHEMA_EVOLUTION. Expecting one of the values:" + EnumsHelper.mkString(PartitioningStrategy.values()));
+        }
+      }
     });
 
     try {
@@ -795,22 +940,5 @@ public class Kcql {
       return value.substring(1, value.length() - 1);
     }
     return value;
-  }
-
-
-  private void setDynamicTarget(String dynamicTarget) {
-    this.dynamicTarget = dynamicTarget;
-  }
-
-  public String getDynamicTarget() {
-    return dynamicTarget;
-  }
-
-  public TimeUnit getTimestampUnit() {
-    return timestampUnit;
-  }
-
-  private void setTimestampUnit(TimeUnit timestampUnit) {
-    this.timestampUnit = timestampUnit;
   }
 }

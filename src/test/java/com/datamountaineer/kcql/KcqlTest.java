@@ -991,4 +991,111 @@ public class KcqlTest {
     assertEquals("/^#?([a-f0-9]{6}|[a-f0-9]{3})$/", kcql.getWithRegex());
     assertEquals("com.blah.Converter", kcql.getWithConverter());
   }
+
+  @Test
+  public void handleWithFlushInterval() {
+    String topic = "/TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITH_FLUSH_INTERVAL = 2010", table, topic);
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(2010, kcql.getWithFlushInterval());
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwExceptionWithFlushInterval() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITH_FLUSH_INTERVAL = 0", table, topic);
+    Kcql.parse(syntax);
+  }
+
+  @Test
+  public void handleWithSize() {
+    String topic = "/TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITH_FLUSH_SIZE = 2010", table, topic);
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(2010, kcql.getWithFlushSize());
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwExceptionWithSize() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITH_FLUSH_SIZE = 0", table, topic);
+    Kcql.parse(syntax);
+  }
+
+  @Test
+  public void handleWithCount() {
+    String topic = "/TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITH_FLUSH_COUNT = 2010", table, topic);
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(2010, kcql.getWithFlushCount());
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwExceptionWithCount() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITH_FLUSH_COUNT = 0", table, topic);
+    Kcql.parse(syntax);
+  }
+
+  @Test
+  public void handleWithTableLocation() {
+    String topic = "/TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITH_TABLE_LOCATION = `/magic/location/on/my/ssd`", table, topic);
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals("/magic/location/on/my/ssd", kcql.getWithTableLocation());
+  }
+
+  @Test
+  public void handleWithSchemaEvolution() {
+    String topic = "/TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITH_SCHEMA_EVOLUTION = ADD", table, topic);
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(SchemaEvolution.ADD, kcql.getWithSchemaEvolution());
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwExceptionOnInvalidWithSchemaEvolution() {
+    String topic = "/TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITH_SCHEMA_EVOLUTION = BOGUS", table, topic);
+    Kcql.parse(syntax);
+  }
+
+  @Test
+  public void handleWithOverwrite() {
+    String topic = "/TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITH_OVERWRITE", table, topic);
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(true, kcql.getWithOverwrite());
+
+    syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s", table, topic);
+    kcql = Kcql.parse(syntax);
+    assertEquals(false, kcql.getWithOverwrite());
+  }
+
+  @Test
+  public void handleWithPartitioning() {
+    String topic = "/TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITH_PARTITIONING = DYNAMIC", table, topic);
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(PartitioningStrategy.DYNAMIC, kcql.getWithPartitioningStrategy());
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void throwExceptionOnInvalidWithPartitioning() {
+    String topic = "/TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITH_PARTITIONING = BOGUS", table, topic);
+    Kcql.parse(syntax);
+  }
 }
