@@ -22,7 +22,6 @@ import com.datamountaineer.streamreactor.connect.rowkeys._
 import org.apache.kafka.common.config.ConfigException
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 
 // Redis connection details: host, port, password
 case class RedisConnectionInfo(host: String, port: Int, password: Option[String])
@@ -51,15 +50,16 @@ object RedisSinkSettings {
     // Get the error-policy, num-of-retries, redis-connection-info
     val errorPolicy = config.getErrorPolicy
     val nbrOfRetries = config.getNumberRetries
+
     // Get the aliases
-    val aliases = config.getFieldsAliases().toSeq
+    val aliases = config.getFieldsAliases()
     // Get the ignored fields
     val ignoredFields = kcqlConfigs.map(r => r.getIgnoredFields.map(f => f.getName).toSet)
     // Get connection info
     val connectionInfo = RedisConnectionInfo(config)
 
     // Get the builders
-    val builders = config.getRowKeyBuilders().toSeq
+    val builders = config.getRowKeyBuilders()
 
     val size = kcqlConfigs.length
 
