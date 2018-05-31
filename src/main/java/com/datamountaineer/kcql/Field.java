@@ -10,15 +10,15 @@ public class Field {
     private final FieldType fieldType;
     private final List<String> parentFields;
 
-    Field(String name, String alias, FieldType fieldType) {
+    public Field(String name, String alias, FieldType fieldType) {
         this(name, alias, fieldType, null);
     }
 
-    Field(String name, FieldType fieldType, List<String> parents) {
+    public Field(String name, FieldType fieldType, List<String> parents) {
         this(name, name, fieldType, parents);
     }
 
-    Field(String name, String alias, FieldType fieldType, List<String> parents) {
+    public Field(String name, String alias, FieldType fieldType, List<String> parents) {
         if (name == null || name.trim().length() == 0) {
             throw new IllegalArgumentException(String.format("field is not valid:<%s>", String.valueOf(name)));
         }
