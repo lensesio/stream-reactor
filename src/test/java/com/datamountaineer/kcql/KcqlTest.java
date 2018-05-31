@@ -1098,4 +1098,14 @@ public class KcqlTest {
     String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITH_PARTITIONING = BOGUS", table, topic);
     Kcql.parse(syntax);
   }
+
+
+  @Test
+  public void handleTTL() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s TTL=1", table, topic);
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(topic, kcql.getSource());
+  }
 }

@@ -222,7 +222,7 @@ WITH_PARTITIONING
     ;
 
 TTL
-   : 'TT'|'ttl'
+   : 'TTL'|'ttl'
    ;
 
 EQUAL
