@@ -1108,4 +1108,11 @@ public class KcqlTest {
     Kcql kcql = Kcql.parse(syntax);
     assertEquals(topic, kcql.getSource());
   }
+
+  @Test
+  public void handleLimit(){
+    String syntax = "insert into mytopic select a from mytable limit 200";
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(200, kcql.getLimit());
+  }
 }
