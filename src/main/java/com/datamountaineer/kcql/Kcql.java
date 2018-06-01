@@ -29,7 +29,7 @@ public class Kcql {
   private List<Field> primaryKeys = new ArrayList<>();
   private List<String> partitionBy = new ArrayList<>();
   private int retries = 1;
-  private int limit = 5;
+  private int limit = 0;
   private int batchSize;
   private Bucketing bucketing;
   private String timestamp;

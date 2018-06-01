@@ -389,12 +389,4 @@ public class KcqlSelectOnlyTest {
         Kcql k = Kcql.parse(syntax);
         assertEquals(10, k.getLimit());
     }
-
-    @Test
-    public void noLimitDefaultsTo5() {
-        String topic = "TOPIC.A";
-        String syntax = String.format("SELECT f1 as col1, f3, f2 as col2,f4 FROM %s ", topic);
-        Kcql k = Kcql.parse(syntax);
-        assertEquals(5, k.getLimit());
-    }
 }
