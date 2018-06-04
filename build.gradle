@@ -84,6 +84,7 @@ allprojects {
         confluentVersion = '4.1.0'
         kafkaVersion = '1.1.0'
         dataMountaineerCommonVersion = "1.1.3"
+        link4jVersion = "1.8.0"
 
         gitCommitHash = ("git rev-parse HEAD").execute().text.trim()
         gitTag = ("git describe --abbrev=0 --tags").execute().text.trim()
@@ -198,6 +199,8 @@ allprojects {
         compile("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion") {
 
         }
+        compile "org.apache.calcite:calcite-linq4j:$link4jVersion"
+
         testCompile "org.mockito:mockito-core:$mockitoVersion"
         testCompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
         testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
