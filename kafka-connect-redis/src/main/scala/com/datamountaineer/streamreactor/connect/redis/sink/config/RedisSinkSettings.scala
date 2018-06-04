@@ -52,7 +52,7 @@ object RedisSinkSettings {
     val nbrOfRetries = config.getNumberRetries
 
     // Get the aliases
-    val aliases = config.getFieldsAliases().toSeq
+    val aliases = config.getFieldsAliases()
     // Get the ignored fields
     val ignoredFields = kcqlConfigs.map(r => r.getIgnoredFields.map(f => f.getName).toSet)
     // Get connection info
@@ -64,7 +64,13 @@ object RedisSinkSettings {
     val size = kcqlConfigs.length
 
     val allRedisKCQLSettings = (0 until size).map { i =>
-      RedisKCQLSetting(kcqlConfigs.get(i).getSource, kcqlConfigs(i), builders(i), aliases(i), ignoredFields(i))
+      RedisKCQLSetting(
+        kcqlConfigs.get(i).getSource,
+        kcqlConfigs(i),
+        builders(i),
+        aliases(i),
+        ignoredFields(i)
+      )
     }.toSet
 
     RedisSinkSettings(connectionInfo, allRedisKCQLSettings, errorPolicy, nbrOfRetries)
