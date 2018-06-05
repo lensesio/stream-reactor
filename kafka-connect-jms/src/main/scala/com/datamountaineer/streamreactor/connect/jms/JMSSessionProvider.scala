@@ -139,7 +139,7 @@ object JMSSessionProvider extends StrictLogging {
     props.setProperty(javax.naming.Context.INITIAL_CONTEXT_FACTORY, settings.initialContextClass)
     props.setProperty(javax.naming.Context.PROVIDER_URL, settings.connectionURL)
     props.setProperty(javax.naming.Context.SECURITY_PRINCIPAL, settings.user.getOrElse(""))
-    props.setProperty(javax.naming.Context.SECURITY_AUTHENTICATION, settings.password.getOrElse(new Password("")).value())
+    props.setProperty(javax.naming.Context.SECURITY_CREDENTIALS, settings.password.getOrElse(new Password("")).value())
     settings.extraProps.map(e => e.map { case (k,v) => props.setProperty(k, v) })
     props
   }
