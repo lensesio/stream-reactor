@@ -140,5 +140,41 @@ class RedisMultipleSortedSetsTest extends WordSpec with Matchers with BeforeAndA
       val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
       jedis.zcard("PREFIX-sensor-sink-task-prefix") shouldBe 1
     }
+
+    "multiple sorted sets 2 primary keys" in {
+      val TOPIC = "sensorsTopic"
+      val KCQL = s"SELECT temperature, humidity FROM $TOPIC PK sensorID, random STOREAS SortedSet(score=ts)"
+
+      val props = Map(
+        RedisConfigConstants.REDIS_HOST->"localhost",
+        RedisConfigConstants.REDIS_PORT->"6379",
+        RedisConfigConstants.KCQL_CONFIG->KCQL
+      ).asJava
+
+      val task = new RedisSinkTask
+      task.start(props)
+
+      val schema = SchemaBuilder.struct().name("com.example.device")
+        .field("sensorID", Schema.STRING_SCHEMA)
+        .field("random", Schema.STRING_SCHEMA)
+        .field("temperature", Schema.FLOAT64_SCHEMA)
+        .field("humidity", Schema.FLOAT64_SCHEMA)
+        .field("ts", Schema.INT64_SCHEMA).build()
+
+      val struct1 = new Struct(schema)
+        .put("sensorID", "sensor-sink-task")
+        .put("random", "random")
+        .put("temperature", 60.4)
+        .put("humidity", 90.1)
+        .put("ts", 1482180657010L)
+
+      val sinkRecord1 = new SinkRecord(TOPIC, 0, null, null, schema, struct1, 1)
+
+      task.put(List(sinkRecord1).asJava)
+
+      val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
+      val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
+      jedis.zcard("sensor-sink-task:random") shouldBe 1
+    }
   }
 }

@@ -129,7 +129,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     settings.kcqlSettings
       .filter { k =>
         Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SORTEDSET") &&
-          k.kcqlConfig.getPrimaryKeys.length == 1
+          k.kcqlConfig.getPrimaryKeys.length >= 1
       }
   )
 
