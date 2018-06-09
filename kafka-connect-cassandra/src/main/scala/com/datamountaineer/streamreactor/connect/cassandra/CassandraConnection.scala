@@ -79,8 +79,8 @@ object CassandraConnection extends StrictLogging {
 
     val password = {
       if (connectorConfig.originals().containsKey(CassandraConfigConstants.PASSWD_FILE)) {
-        val passwordFile = connectorConfig.getString(CassandraConfigConstants.PASSWD_FILE)
-        Source.fromFile(passwordFile).getLines.mkString
+        val passwordFile = connectorConfig.getPassword(CassandraConfigConstants.PASSWD_FILE)
+        Source.fromFile(passwordFile.value).getLines.mkString
       }
       else
         connectorConfig.getPassword(CassandraConfigConstants.PASSWD).value
