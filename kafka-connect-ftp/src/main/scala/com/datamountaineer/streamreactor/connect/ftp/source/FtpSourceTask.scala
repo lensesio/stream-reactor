@@ -39,7 +39,7 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
   val fileConverter = FileConverter(cfg.fileConverter, cfg.originalsStrings(), offsetStorage)
 
   val monitor2topic = cfg.ftpMonitorConfigs()
-    .map(monitorCfg => (MonitoredPath(monitorCfg.path, monitorCfg.tail), monitorCfg.topic)).toMap
+    .map(monitorCfg => (MonitoredPath(monitorCfg.path, monitorCfg.mode), monitorCfg.topic)).toMap
 
   val pollDuration = Duration.parse(cfg.getString(FtpSourceConfig.RefreshRate))
   val maxBackoff = Duration.parse(cfg.getString(FtpSourceConfig.MaxBackoff))
@@ -109,8 +109,7 @@ class FtpSourceTask extends SourceTask with StrictLogging {
     logger.info(manifest.printManifest())
     val sourceConfig = new FtpSourceConfig(props)
     sourceConfig.ftpMonitorConfigs.foreach(cfg => {
-      val style = if (cfg.tail) "tail" else "updates"
-      logger.info(s"config tells us to track the ${style} of files in `${cfg.path}` to topic `${cfg.topic}")
+      logger.info(s"config tells us to track the ${cfg.mode.toString} of files in `${cfg.path}` to topic `${cfg.topic}")
     })
     poller = Some(new FtpSourcePoller(sourceConfig, context.offsetStorageReader))
   }

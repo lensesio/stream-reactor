@@ -22,10 +22,15 @@ import java.time.{Duration, Instant}
 import java.util
 
 import com.datamountaineer.streamreactor.connect.ftp.source.FtpProtocol.FtpProtocol
+import com.datamountaineer.streamreactor.connect.ftp.source.MonitorMode.MonitorMode
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.net.ftp.{FTP, FTPClient, FTPReply, FTPSClient}
 import org.apache.commons.net.{ProtocolCommandEvent, ProtocolCommandListener}
+
+import java.io.BufferedOutputStream
+import java.io.FileOutputStream
+
 
 import scala.util.{Failure, Success, Try}
 
@@ -33,7 +38,7 @@ import scala.util.{Failure, Success, Try}
 case class FetchedFile(meta:FileMetaData, body: Array[Byte])
 
 // tells to monitor which directory and how files are dealt with, might be better a trait and is TODO
-case class MonitoredPath(path:String, tail:Boolean) {
+case class MonitoredPath(path:String, mode:MonitorMode) {
   val p = Paths.get(if (path.endsWith("/")) path + "*" else path)
 }
 
@@ -67,33 +72,61 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
   }
 
   // Retrieves the FtpAbsoluteFile and returns a new or updated KnownFile
-  def fetch(file: AbsoluteFtpFile, prevFetch: Option[FileMetaData]): Option[(Option[FileMetaData], FetchedFile)] = {
+  def fetch(mode: MonitorMode, file: AbsoluteFtpFile, prevFetch: Option[FileMetaData]): Option[(Option[FileMetaData], FetchedFile)] = {
     logger.info(s"fetching ${file.path}")
     val baos = new ByteArrayOutputStream()
+    if( mode != MonitorMode.UpdateSlice ) {
+      if (ftp.retrieveFile(file.path, baos)) {
+        val bytes = baos.toByteArray
+        baos.close()
+        val hash = DigestUtils.sha256Hex(bytes)
+        val attributes = new FileAttributes(file.path, file.ftpFile.getSize, file.ftpFile.getTimestamp.toInstant)
+        val meta = prevFetch match {
+          case None => FileMetaData(attributes, hash, Instant.now, Instant.now, Instant.now)
+          case Some(old) => FileMetaData(attributes, hash, old.firstFetched, old.lastModified, Instant.now)
+        }
+        Option(prevFetch, FetchedFile(meta, bytes))
+      } else {
+        logger.warn(s"failed to fetch ${file.path}: ${ftp.getReplyString}")
+        None
+      }
+    } else {
 
-    if (ftp.retrieveFile(file.path, baos)) {
-      val bytes = baos.toByteArray
-      baos.close()
+      val offsetToReadFrom = prevFetch match {
+        case None => 0
+        case Some(old) => old.offset
+      }
+
+      ftp.setRestartOffset(offsetToReadFrom)
+      val inputStream = ftp.retrieveFileStream(file.path)
+      //TODO : slice size should be set by configuration
+      var bytes = new Array[Byte](4096)
+      val bytesRead = inputStream.read(bytes)
+      inputStream.close()
+
+      //? where is used the hash? not to know if a fetch is required!
       val hash = DigestUtils.sha256Hex(bytes)
-      val attributes = new FileAttributes(file.path, file.ftpFile.getSize, file.ftpFile.getTimestamp.toInstant)
+
+      ftp.completePendingCommand()
+
+      val attributes = new FileAttributes(file.path, offsetToReadFrom + bytesRead , file.ftpFile.getTimestamp.toInstant)
+
       val meta = prevFetch match {
         case None => FileMetaData(attributes, hash, Instant.now, Instant.now, Instant.now)
         case Some(old) => FileMetaData(attributes, hash, old.firstFetched, old.lastModified, Instant.now)
       }
       Option(prevFetch, FetchedFile(meta, bytes))
-    } else {
-      logger.warn(s"failed to fetch ${file.path}: ${ftp.getReplyString}")
-      None
     }
+
   }
 
   // translates a MonitoredDirectory and previously known FileMetaData into a FileMetaData and FileBody
-  def handleFetchedFile(tail: Boolean, prevFetch: Option[FileMetaData], current: FetchedFile): (FileMetaData, FileBody) =
+  def handleFetchedFile(mode: MonitorMode, prevFetch: Option[FileMetaData], current: FetchedFile): (FileMetaData, FileBody) =
     prevFetch match {
       case Some(previously) if previously.attribs.size != current.meta.attribs.size || previously.hash != current.meta.hash =>
         // file changed in size and/or hash
         logger.info(s"fetched ${current.meta.attribs.path}, it was known before and it changed")
-        if (tail) {
+        if (mode == MonitorMode.Tail) {
           if (current.meta.attribs.size > previously.attribs.size) {
             val hashPrevBlock = DigestUtils.sha256Hex(util.Arrays.copyOfRange(current.body, 0, previously.attribs.size.toInt))
             if (previously.hash == hashPrevBlock) {
@@ -139,9 +172,9 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
       // Filter out the files that do not need to be fetched
       .filter{ case (file, offset) => requiresFetch(file, offset) }
       // Fetch the latest file contents
-      .flatMap{ case (file, offset) => fetch(file, offset) }
+      .flatMap{ case (file, offset) => fetch(w.mode, file, offset) }
       // Extract the file changes depending on the tracking mode
-      .map{ case (prevFile, currentFile) => handleFetchedFile(w.tail, prevFile, currentFile) }
+      .map{ case (prevFile, currentFile) => handleFetchedFile(w.mode, prevFile, currentFile) }
   }
 
   def connectFtp(): Try[FTPClient] = {

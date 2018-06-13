@@ -18,12 +18,18 @@ package com.datamountaineer.streamreactor.connect.ftp.source
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.ftp.source.MonitorMode.MonitorMode
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 import scala.collection.JavaConverters._
 
-case class MonitorConfig(topic:String, path:String, tail:Boolean)
+object MonitorMode extends Enumeration {
+  type MonitorMode = Value
+  val Tail, Update, UpdateSlice = Value
+}
+
+case class MonitorConfig(topic:String, path:String, mode: MonitorMode)
 
 object KeyStyle extends Enumeration {
   type KeyStyle = Value
@@ -46,6 +52,7 @@ object FtpSourceConfig {
   val RefreshRate = "connect.ftp.refresh"
   val MonitorTail = "connect.ftp.monitor.tail"
   val MonitorUpdate = "connect.ftp.monitor.update"
+  val MonitorUpdateSlice = "connect.ftp.monitor.slice"
   val FileMaxAge = "connect.ftp.file.maxage"
   val KeyStyle = "connect.ftp.keystyle"
   val StringKeyStyle = "string"
@@ -65,6 +72,7 @@ object FtpSourceConfig {
     .define(FileMaxAge, Type.STRING, Importance.HIGH, "ignore files older than this; ISO8601 duration")
     .define(MonitorTail, Type.LIST, "", Importance.HIGH, "comma separated lists of path:destinationtopic; tail of file is tracked")
     .define(MonitorUpdate, Type.LIST, "", Importance.HIGH, "comma separated lists of path:destinationtopic; whole file is tracked")
+    .define(MonitorUpdateSlice, Type.LIST, "", Importance.HIGH, "comma separated lists of path:destinationtopic; whole file is tracked and teeated as slices")
     .define(KeyStyle, Type.STRING, Importance.HIGH, s"what the output key is set to: `${StringKeyStyle}` => filename; `${StructKeyStyle}` => structure with filename and offset")
     .define(FileConverter, Type.CLASS, "com.datamountaineer.streamreactor.connect.ftp.source.SimpleFileConverter", Importance.HIGH, s"TODO")
     .define(SourceRecordConverter, Type.CLASS, "com.datamountaineer.streamreactor.connect.ftp.source.NopSourceRecordConverter", Importance.HIGH, s"TODO")
@@ -80,8 +88,10 @@ class FtpSourceConfig(props: util.Map[String, String])
   // don't leak our ugly config!
   def ftpMonitorConfigs(): Seq[MonitorConfig] = {
     lazy val topicPathRegex = "([^:]*):(.*)".r
-    getList(FtpSourceConfig.MonitorTail).asScala.map { case topicPathRegex(path, topic) => MonitorConfig(topic, path, tail = true) } ++
-      getList(FtpSourceConfig.MonitorUpdate).asScala.map { case topicPathRegex(path, topic) => MonitorConfig(topic, path, tail = false) }
+    getList(FtpSourceConfig.MonitorTail).asScala.map { case topicPathRegex(path, topic) => MonitorConfig(topic, path, mode = MonitorMode.Tail) } ++
+      getList(FtpSourceConfig.MonitorUpdate).asScala.map { case topicPathRegex(path, topic) => MonitorConfig(topic, path, mode = MonitorMode.Update) } ++
+      getList(FtpSourceConfig.MonitorUpdateSlice).asScala.map { case topicPathRegex(path, topic) => MonitorConfig(topic, path, mode = MonitorMode.UpdateSlice) }
+
   }
 
   def address(): (String, Option[Int]) = {
