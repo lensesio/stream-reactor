@@ -1,7 +1,10 @@
 package com.datamountaineer.streamreactor.connect.ftp.source
 
+import java.util
+
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
+
 import scala.collection.JavaConverters._
 
 
@@ -11,18 +14,32 @@ class UpdateSliceModeTest extends FunSuite with Matchers with BeforeAndAfter wit
 
   val sliceSize = 4096
 
-  val defaultConfig = Map(FtpSourceConfig.Address -> s"${server.host}:${server.port}",
+  val configWithSimpleFileConverter = Map(FtpSourceConfig.Address -> s"${server.host}:${server.port}",
     FtpSourceConfig.User -> server.username,
     FtpSourceConfig.Password -> server.password,
     FtpSourceConfig.RefreshRate -> "PT0S",
     FtpSourceConfig.MonitorUpdateSlice -> "/update_slice/:update_slice",
     FtpSourceConfig.FileMaxAge -> "P7D",
     FtpSourceConfig.KeyStyle -> "string",
-    FtpSourceConfig.fileFilter -> ".*"
+    FtpSourceConfig.fileFilter -> ".*",
+    FtpSourceConfig.FileConverter -> "com.datamountaineer.streamreactor.connect.ftp.source.SimpleFileConverter"
   )
 
-  val sEmpty = new Array[Byte](0)
-  val fileContent = (0 to 10000).map(_.toByte).toArray
+  val configWithMaxLinesFileConverter = Map(FtpSourceConfig.Address -> s"${server.host}:${server.port}",
+    FtpSourceConfig.User -> server.username,
+    FtpSourceConfig.Password -> server.password,
+    FtpSourceConfig.RefreshRate -> "PT0S",
+    FtpSourceConfig.MonitorUpdateSlice -> "/update_slice/:update_slice",
+    FtpSourceConfig.FileMaxAge -> "P7D",
+    FtpSourceConfig.KeyStyle -> "string",
+    FtpSourceConfig.fileFilter -> ".*",
+    FtpSourceConfig.FileConverter -> "com.datamountaineer.streamreactor.connect.ftp.source.MaxLinesFileConverter"
+  )
+
+
+  //val sEmpty = new Array[Byte](0)
+  val lineSep = System.getProperty("line.separator")
+  val fileContent = (0 to 5000).map(index=>s"line_${index}${lineSep}").mkString.getBytes //(0 to 10000).map(_.toByte).toArray
 
   val f0 = "/update_slice/t0"
 
@@ -31,10 +48,10 @@ class UpdateSliceModeTest extends FunSuite with Matchers with BeforeAndAfter wit
     Seq(f0 -> Append(fileContent))
   )
 
-  test("Slice mode : file content is ingested with no loss of data") {
+  test("Slice mode with SimpleFileConverter : file content is ingested with no loss of data") {
     val fs = new FileSystem(server.rootDir).clear
 
-    val cfg = new FtpSourceConfig(defaultConfig.updated(FtpSourceConfig.KeyStyle,"struct").asJava)
+    val cfg = new FtpSourceConfig(configWithSimpleFileConverter.updated(FtpSourceConfig.KeyStyle,"struct").asJava)
 
     val offsets = new DummyOffsetStorage
     val poller = new FtpSourcePoller(cfg, offsets)
@@ -43,27 +60,56 @@ class UpdateSliceModeTest extends FunSuite with Matchers with BeforeAndAfter wit
     poller.poll() shouldBe empty
 
     changeSets.foreach(changeSet => {
-      val diffs = fs.applyChanges(changeSet)
+      fs.applyChanges(changeSet)
+    })
+    logger.info(s"--------------------poll-------------------------")
+    var slice = poller.poll()
+    var allReadBytes = new Array[Byte](0)
+    while (slice.size == 1 ) {
+      slice.head.topic shouldBe "update_slice"
+      val bytes = slice.head.value().asInstanceOf[Array[Byte]]
+      allReadBytes ++= bytes
+      logger.info(s"bytes.size=${bytes.size}")
+      logger.info(s"--------------------poll-------------------------")
+      slice = poller.poll()
+    }
+    server.stop()
+    allReadBytes.size shouldBe fileContent.size
+    server.stop()
+  }
+
+
+  test("Slice mode with MaxLinesFileConverter : no loss of data and sent by blocs of lines to the RecordConverter") {
+    val fs = new FileSystem(server.rootDir).clear
+
+    val cfg = new FtpSourceConfig(configWithMaxLinesFileConverter.updated(FtpSourceConfig.KeyStyle,"struct").asJava)
+
+    val offsets = new DummyOffsetStorage
+    val poller = new FtpSourcePoller(cfg, offsets)
+
+    server.start()
+
+    changeSets.foreach(changeSet => {
+      fs.applyChanges(changeSet)
     })
 
-    val expectedLastSliceSize = fileContent.length % sliceSize
-    val expectedNumberOfFullSlices = ((fileContent.length - expectedLastSliceSize) /  sliceSize)
-
-    for( i <- 1 to expectedNumberOfFullSlices){
-      logger.info(s"--------------------poll${i}-------------------------")
-      val slice = poller.poll()
-      slice should have size 1
+    logger.info(s"--------------------poll-------------------------")
+    var slice = poller.poll()
+    var allReadBytes = new Array[Byte](0)
+    while (slice.size == 1 ) {
       slice.head.topic shouldBe "update_slice"
-      slice.head.value().asInstanceOf[Array[Byte]].size shouldBe sliceSize
-    }
-    //check last slice
-    logger.info(s"--------------------poll for last slice-------------------------")
-    val lastSlice = poller.poll()
-    lastSlice should have size 1
-    lastSlice.head.topic shouldBe "update_slice"
-    lastSlice.head.value().asInstanceOf[Array[Byte]].size shouldBe expectedLastSliceSize
+      val bytes = slice.head.value().asInstanceOf[Array[Byte]]
+      allReadBytes ++= bytes
+      val lastBytes = util.Arrays.copyOfRange(bytes, bytes.size - lineSep.getBytes.size, bytes.size)
 
-    logger.info(s"--------------------poll next slice-------------------------")
-    poller.poll() shouldBe empty
+      lastBytes.deep shouldBe lineSep.getBytes.deep
+
+      logger.info(s"bytes.size=${bytes.size}")
+      logger.info(s"lastBytes=${lastBytes.deep}")
+      logger.info(s"--------------------poll-------------------------")
+      slice = poller.poll()
+    }
+    server.stop()
+    allReadBytes.deep shouldBe fileContent.deep
   }
 }
