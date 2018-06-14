@@ -67,6 +67,7 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
 
   def poll(): Stream[SourceRecord] = {
     val stream = if (buffer.isEmpty) fetchRecords() else buffer
+    //Why retrieving a limited number of records after having read all records from FTP?
     val (head, tail) = stream.splitAt(cfg.maxPollRecords)
     buffer = tail
     head
@@ -79,7 +80,7 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
         case Success(fileChanges) =>
           backoff = backoff.nextSuccess
           fileChanges.flatMap({ case (meta, body, w) =>
-            logger.info(s"got some fileChanges: ${meta.attribs.path}")
+            logger.info(s"got some fileChanges: ${meta.attribs.path}, offset = ${meta.offset}")
             fileConverter.convert(monitor2topic(w), meta, body)
           })
         case Failure(err) =>

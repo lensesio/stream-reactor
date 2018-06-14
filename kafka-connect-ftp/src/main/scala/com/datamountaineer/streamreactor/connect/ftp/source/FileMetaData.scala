@@ -28,6 +28,7 @@ case class FileAttributes(path: String, size: Long, timestamp: Instant) {
 case class FileMetaData(attribs:FileAttributes, hash:String, firstFetched:Instant, lastModified:Instant, lastInspected:Instant, offset: Long = -1L) {
   def modifiedNow() = FileMetaData(attribs, hash, firstFetched, Instant.now, lastInspected, offset)
   def inspectedNow() = FileMetaData(attribs, hash, firstFetched, lastModified, Instant.now, offset)
+  def offset(newOffset:Long) =  FileMetaData(attribs, hash, firstFetched, lastModified, Instant.now, newOffset)
   override def toString() = s"(remoteInfo: ${attribs}, hash: ${hash}, firstFetched: ${firstFetched}, lastModified: ${lastModified}, lastInspected: ${lastInspected}"
 }
 
