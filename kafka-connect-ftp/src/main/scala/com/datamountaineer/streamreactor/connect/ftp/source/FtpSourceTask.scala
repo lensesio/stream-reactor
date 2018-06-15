@@ -59,7 +59,8 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
       monitor2topic.keys.toSeq,
       cfg.timeoutMs(),
       cfg.getProtocol,
-      cfg.getString(FtpSourceConfig.fileFilter)
+      cfg.getString(FtpSourceConfig.fileFilter),
+      cfg.getInt(FtpSourceConfig.MonitorSliceSize)
     ),
       fileConverter
     )

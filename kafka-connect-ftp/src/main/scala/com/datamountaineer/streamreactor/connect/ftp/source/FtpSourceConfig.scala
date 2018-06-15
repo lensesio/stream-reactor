@@ -52,7 +52,7 @@ object FtpSourceConfig {
   val RefreshRate = "connect.ftp.refresh"
   val MonitorTail = "connect.ftp.monitor.tail"
   val MonitorUpdate = "connect.ftp.monitor.update"
-  val MonitorUpdateSlice = "connect.ftp.monitor.slice"
+  val MonitorSliceSize = "connect.ftp.monitor.slicesize"
   val FileMaxAge = "connect.ftp.file.maxage"
   val KeyStyle = "connect.ftp.keystyle"
   val StringKeyStyle = "string"
@@ -72,7 +72,7 @@ object FtpSourceConfig {
     .define(FileMaxAge, Type.STRING, Importance.HIGH, "ignore files older than this; ISO8601 duration")
     .define(MonitorTail, Type.LIST, "", Importance.HIGH, "comma separated lists of path:destinationtopic; tail of file is tracked")
     .define(MonitorUpdate, Type.LIST, "", Importance.HIGH, "comma separated lists of path:destinationtopic; whole file is tracked")
-    .define(MonitorUpdateSlice, Type.LIST, "", Importance.HIGH, "comma separated lists of path:destinationtopic; whole file is tracked and teeated as slices")
+    .define(MonitorSliceSize, Type.INT, -1, Importance.HIGH, "slice size")
     .define(KeyStyle, Type.STRING, Importance.HIGH, s"what the output key is set to: `${StringKeyStyle}` => filename; `${StructKeyStyle}` => structure with filename and offset")
     .define(FileConverter, Type.CLASS, "com.datamountaineer.streamreactor.connect.ftp.source.SimpleFileConverter", Importance.HIGH, s"TODO")
     .define(SourceRecordConverter, Type.CLASS, "com.datamountaineer.streamreactor.connect.ftp.source.NopSourceRecordConverter", Importance.HIGH, s"TODO")
@@ -89,9 +89,7 @@ class FtpSourceConfig(props: util.Map[String, String])
   def ftpMonitorConfigs(): Seq[MonitorConfig] = {
     lazy val topicPathRegex = "([^:]*):(.*)".r
     getList(FtpSourceConfig.MonitorTail).asScala.map { case topicPathRegex(path, topic) => MonitorConfig(topic, path, mode = MonitorMode.Tail) } ++
-      getList(FtpSourceConfig.MonitorUpdate).asScala.map { case topicPathRegex(path, topic) => MonitorConfig(topic, path, mode = MonitorMode.Update) } ++
-      getList(FtpSourceConfig.MonitorUpdateSlice).asScala.map { case topicPathRegex(path, topic) => MonitorConfig(topic, path, mode = MonitorMode.UpdateSlice) }
-
+      getList(FtpSourceConfig.MonitorUpdate).asScala.map { case topicPathRegex(path, topic) => MonitorConfig(topic, path, mode = MonitorMode.Update) }
   }
 
   def address(): (String, Option[Int]) = {

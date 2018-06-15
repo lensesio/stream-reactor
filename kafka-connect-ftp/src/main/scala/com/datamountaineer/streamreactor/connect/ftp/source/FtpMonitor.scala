@@ -45,7 +45,9 @@ object EmptyFileBody extends FileBody(Array[Byte](), 0)
 
 // instructs the FtpMonitor how to do its things
 case class FtpMonitorSettings(host:String, port:Option[Int], user:String, pass:String, maxAge: Option[Duration],
-                              directories: Seq[MonitoredPath], timeoutMs:Int, protocol: FtpProtocol, filter:String)
+                              directories: Seq[MonitoredPath], timeoutMs:Int, protocol: FtpProtocol, filter:String, sliceSize:Int){
+  val isSliceMode = sliceSize > 0
+}
 
 class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) extends StrictLogging {
   val MaxAge = settings.maxAge.getOrElse(Duration.ofDays(Long.MaxValue))
@@ -55,9 +57,13 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
     case FtpProtocol.SFTP => new FTPSClient()
   }
 
+  val sliceSize = settings.sliceSize
+
+  val isSliceMode = settings.isSliceMode
+
   def requiresFetch(mode: MonitorMode, file: AbsoluteFtpFile, metadata: Option[FileMetaData]): Boolean = {
     logger.info(s"${mode}")
-    if( mode != MonitorMode.UpdateSlice ) {
+    if( !isSliceMode ) {
       metadata match {
         case None => logger.debug(s"${file.name} hasn't been seen before"); true
         case Some(known) if known.attribs.size != file.ftpFile.getSize => {
@@ -93,10 +99,10 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
   }
 
   // Retrieves the FtpAbsoluteFile and returns a new or updated KnownFile
-  def fetch(mode: MonitorMode, file: AbsoluteFtpFile, prevFetch: Option[FileMetaData]): Option[(Option[FileMetaData], FetchedFile)] = {
+  def fetch(file: AbsoluteFtpFile, prevFetch: Option[FileMetaData]): Option[(Option[FileMetaData], FetchedFile)] = {
     logger.info(s"fetching ${file.path}")
     val baos = new ByteArrayOutputStream()
-    if( mode != MonitorMode.UpdateSlice ) {
+    if( !isSliceMode ) {
       if (ftp.retrieveFile(file.path, baos)) {
         val bytes = baos.toByteArray
         baos.close()
@@ -122,8 +128,7 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
 
       ftp.setRestartOffset(offsetToReadFrom)
       val inputStream = ftp.retrieveFileStream(file.path)
-      //TODO : slice size should be set by configuration
-      var buffer = new Array[Byte](4096)
+      var buffer = new Array[Byte](sliceSize)
       val bytesRead = inputStream.read(buffer)
       inputStream.close()
       ftp.completePendingCommand()
@@ -133,7 +138,7 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
 
       logger.info(s"bytesRead= ${bytesRead}")
 
-      // it doesn't make sense to compute the hash for chunks
+      // it doesn't make sense to compute the hash for chunks/slices
       val hash = DigestUtils.sha256Hex(bytes)
 
       val attributes = new FileAttributes(file.path, file.ftpFile.getSize , file.ftpFile.getTimestamp.toInstant)
@@ -149,7 +154,7 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
   // translates a MonitoredDirectory and previously known FileMetaData into a FileMetaData and FileBody
   def handleFetchedFile(mode: MonitorMode, prevFetch: Option[FileMetaData], current: FetchedFile): (FileMetaData, FileBody) = {
 
-    if( mode != MonitorMode.UpdateSlice ) {
+    if( sliceSize == -1 ) {
       prevFetch match {
         case Some(previously) if previously.attribs.size != current.meta.attribs.size || previously.hash != current.meta.hash =>
           // file changed in size and/or hash
@@ -204,8 +209,6 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
     }
   }
 
-
-
   // fetches files from a monitored directory when needed
   def fetchFromMonitoredPlaces(w:MonitoredPath): Stream[(FileMetaData, FileBody)] = {
 
@@ -217,9 +220,9 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
       // Get the metadata from the offset store
       .map(file => (file , fileConverter.getFileOffset(file.path)))
       // Filter out the files that do not need to be fetched
-      .filter{ case (file, offset) => requiresFetch(w.mode, file, offset) }
+      .filter{ case (file, offset) => requiresFetch(w.mode,file, offset) }
       // Fetch the latest file contents
-      .flatMap{ case (file, offset) => fetch(w.mode, file, offset) }
+      .flatMap{ case (file, offset) => fetch(file, offset) }
       // Extract the file changes depending on the tracking mode
       .map{ case (prevFile, currentFile) => handleFetchedFile(w.mode, prevFile, currentFile) }
   }
