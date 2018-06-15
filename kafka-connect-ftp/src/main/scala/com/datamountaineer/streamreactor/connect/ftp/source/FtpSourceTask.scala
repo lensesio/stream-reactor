@@ -67,11 +67,11 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
   }
 
   def poll(): Stream[SourceRecord] = {
-    val stream = if (buffer.isEmpty) fetchRecords() else buffer
-    //Why retrieving a limited number of records after having read all records from FTP?
-    val (head, tail) = stream.splitAt(cfg.maxPollRecords)
-    buffer = tail
-    head
+    //val stream = if (buffer.isEmpty) fetchRecords() else buffer
+    //val (head, tail) = stream.splitAt(cfg.maxPollRecords)
+    //buffer = tail
+    //head
+    fetchRecords()
   }
 
   def fetchRecords(): Stream[SourceRecord] = {
