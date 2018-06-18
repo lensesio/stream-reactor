@@ -118,26 +118,28 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
     }
   }
 
+  def bySlicesGetOffsetToReadFrom(mode: MonitorMode, file: AbsoluteFtpFile, prevFetch: Option[FileMetaData]):Long = (prevFetch, mode) match{
+    case (None,_) =>
+      logger.info(s"First time file is read")
+      0
+    case (Some(previous),_) if previous.offset == -1 =>
+      logger.info(s"First time file is read")
+      0
+    case (Some(previous),MonitorMode.Update) if (previous.attribs.timestamp != file.timestamp || previous.attribs.size != file.size) =>
+      logger.info(s"We are in Update mode && File was updated, restart reading from offset 0")
+      0
+    case (Some(previous),_) =>
+      logger.info(s"Continue reading from offset ${previous.offset}")
+      previous.offset
+  }
+
   def bySlicesFetch(mode: MonitorMode, file: AbsoluteFtpFile, prevFetch: Option[FileMetaData]): Option[(Option[FileMetaData], FetchedFile)] = {
     logger.info(s"fetching ${file.path}")
 
-    val offsetToReadFrom = prevFetch match {
-      case None =>
-        logger.info(s"First time file is read")
-        0
-      case Some(previous) if previous.offset == -1 =>
-        logger.info(s"First time file is read")
-        0
-      case Some(previous) if mode == MonitorMode.Update && (previous.attribs.timestamp != file.timestamp || previous.attribs.size != file.size) =>
-        logger.info(s"We are in Update mode && File was updated, restart reading from offset 0")
-        0
-      case Some(previous) =>
-        logger.info(s"Continue reading from offset ${previous.offset}")
-        previous.offset
-    }
+    val offsetToReadFrom = bySlicesGetOffsetToReadFrom(mode, file, prevFetch)
     logger.info(s"offset to read from = ${offsetToReadFrom}")
 
-    var buffer = new Array[Byte](sliceSize)
+    val buffer = new Array[Byte](sliceSize)
 
     ftp.setRestartOffset(offsetToReadFrom)
     val inputStream = ftp.retrieveFileStream(file.path)
@@ -162,12 +164,12 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
   }
 
   // translates a MonitoredDirectory and previously known FileMetaData into a FileMetaData and FileBody
-  def handleFetchedFile(mode: MonitorMode, prevFetch: Option[FileMetaData], current: FetchedFile): (FileMetaData, FileBody) = {
+  def handleFetchedFile(tail: Boolean, prevFetch: Option[FileMetaData], current: FetchedFile): (FileMetaData, FileBody) = {
     prevFetch match {
       case Some(previously) if previously.attribs.size != current.meta.attribs.size || previously.hash != current.meta.hash =>
         // file changed in size and/or hash
         logger.info(s"fetched ${current.meta.attribs.path}, it was known before and it changed")
-        if (mode == MonitorMode.Tail) {
+        if (tail) {
           if (current.meta.attribs.size > previously.attribs.size) {
             val hashPrevBlock = DigestUtils.sha256Hex(util.Arrays.copyOfRange(current.body, 0, previously.attribs.size.toInt))
             if (previously.hash == hashPrevBlock) {
@@ -226,7 +228,7 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
 
     logger.info(s"Found ${files.length} items in ${w.p}")
     if(!isBySlices) {
-      //ENA: start legacy code
+      //ENA: START previous version of code
       files.toStream
         // Get the metadata from the offset store
         .map(file => (file, fileConverter.getFileOffset(file.path)))
@@ -235,8 +237,8 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
         // Fetch the latest file contents
         .flatMap { case (file, prevFetch) => fetch(file, prevFetch) }
         // Extract the file changes depending on the tracking mode
-        .map { case (prevFile, currentFile) => handleFetchedFile(w.mode, prevFile, currentFile) }
-      //ENA: end legacy code
+        .map { case (prevFile, currentFile) => handleFetchedFile(w.mode == MonitorMode.Tail, prevFile, currentFile) }
+      //ENA: END previous version of code
     } else {
       files.toStream
         // Get the metadata from the offset store
