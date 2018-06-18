@@ -151,14 +151,12 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
 
     //Trim end
     val bytes = util.Arrays.copyOfRange(buffer, 0, bytesRead)
-    // it doesn't make sense to compute the hash for chunks/slices
-    val hash = DigestUtils.sha256Hex(bytes)
 
     val attributes = new FileAttributes(file.path, file.ftpFile.getSize, file.ftpFile.getTimestamp.toInstant)
 
     val meta = prevFetch match {
-      case None => FileMetaData(attributes, hash, Instant.now, Instant.now, Instant.now)
-      case Some(old) => FileMetaData(attributes, hash, old.firstFetched, old.lastModified, Instant.now)
+      case None => FileMetaData(attributes, "", Instant.now, Instant.now, Instant.now)
+      case Some(old) => FileMetaData(attributes, "", old.firstFetched, old.lastModified, Instant.now)
     }
     Option(prevFetch, FetchedFile(meta, bytes))
   }
@@ -205,7 +203,7 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
 
   def bySlicesHandleFetchedFile(mode: MonitorMode, prevFetch: Option[FileMetaData], current: FetchedFile): (FileMetaData, FileBody) = {
     prevFetch match {
-      case Some(previous) if mode == MonitorMode.Update && (previous.attribs.timestamp != current.meta.attribs.timestamp || previous.attribs.size != current.meta.attribs.size) =>
+      case Some(previous) if mode == MonitorMode.Update && current.meta.hasChangedSince(previous) =>
         logger.info(s"distant file was modified since last fetch, previously timestamp=${previous.attribs.timestamp}, current timestamp=${current.meta.attribs.timestamp}")
         val nextOffsetToReadFrom = current.body.length
         (current.meta.inspectedNow().offset(nextOffsetToReadFrom), FileBody(current.body, 0))
@@ -214,7 +212,7 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
         val nextOffsetToReadFrom = previous.offset + current.body.length
         (current.meta.inspectedNow().offset(nextOffsetToReadFrom), FileBody(current.body, nextOffsetToReadFrom))
       case None =>
-        // chunk is new
+        // slice is new
         logger.info(s"fetched ${current.meta.attribs.path}, bytes read= ${current.body.length} , from offset=0")
         val nextOffsetToReadFrom = current.body.length
         (current.meta.inspectedNow().offset(nextOffsetToReadFrom), FileBody(current.body, nextOffsetToReadFrom))

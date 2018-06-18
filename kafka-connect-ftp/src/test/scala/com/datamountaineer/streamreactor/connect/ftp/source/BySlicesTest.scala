@@ -10,13 +10,13 @@ import scala.collection.JavaConverters._
 
 class BySlicesTest extends FunSuite with Matchers with BeforeAndAfter with StrictLogging {
 
-  val ftpServer = new EmbeddedFtpServer
+  val ftpServer = new EmbeddedFtpServer(3333)
 
   val lineSep = System.getProperty("line.separator")
   val fileContent1 = (0 to 10000).map(index=>s"line_${index}${lineSep}").mkString.getBytes
   val fileContent2 = (0 to 11000).map(index=>s"line_${index}${lineSep}").mkString.getBytes
 
-  val sliceSize = 1024*3
+  val sliceSize = 1024*5
 
   val filePathUpdate = "/update_slice/t0"
   val filePathTail = "/tail_slice/t0"
@@ -80,7 +80,6 @@ class BySlicesTest extends FunSuite with Matchers with BeforeAndAfter with Stric
     }
     return allReadBytes
   }
-
 
   test("Update mode by slices mode with SimpleFileConverter : file content is ingested with no loss of data") {
     val fs = new FileSystem(ftpServer.rootDir).clear

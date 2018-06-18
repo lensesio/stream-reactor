@@ -44,11 +44,11 @@ class DummyOffsetStorage extends OffsetStorageReader {
   }
 }
 
-class EmbeddedFtpServer extends StrictLogging {
+class EmbeddedFtpServer(portNumber: Int) extends StrictLogging {
   val username = "my-User_name7"
   val password = "=541%2@$;;'`"
   val host = "localhost"
-  val port = 3332 // TODO: find free port
+  val port = portNumber // TODO: find free port
   val rootDir = File.newTemporaryDirectory().path
 
   var server: FtpServer = null
@@ -149,7 +149,7 @@ class EndToEndTests extends FunSuite with Matchers with BeforeAndAfter with Stri
       u1 -> Update(s2))
   )
 
-  val server = new EmbeddedFtpServer
+  val server = new EmbeddedFtpServer(3334)
 
   val defaultConfig = Map(FtpSourceConfig.Address -> s"${server.host}:${server.port}",
     FtpSourceConfig.User -> server.username,
