@@ -15,7 +15,6 @@ class RegExTest extends FunSuite with Matchers with BeforeAndAfter with StrictLo
     when(f.getName()).thenReturn(name)
     f
   }
-  /*
   test("Matches RegEx"){
     FtpSourceConfig.fileFilter -> ".*"
 
@@ -23,5 +22,4 @@ class RegExTest extends FunSuite with Matchers with BeforeAndAfter with StrictLo
     f.name.matches(".*") shouldBe true
     f.name.matches("a") shouldBe false
   }
-  */
 }
