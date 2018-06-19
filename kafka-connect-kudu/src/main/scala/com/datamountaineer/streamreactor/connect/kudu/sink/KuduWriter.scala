@@ -25,7 +25,6 @@ import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kudu.client.SessionConfiguration.FlushMode
 import org.apache.kudu.client._
-import org.json4s.JsonAST.JValue
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -106,37 +105,12 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
     * Apply the insert per topic for the rows
     **/
   private def applyInsert(records: Set[SinkRecord], session: KuduSession) = {
-    def handleSinkRecord(record: SinkRecord): Upsert = {
-      Option(record.valueSchema()) match {
-        case None =>
-          // try to take it as a string
-          record.value() match {
-            case _: java.util.Map[_, _] =>
-              val converted = convert(record, setting.fieldsMap(record.topic), setting.ignoreFields(record.topic))
-              val withDDLs = applyDDLs(converted)
-              convertToKuduUpsert(withDDLs, kuduTablesCache(withDDLs.topic))
-            case _ => sys.error("For schemaless record only String and Map types are supported")
-          }
-        case Some(schema: Schema) =>
-          schema.`type`() match {
-            case Schema.Type.STRING =>
-              val converted = convertStringSchemaAndJson(record, setting.fieldsMap.getOrElse(record.topic, Map.empty[String, String]), setting.ignoreFields.getOrElse(record.topic, Set.empty))
-              val withDDLs = applyDDLsFromJson(converted, record.topic)
-              convertJsonToKuduUpsert(withDDLs, kuduTablesCache(record.topic))
-
-            case Schema.Type.STRUCT =>
-              val converted = convert(record, setting.fieldsMap(record.topic), setting.ignoreFields(record.topic))
-              val withDDLs = applyDDLs(converted)
-              convertToKuduUpsert(withDDLs, kuduTablesCache(withDDLs.topic))
-            case other => sys.error(s"$other schema is not supported")
-          }
-      }
-    }
-
     val t = Try({
       records.iterator
-        .map(handleSinkRecord)
-        .map(session.apply)
+        .map(r => convert(r, setting.fieldsMap(r.topic), setting.ignoreFields(r.topic)))
+        .map(r => applyDDLs(r))
+        .map(r => convertToKuduUpsert(r, kuduTablesCache(r.topic)))
+        .map(i => session.apply(i))
         .grouped(MUTATION_BUFFER_SPACE-1)
         .foreach(_ => flush())
     })
@@ -162,20 +136,9 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
     record
   }
 
-  private def applyDDLsFromJson(payload: JValue, topic: String): JValue = {
-    if (!kuduTablesCache.contains(topic)) {
-      val mapping = setting.kcql.filter(_.getSource.equals(topic)).head
-      val table = DbHandler.createTableFromJsonPayload(mapping, payload, client, topic).get
-      logger.info(s"Adding table ${mapping.getTarget} to the table cache")
-      kuduTablesCache.put(mapping.getSource, table)
-    } else {
-      handleAlterTable(payload, topic)
-    }
-    payload
-  }
 
   /**
-    * Check alter table if schema has changed
+    * Check alter table is schema has changed
     *
     * @param record The sinkRecord to check the schema for
     **/
@@ -204,19 +167,6 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
       }
     }
     record
-  }
-
-  def handleAlterTable(payload: JValue, topic: String): JValue = {
-    val fields = extractJSONFields(payload, topic)
-    val cachedFields = getCacheJSONFields().getOrElse(topic, Map.empty)
-
-    if (fields.nonEmpty && fields.keySet.diff(cachedFields.keySet).nonEmpty) {
-      val table = setting.topicTables(topic)
-      logger.info(s"Schema change detected for $topic mapped to table $table.")
-      val kuduTable =  DbHandler.alterTable(table, cachedFields, fields, client)
-      kuduTablesCache.update(topic, kuduTable)
-    }
-    payload
   }
 
   /**
@@ -258,6 +208,7 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
       if (errors.nonEmpty) {
         throw new RuntimeException(s"Failed to flush one or more changes:$errors")
       }
+
     }
   }
 }

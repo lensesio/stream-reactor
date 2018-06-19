@@ -16,21 +16,15 @@
 
 package com.datamountaineer.streamreactor.connect.kudu
 
-import java.util
-
 import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduSettings}
 import com.datamountaineer.streamreactor.connect.kudu.sink.KuduWriter
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.errors.RetriableException
-import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kudu.client.SessionConfiguration.FlushMode
 import org.apache.kudu.client._
 import org.mockito.Matchers.{any, eq => mockEq}
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 
-import scala.annotation.tailrec
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
@@ -38,7 +32,7 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 04/03/16. 
   * stream-reactor
   */
-class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with ConverterUtil {
+class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar {
   "A Kudu Writer should write" in {
     val record = getTestRecords.head
     val kuduSchema = convertToKuduSchema(record)
@@ -69,119 +63,9 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
     writer.close()
   }
 
-  "A Kudu writer should write JSON" in {
-    val jsonPayload =
-      """
-        | {
-        |    "_id": "580151bca6f3a2f0577baaac",
-        |    "index": 0,
-        |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
-        |    "isActive": false,
-        |    "balance": 3589.15,
-        |    "age": 27,
-        |    "eyeColor": "brown",
-        |    "name": "Clements Crane",
-        |    "company": "TERRAGEN",
-        |    "email": "clements.crane@terragen.io",
-        |    "phone": "+1 (905) 514-3719",
-        |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
-        |    "latitude": "-49.817964",
-        |    "longitude": "-141.645812"
-        | }
-      """.stripMargin
-
-    val topic = "sink_test"
-    val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
-
-    val payload = convertStringSchemaAndJson(record, Map.empty, Set.empty)
-
-    val kuduSchema = convertToKuduSchemaFromJson(payload, topic)
-    val kuduRow = kuduSchema.newPartialRow()
-
-    //mock out kudu client
-    val insert = mock[Upsert]
-    val table = mock[KuduTable]
-    val client = mock[KuduClient]
-    val kuduSession = mock[KuduSession]
-    val resp = mock[ListTablesResponse]
-
-    val config = new KuduConfig(getConfigAutoCreate(""))
-    val settings = KuduSettings(config)
-
-    when(client.newSession()).thenReturn(kuduSession)
-    when(client.tableExists(TABLE)).thenReturn(true)
-    when(client.openTable(TABLE)).thenReturn(table)
-    when(table.newUpsert()).thenReturn(insert)
-    when(insert.getRow).thenReturn(kuduRow)
-    when(table.getSchema).thenReturn(kuduSchema)
-    when(kuduSession.getFlushMode).thenReturn(FlushMode.AUTO_FLUSH_SYNC)
-    when(client.getTablesList).thenReturn(resp)
-    when(resp.getTablesList).thenReturn(List.empty[String].asJava)
-
-    val writer = new KuduWriter(client, settings)
-    writer.write(Set(record))
-    writer.close()
-  }
-
-
   "A Kudu Writer should create table on arrival of first record" in {
     val record = getTestRecords.head
     val kuduSchema = convertToKuduSchema(record)
-    val kuduRow = kuduSchema.newPartialRow()
-
-    //mock out kudu client
-    val insert = mock[Upsert]
-    val table = mock[KuduTable]
-    val client = mock[KuduClient]
-    val kuduSession = mock[KuduSession]
-    val resp = mock[ListTablesResponse]
-
-    val config = new KuduConfig(getConfigAutoCreate(""))
-    val settings = KuduSettings(config)
-
-    when(client.newSession()).thenReturn(kuduSession)
-    when(client.tableExists(TABLE)).thenReturn(false)
-    when(client.openTable(TABLE)).thenReturn(table)
-    when(table.newUpsert()).thenReturn(insert)
-    when(insert.getRow).thenReturn(kuduRow)
-    when(table.getSchema).thenReturn(kuduSchema)
-    when(kuduSession.getFlushMode).thenReturn(FlushMode.AUTO_FLUSH_SYNC)
-    when(client.getTablesList).thenReturn(resp)
-    when(resp.getTablesList).thenReturn(List.empty[String].asJava)
-
-
-    val writer = new KuduWriter(client, settings)
-    writer.write(getTestRecords)
-    writer.close()
-  }
-
-  "A Kudu Writer should create table on arrival of first JSON record" in {
-    val jsonPayload =
-      """
-        | {
-        |    "_id": "580151bca6f3a2f0577baaac",
-        |    "index": 0,
-        |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
-        |    "isActive": false,
-        |    "balance": 3589.15,
-        |    "age": 27,
-        |    "eyeColor": "brown",
-        |    "name": "Clements Crane",
-        |    "company": "TERRAGEN",
-        |    "email": "clements.crane@terragen.io",
-        |    "phone": "+1 (905) 514-3719",
-        |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
-        |    "latitude": "-49.817964",
-        |    "longitude": "-141.645812"
-        | }
-      """.stripMargin
-
-    val topic = "sink_test"
-    val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
-
-    val payload = convertStringSchemaAndJson(record, Map.empty, Set.empty)
-
-    val kuduSchema = convertToKuduSchemaFromJson(payload, topic)
     val kuduRow = kuduSchema.newPartialRow()
 
     //mock out kudu client

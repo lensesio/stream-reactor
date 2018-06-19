@@ -22,13 +22,10 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kudu.ColumnSchema
 import org.apache.kudu.ColumnSchema.ColumnSchemaBuilder
 import org.apache.kudu.client.{KuduTable, PartialRow, Upsert}
-import org.json4s.JsonAST._
 
 import scala.collection.JavaConversions._
 
 trait KuduConverter {
-
-  private var cacheJSONFields = Map.empty[String, Map[String, JValue]]
 
   /**
     * Convert a SinkRecord to a Kudu row upsert for a Kudu Table
@@ -45,24 +42,6 @@ trait KuduConverter {
     recordFields
       .filter(f => kuduColNames.contains(f.name())) //handle missing fields in target (maybe dropped)
       .map(f => addFieldToRow(record, f, row))
-    upsert
-  }
-
-  /**
-    * Convert a JSON payload to a Kudu row upsert for a Kudu Table
-    *
-    * @param payload A JSON payload
-    * @param table A Kudu table to create a row insert for
-    * @return A Kudu upsert operation
-    **/
-  def convertJsonToKuduUpsert(payload: JValue, table: KuduTable): Upsert = {
-    val recordFields = payload.values.asInstanceOf[Map[String, Any]].keySet
-    val kuduColNames = table.getSchema.getColumns.map(_.getName)
-    val upsert = table.newUpsert()
-    val row = upsert.getRow
-//    recordFields
-//      .filter(f => kuduColNames.contains(f))
-//      .map(f => addFieldToRow(payload, f, row))
     upsert
   }
 
@@ -154,45 +133,6 @@ trait KuduConverter {
     new org.apache.kudu.Schema(kuduFields.toList)
   }
 
-  /**
-    * Convert JSON payload to Kudu
-    *
-    * @param payload A JSON payload to extract field types from
-    * @return a Kudu Schema
-    **/
-  def convertToKuduSchemaFromJson(payload: JValue, topic: String): org.apache.kudu.Schema = {
-    val fieldsMap = extractJSONFields(payload, topic)
-    val kuduFields = fieldsMap.map(c => convertJsonToColumnSchema(c)).toSet
-    new org.apache.kudu.Schema(kuduFields.toList)
-  }
-
-  def extractJSONFields(payload: JValue, topic: String): Map[String, JValue] = {
-    val values = payload.values.asInstanceOf[Map[String, Any]]
-    var fieldsMap = Map.empty[String, JValue]
-
-    payload.children.foreach { c =>
-      values.foreach {
-        case (k, v) =>
-          if (c.values == v)
-            fieldsMap += k -> c
-      }
-    }
-
-    val cachedFields = cacheJSONFields.getOrElse(topic, Map.empty)
-    if (cachedFields.isEmpty) {
-      cacheJSONFields += topic -> Map.empty
-    }
-
-    if (fieldsMap.keySet.diff(cachedFields.keySet).nonEmpty) {
-      val updated = fieldsMap.foldLeft(cacheJSONFields(topic)) {  (acc, value) =>
-        acc + value
-      }
-      cacheJSONFields += topic -> updated
-    }
-
-    fieldsMap
-  }
-
   def convertToKuduSchema(schema: Schema): org.apache.kudu.Schema = {
     val connectFields = createKuduColumns(schema.fields().toSet)
     new org.apache.kudu.Schema(connectFields.toList)
@@ -226,22 +166,6 @@ trait KuduConverter {
     if (default != null) kudu.defaultValue(default)
     kudu.build()
   }
-
-  /**
-    *
-    **/
-  def convertJsonToColumnSchema(value: (String, JValue)): ColumnSchema = {
-    val kudu = value._2 match {
-      case JString(_) => new ColumnSchemaBuilder(value._1, org.apache.kudu.Type.STRING)
-      case JDouble(_) => new ColumnSchemaBuilder(value._1, org.apache.kudu.Type.DOUBLE)
-      case JBool(_) =>  new ColumnSchemaBuilder(value._1, org.apache.kudu.Type.BOOL)
-      case JInt(_) => new ColumnSchemaBuilder(value._1, org.apache.kudu.Type.INT16)
-      case JDecimal(_) => new ColumnSchemaBuilder(value._1, org.apache.kudu.Type.DECIMAL)
-      case _ => throw new UnsupportedOperationException(s"Unknown type ${value._2}")
-    }
-    kudu.build()
-  }
-
 
   /**
     * Convert an Avro schema
@@ -295,7 +219,5 @@ trait KuduConverter {
       schema
     }
   }
-
-  def getCacheJSONFields(): Map[String, Map[String, JValue]] = cacheJSONFields
 }
 
