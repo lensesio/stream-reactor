@@ -141,6 +141,7 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
 
     val buffer = new Array[Byte](sliceSize)
 
+    connectFtp()
     ftp.setRestartOffset(offsetToReadFrom)
     val inputStream = ftp.retrieveFileStream(file.path)
     logger.info(s"inputStream=${inputStream}")
@@ -148,8 +149,8 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
     logger.info(s"bytesRead=${bytesRead}")
     inputStream.close()
     logger.info(s"inputStream.close()")
-    ftp.completePendingCommand()
-    logger.info(s"completePendingCommand()")
+    //ftp.completePendingCommand()
+    //logger.info(s"completePendingCommand()")
 
     //Trim end
     val bytes = util.Arrays.copyOfRange(buffer, 0, bytesRead)
