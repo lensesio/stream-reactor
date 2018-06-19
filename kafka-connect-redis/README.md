@@ -77,3 +77,5 @@ Once information is stored inside a Redis sorted sets - we can query for i.e. ye
 zrangebyscore USD2GBP <currentTimeInMillis - 86400000> <currentTimeInMillis>
 ```
 
+# Limitations
+- This plugin requires JSON to be parsed using the AVRO Converter and therefore does not support schemaless JSON.
