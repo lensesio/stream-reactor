@@ -48,6 +48,7 @@ object FtpSourceConfig {
   val Address = "connect.ftp.address"
   val User = "connect.ftp.user"
   val Password = "connect.ftp.password"
+  val FtpTimeout = "connect.ftp.timeout"
   val MaxBackoff = "connect.ftp.max.backoff"
   val RefreshRate = "connect.ftp.refresh"
   val MonitorTail = "connect.ftp.monitor.tail"
@@ -79,6 +80,8 @@ object FtpSourceConfig {
     .define(FtpMaxPollRecords, Type.INT, 10000, Importance.LOW, "Max number of records returned per poll")
     .define(protocol, Type.STRING, "ftp", Importance.LOW, "FTPS or FTP protocol")
     .define(fileFilter, Type.STRING, ".*", Importance.LOW, "Regular expression to use when selecting files for processing ignoring file which do not match")
+    .define(FtpTimeout, Type.INT, 30000, Importance.LOW, "Ftp connection timeout")
+
 }
 
 // abstracts the properties away a bit
@@ -105,7 +108,7 @@ class FtpSourceConfig(props: util.Map[String, String])
 
   def fileConverter = getClass(FtpSourceConfig.FileConverter)
 
-  def timeoutMs() = 30*1000
+  def timeoutMs() = getInt(FtpSourceConfig.FtpTimeout)
 
   def maxPollRecords = getInt(FtpSourceConfig.FtpMaxPollRecords)
 
