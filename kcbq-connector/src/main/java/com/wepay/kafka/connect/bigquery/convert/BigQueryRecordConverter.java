@@ -20,6 +20,7 @@ package com.wepay.kafka.connect.bigquery.convert;
 
 import com.google.cloud.bigquery.InsertAllRequest.RowToInsert;
 
+import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.DebeziumLogicalConverters;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.KafkaLogicalConverters;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.LogicalConverterRegistry;
@@ -50,10 +51,16 @@ import java.util.Set;
  */
 public class BigQueryRecordConverter implements RecordConverter<Map<String, Object>> {
 
+  private boolean shouldConvertSpecialDouble;
+
   static {
     // force registration
     new DebeziumLogicalConverters();
     new KafkaLogicalConverters();
+  }
+
+  public BigQueryRecordConverter(boolean shouldConvertDoubleSpecial) {
+    this.shouldConvertSpecialDouble = shouldConvertDoubleSpecial;
   }
 
   /**
@@ -104,7 +111,7 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
       case FLOAT32:
         return (Float) kafkaConnectObject;
       case FLOAT64:
-        return (Double) kafkaConnectObject;
+        return convertDouble((Double)kafkaConnectObject);
       case INT8:
         return (Byte) kafkaConnectObject;
       case INT16:
@@ -179,5 +186,28 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
     LogicalTypeConverter converter =
         LogicalConverterRegistry.getConverter(kafkaConnectSchema.name());
     return converter.convert(kafkaConnectObject);
+  }
+
+  /**
+   * Converts a kafka connect {@link Double} into a value that can be stored into BigQuery
+   * If this.shouldDonvertSpecialDouble is true, special values are converted as follows:
+   * Double.POSITIVE_INFINITY -> Double.MAX_VALUE
+   * Doulbe.NEGATIVE_INFINITY -> Double.MIN_VALUE
+   * Double.NaN               -> Double.MIN_VALUE
+   *
+   * @param kafkaConnectDouble The Kafka Connect value to convert.
+   *
+   * @return The resulting Double value to put in BigQuery.
+   */
+  private Double convertDouble(Double kafkaConnectDouble) {
+    if (shouldConvertSpecialDouble) {
+      if (kafkaConnectDouble.equals(Double.POSITIVE_INFINITY)) {
+        return Double.MAX_VALUE;
+      } else if (kafkaConnectDouble.equals(Double.NEGATIVE_INFINITY)
+              || Double.isNaN(kafkaConnectDouble)) {
+        return Double.MIN_VALUE;
+      }
+    }
+    return kafkaConnectDouble;
   }
 }
