@@ -67,11 +67,14 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
   }
 
   def poll(): Stream[SourceRecord] = {
-    //ENA : if reading files by slices, the following doesn't make many sense
-    val stream = if (buffer.isEmpty) fetchRecords() else buffer
-    val (head, tail) = stream.splitAt(cfg.maxPollRecords)
-    buffer = tail
-    head
+    if(ftpMonitor.isBySlices){
+      fetchRecords()
+    } else {
+      val stream = if (buffer.isEmpty) fetchRecords() else buffer
+      val (head, tail) = stream.splitAt(cfg.maxPollRecords)
+      buffer = tail
+      head
+    }
   }
 
   def fetchRecords(): Stream[SourceRecord] = {
