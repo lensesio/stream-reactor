@@ -61,44 +61,77 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     //-- Find out the Connector modes (cache | INSERT (SortedSet) | PK (SortedSetS)
 
     // Cache mode requires >= 1 PK and *NO* STOREAS SortedSet setting
-    val modeCache = settings.copy(kcqlSettings =
-      settings.kcqlSettings
-        .filter(k => k.kcqlConfig.getStoredAs == null
-          && k.kcqlConfig.getPrimaryKeys.size() >= 1))
+    val modeCache = filterModeCache(settings)
 
     // Insert Sorted Set mode requires: target name of SortedSet to be defined and STOREAS SortedSet syntax to be provided
-    val mode_INSERT_SS = settings.copy(kcqlSettings =
-      settings.kcqlSettings
-        .filter { k =>
-          Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SORTEDSET") &&
-            k.kcqlConfig.getTarget != null &&
-            k.kcqlConfig.getPrimaryKeys == null
-        }
-    )
+    val mode_INSERT_SS = filterModeInsertSS(settings)
 
     // Multiple Sorted Sets mode requires: 1 Primary Key to be defined and STORE SortedSet syntax to be provided
-    val mode_PK_SS = settings.copy(kcqlSettings =
-      settings.kcqlSettings
-        .filter { k =>
-          Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SORTEDSET") &&
-            k.kcqlConfig.getPrimaryKeys.length == 1
-        })
+    val mode_PK_SS = filterModePKSS(settings)
 
     //-- Start as many writers as required
-    writer =
-      (modeCache.kcqlSettings.headOption.map { _ =>
-        logger.info("Starting " + modeCache.kcqlSettings.size + " KCQLs with Redis Cache mode")
-        List(new RedisCache(modeCache))
-      } ++ mode_INSERT_SS.kcqlSettings.headOption.map { _ =>
-        logger.info("Starting " + mode_INSERT_SS.kcqlSettings.size + " KCQLs with Redis Insert Sorted Set mode")
-        List(new RedisInsertSortedSet(mode_INSERT_SS))
-      } ++ mode_PK_SS.kcqlSettings.headOption.map { _ =>
-        logger.info("Starting " + mode_PK_SS.kcqlSettings.size + " KCQLs with Redis Multiple Sorted Sets mode")
-        List(new RedisMultipleSortedSets(mode_PK_SS))
-      }).flatten.toList
+    writer = (modeCache.kcqlSettings.headOption.map { _ =>
+      logger.info("Starting " + modeCache.kcqlSettings.size + " KCQLs with Redis Cache mode")
+      List(new RedisCache(modeCache))
+    } ++ mode_INSERT_SS.kcqlSettings.headOption.map { _ =>
+      logger.info("Starting " + mode_INSERT_SS.kcqlSettings.size + " KCQLs with Redis Insert Sorted Set mode")
+      List(new RedisInsertSortedSet(mode_INSERT_SS))
+    } ++ mode_PK_SS.kcqlSettings.headOption.map { _ =>
+      logger.info("Starting " + mode_PK_SS.kcqlSettings.size + " KCQLs with Redis Multiple Sorted Sets mode")
+      List(new RedisMultipleSortedSets(mode_PK_SS))
+    }).flatten.toList
 
     require(writer.nonEmpty, s"No writers set for ${RedisConfigConstants.KCQL_CONFIG}!")
   }
+
+  /**
+    * Construct a RedisSinkSettings object containing all the kcqlConfigs that use the Cache mode.
+    * This function will filter by the absence of the "STOREAS" keyword and the presence of primary keys.
+    *
+    * KCQL Example: INSERT INTO cache SELECT price FROM yahoo-fx PK symbol
+    *
+    * @param settings The RedisSinkSettings containing all kcqlConfigs.
+    * @return A RedisSinkSettings object containing only the kcqlConfigs that use the Cache mode.
+    */
+  def filterModeCache(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(kcqlSettings =
+    settings.kcqlSettings
+      .filter(k => k.kcqlConfig.getStoredAs == null
+        && k.kcqlConfig.getPrimaryKeys.size() >= 1))
+
+  /**
+    * Construct a RedisSinkSettings object containing all the kcqlConfigs that use the Sorted Set mode.
+    * This function will filter by the presence of the "STOREAS" keyword and a target, as well as the absence of primary keys.
+    *
+    * KCQL Example: INSERT INTO cpu_stats SELECT * FROM cpuTopic STOREAS SortedSet(score=timestamp)
+    *
+    * @param settings The RedisSinkSettings containing all kcqlConfigs.
+    * @return A RedisSinkSettings object containing only the kcqlConfigs that use the Sorted Set mode.
+    */
+  def filterModeInsertSS(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(kcqlSettings =
+    settings.kcqlSettings
+      .filter { k =>
+        Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SORTEDSET") &&
+          k.kcqlConfig.getTarget != null &&
+          k.kcqlConfig.getPrimaryKeys.isEmpty
+      }
+  )
+
+  /**
+    * Constructs a RedisSinkSettings object containing all the kcqlConfigs that use the Multiple Sorted Sets mode.
+    * This function will filter by the presence of the "STOREAS" keyword and the presence of primary keys.
+    *
+    * KCQL Example: SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SortedSet(score=timestamp)
+    *
+    * @param settings The RedisSinkSettings containing all kcqlConfigs.
+    * @return A RedisSinkSettings object containing only the kcqlConfigs that use the Multiple Sorted Sets mode.
+    */
+  def filterModePKSS(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(kcqlSettings =
+    settings.kcqlSettings
+      .filter { k =>
+        Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SORTEDSET") &&
+          k.kcqlConfig.getPrimaryKeys.length >= 1
+      }
+  )
 
   /**
     * Pass the SinkRecords to the writer for Writing

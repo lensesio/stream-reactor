@@ -99,4 +99,12 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with RedisMockSupport
     fields.last.getAlias shouldBe "surname"
   }
 
+  "check multiple kcqls" in {
+    val KCQL = "INSERT INTO prefix1: SELECT * FROM topic1 PK id; INSERT INTO prefix2: SELECT * FROM topic2 PK id"
+    val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL))
+    val settings = RedisSinkSettings(config)
+
+    settings.kcqlSettings.head.builder.isInstanceOf[StringStructFieldsStringKeyBuilder] shouldBe true
+  }
+
 }
