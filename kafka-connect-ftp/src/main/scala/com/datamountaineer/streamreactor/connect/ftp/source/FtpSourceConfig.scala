@@ -73,14 +73,14 @@ object FtpSourceConfig {
     .define(FileMaxAge, Type.STRING, Importance.HIGH, "ignore files older than this; ISO8601 duration")
     .define(MonitorTail, Type.LIST, "", Importance.HIGH, "comma separated lists of path:destinationtopic; tail of file is tracked")
     .define(MonitorUpdate, Type.LIST, "", Importance.HIGH, "comma separated lists of path:destinationtopic; whole file is tracked")
-    .define(MonitorSliceSize, Type.INT, -1, Importance.HIGH, "slice size")
+    .define(MonitorSliceSize, Type.INT, -1, Importance.HIGH, "slice size in bytes")
     .define(KeyStyle, Type.STRING, Importance.HIGH, s"what the output key is set to: `${StringKeyStyle}` => filename; `${StructKeyStyle}` => structure with filename and offset")
     .define(FileConverter, Type.CLASS, "com.datamountaineer.streamreactor.connect.ftp.source.SimpleFileConverter", Importance.HIGH, s"TODO")
     .define(SourceRecordConverter, Type.CLASS, "com.datamountaineer.streamreactor.connect.ftp.source.NopSourceRecordConverter", Importance.HIGH, s"TODO")
     .define(FtpMaxPollRecords, Type.INT, 10000, Importance.LOW, "Max number of records returned per poll")
     .define(protocol, Type.STRING, "ftp", Importance.LOW, "FTPS or FTP protocol")
     .define(fileFilter, Type.STRING, ".*", Importance.LOW, "Regular expression to use when selecting files for processing ignoring file which do not match")
-    .define(FtpTimeout, Type.INT, 30000, Importance.LOW, "Ftp connection timeout")
+    .define(FtpTimeout, Type.INT, 30000, Importance.LOW, "Ftp connection timeout in milliseconds")
 
 }
 
