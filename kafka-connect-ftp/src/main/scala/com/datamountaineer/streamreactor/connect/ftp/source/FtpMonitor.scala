@@ -139,21 +139,32 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
     val offsetToReadFrom = bySlicesGetOffsetToReadFrom(mode, file, prevFetch)
     logger.info(s"offset to read from = ${offsetToReadFrom}")
 
-    val buffer = new Array[Byte](sliceSize)
+    val outputStream = new ByteArrayOutputStream
+    val bufferLength=4096
+    val buffer = new Array[Byte](if (bufferLength > sliceSize) sliceSize else bufferLength)
+    logger.info(s"buffer.length=${buffer.length}")
 
     connectFtp()
+    ftp.enterLocalPassiveMode()
     ftp.setRestartOffset(offsetToReadFrom)
+
     val inputStream = ftp.retrieveFileStream(file.path)
     logger.info(s"inputStream=${inputStream}")
-    val bytesRead = inputStream.read(buffer)
-    logger.info(s"bytesRead=${bytesRead}")
+    var allBytesRead = 0
+
+    var bufferBytesRead=inputStream.read(buffer)
+    while( bufferBytesRead != (-1) && (allBytesRead <= sliceSize) ) {
+      allBytesRead += bufferBytesRead
+      outputStream.write(buffer, 0, bufferBytesRead)
+      bufferBytesRead = inputStream.read(buffer)
+    }
+    logger.info(s"allBytesRead=${allBytesRead}")
+
     inputStream.close()
     logger.info(s"inputStream.close()")
-    //ftp.completePendingCommand()
-    //logger.info(s"completePendingCommand()")
 
-    //Trim end
-    val bytes = util.Arrays.copyOfRange(buffer, 0, bytesRead)
+    val bytes = outputStream.toByteArray()
+    outputStream.close()
 
     val attributes = new FileAttributes(file.path, file.ftpFile.getSize, file.ftpFile.getTimestamp.toInstant)
 
