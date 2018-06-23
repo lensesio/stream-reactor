@@ -1,6 +1,5 @@
 package com.datamountaineer.streamreactor.connect.cassandra.utils
 
-import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
 import com.jayway.jsonpath.{Configuration, JsonPath}
 import org.apache.kafka.connect.data.{Schema, Struct}
 
@@ -28,6 +27,14 @@ object KeyUtils {
     * @return
     */
   def keysFromStruct(struct: Struct, schema: Schema, fieldNames: Seq[String]): Seq[Object] =
-    keysFromJson(new SimpleJsonConverter().fromConnectData(schema, struct).toString, fieldNames)
+    fieldNames.map(getKeyFromStruct(struct, _))
 
+  private def getKeyFromStruct(struct: Struct, fieldName: String): Object = {
+    if (fieldName.contains(".")) {
+      val Array(nestedObject, nestedField) = fieldName.split("\\.", 2)
+      getKeyFromStruct(struct.get(nestedObject).asInstanceOf[Struct], nestedField)
+    } else {
+      struct.get(fieldName)
+    }
+  }
 }
