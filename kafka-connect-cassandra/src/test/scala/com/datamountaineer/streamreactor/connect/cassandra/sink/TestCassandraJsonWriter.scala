@@ -993,4 +993,61 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     (result.isEmpty) shouldBe true
     writer.close()
   }
+
+  "Cassandra JSONWriter should handle deletion of records - Key is STRUCT, flat, long as key, but in range of int" in {
+
+    val table = "A" + UUID.randomUUID().toString.replace("-", "_")
+    val kql = s"INSERT INTO $table SELECT id, long_field FROM TOPIC"
+
+    session.execute(
+      s"""
+         |CREATE TABLE IF NOT EXISTS $keyspace.$table
+         |(key bigint,
+         |name text,
+         |PRIMARY KEY((key), name)) WITH CLUSTERING ORDER BY (name asc)""".stripMargin)
+
+    val uuid = UUIDs.timeBased()
+    val key: java.lang.Long = Int.box(uuid.hashCode).toLong
+    val name = "Unit Test"
+
+    val insert = session.prepare(s"INSERT INTO $keyspace.$table (key, name) VALUES (?, ?)").bind(key, name)
+    session.execute(insert)
+
+    val keySchema = SchemaBuilder.struct
+      .field("key", Schema.INT64_SCHEMA)
+      .build
+    val keyStruct = new Struct(keySchema)
+    keyStruct.put("key", key)
+
+    val record = new SinkRecord("TOPIC", 0, keySchema, keyStruct, null, null, 1)
+    val context = mock[SinkTaskContext]
+    val assignment = getAssignment
+    when(context.assignment()).thenReturn(assignment)
+
+    //get config
+    val props = Map(
+      CassandraConfigConstants.DELETE_ROW_STATEMENT -> s"delete from $keyspace.$table where key = ?",
+      CassandraConfigConstants.DELETE_ROW_STRUCT_FLDS -> s"key",
+      CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+      CassandraConfigConstants.KEY_SPACE -> keyspace,
+      CassandraConfigConstants.USERNAME -> userName,
+      CassandraConfigConstants.PASSWD -> password,
+      CassandraConfigConstants.KCQL -> kql,
+      CassandraConfigConstants.DELETE_ROW_ENABLED -> "true"
+    ).asJava
+
+    val taskConfig = new CassandraConfigSink(props)
+
+    val writer = CassandraWriter(taskConfig, context)
+    writer.write(Seq(record))
+    Thread.sleep(1000)
+
+
+    val validate = session.prepare(s"SELECT * FROM $keyspace.$table WHERE key = ?").bind(key)
+    val result = session.execute(validate)
+
+    (result.isEmpty) shouldBe true
+    writer.close()
+  }
+
 }
