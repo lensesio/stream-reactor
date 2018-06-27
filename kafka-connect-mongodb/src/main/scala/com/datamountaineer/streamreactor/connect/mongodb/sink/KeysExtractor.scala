@@ -34,36 +34,54 @@ object KeysExtractor {
 
   ISO_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"))
 
-  def fromStruct(struct: Struct, keys: Set[String]): Set[(String, Any)] = {
-    keys.map { key =>
-      val schema = struct.schema().field(key).schema()
-      val value = struct.get(key)
+  def fromStruct(struct: Struct, keys: Set[String]): ListSet[(String, Any)] = {
+    // SCALA 2.12 WARNING: remove the 'reverse' when you upgrade to 2.12;
+    // the insertion order of ListSet.toList is preserved in 2.12:
+    ListSet( keys.toList.reverse.map { key =>
+      val segments = key.split('.').toIndexedSeq
 
-      val v = schema.`type`() match {
-        case Schema.Type.INT32 =>
-          if (schema != null && Date.LOGICAL_NAME == schema.name) ISO_DATE_FORMAT.format(Date.toLogical(schema, value.asInstanceOf[Int]))
-          else if (schema != null && Time.LOGICAL_NAME == schema.name) TIME_FORMAT.format(Time.toLogical(schema, value.asInstanceOf[Int]))
-          else value
+      @tailrec
+      def getValue(remainingSegments: Seq[String], struct: Struct): Any = {
+        remainingSegments.size match {
+          case 0 => throw new Exception("shouldn't get here")
+          case 1 => {
+            val seg = remainingSegments.head
+            val value: AnyRef = struct.get(seg)
+            val schema = struct.schema().field(seg).schema()
 
-        case Schema.Type.INT64 =>
-          if (Timestamp.LOGICAL_NAME == schema.name) Timestamp.fromLogical(schema, value.asInstanceOf[(java.util.Date)])
-          else value
+            val v = schema.`type`() match {
+              case Schema.Type.INT32 =>
+                if (schema != null && Date.LOGICAL_NAME == schema.name) ISO_DATE_FORMAT.format(Date.toLogical(schema, value.asInstanceOf[Int]))
+                else if (schema != null && Time.LOGICAL_NAME == schema.name) TIME_FORMAT.format(Time.toLogical(schema, value.asInstanceOf[Int]))
+                else value
 
-        case Schema.Type.STRING => value.asInstanceOf[CharSequence].toString
+              case Schema.Type.INT64 =>
+                if (Timestamp.LOGICAL_NAME == schema.name) Timestamp.fromLogical(schema, value.asInstanceOf[(java.util.Date)])
+                else value
 
-        case Schema.Type.BYTES =>
-          if (Decimal.LOGICAL_NAME == schema.name) value.asInstanceOf[BigDecimal].toDouble
-          else throw new ConfigException(s"Schema.Type.BYTES is not supported for $key.")
+              case Schema.Type.STRING => value.asInstanceOf[CharSequence].toString
 
-        case Schema.Type.ARRAY =>
-          throw new ConfigException(s"Schema.Type.ARRAY is not supported for $key.")
+              case Schema.Type.BYTES =>
+                if (Decimal.LOGICAL_NAME == schema.name) value.asInstanceOf[BigDecimal].toDouble
+                else throw new ConfigException(s"Schema.Type.BYTES is not supported for $key.")
 
-        case Schema.Type.MAP => throw new ConfigException(s"Schema.Type.MAP is not supported for $key.")
-        case Schema.Type.STRUCT => throw new ConfigException(s"Schema.Type.STRUCT is not supported for $key.")
-        case other => throw new ConfigException(s"$other is not supported for $key.")
+              case Schema.Type.ARRAY =>
+                throw new ConfigException(s"Schema.Type.ARRAY is not supported for $key.")
+
+              case Schema.Type.MAP => throw new ConfigException(s"Schema.Type.MAP is not supported for $key.")
+              case Schema.Type.STRUCT => throw new ConfigException(s"Schema.Type.STRUCT is not supported for $key.")
+              case other => throw new ConfigException(s"$other is not supported for $key.")
+            }
+            v
+          }
+          case _ => getValue(remainingSegments.tail, struct.get(remainingSegments.head).asInstanceOf[Struct])
+        }
       }
-      key -> v
-    }
+
+      val shortKey = key.trim.split('.').last
+      val value = getValue(segments, struct)
+      (shortKey, value)
+    }:_*)
   }
 
   def fromMap(map: java.util.Map[String, Any], keys: Set[String]): ListSet[(String, Any)] = {
