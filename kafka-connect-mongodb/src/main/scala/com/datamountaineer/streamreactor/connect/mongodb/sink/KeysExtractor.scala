@@ -68,12 +68,6 @@ object KeysExtractor {
 
   def fromMap(map: java.util.Map[String, Any], keys: Set[String]): ListSet[(String, Any)] = {
 
-    // map of long name to "short" name (last name after the dot) in "A.B.C":
-    val longToShort = keys.map{ long =>
-      val tLong = long.trim
-      val short = tLong.split('.').last
-      (tLong, short) }.toMap
-
     // SCALA 2.12 WARNING: remove the 'reverse' when you upgrade to 2.12;
     // the insertion order of ListSet.toList is preserved in 2.12:
     ListSet( keys.toList.reverse.map{ longKey =>
@@ -101,19 +95,13 @@ object KeysExtractor {
         }
       }
 
-      val short = longToShort(longKey)
+      val short = longKey.trim.split('.').last
       val value = getValue(segments, map)
       (short, value)
     }:_*)
   }
 
   def fromJson(jvalue: JValue, keys: Set[String]): List[(String, Any)] = {
-
-    // map of long name to "short" name (last name after the dot) in "A.B.C":
-    val longToShort = keys.map{ long =>
-      val tLong = long.trim
-      val short = tLong.split('.').last
-      (tLong, short) }.toMap
 
     // SCALA 2.12 WARNING: remove the 'reverse' when you upgrade to 2.12;
     // the insertion order of ListSet.toList is preserved in 2.12:
@@ -140,7 +128,7 @@ object KeysExtractor {
         }
       }
 
-      val short = longToShort(longKey)
+      val short = longKey.trim.split('.').last
       val value = getValue(segments, jvalue)
       (short, value)
     }
