@@ -66,24 +66,46 @@ object KeysExtractor {
     }
   }
 
-  def fromMap(map: java.util.Map[String, Any], keys: Set[String]): Set[(String, Any)] = {
-    keys.map { key =>
-      if (!map.containsKey(key)) throw new ConfigException(s"The key $key can't be found")
-      val value = map.get(key) match {
-        case t: String => t
-        case t: Boolean => t
-        case t: Int => t
-        case t: Long => t
-        case t: Double => t
-        //type restriction for Mongo
-        case t: BigInt => t.toLong
-        case t: BigDecimal => t.toDouble
-        case other => throw new ConfigException(s"The key $key is not supported for type ${Option(other).map(_.getClass.getName).getOrElse("NULL")}")
-      }
-      key -> value
-    }
-  }
+  def fromMap(map: java.util.Map[String, Any], keys: Set[String]): ListSet[(String, Any)] = {
 
+    // map of long name to "short" name (last name after the dot) in "A.B.C":
+    val longToShort = keys.map{ long =>
+      val tLong = long.trim
+      val short = tLong.split('.').last
+      (tLong, short) }.toMap
+
+    // SCALA 2.12 WARNING: remove the 'reverse' when you upgrade to 2.12;
+    // the insertion order of ListSet.toList is preserved in 2.12:
+    ListSet( keys.toList.reverse.map{ longKey =>
+      val segments = longKey.split('.').toIndexedSeq
+
+      @tailrec
+      def getValue(remainingSegments: Seq[String], map: java.util.Map[String, Any]): Any = {
+        remainingSegments.size match {
+          case 0 => throw new Exception("shouldn't get here")
+          case 1 => {
+            val seg = remainingSegments.head
+            map.get(seg) match {
+              case t: String => t
+              case t: Boolean => t
+              case t: Int => t
+              case t: Long => t
+              case t: Double => t
+              //type restriction for Mongo
+              case t: BigInt => t.toLong
+              case t: BigDecimal => t.toDouble
+              case other => throw new ConfigException(s"The key $longKey is not supported for type ${Option(other).map(_.getClass.getName).getOrElse("NULL")}")
+            }
+          }
+          case _ => getValue(remainingSegments.tail, map.get(remainingSegments.head).asInstanceOf[java.util.Map[String, Any]])
+        }
+      }
+
+      val short = longToShort(longKey)
+      val value = getValue(segments, map)
+      (short, value)
+    }:_*)
+  }
 
   def fromJson(jvalue: JValue, keys: Set[String]): List[(String, Any)] = {
 
@@ -121,6 +143,6 @@ object KeysExtractor {
       val short = longToShort(longKey)
       val value = getValue(segments, jvalue)
       (short, value)
-    }.toList
+    }
   }
 }

@@ -64,6 +64,14 @@ class KeysExtractorTest extends WordSpec with Matchers {
       actual shouldBe Set("key1" -> 12, "key3" -> "tripple")
     }
 
+    "extract embedded keys out of a Map" in {
+      import scala.collection.JavaConverters._
+      val actual = KeysExtractor.fromMap(
+        Map("A"->0, "B"->"0", "C"->Map("M"->"1000", "N"->Map("X"->10, "Y"->100).asJava).asJava).asJava,
+        ListSet( "B", "C.M", "C.N.X" ))
+      actual shouldBe ListSet("B"->"0", "M"->"1000", "X"->10)
+    }
+
     "extract keys from a Map should throw an exception if the key is another map" in {
       intercept[ConfigException] {
         KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> Map.empty[String, String]), Set("key1", "key3"))
