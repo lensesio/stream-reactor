@@ -34,7 +34,7 @@ import org.bson.Document
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 
 import scala.collection.JavaConversions._
-import scala.collection.immutable.ListMap
+import scala.collection.immutable.{ListMap, ListSet}
 import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization
 
@@ -143,7 +143,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         AuthenticationMechanism.SCRAM_SHA_1,
         "local",
         kcql = Set(Kcql.parse("UPSERT INTO upsert_string_json_multikey SELECT * FROM topicA PK B,C")),
-        keyBuilderMap = Map("topicA" -> Set("B", "C")),
+        keyBuilderMap = Map("topicA" -> ListSet("B", "C")),
         Map("topicA" -> Map.empty),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
@@ -161,6 +161,34 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
           0 -> ListMap("B"->"0", "C"-> 10),
           1 -> ListMap("B"->"1", "C"-> "11")
         ))
+    }
+
+    "upsert records into the target Mongo collection with multi-field keys embedded in document" in {
+      val settings = MongoSettings("localhost",
+        "",
+        new Password(""),
+        AuthenticationMechanism.SCRAM_SHA_1,
+        "local",
+        kcql = Set(Kcql.parse("UPSERT INTO upsert_string_json_multikey_embedded SELECT * FROM topicA PK B, C.M, C.N.Y")),
+        keyBuilderMap = Map("topicA" -> ListSet("B", "C.M", "C.N.Y")),
+        Map("topicA" -> Map.empty),
+        Map("topicA" -> Set.empty),
+        NoopErrorPolicy())
+
+      val records = List(
+        """{"A": 0, "B": "0", "C": {"M": "1000", "N": {"X": 10, "Y": 100} } }""",
+        """{"A": 1, "B": "1", "C": {"M": "1001", "N": {"X": 11, "Y": 101} } }"""
+      )
+
+      runUpsertsTestKeys(
+        records,
+        createSRStringJson,
+        settings,
+        expectedKeys = Map(
+          0 -> ListMap("B"->"0", "M"-> "1000", "Y"-> 100),
+          1 -> ListMap("B"->"1", "M"-> "1001", "Y"-> 101)
+        ))
+      1 shouldBe 1
     }
 
     "insert records into the target Mongo collection with Schema.Struct and payload Struct" in {
@@ -510,14 +538,10 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         case subDoc: Document =>
           keys.map{ case (k,v) =>
             subDoc.get(k) shouldBe v
-            // check the key value matches the input values in the body
-            doc.get(k) shouldBe v
           }
         case x => {
           keys.size shouldBe 1
           x shouldBe keys.head._2
-          // check the key value matches the input values in the body
-          doc.get(keys.head._1) shouldBe keys.head._2
         }
       }
     }

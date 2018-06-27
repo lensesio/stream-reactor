@@ -23,6 +23,9 @@ import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data._
 import org.json4s.JsonAST._
 
+import scala.annotation.tailrec
+import scala.collection.immutable.ListSet
+
 
 object KeysExtractor {
 
@@ -81,23 +84,43 @@ object KeysExtractor {
     }
   }
 
+
   def fromJson(jvalue: JValue, keys: Set[String]): List[(String, Any)] = {
-    jvalue match {
-      case JObject(children) =>
-        children.collect {
-          case JField(name, value) if keys.contains(name) =>
-            val v = value match {
+
+    // map of long name to "short" name (last name after the dot) in "A.B.C":
+    val longToShort = keys.map{ long =>
+      val tLong = long.trim
+      val short = tLong.split('.').last
+      (tLong, short) }.toMap
+
+    // SCALA 2.12 WARNING: remove the 'reverse' when you upgrade to 2.12;
+    // the insertion order of ListSet.toList is preserved in 2.12:
+    keys.toList.reverse.map{ longKey =>
+      val segments = longKey.split('.').toIndexedSeq
+
+      @tailrec
+      def getValue(remainingSegments: Seq[String], jv: JValue): Any = {
+        remainingSegments.size match {
+          case 0 => throw new Exception("shouldn't get here")
+          case 1 => {
+            val seg = remainingSegments.head
+            jv \ seg match {
               case JBool(b) => b
-              case JDecimal(d) => d.toDouble //need to do this because of mong
+              case JDecimal(d) => d.toDouble //need to do this because of mongo
               case JDouble(d) => d
               case JInt(i) => i.toLong //need to do this because of mongo
               case JLong(l) => l
               case JString(s) => s
-              case other => throw new ConfigException(s"Field $name is not handled as a key (${other.getClass}). it needs to be a int, long, string, double or decimal")
+              case other => throw new ConfigException(s"Field $longKey is not handled as a key (${other.getClass}). it needs to be a int, long, string, double or decimal")
             }
-            name -> v
+          }
+          case _ => getValue(remainingSegments.tail, jv \ remainingSegments.head)
         }
-      case other => throw new ConfigException(s"${other.getClass} is not supported")
-    }
+      }
+
+      val short = longToShort(longKey)
+      val value = getValue(segments, jvalue)
+      (short, value)
+    }.toList
   }
 }

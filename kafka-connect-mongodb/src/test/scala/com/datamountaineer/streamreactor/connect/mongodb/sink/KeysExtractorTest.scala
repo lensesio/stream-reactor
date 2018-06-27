@@ -26,6 +26,7 @@ import org.apache.kafka.connect.data.Struct
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConversions._
+import scala.collection.immutable.ListSet
 
 class KeysExtractorTest extends WordSpec with Matchers {
   private val avroData = new AvroData(4)
@@ -39,7 +40,7 @@ class KeysExtractorTest extends WordSpec with Matchers {
       val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
       val jvalue = Json.parseJson(json)
 
-      val actual = KeysExtractor.fromJson(jvalue, Set("lock_time", "rbf"))
+      val actual = KeysExtractor.fromJson(jvalue, ListSet("lock_time", "rbf"))
       actual shouldBe List("lock_time" -> 9223372036854775807L, "rbf" -> true)
     }
 
@@ -51,6 +52,12 @@ class KeysExtractorTest extends WordSpec with Matchers {
       }
     }
 
+    "extract embedded keys out of JSON" in {
+      val jvalue = Json.parseJson("""{"A": 0, "B": "0", "C": {"M": "1000", "N": {"X": 10, "Y": 100} } }""")
+      val keys = ListSet( "B", "C.M", "C.N.X" )
+      KeysExtractor.fromJson(jvalue, keys) shouldBe
+        List("B"->"0", "M"->"1000", "X"->10)
+    }
 
     "extract keys from a Map" in {
       val actual = KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> "tripple"), Set("key1", "key3"))
