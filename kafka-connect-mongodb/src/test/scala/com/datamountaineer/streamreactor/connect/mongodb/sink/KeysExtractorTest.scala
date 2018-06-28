@@ -50,6 +50,8 @@ class KeysExtractorTest extends WordSpec with Matchers {
     "extract embedded keys out of JSON" in {
       val jvalue = Json.parseJson("""{"A": 0, "B": "0", "C": {"M": "1000", "N": {"X": 10, "Y": 100} } }""")
       val keys = ListSet( "B", "C.M", "C.N.X" )
+      // SCALA 2.12 WARNING: If you upgrade to 2.12 and this test fails, 
+      // you need to remove the "reverse()" calls in KeysExtractor.scala:
       KeysExtractor.fromJson(jvalue, keys) shouldBe
         List("B"->"0", "M"->"1000", "X"->10)
     }
@@ -72,6 +74,8 @@ class KeysExtractorTest extends WordSpec with Matchers {
       val actual = KeysExtractor.fromMap(
         Map("A"->0, "B"->"0", "C"->Map("M"->"1000", "N"->Map("X"->10, "Y"->100).asJava).asJava).asJava,
         ListSet( "B", "C.M", "C.N.X" ))
+      // SCALA 2.12 WARNING: If you upgrade to 2.12 and this test fails, 
+      // you need to remove the "reverse()" calls in KeysExtractor.scala:
       actual shouldBe ListSet("B"->"0", "M"->"1000", "X"->10)
     }
 
@@ -99,6 +103,8 @@ class KeysExtractorTest extends WordSpec with Matchers {
       val format = RecordFormat[Thing]
       val avro = format.to(Thing(0, "0", CThing("1000", NThing(10, 100))))
       val struct = avroData.toConnectData(avro.getSchema, avro)
+      // SCALA 2.12 WARNING: If you upgrade to 2.12 and this test fails, 
+      // you need to remove the "reverse()" calls in KeysExtractor.scala:
       KeysExtractor.fromStruct(
         struct.value().asInstanceOf[Struct],
         ListSet( "B", "C.M", "C.N.X" )) shouldBe
