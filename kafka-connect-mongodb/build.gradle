@@ -16,7 +16,7 @@
 
 project(":kafka-connect-mongodb") {
     ext {
-        mongoVersion = "3.6.3"
+        mongoVersion = "3.6.4"
         avro4sVersion = "1.6.4"
     }
 
