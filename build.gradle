@@ -83,7 +83,7 @@ allprojects {
         // The following 4 need to align to compile against a particular version
         confluentVersion = '4.1.0'
         kafkaVersion = '1.1.0'
-        dataMountaineerCommonVersion = "1.1.3"
+        dataMountaineerCommonVersion = "1.1.5"
         link4jVersion = "1.8.0"
 
         gitCommitHash = ("git rev-parse HEAD").execute().text.trim()
