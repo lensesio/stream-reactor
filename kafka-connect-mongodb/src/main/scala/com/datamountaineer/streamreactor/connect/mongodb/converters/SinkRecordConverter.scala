@@ -18,9 +18,11 @@ package com.datamountaineer.streamreactor.connect.mongodb.converters
 
 import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
+import java.time.OffsetDateTime
 import java.util
 import java.util.TimeZone
 
+import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
 import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.sink.SinkRecord
@@ -28,7 +30,9 @@ import org.bson.Document
 import org.json4s.JValue
 import org.json4s.JsonAST._
 
+import scala.annotation.tailrec
 import scala.collection.JavaConversions._
+import scala.util.Try
 
 object SinkRecordConverter {
   private val ISO_DATE_FORMAT: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
@@ -42,7 +46,15 @@ object SinkRecordConverter {
     * @param map
     * @return
     */
-  def fromMap(map: util.Map[String, AnyRef]): Document = new Document(map)
+  def fromMap(map: util.Map[String, AnyRef])(implicit settings: MongoSettings):
+    Document = {
+
+    val doc = new Document(map)
+
+    // mutate the doc if requested before returning
+    if (settings.jsonDateTimeFields.nonEmpty) SinkRecordConverter.convertTimestamps(doc)
+    doc
+  }
 
   /**
     * Creates a Mongo document from a the Kafka Struct
@@ -227,7 +239,7 @@ object SinkRecordConverter {
     * @param record - The instance to the json node
     * @return An instance of a mongo document
     */
-  def fromJson(record: JValue): Document = {
+  def fromJson(record: JValue)(implicit settings: MongoSettings): Document = {
     def convert(name: String, jvalue: JValue, document: Document): Document = {
       def convertArray(array: JArray): util.ArrayList[Any] = {
         val list = new util.ArrayList[Any]()
@@ -264,10 +276,70 @@ object SinkRecordConverter {
       Option(value).map(document.append(name, _)).getOrElse(document)
     }
 
-    record match {
+    val doc = record match {
       case jobj: JObject =>
         jobj.obj.foldLeft(new Document) { case (d, JField(n, j)) => convert(n, j, d) }
       case _ => throw new IllegalArgumentException("Invalid json to convert to mongo ")
+    }
+
+    // mutate the doc if requested before returning
+    if (settings.jsonDateTimeFields.nonEmpty) convertTimestamps(doc)
+    doc
+  }
+
+  /**
+    * Convert timestamps based on settings' jsonDateTimeFields.
+    * @param doc
+    * @return Unit - but the input document is modified in-place!
+    */
+  def convertTimestamps(doc: Document)(implicit settings: MongoSettings): Unit = {
+
+    import scala.collection.JavaConverters._
+    val fieldSet: Set[Seq[String]] = settings.jsonDateTimeFields
+
+    val initialDoc = new Document()
+    fieldSet.foreach{ parts =>
+
+      def convertValue(
+        remainingParts: Seq[String],
+        lastDoc: Document): Unit = {
+
+        val head = remainingParts.headOption
+        remainingParts.size match {
+          case 1 => {
+            val testVal = lastDoc.get(head.get)
+            val newVal: Option[Any] = testVal match {
+              case s: String => Option(
+                Try{ OffsetDateTime.parse(s).toInstant().toEpochMilli() }.
+                toOption.
+                map{ millis => new java.util.Date(millis) }.
+                getOrElse(s)
+              )
+              case i: Integer => Option(new java.util.Date(i.longValue()))
+              case i: java.lang.Long => Option(new java.util.Date(i))
+              case _ => None
+            }
+            newVal.map{ nv => lastDoc.put(head.get, nv) }
+          }
+          case n: Int if (n > 1) => {
+            val testVal = lastDoc.get(head.get)
+            testVal match {
+              case subDoc: Document => convertValue(remainingParts.tail, subDoc)
+              case subList: java.util.List[Document] => {
+                subList.asScala.foreach { listDoc =>
+                  listDoc match {
+                    case d: Document => convertValue(remainingParts.tail, d)
+                    case _ => // do nothing
+                  }
+                }
+              }
+              case _ => // do nothing
+            }
+          }
+          case _ => throw new Exception("somehow remainingParts is 0!")
+        }
+      }
+      convertValue(parts, doc)
     }
   }
 }
