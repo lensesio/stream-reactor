@@ -82,9 +82,10 @@ class SinkRecordToDocumentTest extends WordSpec with Matchers with ConverterUtil
     }
 
     "convert Schemaless + Json payload to a Mongo Document" in {
+      // TODO: This test is exactly the same as the above test "convert String Schema + Json payload to a Mongo Document".
+      // This should probably test something different or be deleted.
       for (i <- 1 to 4) {
         val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath).mkString
-
 
         val record = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
