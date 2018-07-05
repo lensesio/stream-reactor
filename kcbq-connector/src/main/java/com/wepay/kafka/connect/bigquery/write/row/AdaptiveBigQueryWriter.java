@@ -76,9 +76,10 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
    * @see BigQueryWriter#performWriteRequest(PartitionedTableId, List, String)
    */
   @Override
-  public Map<Long, List<BigQueryError>> performWriteRequest(PartitionedTableId tableId,
-                                                               List<InsertAllRequest.RowToInsert> rows,
-                                                               String topic) {
+  public Map<Long, List<BigQueryError>> performWriteRequest(
+      PartitionedTableId tableId,
+      List<InsertAllRequest.RowToInsert> rows,
+      String topic) {
     InsertAllResponse writeResponse = null;
     InsertAllRequest request = null;
 
@@ -103,7 +104,8 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     int attemptCount = 0;
     while (writeResponse == null || writeResponse.hasErrors()) {
       logger.trace("insertion failed");
-      if (writeResponse == null || onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors())) {
+      if (writeResponse == null
+          || onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors())) {
         try {
           // If the table was missing its schema, we never received a writeResponse
           logger.debug("re-attempting insertion");
@@ -116,8 +118,9 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
       }
       attemptCount++;
       if (attemptCount >= AFTER_UPDATE_RETY_LIMIT) {
-        throw new BigQueryConnectException("Failed to write rows after BQ schema update within "
-                                           + AFTER_UPDATE_RETY_LIMIT + " attempts for: " + tableId.getBaseTableId());
+        throw new BigQueryConnectException(
+            "Failed to write rows after BQ schema update within "
+                + AFTER_UPDATE_RETY_LIMIT + " attempts for: " + tableId.getBaseTableId());
       }
     }
     logger.debug("table insertion completed successfully");
@@ -128,7 +131,8 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     try {
       schemaManager.updateSchema(tableId.getBaseTableId(), topic);
     } catch (BigQueryException exception) {
-      throw new BigQueryConnectException("Failed to update table schema for: " + tableId.getBaseTableId(), exception);
+      throw new BigQueryConnectException(
+          "Failed to update table schema for: " + tableId.getBaseTableId(), exception);
     }
   }
 

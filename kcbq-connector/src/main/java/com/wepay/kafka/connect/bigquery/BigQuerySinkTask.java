@@ -119,7 +119,8 @@ public class BigQuerySinkTask extends SinkTask {
     PartitionedTableId.Builder builder = new PartitionedTableId.Builder(baseTableId);
     if (useMessageTimeDatePartitioning) {
       if (record.timestampType() == TimestampType.NO_TIMESTAMP_TYPE) {
-        throw new ConnectException("Message has no timestamp type, cannot use message timestamp to partition.");
+        throw new ConnectException(
+            "Message has no timestamp type, cannot use message timestamp to partition.");
       }
 
       builder.setDayPartition(record.timestamp());
@@ -154,7 +155,9 @@ public class BigQuerySinkTask extends SinkTask {
       if (record.value() != null) {
         PartitionedTableId table = getRecordTable(record);
         if (schemaRetriever != null) {
-          schemaRetriever.setLastSeenSchema(table.getBaseTableId(), record.topic(), record.valueSchema());
+          schemaRetriever.setLastSeenSchema(table.getBaseTableId(),
+                                            record.topic(),
+                                            record.valueSchema());
         }
 
         if (!tableWriterBuilders.containsKey(table)) {
@@ -236,7 +239,8 @@ public class BigQuerySinkTask extends SinkTask {
     recordConverter = getConverter();
     executor = new KCBQThreadPoolExecutor(config, new LinkedBlockingQueue<>());
     topicPartitionManager = new TopicPartitionManager();
-    useMessageTimeDatePartitioning = config.getBoolean(config.BIGQUERY_MESSAGE_TIME_PARTITIONING_CONFIG);
+    useMessageTimeDatePartitioning =
+        config.getBoolean(config.BIGQUERY_MESSAGE_TIME_PARTITIONING_CONFIG);
   }
 
   @Override

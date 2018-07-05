@@ -127,7 +127,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final String AVRO_DATA_CACHE_SIZE_DOC =
       "The size of the cache to use when converting schemas from Avro to Kafka Connect";
 
-  public static final String CONVERT_DOUBLE_SPECIAL_VALUES_CONFIG =         "convertDoubleSpecialValues";
+  public static final String CONVERT_DOUBLE_SPECIAL_VALUES_CONFIG =    "convertDoubleSpecialValues";
   public static final ConfigDef.Type CONVERT_DOUBLE_SPECIAL_VALUES_TYPE =   ConfigDef.Type.BOOLEAN;
   public static final Boolean CONVERT_DOUBLE_SPECIAL_VALUES_DEFAULT =       false;
   public static final ConfigDef.Importance CONVERT_DOUBLE_SPECIAL_VALUES_IMPORTANCE =
