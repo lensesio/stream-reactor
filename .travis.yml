@@ -1,7 +1,19 @@
-language: scala
-scala: 2.11.7
+sudo: required
+
+language: java
+
+services:
+  - docker
+
+before_install:
+  - docker-compose -f $COMPONENT/docker-compose.yml up
+
 jdk: oraclejdk8
+
 before_script: ulimit -u 30000
-script: gradle fatJar
-notifications:
-  slack: datamountaineers:gpg5e7VabFjAT1gQZqwxgsqP
+
+script:
+- gradle clean test -p $COMPONENT
+
+env:
+  - COMPONENT=kafka-connect-hive
