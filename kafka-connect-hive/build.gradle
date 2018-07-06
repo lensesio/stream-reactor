@@ -74,35 +74,6 @@ configurations.all {
     exclude group: 'org.pentaho'
 }
 
-configurations {
-    itCompile.extendsFrom testCompile
-    itRuntime.extendsFrom testRuntime
-}
-
-sourceSets {
-    itest {
-        compileClasspath += main.output + test.output
-        runtimeClasspath += main.output + test.output
-        scala.srcDir file('src/it/scala')
-    }
-    // This is just to trick IntelliJ IDEA to add integration test
-    // resources to classpath when running integration tests from
-    // the IDE. It's is not a good solution but I don't know about
-    // a better one.
-    test {
-        resources.srcDir file('src/it/resources')
-    }
-}
-
-
-task itest(type: Test) {
-    testClassesDir = sourceSets.itest.output.classesDir
-    classpath = sourceSets.itest.runtimeClasspath
-    testLogging {
-        events "passed", "skipped", "failed"
-    }
-}
-
 dependencies {
 
     compile "org.scala-lang:scala-library:$scala"

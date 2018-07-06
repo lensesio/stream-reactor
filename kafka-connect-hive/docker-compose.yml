@@ -52,7 +52,7 @@ services:
   fast-data-dev:
     image: landoop/fast-data-dev:1.1.0
     volumes:
-      - kafka-connect-hive/build/libs/:/connectors/hive
+      - ./kafka-connect-hive/build/libs/:/connectors/hive
 
 volumes:
   namenode:

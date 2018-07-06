@@ -75,7 +75,7 @@ class HiveSinkIntTest {
   // write 1 million random records, but with some determinism
   for (_ <- 1 to 1000000) {
     val person = Person(Random.nextString(10), states(Random.nextInt(states.length)), Random.nextInt(99))
-    producer.send(new ProducerRecord("hive_sink_test", JacksonSupport.mapper.writeValueAsString(person)))
+    producer.send(new ProducerRecord("hive_sink_topic", JacksonSupport.mapper.writeValueAsString(person)))
   }
 
   producer.close()
