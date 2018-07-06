@@ -18,7 +18,14 @@ package com.wepay.kafka.connect.bigquery.it;
  */
 
 
-import static com.google.cloud.bigquery.LegacySQLTypeName.*;
+import static com.google.cloud.bigquery.LegacySQLTypeName.BOOLEAN;
+import static com.google.cloud.bigquery.LegacySQLTypeName.BYTES;
+import static com.google.cloud.bigquery.LegacySQLTypeName.DATE;
+import static com.google.cloud.bigquery.LegacySQLTypeName.FLOAT;
+import static com.google.cloud.bigquery.LegacySQLTypeName.INTEGER;
+import static com.google.cloud.bigquery.LegacySQLTypeName.STRING;
+import static com.google.cloud.bigquery.LegacySQLTypeName.TIMESTAMP;
+
 import static org.junit.Assert.assertEquals;
 
 import com.google.api.gax.paging.Page;

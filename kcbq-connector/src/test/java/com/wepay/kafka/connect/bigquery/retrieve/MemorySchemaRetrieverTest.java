@@ -2,10 +2,12 @@ package com.wepay.kafka.connect.bigquery.retrieve;
 
 
 import com.google.cloud.bigquery.TableId;
+
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.errors.ConnectException;
+
 import org.junit.Assert;
 import org.junit.Test;
 

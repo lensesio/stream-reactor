@@ -1,13 +1,15 @@
 package com.wepay.kafka.connect.bigquery.retrieve;
 
-import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.TableId;
+
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
+
 import org.apache.kafka.common.cache.Cache;
 import org.apache.kafka.common.cache.LRUCache;
 import org.apache.kafka.common.cache.SynchronizedCache;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

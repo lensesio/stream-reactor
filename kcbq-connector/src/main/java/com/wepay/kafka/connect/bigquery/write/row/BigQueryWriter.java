@@ -127,8 +127,8 @@ public abstract class BigQueryWriter {
           mostRecentException = new BigQueryConnectException(failedRowsMap);
           retryCount++;
         } else {
-            // throw an exception in case of complete failure
-            throw new BigQueryConnectException(failedRowsMap);
+          // throw an exception in case of complete failure
+          throw new BigQueryConnectException(failedRowsMap);
         }
       } catch (BigQueryException err) {
         mostRecentException = err;

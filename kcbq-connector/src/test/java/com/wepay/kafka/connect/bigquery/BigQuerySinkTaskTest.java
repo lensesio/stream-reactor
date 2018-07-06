@@ -35,14 +35,12 @@ import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.InsertAllResponse;
 import com.google.cloud.bigquery.TableId;
 
-import com.google.cloud.bigquery.TableInfo;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
 
-import com.wepay.kafka.connect.bigquery.retrieve.MemorySchemaRetriever;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -53,11 +51,11 @@ import org.apache.kafka.connect.sink.SinkTaskContext;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 public class BigQuerySinkTaskTest {
