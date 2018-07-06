@@ -5,15 +5,28 @@ language: java
 services:
   - docker
 
-before_install:
-  - docker-compose -f $COMPONENT/docker-compose.yml up
-
 jdk: oraclejdk8
 
 before_script: ulimit -u 30000
 
 script:
-- gradle clean test -p $COMPONENT
+- gradle clean shadowJar -p $COMPONENT -x test
+
+after_success:
+  - docker-compose -d -f $COMPONENT/docker-compose.yml up
+  - |cat << EOF > .json
+    {
+      "name": "hive_sink_test",
+      "config": {
+        "connector.class": "com.landoop.streamreactor.connect.hive.sink.HiveSinkConnector"
+        "topics": "hive_sink_test",
+        "name": "hive_sink_test",
+        "kcql" : "insert into",
+        "connect.hive.kcql" : "",
+        "connect.hive.database.name" : "default"
+    }
+    EOF
+  - curl -X POST -H "Content-Type: application/json" -H "Accept: application/json" -d @.json localhost:8083/connectors`
 
 env:
   - COMPONENT=kafka-connect-hive

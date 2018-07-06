@@ -23,10 +23,10 @@ buildscript {
     }
     
     dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
         classpath "gradle.plugin.com.github.maiflai:gradle-scalatest:0.21"
     }
 }
-
 
 ext {
     scalaMajorVersion = '2.11'
@@ -58,6 +58,7 @@ apply plugin: 'maven'
 apply plugin: 'com.github.maiflai.scalatest'
 apply plugin: 'maven-publish'
 apply plugin: 'signing'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -71,6 +72,35 @@ repositories {
 
 configurations.all {
     exclude group: 'org.pentaho'
+}
+
+configurations {
+    itCompile.extendsFrom testCompile
+    itRuntime.extendsFrom testRuntime
+}
+
+sourceSets {
+    itest {
+        compileClasspath += main.output + test.output
+        runtimeClasspath += main.output + test.output
+        scala.srcDir file('src/it/scala')
+    }
+    // This is just to trick IntelliJ IDEA to add integration test
+    // resources to classpath when running integration tests from
+    // the IDE. It's is not a good solution but I don't know about
+    // a better one.
+    test {
+        resources.srcDir file('src/it/resources')
+    }
+}
+
+
+task itest(type: Test) {
+    testClassesDir = sourceSets.itest.output.classesDir
+    classpath = sourceSets.itest.runtimeClasspath
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
 }
 
 dependencies {
