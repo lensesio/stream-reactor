@@ -12,24 +12,7 @@ before_script: ulimit -u 30000
 script:
 - gradle clean shadowJar -p $COMPONENT -x test
 
-after_success:
-  - docker-compose -d -f $COMPONENT/docker-compose.yml up
-  - |cat << EOF > .json
-    {
-      "name": "hive_sink_test",
-      "config": {
-        "connector.class": "com.landoop.streamreactor.connect.hive.sink.HiveSinkConnector"
-        "topics": "hive_sink_topic",
-        "name": "hive_sink_test",
-        "kcql" : "insert into",
-        "connect.hive.kcql" : "insert into hive_sink_table select * from hive_sink_topic",
-        "connect.hive.fs.defaultFS" : "hdfs://namenode:8020",
-        "connect.hive.hive.metastore" : "thrift",
-        "connect.hive.hive.metastore.uris" : "thrift://hive-metastore:9083",
-        "connect.hive.database.name" : "default"
-    }
-    EOF
-  - curl -X POST -H "Content-Type: application/json" -H "Accept: application/json" -d @.json localhost:8083/connectors`
+after_success: $COMPONENT/int_test.sh
 
 env:
   - COMPONENT=kafka-connect-hive
