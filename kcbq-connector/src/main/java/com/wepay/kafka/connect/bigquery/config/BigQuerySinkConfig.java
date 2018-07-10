@@ -136,6 +136,15 @@ public class BigQuerySinkConfig extends AbstractConfig {
           "Should +Infinity be converted to Double.MAX_VALUE and -Infinity and NaN be "
           + "converted to Double.MIN_VALUE so they can make it to BigQuery";
 
+  public static final String ALL_BQ_FIELDS_NULLABLE_CONFIG = "allBQFieldsNullable";
+  private static final ConfigDef.Type ALL_BQ_FIELDS_NULLABLE_TYPE = ConfigDef.Type.BOOLEAN;
+  private static final Boolean ALL_BQ_FIELDS_NULLABLE_DEFAULT = false;
+  private static final ConfigDef.Importance ALL_BQ_FIELDS_NULLABLE_IMPORTANCE =
+      ConfigDef.Importance.LOW;
+  private static final String ALL_BQ_FIELDS_NULLABLE_DOC =
+      "If true, no fields in any produced BigQuery schema will be REQUIRED. All "
+      + "non-nullable avro fields will be translated as NULLABLE (or REPEATED, if arrays).";
+
   static {
     config = new ConfigDef()
         .define(
@@ -192,6 +201,12 @@ public class BigQuerySinkConfig extends AbstractConfig {
             AVRO_DATA_CACHE_SIZE_VALIDATOR,
             AVRO_DATA_CACHE_SIZE_IMPORTANCE,
             AVRO_DATA_CACHE_SIZE_DOC
+        ).define(
+            ALL_BQ_FIELDS_NULLABLE_CONFIG,
+            ALL_BQ_FIELDS_NULLABLE_TYPE,
+            ALL_BQ_FIELDS_NULLABLE_DEFAULT,
+            ALL_BQ_FIELDS_NULLABLE_IMPORTANCE,
+            ALL_BQ_FIELDS_NULLABLE_DOC
         ).define(
             CONVERT_DOUBLE_SPECIAL_VALUES_CONFIG,
             CONVERT_DOUBLE_SPECIAL_VALUES_TYPE,
@@ -364,8 +379,8 @@ public class BigQuerySinkConfig extends AbstractConfig {
    */
   public SchemaConverter<Schema> getSchemaConverter() {
     return getBoolean(INCLUDE_KAFKA_DATA_CONFIG)
-        ? new KafkaDataBQSchemaConverter()
-        : new BigQuerySchemaConverter();
+        ? new KafkaDataBQSchemaConverter(getBoolean(ALL_BQ_FIELDS_NULLABLE_CONFIG))
+        : new BigQuerySchemaConverter(getBoolean(ALL_BQ_FIELDS_NULLABLE_CONFIG));
   }
 
   /**

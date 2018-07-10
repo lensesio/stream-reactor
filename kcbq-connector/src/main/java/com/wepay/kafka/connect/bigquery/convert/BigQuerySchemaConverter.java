@@ -84,6 +84,12 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
                            com.google.cloud.bigquery.Field.Type.bytes());
   }
 
+  private final boolean allFieldsNullable;
+
+  public BigQuerySchemaConverter(boolean allFieldsNullable) {
+    this.allFieldsNullable = allFieldsNullable;
+  }
+
   /**
    * Convert a {@link Schema Kafka Connect Schema} into a
    * {@link com.google.cloud.bigquery.Schema BigQuery schema}.
@@ -148,7 +154,7 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
       case MAP:
         return;
       default:
-        if (kafkaConnectSchema.isOptional()) {
+        if (allFieldsNullable || kafkaConnectSchema.isOptional()) {
           fieldBuilder.setMode(com.google.cloud.bigquery.Field.Mode.NULLABLE);
         } else {
           fieldBuilder.setMode(com.google.cloud.bigquery.Field.Mode.REQUIRED);

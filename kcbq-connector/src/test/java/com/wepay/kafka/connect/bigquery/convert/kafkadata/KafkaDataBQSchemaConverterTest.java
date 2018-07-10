@@ -42,7 +42,7 @@ public class KafkaDataBQSchemaConverterTest {
         com.google.cloud.bigquery.Schema.of(baseField, kafkaDataField);
 
     com.google.cloud.bigquery.Schema bigQueryActualSchema =
-        new KafkaDataBQSchemaConverter().convertSchema(kafkaConnectTestSchema);
+        new KafkaDataBQSchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryActualSchema);
   }
 

@@ -34,7 +34,7 @@ public class BigQuerySchemaConverterTest {
 
   @Test(expected = ConversionConnectException.class)
   public void testTopLevelSchema() {
-    new BigQuerySchemaConverter().convertSchema(Schema.BOOLEAN_SCHEMA);
+    new BigQuerySchemaConverter(false).convertSchema(Schema.BOOLEAN_SCHEMA);
   }
 
   @Test
@@ -57,7 +57,7 @@ public class BigQuerySchemaConverterTest {
         .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
-        new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+        new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
   }
 
@@ -81,7 +81,7 @@ public class BigQuerySchemaConverterTest {
         .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
-        new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+        new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
 
 
@@ -90,7 +90,7 @@ public class BigQuerySchemaConverterTest {
         .field(fieldName, Schema.INT16_SCHEMA)
         .build();
 
-    bigQueryTestSchema = new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+    bigQueryTestSchema = new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
 
 
@@ -99,7 +99,7 @@ public class BigQuerySchemaConverterTest {
         .field(fieldName, Schema.INT32_SCHEMA)
         .build();
 
-    bigQueryTestSchema = new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+    bigQueryTestSchema = new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
 
 
@@ -108,7 +108,7 @@ public class BigQuerySchemaConverterTest {
         .field(fieldName, Schema.INT64_SCHEMA)
         .build();
 
-    bigQueryTestSchema = new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+    bigQueryTestSchema = new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
   }
 
@@ -131,7 +131,7 @@ public class BigQuerySchemaConverterTest {
         .field(fieldName, Schema.FLOAT32_SCHEMA)
         .build();
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
-        new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+        new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
 
     kafkaConnectTestSchema = SchemaBuilder
@@ -140,7 +140,7 @@ public class BigQuerySchemaConverterTest {
         .build();
 
     bigQueryTestSchema =
-        new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+        new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
   }
 
@@ -164,7 +164,7 @@ public class BigQuerySchemaConverterTest {
         .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
-        new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+        new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
   }
 
@@ -207,7 +207,7 @@ public class BigQuerySchemaConverterTest {
     com.google.cloud.bigquery.Schema bigQueryExpectedInnerSchema =
         com.google.cloud.bigquery.Schema.of(bigQueryInnerRecord);
     com.google.cloud.bigquery.Schema bigQueryTestInnerSchema =
-        new BigQuerySchemaConverter().convertSchema(
+        new BigQuerySchemaConverter(false).convertSchema(
             SchemaBuilder
                 .struct()
                 .field(innerFieldStructName, kafkaConnectInnerSchema)
@@ -238,7 +238,7 @@ public class BigQuerySchemaConverterTest {
     com.google.cloud.bigquery.Schema bigQueryExpectedMiddleSchema =
         com.google.cloud.bigquery.Schema.of(bigQueryMiddleRecord);
     com.google.cloud.bigquery.Schema bigQueryTestMiddleSchema =
-        new BigQuerySchemaConverter().convertSchema(
+        new BigQuerySchemaConverter(false).convertSchema(
             SchemaBuilder
                 .struct()
                 .field(middleFieldStructName, kafkaConnectMiddleSchema)
@@ -266,7 +266,7 @@ public class BigQuerySchemaConverterTest {
     com.google.cloud.bigquery.Schema bigQueryExpectedOuterSchema =
         com.google.cloud.bigquery.Schema.of(bigQueryOuterRecord);
     com.google.cloud.bigquery.Schema bigQueryTestOuterSchema =
-        new BigQuerySchemaConverter().convertSchema(
+        new BigQuerySchemaConverter(false).convertSchema(
             SchemaBuilder
                 .struct()
                 .field(outerFieldStructName, kafkaConnectOuterSchema)
@@ -317,7 +317,7 @@ public class BigQuerySchemaConverterTest {
         .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
-        new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+        new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
   }
 
@@ -340,7 +340,7 @@ public class BigQuerySchemaConverterTest {
         .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
-        new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+        new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
   }
 
@@ -363,7 +363,7 @@ public class BigQuerySchemaConverterTest {
         .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
-        new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+        new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
   }
 
@@ -387,7 +387,7 @@ public class BigQuerySchemaConverterTest {
         .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
-        new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+        new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
   }
 
@@ -411,7 +411,7 @@ public class BigQuerySchemaConverterTest {
         .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
-        new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+        new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
   }
 
@@ -424,7 +424,7 @@ public class BigQuerySchemaConverterTest {
         .field(fieldName, SchemaBuilder.bool().name(Timestamp.LOGICAL_NAME))
         .build();
 
-    new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+    new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
   }
 
   @Test
@@ -447,7 +447,7 @@ public class BigQuerySchemaConverterTest {
         .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
-        new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+        new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
   }
 
@@ -460,7 +460,7 @@ public class BigQuerySchemaConverterTest {
         .field(fieldName, SchemaBuilder.int64().name(Date.LOGICAL_NAME))
         .build();
 
-    new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+    new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
   }
 
   @Test
@@ -483,7 +483,7 @@ public class BigQuerySchemaConverterTest {
         .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
-        new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+        new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
   }
 
@@ -496,7 +496,7 @@ public class BigQuerySchemaConverterTest {
         .field(fieldName, SchemaBuilder.bool().name(Decimal.LOGICAL_NAME))
         .build();
 
-    new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+    new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
   }
 
   @Test
@@ -527,7 +527,7 @@ public class BigQuerySchemaConverterTest {
         .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
-        new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+        new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
   }
 
@@ -551,7 +551,32 @@ public class BigQuerySchemaConverterTest {
                      .build();
 
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
-        new BigQuerySchemaConverter().convertSchema(kafkaConnectTestSchema);
+        new BigQuerySchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
+  }
+
+  @Test
+  public void testAllFieldsNullable() {
+    final String fieldName = "RequiredField";
+
+    com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
+        com.google.cloud.bigquery.Schema.of(
+            com.google.cloud.bigquery.Field.newBuilder(
+                fieldName,
+                com.google.cloud.bigquery.Field.Type.string()
+            ).setMode(
+                com.google.cloud.bigquery.Field.Mode.NULLABLE
+            ).build()
+        );
+
+    Schema kafkaConnectTestSchema = SchemaBuilder
+        .struct()
+        .field(fieldName, SchemaBuilder.string().required().build())
+        .build();
+
+    com.google.cloud.bigquery.Schema bigQueryTestSchema =
+        new BigQuerySchemaConverter(true).convertSchema(kafkaConnectTestSchema);
+    assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
+
   }
 }

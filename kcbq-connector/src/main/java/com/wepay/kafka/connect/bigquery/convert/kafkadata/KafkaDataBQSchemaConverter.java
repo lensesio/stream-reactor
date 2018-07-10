@@ -38,6 +38,10 @@ public class KafkaDataBQSchemaConverter extends BigQuerySchemaConverter {
   /* package private */ static final String KAFKA_DATA_OFFSET_FIELD_NAME = "offset";
   /* package private */ static final String KAFKA_DATA_INSERT_TIME_FIELD_NAME = "insertTime";
 
+  public KafkaDataBQSchemaConverter(boolean allFieldsNullable) {
+    super(allFieldsNullable);
+  }
+
   /**
    * Convert the  kafka {@link Schema} to a BigQuery {@link com.google.cloud.bigquery.Schema}, with
    * the addition of an optional field for containing extra kafka data.
