@@ -82,7 +82,12 @@ object MongoSettings extends StrictLogging {
   }
 
   /**
-    * Parse out the jsonDateTimeFields list into the structure we need.
+    * Parse out the jsonDateTimeFields list into the structure we need, which is
+    * a Set of field 'paths'; ie. :
+    *    Set(
+    *      Seq("top-level-field"),
+    *      Seq("top-level-parent", "child1", "child2", "fieldname"),
+    *    )
     */
   def getJsonDateTimeFields(config: MongoConfig): Set[Seq[String]] = {
     import scala.collection.JavaConverters._
@@ -92,6 +97,7 @@ object MongoSettings extends StrictLogging {
         map{ fullName =>
           fullName.trim.split('.').toSeq
         }.toSet
+    logger.info(s"MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG is $set")
     set
   }
 }
