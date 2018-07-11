@@ -70,7 +70,18 @@ object MongoConfigConstants {
   val KCQL_DOC = "KCQL expression describing field selection and data routing to the target mongo db."
 
   val JSON_DATETIME_FIELDS_CONFIG = s"$CONNECTOR_PREFIX.json_datetime_fields"
-  val JSON_DATETIME_FIELDS_DOC = "List of fields that should be converted to ISODate on Mongodb insertion (comma-separated field names).  For JSON topics only.  Fields may be an integral epoch time or an ISO8601 datetime string with an offset (offset required).  If string does not parse to ISO, it will be written as a string instead."
+  val JSON_DATETIME_FIELDS_DOC = """
+    |List of fields that should be converted to ISODate on Mongodb insertion 
+    |(comma-separated field names).  For JSON topics only.  Field values may be 
+    |an integral epoch time or an ISO8601 datetime string with an offset (offset 
+    |or 'Z' required).  If string does not parse to ISO, it will be written as a 
+    |string instead.
+    |Subdocument fields can be referred to as in the following examples: 
+    |  "topLevelFieldName",
+    |  "topLevelSubDocument.FieldName",
+    |  "topLevelParent.subDocument.subDocument2.FieldName", (etc.)
+    |If a field is converted to ISODate and that same field is named as a PK, then
+    |the PK field is also written as an ISODate.""".stripMargin
 
   val PROGRESS_COUNTER_ENABLED = "connect.progress.enabled"
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
