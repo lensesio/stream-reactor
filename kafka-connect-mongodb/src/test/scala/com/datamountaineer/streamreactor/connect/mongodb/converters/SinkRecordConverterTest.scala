@@ -26,7 +26,7 @@ import org.bson.Document
 
 import scala.annotation.tailrec
 import scala.collection.mutable
-import java.util.{Map => JavaMap}
+import java.util.{LinkedList, Map => JavaMap}
 
 class SinkRecordConverterTest extends WordSpec with Matchers {
 
@@ -308,6 +308,43 @@ class SinkRecordConverterTest extends WordSpec with Matchers {
 
   "convertTimestamps()" should {
 
+    // used in the tests below
+    def testDocumentConversion(doc: Document): Unit = {
+
+      implicit val settings = MongoSettings(MongoConfig((baseConfig ++
+        Map(
+          MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG->
+            "subDoc.N, timestamp, subList.Y"
+        )).asJava))
+
+      println(s"doc is ${doc.toString}")
+      //map is {A=0, subList=[Document{{X=100, Y=101}}, Document{{Y=102}}],
+      // subDoc=Document{{M=1, N=2}}, timestamp=2009-12-25T05:59:59.999+00:00}
+
+      SinkRecordConverter.convertTimestamps(doc)
+
+      doc.getString("A") shouldBe "0"
+      val expectedSubList = {
+        val newX = new Document()
+        newX.put("X", 100)
+        newX.put("Y", new java.util.Date(101))
+
+        val newY = new Document()
+        newY.put("Y", new java.util.Date(102))
+        List(newX, newY)
+      }
+      val actualSubList = doc.get("subList").asInstanceOf[LinkedList[Document]].asScala.toList
+      actualSubList(0).entrySet shouldBe expectedSubList(0).entrySet
+      actualSubList(1).entrySet shouldBe expectedSubList(1).entrySet
+      actualSubList.size shouldBe expectedSubList.size
+
+      doc.get("timestamp") shouldBe createDate("2009-12-25T05:59:59.999+00:00")
+
+      val sd = doc.get("subDoc").asInstanceOf[java.util.Map[String, Object]]
+      sd.get("M") shouldBe "1"
+      sd.get("N") shouldBe (new java.util.Date(2))
+    }
+
     "convert int and string values in Documents" in {
 
       import java.util.LinkedList
@@ -332,42 +369,43 @@ class SinkRecordConverterTest extends WordSpec with Matchers {
       map.put("subList", subList)
 
       map.put("timestamp", "2009-12-25T05:59:59.999+00:00")
+      println(s"map is $map")
 
       val doc = new Document(map)
-
-      implicit val settings = MongoSettings(MongoConfig((baseConfig ++
-        Map(
-          MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG->
-            "subDoc.N, timestamp, subList.Y"
-        )).asJava))
-
-      println("map is "+map)
-      //map is {A=0, subList=[Document{{X=100, Y=101}}, Document{{Y=102}}],
-      // subDoc=Document{{M=1, N=2}}, timestamp=2009-12-25T05:59:59.999+00:00}
-
-      SinkRecordConverter.convertTimestamps(doc)
-
-      doc.getString("A") shouldBe "0"
-      val expectedSubList = {
-        val newX = new Document()
-        newX.put("X", 100)
-        newX.put("Y", new java.util.Date(101))
-
-        val newY = new Document()
-        newY.put("Y", new java.util.Date(102))
-        List(newX, newY)
-      }
-      val actualSubList = doc.get("subList").asInstanceOf[LinkedList[Document]].asScala.toList
-      actualSubList(0).entrySet shouldBe expectedSubList(0).entrySet
-      actualSubList(1).entrySet shouldBe expectedSubList(1).entrySet
-      actualSubList.size shouldBe expectedSubList.size
-
-      doc.get("timestamp") shouldBe createDate("2009-12-25T05:59:59.999+00:00")
-
-      val sd = doc.get("subDoc").asInstanceOf[Document]
-      sd.getString("M") shouldBe "1"
-      sd.get("N") shouldBe (new java.util.Date(2))
+      testDocumentConversion(doc)
     }
+
+    "convert int and string values in Document with HashMap subdocument" in {
+
+      import java.util.LinkedList
+
+      // create the test doc
+      val map = new java.util.HashMap[String, Object]()
+      map.put("A", "0")
+
+      // create a subdoc - leave it a hashmap for this test.
+      val subDoc = new java.util.HashMap[String, Object]()
+      subDoc.put("M", "1")
+      subDoc.put("N", new java.lang.Integer(2))
+      map.put("subDoc", subDoc)
+
+      val subList = new LinkedList[Document]()
+      val xDoc = new Document()
+      xDoc.put("X", 100)
+      xDoc.put("Y", 101)
+      val yDoc = new Document()
+      yDoc.put("Y", 102)
+      subList.add(xDoc)
+      subList.add(yDoc)
+      map.put("subList", subList)
+
+      map.put("timestamp", "2009-12-25T05:59:59.999+00:00")
+      println(s"map is $map")
+
+      val doc = new Document(map)
+      testDocumentConversion(doc)
+    }
+
   }
 
 }

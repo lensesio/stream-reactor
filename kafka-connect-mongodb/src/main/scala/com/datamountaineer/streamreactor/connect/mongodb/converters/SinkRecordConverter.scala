@@ -23,6 +23,7 @@ import java.util
 import java.util.TimeZone
 
 import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
+import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.sink.SinkRecord
@@ -34,7 +35,7 @@ import scala.annotation.tailrec
 import scala.collection.JavaConversions._
 import scala.util.Try
 
-object SinkRecordConverter {
+object SinkRecordConverter extends StrictLogging {
   private val ISO_DATE_FORMAT: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
   private val TIME_FORMAT: SimpleDateFormat = new SimpleDateFormat("HH:mm:ss.SSSZ")
 
@@ -290,31 +291,34 @@ object SinkRecordConverter {
   /**
     * Convert timestamps based on settings' jsonDateTimeFields.
     * @param doc
-    * @return Unit - but the input document is modified in-place!
+    * @return Unit - the input document is modified in-place!
     */
   def convertTimestamps(doc: Document)(implicit settings: MongoSettings): Unit = {
 
     import scala.collection.JavaConverters._
     val fieldSet: Set[Seq[String]] = settings.jsonDateTimeFields
 
+    logger.info(s"convertTimestamps: converting document ${doc.toString}")
+    logger.info(s"convertTimestamps: using jsonDateTimeFields of ${settings.jsonDateTimeFields}")
+
     val initialDoc = new Document()
     fieldSet.foreach{ parts =>
 
       def convertValue(
         remainingParts: Seq[String],
-        lastDoc: Document): Unit = {
+        lastDoc: java.util.Map[String, Object]): Unit = {
 
         val head = remainingParts.headOption
         remainingParts.size match {
           case 1 => {
             val testVal = lastDoc.get(head.get)
-            val newVal: Option[Any] = testVal match {
-              case s: String => Option(
-                Try{ OffsetDateTime.parse(s).toInstant().toEpochMilli() }.
-                toOption.
-                map{ millis => new java.util.Date(millis) }.
-                getOrElse(s)
-              )
+            val newVal: Option[Object] = testVal match {
+              case s: String => Option {
+                Try( OffsetDateTime.parse(s).toInstant().toEpochMilli() ).
+                  toOption.
+                  map { millis => new java.util.Date(millis) }.
+                  getOrElse(s)
+              }
               case i: Integer => Option(new java.util.Date(i.longValue()))
               case i: java.lang.Long => Option(new java.util.Date(i))
               case _ => None
@@ -324,16 +328,18 @@ object SinkRecordConverter {
           case n: Int if (n > 1) => {
             val testVal = lastDoc.get(head.get)
             testVal match {
-              case subDoc: Document => convertValue(remainingParts.tail, subDoc)
-              case subList: java.util.List[Document] => {
+              case subDoc: java.util.Map[String, Object] => // Document implements Map, HashMap is used sometimes too for subdocs
+                convertValue(remainingParts.tail, subDoc)
+              case subList: java.util.List[_] => {
                 subList.asScala.foreach { listDoc =>
                   listDoc match {
-                    case d: Document => convertValue(remainingParts.tail, d)
-                    case _ => // do nothing
+                    case d: java.util.Map[String, Object] =>
+                      convertValue(remainingParts.tail, d)
+                    case _ => // not a document, can't determine the name, do nothing
                   }
                 }
               }
-              case _ => // do nothing
+              case _ => // not a list or doc, can't do anything
             }
           }
           case _ => throw new Exception("somehow remainingParts is 0!")
@@ -341,5 +347,7 @@ object SinkRecordConverter {
       }
       convertValue(parts, doc)
     }
+
+    logger.debug("converted doc is: "+doc.toString)
   }
 }

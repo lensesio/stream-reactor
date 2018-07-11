@@ -106,6 +106,7 @@ object KeysExtractor {
               //type restriction for Mongo
               case t: BigInt => t.toLong
               case t: BigDecimal => t.toDouble
+              case t: java.util.Date => t
               case other => throw new ConfigException(s"The key $longKey is not supported for type ${Option(other).map(_.getClass.getName).getOrElse("NULL")}")
             }
           }
