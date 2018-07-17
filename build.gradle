@@ -28,9 +28,13 @@ buildscript {
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
         classpath 'de.undercouch:gradle-download-task:3.2.0'
-        classpath "gradle.plugin.com.github.maiflai:gradle-scalatest:0.21"
     }
 }
+
+plugins {
+    id "com.github.maiflai.scalatest" version "0.22"
+}
+
 
 // gradle 3.0 intellj fixes
 ScalaCompileOptions.metaClass.daemonServer = true
@@ -46,7 +50,6 @@ allprojects {
     apply plugin: 'java'
     apply plugin: 'scala'
     apply plugin: 'maven'
-    apply plugin: 'com.github.maiflai.scalatest'
     apply plugin: 'com.github.johnrengelman.shadow'
     apply plugin: 'de.undercouch.download'
     apply plugin: 'maven-publish'
@@ -54,11 +57,6 @@ allprojects {
 
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
-
-    compileJava {
-        println project.name + " source compatibility " + project.sourceCompatibility
-        println project.name + " target compatibility " + project.targetCompatibility
-    }
 
     ext {
         scalaMajorVersion = '2.11'

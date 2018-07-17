@@ -21,10 +21,6 @@ buildscript {
             url 'https://plugins.gradle.org/m2/'
         }
     }
-
-    dependencies {
-        classpath "gradle.plugin.com.github.maiflai:gradle-scalatest:0.21"
-    }
 }
 
 ext {
@@ -53,7 +49,6 @@ description = "stream-reactor"
 
 apply plugin: 'java'
 apply plugin: 'scala'
-apply plugin: 'com.github.maiflai.scalatest'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -68,7 +63,6 @@ dependencies {
 
     compile "org.scala-lang:scala-library:$scala"
     compile "org.scala-lang:scala-compiler:$scala"
-
     compile "com.typesafe.scala-logging:scala-logging-slf4j_$scalaMajorVersion:$scalaLoggingVersion"
 
     compile ("org.apache.kafka:connect-json:$kafkaVersion")

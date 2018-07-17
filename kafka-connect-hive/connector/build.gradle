@@ -24,7 +24,6 @@ buildscript {
     
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
-        classpath "gradle.plugin.com.github.maiflai:gradle-scalatest:0.21"
     }
 }
 
@@ -46,6 +45,7 @@ ext {
     kafkaVersion = '1.1.0'
     dataMountaineerCommonVersion = "1.1.5"
     link4jVersion = "1.8.0"
+    orcVersion = "1.5.2"
 }
 
 group = 'com.datamountaineer'
@@ -55,7 +55,6 @@ description = "stream-reactor"
 apply plugin: 'java'
 apply plugin: 'scala'
 apply plugin: 'maven'
-apply plugin: 'com.github.maiflai.scalatest'
 apply plugin: 'maven-publish'
 apply plugin: 'signing'
 apply plugin: 'com.github.johnrengelman.shadow'
@@ -72,6 +71,7 @@ repositories {
 
 configurations.all {
     exclude group: 'org.pentaho'
+    exclude group: 'org.apache.hive', module: "hive-orc"
 }
 
 dependencies {
@@ -85,11 +85,11 @@ dependencies {
     compile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
     compile "io.confluent:kafka-schema-registry:$confluentVersion"
 
+    compile "org.apache.orc:orc-core:$orcVersion"
     compile("org.apache.parquet:parquet-column:$parquetVersion")
     compile("org.apache.parquet:parquet-encoding:$parquetVersion")
     compile("org.apache.parquet:parquet-hadoop:$parquetVersion")
     compile("org.jodd:jodd-core:$joddVersion")
-    compile 'org.apache.orc:orc-core:1.5.1'
     compile("org.apache.hive:hive-jdbc:$hiveVersion")
     compile("org.apache.hive:hive-exec:$hiveVersion")
     compile("org.apache.hadoop:hadoop-common:$hadoopVersion")
