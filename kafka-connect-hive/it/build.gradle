@@ -31,7 +31,7 @@ ext {
     scalaLoggingVersion = '2.1.2'
     junit = '4.11'
     parquetVersion = "1.8.3"
-    hiveVersion = "2.0.1"
+    hiveVersion = "2.1.1"
     joddVersion = "4.1.4"
     hadoopVersion = "2.6.5"
     catsVersion = "1.1.0"
@@ -72,6 +72,8 @@ dependencies {
     testCompile 'org.asynchttpclient:async-http-client:2.5.2'
     testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
     testCompile 'org.apache.logging.log4j:log4j:2.11.0'
+
+    testCompile("org.apache.hive:hive-jdbc:$hiveVersion")
 
     testRuntime 'org.pegdown:pegdown:1.1.0'
 }

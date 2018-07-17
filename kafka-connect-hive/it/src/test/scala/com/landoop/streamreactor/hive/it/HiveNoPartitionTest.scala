@@ -4,6 +4,7 @@ import java.sql.DriverManager
 import java.util.Properties
 import java.util.concurrent.TimeUnit
 
+import org.apache.hive.jdbc.HiveDriver
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.admin.{AdminClient, NewTopic}
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
@@ -14,7 +15,7 @@ import org.scalatest.{Matchers, WordSpec}
 import scala.collection.JavaConverters._
 
 class HiveNoPartitionTest extends WordSpec with Matchers with TestData {
-  Class.forName("org.apache.hadoop.hive.jdbc.HiveDriver")
+  classOf[HiveDriver]
 
   private val client = Dsl.asyncHttpClient(Dsl.config())
 
