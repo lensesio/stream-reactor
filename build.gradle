@@ -26,13 +26,15 @@ buildscript {
         }
     }
     dependencies {
-        //classpath 'com.github.maiflai:gradle-scalatest:0.18'
-        classpath "org.github.ngbinh.scalastyle:gradle-scalastyle-plugin_2.11:0.9.0"
         classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
         classpath 'de.undercouch:gradle-download-task:3.2.0'
-        classpath "gradle.plugin.com.github.maiflai:gradle-scalatest:0.21"
     }
 }
+
+plugins {
+    id "com.github.maiflai.scalatest" version "0.22"
+}
+
 
 // gradle 3.0 intellj fixes
 ScalaCompileOptions.metaClass.daemonServer = true
@@ -48,8 +50,6 @@ allprojects {
     apply plugin: 'java'
     apply plugin: 'scala'
     apply plugin: 'maven'
-    apply plugin: 'com.github.maiflai.scalatest'
-    apply plugin: 'scalaStyle'
     apply plugin: 'com.github.johnrengelman.shadow'
     apply plugin: 'de.undercouch.download'
     apply plugin: 'maven-publish'
@@ -57,11 +57,6 @@ allprojects {
 
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
-
-    compileJava {
-        println project.name + " source compatibility " + project.sourceCompatibility
-        println project.name + " target compatibility " + project.targetCompatibility
-    }
 
     ext {
         scalaMajorVersion = '2.11'
@@ -250,13 +245,6 @@ allprojects {
         from configurations.runtime
     }
 
-    scalaStyle {
-        configLocation = "${project.projectDir}/../style/scalastyle_config.xml"
-        includeTestSourceDirectory = false
-        source = "src/main/scala"
-        testSource = "src/test/scala"
-    }
-
     task collectFatJar(type: Copy, dependsOn: [fatJar]) {
         from "${buildDir}/libs"
         into libsDir
@@ -266,7 +254,6 @@ allprojects {
         archives javadocJar, scaladocJar, sourcesJar
     }
 
-
     signing {
         ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
         required { isReleaseVersion }
@@ -274,62 +261,59 @@ allprojects {
         sign configurations.archives
     }
 
+    // OSSRH publication
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                // POM signature
+                beforeDeployment { MavenDeployment deployment ->
+                    signArchives
+                    signing.signPom(deployment)
+                }
+                // Target repository
+                repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+                pom.project {
+                    name project.name
+                    description project.description
+                    packaging 'jar'
+                    url 'https://github.com/landoop/stream-reactor'
 
-    if (project.hasProperty('release') && project.name != "kafka-connect-deployment") {
-        // OSSRH publication
-        uploadArchives {
-            repositories {
-                mavenDeployer {
-                    // POM signature
-                    beforeDeployment { MavenDeployment deployment ->
-                        signArchives
-                        signing.signPom(deployment)
+                    scm {
+                        connection 'scm:git:https://github.com/landoop/stream-reactor.git'
+                        developerConnection 'scm:git:git@github.com:landoop/stream-reactor.git'
+                        url 'https://github.com/landoop/stream-reactor.git'
                     }
-                    // Target repository
-                    repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                        authentication(userName: ossrhUsername, password: ossrhPassword)
+
+                    licenses {
+                        license {
+                            name 'Apache License 2.0'
+                            url 'http://www.apache.org/licenses/LICENSE-2.0.html'
+                            distribution 'repo'
+                        }
                     }
-                    pom.project {
-                        name project.name
-                        description project.description
-                        packaging 'jar'
-                        url 'https://github.com/landoop/stream-reactor'
 
-                        scm {
-                            connection 'scm:git:https://github.com/landoop/stream-reactor.git'
-                            developerConnection 'scm:git:git@github.com:landoop/stream-reactor.git'
-                            url 'https://github.com/landoop/stream-reactor.git'
+                    developers {
+                        developer {
+                            id = 'andrewstevenson'
+                            name = 'Andrew Stevenson'
+                            email = 'andrew@landoop.com'
                         }
-
-                        licenses {
-                            license {
-                                name 'Apache License 2.0'
-                                url 'http://www.apache.org/licenses/LICENSE-2.0.html'
-                                distribution 'repo'
-                            }
+                        developer {
+                            id = 'stheppi'
+                            name = 'Stefan Bocutiu'
+                            email = 'stefan@landoop.com'
                         }
-
-                        developers {
-                            developer {
-                                id = 'andrewstevenson'
-                                name = 'Andrew Stevenson'
-                                email = 'andrew@landoop.com'
-                            }
-                            developer {
-                                id = 'stheppi'
-                                name = 'Stefan Bocutiu'
-                                email = 'stefan@landoop.com'
-                            }
-                            developer {
-                                id = 'antwins'
-                                name = 'Antonios Chalkiopoulos'
-                                email = 'antonios@landoop.com'
-                            }
+                        developer {
+                            id = 'antwins'
+                            name = 'Antonios Chalkiopoulos'
+                            email = 'antonios@landoop.com'
                         }
                     }
                 }
-
             }
+
         }
     }
 }
