@@ -4,7 +4,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.landoop.streamreactor.connect.hive._
-import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfigConstants, HiveSinkConfig}
+import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfig, HiveSinkConfigConstants}
 import com.landoop.streamreactor.connect.hive.sink.staging.OffsetSeeker
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.hadoop.conf.Configuration
@@ -15,6 +15,7 @@ import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConverters._
+import scala.util.control.NonFatal
 
 class HiveSinkTask extends SinkTask with StrictLogging {
 
@@ -58,13 +59,18 @@ class HiveSinkTask extends SinkTask with StrictLogging {
         record.kafkaPartition.intValue,
         Offset(record.kafkaOffset)
       )
-      sinks(tpo.toTopicPartition).write(struct, tpo)
+      val tp = tpo.toTopicPartition
+      sinks.getOrElse(tp, sys.error(s"Could not find $tp in sinks $sinks")).write(struct, tpo)
     }
   }
 
-  override def open(partitions: util.Collection[KafkaTopicPartition]): Unit = {
+  override def open(partitions: util.Collection[KafkaTopicPartition]): Unit = try {
     val topicPartitions = partitions.asScala.map(tp => TopicPartition(Topic(tp.topic), tp.partition)).toSet
     open(topicPartitions)
+  } catch {
+    case NonFatal(e) =>
+      logger.error("Error opening hive sink writer", e)
+      throw e
   }
 
   private def open(partitions: Set[TopicPartition]): Unit = {

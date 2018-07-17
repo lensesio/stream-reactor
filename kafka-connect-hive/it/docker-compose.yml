@@ -6,11 +6,14 @@ services:
     ports:
       - "8083:8083"
       - "9092:9092"
+      - "2181:2181"
+      - "3030:3030"
     environment:
       RUNTESTS: "0"
-      ENABLE: "redis"
+      CONNECTORS: "redis"
+      ADV_HOST: "127.0.0.1"
     volumes:
-      - ../path/to/fat.jar:/connectors/hive.jar
+      - ../connector/build/libs/:/connectors/hive
 
   namenode:
     image: bde2020/hadoop-namenode:2.0.0-hadoop2.7.4-java8

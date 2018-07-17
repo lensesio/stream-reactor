@@ -44,6 +44,13 @@ object HiveSinkConfig {
       val fields = Option(kcql.getFields).getOrElse(Collections.emptyList).asScala.toList
       val projection = if (fields.size == 1 && fields.head.getName == "*") None else NonEmptyList.fromList(fields)
 
+      val flushSize = Option(kcql.getWithFlushSize).filter(_ > 0)
+      val flushInterval = Option(kcql.getWithFlushInterval).filter(_ > 0).map(_.seconds)
+      val flushCount = Option(kcql.getWithFlushCount).filter(_ > 0)
+
+      // we must have at least one way of committing files
+      val finalFlushSize = if (flushSize.isEmpty && flushInterval.isEmpty && flushCount.isEmpty) Some(1000L * 1000 * 128) else None
+
       TableOptions(
         TableName(kcql.getTarget),
         Topic(kcql.getSource),
@@ -62,9 +69,9 @@ object HiveSinkConfig {
         },
         partitions = Option(kcql.getPartitionBy).map(_.asScala).getOrElse(Nil).map(name => PartitionField(name)).toVector,
         commitPolicy = DefaultCommitPolicy(
-          Option(kcql.getWithFlushSize),
-          Option(kcql.getWithFlushInterval).map(_.seconds),
-          Option(kcql.getWithFlushCount)
+          fileSize = finalFlushSize,
+          interval = flushInterval,
+          fileCount = flushCount
         ),
         location = Option(kcql.getWithTableLocation)
       )

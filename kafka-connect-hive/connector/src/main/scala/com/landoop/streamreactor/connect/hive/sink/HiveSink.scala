@@ -48,6 +48,7 @@ class HiveSink(tableName: TableName,
   private var lastSchema: Schema = _
 
   private def init(schema: Schema): Unit = {
+    logger.info(s"Init sink for schema $schema")
 
     def getOrCreateTable(): Table = {
 
@@ -115,6 +116,7 @@ class HiveSink(tableName: TableName,
     val count = writer.write(mapped)
 
     if (tableConfig.commitPolicy.shouldFlush(struct, tpo, path, count)) {
+      logger.debug(s"Flushing offsets for $dir")
       writerManager.flush(tpo, dir)
       config.stageManager.commit(path, tpo)
     }

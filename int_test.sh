@@ -34,7 +34,7 @@ for (( i=0; i<${connectorslen}; i++ )); do
     # if docker is present for this component, shut it down
     if [ -e "$COMPOSE_FILE" ]
     then
-        docker-compose -f $COMPOSE_FILE stop
+        docker-compose -f $COMPOSE_FILE stop -v
     fi
 
     echo "Completed integration tests for $CONNECTOR"

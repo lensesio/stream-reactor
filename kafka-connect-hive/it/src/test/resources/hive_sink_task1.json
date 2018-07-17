@@ -1,10 +1,14 @@
 {
-  "name": "hive_sink_test1",
+  "name": "{{NAME}}",
   "config": {
     "connector.class": "com.landoop.streamreactor.connect.hive.sink.HiveSinkConnector",
-    "topics": "hive_sink_topic1",
-    "name": "hive_sink_test1",
-    "connect.hive.kcql": "insert into hive_sink_table1 select * from hive_sink_topic1",
+    "topics": "{{TOPIC}}",
+    "name": "{{NAME}}",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+    "connect.hive.kcql": "insert into {{TABLE}} select * from {{TOPIC}} AUTOCREATE WITH_FLUSH_COUNT = 200",
     "connect.hive.fs.defaultFS": "hdfs://namenode:8020",
     "connect.hive.hive.metastore": "thrift",
     "connect.hive.hive.metastore.uris": "thrift://hive-metastore:9083",

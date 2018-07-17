@@ -59,6 +59,6 @@ trait TestData {
 
   case class Person(name: String, state: String, age: Int)
 
-  def person = Person(Random.nextString(10), states(Random.nextInt(states.length)), Random.nextInt(99))
+  def person = Person("name_" + Random.nextInt(), states(Random.nextInt(states.length)), Random.nextInt(99))
 
 }
