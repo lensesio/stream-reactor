@@ -1,0 +1,13 @@
+{
+  "name": "hive_sink_test1",
+  "config": {
+    "connector.class": "com.landoop.streamreactor.connect.hive.sink.HiveSinkConnector",
+    "topics": "hive_sink_topic1",
+    "name": "hive_sink_test1",
+    "connect.hive.kcql": "insert into hive_sink_table1 select * from hive_sink_topic1",
+    "connect.hive.fs.defaultFS": "hdfs://namenode:8020",
+    "connect.hive.hive.metastore": "thrift",
+    "connect.hive.hive.metastore.uris": "thrift://hive-metastore:9083",
+    "connect.hive.database.name": "default"
+  }
+}

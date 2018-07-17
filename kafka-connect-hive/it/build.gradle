@@ -61,16 +61,18 @@ repositories {
 
 dependencies {
 
-    compile "org.scala-lang:scala-library:$scala"
-    compile "org.scala-lang:scala-compiler:$scala"
-    compile "com.typesafe.scala-logging:scala-logging-slf4j_$scalaMajorVersion:$scalaLoggingVersion"
+    testCompile "org.scala-lang:scala-library:$scala"
+    testCompile "org.scala-lang:scala-compiler:$scala"
+    testCompile "com.typesafe.scala-logging:scala-logging-slf4j_$scalaMajorVersion:$scalaLoggingVersion"
 
-    compile ("org.apache.kafka:connect-json:$kafkaVersion")
-    compile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
-    compile "io.confluent:kafka-schema-registry:$confluentVersion"
+    testCompile ("org.apache.kafka:connect-json:$kafkaVersion")
+    testCompile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
+    testCompile "io.confluent:kafka-schema-registry:$confluentVersion"
 
+    testCompile 'org.asynchttpclient:async-http-client:2.5.2'
     testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
     testCompile 'org.apache.logging.log4j:log4j:2.11.0'
+
     testRuntime 'org.pegdown:pegdown:1.1.0'
 }
 
