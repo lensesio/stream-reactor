@@ -35,7 +35,7 @@ ext {
     scalaLoggingVersion = '2.1.2'
     junit = '4.11'
     parquetVersion = "1.8.3"
-    hiveVersion = "2.0.1"
+    hiveVersion = "2.1.1"
     joddVersion = "4.1.4"
     hadoopVersion = "2.6.5"
     catsVersion = "1.1.0"
@@ -71,7 +71,6 @@ repositories {
 
 configurations.all {
     exclude group: 'org.pentaho'
-    exclude group: 'org.apache.hive', module: "hive-orc"
 }
 
 dependencies {
@@ -85,7 +84,6 @@ dependencies {
     compile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
     compile "io.confluent:kafka-schema-registry:$confluentVersion"
 
-    compile "org.apache.orc:orc-core:$orcVersion"
     compile("org.apache.parquet:parquet-column:$parquetVersion")
     compile("org.apache.parquet:parquet-encoding:$parquetVersion")
     compile("org.apache.parquet:parquet-hadoop:$parquetVersion")

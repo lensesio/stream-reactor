@@ -7,8 +7,8 @@ import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.hive.ql.exec.vector.{StructColumnVector, VectorizedRowBatch}
 import org.apache.kafka.connect.data.Struct
-import org.apache.orc.OrcFile
 import org.apache.orc.OrcFile.ReaderOptions
+import org.apache.orc.{OrcFile, Reader}
 
 import scala.collection.JavaConverters._
 
@@ -23,7 +23,7 @@ class OrcSource(path: Path, config: OrcSourceConfig)(implicit fs: FileSystem) ex
   private val vectorReader = new StructVectorReader(readers.toIndexedSeq, typeDescription)
 
   private val batch = typeDescription.createRowBatch()
-  private val recordReader = reader.rows(reader.options())
+  private val recordReader = reader.rows(new Reader.Options())
 
   def close(): Unit = {
     recordReader.close()
