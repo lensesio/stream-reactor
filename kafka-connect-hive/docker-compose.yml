@@ -1,6 +1,11 @@
 version: "2"
 services:
 
+  fast-data-dev:
+    image: landoop/fast-data-dev:1.1.0
+    volumes:
+      - ./kafka-connect-hive/build/libs/:/connectors/hive
+
   namenode:
     image: bde2020/hadoop-namenode:2.0.0-hadoop2.7.4-java8
     volumes:
@@ -48,11 +53,6 @@ services:
 
   hive-metastore-postgresql:
     image: bde2020/hive-metastore-postgresql:2.3.0
-
-  fast-data-dev:
-    image: landoop/fast-data-dev:1.1.0
-    volumes:
-      - ./kafka-connect-hive/build/libs/:/connectors/hive
 
 volumes:
   namenode:

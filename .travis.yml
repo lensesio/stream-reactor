@@ -7,12 +7,6 @@ services:
 
 jdk: oraclejdk8
 
-before_script: ulimit -u 30000
+script: gradle clean shadowJar -x test
 
-script:
-- gradle clean shadowJar -p $COMPONENT -x test
-
-after_success: $COMPONENT/int_test.sh
-
-env:
-  - COMPONENT=kafka-connect-hive
+after_success: int_test.sh
