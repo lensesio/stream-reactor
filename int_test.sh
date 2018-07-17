@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CONNECT_PORT=8083
-declare -a connectors=("hive" "redis")
+declare -a connectors=("hive")
 connectorslen=${#connectors[@]}
 
 for (( i=0; i<${connectorslen}; i++ )); do
