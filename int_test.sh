@@ -8,10 +8,10 @@ for (( i=0; i<${connectorslen}; i++ )); do
     CONNECTOR=${connectors[$i]}
     echo "Running integration tests for $CONNECTOR"
 
-    CONNECTOR_PATH="kafka-connect-$CONNECTOR"
-    echo "Connector path = $CONNECTOR_PATH"
+    CONNECTOR_PROJECT="kafka-connect-$CONNECTOR"
+    echo "Connector path = $CONNECTOR_PROJECT"
 
-    IT_PATH="$CONNECTOR_PATH/it"
+    IT_PATH="$CONNECTOR_PROJECT/it"
     echo "IT test path = $IT_PATH"
 
     COMPOSE_FILE="$IT_PATH/docker-compose.yml"
@@ -29,7 +29,7 @@ for (( i=0; i<${connectorslen}; i++ )); do
         done
     fi
 
-    ./gradlew -Pintegration-tests $IT_PATH:check
+    ./gradlew -Pintegration-tests $CONNECTOR_PROJECT:it:check
 
     # if docker is present for this component, shut it down
     if [ -e "$COMPOSE_FILE" ]
