@@ -7,6 +7,6 @@ services:
 
 jdk: oraclejdk8
 
-script: gradle clean shadowJar -x test
+script: ./gradlew clean shadowJar -x test
 
-after_success: int_test.sh
+after_success: ./int_test.sh
