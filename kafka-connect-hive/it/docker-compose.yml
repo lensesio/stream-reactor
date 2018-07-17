@@ -3,8 +3,12 @@ services:
 
   fast-data-dev:
     image: landoop/fast-data-dev:1.1.0
-    volumes:
-      - ./kafka-connect-hive/build/libs/:/connectors/hive
+    ports:
+      - "8083:8083"
+      - "9092:9092"
+    environment:
+      RUNTESTS: "0"
+      ENABLE: "redis"
 
   namenode:
     image: bde2020/hadoop-namenode:2.0.0-hadoop2.7.4-java8
