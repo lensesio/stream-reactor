@@ -61,7 +61,7 @@ package object hive extends StrictLogging {
   }
 
   def dropTable(db: DatabaseName, tableName: TableName, deleteData: Boolean)
-               (implicit client: IMetaStoreClient, fs: FileSystem) = {
+               (implicit client: IMetaStoreClient, fs: FileSystem): Unit = {
     logger.info(s"Dropping table ${db.value}.${tableName.value}")
     val table = client.getTable(db.value, tableName.value)
     val locations = table.getSd.getLocation +:
@@ -107,7 +107,6 @@ package object hive extends StrictLogging {
         table.setTableType("EXTERNAL_TABLE")
       case _ =>
         table.setTableType("MANAGED_TABLE")
-      case other => sys.error(s"Unsupported table type $other")
     }
 
     val dbloc = client.getDatabase(db.value).getLocationUri
@@ -144,6 +143,12 @@ package object hive extends StrictLogging {
       case Nil => Nil
       case keys => partitions(db, tableName, PartitionPlan(tableName, NonEmptyList.fromListUnsafe(keys.toList)))
     }
+  }
+
+  def schema(db: DatabaseName, tableName: TableName)
+            (implicit client: IMetaStoreClient): Schema = {
+    val table = client.getTable(db.value, tableName.value)
+    HiveSchemas.toKafka(table)
   }
 
   /**

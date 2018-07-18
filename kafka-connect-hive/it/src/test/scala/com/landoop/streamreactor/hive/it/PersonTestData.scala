@@ -2,7 +2,7 @@ package com.landoop.streamreactor.hive.it
 
 import scala.util.Random
 
-trait TestData {
+trait PersonTestData {
 
   val states = Array(
     "Alabama",
