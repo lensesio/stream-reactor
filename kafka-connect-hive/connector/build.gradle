@@ -73,6 +73,13 @@ configurations.all {
     exclude group: 'org.pentaho'
 }
 
+shadowJar {
+    baseName = 'kafka-connect-hive'
+    classifier = null
+    version = project.version
+}
+
+
 dependencies {
 
     compile "org.scala-lang:scala-library:$scala"
