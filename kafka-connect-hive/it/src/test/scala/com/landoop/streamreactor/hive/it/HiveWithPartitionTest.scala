@@ -2,15 +2,16 @@ package com.landoop.streamreactor.hive.it
 
 import java.util.concurrent.TimeUnit
 
+import org.apache.hadoop.fs.Path
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Span}
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.io.Source
 
-class HiveWithPartitionTest extends WordSpec with Matchers with TestData with Eventually with HiveTests {
+class HiveWithPartitionTest extends WordSpec with Matchers with PersonTestData with Eventually with HiveTests {
 
-  private implicit val patience = PatienceConfig(Span(60000, Millis), Span(5000, Millis))
+  private implicit val patience: PatienceConfig = PatienceConfig(Span(60000, Millis), Span(5000, Millis))
 
   "Hive" should {
     "write partitioned records" in {
@@ -55,6 +56,12 @@ class HiveWithPartitionTest extends WordSpec with Matchers with TestData with Ev
           println(s"State count is $count")
           count shouldBe states.length
         }
+      }
+
+      // check for the presence of each partition directory
+      val table = metastore.getTable("default", topic)
+      for (state <- states) {
+        fs.exists(new Path(table.getSd.getLocation, s"state=$state")) shouldBe true
       }
 
       stopTask(topic)

@@ -8,13 +8,12 @@ import org.scalatest.{Matchers, WordSpec}
 
 import scala.io.Source
 
-class HiveNoPartitionTest extends WordSpec with Matchers with PersonTestData with Eventually with HiveTests {
+class HiveOrcTest extends WordSpec with Matchers with PersonTestData with Eventually with HiveTests {
 
-  private implicit val patience: PatienceConfig = PatienceConfig(Span(30000, Millis), Span(2000, Millis))
+  private implicit val patience: PatienceConfig = PatienceConfig(Span(60000, Millis), Span(5000, Millis))
 
   "Hive" should {
-    "write records" in {
-
+    "write non partitioned orc records" in {
       val count = 10000L
 
       val topic = createTopic()
