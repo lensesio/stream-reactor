@@ -12,7 +12,7 @@ object ParquetHiveFormat extends HiveFormat with StrictLogging {
     "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
     "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
     "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
-    Map("org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe" -> "1")
+    Map("serialization.format" -> "1")
   )
 
   override def writer(path: Path, schema: Schema)
