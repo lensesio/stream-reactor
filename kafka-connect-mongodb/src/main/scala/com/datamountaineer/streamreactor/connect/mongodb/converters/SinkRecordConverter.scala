@@ -298,8 +298,8 @@ object SinkRecordConverter extends StrictLogging {
     import scala.collection.JavaConverters._
     val fieldSet: Set[Seq[String]] = settings.jsonDateTimeFields
 
-    logger.info(s"convertTimestamps: converting document ${doc.toString}")
-    logger.info(s"convertTimestamps: using jsonDateTimeFields of ${settings.jsonDateTimeFields}")
+    logger.debug(s"convertTimestamps: converting document ${doc.toString}")
+    logger.debug(s"convertTimestamps: using jsonDateTimeFields of ${settings.jsonDateTimeFields}")
 
     val initialDoc = new Document()
     fieldSet.foreach{ parts =>
