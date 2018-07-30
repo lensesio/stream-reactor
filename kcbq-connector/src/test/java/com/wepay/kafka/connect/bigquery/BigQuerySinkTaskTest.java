@@ -18,16 +18,6 @@ package com.wepay.kafka.connect.bigquery;
  */
 
 
-import static junit.framework.TestCase.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
@@ -42,7 +32,10 @@ import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
 
-import com.wepay.kafka.connect.bigquery.retrieve.MemorySchemaRetriever;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.RejectedExecutionException;
+
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -50,15 +43,20 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTaskContext;
-
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class BigQuerySinkTaskTest {
   private static SinkTaskPropertiesFactory propertiesFactory;
@@ -384,11 +382,34 @@ public class BigQuerySinkTaskTest {
     assertNotNull(new BigQuerySinkTask().version());
   }
 
-  // Doesn't do anything at the moment, but having this here will encourage tests to be written if
-  // the stop() method ever does anything significant
-  @Test
+  // Existing tasks should succeed upon stop is called. New tasks should be rejected once task is stopped.
+  @Test(expected = RejectedExecutionException.class)
   public void testStop() {
-    new BigQuerySinkTask().stop();
+    final String dataset = "scratch";
+    final String topic = "test_topic";
+
+    Map<String, String> properties = propertiesFactory.getProperties();
+    properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
+    properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
+
+    BigQuery bigQuery = mock(BigQuery.class);
+    SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
+    InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
+
+    when(bigQuery.insertAll(anyObject())).thenReturn(insertAllResponse);
+    when(insertAllResponse.hasErrors()).thenReturn(false);
+
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null);
+    testTask.initialize(sinkTaskContext);
+    testTask.start(properties);
+    testTask.put(Collections.singletonList(spoofSinkRecord(topic)));
+
+    assertEquals(1, testTask.getTaskThreadsActiveCount());
+    testTask.stop();
+    assertEquals(0, testTask.getTaskThreadsActiveCount());
+    verify(bigQuery, times(1)).insertAll(any(InsertAllRequest.class));
+
+    testTask.put(Collections.singletonList(spoofSinkRecord(topic)));
   }
 
   /**
