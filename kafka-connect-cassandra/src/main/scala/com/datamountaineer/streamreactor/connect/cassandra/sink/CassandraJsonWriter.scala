@@ -209,9 +209,9 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
                     val key = record.key()
                     val schema = record.keySchema()
                     if (schema.`type`().isPrimitive) {
-                      if (schema.`type`() == Schema.Type.STRING) {
+                      if (schema.`type`() == Schema.Type.STRING && deleteStructFields.nonEmpty) {
                         // treat key string as JSON
-                        logger.trace("key schema is a String type, treat it like JSON...")
+                        logger.trace("key schema is a String type and deleteStructFields non empty, treat it like JSON...")
                         KeyUtils.keysFromJson(key.toString, deleteStructFields)
                       }
                       else {

@@ -173,7 +173,7 @@ object CassandraConfigConstants {
   val DELETE_ROW_STATEMENT_MISSING = s"If $DELETE_ROW_ENABLED is true, $DELETE_ROW_STATEMENT is required."
 
   val DELETE_ROW_STRUCT_FLDS = s"$CONNECTOR_PREFIX.$DELETE_ROW_PREFIX.struct_flds"
-  val DELETE_ROW_STRUCT_FLDS_DOC = s"Fields in the key struct data type used in there delete statement. Comma-separated in the order they are found in $DELETE_ROW_STATEMENT."
+  val DELETE_ROW_STRUCT_FLDS_DOC = s"Fields in the key struct data type used in there delete statement. Comma-separated in the order they are found in $DELETE_ROW_STATEMENT. Keep default value to use the record key as a primitive type."
   val DELETE_ROW_STRUCT_FLDS_DEFAULT = ""
   val DELETE_ROW_STRUCT_FLDS_DISPLAY = "Field names in Key Struct"
 
