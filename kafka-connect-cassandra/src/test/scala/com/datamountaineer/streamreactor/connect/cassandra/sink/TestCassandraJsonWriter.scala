@@ -809,7 +809,57 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     writer.close()
   }
 
-  "Cassandra JSONWriter should handle deletion of records - Key isPrimitive, STRING" in {
+  "Cassandra JSONWriter should handle deletion of records - Key isPrimitive, STRING and DELETE_ROW_STRUCT_FLDS is empty" in {
+
+    val table = "A" + UUID.randomUUID().toString.replace("-", "_")
+
+    val kql = s"INSERT INTO $table SELECT id, name FROM TOPIC"
+
+    session.execute(
+      s"""
+         |CREATE TABLE IF NOT EXISTS $keyspace.$table
+         |(id text,
+         |name text,
+         |PRIMARY KEY(id, name)) WITH CLUSTERING ORDER BY (name asc)""".stripMargin)
+
+    val idField = UUIDs.timeBased().toString
+    val nameField = "Unit Test"
+
+    val insert = session.prepare(s"INSERT INTO $keyspace.$table (id, name) VALUES (?, ?)").bind(idField, nameField)
+    session.execute(insert)
+
+    // now run the test...
+    val record = new SinkRecord("TOPIC", 0, Schema.INT64_SCHEMA, idField, null, null, 1)
+
+    val context = mock[SinkTaskContext]
+    val assignment = getAssignment
+    when(context.assignment()).thenReturn(assignment)
+
+    //get config
+    val props = Map(
+      CassandraConfigConstants.DELETE_ROW_STATEMENT -> s"delete from $keyspace.$table where id = ?",
+      CassandraConfigConstants.CONTACT_POINTS -> contactPoint,
+      CassandraConfigConstants.KEY_SPACE -> keyspace,
+      CassandraConfigConstants.USERNAME -> userName,
+      CassandraConfigConstants.PASSWD -> password,
+      CassandraConfigConstants.KCQL -> kql,
+      CassandraConfigConstants.DELETE_ROW_ENABLED -> "true"
+    ).asJava
+
+    val taskConfig = new CassandraConfigSink(props)
+
+    val writer = CassandraWriter(taskConfig, context)
+    writer.write(Seq(record))
+    Thread.sleep(1000)
+
+    val validate = session.prepare(s"select * from $keyspace.$table where id = ?").bind(idField)
+    val inserted = session.execute(validate)
+    // data is in the table...
+    (inserted.isEmpty) shouldBe true
+    writer.close()
+  }
+
+  "Cassandra JSONWriter should handle deletion of records - Key isPrimitive, STRING and DELETE_ROW_STRUCT_FLDS is non-empty" in {
 
     val table = "A" + UUID.randomUUID().toString.replace("-", "_")
     val kql = s"INSERT INTO $table SELECT id, long_field FROM TOPIC"
