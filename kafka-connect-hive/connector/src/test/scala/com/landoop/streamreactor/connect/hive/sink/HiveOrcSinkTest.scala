@@ -3,6 +3,7 @@ package com.landoop.streamreactor.connect.hive.sink
 import java.util
 
 import com.landoop.streamreactor.connect.hive._
+import com.landoop.streamreactor.connect.hive.formats.OrcHiveFormat
 import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfig, TableOptions}
 import com.landoop.streamreactor.connect.hive.sink.evolution.AddEvolutionPolicy
 import com.landoop.streamreactor.connect.hive.sink.partitioning.StrictPartitionHandler
@@ -14,7 +15,7 @@ import org.scalatest.{FlatSpec, Matchers}
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-class HiveSinkTest extends FlatSpec with Matchers with HiveTestConfig {
+class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
   val schema = SchemaBuilder.struct()
     .field("name", SchemaBuilder.string().required().build())
@@ -22,7 +23,7 @@ class HiveSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     .field("salary", SchemaBuilder.float64().optional().build())
     .build()
 
-  val dbname = "sink_test"
+  val dbname = "orc_sink_test"
 
   Try {
     client.dropDatabase(dbname)
@@ -32,7 +33,7 @@ class HiveSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     client.createDatabase(new Database(dbname, null, s"/user/hive/warehouse/$dbname", new util.HashMap()))
   }
 
-  "hive sink" should "write to a non partitioned table" in {
+  "hive sink" should "write orc to a non partitioned table" in {
 
     val users = List(
       new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43),
@@ -45,12 +46,15 @@ class HiveSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     }
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
-      TableOptions(TableName("employees"), Topic("mytopic"), true, true)
+      TableOptions(TableName("employees"), Topic("mytopic"), true, true, format = OrcHiveFormat)
     ))
 
     val sink = hiveSink(TableName("employees"), config)
     users.foreach(sink.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
     sink.close()
+
+    // should be files in the folder now
+    fs.listFiles(new Path("hdfs://namenode:8020/user/hive/warehouse/orc_sink_test/employees"), true).hasNext shouldBe true
   }
 
   it should "write to a partitioned table" in {
@@ -67,12 +71,15 @@ class HiveSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     )
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
-      TableOptions(TableName(table), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")))
+      TableOptions(TableName(table), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")), format = OrcHiveFormat)
     ))
 
     val sink = hiveSink(TableName(table), config)
     users.foreach(sink.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
     sink.close()
+
+    // should be files in the folder now
+    fs.listFiles(new Path("hdfs://namenode:8020//user/hive/warehouse/orc_sink_test/employees_partitioned/title=mr"), true).hasNext shouldBe true
   }
 
   it should "create new partitions in the metastore when using dynamic partitions" in {
@@ -89,7 +96,7 @@ class HiveSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     }
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
-      TableOptions(TableName(table), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")))
+      TableOptions(TableName(table), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")), format = OrcHiveFormat)
     ))
 
     val sink = hiveSink(TableName(table), config)
@@ -116,7 +123,7 @@ class HiveSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     val users = List(new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43))
 
     val config1 = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
-      TableOptions(TableName("abc"), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")))
+      TableOptions(TableName("abc"), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")), format = OrcHiveFormat)
     ))
 
     Try {
@@ -130,7 +137,7 @@ class HiveSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     client.getTable(dbname, "abc").getTableType shouldBe "MANAGED_TABLE"
 
     val config2 = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
-      TableOptions(TableName("abc"), Topic("mytopic"), true, true, location = Option("hdfs://localhost:8020/user/hive/warehouse/foo"))
+      TableOptions(TableName("abc"), Topic("mytopic"), true, true, location = Option("hdfs://localhost:8020/user/hive/warehouse/foo"), format = OrcHiveFormat)
     ))
 
     Try {
@@ -156,7 +163,7 @@ class HiveSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     }
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
-      TableOptions(TableName(tableName), Topic("mytopic"), true, true)
+      TableOptions(TableName(tableName), Topic("mytopic"), true, true, format = OrcHiveFormat)
     ))
 
     val sink = hiveSink(TableName(tableName), config)
@@ -181,7 +188,7 @@ class HiveSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     }
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
-      TableOptions(TableName(tableName), Topic("mytopic"), true, true)
+      TableOptions(TableName(tableName), Topic("mytopic"), true, true, format = OrcHiveFormat)
     ))
 
     val sink = hiveSink(TableName(tableName), config)
@@ -204,7 +211,7 @@ class HiveSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     }
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
-      TableOptions(TableName(tableName), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")))
+      TableOptions(TableName(tableName), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")), format = OrcHiveFormat)
     ))
 
     val sink = hiveSink(TableName(tableName), config)
@@ -226,7 +233,7 @@ class HiveSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     }
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
-      TableOptions(TableName(tableName), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")), partitioner = StrictPartitionHandler)
+      TableOptions(TableName(tableName), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")), partitioner = StrictPartitionHandler, format = OrcHiveFormat)
     ))
 
     intercept[RuntimeException] {
@@ -248,7 +255,7 @@ class HiveSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     val list1 = List(new Struct(schema1).put("a", "aaa").put("b", "bbb"))
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
-      TableOptions(TableName(tableName), Topic("mytopic"), true, true, evolutionPolicy = AddEvolutionPolicy)
+      TableOptions(TableName(tableName), Topic("mytopic"), true, true, evolutionPolicy = AddEvolutionPolicy, format = OrcHiveFormat)
     ))
 
     // first we write out one row, with fields a,b and then we write out a second row, with an extra
