@@ -78,8 +78,9 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     users.foreach(sink.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
     sink.close()
 
-    // should be files in the folder now
+    // should be files in the partition folders now
     fs.listFiles(new Path("hdfs://namenode:8020//user/hive/warehouse/orc_sink_test/employees_partitioned/title=mr"), true).hasNext shouldBe true
+    fs.listFiles(new Path("hdfs://namenode:8020//user/hive/warehouse/orc_sink_test/employees_partitioned/title=ms"), true).hasNext shouldBe true
   }
 
   it should "create new partitions in the metastore when using dynamic partitions" in {
@@ -137,7 +138,7 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     client.getTable(dbname, "abc").getTableType shouldBe "MANAGED_TABLE"
 
     val config2 = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
-      TableOptions(TableName("abc"), Topic("mytopic"), true, true, location = Option("hdfs://localhost:8020/user/hive/warehouse/foo"), format = OrcHiveFormat)
+      TableOptions(TableName("abc"), Topic("mytopic"), true, true, location = Option("hdfs://namenode:8020/user/hive/warehouse/foo"), format = OrcHiveFormat)
     ))
 
     Try {
@@ -151,7 +152,34 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     client.getTable(dbname, "abc").getTableType shouldBe "EXTERNAL_TABLE"
   }
 
-  it should "use staging file per (topic,partition)" in {
+  it should "commit files when sink is closed" in {
+
+    val user1 = new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43)
+
+    val tableName = "commit_test"
+
+    Try {
+      client.dropTable(dbname, tableName, true, true)
+    }
+
+    val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
+      TableOptions(TableName(tableName), Topic("mytopic"), true, true, format = OrcHiveFormat)
+    ))
+
+    val sink = hiveSink(TableName(tableName), config)
+    sink.write(user1, TopicPartitionOffset(Topic("mytopic"), 1, Offset(44)))
+
+    fs.exists(new Path(s"hdfs://namenode:8020/user/hive/warehouse/$dbname/$tableName/streamreactor_mytopic_1_44")) shouldBe false
+
+    // once we close the sink, the file will be committed
+    sink.write(user1, TopicPartitionOffset(Topic("mytopic"), 1, Offset(45)))
+    sink.close()
+
+    fs.exists(new Path(s"hdfs://namenode:8020/user/hive/warehouse/$dbname/$tableName/.streamreactor_mytopic_1")) shouldBe false
+    fs.exists(new Path(s"hdfs://namenode:8020/user/hive/warehouse/$dbname/$tableName/streamreactor_mytopic_1_45")) shouldBe true
+  }
+
+  it should "use file per topic partition" in {
 
     val user1 = new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43)
     val user2 = new Struct(schema).put("name", "laura").put("title", "ms").put("salary", 417.61)
@@ -167,39 +195,12 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     ))
 
     val sink = hiveSink(TableName(tableName), config)
-    sink.write(user1, TopicPartitionOffset(Topic("mytopic3"), 1, Offset(44)))
-    sink.write(user2, TopicPartitionOffset(Topic("mytopic4"), 4, Offset(45)))
-
-    fs.exists(new Path(s"/user/hive/warehouse/$dbname/$tableName/.streamreactor_mytopic3_1")) shouldBe true
-    fs.exists(new Path(s"/user/hive/warehouse/$dbname/$tableName/.streamreactor_mytopic4_4")) shouldBe true
-
-    sink.close()
-  }
-
-  it should "commit files when sink is closed" in {
-
-    val user1 = new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43)
-    val user2 = new Struct(schema).put("name", "laura").put("title", "ms").put("salary", 417.61)
-
-    val tableName = "commit_test"
-
-    Try {
-      client.dropTable(dbname, tableName, true, true)
-    }
-
-    val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
-      TableOptions(TableName(tableName), Topic("mytopic"), true, true, format = OrcHiveFormat)
-    ))
-
-    val sink = hiveSink(TableName(tableName), config)
     sink.write(user1, TopicPartitionOffset(Topic("mytopic"), 1, Offset(44)))
-    fs.exists(new Path(s"/user/hive/warehouse/$dbname/$tableName/.streamreactor_mytopic_1")) shouldBe true
-
-    sink.write(user2, TopicPartitionOffset(Topic("mytopic"), 1, Offset(45)))
+    sink.write(user2, TopicPartitionOffset(Topic("mytopic"), 4, Offset(45)))
     sink.close()
 
-    fs.exists(new Path(s"/user/hive/warehouse/$dbname/$tableName/.streamreactor_mytopic_1")) shouldBe false
-    fs.exists(new Path(s"/user/hive/warehouse/$dbname/$tableName/streamreactor_mytopic_1_45")) shouldBe true
+    fs.exists(new Path(s"hdfs://namenode:8020/user/hive/warehouse/$dbname/$tableName/streamreactor_mytopic_1_44")) shouldBe true
+    fs.exists(new Path(s"hdfs://namenode:8020/user/hive/warehouse/$dbname/$tableName/streamreactor_mytopic_4_45")) shouldBe true
   }
 
   it should "set partition keys in the sd column descriptors" in {
