@@ -4,12 +4,12 @@ import org.apache.kafka.clients.producer.ProducerRecord
 
 import scala.concurrent.Future
 import scala.io.Source
+import scala.util.Try
 
 object HiveOrcBenchmark extends App with PersonTestData with HiveTests {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  val count = 10000000000L
   val start = System.currentTimeMillis()
 
   val topic = createTopic()
@@ -21,9 +21,11 @@ object HiveOrcBenchmark extends App with PersonTestData with HiveTests {
 
   Future {
     val producer = stringStringProducer()
-    for (k <- 1 to count.toInt) {
+    val count = 10000000 // 10mil
+    for (k <- 0 until count) {
       producer.send(new ProducerRecord(topic, JacksonSupport.mapper.writeValueAsString(person)))
-      if (k % 2500 == 0) {
+      if (k % 100000 == 0) {
+        println(s"Flushing records [total=$count]")
         producer.flush()
       }
     }
@@ -32,16 +34,17 @@ object HiveOrcBenchmark extends App with PersonTestData with HiveTests {
   }
 
   Future {
-    var total = 0L
-    while (total < count) {
-      Thread.sleep(10000)
-      withConn { conn =>
-        val stmt = conn.createStatement
-        val rs = stmt.executeQuery(s"select count(*) from $topic")
-        rs.next()
-        total = rs.getLong(1)
-        val time = System.currentTimeMillis() - start
-        println(s"Total $total in ${time}ms which is ${total / (time / 1000)} records per second")
+    while (true) {
+      Try {
+        Thread.sleep(2000)
+        withConn { conn =>
+          val stmt = conn.createStatement
+          val rs = stmt.executeQuery(s"select count(*) from $topic")
+          rs.next()
+          val total = rs.getLong(1)
+          val time = System.currentTimeMillis() - start
+          println(s"Total $total in ${time}ms which is ${total / (time / 1000)} records per second")
+        }
       }
     }
     stopTask(topic)

@@ -60,7 +60,7 @@ object HiveSinkConfig {
           case PartitioningStrategy.DYNAMIC => new DynamicPartitionHandler()
           case PartitioningStrategy.STRICT => StrictPartitionHandler
         },
-        format = OrcHiveFormat, // HiveFormat(Option(kcql.getStoredAs).map(_.toLowerCase).getOrElse("parquet")),
+        format = ParquetHiveFormat, // HiveFormat(Option(kcql.getStoredAs).map(_.toLowerCase).getOrElse("parquet")),
         projection = projection,
         evolutionPolicy = Option(kcql.getWithSchemaEvolution).getOrElse(SchemaEvolution.MATCH) match {
           case SchemaEvolution.ADD => AddEvolutionPolicy
