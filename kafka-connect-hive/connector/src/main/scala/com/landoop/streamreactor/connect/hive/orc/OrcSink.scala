@@ -24,6 +24,7 @@ class OrcSink(path: Path,
     logger.debug(s"Writing orc batch [size=$n, path=$path]")
     batch.size = n
     orcWriter.addRowBatch(batch)
+    orcWriter.writeIntermediateFooter
     batch.reset()
     n = 0
   }

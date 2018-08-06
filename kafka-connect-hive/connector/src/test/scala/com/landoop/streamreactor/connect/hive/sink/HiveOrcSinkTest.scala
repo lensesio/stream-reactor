@@ -152,6 +152,25 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     client.getTable(dbname, "abc").getTableType shouldBe "EXTERNAL_TABLE"
   }
 
+  it should "create staging files" in {
+    val user1 = new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43)
+
+    val tableName = "commit_test"
+
+    Try {
+      client.dropTable(dbname, tableName, true, true)
+    }
+
+    val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
+      TableOptions(TableName(tableName), Topic("mytopic"), true, true, format = OrcHiveFormat)
+    ))
+
+    val sink = hiveSink(TableName(tableName), config)
+    sink.write(user1, TopicPartitionOffset(Topic("mytopic"), 1, Offset(44)))
+    fs.exists(new Path(s"hdfs://namenode:8020/user/hive/warehouse/$dbname/$tableName/streamreactor_mytopic_1")) shouldBe false
+    sink.close()
+  }
+
   it should "commit files when sink is closed" in {
 
     val user1 = new Struct(schema).put("name", "sam").put("title", "mr").put("salary", 100.43)
@@ -167,16 +186,17 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     ))
 
     val sink = hiveSink(TableName(tableName), config)
-    sink.write(user1, TopicPartitionOffset(Topic("mytopic"), 1, Offset(44)))
-
-    fs.exists(new Path(s"hdfs://namenode:8020/user/hive/warehouse/$dbname/$tableName/streamreactor_mytopic_1_44")) shouldBe false
+    for (k <- 1 to 1200) {
+      sink.write(user1, TopicPartitionOffset(Topic("mytopic"), 1, Offset(k)))
+    }
+    fs.exists(new Path(s"hdfs://namenode:8020/user/hive/warehouse/$dbname/$tableName/.streamreactor_mytopic_1")) shouldBe true
 
     // once we close the sink, the file will be committed
-    sink.write(user1, TopicPartitionOffset(Topic("mytopic"), 1, Offset(45)))
+    sink.write(user1, TopicPartitionOffset(Topic("mytopic"), 1, Offset(2500)))
     sink.close()
 
     fs.exists(new Path(s"hdfs://namenode:8020/user/hive/warehouse/$dbname/$tableName/.streamreactor_mytopic_1")) shouldBe false
-    fs.exists(new Path(s"hdfs://namenode:8020/user/hive/warehouse/$dbname/$tableName/streamreactor_mytopic_1_45")) shouldBe true
+    fs.exists(new Path(s"hdfs://namenode:8020/user/hive/warehouse/$dbname/$tableName/streamreactor_mytopic_1_2500")) shouldBe true
   }
 
   it should "use file per topic partition" in {

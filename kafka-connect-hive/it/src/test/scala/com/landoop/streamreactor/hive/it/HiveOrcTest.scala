@@ -3,14 +3,14 @@ package com.landoop.streamreactor.hive.it
 import java.util.concurrent.TimeUnit
 
 import org.scalatest.concurrent.Eventually
-import org.scalatest.time.{Millis, Span}
+import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.io.Source
 
 class HiveOrcTest extends WordSpec with Matchers with PersonTestData with Eventually with HiveTests {
 
-  private implicit val patience: PatienceConfig = PatienceConfig(Span(60000, Millis), Span(5000, Millis))
+  private implicit val patience: PatienceConfig = PatienceConfig(Span(120, Seconds), Span(10, Seconds))
 
   "Hive" should {
     "write non partitioned orc records" in {
