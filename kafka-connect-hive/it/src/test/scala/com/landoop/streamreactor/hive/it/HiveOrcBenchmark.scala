@@ -23,7 +23,7 @@ object HiveOrcBenchmark extends App with PersonTestData with HiveTests {
     val producer = stringStringProducer()
     for (k <- 1 to count.toInt) {
       producer.send(new ProducerRecord(topic, JacksonSupport.mapper.writeValueAsString(person)))
-      if (k % 1000 == 0) {
+      if (k % 2500 == 0) {
         producer.flush()
       }
     }
@@ -34,14 +34,14 @@ object HiveOrcBenchmark extends App with PersonTestData with HiveTests {
   Future {
     var total = 0L
     while (total < count) {
-      Thread.sleep(1000)
+      Thread.sleep(10000)
       withConn { conn =>
         val stmt = conn.createStatement
         val rs = stmt.executeQuery(s"select count(*) from $topic")
         rs.next()
         total = rs.getLong(1)
         val time = System.currentTimeMillis() - start
-        println(s"Total $total in ${time}ms")
+        println(s"Total $total in ${time}ms which is ${total / (time / 1000)} records per second")
       }
     }
     stopTask(topic)
