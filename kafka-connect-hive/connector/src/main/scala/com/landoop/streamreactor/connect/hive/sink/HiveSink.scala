@@ -115,7 +115,7 @@ class HiveSink(tableName: TableName,
     val (path, writer) = writerManager.writer(dir, tpo.toTopicPartition, mapped.schema)
     val count = writer.write(mapped)
 
-    if (tableConfig.commitPolicy.shouldFlush(struct, tpo, path, count)) {
+    if (fs.exists(path) && tableConfig.commitPolicy.shouldFlush(struct, tpo, path, count)) {
       logger.debug(s"Flushing offsets for $dir")
       writerManager.flush(tpo, dir)
       config.stageManager.commit(path, tpo)

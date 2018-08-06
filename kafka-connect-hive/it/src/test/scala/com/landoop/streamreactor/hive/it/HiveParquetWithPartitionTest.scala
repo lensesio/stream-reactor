@@ -9,7 +9,7 @@ import org.scalatest.{Matchers, WordSpec}
 
 import scala.io.Source
 
-class HiveWithPartitionTest extends WordSpec with Matchers with PersonTestData with Eventually with HiveTests {
+class HiveParquetWithPartitionTest extends WordSpec with Matchers with PersonTestData with Eventually with HiveTests {
 
   private implicit val patience: PatienceConfig = PatienceConfig(Span(60000, Millis), Span(5000, Millis))
 

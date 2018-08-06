@@ -33,8 +33,10 @@ class StageManager(filenamePolicy: FilenamePolicy) extends StrictLogging {
 
   def commit(stagePath: Path, tpo: TopicPartitionOffset)(implicit fs: FileSystem): Path = {
     val finalPath = new Path(stagePath.getParent, finalFilename(tpo))
-    logger.info(s"Commiting file $stagePath=>$finalPath")
-    fs.rename(stagePath, finalPath)
+    if (fs.exists(finalPath)) {
+      logger.info(s"Commiting file $stagePath=>$finalPath")
+      fs.rename(stagePath, finalPath)
+    }
     finalPath
   }
 }

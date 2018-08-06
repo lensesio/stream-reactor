@@ -17,7 +17,7 @@ class HiveOrcTest extends WordSpec with Matchers with PersonTestData with Eventu
       val count = 10000L
 
       val topic = createTopic()
-      val taskDef = Source.fromInputStream(getClass.getResourceAsStream("/hive_sink_task_no_partitions.json")).getLines().mkString("\n")
+      val taskDef = Source.fromInputStream(getClass.getResourceAsStream("/hive_sink_task_no_partitions-orc.json")).getLines().mkString("\n")
         .replace("{{TOPIC}}", topic)
         .replace("{{TABLE}}", topic)
         .replace("{{NAME}}", topic)

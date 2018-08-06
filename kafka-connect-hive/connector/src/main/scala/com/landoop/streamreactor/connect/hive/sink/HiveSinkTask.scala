@@ -20,7 +20,12 @@ import scala.util.control.NonFatal
 class HiveSinkTask extends SinkTask with StrictLogging {
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+
+  // this map contains all the open sinks for this task
+  // They are created when the topic/partition assignment happens (the 'open' method)
+  // and they are removed when unassignment happens (the 'close' method)
   private val sinks = scala.collection.mutable.Map.empty[TopicPartition, HiveSink]
+
   private var client: HiveMetaStoreClient = _
   private var fs: FileSystem = _
   private var config: HiveSinkConfig = _
@@ -101,6 +106,7 @@ class HiveSinkTask extends SinkTask with StrictLogging {
     close(topicPartitions)
   }
 
+  // closes the sinks for the given topic/partition tuples
   def close(partitions: Set[TopicPartition]): Unit = {
     partitions.foreach { tp =>
       sinks.remove(tp).foreach(_.close)

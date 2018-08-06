@@ -4,7 +4,7 @@ import java.util.Collections
 
 import cats.data.NonEmptyList
 import com.datamountaineer.kcql.{Field, PartitioningStrategy, SchemaEvolution}
-import com.landoop.streamreactor.connect.hive.formats.{HiveFormat, ParquetHiveFormat}
+import com.landoop.streamreactor.connect.hive.formats.{HiveFormat, OrcHiveFormat, ParquetHiveFormat}
 import com.landoop.streamreactor.connect.hive.sink.evolution.{AddEvolutionPolicy, EvolutionPolicy, IgnoreEvolutionPolicy, StrictEvolutionPolicy}
 import com.landoop.streamreactor.connect.hive.sink.partitioning.{DynamicPartitionHandler, PartitionHandler, StrictPartitionHandler}
 import com.landoop.streamreactor.connect.hive.sink.staging._
@@ -60,7 +60,7 @@ object HiveSinkConfig {
           case PartitioningStrategy.DYNAMIC => new DynamicPartitionHandler()
           case PartitioningStrategy.STRICT => StrictPartitionHandler
         },
-        format = HiveFormat(Option(kcql.getStoredAs).map(_.toLowerCase).getOrElse("parquet")),
+        format = OrcHiveFormat, // HiveFormat(Option(kcql.getStoredAs).map(_.toLowerCase).getOrElse("parquet")),
         projection = projection,
         evolutionPolicy = Option(kcql.getWithSchemaEvolution).getOrElse(SchemaEvolution.MATCH) match {
           case SchemaEvolution.ADD => AddEvolutionPolicy
