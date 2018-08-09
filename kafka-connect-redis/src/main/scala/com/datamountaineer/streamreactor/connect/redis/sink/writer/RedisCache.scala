@@ -18,11 +18,9 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisKCQLSetting, RedisSinkSettings}
-import com.datamountaineer.streamreactor.connect.rowkeys.StringStructFieldsStringKeyBuilder
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 import scala.util.Try
 
 /**
@@ -71,7 +69,7 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
                 // We can prefix the name of the <KEY> using the target
                 val optionalPrefix = if (Option(KCQL.kcqlConfig.getTarget).isEmpty) "" else KCQL.kcqlConfig.getTarget.trim
                 // Use first primary key's value and (optional) prefix
-                val keyBuilder = StringStructFieldsStringKeyBuilder(KCQL.kcqlConfig.getPrimaryKeys.map(_.getName))
+                val keyBuilder = RedisFieldsKeyBuilder(KCQL.kcqlConfig.getPrimaryKeys.map(_.toString))
                 val extracted = convert(record, fields = KCQL.fieldsAndAliases, ignoreFields = KCQL.ignoredFields)
                 val key = optionalPrefix + keyBuilder.build(record)
                 val payload = convertValueToJson(extracted).toString
@@ -84,5 +82,4 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
         logger.debug(s"Wrote ${sinkRecords.size} rows for topic $topic")
     }
   }
-
 }
