@@ -80,6 +80,7 @@ package object hive extends StrictLogging {
                   location: Option[String],
                   format: HiveFormat)
                  (implicit client: IMetaStoreClient, fs: FileSystem): Table = {
+    logger.info(s"Creating table with storedas=$format")
 
     val params = new util.HashMap[String, String]()
     params.put("CREATED_BY", getClass.getPackage.getName)

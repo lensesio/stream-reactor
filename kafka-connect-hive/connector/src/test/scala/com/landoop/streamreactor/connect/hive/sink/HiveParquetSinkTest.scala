@@ -14,7 +14,7 @@ import org.scalatest.{FlatSpec, Matchers}
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-class HiveSinkTest extends FlatSpec with Matchers with HiveTestConfig {
+class HiveParquetSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
   val schema = SchemaBuilder.struct()
     .field("name", SchemaBuilder.string().required().build())

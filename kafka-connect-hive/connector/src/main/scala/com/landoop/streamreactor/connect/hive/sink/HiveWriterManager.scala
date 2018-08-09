@@ -51,7 +51,7 @@ class HiveWriterManager(format: HiveFormat,
     * The offset is required as part of the commit filename.
     */
   def flush(tpo: TopicPartitionOffset, dir: Path): Unit = {
-    logger.info(s"Closing writer for $tpo")
+    logger.info(s"Flushing writer for $tpo")
     val key = WriterKey(tpo.toTopicPartition, dir)
     writers.get(key).foreach { case (path, writer) =>
       writer.close()
@@ -67,10 +67,13 @@ class HiveWriterManager(format: HiveFormat,
     *                by the commit process.
     */
   def flush(offsets: Map[TopicPartition, Offset]): Unit = {
+    logger.info(s"Flushing offsets $offsets")
+    // we may not have an offset for a given topic/partition if no data was written to that TP
     writers.foreach { case (key, (path, writer)) =>
       writer.close()
-      val tpo = key.tp.withOffset(offsets(key.tp))
-      stageManager.commit(path, tpo)
+      offsets.get(key.tp).foreach { offset =>
+        stageManager.commit(path, key.tp.withOffset(offset))
+      }
     }
   }
 }

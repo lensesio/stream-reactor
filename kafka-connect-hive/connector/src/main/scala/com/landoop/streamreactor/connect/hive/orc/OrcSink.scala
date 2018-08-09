@@ -21,8 +21,10 @@ class OrcSink(path: Path,
   private var n = 0
 
   def flush(): Unit = {
+    logger.debug(s"Writing orc batch [size=$n, path=$path]")
     batch.size = n
     orcWriter.addRowBatch(batch)
+    orcWriter.writeIntermediateFooter
     batch.reset()
     n = 0
   }

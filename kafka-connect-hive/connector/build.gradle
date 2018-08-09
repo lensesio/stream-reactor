@@ -38,14 +38,13 @@ ext {
     hiveVersion = "2.1.1"
     joddVersion = "4.1.4"
     hadoopVersion = "2.6.5"
-    catsVersion = "1.1.0"
+    catsVersion = "1.2.0"
 
     // The following 4 need to align to compile against a particular version
     confluentVersion = '4.1.0'
     kafkaVersion = '1.1.0'
     dataMountaineerCommonVersion = "1.1.5"
     link4jVersion = "1.8.0"
-    orcVersion = "1.5.2"
 }
 
 group = 'com.datamountaineer'

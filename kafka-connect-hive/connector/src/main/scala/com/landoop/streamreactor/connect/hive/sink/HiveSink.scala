@@ -53,7 +53,8 @@ class HiveSink(tableName: TableName,
     def getOrCreateTable(): Table = {
 
       def create = {
-        logger.info(s"Creating table in hive ${config.dbName.value}.${tableName.value} with partitions ${tableConfig.partitions.mkString(",")}")
+        val partstring = if (tableConfig.partitions.isEmpty) "<no-partitions>" else tableConfig.partitions.mkString(",")
+        logger.info(s"Creating table in hive [${config.dbName.value}.${tableName.value}, partitions=$partstring]")
         hive.createTable(config.dbName, tableName, schema, tableConfig.partitions, tableConfig.location, tableConfig.format)
       }
 
@@ -115,7 +116,7 @@ class HiveSink(tableName: TableName,
     val (path, writer) = writerManager.writer(dir, tpo.toTopicPartition, mapped.schema)
     val count = writer.write(mapped)
 
-    if (tableConfig.commitPolicy.shouldFlush(struct, tpo, path, count)) {
+    if (fs.exists(path) && tableConfig.commitPolicy.shouldFlush(struct, tpo, path, count)) {
       logger.debug(s"Flushing offsets for $dir")
       writerManager.flush(tpo, dir)
       config.stageManager.commit(path, tpo)
