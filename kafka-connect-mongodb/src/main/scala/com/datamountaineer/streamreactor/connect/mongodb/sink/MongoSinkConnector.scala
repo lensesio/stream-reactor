@@ -55,21 +55,7 @@ class MongoSinkConnector extends SinkConnector with StrictLogging {
     **/
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     logger.info(s"Setting task configurations for $maxTasks workers.")
-
-    val kcql = configProps.get(MongoConfigConstants.KCQL_CONFIG).split(";")
-    if (maxTasks == 1 || kcql.length == 1) {
-      List(configProps)
-    }
-    else {
-      val groups = kcql.length / maxTasks + kcql.length % maxTasks
-      kcql.grouped(groups)
-        .map(_.mkString(";"))
-        .map { routes =>
-          val taskProps = new util.HashMap[String, String](configProps)
-          taskProps.put(MongoConfigConstants.KCQL_CONFIG, routes)
-          taskProps
-        }.toList
-    }
+    (1 to maxTasks).map(_ => configProps).toList
   }
 
   /**
