@@ -18,6 +18,16 @@ package com.wepay.kafka.connect.bigquery;
  */
 
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
@@ -31,10 +41,6 @@ import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.RejectedExecutionException;
-
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -42,21 +48,16 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTaskContext;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.RejectedExecutionException;
 
 public class BigQuerySinkTaskTest {
   private static SinkTaskPropertiesFactory propertiesFactory;
@@ -386,7 +387,8 @@ public class BigQuerySinkTaskTest {
     assertNotNull(new BigQuerySinkTask().version());
   }
 
-  // Existing tasks should succeed upon stop is called. New tasks should be rejected once task is stopped.
+  // Existing tasks should succeed upon stop is called. New tasks should be rejected once task is
+  // stopped.
   @Test(expected = RejectedExecutionException.class)
   public void testStop() {
     final String dataset = "scratch";

@@ -55,7 +55,8 @@ public class BigQueryHelper {
     logger.debug("Attempting to open file {} for service account json key", keyFilename);
     try (InputStream credentialsStream = new FileInputStream(keyFilename)) {
       logger.debug("Attempting to authenticate with BigQuery using provided json key");
-      return new BigQueryOptions.DefaultBigqueryFactory().create(
+      return new
+          BigQueryOptions.DefaultBigQueryFactory().create(
           BigQueryOptions.newBuilder()
           .setProjectId(projectName)
           .setCredentials(GoogleCredentials.fromStream(credentialsStream))
@@ -76,7 +77,7 @@ public class BigQueryHelper {
    */
   public BigQuery connect(String projectName) {
     logger.debug("Attempting to access BigQuery without authentication");
-    return new BigQueryOptions.DefaultBigqueryFactory().create(
+    return new BigQueryOptions.DefaultBigQueryFactory().create(
         BigQueryOptions.newBuilder()
         .setProjectId(projectName)
         .build()

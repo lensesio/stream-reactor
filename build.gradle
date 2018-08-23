@@ -181,7 +181,7 @@ project(':kcbq-connector') {
     dependencies {
         compile project(':kcbq-api')
 
-        compile group: 'com.google.cloud', name: 'google-cloud', version: '0.25.0-alpha'
+        compile group: 'com.google.cloud', name: 'google-cloud', version: '0.47.0-alpha'
         compile group: 'com.google.auth', name: 'google-auth-library-oauth2-http', version: '0.9.0'
 
         compile group: 'io.debezium', name: 'debezium-core',  version:'0.4.0'
@@ -232,7 +232,7 @@ project('kcbq-api') {
     }
 
     dependencies {
-        compile group: 'com.google.cloud', name: 'google-cloud', version: '0.25.0-alpha'
+        compile group: 'com.google.cloud', name: 'google-cloud', version: '0.47.0-alpha'
 
         compile group: 'org.apache.kafka', name: 'connect-api', version: '1.0.0'
     }
@@ -279,7 +279,7 @@ project('kcbq-confluent') {
     dependencies {
         compile project(':kcbq-api')
 
-        compile group: 'com.google.cloud', name: 'google-cloud', version: '0.25.0-alpha'
+        compile group: 'com.google.cloud', name: 'google-cloud', version: '0.47.0-alpha'
 
         compile group: 'io.confluent', name: 'kafka-connect-avro-converter', version: '3.2.0'
         compile group: 'io.confluent', name: 'kafka-schema-registry-client', version: '3.2.0'

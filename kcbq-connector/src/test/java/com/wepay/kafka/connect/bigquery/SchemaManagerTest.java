@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 
@@ -56,7 +57,7 @@ public class SchemaManagerTest {
     Schema mockKafkaSchema = mock(Schema.class);
     // we would prefer to mock this class, but it is final.
     com.google.cloud.bigquery.Schema fakeBigQuerySchema =
-        com.google.cloud.bigquery.Schema.of(Field.of("mock field", Field.Type.string()));
+        com.google.cloud.bigquery.Schema.of(Field.of("mock field", LegacySQLTypeName.STRING));
 
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);

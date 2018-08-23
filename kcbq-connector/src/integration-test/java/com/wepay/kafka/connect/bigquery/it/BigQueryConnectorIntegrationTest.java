@@ -28,12 +28,13 @@ import static com.google.cloud.bigquery.LegacySQLTypeName.TIMESTAMP;
 
 import static org.junit.Assert.assertEquals;
 
-import com.google.api.gax.paging.Page;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
+import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.Table;
+import com.google.cloud.bigquery.TableResult;
 
 import com.wepay.kafka.connect.bigquery.BigQueryHelper;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
@@ -127,26 +128,26 @@ public class BigQueryConnectorIntegrationTest {
     }
     switch (field.getAttribute()) {
       case PRIMITIVE:
-        if (fieldSchema.getType().getValue().equals(BOOLEAN)) {
+        if (fieldSchema.getType().equals(BOOLEAN)) {
           return field.getBooleanValue();
-        } else if (fieldSchema.getType().getValue().equals(BYTES)) {
+        } else if (fieldSchema.getType().equals(BYTES)) {
           // Do this in order for assertEquals() to work when this is an element of two compared
           // lists
           return boxByteArray(field.getBytesValue());
-        } else if (fieldSchema.getType().getValue().equals(DATE)) {
+        } else if (fieldSchema.getType().equals(DATE)) {
           DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
           long millisecondsSinceEpoch = LocalDate.parse(field.getStringValue(), dateFormatter)
                   .atStartOfDay(ZoneOffset.UTC)
                   .toInstant()
                   .toEpochMilli();
           return millisecondsSinceEpoch;
-        } else if (fieldSchema.getType().getValue().equals(FLOAT)) {
+        } else if (fieldSchema.getType().equals(FLOAT)) {
           return field.getDoubleValue();
-        } else if (fieldSchema.getType().getValue().equals(INTEGER)) {
+        } else if (fieldSchema.getType().equals(INTEGER)) {
           return field.getLongValue();
-        } else if (fieldSchema.getType().getValue().equals(STRING)) {
+        } else if (fieldSchema.getType().equals(STRING)) {
           return field.getStringValue();
-        } else if (fieldSchema.getType().getValue().equals(TIMESTAMP)) {
+        } else if (fieldSchema.getType().equals(TIMESTAMP)) {
           return field.getTimestampValue();
         } else {
           throw new RuntimeException("Cannot convert primitive field type "
@@ -159,7 +160,7 @@ public class BigQueryConnectorIntegrationTest {
         }
         return result;
       case RECORD:
-        List<Field> recordSchemas = fieldSchema.getFields();
+        List<Field> recordSchemas = fieldSchema.getSubFields();
         List<FieldValue> recordFields = field.getRecordValue();
         return convertRow(recordSchemas, recordFields);
       default:
@@ -181,14 +182,16 @@ public class BigQueryConnectorIntegrationTest {
   private List<List<Object>> readAllRows(String tableName) {
     Table table = bigQuery.getTable(dataset, tableName);
     Schema schema = table.getDefinition().getSchema();
-    Page<List<FieldValue>> page = table.list();
 
     List<List<Object>> rows = new ArrayList<>();
-    while (page != null) {
-      for (List<FieldValue> row : page.getValues()) {
-        rows.add(convertRow(schema.getFields(), row));
+    TableResult tableResult = table.list();
+
+    while (tableResult != null) {
+      Iterable<FieldValueList> fieldValueLists = tableResult.iterateAll();
+      for (FieldValueList fieldValueList : fieldValueLists) {
+        rows.add(convertRow(schema.getFields(), fieldValueList));
       }
-      page = page.getNextPage();
+      tableResult = tableResult.getNextPage();
     }
     return rows;
   }
