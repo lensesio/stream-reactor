@@ -57,15 +57,15 @@ public class SchemaRegistrySchemaRetriever implements SchemaRetriever {
 
   @Override
   public Schema retrieveSchema(TableId table, String topic) {
+    String subject = getSubject(topic);
     try {
-      String subject = getSubject(topic);
       logger.debug("Retrieving schema information for topic {} with subject {}", topic, subject);
       SchemaMetadata latestSchemaMetadata = schemaRegistryClient.getLatestSchemaMetadata(subject);
       org.apache.avro.Schema avroSchema = new Parser().parse(latestSchemaMetadata.getSchema());
       return avroData.toConnectSchema(avroSchema);
     } catch (IOException | RestClientException exception) {
-      throw new ConnectException(
-          "Exception encountered while trying to fetch latest schema metadata from Schema Registry",
+      throw new ConnectException(String.format(
+          "Exception while fetching latest schema metadata for topic=%s, subject=%s", topic, subject),
           exception
       );
     }
