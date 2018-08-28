@@ -29,6 +29,7 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.InsertAllResponse;
+import com.google.cloud.storage.Storage;
 
 import com.wepay.kafka.connect.bigquery.BigQuerySinkTask;
 import com.wepay.kafka.connect.bigquery.SinkTaskPropertiesFactory;
@@ -79,16 +80,16 @@ public class BigQueryWriterTest {
 
     //first attempt (success)
     when(bigQuery.insertAll(anyObject()))
-        .thenReturn(insertAllResponse);
+            .thenReturn(insertAllResponse);
 
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null);
+    Storage storage = mock(Storage.class);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
-    testTask.put(Collections.singletonList(
-        spoofSinkRecord(topic, 0, 0, "some_field", "some_value")
-    ));
+    testTask.put(
+        Collections.singletonList(spoofSinkRecord(topic, 0, 0, "some_field", "some_value")));
     testTask.flush(Collections.emptyMap());
 
     verify(bigQuery, times(1)).insertAll(anyObject());
@@ -131,7 +132,8 @@ public class BigQueryWriterTest {
 
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null);
+    Storage storage = mock(Storage.class);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(sinkRecordList);
@@ -179,7 +181,8 @@ public class BigQueryWriterTest {
 
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
 
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null);
+    Storage storage = mock(Storage.class);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(sinkRecordList);
@@ -220,12 +223,19 @@ public class BigQueryWriterTest {
                                      String field,
                                      String value) {
     Schema basicRowSchema = SchemaBuilder
-        .struct()
-        .field(field, Schema.STRING_SCHEMA)
-        .build();
+            .struct()
+            .field(field, Schema.STRING_SCHEMA)
+            .build();
     Struct basicRowValue = new Struct(basicRowSchema);
     basicRowValue.put(field, value);
-    return new SinkRecord(topic, partition, null, null, basicRowSchema, basicRowValue, kafkaOffset,
-        null, null);
+    return new SinkRecord(topic,
+                          partition,
+                          null,
+                          null,
+                          basicRowSchema,
+                          basicRowValue,
+                          kafkaOffset,
+                          null,
+                          null);
   }
 }
