@@ -19,10 +19,14 @@ package com.wepay.kafka.connect.bigquery.convert.kafkadata;
 
 
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.LegacySQLTypeName;
 
 import com.wepay.kafka.connect.bigquery.convert.BigQuerySchemaConverter;
 
 import org.apache.kafka.connect.data.Schema;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Class for converting from {@link Schema Kafka Connect Schemas} to
@@ -38,6 +42,10 @@ public class KafkaDataBQSchemaConverter extends BigQuerySchemaConverter {
   /* package private */ static final String KAFKA_DATA_OFFSET_FIELD_NAME = "offset";
   /* package private */ static final String KAFKA_DATA_INSERT_TIME_FIELD_NAME = "insertTime";
 
+  public KafkaDataBQSchemaConverter(boolean allFieldsNullable) {
+    super(allFieldsNullable);
+  }
+
   /**
    * Convert the  kafka {@link Schema} to a BigQuery {@link com.google.cloud.bigquery.Schema}, with
    * the addition of an optional field for containing extra kafka data.
@@ -49,26 +57,28 @@ public class KafkaDataBQSchemaConverter extends BigQuerySchemaConverter {
    *         field for the kafka topic, partition, and offset.
    */
   public com.google.cloud.bigquery.Schema convertSchema(Schema kafkaConnectSchema) {
-    com.google.cloud.bigquery.Schema.Builder schemaBuilder =
-        super.convertSchema(kafkaConnectSchema).toBuilder();
+    com.google.cloud.bigquery.Schema baseSchema =
+        super.convertSchema(kafkaConnectSchema);
 
-    Field topicField = Field.of(KAFKA_DATA_TOPIC_FIELD_NAME, Field.Type.string());
-    Field partitionField = Field.of(KAFKA_DATA_PARTITION_FIELD_NAME, Field.Type.integer());
-    Field offsetField = Field.of(KAFKA_DATA_OFFSET_FIELD_NAME, Field.Type.integer());
+    Field topicField = Field.of(KAFKA_DATA_TOPIC_FIELD_NAME, LegacySQLTypeName.STRING);
+    Field partitionField = Field.of(KAFKA_DATA_PARTITION_FIELD_NAME, LegacySQLTypeName.INTEGER);
+    Field offsetField = Field.of(KAFKA_DATA_OFFSET_FIELD_NAME, LegacySQLTypeName.INTEGER);
     Field.Builder insertTimeBuilder = Field.newBuilder(KAFKA_DATA_INSERT_TIME_FIELD_NAME,
-                                                    Field.Type.timestamp())
+                                                       LegacySQLTypeName.TIMESTAMP)
                                            .setMode(Field.Mode.NULLABLE);
     Field insertTimeField = insertTimeBuilder.build();
 
-    Field.Builder kafkaDataFieldBuilder =
-        Field.newBuilder(KAFKA_DATA_FIELD_NAME, Field.Type.record(topicField,
-                                                               partitionField,
-                                                               offsetField,
-                                                               insertTimeField))
-             .setMode(Field.Mode.NULLABLE);
+    Field kafkaDataField =
+        Field.newBuilder(KAFKA_DATA_FIELD_NAME, LegacySQLTypeName.RECORD, topicField,
+                                                                          partitionField,
+                                                                          offsetField,
+                                                                          insertTimeField)
+             .setMode(Field.Mode.NULLABLE).build();
 
-    schemaBuilder.addField(kafkaDataFieldBuilder.build());
+    List<Field> allFields = new ArrayList<>(baseSchema.getFields().size() + 1);
+    allFields.addAll(baseSchema.getFields());
+    allFields.add(kafkaDataField);
 
-    return schemaBuilder.build();
+    return com.google.cloud.bigquery.Schema.of(allFields);
   }
 }

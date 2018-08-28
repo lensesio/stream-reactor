@@ -18,14 +18,23 @@ package com.wepay.kafka.connect.bigquery.it;
  */
 
 
+import static com.google.cloud.bigquery.LegacySQLTypeName.BOOLEAN;
+import static com.google.cloud.bigquery.LegacySQLTypeName.BYTES;
+import static com.google.cloud.bigquery.LegacySQLTypeName.DATE;
+import static com.google.cloud.bigquery.LegacySQLTypeName.FLOAT;
+import static com.google.cloud.bigquery.LegacySQLTypeName.INTEGER;
+import static com.google.cloud.bigquery.LegacySQLTypeName.STRING;
+import static com.google.cloud.bigquery.LegacySQLTypeName.TIMESTAMP;
+
 import static org.junit.Assert.assertEquals;
 
-import com.google.cloud.Page;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
+import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.Table;
+import com.google.cloud.bigquery.TableResult;
 
 import com.wepay.kafka.connect.bigquery.BigQueryHelper;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
@@ -36,6 +45,9 @@ import org.junit.Test;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -116,24 +128,30 @@ public class BigQueryConnectorIntegrationTest {
     }
     switch (field.getAttribute()) {
       case PRIMITIVE:
-        switch (fieldSchema.getType().getValue()) {
-          case BOOLEAN:
-            return field.getBooleanValue();
-          case BYTES:
-            // Do this in order for assertEquals() to work when this is an element of two compared
-            // lists
-            return boxByteArray(field.getBytesValue());
-          case FLOAT:
-            return field.getDoubleValue();
-          case INTEGER:
-            return field.getLongValue();
-          case STRING:
-            return field.getStringValue();
-          case TIMESTAMP:
-            return field.getTimestampValue();
-          default:
-            throw new RuntimeException("Cannot convert primitive field type "
-                                       + fieldSchema.getType());
+        if (fieldSchema.getType().equals(BOOLEAN)) {
+          return field.getBooleanValue();
+        } else if (fieldSchema.getType().equals(BYTES)) {
+          // Do this in order for assertEquals() to work when this is an element of two compared
+          // lists
+          return boxByteArray(field.getBytesValue());
+        } else if (fieldSchema.getType().equals(DATE)) {
+          DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+          long millisecondsSinceEpoch = LocalDate.parse(field.getStringValue(), dateFormatter)
+                  .atStartOfDay(ZoneOffset.UTC)
+                  .toInstant()
+                  .toEpochMilli();
+          return millisecondsSinceEpoch;
+        } else if (fieldSchema.getType().equals(FLOAT)) {
+          return field.getDoubleValue();
+        } else if (fieldSchema.getType().equals(INTEGER)) {
+          return field.getLongValue();
+        } else if (fieldSchema.getType().equals(STRING)) {
+          return field.getStringValue();
+        } else if (fieldSchema.getType().equals(TIMESTAMP)) {
+          return field.getTimestampValue();
+        } else {
+          throw new RuntimeException("Cannot convert primitive field type "
+                  + fieldSchema.getType());
         }
       case REPEATED:
         List<Object> result = new ArrayList<>();
@@ -142,7 +160,7 @@ public class BigQueryConnectorIntegrationTest {
         }
         return result;
       case RECORD:
-        List<Field> recordSchemas = fieldSchema.getFields();
+        List<Field> recordSchemas = fieldSchema.getSubFields();
         List<FieldValue> recordFields = field.getRecordValue();
         return convertRow(recordSchemas, recordFields);
       default:
@@ -164,14 +182,16 @@ public class BigQueryConnectorIntegrationTest {
   private List<List<Object>> readAllRows(String tableName) {
     Table table = bigQuery.getTable(dataset, tableName);
     Schema schema = table.getDefinition().getSchema();
-    Page<List<FieldValue>> page = table.list();
 
     List<List<Object>> rows = new ArrayList<>();
-    while (page != null) {
-      for (List<FieldValue> row : page.getValues()) {
-        rows.add(convertRow(schema.getFields(), row));
+    TableResult tableResult = table.list();
+
+    while (tableResult != null) {
+      Iterable<FieldValueList> fieldValueLists = tableResult.iterateAll();
+      for (FieldValueList fieldValueList : fieldValueLists) {
+        rows.add(convertRow(schema.getFields(), fieldValueList));
       }
-      page = page.getNextPage();
+      tableResult = tableResult.getNextPage();
     }
     return rows;
   }
@@ -263,9 +283,9 @@ public class BigQueryConnectorIntegrationTest {
     // {"row": 1, "timestamp-test": 0, "date-test": 0}
     expectedRows.add(Arrays.asList(1L, 0L, 0L));
     // {"row": 2, "timestamp-test": 42000000, "date-test": 4200}
-    expectedRows.add(Arrays.asList(2L, 42000000000L, 362880000000000L));
+    expectedRows.add(Arrays.asList(2L, 42000000000L, 362880000000L));
     // {"row": 3, "timestamp-test": 1468275102000, "date-test": 16993}
-    expectedRows.add(Arrays.asList(3L, 1468275102000000L, 1468195200000000L));
+    expectedRows.add(Arrays.asList(3L, 1468275102000000L, 1468195200000L));
 
     testRows(expectedRows, readAllRows("kcbq_test_logical_types"));
   }

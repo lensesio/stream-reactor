@@ -18,7 +18,6 @@ package com.wepay.kafka.connect.bigquery.convert.logicaltype;
  */
 
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 

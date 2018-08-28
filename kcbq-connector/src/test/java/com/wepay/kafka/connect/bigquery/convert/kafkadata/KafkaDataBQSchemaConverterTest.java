@@ -21,6 +21,7 @@ package com.wepay.kafka.connect.bigquery.convert.kafkadata;
 import static org.junit.Assert.assertEquals;
 
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.LegacySQLTypeName;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -37,28 +38,29 @@ public class KafkaDataBQSchemaConverterTest {
 
     Field kafkaDataField = getKafkaDataField();
     Field baseField = Field.newBuilder("base",
-                                    Field.Type.string()).setMode(Field.Mode.REQUIRED).build();
+                                    LegacySQLTypeName.STRING).setMode(Field.Mode.REQUIRED).build();
     com.google.cloud.bigquery.Schema bigQueryExpectedSchema =
         com.google.cloud.bigquery.Schema.of(baseField, kafkaDataField);
 
     com.google.cloud.bigquery.Schema bigQueryActualSchema =
-        new KafkaDataBQSchemaConverter().convertSchema(kafkaConnectTestSchema);
+        new KafkaDataBQSchemaConverter(false).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryActualSchema);
   }
 
   private Field getKafkaDataField() {
-    Field topicField = Field.of("topic", Field.Type.string());
-    Field partitionField = Field.of("partition", Field.Type.integer());
-    Field offsetField = Field.of("offset", Field.Type.integer());
-    Field insertTimeField = Field.newBuilder("insertTime",Field.Type.timestamp())
+    Field topicField = Field.of("topic", LegacySQLTypeName.STRING);
+    Field partitionField = Field.of("partition", LegacySQLTypeName.INTEGER);
+    Field offsetField = Field.of("offset", LegacySQLTypeName.INTEGER);
+    Field insertTimeField = Field.newBuilder("insertTime",LegacySQLTypeName.TIMESTAMP)
                                  .setMode(Field.Mode.NULLABLE)
                                  .build();
 
     return Field.newBuilder("kafkaData",
-                            Field.Type.record(topicField,
-                                              partitionField,
-                                              offsetField,
-                                              insertTimeField))
+                            LegacySQLTypeName.RECORD,
+                            topicField,
+                            partitionField,
+                            offsetField,
+                            insertTimeField)
                 .setMode(Field.Mode.NULLABLE)
                 .build();
   }

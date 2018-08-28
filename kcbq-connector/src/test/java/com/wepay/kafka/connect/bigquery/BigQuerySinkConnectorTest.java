@@ -65,6 +65,10 @@ public class BigQuerySinkConnectorTest {
       // Shouldn't be called
       return null;
     }
+
+    @Override
+    public void setLastSeenSchema(TableId table, String topic, Schema schema) {
+    }
   }
 
   @BeforeClass

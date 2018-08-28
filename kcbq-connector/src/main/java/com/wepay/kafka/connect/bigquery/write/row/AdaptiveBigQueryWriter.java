@@ -32,6 +32,7 @@ import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -62,48 +63,77 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     this.schemaManager = schemaManager;
   }
 
+  private boolean isTableMissingSchema(BigQueryException exception) {
+    // If a table is missing a schema, it will raise a BigQueryException that the input is invalid
+    // For more information about BigQueryExceptions, see: https://cloud.google.com/bigquery/troubleshooting-errors
+    return exception.getReason() != null && exception.getReason().equalsIgnoreCase("invalid");
+  }
+
   /**
    * Sends the request to BigQuery, then checks the response to see if any errors have occurred. If
    * any have, and all errors can be blamed upon invalid columns in the rows sent, attempts to
    * update the schema of the table in BigQuery and then performs the same write request.
-   * @param tableId The PartitionedTableId.
-   * @param rows The rows to write.
-   * @param topic The Kafka topic that the row data came from.
+   * @see BigQueryWriter#performWriteRequest(PartitionedTableId, List, String)
    */
   @Override
-  public void performWriteRequest(PartitionedTableId tableId,
-                                  List<InsertAllRequest.RowToInsert> rows,
-                                  String topic) {
-    InsertAllRequest request = createInsertAllRequest(tableId, rows);
-    InsertAllResponse writeResponse = bigQuery.insertAll(request);
-    // Should only perform one schema update attempt; may have to continue insert attempts due to
-    // BigQuery schema updates taking up to two minutes to take effect
-    if (writeResponse.hasErrors()
-        && onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors())) {
-      try {
-        schemaManager.updateSchema(tableId.getBaseTableId(), topic);
-      } catch (BigQueryException exception) {
-        throw new BigQueryConnectException("Failed to update table schema for: " + tableId.getBaseTableId(), exception);
+  public Map<Long, List<BigQueryError>> performWriteRequest(
+      PartitionedTableId tableId,
+      List<InsertAllRequest.RowToInsert> rows,
+      String topic) {
+    InsertAllResponse writeResponse = null;
+    InsertAllRequest request = null;
+
+    try {
+      request = createInsertAllRequest(tableId, rows);
+      writeResponse = bigQuery.insertAll(request);
+      // Should only perform one schema update attempt; may have to continue insert attempts due to
+      // BigQuery schema updates taking up to two minutes to take effect
+      if (writeResponse.hasErrors()
+              && onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors())) {
+        attemptSchemaUpdate(tableId, topic);
+      }
+    } catch (BigQueryException exception) {
+      if (isTableMissingSchema(exception)) {
+        attemptSchemaUpdate(tableId, topic);
+      } else {
+        throw exception;
       }
     }
 
     // Schema update might be delayed, so multiple insertion attempts may be necessary
     int attemptCount = 0;
-    while (writeResponse.hasErrors()) {
+    while (writeResponse == null || writeResponse.hasErrors()) {
       logger.trace("insertion failed");
-      if (onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors())) {
-        logger.debug("re-attempting insertion");
-        writeResponse = bigQuery.insertAll(request);
+      if (writeResponse == null
+          || onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors())) {
+        try {
+          // If the table was missing its schema, we never received a writeResponse
+          logger.debug("re-attempting insertion");
+          writeResponse = bigQuery.insertAll(request);
+        } catch (BigQueryException exception) {
+          // no-op, we want to keep retrying the insert
+        }
       } else {
-        throw new BigQueryConnectException(writeResponse.getInsertErrors());
+        return writeResponse.getInsertErrors();
       }
       attemptCount++;
       if (attemptCount >= AFTER_UPDATE_RETY_LIMIT) {
-        throw new BigQueryConnectException("Failed to write rows after BQ schema update within "
-                                           + AFTER_UPDATE_RETY_LIMIT + " attempts for: " + tableId.getBaseTableId());
+        throw new BigQueryConnectException(
+            "Failed to write rows after BQ schema update within "
+                + AFTER_UPDATE_RETY_LIMIT + " attempts for: " + tableId.getBaseTableId());
       }
     }
     logger.debug("table insertion completed successfully");
+    return new HashMap<>();
+  }
+
+  private void attemptSchemaUpdate(PartitionedTableId tableId, String topic) {
+    try {
+      schemaManager.updateSchema(tableId.getBaseTableId(), topic);
+    } catch (BigQueryException exception) {
+      throw new BigQueryConnectException(
+          "Failed to update table schema for: " + tableId.getBaseTableId(), exception);
+    }
   }
 
   /*

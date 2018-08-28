@@ -22,12 +22,9 @@ import static org.junit.Assert.assertEquals;
 
 import com.wepay.kafka.connect.bigquery.exception.ConversionConnectException;
 
-import org.apache.kafka.connect.data.Date;
-import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.data.Timestamp;
 
 import org.apache.kafka.connect.sink.SinkRecord;
 
@@ -35,21 +32,22 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
 public class BigQueryRecordConverterTest {
+
+  private static final Boolean SHOULD_CONVERT_DOUBLE = true;
 
   @Test(expected = ConversionConnectException.class)
   public void testTopLevelRecord() {
     SinkRecord kafkaConnectRecord = spoofSinkRecord(Schema.BOOLEAN_SCHEMA, false);
-    new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+    new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
   }
 
   @Test
@@ -70,7 +68,7 @@ public class BigQueryRecordConverterTest {
     SinkRecord kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
 
     Map<String, Object> bigQueryTestRecord =
-        new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
   }
 
@@ -92,7 +90,7 @@ public class BigQueryRecordConverterTest {
     SinkRecord kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
 
     Map<String, Object> bigQueryTestRecord =
-        new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
 
     final Short fieldShortValue = (short) 4242;
@@ -108,7 +106,8 @@ public class BigQueryRecordConverterTest {
     kafkaConnectStruct.put(fieldName, fieldShortValue);
     kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
 
-    bigQueryTestRecord = new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+    bigQueryTestRecord =
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
 
     final Integer fieldIntegerValue = 424242;
@@ -124,7 +123,8 @@ public class BigQueryRecordConverterTest {
     kafkaConnectStruct.put(fieldName, fieldIntegerValue);
     kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
 
-    bigQueryTestRecord = new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+    bigQueryTestRecord =
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
 
     final Long fieldLongValue = 424242424242L;
@@ -140,7 +140,8 @@ public class BigQueryRecordConverterTest {
     kafkaConnectStruct.put(fieldName, fieldLongValue);
     kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
 
-    bigQueryTestRecord = new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+    bigQueryTestRecord =
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
   }
 
@@ -161,7 +162,7 @@ public class BigQueryRecordConverterTest {
     SinkRecord kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
 
     Map<String, Object> bigQueryTestRecord =
-        new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
 
     final Double fieldDoubleValue = 4242424242.4242;
@@ -178,8 +179,37 @@ public class BigQueryRecordConverterTest {
     kafkaConnectStruct.put(fieldName, fieldDoubleValue);
     kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
 
-    bigQueryTestRecord = new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+    bigQueryTestRecord =
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
+  }
+
+  @Test public void testDoubleSpecial() {
+    final String fieldName = "Double";
+
+    List<Double> testValues =
+        Arrays.asList(Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NaN);
+    List<Double> expectedValues =
+        Arrays.asList(Double.MAX_VALUE, Double.MIN_VALUE, Double.MIN_VALUE);
+    assertEquals(testValues.size(), expectedValues.size());
+
+    for (int test = 0; test < testValues.size(); ++test) {
+      Map<String, Object> bigQueryExpectedRecord = new HashMap<>();
+      bigQueryExpectedRecord.put(fieldName, expectedValues.get(test));
+
+      Schema kafkaConnectSchema = SchemaBuilder
+              .struct()
+              .field(fieldName, Schema.FLOAT64_SCHEMA)
+              .build();
+
+      Struct kafkaConnectStruct = new Struct(kafkaConnectSchema);
+      kafkaConnectStruct.put(fieldName, testValues.get(test));
+      SinkRecord kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
+
+      Map<String, Object> bigQueryTestRecord =
+              new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
+      assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
+    }
   }
 
   @Test
@@ -200,7 +230,7 @@ public class BigQueryRecordConverterTest {
     SinkRecord kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
 
     Map<String, Object> bigQueryTestRecord =
-        new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
   }
 
@@ -232,7 +262,8 @@ public class BigQueryRecordConverterTest {
     SinkRecord kafkaConnectInnerSinkRecord =
         spoofSinkRecord(kafkaConnectInnerSchema, kafkaConnectInnerStruct);
     Map<String, Object> bigQueryTestInnerRecord =
-        new BigQueryRecordConverter().convertRecord(kafkaConnectInnerSinkRecord);
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE)
+            .convertRecord(kafkaConnectInnerSinkRecord);
     assertEquals(bigQueryExpectedInnerRecord, bigQueryTestInnerRecord);
 
 
@@ -253,7 +284,8 @@ public class BigQueryRecordConverterTest {
     SinkRecord kafkaConnectMiddleSinkRecord =
         spoofSinkRecord(kafkaConnectMiddleSchema, kafkaConnectMiddleStruct);
     Map<String, Object> bigQueryTestMiddleRecord =
-        new BigQueryRecordConverter().convertRecord(kafkaConnectMiddleSinkRecord);
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE)
+            .convertRecord(kafkaConnectMiddleSinkRecord);
     assertEquals(bigQueryExpectedMiddleRecord, bigQueryTestMiddleRecord);
 
 
@@ -274,7 +306,8 @@ public class BigQueryRecordConverterTest {
     SinkRecord kafkaConnectOuterSinkRecord =
         spoofSinkRecord(kafkaConnectOuterSchema, kafkaConnectOuterStruct);
     Map<String, Object> bigQueryTestOuterRecord =
-        new BigQueryRecordConverter().convertRecord(kafkaConnectOuterSinkRecord);
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE)
+            .convertRecord(kafkaConnectOuterSinkRecord);
     assertEquals(bigQueryExpectedOuterRecord, bigQueryTestOuterRecord);
   }
 
@@ -312,7 +345,7 @@ public class BigQueryRecordConverterTest {
     SinkRecord kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
 
     Map<String, Object> bigQueryTestRecord =
-        new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
   }
 
@@ -334,7 +367,7 @@ public class BigQueryRecordConverterTest {
     SinkRecord kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
 
     Map<String, Object> bigQueryTestRecord =
-        new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
   }
 
@@ -361,7 +394,8 @@ public class BigQueryRecordConverterTest {
     SinkRecord kafkaConnectInnerSinkRecord =
         spoofSinkRecord(kafkaConnectInnerSchema, kafkaConnectInnerStruct);
     Map<String, Object> bigQueryTestInnerRecord =
-        new BigQueryRecordConverter().convertRecord(kafkaConnectInnerSinkRecord);
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE)
+            .convertRecord(kafkaConnectInnerSinkRecord);
     assertEquals(bigQueryExpectedInnerRecord, bigQueryTestInnerRecord);
 
     final String middleFieldArrayName = "MiddleArray";
@@ -381,7 +415,7 @@ public class BigQueryRecordConverterTest {
     SinkRecord kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
 
     Map<String, Object> bigQueryTestRecord =
-        new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
   }
 
@@ -404,7 +438,7 @@ public class BigQueryRecordConverterTest {
     SinkRecord kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
 
     Map<String, Object> bigQueryTestRecord =
-        new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
   }
 
@@ -428,96 +462,53 @@ public class BigQueryRecordConverterTest {
     SinkRecord kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
 
     Map<String, Object> bigQueryTestRecord =
-        new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
   }
 
   @Test
-  public void testTimestamp() {
-    final String fieldName = "Timestamp";
-    final long fieldTime = System.currentTimeMillis();
-    final java.util.Date fieldValueKafkaConnect = Timestamp.toLogical(
-        Timestamp.SCHEMA,
-        fieldTime
-    );
-    java.util.Date date = new java.util.Date(fieldValueKafkaConnect.getTime());
-    SimpleDateFormat timestampFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-    timestampFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-    final String fieldValueBigQuery =
-        timestampFormat.format(date);
+  public void testDebeziumLogicalType() {
+    final String fieldName = "DebeziumDate";
+    final int fieldDate = 17226;
 
     Map<String, Object> bigQueryExpectedRecord = new HashMap<>();
-    bigQueryExpectedRecord.put(fieldName, fieldValueBigQuery);
+    bigQueryExpectedRecord.put(fieldName, "2017-03-01");
 
     Schema kafkaConnectSchema = SchemaBuilder
         .struct()
-        .field(fieldName, Timestamp.SCHEMA)
+        .field(fieldName, io.debezium.time.Date.schema())
         .build();
 
     Struct kafkaConnectStruct = new Struct(kafkaConnectSchema);
-    kafkaConnectStruct.put(fieldName, fieldValueKafkaConnect);
+    kafkaConnectStruct.put(fieldName, fieldDate);
     SinkRecord kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
 
     Map<String, Object> bigQueryTestRecord =
-        new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
   }
 
   @Test
-  public void testDate() {
-    final String fieldName = "Date";
-    final int fieldDate = 42;
-    final java.util.Date fieldValueKafkaConnect = Date.toLogical(
-        Date.SCHEMA,
-        fieldDate
-    );
-    java.util.Date date = new java.util.Date(fieldValueKafkaConnect.getTime());
-    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-    dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-    final String fieldValueBigQuery = dateFormat.format(date);
+  public void testKafkaLogicalType() {
+    final String fieldName = "KafkaDate";
+    final Date fieldDate = new Date(1488406838808L);
 
     Map<String, Object> bigQueryExpectedRecord = new HashMap<>();
-    bigQueryExpectedRecord.put(fieldName, fieldValueBigQuery);
+    bigQueryExpectedRecord.put(fieldName, "2017-03-01");
 
     Schema kafkaConnectSchema = SchemaBuilder
         .struct()
-        .field(fieldName, Date.SCHEMA)
+        .field(fieldName, org.apache.kafka.connect.data.Date.SCHEMA)
         .build();
 
     Struct kafkaConnectStruct = new Struct(kafkaConnectSchema);
-    kafkaConnectStruct.put(fieldName, fieldValueKafkaConnect);
+    kafkaConnectStruct.put(fieldName, fieldDate);
     SinkRecord kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
 
     Map<String, Object> bigQueryTestRecord =
-        new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
-  }
 
-  @Test
-  public void testDecimal() {
-    final String fieldName = "Decimal";
-    final byte[] fieldDecimal = java.math.BigDecimal.ONE.toBigInteger().toByteArray();
-    final java.math.BigDecimal fieldValueKafkaConnect = Decimal.toLogical(
-        Decimal.schema(0),
-        fieldDecimal
-    );
-    final java.math.BigDecimal fieldValueBigQuery = fieldValueKafkaConnect;
-
-    Map<String, Object> bigQueryExpectedRecord = new HashMap<>();
-    bigQueryExpectedRecord.put(fieldName, fieldValueBigQuery);
-
-    Schema kafkaConnectSchema = SchemaBuilder
-        .struct()
-        .field(fieldName, Decimal.schema(0))
-        .build();
-
-    Struct kafkaConnectStruct = new Struct(kafkaConnectSchema);
-    kafkaConnectStruct.put(fieldName, fieldValueKafkaConnect);
-    SinkRecord kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
-
-    Map<String, Object> bigQueryTestRecord =
-        new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
-    assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
   }
 
   @Test
@@ -542,7 +533,7 @@ public class BigQueryRecordConverterTest {
     SinkRecord kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
 
     Map<String, Object> bigQueryTestRecord =
-        new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
   }
 
@@ -565,7 +556,7 @@ public class BigQueryRecordConverterTest {
     SinkRecord kafkaConnectRecord = spoofSinkRecord(kafkaConnectSchema, kafkaConnectStruct);
 
     Map<String, Object> bigQueryTestRecord =
-        new BigQueryRecordConverter().convertRecord(kafkaConnectRecord);
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
     assertEquals(bigQueryExpectedRecord, bigQueryTestRecord);
   }
 

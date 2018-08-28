@@ -18,25 +18,21 @@ package com.wepay.kafka.connect.bigquery.convert;
  */
 
 
+import com.google.cloud.bigquery.FieldList;
+import com.google.cloud.bigquery.LegacySQLTypeName;
+
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.DebeziumLogicalConverters;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.KafkaLogicalConverters;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.LogicalConverterRegistry;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.LogicalTypeConverter;
 import com.wepay.kafka.connect.bigquery.exception.ConversionConnectException;
 
-import io.debezium.time.MicroTime;
-import io.debezium.time.MicroTimestamp;
-import io.debezium.time.Time;
-import io.debezium.time.ZonedTimestamp;
-
-import org.apache.kafka.connect.data.Date;
-import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Timestamp;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -56,7 +52,7 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
    */
   public static final String MAP_VALUE_FIELD_NAME = "value";
 
-  private static final Map<Schema.Type, com.google.cloud.bigquery.Field.Type> PRIMITIVE_TYPE_MAP;
+  private static final Map<Schema.Type, LegacySQLTypeName> PRIMITIVE_TYPE_MAP;
 
   static {
     // force registration
@@ -65,23 +61,29 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
 
     PRIMITIVE_TYPE_MAP = new HashMap<>();
     PRIMITIVE_TYPE_MAP.put(Schema.Type.BOOLEAN,
-                           com.google.cloud.bigquery.Field.Type.bool());
+                           LegacySQLTypeName.BOOLEAN);
     PRIMITIVE_TYPE_MAP.put(Schema.Type.FLOAT32,
-                           com.google.cloud.bigquery.Field.Type.floatingPoint());
+                           LegacySQLTypeName.FLOAT);
     PRIMITIVE_TYPE_MAP.put(Schema.Type.FLOAT64,
-                           com.google.cloud.bigquery.Field.Type.floatingPoint());
+                           LegacySQLTypeName.FLOAT);
     PRIMITIVE_TYPE_MAP.put(Schema.Type.INT8,
-                           com.google.cloud.bigquery.Field.Type.integer());
+                           LegacySQLTypeName.INTEGER);
     PRIMITIVE_TYPE_MAP.put(Schema.Type.INT16,
-                           com.google.cloud.bigquery.Field.Type.integer());
+                           LegacySQLTypeName.INTEGER);
     PRIMITIVE_TYPE_MAP.put(Schema.Type.INT32,
-                           com.google.cloud.bigquery.Field.Type.integer());
+                           LegacySQLTypeName.INTEGER);
     PRIMITIVE_TYPE_MAP.put(Schema.Type.INT64,
-                           com.google.cloud.bigquery.Field.Type.integer());
+                           LegacySQLTypeName.INTEGER);
     PRIMITIVE_TYPE_MAP.put(Schema.Type.STRING,
-                           com.google.cloud.bigquery.Field.Type.string());
+                           LegacySQLTypeName.STRING);
     PRIMITIVE_TYPE_MAP.put(Schema.Type.BYTES,
-                           com.google.cloud.bigquery.Field.Type.bytes());
+                           LegacySQLTypeName.BYTES);
+  }
+
+  private final boolean allFieldsNullable;
+
+  public BigQuerySchemaConverter(boolean allFieldsNullable) {
+    this.allFieldsNullable = allFieldsNullable;
   }
 
   /**
@@ -99,14 +101,16 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
       throw new
           ConversionConnectException("Top-level Kafka Connect schema must be of type 'struct'");
     }
-    com.google.cloud.bigquery.Schema.Builder bigQuerySchemaBuilder =
-        com.google.cloud.bigquery.Schema.newBuilder();
+
+    List<com.google.cloud.bigquery.Field> fields = new LinkedList<>();
+
     for (Field kafkaConnectField : kafkaConnectSchema.fields()) {
-      com.google.cloud.bigquery.Field.Builder bigQuerySchemaFieldBuilder =
-          convertField(kafkaConnectField.schema(), kafkaConnectField.name());
-      bigQuerySchemaBuilder.addField(bigQuerySchemaFieldBuilder.build());
+      com.google.cloud.bigquery.Field bigQuerySchemaField =
+          convertField(kafkaConnectField.schema(), kafkaConnectField.name()).build();
+      fields.add(bigQuerySchemaField);
     }
-    return bigQuerySchemaBuilder.build();
+
+    return com.google.cloud.bigquery.Schema.of(fields);
   }
 
   private com.google.cloud.bigquery.Field.Builder convertField(Schema kafkaConnectSchema,
@@ -148,7 +152,7 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
       case MAP:
         return;
       default:
-        if (kafkaConnectSchema.isOptional()) {
+        if (allFieldsNullable || kafkaConnectSchema.isOptional()) {
           fieldBuilder.setMode(com.google.cloud.bigquery.Field.Mode.NULLABLE);
         } else {
           fieldBuilder.setMode(com.google.cloud.bigquery.Field.Mode.REQUIRED);
@@ -159,14 +163,18 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
   private com.google.cloud.bigquery.Field.Builder convertStruct(Schema kafkaConnectSchema,
                                                                 String fieldName) {
     List<com.google.cloud.bigquery.Field> bigQueryRecordFields = new ArrayList<>();
+
     for (Field kafkaConnectField : kafkaConnectSchema.fields()) {
       com.google.cloud.bigquery.Field.Builder bigQueryRecordFieldBuilder =
           convertField(kafkaConnectField.schema(), kafkaConnectField.name());
       bigQueryRecordFields.add(bigQueryRecordFieldBuilder.build());
     }
-    com.google.cloud.bigquery.Field.Type bigQueryRecordType =
-        com.google.cloud.bigquery.Field.Type.record(bigQueryRecordFields);
-    return com.google.cloud.bigquery.Field.newBuilder(fieldName, bigQueryRecordType);
+
+    FieldList fieldList = FieldList.of(bigQueryRecordFields);
+
+    return com.google.cloud.bigquery.Field.newBuilder(fieldName,
+                                                      LegacySQLTypeName.RECORD,
+                                                      fieldList);
   }
 
   private com.google.cloud.bigquery.Field.Builder convertArray(Schema kafkaConnectSchema,
@@ -182,26 +190,23 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
     Schema keySchema = kafkaConnectSchema.keySchema();
     Schema valueSchema = kafkaConnectSchema.valueSchema();
 
-    com.google.cloud.bigquery.Field.Builder keyFieldBuilder =
-        convertField(keySchema, MAP_KEY_FIELD_NAME);
-    com.google.cloud.bigquery.Field.Builder valueFieldBuilder =
-        convertField(valueSchema, MAP_VALUE_FIELD_NAME);
-
-    com.google.cloud.bigquery.Field keyField = keyFieldBuilder.build();
-    com.google.cloud.bigquery.Field valueField = valueFieldBuilder.build();
-
-    com.google.cloud.bigquery.Field.Type bigQueryMapEntryType =
-        com.google.cloud.bigquery.Field.Type.record(keyField, valueField);
+    com.google.cloud.bigquery.Field keyField =
+        convertField(keySchema, MAP_KEY_FIELD_NAME).build();
+    com.google.cloud.bigquery.Field valueField =
+        convertField(valueSchema, MAP_VALUE_FIELD_NAME).build();
 
     com.google.cloud.bigquery.Field.Builder bigQueryRecordBuilder =
-        com.google.cloud.bigquery.Field.newBuilder(fieldName, bigQueryMapEntryType);
+        com.google.cloud.bigquery.Field.newBuilder(fieldName,
+                                                   LegacySQLTypeName.RECORD,
+                                                   keyField,
+                                                   valueField);
 
     return bigQueryRecordBuilder.setMode(com.google.cloud.bigquery.Field.Mode.REPEATED);
   }
 
   private com.google.cloud.bigquery.Field.Builder convertPrimitive(Schema kafkaConnectSchema,
                                                                    String fieldName) {
-    com.google.cloud.bigquery.Field.Type bigQueryType =
+    LegacySQLTypeName bigQueryType =
         PRIMITIVE_TYPE_MAP.get(kafkaConnectSchema.type());
     return com.google.cloud.bigquery.Field.newBuilder(fieldName, bigQueryType);
   }

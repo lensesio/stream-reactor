@@ -35,6 +35,10 @@ import java.util.Map;
  */
 public class KafkaDataBQRecordConverter extends BigQueryRecordConverter {
 
+  public KafkaDataBQRecordConverter(boolean shouldConvertDoubleSpecial) {
+    super(shouldConvertDoubleSpecial);
+  }
+
   /**
    * Convert the kafka {@link SinkRecord} to a BigQuery record, with the addition of extra kafka
    * data.

@@ -18,7 +18,7 @@ package com.wepay.kafka.connect.bigquery.convert.logicaltype;
  */
 
 
-import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.LegacySQLTypeName;
 
 import com.wepay.kafka.connect.bigquery.exception.ConversionConnectException;
 
@@ -38,7 +38,7 @@ public abstract class LogicalTypeConverter {
 
   private String logicalName;
   private Schema.Type encodingType;
-  private Field.Type bqSchemaType;
+  private LegacySQLTypeName bqSchemaType;
 
   /**
    * Create a new LogicalConverter.
@@ -49,7 +49,7 @@ public abstract class LogicalTypeConverter {
    */
   public LogicalTypeConverter(String logicalName,
                               Schema.Type encodingType,
-                              Field.Type bqSchemaType) {
+                              LegacySQLTypeName bqSchemaType) {
     this.logicalName = logicalName;
     this.encodingType = encodingType;
     this.bqSchemaType = bqSchemaType;
@@ -69,7 +69,7 @@ public abstract class LogicalTypeConverter {
     }
   }
 
-  public Field.Type getBQSchemaType() {
+  public LegacySQLTypeName getBQSchemaType() {
     return bqSchemaType;
   }
 

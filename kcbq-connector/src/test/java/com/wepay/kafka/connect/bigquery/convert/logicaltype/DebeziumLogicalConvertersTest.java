@@ -21,7 +21,7 @@ package com.wepay.kafka.connect.bigquery.convert.logicaltype;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.LegacySQLTypeName;
 
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.DebeziumLogicalConverters.DateConverter;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.DebeziumLogicalConverters.MicroTimeConverter;
@@ -38,7 +38,7 @@ public class DebeziumLogicalConvertersTest {
 
   //corresponds to March 1 2017, 22:20:38.808(123) UTC
   //              (March 1 2017, 14:20:38.808(123)-8:00)
-  private static final Long DAYS_TIMESTAMP = 17226L;
+  private static final Integer DAYS_TIMESTAMP = 17226;
   private static final Long MILLI_TIMESTAMP = 1488406838808L;
   private static final Long MICRO_TIMESTAMP = 1488406838808123L;
 
@@ -46,7 +46,7 @@ public class DebeziumLogicalConvertersTest {
   public void testDateConversion() {
     DateConverter converter = new DateConverter();
 
-    assertEquals(Field.Type.date(), converter.getBQSchemaType());
+    assertEquals(LegacySQLTypeName.DATE, converter.getBQSchemaType());
 
     try {
       converter.checkEncodingType(Schema.Type.INT32);
@@ -62,7 +62,7 @@ public class DebeziumLogicalConvertersTest {
   public void testMicroTimeConversion() {
     MicroTimeConverter converter = new MicroTimeConverter();
 
-    assertEquals(Field.Type.time(), converter.getBQSchemaType());
+    assertEquals(LegacySQLTypeName.TIME, converter.getBQSchemaType());
 
     try {
       converter.checkEncodingType(Schema.Type.INT64);
@@ -78,7 +78,7 @@ public class DebeziumLogicalConvertersTest {
   public void testMicroTimestampConversion() {
     MicroTimestampConverter converter = new MicroTimestampConverter();
 
-    assertEquals(Field.Type.timestamp(), converter.getBQSchemaType());
+    assertEquals(LegacySQLTypeName.TIMESTAMP, converter.getBQSchemaType());
 
     try {
       converter.checkEncodingType(Schema.Type.INT64);
@@ -94,7 +94,7 @@ public class DebeziumLogicalConvertersTest {
   public void testTimeConversion() {
     TimeConverter converter = new TimeConverter();
 
-    assertEquals(Field.Type.time(), converter.getBQSchemaType());
+    assertEquals(LegacySQLTypeName.TIME, converter.getBQSchemaType());
 
     try {
       converter.checkEncodingType(Schema.Type.INT32);
@@ -110,7 +110,7 @@ public class DebeziumLogicalConvertersTest {
   public void testTimestampConversion() {
     TimestampConverter converter = new TimestampConverter();
 
-    assertEquals(Field.Type.timestamp(), converter.getBQSchemaType());
+    assertEquals(LegacySQLTypeName.TIMESTAMP, converter.getBQSchemaType());
 
     try {
       converter.checkEncodingType(Schema.Type.INT64);
@@ -126,7 +126,7 @@ public class DebeziumLogicalConvertersTest {
   public void testZonedTimestampConversion() {
     ZonedTimestampConverter converter = new ZonedTimestampConverter();
 
-    assertEquals(Field.Type.timestamp(), converter.getBQSchemaType());
+    assertEquals(LegacySQLTypeName.TIMESTAMP, converter.getBQSchemaType());
 
     try {
       converter.checkEncodingType(Schema.Type.STRING);
