@@ -99,9 +99,6 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient) extends Str
 
               require(keysAndValues.nonEmpty, "Need to provide keys and values to identify the record to upsert")
 
-              // Need to remove the _id field from the document when upserting.
-              document.remove("_id")
-
               val filter = {
                 if (keysAndValuesList.size == 1) {
                   val v = keysAndValuesList.head._2
