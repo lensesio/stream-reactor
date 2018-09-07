@@ -49,13 +49,13 @@ $ cd /path/to/kafka-connect-bigquery/
 Begin by creating a tarball of the connector with the Confluent Schema Retriever included:
 
 ```bash
-$ ./gradlew clean confluentTarBall
+$ ./gradlew clean distTar
 ```
 
 And then extract its contents:
 
 ```bash
-$ mkdir bin/jar/ && tar -C bin/jar/ -xf bin/tar/kcbq-connector-*-confluent-dist.tar
+$ mkdir bin/jar/ && tar -C bin/jar/ -xf kcbq-confluent/build/distributions/kcbq-confluent-*.tar
 ```
 
 ### Setting-Up Background Processes
