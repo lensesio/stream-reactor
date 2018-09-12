@@ -23,6 +23,7 @@ import com.google.cloud.bigquery.TableId;
 
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 
+import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConnectorConfig;
 
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
@@ -54,6 +55,8 @@ import java.util.Map;
 public class BigQuerySinkConnector extends SinkConnector {
   private final BigQuery testBigQuery;
   private final SchemaManager testSchemaManager;
+
+  public static final String  GCS_BQ_TASK_CONFIG_KEY = "GCSBQTask";
 
   public BigQuerySinkConnector() {
     testBigQuery = null;
@@ -173,6 +176,10 @@ public class BigQuerySinkConnector extends SinkConnector {
     for (int i = 0; i < maxTasks; i++) {
       // Copy configProperties so that tasks can't interfere with each others' configurations
       HashMap<String, String> taskConfig = new HashMap<>(configProperties);
+      if (i == 0 && !config.getList(BigQuerySinkConfig.ENABLE_BATCH_CONFIG).isEmpty()) {
+        // if batch loading is enabled, configure first task to do the GCS -> BQ loading
+        taskConfig.put(GCS_BQ_TASK_CONFIG_KEY, "true");
+      }
       taskConfigs.add(taskConfig);
     }
     return taskConfigs;

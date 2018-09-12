@@ -65,7 +65,16 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final List<String> ENABLE_BATCH_DEFAULT =                 Collections.emptyList();
   private static final ConfigDef.Importance ENABLE_BATCH_IMPORTANCE =      ConfigDef.Importance.LOW;
   private static final String ENABLE_BATCH_DOC =
-      "The sublist of topics to be batch loaded through GCS";
+      "Beta Feature; use with caution: The sublist of topics to be batch loaded through GCS";
+
+  public static final String BATCH_LOAD_INTERVAL_SEC_CONFIG =             "BatchLoadIntervalSec";
+  private static final ConfigDef.Type BATCH_LOAD_INTERVAL_SEC_TYPE =      ConfigDef.Type.INT;
+  private static final Integer BATCH_LOAD_INTERVAL_SEC_DEFAULT =          120;
+  private static final ConfigDef.Importance BATCH_LOAD_INTERVAL_SEC_IMPORTANCE =
+      ConfigDef.Importance.LOW;
+  private static final String BATCH_LOAD_INTERVAL_SEC_DOC =
+      "The interval, in seconds, in which to attempt to run GCS to BQ load jobs. Only relevant "
+      + "if enableBatchLoad is configured.";
 
   public static final String GCS_BUCKET_NAME_CONFIG =                     "gcsBucketName";
   private static final ConfigDef.Type GCS_BUCKET_NAME_TYPE =              ConfigDef.Type.STRING;
@@ -73,7 +82,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final ConfigDef.Importance GCS_BUCKET_NAME_IMPORTANCE =  ConfigDef.Importance.HIGH;
   private static final String GCS_BUCKET_NAME_DOC =
       "The name of the bucket in which gcs blobs used to batch load to BigQuery "
-      + "should be located.";
+      + "should be located. Only relevant if enableBatchLoad is configured.";
 
   public static final String TOPICS_TO_TABLES_CONFIG =                     "topicsToTables";
   private static final ConfigDef.Type TOPICS_TO_TABLES_TYPE =              ConfigDef.Type.LIST;
@@ -174,6 +183,12 @@ public class BigQuerySinkConfig extends AbstractConfig {
             ENABLE_BATCH_DEFAULT,
             ENABLE_BATCH_IMPORTANCE,
             ENABLE_BATCH_DOC
+        ).define(
+            BATCH_LOAD_INTERVAL_SEC_CONFIG,
+            BATCH_LOAD_INTERVAL_SEC_TYPE,
+            BATCH_LOAD_INTERVAL_SEC_DEFAULT,
+            BATCH_LOAD_INTERVAL_SEC_IMPORTANCE,
+            BATCH_LOAD_INTERVAL_SEC_DOC
         ).define(
             GCS_BUCKET_NAME_CONFIG,
             GCS_BUCKET_NAME_TYPE,
