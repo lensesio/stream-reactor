@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.kudu
 
 import java.util
 
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduSettings}
 import com.datamountaineer.streamreactor.connect.kudu.sink.KuduWriter
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
@@ -35,13 +36,15 @@ import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
 /**
-  * Created by andrew@datamountaineer.com on 04/03/16. 
+  * Created by andrew@datamountaineer.com on 04/03/16.
   * stream-reactor
   */
 class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with ConverterUtil {
   "A Kudu Writer should write" in {
+    val kcql = mock[Kcql]
+    when(kcql.getBucketing.getBucketNames).thenReturn(List("").asInstanceOf[java.util.Iterator[String]])
     val record = getTestRecords.head
-    val kuduSchema = convertToKuduSchema(record)
+    val kuduSchema = convertToKuduSchema(record, kcql)
     val kuduRow = kuduSchema.newPartialRow()
 
     //mock out kudu client
@@ -125,8 +128,10 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
 
 
   "A Kudu Writer should create table on arrival of first record" in {
+    val kcql = mock[Kcql]
+    when(kcql.getBucketing.getBucketNames).thenReturn(List("").asInstanceOf[java.util.Iterator[String]])
     val record = getTestRecords.head
-    val kuduSchema = convertToKuduSchema(record)
+    val kuduSchema = convertToKuduSchema(record, kcql)
     val kuduRow = kuduSchema.newPartialRow()
 
     //mock out kudu client
@@ -211,14 +216,16 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
   }
 
   "should identify schema change from source records" in {
+    val kcql = mock[Kcql]
+    when(kcql.getBucketing.getBucketNames).thenReturn(List("").asInstanceOf[java.util.Iterator[String]])
     val schema1 = createSchema
     val schema2 = createSchema5
 
     val rec1 = createSinkRecord(createRecord(schema1, "1"), TOPIC, 1)
     val rec2 = createSinkRecord(createRecord5(schema2, "2"), TOPIC, 2)
-    val kuduSchema = convertToKuduSchema(rec1)
+    val kuduSchema = convertToKuduSchema(rec1, kcql)
 
-    val kuduSchema2 = convertToKuduSchema(rec2.valueSchema())
+    val kuduSchema2 = convertToKuduSchema(rec2.valueSchema(), kcql)
     val kuduRow2 = kuduSchema2.newPartialRow()
 
     //mock out kudu client
@@ -251,8 +258,10 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
   }
 
   "A Kudu Writer should throw retry on flush errors" in {
+    val kcql = mock[Kcql]
+    when(kcql.getBucketing.getBucketNames).thenReturn(List("").asInstanceOf[java.util.Iterator[String]])
     val record = getTestRecords.head
-    val kuduSchema = convertToKuduSchema(record)
+    val kuduSchema = convertToKuduSchema(record, kcql)
     val kuduRow = kuduSchema.newPartialRow()
 
     //mock out kudu client
@@ -289,8 +298,10 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
   }
 
   "A Kudu Writer should check pending errors and throw exception" in {
+    val kcql = mock[Kcql]
+    when(kcql.getBucketing.getBucketNames).thenReturn(List("").asInstanceOf[java.util.Iterator[String]])
     val record = getTestRecords.head
-    val kuduSchema = convertToKuduSchema(record)
+    val kuduSchema = convertToKuduSchema(record, kcql)
     val kuduRow = kuduSchema.newPartialRow()
 
     //mock out kudu client

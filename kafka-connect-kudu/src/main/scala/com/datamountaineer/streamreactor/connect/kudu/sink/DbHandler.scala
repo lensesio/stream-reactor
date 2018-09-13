@@ -35,7 +35,7 @@ import scala.collection.JavaConversions._
 import scala.util.{Failure, Success, Try}
 
 /**
-  * Created by andrew@datamountaineer.com on 06/06/16. 
+  * Created by andrew@datamountaineer.com on 06/06/16.
   * stream-reactor-maven
   */
 case class CreateTableProps(name: String, schema: kuduSchema, cto: CreateTableOptions)
@@ -76,7 +76,11 @@ object DbHandler extends StrictLogging with KuduConverter {
     **/
   def buildTableCache(settings: KuduSettings, client: KuduClient): Map[String, KuduTable] = {
     checkTables(client, settings)
-    settings.kcql.map(s => (s.getSource, client.openTable(s.getTarget))).toMap
+    settings.kcql.map(s =>
+      Try(client.openTable(s.getTarget)) match {
+        case Success(t) => (s.getSource, Some(t))
+        case Failure(ex) => logger.error(s"Can not build table cache for table ${s.getSource}.", ex); (s.getSource, None)
+      }).filter(s => s._2.isDefined).map(s => (s._1, s._2.get)).toMap
   }
 
   /**
@@ -99,15 +103,15 @@ object DbHandler extends StrictLogging with KuduConverter {
           .kcql
           .filter(r => r.isAutoCreate && !client.tableExists(r.getTarget)) //don't try to create existing tables
           .map(m => {
-            var lkTopic = m.getSource
+          var lkTopic = m.getSource
 
-            if (!subjects.contains(lkTopic)) {
-              if (subjects.contains(lkTopic + "-value")) {
-                lkTopic = lkTopic + "-value"
-              }
+          if (!subjects.contains(lkTopic)) {
+            if (subjects.contains(lkTopic + "-value")) {
+              lkTopic = lkTopic + "-value"
             }
+          }
 
-            createTableProps(SchemaRegistry.getSchema(url, lkTopic), m, url, client)
+          createTableProps(SchemaRegistry.getSchema(url, lkTopic), m, url, client)
         })
       }).flatten
       .map(ctp => executeCreateTable(ctp, client))
@@ -299,7 +303,7 @@ object DbHandler extends StrictLogging with KuduConverter {
   def createTableFromSinkRecord(kcql: Kcql, schema: connectSchema, client: KuduClient): Try[KuduTable] = {
     if (kcql.isAutoCreate) {
       val cto = getCreateTableOptions(kcql)
-      val kuduSchema = convertToKuduSchema(schema)
+      val kuduSchema = convertToKuduSchema(schema, kcql)
       val ctp = CreateTableProps(kcql.getTarget, kuduSchema, cto)
       Success(executeCreateTable(ctp, client))
     } else {
@@ -345,3 +349,4 @@ object DbHandler extends StrictLogging with KuduConverter {
       .setRangePartitionColumns(List.empty[String])
   }
 }
+
