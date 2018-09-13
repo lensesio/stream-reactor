@@ -81,6 +81,7 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient) extends Str
             record,
             settings.keyBuilderMap.getOrElse(record.topic(), Set.empty)
           )(settings)
+
           val keysAndValuesList = keysAndValues.toList
           if (keysAndValuesList.nonEmpty) {
             if (keysAndValuesList.size > 1) {
@@ -90,17 +91,27 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient) extends Str
               document.append("_id", keysAndValuesList.head._2)
             }
           }
-
+          
           config.getWriteMode match {
             case WriteModeEnum.INSERT => new InsertOneModel[Document](document)
 
             case WriteModeEnum.UPSERT =>
+
               require(keysAndValues.nonEmpty, "Need to provide keys and values to identify the record to upsert")
+
               val filter = {
                 if (keysAndValuesList.size == 1) {
-                  Filters.eq("_id", keysAndValuesList.head._2)
+                  val v = keysAndValuesList.head._2
+                  Filters.eq("_id", v)
                 } else {
-                  Filters.and(keysAndValues.map { case (k, v) => Filters.eq(s"_id.$k", v) }.toList: _*)
+
+                  val h = keysAndValuesList.head
+                  val value = new Document(h._1, h._2)
+                  keysAndValuesList.tail.map{ case (k,v) =>
+                    value.append(k, v)
+                  }
+
+                  Filters.eq("_id", value)
                 }
               }
 

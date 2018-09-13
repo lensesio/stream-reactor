@@ -1,7 +1,12 @@
-language: scala
-scala: 2.11.7
+sudo: required
+
+language: java
+
+services:
+  - docker
+
 jdk: oraclejdk8
-before_script: ulimit -u 30000
-script: gradle fatJar
-notifications:
-  slack: datamountaineers:gpg5e7VabFjAT1gQZqwxgsqP
+
+script: ./gradlew clean shadowJar -x test
+
+after_success: ./int_test.sh

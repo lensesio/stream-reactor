@@ -26,21 +26,34 @@ import org.apache.kafka.connect.data.Struct
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConversions._
+import scala.collection.immutable.ListSet
 
 class KeysExtractorTest extends WordSpec with Matchers {
   private val avroData = new AvroData(4)
 
   case class WithNested(id: Int, nested: SomeTest)
-
   case class SomeTest(name: String, value: Double, flags: Seq[Int], map: Map[String, String])
+
+  case class Thing(A: Int, B: String, C: CThing)
+  case class CThing(M: String, N: NThing)
+  case class NThing(X: Int, Y: Int)
 
   "KeysExtractor" should {
     "extract keys from JSON" in {
       val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
       val jvalue = Json.parseJson(json)
 
-      val actual = KeysExtractor.fromJson(jvalue, Set("lock_time", "rbf"))
+      val actual = KeysExtractor.fromJson(jvalue, ListSet("lock_time", "rbf"))
       actual shouldBe List("lock_time" -> 9223372036854775807L, "rbf" -> true)
+    }
+
+    "extract embedded keys out of JSON" in {
+      val jvalue = Json.parseJson("""{"A": 0, "B": "0", "C": {"M": "1000", "N": {"X": 10, "Y": 100} } }""")
+      val keys = ListSet( "B", "C.M", "C.N.X" )
+      // SCALA 2.12 WARNING: If you upgrade to 2.12 and this test fails, 
+      // you need to remove the "reverse()" calls in KeysExtractor.scala:
+      KeysExtractor.fromJson(jvalue, keys) shouldBe
+        List("B"->"0", "M"->"1000", "X"->10)
     }
 
     "throw exception when extracting the keys from JSON" in {
@@ -51,10 +64,19 @@ class KeysExtractorTest extends WordSpec with Matchers {
       }
     }
 
-
     "extract keys from a Map" in {
       val actual = KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> "tripple"), Set("key1", "key3"))
       actual shouldBe Set("key1" -> 12, "key3" -> "tripple")
+    }
+
+    "extract embedded keys out of a Map" in {
+      import scala.collection.JavaConverters._
+      val actual = KeysExtractor.fromMap(
+        Map("A"->0, "B"->"0", "C"->Map("M"->"1000", "N"->Map("X"->10, "Y"->100).asJava).asJava).asJava,
+        ListSet( "B", "C.M", "C.N.X" ))
+      // SCALA 2.12 WARNING: If you upgrade to 2.12 and this test fails, 
+      // you need to remove the "reverse()" calls in KeysExtractor.scala:
+      actual shouldBe ListSet("B"->"0", "M"->"1000", "X"->10)
     }
 
     "extract keys from a Map should throw an exception if the key is another map" in {
@@ -75,6 +97,18 @@ class KeysExtractorTest extends WordSpec with Matchers {
       val struct = avroData.toConnectData(avro.getSchema, avro)
       KeysExtractor.fromStruct(struct.value().asInstanceOf[Struct], Set("name")) shouldBe
         Set("name" -> "abc")
+    }
+
+    "extract embedded keys out of a struct" in {
+      val format = RecordFormat[Thing]
+      val avro = format.to(Thing(0, "0", CThing("1000", NThing(10, 100))))
+      val struct = avroData.toConnectData(avro.getSchema, avro)
+      // SCALA 2.12 WARNING: If you upgrade to 2.12 and this test fails, 
+      // you need to remove the "reverse()" calls in KeysExtractor.scala:
+      KeysExtractor.fromStruct(
+        struct.value().asInstanceOf[Struct],
+        ListSet( "B", "C.M", "C.N.X" )) shouldBe
+        ListSet("B"->"0", "M"->"1000", "X"->10)
     }
 
     "extract from a struct should throw an exception if a key is an array" in {

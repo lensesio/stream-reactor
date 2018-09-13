@@ -30,6 +30,7 @@ import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datastax.driver.core.exceptions.SyntaxError
 import com.datastax.driver.core.{PreparedStatement, Session}
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
@@ -118,7 +119,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
   }
 
   /**
-    * Write SinkRecords to Cassandra (aSync) in Json.
+    * Write SinkRecords to Cassandra (aSync per topic partition) in Json.
     *
     * @param records A list of SinkRecords from Kafka Connect to write.
     **/
@@ -134,119 +135,108 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
         session = getSession.get
         preparedCache = cachePreparedStatements
       }
-      insert(records.filter( r => Option(r.value()).isDefined) )
-      delete(records.filter( r => Option(r.value()).isEmpty) )
+
+      write(records.groupBy(r => new TopicPartition(r.topic(), r.kafkaPartition())))
     }
   }
 
   /**
     * Write SinkRecords to Cassandra (aSync) in Json
     *
-    * @param records A list of SinkRecords from Kafka Connect to write.
+    * @param records A Map of [[TopicPartition]] -> [[SinkRecord]] from Kafka Connect to write.
     * @return boolean indication successful write.
     **/
-  private def insert(records: Seq[SinkRecord]) = {
+  private def write(records: Map[TopicPartition, Seq[SinkRecord]]) = {
     val executor = Executors.newFixedThreadPool(settings.threadPoolSize)
     try {
-
       //This is a conscious decision to use a thread pool here in order to have more control. As we create multiple
       //futures to insert a record in Cassandra we want to fail immediately rather than waiting on all to finish.
       //If the error occurs it would be down to the error handler to do its thing.
       // NOOP should never be used!! otherwise data could be lost
-      val futures = records.flatMap { record =>
 
-        val tables = preparedCache.getOrElse(record.topic(), throw new IllegalArgumentException(s"Topic ${record.topic()} doesn't have a KCQL setup"))
-        tables.map { case (table, (statement, kcql)) =>
-          executor.submit {
-            val json = Transform(
-              kcql.getFields.map(FieldConverter.apply),
-              kcql.getIgnoredFields.map(FieldConverter.apply),
-              record.valueSchema(),
-              record.value(),
-              kcql.hasRetainStructure())
-
-            try {
-              val bound = statement.bind(json)
-              session.execute(bound)
-              //we don't care about the ResultSet here
-              ()
-            }
-            catch {
-              case e: SyntaxError =>
-                logger.error(s"Syntax error inserting <$json>", e)
-                throw e
-            }
+      val futures = records.map { case (_, _records) =>
+        executor.submit(
+          _records.foreach { record =>
+            if (Option(record.value()).isDefined)
+              insert(record)
+            else
+              delete(record)
           }
-        }
-      }
+        )
+      }.toSeq
+
       //when the call returns the pool is shutdown
       FutureAwaitWithFailFastFn(executor, futures, 1.hours)
-      handleTry(Success(()))
       logger.debug(s"Processed ${futures.size} records.")
-    }
-    catch {
+      handleTry(Success(())).nonEmpty
+    } catch {
       case t: Throwable =>
-        logger.error(s"There was an error inserting the records ${t.getMessage}", t)
-        handleTry(Failure(t))
+        logger.error(s"There was an error writing the records ${t.getMessage}", t)
+        handleTry(Failure(t)).nonEmpty
     }
   }
 
+  private def insert(record: SinkRecord) = {
+    val tables = preparedCache.getOrElse(record.topic(), throw new IllegalArgumentException(s"Topic ${record.topic()} doesn't have a KCQL setup"))
+    tables.foreach { case (table, (statement, kcql)) =>
+      val json = Transform(
+        kcql.getFields.map(FieldConverter.apply),
+        kcql.getIgnoredFields.map(FieldConverter.apply),
+        record.valueSchema(),
+        record.value(),
+        kcql.hasRetainStructure())
 
-  private def delete(records: Seq[SinkRecord]) = {
-    val executor = Executors.newFixedThreadPool(settings.threadPoolSize)
+      try {
+        val bound = statement.bind(json)
+        session.execute(bound)
+        //we don't care about the ResultSet here
+        ()
+      }
+      catch {
+        case e: SyntaxError =>
+          logger.error(s"Syntax error inserting <$json>", e)
+          throw e
+      }
+    }
+  }
 
+  private def delete(record: SinkRecord) = {
     try {
-      val futures = records map { record =>
-        executor.submit {
-          try {
-            deleteCache match {
-              case Some(d) =>
-                val bindingFields = {
-                  if (record.keySchema() == null) {
-                    throw new IllegalArgumentException("Missing key schema.")
-                  }
-                  else {
-                    val key = record.key()
-                    val schema = record.keySchema()
-                    if (schema.`type`().isPrimitive) {
-                      if (schema.`type`() == Schema.Type.STRING) {
-                        // treat key string as JSON
-                        logger.trace("key schema is a String type, treat it like JSON...")
-                        KeyUtils.keysFromJson(key.toString, deleteStructFields)
-                      }
-                      else {
-                        logger.trace("key schema is a primitive type, this is easy...")
-                        Seq(record.key())
-                      }
-                    }
-                    else {
-                      logger.trace("key schema is a STRUCT, dig into the key...")
-                      KeyUtils.keysFromStruct(key.asInstanceOf[Struct], schema, deleteStructFields)
-                    }
-                  }
+      deleteCache match {
+        case Some(d) =>
+          val bindingFields = {
+            if (record.keySchema() == null) {
+              throw new IllegalArgumentException("Missing key schema.")
+            }
+            else {
+              val key = record.key()
+              val schema = record.keySchema()
+              if (schema.`type`().isPrimitive) {
+                if (schema.`type`() == Schema.Type.STRING && deleteStructFields.nonEmpty) {
+                  // treat key string as JSON
+                  logger.trace("key schema is a String type and deleteStructFields non empty, treat it like JSON...")
+                  KeyUtils.keysFromJson(key.toString, deleteStructFields)
                 }
-                session.execute(d.bind(bindingFields:_*))
-                ()
-              case None => throw new IllegalArgumentException("Sink is missing delete statement.")
+                else {
+                  logger.trace("key schema is a primitive type, this is easy...")
+                  Seq(record.key())
+                }
+              }
+              else {
+                logger.trace("key schema is a STRUCT, dig into the key...")
+                KeyUtils.keysFromStruct(key.asInstanceOf[Struct], schema, deleteStructFields)
+              }
             }
           }
-          catch {
-            case e: SyntaxError =>
-              logger.error("Syntax error deleting record.", e)
-              throw e
-          }
-        }
+          session.execute(d.bind(bindingFields: _*))
+          ()
+        case None => throw new IllegalArgumentException("Sink is missing delete statement.")
       }
-
-      //when the call returns the pool is shutdown
-      FutureAwaitWithFailFastFn(executor, futures, 1.hours)
-      handleTry(Success(()))
-      logger.debug(s"Processed ${futures.size} records.")
     }
     catch {
-      case t: Throwable =>
-        logger.error(s"There was an error deleting the records ${t.getMessage}", t)
-        handleTry(Failure(t))
+      case e: SyntaxError =>
+        logger.error("Syntax error deleting record.", e)
+        throw e
     }
   }
 

@@ -332,13 +332,16 @@ object DbHandler extends StrictLogging with KuduConverter {
   }
 
   /**
-    * Create a Kudu CreateTableOptions default to hash partition for now
+    * Create a Kudu CreateTableOptions to set the proper partition scheme.  If the table definition
+    * contains a `DISTRIBUTEBY {field} INTO {N} BUCKETS` specification, it will generate a series
+    * of N hash partitions on the specified field, and no range partition.
     *
     * @param config The mapping config
-    * @return a CreateTableConfig
+    * @return a CreateTableOptions
     **/
   private def getCreateTableOptions(config: Kcql): CreateTableOptions = {
     new CreateTableOptions()
       .addHashPartitions(config.getBucketing.getBucketNames.toList, config.getBucketing.getBucketsNumber)
+      .setRangePartitionColumns(List.empty[String])
   }
 }

@@ -1,0 +1,87 @@
+/*
+ * Copyright 2018 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+buildscript {
+
+    repositories {
+        jcenter()
+        maven {
+            url 'https://plugins.gradle.org/m2/'
+        }
+    }
+}
+
+ext {
+    scalaMajorVersion = '2.11'
+    scala = '2.11.12'
+    scalaCheck = '1.13.4'
+    scalaTest = '3.0.4'
+    scalaLoggingVersion = '2.1.2'
+    junit = '4.11'
+    parquetVersion = "1.8.3"
+    hiveVersion = "2.1.1"
+    joddVersion = "4.1.4"
+    hadoopVersion = "2.6.5"
+    catsVersion = "1.1.0"
+
+    // The following 4 need to align to compile against a particular version
+    confluentVersion = '4.1.0'
+    kafkaVersion = '1.1.0'
+    dataMountaineerCommonVersion = "1.1.5"
+    link4jVersion = "1.8.0"
+}
+
+group = 'com.datamountaineer'
+version = project.version
+description = "stream-reactor"
+
+apply plugin: 'java'
+apply plugin: 'scala'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url "http://packages.confluent.io/maven/" }
+}
+
+dependencies {
+
+    testCompile "org.scala-lang:scala-library:$scala"
+    testCompile "org.scala-lang:scala-compiler:$scala"
+    testCompile "com.typesafe.scala-logging:scala-logging-slf4j_$scalaMajorVersion:$scalaLoggingVersion"
+
+    testCompile ("org.apache.kafka:connect-json:$kafkaVersion")
+    testCompile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
+    testCompile "io.confluent:kafka-schema-registry:$confluentVersion"
+
+    testCompile 'org.asynchttpclient:async-http-client:2.5.2'
+    testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
+    testCompile 'org.apache.logging.log4j:log4j:2.11.0'
+
+    testCompile("org.apache.hive:hive-jdbc:$hiveVersion")
+    testCompile project(":kafka-connect-hive:connector")
+
+    testRuntime 'org.pegdown:pegdown:1.1.0'
+}
+
+
+test {
+    onlyIf {
+        project.hasProperty("integration-tests")
+    }
+}

@@ -16,11 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
+import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisSinkSettings}
 import com.google.gson.Gson
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 import redis.clients.jedis.Jedis
@@ -31,74 +30,77 @@ import scala.collection.JavaConverters._
 class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
 
   val redisServer = new RedisServer(6379)
+  val gson = new Gson()
+  val jedis = new Jedis("localhost", redisServer.getPort)
+  val TOPIC = "topic"
+  val baseProps = Map(
+    RedisConfigConstants.REDIS_HOST -> "localhost",
+    RedisConfigConstants.REDIS_PORT -> redisServer.getPort.toString
+  )
 
   override def beforeAll() = redisServer.start()
-
   override def afterAll() = redisServer.stop()
 
   "RedisDbWriter" should {
 
     "write Kafka records to Redis using CACHE mode" in {
-
-      val TOPIC = "topic"
-      val QUERY_ALL = s"SELECT * FROM $TOPIC PK firstName"
-
-      val props = Map(
-        RedisConfigConstants.REDIS_HOST->"localhost",
-        RedisConfigConstants.REDIS_PORT->"6379",
-        RedisConfigConstants.KCQL_CONFIG->QUERY_ALL
-      ).asJava
-
+      val QUERY_ALL = s"SELECT * FROM $TOPIC PK firstName, child.firstName"
+      val props = (baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)).asJava
       val config = RedisConfig(props)
-      val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
+
+      val childSchema = SchemaBuilder.struct().name("com.example.Child")
+        .field("firstName", Schema.STRING_SCHEMA)
+        .build()
 
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)
         .field("age", Schema.INT32_SCHEMA)
-        .field("threshold", Schema.OPTIONAL_FLOAT64_SCHEMA).build()
+        .field("threshold", Schema.OPTIONAL_FLOAT64_SCHEMA)
+        .field("child", childSchema)
+        .build()
 
-      val struct1 = new Struct(schema).put("firstName", "Alex").put("age", 30)
-      val struct2 = new Struct(schema).put("firstName", "Mara").put("age", 22).put("threshold", 12.4)
+      val alexJr = new Struct(childSchema)
+        .put("firstName", "Alex_Junior")
+      val alex = new Struct(schema)
+        .put("firstName", "Alex")
+        .put("age", 30)
+        .put("child", alexJr)
+      val maraJr = new Struct(childSchema)
+        .put("firstName", "Mara_Junior")
+      val mara = new Struct(schema).put("firstName", "Mara")
+        .put("age", 22)
+        .put("threshold", 12.4)
+        .put("child", maraJr)
 
-      val sinkRecord1 = new SinkRecord(TOPIC, 1, null, null, schema, struct1, 0)
-      val sinkRecord2 = new SinkRecord(TOPIC, 1, null, null, schema, struct2, 1)
+      val alexRecord = new SinkRecord(TOPIC, 1, null, null, schema, alex, 0)
+      val maraRecord = new SinkRecord(TOPIC, 1, null, null, schema, mara, 1)
 
-      writer.write(Seq(sinkRecord1, sinkRecord2))
+      writer.write(Seq(alexRecord, maraRecord))
 
-      val gson = new Gson()
-      val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
+      val alexValue = jedis.get("Alex.Alex_Junior")
+      alexValue should not be null
 
-      val val1 = jedis.get("Alex")
-      val1 should not be null
+      val alexMap = gson.fromJson(alexValue, classOf[java.util.Map[String, AnyRef]]).asScala
+      alexMap("firstName").toString shouldBe "Alex"
+      alexMap("age").toString shouldBe "30.0" //it gets back a java double!?
+      alexMap("child").asInstanceOf[java.util.Map[String, AnyRef]].get("firstName") shouldBe "Alex_Junior"
 
-      val map1 = gson.fromJson(val1, classOf[java.util.Map[String, AnyRef]]).asScala
-      map1("firstName").toString shouldBe "Alex"
-      map1("age").toString shouldBe "30.0" //it gets back a java double!?
+      val maraValue = jedis.get("Mara.Mara_Junior")
+      maraValue should not be null
 
-      val val2 = jedis.get("Mara")
-      val2 should not be null
-
-      val map2 = gson.fromJson(val2, classOf[java.util.Map[String, AnyRef]]).asScala
-      map2("firstName") shouldBe "Mara"
-      map2("age").toString shouldBe "22.0"
-      map2("threshold").toString shouldBe "12.4"
+      val maraMap = gson.fromJson(maraValue, classOf[java.util.Map[String, AnyRef]]).asScala
+      maraMap("firstName") shouldBe "Mara"
+      maraMap("age").toString shouldBe "22.0"
+      maraMap("threshold").toString shouldBe "12.4"
+      maraMap("child").asInstanceOf[java.util.Map[String, AnyRef]].get("firstName") shouldBe "Mara_Junior"
     }
 
     "write Kafka records to Redis using CACHE mode and PK field is not in the selected fields" in {
-
-      val TOPIC = "topic"
       val QUERY_ALL = s"SELECT age FROM $TOPIC PK firstName"
-
-      val props = Map(
-        RedisConfigConstants.REDIS_HOST->"localhost",
-        RedisConfigConstants.REDIS_PORT->"6379",
-        RedisConfigConstants.KCQL_CONFIG->QUERY_ALL
-      ).asJava
-
+      val props = (baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)).asJava
       val config = RedisConfig(props)
-      val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
 
@@ -114,9 +116,6 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
       val sinkRecord2 = new SinkRecord(TOPIC, 1, null, null, schema, struct2, 1)
 
       writer.write(Seq(sinkRecord1, sinkRecord2))
-
-      val gson = new Gson()
-      val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
 
       val val1 = jedis.get("Alex")
       val1 should not be null
@@ -131,21 +130,12 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
       map2("age").toString shouldBe "22.0"
     }
 
-
     "write Kafka records to Redis using CACHE mode with explicit KEY (using INSERT)" in {
-
       val TOPIC = "topic2"
       val KCQL = s"INSERT INTO KEY_PREFIX_ SELECT * FROM $TOPIC PK firstName"
-
-      val props = Map(
-        RedisConfigConstants.REDIS_HOST->"localhost",
-        RedisConfigConstants.REDIS_PORT->"6379",
-        RedisConfigConstants.KCQL_CONFIG->KCQL
-      ).asJava
+      val props = (baseProps + (RedisConfigConstants.KCQL_CONFIG -> KCQL)).asJava
 
       val config = RedisConfig(props)
-      val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
-
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
 
@@ -161,9 +151,6 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
       val sinkRecord2 = new SinkRecord(TOPIC, 1, null, null, schema, struct2, 1)
 
       writer.write(Seq(sinkRecord1, sinkRecord2))
-
-      val gson = new Gson()
-      val jedis = new Jedis(connectionInfo.host, connectionInfo.port)
 
       val val1 = jedis.get("KEY_PREFIX_Alex")
       val1 should not be null
