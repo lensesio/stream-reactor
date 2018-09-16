@@ -16,6 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.kudu
 
+import com.datamountaineer.kcql.Kcql
 import org.apache.kafka.connect.data.Schema.Type
 import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.sink.SinkRecord
@@ -60,9 +61,9 @@ trait KuduConverter {
     val kuduColNames = table.getSchema.getColumns.map(_.getName)
     val upsert = table.newUpsert()
     val row = upsert.getRow
-//    recordFields
-//      .filter(f => kuduColNames.contains(f))
-//      .map(f => addFieldToRow(payload, f, row))
+    //    recordFields
+    //      .filter(f => kuduColNames.contains(f))
+    //      .map(f => addFieldToRow(payload, f, row))
     upsert
   }
 
@@ -148,9 +149,9 @@ trait KuduConverter {
     *
     * @param record A sinkRecord to get the value schema from
     **/
-  def convertToKuduSchema(record: SinkRecord): org.apache.kudu.Schema = {
+  def convertToKuduSchema(record: SinkRecord, kcql: Kcql): org.apache.kudu.Schema = {
     val connectFields = record.valueSchema().fields()
-    val kuduFields = createKuduColumns(connectFields.toSet)
+    val kuduFields = createKuduColumns(connectFields.toSeq, kcql)
     new org.apache.kudu.Schema(kuduFields.toList)
   }
 
@@ -193,12 +194,13 @@ trait KuduConverter {
     fieldsMap
   }
 
-  def convertToKuduSchema(schema: Schema): org.apache.kudu.Schema = {
-    val connectFields = createKuduColumns(schema.fields().toSet)
+  def convertToKuduSchema(schema: Schema, kcql: Kcql): org.apache.kudu.Schema = {
+    val connectFields = createKuduColumns(schema.fields().toSeq.distinct, kcql)
     new org.apache.kudu.Schema(connectFields.toList)
   }
 
-  def createKuduColumns(fields: Set[Field]): Set[ColumnSchema] = fields.map(cf => convertConnectField(cf))
+  def createKuduColumns(fields: Seq[Field], kcql: Kcql): Seq[ColumnSchema] = fields.map(cf =>
+    convertConnectField(cf, kcql.getBucketing.getBucketNames.contains(cf.name())))
 
 
   /**
@@ -207,7 +209,7 @@ trait KuduConverter {
     * @param field The Connect field to convert
     * @return The equivalent Kudu type
     **/
-  def convertConnectField(field: Field): ColumnSchema = {
+  def convertConnectField(field: Field, isKey: Boolean=false): ColumnSchema = {
     val fieldType = field.schema().`type`()
     val fieldName = field.name()
     val kudu = fieldType match {
@@ -224,6 +226,9 @@ trait KuduConverter {
     }
     val default = field.schema().defaultValue()
     if (default != null) kudu.defaultValue(default)
+    if (isKey){
+      kudu.key(true)
+    }
     kudu.build()
   }
 
@@ -298,4 +303,5 @@ trait KuduConverter {
 
   def getCacheJSONFields(): Map[String, Map[String, JValue]] = cacheJSONFields
 }
+
 
