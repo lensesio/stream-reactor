@@ -2,6 +2,7 @@
 allprojects {
     apply plugin: 'java'
 }
+
 // END ALL PROJECTS
 
 // BEGIN SUBPROJECTS //
@@ -33,13 +34,6 @@ subprojects { subproject ->
     task sourcesJar(type: Jar) {
         classifier = 'sources'
         from sourceSets.main.allSource
-    }
-
-    task tarBall(type: Tar) {
-        classifier = 'dist'
-        baseName = subproject.name
-        from subproject.configurations.runtime
-        from jar
     }
 
     signing {
@@ -98,21 +92,6 @@ subprojects { subproject ->
     }
 }
 // END SUBPROJECTS
-
-// BEGIN ROOT PROJECT
-task confluentTarBall(type: Tar) {
-    destinationDir = file("${rootDir}/bin/tar/")
-    baseName = 'kcbq-connector'
-    classifier = 'confluent-dist'
-    with project(':kcbq-connector').tarBall
-    with project(':kcbq-confluent').tarBall
-    exclude 'jackson-core-2.1.3.jar' // Runtime conflicts occur if this is left in; thankfully, 2.5.4 is compatible
-}
-
-clean {
-    delete "${rootDir}/bin/"
-}
-// END ROOT PROJECT
 
 // BEGIN INDIVIDUAL PROJECTS
 project(':kcbq-connector') {
@@ -183,11 +162,12 @@ project(':kcbq-connector') {
 
         compile group: 'com.google.cloud', name: 'google-cloud', version: '0.47.0-alpha'
         compile group: 'com.google.auth', name: 'google-auth-library-oauth2-http', version: '0.9.0'
+        compile group: 'com.google.code.gson', name: 'gson', version: '2.8.5'
 
-        compile group: 'io.debezium', name: 'debezium-core',  version:'0.4.0'
+        compile group: 'io.debezium', name: 'debezium-core',  version:'0.6.1'
 
-        compile group: 'org.apache.kafka', name: 'connect-api', version: '1.0.0'
-        compile group: 'org.apache.kafka', name: 'kafka-clients', version: '1.0.0'
+        compile group: 'org.apache.kafka', name: 'connect-api', version: '1.1.1'
+        compile group: 'org.apache.kafka', name: 'kafka-clients', version: '1.1.1'
 
         compile group: 'org.slf4j', name: 'slf4j-api', version: '1.6.1'
         compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.6.1'
@@ -197,7 +177,7 @@ project(':kcbq-connector') {
     }
 
     artifacts {
-        archives javadocJar, sourcesJar, tarBall, rootProject.confluentTarBall
+        archives javadocJar, sourcesJar
     }
 
     uploadArchives {
@@ -234,7 +214,7 @@ project('kcbq-api') {
     dependencies {
         compile group: 'com.google.cloud', name: 'google-cloud', version: '0.47.0-alpha'
 
-        compile group: 'org.apache.kafka', name: 'connect-api', version: '1.0.0'
+        compile group: 'org.apache.kafka', name: 'connect-api', version: '1.1.1'
     }
 
     artifacts {
@@ -256,6 +236,24 @@ project('kcbq-api') {
 }
 
 project('kcbq-confluent') {
+    apply plugin: 'distribution'
+
+    configurations.all {
+        resolutionStrategy {
+            // depending on debezium results in us pulling in the most recent kafka version, but we want to use 1.1.1.
+            force 'org.apache.kafka:connect-api:1.1.1', 'org.apache.kafka:kafka-clients:1.1.1'
+        }
+    }
+
+    distributions {
+        main {
+            baseName = 'kcbq-confluent'
+            contents {
+                from configurations.runtime
+            }
+        }
+    }
+
     jar {
         manifest {
             attributes  'Implementation-Title': 'Kafka Connect BigQuery Schema Registry Schema Retriever',
@@ -278,6 +276,7 @@ project('kcbq-confluent') {
 
     dependencies {
         compile project(':kcbq-api')
+        runtime project(':kcbq-connector')
 
         compile group: 'com.google.cloud', name: 'google-cloud', version: '0.47.0-alpha'
 
@@ -286,8 +285,8 @@ project('kcbq-confluent') {
 
         compile group: 'org.apache.avro', name: 'avro', version: '1.8.1'
 
-        compile group: 'org.apache.kafka', name: 'connect-api', version: '1.0.0'
-        compile group: 'org.apache.kafka', name: 'kafka-clients', version: '1.0.0'
+        compile group: 'org.apache.kafka', name: 'connect-api', version: '1.1.1'
+        compile group: 'org.apache.kafka', name: 'kafka-clients', version: '1.1.1'
 
         compile group: 'org.slf4j', name: 'slf4j-api', version: '1.6.1'
 
@@ -296,7 +295,7 @@ project('kcbq-confluent') {
     }
 
     artifacts {
-        archives javadocJar, sourcesJar
+        archives javadocJar, sourcesJar, distTar
     }
 
     uploadArchives {

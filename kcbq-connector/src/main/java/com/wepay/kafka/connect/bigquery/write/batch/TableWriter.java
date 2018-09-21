@@ -21,15 +21,18 @@ package com.wepay.kafka.connect.bigquery.write.batch;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest.RowToInsert;
 
+import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
 
 import org.apache.kafka.connect.errors.ConnectException;
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Simple Table Writer that attempts to write all the rows it is given at once.
@@ -141,32 +144,49 @@ public class TableWriter implements Runnable {
     return topic;
   }
 
-  public static class Builder {
+  public static class Builder implements TableWriterBuilder {
     private final BigQueryWriter writer;
     private final PartitionedTableId table;
     private final String topic;
 
     private List<RowToInsert> rows;
 
+    private RecordConverter<Map<String, Object>> recordConverter;
+
     /**
      * @param writer the BigQueryWriter to use
      * @param table the BigQuery table to write to.
      * @param topic the kafka source topic associated with the given table.
+     * @param recordConverter the record converter used to convert records to rows
      */
-    public Builder(BigQueryWriter writer, PartitionedTableId table, String topic) {
+    public Builder(BigQueryWriter writer, PartitionedTableId table, String topic,
+                   RecordConverter<Map<String, Object>> recordConverter) {
       this.writer = writer;
       this.table = table;
       this.topic = topic;
 
       this.rows = new ArrayList<>();
+
+      this.recordConverter = recordConverter;
     }
 
     /**
-     * Add a row to the builder.
-     * @param rowToInsert the rows to add.
+     * Add a record to the builder.
+     * @param rowToInsert the row to add
      */
     public void addRow(RowToInsert rowToInsert) {
       rows.add(rowToInsert);
+    }
+
+    private RowToInsert getRecordRow(SinkRecord record) {
+      return RowToInsert.of(getRowId(record), recordConverter.convertRecord(record));
+    }
+
+    private String getRowId(SinkRecord record) {
+      return String.format("%s-%d-%d",
+                           record.topic(),
+                           record.kafkaPartition(),
+                           record.kafkaOffset());
     }
 
     /**
