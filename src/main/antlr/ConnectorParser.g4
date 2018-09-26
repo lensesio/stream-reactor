@@ -46,7 +46,7 @@ insert_from_clause
    ;
 
 select_clause
-   : select_clause_basic ( PK primary_key_list)? (with_structure)? (with_format_clause)? (with_unwrap_clause)? (with_consumer_group)? (with_offset_list)? (sample_clause)? (limit_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_doc_type)? (with_index_suffix)? (with_converter)?
+   : select_clause_basic ( PK primary_key_list)? (with_structure)? (with_format_clause)? (with_unwrap_clause)? (with_consumer_group)? (with_offset_list)? (sample_clause)? (limit_clause)? (storeas_clause)? (with_tags)? (with_inc_mode)? (with_doc_type)? (with_index_suffix)? (with_converter)? (key_delimiter)?
    ;
 
 select_clause_basic

@@ -726,9 +726,14 @@ public class KcqlTest {
 
   @Test
   public void handleKeyDelimeter() {
-    String topic = "TOPIC_A";
-    String table = "TABLE_A";
     String syntax = "INSERT INTO %s SELECT @col1, col2,col3 FROM %s KEYDELIMITER ='|'";
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals("|", kcql.getKeyDelimeter());
+  }
+
+  @Test
+  public void handleKeyDelimeterSelect() { ;
+    String syntax = "SELECT @col1, col2,col3 FROM topic KEYDELIMITER ='|'";
     Kcql kcql = Kcql.parse(syntax);
     assertEquals("|", kcql.getKeyDelimeter());
   }
@@ -1013,6 +1018,7 @@ public class KcqlTest {
   public void handleWithSize() {
     String topic = "/TOPIC_A";
     String table = "TABLE_A";
+
     String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s WITH_FLUSH_SIZE = 2010", table, topic);
     Kcql kcql = Kcql.parse(syntax);
     assertEquals(2010, kcql.getWithFlushSize());
