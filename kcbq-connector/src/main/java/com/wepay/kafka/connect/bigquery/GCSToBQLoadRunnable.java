@@ -71,7 +71,7 @@ public class GCSToBQLoadRunnable implements Runnable {
 
   private static String SOURCE_URI_FORMAT = "gs://%s/%s";
   public static final Pattern METADATA_TABLE_PATTERN =
-          Pattern.compile("(?<project>[^:]+):(?<dataset>[^.]+).(?<table>.+)");
+          Pattern.compile("((?<project>[^:]+):)?(?<dataset>[^.]+)\\.(?<table>.+)");
 
   /**
    * Create a {@link GCSToBQLoadRunnable} with the given bigquery, bucket, and ms wait interval.
@@ -134,27 +134,32 @@ public class GCSToBQLoadRunnable implements Runnable {
    * @return the TableId this data should be loaded into, or null if we could not tell what
    *         table it should be loaded into.
    */
-  private TableId getTableFromBlob(Blob blob) {
+  public static TableId getTableFromBlob(Blob blob) {
     if (blob.getMetadata() == null
         || blob.getMetadata().get(GCSToBQWriter.GCS_METADATA_TABLE_KEY) == null) {
-      logger.error("Found blob {}\\{} with no metadata.", blob.getBucket(), blob.getName());
+      logger.error("Found blob {}/{} with no metadata.", blob.getBucket(), blob.getName());
       return null;
     }
 
     String serializedTableId = blob.getMetadata().get(GCSToBQWriter.GCS_METADATA_TABLE_KEY);
     Matcher matcher = METADATA_TABLE_PATTERN.matcher(serializedTableId);
+
+    if (!matcher.find()) {
+      logger.error("Found blob `{}/{}` with un-parsable table metadata.",
+          blob.getBucket(), blob.getName());
+      return null;
+    }
+
     String project = matcher.group("project");
     String dataset = matcher.group("dataset");
     String table = matcher.group("table");
     logger.debug("Table data: project: {}; dataset: {}; table: {}", project, dataset, table);
 
-    if (project == null || dataset == null || table == null) {
-      logger.error("Found blob `{}/{}` without parsable table metadata.",
-                   blob.getBucket(), blob.getName());
-      return null;
+    if (project == null) {
+      return TableId.of(dataset, table);
+    } else {
+      return TableId.of(project, dataset, table);
     }
-
-    return TableId.of(project, dataset, table);
   }
 
   /**
@@ -220,7 +225,9 @@ public class GCSToBQLoadRunnable implements Runnable {
         // log a message.
         logger.warn("GCS to BQ load job failed", ex);
         // remove job from active jobs (it's not active anymore)
-        activeJobs.remove(job);
+        List<Blob> blobs = activeJobs.remove(job);
+        // unclaim blobs
+        claimedBlobs.removeAll(blobs);
         failureCount++;
       } finally {
         logger.info("GCS To BQ job tally: {} successful jobs, {} failed jobs.",
@@ -234,6 +241,7 @@ public class GCSToBQLoadRunnable implements Runnable {
    */
   private void deleteBlobs() {
     int deletedBlobs = 0;
+    logger.info("Attempting to delete {} blobs", deletableBlobs.size());
     for (Blob blob : deletableBlobs) {
       try {
         blob.delete();

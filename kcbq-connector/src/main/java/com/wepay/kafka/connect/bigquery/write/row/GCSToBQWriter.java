@@ -19,10 +19,7 @@ package com.wepay.kafka.connect.bigquery.write.row;
 
 
 import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.InsertAllRequest.RowToInsert;
-import com.google.cloud.bigquery.JobInfo;
-import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -54,7 +51,6 @@ public class GCSToBQWriter {
   private final Storage storage;
 
   private final BigQuery bigQuery;
-  private LoadJobConfiguration loadJobConfiguration;
 
   private static final int WAIT_MAX_JITTER = 1000;
 
@@ -100,13 +96,9 @@ public class GCSToBQWriter {
     // Get Source URI
     BlobId blobId = BlobId.of(bucketName, blobName);
 
-    String serializedTableId =
-         tableId.getProject() + ":" + tableId.getDataset() + "." + tableId.getTable();
-    Map<String, String> metadata =
-         Collections.singletonMap(GCS_METADATA_TABLE_KEY, serializedTableId);
+    Map<String, String> metadata = getMetadata(tableId);
     BlobInfo blobInfo =
          BlobInfo.newBuilder(blobId).setContentType("text/json").setMetadata(metadata).build();
-    String sourceUri = String.format("gs://%s/%s", bucketName, blobName);
 
     // Check if the table specified exists
     // This error shouldn't be thrown. All tables should be created by the connector at startup
@@ -116,11 +108,13 @@ public class GCSToBQWriter {
     }
 
     // Create a job configuration
+    /*
     this.loadJobConfiguration =
         LoadJobConfiguration.builder(tableId, sourceUri)
             .setFormatOptions(FormatOptions.json())
             .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
             .build();
+            */
 
     int retryCount = 0;
     boolean exceptionsOccurred;
@@ -140,6 +134,18 @@ public class GCSToBQWriter {
     } while (exceptionsOccurred && (retryCount < retries));
 
     logger.info("Batch loaded {} rows", rows.size());
+  }
+
+  private static Map<String, String> getMetadata(TableId tableId) {
+    StringBuilder sb = new StringBuilder();
+    if (tableId.getProject() != null) {
+      sb.append(tableId.getProject()).append(":");
+    }
+    String serializedTableId =
+        sb.append(tableId.getDataset()).append(".").append(tableId.getTable()).toString();
+    Map<String, String> metadata =
+        Collections.singletonMap(GCS_METADATA_TABLE_KEY, serializedTableId);
+    return metadata;
   }
 
   /**
