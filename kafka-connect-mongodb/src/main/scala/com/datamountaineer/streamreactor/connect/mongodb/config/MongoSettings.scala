@@ -34,7 +34,9 @@ case class MongoSettings(connection: String,
                          fields: Map[String, Map[String, String]],
                          ignoredField: Map[String, Set[String]],
                          errorPolicy: ErrorPolicy,
-                         taskRetries: Int = MongoConfigConstants.NBR_OF_RETIRES_DEFAULT)
+                         taskRetries: Int = MongoConfigConstants.NBR_OF_RETIRES_DEFAULT,
+                         // Set of field name lists:
+                         jsonDateTimeFields: Set[Seq[String]] = Set.empty)
 
 
 object MongoSettings extends StrictLogging {
@@ -74,7 +76,28 @@ object MongoSettings extends StrictLogging {
         fieldsMap,
         ignoreFields,
         errorPolicy,
-        retries
+        retries,
+        getJsonDateTimeFields(config)
     )
+  }
+
+  /**
+    * Parse out the jsonDateTimeFields list into the structure we need, which is
+    * a Set of field 'paths'; ie. :
+    *    Set(
+    *      Seq("top-level-field"),
+    *      Seq("top-level-parent", "child1", "child2", "fieldname"),
+    *    )
+    */
+  def getJsonDateTimeFields(config: MongoConfig): Set[Seq[String]] = {
+    import scala.collection.JavaConverters._
+    val set: Set[Seq[String]] =
+      config.getList(MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG).
+        asScala.
+        map{ fullName =>
+          fullName.trim.split('.').toSeq
+        }.toSet
+    logger.info(s"MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG is $set")
+    set
   }
 }

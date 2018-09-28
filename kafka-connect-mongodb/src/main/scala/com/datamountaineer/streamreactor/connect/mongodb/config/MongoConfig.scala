@@ -45,6 +45,9 @@ object MongoConfig {
 
     .define(MongoConfigConstants.KCQL_CONFIG, Type.STRING, Importance.HIGH, MongoConfigConstants.KCQL_DOC,
       "Mappings", 1, ConfigDef.Width.LONG, MongoConfigConstants.KCQL_CONFIG)
+    .define(MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG, Type.LIST, "",
+      Importance.LOW, MongoConfigConstants.JSON_DATETIME_FIELDS_DOC, "Mappings", 1, ConfigDef.Width.NONE,
+      MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG)
     .define(MongoConfigConstants.ERROR_POLICY_CONFIG, Type.STRING, MongoConfigConstants.ERROR_POLICY_DEFAULT,
       Importance.HIGH, MongoConfigConstants.ERROR_POLICY_DOC, "Error", 1, ConfigDef.Width.LONG,
       MongoConfigConstants.ERROR_POLICY_CONFIG)

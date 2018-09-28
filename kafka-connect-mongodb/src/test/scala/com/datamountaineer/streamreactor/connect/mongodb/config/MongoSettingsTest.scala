@@ -147,4 +147,46 @@ class MongoSettingsTest extends WordSpec with Matchers {
       }
     }
   }
+
+  "MongoSinkSettings.jsonDateTimeFields" should {
+
+    "default to an empty Map if not specified" in {
+      val map = Map(
+        MongoConfigConstants.DATABASE_CONFIG -> "db",
+        MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
+        MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
+      )
+      val settings = MongoSettings(MongoConfig(map))
+      settings.jsonDateTimeFields shouldBe Set.empty[List[String]]
+    }
+
+    "default to an empty Map if jsonDateTimeFields specified as empty string" in {
+      val map = Map(
+        MongoConfigConstants.DATABASE_CONFIG -> "db",
+        MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
+        MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1",
+        MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG -> ""
+      )
+      val settings = MongoSettings(MongoConfig(map))
+      settings.jsonDateTimeFields shouldBe Set.empty[Seq[String]]
+    }
+
+    "be set to a Set of path segments when jsonDateTimeFields is set properly" in {
+      val map = Map(
+        MongoConfigConstants.DATABASE_CONFIG -> "db",
+        MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
+        MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1",
+        MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG -> "a, b, c.m, d, e.n.y, f"
+      )
+      val settings = MongoSettings(MongoConfig(map))
+      settings.jsonDateTimeFields shouldBe Set(
+        List("a"),
+        List("b"),
+        List("c", "m"),
+        List("d"),
+        List("e", "n", "y"),
+        List("f")
+      )
+    }
+  }
 }

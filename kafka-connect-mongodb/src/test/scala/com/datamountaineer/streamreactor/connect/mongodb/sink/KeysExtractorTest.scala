@@ -69,14 +69,14 @@ class KeysExtractorTest extends WordSpec with Matchers {
       actual shouldBe Set("key1" -> 12, "key3" -> "tripple")
     }
 
-    "extract embedded keys out of a Map" in {
+    "extract embedded keys out of a Map (including Dates)" in {
       import scala.collection.JavaConverters._
       val actual = KeysExtractor.fromMap(
-        Map("A"->0, "B"->"0", "C"->Map("M"->"1000", "N"->Map("X"->10, "Y"->100).asJava).asJava).asJava,
+        Map("A"->0, "B"->"0", "C"->Map("M"->"1000", "N"->Map("X"->new java.util.Date(10L), "Y"->100).asJava).asJava).asJava,
         ListSet( "B", "C.M", "C.N.X" ))
       // SCALA 2.12 WARNING: If you upgrade to 2.12 and this test fails, 
       // you need to remove the "reverse()" calls in KeysExtractor.scala:
-      actual shouldBe ListSet("B"->"0", "M"->"1000", "X"->10)
+      actual shouldBe ListSet("B"->"0", "M"->"1000", "X"->new java.util.Date(10L))
     }
 
     "extract keys from a Map should throw an exception if the key is another map" in {
