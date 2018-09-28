@@ -107,15 +107,6 @@ public class GCSToBQWriter {
           String.format("Table with TableId %s does not exist.", tableId.getTable()));
     }
 
-    // Create a job configuration
-    /*
-    this.loadJobConfiguration =
-        LoadJobConfiguration.builder(tableId, sourceUri)
-            .setFormatOptions(FormatOptions.json())
-            .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
-            .build();
-            */
-
     int retryCount = 0;
     boolean exceptionsOccurred;
     do {
