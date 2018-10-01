@@ -262,7 +262,6 @@ public class GCSToBQLoadRunnable implements Runnable {
    * Delete deletable blobs.
    */
   private void deleteBlobs() {
-    int deletedBlobs = 0;
     List<BlobId> blobIdsToDelete = new ArrayList<>();
     logger.info("Attempting to delete {} blobs", deletableBlobIds.size());
     for (BlobId blobId : deletableBlobIds) {
@@ -275,7 +274,7 @@ public class GCSToBQLoadRunnable implements Runnable {
     }
     deletableBlobIds.removeAll(blobIdsToDelete);
     logger.info("Successfully deleted {} blobs; failed to delete {} blobs",
-                deletedBlobs,
+                blobIdsToDelete.size(),
                 deletableBlobIds.size());
   }
 
