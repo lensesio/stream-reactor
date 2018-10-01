@@ -26,6 +26,13 @@ subprojects { subproject ->
         toolVersion = '6.18'
     }
 
+    findbugsMain {
+        reports {
+            xml.enabled = false
+            html.enabled = true
+        }
+    }
+
     task javadocJar(type: Jar) {
         classifier = 'javadoc'
         from javadoc

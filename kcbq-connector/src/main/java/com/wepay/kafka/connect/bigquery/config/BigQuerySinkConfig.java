@@ -67,7 +67,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final String ENABLE_BATCH_DOC =
       "Beta Feature; use with caution: The sublist of topics to be batch loaded through GCS";
 
-  public static final String BATCH_LOAD_INTERVAL_SEC_CONFIG =             "BatchLoadIntervalSec";
+  public static final String BATCH_LOAD_INTERVAL_SEC_CONFIG =             "batchLoadIntervalSec";
   private static final ConfigDef.Type BATCH_LOAD_INTERVAL_SEC_TYPE =      ConfigDef.Type.INT;
   private static final Integer BATCH_LOAD_INTERVAL_SEC_DEFAULT =          120;
   private static final ConfigDef.Importance BATCH_LOAD_INTERVAL_SEC_IMPORTANCE =

@@ -26,6 +26,7 @@ import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.StorageException;
 
@@ -57,9 +58,9 @@ public class GCSToBQLoadRunnable implements Runnable {
 
   private final BigQuery bigQuery;
   private final Bucket bucket;
-  private final Map<Job, List<Blob>> activeJobs;
-  private final Set<Blob> claimedBlobs;
-  private final Set<Blob> deletableBlobs;
+  private final Map<Job, List<BlobId>> activeJobs;
+  private final Set<BlobId> claimedBlobIds;
+  private final Set<BlobId> deletableBlobIds;
 
   // these numbers are intended to try to make this task not excede Google Cloud Quotas.
   // see: https://cloud.google.com/bigquery/quotas#load_jobs
@@ -82,8 +83,8 @@ public class GCSToBQLoadRunnable implements Runnable {
     this.bigQuery = bigQuery;
     this.bucket = bucket;
     this.activeJobs = new HashMap<>();
-    this.claimedBlobs = new HashSet<>();
-    this.deletableBlobs = new HashSet<>();
+    this.claimedBlobIds = new HashSet<>();
+    this.deletableBlobIds = new HashSet<>();
   }
 
   /**
@@ -99,11 +100,16 @@ public class GCSToBQLoadRunnable implements Runnable {
     Map<TableId, List<Blob>> tableToURIs = new HashMap<>();
     Map<TableId, Long> tableToCurrentLoadSize = new HashMap<>();
 
+    logger.trace("Starting GCS bucket list");
     Page<Blob> list = bucket.list();
-    for (Blob blob : list.iterateAll()) {
-      TableId table = getTableFromBlob(blob);
+    logger.trace("Finished GCS bucket list");
 
-      if (table == null || claimedBlobs.contains(blob) || deletableBlobs.contains(blob)) {
+    for (Blob blob : list.iterateAll()) {
+      BlobId blobId = blob.getBlobId();
+      TableId table = getTableFromBlob(blob);
+      logger.debug("Checking blob bucket={}, name={}, table={} ", blob.getBucket(), blob.getName(), table );
+
+      if (table == null || claimedBlobIds.contains(blobId) || deletableBlobIds.contains(blobId)) {
         // don't do anything if:
         // 1. we don't know what table this should be uploaded to or
         // 2. this blob is already claimed by a currently-running job or
@@ -125,6 +131,8 @@ public class GCSToBQLoadRunnable implements Runnable {
         tableToCurrentLoadSize.put(table, newSize);
       }
     }
+
+    logger.debug("Got blobs to upload: {}", tableToURIs);
     return tableToURIs;
   }
 
@@ -193,8 +201,9 @@ public class GCSToBQLoadRunnable implements Runnable {
     // create and return the job.
     Job job = bigQuery.create(JobInfo.of(loadJobConfiguration));
     // update active jobs and claimed blobs.
-    activeJobs.put(job, blobs);
-    claimedBlobs.addAll(blobs);
+    List<BlobId> blobIds = blobs.stream().map(Blob::getBlobId).collect(Collectors.toList());
+    activeJobs.put(job, blobIds);
+    claimedBlobIds.addAll(blobIds);
     logger.info("Triggered load job for table {} with {} blobs.", table, blobs.size());
     return job;
   }
@@ -207,27 +216,40 @@ public class GCSToBQLoadRunnable implements Runnable {
   private void checkJobs() {
     if (activeJobs.isEmpty()) {
       // quick exit if nothing needs to be done.
+      logger.debug("No active jobs to check. Skipping check jobs.");
       return;
     }
-    Iterator<Job> jobIterator = activeJobs.keySet().iterator();
+    logger.debug("Checking {} active jobs", activeJobs.size());
+
+    Iterator<Map.Entry<Job, List<BlobId>>> jobIterator = activeJobs.entrySet().iterator();
     int successCount = 0;
     int failureCount = 0;
+
     while (jobIterator.hasNext()) {
-      Job job = jobIterator.next();
+      Map.Entry<Job, List<BlobId>> jobEntry = jobIterator.next();
+      Job job = jobEntry.getKey();
+      logger.debug("Checking next job: {}", job.getJobId());
+
       try {
         if (job.isDone()) {
-          List<Blob> blobsToDelete = activeJobs.remove(job);
+          logger.trace("Job is marked done: id={}, status={}", job.getJobId(), job.getStatus());
+          List<BlobId> blobIdsToDelete = jobEntry.getValue();
+          jobIterator.remove();
+          logger.trace("Job is removed from iterator: {}", job.getJobId());
           successCount++;
-          claimedBlobs.removeAll(blobsToDelete);
-          deletableBlobs.addAll(blobsToDelete);
+          claimedBlobIds.removeAll(blobIdsToDelete);
+          logger.trace("Completed blobs have been removed from claimed set: {}", blobIdsToDelete);
+          deletableBlobIds.addAll(blobIdsToDelete);
+          logger.trace("Completed blobs marked as deletable: {}", blobIdsToDelete);
         }
       } catch (BigQueryException ex) {
         // log a message.
         logger.warn("GCS to BQ load job failed", ex);
         // remove job from active jobs (it's not active anymore)
-        List<Blob> blobs = activeJobs.remove(job);
+        List<BlobId> blobIds = activeJobs.get(job);
+        jobIterator.remove();
         // unclaim blobs
-        claimedBlobs.removeAll(blobs);
+        claimedBlobIds.removeAll(blobIds);
         failureCount++;
       } finally {
         logger.info("GCS To BQ job tally: {} successful jobs, {} failed jobs.",
@@ -241,29 +263,37 @@ public class GCSToBQLoadRunnable implements Runnable {
    */
   private void deleteBlobs() {
     int deletedBlobs = 0;
-    logger.info("Attempting to delete {} blobs", deletableBlobs.size());
-    for (Blob blob : deletableBlobs) {
+    List<BlobId> blobIdsToDelete = new ArrayList<>();
+    logger.info("Attempting to delete {} blobs", deletableBlobIds.size());
+    for (BlobId blobId : deletableBlobIds) {
       try {
-        blob.delete();
-        deletableBlobs.remove(blob);
+        bucket.getStorage().delete(blobId);
+        blobIdsToDelete.add(blobId);
       } catch (StorageException ex) {
-        logger.warn("Failed to delete blob: {}/{}", blob.getBucket(), blob.getName());
+        logger.warn("Failed to delete blob: {}/{}", blobId.getBucket(), blobId.getName());
       }
     }
+    deletableBlobIds.removeAll(blobIdsToDelete);
     logger.info("Successfully deleted {} blobs; failed to delete {} blobs",
                 deletedBlobs,
-                deletableBlobs.size());
+                deletableBlobIds.size());
   }
 
   @Override
   public void run() {
-    // step 1. check for finished jobs status; move blobs from claimed to deletable.
-    checkJobs();
-    // step 2. delete deletable blobs
-    deleteBlobs();
-    // step 3. get blobs to load into BQ.
-    Map<TableId, List<Blob>> tablesToSourceURIs = getBlobsUpToLimit();
-    // step 4. load blobs into BQ
-    triggerBigQueryLoadJobs(tablesToSourceURIs);
+    logger.trace("Starting BQ load run");
+    try {
+      logger.trace("Checking for finished job statuses. Moving uploaded blobs from claimed to deletable.");
+      checkJobs();
+      logger.trace("Deleting deletable blobs");
+      deleteBlobs();
+      logger.trace("Finding new blobs to load into BQ");
+      Map<TableId, List<Blob>> tablesToSourceURIs = getBlobsUpToLimit();
+      logger.trace("Loading {} new blobs into BQ", tablesToSourceURIs.size());
+      triggerBigQueryLoadJobs(tablesToSourceURIs);
+      logger.trace("Finished BQ load run");
+    } catch (Exception e) {
+      logger.error("Uncaught error in BQ loader", e);
+    }
   }
 }
