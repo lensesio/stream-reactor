@@ -37,8 +37,10 @@ A collection of components to build a real time ingestion pipeline.
 | Elastic 5      | Sink   | Kafka connect Elastic Search sink to write payloads to Elastic Search 5.x w. tcp or http      | [Docs](https://lenses.stream/connectors/sink/elastic5.html)               |
 | Elastic 6      | Sink   | Kafka connect Elastic Search sink to write payloads to Elastic Search 6.x w. tcp or http      | [Docs](https://lenses.stream/connectors/sink/elastic6.html)               |
 | FTP/HTTP       | Source | Kafka connect FTP and HTTP source to write file data into Kafka topics.                       | [Docs](https://lenses.stream/connectors/source/ftp.html)                  |
-| HBase          | Sink   | Kafka connect HBase sink to write Kafka topic payloads to HBase.                              | [Docs](https://lenses.stream/connectors/sink/hbase.html)                  |
 | Hazelcast      | Sink   | Kafka connect Hazelcast sink to write Kafka topic payloads to Hazelcast.                      | [Docs](https://lenses.stream/connectors/sink/hazelcast.html)              |
+| HBase          | Sink   | Kafka connect HBase sink to write Kafka topic payloads to HBase.                              | [Docs](https://lenses.stream/connectors/sink/hbase.html)                  |
+| Hive           | Source | Kafka connect Hive source to read data from Hive/HDFS into Kafka.                             | [Docs](https://lenses.stream/connectors/source/hive.html)
+| Hive           | Sink   | Kafka connect Hive sink to read data Kafka and load into Hive/HDFS                            | [Docs](https://lenses.stream/connectors/source/hive.html)|
 | Kudu           | Sink   | Kafka connect Kudu sink to write Kafka topic payloads to Kudu.                                | [Docs](https://lenses.stream/connectors/sink/kudu.html)                   |
 | InfluxDb       | Sink   | Kafka connect InfluxDb sink to write Kafka topic payloads to InfluxDb.                        | [Docs](https://lenses.stream/connectors/sink/influx.html)                 |
 | JMS            | Source | Kafka connect JMS source to write from JMS to Kafka topics.                                   | [Docs](https://lenses.stream/connectors/source/jms.html)                  |
@@ -56,6 +58,22 @@ A collection of components to build a real time ingestion pipeline.
 
 
 ## Release Notes
+
+**1.2.0** PENDING
+
+*   Upgrade to Kafka 2.0
+*   New Hive source and sink connector supporting Avro, Parquet and ORC
+*   Fix on NPE for Redis multiple sorted sets
+*   Fixed setting Mongo primary _id field in upsert mode
+*   Fix on handling multiple topics in Redis sort set
+*   Fixed mongodb sink exception when PK is compound key
+*   Fixed JMS sink with password is not working, wrong context
+*   Fixed handling multiple primary keys for sorted sets
+*   Fixed Kudu sink autocreate adding unnecessary partition
+*   Fixed Avro field with default value does not create table in Kudu
+*   Fixed Kudu Connector Can Not AutoCreate Table from Sink Record
+*   Fixed JMS sink session rollback exception if session is closed
+
 
 **1.1.0**
 
