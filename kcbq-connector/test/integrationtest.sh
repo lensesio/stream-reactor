@@ -157,12 +157,20 @@ KAFKA_DOCKER_NAME='kcbq_test_kafka'
 SCHEMA_REGISTRY_DOCKER_NAME='kcbq_test_schema-registry'
 
 statusupdate 'Creating Zookeeper Docker instance'
-docker run --name "$ZOOKEEPER_DOCKER_NAME" -d confluent/zookeeper:3.4.6-cp1
+docker run --name "$ZOOKEEPER_DOCKER_NAME" \
+           -d \
+           -e ZOOKEEPER_CLIENT_PORT=32181 \
+           confluentinc/cp-zookeeper:4.1.2
 
 statusupdate 'Creating Kafka Docker instance'
 docker run --name "$KAFKA_DOCKER_NAME" \
            --link "$ZOOKEEPER_DOCKER_NAME":zookeeper \
-           -d confluent/kafka:0.10.0.0-cp1
+           --add-host kafka:127.0.0.1 \
+           -d \
+           -e KAFKA_ZOOKEEPER_CONNECT=zookeeper:32181 \
+           -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:29092 \
+           -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
+           confluentinc/cp-kafka:4.1.2
 
 statusupdate 'Creating Schema Registry Docker instance'
 # Have to pause here to make sure Zookeeper/Kafka get on their feet first
@@ -170,7 +178,10 @@ sleep 5
 docker run --name "$SCHEMA_REGISTRY_DOCKER_NAME" \
            --link "$ZOOKEEPER_DOCKER_NAME":zookeeper --link "$KAFKA_DOCKER_NAME":kafka \
            --env SCHEMA_REGISTRY_AVRO_COMPATIBILITY_LEVEL=none \
-           -d confluent/schema-registry:3.0.0
+           -d \
+           -e SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL=zookeeper:32181 \
+           -e SCHEMA_REGISTRY_HOST_NAME=schema-registry \
+           confluentinc/cp-schema-registry:4.1.2
 
 ####################################################################################################
 # Writing data to Kafka Docker instance via Avro console producer
@@ -183,7 +194,7 @@ if ! dockerimageexists "$POPULATE_DOCKER_IMAGE"; then
   docker build -q -t "$POPULATE_DOCKER_IMAGE" "$DOCKER_DIR/populate"
 fi
 # Have to pause here to make sure the Schema Registry gets on its feet first
-sleep 10
+sleep 35
 docker create --name "$POPULATE_DOCKER_NAME" \
               --link "$KAFKA_DOCKER_NAME:kafka" --link "$SCHEMA_REGISTRY_DOCKER_NAME:schema-registry" \
               "$POPULATE_DOCKER_IMAGE"
@@ -233,7 +244,6 @@ CONNECT_DOCKER_IMAGE='kcbq/connect'
 CONNECT_DOCKER_NAME='kcbq_test_connect'
 
 cp "$BASE_DIR"/../../kcbq-confluent/build/distributions/kcbq-confluent-*.tar "$DOCKER_DIR/connect/kcbq.tar"
-cp "$BASE_DIR"/../../kcbq-confluent/build/distributions/kcbq-confluent-*.tar "$DOCKER_DIR/connect/retriever.tar"
 cp "$KCBQ_TEST_KEYFILE" "$DOCKER_DIR/connect/key.json"
 
 if ! dockerimageexists "$CONNECT_DOCKER_IMAGE"; then
@@ -242,8 +252,7 @@ fi
 docker create --name "$CONNECT_DOCKER_NAME" \
               --link "$KAFKA_DOCKER_NAME:kafka" --link "$SCHEMA_REGISTRY_DOCKER_NAME:schema-registry" \
               -t "$CONNECT_DOCKER_IMAGE" /bin/bash
-docker cp "$DOCKER_DIR/connect/kcbq.tar" "$CONNECT_DOCKER_NAME:/usr/share/java/kafka-connect-bigquery/kcbq.tar"
-docker cp "$DOCKER_DIR/connect/retriever.tar" "$CONNECT_DOCKER_NAME:/usr/share/java/kafka-connect-bigquery/retriever.tar"
+docker cp "$DOCKER_DIR/connect/kcbq.tar" "$CONNECT_DOCKER_NAME:/usr/local/share/kafka/plugins/kafka-connect-bigquery/kcbq.tar"
 docker cp "$DOCKER_DIR/connect/properties/" "$CONNECT_DOCKER_NAME:/etc/kafka-connect-bigquery/"
 docker cp "$DOCKER_DIR/connect/key.json" "$CONNECT_DOCKER_NAME:/tmp/key.json"
 docker start -a "$CONNECT_DOCKER_NAME"

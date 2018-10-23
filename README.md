@@ -168,7 +168,7 @@ $ test/integrationtest.sh
 
 This assumes that the project, dataset, and key file have been specified by variable or 
 configuration file. For more information on how to specify these, run the test script with
-the `--usage` flag.
+the `--help` flag.
 
 > **NOTE:** You must have a recent version of [boot2docker], [Docker Machine], [Docker], etc.
 installed. Older versions will hang when cleaning containers, and linking doesn't work properly.

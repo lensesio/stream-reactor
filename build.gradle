@@ -256,7 +256,7 @@ project('kcbq-confluent') {
         main {
             baseName = 'kcbq-confluent'
             contents {
-                from configurations.runtime
+                from configurations.runtime, jar
             }
         }
     }
