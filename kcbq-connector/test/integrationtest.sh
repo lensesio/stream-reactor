@@ -36,16 +36,17 @@ usage() {
        "[-k|--key-file <JSON key file>] (path must be absolute; relative paths will not work)\n" \
        "[-p|--project <BigQuery project>]\n" \
        "[-d|--dataset <BigQuery project>]\n" \
+       "[-b|--bucket <cloud Storage bucket>\n]" \
        1>&2
   echo 1>&2
   echo "Options can also be specified via environment variable:" \
-       "KCBQ_TEST_KEYFILE, KCBQ_TEST_PROJECT, and KCBQ_TEST_DATASET" \
-       "respectively control the keyfile, project, and dataset." \
+       "KCBQ_TEST_KEYFILE, KCBQ_TEST_PROJECT, KCBQ_TEST_DATASET, and KCBQ_TEST_BUCKET" \
+       "respectively control the keyfile, project, dataset, and bucket." \
        1>&2
   echo 1>&2
   echo "Options can also be specified in a file named 'test.conf'" \
        "placed in the same directory as this script, with a series of <property>=<value> lines." \
-       "The properties are 'keyfile', 'project', and 'dataset'." \
+       "The properties are 'keyfile', 'project', 'dataset', and 'bucket'." \
        1>&2
   echo 1>&2
   echo "The descending order of priority for each of these forms of specification is:" \
@@ -98,6 +99,7 @@ PROPERTIES_FILE="$BASE_DIR/test.conf"
 KCBQ_TEST_KEYFILE=${KCBQ_TEST_KEYFILE:-$keyfile}
 KCBQ_TEST_PROJECT=${KCBQ_TEST_PROJECT:-$project}
 KCBQ_TEST_DATASET=${KCBQ_TEST_DATASET:-$dataset}
+KCBQ_TEST_BUCKET=${KCBQ_TEST_BUCKET:-$bucket}
 
 # Capture any command line flags
 while [[ $# -gt 0 ]]; do
@@ -117,6 +119,11 @@ while [[ $# -gt 0 ]]; do
         shift
         KCBQ_TEST_DATASET="$1"
         ;;
+    -b|--bucket)
+        [[ -z "$2" ]] && { error "bucket name must follow $1 flag"; usage 1; }
+        shift
+        KCBQ_TEST_BUCKET="$1"
+        ;;
     -h|--help|'-?')
         usage 0
         ;;
@@ -131,6 +138,7 @@ done
 [[ -z "$KCBQ_TEST_KEYFILE" ]] && { error 'a key filename is required'; usage 1; }
 [[ -z "$KCBQ_TEST_PROJECT" ]] && { error 'a project name is required'; usage 1; }
 [[ -z "$KCBQ_TEST_DATASET" ]] && { error 'a dataset name is required'; usage 1; }
+[[ -z "$KCBQ_TEST_BUCKET" ]] && { error 'a bucket name is required'; usage 1; }
 
 ####################################################################################################
 # Schema Registry Docker initialization
@@ -202,14 +210,15 @@ docker cp "$BASE_DIR/resources/test_schemas/" "$POPULATE_DOCKER_NAME:/tmp/schema
 docker start -a "$POPULATE_DOCKER_NAME"
 
 ####################################################################################################
-# Deleting existing BigQuery tables
-warn 'Deleting existing BigQuery test tables'
+# Deleting existing BigQuery tables/bucket
+warn 'Deleting existing BigQuery test tables and existing GCS bucket'
 
 "$GRADLEW" -p "$BASE_DIR/.." \
     -Pkcbq_test_keyfile="$KCBQ_TEST_KEYFILE" \
     -Pkcbq_test_project="$KCBQ_TEST_PROJECT" \
     -Pkcbq_test_dataset="$KCBQ_TEST_DATASET" \
     -Pkcbq_test_tables="$(basename "$BASE_DIR"/resources/test_schemas/* | sed -E -e 's/[^a-zA-Z0-9_]/_/g' -e 's/^(.*)$/kcbq_test_\1/' | xargs echo -n)" \
+    -Pkcbq_test_bucket="$KCBQ_TEST_BUCKET" \
     integrationTestPrep
 
 ####################################################################################################
@@ -231,6 +240,8 @@ cp "$RESOURCES_DIR/connector-template.properties" "$CONNECTOR_PROPS"
 echo "project=$KCBQ_TEST_PROJECT" >> "$CONNECTOR_PROPS"
 
 echo "datasets=.*=$KCBQ_TEST_DATASET" >> "$CONNECTOR_PROPS"
+
+echo "gcsBucketName=$KCBQ_TEST_BUCKET" >> "$CONNECTOR_PROPS"
 
 echo -n 'topics=' >> "$CONNECTOR_PROPS"
 basename "$BASE_DIR"/resources/test_schemas/* \
@@ -268,5 +279,6 @@ INTEGRATION_TEST_PROPERTIES_FILE="$INTEGRATION_TEST_RESOURCE_DIR/test.properties
 echo "keyfile=$KCBQ_TEST_KEYFILE" > "$INTEGRATION_TEST_PROPERTIES_FILE"
 echo "project=$KCBQ_TEST_PROJECT" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
 echo "dataset=$KCBQ_TEST_DATASET" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
+echo "bucket=$KCBQ_TEST_BUCKET" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
 
 "$GRADLEW" -p "$BASE_DIR/.." cleanIntegrationTest integrationTest

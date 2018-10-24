@@ -290,6 +290,77 @@ public class BigQueryConnectorIntegrationTest {
     testRows(expectedRows, readAllRows("kcbq_test_logical_types"));
   }
 
+  @Test
+  public void testGCSLoad() {
+    List<List<Object>> expectedRows = new ArrayList<>();
+
+    /* {"row":1,
+        "null_prim":null,
+        "boolean_prim":false,
+        "int_prim":4242,
+        "long_prim":42424242424242,
+        "float_prim":42.42,
+        "double_prim":42424242.42424242,
+        "string_prim":"forty-two",
+        "bytes_prim":"\u0000\u000f\u001e\u002d\u003c\u004b\u005a\u0069\u0078"}
+     */
+    expectedRows.add(Arrays.asList(
+        1L,
+        null,
+        false,
+        4242L,
+        42424242424242L,
+        42.42,
+        42424242.42424242,
+        "forty-two",
+        boxByteArray(new byte[] { 0x0, 0xf, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78 })
+    ));
+    /* {"row":2,
+        "null_prim":{"int":5},
+        "boolean_prim":true,
+        "int_prim":4354,
+        "long_prim":435443544354,
+        "float_prim":43.54,
+        "double_prim":435443.544354,
+        "string_prim":"forty-three",
+        "bytes_prim":"\u0000\u000f\u001e\u002d\u003c\u004b\u005a\u0069\u0078"}
+    */
+    expectedRows.add(Arrays.asList(
+        2L,
+        5L,
+        true,
+        4354L,
+        435443544354L,
+        43.54,
+        435443.544354,
+        "forty-three",
+        boxByteArray(new byte[] { 0x0, 0xf, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78 })
+    ));
+    /* {"row":3,
+        "null_prim":{"int":8},
+        "boolean_prim":false,
+        "int_prim":1993,
+        "long_prim":199319931993,
+        "float_prim":19.93,
+        "double_prim":199319.931993,
+        "string_prim":"nineteen",
+        "bytes_prim":"\u0000\u000f\u001e\u002d\u003c\u004b\u005a\u0069\u0078"}
+    */
+    expectedRows.add(Arrays.asList(
+        3L,
+        8L,
+        false,
+        1993L,
+        199319931993L,
+        19.93,
+        199319.931993,
+        "nineteen",
+        boxByteArray(new byte[] { 0x0, 0xf, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78 })
+    ));
+
+    testRows(expectedRows, readAllRows("kcbq_test_gcs_load"));
+  }
+
   private void testRows(
       List<List<Object>> expectedRows,
       List<List<Object>> testRows) {

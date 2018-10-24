@@ -127,7 +127,12 @@ project(':kcbq-connector') {
         }
     }
 
-    task integrationTestPrep(type: JavaExec) {
+    task integrationTestPrep() {
+        dependsOn 'integrationTestTablePrep'
+        dependsOn 'integrationTestBucketPrep'
+    }
+
+    task integrationTestTablePrep(type: JavaExec) {
         main = 'com.wepay.kafka.connect.bigquery.it.utils.TableClearer'
         classpath = sourceSets.integrationTest.runtimeClasspath
         args findProperty('kcbq_test_keyfile') ?: ''
@@ -135,6 +140,14 @@ project(':kcbq-connector') {
         args findProperty('kcbq_test_dataset') ?: ''
         if (findProperty('kcbq_test_tables') != null)
             args findProperty('kcbq_test_tables').split(' ')
+    }
+
+    task integrationTestBucketPrep(type: JavaExec) {
+        main = 'com.wepay.kafka.connect.bigquery.it.utils.BucketClearer'
+        classpath = sourceSets.integrationTest.runtimeClasspath
+        args findProperty('kcbq_test_keyfile') ?: ''
+        args findProperty('kcbq_test_project') ?: ''
+        args findProperty('kcbq_test_bucket') ?: ''
     }
 
     task integrationTest(type: Test) {
