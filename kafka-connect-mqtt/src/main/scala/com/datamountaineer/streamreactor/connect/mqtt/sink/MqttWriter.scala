@@ -16,6 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.mqtt.sink
 
+import java.util.Base64
+
+import org.json4s._
+import org.json4s.DefaultReaders._
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.{FieldConverter, Transform}
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
@@ -24,7 +28,14 @@ import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConne
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 import org.eclipse.paho.client.mqttv3.{MqttClient, MqttMessage}
+import org.json4s.native.JsonMethods
+//import org.json4s._
+import org.json4s.jackson.JsonMethods._
+//import org.json4s.DefaultReaders._
+import org.json4s.native.JsonMethods
 
+
+import scala.util.parsing.json._
 import scala.collection.JavaConversions._
 import scala.util.Try
 
@@ -41,7 +52,7 @@ object MqttWriter {
 
 class MqttWriter(client: MqttClient, settings: MqttSinkSettings)
   extends StrictLogging with ErrorHandler {
-
+  implicit val formats = DefaultFormats
   //initialize error tracker
   initialize(settings.maxRetries, settings.errorPolicy)
   val mappings: Map[String, Set[Kcql]] = settings.kcql.groupBy(k => k.getSource)
@@ -60,18 +71,22 @@ class MqttWriter(client: MqttClient, settings: MqttSinkSettings)
         kcqls.map(k => {
           //for all the records in the group transform
           records.map(r => {
-            (k.getTarget,
-               Transform(
-                  k.getFields.map(FieldConverter.apply),
-                  k.getIgnoredFields.map(FieldConverter.apply),
-                  r.valueSchema(),
-                  r.value(),
-                  k.hasRetainStructure
-            ))
+            val trans = Transform(
+              k.getFields.map(FieldConverter.apply),
+              k.getIgnoredFields.map(FieldConverter.apply),
+              r.valueSchema(),
+              r.value(),
+              k.hasRetainStructure
+            )
+            val target = (JsonMethods.parse(trans) \ "target").getAsOrElse[String](k.getTarget)
+            (target, trans)
           }).map(
             {
-              case (t, json) => {
-                msg.setPayload(json.getBytes)
+              case (t, jsonString) => {
+                val json = parse(jsonString)
+                val payload = (json \ "payload").getAsOrElse("")
+                val asbytes = Base64.getDecoder.decode(payload)
+                msg.setPayload(asbytes)
                 client.publish(t, msg)
               }
             }
