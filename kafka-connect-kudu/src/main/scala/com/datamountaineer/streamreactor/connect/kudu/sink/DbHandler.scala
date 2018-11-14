@@ -97,24 +97,23 @@ object DbHandler extends StrictLogging with KuduConverter {
     val url = setting.schemaRegistryUrl
     val subjects = SchemaRegistry.getSubjects(url).toSet
 
-    subjects
-      .flatMap(_ => {
-        setting
-          .kcql
-          .filter(r => r.isAutoCreate && !client.tableExists(r.getTarget)) //don't try to create existing tables
-          .map(m => {
-          var lkTopic = m.getSource
+    setting
+      .kcql
+      .filter(r => r.isAutoCreate && !client.tableExists(r.getTarget)) //don't try to create existing tables
+      .map(m => {
+        var lkTopic = m.getSource
 
-          if (!subjects.contains(lkTopic)) {
-            if (subjects.contains(lkTopic + "-value")) {
-              lkTopic = lkTopic + "-value"
-            }
+        if (!subjects.contains(lkTopic)) {
+          if (subjects.contains(lkTopic + "-value")) {
+            lkTopic = lkTopic + "-value"
           }
+        }
 
-          createTableProps(SchemaRegistry.getSchema(url, lkTopic), m, url, client)
-        })
-      }).flatten
+        createTableProps(SchemaRegistry.getSchema(url, lkTopic), m, url, client)
+      })
+      .flatten
       .map(ctp => executeCreateTable(ctp, client))
+      .toSet
   }
 
   /**
