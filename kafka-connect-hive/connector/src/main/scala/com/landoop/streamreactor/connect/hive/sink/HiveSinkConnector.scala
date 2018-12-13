@@ -21,7 +21,7 @@ class HiveSinkConnector extends SinkConnector with StrictLogging {
   override def config(): ConfigDef = HiveSourceConfigDef.config
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(s"Creating hive sink connector $props")
+    logger.info(s"Creating hive sink connector")
     this.props = props
   }
 
