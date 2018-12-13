@@ -63,7 +63,8 @@ case class JMSWriter(settings: JMSSettings) extends AutoCloseable with Converter
     sent match {
       case Failure(f) =>
         logger.error(s"Error processing messages, ${f.getMessage}")
-        provider.session.rollback()
+
+        handleTry(Try(provider.session.rollback()))
         //handle error tracking for redelivery for Connect
         handleTry(sent)
       case Success(_) => None
