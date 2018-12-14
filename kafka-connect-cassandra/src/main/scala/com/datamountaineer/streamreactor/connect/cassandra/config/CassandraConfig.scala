@@ -170,7 +170,7 @@ case class CassandraConfig() {
       CassandraConfigConstants.CONSISTENCY_LEVEL_DISPLAY)
 
     .define(CassandraConfigConstants.PASSWD_FILE,
-      Type.STRING, "",
+      Type.PASSWORD, "",
       Importance.LOW,
       CassandraConfigConstants.PASSWD_FILE_DOC,
       "Connection",
