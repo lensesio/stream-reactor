@@ -5,12 +5,14 @@ import com.rabbitmq.client._
 
 abstract class RabbitMQClient(settings: RabbitMQSettings) {
     val connection: Connection = openNewConnection()
-    val channel: Channel = createChannel()
+    val channels: List[Channel] = settings.kcql.map(e => connection.createChannel()).toList
+    val sourcesToKcql = settings.kcql.map(e => e.getSource -> e).toMap
+    val sourcesToChannels = sourcesToKcql.map(e => e._1 -> connection.createChannel())
 
     def start(): Unit
 
     def stop(): Unit = {
-        channel.close()
+        channels.foreach(channel => channel.close())
         connection.close()
     }
 
@@ -22,13 +24,6 @@ abstract class RabbitMQClient(settings: RabbitMQSettings) {
         factory.setPassword(settings.password)
 
         factory.newConnection()
-    }
-
-    private def createChannel(): Channel = {
-        val channel = connection.createChannel()
-        channel.queueDeclare("queue01",false,false,false,null)
-
-        channel
     }
 }
 

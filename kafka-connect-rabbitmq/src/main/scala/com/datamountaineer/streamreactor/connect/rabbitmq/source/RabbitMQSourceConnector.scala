@@ -3,12 +3,16 @@ package com.datamountaineer.streamreactor.connect.rabbitmq.source
 import java.util
 import java.util.Collections
 
-import com.datamountaineer.streamreactor.connect.rabbitmq.config.RabbitMQConfig
+import com.datamountaineer.streamreactor.connect.rabbitmq.config.{RabbitMQConfig, RabbitMQConfigConstants}
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
+import org.apache.kafka.connect.util.ConnectorUtils
+
+import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 class RabbitMQSourceConnector extends SourceConnector with StrictLogging {
     private var configProps: util.Map[String,String] = _
@@ -22,7 +26,20 @@ class RabbitMQSourceConnector extends SourceConnector with StrictLogging {
     override def taskClass(): Class[_ <: Task] = classOf[RabbitMQSourceTask]
 
     override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
-        Collections.singletonList(configProps)
+        val raw = configProps.get(RabbitMQConfigConstants.KCQL_CONFIG)
+        require(raw != null && !raw.isEmpty,  s"No ${RabbitMQConfigConstants.KCQL_CONFIG} provided!")
+
+        val kcqls = raw.split(";")
+        val groups = ConnectorUtils.groupPartitions(kcqls.toList.asJava, maxTasks)
+
+        groups
+            .filterNot(g => g.isEmpty)
+            .map(g => {
+                val taskConfigs = new java.util.HashMap[String,String]
+                taskConfigs.putAll(configProps)
+                taskConfigs.put(RabbitMQConfigConstants.KCQL_CONFIG, g.mkString(";"))
+                taskConfigs.toMap.asJava
+            })
     }
 
     override def config(): ConfigDef = configDef

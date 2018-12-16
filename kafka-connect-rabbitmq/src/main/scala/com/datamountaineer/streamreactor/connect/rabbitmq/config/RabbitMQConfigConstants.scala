@@ -10,10 +10,6 @@ object RabbitMQConfigConstants {
     val HOST_DOC = "Contains the RabbitMQ connection end points."
     val HOST_DISPLAY = "RabbitMQ connection endpoints"
 
-    val TOPIC_CONFIG = s"${CONNECTOR_PREFIX}.topic"
-    val TOPIC_DOC = "Kafka topic"
-    val TOPIC_DISPLAY = "Kafka topic"
-
     val KCQL_CONFIG = s"${CONNECTOR_PREFIX}.${KCQL_PROP_SUFFIX}"
     val KCQL_DOC = "Contains the Kafka Connect Query Language describing the sourced RabbitMQ source and the target Kafka topics"
     val KCQL_DISPLAY = "KCQL commands"
@@ -44,7 +40,19 @@ object RabbitMQConfigConstants {
     val POLLING_TIMEOUT_DISPLAY = "Polling timeout"
     val POLLING_TIMEOUT_DEFAULT = 1000
 
+    //Converters
+    val DEFAULT_CONVERTER_CONFIG = s"${CONNECTOR_PREFIX}.source.default.converter"
+    private[config] val DEFAULT_CONVERTER_DOC =
+        """
+          |Contains a canonical class name for the default converter of a raw JMS message bytes to a SourceRecord.
+          |Overrides to the default can be done by using connect.jms.source.converters still.
+          |i.e. com.datamountaineer.streamreactor.connect.source.converters.AvroConverter""".stripMargin
+    private[config] val DEFAULT_CONVERTER_DISPLAY = "Default Converter class"
+    private[config] val DEFAULT_CONVERTER_DEFAULT = ""
+
     object ConfigGroups {
         val CONNECTION = "Connection"
+        val CONVERTERS = "Converters"
+        val KCQL = "Kcql"
     }
 }

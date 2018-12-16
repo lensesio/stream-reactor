@@ -7,38 +7,28 @@ import com.datamountaineer.streamreactor.connect.rabbitmq.client.{RabbitMQClient
 import com.datamountaineer.streamreactor.connect.rabbitmq.config.{RabbitMQConfig, RabbitMQSettings}
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 class RabbitMQSourceTask extends SourceTask with StrictLogging {
-    private var consumer : Option[RabbitMQConsumer] = None
+    private var consumer : RabbitMQConsumer = _
     private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
     override def start(props: util.Map[String, String]): Unit = {
         logger.info(manifest.printManifest())
         val rabbitMQConfig = RabbitMQConfig(props)
         val rabbitMQSettings = RabbitMQSettings(rabbitMQConfig)
-        consumer = Option(new RabbitMQConsumer(rabbitMQSettings))
-        consumer match {
-            case Some(consumer) => consumer.start()
-            case None => logger.info("RabbitMQ Client Failed to Start. Exiting...")
-        }
+        consumer = RabbitMQConsumer(rabbitMQSettings)
+        consumer.start()
     }
 
     override def poll(): util.List[SourceRecord] = {
-        var records: util.List[SourceRecord] = consumer match {
-            case Some(c) => c.getRecords()
-            case None => null
-        }
-
-        records
+        consumer.getRecords().orNull
     }
 
     override def stop(): Unit = {
         logger.info("Stopping RabbitMQClient source.")
-//        consumer match {
-//            case Some(consumer) => consumer.stop()
-//        }
-        consumer.map(c => c.stop())
+        consumer.stop()
     }
 
     override def version(): String = manifest.version()
