@@ -35,6 +35,7 @@ case class RedisKCQLSetting(topic: String,
 
 // All the settings of the running connector
 case class RedisSinkSettings(connectionInfo: RedisConnectionInfo,
+                             pkDelimiter: String,
                              kcqlSettings: Set[RedisKCQLSetting],
                              errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                              taskRetries: Int = RedisConfigConstants.NBR_OF_RETIRES_DEFAULT)
@@ -58,6 +59,8 @@ object RedisSinkSettings {
     // Get connection info
     val connectionInfo = RedisConnectionInfo(config)
 
+    val pkDelimiter = config.getString(RedisConfigConstants.REDIS_PK_DELIMITER)
+
     // Get the builders
     val builders = config.getRowKeyBuilders()
 
@@ -73,7 +76,7 @@ object RedisSinkSettings {
       )
     }.toSet
 
-    RedisSinkSettings(connectionInfo, allRedisKCQLSettings, errorPolicy, nbrOfRetries)
+    RedisSinkSettings(connectionInfo, pkDelimiter, allRedisKCQLSettings, errorPolicy, nbrOfRetries)
   }
 
 }

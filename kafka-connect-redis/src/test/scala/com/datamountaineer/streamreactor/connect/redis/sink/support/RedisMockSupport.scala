@@ -24,19 +24,24 @@ import scala.collection.JavaConverters._
 
 trait RedisMockSupport extends MockitoSugar {
 
-  def getRedisSinkConfig(password: Boolean, KCQL: Option[String]) = {
+  def getRedisSinkConfig(password: Boolean, KCQL: Option[String], pkDelimiter: Option[String] = None) = {
 
     var baseProps = scala.collection.mutable.Map[String, String]()
-    baseProps += (RedisConfigConstants.REDIS_HOST->"localhost", RedisConfigConstants.REDIS_PORT->"8453")
+    baseProps += (RedisConfigConstants.REDIS_HOST -> "localhost", RedisConfigConstants.REDIS_PORT -> "8453")
 
 
     if (password) {
-      baseProps += RedisConfigConstants.REDIS_PASSWORD->"secret"
+      baseProps += RedisConfigConstants.REDIS_PASSWORD -> "secret"
     }
 
-    if (KCQL.isDefined) {
-      baseProps += RedisConfigConstants.KCQL_CONFIG->KCQL.get
+    KCQL.foreach { kcql =>
+      baseProps += RedisConfigConstants.KCQL_CONFIG -> kcql
     }
+
+    pkDelimiter.foreach { delimiter =>
+      baseProps += RedisConfigConstants.REDIS_PK_DELIMITER -> delimiter
+    }
+
     RedisConfig(baseProps.asJava)
   }
 

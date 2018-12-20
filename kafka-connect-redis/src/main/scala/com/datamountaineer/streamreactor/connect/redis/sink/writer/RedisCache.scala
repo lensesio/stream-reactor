@@ -69,7 +69,8 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
                 // We can prefix the name of the <KEY> using the target
                 val optionalPrefix = if (Option(KCQL.kcqlConfig.getTarget).isEmpty) "" else KCQL.kcqlConfig.getTarget.trim
                 // Use first primary key's value and (optional) prefix
-                val keyBuilder = RedisFieldsKeyBuilder(KCQL.kcqlConfig.getPrimaryKeys.map(_.toString))
+                val pkDelimiter = sinkSettings.pkDelimiter
+                val keyBuilder = RedisFieldsKeyBuilder(KCQL.kcqlConfig.getPrimaryKeys.map(_.toString), pkDelimiter)
                 val extracted = convert(record, fields = KCQL.fieldsAndAliases, ignoreFields = KCQL.ignoredFields)
                 val key = optionalPrefix + keyBuilder.build(record)
                 val payload = convertValueToJson(extracted).toString
