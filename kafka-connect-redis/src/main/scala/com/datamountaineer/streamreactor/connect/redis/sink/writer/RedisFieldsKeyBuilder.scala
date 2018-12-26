@@ -12,7 +12,7 @@ import scala.collection.JavaConversions._
   *
   * @param keys The key to build
   */
-case class RedisFieldsKeyBuilder(keys: Seq[String]) extends StringKeyBuilder {
+case class RedisFieldsKeyBuilder(keys: Seq[String], pkDelimiter: String) extends StringKeyBuilder {
   require(keys.nonEmpty, "Keys are empty")
 
   /**
@@ -50,11 +50,13 @@ case class RedisFieldsKeyBuilder(keys: Seq[String]) extends StringKeyBuilder {
           case (v, _) => Option(v)
         }
 
-      findValue(key.split('.').toList, struct).getOrElse { throw new IllegalArgumentException(
-        s"$key field value is null. Non null value is required for the fields creating the row key"
-      )}
+      findValue(key.split('.').toList, struct).getOrElse {
+        throw new IllegalArgumentException(
+          s"$key field value is null. Non null value is required for the fields creating the row key"
+        )
+      }
     }
 
-    keys.map(getValue).mkString(".")
+    keys.map(getValue).mkString(pkDelimiter)
   }
 }
