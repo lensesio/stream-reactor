@@ -13,7 +13,7 @@ services:
       CONNECTORS: "redis"
       ADV_HOST: "127.0.0.1"
     volumes:
-      - ../connector/build/libs/:/connectors/hive
+      - ../build/libs/:/connectors/hive
 
   namenode:
     image: bde2020/hadoop-namenode:2.0.0-hadoop2.7.4-java8
