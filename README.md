@@ -59,9 +59,10 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
-**1.2.0** PENDING
+**1.2.0**
 
 *   Upgrade to Kafka 2.0
+*   Added support for custom delimeter on the REDIS sink
 *   New Hive source and sink connector supporting Avro, Parquet and ORC
 *   Fix on NPE for Redis multiple sorted sets
 *   Fixed setting Mongo primary _id field in upsert mode

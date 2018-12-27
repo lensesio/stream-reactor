@@ -256,8 +256,7 @@ allprojects {
 
     signing {
         ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
-        required { isReleaseVersion }
-        // required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
+        required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
         sign configurations.archives
     }
 
