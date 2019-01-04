@@ -85,7 +85,7 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
     *
     * @param records A list of SinkRecords to write
     **/
-  def write(records: Set[SinkRecord]): Unit = {
+  def write(records: Seq[SinkRecord]): Unit = {
     if (records.isEmpty) {
       logger.debug("No records received.")
     } else {
@@ -105,7 +105,7 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
     * Per topic, build an new Kudu insert. Per insert build a Kudu row per SinkRecord.
     * Apply the insert per topic for the rows
     **/
-  private def applyInsert(records: Set[SinkRecord], session: KuduSession) = {
+  private def applyInsert(records: Seq[SinkRecord], session: KuduSession) = {
     def handleSinkRecord(record: SinkRecord): Upsert = {
       Option(record.valueSchema()) match {
         case None =>
