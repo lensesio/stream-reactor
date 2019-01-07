@@ -64,7 +64,7 @@ class KuduSinkTask extends SinkTask with StrictLogging {
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     val seq = records.toVector
-    writer.foreach(w => w.write(records.toSet))
+    writer.foreach(w => w.write(records.toSeq))
 
     if (enableProgress) {
       progressCounter.update(seq)
