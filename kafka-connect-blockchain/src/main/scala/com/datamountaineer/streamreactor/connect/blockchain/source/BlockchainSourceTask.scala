@@ -42,11 +42,13 @@ class BlockchainSourceTask extends SourceTask with StrictLogging {
     * @param props A map of supplied properties.
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/blockchain-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/blockchain-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
 
+    val config = if (context.configs().isEmpty) props else context.configs()
+
     //get configuration for this task
-    taskConfig = Try(new AbstractConfig(BlockchainConfig.config, props)) match {
+    taskConfig = Try(new AbstractConfig(BlockchainConfig.config, config)) match {
       case Failure(f) => throw new ConfigException("Couldn't start BlockchainSource due to configuration error.", f)
       case Success(s) => Some(s)
     }

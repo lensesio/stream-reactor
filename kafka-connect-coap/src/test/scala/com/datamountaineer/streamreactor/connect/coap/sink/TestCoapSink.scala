@@ -18,7 +18,10 @@ package com.datamountaineer.streamreactor.connect.coap.sink
 
 import com.datamountaineer.streamreactor.connect.coap.{Server, TestBase}
 import com.datamountaineer.streamreactor.connect.converters.source.SinkRecordToJson
+import org.apache.kafka.connect.sink.SinkTaskContext
 import org.eclipse.californium.core.CoapClient
+import org.mockito.Mockito.when
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfter, WordSpec}
 
 import scala.collection.JavaConverters._
@@ -27,7 +30,7 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 29/12/2016.
   * stream-reactor
   */
-class TestCoapSink extends WordSpec  with BeforeAndAfter with TestBase {
+class TestCoapSink extends WordSpec  with BeforeAndAfter with TestBase with MockitoSugar {
   val server = new Server(SINK_PORT_SECURE, SINK_PORT_INSECURE, KEY_PORT_INSECURE)
 
   before { server.start() }
@@ -36,6 +39,11 @@ class TestCoapSink extends WordSpec  with BeforeAndAfter with TestBase {
   "should start a CoapSink and Write an insecure Coap server" in {
     val props = getPropsInsecureSink
     val task = new CoapSinkTask
+
+
+    val context = mock[SinkTaskContext]
+    when(context.configs()).thenReturn(props)
+    task.initialize(context)
     task.start(props)
     val records = getTestRecords(10)
 

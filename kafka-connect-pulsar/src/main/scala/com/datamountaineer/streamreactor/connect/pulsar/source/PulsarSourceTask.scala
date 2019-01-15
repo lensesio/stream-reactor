@@ -39,14 +39,16 @@ class PulsarSourceTask extends SourceTask with StrictLogging {
 
   override def start(props: util.Map[String, String]): Unit = {
 
-    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/pulsar-source-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/pulsar-source-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
-    implicit val settings = PulsarSourceSettings(PulsarSourceConfig(props), props.getOrDefault("tasks.max", "1").toInt)
 
-    logger.info("Starting Pulsar source...")
+    val conf = if (context.configs().isEmpty) props else context.configs()
 
-    val name = props.getOrDefault("name", s"kafka-connect-pulsar-source-${UUID.randomUUID().toString}")
-    val convertersMap = buildConvertersMap(props, settings)
+    implicit val settings = PulsarSourceSettings(PulsarSourceConfig(conf), props.getOrDefault("tasks.max", "1").toInt)
+
+
+    val name = conf.getOrDefault("name", s"kafka-connect-pulsar-source-${UUID.randomUUID().toString}")
+    val convertersMap = buildConvertersMap(conf, settings)
 
     val messageConverter = PulsarMessageConverter(
       convertersMap,

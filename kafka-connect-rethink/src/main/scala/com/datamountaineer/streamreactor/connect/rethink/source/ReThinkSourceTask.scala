@@ -39,10 +39,12 @@ class ReThinkSourceTask extends SourceTask with StrictLogging {
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/rethink-source-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/rethink-source-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
 
-    val config = ReThinkSourceConfig(props)
+    val conf = if (context.configs().isEmpty) props else context.configs()
+
+    val config = ReThinkSourceConfig(conf)
     enableProgress = config.getBoolean(ReThinkConfigConstants.PROGRESS_COUNTER_ENABLED)
     lingerTimeout = config.getLong(ReThinkConfigConstants.SOURCE_LINGER_MS)
     lazy val r = RethinkDB.r

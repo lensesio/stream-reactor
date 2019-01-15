@@ -40,11 +40,13 @@ class MqttSinkTask extends SinkTask with StrictLogging {
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/mqtt-sink-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/mqtt-sink-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
 
-    MqttSinkConfig.config.parse(props)
-    val sinkConfig = new MqttSinkConfig(props)
+    val conf = if (context.configs().isEmpty) props else context.configs()
+
+    MqttSinkConfig.config.parse(conf)
+    val sinkConfig = new MqttSinkConfig(conf)
     enableProgress = sinkConfig.getBoolean(MqttConfigConstants.PROGRESS_COUNTER_ENABLED)
     val settings = MqttSinkSettings(sinkConfig)
 

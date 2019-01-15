@@ -42,11 +42,12 @@ class KuduSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/kudu-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/kudu-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
 
-    KuduConfig.config.parse(props)
-    val sinkConfig = new KuduConfig(props)
+    val conf = if (context.configs().isEmpty) props else context.configs()
+    KuduConfig.config.parse(conf)
+    val sinkConfig = new KuduConfig(conf)
     enableProgress = sinkConfig.getBoolean(KuduConfigConstants.PROGRESS_COUNTER_ENABLED)
     val settings = KuduSettings(sinkConfig)
 

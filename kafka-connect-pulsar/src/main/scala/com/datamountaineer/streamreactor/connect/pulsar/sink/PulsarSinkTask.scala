@@ -43,20 +43,23 @@ class PulsarSinkTask extends SinkTask with StrictLogging {
   private var settings : Option[PulsarSinkSettings] = None
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/pulsar-sink-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/pulsar-sink-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
 
-    PulsarSinkConfig.config.parse(props)
-    val sinkConfig = new PulsarSinkConfig(props)
+    val conf = if (context.configs().isEmpty) props else context.configs()
+
+    PulsarSinkConfig.config.parse(conf)
+    val sinkConfig = new PulsarSinkConfig(conf)
     enableProgress = sinkConfig.getBoolean(PulsarConfigConstants.PROGRESS_COUNTER_ENABLED)
     settings = Some(PulsarSinkSettings(sinkConfig))
+
 
     //if error policy is retry set retry interval
     if (settings.get.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
       context.timeout(sinkConfig.getInt(PulsarConfigConstants.ERROR_RETRY_INTERVAL).toLong)
     }
 
-    name = props.getOrDefault("name", s"kafka-connect-pulsar-sink-${UUID.randomUUID().toString}")
+    name = conf.getOrDefault("name", s"kafka-connect-pulsar-sink-${UUID.randomUUID().toString}")
     writer = Some(PulsarWriter(name, settings.get))
   }
 

@@ -103,15 +103,17 @@ class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfterAll with Mo
           consumerQueue.setMessageListener(queueMsgListener)
 
 
+          val props = getPropsMixJNDIWithSink(brokerUrl)
           val context = mock[SinkTaskContext]
           val topicsSet = new util.HashSet[TopicPartition]()
           topicsSet.add(new TopicPartition(kafkaTopic1, 0))
           topicsSet.add(new TopicPartition(kafkaTopic2, 0))
           when(context.assignment()).thenReturn(topicsSet)
+          when(context.configs()).thenReturn(props)
 
           val task = new JMSSinkTask
           task.initialize(context)
-          task.start(getPropsMixJNDIWithSink(brokerUrl))
+          task.start(props)
 
           val records = new java.util.ArrayList[SinkRecord]
           records.add(record1)

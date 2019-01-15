@@ -107,7 +107,11 @@ class FtpSourceTask extends SourceTask with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     logger.info("start")
     logger.info(manifest.printManifest())
-    val sourceConfig = new FtpSourceConfig(props)
+
+    val conf = if (context.configs().isEmpty) props else context.configs()
+
+    val sourceConfig = new FtpSourceConfig(conf)
+
     sourceConfig.ftpMonitorConfigs.foreach(cfg => {
       val style = if (cfg.tail) "tail" else "updates"
       logger.info(s"config tells us to track the ${style} of files in `${cfg.path}` to topic `${cfg.topic}")

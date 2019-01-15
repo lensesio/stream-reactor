@@ -45,11 +45,13 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/influx-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/influx-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
 
-    InfluxConfig.config.parse(props)
-    val sinkConfig = InfluxConfig(props)
+    val conf = if (context.configs().isEmpty) props else context.configs()
+
+    InfluxConfig.config.parse(conf)
+    val sinkConfig = InfluxConfig(conf)
     enableProgress = sinkConfig.getBoolean(InfluxConfigConstants.PROGRESS_COUNTER_ENABLED)
     val influxSettings = InfluxSettings(sinkConfig)
 

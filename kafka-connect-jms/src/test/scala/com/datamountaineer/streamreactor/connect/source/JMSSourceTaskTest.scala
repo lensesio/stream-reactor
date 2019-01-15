@@ -17,16 +17,19 @@
 package com.datamountaineer.streamreactor.connect.source
 
 import java.io.File
-import javax.jms.Session
 
+import javax.jms.Session
 import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.source.JMSSourceTask
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
 import org.apache.activemq.broker.jmx.QueueViewMBean
-import org.scalatest.BeforeAndAfterAll
+import org.apache.kafka.connect.source.SourceTaskContext
 import org.scalatest.concurrent.Eventually
+import org.mockito.Mockito._
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.mockito.MockitoSugar
 
 import scala.collection.JavaConverters._
 import scala.reflect.io.Path
@@ -35,7 +38,7 @@ import scala.reflect.io.Path
   * Created by andrew@datamountaineer.com on 24/03/2017. 
   * stream-reactor
   */
-class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll with Eventually {
+class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll with Eventually with MockitoSugar {
 
   override def afterAll(): Unit = {
     Path(AVRO_FILE).delete()
@@ -56,7 +59,12 @@ class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll with Eventually 
     broker.start()
 
     val props = getPropsMixCDI(brokerUrl)
+    val context = mock[SourceTaskContext]
+    when(context.configs()).thenReturn(props)
+
+
     val task = new JMSSourceTask()
+    task.initialize(context)
     task.start(props)
 
     //send in some records to the JMS queue

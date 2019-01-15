@@ -43,6 +43,7 @@ class TestHazelCastSinkTask extends TestBase with MockitoSugar {
     val context = mock[SinkTaskContext]
     val assignment = getAssignment
     when(context.assignment()).thenReturn(assignment)
+    when(context.configs()).thenReturn(props)
     val records = getTestRecords()
     val task = new HazelCastSinkTask
     //initialise the tasks context

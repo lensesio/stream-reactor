@@ -51,12 +51,14 @@ class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => Do
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    val taskConfig = Try(DocumentDbConfig(props)) match {
+    val config = if (context.configs().isEmpty) props else context.configs()
+
+    val taskConfig = Try(DocumentDbConfig(config)) match {
       case Failure(f) => throw new ConnectException("Couldn't start Azure Document DB Sink due to configuration error.", f)
       case Success(s) => s
     }
 
-    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/documentdb-sink-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/documentdb-sink-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
 
     implicit val settings = DocumentDbSinkSettings(taskConfig)

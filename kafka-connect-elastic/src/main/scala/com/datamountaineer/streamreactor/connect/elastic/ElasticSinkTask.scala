@@ -37,13 +37,15 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/elastic-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/elastic-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
-    ElasticConfig.config.parse(props)
-    val sinkConfig = ElasticConfig(props)
+
+    val conf = if (context.configs().isEmpty) props else context.configs()
+
+    ElasticConfig.config.parse(conf)
+    val sinkConfig = ElasticConfig(conf)
     enableProgress = sinkConfig.getBoolean(ElasticConfigConstants.PROGRESS_COUNTER_ENABLED)
     writer = Some(ElasticWriter(config = sinkConfig, context = context))
-
   }
 
   /**

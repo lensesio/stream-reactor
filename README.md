@@ -59,7 +59,12 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
-**1.2.0** PENDING
+**1.2.1 PENDING**
+
+*   Upgrade to kafka 2.1.0
+*   Add custom delimiter to Redis Sink
+
+**1.2.0**
 
 *   Upgrade to Kafka 2.0
 *   New Hive source and sink connector supporting Avro, Parquet and ORC
