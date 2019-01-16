@@ -16,15 +16,15 @@
 
 package com.datamountaineer.streamreactor.connect.source
 
-import java.io.File
-import javax.jms.{Connection, Session}
 
+import java.util.UUID
+
+import javax.jms.Session
 import com.datamountaineer.streamreactor.connect.TestBase
+import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
 import com.datamountaineer.streamreactor.connect.jms.source.readers.JMSReader
-import org.apache.activemq.ActiveMQConnectionFactory
-import org.apache.activemq.broker.BrokerService
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
@@ -45,15 +45,19 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
   "should read message from JMS queue without converters" in testWithBrokerOnPort { (conn, brokerUrl) =>
 
     val messageCount = 9
+    val queueName = UUID.randomUUID().toString
+    val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
 
     val session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)
-    val queue = session.createQueue(QUEUE1)
+    val queue = session.createQueue(queueName)
     val queueProducer = session.createProducer(queue)
     val messages = getTextMessages(messageCount, session)
     messages.foreach(m => queueProducer.send(m))
 
-    val props = getProps1Queue(brokerUrl)
-    val config = JMSConfig(props)
+    val kcql = getKCQL(kafkaTopic, queueName, "QUEUE")
+    val props = getProps(kcql, brokerUrl)
+
+    val config = JMSConfig(props.asJava)
     val settings = JMSSettings(config, false)
     val reader = JMSReader(settings)
 
@@ -67,15 +71,19 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
   "should read and convert to avro" in testWithBrokerOnPort { (conn, brokerUrl) =>
 
     val messageCount = 10
+    val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
+    val queueName = UUID.randomUUID().toString
+
+    val kcql = getKCQLAvroSource(kafkaTopic, queueName, "QUEUE")
+    val props = getProps(kcql, brokerUrl) ++ Map(AvroConverter.SCHEMA_CONFIG -> getAvroProp(queueName))
 
     val session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)
-    val avro = session.createQueue(AVRO_QUEUE)
+    val avro = session.createQueue(queueName)
     val avroProducer = session.createProducer(avro)
     val avroMessages = getBytesMessage(messageCount, session)
     avroMessages.foreach(m => avroProducer.send(m))
 
-    val props = getPropsMixCDIWithConverters(brokerUrl)
-    val config = JMSConfig(props)
+    val config = JMSConfig(props.asJava)
     val settings = JMSSettings(config, false)
     val reader = JMSReader(settings)
 
@@ -92,8 +100,11 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
   "should read messages from JMS queue with message selector" in testWithBrokerOnPort { (conn, brokerUrl) =>
     val messageCount = 10
 
+    val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
+    val topicName = UUID.randomUUID().toString
+
     val session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)
-    val topic = session.createTopic(TOPIC1)
+    val topic = session.createTopic(topicName)
     val topicProducer = session.createProducer(topic)
 
     val messages = getTextMessages(messageCount / 2, session).map { m =>
@@ -105,9 +116,9 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
     }
 
     val messageSelector = "Fruit='apples'"
-
-    val props = getProps1TopicWithMessageSelector(brokerUrl, messageSelector)
-    val config = JMSConfig(props)
+    val kcql = kcqlWithMessageSelector(kafkaTopic, topicName, messageSelector)
+    val props = getProps(kcql, brokerUrl)
+    val config = JMSConfig(props.asJava)
     val settings = JMSSettings(config, false)
     val reader = JMSReader(settings)
 

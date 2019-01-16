@@ -32,7 +32,7 @@ import scala.collection.JavaConverters._
   * @param namespace Avro schema namespace
   */
 private[bloomberg] class AvroSchemaGenerator(namespace: String) {
-  private val defaultValue: JsonNode = null
+  private val defaultValue: Object = null
 
   /**
     * Creates an avro schema for the given input. Only a handful of types are supported given the return types from BloombergFieldValueFn

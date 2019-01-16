@@ -67,7 +67,7 @@ class AvroSchemaGeneratorTest extends WordSpec with Matchers {
       map.put("k2", "minime")
 
       val expectedSchema = Schema.createRecord("ConnectDefault", null, namespace, false)
-      val default: JsonNode = null
+      val default: Object = null
       val fields = Seq(
         new Schema.Field("k1", AvroSchemaGenerator.optionalSchema(Schema.Type.INT), null, default),
         new Schema.Field("k2", AvroSchemaGenerator.optionalSchema(Schema.Type.STRING), null, default)

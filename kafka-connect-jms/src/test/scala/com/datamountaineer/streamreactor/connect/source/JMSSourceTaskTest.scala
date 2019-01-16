@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.connect.source
 
 import java.io.File
+import java.util.UUID
 
 import javax.jms.Session
 import com.datamountaineer.streamreactor.connect.TestBase
@@ -58,14 +59,19 @@ class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll with Eventually 
     broker.setTmpDataDirectory( new File(tempDir))
     broker.start()
 
-    val props = getPropsMixCDI(brokerUrl)
+    val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
+    val queueName = UUID.randomUUID().toString
+
+    val kcql = getKCQL(kafkaTopic, queueName, "QUEUE")
+    val props = getProps(kcql, brokerUrl)
+
     val context = mock[SourceTaskContext]
-    when(context.configs()).thenReturn(props)
+    when(context.configs()).thenReturn(props.asJava)
 
 
     val task = new JMSSourceTask()
     task.initialize(context)
-    task.start(props)
+    task.start(props.asJava)
 
     //send in some records to the JMS queue
     //KCQL_SOURCE_QUEUE
@@ -75,7 +81,7 @@ class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll with Eventually 
     val conn = connectionFactory.createConnection()
     conn.start()
     val session = conn.createSession(false, Session.CLIENT_ACKNOWLEDGE)
-    val queue = session.createQueue(QUEUE1)
+    val queue = session.createQueue(queueName)
     val queueProducer = session.createProducer(queue)
     val messages = getTextMessages(10, session)
     messages.foreach(m => {

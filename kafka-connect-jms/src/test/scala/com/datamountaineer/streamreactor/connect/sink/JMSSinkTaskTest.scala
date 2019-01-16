@@ -18,8 +18,9 @@ package com.datamountaineer.streamreactor.connect.sink
 
 import java.io.File
 import java.util
-import javax.jms.{Message, MessageListener, Session, TextMessage}
+import java.util.UUID
 
+import javax.jms.{Message, MessageListener, Session, TextMessage}
 import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.sink.JMSSinkTask
 import com.fasterxml.jackson.databind.node.{ArrayNode, IntNode}
@@ -58,11 +59,12 @@ class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfterAll with Mo
     Path(AVRO_FILE).delete()
   }
 
-  "JMSSinkTask" should {
-    "redirect the connect records to JMS" in {
+  "JMSSinkTask write records to JMS" in {
 
-      val kafkaTopic1 = TOPIC1
-      val kafkaTopic2 = TOPIC2
+      val kafkaTopic1 = s"kafka1-${UUID.randomUUID().toString}"
+      val kafkaTopic2 = s"kafka2-${UUID.randomUUID().toString}"
+      val queueName = UUID.randomUUID().toString
+      val topicName = UUID.randomUUID().toString
 
       val schema = getSchema
       val struct = getStruct(schema)
@@ -78,7 +80,7 @@ class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfterAll with Mo
 
         using(connection.createSession(false, Session.AUTO_ACKNOWLEDGE)) { session =>
 
-          val topic = session.createTopic(TOPIC1)
+          val topic = session.createTopic(topicName)
           val topicConsumer = session.createConsumer(topic)
 
           val topicMsgListener = new MessageListener {
@@ -90,7 +92,7 @@ class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfterAll with Mo
           }
           topicConsumer.setMessageListener(topicMsgListener)
 
-          val queue = session.createQueue(QUEUE1)
+          val queue = session.createQueue(queueName)
           val consumerQueue = session.createConsumer(queue)
 
           val queueMsgListener = new MessageListener {
@@ -102,8 +104,8 @@ class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfterAll with Mo
           }
           consumerQueue.setMessageListener(queueMsgListener)
 
-
-          val props = getPropsMixJNDIWithSink(brokerUrl)
+          val kcql = s"${getKCQL(topicName, kafkaTopic1, "TOPIC")};${getKCQL(queueName, kafkaTopic2, "QUEUE")}"
+          val props = getSinkProps(kcql, kafkaTopic1, brokerUrl)
           val context = mock[SinkTaskContext]
           val topicsSet = new util.HashSet[TopicPartition]()
           topicsSet.add(new TopicPartition(kafkaTopic1, 0))
@@ -176,5 +178,4 @@ class JMSSinkTaskTest extends TestBase with Using with BeforeAndAfterAll with Mo
         }
       }
     }
-  }
 }
