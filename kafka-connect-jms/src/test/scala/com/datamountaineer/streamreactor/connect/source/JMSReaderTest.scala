@@ -124,6 +124,7 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
 
     messages.foreach(m => topicProducer.send(m))
 
+    Thread.sleep(2000)
 
     val messagesRead = reader.poll()
     messagesRead.size shouldBe messageCount / 2

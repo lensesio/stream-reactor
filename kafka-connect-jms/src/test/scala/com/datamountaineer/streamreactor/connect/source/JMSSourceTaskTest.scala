@@ -88,6 +88,8 @@ class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll with Eventually 
       m.acknowledge()
     })
 
+    Thread.sleep(2000)
+
     val records = task.poll().asScala
     records.size shouldBe 10
     records.head.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
