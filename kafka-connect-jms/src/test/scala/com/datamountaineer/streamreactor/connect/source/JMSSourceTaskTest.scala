@@ -68,7 +68,6 @@ class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll with Eventually 
     val context = mock[SourceTaskContext]
     when(context.configs()).thenReturn(props.asJava)
 
-
     val task = new JMSSourceTask()
     task.initialize(context)
     task.start(props.asJava)
@@ -89,15 +88,12 @@ class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll with Eventually 
       m.acknowledge()
     })
 
-    val processedRecords = eventually {
-      val records = task.poll().asScala
-      records.size shouldBe 10
-      records.head.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
-      messagesLeftToAckShouldBe(10)
-      records
-    }
+    val records = task.poll().asScala
+    records.size shouldBe 10
+    records.head.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
+    messagesLeftToAckShouldBe(10)
 
-    processedRecords.foreach(task.commitRecord)
+    records.foreach(task.commitRecord)
 
     messagesLeftToAckShouldBe(0)
 

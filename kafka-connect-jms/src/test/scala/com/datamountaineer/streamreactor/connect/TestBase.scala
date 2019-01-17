@@ -171,7 +171,7 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
       test(conn, brokerUrl)
     }
 
-  def testWithBroker(port: Int = getFreePort, clientID: Option[String])(test: String => Unit): Unit = {
+  def testWithBroker(port: Int = getFreePort, clientID: Option[String])(test: String => Unit): BrokerService = {
     val broker = new BrokerService()
     broker.setPersistent(false)
     broker.setUseJmx(false)
@@ -185,5 +185,6 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     broker.setTmpDataDirectory(new File(tempDir))
     broker.start()
     test(brokerUrl)
+    broker
   }
 }

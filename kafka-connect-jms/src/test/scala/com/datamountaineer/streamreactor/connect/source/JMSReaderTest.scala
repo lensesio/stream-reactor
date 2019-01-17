@@ -45,7 +45,7 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
   "should read message from JMS queue without converters" in testWithBrokerOnPort { (conn, brokerUrl) =>
 
     val messageCount = 9
-    val queueName = UUID.randomUUID().toString
+    val queueName = s"no-converters-${UUID.randomUUID().toString}"
     val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
 
     val session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)
@@ -72,7 +72,7 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
 
     val messageCount = 10
     val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
-    val queueName = UUID.randomUUID().toString
+    val queueName = s"avro-${UUID.randomUUID().toString}"
 
     val kcql = getKCQLAvroSource(kafkaTopic, queueName, "QUEUE")
     val props = getProps(kcql, brokerUrl) ++ Map(AvroConverter.SCHEMA_CONFIG -> getAvroProp(queueName))
@@ -101,7 +101,7 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
     val messageCount = 10
 
     val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
-    val topicName = UUID.randomUUID().toString
+    val topicName = s"selector-${UUID.randomUUID().toString}"
 
     val session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)
     val topic = session.createTopic(topicName)
@@ -124,20 +124,18 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
 
     messages.foreach(m => topicProducer.send(m))
 
-    eventually {
-      val messagesRead = reader.poll()
-      messagesRead.size shouldBe messageCount / 2
-      messagesRead.keySet.foreach { msg =>
-        msg.getStringProperty("Fruit") shouldBe "apples"
-      }
 
-      val sourceRecord = messagesRead.head._2
-      sourceRecord.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
-      sourceRecord.value().isInstanceOf[Struct] shouldBe true
-
-      val struct = sourceRecord.value().asInstanceOf[Struct]
-      struct.getMap("properties").asScala shouldBe Map("Fruit" -> "apples")
+    val messagesRead = reader.poll()
+    messagesRead.size shouldBe messageCount / 2
+    messagesRead.keySet.foreach { msg =>
+      msg.getStringProperty("Fruit") shouldBe "apples"
     }
-  }
 
+    val sourceRecord = messagesRead.head._2
+    sourceRecord.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
+    sourceRecord.value().isInstanceOf[Struct] shouldBe true
+
+    val struct = sourceRecord.value().asInstanceOf[Struct]
+    struct.getMap("properties").asScala shouldBe Map("Fruit" -> "apples")
+  }
 }
