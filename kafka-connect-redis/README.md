@@ -30,7 +30,25 @@ We can prefix the name of the `Key` using the INSERT statement:
 
     INSERT INTO FX- SELECT price from yahoo-fx PK symbol
 
-This will create key with names `FX-USDGBP` , `FX-EURGBP` etc
+This will create keys with names `FX-USDGBP` , `FX-EURGBP` etc
+
+You may want to store in Redis the fields [firstName, lastName, age, salary] from the topic redis-topic:
+
+    {"firstName": "John", "lastName": "Smith", "age":30, "salary": 4830}
+
+You may want to use a **composite primary key** of firstName and lastName.
+To achieve that using this particular Kafka Redis Sink Connector, you need to specify the KCQL as:
+
+    SELECT * FROM redis-topic PK firstName, lastName
+
+In this case the `Key` would be `John.Smith`
+
+You may also want to use a **custom delimiter** in the **composite primary key** of firstName and lastName.
+In this case you need to set the optional configuration property ``connect.redis.pk.delimiter`` to dash:
+
+    property connect.redis.pk.delimiter=-
+
+In this case the key would be `John-Smith`
 
 ## Insert sorted set
 
