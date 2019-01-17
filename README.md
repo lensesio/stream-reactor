@@ -40,7 +40,7 @@ A collection of components to build a real time ingestion pipeline.
 | Hazelcast      | Sink   | Kafka connect Hazelcast sink to write Kafka topic payloads to Hazelcast.                      | [Docs](https://lenses.stream/connectors/sink/hazelcast.html)              |
 | HBase          | Sink   | Kafka connect HBase sink to write Kafka topic payloads to HBase.                              | [Docs](https://lenses.stream/connectors/sink/hbase.html)                  |
 | Hive           | Source | Kafka connect Hive source to read data from Hive/HDFS into Kafka.                             | [Docs](https://lenses.stream/connectors/source/hive.html)
-| Hive           | Sink   | Kafka connect Hive sink to read data Kafka and load into Hive/HDFS                            | [Docs](https://lenses.stream/connectors/source/hive.html)|
+| Hive           | Sink   | Kafka connect Hive sink to read data Kafka and load into Hive/HDFS                            | [Docs](https://lenses.stream/connectors/sink/hive.html)|
 | Kudu           | Sink   | Kafka connect Kudu sink to write Kafka topic payloads to Kudu.                                | [Docs](https://lenses.stream/connectors/sink/kudu.html)                   |
 | InfluxDb       | Sink   | Kafka connect InfluxDb sink to write Kafka topic payloads to InfluxDb.                        | [Docs](https://lenses.stream/connectors/sink/influx.html)                 |
 | JMS            | Source | Kafka connect JMS source to write from JMS to Kafka topics.                                   | [Docs](https://lenses.stream/connectors/source/jms.html)                  |
@@ -59,7 +59,13 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
-**1.2.0** PENDING
+**1.3.0** PENDING
+
+*   Fixed Set support on the Cassandra source connector
+*   Fixed records out of order when insert on the Kudu sink connector
+*   Added support for custom delimiter in composite primary keys on the Redis sink connector
+
+**1.2.0**
 
 *   Upgrade to Kafka 2.0
 *   New Hive source and sink connector supporting Avro, Parquet and ORC
