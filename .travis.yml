@@ -9,4 +9,4 @@ jdk: oraclejdk8
 
 script: ./gradlew test 
 
-after_success: ./int_test.sh
+#after_success: ./int_test.sh
