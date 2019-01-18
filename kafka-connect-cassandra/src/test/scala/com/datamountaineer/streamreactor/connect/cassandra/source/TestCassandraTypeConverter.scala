@@ -143,6 +143,29 @@ class TestCassandraTypeConverter extends WordSpec
     sr.get("listCol") shouldBe "[\"A\",\"B\",\"C\"]"
   }
 
+  "should convert a Cassandra row to a Struct with set" in {
+    val cassandraTypeConverter = new CassandraTypeConverter(codecRegistry = codecRegistry, setting = getSettings(false))
+    val row = mock[Row]
+    val cols = TestUtils.getColumnDefs
+    when(row.getColumnDefinitions).thenReturn(cols)
+    mockRow(row)
+
+    when(row.getSet("setCol", classOf[String])).thenReturn(new java.util.HashSet[String]{
+      add("A");
+      add("B");
+      add("C");
+    })
+
+    val colDefSet = cassandraTypeConverter.getStructColumns(row, Set.empty)
+    val sr: Struct = cassandraTypeConverter.convert(row, "test", colDefSet, None)
+    val schema = sr.schema()
+    checkCols(schema)
+
+    sr.getArray("setCol").get(0).toString shouldBe "A"
+    sr.getArray("setCol").get(1).toString shouldBe "B"
+    sr.getArray("setCol").get(2).toString shouldBe "C"
+  }
+
   "should convert a Cassandra row to a Struct no columns" in {
     val cassandraTypeConverter = new CassandraTypeConverter(codecRegistry = codecRegistry, setting = getSettings(false))
     val row = mock[Row]
@@ -203,6 +226,7 @@ class TestCassandraTypeConverter extends WordSpec
     when(row.getString("timeuuidCol")).thenReturn("111111")
     when(row.getBytes("blobCol")).thenReturn(ByteBuffer.allocate(10))
     when(row.getList("listCol", classOf[String])).thenReturn(new java.util.ArrayList[String])
+    when(row.getSet("setCol", classOf[String])).thenReturn(new java.util.HashSet[String])
     when(row.getMap("mapCol", classOf[String], classOf[String])).thenReturn(new java.util.HashMap[String, String])
     when(row.getDate("dateCol")).thenReturn(com.datastax.driver.core.LocalDate.fromDaysSinceEpoch(1))
     when(row.getTime("timeCol")).thenReturn(0)
