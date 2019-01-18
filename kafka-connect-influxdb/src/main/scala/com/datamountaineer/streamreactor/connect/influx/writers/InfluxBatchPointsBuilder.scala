@@ -297,15 +297,23 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
       case value => sys.error(s"Can't select field:'$field' because it leads to value:'$value' (${Option(value).map(_.getClass.getName).getOrElse("")})is not a valid type for InfluxDb.")
     }
 
+    val processFieldFn = (field: String, v: Any) => v match {
+      //create a new field for each element in the array
+      case value: java.util.ArrayList[_] => value.toList.zipWithIndex foreach {
+        case(el, i) => populateFieldFn(field + i, el)
+      }
+
+      case value => populateFieldFn(field, value)
+    }
 
     //ignore all the fields we should ignore
     kcqlCache.fieldsAndPaths.filter(p => !kcqlCache.ignoredFields.contains(p._1.toString))
       .foreach { case (field, path) =>
         if (field.getName == "*") {
-          getAllFieldsFn({ case (f, value) => populateFieldFn(f, value) })
+          getAllFieldsFn({ case (f, value) => processFieldFn(f, value) })
         }
         else {
-          Option(extractorFn(path)).foreach(populateFieldFn(field.getAlias, _))
+          Option(extractorFn(path)).foreach(processFieldFn(field.getAlias, _))
         }
       }
 
