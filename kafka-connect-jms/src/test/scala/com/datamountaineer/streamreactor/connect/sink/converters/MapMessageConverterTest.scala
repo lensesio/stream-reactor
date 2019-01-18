@@ -16,8 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.sink.converters
 
-import javax.jms.MapMessage
+import java.util.UUID
 
+import javax.jms.MapMessage
 import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.converters.MapMessageConverter
@@ -31,8 +32,13 @@ import scala.reflect.io.Path
 class MapMessageConverterTest extends WordSpec with Matchers with Using with BeforeAndAfterAll with TestBase {
   val converter = new MapMessageConverter()
 
-  val props = getPropsMixJNDIWithSink()
-  val config = JMSConfig(props)
+  val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
+  val topicName = UUID.randomUUID().toString
+  val queueName = UUID.randomUUID().toString
+  val kcqlT = getKCQL(topicName, kafkaTopic1, "TOPIC")
+  val kcqlQ = getKCQL(queueName, kafkaTopic1, "QUEUE")
+  val props = getProps(s"$kcqlQ;$kcqlT", JMS_URL)
+  val config = JMSConfig(props.asJava)
   val settings = JMSSettings(config, true)
   val setting = settings.settings.head
 
@@ -46,7 +52,7 @@ class MapMessageConverterTest extends WordSpec with Matchers with Using with Bef
 
       using(connectionFactory.createConnection()) { connection =>
         using(connection.createSession(false, 1)) { session =>
-          val record = getSinkRecords.head
+          val record = getSinkRecords(kafkaTopic1).head
           val msg = converter.convert(record, session, setting)._2.asInstanceOf[MapMessage]
 
           Option(msg).isDefined shouldBe true

@@ -16,6 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.sink
 
+import java.util.UUID
+
 import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.sink.JMSSinkConnector
 import org.scalatest.BeforeAndAfterAll
@@ -33,7 +35,10 @@ class JMSSinkConnectorTest extends TestBase  with BeforeAndAfterAll {
   }
 
   "should start a JMSSinkConnector" in {
-    val props = getProps1Queue()
+    val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
+    val queueName = UUID.randomUUID().toString
+    val kcql = getKCQL(queueName, kafkaTopic1, "QUEUE")
+    val props = getSinkProps(kcql, kafkaTopic1, "")
     val connector = new JMSSinkConnector()
     connector.start(props)
     val configs = connector.taskConfigs(1)

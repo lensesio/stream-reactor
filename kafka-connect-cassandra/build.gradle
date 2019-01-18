@@ -51,5 +51,7 @@ project(":kafka-connect-cassandra") {
         testCompile("org.cassandraunit:cassandra-unit:$cassandraUnitVersion") {
             exclude group: "org.slf4j", module: "log4j-over-slf4j"
         }
+
+        testRuntime 'org.ow2.asm:asm-all:4.2'
     }
 }

@@ -17,8 +17,9 @@
 package com.datamountaineer.streamreactor.connect.sink.converters
 
 import java.nio.ByteBuffer
-import javax.jms.BytesMessage
+import java.util.UUID
 
+import javax.jms.BytesMessage
 import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.converters.AvroMessageConverter
@@ -36,8 +37,15 @@ import scala.reflect.io.Path
 class AvroMessageConverterTest extends WordSpec with Matchers with Using with TestBase with BeforeAndAfterAll {
   val converter = new AvroMessageConverter()
   private lazy val avroData = new AvroData(128)
-  val props = getPropsMixJNDIWithSink()
-  val config = JMSConfig(props)
+  val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
+  val topicName = UUID.randomUUID().toString
+  val queueName = UUID.randomUUID().toString
+
+  val kcqlT = getKCQL(topicName, kafkaTopic1, "TOPIC")
+  val kcqlQ = getKCQL(queueName, kafkaTopic1, "QUEUE")
+
+  val props = getProps(s"$kcqlQ;$kcqlT", JMS_URL)
+  val config = JMSConfig(props.asJava)
   val settings = JMSSettings(config, true)
   val setting = settings.settings.head
 
@@ -52,7 +60,7 @@ class AvroMessageConverterTest extends WordSpec with Matchers with Using with Te
       using(connectionFactory.createConnection()) { connection =>
         using(connection.createSession(false, 1)) { session =>
 
-          val record = getSinkRecords.head
+          val record = getSinkRecords(kafkaTopic1).head
           val msg = converter.convert(record, session, setting)._2.asInstanceOf[BytesMessage]
 
           Option(msg).isDefined shouldBe true

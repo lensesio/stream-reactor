@@ -16,6 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.source
 
+import java.util.UUID
+
 import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
 import com.datamountaineer.streamreactor.connect.jms.source.JMSSourceConnector
@@ -36,14 +38,21 @@ class JMSSourceConnectorTest extends TestBase with BeforeAndAfterAll {
 
 
   "should start a JMS Source Connector" in {
-   val props = getPropsMixCDI()
-   val connector = new JMSSourceConnector()
-   connector.start(props = props)
-   val configs = connector.taskConfigs(2)
-   val config1 = configs.asScala.head.asScala
-   val config2 = configs.asScala.last.asScala
-   config1(JMSConfigConstants.KCQL) shouldBe KCQL_SOURCE_QUEUE
-   config2(JMSConfigConstants.KCQL) shouldBe KCQL_SOURCE_TOPIC
-   connector.stop()
+    val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
+    val queueName = UUID.randomUUID().toString
+    val topicName = UUID.randomUUID().toString
+
+    val kcqlT = getKCQL(kafkaTopic, topicName, "TOPIC")
+    val kcqlQ = getKCQL(kafkaTopic, queueName, "QUEUE")
+    val props = getProps(s"$kcqlQ;$kcqlT", "")
+
+    val connector = new JMSSourceConnector()
+    connector.start(props = props.asJava)
+    val configs = connector.taskConfigs(2)
+    val config1 = configs.asScala.head.asScala
+    val config2 = configs.asScala.last.asScala
+    config1(JMSConfigConstants.KCQL) shouldBe kcqlQ
+    config2(JMSConfigConstants.KCQL) shouldBe kcqlT
+    connector.stop()
  }
 }

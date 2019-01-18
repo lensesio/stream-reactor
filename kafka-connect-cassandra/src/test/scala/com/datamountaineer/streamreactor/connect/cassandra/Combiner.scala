@@ -21,7 +21,7 @@ import com.datamountaineer.streamreactor.connect.cassandra.source._
 import org.scalatest.{BeforeAndAfterAll, Suites}
 
 /**
-  * Created by andrew@datamountaineer.com on 06/08/2017. 
+  * Created by andrew@datamountaineer.com on 06/08/2017.
   * stream-reactor
   */
 class Combiner extends Suites(

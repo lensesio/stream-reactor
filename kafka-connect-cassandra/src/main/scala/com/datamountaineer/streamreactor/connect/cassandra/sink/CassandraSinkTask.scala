@@ -48,15 +48,19 @@ class CassandraSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    val taskConfig = Try(new CassandraConfigSink(props)) match {
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-sink-ascii.txt")).mkString + s" $version")
+    logger.info(manifest.printManifest())
+
+    val config = if (context.configs().isEmpty) props else context.configs()
+
+    val taskConfig = Try(new CassandraConfigSink(config)) match {
       case Failure(f) => throw new ConnectException("Couldn't start CassandraSink due to configuration error.", f)
       case Success(s) => s
     }
 
     val sinkSettings = CassandraSettings.configureSink(taskConfig)
     enableProgress = sinkSettings.enableProgress
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-sink-ascii.txt")).mkString + s" v $version")
-    logger.info(manifest.printManifest())
+
     writer = Some(CassandraWriter(connectorConfig = taskConfig, context = context))
   }
 

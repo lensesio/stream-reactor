@@ -17,16 +17,20 @@
 package com.datamountaineer.streamreactor.connect.source
 
 import java.io.File
-import javax.jms.Session
+import java.util.UUID
 
+import javax.jms.Session
 import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.source.JMSSourceTask
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
 import org.apache.activemq.broker.jmx.QueueViewMBean
-import org.scalatest.BeforeAndAfterAll
+import org.apache.kafka.connect.source.SourceTaskContext
 import org.scalatest.concurrent.Eventually
+import org.mockito.Mockito._
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.mockito.MockitoSugar
 
 import scala.collection.JavaConverters._
 import scala.reflect.io.Path
@@ -35,7 +39,7 @@ import scala.reflect.io.Path
   * Created by andrew@datamountaineer.com on 24/03/2017. 
   * stream-reactor
   */
-class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll with Eventually {
+class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll with Eventually with MockitoSugar {
 
   override def afterAll(): Unit = {
     Path(AVRO_FILE).delete()
@@ -55,9 +59,18 @@ class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll with Eventually 
     broker.setTmpDataDirectory( new File(tempDir))
     broker.start()
 
-    val props = getPropsMixCDI(brokerUrl)
+    val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
+    val queueName = UUID.randomUUID().toString
+
+    val kcql = getKCQL(kafkaTopic, queueName, "QUEUE")
+    val props = getProps(kcql, brokerUrl)
+
+    val context = mock[SourceTaskContext]
+    when(context.configs()).thenReturn(props.asJava)
+
     val task = new JMSSourceTask()
-    task.start(props)
+    task.initialize(context)
+    task.start(props.asJava)
 
     //send in some records to the JMS queue
     //KCQL_SOURCE_QUEUE
@@ -67,7 +80,7 @@ class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll with Eventually 
     val conn = connectionFactory.createConnection()
     conn.start()
     val session = conn.createSession(false, Session.CLIENT_ACKNOWLEDGE)
-    val queue = session.createQueue(QUEUE1)
+    val queue = session.createQueue(queueName)
     val queueProducer = session.createProducer(queue)
     val messages = getTextMessages(10, session)
     messages.foreach(m => {
@@ -75,15 +88,14 @@ class JMSSourceTaskTest extends TestBase with BeforeAndAfterAll with Eventually 
       m.acknowledge()
     })
 
-    val processedRecords = eventually {
-      val records = task.poll().asScala
-      records.size shouldBe 10
-      records.head.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
-      messagesLeftToAckShouldBe(10)
-      records
-    }
+    Thread.sleep(2000)
 
-    processedRecords.foreach(task.commitRecord)
+    val records = task.poll().asScala
+    records.size shouldBe 10
+    records.head.valueSchema().toString shouldBe JMSStructMessage.getSchema().toString
+    messagesLeftToAckShouldBe(10)
+
+    records.foreach(task.commitRecord)
 
     messagesLeftToAckShouldBe(0)
 

@@ -25,17 +25,21 @@ import com.datamountaineer.streamreactor.connect.converters.MsgKey
 import com.datamountaineer.streamreactor.connect.converters.source.{AvroConverter, BytesConverter, JsonSimpleConverter}
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
 import com.datamountaineer.streamreactor.connect.serialization.AvroSerializer
-import com.sksamuel.avro4s.{SchemaFor}
+import com.sksamuel.avro4s.SchemaFor
 import io.moquette.proto.messages.{AbstractMessage, PublishMessage}
 import io.moquette.server.Server
 import io.moquette.server.config.ClasspathConfig
 import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.sink.SinkTaskContext
+import org.apache.kafka.connect.source.SourceTaskContext
+import org.mockito.Mockito.when
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
 import scala.collection.JavaConversions._
 import scala.util.Try
 
-class MqttSourceTaskTest extends WordSpec with Matchers with BeforeAndAfter {
+class MqttSourceTaskTest extends WordSpec with Matchers with BeforeAndAfter with MockitoSugar {
   val classPathConfig = new ClasspathConfig()
 
   val connection = "tcp://0.0.0.0:1883"
@@ -89,7 +93,8 @@ class MqttSourceTaskTest extends WordSpec with Matchers with BeforeAndAfter {
 
     val studentSchema = SchemaFor[Student]()
     val task = new MqttSourceTask
-    task.start(Map(
+
+    val props = Map(
       MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
       MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> connectionTimeout.toString,
       MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $target1 SELECT * FROM $source1 WITHCONVERTER=`${classOf[BytesConverter].getCanonicalName}`;INSERT INTO $target2 SELECT * FROM $source2 WITHCONVERTER=`${classOf[JsonSimpleConverter].getCanonicalName}`;INSERT INTO $target3 SELECT * FROM $source3 WITHCONVERTER=`${classOf[AvroConverter].getCanonicalName}`",
@@ -99,7 +104,11 @@ class MqttSourceTaskTest extends WordSpec with Matchers with BeforeAndAfter {
       MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
       MqttConfigConstants.HOSTS_CONFIG -> connection,
       MqttConfigConstants.QS_CONFIG -> qs.toString
-    ))
+    )
+    val context = mock[SourceTaskContext]
+    when(context.configs()).thenReturn(props)
+    task.initialize(context)
+    task.start(props)
     Thread.sleep(2000)
 
 

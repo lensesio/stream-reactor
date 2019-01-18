@@ -48,13 +48,17 @@ class MongoSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    val taskConfig = Try(MongoConfig(props)) match {
+
+    val conf = if (context.configs().isEmpty) props else context.configs()
+
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/mongo-ascii.txt")).mkString + s" $version")
+    logger.info(manifest.printManifest())
+
+    val taskConfig = Try(MongoConfig(conf)) match {
       case Failure(f) => throw new ConnectException("Couldn't start Mongo Sink due to configuration error.", f)
       case Success(s) => s
     }
 
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/mongo-ascii.txt")).mkString + s" v $version")
-    logger.info(manifest.printManifest())
     writer = Some(MongoWriter(taskConfig, context = context))
     enableProgress = taskConfig.getBoolean(MongoConfigConstants.PROGRESS_COUNTER_ENABLED)
   }

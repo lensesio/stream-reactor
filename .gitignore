@@ -68,3 +68,4 @@ classes/*
 /charts/
 /.vscode
 /data
+/kafka-connect-*/it/build
