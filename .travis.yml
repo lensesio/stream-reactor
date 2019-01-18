@@ -7,6 +7,6 @@ services:
 
 jdk: oraclejdk8
 
-script: ./gradlew test -x signArchives
+script: ./gradlew test
 
-after_success: ./gradlew kafka-connect-hive:fatJar -x test -x signArchives && ./int_test.sh
+after_success: ./gradlew kafka-connect-hive:fatJar -x test && ./int_test.sh
