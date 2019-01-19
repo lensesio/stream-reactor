@@ -21,9 +21,11 @@ project(":kafka-connect-rabbitmq") {
 
     ext {
         rabbitMQVersion = "5.5.0"
+        rabbitMQMockVersion = "1.0.8"
     }
 
     dependencies {
-        compile "com.rabbitmq:amqp-client:$rabbitMQVersion"
+        implementation "com.rabbitmq:amqp-client:$rabbitMQVersion"
+        testImplementation("com.github.fridujo:rabbitmq-mock:$rabbitMQMockVersion")
     }
 }

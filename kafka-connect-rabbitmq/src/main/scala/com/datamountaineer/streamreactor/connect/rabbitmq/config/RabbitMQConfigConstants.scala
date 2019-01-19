@@ -7,7 +7,7 @@ object RabbitMQConfigConstants {
 
     //Default Configuration
     val HOST_CONFIG = s"${CONNECTOR_PREFIX}.${CONNECTION_HOST_SUFFIX}"
-    val HOST_DOC = "Contains the RabbitMQ connection end points."
+    val HOST_DOC = "Contains the RabbitMQ Server hostname or IP."
     val HOST_DISPLAY = "RabbitMQ connection endpoints"
 
     val KCQL_CONFIG = s"${CONNECTOR_PREFIX}.${KCQL_PROP_SUFFIX}"
@@ -31,7 +31,7 @@ object RabbitMQConfigConstants {
     val PORT_DEFAULT = 5672
 
     val VIRTUAL_HOST_CONFIG = s"${CONNECTOR_PREFIX}.virtual.host"
-    val VIRTUAL_HOST_DOC = "Endpoint of the broker"
+    val VIRTUAL_HOST_DOC = "Contains the endpoint of the broker"
     val VIRTUAL_HOST_DISPLAY = "Virtual Host"
     val VIRTUAL_HOST_DEFAULT = "/"
 
@@ -49,6 +49,16 @@ object RabbitMQConfigConstants {
           |i.e. com.datamountaineer.streamreactor.connect.source.converters.AvroConverter""".stripMargin
     private[config] val DEFAULT_CONVERTER_DISPLAY = "Default Converter class"
     private[config] val DEFAULT_CONVERTER_DEFAULT = ""
+
+    val THROW_ON_CONVERT_ERRORS_CONFIG = s"${CONNECTOR_PREFIX}.converter.throw.on.error"
+    private[config] val THROW_ON_CONVERT_ERRORS_DOC = "If set to false the conversion exception will be swallowed and everything carries on BUT the message is lost!!; true will throw the exception.Default is false."
+    private[config] val THROW_ON_CONVERT_ERRORS_DISPLAY = "Throw error on conversion"
+    private[config] val THROW_ON_CONVERT_ERRORS_DEFAULT = false
+
+    val AVRO_CONVERTERS_SCHEMA_FILES_CONFIG = "connect.source.converter.avro.schemas"
+    val AVRO_CONVERTERS_SCHEMA_FILES_DOC = "If the AvroConverter is used you need to provide an avro Schema to be able to read and translate the raw bytes to an avro record. The format is $QUEUE=$PATH_TO_AVRO_SCHEMA_FILE"
+    val AVRO_CONVERTERS_SCHEMA_FILES_DISPLAY  = "Path to Avro Schema Files"
+    val AVRO_CONVERTERS_SCHEMA_FILES_DEFAULT = ""
 
     object ConfigGroups {
         val CONNECTION = "Connection"

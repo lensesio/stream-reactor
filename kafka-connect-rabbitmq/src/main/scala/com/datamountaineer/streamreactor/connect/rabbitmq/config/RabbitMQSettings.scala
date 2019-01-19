@@ -1,14 +1,15 @@
 package com.datamountaineer.streamreactor.connect.rabbitmq.config
 
+import java.util
+
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.{BytesConverter, Converter}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 
 import scala.util.{Failure, Success, Try}
-import scala.collection.JavaConversions._
 
-case class RabbitMQSettings(hostname: String,
+case class RabbitMQSettings(host: String,
                             port: Int,
                             username: String,
                             password: String,
@@ -17,18 +18,28 @@ case class RabbitMQSettings(hostname: String,
                             sourcesToConvertersMap: Map[String,Converter],
                             pollingTimeout: Long) {
     val AUTO_ACK_MESSAGES = false
-    val DURABLE_QUEUE = true
+    object QUEUE {
+        val DURABLE = true
+        val EXCLUSIVE = false
+        val AUTO_DELETE = false
+    }
 }
 
 object RabbitMQSettings extends StrictLogging {
-    def apply(config: RabbitMQConfig): RabbitMQSettings = {
-        val hostname = config.getHost
-        val port = config.getPort
+    def apply(props: util.Map[String, String]): RabbitMQSettings = {
+        val config = RabbitMQConfig(props)
+        val host = config.getHost
+        val port = config.getPort match {
+            case x if 1 to 65535 contains x => x
+            case x => throw new ConfigException(s"${RabbitMQConfigConstants.PORT_CONFIG} should be between [1,65535]. Current value is $x")
+        }
         val username = config.getUsername
         val password = config.getSecret.value()
         val virtualHost = config.getString(RabbitMQConfigConstants.VIRTUAL_HOST_CONFIG)
-        val pollingTimeout = config.getLong(RabbitMQConfigConstants.POLLING_TIMEOUT_CONFIG)
-
+        val pollingTimeout = config.getLong(RabbitMQConfigConstants.POLLING_TIMEOUT_CONFIG) match {
+            case x if x <= 0 => throw new ConfigException(s"${RabbitMQConfigConstants.POLLING_TIMEOUT_CONFIG} should be positive. Current value is $x")
+            case x => x
+        }
         val kcql = config.getKCQL
 
         val converters = kcql.map(k => {
@@ -58,6 +69,6 @@ object RabbitMQSettings extends StrictLogging {
             topic -> converter
         }
 
-        RabbitMQSettings(hostname,port,username,password,virtualHost,kcql,sourcesToConvertersMap,pollingTimeout)
+        RabbitMQSettings(host,port,username,password,virtualHost,kcql,sourcesToConvertersMap,pollingTimeout)
     }
 }

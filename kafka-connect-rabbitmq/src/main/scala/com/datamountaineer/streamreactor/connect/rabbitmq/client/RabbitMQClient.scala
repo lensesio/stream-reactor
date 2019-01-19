@@ -1,13 +1,15 @@
 package com.datamountaineer.streamreactor.connect.rabbitmq.client
 
+import java.io.IOException
+
 import com.datamountaineer.streamreactor.connect.rabbitmq.config.RabbitMQSettings
 import com.rabbitmq.client._
+import com.typesafe.scalalogging.slf4j.StrictLogging
 
-abstract class RabbitMQClient(settings: RabbitMQSettings) {
+abstract class RabbitMQClient(settings: RabbitMQSettings) extends StrictLogging {
     val connection: Connection = openNewConnection()
-    val channels: List[Channel] = settings.kcql.map(e => connection.createChannel()).toList
-    val sourcesToKcql = settings.kcql.map(e => e.getSource -> e).toMap
-    val sourcesToChannels = sourcesToKcql.map(e => e._1 -> connection.createChannel())
+    logger.info(s"Connected successfully to ${settings.host}:${settings.port}")
+    val channels: List[Channel]
 
     def start(): Unit
 
@@ -17,13 +19,15 @@ abstract class RabbitMQClient(settings: RabbitMQSettings) {
     }
 
     private def openNewConnection(): Connection = {
-        val factory = new ConnectionFactory()
-        factory.setHost(settings.hostname)
+        val factory = getConnectionFactory()
+        factory.setHost(settings.host)
         factory.setPort(settings.port)
         factory.setUsername(settings.username)
         factory.setPassword(settings.password)
 
         factory.newConnection()
     }
+
+    protected def getConnectionFactory(): ConnectionFactory = new ConnectionFactory()
 }
 

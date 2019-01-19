@@ -1,7 +1,6 @@
 package com.datamountaineer.streamreactor.connect.rabbitmq.source
 
 import java.util
-import java.util.Collections
 
 import com.datamountaineer.streamreactor.connect.rabbitmq.config.{RabbitMQConfig, RabbitMQConfigConstants}
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
@@ -29,8 +28,8 @@ class RabbitMQSourceConnector extends SourceConnector with StrictLogging {
         val raw = configProps.get(RabbitMQConfigConstants.KCQL_CONFIG)
         require(raw != null && !raw.isEmpty,  s"No ${RabbitMQConfigConstants.KCQL_CONFIG} provided!")
 
-        val kcqls = raw.split(";")
-        val groups = ConnectorUtils.groupPartitions(kcqls.toList.asJava, maxTasks)
+        val kcql = raw.split(";")
+        val groups = ConnectorUtils.groupPartitions(kcql.toList.asJava, maxTasks)
 
         groups
             .filterNot(g => g.isEmpty)
