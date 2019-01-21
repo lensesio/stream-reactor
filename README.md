@@ -59,7 +59,7 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
-**1.2.1** PENDING
+**1.2.1**
 
 *   Fixed Set support on the Cassandra source connector
 *   Support Array type in InfluxDB connector
