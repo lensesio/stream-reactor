@@ -69,7 +69,7 @@
     }
   ],
   "properties": {
-    "zookeeper.connect": "localhost:2181",
+    "zookeeper.connect": "localhost:2182",
     "druidBeam.overlordPollPeriod": "PT5S"
   }
 }

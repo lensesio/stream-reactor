@@ -49,6 +49,7 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
 //  }
 
   var miniCluster: Option[MiniCluster] = None
+  val zkPort = 2181
 
   override def beforeAll() {
     val workDir = "target/kite-minicluster-workdir-hbase"
@@ -56,7 +57,7 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
     .Builder()
       .workDir(workDir)
       .bindIP("localhost")
-      .zkPort(2181)
+      .zkPort(zkPort)
       .addService(classOf[HdfsService])
       .addService(classOf[ZookeeperService])
       .addService(classOf[HBaseService])
@@ -107,7 +108,7 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
       when(fieldsExtractor.get(struct1)).thenReturn(Seq("firstName" -> "Alex".fromString(), "age" -> 30.fromInt()))
       when(fieldsExtractor.get(struct2)).thenReturn(Seq("firstName" -> "Mara".fromString(), "age" -> 22.fromInt(), "threshold" -> 12.4.fromDouble()))
 
-      HbaseHelper.autoclose(HbaseReaderHelper.createConnection) { connection =>
+      HbaseHelper.autoclose(HbaseReaderHelper.createConnection(zkPort)) { connection =>
         implicit val conn = connection
         try {
           HbaseTableHelper.createTable(tableName, columnFamily)
@@ -170,7 +171,7 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
       when(fieldsExtractor.get(struct1)).thenReturn(Seq("firstName" -> "Alex".fromString(), "age" -> 30.fromInt()))
       when(fieldsExtractor.get(struct2)).thenReturn(Seq("firstName" -> "Mara".fromString(), "age" -> 22.fromInt(), "threshold" -> 12.4.fromDouble()))
 
-      HbaseHelper.autoclose(HbaseReaderHelper.createConnection) { connection =>
+      HbaseHelper.autoclose(HbaseReaderHelper.createConnection(zkPort)) { connection =>
         implicit val conn = connection
         try {
           HbaseTableHelper.createTable(tableName, columnFamily)
@@ -238,7 +239,7 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
       when(fieldsExtractor.get(struct1)).thenReturn(Seq("firstName" -> "Alex".fromString(), "age" -> 30.fromInt()))
       when(fieldsExtractor.get(struct2)).thenReturn(Seq("firstName" -> "Mara".fromString(), "age" -> 22.fromInt(), "threshold" -> 12.4.fromDouble()))
 
-      HbaseHelper.autoclose(HbaseReaderHelper.createConnection) { connection =>
+      HbaseHelper.autoclose(HbaseReaderHelper.createConnection(zkPort)) { connection =>
         implicit val conn = connection
         try {
           //HbaseTableHelper.createTable(tableName, columnFamily)
