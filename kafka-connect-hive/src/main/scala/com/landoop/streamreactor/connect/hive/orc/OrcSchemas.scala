@@ -18,6 +18,11 @@ object OrcSchemas {
     case Category.LONG => Schema.OPTIONAL_INT64_SCHEMA
     case Category.SHORT => Schema.OPTIONAL_INT16_SCHEMA
     case Category.STRING => Schema.OPTIONAL_STRING_SCHEMA
+    case Category.VARCHAR => Schema.OPTIONAL_STRING_SCHEMA
+    case Category.CHAR => Schema.OPTIONAL_STRING_SCHEMA
+    case Category.DATE => Schema.OPTIONAL_STRING_SCHEMA
+    case Category.TIMESTAMP => Schema.OPTIONAL_STRING_SCHEMA
+    case Category.BYTE => Schema.OPTIONAL_BYTES_SCHEMA
     case Category.STRUCT => toKafkaStruct(schema)
   }
 
