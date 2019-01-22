@@ -25,13 +25,8 @@ import org.apache.hadoop.hbase.{CellUtil, HBaseConfiguration, TableName}
 import scala.collection.JavaConversions._
 
 object HbaseReaderHelper {
-
-  def createConnection(port: Int) : Connection = {
-    var hConf = HBaseConfiguration.create()
-    hConf.set("hbase.master", s"localhost:$port")
-    hConf.set("hbase.zookeeper.quorum", s"localhost:$port")
-    hConf.setInt("hbase.zookeeper.property.clientPort", port)
-    ConnectionFactory.createConnection(hConf)
+  def createConnection: Connection = {
+    ConnectionFactory.createConnection(HBaseConfiguration.create())
   }
 
   def getAllRecords(tableName: String, columnFamily: String)(implicit connection: Connection): List[HbaseRowData] = {

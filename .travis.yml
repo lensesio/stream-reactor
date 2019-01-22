@@ -7,6 +7,6 @@ services:
 
 jdk: oraclejdk8
 
-script: ./gradlew test
+script: ./gradlew shadowJar --parallel && ./gradlew test
 
-after_success: ./gradlew kafka-connect-hive:fatJar -x test && ./int_test.sh
+after_success: ./gradlew kafka-connect-hive:shadowJar -x test && ./int_test.sh
