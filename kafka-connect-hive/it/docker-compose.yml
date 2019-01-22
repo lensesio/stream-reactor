@@ -1,20 +1,6 @@
 version: "2"
 services:
 
-  fast-data-dev:
-    image: landoop/fast-data-dev:1.1.0
-    ports:
-      - "8083:8083"
-      - "9092:9092"
-      - "2181:2181"
-      - "3030:3030"
-    environment:
-      RUNTESTS: "0"
-      CONNECTORS: "redis"
-      ADV_HOST: "127.0.0.1"
-    volumes:
-      - ../build/libs/:/connectors/hive
-
   namenode:
     image: bde2020/hadoop-namenode:2.0.0-hadoop2.7.4-java8
     volumes:
@@ -62,6 +48,20 @@ services:
 
   hive-metastore-postgresql:
     image: bde2020/hive-metastore-postgresql:2.3.0
+
+  fast-data-dev:
+    image: landoop/fast-data-dev:1.1.0
+    ports:
+    - "8083:8083"
+    - "9092:9092"
+    - "2181:2181"
+    - "3030:3030"
+    environment:
+      RUNTESTS: "0"
+      CONNECTORS: "redis"
+      ADV_HOST: "127.0.0.1"
+    volumes:
+    - ../build/libs/:/connectors/hive
 
 volumes:
   namenode:

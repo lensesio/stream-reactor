@@ -21,7 +21,7 @@ for (( i=0; i<${connectorslen}; i++ )); do
     if [ -e "$COMPOSE_FILE" ]
     then
         echo "Docker compose has been detected for $CONNECTOR; starting up as daemon"
-        docker-compose -f $COMPOSE_FILE up -d
+        docker-compose -f $COMPOSE_FILE up -d -t 30
 
         for (( i=0 ; i<60 ; i++ )); do
             sleep 5
