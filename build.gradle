@@ -129,7 +129,7 @@ allprojects {
                         "Git-Repo": "${gitRepo}",
                         "Git-Commit-Hash": "${gitCommitHash}",
                         "Git-Tag": "${gitTag}",
-                        "StreamReactor-Docs" : "https://lenses.stream/"
+                        "StreamReactor-Docs" : "https://docs.lenses.io/connectors/"
             )
         }
     }
@@ -151,7 +151,7 @@ allprojects {
                     "Git-Repo": "${gitRepo}",
                     "Git-Commit-Hash": "${gitCommitHash}",
                     "Git-Tag": "${gitTag}",
-                    "StreamReactor-Docs" : "https://lenses.stream/"
+                    "StreamReactor-Docs" : "https://docs.lenses.io/connectors/"
             )
         }
 
