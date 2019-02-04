@@ -86,9 +86,13 @@ class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWrit
               logger.debug(s"ZADD $sortedSetName    score = $score     payload = ${payload.toString}")
               val response = jedis.zadd(sortedSetName, score, payload.toString)
 
-              if (response == 1)
+              if (response == 1) {
                 logger.debug("New element added")
-              else if (response == 0)
+                val ttl = KCQL.kcqlConfig.getTTL
+                if (ttl > 0) {
+                  jedis.expire(sortedSetName, ttl.toInt)
+                }
+              } else if (response == 0)
                 logger.debug("The element was already a member of the sorted set and the score was updated")
               response
             }
