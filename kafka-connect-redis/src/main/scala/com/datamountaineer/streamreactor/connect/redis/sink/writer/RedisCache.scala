@@ -74,7 +74,12 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
                 val extracted = convert(record, fields = KCQL.fieldsAndAliases, ignoreFields = KCQL.ignoredFields)
                 val key = optionalPrefix + keyBuilder.build(record)
                 val payload = convertValueToJson(extracted).toString
-                jedis.set(key, payload)
+                val ttl = KCQL.kcqlConfig.getTTL
+                if (ttl <= 0) {
+                  jedis.set(key, payload)
+                } else {
+                  jedis.setex(key, ttl.toInt, payload)
+                }
               }
             }
           })
