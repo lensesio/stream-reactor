@@ -46,6 +46,7 @@ class MqttWriter(client: MqttClient, settings: MqttSinkSettings)
   extends StrictLogging with ErrorHandler {
 
   //initialize error tracker
+  implicit val formats = DefaultFormats
   initialize(settings.maxRetries, settings.errorPolicy)
   val mappings: Map[String, Set[Kcql]] = settings.kcql.groupBy(k => k.getSource)
   val kcql = settings.kcql
