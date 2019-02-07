@@ -34,7 +34,7 @@ class MqttSourceConnector extends SourceConnector with StrictLogging {
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   /**
-    * States which SinkTask class to use
+    * States which SourceTask class to use
     **/
   override def taskClass(): Class[_ <: Task] = classOf[MqttSourceTask]
 
@@ -68,7 +68,7 @@ class MqttSourceConnector extends SourceConnector with StrictLogging {
   }
 
   /**
-    * Start the sink and set to configuration
+    * Start the source and set to configuration
     *
     * @param props A map of properties for the connector and worker
     **/

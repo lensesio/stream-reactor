@@ -25,7 +25,7 @@ import java.util.UUID
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.MsgKey
 import com.datamountaineer.streamreactor.connect.converters.source._
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
+import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
 import com.datamountaineer.streamreactor.connect.serialization.AvroSerializer
 import com.sksamuel.avro4s.{RecordFormat, SchemaFor}
@@ -457,6 +457,49 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
         mqttManager.close()
       }
     }
+  }
+
+  "MqttManager" should {
+    "process the messages on shared mqtt topic and create source records with Bytes schema with Wildcards" in {
+      val sourceTopic = "$share/connect/mqttSourceTopic"
+      val sourceKCQL = "`$share/connect/mqttSourceTopic`" // same with sourceTopic but with quotes
+      val target = "kafkaTopic"
+      val sourcesToConvMap = Map(sourceTopic -> new BytesConverter)
+      val props = Map(
+        MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
+        MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> connectionTimeout.toString,
+        MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $target SELECT * FROM $sourceKCQL",
+        MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> keepAlive.toString,
+        MqttConfigConstants.CLIENT_ID_CONFIG -> clientId,
+        MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
+        MqttConfigConstants.HOSTS_CONFIG -> connection,
+        MqttConfigConstants.QS_CONFIG -> qs.toString
+      )
+      val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
+        sourcesToConvMap,
+        MqttSourceSettings(MqttSourceConfig(props)))
+      Thread.sleep(2000)
+
+      val message = "message"
+
+      publishMessage(sourceTopic, message.getBytes)
+
+      Thread.sleep(2000)
+
+      var records = new util.LinkedList[SourceRecord]()
+      mqttManager.getRecords(records)
+
+      try {
+        records.size() shouldBe 1
+        records.get(0).topic() shouldBe target
+        records.get(0).value() shouldBe message.getBytes()
+        records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
+      }
+      finally {
+        mqttManager.close()
+      }
+    }
+
   }
 
   private def publishMessage(topic: String, payload: Array[Byte]) = {
