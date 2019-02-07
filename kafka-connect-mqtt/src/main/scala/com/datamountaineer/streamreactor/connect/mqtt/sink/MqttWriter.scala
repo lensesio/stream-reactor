@@ -28,6 +28,9 @@ import org.eclipse.paho.client.mqttv3.{MqttClient, MqttMessage}
 import scala.collection.JavaConversions._
 import scala.util.Try
 
+import org.json4s.native.JsonMethods._
+import org.json4s.DefaultFormats
+
 /**
   * Created by andrew@datamountaineer.com on 27/08/2017. 
   * stream-reactor
@@ -48,6 +51,7 @@ class MqttWriter(client: MqttClient, settings: MqttSinkSettings)
   val kcql = settings.kcql
   val msg = new MqttMessage()
   msg.setQos(settings.mqttQualityOfService)
+  var mqttTarget : String = ""
 
   def write(records: Set[SinkRecord]) = {
 
@@ -60,7 +64,14 @@ class MqttWriter(client: MqttClient, settings: MqttSinkSettings)
         kcqls.map(k => {
           //for all the records in the group transform
           records.map(r => {
-            (k.getTarget,
+            //get kafka message key if asked for
+            if (k.getTarget == "_key"){
+              mqttTarget = r.key().toString()
+            } else {
+              mqttTarget = k.getTarget
+            }
+            (mqttTarget,
+               //get kafka message payload
                Transform(
                   k.getFields.map(FieldConverter.apply),
                   k.getIgnoredFields.map(FieldConverter.apply),
@@ -72,7 +83,15 @@ class MqttWriter(client: MqttClient, settings: MqttSinkSettings)
             {
               case (t, json) => {
                 msg.setPayload(json.getBytes)
-                client.publish(t, msg)
+                
+                if (!Option(k.getDynamicTarget).getOrElse("").isEmpty) {
+                  var mqtttopic = (parse(json) \ k.getDynamicTarget).extractOrElse[String](null)
+                  if (mqtttopic.nonEmpty) {
+                    client.publish(mqtttopic, msg)
+                  }
+                } else {
+                  client.publish(t, msg)
+                }
               }
             }
           )
