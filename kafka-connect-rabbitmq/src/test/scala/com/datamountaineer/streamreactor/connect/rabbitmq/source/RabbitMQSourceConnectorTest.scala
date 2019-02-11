@@ -7,14 +7,14 @@ import scala.collection.JavaConverters._
 class RabbitMQSourceConnectorTest extends WordSpec with TestBase with Matchers {
     "RabbitMQSourceConnector" should {
         "map props with 1 KCQL to 1 group" in {
-            val props = getProps1KCQLNoConverters()
+            val props = getProps1KCQLBase()
             val connector = getSourceConnector(props)
             val tasks = connector.taskConfigs(1).asScala
             tasks.size shouldBe 1
         }
 
         "map props with 1 KCQL to 1 group when maxTasks>1" in {
-            val props = getProps1KCQLNoConverters()
+            val props = getProps1KCQLBase()
             val connector = getSourceConnector(props)
             val tasks = connector.taskConfigs(3).asScala
             tasks.size shouldBe 1

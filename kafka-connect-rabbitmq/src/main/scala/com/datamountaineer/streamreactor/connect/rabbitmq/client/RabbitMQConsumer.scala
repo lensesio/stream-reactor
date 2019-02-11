@@ -10,7 +10,7 @@ import com.rabbitmq.client._
 import org.apache.kafka.connect.source.SourceRecord
 
 class RabbitMQConsumer(settings: RabbitMQSettings) extends RabbitMQClient(settings) {
-    val queuesToKcql = settings.kcql.map(e => e.getSource -> e).toMap
+    private val queuesToKcql = settings.kcql.map(e => e.getSource -> e).toMap
     private val queuesToChannels = queuesToKcql.map(e => e._1 -> connection.createChannel())
     override val channels = queuesToChannels.map(e => e._2).toList
     private val blockingQueue = new LinkedBlockingQueue[SourceRecord]()

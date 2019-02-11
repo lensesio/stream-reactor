@@ -20,7 +20,7 @@ version '1.1.0-SNAPSHOT'
 project(":kafka-connect-rabbitmq") {
 
     ext {
-        rabbitMQVersion = "5.5.0"
+        rabbitMQVersion = "5.6.0"
         rabbitMQMockVersion = "1.0.8"
     }
 

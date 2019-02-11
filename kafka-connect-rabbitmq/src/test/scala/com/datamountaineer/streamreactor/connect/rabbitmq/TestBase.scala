@@ -6,7 +6,7 @@ import java.util
 import java.util.UUID
 
 import com.datamountaineer.streamreactor.connect.rabbitmq.config.{RabbitMQConfigConstants, RabbitMQSettings}
-import com.datamountaineer.streamreactor.connect.rabbitmq.client.RabbitMQConsumer
+import com.datamountaineer.streamreactor.connect.rabbitmq.client.{RabbitMQConsumer, RabbitMQProducer}
 import com.datamountaineer.streamreactor.connect.serialization.AvroSerializer
 import com.github.fridujo.rabbitmq.mock.MockConnectionFactory
 import com.rabbitmq.client.ConnectionFactory
@@ -20,8 +20,9 @@ import scala.reflect.io.Path
 
 trait TestBase extends Suite with BeforeAndAfterAll {
     case class Measurement(id: String, number: Int, timestamp: Long, value: Double)
-    val QUEUES = List("QUEUE0","QUEUE1","QUEUE2","QUEUE3")
-    val KAFKA_TOPICS = List("KAFKA_TOPIC0","KAFKA_TOPIC1","KAFKA_TOPIC2","KAFKA_TOPIC3")
+    val SOURCES = List("SOURCE0","SOURCE1","SOURCE2","SOURCE3")
+    val ROUTING_KEYS = List("ROUTING_KEY0","ROUTING_KEY1","ROUTING_KEY2","ROUTING_KEY3")
+    val TARGETS = List("TARGET0","TARGET1","TARGET2","TARGET3")
     val CONVERTERS_PACKAGE = "com.datamountaineer.streamreactor.connect.converters.source"
     val CONVERTERS = List(s"`$CONVERTERS_PACKAGE.JsonSimpleConverter`",s"`$CONVERTERS_PACKAGE.JsonConverterWithSchemaEvolution`",
         s"`$CONVERTERS_PACKAGE.AvroConverter`")
@@ -47,48 +48,63 @@ trait TestBase extends Suite with BeforeAndAfterAll {
         getBasePropsNoKCQL().asJava
     }
 
-    def getProps1KCQLNoConvertersNoHost() = {
+    def getProps1KCQLBaseNoHost() = {
         (getBasePropsNoKCQL() ++
-            Map(RabbitMQConfigConstants.KCQL_CONFIG -> getKCQLSourceString(KAFKA_TOPICS(0),QUEUES(0))) -
+            Map(RabbitMQConfigConstants.KCQL_CONFIG -> getKCQLSourceString(TARGETS(0),SOURCES(0))) -
             RabbitMQConfigConstants.HOST_CONFIG).asJava
     }
 
-    def getProps1KCQLNoConverters(port:String = PORT,
+    def getProps1KCQLBase(port:String = PORT,
                                   pollingTimeout:String = POLLING_TIMEOUT) = {
         (getBasePropsNoKCQL(port,pollingTimeout) ++
-            Map(RabbitMQConfigConstants.KCQL_CONFIG -> getKCQLSourceString(KAFKA_TOPICS(0),QUEUES(0)))
+            Map(RabbitMQConfigConstants.KCQL_CONFIG -> getKCQLSourceString(TARGETS(0),SOURCES(0)))
             ).asJava
     }
 
     def getProps1KCQLNonExistingConverterClass() = {
         (getBasePropsNoKCQL() ++
-            Map(RabbitMQConfigConstants.KCQL_CONFIG -> getKCQLSourceString(KAFKA_TOPICS(0),QUEUES(0),"`com.somepackage.someconverter`"))
+            Map(RabbitMQConfigConstants.KCQL_CONFIG -> getKCQLSourceString(TARGETS(0),SOURCES(0),"`com.somepackage.someconverter`"))
             ).asJava
     }
 
     def getProps1KCQLProvidedClassNotAConverterClass() = {
         (getBasePropsNoKCQL() ++
-            Map(RabbitMQConfigConstants.KCQL_CONFIG -> getKCQLSourceString(KAFKA_TOPICS(0),QUEUES(0),s"`${this.getClass.getCanonicalName}`"))
+            Map(RabbitMQConfigConstants.KCQL_CONFIG -> getKCQLSourceString(TARGETS(0),SOURCES(0),s"`${this.getClass.getCanonicalName}`"))
             ).asJava
     }
 
-    def getProps4KCQLNoConverters() = {
+    def getProps4KCQLBase() = {
         (getBasePropsNoKCQL() ++
-            Map(RabbitMQConfigConstants.KCQL_CONFIG -> (0 to QUEUES.length-1).map(i => getKCQLSourceString(KAFKA_TOPICS(i),QUEUES(i))).mkString(";"))
+            Map(RabbitMQConfigConstants.KCQL_CONFIG -> (0 to SOURCES.length-1).map(i => getKCQLSourceString(TARGETS(i),SOURCES(i))).mkString(";"))
             ).asJava
     }
 
     def getProps4KCQLsWithAllConverters() = {
         val converterClass = List("") ++ CONVERTERS
         (getBasePropsNoKCQL() ++
-            Map(RabbitMQConfigConstants.KCQL_CONFIG -> (0 to QUEUES.length-1).map(i => getKCQLSourceString(KAFKA_TOPICS(i),QUEUES(i),converterClass(i))).mkString(";"),
-                RabbitMQConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_CONFIG -> s"${QUEUES(3)}=$AVRO_FILE")
+            Map(RabbitMQConfigConstants.KCQL_CONFIG -> (0 to SOURCES.length-1).map(i => getKCQLSourceString(TARGETS(i),SOURCES(i),converterClass(i))).mkString(";"),
+                RabbitMQConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_CONFIG -> s"${SOURCES(3)}=$AVRO_FILE")
+            ).asJava
+    }
+
+    def getProps4KCQLsWithAllParameters() = {
+        val converterClass = List("") ++ CONVERTERS
+        (getBasePropsNoKCQL() ++
+            Map(RabbitMQConfigConstants.KCQL_CONFIG -> (0 to SOURCES.length-1).map(i => getKCQLSourceString(TARGETS(i),SOURCES(i),converterClass(i),ROUTING_KEYS(i))).mkString(";"),
+                RabbitMQConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_CONFIG -> s"${SOURCES(3)}=$AVRO_FILE")
             ).asJava
     }
 
     def getMockedRabbitMQConsumer(props: util.Map[String,String]): RabbitMQConsumer = {
         val settings = RabbitMQSettings(props)
         new RabbitMQConsumer(settings) {
+            override protected def getConnectionFactory(): ConnectionFactory = new MockConnectionFactory()
+        }
+    }
+
+    def getMockedRabbitMQProducer(props: util.Map[String,String]): RabbitMQProducer = {
+        val settings = RabbitMQSettings(props)
+        new RabbitMQProducer(settings) {
             override protected def getConnectionFactory(): ConnectionFactory = new MockConnectionFactory()
         }
     }
@@ -112,14 +128,25 @@ trait TestBase extends Suite with BeforeAndAfterAll {
         schemaFile.toAbsolutePath.toString
     }
 
-    def getKCQLSourceString(kafkaTopic: String,queue: String,converter: String = ""): String = {
-        val baseKCQL = s"INSERT INTO $kafkaTopic SELECT * FROM $queue"
+    def getKCQLSourceString(target: String,source: String,converter: String = "",routingkey: String = ""): String = {
+        val baseKCQL = s"INSERT INTO $target SELECT * FROM $source"
         val withConverter = s"WITHCONVERTER=$converter"
+        val withKey = s"WITHKEY ($routingkey)"
 
-        converter match {
-            case "" => s"$baseKCQL"
-            case _ => s"INSERT INTO $kafkaTopic SELECT * FROM $queue $withConverter"
+
+        var kcqlString = baseKCQL
+
+        kcqlString = converter match {
+            case "" => s"$kcqlString"
+            case _ => s"$kcqlString $withConverter"
         }
+
+        kcqlString = routingkey match {
+            case "" => kcqlString
+            case _ => s"$kcqlString $withKey"
+        }
+
+        kcqlString
     }
 
     private def getBasePropsNoKCQL(port:String = PORT,

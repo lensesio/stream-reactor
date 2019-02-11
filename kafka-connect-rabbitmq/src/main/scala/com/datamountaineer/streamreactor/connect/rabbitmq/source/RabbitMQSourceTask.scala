@@ -14,7 +14,7 @@ class RabbitMQSourceTask extends SourceTask with StrictLogging {
 
     override def start(props: util.Map[String, String]): Unit = {
         logger.info(manifest.printManifest())
-        consumer = initilizeConsumer(props)
+        consumer = initializeConsumer(props)
         consumer.start()
     }
 
@@ -28,7 +28,7 @@ class RabbitMQSourceTask extends SourceTask with StrictLogging {
 
     override def version(): String = manifest.version()
 
-    protected def initilizeConsumer(props: util.Map[String,String]): RabbitMQConsumer = {
+    protected def initializeConsumer(props: util.Map[String,String]): RabbitMQConsumer = {
         val rabbitMQSettings = RabbitMQSettings(props)
         RabbitMQConsumer(rabbitMQSettings)
     }

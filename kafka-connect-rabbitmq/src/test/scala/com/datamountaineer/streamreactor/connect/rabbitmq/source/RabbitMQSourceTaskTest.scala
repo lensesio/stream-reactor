@@ -6,7 +6,7 @@ import org.scalatest.{Matchers, WordSpec}
 
 class RabbitMQSourceTaskTest extends WordSpec with TestBase with Matchers {
     private val task = new RabbitMQSourceTask() {
-        override protected  def initilizeConsumer(props: java.util.Map[String,String]): RabbitMQConsumer = {
+        override protected  def initializeConsumer(props: java.util.Map[String,String]): RabbitMQConsumer = {
             getMockedRabbitMQConsumer(props)
         }
     }
@@ -38,10 +38,10 @@ class RabbitMQSourceTaskTest extends WordSpec with TestBase with Matchers {
     }
 
     private def sendMessages(): Unit = {
-        for (i <- 1 to 10) publishChannel.basicPublish("",QUEUES(0),null,TEST_MESSAGES.STRING)
-        for (i <- 1 to 10) publishChannel.basicPublish("",QUEUES(1),null,TEST_MESSAGES.JSON)
-        for (i <- 1 to 10) publishChannel.basicPublish("",QUEUES(2),null,TEST_MESSAGES.JSON)
-        for (i <- 1 to 10) publishChannel.basicPublish("",QUEUES(3),null,TEST_MESSAGES.AVRO)
+        for (i <- 1 to 10) publishChannel.basicPublish("",SOURCES(0),null,TEST_MESSAGES.STRING)
+        for (i <- 1 to 10) publishChannel.basicPublish("",SOURCES(1),null,TEST_MESSAGES.JSON)
+        for (i <- 1 to 10) publishChannel.basicPublish("",SOURCES(2),null,TEST_MESSAGES.JSON)
+        for (i <- 1 to 10) publishChannel.basicPublish("",SOURCES(3),null,TEST_MESSAGES.AVRO)
 
         Thread.sleep(PUBLISH_WAIT_TIME)
     }

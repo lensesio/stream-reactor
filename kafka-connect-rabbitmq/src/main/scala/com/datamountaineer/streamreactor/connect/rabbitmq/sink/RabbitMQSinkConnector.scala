@@ -1,4 +1,4 @@
-package com.datamountaineer.streamreactor.connect.rabbitmq.source
+package com.datamountaineer.streamreactor.connect.rabbitmq.sink
 
 import java.util
 
@@ -7,21 +7,19 @@ import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
-import org.apache.kafka.connect.source.SourceConnector
+import org.apache.kafka.connect.sink.SinkConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
-class RabbitMQSourceConnector extends SourceConnector with StrictLogging {
+class RabbitMQSinkConnector extends SinkConnector with StrictLogging {
     private var configProps: util.Map[String,String] = _
     private val configDef: ConfigDef = RabbitMQConfig.config
     private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
     override def start(props: util.Map[String, String]): Unit = configProps = props
 
-    override def stop(): Unit = {}
-
-    override def taskClass(): Class[_ <: Task] = classOf[RabbitMQSourceTask]
+    override def taskClass(): Class[_ <: Task] = classOf[RabbitMQSinkTask]
 
     override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
         val raw = configProps.get(RabbitMQConfigConstants.KCQL_CONFIG)
@@ -39,6 +37,8 @@ class RabbitMQSourceConnector extends SourceConnector with StrictLogging {
                 taskConfigs.toMap.asJava
             })
     }
+
+    override def stop(): Unit = {}
 
     override def config(): ConfigDef = configDef
 
