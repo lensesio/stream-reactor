@@ -57,7 +57,8 @@ class MqttManager(connectionFn: (MqttSourceSettings) => MqttConnectOptions,
 
   private def compareTopic(actualTopic: String, subscribedTopic: String): Boolean = {
     actualTopic.matches(
-      subscribedTopic.replaceAll("\\+", "[^/]+")
+      subscribedTopic.replaceAll("\\$share/.*?/", "")
+        .replaceAll("\\+", "[^/]+")
         .replaceAll("#", ".+")
         .replace("$", ".+"))
   }
