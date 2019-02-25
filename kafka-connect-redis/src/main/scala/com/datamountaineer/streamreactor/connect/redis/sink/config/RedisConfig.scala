@@ -31,7 +31,11 @@ object RedisConfig {
       "Connection", 3, ConfigDef.Width.MEDIUM, RedisConfigConstants.REDIS_PORT)
     .define(RedisConfigConstants.REDIS_PASSWORD, Type.PASSWORD, null, Importance.LOW, RedisConfigConstants.REDIS_PASSWORD_DOC,
       "Connection", 4, ConfigDef.Width.MEDIUM, RedisConfigConstants.REDIS_PASSWORD)
-    .define(RedisConfigConstants.KCQL_CONFIG, Type.STRING, Importance.HIGH, RedisConfigConstants.KCQL_CONFIG,
+    .define(RedisConfigConstants.REDIS_SSL_CONNECTION, Type.BOOLEAN, false, Importance.LOW, RedisConfigConstants.REDIS_SSL_CONNECTION_DOC,
+        "Connection", 5, ConfigDef.Width.MEDIUM, RedisConfigConstants.REDIS_SSL_CONNECTION)
+    .define(RedisConfigConstants.REDIS_TRUSTSTORE_FILEPATH, Type.STRING, null, Importance.LOW, RedisConfigConstants.REDIS_TRUSTSTORE_FILEPATH_DOC,
+        "Connection", 6, ConfigDef.Width.MEDIUM, RedisConfigConstants.REDIS_TRUSTSTORE_FILEPATH)
+    .define(RedisConfigConstants.KCQL_CONFIG, Type.STRING, Importance.HIGH, RedisConfigConstants.KCQL_DOC,
       "Connection", 1, ConfigDef.Width.MEDIUM, RedisConfigConstants.KCQL_CONFIG)
     .define(RedisConfigConstants.ERROR_POLICY, Type.STRING, RedisConfigConstants.ERROR_POLICY_DEFAULT,
       Importance.HIGH, RedisConfigConstants.ERROR_POLICY_DOC,
