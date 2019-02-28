@@ -468,7 +468,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
       val props = Map(
         MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
         MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> connectionTimeout.toString,
-        MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $target SELECT * FROM $sourceKCQL",
+        MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $target SELECT * FROM $sourceKCQL withregex=`\\$$share/connect/.*`",
         MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> keepAlive.toString,
         MqttConfigConstants.CLIENT_ID_CONFIG -> clientId,
         MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
