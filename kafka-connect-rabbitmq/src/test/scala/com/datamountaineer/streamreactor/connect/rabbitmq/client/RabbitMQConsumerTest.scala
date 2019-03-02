@@ -16,21 +16,21 @@ class RabbitMQConsumerTest extends WordSpec with TestBase with Matchers {
         }
 
         "be able to use the ByteConverter to generate SourceRecords" in {
-            publishChannel.basicPublish("",SOURCES(0),null,TEST_MESSAGES.STRING)
+            publishChannel.basicPublish("",SOURCES(0),null,TEST_MESSAGES.STRING_BYTES)
 
             Thread.sleep(PUBLISH_WAIT_TIME)
 
             consumer.getRecords() match {
                 case Some(records) => {
                     records.size() shouldBe 1
-                    records.get(0).value() shouldBe TEST_MESSAGES.STRING
+                    records.get(0).value() shouldBe TEST_MESSAGES.STRING_BYTES
                 }
                 case None => fail("No messages received")
             }
         }
 
         "be able to use the JsonSimpleConverter to generate SourceRecords" in {
-            publishChannel.basicPublish("",SOURCES(1),null,TEST_MESSAGES.JSON)
+            publishChannel.basicPublish("",SOURCES(1),null,TEST_MESSAGES.JSON_BYTES)
 
             Thread.sleep(PUBLISH_WAIT_TIME)
 
@@ -49,7 +49,7 @@ class RabbitMQConsumerTest extends WordSpec with TestBase with Matchers {
         }
 
         "be able to use the JsonConverterWithSchemaEvolution to generate SourceRecords" in {
-            publishChannel.basicPublish("",SOURCES(2),null,TEST_MESSAGES.JSON)
+            publishChannel.basicPublish("",SOURCES(2),null,TEST_MESSAGES.JSON_BYTES)
             Thread.sleep(PUBLISH_WAIT_TIME)
 
             consumer.getRecords() match {
@@ -86,9 +86,9 @@ class RabbitMQConsumerTest extends WordSpec with TestBase with Matchers {
         }
 
         "return the elements consumed from RabbitMQ exactly once and discard them" in {
-            for (i <- 1 to 260) publishChannel.basicPublish("",SOURCES(0),null,TEST_MESSAGES.STRING)
-            for (i <- 1 to 210) publishChannel.basicPublish("",SOURCES(1),null,TEST_MESSAGES.JSON)
-            for (i <- 1 to 290) publishChannel.basicPublish("",SOURCES(2),null,TEST_MESSAGES.JSON)
+            for (i <- 1 to 260) publishChannel.basicPublish("",SOURCES(0),null,TEST_MESSAGES.STRING_BYTES)
+            for (i <- 1 to 210) publishChannel.basicPublish("",SOURCES(1),null,TEST_MESSAGES.JSON_BYTES)
+            for (i <- 1 to 290) publishChannel.basicPublish("",SOURCES(2),null,TEST_MESSAGES.JSON_BYTES)
             for (i <- 1 to 240) publishChannel.basicPublish("",SOURCES(3),null,TEST_MESSAGES.AVRO)
 
             Thread.sleep(PUBLISH_WAIT_TIME)
@@ -106,9 +106,9 @@ class RabbitMQConsumerTest extends WordSpec with TestBase with Matchers {
             consumer.getRecords()
             consumer.stop()
 
-            for (i <- 1 to 10) publishChannel.basicPublish("",SOURCES(0),null,TEST_MESSAGES.STRING)
-            for (i <- 1 to 10) publishChannel.basicPublish("",SOURCES(1),null,TEST_MESSAGES.JSON)
-            for (i <- 1 to 10) publishChannel.basicPublish("",SOURCES(2),null,TEST_MESSAGES.JSON)
+            for (i <- 1 to 10) publishChannel.basicPublish("",SOURCES(0),null,TEST_MESSAGES.STRING_BYTES)
+            for (i <- 1 to 10) publishChannel.basicPublish("",SOURCES(1),null,TEST_MESSAGES.JSON_BYTES)
+            for (i <- 1 to 10) publishChannel.basicPublish("",SOURCES(2),null,TEST_MESSAGES.JSON_BYTES)
             for (i <- 1 to 10) publishChannel.basicPublish("",SOURCES(3),null,TEST_MESSAGES.AVRO)
 
             Thread.sleep(PUBLISH_WAIT_TIME)

@@ -1,5 +1,5 @@
-group 'com.datamountaineer'
-version '1.1.0-SNAPSHOT'
+//group 'com.datamountaineer'
+//version '1.1.0-SNAPSHOT'
 
 /*
  * Copyright 2017 Datamountaineer.
@@ -21,11 +21,11 @@ project(":kafka-connect-rabbitmq") {
 
     ext {
         rabbitMQVersion = "5.6.0"
-        rabbitMQMockVersion = "1.0.8"
+        rabbitMQMockVersion = "1.0.9"
     }
 
     dependencies {
-        implementation "com.rabbitmq:amqp-client:$rabbitMQVersion"
-        testImplementation("com.github.fridujo:rabbitmq-mock:$rabbitMQMockVersion")
+        compile "com.rabbitmq:amqp-client:$rabbitMQVersion"
+        testCompile("com.github.fridujo:rabbitmq-mock:$rabbitMQMockVersion")
     }
 }

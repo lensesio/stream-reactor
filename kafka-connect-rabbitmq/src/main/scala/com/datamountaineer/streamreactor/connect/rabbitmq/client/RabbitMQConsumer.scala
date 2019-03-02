@@ -24,7 +24,7 @@ class RabbitMQConsumer(settings: RabbitMQSettings) extends RabbitMQClient(settin
                     try {
                         val checkQueueChannel = connection.createChannel()
                         checkQueueChannel.queueDeclarePassive(queue)
-                        logger.info(s"Queue $queue already created. Keeping the existing queue settings")
+                        logger.info(s"Queue $queue already exists. Keeping the existing queue settings")
                         checkQueueChannel.close()
                     } catch {
                         case e: IOException => {

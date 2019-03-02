@@ -16,12 +16,19 @@ case class RabbitMQSettings(host: String,
                             virtualHost: String,
                             kcql: Set[Kcql],
                             sourcesToConvertersMap: Map[String,Converter],
+                            useTls: Boolean,
                             pollingTimeout: Long) {
     val AUTO_ACK_MESSAGES = false
     object QUEUE {
         val DURABLE = true
         val EXCLUSIVE = false
         val AUTO_DELETE = false
+    }
+    object EXCHANGE {
+        val DURABLE = true
+        val AUTO_DELETE = false
+        val INTERNAL = false
+        val TYPES = List("fanout","direct","topic")
     }
 }
 
@@ -41,6 +48,8 @@ object RabbitMQSettings extends StrictLogging {
             case x => x
         }
         val kcql = config.getKCQL
+
+        val useTls = config.getBoolean(RabbitMQConfigConstants.USE_TLS_CONFIG)
 
         val converters = kcql.map(k => {
             (k.getSource, if (k.getWithConverter == null) classOf[BytesConverter].getCanonicalName else k.getWithConverter)
@@ -69,6 +78,6 @@ object RabbitMQSettings extends StrictLogging {
             topic -> converter
         }
 
-        RabbitMQSettings(host,port,username,password,virtualHost,kcql,sourcesToConvertersMap,pollingTimeout)
+        RabbitMQSettings(host,port,username,password,virtualHost,kcql,sourcesToConvertersMap,useTls,pollingTimeout)
     }
 }

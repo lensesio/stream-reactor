@@ -9,39 +9,39 @@ class RabbitMQSourceConnectorTest extends WordSpec with TestBase with Matchers {
         "map props with 1 KCQL to 1 group" in {
             val props = getProps1KCQLBase()
             val connector = getSourceConnector(props)
-            val tasks = connector.taskConfigs(1).asScala
-            tasks.size shouldBe 1
+            val taskConfigs = connector.taskConfigs(1).asScala
+            taskConfigs.size shouldBe 1
         }
 
         "map props with 1 KCQL to 1 group when maxTasks>1" in {
             val props = getProps1KCQLBase()
             val connector = getSourceConnector(props)
-            val tasks = connector.taskConfigs(3).asScala
-            tasks.size shouldBe 1
+            val taskConfigs = connector.taskConfigs(3).asScala
+            taskConfigs.size shouldBe 1
         }
 
         "map props with some KCQLs to 1 group when KCQL>maxTasks=1" in {
             val props = getProps4KCQLsWithAllConverters()
             val connector = getSourceConnector(props)
-            val tasks = connector.taskConfigs(1).asScala
-            tasks.size shouldBe 1
+            val taskConfigs = connector.taskConfigs(1).asScala
+            taskConfigs.size shouldBe 1
         }
 
         "split props with some KCQLs to an equal number of groups when KCQL=maxTasks>1" in {
             val props = getProps4KCQLsWithAllConverters()
             val connector = getSourceConnector(props)
-            val tasks = connector.taskConfigs(4).asScala
-            tasks.size shouldBe 4
+            val taskConfigs = connector.taskConfigs(4).asScala
+            taskConfigs.size shouldBe 4
         }
 
         "map props with some KCQLs to the correct ammount of groups when KCQL>maxTasks>1" in {
             val props = getProps4KCQLsWithAllConverters()
             val connector = getSourceConnector(props)
-            val tasksCase1 = connector.taskConfigs(3).asScala
-            tasksCase1.size shouldBe 3
+            val taskConfigsCase1 = connector.taskConfigs(3).asScala
+            taskConfigsCase1.size shouldBe 3
 
-            val tasksCase2 = connector.taskConfigs(2).asScala
-            tasksCase2.size shouldBe 2
+            val taskConfigsCase2 = connector.taskConfigs(2).asScala
+            taskConfigsCase2.size shouldBe 2
         }
     }
 

@@ -22,20 +22,8 @@ class RabbitMQSinkConnector extends SinkConnector with StrictLogging {
     override def taskClass(): Class[_ <: Task] = classOf[RabbitMQSinkTask]
 
     override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
-        val raw = configProps.get(RabbitMQConfigConstants.KCQL_CONFIG)
-        require(raw != null && !raw.isEmpty,  s"No ${RabbitMQConfigConstants.KCQL_CONFIG} provided!")
-
-        val kcql = raw.split(";")
-        val groups = ConnectorUtils.groupPartitions(kcql.toList.asJava, maxTasks)
-
-        groups
-            .filterNot(g => g.isEmpty)
-            .map(g => {
-                val taskConfigs = new java.util.HashMap[String,String]
-                taskConfigs.putAll(configProps)
-                taskConfigs.put(RabbitMQConfigConstants.KCQL_CONFIG, g.mkString(";"))
-                taskConfigs.toMap.asJava
-            })
+        logger.info(s"Setting task configurations for $maxTasks workers.")
+        (1 to maxTasks).map(_ => configProps).toList.asJava
     }
 
     override def stop(): Unit = {}

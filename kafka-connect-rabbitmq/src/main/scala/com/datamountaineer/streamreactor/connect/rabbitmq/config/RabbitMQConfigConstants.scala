@@ -35,6 +35,11 @@ object RabbitMQConfigConstants {
     val VIRTUAL_HOST_DISPLAY = "Virtual Host"
     val VIRTUAL_HOST_DEFAULT = "/"
 
+    val USE_TLS_CONFIG = s"${CONNECTOR_PREFIX}.use.tls"
+    val USE_TLS_DOC = "Sets tls on/off. Default is on"
+    val USE_TLS_DISPLAY = "Use TLS"
+    val USE_TLS_DEFAULT = true
+
     val POLLING_TIMEOUT_CONFIG = s"${CONNECTOR_PREFIX}.polling.timeout"
     val POLLING_TIMEOUT_DOC = "Provides the timeout to poll incoming messages"
     val POLLING_TIMEOUT_DISPLAY = "Polling timeout"

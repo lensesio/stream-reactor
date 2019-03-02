@@ -11,6 +11,7 @@ import com.datamountaineer.streamreactor.connect.serialization.AvroSerializer
 import com.github.fridujo.rabbitmq.mock.MockConnectionFactory
 import com.rabbitmq.client.ConnectionFactory
 import com.sksamuel.avro4s.{RecordFormat, SchemaFor}
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import org.json4s._
 import org.json4s.native.Serialization._
@@ -22,6 +23,7 @@ trait TestBase extends Suite with BeforeAndAfterAll {
     case class Measurement(id: String, number: Int, timestamp: Long, value: Double)
     val SOURCES = List("SOURCE0","SOURCE1","SOURCE2","SOURCE3")
     val ROUTING_KEYS = List("ROUTING_KEY0","ROUTING_KEY1","ROUTING_KEY2","ROUTING_KEY3")
+    val EXCHANGE_TYPE = List("fanout","direct","topic","headers")
     val TARGETS = List("TARGET0","TARGET1","TARGET2","TARGET3")
     val CONVERTERS_PACKAGE = "com.datamountaineer.streamreactor.connect.converters.source"
     val CONVERTERS = List(s"`$CONVERTERS_PACKAGE.JsonSimpleConverter`",s"`$CONVERTERS_PACKAGE.JsonConverterWithSchemaEvolution`",
@@ -30,17 +32,19 @@ trait TestBase extends Suite with BeforeAndAfterAll {
     val USERNMAME = "admin"
     val PASSWORD = "admin"
     val PORT = "20050"
+    val USE_TLS = "false"
     val VIRTUAL_HOST = "/rabbitmq-endpoint"
     val POLLING_TIMEOUT = "300"
     val AVRO_FILE = getSchemaFile()
     val measurement = Measurement("gSOFG8FJSD9Sd",139,1534174039,42.1)
     val PUBLISH_WAIT_TIME = 1000 //millis
     implicit val formats = DefaultFormats
-    implicit val schema = SchemaFor[Measurement]()
+    implicit val avroMeasurementSchema = SchemaFor[Measurement]()
     implicit val recordFormat = RecordFormat[Measurement]
     object TEST_MESSAGES {
-        val STRING = "This is a test message".getBytes("UTF-8")
-        val JSON = write(measurement).getBytes("UTF-8")
+        val STRING_BYTES = "This is a test message".getBytes("UTF-8")
+        val JSON_STRING = write(measurement)
+        val JSON_BYTES = JSON_STRING.getBytes("UTF-8")
         val AVRO = AvroSerializer.getBytes(measurement)
     }
 
@@ -56,7 +60,7 @@ trait TestBase extends Suite with BeforeAndAfterAll {
 
     def getProps1KCQLBase(port:String = PORT,
                                   pollingTimeout:String = POLLING_TIMEOUT) = {
-        (getBasePropsNoKCQL(port,pollingTimeout) ++
+        (getBasePropsNoKCQL(port,USE_TLS,pollingTimeout) ++
             Map(RabbitMQConfigConstants.KCQL_CONFIG -> getKCQLSourceString(TARGETS(0),SOURCES(0)))
             ).asJava
     }
@@ -90,8 +94,15 @@ trait TestBase extends Suite with BeforeAndAfterAll {
     def getProps4KCQLsWithAllParameters() = {
         val converterClass = List("") ++ CONVERTERS
         (getBasePropsNoKCQL() ++
-            Map(RabbitMQConfigConstants.KCQL_CONFIG -> (0 to SOURCES.length-1).map(i => getKCQLSourceString(TARGETS(i),SOURCES(i),converterClass(i),ROUTING_KEYS(i))).mkString(";"),
+            Map(RabbitMQConfigConstants.KCQL_CONFIG -> (0 to SOURCES.length-1).map(i => getKCQLSourceString(TARGETS(i),SOURCES(i),converterClass(i),ROUTING_KEYS(i),EXCHANGE_TYPE(i))).mkString(";"),
                 RabbitMQConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_CONFIG -> s"${SOURCES(3)}=$AVRO_FILE")
+            ).asJava
+    }
+
+    def getProps4KCQLsWithAllParametersNoConverters() = {
+        val converterClass = List("") ++ CONVERTERS
+        (getBasePropsNoKCQL() ++
+            Map(RabbitMQConfigConstants.KCQL_CONFIG -> (0 to SOURCES.length-1).map(i => getKCQLSourceString(TARGETS(i),SOURCES(i),"",ROUTING_KEYS(i),EXCHANGE_TYPE(i))).mkString(";"))
             ).asJava
     }
 
@@ -128,34 +139,59 @@ trait TestBase extends Suite with BeforeAndAfterAll {
         schemaFile.toAbsolutePath.toString
     }
 
-    def getKCQLSourceString(target: String,source: String,converter: String = "",routingkey: String = ""): String = {
+    def getMeasurementSchema(): Schema = {
+        SchemaBuilder.struct
+            .field("id", Schema.STRING_SCHEMA)
+            .field("number", Schema.INT32_SCHEMA)
+            .field("timestamp", Schema.INT64_SCHEMA)
+            .field("value", Schema.FLOAT64_SCHEMA)
+            .build()
+    }
+
+    def getMeasurementStruct(schema: Schema): Struct = {
+        new Struct(schema)
+            .put("id", "gSOFG8FJSD9Sd")
+            .put("number", 139.toInt)
+            .put("timestamp", 1534174039L)
+            .put("value", 42.1)
+    }
+
+    def getKCQLSourceString(target: String,source: String,converter: String = "",withKey: String = "",withType: String = ""): String = {
         val baseKCQL = s"INSERT INTO $target SELECT * FROM $source"
-        val withConverter = s"WITHCONVERTER=$converter"
-        val withKey = s"WITHKEY ($routingkey)"
+        val withTypeKCQL = s"WITHTYPE $withType"
+        val withConverterKCQL = s"WITHCONVERTER=$converter"
+        val withKeyKCQL = s"WITHKEY ($withKey)"
 
 
         var kcqlString = baseKCQL
 
-        kcqlString = converter match {
-            case "" => s"$kcqlString"
-            case _ => s"$kcqlString $withConverter"
+        kcqlString = withType match {
+            case "" => kcqlString
+            case _ => s"$kcqlString $withTypeKCQL"
         }
 
-        kcqlString = routingkey match {
+        kcqlString = converter match {
+            case "" => s"$kcqlString"
+            case _ => s"$kcqlString $withConverterKCQL"
+        }
+
+        kcqlString = withKey match {
             case "" => kcqlString
-            case _ => s"$kcqlString $withKey"
+            case _ => s"$kcqlString $withKeyKCQL"
         }
 
         kcqlString
     }
 
     private def getBasePropsNoKCQL(port:String = PORT,
+                                   useTls:String = USE_TLS,
                                    pollingTimeout:String = POLLING_TIMEOUT): Map[String,String] = {
         Map(RabbitMQConfigConstants.HOST_CONFIG -> HOST,
             RabbitMQConfigConstants.USER_CONFIG -> USERNMAME,
             RabbitMQConfigConstants.PASSWORD_CONFIG -> PASSWORD,
             RabbitMQConfigConstants.PORT_CONFIG -> port,
             RabbitMQConfigConstants.VIRTUAL_HOST_CONFIG -> VIRTUAL_HOST,
+            RabbitMQConfigConstants.USE_TLS_CONFIG -> useTls,
             RabbitMQConfigConstants.POLLING_TIMEOUT_CONFIG -> pollingTimeout)
     }
 }

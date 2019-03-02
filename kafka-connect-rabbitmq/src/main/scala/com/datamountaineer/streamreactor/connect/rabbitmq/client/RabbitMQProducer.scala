@@ -1,5 +1,7 @@
 package com.datamountaineer.streamreactor.connect.rabbitmq.client
 
+import java.io.IOException
+
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.{FieldConverter, Transform}
 import com.datamountaineer.streamreactor.connect.rabbitmq.config.RabbitMQSettings
@@ -12,12 +14,42 @@ import scala.collection.JavaConversions._
 class RabbitMQProducer(settings: RabbitMQSettings) extends RabbitMQClient(settings) {
     private val kafkaTopicsToKcql = settings.kcql.map(e => e.getSource -> e).toMap
     private val exchangesToChannels = settings.kcql.map(e => e.getTarget -> connection.createChannel()).toMap
+    private val exchangesToKcql = settings.kcql.map(e => e.getTarget -> e).toMap
     override val channels = exchangesToChannels.map(e => e._2).toList
     //    private val exchangesToKcql = settings.kcql.map(e => e.getTarget -> e).toMap
     //    private val kafkaTopicsToExchanges = exchangesToKcql.map(e => e._2.getSource -> e._1)
 
     override def start(): Unit = {
+        exchangesToChannels.foreach(e => {
+            val exchange = e._1
+            val channel = e._2
+            exchangesToKcql.get(exchange) match {
+                case Some(kcql) => {
+                    try {
+                        val checkExchangeChannel = connection.createChannel()
+                        checkExchangeChannel.exchangeDeclarePassive(exchange)
+                        logger.info(s"Exchange $exchange already exists. Keeping the existing exchange settings")
+                        checkExchangeChannel.close()
+                    } catch {
+                        case e: IOException => {
+                            Option(kcql.getWithType) match {
+                                case Some(exchangeType) => {
+                                    if (settings.EXCHANGE.TYPES.contains(exchangeType))  {
+                                        channel.exchangeDeclare(exchange, exchangeType, settings.EXCHANGE.DURABLE, settings.EXCHANGE.AUTO_DELETE, settings.EXCHANGE.INTERNAL, null)
+                                        logger.info(s"Exchange $exchange not found. Creating a new one with default settings")
+                                    } else {
+                                        logger.error(s"Exchange $exchange cannot be created. Unsupported WITHTYPE provided. Supported types are {fanout,direct,topic}")
+                                    }
 
+                                }
+                                case None => logger.error(s"Exchange $exchange cannot be created. Please provide the exchange type in the WITHTYPE attribute.")
+                            }
+                        }
+                    }
+                }
+                case None => logger.error(s"Cannot get kcql configuration for exchange $exchange")
+            }
+        })
     }
 
     def write(records: List[SinkRecord]): Unit = {
@@ -35,8 +67,8 @@ class RabbitMQProducer(settings: RabbitMQSettings) extends RabbitMQClient(settin
 
     private def sendMessages(records: List[SinkRecord],channel:Channel,kcql: Kcql) {
         val exchange = kcql.getTarget
-        val routingKey = Option(kcql.getWithKeys.get(0)) match {
-            case Some(x) => x
+        val routingKey = Option(kcql.getWithKeys) match {
+            case Some(keys) => keys.get(0)
             case None => ""
         }
 
@@ -50,42 +82,7 @@ class RabbitMQProducer(settings: RabbitMQSettings) extends RabbitMQClient(settin
 
             channel.basicPublish(exchange, routingKey, null, message.getBytes("UTF-8"))
         })
-
     }
-
-//                exchangesToChannels.get(kcql.getTarget) match {
-//                    case Some(channel) => {
-//                        records.foreach(record => {
-//                            val message = Transform(
-//                                kcql.getFields.map(FieldConverter.apply),
-//                                kcql.getIgnoredFields.map(FieldConverter.apply),
-//                                record.valueSchema(),
-//                                record.value(),
-//                                kcql.hasRetainStructure())
-//
-//                            channel.basicPublish(kcql.getTarget, "", null, message.getBytes("UTF-8"))
-//                        })
-//                    }
-//                    case None => logger.error("No channel found")
-//                }
-//            }
-//        val json = Transform(
-//            kcql.getFields.map(FieldConverter.apply),
-//            kcql.getIgnoredFields.map(FieldConverter.apply),
-//            records.valueSchema(),
-//            records.value(),
-//            kcql.hasRetainStructure())
-//        recordGroups.foreach(group => )
-//        records.foreach(record => {
-//            kafkaTopicsToExchanges.get(record.topic()) match {
-//                case Some(exchange) => {
-//
-//                }
-//                case None => logger.error(s"Kafka topic ${record.topic()} does not have a corresponding exchange")
-//            }
-//            val channel = exchangesToChannels.get(exchange)
-//            channel.basicPublish(EXCHANGE_NAME, severity, null, message.getBytes("UTF-8"))
-//        })
 }
 
 object RabbitMQProducer {

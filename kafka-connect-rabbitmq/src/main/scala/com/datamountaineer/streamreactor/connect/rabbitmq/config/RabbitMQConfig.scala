@@ -20,8 +20,10 @@ object RabbitMQConfig {
           RabbitMQConfigConstants.PORT_DOC,RabbitMQConfigConstants.ConfigGroups.CONNECTION,4,ConfigDef.Width.MEDIUM,RabbitMQConfigConstants.PORT_DISPLAY)
       .define(RabbitMQConfigConstants.VIRTUAL_HOST_CONFIG,Type.STRING,RabbitMQConfigConstants.VIRTUAL_HOST_DEFAULT,Importance.LOW,
           RabbitMQConfigConstants.VIRTUAL_HOST_DOC,RabbitMQConfigConstants.ConfigGroups.CONNECTION,5,ConfigDef.Width.MEDIUM,RabbitMQConfigConstants.VIRTUAL_HOST_DISPLAY)
+      .define(RabbitMQConfigConstants.USE_TLS_CONFIG,Type.BOOLEAN,RabbitMQConfigConstants.USE_TLS_DEFAULT, Importance.MEDIUM,
+          RabbitMQConfigConstants.USE_TLS_DOC, RabbitMQConfigConstants.ConfigGroups.CONNECTION, 6, ConfigDef.Width.MEDIUM,RabbitMQConfigConstants.USE_TLS_CONFIG)
       .define(RabbitMQConfigConstants.POLLING_TIMEOUT_CONFIG,Type.LONG,RabbitMQConfigConstants.POLLING_TIMEOUT_DEFAULT, Importance.MEDIUM,
-          RabbitMQConfigConstants.POLLING_TIMEOUT_DOC, RabbitMQConfigConstants.ConfigGroups.CONNECTION, 6, ConfigDef.Width.MEDIUM,RabbitMQConfigConstants.POLLING_TIMEOUT_CONFIG)
+          RabbitMQConfigConstants.POLLING_TIMEOUT_DOC, RabbitMQConfigConstants.ConfigGroups.CONNECTION, 7, ConfigDef.Width.MEDIUM,RabbitMQConfigConstants.POLLING_TIMEOUT_CONFIG)
       //KCQL
       //Required
       .define(RabbitMQConfigConstants.KCQL_CONFIG,Type.STRING,Importance.HIGH,RabbitMQConfigConstants.KCQL_DOC,

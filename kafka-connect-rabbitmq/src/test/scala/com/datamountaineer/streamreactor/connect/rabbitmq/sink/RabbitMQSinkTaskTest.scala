@@ -1,16 +1,26 @@
-package com.datamountaineer.streamreactor.connect.rabbitmq.client
+package com.datamountaineer.streamreactor.connect.rabbitmq.sink
 
 import com.datamountaineer.streamreactor.connect.rabbitmq.TestBase
+import com.datamountaineer.streamreactor.connect.rabbitmq.client.{RabbitMQConsumer, RabbitMQProducer}
 import com.rabbitmq.client.{AMQP, DefaultConsumer, Envelope}
-import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 
-class RabbitMQProducerTest extends WordSpec with TestBase with Matchers with BeforeAndAfterEach {
+import scala.collection.JavaConverters._
+
+class RabbitMQSinkTaskTest extends WordSpec with TestBase with Matchers with BeforeAndAfterEach {
     val schema = getMeasurementSchema()
     val struct = getMeasurementStruct(schema)
     private val props = getProps4KCQLsWithAllParametersNoConverters()
-    private val producer = getMockedRabbitMQProducer(props)
+    private val task = new RabbitMQSinkTask() {
+        override protected  def initializeProducer(props: java.util.Map[String,String]): RabbitMQProducer = {
+            getMockedRabbitMQProducer(props)
+        }
+    }
+    task.start(props)
+
+    private val producer:RabbitMQProducer = getPrivateField(task,classOf[RabbitMQSinkTask],"producer").asInstanceOf[RabbitMQProducer]
+//    private val producer = getMockedRabbitMQProducer(props)
     private val consumerChannel = producer.connection.createChannel()
     private val DEFAULT_QUEUE = consumerChannel.queueDeclare().getQueue()
     private val consumer = new DefaultConsumer(consumerChannel) {
@@ -30,31 +40,27 @@ class RabbitMQProducerTest extends WordSpec with TestBase with Matchers with Bef
         consumerChannel.queueBind(DEFAULT_QUEUE,TARGETS(elem),"")
     }
     consumerChannel.basicConsume(DEFAULT_QUEUE,true,consumer)
-    producer.start()
+//    producer.start()
 
     override def beforeEach(): Unit = {
         consumer.empty()
     }
 
-    "RabbitMQProducer" should {
-        "write nothing if an empty list is passed" in {
-            producer.write(List.empty)
-            Thread.sleep(PUBLISH_WAIT_TIME)
-            consumer.messages.size shouldBe 0
-        }
-
-        "write the elements provided exactly once" in {
+    "RabbitMQSinkTask" should {
+        "return write the messages to RabbitMQ" in {
             val messages = generateSinkRecords()
-            producer.write(messages)
+            task.put(messages.asJava)
+
             Thread.sleep(PUBLISH_WAIT_TIME)
             consumer.messages.size shouldBe 1000
             consumer.messages.foreach(e => e shouldBe TEST_MESSAGES.JSON_STRING)
         }
 
-        "not write any elements when stopped" in {
-            producer.stop()
-            val record = new SinkRecord(SOURCES(0), 0, null, null, schema, struct, 1)
-            producer.write(List.fill(100)(record))
+        "stop writing messages when the producer has been stopped" in {
+            task.stop()
+            val messages = generateSinkRecords()
+            task.put(messages.asJava)
+
             Thread.sleep(PUBLISH_WAIT_TIME)
             consumer.messages.size shouldBe 0
         }

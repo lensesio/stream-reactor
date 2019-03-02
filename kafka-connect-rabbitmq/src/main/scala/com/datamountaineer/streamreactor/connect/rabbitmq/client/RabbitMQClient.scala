@@ -24,6 +24,7 @@ abstract class RabbitMQClient(settings: RabbitMQSettings) extends StrictLogging 
         factory.setPort(settings.port)
         factory.setUsername(settings.username)
         factory.setPassword(settings.password)
+        if (settings.useTls != false) factory.useSslProtocol()
 
         factory.newConnection()
     }

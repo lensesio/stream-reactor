@@ -38,9 +38,9 @@ class RabbitMQSourceTaskTest extends WordSpec with TestBase with Matchers {
     }
 
     private def sendMessages(): Unit = {
-        for (i <- 1 to 10) publishChannel.basicPublish("",SOURCES(0),null,TEST_MESSAGES.STRING)
-        for (i <- 1 to 10) publishChannel.basicPublish("",SOURCES(1),null,TEST_MESSAGES.JSON)
-        for (i <- 1 to 10) publishChannel.basicPublish("",SOURCES(2),null,TEST_MESSAGES.JSON)
+        for (i <- 1 to 10) publishChannel.basicPublish("",SOURCES(0),null,TEST_MESSAGES.STRING_BYTES)
+        for (i <- 1 to 10) publishChannel.basicPublish("",SOURCES(1),null,TEST_MESSAGES.JSON_BYTES)
+        for (i <- 1 to 10) publishChannel.basicPublish("",SOURCES(2),null,TEST_MESSAGES.JSON_BYTES)
         for (i <- 1 to 10) publishChannel.basicPublish("",SOURCES(3),null,TEST_MESSAGES.AVRO)
 
         Thread.sleep(PUBLISH_WAIT_TIME)

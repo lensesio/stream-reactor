@@ -21,8 +21,7 @@ class RabbitMQSinkTask extends SinkTask with StrictLogging {
     }
 
     override def put(records: util.Collection[SinkRecord]): Unit = {
-//        producer.write(records.asScala.toList)
-        val a = 1;
+        producer.write(records.asScala.toList)
     }
 
     override def stop(): Unit = {

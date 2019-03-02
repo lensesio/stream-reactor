@@ -17,6 +17,7 @@ class RabbitMQSettingsTest extends WordSpec with Matchers with TestBase {
             settings.password shouldBe props.get(RabbitMQConfigConstants.PASSWORD_CONFIG)
             settings.port shouldBe props.get(RabbitMQConfigConstants.PORT_CONFIG).toInt
             settings.virtualHost shouldBe props.get(RabbitMQConfigConstants.VIRTUAL_HOST_CONFIG)
+            settings.useTls shouldBe props.get(RabbitMQConfigConstants.USE_TLS_CONFIG).toBoolean
             settings.pollingTimeout shouldBe props.get(RabbitMQConfigConstants.POLLING_TIMEOUT_CONFIG).toInt
             settings.sourcesToConvertersMap.size shouldBe 1
             settings.sourcesToConvertersMap.foreach(e => e._2 shouldBe a [BytesConverter])
@@ -34,6 +35,7 @@ class RabbitMQSettingsTest extends WordSpec with Matchers with TestBase {
             settings.password shouldBe props.get(RabbitMQConfigConstants.PASSWORD_CONFIG)
             settings.port shouldBe props.get(RabbitMQConfigConstants.PORT_CONFIG).toInt
             settings.virtualHost shouldBe props.get(RabbitMQConfigConstants.VIRTUAL_HOST_CONFIG)
+            settings.useTls shouldBe props.get(RabbitMQConfigConstants.USE_TLS_CONFIG).toBoolean
             settings.pollingTimeout shouldBe props.get(RabbitMQConfigConstants.POLLING_TIMEOUT_CONFIG).toInt
             settings.sourcesToConvertersMap.size shouldBe 4
             settings.sourcesToConvertersMap.foreach(e => e._2 shouldBe a [BytesConverter])
@@ -50,8 +52,6 @@ class RabbitMQSettingsTest extends WordSpec with Matchers with TestBase {
             settings.sourcesToConvertersMap.getOrElse(SOURCES(1),fail) shouldBe a [JsonSimpleConverter]
             settings.sourcesToConvertersMap.getOrElse(SOURCES(2),fail) shouldBe a [JsonConverterWithSchemaEvolution]
             settings.sourcesToConvertersMap.getOrElse(SOURCES(3),fail) shouldBe an [AvroConverter]
-            val key = settings.kcql.toList(0).getWithKeys.asScala.head
-            val b = 1
         }
 
         "initialize the correct parameters from the ones provided in KCQL" in {
@@ -64,6 +64,9 @@ class RabbitMQSettingsTest extends WordSpec with Matchers with TestBase {
             settings.sourcesToConvertersMap.getOrElse(SOURCES(3),fail) shouldBe an [AvroConverter]
             for (i <- 0 to settings.kcql.size-1) {
                 settings.kcql.toList(i).getWithKeys.get(0) shouldBe ROUTING_KEYS(i)
+            }
+            for (i <- 0 to settings.kcql.size-1) {
+                settings.kcql.toList(i).getWithType shouldBe EXCHANGE_TYPE(i)
             }
         }
 
