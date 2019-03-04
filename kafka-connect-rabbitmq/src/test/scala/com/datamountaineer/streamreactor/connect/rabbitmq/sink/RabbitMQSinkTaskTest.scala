@@ -19,8 +19,7 @@ class RabbitMQSinkTaskTest extends WordSpec with TestBase with Matchers with Bef
     }
     task.start(props)
 
-    private val producer:RabbitMQProducer = getPrivateField(task,classOf[RabbitMQSinkTask],"producer").asInstanceOf[RabbitMQProducer]
-//    private val producer = getMockedRabbitMQProducer(props)
+    private val producer: RabbitMQProducer = getPrivateField(task,classOf[RabbitMQSinkTask],"producer").asInstanceOf[RabbitMQProducer]
     private val consumerChannel = producer.connection.createChannel()
     private val DEFAULT_QUEUE = consumerChannel.queueDeclare().getQueue()
     private val consumer = new DefaultConsumer(consumerChannel) {

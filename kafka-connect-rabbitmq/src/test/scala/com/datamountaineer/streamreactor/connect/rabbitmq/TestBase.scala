@@ -22,7 +22,7 @@ import scala.reflect.io.Path
 trait TestBase extends Suite with BeforeAndAfterAll {
     case class Measurement(id: String, number: Int, timestamp: Long, value: Double)
     val SOURCES = List("SOURCE0","SOURCE1","SOURCE2","SOURCE3")
-    val ROUTING_KEYS = List("ROUTING_KEY0","ROUTING_KEY1","ROUTING_KEY2","ROUTING_KEY3")
+    val ROUTING_KEYS = List("ROUTING_KEY0","ROUTING_KEY1","ROUTING_KEY2","TOPIC.ROUTING.KEY")
     val EXCHANGE_TYPE = List("fanout","direct","topic","headers")
     val TARGETS = List("TARGET0","TARGET1","TARGET2","TARGET3")
     val CONVERTERS_PACKAGE = "com.datamountaineer.streamreactor.connect.converters.source"
@@ -156,14 +156,19 @@ trait TestBase extends Suite with BeforeAndAfterAll {
             .put("value", 42.1)
     }
 
-    def getKCQLSourceString(target: String,source: String,converter: String = "",withKey: String = "",withType: String = ""): String = {
+    def getKCQLSourceString(target: String,source: String,converter: String = "",withTag: String = "",withType: String = ""): String = {
         val baseKCQL = s"INSERT INTO $target SELECT * FROM $source"
         val withTypeKCQL = s"WITHTYPE $withType"
         val withConverterKCQL = s"WITHCONVERTER=$converter"
-        val withKeyKCQL = s"WITHKEY ($withKey)"
+        val withKeyKCQL = s"WITHTAG ($withTag)"
 
 
         var kcqlString = baseKCQL
+
+        kcqlString = withTag match {
+            case "" => kcqlString
+            case _ => s"$kcqlString $withKeyKCQL"
+        }
 
         kcqlString = withType match {
             case "" => kcqlString
@@ -173,11 +178,6 @@ trait TestBase extends Suite with BeforeAndAfterAll {
         kcqlString = converter match {
             case "" => s"$kcqlString"
             case _ => s"$kcqlString $withConverterKCQL"
-        }
-
-        kcqlString = withKey match {
-            case "" => kcqlString
-            case _ => s"$kcqlString $withKeyKCQL"
         }
 
         kcqlString

@@ -84,10 +84,14 @@ class RabbitMQConsumer(settings: RabbitMQSettings) extends RabbitMQClient(settin
                 }
             }
 
-            val sourceRecord = converter.convert(kafkaTopic,queue,messageId,body)
-            blockingQueue.add(sourceRecord)
-            //Acknowledge that the message arrived
-            channel.basicAck(envelope.getDeliveryTag,false)
+            try {
+                val sourceRecord = converter.convert(kafkaTopic,queue,messageId,body)
+                blockingQueue.add(sourceRecord)
+                //Acknowledge that the message arrived
+                channel.basicAck(envelope.getDeliveryTag,false)
+            } catch {
+                case e: Exception => logger.error(e.getMessage,e)
+            }
         }
     }
 }

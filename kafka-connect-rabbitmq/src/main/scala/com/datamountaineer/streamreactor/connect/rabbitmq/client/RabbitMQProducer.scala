@@ -16,8 +16,6 @@ class RabbitMQProducer(settings: RabbitMQSettings) extends RabbitMQClient(settin
     private val exchangesToChannels = settings.kcql.map(e => e.getTarget -> connection.createChannel()).toMap
     private val exchangesToKcql = settings.kcql.map(e => e.getTarget -> e).toMap
     override val channels = exchangesToChannels.map(e => e._2).toList
-    //    private val exchangesToKcql = settings.kcql.map(e => e.getTarget -> e).toMap
-    //    private val kafkaTopicsToExchanges = exchangesToKcql.map(e => e._2.getSource -> e._1)
 
     override def start(): Unit = {
         exchangesToChannels.foreach(e => {
@@ -67,8 +65,8 @@ class RabbitMQProducer(settings: RabbitMQSettings) extends RabbitMQClient(settin
 
     private def sendMessages(records: List[SinkRecord],channel:Channel,kcql: Kcql) {
         val exchange = kcql.getTarget
-        val routingKey = Option(kcql.getWithKeys) match {
-            case Some(keys) => keys.get(0)
+        val routingKey = Option(kcql.getTags) match {
+            case Some(tags) => tags.get(0).getKey
             case None => ""
         }
 

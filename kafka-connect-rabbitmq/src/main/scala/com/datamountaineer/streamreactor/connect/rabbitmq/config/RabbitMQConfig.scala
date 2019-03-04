@@ -32,8 +32,6 @@ object RabbitMQConfig {
       //Optional
       .define(RabbitMQConfigConstants.DEFAULT_CONVERTER_CONFIG, Type.STRING, RabbitMQConfigConstants.DEFAULT_CONVERTER_DEFAULT, Importance.HIGH,
           RabbitMQConfigConstants.DEFAULT_CONVERTER_DOC, RabbitMQConfigConstants.ConfigGroups.CONVERTERS, 1, ConfigDef.Width.MEDIUM, RabbitMQConfigConstants.DEFAULT_CONVERTER_DISPLAY)
-//      .define(RabbitMQConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG, Type.BOOLEAN, RabbitMQConfigConstants.THROW_ON_CONVERT_ERRORS_DEFAULT, Importance.HIGH,
-//          RabbitMQConfigConstants.THROW_ON_CONVERT_ERRORS_DOC, RabbitMQConfigConstants.ConfigGroups.CONVERTERS, 2, ConfigDef.Width.MEDIUM, RabbitMQConfigConstants.THROW_ON_CONVERT_ERRORS_DISPLAY)
       .define(RabbitMQConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_CONFIG, Type.STRING, RabbitMQConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_DEFAULT, Importance.HIGH,
         RabbitMQConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_DOC, RabbitMQConfigConstants.ConfigGroups.CONVERTERS, 2, ConfigDef.Width.MEDIUM, RabbitMQConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_DISPLAY)
 }

@@ -63,7 +63,7 @@ class RabbitMQSettingsTest extends WordSpec with Matchers with TestBase {
             settings.sourcesToConvertersMap.getOrElse(SOURCES(2),fail) shouldBe a [JsonConverterWithSchemaEvolution]
             settings.sourcesToConvertersMap.getOrElse(SOURCES(3),fail) shouldBe an [AvroConverter]
             for (i <- 0 to settings.kcql.size-1) {
-                settings.kcql.toList(i).getWithKeys.get(0) shouldBe ROUTING_KEYS(i)
+                settings.kcql.toList(i).getTags.get(0).getKey shouldBe ROUTING_KEYS(i)
             }
             for (i <- 0 to settings.kcql.size-1) {
                 settings.kcql.toList(i).getWithType shouldBe EXCHANGE_TYPE(i)
