@@ -49,11 +49,12 @@ class JMSSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-sink-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-sink-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
 
-    JMSConfig.config.parse(props)
-    val sinkConfig = new JMSConfig(props)
+    val conf = if (context.configs().isEmpty) props else context.configs()
+    JMSConfig.config.parse(conf)
+    val sinkConfig = new JMSConfig(conf)
     val settings = JMSSettings(sinkConfig, sink = true)
     enableProgress = sinkConfig.getBoolean(JMSConfigConstants.PROGRESS_COUNTER_ENABLED)
 

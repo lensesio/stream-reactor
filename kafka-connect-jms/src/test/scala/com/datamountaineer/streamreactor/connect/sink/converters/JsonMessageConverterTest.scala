@@ -16,8 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.sink.converters
 
-import javax.jms.TextMessage
+import java.util.UUID
 
+import javax.jms.TextMessage
 import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.converters.JsonMessageConverter
@@ -27,20 +28,24 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
 
 import scala.reflect.io.Path
+import scala.collection.JavaConverters._
 
 
 class JsonMessageConverterTest extends WordSpec with Matchers with Using with TestBase with BeforeAndAfterAll {
 
   val converter = new JsonMessageConverter()
-  val props = getPropsMixJNDIWithSink()
-  val config = JMSConfig(props)
+
+  val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
+  val queueName = UUID.randomUUID().toString
+  val kcql = getKCQL(queueName, kafkaTopic1, "QUEUE")
+  val props = getProps(kcql, JMS_URL)
+  val config = JMSConfig(props.asJava)
   val settings = JMSSettings(config, true)
   val setting = settings.settings.head
 
   override def afterAll(): Unit = {
     Path(AVRO_FILE).delete()
   }
-
 
   "JsonMessageConverter" should {
     "create a TextMessage with Json payload" in {
@@ -51,7 +56,7 @@ class JsonMessageConverterTest extends WordSpec with Matchers with Using with Te
           val schema = getSchema
           val struct = getStruct(schema)
 
-          val record = new SinkRecord(TOPIC1, 0, null, null, schema, struct, 1)
+          val record = new SinkRecord(kafkaTopic1, 0, null, null, schema, struct, 1)
           val msg = converter.convert(record, session, setting)._2.asInstanceOf[TextMessage]
           Option(msg).isDefined shouldBe true
 

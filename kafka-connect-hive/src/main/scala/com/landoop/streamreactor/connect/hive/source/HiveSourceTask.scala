@@ -32,21 +32,22 @@ class HiveSourceTask extends SourceTask with StrictLogging {
   }
 
   override def start(props: util.Map[String, String]): Unit = {
+    val configs = if (context.configs().isEmpty) props else context.configs()
 
     if (client == null) {
       val hiveConf = new HiveConf()
-      hiveConf.set("hive.metastore", props.get(HiveSinkConfigConstants.MetastoreTypeKey))
-      hiveConf.set("hive.metastore.uris", props.get(HiveSinkConfigConstants.MetastoreUrisKey))
+      hiveConf.set("hive.metastore", configs.get(HiveSinkConfigConstants.MetastoreTypeKey))
+      hiveConf.set("hive.metastore.uris", configs.get(HiveSinkConfigConstants.MetastoreUrisKey))
       client = new HiveMetaStoreClient(hiveConf)
     }
 
     if (fs == null) {
       val conf = new Configuration()
-      conf.set("fs.defaultFS", props.get(HiveSinkConfigConstants.FsDefaultKey))
+      conf.set("fs.defaultFS", configs.get(HiveSinkConfigConstants.FsDefaultKey))
       fs = FileSystem.get(conf)
     }
 
-    config = HiveSourceConfig.fromProps(props.asScala.toMap)
+    config = HiveSourceConfig.fromProps(configs.asScala.toMap)
 
     sources = config.tableOptions.map { options =>
       new HiveSource(

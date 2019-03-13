@@ -219,7 +219,8 @@ object ValuesExtractor {
                  Schema.Type.INT16 |
                  Schema.Type.INT32 |
                  Schema.Type.INT64 |
-                 Schema.Type.STRING => value
+                 Schema.Type.STRING |
+                 Schema.Type.ARRAY => value
 
             case other =>
               throw new IllegalArgumentException(s"You can't select * from the Kafka Message. Field:'${field.name()}' resolves to a Schema '$other' which will end up with a type not supported by InfluxDB API.")
@@ -278,7 +279,8 @@ object ValuesExtractor {
                  Schema.Type.INT16 |
                  Schema.Type.INT32 |
                  Schema.Type.INT64 |
-                 Schema.Type.STRING => value
+                 Schema.Type.STRING |
+                 Schema.Type.ARRAY => value
 
             case other =>
               throw new IllegalArgumentException(s"You can't select * from the Kafka Message. Field:'${field.name()}' resolves to a Schema '$other' which will end up with a type not supported by InfluxDB API.")

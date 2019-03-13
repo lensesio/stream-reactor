@@ -36,6 +36,19 @@ class RedisSinkSettingsTest extends WordSpec with Matchers with RedisMockSupport
     settings.connectionInfo.password shouldBe None
   }
 
+  "default primary key delimiter" in {
+    val KCQL = "SELECT * FROM topicA PK lastName"
+    val settings = RedisSinkSettings(getRedisSinkConfig(password = false, KCQL = Option(KCQL)))
+    settings.pkDelimiter shouldBe RedisConfigConstants.REDIS_PK_DELIMITER_DEFAULT_VALUE
+  }
+
+  "custom primary key delimiter" in {
+    val delimiter = "-"
+    val KCQL = "SELECT * FROM topicA PK lastName"
+    val settings = RedisSinkSettings(getRedisSinkConfig(password = false, KCQL = Option(KCQL), pkDelimiter = Option(delimiter)))
+    settings.pkDelimiter shouldBe delimiter
+  }
+
   "should throw an expection as no PK set in Cache Mode : SELECT * FROM topicA" in {
     val QUERY_ALL = "SELECT * FROM topicA"
     val config = getRedisSinkConfig(password = true, KCQL = Option(QUERY_ALL))

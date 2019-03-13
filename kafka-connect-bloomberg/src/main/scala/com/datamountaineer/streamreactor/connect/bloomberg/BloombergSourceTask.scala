@@ -71,14 +71,16 @@ class BloombergSourceTask extends SourceTask with StrictLogging {
   /**
     * Creates and starts the Bloomberg session and subscribes for the tickers data update
     *
-    * @param map A map of configuration properties for this task
+    * @param props A map of configuration properties for this task
     */
-  override def start(map: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/bloomberg-ascii.txt")).mkString + s" v $version")
+  override def start(props: util.Map[String, String]): Unit = {
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/bloomberg-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
 
+    val config = if (context.configs().isEmpty) props else context.configs()
+
     try {
-      settings = Some(BloombergSettings(new BloombergSourceConfig(map)))
+      settings = Some(BloombergSettings(new BloombergSourceConfig(config)))
       subscriptions = Some(SubscriptionsBuilderFn(settings.get))
 
       val correlationToTicketMap = subscriptions.get.asScala.map { s => s.correlationID().value() -> s.subscriptionString() }.toMap

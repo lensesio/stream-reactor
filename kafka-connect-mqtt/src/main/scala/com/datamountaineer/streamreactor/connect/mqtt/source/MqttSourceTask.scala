@@ -39,10 +39,12 @@ class MqttSourceTask extends SourceTask with StrictLogging {
 
   override def start(props: util.Map[String, String]): Unit = {
 
-    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/mqtt-source-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/mqtt-source-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
 
-    val settings = MqttSourceSettings(MqttSourceConfig(props))
+    val conf = if (context.configs().isEmpty) props else context.configs()
+
+    val settings = MqttSourceSettings(MqttSourceConfig(conf))
 
     settings.sslCACertFile.foreach { file =>
       if (!new File(file).exists()) {
@@ -69,7 +71,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
         case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
       }
       import scala.collection.JavaConverters._
-      converter.initialize(props.asScala.toMap)
+      converter.initialize(conf.asScala.toMap)
       topic -> converter
     }
 

@@ -1,6 +1,7 @@
 package com.landoop.streamreactor.hive.it
 
 import java.sql.{Connection, DriverManager}
+import java.time.Duration
 import java.util.{Collections, Properties}
 import java.util.concurrent.TimeUnit
 
@@ -101,7 +102,7 @@ trait HiveTests extends Matchers {
   }
 
   protected def readRecords[T](consumer: KafkaConsumer[String, T], topic: String, len: Long, unit: TimeUnit): Seq[ConsumerRecord[String, T]] = {
-    consumer.poll(unit.toSeconds(len)).iterator().asScala.toList
+    consumer.poll(Duration.ofSeconds(len)).iterator().asScala.toList
   }
 
   protected def withConn(fn: Connection => Unit): Unit = {

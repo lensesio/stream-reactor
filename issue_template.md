@@ -10,7 +10,7 @@ Please review these questions before submitting any issue?
 
 ### Do you have a supported version of the data source/sink .i.e Cassandra 3.0.9?
 
-### Have you read the [docs](http://lenses.stream/connectors/index.html)?
+### Have you read the [docs](https://docs.lenses.io/connectors/)?
 
 ### What is the expected behaviour?
 

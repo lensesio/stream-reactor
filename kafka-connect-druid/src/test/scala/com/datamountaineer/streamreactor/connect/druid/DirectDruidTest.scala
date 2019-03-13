@@ -67,7 +67,7 @@ trait CuratorRequiringSuite
   def withZkCluster[A](f: String => A): A = {
     // TestingCluster has a race where it first selects an available port, then closes it, then binds to it again.
     val cluster = retryOnErrors(ifException[BindException]) {
-      val spec= new InstanceSpec(null, 2181, -1, -1, true, -1, -1, -1);
+      val spec = new InstanceSpec(null, 2182, -1, -1, true, -1, -1, -1);
       new TestingCluster(spec).withEffect(_.start())
     }
     try {

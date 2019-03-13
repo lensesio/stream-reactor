@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+enableFeaturePreview('STABLE_PUBLISHING')
 include 'kafka-connect-bloomberg',
         'kafka-connect-elastic',
         'kafka-connect-elastic5',
@@ -25,7 +26,7 @@ include 'kafka-connect-bloomberg',
         'kafka-connect-hbase',
         'kafka-connect-redis',
         'kafka-connect-hazelcast',
-        'kafka-connect-hive:connector',
+        'kafka-connect-hive',
         'kafka-connect-hive:it',
         'kafka-connect-rethink',
         'kafka-connect-jms',

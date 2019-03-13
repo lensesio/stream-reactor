@@ -46,11 +46,13 @@ class JMSSourceTask extends SourceTask with StrictLogging {
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-source-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-source-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
 
-    JMSConfig.config.parse(props)
-    val config = new JMSConfig(props)
+    val conf = if (context.configs().isEmpty) props else context.configs()
+
+    JMSConfig.config.parse(conf)
+    val config = new JMSConfig(conf)
     val settings = JMSSettings(config, sink = false)
     reader = JMSReader(settings)
     enableProgress = config.getBoolean(JMSConfigConstants.PROGRESS_COUNTER_ENABLED)

@@ -22,7 +22,7 @@ import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduCo
   * Created by andrew@datamountaineer.com on 24/02/16. 
   * stream-reactor
   */
-class TestKuduSourceConfig extends TestBase {
+class TestKuduSinkConfig extends TestBase {
   "A KuduSinkConfig should return Kudu Master" in {
     val config = new KuduConfig(getConfig)
     config.getString(KuduConfigConstants.KUDU_MASTER) shouldBe KUDU_MASTER

@@ -25,7 +25,7 @@ object JMSMessageConverterFn {
       case FormatType.JSON => new JsonMessageConverter
       case FormatType.OBJECT => new ObjectMessageConverter
       case FormatType.BINARY => new ObjectMessageConverter
-      case FormatType.TEXT => new JsonMessageConverter
+      case FormatType.TEXT => new TextMessageConverter
       case FormatType.MAP => new MapMessageConverter
     }
   }

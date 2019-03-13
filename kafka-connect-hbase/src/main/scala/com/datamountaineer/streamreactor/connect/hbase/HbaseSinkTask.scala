@@ -48,9 +48,10 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/hbase-ascii.txt")).mkString)
     logger.info(manifest.printManifest())
+    val conf = if (context.configs().isEmpty) props else context.configs()
 
-    HBaseConfig.config.parse(props)
-    val sinkConfig = HBaseConfig(props)
+    HBaseConfig.config.parse(conf)
+    val sinkConfig = HBaseConfig(conf)
     enableProgress = sinkConfig.getBoolean(HBaseConfigConstants.PROGRESS_COUNTER_ENABLED)
     val hbaseSettings = HBaseSettings(sinkConfig)
 

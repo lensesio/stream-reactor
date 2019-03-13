@@ -51,6 +51,8 @@ object HiveSinkConfig {
       // we must have at least one way of committing files
       val finalFlushSize = if (flushSize.isEmpty && flushInterval.isEmpty && flushCount.isEmpty) Some(1000L * 1000 * 128) else None
 
+      val format: HiveFormat = HiveFormat(Option(kcql.getStoredAs).map(_.toLowerCase).getOrElse("parquet"))
+
       TableOptions(
         TableName(kcql.getTarget),
         Topic(kcql.getSource),
@@ -60,7 +62,7 @@ object HiveSinkConfig {
           case PartitioningStrategy.DYNAMIC => new DynamicPartitionHandler()
           case PartitioningStrategy.STRICT => StrictPartitionHandler
         },
-        format = ParquetHiveFormat, // HiveFormat(Option(kcql.getStoredAs).map(_.toLowerCase).getOrElse("parquet")),
+        format = format,
         projection = projection,
         evolutionPolicy = Option(kcql.getWithSchemaEvolution).getOrElse(SchemaEvolution.MATCH) match {
           case SchemaEvolution.ADD => AddEvolutionPolicy

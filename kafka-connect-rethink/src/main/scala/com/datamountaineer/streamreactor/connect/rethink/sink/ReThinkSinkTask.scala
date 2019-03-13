@@ -41,10 +41,12 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/rethink-sink-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/rethink-sink-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
 
-    val sinkConfig = ReThinkSinkConfig(props)
+    val conf = if (context.configs().isEmpty) props else context.configs()
+
+    val sinkConfig = ReThinkSinkConfig(conf)
     enableProgress = sinkConfig.getBoolean(ReThinkConfigConstants.PROGRESS_COUNTER_ENABLED)
     writer = Some(ReThinkWriter(config = sinkConfig, context = context))
   }
