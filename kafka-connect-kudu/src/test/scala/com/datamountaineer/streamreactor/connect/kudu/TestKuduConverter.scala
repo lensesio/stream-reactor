@@ -16,12 +16,15 @@
 
 package com.datamountaineer.streamreactor.connect.kudu
 
-import com.datamountaineer.kcql.Kcql
+import java.util.Collections
+
+import com.datamountaineer.kcql.{Bucketing, Kcql}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.avro.{Schema, SchemaBuilder}
 import org.apache.kudu.client.{KuduTable, Upsert}
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
+
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
@@ -33,7 +36,9 @@ import scala.collection.JavaConverters._
 class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil with MockitoSugar {
   "Should convert a SinkRecord Schema to Kudu Schema" in {
     val kcql = mock[Kcql]
-    when(kcql.getBucketing.getBucketNames).thenReturn(List("").asInstanceOf[java.util.Iterator[String]])
+    val bucketing = mock[Bucketing]
+    when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
+    when(kcql.getBucketing).thenReturn(bucketing)
     val record = getTestRecords.head
     val connectSchema = record.valueSchema()
     val connectFields = connectSchema.fields()
@@ -45,7 +50,9 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
 
   "Should convert a SinkRecord into a Kudu Insert operation" in {
     val kcql = mock[Kcql]
-    when(kcql.getBucketing.getBucketNames).thenReturn(List("").asInstanceOf[java.util.Iterator[String]])
+    val bucketing = mock[Bucketing]
+    when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
+    when(kcql.getBucketing).thenReturn(bucketing)
     val record = getTestRecords.head
     val fields = record.valueSchema().fields().asScala.map(f => (f.name(), f.name())).toMap
     val kuduSchema = convertToKuduSchema(record, kcql)
@@ -62,7 +69,9 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
 
   "Should convert a SinkRecord into a Kudu Insert operation with Field Selection" in {
     val kcql = mock[Kcql]
-    when(kcql.getBucketing.getBucketNames).thenReturn(List("").asInstanceOf[java.util.Iterator[String]])
+    val bucketing = mock[Bucketing]
+    when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
+    when(kcql.getBucketing).thenReturn(bucketing)
     val fields = Map("id" -> "id", "long_field" -> "new_field_name")
     val record = getTestRecords.head
     val converted = convert(record, fields)

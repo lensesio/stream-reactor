@@ -32,6 +32,7 @@ class TestKuduSink extends TestBase with MockitoSugar {
     val config = getConfig
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(getAssignment)
+    when(context.configs()).thenReturn(config)
     val task = new KuduSinkTask()
     //initialise the tasks context
     task.initialize(context)

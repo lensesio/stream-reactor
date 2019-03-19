@@ -43,11 +43,13 @@ class HazelCastSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/hazelcast-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/hazelcast-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
 
-    HazelCastSinkConfig.config.parse(props)
-    val sinkConfig = new HazelCastSinkConfig(props)
+    val conf = if (context.configs().isEmpty) props else context.configs()
+
+    HazelCastSinkConfig.config.parse(conf)
+    val sinkConfig = new HazelCastSinkConfig(conf)
     enableProgress = sinkConfig.getBoolean(HazelCastSinkConfigConstants.PROGRESS_COUNTER_ENABLED)
     val settings = HazelCastSinkSettings(sinkConfig)
 

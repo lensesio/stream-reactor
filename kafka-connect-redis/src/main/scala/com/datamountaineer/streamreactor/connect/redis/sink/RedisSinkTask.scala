@@ -45,11 +45,13 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/redis-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/redis-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
 
-    RedisConfig.config.parse(props)
-    val sinkConfig = new RedisConfig(props)
+    val conf = if (context.configs().isEmpty) props else context.configs()
+
+    RedisConfig.config.parse(conf)
+    val sinkConfig = new RedisConfig(conf)
     val settings = RedisSinkSettings(sinkConfig)
     enableProgress = sinkConfig.getBoolean(RedisConfigConstants.PROGRESS_COUNTER_ENABLED)
 

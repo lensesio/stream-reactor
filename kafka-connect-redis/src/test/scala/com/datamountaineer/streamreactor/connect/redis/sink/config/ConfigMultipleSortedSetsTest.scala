@@ -87,7 +87,7 @@ class ConfigMultipleSortedSetsTest extends WordSpec with Matchers with RedisMock
     val route = settings.kcqlSettings.head.kcqlConfig
     val fields = route.getFields.asScala.toList
 
-    route.getPrimaryKeys.asScala.head .getName shouldBe "sensorID"
+    route.getPrimaryKeys.asScala.head.getName shouldBe "sensorID"
     route.getFields.asScala.exists(_.getName.equals("*")) shouldBe false
     route.getSource shouldBe "sensorsTopic"
     route.getStoredAs shouldBe "SortedSet"

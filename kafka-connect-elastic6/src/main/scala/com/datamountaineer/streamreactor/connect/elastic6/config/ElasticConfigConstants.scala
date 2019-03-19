@@ -54,10 +54,10 @@ object ElasticConfigConstants {
   val CLIENT_TYPE_CONFIG_DOC = "TCP or HTTP. Elastic4s client type to use, http or tcp, default is tcp."
   val CLIENT_TYPE_CONFIG_DEFAULT = "tcp"
   val CLIENT_HTTP_BASIC_AUTH_USERNAME = s"$CONNECTOR_PREFIX.use.http.username"
-  val CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT = null
+  val CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT = ""
   val CLIENT_HTTP_BASIC_AUTH_USERNAME_DOC = "Username if HTTP Basic Auth required default is null."
   val CLIENT_HTTP_BASIC_AUTH_PASSWORD = s"$CONNECTOR_PREFIX.use.http.password"
-  val CLIENT_HTTP_BASIC_AUTH_PASSWORD_DEFAULT = null
+  val CLIENT_HTTP_BASIC_AUTH_PASSWORD_DEFAULT = ""
   val CLIENT_HTTP_BASIC_AUTH_PASSWORD_DOC = "Password if HTTP Basic Auth required default is null."
 
   val NBR_OF_RETRIES_CONFIG = s"${CONNECTOR_PREFIX}.${MAX_RETRIES_PROP_SUFFIX}"

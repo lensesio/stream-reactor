@@ -20,9 +20,9 @@ import com.datamountaineer.kcql.Kcql
 import org.apache.kafka.connect.data.Schema.Type
 import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.sink.SinkRecord
-import org.apache.kudu.ColumnSchema
 import org.apache.kudu.ColumnSchema.ColumnSchemaBuilder
 import org.apache.kudu.client.{KuduTable, PartialRow, Upsert}
+import org.apache.kudu.{ColumnSchema, ColumnTypeAttributes}
 import org.json4s.JsonAST._
 
 import scala.collection.JavaConversions._
@@ -103,12 +103,17 @@ trait KuduConverter {
           case other => throw new UnsupportedOperationException(s"Unsupported value ${other.getClass.getCanonicalName}")
         }
       case Decimal.LOGICAL_NAME =>
-        val binary = struct.get(field.name()) match {
-          case a: Array[_] => a.asInstanceOf[Array[Byte]]
-          case bd: java.math.BigDecimal => Decimal.fromLogical(field.schema(), bd)
-          case bd: BigDecimal => Decimal.fromLogical(field.schema(), bd.bigDecimal)
+        struct.get(field.name()) match {
+          case a: Array[_] => {
+            row.addBinary(fieldName, a.asInstanceOf[Array[Byte]])
+          }
+          case bd: java.math.BigDecimal => {
+            row.addDecimal(fieldName, bd)
+          }
+          case bd: BigDecimal => {
+            row.addDecimal(fieldName, bd.bigDecimal)
+          }
         }
-        row.addBinary(fieldName, binary)
       case _ =>
         fieldType match {
           case Type.STRING =>
@@ -221,7 +226,19 @@ trait KuduConverter {
       case Type.BOOLEAN => new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.BOOL)
       case Type.FLOAT32 => new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.FLOAT)
       case Type.FLOAT64 => new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.DOUBLE)
-      case Type.BYTES => new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.BINARY)
+      case Type.BYTES => {
+        field.schema().name() match {
+          case Decimal.LOGICAL_NAME => {
+            val precision = field.schema().parameters().get("connect.decimal.precision").asInstanceOf[Int]
+            val scale = field.schema().parameters().get("scale").asInstanceOf[Int]
+            new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.DECIMAL).typeAttributes(
+              new ColumnTypeAttributes.ColumnTypeAttributesBuilder()
+                .precision(precision).scale(scale).build()
+            )
+          }
+          case _ => new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.BINARY)
+        }
+      }
       case _ => throw new UnsupportedOperationException(s"Unknown type $fieldType")
     }
     val default = field.schema().defaultValue()
@@ -266,7 +283,20 @@ trait KuduConverter {
         fromAvro(union, fieldName)
       case org.apache.avro.Schema.Type.FIXED => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.BINARY)
       case org.apache.avro.Schema.Type.STRING => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.STRING)
-      case org.apache.avro.Schema.Type.BYTES => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.BINARY)
+      case org.apache.avro.Schema.Type.BYTES => {
+        val logicalType = schema.getLogicalType
+        if (logicalType != null && logicalType.getName == "decimal") {
+          val precision = schema.getObjectProp("precision").asInstanceOf[Int]
+          val scale = schema.getObjectProp("scale").asInstanceOf[Int]
+          new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.DECIMAL)
+            .typeAttributes(new ColumnTypeAttributes.ColumnTypeAttributesBuilder()
+              .precision(precision)
+              .scale(scale)
+              .build())
+        } else {
+          new ColumnSchema.ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.BINARY)
+        }
+      }
       case org.apache.avro.Schema.Type.INT => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.INT32)
       case org.apache.avro.Schema.Type.LONG => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.INT64)
       case org.apache.avro.Schema.Type.FLOAT => new ColumnSchema.ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.FLOAT)

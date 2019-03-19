@@ -20,8 +20,11 @@ import java.util.logging.Level
 
 import com.datamountaineer.streamreactor.connect.coap.{Server, TestBase}
 import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.source.SourceTaskContext
 import org.eclipse.californium.core.{CaliforniumLogger, CoapClient}
 import org.eclipse.californium.scandium.ScandiumLogger
+import org.mockito.Mockito.when
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfter, WordSpec}
 
 import scala.collection.JavaConversions._
@@ -30,7 +33,7 @@ import scala.collection.JavaConversions._
   * Created by andrew@datamountaineer.com on 28/12/2016. 
   * stream-reactor
   */
-class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase {
+class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase with MockitoSugar {
   val server = new Server(SOURCE_PORT_SECURE, SOURCE_PORT_INSECURE, KEY_PORT_INSECURE)
 
   before {
@@ -75,6 +78,9 @@ class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase {
   "should create a task and receive messages" in {
       val props = getPropsInsecure
       val task = new CoapSourceTask()
+      val context = mock[SourceTaskContext]
+      when(context.configs()).thenReturn(props)
+      task.initialize(context)
       task.start(props)
       Thread.sleep(1000)
       val records = task.poll()

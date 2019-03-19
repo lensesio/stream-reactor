@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
 import com.datamountaineer.streamreactor.connect.redis.sink.RedisSinkTask
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
-import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
@@ -93,7 +93,10 @@ class RedisMultipleSortedSetsTest extends WordSpec with Matchers with BeforeAndA
         RedisConfigConstants.KCQL_CONFIG->KCQL
       ).asJava
 
+      val context = mock[SinkTaskContext]
+      when(context.configs()).thenReturn(props)
       val task = new RedisSinkTask
+      task.initialize(context)
       task.start(props)
 
       val schema = SchemaBuilder.struct().name("com.example.device")
@@ -122,7 +125,10 @@ class RedisMultipleSortedSetsTest extends WordSpec with Matchers with BeforeAndA
         RedisConfigConstants.KCQL_CONFIG->KCQL
       ).asJava
 
+      val context = mock[SinkTaskContext]
+      when(context.configs()).thenReturn(props)
       val task = new RedisSinkTask
+      task.initialize(context)
       task.start(props)
 
       val schema = SchemaBuilder.struct().name("com.example.device")
@@ -151,7 +157,10 @@ class RedisMultipleSortedSetsTest extends WordSpec with Matchers with BeforeAndA
         RedisConfigConstants.KCQL_CONFIG->KCQL
       ).asJava
 
+      val context = mock[SinkTaskContext]
+      when(context.configs()).thenReturn(props)
       val task = new RedisSinkTask
+      task.initialize(context)
       task.start(props)
 
       val schema = SchemaBuilder.struct().name("com.example.device")

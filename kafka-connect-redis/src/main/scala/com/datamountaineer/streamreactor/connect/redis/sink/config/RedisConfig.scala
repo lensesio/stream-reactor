@@ -43,8 +43,11 @@ object RedisConfig {
       Importance.MEDIUM, RedisConfigConstants.NBR_OF_RETRIES_DOC,
       "Connection", 7, ConfigDef.Width.MEDIUM, RedisConfigConstants.NBR_OF_RETRIES)
     .define(RedisConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, RedisConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
-        Importance.MEDIUM, RedisConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
-        "Metrics", 1, ConfigDef.Width.MEDIUM, RedisConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
+      Importance.MEDIUM, RedisConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
+      "Metrics", 1, ConfigDef.Width.MEDIUM, RedisConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
+    .define(RedisConfigConstants.REDIS_PK_DELIMITER, Type.STRING,
+      RedisConfigConstants.REDIS_PK_DELIMITER_DEFAULT_VALUE,
+      Importance.LOW, RedisConfigConstants.REDIS_PK_DELIMITER_DOC)
 }
 
 /**

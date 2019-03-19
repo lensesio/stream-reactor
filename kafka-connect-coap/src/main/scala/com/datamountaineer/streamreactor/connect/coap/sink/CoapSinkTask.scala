@@ -40,9 +40,12 @@ class CoapSinkTask extends SinkTask with StrictLogging {
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-sink-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/coap-sink-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
-    val sinkConfig = CoapSinkConfig(props)
+
+    val conf = if (context.configs().isEmpty) props else context.configs()
+
+    val sinkConfig = CoapSinkConfig(conf)
     enableProgress = sinkConfig.getBoolean(CoapConstants.PROGRESS_COUNTER_ENABLED)
     val settings = CoapSettings(sinkConfig)
 

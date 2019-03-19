@@ -60,14 +60,16 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     */
   override def start(props: util.Map[String, String]): Unit = {
 
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-source-ascii.txt")).mkString + version)
+    logger.info(manifest.printManifest())
+
+    val config = if (context.configs().isEmpty) props else context.configs()
+
     //get configuration for this task
-    taskConfig = Try(new CassandraConfigSource(props)) match {
+    taskConfig = Try(new CassandraConfigSource(config)) match {
       case Failure(f) => throw new ConnectException("Couldn't start CassandraSource due to configuration error.", f)
       case Success(s) => Some(s)
     }
-
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/cass-source-ascii.txt")).mkString + s" v $version")
-    logger.info(manifest.printManifest())
 
     //get the list of assigned tables this sink
     val assigned = taskConfig.get.getString(CassandraConfigConstants.ASSIGNED_TABLES).split(",").toList

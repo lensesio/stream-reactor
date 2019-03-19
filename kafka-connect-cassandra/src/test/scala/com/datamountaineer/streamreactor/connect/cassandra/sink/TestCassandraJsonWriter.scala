@@ -462,7 +462,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     writer.close()
   }
 
-  "should handle incoming decimal fields" in {
+  "Cassandra sink should handle incoming decimal fields" in {
     val schema = SchemaBuilder.struct.name("com.data.mountaineer.cassandra.sink,json.decimaltest")
       .version(1)
       .field("id", Schema.INT32_SCHEMA)
@@ -599,8 +599,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     writer.close()
   }
 
-  "A Cassandra SinkTask" should {
-    "start and write records to Cassandra" in {
+  "Cassandra sink should start and write records to Cassandra" in {
 
       val table = "A" + UUID.randomUUID().toString.replace("-", "_")
 
@@ -613,7 +612,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
         s", string_field text" +
         s", timeuuid_field timeuuid" +
         s", timestamp_field timestamp)")
-      
+
       //mock the context to return our assignment when called
       val context = mock[SinkTaskContext]
       val assignment = getAssignment
@@ -628,7 +627,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
         CassandraConfigConstants.PASSWD -> password,
         CassandraConfigConstants.KCQL -> kcql
       ).asJava
-      
+
       //get task
       val task = new CassandraSinkTask()
       //initialise the tasks context
@@ -643,9 +642,9 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
       //check we can get back what we wrote
       val res = session.execute(s"SELECT * FROM $keyspace.$table")
       res.all().size() shouldBe testRecords.size
-    }
+  }
 
-    "start and write records to Cassandra using ONE as consistency level" in {
+  "Cassandra sink should  start and write records to Cassandra using ONE as consistency level" in {
 
       val table = "A" + UUID.randomUUID().toString.replace("-", "_")
       val kcql = s"INSERT INTO $table SELECT * FROM TOPICA"
@@ -657,7 +656,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
         s", string_field text" +
         s", timeuuid_field timeuuid" +
         s", timestamp_field timestamp)")
-      
+
       //mock the context to return our assignment when called
       val context = mock[SinkTaskContext]
       val assignment = getAssignment
@@ -673,7 +672,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
         CassandraConfigConstants.KCQL -> kcql,
         CassandraConfigConstants.CONSISTENCY_LEVEL_CONFIG -> ConsistencyLevel.ONE.toString
       ).asJava
-      
+
 
       //get task
       val task = new CassandraSinkTask()
@@ -689,10 +688,9 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
       //check we can get back what we wrote
       val res = session.execute(s"SELECT * FROM $keyspace.$table")
       res.all().size() shouldBe testRecords.size
-    }
+  }
 
-    "start and write records to Cassandra using TTL" in {
-
+  "Cassandra sink should start and write records to Cassandra using TTL" in {
       val table = "A" + UUID.randomUUID().toString.replace("-", "_")
       val table2 = "B" + UUID.randomUUID().toString.replace("-", "_")
 
@@ -712,9 +710,9 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
         s", timestamp_field timestamp" +
         s", timeuuid_field timeuuid" +
         s", PRIMARY KEY (id, timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)")
-      
+
       val kcql = s"INSERT INTO $table SELECT * FROM topic1 TTL=$TTL;INSERT INTO $table2 SELECT * FROM topic2"
-      
+
       //mock the context to return our assignment when called
       val context = mock[SinkTaskContext]
       val assignment = getAssignment
@@ -731,7 +729,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
         CassandraConfigConstants.PASSWD -> password,
         CassandraConfigConstants.KCQL -> kcql
       ).asJava
-      
+
       //get task
       val task = new CassandraSinkTask()
       //initialise the tasks context
@@ -756,7 +754,6 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
       val two = ttl2.one().getInt("ttl(int_field)")
       (one < TTL) shouldBe true
       two shouldBe 0
-    }
   }
 
   "Cassandra JSONWriter should handle deletion of records - Key isPrimitive, INT" in {

@@ -47,7 +47,7 @@ import scala.collection.JavaConversions._
           .field("type", Schema.OPTIONAL_STRING_SCHEMA)
           .field("priority", Schema.OPTIONAL_INT32_SCHEMA)
           .field("bytes_payload", Schema.OPTIONAL_BYTES_SCHEMA)
-          .field("properties", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA).optional())
+          .field("properties", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA).optional())
           .build()
       }
 

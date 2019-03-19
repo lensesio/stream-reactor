@@ -17,8 +17,9 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
 import java.util
+import java.util.Collections
 
-import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.kcql.{Bucketing, Kcql}
 import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduSettings}
 import com.datamountaineer.streamreactor.connect.kudu.sink.KuduWriter
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
@@ -31,7 +32,6 @@ import org.mockito.Matchers.{any, eq => mockEq}
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 
-import scala.annotation.tailrec
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
@@ -42,7 +42,9 @@ import scala.collection.JavaConverters._
 class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with ConverterUtil {
   "A Kudu Writer should write" in {
     val kcql = mock[Kcql]
-    when(kcql.getBucketing.getBucketNames).thenReturn(List("").asInstanceOf[java.util.Iterator[String]])
+    val bucketing = mock[Bucketing]
+    when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
+    when(kcql.getBucketing).thenReturn(bucketing)
     val record = getTestRecords.head
     val kuduSchema = convertToKuduSchema(record, kcql)
     val kuduRow = kuduSchema.newPartialRow()
@@ -68,7 +70,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
     when(resp.getTablesList).thenReturn(List.empty[String].asJava)
 
     val writer = new KuduWriter(client, settings)
-    writer.write(getTestRecords)
+    writer.write(getTestRecords.toSeq)
     writer.close()
   }
 
@@ -122,14 +124,16 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
     when(resp.getTablesList).thenReturn(List.empty[String].asJava)
 
     val writer = new KuduWriter(client, settings)
-    writer.write(Set(record))
+    writer.write(Seq(record))
     writer.close()
   }
 
 
   "A Kudu Writer should create table on arrival of first record" in {
     val kcql = mock[Kcql]
-    when(kcql.getBucketing.getBucketNames).thenReturn(List("").asInstanceOf[java.util.Iterator[String]])
+    val bucketing = mock[Bucketing]
+    when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
+    when(kcql.getBucketing).thenReturn(bucketing)
     val record = getTestRecords.head
     val kuduSchema = convertToKuduSchema(record, kcql)
     val kuduRow = kuduSchema.newPartialRow()
@@ -156,7 +160,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
 
 
     val writer = new KuduWriter(client, settings)
-    writer.write(getTestRecords)
+    writer.write(getTestRecords.toSeq)
     writer.close()
   }
 
@@ -211,13 +215,15 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
 
 
     val writer = new KuduWriter(client, settings)
-    writer.write(getTestRecords)
+    writer.write(getTestRecords.toSeq)
     writer.close()
   }
 
   "should identify schema change from source records" in {
     val kcql = mock[Kcql]
-    when(kcql.getBucketing.getBucketNames).thenReturn(List("").asInstanceOf[java.util.Iterator[String]])
+    val bucketing = mock[Bucketing]
+    when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
+    when(kcql.getBucketing).thenReturn(bucketing)
     val schema1 = createSchema
     val schema2 = createSchema5
 
@@ -253,13 +259,15 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
 
     val writer = new KuduWriter(client, settings)
 
-    writer.write(Set(rec1))
-    writer.write(Set(rec2))
+    writer.write(Seq(rec1))
+    writer.write(Seq(rec2))
   }
 
   "A Kudu Writer should throw retry on flush errors" in {
     val kcql = mock[Kcql]
-    when(kcql.getBucketing.getBucketNames).thenReturn(List("").asInstanceOf[java.util.Iterator[String]])
+    val bucketing = mock[Bucketing]
+    when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
+    when(kcql.getBucketing).thenReturn(bucketing)
     val record = getTestRecords.head
     val kuduSchema = convertToKuduSchema(record, kcql)
     val kuduRow = kuduSchema.newPartialRow()
@@ -293,13 +301,15 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
     val writer = new KuduWriter(client, settings)
 
     intercept[RetriableException] {
-      writer.write(getTestRecords)
+      writer.write(getTestRecords.toSeq)
     }
   }
 
   "A Kudu Writer should check pending errors and throw exception" in {
     val kcql = mock[Kcql]
-    when(kcql.getBucketing.getBucketNames).thenReturn(List("").asInstanceOf[java.util.Iterator[String]])
+    val bucketing = mock[Bucketing]
+    when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
+    when(kcql.getBucketing).thenReturn(bucketing)
     val record = getTestRecords.head
     val kuduSchema = convertToKuduSchema(record, kcql)
     val kuduRow = kuduSchema.newPartialRow()
@@ -333,7 +343,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
     val writer = new KuduWriter(client, settings)
     verify(kuduSession, times(1)).setFlushMode(FlushMode.AUTO_FLUSH_BACKGROUND)
     intercept[RetriableException] {
-      writer.write(getTestRecords)
+      writer.write(getTestRecords.toSeq)
     }
     verify(kuduSession, times(1)).getPendingErrors
 

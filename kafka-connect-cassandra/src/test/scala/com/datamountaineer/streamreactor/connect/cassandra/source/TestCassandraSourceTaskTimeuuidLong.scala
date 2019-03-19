@@ -94,9 +94,9 @@ class TestCassandraSourceTaskTimeuuidLong extends WordSpec
     reader.read()
 
     // sleep and check queue size
-    // expecting to only get the 2 rows 
+    // expecting to only get the 2 rows
     // in the time slice
-    // the insert with "magic_string4" should fall 
+    // the insert with "magic_string4" should fall
     // outside this range
     while (queue.size() < 2) {
       Thread.sleep(1000)
@@ -111,7 +111,7 @@ class TestCassandraSourceTaskTimeuuidLong extends WordSpec
 
     // read but don't insert any new rows
     reader.read()
-    // sleep 
+    // sleep
     Thread.sleep(1000)
     //read
     reader.read()
@@ -120,7 +120,7 @@ class TestCassandraSourceTaskTimeuuidLong extends WordSpec
     while (queue.size() < 1) {
       Thread.sleep(1000)
     }
-    //should be the inserted row "magic_string4" 
+    //should be the inserted row "magic_string4"
     queue.size() shouldBe 1
 
   }

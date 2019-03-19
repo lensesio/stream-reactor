@@ -46,34 +46,22 @@ case class Student(name: String, age: Int, note: Double)
 
 
 trait TestBase extends WordSpec with Matchers with MockitoSugar {
-  val TOPIC1 = "topic1"
-  val TOPIC2 = "topic2"
-  val QUEUE1 = "queue1"
-  val JMS_TOPIC1 = TOPIC1
-  val KCQL_SOURCE_QUEUE = s"INSERT INTO $TOPIC1 SELECT * FROM $QUEUE1 WITHTYPE QUEUE"
-  val KCQL_SINK_QUEUE = s"INSERT INTO $QUEUE1 SELECT * FROM $TOPIC2 WITHTYPE QUEUE"
-  val KCQL_SOURCE_TOPIC = s"INSERT INTO $TOPIC1 SELECT * FROM $TOPIC1 WITHTYPE TOPIC"
-  val KCQL_SINK_TOPIC = s"INSERT INTO $TOPIC1 SELECT * FROM $TOPIC1 WITHTYPE TOPIC"
-  val KCQL_MIX = s"$KCQL_SOURCE_QUEUE;$KCQL_SOURCE_TOPIC"
-  val KCQL_MIX_SINK = s"$KCQL_SINK_QUEUE;$KCQL_SINK_TOPIC"
+
   val MESSAGE_SELECTOR = "a > b"
-  val KCQL_SOURCE_TOPIC_WITH_JMS_SELECTOR = kcqlWithMessageSelector(MESSAGE_SELECTOR)
   val JMS_USER = ""
   val JMS_PASSWORD = ""
   val CONNECTION_FACTORY = "ConnectionFactory"
   val INITIAL_CONTEXT_FACTORY = classOf[ActiveMQInitialContextFactory].getCanonicalName
   val JMS_URL = "tcp://localhost:61620"
   val JMS_URL_1 = "tcp://localhost:61621"
-  val QUEUE_LIST = QUEUE1
-  val TOPIC_LIST = TOPIC1
-  val SELECTOR = DestinationSelector.CDI.toString
   val AVRO_QUEUE = "avro_queue"
   val QUEUE_CONVERTER = s"`com.datamountaineer.streamreactor.connect.converters.source.AvroConverter`"
-  val KCQL_AVRO_SOURCE = s"INSERT INTO $TOPIC1 SELECT * FROM $AVRO_QUEUE WITHTYPE QUEUE WITHCONVERTER=$QUEUE_CONVERTER"
-  val KCQL_AVRO_SOURCE_MIX = s"$KCQL_AVRO_SOURCE;$KCQL_SOURCE_TOPIC"
-
   val AVRO_FILE = getSchemaFile()
-  val AVRO_SCHEMA_CONFIG = s"${AVRO_QUEUE}=${AVRO_FILE}"
+
+
+  def getAvroProp(topic: String) = s"${topic}=${AVRO_FILE}"
+  def getKCQL(target: String, source: String, jmsType: String) = s"INSERT INTO $target SELECT * FROM $source WITHTYPE $jmsType"
+  def getKCQLAvroSource(topic: String, queue: String, jmsType: String) = s"INSERT INTO $topic SELECT * FROM $queue WITHTYPE $jmsType WITHCONVERTER=$QUEUE_CONVERTER"
 
   def getSchemaFile(): String = {
     val schemaFile = Paths.get(UUID.randomUUID().toString)
@@ -84,132 +72,20 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     schemaFile.toAbsolutePath.toString
   }
 
-  def getProps1Queue(url: String = JMS_URL) = {
+  def getSinkProps(kcql: String, topics: String, url: String): util.Map[String, String] = {
+    (Map("topics" -> topics) ++ getProps(kcql, url)).asJava
+  }
+
+  def getProps(kcql: String, url: String): Map[String, String] = {
     Map(
-      "topics" -> QUEUE1,
-      JMSConfigConstants.KCQL -> KCQL_SOURCE_QUEUE,
-      JMSConfigConstants.JMS_USER -> JMS_USER,
-      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfigConstants.JMS_URL -> url
-    ).asJava
-  }
-
-  def getPropsBadFactory = {
-    Map(JMSConfigConstants.KCQL -> KCQL_SOURCE_QUEUE,
-      JMSConfigConstants.JMS_USER -> JMS_USER,
-      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfigConstants.CONNECTION_FACTORY -> "plop",
-      JMSConfigConstants.JMS_URL -> JMS_URL
-    ).asJava
-  }
-
-  def getProps1Topic(url: String = JMS_URL) = {
-    Map(JMSConfigConstants.KCQL -> KCQL_SOURCE_TOPIC,
-      JMSConfigConstants.JMS_USER -> JMS_USER,
-      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfigConstants.JMS_URL -> url
-    ).asJava
-  }
-
-  def getProps1TopicWithMessageSelector(url: String = JMS_URL, msgSelector: String = MESSAGE_SELECTOR) = {
-    getProps1Topic(url).asScala ++
-      Map(JMSConfigConstants.KCQL -> kcqlWithMessageSelector(msgSelector),
-        JMSConfigConstants.JMS_URL -> url)
-  }.asJava
-
-  def getProps1TopicJNDI = {
-    Map(JMSConfigConstants.KCQL -> KCQL_SOURCE_TOPIC,
-      JMSConfigConstants.JMS_USER -> JMS_USER,
-      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfigConstants.JMS_URL -> JMS_URL,
-      JMSConfigConstants.DESTINATION_SELECTOR -> DestinationSelector.JNDI.toString
-    ).asJava
-  }
-
-  def getPropsTopicListIncorrect = {
-    Map(JMSConfigConstants.KCQL -> s"INSERT INTO $TOPIC1 SELECT * FROM $TOPIC1",
-      JMSConfigConstants.JMS_USER -> JMS_USER,
-      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfigConstants.JMS_URL -> JMS_URL,
-      JMSConfigConstants.DESTINATION_SELECTOR -> DestinationSelector.JNDI.toString
-    ).asJava
-  }
-
-  def getPropsMixCDI(url: String = JMS_URL) = {
-    Map(JMSConfigConstants.KCQL -> KCQL_MIX,
+      JMSConfigConstants.KCQL -> kcql,
       JMSConfigConstants.JMS_USER -> JMS_USER,
       JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
       JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
       JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
       JMSConfigConstants.JMS_URL -> url,
       JMSConfigConstants.DESTINATION_SELECTOR -> DestinationSelector.CDI.toString
-    ).asJava
-  }
-
-  def getPropsMixCDIWithConverters(url: String = JMS_URL) = {
-    Map(JMSConfigConstants.KCQL -> KCQL_AVRO_SOURCE_MIX,
-      JMSConfigConstants.JMS_USER -> JMS_USER,
-      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfigConstants.JMS_URL -> url,
-      JMSConfigConstants.DESTINATION_SELECTOR -> DestinationSelector.CDI.toString,
-      AvroConverter.SCHEMA_CONFIG -> AVRO_SCHEMA_CONFIG
-    ).asJava
-  }
-
-  def getPropsMixJNDI(url: String = JMS_URL) = {
-    Map(JMSConfigConstants.KCQL -> KCQL_MIX,
-      JMSConfigConstants.JMS_USER -> JMS_USER,
-      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfigConstants.JMS_URL -> url,
-      JMSConfigConstants.DESTINATION_SELECTOR -> DestinationSelector.JNDI.toString
-    ).asJava
-  }
-
-  def getPropsMixWithConverter = {
-    Map(JMSConfigConstants.KCQL -> KCQL_AVRO_SOURCE_MIX,
-      JMSConfigConstants.JMS_USER -> JMS_USER,
-      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfigConstants.JMS_URL -> JMS_URL,
-      JMSConfigConstants.DESTINATION_SELECTOR -> SELECTOR,
-      AvroConverter.SCHEMA_CONFIG -> AVRO_SCHEMA_CONFIG
-    ).asJava
-  }
-
-  def getPropsQueueWithConverter(url: String = JMS_URL) = {
-    Map(JMSConfigConstants.KCQL -> KCQL_SOURCE_QUEUE,
-      JMSConfigConstants.JMS_USER -> JMS_USER,
-      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfigConstants.JMS_URL -> url,
-      JMSConfigConstants.DESTINATION_SELECTOR -> SELECTOR
-    ).asJava
-  }
-
-  def getPropsMixJNDIWithSink(url: String = JMS_URL) = {
-    Map(JMSConfigConstants.KCQL -> KCQL_MIX_SINK,
-      JMSConfigConstants.JMS_USER -> JMS_USER,
-      JMSConfigConstants.JMS_PASSWORD -> JMS_PASSWORD,
-      JMSConfigConstants.INITIAL_CONTEXT_FACTORY -> INITIAL_CONTEXT_FACTORY,
-      JMSConfigConstants.CONNECTION_FACTORY -> CONNECTION_FACTORY,
-      JMSConfigConstants.JMS_URL -> url,
-      JMSConfigConstants.DESTINATION_SELECTOR -> SELECTOR
-    ).asJava
+    )
   }
 
   def getSchema: Schema = {
@@ -246,9 +122,9 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
       .put("mapNonStringKeys", Map(1 -> 1).asJava)
   }
 
-  def getSinkRecords = {
-    List(new SinkRecord(TOPIC1, 0, null, null, getSchema, getStruct(getSchema), 1),
-      new SinkRecord(TOPIC2, 0, null, null, getSchema, getStruct(getSchema), 5))
+  def getSinkRecords(topic: String) = {
+    List(new SinkRecord(topic, 0, null, null, getSchema, getStruct(getSchema), 1),
+      new SinkRecord(topic, 0, null, null, getSchema, getStruct(getSchema), 5))
   }
 
 
@@ -273,8 +149,8 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     baos.toByteArray
   }
 
-  def kcqlWithMessageSelector(msgSelector: String) =
-    s"INSERT INTO $TOPIC1 SELECT * FROM $JMS_TOPIC1 WITHTYPE TOPIC WITHJMSSELECTOR=`$msgSelector`"
+  def kcqlWithMessageSelector(target: String, source: String, msgSelector: String) =
+    s"INSERT INTO $target SELECT * FROM $source WITHTYPE TOPIC WITHJMSSELECTOR=`$msgSelector`"
 
   def getFreePort: Int = {
     val socket = new ServerSocket(0)
@@ -295,7 +171,7 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
       test(conn, brokerUrl)
     }
 
-  def testWithBroker(port: Int = getFreePort, clientID: Option[String])(test: String => Unit): Unit = {
+  def testWithBroker(port: Int = getFreePort, clientID: Option[String])(test: String => Unit): BrokerService = {
     val broker = new BrokerService()
     broker.setPersistent(false)
     broker.setUseJmx(false)
@@ -309,5 +185,6 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     broker.setTmpDataDirectory(new File(tempDir))
     broker.start()
     test(brokerUrl)
+    broker
   }
 }

@@ -20,7 +20,7 @@ import com.datamountaineer.streamreactor.connect.azure.documentdb.config.Documen
 import com.microsoft.azure.documentdb._
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.mockito.ArgumentMatchers.{any, eq => mockEq}
 import org.mockito.Mockito.{verify, _}
 import org.scalatest.mockito.MockitoSugar
@@ -58,7 +58,11 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
       when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
-      val task = new DocumentDbSinkTask(s => documentClient)
+
+      val task = new DocumentDbSinkTask(_ => documentClient)
+      val context = mock[SinkTaskContext]
+      when(context.configs()).thenReturn(map)
+      task.initialize(context)
       task.start(map)
 
       val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
@@ -151,7 +155,10 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
       when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
-      val task = new DocumentDbSinkTask(s => documentClient)
+      val task = new DocumentDbSinkTask(_ => documentClient)
+      val context = mock[SinkTaskContext]
+      when(context.configs()).thenReturn(map)
+      task.initialize(context)
       task.start(map)
 
       val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
@@ -241,7 +248,10 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
       when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
-      val task = new DocumentDbSinkTask(s => documentClient)
+      val task = new DocumentDbSinkTask(_ => documentClient)
+      val context = mock[SinkTaskContext]
+      when(context.configs()).thenReturn(map)
+      task.initialize(context)
       task.start(map)
 
       val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString

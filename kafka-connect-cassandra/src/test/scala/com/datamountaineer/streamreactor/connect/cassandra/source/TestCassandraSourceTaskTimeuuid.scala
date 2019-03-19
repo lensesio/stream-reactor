@@ -33,12 +33,12 @@ import com.datastax.driver.core.Session
 import org.scalatest.BeforeAndAfterAll
 
 @DoNotDiscover
-class TestCassandraSourceTaskTimeuuid extends WordSpec 
+class TestCassandraSourceTaskTimeuuid extends WordSpec
     with Matchers
     with MockitoSugar
     with TestConfig
     with TestCassandraSourceUtil
-    with ConverterUtil 
+    with ConverterUtil
     with BeforeAndAfterAll {
 
   var session: Session = _
@@ -60,7 +60,7 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
     val config = getCassandraConfigDefault
     val task = new CassandraSourceTask()
     task.initialize(taskContext)
-    
+
     //start task
     task.start(config)
 
@@ -74,10 +74,10 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
     json.get("string_field").asText().equals("magic_string") shouldBe true
     json.get("timeuuid_field").asText().size > 0
     json.get("int_field") shouldBe null
-    
-    
-    insertIntoTimeuuidTable(session, keyspace, tableName, "id2", "magic_string2") 
-    
+
+
+    insertIntoTimeuuidTable(session, keyspace, tableName, "id2", "magic_string2")
+
     records = pollAndWait(task, tableName)
     sourceRecord = records.asScala.head
     //check a field
@@ -86,21 +86,21 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
     json.get("string_field").asText().equals("magic_string2") shouldBe true
     json.get("timeuuid_field").asText().size > 0
     json.get("int_field") shouldBe null
-    
+
     //stop task
     task.stop()
   }
-  
+
   "A Cassandra SourceTask should read in incremental mode with timeuuid and time slices and use ignore and unwrap" in {
     val taskContext = getSourceTaskContextDefault
     val config = getCassandraConfigWithUnwrap
     val task = new CassandraSourceTask()
     task.initialize(taskContext)
-    
+
     //start task
     task.start(config)
 
-    insertIntoTimeuuidTable(session, keyspace, tableName, "id1", "magic_string") 
+    insertIntoTimeuuidTable(session, keyspace, tableName, "id1", "magic_string")
 
     val records = pollAndWait(task, tableName)
     val sourceRecord = records.asScala.head
@@ -142,9 +142,9 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
     val config = getCassandraConfigWithKcqlNoPrimaryKeyInSelect
     val task = new CassandraSourceTask()
     task.initialize(taskContext)
-    
-    insertIntoTimeuuidTable(session, keyspace, tableName, "id1", "magic_string") 
-    
+
+    insertIntoTimeuuidTable(session, keyspace, tableName, "id1", "magic_string")
+
     try {
       task.start(config)
       fail()
@@ -163,11 +163,11 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
     val myKcql = s"INSERT INTO sink_test SELECT string_field, timeuuid_field FROM $tableName IGNORE timeuuid_field PK timeuuid_field WITHUNWRAP INCREMENTALMODE=timeuuid"
     getCassandraConfig(keyspace, tableName, myKcql)
   }
-  
+
   private def getCassandraConfigDefault() = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field, timeuuid_field FROM $tableName PK timeuuid_field INCREMENTALMODE=timeuuid"
     getCassandraConfig(keyspace, tableName, myKcql)
   }
-  
+
 }
 

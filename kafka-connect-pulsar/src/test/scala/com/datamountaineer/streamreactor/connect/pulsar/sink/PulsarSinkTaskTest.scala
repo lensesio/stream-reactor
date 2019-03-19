@@ -32,9 +32,9 @@ class PulsarSinkTaskTest extends WordSpec with Matchers with MockitoSugar {
     assignment.add(partition)
     val context = mock[SinkTaskContext]
     when(context.assignment()).thenReturn(assignment)
-
-
+    when(context.configs()).thenReturn(props)
     val task = new PulsarSinkTask()
+    task.initialize(context)
     task.start(props)
   }
 }

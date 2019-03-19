@@ -22,7 +22,7 @@ import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigCo
 object RedisConfigConstants {
 
   val CONNECTOR_PREFIX = "connect.redis"
-  
+
   val REDIS_HOST = s"${CONNECTOR_PREFIX}.${CONNECTION_HOST_SUFFIX}"
   private[config] val REDIS_HOST_DOC: String =
     """
@@ -66,4 +66,11 @@ object RedisConfigConstants {
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
+
+  val REDIS_PK_DELIMITER = s"${CONNECTOR_PREFIX}.pk.delimiter"
+  private[config] val REDIS_PK_DELIMITER_DOC: String =
+    """
+      |Specifies the redis primary key delimiter
+    """.stripMargin
+  val REDIS_PK_DELIMITER_DEFAULT_VALUE = "."
 }

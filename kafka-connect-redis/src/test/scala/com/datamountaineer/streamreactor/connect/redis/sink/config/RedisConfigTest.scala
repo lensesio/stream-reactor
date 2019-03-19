@@ -31,6 +31,10 @@ class RedisConfigTest extends WordSpec with Matchers {
       RedisConfig.config.parse(propsWithoutPass + (RedisConfigConstants.REDIS_PASSWORD -> "pass"))
     }
 
+    "use custom delimiter for primary key" in {
+      RedisConfig.config.parse(propsWithoutPass + (RedisConfigConstants.REDIS_PK_DELIMITER -> "-"))
+    }
+
   }
 
   val propsWithoutPass = Map(RedisConfigConstants.REDIS_HOST -> "localhost",

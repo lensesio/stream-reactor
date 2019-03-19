@@ -45,11 +45,12 @@ class VoltSinkTask extends SinkTask with StrictLogging {
     * Parse the configurations and setup the writer
     **/
   override def start(props: util.Map[String, String]): Unit = {
-    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/voltdb-ascii.txt")).mkString + s" v $version")
+    logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/voltdb-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
 
-    VoltSinkConfig.config.parse(props)
-    val sinkConfig = VoltSinkConfig(props)
+    val conf = if (context.configs().isEmpty) props else context.configs()
+    VoltSinkConfig.config.parse(conf)
+    val sinkConfig = VoltSinkConfig(conf)
     val voltSettings = VoltSettings(sinkConfig)
     enableProgress = sinkConfig.getBoolean(VoltSinkConfigConstants.PROGRESS_COUNTER_ENABLED)
 
