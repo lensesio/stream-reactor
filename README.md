@@ -4,7 +4,7 @@
 [![Code Coverage](https://img.shields.io/codecov/c/github/wepay/kafka-connect-bigquery.svg?style=flat-square)](https://codecov.io/gh/wepay/kafka-connect-bigquery)
 
 This is an implementation of a sink connector from [Apache Kafka] to [Google BigQuery], built on top 
-of [Apache Kafka Connect].
+of [Apache Kafka Connect]. For a comprehensive list of configuration options, see the [Connector Configuration Wiki].
 
 ## Download
 
@@ -211,6 +211,7 @@ data must have a unique value for its row number (row numbers are one-indexed).
   [BigQuery]: https://cloud.google.com/bigquery/
   [boot2docker]: http://boot2docker.io
   [Confluent Platform]: http://docs.confluent.io/3.0.0/installation.html
+  [Connector Configuration Wiki]: https://github.com/wepay/kafka-connect-bigquery/wiki/Connector-Configuration
   [Docker Machine]: https://docs.docker.com/machine/
   [Docker]: https://www.docker.com
   [Google BigQuery]: https://cloud.google.com/bigquery/
