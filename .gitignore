@@ -70,3 +70,5 @@ classes/*
 /data
 /kafka-connect-*/it/build
 /kafka-connect-*/it/out
+
+/*/*/build

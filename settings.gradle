@@ -38,5 +38,6 @@ include 'kafka-connect-bloomberg',
         'kafka-connect-coap',
         'kafka-connect-ftp',
         'kafka-connect-azure-documentdb',
-        'kafka-connect-pulsar'
+        'kafka-connect-pulsar',
+        'kafka-connect-rabbitmq'
 
