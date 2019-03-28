@@ -42,7 +42,7 @@ object KuduWriter extends StrictLogging {
   def apply(config: KuduConfig, settings: KuduSettings): KuduWriter = {
     val kuduMaster = config.getString(KuduConfigConstants.KUDU_MASTER)
     logger.info(s"Connecting to Kudu Master at $kuduMaster")
-    lazy val client = new KuduClient.KuduClientBuilder(kuduMaster).build()
+    lazy val client = new KuduClient.KuduClientBuilder(kuduMaster.split(',').toList.asJava).build()
     new KuduWriter(client, settings)
   }
 }
