@@ -27,6 +27,11 @@ public class SchemaRegistrySchemaRetrieverConfig extends AbstractConfig {
   private static final String AVRO_DATA_CACHE_SIZE_DOC =
       "The size of the cache to use when converting schemas from Avro to Kafka Connect";
 
+  public static final String SCHEMA_REGISTRY_CLIENT_PREFIX = "schemaRegistryClient.";
+  private static final String SCHEMA_REGISTRY_CLIENT_PREFIX_DOC =
+      "Configurations beginning with this prefix will be passed on to the underlying Schema "
+          + "Registry client, with the prefix stripped.";
+
   static {
     config = new ConfigDef()
         .define(

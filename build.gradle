@@ -12,7 +12,7 @@ project.ext {
     googleCloudVersion = '0.47.0-alpha'
     googleAuthVersion = '0.9.0'
     googleCloudGsonVersion = '2.8.5'
-    ioConfluentVersion = '3.2.0'
+    ioConfluentVersion = '5.1.1'
     junitVersion = '4.12'
     kafkaVersion = '1.1.1'
     mockitoVersion = '1.10.19'
