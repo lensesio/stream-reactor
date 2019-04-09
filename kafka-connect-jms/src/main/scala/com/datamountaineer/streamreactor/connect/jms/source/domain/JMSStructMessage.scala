@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.jms.source.domain
 
 import java.util
-import javax.jms.{BytesMessage, MapMessage, Message, TextMessage}
+import javax.jms.{BytesMessage, MapMessage, Message, TextMessage, ObjectMessage}
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -95,6 +95,7 @@ import scala.collection.JavaConversions._
             }
             mapper.writeValueAsBytes(map)
           }
+          case o: ObjectMessage => o.getObject().asInstanceOf[Array[Byte]]
         }
       }
 }
