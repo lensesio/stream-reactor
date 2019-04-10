@@ -28,6 +28,7 @@ import org.bson.Document
 
 import scala.collection.JavaConversions._
 import scala.util.Failure
+import scala.util.Try
 
 /**
   * <h1>MongoJsonWriter</h1>
@@ -134,7 +135,8 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient) extends Str
   }
 
   def close(): Unit = {
-    logger.info("Shutting down Mongo connect task.")
+    Try(mongoClient.close())
+    logger.info("Closing Mongo Writer.")
   }
 }
 
