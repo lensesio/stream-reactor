@@ -50,7 +50,7 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
 
   val ftp = settings.protocol match {
     case FtpProtocol.FTP => new FTPClient()
-    case FtpProtocol.SFTP => new FTPSClient()
+    case FtpProtocol.FTPS => new FTPSClient()
   }
 
   def requiresFetch(file: AbsoluteFtpFile, metadata: Option[FileMetaData]): Boolean = metadata match {
