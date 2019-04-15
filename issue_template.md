@@ -6,8 +6,6 @@ Please review these questions before submitting any issue?
 
 ### Are you running the correct version of Kafka/Confluent for the Stream reactor release?
 
-### Have you consulted our [FAQs](http://docs.datamountaineer.com/en/latest/faq.html) page first?
-
 ### Do you have a supported version of the data source/sink .i.e Cassandra 3.0.9?
 
 ### Have you read the [docs](https://docs.lenses.io/connectors/)?
