@@ -19,14 +19,14 @@ package com.datamountaineer.streamreactor.connect.sink.writer
 import java.io.File
 import java.util.UUID
 
-import javax.jms.{Message, MessageListener, Session, TextMessage}
 import com.datamountaineer.streamreactor.connect.TestBase
-import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
+import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.writer.JMSWriter
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.sink.IteratorToSeqFn
 import com.fasterxml.jackson.databind.node.{ArrayNode, IntNode}
 import com.sksamuel.scalax.io.Using
+import javax.jms.{Message, MessageListener, Session, TextMessage}
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
 import org.apache.kafka.connect.json.JsonDeserializer
@@ -105,7 +105,13 @@ class JMSWriterTest extends TestBase with Using with BeforeAndAfter with Convert
 
         val kcqlQ= getKCQL(queueName, kafkaTopic1, "QUEUE")
         val kcqlT= getKCQL(topicName, kafkaTopic2, "TOPIC")
-        val props = getSinkProps(s"$kcqlQ;$kcqlT", s"$kafkaTopic1,$kafkaTopic2", brokerUrl)
+        val messageType = "TextMessage"
+        val corellationId = "5"
+        val topicMessageType = "JSON"
+        val props = getSinkProps(s"$kcqlQ;$kcqlT",
+          s"$kafkaTopic1,$kafkaTopic2", brokerUrl,
+          Map(JMSConfigConstants.HEADERS_CONFIG ->
+            s"$queueName=JMSType:$messageType,JMSCorrelationID:$corellationId;$topicName=JMSType:$topicMessageType"))
         val config = JMSConfig(props)
         val settings = JMSSettings(config, true)
         val writer = JMSWriter(settings)
@@ -117,6 +123,10 @@ class JMSWriterTest extends TestBase with Using with BeforeAndAfter with Convert
 
         queueMessage != null shouldBe true
         topicMessage != null shouldBe true
+        queueMessage.getJMSType shouldBe messageType
+        topicMessage.getJMSType shouldBe topicMessageType
+        queueMessage.getJMSCorrelationID shouldBe corellationId
+        topicMessage.getJMSCorrelationID shouldBe null
 
         //can not do json text comparison because fields order is not guaranteed
         val deserializer = new JsonDeserializer()

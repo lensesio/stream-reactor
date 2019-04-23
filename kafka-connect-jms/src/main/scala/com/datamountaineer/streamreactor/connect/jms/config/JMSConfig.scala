@@ -71,6 +71,9 @@ object JMSConfig {
     .define(JMSConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES, Type.STRING, JMSConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_DEFAULT,
         Importance.HIGH, JMSConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_DOC, "Converter", 3, ConfigDef.Width.MEDIUM,
         JMSConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES)
+    .define(JMSConfigConstants.HEADERS_CONFIG,
+      Type.STRING, "", Importance.LOW, JMSConfigConstants.HEADERS_CONFIG_DOC,
+      "Converter", 4, ConfigDef.Width.MEDIUM, JMSConfigConstants.HEADERS_CONFIG_DISPLAY)
 
     .define(JMSConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, JMSConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
         Importance.MEDIUM, JMSConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,

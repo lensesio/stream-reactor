@@ -21,16 +21,13 @@ import java.net.ServerSocket
 import java.nio.file.Paths
 import java.util
 import java.util.UUID
-import javax.jms.{BytesMessage, Connection, Session, TextMessage}
 
-import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
 import com.datamountaineer.streamreactor.connect.jms.config.{DestinationSelector, JMSConfigConstants}
 import com.sksamuel.avro4s.{AvroOutputStream, SchemaFor}
+import javax.jms.{BytesMessage, Connection, Session, TextMessage}
 import org.apache.activemq.ActiveMQConnectionFactory
-import org.apache.activemq.broker.{BrokerService, ConnectionContext}
-import org.apache.activemq.command.Message
+import org.apache.activemq.broker.BrokerService
 import org.apache.activemq.jndi.ActiveMQInitialContextFactory
-import org.apache.activemq.security.MessageAuthorizationPolicy
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.mockito.MockitoSugar
@@ -72,8 +69,9 @@ trait TestBase extends WordSpec with Matchers with MockitoSugar {
     schemaFile.toAbsolutePath.toString
   }
 
-  def getSinkProps(kcql: String, topics: String, url: String): util.Map[String, String] = {
-    (Map("topics" -> topics) ++ getProps(kcql, url)).asJava
+  def getSinkProps(kcql: String, topics: String,
+                   url: String, customProperties: Map[String, String] = Map()): util.Map[String, String] = {
+    (Map("topics" -> topics) ++ getProps(kcql, url) ++ customProperties).asJava
   }
 
   def getProps(kcql: String, url: String): Map[String, String] = {
