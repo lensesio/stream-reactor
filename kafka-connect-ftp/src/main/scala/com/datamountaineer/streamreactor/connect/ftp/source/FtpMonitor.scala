@@ -240,7 +240,6 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
 
     logger.info(s"Found ${files.length} items in ${w.p}")
     if(!isBySlices) {
-      //ENA: START previous version of code
       files.toStream
         // Get the metadata from the offset store
         .map(file => (file, fileConverter.getFileOffset(file.path)))
@@ -250,7 +249,6 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
         .flatMap { case (file, prevFetch) => fetch(file, prevFetch) }
         // Extract the file changes depending on the tracking mode
         .map { case (prevFile, currentFile) => handleFetchedFile(w.mode == MonitorMode.Tail, prevFile, currentFile) }
-      //ENA: END previous version of code
     } else {
       files.toStream
         // Get the metadata from the offset store
