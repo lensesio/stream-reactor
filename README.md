@@ -9,7 +9,7 @@ Join us on slack [![Alt text](images/slack.jpeg)](https://launchpass.com/landoop
 
 Lenses offers SQL (for data browsing and Kafka Streams), Kafka Connect connector management, cluster monitoring and more.
 
-You can find more on [landoop.com!](http://www.landoop.com/kafka-lenses/)
+You can find more on [lenses.io](http://www.lenses.io)
 
 # Stream Reactor
 
