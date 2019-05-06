@@ -39,7 +39,7 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
   val fileConverter = FileConverter(cfg.fileConverter, cfg.originalsStrings(), offsetStorage)
 
   val monitor2topic = cfg.ftpMonitorConfigs()
-    .map(monitorCfg => (MonitoredPath(monitorCfg.path, monitorCfg.tail), monitorCfg.topic)).toMap
+    .map(monitorCfg => (MonitoredPath(monitorCfg.path, monitorCfg.mode), monitorCfg.topic)).toMap
 
   val pollDuration = Duration.parse(cfg.getString(FtpSourceConfig.RefreshRate))
   val maxBackoff = Duration.parse(cfg.getString(FtpSourceConfig.MaxBackoff))
@@ -59,17 +59,22 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
       monitor2topic.keys.toSeq,
       cfg.timeoutMs(),
       cfg.getProtocol,
-      cfg.getString(FtpSourceConfig.fileFilter)
+      cfg.getString(FtpSourceConfig.fileFilter),
+      cfg.getInt(FtpSourceConfig.MonitorSliceSize)
     ),
       fileConverter
     )
   }
 
   def poll(): Stream[SourceRecord] = {
-    val stream = if (buffer.isEmpty) fetchRecords() else buffer
-    val (head, tail) = stream.splitAt(cfg.maxPollRecords)
-    buffer = tail
-    head
+    if(ftpMonitor.isBySlices){
+      fetchRecords()
+    } else {
+      val stream = if (buffer.isEmpty) fetchRecords() else buffer
+      val (head, tail) = stream.splitAt(cfg.maxPollRecords)
+      buffer = tail
+      head
+    }
   }
 
   def fetchRecords(): Stream[SourceRecord] = {
@@ -79,7 +84,7 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
         case Success(fileChanges) =>
           backoff = backoff.nextSuccess
           fileChanges.flatMap({ case (meta, body, w) =>
-            logger.info(s"got some fileChanges: ${meta.attribs.path}")
+            logger.info(s"got some fileChanges: ${meta.attribs.path}, offset = ${meta.offset}")
             fileConverter.convert(monitor2topic(w), meta, body)
           })
         case Failure(err) =>
@@ -113,8 +118,7 @@ class FtpSourceTask extends SourceTask with StrictLogging {
     val sourceConfig = new FtpSourceConfig(conf)
 
     sourceConfig.ftpMonitorConfigs.foreach(cfg => {
-      val style = if (cfg.tail) "tail" else "updates"
-      logger.info(s"config tells us to track the ${style} of files in `${cfg.path}` to topic `${cfg.topic}")
+      logger.info(s"config tells us to track the ${cfg.mode.toString} of files in `${cfg.path}` to topic `${cfg.topic}")
     })
     poller = Some(new FtpSourcePoller(sourceConfig, context.offsetStorageReader))
   }
