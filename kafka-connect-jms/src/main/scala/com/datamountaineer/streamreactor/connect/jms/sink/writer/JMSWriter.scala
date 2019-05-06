@@ -16,14 +16,13 @@
 
 package com.datamountaineer.streamreactor.connect.jms.sink.writer
 
-import javax.jms._
-
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSSetting, JMSSettings}
-import com.datamountaineer.streamreactor.connect.jms.sink.converters.{JMSMessageConverter, JMSMessageConverterFn}
+import com.datamountaineer.streamreactor.connect.jms.sink.converters.{JMSHeadersConverterWrapper, JMSMessageConverter, JMSMessageConverterFn}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import javax.jms._
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.util.{Failure, Success, Try}
@@ -33,7 +32,8 @@ case class JMSWriter(settings: JMSSettings) extends AutoCloseable with Converter
   val provider = JMSSessionProvider(settings, sink = true)
   provider.start()
   val producers: Map[String, MessageProducer] = provider.queueProducers ++ provider.topicProducers
-  val converterMap: Map[String, JMSMessageConverter] = settings.settings.map(s => (s.source, JMSMessageConverterFn(s.format))).toMap
+  val converterMap: Map[String, JMSMessageConverter] = settings.settings
+    .map(s => (s.source, JMSHeadersConverterWrapper(s.headers, JMSMessageConverterFn(s.format)))).toMap
   val settingsMap: Map[String, JMSSetting] = settings.settings.map(s => (s.source, s)).toMap
 
   //initialize error tracker

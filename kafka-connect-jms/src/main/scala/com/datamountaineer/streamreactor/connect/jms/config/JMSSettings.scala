@@ -20,6 +20,7 @@ import com.datamountaineer.kcql.{FormatType, Kcql}
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.jms.config.DestinationSelector.DestinationSelector
+import com.google.common.base.Splitter
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
@@ -34,13 +35,14 @@ case class JMSSetting(source: String,
                       destinationType: DestinationType,
                       format: FormatType = FormatType.JSON,
                       sourceConverters: Option[Converter],
-                      messageSelector: Option[String])
+                      messageSelector: Option[String],
+                      headers: Map[String, String])
 
 case class JMSSettings(connectionURL: String,
                        initialContextClass: String,
                        connectionFactoryClass: String,
                        destinationSelector: DestinationSelector,
-                       extraProps : List[Map[String, String]],
+                       extraProps: List[Map[String, String]],
                        settings: List[JMSSetting],
                        subscriptionName: Option[String],
                        user: Option[String],
@@ -62,7 +64,7 @@ object JMSSettings extends StrictLogging {
     * @param config : The map of all provided configurations
     * @return An instance of JmsSettings
     */
-  def apply(config: JMSConfig, sink: Boolean) : JMSSettings = {
+  def apply(config: JMSConfig, sink: Boolean): JMSSettings = {
 
     val kcql = config.getKCQL
     val errorPolicy = config.getErrorPolicy
@@ -80,9 +82,9 @@ object JMSSettings extends StrictLogging {
     val destinationSelector = DestinationSelector.withName(config.getString(JMSConfigConstants.DESTINATION_SELECTOR).toUpperCase)
 
     val extraProps = config.getList(JMSConfigConstants.EXTRA_PROPS)
-                            .map(p => p.split("=").grouped(2)
-                            .map { case Array(k: String, v: String) => k.trim -> v.trim }.toMap)
-                            .toList
+      .map(p => p.split("=").grouped(2)
+        .map { case Array(k: String, v: String) => k.trim -> v.trim }.toMap)
+      .toList
     //get default converter
     val defaultConverterClassName = config.getString(JMSConfigConstants.DEFAULT_CONVERTER_CONFIG)
 
@@ -106,12 +108,12 @@ object JMSSettings extends StrictLogging {
 
     //get converters, filtering out those with it not set in kcql
     val converters = kcql
-                      .filterNot(k => k.getWithConverter == null)
-                      .map(k => (k.getSource, k.getWithConverter))
-                      .toMap
+      .filterNot(k => k.getWithConverter == null)
+      .map(k => (k.getSource, k.getWithConverter))
+      .toMap
 
     //check converters
-    val convertersMap = converters.map( {
+    val convertersMap = converters.map({
       case (jms_source, clazz) => {
         logger.info(s"Creating converter instance for $clazz")
         val converter = Try(Class.forName(clazz).newInstance()) match {
@@ -119,7 +121,7 @@ object JMSSettings extends StrictLogging {
           case Failure(_) => throw new ConfigException(s"Invalid ${JMSConfigConstants.KCQL} is invalid for $jms_source. $clazz should have an empty ctor!")
         }
         converter.initialize(config.props.toMap)
-        (jms_source,converter)
+        (jms_source, converter)
       }
     })
 
@@ -134,21 +136,30 @@ object JMSSettings extends StrictLogging {
     val jmsQueues = kcql.filter(k => k.getWithType.toUpperCase.equals("QUEUE")).map(k => if (sink) k.getTarget else k.getSource)
     val jmsSubscriptionName = config.getString(JMSConfigConstants.TOPIC_SUBSCRIPTION_NAME)
 
+    val headers = parseAdditionalHeaders(config.getString(s"${JMSConfigConstants.HEADERS_CONFIG}"))
+
     val settings = kcql.map(r => {
       val jmsName = if (sink) r.getTarget else r.getSource
       var converter = convertersMap.get(jmsName)
       if (converter.isEmpty) {
         converter = defaultConverter
       }
-
+      val headersForJmsDest = Splitter.on(',').omitEmptyStrings()
+        .split(headers.getOrElse(jmsName, ""))
+        .map { header =>
+          val keyValue = header.split(":", 2)
+          (keyValue(0), keyValue(1))
+        }
+        .toMap
       JMSSetting(r.getSource,
-                r.getTarget,
-                fields(r.getSource),
-                ignoreFields(r.getSource),
-                getDestinationType(jmsName, jmsQueues, jmsTopics),
-                getFormatType(r),
-                converter,
-                Option(r.getWithJmsSelector()))
+        r.getTarget,
+        fields(r.getSource),
+        ignoreFields(r.getSource),
+        getDestinationType(jmsName, jmsQueues, jmsTopics),
+        getFormatType(r),
+        converter,
+        Option(r.getWithJmsSelector()),
+        headersForJmsDest)
     }).toList
 
     new JMSSettings(
@@ -167,7 +178,16 @@ object JMSSettings extends StrictLogging {
       pollingTimeout)
   }
 
-  def getFormatType(kcql: Kcql) : FormatType = Option(kcql.getFormatType).getOrElse(FormatType.JSON)
+  private def parseAdditionalHeaders(cfgLine: String): Map[String, String] =
+    Splitter.on(';').omitEmptyStrings()
+      .split(cfgLine)
+      .map { header =>
+        val keyValue = header.split("=", 2)
+        (keyValue(0), keyValue(1))
+      }
+      .toMap
+
+  def getFormatType(kcql: Kcql): FormatType = Option(kcql.getFormatType).getOrElse(FormatType.JSON)
 
   def getDestinationType(target: String, queues: Set[String], topics: Set[String]): DestinationType = {
     if (topics.contains(target)) {

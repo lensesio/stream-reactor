@@ -74,6 +74,14 @@ object JMSConfigConstants {
   private[config] val DEFAULT_CONVERTER_DISPLAY = "Default Converter class"
 
 
+  val HEADERS_CONFIG = s"${CONNECTOR_PREFIX}.headers"
+  private[config] val HEADERS_CONFIG_DOC =
+    s"""
+      |Contains collection of static JMS headers included in every SinkRecord
+      |The format is ${CONNECTOR_PREFIX}.headers="$$MQTT_TOPIC=rmq.jms.message.type:TextMessage,rmq.jms.message.priority:2;$$MQTT_TOPIC2=rmq.jms.message.type:JSONMessage"""".stripMargin
+  private[config] val HEADERS_CONFIG_DISPLAY = "JMS static headers"
+
+
   val THROW_ON_CONVERT_ERRORS_CONFIG = s"${CONNECTOR_PREFIX}.converter.throw.on.error"
   private[config] val THROW_ON_CONVERT_ERRORS_DOC = "If set to false the conversion exception will be swallowed and everything carries on BUT the message is lost!!; true will throw the exception.Default is false."
   private[config] val THROW_ON_CONVERT_ERRORS_DISPLAY = "Throw error on conversion"
