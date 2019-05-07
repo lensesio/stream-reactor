@@ -253,10 +253,16 @@ object DbHandler extends StrictLogging with KuduConverter {
       val ato = new AlterTableOptions()
       if (null == schema.getDefaultValue) {
         logger.info(s"Adding nullable column ${schema.getName}, type ${schema.getType}")
-        ato.addNullableColumn(schema.getName, schema.getType)
+        ato.addColumn(new ColumnSchema.ColumnSchemaBuilder(schema.getName, schema.getType)
+          .nullable(true)
+          .typeAttributes(schema.getTypeAttributes)
+          .build())
       } else {
         logger.info(s"Adding column ${schema.getName}, type ${schema.getType}, default ${schema.getDefaultValue}")
-        ato.addColumn(schema.getName, schema.getType, schema.getDefaultValue)
+        ato.addColumn(new ColumnSchema.ColumnSchemaBuilder(schema.getName, schema.getType)
+          .defaultValue(schema.getDefaultValue)
+          .typeAttributes(schema.getTypeAttributes)
+          .build())
       }
     }).toList
   }

@@ -213,7 +213,6 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
     when(client.getTablesList).thenReturn(resp)
     when(resp.getTablesList).thenReturn(List.empty[String].asJava)
 
-
     val writer = new KuduWriter(client, settings)
     writer.write(getTestRecords.toSeq)
     writer.close()
@@ -229,9 +228,9 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
 
     val rec1 = createSinkRecord(createRecord(schema1, "1"), TOPIC, 1)
     val rec2 = createSinkRecord(createRecord5(schema2, "2"), TOPIC, 2)
-    val kuduSchema = convertToKuduSchema(rec1, kcql)
+    val kuduSchema = createKuduSchema
 
-    val kuduSchema2 = convertToKuduSchema(rec2.valueSchema(), kcql)
+    val kuduSchema2 = createKuduSchema5
     val kuduRow2 = kuduSchema2.newPartialRow()
 
     //mock out kudu client
