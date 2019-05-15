@@ -23,12 +23,15 @@ package com.datamountaineer.streamreactor.connect.kudu
 
 import java.nio.ByteBuffer
 import java.util
+import java.util.{ArrayList, List}
 
 import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfigConstants, WriteFlushMode}
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kudu.ColumnSchema.ColumnSchemaBuilder
+import org.apache.kudu.{ColumnSchema, Type}
 import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
@@ -147,6 +150,27 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       .build
   }
 
+  def createKuduSchema2: org.apache.kudu.Schema = {
+    val columns = new util.ArrayList[ColumnSchema]
+    val idField = new ColumnSchema.ColumnSchemaBuilder("id", Type.STRING).key(true).build
+    columns.add(idField)
+    val intField = new ColumnSchema.ColumnSchemaBuilder("int_field", Type.INT32).build
+    columns.add(intField)
+    val longField = new ColumnSchema.ColumnSchemaBuilder("long_field", Type.INT64).build
+    columns.add(longField)
+    val stringField = new ColumnSchema.ColumnSchemaBuilder("string_field", Type.STRING).build
+    columns.add(stringField)
+    val floatField = new ColumnSchema.ColumnSchemaBuilder("float_field", Type.FLOAT).build
+    columns.add(floatField)
+    val float64Field = new ColumnSchema.ColumnSchemaBuilder("float64_field", Type.DOUBLE).build
+    columns.add(float64Field)
+    val booleanField = new ColumnSchema.ColumnSchemaBuilder("boolean_field", Type.BOOL).build
+    columns.add(booleanField)
+    val int64Field = new ColumnSchema.ColumnSchemaBuilder("int64_field", Type.INT64).defaultValue(20.toLong).build
+    columns.add(int64Field)
+    new org.apache.kudu.Schema(columns)
+  }
+
   def createSchema3: Schema = {
     SchemaBuilder.struct.name("record")
       .version(1)
@@ -161,6 +185,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       .field("new_field", Schema.STRING_SCHEMA)
       .build
   }
+
 
   def createSchema4: Schema = {
     SchemaBuilder.struct.name("record")
@@ -177,6 +202,29 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       .build
   }
 
+  def createKuduSchema4: org.apache.kudu.Schema = {
+    val columns = new util.ArrayList[ColumnSchema]
+    val idField = new ColumnSchema.ColumnSchemaBuilder("id", Type.STRING).key(true).build
+    columns.add(idField)
+    val intField = new ColumnSchema.ColumnSchemaBuilder("int_field", Type.INT32).build
+    columns.add(intField)
+    val longField = new ColumnSchema.ColumnSchemaBuilder("long_field", Type.INT64).build
+    columns.add(longField)
+    val stringField = new ColumnSchema.ColumnSchemaBuilder("string_field", Type.STRING).build
+    columns.add(stringField)
+    val floatField = new ColumnSchema.ColumnSchemaBuilder("float_field", Type.FLOAT).build
+    columns.add(floatField)
+    val float64Field = new ColumnSchema.ColumnSchemaBuilder("float64_field", Type.DOUBLE).build
+    columns.add(float64Field)
+    val booleanField = new ColumnSchema.ColumnSchemaBuilder("boolean_field", Type.BOOL).build
+    columns.add(booleanField)
+    val byteField = new ColumnSchema.ColumnSchemaBuilder("byte_field", Type.BINARY).build
+    columns.add(byteField)
+    val int64Field = new ColumnSchema.ColumnSchemaBuilder("int64_field", Type.INT64).defaultValue(20.toLong).build
+    columns.add(int64Field)
+    new org.apache.kudu.Schema(columns)
+  }
+
   def createSchema5: Schema = {
     SchemaBuilder.struct.name("record")
       .version(2)
@@ -191,6 +239,31 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       .field("int64_field", SchemaBuilder.int64().defaultValue(20.toLong).build())
       .field("new_field", SchemaBuilder.string().defaultValue("").build())
       .build
+  }
+
+  def createKuduSchema5: org.apache.kudu.Schema = {
+    val columns = new util.ArrayList[ColumnSchema]
+    val idField = new ColumnSchema.ColumnSchemaBuilder("id", Type.STRING).key(true).build
+    columns.add(idField)
+    val intField = new ColumnSchema.ColumnSchemaBuilder("int_field", Type.INT32).build
+    columns.add(intField)
+    val longField = new ColumnSchema.ColumnSchemaBuilder("long_field", Type.INT64).build
+    columns.add(longField)
+    val stringField = new ColumnSchema.ColumnSchemaBuilder("string_field", Type.STRING).build
+    columns.add(stringField)
+    val floatField = new ColumnSchema.ColumnSchemaBuilder("float_field", Type.FLOAT).build
+    columns.add(floatField)
+    val float64Field = new ColumnSchema.ColumnSchemaBuilder("float64_field", Type.DOUBLE).build
+    columns.add(float64Field)
+    val booleanField = new ColumnSchema.ColumnSchemaBuilder("boolean_field", Type.BOOL).build
+    columns.add(booleanField)
+    val byteField = new ColumnSchema.ColumnSchemaBuilder("byte_field", Type.BINARY).build
+    columns.add(byteField)
+    val int64Field = new ColumnSchema.ColumnSchemaBuilder("int64_field", Type.INT64).defaultValue(20.toLong).build
+    columns.add(int64Field)
+    val newField = new ColumnSchema.ColumnSchemaBuilder("new_field", Type.STRING).defaultValue("").build
+    columns.add(newField)
+    new org.apache.kudu.Schema(columns)
   }
 
   //build a test record
@@ -243,6 +316,28 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       .field("boolean_field", Schema.BOOLEAN_SCHEMA)
       .field("byte_field", Schema.BYTES_SCHEMA)
       .build
+  }
+
+  def createKuduSchema: org.apache.kudu.Schema = {
+    val columns = new util.ArrayList[ColumnSchema]
+    val idField = new ColumnSchemaBuilder("id", Type.STRING).key(true).build()
+    columns.add(idField)
+    val intField = new ColumnSchemaBuilder("int_field", Type.INT32).build()
+    columns.add(intField)
+    val longField = new ColumnSchemaBuilder("long_field", Type.INT64).build()
+    columns.add(longField)
+    val stringField = new ColumnSchemaBuilder("string_field", Type.STRING).build()
+    columns.add(stringField)
+    val floatField = new ColumnSchemaBuilder("float_field", Type.FLOAT).build()
+    columns.add(floatField)
+    val float64Field = new ColumnSchemaBuilder("float64_field", Type.DOUBLE).build()
+    columns.add(float64Field)
+    val booleanField = new ColumnSchemaBuilder("boolean_field", Type.BOOL).build()
+    columns.add(booleanField)
+    val byteField = new ColumnSchemaBuilder("byte_field", Type.BINARY).build()
+    columns.add(byteField)
+
+    new org.apache.kudu.Schema(columns)
   }
 
   //build a test record

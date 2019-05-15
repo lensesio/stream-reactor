@@ -229,8 +229,8 @@ trait KuduConverter {
       case Type.BYTES => {
         field.schema().name() match {
           case Decimal.LOGICAL_NAME => {
-            val precision = field.schema().parameters().get("connect.decimal.precision").asInstanceOf[Int]
-            val scale = field.schema().parameters().get("scale").asInstanceOf[Int]
+            val precision = field.schema().parameters().get("connect.decimal.precision").toInt
+            val scale = field.schema().parameters().get("scale").toInt
             new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.DECIMAL).typeAttributes(
               new ColumnTypeAttributes.ColumnTypeAttributesBuilder()
                 .precision(precision).scale(scale).build()

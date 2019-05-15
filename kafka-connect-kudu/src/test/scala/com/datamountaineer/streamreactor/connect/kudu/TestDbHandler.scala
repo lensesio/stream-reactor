@@ -35,17 +35,17 @@ import scala.util.Try
 class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
 
   "Should identify new columns in schema2" in {
-    val diff = DbHandler.compare(createSchema, createSchema2)
+    val diff = DbHandler.compare(createKuduSchema, createKuduSchema2)
     diff.size shouldBe 1
   }
 
   "Should identify new columns in schema4 with default" in {
-    val diff = DbHandler.compare(createSchema, createSchema4)
+    val diff = DbHandler.compare(createKuduSchema, createKuduSchema4)
     diff.size shouldBe 1
   }
 
   "Should not identify new columns in schema" in {
-    val diff = DbHandler.compare(createSchema, createSchema)
+    val diff = DbHandler.compare(createKuduSchema, createKuduSchema)
     diff.size shouldBe 0
   }
 
@@ -201,12 +201,12 @@ class TestDbHandler extends TestBase with MockitoSugar with KuduConverter {
     val client = mock[KuduClient]
     val table = mock[KuduTable]
     val atrm = mock[AlterTableResponse]
-    val ato = DbHandler.compare(createSchema, createSchema2).head
+    val ato = DbHandler.compare(createKuduSchema, createKuduSchema4).head
     when(client.tableExists(TABLE)).thenReturn(true)
     when(client.alterTable(TABLE, ato)).thenReturn(atrm)
     when(client.openTable(TABLE)).thenReturn(table)
     when(client.isAlterTableDone(TABLE)).thenReturn(true)
-    val ret = DbHandler.alterTable(TABLE, createSchema, createSchema2, client)
+    val ret = DbHandler.alterTable(TABLE, createKuduSchema, createKuduSchema4, client)
     ret.isInstanceOf[KuduTable] shouldBe true
   }
 

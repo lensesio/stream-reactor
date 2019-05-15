@@ -211,8 +211,8 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @param client  A Kudu client to execute the DDL
     **/
   def alterTable(table: String,
-                 old: connectSchema,
-                 current: connectSchema,
+                 old: kuduSchema,
+                 current: kuduSchema,
                  client: KuduClient): KuduTable = {
     val ato = compare(old, current)
     ato.foreach(a => executeAlterTable(a, table, client))
@@ -244,19 +244,25 @@ object DbHandler extends StrictLogging with KuduConverter {
     * @param current The current schema
     * @return A list of AlterTableOptions
     **/
-  def compare(old: connectSchema, current: connectSchema): List[AlterTableOptions] = {
+  def compare(old: kuduSchema, current: kuduSchema): List[AlterTableOptions] = {
     ///look for new fields
     logger.info("Found a difference in the schemas.")
-    val diff = current.fields().toSet.diff(old.fields().toSet)
+    val diff = current.getColumns.toSet.diff(old.getColumns.toSet)
     diff.map(d => {
-      val schema = convertConnectField(d)
+      val schema = current.getColumn(d.getName)
       val ato = new AlterTableOptions()
       if (null == schema.getDefaultValue) {
         logger.info(s"Adding nullable column ${schema.getName}, type ${schema.getType}")
-        ato.addNullableColumn(schema.getName, schema.getType)
+        ato.addColumn(new ColumnSchema.ColumnSchemaBuilder(schema.getName, schema.getType)
+          .nullable(true)
+          .typeAttributes(schema.getTypeAttributes)
+          .build())
       } else {
         logger.info(s"Adding column ${schema.getName}, type ${schema.getType}, default ${schema.getDefaultValue}")
-        ato.addColumn(schema.getName, schema.getType, schema.getDefaultValue)
+        ato.addColumn(new ColumnSchema.ColumnSchemaBuilder(schema.getName, schema.getType)
+          .defaultValue(schema.getDefaultValue)
+          .typeAttributes(schema.getTypeAttributes)
+          .build())
       }
     }).toList
   }

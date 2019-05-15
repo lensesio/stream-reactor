@@ -187,16 +187,23 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
       val schema = record.valueSchema()
       val version = schema.version()
       val table = setting.topicTables(topic)
-      val cachedSchema = schemaCache.getOrElse(topic, SchemaMap(version, schema))
+
+      val currentKcql = setting.kcql.filter(r => r.getTarget.trim == table)
+      val currentKuduTableSchema = convertToKuduSchema(record, currentKcql.head)
+      val currentColumnsSize = record.valueSchema().fields().size()
+
+      val oldKuduTableSchema = kuduTablesCache(topic).getSchema
+      val oldColumnsSize = oldKuduTableSchema.getColumns.size()
 
       //allow evolution
-      val evolving = cachedSchema.version < version
+      val evolving = oldColumnsSize < currentColumnsSize
 
       //if table is allowed to evolve all the table
       if (evolving) {
-        logger.info(s"Schema change detected for $topic mapped to table $table. Old schema version " +
-          s"${cachedSchema.version} new version $version")
-        val kuduTable = DbHandler.alterTable(table, cachedSchema.schema, schema, client)
+        logger.info(s"Schema change detected for $topic mapped to table $table. Old schema columns size " +
+          s"$oldKuduTableSchema new columns size $currentColumnsSize")
+        val kuduTable = DbHandler.alterTable(table, oldKuduTableSchema, currentKuduTableSchema, client)
+
         kuduTablesCache.update(topic, kuduTable)
         schemaCache.update(topic, SchemaMap(version, schema))
       } else {
