@@ -103,7 +103,7 @@ object CassandraSettings extends StrictLogging {
         case _ => TimestampType.NONE
       }
 
-      if (tCols.size != 1 && timestampType.equals(TimestampType.NONE)) {
+      if (timestampType != TimestampType.NONE && tCols.size != 1) {
         throw new ConfigException("Only one primary key column is allowed to be specified in Incremental mode. " +
           s"Received ${tCols.mkString(",")} for source ${r.getSource}")
       }
