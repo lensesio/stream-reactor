@@ -1118,7 +1118,6 @@ public class KcqlTest {
 
   @Test
   public void handleTTLSelectOnly() {
-    String topic = "TOPIC_A";
     String table = "TABLE_A";
     String syntax = String.format("SELECT * FROM %sPK sensorID STOREAS SortedSet(score=ts) TTL = 60", table);
     Kcql kcql = Kcql.parse(syntax);
