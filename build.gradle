@@ -6,7 +6,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:5.0.0'
         classpath 'io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.11.0'
         classpath 'net.researchgate:gradle-release:2.6.0'
     }
