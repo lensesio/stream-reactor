@@ -54,7 +54,7 @@ class TestCassandraSourceTaskTimestamp extends WordSpec
 
   "A Cassandra SourceTask should read in incremental mode with timestamp and time slices" in {
     val taskContext = getSourceTaskContextDefault
-    val config = getCassandraConfigDefault
+    val config = getCassandraConfigDefault()
     val task = new CassandraSourceTask()
     task.initialize(taskContext)
 
