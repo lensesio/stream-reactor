@@ -3,13 +3,16 @@ package com.landoop.streamreactor.connect.hive.sink
 import java.util
 
 import com.landoop.streamreactor.connect.hive._
-import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfigConstants
+import com.landoop.streamreactor.connect.hive.sink.config.HDFSSinkConfigConstants
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hive.metastore.api.{Database, NoSuchObjectException}
+import org.apache.hadoop.hive.metastore.api.Database
+import org.apache.hadoop.hive.metastore.api.NoSuchObjectException
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.FlatSpec
+import org.scalatest.Matchers
 
 import scala.collection.JavaConverters._
 import scala.util.Try
@@ -59,7 +62,7 @@ class HiveSinkTaskTest extends FlatSpec with Matchers with HiveTestConfig {
 
     // kafka connect will invoke start as the first part of the lifecycle
     // we mimic this with the example config
-    import HiveSinkConfigConstants._
+    import HDFSSinkConfigConstants._
 
     val props = Map(
       DatabaseNameKey -> db,
@@ -121,7 +124,7 @@ class HiveSinkTaskTest extends FlatSpec with Matchers with HiveTestConfig {
 
     // kafka connect will invoke start as the first part of the lifecycle
     // we mimic this with the example config
-    import HiveSinkConfigConstants._
+    import HDFSSinkConfigConstants._
 
     val props = Map(
       DatabaseNameKey -> db

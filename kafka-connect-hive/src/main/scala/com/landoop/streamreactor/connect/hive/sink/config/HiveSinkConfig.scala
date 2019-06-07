@@ -3,19 +3,34 @@ package com.landoop.streamreactor.connect.hive.sink.config
 import java.util.Collections
 
 import cats.data.NonEmptyList
-import com.datamountaineer.kcql.{Field, PartitioningStrategy, SchemaEvolution}
-import com.landoop.streamreactor.connect.hive.formats.{HiveFormat, OrcHiveFormat, ParquetHiveFormat}
-import com.landoop.streamreactor.connect.hive.sink.evolution.{AddEvolutionPolicy, EvolutionPolicy, IgnoreEvolutionPolicy, StrictEvolutionPolicy}
-import com.landoop.streamreactor.connect.hive.sink.partitioning.{DynamicPartitionHandler, PartitionHandler, StrictPartitionHandler}
+import com.datamountaineer.kcql.Field
+import com.datamountaineer.kcql.PartitioningStrategy
+import com.datamountaineer.kcql.SchemaEvolution
+import com.landoop.streamreactor.connect.hive.DatabaseName
+import com.landoop.streamreactor.connect.hive.PartitionField
+import com.landoop.streamreactor.connect.hive.TableName
+import com.landoop.streamreactor.connect.hive.Topic
+import com.landoop.streamreactor.connect.hive.formats.HiveFormat
+import com.landoop.streamreactor.connect.hive.formats.ParquetHiveFormat
+import com.landoop.streamreactor.connect.hive.sink.evolution.AddEvolutionPolicy
+import com.landoop.streamreactor.connect.hive.sink.evolution.EvolutionPolicy
+import com.landoop.streamreactor.connect.hive.sink.evolution.IgnoreEvolutionPolicy
+import com.landoop.streamreactor.connect.hive.sink.evolution.StrictEvolutionPolicy
+import com.landoop.streamreactor.connect.hive.sink.partitioning.DynamicPartitionHandler
+import com.landoop.streamreactor.connect.hive.sink.partitioning.PartitionHandler
+import com.landoop.streamreactor.connect.hive.sink.partitioning.StrictPartitionHandler
 import com.landoop.streamreactor.connect.hive.sink.staging._
-import com.landoop.streamreactor.connect.hive.{DatabaseName, PartitionField, TableName, Topic}
+import com.landoop.streamreactor.connect.hive.HadoopConfiguration
+import com.landoop.streamreactor.connect.hive.HDFSKerberos
 
 import scala.collection.JavaConverters._
 
 case class HiveSinkConfig(dbName: DatabaseName,
                           filenamePolicy: FilenamePolicy = DefaultFilenamePolicy,
                           stageManager: StageManager = new StageManager(DefaultFilenamePolicy),
-                          tableOptions: Set[TableOptions] = Set.empty)
+                          tableOptions: Set[TableOptions] = Set.empty,
+                          kerberos: Option[HDFSKerberos],
+                          hadoopConfiguration: HadoopConfiguration)
 
 case class TableOptions(tableName: TableName,
                         topic: Topic,
@@ -80,10 +95,12 @@ object HiveSinkConfig {
     }
 
     HiveSinkConfig(
-      dbName = DatabaseName(props(HiveSinkConfigConstants.DatabaseNameKey)),
+      dbName = DatabaseName(props(HDFSSinkConfigConstants.DatabaseNameKey)),
       filenamePolicy = DefaultFilenamePolicy,
       stageManager = new StageManager(DefaultFilenamePolicy),
-      tableOptions = tables
+      tableOptions = tables,
+      kerberos = HDFSKerberos.from(config, HDFSSinkConfigConstants),
+      hadoopConfiguration = HadoopConfiguration.from(config, HDFSSinkConfigConstants)
     )
   }
 }

@@ -1,20 +1,25 @@
 package com.landoop.streamreactor.connect.hive.sink
 
+import java.io.IOException
 import java.util
 
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.landoop.streamreactor.connect.hive._
-import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfig, HiveSinkConfigConstants}
+import com.landoop.streamreactor.connect.hive.sink.config.HDFSSinkConfigConstants
+import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfig
 import com.landoop.streamreactor.connect.hive.sink.staging.OffsetSeeker
+import com.landoop.streamreactor.connect.hive.HDFSConfigurationExtension._
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
-import org.apache.hadoop.hive.conf.HiveConf
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient
+import org.apache.hadoop.security.UserGroupInformation
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTask
 
 import scala.collection.JavaConverters._
+import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
 class HiveSinkTask extends SinkTask with StrictLogging {
@@ -29,6 +34,7 @@ class HiveSinkTask extends SinkTask with StrictLogging {
   private var client: HiveMetaStoreClient = _
   private var fs: FileSystem = _
   private var config: HiveSinkConfig = _
+  private var kerberosTicketRenewal: AsyncFunctionLoop = _
 
   def this(fs: FileSystem, client: HiveMetaStoreClient) {
     this()
@@ -42,20 +48,28 @@ class HiveSinkTask extends SinkTask with StrictLogging {
 
     val configs = if (context.configs().isEmpty) props else context.configs()
 
+    config = HiveSinkConfig.fromProps(configs.asScala.toMap)
+
     if (client == null) {
-      val hiveConf = new HiveConf()
-      hiveConf.set("hive.metastore", configs.get(HiveSinkConfigConstants.MetastoreTypeKey))
-      hiveConf.set("hive.metastore.uris", configs.get(HiveSinkConfigConstants.MetastoreUrisKey))
+      val hiveConf = ConfigurationBuilder.buildHiveConfig(config.hadoopConfiguration)
+      hiveConf.set("hive.metastore", configs.get(HDFSSinkConfigConstants.MetastoreTypeKey))
+      hiveConf.set("hive.metastore.uris", configs.get(HDFSSinkConfigConstants.MetastoreUrisKey))
       client = new HiveMetaStoreClient(hiveConf)
     }
 
     if (fs == null) {
-      val conf: Configuration = new Configuration()
-      conf.set("fs.defaultFS", configs.get(HiveSinkConfigConstants.FsDefaultKey))
+      val conf: Configuration = ConfigurationBuilder.buildHdfsConfiguration(config.hadoopConfiguration)
+      conf.set("fs.defaultFS", configs.get(HDFSSinkConfigConstants.FsDefaultKey))
+
+      config.kerberos.foreach { kerberos =>
+        val ugi = conf.getUGI(kerberos)
+        conf.withKerberos(kerberos)
+        val interval = kerberos.ticketRenewalMs.millis
+        kerberosTicketRenewal = new AsyncFunctionLoop(interval, "Kerberos")(renewKerberosTicket(ugi))
+      }
+
       fs = FileSystem.get(conf)
     }
-
-    config = HiveSinkConfig.fromProps(configs.asScala.toMap)
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
@@ -124,5 +138,19 @@ class HiveSinkTask extends SinkTask with StrictLogging {
   private def table(topic: Topic): TableName = config.tableOptions.find(_.topic == topic) match {
     case Some(options) => options.tableName
     case _ => sys.error(s"Cannot find KCQL for topic $topic")
+  }
+
+  private def renewKerberosTicket(ugi: UserGroupInformation): Unit = {
+    try {
+      ugi.reloginFromKeytab()
+    }
+    catch {
+      case e: IOException =>
+        // We ignore this exception during relogin as each successful relogin gives
+        // additional 24 hours of authentication in the default config. In normal
+        // situations, the probability of failing relogin 24 times is low and if
+        // that happens, the task will fail eventually.
+        logger.error("Error renewing the Kerberos ticket", e)
+    }
   }
 }

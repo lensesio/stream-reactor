@@ -4,14 +4,20 @@ import java.util
 
 import cats.data.NonEmptyList
 import com.landoop.streamreactor.connect.hive._
-import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfig, TableOptions}
-import com.landoop.streamreactor.connect.hive.source.config.{HiveSourceConfig, ProjectionField, SourceTableOptions}
-import com.landoop.streamreactor.connect.hive.source.offset.{HiveSourceOffsetStorageReader, MockOffsetStorageReader}
+import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfig
+import com.landoop.streamreactor.connect.hive.sink.config.TableOptions
+import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfig
+import com.landoop.streamreactor.connect.hive.source.config.ProjectionField
+import com.landoop.streamreactor.connect.hive.source.config.SourceTableOptions
+import com.landoop.streamreactor.connect.hive.source.offset.HiveSourceOffsetStorageReader
+import com.landoop.streamreactor.connect.hive.source.offset.MockOffsetStorageReader
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.metastore.api.Database
-import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
-import org.scalatest.{Matchers, WordSpec}
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
+import org.scalatest.Matchers
+import org.scalatest.WordSpec
 
 import scala.collection.JavaConverters._
 import scala.util.Try
@@ -53,7 +59,10 @@ class HiveSourceTest extends WordSpec with Matchers with HiveTestConfig with Str
 
     val sinkConfig = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName(table), Topic("mytopic"), true, true, partitions = partitions)
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     val sink = hiveSink(TableName(table), sinkConfig)
     users.zipWithIndex.foreach { case (user, k) =>
