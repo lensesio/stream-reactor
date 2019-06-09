@@ -3,7 +3,7 @@ package com.landoop.streamreactor.connect.hive.sink
 import java.util
 
 import com.landoop.streamreactor.connect.hive._
-import com.landoop.streamreactor.connect.hive.sink.config.HDFSSinkConfigConstants
+import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.metastore.api.Database
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException
@@ -62,7 +62,7 @@ class HiveSinkTaskTest extends FlatSpec with Matchers with HiveTestConfig {
 
     // kafka connect will invoke start as the first part of the lifecycle
     // we mimic this with the example config
-    import HDFSSinkConfigConstants._
+    import SinkConfigSettings._
 
     val props = Map(
       DatabaseNameKey -> db,
@@ -124,7 +124,7 @@ class HiveSinkTaskTest extends FlatSpec with Matchers with HiveTestConfig {
 
     // kafka connect will invoke start as the first part of the lifecycle
     // we mimic this with the example config
-    import HDFSSinkConfigConstants._
+    import SinkConfigSettings._
 
     val props = Map(
       DatabaseNameKey -> db

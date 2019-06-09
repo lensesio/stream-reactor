@@ -1,32 +1,6 @@
-package com.landoop.streamreactor.connect.hive
+package com.landoop.streamreactor.connect.hive.kerberos
 
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.AbstractConfig
-import org.apache.kafka.common.config.ConfigException
-
-case class HDFSKerberos(principal: String,
-                        keytab: String,
-                        nameNodePrincipal: Option[String],
-                        ticketRenewalMs: Long)
-
-object HDFSKerberos extends StrictLogging {
-
-  def from(config: AbstractConfig, hiveConstants: HDFSKerberosConstants): Option[HDFSKerberos] = {
-    if (config.getBoolean(hiveConstants.KerberosKey)) {
-      val principal = config.getString(hiveConstants.PrincipalKey)
-      val keytab = config.getString(hiveConstants.KerberosKeyTabKey)
-      if (principal == null || keytab == null) {
-        throw new ConfigException("Hadoop is using Kerboros for authentication, you need to provide both a connect principal and " + "the path to the keytab of the principal.")
-      }
-      val namenodePrincipal = Option(config.getString(hiveConstants.NameNodePrincipalKey))
-      val ticketRenewalMs = config.getLong(hiveConstants.KerberosTicketRenewalKey)
-
-      Some(HDFSKerberos(principal, keytab, namenodePrincipal, ticketRenewalMs))
-    } else None
-  }
-}
-
-trait HDFSKerberosConstants {
+trait KerberosSettings {
   def CONNECTOR_PREFIX: String
 
   val KerberosKey = s"$CONNECTOR_PREFIX.security.kerberos.enabled"
@@ -53,4 +27,30 @@ trait HDFSKerberosConstants {
   val KerberosTicketRenewalDoc = "The period in milliseconds to renew the Kerberos ticket."
   val KerberosTicketRenewalDefault: Long = 60000 * 60
   val KerberosTicketRenewalDisplay = "Kerberos Ticket Renew Period (ms)"
+
+  val KerberosAuthModeKey = s"$CONNECTOR_PREFIX.security.kerberos.auth.mode"
+  val KerberosAuthModeDoc = s"The authentication mode for Kerberos. It can be KEYTAB or USERPASSWORD"
+  val KerberosAuthModeDefault = "KEYTAB"
+  val KerberosAuthModeDisplay = s"Kerberos authentication mode"
+
+  val KerberosUserKey = s"$CONNECTOR_PREFIX.security.kerberos.user"
+  val KerberosUserDoc = s"The user name for login in. Used when auth.mode is set to USERPASSWORD"
+  val KerberosUserDefault: String = null
+  val KerberosUserDisplay = "User name"
+
+  val KerberosPasswordKey = s"$CONNECTOR_PREFIX.security.kerberos.user"
+  val KerberosPasswordDoc = s"The user password to login to Kerberos. Used when auth.mode is set to USERPASSWORD"
+  val KerberosPasswordDefault: String = null
+  val KerberosPasswordDisplay = "User password"
+
+  val KerberosKrb5Key = s"$CONNECTOR_PREFIX.security.kerberos.krb5"
+  val KerberosKrb5Doc = s"The path to the KRB5 file"
+  val KerberosKrb5Default: String = null
+  val KerberosKrb5Display = "KRB5 file path"
+
+  val KerberosJaasKey = s"$CONNECTOR_PREFIX.security.kerberos.jaas"
+  val KerberosJaasDoc = s"The path to the JAAS file"
+  val KerberosJaasDefault: String = null
+  val KerberosJaasDisplay = "JAAS file path"
+
 }

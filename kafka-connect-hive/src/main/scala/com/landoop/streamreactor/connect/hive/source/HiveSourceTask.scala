@@ -3,7 +3,7 @@ package com.landoop.streamreactor.connect.hive.source
 import java.util
 
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
-import com.landoop.streamreactor.connect.hive.sink.config.HDFSSinkConfigConstants
+import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
 import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfig
 import com.landoop.streamreactor.connect.hive.source.offset.HiveSourceOffsetStorageReader
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -37,14 +37,14 @@ class HiveSourceTask extends SourceTask with StrictLogging {
 
     if (client == null) {
       val hiveConf = new HiveConf()
-      hiveConf.set("hive.metastore", configs.get(HDFSSinkConfigConstants.MetastoreTypeKey))
-      hiveConf.set("hive.metastore.uris", configs.get(HDFSSinkConfigConstants.MetastoreUrisKey))
+      hiveConf.set("hive.metastore", configs.get(SinkConfigSettings.MetastoreTypeKey))
+      hiveConf.set("hive.metastore.uris", configs.get(SinkConfigSettings.MetastoreUrisKey))
       client = new HiveMetaStoreClient(hiveConf)
     }
 
     if (fs == null) {
       val conf = new Configuration()
-      conf.set("fs.defaultFS", configs.get(HDFSSinkConfigConstants.FsDefaultKey))
+      conf.set("fs.defaultFS", configs.get(SinkConfigSettings.FsDefaultKey))
       fs = FileSystem.get(conf)
     }
 

@@ -21,7 +21,7 @@ import com.landoop.streamreactor.connect.hive.sink.partitioning.PartitionHandler
 import com.landoop.streamreactor.connect.hive.sink.partitioning.StrictPartitionHandler
 import com.landoop.streamreactor.connect.hive.sink.staging._
 import com.landoop.streamreactor.connect.hive.HadoopConfiguration
-import com.landoop.streamreactor.connect.hive.HDFSKerberos
+import com.landoop.streamreactor.connect.hive.kerberos.Kerberos
 
 import scala.collection.JavaConverters._
 
@@ -29,7 +29,7 @@ case class HiveSinkConfig(dbName: DatabaseName,
                           filenamePolicy: FilenamePolicy = DefaultFilenamePolicy,
                           stageManager: StageManager = new StageManager(DefaultFilenamePolicy),
                           tableOptions: Set[TableOptions] = Set.empty,
-                          kerberos: Option[HDFSKerberos],
+                          kerberos: Option[Kerberos],
                           hadoopConfiguration: HadoopConfiguration)
 
 case class TableOptions(tableName: TableName,
@@ -95,12 +95,12 @@ object HiveSinkConfig {
     }
 
     HiveSinkConfig(
-      dbName = DatabaseName(props(HDFSSinkConfigConstants.DatabaseNameKey)),
+      dbName = DatabaseName(props(SinkConfigSettings.DatabaseNameKey)),
       filenamePolicy = DefaultFilenamePolicy,
       stageManager = new StageManager(DefaultFilenamePolicy),
       tableOptions = tables,
-      kerberos = HDFSKerberos.from(config, HDFSSinkConfigConstants),
-      hadoopConfiguration = HadoopConfiguration.from(config, HDFSSinkConfigConstants)
+      kerberos = Kerberos.from(config, SinkConfigSettings),
+      hadoopConfiguration = HadoopConfiguration.from(config, SinkConfigSettings)
     )
   }
 }
