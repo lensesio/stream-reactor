@@ -3,54 +3,54 @@ package com.landoop.streamreactor.connect.hive.kerberos
 trait KerberosSettings {
   def CONNECTOR_PREFIX: String
 
-  val KerberosKey = s"$CONNECTOR_PREFIX.security.kerberos.enabled"
-  val KerberosDoc = "Configuration indicating whether HDFS is using Kerberos for authentication."
-  val KerberosDefault = false
-  val KerberosDisplay = "HDFS Authentication Kerberos"
+  def KerberosKey = s"$CONNECTOR_PREFIX.security.kerberos.enabled"
+  def KerberosDoc = "Configuration indicating whether HDFS is using Kerberos for authentication."
+  def KerberosDefault = false
+  def KerberosDisplay = "HDFS Authentication Kerberos"
 
-  val PrincipalKey = s"$CONNECTOR_PREFIX.security.principal"
-  val PrincipalDoc = "The principal to use when HDFS is using Kerberos to for authentication."
-  val PrincipalDefault: String = null
-  val PrincipalDisplay = "Connect Kerberos Principal"
+  def PrincipalKey = s"$CONNECTOR_PREFIX.security.principal"
+  def PrincipalDoc = "The principal to use when HDFS is using Kerberos to for authentication."
+  def PrincipalDefault: String = null
+  def PrincipalDisplay = "Connect Kerberos Principal"
 
-  val KerberosKeyTabKey = s"$CONNECTOR_PREFIX.security.keytab"
-  val KerberosKeyTabDoc = "The path to the keytab file for the HDFS connector principal. This keytab file should only be readable by the connector user."
-  val KerberosKeyTabDefault: String = null
-  val KerberosKeyTabDisplay = "Connect Kerberos Keytab"
+  def KerberosKeyTabKey = s"$CONNECTOR_PREFIX.security.keytab"
+  def KerberosKeyTabDoc = "The path to the keytab file for the HDFS connector principal. This keytab file should only be readable by the connector user."
+  def KerberosKeyTabDefault: String = null
+  def KerberosKeyTabDisplay = "Connect Kerberos Keytab"
 
-  val NameNodePrincipalKey = s"$CONNECTOR_PREFIX.namenode.principal"
-  val NameNodePrincipalDoc = "The principal for HDFS Namenode."
-  val NameNodePrincipalDefault: String = null
-  val NameNodePrincipalDisplay = "HDFS NameNode Kerberos Principal"
+  def NameNodePrincipalKey = s"$CONNECTOR_PREFIX.namenode.principal"
+  def NameNodePrincipalDoc = "The principal for HDFS Namenode."
+  def NameNodePrincipalDefault: String = null
+  def NameNodePrincipalDisplay = "HDFS NameNode Kerberos Principal"
 
-  val KerberosTicketRenewalKey = s"$CONNECTOR_PREFIX.security.kerberos.ticket.renew.ms"
-  val KerberosTicketRenewalDoc = "The period in milliseconds to renew the Kerberos ticket."
-  val KerberosTicketRenewalDefault: Long = 60000 * 60
-  val KerberosTicketRenewalDisplay = "Kerberos Ticket Renew Period (ms)"
+  def KerberosTicketRenewalKey = s"$CONNECTOR_PREFIX.security.kerberos.ticket.renew.ms"
+  def KerberosTicketRenewalDoc = "The period in milliseconds to renew the Kerberos ticket."
+  def KerberosTicketRenewalDefault: Long = 60000 * 60
+  def KerberosTicketRenewalDisplay = "Kerberos Ticket Renew Period (ms)"
 
-  val KerberosAuthModeKey = s"$CONNECTOR_PREFIX.security.kerberos.auth.mode"
-  val KerberosAuthModeDoc = s"The authentication mode for Kerberos. It can be KEYTAB or USERPASSWORD"
-  val KerberosAuthModeDefault = "KEYTAB"
-  val KerberosAuthModeDisplay = s"Kerberos authentication mode"
+  def KerberosAuthModeKey = s"$CONNECTOR_PREFIX.security.kerberos.auth.mode"
+  def KerberosAuthModeDoc = s"The authentication mode for Kerberos. It can be KEYTAB or USERPASSWORD"
+  def KerberosAuthModeDefault = "KEYTAB"
+  def KerberosAuthModeDisplay = s"Kerberos authentication mode"
 
-  val KerberosUserKey = s"$CONNECTOR_PREFIX.security.kerberos.user"
-  val KerberosUserDoc = s"The user name for login in. Used when auth.mode is set to USERPASSWORD"
-  val KerberosUserDefault: String = null
-  val KerberosUserDisplay = "User name"
+  def KerberosUserKey = s"$CONNECTOR_PREFIX.security.kerberos.user"
+  def KerberosUserDoc = s"The user name for login in. Used when auth.mode is set to USERPASSWORD"
+  def KerberosUserDefault: String = null
+  def KerberosUserDisplay = "User name"
 
-  val KerberosPasswordKey = s"$CONNECTOR_PREFIX.security.kerberos.user"
-  val KerberosPasswordDoc = s"The user password to login to Kerberos. Used when auth.mode is set to USERPASSWORD"
-  val KerberosPasswordDefault: String = null
-  val KerberosPasswordDisplay = "User password"
+  def KerberosPasswordKey = s"$CONNECTOR_PREFIX.security.kerberos.password"
+  def KerberosPasswordDoc = s"The user password to login to Kerberos. Used when auth.mode is set to USERPASSWORD"
+  def KerberosPasswordDefault: String = null
+  def KerberosPasswordDisplay = "User password"
 
-  val KerberosKrb5Key = s"$CONNECTOR_PREFIX.security.kerberos.krb5"
-  val KerberosKrb5Doc = s"The path to the KRB5 file"
-  val KerberosKrb5Default: String = null
-  val KerberosKrb5Display = "KRB5 file path"
+  def KerberosKrb5Key = s"$CONNECTOR_PREFIX.security.kerberos.krb5"
+  def KerberosKrb5Doc = s"The path to the KRB5 file"
+  def KerberosKrb5Default: String = null
+  def KerberosKrb5Display = "KRB5 file path"
 
-  val KerberosJaasKey = s"$CONNECTOR_PREFIX.security.kerberos.jaas"
-  val KerberosJaasDoc = s"The path to the JAAS file"
-  val KerberosJaasDefault: String = null
-  val KerberosJaasDisplay = "JAAS file path"
+  def KerberosJaasKey = s"$CONNECTOR_PREFIX.security.kerberos.jaas"
+  def KerberosJaasDoc = s"The path to the JAAS file"
+  def KerberosJaasDefault: String = null
+  def KerberosJaasDisplay = "JAAS file path"
 
 }

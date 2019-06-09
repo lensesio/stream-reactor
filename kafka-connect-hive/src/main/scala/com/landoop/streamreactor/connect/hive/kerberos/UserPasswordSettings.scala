@@ -12,7 +12,7 @@ case class UserPasswordSettings(user: String,
 object UserPasswordSettings {
   def from(config: AbstractConfig, hiveConstants: KerberosSettings): UserPasswordSettings = {
     val user = config.getStringOrThrowIfNull(hiveConstants.KerberosUserKey)
-    val password = config.getStringOrThrowIfNull(hiveConstants.KerberosPasswordKey)
+    val password = config.getPasswordOrThrowIfNull(hiveConstants.KerberosPasswordKey)
 
     val krb5 = config.getStringOrThrowIfNull(hiveConstants.KerberosKrb5Key)
     FileUtils.throwIfNotExists(krb5, hiveConstants.KerberosKrb5Key)

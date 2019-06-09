@@ -10,15 +10,15 @@ case class HadoopConfiguration(hdfsDir: Option[String], hiveDir: Option[String])
 trait HadoopConfigurationConstants {
   def CONNECTOR_PREFIX: String
 
-  val HdfsConfigDirKey = s"$CONNECTOR_PREFIX.hdfs.conf.dir"
-  val HdfsConfigDirDoc = "The Hadoop configuration directory."
-  val HdfsConfigDirDefault: String = null
-  val HdfsConfigDirDisplay = "HDFS Config Folder"
+  def HdfsConfigDirKey = s"$CONNECTOR_PREFIX.hdfs.conf.dir"
+  def HdfsConfigDirDoc = "The Hadoop configuration directory."
+  def HdfsConfigDirDefault: String = null
+  def HdfsConfigDirDisplay = "HDFS Config Folder"
 
-  val HiveConfigDirKey = s"$CONNECTOR_PREFIX.hive.conf.dir"
-  val HiveConfigDirDoc = "The Hive configuration directory."
-  val HiveConfigDirDefault: String = null
-  val HiveConfigDirDisplay = "Hive Config Folder"
+  def HiveConfigDirKey = s"$CONNECTOR_PREFIX.hive.conf.dir"
+  def HiveConfigDirDoc = "The Hive configuration directory."
+  def HiveConfigDirDefault: String = null
+  def HiveConfigDirDisplay = "Hive Config Folder"
 }
 
 object HadoopConfiguration {
