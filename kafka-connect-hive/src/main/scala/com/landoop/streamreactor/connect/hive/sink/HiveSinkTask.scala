@@ -121,14 +121,16 @@ class HiveSinkTask extends SinkTask with StrictLogging {
   }
 
   // closes the sinks for the given topic/partition tuples
-  def close(partitions: Set[TopicPartition]): Unit = {
+  private def close(partitions: Set[TopicPartition]): Unit = {
     partitions.foreach { tp =>
       sinks.remove(tp).foreach(_.close())
     }
   }
 
   override def stop(): Unit = {
-    sinks.values.foreach(_.close())
+    execute {
+      sinks.values.foreach(_.close())
+    }
     sinks.clear()
     kerberosLogin.foreach(_.close())
   }

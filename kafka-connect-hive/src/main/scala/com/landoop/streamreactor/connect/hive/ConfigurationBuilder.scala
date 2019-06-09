@@ -16,9 +16,9 @@ object ConfigurationBuilder extends StrictLogging {
       val coreSiteFile = new File(dir + "/core-site.xml")
       if (!coreSiteFile.exists()) {
         logger.warn(s"core-site.xml does not exist in the provided HADOOP configuration directory $coreSiteFile")
+      } else {
+        configuration.addResource(new Path(coreSiteFile.toString))
       }
-      configuration.addResource(new Path(coreSiteFile.toString))
-
       val hdfsSiteFile = new File(dir + "/hdfs-site.xml")
       if (!hdfsSiteFile.exists) {
         logger.warn(s"hdfs-site.xml does not exist in provided HADOOP configuration directory $hdfsSiteFile.")

@@ -4,7 +4,6 @@ import java.io.IOException
 import java.net.InetAddress
 import java.security.PrivilegedAction
 
-import scala.concurrent.duration._
 import com.landoop.streamreactor.connect.hive.AsyncFunctionLoop
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import javax.security.auth.login.LoginContext
@@ -12,14 +11,16 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.security.SecurityUtil
 import org.apache.hadoop.security.UserGroupInformation
 
+import scala.concurrent.duration._
 import scala.concurrent.duration.Duration
 
 sealed trait KerberosLogin extends StrictLogging with AutoCloseable {
-  def run[T](thunk: => T):T
+  def run[T](thunk: => T): T
 }
 
 case class UserPasswordLogin(ugi: UserGroupInformation, interval: Duration, lc: LoginContext) extends KerberosLogin {
   private val asyncTicketRenewal = new AsyncFunctionLoop(interval, "Kerberos")(renewKerberosTicket())
+  asyncTicketRenewal.start()
 
   override def close(): Unit = {
     asyncTicketRenewal.close()
@@ -48,6 +49,7 @@ case class UserPasswordLogin(ugi: UserGroupInformation, interval: Duration, lc: 
 
 case class KeytabLogin(ugi: UserGroupInformation, interval: Duration) extends KerberosLogin {
   private val asyncTicketRenewal = new AsyncFunctionLoop(interval, "Kerberos")(renewKerberosTicket())
+  asyncTicketRenewal.start()
 
   private def renewKerberosTicket(): Unit = {
     try {
@@ -72,7 +74,7 @@ case class KeytabLogin(ugi: UserGroupInformation, interval: Duration) extends Ke
 
 object KerberosLogin {
 
-  def from(kerberos: Kerberos, configuration: Configuration):KerberosLogin= {
+  def from(kerberos: Kerberos, configuration: Configuration): KerberosLogin = {
     kerberos.auth match {
       case Left(settings) => from(settings, kerberos.ticketRenewalMs.millis, configuration)
       case Right(settings) => from(settings, kerberos.asInstanceOf, configuration)
