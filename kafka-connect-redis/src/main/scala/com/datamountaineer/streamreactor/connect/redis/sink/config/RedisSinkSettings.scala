@@ -24,7 +24,7 @@ import org.apache.kafka.common.config.ConfigException
 import scala.collection.JavaConversions._
 
 // Redis connection details: host, port, password
-case class RedisConnectionInfo(host: String, port: Int, password: Option[String])
+case class RedisConnectionInfo(host: String, port: Int, password: Option[String], isSslConnection: Option[Boolean] = Some(false), trustStoreFilepath: Option[String] = None)
 
 // Sink settings of each Redis KCQL statement
 case class RedisKCQLSetting(topic: String,
@@ -88,9 +88,14 @@ object RedisConnectionInfo {
 
     val password = Option(config.getPassword(RedisConfigConstants.REDIS_PASSWORD)).map(_.value())
 
+    val isSslConnection = Option(config.getBoolean(RedisConfigConstants.REDIS_SSL_CONNECTION).asInstanceOf[Boolean])
+    val trustStorePath = Option(config.getString(RedisConfigConstants.REDIS_TRUSTSTORE_FILEPATH))
+
     new RedisConnectionInfo(
       host,
       config.getInt(RedisConfigConstants.REDIS_PORT),
-      password)
+      password,
+      isSslConnection,
+      trustStorePath)
   }
 }
