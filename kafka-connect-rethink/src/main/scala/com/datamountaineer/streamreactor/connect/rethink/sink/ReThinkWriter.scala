@@ -36,7 +36,7 @@ object ReThinkWriter extends StrictLogging {
     lazy val conn = ReThinkConnection(r, config)
 
     //if error policy is retry set retry interval
-    if (settings.equals(ErrorPolicyEnum.RETRY)) {
+    if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
       context.timeout(settings.retryInterval)
     }
 
