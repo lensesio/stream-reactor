@@ -4,13 +4,16 @@ import java.util
 
 import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.formats.OrcHiveFormat
-import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfig, TableOptions}
+import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfig
+import com.landoop.streamreactor.connect.hive.sink.config.TableOptions
 import com.landoop.streamreactor.connect.hive.sink.evolution.AddEvolutionPolicy
 import com.landoop.streamreactor.connect.hive.sink.partitioning.StrictPartitionHandler
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.metastore.api.Database
-import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
-import org.scalatest.{FlatSpec, Matchers}
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
+import org.scalatest.FlatSpec
+import org.scalatest.Matchers
 
 import scala.collection.JavaConverters._
 import scala.util.Try
@@ -45,9 +48,13 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
       client.dropTable(dbname, "employees", true, true)
     }
 
-    val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
-      TableOptions(TableName("employees"), Topic("mytopic"), true, true, format = OrcHiveFormat)
-    ))
+    val config = HiveSinkConfig(DatabaseName(dbname),
+      tableOptions = Set(
+        TableOptions(TableName("employees"), Topic("mytopic"), true, true, format = OrcHiveFormat)
+      ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     val sink = hiveSink(TableName("employees"), config)
     users.foreach(sink.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
@@ -70,9 +77,13 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
       new Struct(schema).put("name", "laura").put("title", "ms").put("salary", 429.06)
     )
 
-    val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
-      TableOptions(TableName(table), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")), format = OrcHiveFormat)
-    ))
+    val config = HiveSinkConfig(DatabaseName(dbname),
+      tableOptions = Set(
+        TableOptions(TableName(table), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")), format = OrcHiveFormat)
+      ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     val sink = hiveSink(TableName(table), config)
     users.foreach(sink.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
@@ -96,9 +107,13 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
       client.dropTable(dbname, table, true, true)
     }
 
-    val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
-      TableOptions(TableName(table), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")), format = OrcHiveFormat)
-    ))
+    val config = HiveSinkConfig(DatabaseName(dbname),
+      tableOptions = Set(
+        TableOptions(TableName(table), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")), format = OrcHiveFormat)
+      ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     val sink = hiveSink(TableName(table), config)
     users.foreach(sink.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
@@ -125,7 +140,10 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val config1 = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName("abc"), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")), format = OrcHiveFormat)
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     Try {
       client.dropTable(dbname, "abc", true, true)
@@ -139,7 +157,10 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val config2 = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName("abc"), Topic("mytopic"), true, true, location = Option("hdfs://namenode:8020/user/hive/warehouse/foo"), format = OrcHiveFormat)
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     Try {
       client.dropTable(dbname, "abc", true, true)
@@ -163,7 +184,10 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName(tableName), Topic("mytopic"), true, true, format = OrcHiveFormat)
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     val sink = hiveSink(TableName(tableName), config)
     sink.write(user1, TopicPartitionOffset(Topic("mytopic"), 1, Offset(44)))
@@ -183,7 +207,10 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName(tableName), Topic("mytopic"), true, true, format = OrcHiveFormat)
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     val sink = hiveSink(TableName(tableName), config)
     for (k <- 1 to 1200) {
@@ -212,7 +239,10 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName(tableName), Topic("mytopic"), true, true, format = OrcHiveFormat)
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     val sink = hiveSink(TableName(tableName), config)
     sink.write(user1, TopicPartitionOffset(Topic("mytopic"), 1, Offset(44)))
@@ -233,7 +263,10 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName(tableName), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")), format = OrcHiveFormat)
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     val sink = hiveSink(TableName(tableName), config)
     users.foreach(sink.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
@@ -255,7 +288,10 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName(tableName), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")), partitioner = StrictPartitionHandler, format = OrcHiveFormat)
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     intercept[RuntimeException] {
       val sink = hiveSink(TableName(tableName), config)
@@ -277,7 +313,10 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName(tableName), Topic("mytopic"), true, true, evolutionPolicy = AddEvolutionPolicy, format = OrcHiveFormat)
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     // first we write out one row, with fields a,b and then we write out a second row, with an extra
     // field, and then the schema should have been evolved to add the extra field.

@@ -3,13 +3,16 @@ package com.landoop.streamreactor.connect.hive.sink
 import java.util
 
 import com.landoop.streamreactor.connect.hive._
-import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfig, TableOptions}
+import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfig
+import com.landoop.streamreactor.connect.hive.sink.config.TableOptions
 import com.landoop.streamreactor.connect.hive.sink.evolution.AddEvolutionPolicy
 import com.landoop.streamreactor.connect.hive.sink.partitioning.StrictPartitionHandler
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.metastore.api.Database
-import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
-import org.scalatest.{FlatSpec, Matchers}
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
+import org.scalatest.FlatSpec
+import org.scalatest.Matchers
 
 import scala.collection.JavaConverters._
 import scala.util.Try
@@ -46,7 +49,10 @@ class HiveParquetSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName("employees"), Topic("mytopic"), true, true)
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     val sink = hiveSink(TableName("employees"), config)
     users.foreach(sink.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
@@ -68,7 +74,10 @@ class HiveParquetSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName(table), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")))
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     val sink = hiveSink(TableName(table), config)
     users.foreach(sink.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
@@ -90,7 +99,10 @@ class HiveParquetSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName(table), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")))
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     val sink = hiveSink(TableName(table), config)
     users.foreach(sink.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
@@ -117,7 +129,10 @@ class HiveParquetSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val config1 = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName("abc"), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")))
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     Try {
       client.dropTable(dbname, "abc", true, true)
@@ -131,7 +146,10 @@ class HiveParquetSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val config2 = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName("abc"), Topic("mytopic"), true, true, location = Option("hdfs://localhost:8020/user/hive/warehouse/foo"))
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     Try {
       client.dropTable(dbname, "abc", true, true)
@@ -157,7 +175,10 @@ class HiveParquetSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName(tableName), Topic("mytopic"), true, true)
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     val sink = hiveSink(TableName(tableName), config)
     sink.write(user1, TopicPartitionOffset(Topic("mytopic3"), 1, Offset(44)))
@@ -182,7 +203,10 @@ class HiveParquetSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName(tableName), Topic("mytopic"), true, true)
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     val sink = hiveSink(TableName(tableName), config)
     sink.write(user1, TopicPartitionOffset(Topic("mytopic"), 1, Offset(44)))
@@ -205,7 +229,10 @@ class HiveParquetSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName(tableName), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")))
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     val sink = hiveSink(TableName(tableName), config)
     users.foreach(sink.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
@@ -227,7 +254,10 @@ class HiveParquetSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName(tableName), Topic("mytopic"), true, true, partitions = Seq(PartitionField("title")), partitioner = StrictPartitionHandler)
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     intercept[RuntimeException] {
       val sink = hiveSink(TableName(tableName), config)
@@ -249,7 +279,10 @@ class HiveParquetSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val config = HiveSinkConfig(DatabaseName(dbname), tableOptions = Set(
       TableOptions(TableName(tableName), Topic("mytopic"), true, true, evolutionPolicy = AddEvolutionPolicy)
-    ))
+    ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty
+    )
 
     // first we write out one row, with fields a,b and then we write out a second row, with an extra
     // field, and then the schema should have been evolved to add the extra field.
