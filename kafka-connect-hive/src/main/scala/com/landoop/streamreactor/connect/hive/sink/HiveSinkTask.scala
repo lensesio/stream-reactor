@@ -4,15 +4,18 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.landoop.streamreactor.connect.hive._
-import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfig, HiveSinkConfigConstants}
+import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfig
+import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
 import com.landoop.streamreactor.connect.hive.sink.staging.OffsetSeeker
+import com.landoop.streamreactor.connect.hive.HadoopConfigurationExtension._
+import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
-import org.apache.hadoop.hive.conf.HiveConf
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTask
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
@@ -29,6 +32,7 @@ class HiveSinkTask extends SinkTask with StrictLogging {
   private var client: HiveMetaStoreClient = _
   private var fs: FileSystem = _
   private var config: HiveSinkConfig = _
+  private var kerberosLogin = Option.empty[KerberosLogin]
 
   def this(fs: FileSystem, client: HiveMetaStoreClient) {
     this()
@@ -42,23 +46,29 @@ class HiveSinkTask extends SinkTask with StrictLogging {
 
     val configs = if (context.configs().isEmpty) props else context.configs()
 
+    config = HiveSinkConfig.fromProps(configs.asScala.toMap)
+
     if (client == null) {
-      val hiveConf = new HiveConf()
-      hiveConf.set("hive.metastore", configs.get(HiveSinkConfigConstants.MetastoreTypeKey))
-      hiveConf.set("hive.metastore.uris", configs.get(HiveSinkConfigConstants.MetastoreUrisKey))
+      val hiveConf = ConfigurationBuilder.buildHiveConfig(config.hadoopConfiguration)
+      hiveConf.set("hive.metastore", configs.get(SinkConfigSettings.MetastoreTypeKey))
+      hiveConf.set("hive.metastore.uris", configs.get(SinkConfigSettings.MetastoreUrisKey))
       client = new HiveMetaStoreClient(hiveConf)
     }
 
     if (fs == null) {
-      val conf: Configuration = new Configuration()
-      conf.set("fs.defaultFS", configs.get(HiveSinkConfigConstants.FsDefaultKey))
+      val conf: Configuration = ConfigurationBuilder.buildHdfsConfiguration(config.hadoopConfiguration)
+      conf.set("fs.defaultFS", configs.get(SinkConfigSettings.FsDefaultKey))
+
+      kerberosLogin = config.kerberos.map { kerberos =>
+        conf.withKerberos(kerberos)
+        KerberosLogin.from(kerberos, conf)
+      }
+
       fs = FileSystem.get(conf)
     }
-
-    config = HiveSinkConfig.fromProps(configs.asScala.toMap)
   }
 
-  override def put(records: util.Collection[SinkRecord]): Unit = {
+  override def put(records: util.Collection[SinkRecord]): Unit = execute {
     records.asScala.foreach { record =>
       val struct = ValueConverter(record)
       val tpo = TopicPartitionOffset(
@@ -71,13 +81,15 @@ class HiveSinkTask extends SinkTask with StrictLogging {
     }
   }
 
-  override def open(partitions: util.Collection[KafkaTopicPartition]): Unit = try {
-    val topicPartitions = partitions.asScala.map(tp => TopicPartition(Topic(tp.topic), tp.partition)).toSet
-    open(topicPartitions)
-  } catch {
-    case NonFatal(e) =>
-      logger.error("Error opening hive sink writer", e)
-      throw e
+  override def open(partitions: util.Collection[KafkaTopicPartition]): Unit = execute {
+    try {
+      val topicPartitions = partitions.asScala.map(tp => TopicPartition(Topic(tp.topic), tp.partition)).toSet
+      open(topicPartitions)
+    } catch {
+      case NonFatal(e) =>
+        logger.error("Error opening hive sink writer", e)
+        throw e
+    }
   }
 
   private def open(partitions: Set[TopicPartition]): Unit = {
@@ -103,26 +115,36 @@ class HiveSinkTask extends SinkTask with StrictLogging {
     * may be changing, eg, in a rebalance. Therefore, we must commit our open files
     * for those (topic,partitions) to ensure no records are lost.
     */
-  override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = {
+  override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = execute {
     val topicPartitions = partitions.asScala.map(tp => TopicPartition(Topic(tp.topic), tp.partition)).toSet
     close(topicPartitions)
   }
 
   // closes the sinks for the given topic/partition tuples
-  def close(partitions: Set[TopicPartition]): Unit = {
+  private def close(partitions: Set[TopicPartition]): Unit = {
     partitions.foreach { tp =>
-      sinks.remove(tp).foreach(_.close)
+      sinks.remove(tp).foreach(_.close())
     }
   }
 
   override def stop(): Unit = {
-    sinks.values.foreach(_.close)
+    execute {
+      sinks.values.foreach(_.close())
+    }
     sinks.clear()
+    kerberosLogin.foreach(_.close())
   }
 
   // returns the KCQL table name for the given topic
   private def table(topic: Topic): TableName = config.tableOptions.find(_.topic == topic) match {
     case Some(options) => options.tableName
     case _ => sys.error(s"Cannot find KCQL for topic $topic")
+  }
+
+  private def execute[T](thunk: => T): T = {
+    kerberosLogin match {
+      case None => thunk
+      case Some(login) => login.run(thunk)
+    }
   }
 }

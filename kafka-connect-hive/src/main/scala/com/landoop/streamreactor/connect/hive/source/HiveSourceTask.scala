@@ -3,7 +3,7 @@ package com.landoop.streamreactor.connect.hive.source
 import java.util
 
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
-import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfigConstants
+import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
 import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfig
 import com.landoop.streamreactor.connect.hive.source.offset.HiveSourceOffsetStorageReader
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -11,7 +11,8 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hive.conf.HiveConf
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient
-import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
+import org.apache.kafka.connect.source.SourceRecord
+import org.apache.kafka.connect.source.SourceTask
 
 import scala.collection.JavaConverters._
 
@@ -36,14 +37,14 @@ class HiveSourceTask extends SourceTask with StrictLogging {
 
     if (client == null) {
       val hiveConf = new HiveConf()
-      hiveConf.set("hive.metastore", configs.get(HiveSinkConfigConstants.MetastoreTypeKey))
-      hiveConf.set("hive.metastore.uris", configs.get(HiveSinkConfigConstants.MetastoreUrisKey))
+      hiveConf.set("hive.metastore", configs.get(SinkConfigSettings.MetastoreTypeKey))
+      hiveConf.set("hive.metastore.uris", configs.get(SinkConfigSettings.MetastoreUrisKey))
       client = new HiveMetaStoreClient(hiveConf)
     }
 
     if (fs == null) {
       val conf = new Configuration()
-      conf.set("fs.defaultFS", configs.get(HiveSinkConfigConstants.FsDefaultKey))
+      conf.set("fs.defaultFS", configs.get(SinkConfigSettings.FsDefaultKey))
       fs = FileSystem.get(conf)
     }
 

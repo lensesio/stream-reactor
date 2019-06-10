@@ -1,8 +1,10 @@
 package com.landoop.streamreactor.connect.hive.sink.config
 
 import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst.{KCQL_PROP_SUFFIX, PROGRESS_ENABLED_CONST}
+import com.landoop.streamreactor.connect.hive.HadoopConfigurationConstants
+import com.landoop.streamreactor.connect.hive.kerberos.KerberosSettings
 
-object HiveSinkConfigConstants {
+object SinkConfigSettings extends KerberosSettings with HadoopConfigurationConstants {
 
   val CONNECTOR_PREFIX = "connect.hive"
 
