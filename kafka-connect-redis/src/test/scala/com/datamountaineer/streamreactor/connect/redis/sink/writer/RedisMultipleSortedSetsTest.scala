@@ -41,7 +41,7 @@ class RedisMultipleSortedSetsTest extends WordSpec with Matchers with BeforeAndA
     "write Kafka records a different Redis Sorted Set based on the value of the PK field" in {
 
       val TOPIC = "sensorsTopic"
-      val KCQL = s"SELECT temperature, humidity FROM $TOPIC PK sensorID STOREAS SortedSet(score=ts)"
+      val KCQL = s"SELECT temperature, humidity FROM $TOPIC PK sensorID STOREAS SortedSet(score=ts) TTL = 60"
 
       val props = Map(
         RedisConfigConstants.REDIS_HOST->"localhost",
@@ -117,7 +117,7 @@ class RedisMultipleSortedSetsTest extends WordSpec with Matchers with BeforeAndA
 
     "multiple sorted sets task check with prefix" in {
       val TOPIC = "sensorsTopic"
-      val KCQL = s"INSERT INTO PREFIX- SELECT temperature, humidity FROM $TOPIC PK sensorID STOREAS SortedSet(score=ts)"
+      val KCQL = s"INSERT INTO PREFIX- SELECT temperature, humidity FROM $TOPIC PK sensorID STOREAS SortedSet(score=ts) TTL = 60"
 
       val props = Map(
         RedisConfigConstants.REDIS_HOST->"localhost",
