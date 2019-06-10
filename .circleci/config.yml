@@ -6,22 +6,18 @@ jobs:
     environment:
       JVM_OPTS: -Xmx3200m
     steps:
-steps:
-  - checkout
+      - checkout
+      # Download and cache dependencies
+      - restore_cache:
+        keys:
+          - v1-dependencies-{{ checksum "build.gradle" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+      - run: gradle dependencies
+      - save_cache:
+        paths:
+          - ~/.gradle
+        key: v1-dependencies-{{ checksum "build.gradle" }}
 
-  # Download and cache dependencies
-  - restore_cache:
-      keys:
-        - v1-dependencies-{{ checksum "build.gradle" }}
-        # fallback to using the latest cache if no exact match is found
-        - v1-dependencies-
-
-  - run: gradle dependencies
-
-  - save_cache:
-      paths:
-        - ~/.gradle
-      key: v1-dependencies-{{ checksum "build.gradle" }}
-
-  # run tests!
-  - run: gradle test
+       # run tests!
+      - run: gradle test
