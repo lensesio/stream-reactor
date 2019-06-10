@@ -22,9 +22,10 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
-
 import java.io.File
 import java.net.URI
+
+import org.apache.kafka.common.config.SslConfigs
 import redis.clients.jedis.Jedis
 
 import scala.collection.JavaConverters._
@@ -54,12 +55,12 @@ class RedisSslTest extends WordSpec with Matchers with BeforeAndAfterAll with Mo
     RedisConfigConstants.REDIS_HOST -> "localhost",
     RedisConfigConstants.REDIS_PORT -> "6390",
     RedisConfigConstants.REDIS_PASSWORD -> "foobared",
-    RedisConfigConstants.REDIS_SSL_CONNECTION -> "true",
-    RedisConfigConstants.REDIS_TRUSTSTORE_FILEPATH -> truststoreFilePath
+    RedisConfigConstants.REDIS_SSL_ENABLED -> "true",
+    SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG -> truststoreFilePath
   )
 
   def setupTrustStore(): Unit = {
-    setJvmTrustStore(truststoreFilePath, RedisConfigConstants.REDIS_TRUSTSTORE_TYPE)
+    setJvmTrustStore(truststoreFilePath, "jceks")
   }
 
   private def setJvmTrustStore(trustStoreFilePath: String, trustStoreType: String): Unit = {
@@ -83,9 +84,9 @@ class RedisSslTest extends WordSpec with Matchers with BeforeAndAfterAll with Mo
 
       if (runTests) {
 
-        val jedis = new Jedis(URI.create("rediss://" + baseProps(RedisConfigConstants.REDIS_HOST) + ":" + baseProps(RedisConfigConstants.REDIS_PORT)))
+        val jedis = new Jedis(URI.create(s"rediss://${baseProps(RedisConfigConstants.REDIS_HOST)}:${baseProps(RedisConfigConstants.REDIS_PORT)}"))
         jedis.auth(baseProps(RedisConfigConstants.REDIS_PASSWORD))
-        jedis.ping shouldBe "PONG"
+        jedis.ping() shouldBe "PONG"
 
       }
     }
@@ -97,9 +98,9 @@ class RedisSslTest extends WordSpec with Matchers with BeforeAndAfterAll with Mo
 
       if (runTests) {
 
-        val jedis = new Jedis(URI.create("rediss://" + baseProps(RedisConfigConstants.REDIS_HOST) + ":" + baseProps(RedisConfigConstants.REDIS_PORT)))
+        val jedis = new Jedis(URI.create(s"rediss://${baseProps(RedisConfigConstants.REDIS_HOST)}:${baseProps(RedisConfigConstants.REDIS_PORT)}"))
         jedis.auth(baseProps(RedisConfigConstants.REDIS_PASSWORD))
-        jedis.ping shouldBe "PONG"
+        jedis.ping() shouldBe "PONG"
 
         val QUERY_ALL = s"SELECT * FROM $TOPIC PK firstName, child.firstName"
         val props = (baseProps + (RedisConfigConstants.KCQL_CONFIG -> QUERY_ALL)).asJava
