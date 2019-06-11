@@ -87,7 +87,7 @@ case class MqttSourceConfig(props: util.Map[String, String])
     with MqttConfigBase
 
 object MqttSinkConfig {
-  val config = MqttConfig.config
+  val config: ConfigDef = MqttConfig.config
 
     .define(MqttConfigConstants.ERROR_POLICY, Type.STRING, MqttConfigConstants.ERROR_POLICY_DEFAULT,
       Importance.HIGH, MqttConfigConstants.ERROR_POLICY_DOC,
@@ -100,6 +100,11 @@ object MqttSinkConfig {
     .define(MqttConfigConstants.NBR_OF_RETRIES, Type.INT, MqttConfigConstants.NBR_OF_RETIRES_DEFAULT,
       Importance.MEDIUM, MqttConfigConstants.NBR_OF_RETRIES_DOC,
       "Connection", 11, ConfigDef.Width.MEDIUM, MqttConfigConstants.NBR_OF_RETRIES)
+
+    .define(MqttConfigConstants.LOG_MESSAGE_ARRIVED_KEY, Type.BOOLEAN, MqttConfigConstants.LOG_MESSAGE_ARRIVED_DEFAULT,
+      Importance.MEDIUM, MqttConfigConstants.LOG_MESSAGE_ARRIVED_DISPLAY,
+      "Debug", 1, ConfigDef.Width.MEDIUM, MqttConfigConstants.LOG_MESSAGE_ARRIVED_DISPLAY)
+
 }
 
 case class MqttSinkConfig(props: util.Map[String, String])
