@@ -39,7 +39,6 @@ class TestCassandraSourceSettings extends WordSpec with Matchers with TestConfig
     ).asJava
 
     val taskConfig = CassandraConfigSource(props)
-    val assigned = List(TABLE1, TABLE2)
     val settings = CassandraSettings.configureSource(taskConfig).toList
     settings.size shouldBe 2
     settings.head.kcql.getSource shouldBe TABLE1

@@ -33,7 +33,7 @@ import scala.collection.JavaConverters._
 class ConfigMultipleSortedSetsTest extends WordSpec with Matchers with RedisMockSupport {
 
   // A Sorted Set will be used for every sensorID
-  val KCQL1 = "SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SortedSet"
+  val KCQL1 = "SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SortedSet TTL = 60"
   KCQL1 in {
     val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL1))
     val settings = RedisSinkSettings(config)
@@ -48,7 +48,7 @@ class ConfigMultipleSortedSetsTest extends WordSpec with Matchers with RedisMock
   }
 
   // If you want your Sorted Set to be prefixed use the INSERT
-  val KCQL2 = "INSERT INTO SENSOR- SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SortedSet"
+  val KCQL2 = "INSERT INTO SENSOR- SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SortedSet TTL = 60"
   // This will store the SortedSet as   Key=SENSOR-<sensorID>
   KCQL2 in {
     val config = getRedisSinkConfig(password = true, KCQL = Option(KCQL2))

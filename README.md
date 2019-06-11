@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/Landoop/stream-reactor.svg?branch=master)](https://travis-ci.org/Landoop/stream-reactor)
+[![CircleCI](https://circleci.com/gh/Landoop/stream-reactor/tree/master.svg?style=svg&circle-token=4ee64b9b4499a7ad0cb32a7499aa4ef87f355924)](https://circleci.com/gh/Landoop/stream-reactor/tree/master)
 [<img src="https://img.shields.io/badge/docs--orange.svg?"/>](https://docs.lenses.io/connectors/)
 [<img src="https://img.shields.io/badge/latest%20release-1.2.1-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22)
 

@@ -41,17 +41,10 @@ object RedisConfigConstants {
       |Provides the password for the redis connection.
     """.stripMargin
 
-  val REDIS_SSL_CONNECTION = s"${CONNECTOR_PREFIX}.ssl.connection"
-  private[config] val REDIS_SSL_CONNECTION_DOC: String =
+  val REDIS_SSL_ENABLED = s"${CONNECTOR_PREFIX}.ssl.enabled"
+  private[config] val REDIS_SSL_ENABLED_DOC: String =
     """
       |Enables ssl for the redis connection
-    """.stripMargin
-
-  val REDIS_TRUSTSTORE_TYPE = "jceks"
-  val REDIS_TRUSTSTORE_FILEPATH = s"${CONNECTOR_PREFIX}.truststore.filepath"
-  private[config] val REDIS_TRUSTSTORE_FILEPATH_DOC: String =
-    """
-      |The filepath for the jceks file of truststore
     """.stripMargin
 
   val KCQL_CONFIG = s"${CONNECTOR_PREFIX}.${KCQL_PROP_SUFFIX}"

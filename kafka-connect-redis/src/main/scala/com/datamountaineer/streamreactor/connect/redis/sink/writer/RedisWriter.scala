@@ -36,27 +36,37 @@ abstract class RedisWriter extends DbWriter with StrictLogging with ConverterUti
   def apply(sinkSettings: RedisSinkSettings): Unit = {
     val connection = sinkSettings.connectionInfo
 
-    connection.isSslConnection match {
-      case Some(true) => {
+    if (connection.isSslConnection) {
+
+        val keyStoreFilepath = connection.keyStoreFilepath.getOrElse("")
+
+        if (!new File(keyStoreFilepath).exists) {
+          throw new FileNotFoundException(s"Keystore Certificate not found in: $keyStoreFilepath")
+        }
+
         val trustStoreFilepath = connection.trustStoreFilepath.getOrElse("")
 
         if (!new File(trustStoreFilepath).exists) {
           throw new FileNotFoundException(s"Truststore Certificate not found in: $trustStoreFilepath")
         }
 
-        System.setProperty("javax.net.ssl.trustStore", trustStoreFilepath)
-        System.setProperty("javax.net.ssl.trustStoreType", RedisConfigConstants.REDIS_TRUSTSTORE_TYPE)
+        System.setProperty("javax.net.ssl.keyStorePassword", connection.keyStorePassword.getOrElse(""))
+        System.setProperty("javax.net.ssl.keyStore", keyStoreFilepath)
+        System.setProperty("javax.net.ssl.keyStoreType", connection.keyStoreType.getOrElse("jceks"))
 
-        jedis = new Jedis(URI.create("rediss://" + connection.host + ":" + connection.port))
-      }
-      case _ =>
-        jedis = new Jedis(connection.host, connection.port)
+        System.setProperty("javax.net.ssl.trustStorePassword", connection.trustStorePassword.getOrElse(""))
+        System.setProperty("javax.net.ssl.trustStore", trustStoreFilepath)
+        System.setProperty("javax.net.ssl.trustStoreType", connection.trustStoreType.getOrElse("jceks"))
+
+        jedis = new Jedis(URI.create(s"rediss://${connection.host}:${connection.port}"))
+    } else {
+      jedis = new Jedis(connection.host, connection.port)
     }
+
     connection.password.foreach(p => jedis.auth(p))
 
     //initialize error tracker
     initialize(sinkSettings.taskRetries, sinkSettings.errorPolicy)
-
   }
 
   def close(): Unit = {

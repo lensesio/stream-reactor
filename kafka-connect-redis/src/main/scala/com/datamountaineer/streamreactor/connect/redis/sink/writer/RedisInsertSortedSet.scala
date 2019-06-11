@@ -43,7 +43,7 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter 
 
   val configs: Set[Kcql] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
-    assert(c.getTarget.length > 0, "Add to your KCQL systax : INSERT INTO REDIS_KEY_NAME ")
+    assert(c.getTarget.length > 0, "Add to your KCQL syntax : INSERT INTO REDIS_KEY_NAME ")
     assert(c.getSource.trim.length > 0, "You need to define one (1) topic to source data. Add to your KCQL syntax: SELECT * FROM topicName")
     val allFields = if (c.getIgnoredFields.isEmpty) false else true
     assert(c.getFields.nonEmpty || allFields, "You need to SELECT at least one field from the topic to be stored in the Redis (sorted) set. Please review the KCQL syntax of connector")

@@ -17,14 +17,26 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.config
 
 import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.streamreactor.connect.config.SSLConfig
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.rowkeys._
-import org.apache.kafka.common.config.ConfigException
+import org.apache.kafka.common.config.{ConfigException, SslConfigs}
 
 import scala.collection.JavaConversions._
 
 // Redis connection details: host, port, password
-case class RedisConnectionInfo(host: String, port: Int, password: Option[String], isSslConnection: Option[Boolean] = Some(false), trustStoreFilepath: Option[String] = None)
+case class RedisConnectionInfo(host: String,
+                               port: Int,
+                               password: Option[String],
+                               isSslConnection: Boolean = false,
+                               keyPassword: Option[String] = None,
+                               keyStoreType: Option[String] = None,
+                               keyStorePassword: Option[String] = None,
+                               keyStoreFilepath: Option[String] = None,
+                               trustStoreType: Option[String] = None,
+                               trustStorePassword: Option[String] = None,
+                               trustStoreFilepath: Option[String] = None
+                              )
 
 // Sink settings of each Redis KCQL statement
 case class RedisKCQLSetting(topic: String,
@@ -88,14 +100,26 @@ object RedisConnectionInfo {
 
     val password = Option(config.getPassword(RedisConfigConstants.REDIS_PASSWORD)).map(_.value())
 
-    val isSslConnection = Option(config.getBoolean(RedisConfigConstants.REDIS_SSL_CONNECTION).asInstanceOf[Boolean])
-    val trustStorePath = Option(config.getString(RedisConfigConstants.REDIS_TRUSTSTORE_FILEPATH))
+    val isSslConnection = config.getBoolean(RedisConfigConstants.REDIS_SSL_ENABLED)
+
+    val trustStoreType = Option(config.getString(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG))
+    val trustStorePath = Option(config.getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG))
+    val trustStorePassword = Option(config.getString(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG))
+
+    val keyStoreType = Option(config.getString(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG))
+    val keyStorePath = Option(config.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
+    val keyStorePassword = Option(config.getString(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG))
 
     new RedisConnectionInfo(
-      host,
-      config.getInt(RedisConfigConstants.REDIS_PORT),
-      password,
-      isSslConnection,
-      trustStorePath)
+      host = host,
+      port = config.getInt(RedisConfigConstants.REDIS_PORT),
+      password = password,
+      isSslConnection = isSslConnection,
+      keyStoreType = keyStoreType,
+      keyStorePassword = keyStorePassword,
+      keyStoreFilepath = keyStorePath,
+      trustStoreType = trustStoreType,
+      trustStorePassword = trustStorePassword,
+      trustStoreFilepath = trustStorePath)
   }
 }
