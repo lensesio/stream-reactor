@@ -30,7 +30,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 import scala.collection.JavaConversions._
 
-class MqttManager(connectionFn: (MqttSourceSettings) => MqttConnectOptions,
+class MqttManager(connectionFn: MqttSourceSettings => MqttConnectOptions,
                   convertersMap: Map[String, Converter],
                   settings: MqttSourceSettings) extends AutoCloseable with StrictLogging with MqttCallbackExtended {
   private val kcqlArray = settings.kcql.map(Kcql.parse)
@@ -41,7 +41,8 @@ class MqttManager(connectionFn: (MqttSourceSettings) => MqttConnectOptions,
   require(kcqlArray.nonEmpty, s"Invalid $kcqlArray parameter. At least one statement needs to be provided")
   private val regexMap = kcqlArray.filter(_.getWithRegex != null).map(k => k -> k.getWithRegex.r).toMap
   private val options = connectionFn(settings)
-  private val client = new MqttClient(settings.connection, settings.clientId, new MemoryPersistence())
+
+  private val client = createMqttClient()
   client.setCallback(this)
 
   logger.info(s"Connecting to ${settings.connection}")
@@ -54,6 +55,11 @@ class MqttManager(connectionFn: (MqttSourceSettings) => MqttConnectOptions,
   }
 
   override def deliveryComplete(token: IMqttDeliveryToken): Unit = {}
+
+  private def createMqttClient():MqttClient= {
+    val servers = settings.connection.split(',').map(_.trim).filter(_.nonEmpty)
+    new MqttClient(servers.head, settings.clientId, new MemoryPersistence())
+  }
 
   private def compareTopic(actualTopic: String, subscribedTopic: String): Boolean = {
     actualTopic.matches(
