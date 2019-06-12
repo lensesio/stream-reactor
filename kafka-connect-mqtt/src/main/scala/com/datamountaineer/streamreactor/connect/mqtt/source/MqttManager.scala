@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import java.util
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
 import java.util.Base64
 
 import com.datamountaineer.kcql.Kcql
@@ -79,7 +80,7 @@ class MqttManager(connectionFn: MqttSourceSettings => MqttConnectOptions,
       .filter(t => checkTopic(topic, t._2))
       .map(t => t._2.getSource)
 
-    val wildcard = matched.headOption.getOrElse{
+    val wildcard = matched.headOption.getOrElse {
       throw new ConfigException(s"Topic '$topic' can not be matched with a source defined by KCQL.")
     }
     val kcql = sourceToTopicMap

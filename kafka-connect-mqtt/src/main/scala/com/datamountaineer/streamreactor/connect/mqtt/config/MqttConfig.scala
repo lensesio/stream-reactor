@@ -80,6 +80,9 @@ object MqttSourceConfig {
       Importance.LOW, MqttConfigConstants.POLLING_TIMEOUT_DOC,
       "Manager", 1, ConfigDef.Width.MEDIUM, MqttConfigConstants.POLLING_TIMEOUT_DISPLAY)
 
+    .define(MqttConfigConstants.LOG_MESSAGE_ARRIVED_KEY, Type.BOOLEAN, MqttConfigConstants.LOG_MESSAGE_ARRIVED_DEFAULT,
+      Importance.MEDIUM, MqttConfigConstants.LOG_MESSAGE_ARRIVED_DISPLAY,
+      "Debug", 1, ConfigDef.Width.MEDIUM, MqttConfigConstants.LOG_MESSAGE_ARRIVED_DISPLAY)
 }
 
 case class MqttSourceConfig(props: util.Map[String, String])
@@ -101,9 +104,7 @@ object MqttSinkConfig {
       Importance.MEDIUM, MqttConfigConstants.NBR_OF_RETRIES_DOC,
       "Connection", 11, ConfigDef.Width.MEDIUM, MqttConfigConstants.NBR_OF_RETRIES)
 
-    .define(MqttConfigConstants.LOG_MESSAGE_ARRIVED_KEY, Type.BOOLEAN, MqttConfigConstants.LOG_MESSAGE_ARRIVED_DEFAULT,
-      Importance.MEDIUM, MqttConfigConstants.LOG_MESSAGE_ARRIVED_DISPLAY,
-      "Debug", 1, ConfigDef.Width.MEDIUM, MqttConfigConstants.LOG_MESSAGE_ARRIVED_DISPLAY)
+
 
 }
 
