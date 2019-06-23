@@ -22,11 +22,11 @@
 #              --link kcbq_test_kafka:kafka --link kcbq_test_schema-registry:schema-registry \
 #              kcbq/populate
 
-FROM confluent/platform:3.0.0
+FROM confluentinc/cp-schema-registry:4.1.2
 
 COPY populate-docker.sh /usr/local/bin/
 
 RUN ["chmod", "+x", "/usr/local/bin/populate-docker.sh"]
 
-USER confluent
+USER root
 ENTRYPOINT ["/usr/local/bin/populate-docker.sh"]

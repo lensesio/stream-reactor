@@ -1,0 +1,16 @@
+{ "type": "record",
+  "name": "gcsLoad",
+  "namespace": "com.wepay.kafka.connect.bigquery",
+  "fields":
+  [
+    { "name": "row", "type": "int" },
+    { "name": "null_prim", "type": ["null", "int"] },
+    { "name": "boolean_prim", "type": "boolean" },
+    { "name": "int_prim", "type": "int" },
+    { "name": "long_prim", "type": "long" },
+    { "name": "float_prim", "type": "float" },
+    { "name": "double_prim", "type": "double" },
+    { "name": "string_prim", "type": "string" },
+    { "name": "bytes_prim", "type": "bytes" }
+  ]
+}

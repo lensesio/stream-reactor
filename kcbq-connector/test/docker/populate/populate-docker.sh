@@ -17,7 +17,7 @@
 for schema_dir in /tmp/schemas/*; do
   kafka-avro-console-producer \
       --topic "kcbq_test_`basename $schema_dir`" \
-      --broker-list 'kafka:9092' \
+      --broker-list 'kafka:29092' \
       --property value.schema="`cat \"$schema_dir/schema.json\"`" \
       --property schema.registry.url='http://schema-registry:8081' \
       < "$schema_dir/data.json"

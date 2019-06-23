@@ -36,16 +36,17 @@ usage() {
        "[-k|--key-file <JSON key file>] (path must be absolute; relative paths will not work)\n" \
        "[-p|--project <BigQuery project>]\n" \
        "[-d|--dataset <BigQuery project>]\n" \
+       "[-b|--bucket <cloud Storage bucket>\n]" \
        1>&2
   echo 1>&2
   echo "Options can also be specified via environment variable:" \
-       "KCBQ_TEST_KEYFILE, KCBQ_TEST_PROJECT, and KCBQ_TEST_DATASET" \
-       "respectively control the keyfile, project, and dataset." \
+       "KCBQ_TEST_KEYFILE, KCBQ_TEST_PROJECT, KCBQ_TEST_DATASET, and KCBQ_TEST_BUCKET" \
+       "respectively control the keyfile, project, dataset, and bucket." \
        1>&2
   echo 1>&2
   echo "Options can also be specified in a file named 'test.conf'" \
        "placed in the same directory as this script, with a series of <property>=<value> lines." \
-       "The properties are 'keyfile', 'project', and 'dataset'." \
+       "The properties are 'keyfile', 'project', 'dataset', and 'bucket'." \
        1>&2
   echo 1>&2
   echo "The descending order of priority for each of these forms of specification is:" \
@@ -98,6 +99,7 @@ PROPERTIES_FILE="$BASE_DIR/test.conf"
 KCBQ_TEST_KEYFILE=${KCBQ_TEST_KEYFILE:-$keyfile}
 KCBQ_TEST_PROJECT=${KCBQ_TEST_PROJECT:-$project}
 KCBQ_TEST_DATASET=${KCBQ_TEST_DATASET:-$dataset}
+KCBQ_TEST_BUCKET=${KCBQ_TEST_BUCKET:-$bucket}
 
 # Capture any command line flags
 while [[ $# -gt 0 ]]; do
@@ -117,6 +119,11 @@ while [[ $# -gt 0 ]]; do
         shift
         KCBQ_TEST_DATASET="$1"
         ;;
+    -b|--bucket)
+        [[ -z "$2" ]] && { error "bucket name must follow $1 flag"; usage 1; }
+        shift
+        KCBQ_TEST_BUCKET="$1"
+        ;;
     -h|--help|'-?')
         usage 0
         ;;
@@ -131,6 +138,7 @@ done
 [[ -z "$KCBQ_TEST_KEYFILE" ]] && { error 'a key filename is required'; usage 1; }
 [[ -z "$KCBQ_TEST_PROJECT" ]] && { error 'a project name is required'; usage 1; }
 [[ -z "$KCBQ_TEST_DATASET" ]] && { error 'a dataset name is required'; usage 1; }
+[[ -z "$KCBQ_TEST_BUCKET" ]] && { error 'a bucket name is required'; usage 1; }
 
 ####################################################################################################
 # Schema Registry Docker initialization
@@ -157,12 +165,20 @@ KAFKA_DOCKER_NAME='kcbq_test_kafka'
 SCHEMA_REGISTRY_DOCKER_NAME='kcbq_test_schema-registry'
 
 statusupdate 'Creating Zookeeper Docker instance'
-docker run --name "$ZOOKEEPER_DOCKER_NAME" -d confluent/zookeeper:3.4.6-cp1
+docker run --name "$ZOOKEEPER_DOCKER_NAME" \
+           -d \
+           -e ZOOKEEPER_CLIENT_PORT=32181 \
+           confluentinc/cp-zookeeper:4.1.2
 
 statusupdate 'Creating Kafka Docker instance'
 docker run --name "$KAFKA_DOCKER_NAME" \
            --link "$ZOOKEEPER_DOCKER_NAME":zookeeper \
-           -d confluent/kafka:0.10.0.0-cp1
+           --add-host kafka:127.0.0.1 \
+           -d \
+           -e KAFKA_ZOOKEEPER_CONNECT=zookeeper:32181 \
+           -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:29092 \
+           -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
+           confluentinc/cp-kafka:4.1.2
 
 statusupdate 'Creating Schema Registry Docker instance'
 # Have to pause here to make sure Zookeeper/Kafka get on their feet first
@@ -170,7 +186,10 @@ sleep 5
 docker run --name "$SCHEMA_REGISTRY_DOCKER_NAME" \
            --link "$ZOOKEEPER_DOCKER_NAME":zookeeper --link "$KAFKA_DOCKER_NAME":kafka \
            --env SCHEMA_REGISTRY_AVRO_COMPATIBILITY_LEVEL=none \
-           -d confluent/schema-registry:3.0.0
+           -d \
+           -e SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL=zookeeper:32181 \
+           -e SCHEMA_REGISTRY_HOST_NAME=schema-registry \
+           confluentinc/cp-schema-registry:4.1.2
 
 ####################################################################################################
 # Writing data to Kafka Docker instance via Avro console producer
@@ -183,7 +202,7 @@ if ! dockerimageexists "$POPULATE_DOCKER_IMAGE"; then
   docker build -q -t "$POPULATE_DOCKER_IMAGE" "$DOCKER_DIR/populate"
 fi
 # Have to pause here to make sure the Schema Registry gets on its feet first
-sleep 10
+sleep 35
 docker create --name "$POPULATE_DOCKER_NAME" \
               --link "$KAFKA_DOCKER_NAME:kafka" --link "$SCHEMA_REGISTRY_DOCKER_NAME:schema-registry" \
               "$POPULATE_DOCKER_IMAGE"
@@ -191,14 +210,15 @@ docker cp "$BASE_DIR/resources/test_schemas/" "$POPULATE_DOCKER_NAME:/tmp/schema
 docker start -a "$POPULATE_DOCKER_NAME"
 
 ####################################################################################################
-# Deleting existing BigQuery tables
-warn 'Deleting existing BigQuery test tables'
+# Deleting existing BigQuery tables/bucket
+warn 'Deleting existing BigQuery test tables and existing GCS bucket'
 
 "$GRADLEW" -p "$BASE_DIR/.." \
     -Pkcbq_test_keyfile="$KCBQ_TEST_KEYFILE" \
     -Pkcbq_test_project="$KCBQ_TEST_PROJECT" \
     -Pkcbq_test_dataset="$KCBQ_TEST_DATASET" \
     -Pkcbq_test_tables="$(basename "$BASE_DIR"/resources/test_schemas/* | sed -E -e 's/[^a-zA-Z0-9_]/_/g' -e 's/^(.*)$/kcbq_test_\1/' | xargs echo -n)" \
+    -Pkcbq_test_bucket="$KCBQ_TEST_BUCKET" \
     integrationTestPrep
 
 ####################################################################################################
@@ -221,6 +241,8 @@ echo "project=$KCBQ_TEST_PROJECT" >> "$CONNECTOR_PROPS"
 
 echo "datasets=.*=$KCBQ_TEST_DATASET" >> "$CONNECTOR_PROPS"
 
+echo "gcsBucketName=$KCBQ_TEST_BUCKET" >> "$CONNECTOR_PROPS"
+
 echo -n 'topics=' >> "$CONNECTOR_PROPS"
 basename "$BASE_DIR"/resources/test_schemas/* \
   | sed -E 's/^(.*)$/kcbq_test_\1/' \
@@ -233,7 +255,6 @@ CONNECT_DOCKER_IMAGE='kcbq/connect'
 CONNECT_DOCKER_NAME='kcbq_test_connect'
 
 cp "$BASE_DIR"/../../kcbq-confluent/build/distributions/kcbq-confluent-*.tar "$DOCKER_DIR/connect/kcbq.tar"
-cp "$BASE_DIR"/../../kcbq-confluent/build/distributions/kcbq-confluent-*.tar "$DOCKER_DIR/connect/retriever.tar"
 cp "$KCBQ_TEST_KEYFILE" "$DOCKER_DIR/connect/key.json"
 
 if ! dockerimageexists "$CONNECT_DOCKER_IMAGE"; then
@@ -242,8 +263,7 @@ fi
 docker create --name "$CONNECT_DOCKER_NAME" \
               --link "$KAFKA_DOCKER_NAME:kafka" --link "$SCHEMA_REGISTRY_DOCKER_NAME:schema-registry" \
               -t "$CONNECT_DOCKER_IMAGE" /bin/bash
-docker cp "$DOCKER_DIR/connect/kcbq.tar" "$CONNECT_DOCKER_NAME:/usr/share/java/kafka-connect-bigquery/kcbq.tar"
-docker cp "$DOCKER_DIR/connect/retriever.tar" "$CONNECT_DOCKER_NAME:/usr/share/java/kafka-connect-bigquery/retriever.tar"
+docker cp "$DOCKER_DIR/connect/kcbq.tar" "$CONNECT_DOCKER_NAME:/usr/local/share/kafka/plugins/kafka-connect-bigquery/kcbq.tar"
 docker cp "$DOCKER_DIR/connect/properties/" "$CONNECT_DOCKER_NAME:/etc/kafka-connect-bigquery/"
 docker cp "$DOCKER_DIR/connect/key.json" "$CONNECT_DOCKER_NAME:/tmp/key.json"
 docker start -a "$CONNECT_DOCKER_NAME"
@@ -259,5 +279,6 @@ INTEGRATION_TEST_PROPERTIES_FILE="$INTEGRATION_TEST_RESOURCE_DIR/test.properties
 echo "keyfile=$KCBQ_TEST_KEYFILE" > "$INTEGRATION_TEST_PROPERTIES_FILE"
 echo "project=$KCBQ_TEST_PROJECT" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
 echo "dataset=$KCBQ_TEST_DATASET" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
+echo "bucket=$KCBQ_TEST_BUCKET" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
 
 "$GRADLEW" -p "$BASE_DIR/.." cleanIntegrationTest integrationTest

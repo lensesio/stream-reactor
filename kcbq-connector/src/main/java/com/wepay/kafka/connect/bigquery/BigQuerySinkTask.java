@@ -123,19 +123,8 @@ public class BigQuerySinkTask extends SinkTask {
     } catch (InterruptedException err) {
       throw new ConnectException("Interrupted while waiting for write tasks to complete.", err);
     }
-    updateOffsets(offsets);
 
     topicPartitionManager.resumeAll();
-  }
-
-  /**
-   * This really doesn't do much and I'm not totally clear on whether or not I need it.
-   * But, in the interest of maintaining old functionality, here we are.
-   */
-  private void updateOffsets(Map<TopicPartition, OffsetAndMetadata> offsets) {
-    for (Map.Entry<TopicPartition, OffsetAndMetadata> offsetEntry : offsets.entrySet()) {
-      context.offset(offsetEntry.getKey(), offsetEntry.getValue().offset());
-    }
   }
 
   private PartitionedTableId getRecordTable(SinkRecord record) {
