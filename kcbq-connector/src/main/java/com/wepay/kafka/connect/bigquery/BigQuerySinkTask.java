@@ -319,7 +319,7 @@ public class BigQuerySinkTask extends SinkTask {
         try {
           logger.info("Attempting to shut down GCS Load Executor.");
           gcsLoadExecutor.shutdown();
-          executor.awaitTermination(EXECUTOR_SHUTDOWN_TIMEOUT_SEC, TimeUnit.SECONDS);
+          gcsLoadExecutor.awaitTermination(EXECUTOR_SHUTDOWN_TIMEOUT_SEC, TimeUnit.SECONDS);
         } catch (InterruptedException ex) {
           logger.warn("Could not shut down GCS Load Executor within {}s.",
                       EXECUTOR_SHUTDOWN_TIMEOUT_SEC);
