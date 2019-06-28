@@ -84,6 +84,14 @@ public class BigQuerySinkConfig extends AbstractConfig {
       "The name of the bucket in which gcs blobs used to batch load to BigQuery "
       + "should be located. Only relevant if enableBatchLoad is configured.";
 
+  public static final String GCS_FOLDER_NAME_CONFIG =                     "gcsFolderName";
+  private static final ConfigDef.Type GCS_FOLDER_NAME_TYPE =              ConfigDef.Type.STRING;
+  private static final Object GCS_FOLDER_NAME_DEFAULT =                   "";
+  private static final ConfigDef.Importance GCS_FOLDER_NAME_IMPORTANCE =  ConfigDef.Importance.MEDIUM;
+  private static final String GCS_FOLDER_NAME_DOC =
+          "The name of the folder under the bucket in which gcs blobs used to batch load to BigQuery "
+                  + "should be located. Only relevant if enableBatchLoad is configured.";
+
   public static final String TOPICS_TO_TABLES_CONFIG =                     "topicsToTables";
   private static final ConfigDef.Type TOPICS_TO_TABLES_TYPE =              ConfigDef.Type.LIST;
   private static final ConfigDef.Importance TOPICS_TO_TABLES_IMPORTANCE =
@@ -195,6 +203,12 @@ public class BigQuerySinkConfig extends AbstractConfig {
             GCS_BUCKET_NAME_DEFAULT,
             GCS_BUCKET_NAME_IMPORTANCE,
             GCS_BUCKET_NAME_DOC
+        ).define(
+            GCS_FOLDER_NAME_CONFIG,
+            GCS_FOLDER_NAME_TYPE,
+            GCS_FOLDER_NAME_DEFAULT,
+            GCS_FOLDER_NAME_IMPORTANCE,
+            GCS_FOLDER_NAME_DOC
         ).define(
             TOPICS_TO_TABLES_CONFIG,
             TOPICS_TO_TABLES_TYPE,

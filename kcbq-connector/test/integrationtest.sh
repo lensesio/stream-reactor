@@ -37,10 +37,11 @@ usage() {
        "[-p|--project <BigQuery project>]\n" \
        "[-d|--dataset <BigQuery project>]\n" \
        "[-b|--bucket <cloud Storage bucket>\n]" \
+       "[-f|--folder <cloud Storage folder under bucket>\n]" \
        1>&2
   echo 1>&2
   echo "Options can also be specified via environment variable:" \
-       "KCBQ_TEST_KEYFILE, KCBQ_TEST_PROJECT, KCBQ_TEST_DATASET, and KCBQ_TEST_BUCKET" \
+       "KCBQ_TEST_KEYFILE, KCBQ_TEST_PROJECT, KCBQ_TEST_DATASET, KCBQ_TEST_BUCKET, and KCBQ_TEST_FOLDER" \
        "respectively control the keyfile, project, dataset, and bucket." \
        1>&2
   echo 1>&2
@@ -100,6 +101,7 @@ KCBQ_TEST_KEYFILE=${KCBQ_TEST_KEYFILE:-$keyfile}
 KCBQ_TEST_PROJECT=${KCBQ_TEST_PROJECT:-$project}
 KCBQ_TEST_DATASET=${KCBQ_TEST_DATASET:-$dataset}
 KCBQ_TEST_BUCKET=${KCBQ_TEST_BUCKET:-$bucket}
+KCBQ_TEST_FOLDER=${KCBQ_TEST_FOLDER:-$folder}
 
 # Capture any command line flags
 while [[ $# -gt 0 ]]; do
@@ -123,6 +125,11 @@ while [[ $# -gt 0 ]]; do
         [[ -z "$2" ]] && { error "bucket name must follow $1 flag"; usage 1; }
         shift
         KCBQ_TEST_BUCKET="$1"
+        ;;
+    -b|--folder)
+        [[ -z "$2" ]] && { error "folder name must follow $1 flag"; usage 1; }
+        shift
+        KCBQ_TEST_FOLDER="$1"
         ;;
     -h|--help|'-?')
         usage 0
@@ -243,6 +250,8 @@ echo "datasets=.*=$KCBQ_TEST_DATASET" >> "$CONNECTOR_PROPS"
 
 echo "gcsBucketName=$KCBQ_TEST_BUCKET" >> "$CONNECTOR_PROPS"
 
+echo "gcsFolderName=$KCBQ_TEST_FOLDER" >> "$CONNECTOR_PROPS"
+
 echo -n 'topics=' >> "$CONNECTOR_PROPS"
 basename "$BASE_DIR"/resources/test_schemas/* \
   | sed -E 's/^(.*)$/kcbq_test_\1/' \
@@ -280,5 +289,6 @@ echo "keyfile=$KCBQ_TEST_KEYFILE" > "$INTEGRATION_TEST_PROPERTIES_FILE"
 echo "project=$KCBQ_TEST_PROJECT" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
 echo "dataset=$KCBQ_TEST_DATASET" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
 echo "bucket=$KCBQ_TEST_BUCKET" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
+echo "folder=$KCBQ_TEST_FOLDER" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
 
 "$GRADLEW" -p "$BASE_DIR/.." cleanIntegrationTest integrationTest
