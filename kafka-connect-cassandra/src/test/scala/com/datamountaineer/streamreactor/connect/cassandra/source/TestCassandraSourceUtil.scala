@@ -22,17 +22,25 @@ trait TestCassandraSourceUtil {
         |long_field bigint,
         |string_field text, 
         |timestamp_field timestamp, 
-        |timeuuid_field timeuuid, 
+        |timeuuid_field timeuuid,
+        |tinyint_field tinyint,
         |PRIMARY KEY (id, timestamp_field)) WITH CLUSTERING ORDER BY (timestamp_field asc)""".stripMargin)
 
     table
   }
 
-  def insertIntoTimestampTable(session: Session, keyspace: String, tableName: String, anId: String, stringValue: String, formattedTimestamp: String) {
+  def insertIntoTimestampTable(session: Session,
+                               keyspace: String,
+                               tableName: String,
+                               anId: String,
+                               stringValue: String,
+                               formattedTimestamp: String,
+                               tinyint_field: Byte
+                              ) {
     val sql = s"""INSERT INTO $keyspace.$tableName
-      (id, int_field, long_field, string_field, timestamp_field, timeuuid_field)
+      (id, int_field, long_field, string_field, timestamp_field, timeuuid_field, tinyint_field)
       VALUES
-      ('$anId', 2, 3, '$stringValue', '$formattedTimestamp', now());"""
+      ('$anId', 2, 3, '$stringValue', '$formattedTimestamp', now(), $tinyint_field);"""
 
     // insert
     session.execute(sql)

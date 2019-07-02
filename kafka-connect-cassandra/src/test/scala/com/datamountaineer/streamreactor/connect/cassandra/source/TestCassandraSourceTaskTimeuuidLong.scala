@@ -45,7 +45,7 @@ class TestCassandraSourceTaskTimeuuidLong extends WordSpec
   var tableName: String = _
 
   override def beforeAll {
-    session = createKeySpace(keyspace, secure = true, ssl = false)
+    session = createKeySpace(keyspace, secure = true)
     tableName = createTimeuuidTable(session, keyspace)
   }
 
@@ -125,7 +125,7 @@ class TestCassandraSourceTaskTimeuuidLong extends WordSpec
 
   }
 
-  private def getCassandraConfigDefault() = {
+  private def getCassandraConfigDefault = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field, timeuuid_field FROM $tableName PK timeuuid_field INCREMENTALMODE=timeuuid"
     getCassandraConfig(keyspace, tableName, myKcql)
   }
