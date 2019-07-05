@@ -57,11 +57,9 @@ abstract class RedisWriter extends DbWriter with StrictLogging with ConverterUti
         System.setProperty("javax.net.ssl.trustStorePassword", connection.trustStorePassword.getOrElse(""))
         System.setProperty("javax.net.ssl.trustStore", trustStoreFilepath)
         System.setProperty("javax.net.ssl.trustStoreType", connection.trustStoreType.getOrElse("jceks"))
-
-        jedis = new Jedis(URI.create(s"rediss://${connection.host}:${connection.port}"))
-    } else {
-      jedis = new Jedis(connection.host, connection.port)
     }
+
+    jedis = new Jedis(connection.host, connection.port, connection.isSslConnection)
 
     connection.password.foreach(p => jedis.auth(p))
 
