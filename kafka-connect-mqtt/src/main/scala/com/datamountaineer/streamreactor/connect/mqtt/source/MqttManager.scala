@@ -17,7 +17,9 @@
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import java.util
-import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
+import java.util.Base64
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
@@ -75,11 +77,16 @@ class MqttManager(connectionFn: MqttSourceSettings => MqttConnectOptions,
   }
 
   override def messageArrived(topic: String, message: MqttMessage): Unit = {
+    if(settings.logMessageReceived) {
+      val msg = new String(Base64.getEncoder.encode(message.getPayload))
+      logger.debug(s"Message received on topic [$topic]. Message id =[${message.getId}] , isDuplicate=${message.isDuplicate}, payload=$msg")
+    }
+
     val matched = sourceToTopicMap
       .filter(t => checkTopic(topic, t._2))
       .map(t => t._2.getSource)
 
-    val wildcard = matched.headOption.getOrElse{
+    val wildcard = matched.headOption.getOrElse {
       throw new ConfigException(s"Topic '$topic' can not be matched with a source defined by KCQL.")
     }
     val kcql = sourceToTopicMap
