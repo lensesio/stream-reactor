@@ -31,11 +31,11 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
 
   val redisServer = new RedisServer(6379)
   val gson = new Gson()
-  val jedis = new Jedis("localhost", redisServer.getPort)
+  val jedis = new Jedis("localhost", redisServer.ports().get(0))
   val TOPIC = "topic"
   val baseProps = Map(
     RedisConfigConstants.REDIS_HOST -> "localhost",
-    RedisConfigConstants.REDIS_PORT -> redisServer.getPort.toString
+    RedisConfigConstants.REDIS_PORT -> redisServer.ports().get(0).toString
   )
 
   override def beforeAll() = redisServer.start()
