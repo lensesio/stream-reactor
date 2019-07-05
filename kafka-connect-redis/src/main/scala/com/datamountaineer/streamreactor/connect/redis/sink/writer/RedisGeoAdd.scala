@@ -61,7 +61,7 @@ class RedisGeoAdd(sinkSettings: RedisSinkSettings) extends RedisWriter with GeoA
 
               if (isDoubleNumber(longitude) && isDoubleNumber(latitude)) {
 
-                logger.debug(s"GEOADD $key payload = ${payload.toString}")
+                logger.debug(s"GEOADD $key longitude=$longitude latitude=$latitude payload = ${payload.toString}")
                 val response = jedis.geoadd(key, longitude.toDouble, latitude.toDouble, payload.toString)
 
                 if (response == 1) {
@@ -72,7 +72,7 @@ class RedisGeoAdd(sinkSettings: RedisSinkSettings) extends RedisWriter with GeoA
               }
               else {
                 logger.warn(s"GeoAdd record contains invalid longitude=$longitude and latitude=$latitude values, " +
-                  s"Record with key $record.key is skipped");
+                  s"Record with key ${record.key} is skipped");
                 None
               }
             }
