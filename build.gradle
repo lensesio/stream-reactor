@@ -117,6 +117,7 @@ allprojects {
         maven {
             url 'http://dl.bintray.com/andsel/maven/'
         }
+        maven { url "https://dl.bintray.com/spinnaker/spinnaker/" }
     }
 
     jar {
