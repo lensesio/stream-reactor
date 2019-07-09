@@ -90,11 +90,6 @@ class RedisSslTest extends WordSpec with Matchers with BeforeAndAfterAll with Mo
 
       }
     }
-
-//    "establish tls elasticcache" in {
-//        val jedis = new Jedis("", 6379, true)
-//        jedis.ping() shouldBe "PONG"
-//    }
   }
 
   "RedisDbWriter" should {
