@@ -150,6 +150,13 @@ done
 ####################################################################################################
 # Schema Registry Docker initialization
 
+if echo | xargs --no-run-if-empty; then
+        xargs() { command xargs --no-run-if-empty "$@"; }
+else
+        xargs() { command xargs "$@"; }
+fi 2> /dev/null
+
+
 dockercleanup() {
   log 'Cleaning up leftover Docker containers'
   docker ps -aq -f 'name=kcbq_test_(zookeeper|kafka|schema-registry|populate|connect)' \
@@ -220,11 +227,19 @@ docker start -a "$POPULATE_DOCKER_NAME"
 # Deleting existing BigQuery tables/bucket
 warn 'Deleting existing BigQuery test tables and existing GCS bucket'
 
+
+test_tables=
+test_topics=
+for file in "$BASE_DIR"/resources/test_schemas/*; do
+        test_tables+="${test_tables:+ }$(basename "kcbq_test_${file/-/_}")"
+        test_topics+="${test_topics:+,}$(basename "kcbq_test_$file")"
+done
+
 "$GRADLEW" -p "$BASE_DIR/.." \
     -Pkcbq_test_keyfile="$KCBQ_TEST_KEYFILE" \
     -Pkcbq_test_project="$KCBQ_TEST_PROJECT" \
     -Pkcbq_test_dataset="$KCBQ_TEST_DATASET" \
-    -Pkcbq_test_tables="$(basename "$BASE_DIR"/resources/test_schemas/* | sed -E -e 's/[^a-zA-Z0-9_]/_/g' -e 's/^(.*)$/kcbq_test_\1/' | xargs echo -n)" \
+    -Pkcbq_test_tables="test_tables" \
     -Pkcbq_test_bucket="$KCBQ_TEST_BUCKET" \
     integrationTestPrep
 
@@ -243,22 +258,14 @@ cp "$RESOURCES_DIR/standalone-template.properties" "$STANDALONE_PROPS"
 
 CONNECTOR_PROPS="$DOCKER_DIR/connect/properties/connector.properties"
 cp "$RESOURCES_DIR/connector-template.properties" "$CONNECTOR_PROPS"
+cat << EOF >> $CONNECTOR_PROPS
+project=$KCBQ_TEST_PROJECT
+datasets=.*=$KCBQ_TEST_DATASET
+gcsBucketName=$KCBQ_TEST_BUCKET
+gcsFolderName=$KCBQ_TEST_FOLDER
+topics=$test_topics
 
-echo "project=$KCBQ_TEST_PROJECT" >> "$CONNECTOR_PROPS"
-
-echo "datasets=.*=$KCBQ_TEST_DATASET" >> "$CONNECTOR_PROPS"
-
-echo "gcsBucketName=$KCBQ_TEST_BUCKET" >> "$CONNECTOR_PROPS"
-
-echo "gcsFolderName=$KCBQ_TEST_FOLDER" >> "$CONNECTOR_PROPS"
-
-echo -n 'topics=' >> "$CONNECTOR_PROPS"
-basename "$BASE_DIR"/resources/test_schemas/* \
-  | sed -E 's/^(.*)$/kcbq_test_\1/' \
-  | xargs echo -n \
-  | tr ' ' ',' \
-  >> "$CONNECTOR_PROPS"
-echo >> "$CONNECTOR_PROPS"
+EOF
 
 CONNECT_DOCKER_IMAGE='kcbq/connect'
 CONNECT_DOCKER_NAME='kcbq_test_connect'
