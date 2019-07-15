@@ -41,8 +41,8 @@ A collection of components to build a real time ingestion pipeline.
 | HBase          | Sink   | Kafka connect HBase sink to write Kafka topic payloads to HBase.                              | [Docs](https://docs.lenses.io/connectors/sink/hbase.html)                  |
 | Hive           | Source | Kafka connect Hive source to read data from Hive/HDFS into Kafka.                             | [Docs](https://docs.lenses.io/connectors/source/hive.html)
 | Hive           | Sink   | Kafka connect Hive sink to read data Kafka and load into Hive/HDFS                            | [Docs](https://docs.lenses.io/connectors/sink/hive.html)|
-| Kudu           | Sink   | Kafka connect Kudu sink to write Kafka topic payloads to Kudu.                                | [Docs](https://docs.lenses.io/connectors/sink/kudu.html)                   |
-| InfluxDb       | Sink   | Kafka connect InfluxDb sink to write Kafka topic payloads to InfluxDb.                        | [Docs](https://docs.lenses.io/connectors/sink/influx.html)                 |
+| InfluxDb       | Sink   | Kafka connect InfluxDb sink to write Kafka topic payloads to InfluxDb.
+| Kudu           | Sink   | Kafka connect Kudu sink to write Kafka topic payloads to Kudu.                                | [Docs](https://docs.lenses.io/connectors/sink/kudu.html)                   |                        | [Docs](https://docs.lenses.io/connectors/sink/influx.html)                 |
 | JMS            | Source | Kafka connect JMS source to write from JMS to Kafka topics.                                   | [Docs](https://docs.lenses.io/connectors/source/jms.html)                  |
 | JMS            | Sink   | Kafka connect JMS sink to write Kafka topic payloads to JMS.                                  | [Docs](https://docs.lenses.io/connectors/sink/jms.html)                    |
 | MongoDB        | Sink   | Kafka connect MongoDB sink to write Kafka topic payloads to MongoDB.                          | [Docs](https://docs.lenses.io/connectors/sink/mongo.html)                  |
