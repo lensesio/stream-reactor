@@ -74,8 +74,10 @@ public class GCSBatchTableWriter implements Runnable {
   public void run() {
     try {
       writer.writeRows(rows, tableId, bucketName, blobName);
-    } catch (ConnectException | InterruptedException ex) {
-      throw new ConnectException("Thread interrupted while batch writing to BigQuery.", ex);
+    } catch (ConnectException ex) {
+      throw new ConnectException("Failed to write rows to GCS", ex);
+    } catch (InterruptedException ex) {
+      throw new ConnectException("Thread interrupted while batch writing", ex);
     }
   }
 
