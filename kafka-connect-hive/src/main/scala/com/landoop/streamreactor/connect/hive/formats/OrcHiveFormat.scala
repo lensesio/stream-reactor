@@ -1,11 +1,15 @@
 package com.landoop.streamreactor.connect.hive.formats
 
-import com.landoop.streamreactor.connect.hive.{OrcSinkConfig, OrcSourceConfig, Serde}
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.hadoop.fs.{FileSystem, Path}
-import org.apache.kafka.connect.data.{Schema, Struct}
+import com.landoop.streamreactor.connect.hive.OrcSinkConfig
+import com.landoop.streamreactor.connect.hive.OrcSourceConfig
+import com.landoop.streamreactor.connect.hive.Serde
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.Path
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 
-object OrcHiveFormat extends HiveFormat with StrictLogging {
+object OrcHiveFormat extends HiveFormat {
+  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
   override def serde = Serde(
     "org.apache.hadoop.hive.ql.io.orc.OrcSerde",

@@ -1,6 +1,5 @@
 package com.landoop.streamreactor.connect.hive.kerberos
 
-import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.AbstractConfig
 import org.apache.kafka.common.config.ConfigException
 
@@ -8,7 +7,7 @@ import scala.util.Try
 
 case class Kerberos(auth: Either[KeytabSettings, UserPasswordSettings], ticketRenewalMs: Long)
 
-object Kerberos extends StrictLogging {
+object Kerberos {
 
   def from(config: AbstractConfig, hiveConstants: KerberosSettings): Option[Kerberos] = {
     if (config.getBoolean(hiveConstants.KerberosKey)) {

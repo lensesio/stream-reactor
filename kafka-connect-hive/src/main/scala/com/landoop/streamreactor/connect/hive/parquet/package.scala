@@ -1,12 +1,14 @@
 package com.landoop.streamreactor.connect.hive
 
+import com.landoop.streamreactor.connect.hive.ConfigurationBuilder.getClass
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.parquet.column.ParquetProperties
 import org.apache.parquet.hadoop.{ParquetFileWriter, ParquetReader, ParquetWriter}
 
-package object parquet extends StrictLogging {
+package object parquet {
+  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
   def listFiles(path: Path)(implicit fs: FileSystem): List[Path] = {
     if (fs.isDirectory(path)) {

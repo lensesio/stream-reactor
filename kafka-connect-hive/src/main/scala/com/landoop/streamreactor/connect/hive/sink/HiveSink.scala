@@ -7,6 +7,7 @@ import com.landoop.streamreactor.connect.hive.formats.HiveWriter
 import com.landoop.streamreactor.connect.hive.sink.mapper.{DropPartitionValuesMapper, MetastoreSchemaAlignMapper, ProjectionMapper}
 import com.landoop.streamreactor.connect.hive.sink.partitioning.CachedPartitionHandler
 import com.landoop.streamreactor.connect.hive.sink.staging.{CommitPolicy, StageManager}
+import com.landoop.streamreactor.connect.hive.ConfigurationBuilder.getClass
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
@@ -31,7 +32,9 @@ import scala.util.{Failure, Success}
   */
 class HiveSink(tableName: TableName,
                config: HiveSinkConfig)
-              (implicit client: IMetaStoreClient, fs: FileSystem) extends StrictLogging {
+              (implicit client: IMetaStoreClient, fs: FileSystem) {
+
+  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
   private val tableConfig = config.tableOptions.find(_.tableName == tableName)
     .getOrElse(sys.error(s"No table config for ${tableName.value}"))

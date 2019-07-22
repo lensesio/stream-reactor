@@ -3,6 +3,7 @@ package com.landoop.streamreactor.connect.hive.sink
 import com.landoop.streamreactor.connect.hive.formats.{HiveFormat, HiveWriter}
 import com.landoop.streamreactor.connect.hive.sink.staging.StageManager
 import com.landoop.streamreactor.connect.hive.{Offset, TopicPartition, TopicPartitionOffset}
+import com.landoop.streamreactor.connect.hive.ConfigurationBuilder.getClass
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.kafka.connect.data.Schema
@@ -18,7 +19,9 @@ import org.apache.kafka.connect.data.Schema
   */
 class HiveWriterManager(format: HiveFormat,
                         stageManager: StageManager)
-                       (implicit fs: FileSystem) extends StrictLogging {
+                       (implicit fs: FileSystem) {
+
+  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
   case class WriterKey(tp: TopicPartition, dir: Path)
 

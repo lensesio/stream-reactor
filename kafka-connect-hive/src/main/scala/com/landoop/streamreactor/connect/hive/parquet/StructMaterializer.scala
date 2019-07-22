@@ -10,7 +10,7 @@ import org.apache.parquet.io.api.{GroupConverter, RecordMaterializer}
   * Each record will be wrapped by {@link GroupConverter#start()} and {@link GroupConverter#end()},
   * between which the appropriate fields will be materialized.
   */
-class StructMaterializer(schema: Schema) extends RecordMaterializer[Struct] with StrictLogging {
+class StructMaterializer(schema: Schema) extends RecordMaterializer[Struct] {
   private val root = new RootGroupConverter(schema)
   override def getRootConverter: GroupConverter = root
   override def getCurrentRecord: Struct = root.struct

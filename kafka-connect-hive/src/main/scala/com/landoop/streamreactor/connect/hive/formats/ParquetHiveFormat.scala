@@ -2,11 +2,13 @@ package com.landoop.streamreactor.connect.hive.formats
 
 import com.landoop.streamreactor.connect.hive.parquet.ParquetSinkConfig
 import com.landoop.streamreactor.connect.hive.Serde
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.hadoop.fs.{FileSystem, Path}
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.Path
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 
-object ParquetHiveFormat extends HiveFormat with StrictLogging {
+object ParquetHiveFormat extends HiveFormat {
+  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
   override def serde = Serde(
     "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",

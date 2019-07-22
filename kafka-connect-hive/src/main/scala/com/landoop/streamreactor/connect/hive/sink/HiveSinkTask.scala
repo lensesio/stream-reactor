@@ -9,6 +9,7 @@ import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
 import com.landoop.streamreactor.connect.hive.sink.staging.OffsetSeeker
 import com.landoop.streamreactor.connect.hive.HadoopConfigurationExtension._
 import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
+import com.landoop.streamreactor.connect.hive.ConfigurationBuilder.getClass
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
@@ -20,7 +21,9 @@ import org.apache.kafka.connect.sink.SinkTask
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
-class HiveSinkTask extends SinkTask with StrictLogging {
+class HiveSinkTask extends SinkTask {
+
+  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
