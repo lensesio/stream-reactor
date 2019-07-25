@@ -301,6 +301,11 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
         return Failure(new Exception("cannot connect to ftp because of some unreported error"))
       }
       logger.info("successfully connected to the ftp server and logged in")
+      if(ftp.isInstanceOf[FTPSClient]) {
+            logger.info("FTPS Connection needed, setting appropriate settings")
+            ftp.asInstanceOf[FTPSClient].execPBSZ(0)
+            ftp.asInstanceOf[FTPSClient].execPROT("P")
+      }
       ftp.enterLocalPassiveMode()
       logger.info("passive we are")
       ftp.setFileType(FTP.BINARY_FILE_TYPE)
