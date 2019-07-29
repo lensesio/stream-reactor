@@ -50,7 +50,7 @@ services:
     image: bde2020/hive-metastore-postgresql:2.3.0
 
   fast-data-dev:
-    image: landoop/fast-data-dev:1.1.0
+    image: landoop/fast-data-dev:2.1.0
     ports:
     - "8083:8083"
     - "9092:9092"

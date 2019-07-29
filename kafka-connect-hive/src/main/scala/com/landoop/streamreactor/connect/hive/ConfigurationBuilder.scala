@@ -2,13 +2,13 @@ package com.landoop.streamreactor.connect.hive
 
 import java.io.File
 
-import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.conf
 import org.apache.hadoop.hive.conf.HiveConf
 
-object ConfigurationBuilder extends StrictLogging {
+object ConfigurationBuilder {
+  val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
   def buildHdfsConfiguration(hadoopConfiguration: HadoopConfiguration): Configuration = {
     val configuration = new Configuration()
 

@@ -16,7 +16,7 @@ import scala.util.Try
   * present in the incoming records, and the incoming records
   * cannot contain any extra fields.
   */
-object StrictEvolutionPolicy extends EvolutionPolicy with StrictLogging {
+object StrictEvolutionPolicy extends EvolutionPolicy {
 
   override def evolve(dbName: DatabaseName,
                       tableName: TableName,

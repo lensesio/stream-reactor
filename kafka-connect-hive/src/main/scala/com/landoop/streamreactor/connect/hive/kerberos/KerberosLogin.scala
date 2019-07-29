@@ -14,11 +14,13 @@ import org.apache.hadoop.security.UserGroupInformation
 import scala.concurrent.duration._
 import scala.concurrent.duration.Duration
 
-sealed trait KerberosLogin extends StrictLogging with AutoCloseable {
+sealed trait KerberosLogin extends AutoCloseable {
   def run[T](thunk: => T): T
 }
 
 case class UserPasswordLogin(ugi: UserGroupInformation, interval: Duration, lc: LoginContext) extends KerberosLogin {
+  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
+
   private val asyncTicketRenewal = new AsyncFunctionLoop(interval, "Kerberos")(renewKerberosTicket())
   asyncTicketRenewal.start()
 
@@ -48,6 +50,7 @@ case class UserPasswordLogin(ugi: UserGroupInformation, interval: Duration, lc: 
 }
 
 case class KeytabLogin(ugi: UserGroupInformation, interval: Duration) extends KerberosLogin {
+  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
   private val asyncTicketRenewal = new AsyncFunctionLoop(interval, "Kerberos")(renewKerberosTicket())
   asyncTicketRenewal.start()
 

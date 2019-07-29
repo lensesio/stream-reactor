@@ -1,6 +1,7 @@
 package com.landoop.streamreactor.connect.hive.sink.staging
 
 import com.landoop.streamreactor.connect.hive._
+import com.landoop.streamreactor.connect.hive.ConfigurationBuilder.getClass
 import com.typesafe.scalalogging.Logging
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.hadoop.fs.{FileSystem, Path}
@@ -14,7 +15,8 @@ import scala.util.control.NonFatal
   *
   * @param filenamePolicy we need the policy so we can match on this.
   */
-class OffsetSeeker(filenamePolicy: FilenamePolicy) extends StrictLogging {
+class OffsetSeeker(filenamePolicy: FilenamePolicy) {
+  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
   import HdfsUtils._
 

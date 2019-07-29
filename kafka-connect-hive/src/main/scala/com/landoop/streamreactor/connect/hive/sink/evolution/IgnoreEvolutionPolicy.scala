@@ -17,7 +17,7 @@ import scala.util.Try
   * additional fields. These additional fields will be dropped
   * before the data is written out.
   */
-object IgnoreEvolutionPolicy extends EvolutionPolicy with StrictLogging {
+object IgnoreEvolutionPolicy extends EvolutionPolicy {
 
   override def evolve(dbName: DatabaseName,
                       tableName: TableName,

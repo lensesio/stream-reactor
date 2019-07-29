@@ -14,7 +14,7 @@ import scala.util.Try
   *
   * This policy can be useful in tests but should be avoided in production code.
   */
-object NoopEvolutionPolicy extends EvolutionPolicy with StrictLogging {
+object NoopEvolutionPolicy extends EvolutionPolicy {
   override def evolve(dbName: DatabaseName,
                       tableName: TableName,
                       metastoreSchema: Schema,

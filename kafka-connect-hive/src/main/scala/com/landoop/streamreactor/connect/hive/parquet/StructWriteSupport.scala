@@ -1,6 +1,7 @@
 package com.landoop.streamreactor.connect.hive.parquet
 
 import com.landoop.streamreactor.connect.hive._
+import com.landoop.streamreactor.connect.hive.ConfigurationBuilder.getClass
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.kafka.connect.data.{Schema, Struct}
@@ -13,8 +14,9 @@ import scala.collection.JavaConverters._
 
 // derived from Apache Spark's parquet write support, archive and license here:
 // https://github.com/apache/spark/blob/21a7bfd5c324e6c82152229f1394f26afeae771c/sql/core/src/main/scala/org/apache/spark/sql/execution/datasources/parquet/ParquetWriteSupport.scala
-class StructWriteSupport(schema: Schema) extends WriteSupport[Struct] with StrictLogging {
+class StructWriteSupport(schema: Schema) extends WriteSupport[Struct] {
 
+  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
   private val schemaName = if (schema.name() == null) "schema" else schema.name()
   private val parquetSchema: MessageType = ParquetSchemas.toParquetMessage(schema, schemaName)
 

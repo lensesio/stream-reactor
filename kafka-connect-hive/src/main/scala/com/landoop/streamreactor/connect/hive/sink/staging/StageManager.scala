@@ -4,6 +4,7 @@ import com.landoop.streamreactor.connect.hive.{TopicPartition, TopicPartitionOff
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.hadoop.fs.{FileSystem, Path}
 import com.landoop.streamreactor.connect.hive.formats.HiveWriter
+import com.landoop.streamreactor.connect.hive.ConfigurationBuilder.getClass
 
 /**
   * The [[StageManager]] handles creation of new files (staging) and
@@ -16,7 +17,9 @@ import com.landoop.streamreactor.connect.hive.formats.HiveWriter
   * After a file has been closed, commit will be called with the path
   * and the stage manager will make the file visible.
   */
-class StageManager(filenamePolicy: FilenamePolicy) extends StrictLogging {
+class StageManager(filenamePolicy: FilenamePolicy) {
+
+  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
   private def stageFilename(tp: TopicPartition) =
     s".${filenamePolicy.prefix}_${tp.topic.value}_${tp.partition}"
