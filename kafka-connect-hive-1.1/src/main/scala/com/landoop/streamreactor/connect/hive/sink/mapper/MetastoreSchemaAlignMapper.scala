@@ -26,15 +26,12 @@ class MetastoreSchemaAlignMapper(schema: Schema) extends StructMapper {
   import scala.collection.JavaConverters._
 
   override def map(input: Struct): Struct = {
-    //hive converts everything to lowercase
-    val inputFieldsMapping = input.schema().fields().asScala.map{f=> f.name().toLowerCase()-> f.name()}.toMap
-    val struct = schema.fields.asScala.foldLeft(new Struct(schema)) { (struct, field) =>
-      Try(input.get(inputFieldsMapping(field.name))).toOption match {
+    schema.fields.asScala.foldLeft(new Struct(schema)) { (struct, field) =>
+      Try(input.get(field.name)).toOption match {
         case Some(value) => struct.put(field.name, value)
         case None if field.schema.isOptional => struct.put(field.name, null)
         case None => sys.error(s"Cannot map struct to required schema; ${field.name} is missing, no default value has been supplied and null is not permitted")
       }
     }
-    struct
   }
 }

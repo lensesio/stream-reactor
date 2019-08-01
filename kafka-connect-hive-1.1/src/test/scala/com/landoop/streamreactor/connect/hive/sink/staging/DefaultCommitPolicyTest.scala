@@ -1,36 +1,23 @@
 package com.landoop.streamreactor.connect.hive.sink.staging
 
-import com.landoop.streamreactor.connect.hive.Offset
-import com.landoop.streamreactor.connect.hive.Topic
-import com.landoop.streamreactor.connect.hive.TopicPartitionOffset
+import com.landoop.streamreactor.connect.hive.{Offset, Topic, TopicPartitionOffset}
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.FileSystem
-import org.apache.hadoop.fs.LocalFileSystem
-import org.apache.hadoop.fs.Path
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.data.SchemaBuilder
-import org.apache.kafka.connect.data.Struct
-import org.scalatest.Matchers
-import org.scalatest.WordSpec
-
+import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
+import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.duration._
 
 class DefaultCommitPolicyTest extends WordSpec with Matchers {
 
-  val schema: Schema = SchemaBuilder.struct()
+  val schema = SchemaBuilder.struct()
     .field("name", SchemaBuilder.string().required().build())
     .build()
 
   val struct = new Struct(schema)
 
-  implicit val conf: Configuration = new Configuration()
-  implicit val fs: LocalFileSystem = FileSystem.getLocal(conf)
+  implicit val conf = new Configuration()
+  implicit val fs = FileSystem.getLocal(conf)
   val tpo = TopicPartitionOffset(Topic("mytopic"), 1, Offset(100))
-
-  private def shouldFlush(policy: CommitPolicy, path: Path, count: Long) = {
-    val status = fs.getFileStatus(path)
-    policy.shouldFlush(CommitContext(tpo, path, count, status.getLen, status.getModificationTime))
-  }
 
   "DefaultCommitPolicy" should {
     "roll over after interval" in {
@@ -39,9 +26,9 @@ class DefaultCommitPolicyTest extends WordSpec with Matchers {
       val path = new Path("foo")
       fs.create(path)
 
-      shouldFlush(policy, path, 10) shouldBe false
+      policy.shouldFlush(struct, tpo, path, 10) shouldBe false
       Thread.sleep(2000)
-      shouldFlush(policy, path, 10) shouldBe true
+      policy.shouldFlush(struct, tpo, path, 10) shouldBe true
 
       fs.delete(path, false)
     }
@@ -50,10 +37,10 @@ class DefaultCommitPolicyTest extends WordSpec with Matchers {
       val path = new Path("foo")
       fs.create(path)
 
-      shouldFlush(policy, path, 7) shouldBe false
-      shouldFlush(policy, path, 8) shouldBe false
-      shouldFlush(policy, path, 9) shouldBe true
-      shouldFlush(policy, path, 10) shouldBe true
+      policy.shouldFlush(struct, tpo, path, 7) shouldBe false
+      policy.shouldFlush(struct, tpo, path, 8) shouldBe false
+      policy.shouldFlush(struct, tpo, path, 9) shouldBe true
+      policy.shouldFlush(struct, tpo, path, 10) shouldBe true
 
       fs.delete(path, false)
     }
@@ -61,10 +48,10 @@ class DefaultCommitPolicyTest extends WordSpec with Matchers {
       val policy = DefaultCommitPolicy(Some(10), None, None)
       val path = new Path("foo")
       val out = fs.create(path)
-      shouldFlush(policy, path, 7) shouldBe false
+      policy.shouldFlush(struct, tpo, path, 7) shouldBe false
       out.writeBytes("wibble wobble wabble wubble")
       out.close()
-      shouldFlush(policy, path, 9) shouldBe true
+      policy.shouldFlush(struct, tpo, path, 9) shouldBe true
       fs.delete(path, false)
     }
   }

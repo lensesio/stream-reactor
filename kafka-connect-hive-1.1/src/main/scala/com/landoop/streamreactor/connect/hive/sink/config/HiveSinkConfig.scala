@@ -73,7 +73,7 @@ object HiveSinkConfig {
         Topic(kcql.getSource),
         kcql.isAutoCreate,
         kcql.getWithOverwrite,
-        Option(kcql.getWithPartitioningStrategy).getOrElse(PartitioningStrategy.DYNAMIC) match {
+        Option(kcql.getWithPartitioningStrategy).getOrElse(PartitioningStrategy.STRICT) match {
           case PartitioningStrategy.DYNAMIC => new DynamicPartitionHandler()
           case PartitioningStrategy.STRICT => StrictPartitionHandler
         },

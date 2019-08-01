@@ -35,7 +35,7 @@ class UserPasswordSettingsTest extends FunSuite with Matchers with FileCreation 
       )
 
       val actualSettings = UserPasswordSettings.from(config, SinkConfigSettings)
-      actualSettings shouldBe UserPasswordSettings(user, password, fileKrb5.getAbsolutePath, fileJaas.getAbsolutePath, "abc", None)
+      actualSettings shouldBe UserPasswordSettings(user, password, fileKrb5.getAbsolutePath, fileJaas.getAbsolutePath, "abc")
     }
     finally {
       fileKrb5.delete()

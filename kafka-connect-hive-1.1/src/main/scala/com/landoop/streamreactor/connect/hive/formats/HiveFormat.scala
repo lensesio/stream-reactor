@@ -46,10 +46,6 @@ object HiveFormat {
   * to HDFS in formats that are compatible with hive.
   */
 trait HiveWriter {
-  def createdTime:Long
-  def file:Path
-  def fileSize:Long
-  def currentCount:Long
   def write(struct: Struct): Long
   def close(): Unit
 }

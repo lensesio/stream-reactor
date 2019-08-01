@@ -1,5 +1,6 @@
 package com.landoop.streamreactor.connect.hive.sink
 
+import java.net.InetAddress
 import java.util
 
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
@@ -12,6 +13,7 @@ import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient
+import org.apache.hadoop.security.SecurityUtil
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
 import org.apache.kafka.connect.errors.ConnectException
@@ -67,7 +69,7 @@ class HiveSinkTask extends SinkTask {
     hiveConf.set("hive.metastore.local", "false")
     hiveConf.set("hive.metastore", configs.get(SinkConfigSettings.MetastoreTypeKey))
     hiveConf.set("hive.metastore.uris", configs.get(SinkConfigSettings.MetastoreUrisKey))
-    config.kerberos.foreach { _ =>
+    config.kerberos.foreach { k =>
       val principal = Option(configs.get(SinkConfigSettings.HiveMetastorePrincipalKey))
         .getOrElse {
           throw new ConnectException(s"Missing configuration for [${SinkConfigSettings.HiveMetastorePrincipalKey}]. When using Kerberos it is required to set the configuration.")
@@ -77,13 +79,19 @@ class HiveSinkTask extends SinkTask {
       hiveConf.set("hive.metastore.sasl.enabled", "true")
     }
 
-    def initialize(): Unit = {
-      fs = FileSystem.get(conf)
-      client = new HiveMetaStoreClient(hiveConf)
+    kerberosLogin match {
+      case Some(value) => value.run {
+        fs = FileSystem.get(conf)
+        client = new HiveMetaStoreClient(hiveConf)
+      }
+      case None =>
+        fs = FileSystem.get(conf)
+        client = new HiveMetaStoreClient(hiveConf)
     }
-    kerberosLogin.fold(initialize())(_.run(initialize()))
 
-    val databases = execute(client.getAllDatabases)
+    val databases = execute {
+      client.getAllDatabases
+    }
     if (!databases.contains(config.dbName.value)) {
       throw new ConnectException(s"Can not find database [${config.dbName.value}]. Current database(-s): ${databases.asScala.mkString(",")}. Please make sure the database is created before sinking to it.")
     }
@@ -98,35 +106,20 @@ class HiveSinkTask extends SinkTask {
         Offset(record.kafkaOffset)
       )
       val tp = tpo.toTopicPartition
-      sinks
-        .getOrElse(tp, throw new ConnectException(s"Could not find $tp in sinks $sinks"))
-        .write(struct, tpo)
+      sinks.getOrElse(tp, sys.error(s"Could not find $tp in sinks $sinks")).write(struct, tpo)
     }
-
-    sinks.values.foreach(_.commit())
   }
 
   override def preCommit(currentOffsets: util.Map[KafkaTopicPartition, OffsetAndMetadata]): util.Map[KafkaTopicPartition, OffsetAndMetadata] = {
-    val committedOffsets = sinks.values
-      .flatMap(_.getState)
-      .flatMap(_.committedOffsets)
-      .flatMap { case (k, v) =>
-        val topicPartition = new KafkaTopicPartition(k.topic.value, k.partition)
-        Option(currentOffsets.get(topicPartition))
-          .map { offset =>
-            topicPartition -> new OffsetAndMetadata(v.value, offset.leaderEpoch(), offset.metadata())
-          }
-      }.toMap
-
-    committedOffsets.asJava
+    sinks.values.foreach{sink=>
+      sink.close()
+    }
+    currentOffsets
   }
 
   override def open(partitions: util.Collection[KafkaTopicPartition]): Unit = execute {
     try {
-      val topicPartitions = partitions.asScala
-        .map(tp => TopicPartition(Topic(tp.topic), tp.partition))
-        .toSet
-
+      val topicPartitions = partitions.asScala.map(tp => TopicPartition(Topic(tp.topic), tp.partition)).toSet
       open(topicPartitions)
     } catch {
       case NonFatal(e) =>
@@ -142,14 +135,12 @@ class HiveSinkTask extends SinkTask {
       val offsets = seeker.seek(config.dbName, tableName)(fs, client)
       // can be multiple topic/partitions writing to the same table
       tps.foreach { tp =>
-        offsets
-          .find(_.toTopicPartition == tp)
-          .foreach { case TopicPartitionOffset(topic, partition, offset) =>
-            logger.info(s"Seeking to ${topic.value}:$partition:${offset.value}")
-            context.offset(new KafkaTopicPartition(topic.value, partition), offset.value)
-          }
+        offsets.find(_.toTopicPartition == tp).foreach { case TopicPartitionOffset(topic, partition, offset) =>
+          logger.info(s"Seeking to ${topic.value}:$partition:${offset.value}")
+          context.offset(new KafkaTopicPartition(topic.value, partition), offset.value)
+        }
         logger.info(s"Opening sink for ${config.dbName.value}.${tableName.value} for ${tp.topic.value}:${tp.partition}")
-        val sink = HiveSink.from(tableName, config)(client, fs)
+        val sink = new HiveSink(tableName, config)(client, fs)
         sinks.put(tp, sink)
       }
     }
@@ -173,7 +164,9 @@ class HiveSinkTask extends SinkTask {
   }
 
   override def stop(): Unit = {
-    execute(sinks.values.foreach(_.close()))
+    execute {
+      sinks.values.foreach(_.close())
+    }
     sinks.clear()
     kerberosLogin.foreach(_.close())
   }

@@ -6,7 +6,6 @@ import cats.data.NonEmptyList
 import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfig
 import com.landoop.streamreactor.connect.hive.sink.config.TableOptions
-import com.landoop.streamreactor.connect.hive.sink.HiveSink
 import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfig
 import com.landoop.streamreactor.connect.hive.source.config.ProjectionField
 import com.landoop.streamreactor.connect.hive.source.config.SourceTableOptions
@@ -65,7 +64,7 @@ class HiveSourceTest extends WordSpec with Matchers with HiveTestConfig with Str
       hadoopConfiguration = HadoopConfiguration.Empty
     )
 
-    val sink = HiveSink.from(TableName(table), sinkConfig)
+    val sink = hiveSink(TableName(table), sinkConfig)
     users.zipWithIndex.foreach { case (user, k) =>
       sink.write(user, TopicPartitionOffset(Topic("mytopic"), 1, Offset(k)))
     }
