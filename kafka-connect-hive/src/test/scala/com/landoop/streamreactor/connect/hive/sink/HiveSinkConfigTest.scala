@@ -3,9 +3,16 @@ package com.landoop.streamreactor.connect.hive.sink
 import com.landoop.streamreactor.connect.hive.formats.{OrcHiveFormat, ParquetHiveFormat}
 import com.landoop.streamreactor.connect.hive.{PartitionField, TableName, Topic}
 import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfig
+import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
 import com.landoop.streamreactor.connect.hive.sink.evolution.AddEvolutionPolicy
 import com.landoop.streamreactor.connect.hive.sink.partitioning.DynamicPartitionHandler
 import com.landoop.streamreactor.connect.hive.sink.staging.DefaultCommitPolicy
+import com.landoop.streamreactor.connect.hive.ConfigurationBuilder
+import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.hive.metastore.HiveMetaStoreClient
+import org.apache.kafka.connect.errors.ConnectException
 import org.scalatest.{Matchers, WordSpec}
 
 class HiveSinkConfigTest extends WordSpec with Matchers {
@@ -14,8 +21,8 @@ class HiveSinkConfigTest extends WordSpec with Matchers {
     "populate required table properties from KCQL" in {
       val config = HiveSinkConfig.fromProps(Map(
         "connect.hive.database.name" -> "mydatabase",
-        "connect.hive.hive.metastore" -> "thrift",
-        "connect.hive.hive.metastore.uris" -> "thrift://localhost:9083",
+        "connect.hive.metastore" -> "thrift",
+        "connect.hive.metastore.uris" -> "thrift://localhost:9083",
         "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
         "connect.hive.kcql" -> "insert into mytable select a,b,c from mytopic"
       ))
@@ -27,8 +34,8 @@ class HiveSinkConfigTest extends WordSpec with Matchers {
     "populate aliases from KCQL" in {
       val config = HiveSinkConfig.fromProps(Map(
         "connect.hive.database.name" -> "mydatabase",
-        "connect.hive.hive.metastore" -> "thrift",
-        "connect.hive.hive.metastore.uris" -> "thrift://localhost:9083",
+        "connect.hive.metastore" -> "thrift",
+        "connect.hive.metastore.uris" -> "thrift://localhost:9083",
         "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
         "connect.hive.kcql" -> "insert into mytable select a as x,b,c as z from mytopic"
       ))
@@ -39,8 +46,8 @@ class HiveSinkConfigTest extends WordSpec with Matchers {
     "set projection to None for *" in {
       val config = HiveSinkConfig.fromProps(Map(
         "connect.hive.database.name" -> "mydatabase",
-        "connect.hive.hive.metastore" -> "thrift",
-        "connect.hive.hive.metastore.uris" -> "thrift://localhost:9083",
+        "connect.hive.metastore" -> "thrift",
+        "connect.hive.metastore.uris" -> "thrift://localhost:9083",
         "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
         "connect.hive.kcql" -> "insert into mytable select * from mytopic"
       ))
@@ -50,8 +57,8 @@ class HiveSinkConfigTest extends WordSpec with Matchers {
     "populate format from KCQL" in {
       val config = HiveSinkConfig.fromProps(Map(
         "connect.hive.database.name" -> "mydatabase",
-        "connect.hive.hive.metastore" -> "thrift",
-        "connect.hive.hive.metastore.uris" -> "thrift://localhost:9083",
+        "connect.hive.metastore" -> "thrift",
+        "connect.hive.metastore.uris" -> "thrift://localhost:9083",
         "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
         "connect.hive.kcql" -> "insert into mytable select a as x,b,c as z from mytopic storeas orc"
       ))
@@ -61,8 +68,8 @@ class HiveSinkConfigTest extends WordSpec with Matchers {
     "default to parquet when format is not specified" in {
       val config = HiveSinkConfig.fromProps(Map(
         "connect.hive.database.name" -> "mydatabase",
-        "connect.hive.hive.metastore" -> "thrift",
-        "connect.hive.hive.metastore.uris" -> "thrift://localhost:9083",
+        "connect.hive.metastore" -> "thrift",
+        "connect.hive.metastore.uris" -> "thrift://localhost:9083",
         "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
         "connect.hive.kcql" -> "insert into mytable select a as x,b,c as z from mytopic"
       ))
@@ -72,8 +79,8 @@ class HiveSinkConfigTest extends WordSpec with Matchers {
     "populate schema evolution policy from KCQL" in {
       val config = HiveSinkConfig.fromProps(Map(
         "connect.hive.database.name" -> "mydatabase",
-        "connect.hive.hive.metastore" -> "thrift",
-        "connect.hive.hive.metastore.uris" -> "thrift://localhost:9083",
+        "connect.hive.metastore" -> "thrift",
+        "connect.hive.metastore.uris" -> "thrift://localhost:9083",
         "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
         "connect.hive.kcql" -> "insert into mytable select a as x,b,c as z from mytopic with_schema_evolution=add"
       ))
@@ -83,8 +90,8 @@ class HiveSinkConfigTest extends WordSpec with Matchers {
     "populate commitPolicy from KCQL" in {
       val config = HiveSinkConfig.fromProps(Map(
         "connect.hive.database.name" -> "mydatabase",
-        "connect.hive.hive.metastore" -> "thrift",
-        "connect.hive.hive.metastore.uris" -> "thrift://localhost:9083",
+        "connect.hive.metastore" -> "thrift",
+        "connect.hive.metastore.uris" -> "thrift://localhost:9083",
         "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
         "connect.hive.kcql" -> "insert into mytable select a as x,b,c as z from mytopic WITH_FLUSH_SIZE=912 WITH_FLUSH_INTERVAL=1 WITH_FLUSH_COUNT=333"
       ))
@@ -95,8 +102,8 @@ class HiveSinkConfigTest extends WordSpec with Matchers {
     "populate partitions from KCQL" in {
       val config = HiveSinkConfig.fromProps(Map(
         "connect.hive.database.name" -> "mydatabase",
-        "connect.hive.hive.metastore" -> "thrift",
-        "connect.hive.hive.metastore.uris" -> "thrift://localhost:9083",
+        "connect.hive.metastore" -> "thrift",
+        "connect.hive.metastore.uris" -> "thrift://localhost:9083",
         "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
         "connect.hive.kcql" -> "insert into mytable select a as x,b,c as z from mytopic PARTITIONBY g,h,t"
       ))
@@ -106,8 +113,8 @@ class HiveSinkConfigTest extends WordSpec with Matchers {
     "populate partitioningPolicy from KCQL" in {
       val config = HiveSinkConfig.fromProps(Map(
         "connect.hive.database.name" -> "mydatabase",
-        "connect.hive.hive.metastore" -> "thrift",
-        "connect.hive.hive.metastore.uris" -> "thrift://localhost:9083",
+        "connect.hive.metastore" -> "thrift",
+        "connect.hive.metastore.uris" -> "thrift://localhost:9083",
         "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
         "connect.hive.kcql" -> "insert into mytable select a as x,b,c as z from mytopic WITH_PARTITIONING=dynamic"
       ))
@@ -117,8 +124,8 @@ class HiveSinkConfigTest extends WordSpec with Matchers {
     "populate create from KCQL" in {
       val config = HiveSinkConfig.fromProps(Map(
         "connect.hive.database.name" -> "mydatabase",
-        "connect.hive.hive.metastore" -> "thrift",
-        "connect.hive.hive.metastore.uris" -> "thrift://localhost:9083",
+        "connect.hive.metastore" -> "thrift",
+        "connect.hive.metastore.uris" -> "thrift://localhost:9083",
         "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
         "connect.hive.kcql" -> "insert into mytable select a as x,b,c as z from mytopic AUTOCREATE"
       ))
@@ -128,8 +135,8 @@ class HiveSinkConfigTest extends WordSpec with Matchers {
     "default to createTable=false" in {
       val config = HiveSinkConfig.fromProps(Map(
         "connect.hive.database.name" -> "mydatabase",
-        "connect.hive.hive.metastore" -> "thrift",
-        "connect.hive.hive.metastore.uris" -> "thrift://localhost:9083",
+        "connect.hive.metastore" -> "thrift",
+        "connect.hive.metastore.uris" -> "thrift://localhost:9083",
         "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
         "connect.hive.kcql" -> "insert into mytable select a as x,b,c as z from mytopic"
       ))
@@ -139,8 +146,8 @@ class HiveSinkConfigTest extends WordSpec with Matchers {
     "populate overwrite from KCQL" in {
       val config = HiveSinkConfig.fromProps(Map(
         "connect.hive.database.name" -> "mydatabase",
-        "connect.hive.hive.metastore" -> "thrift",
-        "connect.hive.hive.metastore.uris" -> "thrift://localhost:9083",
+        "connect.hive.metastore" -> "thrift",
+        "connect.hive.metastore.uris" -> "thrift://localhost:9083",
         "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
         "connect.hive.kcql" -> "insert into mytable select a as x,b,c as z from mytopic WITH_OVERWRITE"
       ))
@@ -150,8 +157,8 @@ class HiveSinkConfigTest extends WordSpec with Matchers {
     "default to overwriteTable=false" in {
       val config = HiveSinkConfig.fromProps(Map(
         "connect.hive.database.name" -> "mydatabase",
-        "connect.hive.hive.metastore" -> "thrift",
-        "connect.hive.hive.metastore.uris" -> "thrift://localhost:9083",
+        "connect.hive.metastore" -> "thrift",
+        "connect.hive.metastore.uris" -> "thrift://localhost:9083",
         "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
         "connect.hive.kcql" -> "insert into mytable select a as x,b,c as z from mytopic"
       ))

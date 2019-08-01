@@ -15,29 +15,8 @@
  */
 
 enableFeaturePreview('STABLE_PUBLISHING')
-include 'kafka-connect-bloomberg',
-        'kafka-connect-elastic',
-        'kafka-connect-elastic5',
-        'kafka-connect-elastic6',
-        'kafka-connect-druid',
-        'kafka-connect-kudu',
-        'kafka-connect-cassandra',
-        'kafka-connect-yahoo',
-        'kafka-connect-hbase',
-        'kafka-connect-redis',
-        'kafka-connect-hazelcast',
-        'kafka-connect-hive',
+include 'kafka-connect-hive',
         'kafka-connect-hive:it',
-        'kafka-connect-rethink',
-        'kafka-connect-jms',
-        'kafka-connect-influxdb',
-        'kafka-connect-voltdb',
-        'kafka-connect-blockchain',
-        'kafka-connect-mongodb',
-        'kafka-connect-mqtt',
-        'kafka-connect-coap',
-        'kafka-connect-ftp',
-        'kafka-connect-azure-documentdb',
-        'kafka-connect-pulsar',
-        'kafka-connect-rabbitmq'
+        'kafka-connect-hive-1.1',
+        'kafka-connect-hive-1.1:it'
 
