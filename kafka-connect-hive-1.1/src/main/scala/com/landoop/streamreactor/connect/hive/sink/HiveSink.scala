@@ -4,18 +4,16 @@ import com.landoop.streamreactor.connect.hive
 import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.formats.HiveWriter
 import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfig
-import com.landoop.streamreactor.connect.hive.sink.mapper.DropPartitionValuesMapper
-import com.landoop.streamreactor.connect.hive.sink.mapper.MetastoreSchemaAlignMapper
-import com.landoop.streamreactor.connect.hive.sink.mapper.ProjectionMapper
+import com.landoop.streamreactor.connect.hive.sink.config.TableOptions
 import com.landoop.streamreactor.connect.hive.sink.partitioning.CachedPartitionHandler
+import com.landoop.streamreactor.connect.hive.sink.staging.CommitContext
 import com.landoop.streamreactor.connect.hive.sink.staging.CommitPolicy
 import com.landoop.streamreactor.connect.hive.sink.staging.StageManager
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
-import org.apache.hadoop.hive.metastore.api.Table
-import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.errors.ConnectException
 
 import scala.util.Failure
 import scala.util.Success
@@ -32,64 +30,19 @@ import scala.util.Success
  *
  * The lifecycle of a sink is managed independently from other sinks.
  *
- * @param tableName the name of the table to write out to
+ * @param tableConfig the name of the table to write out to
  */
-class HiveSink(tableName: TableName,
-               config: HiveSinkConfig)
+class HiveSink(tableConfig: TableOptions,
+               stageManager: StageManager,
+               dbName: DatabaseName)
               (implicit client: IMetaStoreClient, fs: FileSystem) {
 
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
-  private val tableConfig = config.tableOptions.find(_.tableName == tableName)
-    .getOrElse(sys.error(s"No table config for ${tableName.value}"))
-  private val writerManager = new HiveWriterManager(tableConfig.format, config.stageManager)
+  private val writerManager = new HiveWriterManager(tableConfig.format, stageManager)
   private val partitioner = new CachedPartitionHandler(tableConfig.partitioner)
 
-  private val offsets = scala.collection.mutable.Map.empty[TopicPartition, Offset]
-
-  private var table: Table = _
-  private var tableLocation: Path = _
-  private var plan: Option[PartitionPlan] = _
-  private var metastoreSchema: Schema = _
-  private var mapper: Struct => Struct = _
-  private var lastSchema: Schema = _
-
-  private def init(schema: Schema): Unit = {
-    logger.info(s"Init sink for schema $schema")
-
-    def getOrCreateTable(): Table = {
-
-      def create = {
-        val partstring = if (tableConfig.partitions.isEmpty) "<no-partitions>" else tableConfig.partitions.mkString(",")
-        logger.info(s"Creating table in hive [${config.dbName.value}.${tableName.value}, partitions=$partstring]")
-        hive.createTable(config.dbName, tableName, schema, tableConfig.partitions, tableConfig.location, tableConfig.format)
-      }
-
-      logger.debug(s"Fetching or creating table ${config.dbName.value}.${tableName.value}")
-      client.tableExists(config.dbName.value, tableName.value) match {
-        case true if tableConfig.overwriteTable =>
-          hive.dropTable(config.dbName, tableName, true)
-          create
-        case true => client.getTable(config.dbName.value, tableName.value)
-        case false if tableConfig.createTable => create
-        case false => throw new RuntimeException(s"Table ${config.dbName.value}.${tableName.value} does not exist")
-      }
-    }
-
-    table = getOrCreateTable()
-    tableLocation = new Path(table.getSd.getLocation)
-    plan = hive.partitionPlan(table)
-    metastoreSchema = tableConfig.evolutionPolicy.evolve(config.dbName, tableName, HiveSchemas.toKafka(table), schema)
-      .getOrElse(sys.error(s"Unable to retrieve or evolve schema for $schema"))
-
-    val mapperFns: Seq[Struct => Struct] = Seq(
-      tableConfig.projection.map(new ProjectionMapper(_)),
-      Some(new MetastoreSchemaAlignMapper(metastoreSchema)),
-      plan.map(new DropPartitionValuesMapper(_))
-    ).flatten.map(mapper => mapper.map _)
-
-    mapper = Function.chain(mapperFns)
-  }
+  private var state: HiveSinkState = _
 
   /**
    * Returns the appropriate output directory for the given struct.
@@ -98,10 +51,10 @@ class HiveSink(tableName: TableName,
    * will be the location of the table itself, otherwise it will delegate to
    * the partitioning policy.
    */
-  private def outputDir(struct: Struct, plan: Option[PartitionPlan], table: Table): Path = {
-    plan.fold(tableLocation) { plan =>
+  private def outputDir(struct: Struct, plan: Option[PartitionPlan]): Path = {
+    plan.fold(state.tableLocation) { plan =>
       val part = hive.partition(struct, plan)
-      partitioner.path(part, config.dbName, tableName)(client, fs) match {
+      partitioner.path(part, dbName, tableConfig.tableName)(client, fs) match {
         case Failure(t) => throw t
         case Success(path) => path
       }
@@ -113,32 +66,59 @@ class HiveSink(tableName: TableName,
     // if the schema has changed, or if we haven't yet had a struct, we need
     // to make sure the table exists, and that our table metadata is up to date
     // given that the table may have evolved.
-    if (struct.schema != lastSchema) {
-      init(struct.schema)
-      lastSchema = struct.schema
+    if (state == null) {
+      state = HiveSinkState.from(struct.schema, tableConfig, dbName)
+    }
+    else if (struct.schema != state.lastSchema) {
+      state = state.withLastSchema(struct.schema)
     }
 
-    val dir = outputDir(struct, plan, table)
-    val mapped = mapper(struct)
-    val (path, writer) = writerManager.writer(dir, tpo.toTopicPartition, mapped.schema)
-    val count = writer.write(mapped)
+    val dir = outputDir(struct, state.plan)
+    val mapped = state.mapper(struct)
 
-    if (fs.exists(path) && tableConfig.commitPolicy.shouldFlush(struct, tpo, path, count)) {
-      logger.debug(s"Flushing offsets for $dir")
-      writerManager.flush(tpo, dir)
-      config.stageManager.commit(path, tpo)
-    }
+    writerManager
+      .writer(dir, tpo.toTopicPartition, mapped.schema)
+      .write(mapped)
 
-    offsets.put(tpo.toTopicPartition, tpo.offset)
-    lastSchema = struct.schema()
+    state = state.withTopicPartitionOffset(tpo)
   }
 
   def flush(): Unit = {
-    writerManager.flush(offsets.toMap)
-    offsets.clear()
+    writerManager.flush(state.offsets)
   }
 
-  def close(): Unit = {
-    flush()
+  def commit(): Map[TopicPartition, Offset] = {
+    val newCommittedOffsets = {
+      for {
+        writer <- writerManager.getWriters
+        offset <- state.offsets.get(writer.tp)
+        tpo = TopicPartitionOffset(writer.tp.topic, writer.tp.partition, offset)
+        cc = CommitContext(tpo, writer.dir, writer.writer.currentCount, writer.writer.fileSize, writer.writer.createdTime)
+        if tableConfig.commitPolicy.shouldFlush(cc)
+      } yield {
+        logger.info(s"Flushing offsets for ${writer.dir} on topicpart ${writer.tp}")
+        writerManager.flush(tpo, writer.dir)
+        writer.tp -> offset
+      }
+      }.toMap
+
+    state = state.withCommittedOffset(newCommittedOffsets)
+    newCommittedOffsets
+  }
+
+  def close(): Unit = flush()
+
+  def getState: HiveSinkState = state
+}
+
+object HiveSink {
+  def from(tableName: TableName,
+           config: HiveSinkConfig)
+          (implicit client: IMetaStoreClient, fs: FileSystem): HiveSink = {
+    val tableConfig = config.tableOptions
+      .find(_.tableName == tableName)
+      .getOrElse(throw new ConnectException(s"No table config for ${tableName.value}"))
+
+    new HiveSink(tableConfig, config.stageManager, config.dbName)
   }
 }
