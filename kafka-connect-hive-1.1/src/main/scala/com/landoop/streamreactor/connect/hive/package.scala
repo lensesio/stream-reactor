@@ -18,10 +18,10 @@ import scala.util.control.NonFatal
 package object hive extends StrictLogging {
 
   /**
-    * Returns all the partition keys from the given database and table.
-    * A partition key is a field or column that has been designated as part of the partition
-    * plan for this table.
-    */
+   * Returns all the partition keys from the given database and table.
+   * A partition key is a field or column that has been designated as part of the partition
+   * plan for this table.
+   */
   def partitionPlan(db: DatabaseName, tableName: TableName)
                    (implicit client: IMetaStoreClient): Option[PartitionPlan] =
     partitionPlan(client.getTable(db.value, tableName.value))
@@ -135,9 +135,9 @@ package object hive extends StrictLogging {
   }
 
   /**
-    * Returns the partitions for a given table.
-    * This may be an empty seq, if the table has partition keys defined but no data yet written
-    */
+   * Returns the partitions for a given table.
+   * This may be an empty seq, if the table has partition keys defined but no data yet written
+   */
   def partitions(db: DatabaseName, tableName: TableName)
                 (implicit client: IMetaStoreClient): Seq[Partition] = {
     partitionKeys(db, tableName) match {
@@ -153,9 +153,9 @@ package object hive extends StrictLogging {
   }
 
   /**
-    * Returns the partitions for a given table.
-    * This may be an empty seq, if the table has partition keys defined but no data yet written
-    */
+   * Returns the partitions for a given table.
+   * This may be an empty seq, if the table has partition keys defined but no data yet written
+   */
   def partitions(db: DatabaseName, tableName: TableName, plan: PartitionPlan)
                 (implicit client: IMetaStoreClient): Seq[Partition] = {
     // for each partition we take the values and associate with the partition keys
@@ -179,7 +179,4 @@ package object hive extends StrictLogging {
     }
     Partition(entries, None)
   }
-
-  def hiveSink(tableName: TableName, config: HiveSinkConfig)
-              (implicit client: IMetaStoreClient, fs: FileSystem): HiveSink = new HiveSink(tableName, config)
 }

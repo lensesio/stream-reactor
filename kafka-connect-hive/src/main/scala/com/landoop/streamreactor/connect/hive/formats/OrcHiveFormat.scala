@@ -3,8 +3,10 @@ package com.landoop.streamreactor.connect.hive.formats
 import com.landoop.streamreactor.connect.hive.OrcSinkConfig
 import com.landoop.streamreactor.connect.hive.OrcSourceConfig
 import com.landoop.streamreactor.connect.hive.Serde
+import com.landoop.streamreactor.connect.hive.orc.OrcSink
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
 
@@ -22,18 +24,35 @@ object OrcHiveFormat extends HiveFormat {
                      (implicit fs: FileSystem): HiveWriter = new HiveWriter {
     logger.debug(s"Creating orc writer at $path")
 
-    val sink = com.landoop.streamreactor.connect.hive.orc.sink(path, schema, OrcSinkConfig(overwrite = true))
+    val sink: OrcSink = com.landoop.streamreactor.connect.hive.orc.sink(path, schema, OrcSinkConfig(overwrite = true))
+    fs.setPermission(path, FsPermission.valueOf("drwxrwxrwx"))
+
+    val cretedTimestamp: Long = System.currentTimeMillis()
+    var lastKnownFileSize:Long = fs.getFileStatus(path).getLen
+    var readFileSize = false
     var count = 0
 
     override def write(struct: Struct): Long = {
       sink.write(struct)
       count = count + 1
+      readFileSize = true
       count
     }
 
     override def close(): Unit = {
       logger.debug(s"Closing orc writer at path $path")
       sink.close()
+    }
+    override def file: Path = path
+    override def currentCount: Long = count
+    override def createdTime: Long = cretedTimestamp
+    override def fileSize: Long = {
+      if (readFileSize) {
+        lastKnownFileSize = fs.getFileStatus(path).getLen
+        readFileSize = false
+      }
+
+      lastKnownFileSize
     }
   }
 
