@@ -84,31 +84,33 @@ class HiveSink(tableConfig: TableOptions,
   }
 
   def flush(): Unit = {
-    writerManager.flush(state.offsets)
+    Option(state).map(_.offsets).foreach(writerManager.flush)
   }
 
   def commit(): Map[TopicPartition, Offset] = {
-    val newCommittedOffsets = {
-      for {
-        writer <- writerManager.getWriters
-        offset <- state.offsets.get(writer.tp)
-        tpo = TopicPartitionOffset(writer.tp.topic, writer.tp.partition, offset)
-        cc = CommitContext(tpo, writer.dir, writer.writer.currentCount, writer.writer.fileSize, writer.writer.createdTime)
-        if tableConfig.commitPolicy.shouldFlush(cc)
-      } yield {
-        logger.info(s"Flushing offsets for ${writer.dir} on topicpart ${writer.tp}")
-        writerManager.flush(tpo, writer.dir)
-        writer.tp -> offset
-      }
-      }.toMap
+    Option(state).map { _ =>
+      val newCommittedOffsets = {
+        for {
+          writer <- writerManager.getWriters
+          offset <- state.offsets.get(writer.tp)
+          tpo = TopicPartitionOffset(writer.tp.topic, writer.tp.partition, offset)
+          cc = CommitContext(tpo, writer.dir, writer.writer.currentCount, writer.writer.fileSize, writer.writer.createdTime)
+          if tableConfig.commitPolicy.shouldFlush(cc)
+        } yield {
+          logger.info(s"Flushing offsets for ${writer.dir} on topicpart ${writer.tp}")
+          writerManager.flush(tpo, writer.dir)
+          writer.tp -> offset
+        }
+        }.toMap
 
-    state = state.withCommittedOffset(newCommittedOffsets)
-    newCommittedOffsets
+      state = state.withCommittedOffset(newCommittedOffsets)
+      newCommittedOffsets
+    }.getOrElse(Map.empty)
   }
 
   def close(): Unit = flush()
 
-  def getState: HiveSinkState = state
+  def getState: Option[HiveSinkState] = Option(state)
 }
 
 object HiveSink {
