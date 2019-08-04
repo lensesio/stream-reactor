@@ -108,7 +108,8 @@ class HiveSinkTask extends SinkTask {
 
   override def preCommit(currentOffsets: util.Map[KafkaTopicPartition, OffsetAndMetadata]): util.Map[KafkaTopicPartition, OffsetAndMetadata] = {
     val committedOffsets = sinks.values
-      .flatMap(_.getState.committedOffsets)
+      .flatMap(_.getState)
+      .flatMap(_.committedOffsets)
       .flatMap { case (k, v) =>
         val topicPartition = new KafkaTopicPartition(k.topic.value, k.partition)
         Option(currentOffsets.get(topicPartition))
