@@ -5,6 +5,7 @@ import java.util
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfigDef
 import com.landoop.streamreactor.connect.hive.ConfigurationBuilder.getClass
+import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfigDef
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -21,7 +22,7 @@ class HiveSinkConnector extends SinkConnector {
 
   override def version(): String = manifest.version()
   override def taskClass(): Class[_ <: Task] = classOf[HiveSinkTask]
-  override def config(): ConfigDef = HiveSourceConfigDef.config
+  override def config(): ConfigDef = HiveSinkConfigDef.config
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Creating hive sink connector")

@@ -21,20 +21,21 @@ class UserPasswordSettingsTest extends FunSuite with Matchers with FileCreation 
       val config = HiveSinkConfigDefBuilder(
         Map(
           "connect.hive.database.name" -> "mydatabase",
-          "connect.hive.hive.metastore" -> "thrift",
-          "connect.hive.hive.metastore.uris" -> "thrift://localhost:9083",
+          "connect.hive.metastore" -> "thrift",
+          "connect.hive.metastore.uris" -> "thrift://localhost:9083",
           "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
           "connect.hive.kcql" -> "insert into mytable select a,b,c from mytopic",
           SinkConfigSettings.KerberosKey -> "true",
           SinkConfigSettings.KerberosUserKey -> user,
           SinkConfigSettings.KerberosPasswordKey -> password,
           SinkConfigSettings.KerberosKrb5Key -> fileKrb5.getAbsolutePath,
-          SinkConfigSettings.KerberosJaasKey -> fileJaas.getAbsolutePath
+          SinkConfigSettings.KerberosJaasKey -> fileJaas.getAbsolutePath,
+          SinkConfigSettings.JaasEntryNameKey -> "abc"
         ).asJava
       )
 
       val actualSettings = UserPasswordSettings.from(config, SinkConfigSettings)
-      actualSettings shouldBe UserPasswordSettings(user, password, fileKrb5.getAbsolutePath, fileJaas.getAbsolutePath)
+      actualSettings shouldBe UserPasswordSettings(user, password, fileKrb5.getAbsolutePath, fileJaas.getAbsolutePath, "abc", None)
     }
     finally {
       fileKrb5.delete()
@@ -52,8 +53,8 @@ class UserPasswordSettingsTest extends FunSuite with Matchers with FileCreation 
       val config = HiveSinkConfigDefBuilder(
         Map(
           "connect.hive.database.name" -> "mydatabase",
-          "connect.hive.hive.metastore" -> "thrift",
-          "connect.hive.hive.metastore.uris" -> "thrift://localhost:9083",
+          "connect.hive.metastore" -> "thrift",
+          "connect.hive.metastore.uris" -> "thrift://localhost:9083",
           "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
           "connect.hive.kcql" -> "insert into mytable select a,b,c from mytopic",
           SinkConfigSettings.KerberosKey -> "true",
@@ -84,8 +85,8 @@ class UserPasswordSettingsTest extends FunSuite with Matchers with FileCreation 
       val config = HiveSinkConfigDefBuilder(
         Map(
           "connect.hive.database.name" -> "mydatabase",
-          "connect.hive.hive.metastore" -> "thrift",
-          "connect.hive.hive.metastore.uris" -> "thrift://localhost:9083",
+          "connect.hive.metastore" -> "thrift",
+          "connect.hive.metastore.uris" -> "thrift://localhost:9083",
           "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
           "connect.hive.kcql" -> "insert into mytable select a,b,c from mytopic",
           SinkConfigSettings.KerberosKey -> "true",
@@ -115,8 +116,8 @@ class UserPasswordSettingsTest extends FunSuite with Matchers with FileCreation 
       val config = HiveSinkConfigDefBuilder(
         Map(
           "connect.hive.database.name" -> "mydatabase",
-          "connect.hive.hive.metastore" -> "thrift",
-          "connect.hive.hive.metastore.uris" -> "thrift://localhost:9083",
+          "connect.hive.metastore" -> "thrift",
+          "connect.hive.metastore.uris" -> "thrift://localhost:9083",
           "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
           "connect.hive.kcql" -> "insert into mytable select a,b,c from mytopic",
           SinkConfigSettings.KerberosKey -> "true",
@@ -145,8 +146,8 @@ class UserPasswordSettingsTest extends FunSuite with Matchers with FileCreation 
       val config = HiveSinkConfigDefBuilder(
         Map(
           "connect.hive.database.name" -> "mydatabase",
-          "connect.hive.hive.metastore" -> "thrift",
-          "connect.hive.hive.metastore.uris" -> "thrift://localhost:9083",
+          "connect.hive.metastore" -> "thrift",
+          "connect.hive.metastore.uris" -> "thrift://localhost:9083",
           "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
           "connect.hive.kcql" -> "insert into mytable select a,b,c from mytopic",
           SinkConfigSettings.KerberosKey -> "true",
