@@ -15,7 +15,7 @@ trait HadoopConfigurationConstants {
   def HdfsConfigDirDefault: String = null
   def HdfsConfigDirDisplay = "HDFS Config Folder"
 
-  def HiveConfigDirKey = s"$CONNECTOR_PREFIX.hive.conf.dir"
+  def HiveConfigDirKey = s"$CONNECTOR_PREFIX.conf.dir"
   def HiveConfigDirDoc = "The Hive configuration directory."
   def HiveConfigDirDefault: String = null
   def HiveConfigDirDisplay = "Hive Config Folder"
