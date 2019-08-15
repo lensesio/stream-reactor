@@ -47,10 +47,6 @@ object MongoSettings extends StrictLogging {
 
     val database = config.getDatabase
 
-    if (database.contains("-")) {
-      throw new ConfigException(s"${MongoConfigConstants.DATABASE_CONFIG} contains an '-' which are invalid characters for mongo collections")
-    }
-
     require(database.nonEmpty, s"${MongoConfigConstants.DATABASE_CONFIG} is empty")
 
     val kcql = config.getKCQL

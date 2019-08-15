@@ -132,20 +132,6 @@ class MongoSettingsTest extends WordSpec with Matchers {
         MongoSettings(config)
       }
     }
-
-
-    "throw an exception if the database contains a -" in {
-      val map = Map(
-        MongoConfigConstants.DATABASE_CONFIG -> "andrew-rules",
-        MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
-        MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
-      )
-
-      val config = MongoConfig(map)
-      intercept[ConfigException] {
-        MongoSettings(config)
-      }
-    }
   }
 
   "MongoSinkSettings.jsonDateTimeFields" should {
