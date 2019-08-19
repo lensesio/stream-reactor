@@ -4,7 +4,8 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
+import org.apache.kafka.common.config.ConfigDef.Importance
+import org.apache.kafka.common.config.ConfigDef.Type
 
 object HiveSinkConfigDef {
 
@@ -21,8 +22,8 @@ object HiveSinkConfigDef {
     .define(FsDefaultKey, Type.STRING, Importance.HIGH, FsDefaultDoc)
 
     //config folders
-    .define(HdfsConfigDirKey, Type.STRING, HdfsConfigDirDefault, Importance.MEDIUM, HdfsConfigDirDoc, "Configs",1 , ConfigDef.Width.MEDIUM, HdfsConfigDirDisplay)
-    .define(HiveConfigDirKey, Type.STRING, HiveConfigDirDefault, Importance.MEDIUM, HiveConfigDirDoc, "Configs",2 , ConfigDef.Width.MEDIUM, HiveConfigDirDisplay)
+    .define(HdfsConfigDirKey, Type.STRING, HdfsConfigDirDefault, Importance.MEDIUM, HdfsConfigDirDoc, "Configs", 1, ConfigDef.Width.MEDIUM, HdfsConfigDirDisplay)
+    .define(HiveConfigDirKey, Type.STRING, HiveConfigDirDefault, Importance.MEDIUM, HiveConfigDirDoc, "Configs", 2, ConfigDef.Width.MEDIUM, HiveConfigDirDisplay)
 
     //security
     .define(KerberosKey, Type.BOOLEAN, KerberosDefault, Importance.MEDIUM, KerberosDoc, "Security", 1, ConfigDef.Width.MEDIUM, KerberosDisplay)
@@ -41,9 +42,7 @@ object HiveSinkConfigDef {
     .define(KerberosPasswordKey, Type.PASSWORD, KerberosPasswordDefault, Importance.MEDIUM, KerberosPasswordDoc, "Kerberos User Password", 2, ConfigDef.Width.MEDIUM, KerberosPasswordDisplay)
     .define(KerberosKrb5Key, Type.STRING, KerberosKrb5Default, Importance.MEDIUM, KerberosKrb5Doc, "Kerberos User Password", 3, ConfigDef.Width.MEDIUM, KerberosKrb5Display)
     .define(KerberosJaasKey, Type.STRING, KerberosJaasDefault, Importance.MEDIUM, KerberosJaasDoc, "Kerberos User Password", 4, ConfigDef.Width.MEDIUM, KerberosJaasDisplay)
-    .define(JaasEntryNameKey, Type.STRING,JaasEntryNameDefault, Importance.MEDIUM, JaasEntryNameDoc, "Kerberos User Password", 5, ConfigDef.Width.MEDIUM, JaasEntryNameDisplay)
-
-
+    .define(JaasEntryNameKey, Type.STRING, JaasEntryNameDefault, Importance.MEDIUM, JaasEntryNameDoc, "Kerberos User Password", 5, ConfigDef.Width.MEDIUM, JaasEntryNameDisplay)
 }
 
 case class HiveSinkConfigDefBuilder(props: util.Map[String, String])

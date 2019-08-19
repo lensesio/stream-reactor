@@ -17,10 +17,10 @@ object Kerberos {
           throw new ConfigException(s"Invalid configuration for ${hiveConstants.KerberosAuthModeKey}. Allowed values are:${KerberosMode.values().map(_.toString).mkString(",")}")
         }
 
-      val auth = authMode match  {
-          case KerberosMode.KEYTAB => Left(KeytabSettings.from(config, hiveConstants))
-          case KerberosMode.USERPASSWORD => Right(UserPasswordSettings.from(config, hiveConstants))
-        }
+      val auth = authMode match {
+        case KerberosMode.KEYTAB => Left(KeytabSettings.from(config, hiveConstants))
+        case KerberosMode.USERPASSWORD => Right(UserPasswordSettings.from(config, hiveConstants))
+      }
 
       val ticketRenewalMs = config.getLong(hiveConstants.KerberosTicketRenewalKey)
 

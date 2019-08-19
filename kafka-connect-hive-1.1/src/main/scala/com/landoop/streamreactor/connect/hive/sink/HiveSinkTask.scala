@@ -74,7 +74,6 @@ class HiveSinkTask extends SinkTask {
         }
 
       hiveConf.set("hive.metastore.kerberos.principal", principal)
-      hiveConf.set("hive.metastore.sasl.enabled", "true")
     }
 
     def initialize(): Unit = {
