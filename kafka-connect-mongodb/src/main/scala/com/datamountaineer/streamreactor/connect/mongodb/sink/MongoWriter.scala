@@ -16,6 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.mongodb.sink
 
+import java.io.{File, FileNotFoundException}
+
 import com.datamountaineer.kcql.WriteModeEnum
 import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
 import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants, MongoSettings}
@@ -165,11 +167,18 @@ object MongoClientProvider extends StrictLogging {
     val connectionString = new MongoClientURI(settings.connection)
     logger.info(s"Initialising Mongo writer. Connection to $connectionString")
 
+    val options =
+      if (connectionString.getOptions.isSslEnabled) {
+        setSSLOptions(settings)
+        MongoClientOptions.builder().sslEnabled(true).build()
+      } else {
+        MongoClientOptions.builder().build()
+      }
+
     if (settings.username.nonEmpty) {
       val credentials = getCredentials(settings)
       val servers = connectionString.getHosts.map(h => new ServerAddress(h))
-      val options = MongoClientOptions.builder().sslEnabled(connectionString.getOptions.isSslEnabled)
-      new MongoClient(servers, credentials, options.build())
+      new MongoClient(servers, credentials, options)
     } else {
       new MongoClient(connectionString)
     }
@@ -183,6 +192,34 @@ object MongoClientProvider extends StrictLogging {
       case AuthenticationMechanism.MONGODB_X509 => MongoCredential.createMongoX509Credential(settings.username)
       case AuthenticationMechanism.PLAIN => MongoCredential.createPlainCredential(settings.username, settings.database, settings.password.value().toCharArray)
       case AuthenticationMechanism.SCRAM_SHA_1 => MongoCredential.createScramSha1Credential(settings.username, settings.database, settings.password.value().toCharArray)
+    }
+  }
+
+  private def setSSLOptions(settings: MongoSettings) : Unit = {
+    settings.keyStoreLocation match {
+      case Some(path) =>
+        if (!new File(path).exists) {
+          throw new FileNotFoundException(s"Keystore not found in: $path")
+        }
+
+        System.setProperty("javax.net.ssl.keyStorePassword", settings.keyStorePassword.getOrElse(""))
+        System.setProperty("javax.net.ssl.keyStore", path)
+        System.setProperty("javax.net.ssl.keyStoreType", settings.keyStoreType.getOrElse("jks"))
+
+      case None =>
+    }
+
+    settings.trustStoreLocation match {
+      case Some(path) =>
+        if (!new File(path).exists) {
+          throw new FileNotFoundException(s"Truststore not found in: $path")
+        }
+
+        System.setProperty("javax.net.ssl.trustStorePassword", settings.trustStorePassword.getOrElse(""))
+        System.setProperty("javax.net.ssl.trustStore", path)
+        System.setProperty("javax.net.ssl.trustStoreType", settings.trustStoreType.getOrElse("jks"))
+
+      case None =>
     }
   }
 }

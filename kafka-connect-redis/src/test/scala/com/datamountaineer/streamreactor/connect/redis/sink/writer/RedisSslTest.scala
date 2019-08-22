@@ -59,36 +59,69 @@ class RedisSslTest extends WordSpec with Matchers with BeforeAndAfterAll with Mo
     SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG -> truststoreFilePath
   )
 
-  def setupTrustStore(): Unit = {
-    setJvmTrustStore(truststoreFilePath, "jceks")
-  }
+//  def setupTrustStore(): Unit = {
+//    setJvmTrustStore(truststoreFilePath, "jceks")
+//  }
 
-  private def setJvmTrustStore(trustStoreFilePath: String, trustStoreType: String): Unit = {
-    new File(trustStoreFilePath).exists shouldBe true
-    System.setProperty("javax.net.ssl.trustStore", trustStoreFilePath)
-    System.setProperty("javax.net.ssl.trustStoreType", trustStoreType)
-  }
+//  private def setJvmTrustStore(trustStoreFilePath: String, trustStoreType: String): Unit = {
+//    new File(trustStoreFilePath).exists shouldBe true
+//    System.setProperty("javax.net.ssl.trustStore", trustStoreFilePath)
+//    System.setProperty("javax.net.ssl.trustStoreType", trustStoreType)
+//  }
 
-  override def beforeAll() = {
-    if (runTests) {
-      setupTrustStore()
-    }
-  }
-
-  override def afterAll() = {
-  }
+//  override def beforeAll() = {
+//    if (runTests) {
+//      setupTrustStore()
+//    }
+//  }
+//
+//  override def afterAll() = {
+//  }
 
   "JedisSslClient" should {
 
     "establish ssl connection" in {
 
-      if (runTests) {
+      val truststoreFilePath = getClass.getResource("/truststore.jks").getPath
+      val keystoreFilePath = getClass.getResource("/keystore.jks").getPath
 
-        val jedis = new Jedis(URI.create(s"rediss://${baseProps(RedisConfigConstants.REDIS_HOST)}:${baseProps(RedisConfigConstants.REDIS_PORT)}"))
-        jedis.auth(baseProps(RedisConfigConstants.REDIS_PASSWORD))
-        jedis.ping() shouldBe "PONG"
+      val map = Map(RedisConfigConstants.REDIS_HOST -> "rediss://localhost",
+        RedisConfigConstants.REDIS_PORT -> "8453",
+        RedisConfigConstants.KCQL_CONFIG -> "SELECT * FROM topicA PK firstName, child.firstName",
+        RedisConfigConstants.ERROR_POLICY -> "THROW",
+        RedisConfigConstants.REDIS_SSL_ENABLED -> "true",
+        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG -> truststoreFilePath,
+        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG -> "truststore-password",
+        SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG -> keystoreFilePath,
+        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG -> "keystore-password")
 
-      }
+      val config =  RedisConfig(map.asJava)
+      val settings = RedisSinkSettings(config)
+
+      val writer = new RedisCache(settings)
+
+      val props = System.getProperties
+      props.containsKey("javax.net.ssl.keyStorePassword") shouldBe true
+      props.get("javax.net.ssl.keyStorePassword") shouldBe "keystore-password"
+      props.containsKey("javax.net.ssl.keyStore") shouldBe true
+      props.get("javax.net.ssl.keyStore") shouldBe keystoreFilePath
+      props.containsKey("javax.net.ssl.keyStoreType") shouldBe true
+      props.get("javax.net.ssl.keyStoreType") shouldBe "JKS"
+
+      props.containsKey("javax.net.ssl.trustStorePassword") shouldBe true
+      props.get("javax.net.ssl.trustStorePassword") shouldBe "truststore-password"
+      props.containsKey("javax.net.ssl.trustStore") shouldBe true
+      props.get("javax.net.ssl.trustStore") shouldBe truststoreFilePath
+      props.containsKey("javax.net.ssl.trustStoreType") shouldBe true
+      props.get("javax.net.ssl.trustStoreType") shouldBe "JKS"
+
+//      if (runTests) {
+//
+//        val jedis = new Jedis(URI.create(s"rediss://${baseProps(RedisConfigConstants.REDIS_HOST)}:${baseProps(RedisConfigConstants.REDIS_PORT)}"))
+//        jedis.auth(baseProps(RedisConfigConstants.REDIS_PASSWORD))
+//        jedis.ping() shouldBe "PONG"
+//
+//      }
     }
   }
 
