@@ -39,5 +39,6 @@ case class MapWriter(client: HazelcastInstance, topic: String, settings: HazelCa
       mapWriter.put(keys, convert(record))
     }
   }
+
   override def close: Unit = {}
 }
