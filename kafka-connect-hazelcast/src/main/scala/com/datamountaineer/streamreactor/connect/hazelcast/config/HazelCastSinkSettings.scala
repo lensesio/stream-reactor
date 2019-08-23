@@ -35,7 +35,7 @@ object TargetType extends Enumeration {
   val RELIABLE_TOPIC, RING_BUFFER, QUEUE, SET, LIST, IMAP, MULTI_MAP, ICACHE = Value
 }
 
-case class HazelCastStoreAsType(name: String, targetType: TargetType)
+case class HazelCastStoreAsType(name: String, targetType: TargetType, ttl: Long = 0)
 
 case class HazelCastSinkSettings(client: HazelcastInstance,
                                  kcql: Set[Kcql],
@@ -62,6 +62,7 @@ object HazelCastSinkSettings {
     val maxRetries = config.getNumberRetries
     val threadPoolSize = config.getThreadPoolSize
     val topicTables = getTopicTables(kcql)
+    val ttl = config.getTTL(kcql)
 
     ensureGroupNameExists(config)
 
@@ -88,9 +89,9 @@ object HazelCastSinkSettings {
     routes.map(r => {
       Try(TargetType.withName(r.getStoredAs.toUpperCase)) match {
         case Success(_) =>
-          (r.getSource, HazelCastStoreAsType(r.getTarget, TargetType.withName(r.getStoredAs.toUpperCase)))
+          (r.getSource, HazelCastStoreAsType(r.getTarget, TargetType.withName(r.getStoredAs.toUpperCase), r.getTTL))
         case Failure(_) =>
-          (r.getSource, HazelCastStoreAsType(r.getTarget, TargetType.RELIABLE_TOPIC))
+          (r.getSource, HazelCastStoreAsType(r.getTarget, TargetType.RELIABLE_TOPIC, r.getTTL))
       }
     }).toMap
   }

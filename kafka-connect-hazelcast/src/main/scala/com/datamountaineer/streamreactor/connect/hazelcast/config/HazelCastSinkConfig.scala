@@ -64,6 +64,9 @@ object HazelCastSinkConfig {
     .define(HazelCastSinkConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, HazelCastSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
       Importance.MEDIUM, HazelCastSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
       "Metrics", 1, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
+    .define(HazelCastSinkConfigConstants.SSL_ENABLED, Type.BOOLEAN, false, Importance.LOW, HazelCastSinkConfigConstants.SSL_ENABLED_DOC,
+        "Connection", 5, ConfigDef.Width.MEDIUM, HazelCastSinkConfigConstants.SSL_ENABLED)
+    .withClientSslSupport()
 }
 
 class HazelCastSinkConfig(props: util.Map[String, String])
