@@ -42,13 +42,14 @@ object HazelCastConnection {
    if (config.sslEnabled) {
      networkConfig.setSSLConfig(new SSLConfig().setEnabled(true).setProperties(getSSLOptions(config)))
    }
-
     networkConfig.setAddresses(config.members.toList)
-   val groupConfig = new GroupConfig(config.group, config.pass)
-   clientConfig.setGroupConfig(groupConfig)
-   buildSocketOptions(networkConfig, config.socketConfig)
-   clientConfig.setInstanceName(config.group + "-kafka-connect-" + UUID.randomUUID().toString)
-   HazelcastClient.newHazelcastClient(clientConfig)
+
+    val groupConfig = new GroupConfig(config.group, config.pass)
+    clientConfig.setGroupConfig(groupConfig)
+
+    buildSocketOptions(networkConfig, config.socketConfig)
+    clientConfig.setInstanceName(config.group + "-kafka-connect-" + UUID.randomUUID().toString)
+    HazelcastClient.newHazelcastClient(clientConfig)
   }
 
   private def buildSocketOptions(clientNetworkConfig: ClientNetworkConfig, socketConfig: HazelCastSocketConfig): SocketOptions = {
@@ -73,7 +74,7 @@ object HazelCastConnection {
     cacheManager
   }
 
-  private def getSSLOptions(config: HazelCastConnectionConfig) : Properties = {
+  def getSSLOptions(config: HazelCastConnectionConfig) : Properties = {
     val props = new Properties()
     config.keyStoreLocation match {
       case Some(path) =>

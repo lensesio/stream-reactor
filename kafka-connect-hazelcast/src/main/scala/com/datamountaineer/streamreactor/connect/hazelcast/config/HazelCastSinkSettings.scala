@@ -62,7 +62,6 @@ object HazelCastSinkSettings {
     val maxRetries = config.getNumberRetries
     val threadPoolSize = config.getThreadPoolSize
     val topicTables = getTopicTables(kcql)
-    val ttl = config.getTTL(kcql)
 
     ensureGroupNameExists(config)
 
