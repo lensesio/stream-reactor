@@ -30,6 +30,7 @@ case class UserPasswordLogin(ugi: UserGroupInformation, interval: Duration, lc: 
 
   private def renewKerberosTicket(): Unit = {
     try {
+      logger.debug("Re-login to renew the Kerberos ticket")
       ugi.reloginFromTicketCache()
     }
     catch {
@@ -55,6 +56,7 @@ case class KeytabLogin(ugi: UserGroupInformation, interval: Duration) extends Ke
 
   private def renewKerberosTicket(): Unit = {
     try {
+      logger.debug("Re-login from keytab")
       ugi.reloginFromKeytab()
     }
     catch {

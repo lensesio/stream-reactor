@@ -10,6 +10,8 @@ import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
 
+import scala.util.Try
+
 object OrcHiveFormat extends HiveFormat {
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
@@ -25,7 +27,7 @@ object OrcHiveFormat extends HiveFormat {
     logger.debug(s"Creating orc writer at $path")
 
     val sink: OrcSink = com.landoop.streamreactor.connect.hive.orc.sink(path, schema, OrcSinkConfig(overwrite = true))
-    fs.setPermission(path, FsPermission.valueOf("drwxrwxrwx"))
+    Try(fs.setPermission(path, FsPermission.valueOf("-rwxrwxrwx")))
 
     val cretedTimestamp: Long = System.currentTimeMillis()
     var lastKnownFileSize:Long = fs.getFileStatus(path).getLen

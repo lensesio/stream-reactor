@@ -175,6 +175,7 @@ class HiveSinkTask extends SinkTask {
     execute(sinks.values.foreach(_.close()))
     sinks.clear()
     kerberosLogin.foreach(_.close())
+    kerberosLogin = None
   }
 
   // returns the KCQL table name for the given topic
