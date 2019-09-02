@@ -9,6 +9,8 @@ import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
 import org.apache.parquet.hadoop.ParquetWriter
 
+import scala.util.Try
+
 object ParquetHiveFormat extends HiveFormat {
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
@@ -25,7 +27,7 @@ object ParquetHiveFormat extends HiveFormat {
     logger.debug(s"Creating parquet writer at $path")
 
     val writer: ParquetWriter[Struct] = com.landoop.streamreactor.connect.hive.parquet.parquetWriter(path, schema, ParquetSinkConfig(overwrite = true))
-    fs.setPermission(path, FsPermission.valueOf("drwxrwxrwx"))
+    Try(fs.setPermission(path, FsPermission.valueOf("-rwxrwxrwx")))
 
     val createdTimestamp: Long = System.currentTimeMillis()
     var lastKnownFileSize:Long = fs.getFileStatus(path).getLen

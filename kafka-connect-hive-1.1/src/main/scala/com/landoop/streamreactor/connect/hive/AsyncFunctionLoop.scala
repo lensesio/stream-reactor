@@ -2,6 +2,7 @@ package com.landoop.streamreactor.connect.hive
 
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.slf4j.StrictLogging
 
@@ -11,18 +12,18 @@ class AsyncFunctionLoop(interval: Duration, description: String)(thunk: => Unit)
   extends AutoCloseable
     with StrictLogging {
 
-  @volatile private var running = false
+  private val running = new AtomicBoolean(false)
   private val executorService = Executors.newFixedThreadPool(1)
 
   def start(): Unit = {
-    if (running) {
+    if (running.get()) {
       throw new IllegalStateException(s"$description already running.")
     }
     logger.info(s"Starting $description loop with an interval of ${interval.toMillis}ms.")
-    running = true
+    running.set(true)
     executorService.submit(new Runnable {
       override def run(): Unit = {
-        while (running) {
+        while (running.get()) {
           try {
             Thread.sleep(interval.toMillis)
             thunk
@@ -30,6 +31,7 @@ class AsyncFunctionLoop(interval: Duration, description: String)(thunk: => Unit)
           catch {
             case _: InterruptedException =>
             case t: Throwable =>
+              logger.warn("Failed to renew the Kerberos ticket", t)
           }
         }
       }
@@ -39,10 +41,9 @@ class AsyncFunctionLoop(interval: Duration, description: String)(thunk: => Unit)
   }
 
   override def close(): Unit = {
-    if (running) {
-      running = false
+    if (running.getAndSet(false)) {
       executorService.shutdownNow()
-      executorService.awaitTermination(60000, TimeUnit.MILLISECONDS)
+      executorService.awaitTermination(10000, TimeUnit.MILLISECONDS)
     }
   }
 }
