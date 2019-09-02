@@ -20,7 +20,7 @@ import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
 import com.mongodb.AuthenticationMechanism
 import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.ConfigException
+import org.apache.kafka.common.config.{ConfigException, SslConfigs}
 import org.apache.kafka.common.config.types.Password
 
 
@@ -36,7 +36,14 @@ case class MongoSettings(connection: String,
                          errorPolicy: ErrorPolicy,
                          taskRetries: Int = MongoConfigConstants.NBR_OF_RETIRES_DEFAULT,
                          // Set of field name lists:
-                         jsonDateTimeFields: Set[Seq[String]] = Set.empty)
+                         jsonDateTimeFields: Set[Seq[String]] = Set.empty,
+                         trustStoreType: Option[String] = None,
+                         trustStorePassword: Option[String] = None,
+                         trustStoreLocation: Option[String] = None,
+                         keyStoreType: Option[String] = None,
+                         keyStorePassword: Option[String] = None,
+                         keyStoreLocation: Option[String] = None
+                        )
 
 
 object MongoSettings extends StrictLogging {
@@ -59,6 +66,20 @@ object MongoSettings extends StrictLogging {
     val username = config.getUsername
     val password = config.getSecret
 
+    val trustStoreType = Option(config.getString(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG))
+    val trustStorePath = Option(config.getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG))
+    val trustStorePassword = Option(config.getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG)) match {
+      case Some(p) => Some(p.value())
+      case None => None
+    }
+
+    val keyStoreType = Option(config.getString(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG))
+    val keyStorePath = Option(config.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
+    val keyStorePassword = Option(config.getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)) match {
+      case Some(p) => Some(p.value())
+      case None => None
+    }
+
     val authenticationMechanism = AuthenticationMechanism.fromMechanismName(config.getString(MongoConfigConstants.AUTHENTICATION_MECHANISM))
 
     new MongoSettings(
@@ -73,7 +94,13 @@ object MongoSettings extends StrictLogging {
         ignoreFields,
         errorPolicy,
         retries,
-        getJsonDateTimeFields(config)
+        getJsonDateTimeFields(config),
+        trustStoreType,
+        trustStorePassword,
+        trustStorePath,
+        keyStoreType,
+        keyStorePassword,
+        keyStorePath
     )
   }
 

@@ -27,9 +27,6 @@ import org.apache.kafka.connect.sink.SinkRecord
 case class QueueWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings) extends Writer(settings) {
   val queueWriter: IQueue[Object] = client.getQueue(settings.topicObject(topic).name).asInstanceOf[IQueue[Object]]
 
-  override def write(record: SinkRecord): Unit = {
-    queueWriter.put(convert(record))
-
-  }
+  override def write(record: SinkRecord): Unit = queueWriter.put(convert(record))
   override def close: Unit = {}
 }

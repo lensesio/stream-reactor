@@ -37,10 +37,10 @@ abstract class RedisWriter extends DbWriter with StrictLogging with ConverterUti
     val connection = sinkSettings.connectionInfo
 
     if (connection.isSslConnection) {
-        val keyStoreFilepath = connection.keyStoreFilepath match {
+        connection.keyStoreFilepath match {
           case Some(path) =>
             if (!new File(path).exists) {
-              throw new FileNotFoundException(s"Keystore Certificate not found in: $path")
+              throw new FileNotFoundException(s"Keystore not found in: $path")
             }
 
             System.setProperty("javax.net.ssl.keyStorePassword", connection.keyStorePassword.getOrElse(""))
@@ -53,7 +53,7 @@ abstract class RedisWriter extends DbWriter with StrictLogging with ConverterUti
         connection.trustStoreFilepath match {
           case Some(path) =>
             if (!new File(path).exists) {
-              throw new FileNotFoundException(s"Truststore Certificate not found in: $path")
+              throw new FileNotFoundException(s"Truststore not found in: $path")
             }
 
             System.setProperty("javax.net.ssl.trustStorePassword", connection.trustStorePassword.getOrElse(""))

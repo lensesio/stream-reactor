@@ -16,15 +16,16 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast
 
+import java.io.{File, FileNotFoundException}
 import java.net.URI
 import java.util.{Properties, UUID}
-import javax.cache.{CacheManager, Caching}
 
+import javax.cache.{CacheManager, Caching}
 import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastConnectionConfig, HazelCastSocketConfig}
 import com.hazelcast.cache.HazelcastCachingProvider
 import com.hazelcast.client.HazelcastClient
 import com.hazelcast.client.config.{ClientConfig, ClientNetworkConfig, SocketOptions}
-import com.hazelcast.config.GroupConfig
+import com.hazelcast.config.{GroupConfig, SSLConfig}
 import com.hazelcast.core.HazelcastInstance
 
 import scala.collection.JavaConversions._
@@ -37,12 +38,18 @@ object HazelCastConnection {
   def buildClient(config: HazelCastConnectionConfig): HazelcastInstance = {
    val clientConfig = new ClientConfig
    val networkConfig = clientConfig.getNetworkConfig
-   networkConfig.setAddresses(config.members.toList)
-   val groupConfig = new GroupConfig(config.group, config.pass)
-   clientConfig.setGroupConfig(groupConfig)
-   buildSocketOptions(networkConfig, config.socketConfig)
-   clientConfig.setInstanceName(config.group + "-kafka-connect-" + UUID.randomUUID().toString)
-   HazelcastClient.newHazelcastClient(clientConfig)
+
+   if (config.sslEnabled) {
+     networkConfig.setSSLConfig(new SSLConfig().setEnabled(true).setProperties(getSSLOptions(config)))
+   }
+    networkConfig.setAddresses(config.members.toList)
+
+    val groupConfig = new GroupConfig(config.group, config.pass)
+    clientConfig.setGroupConfig(groupConfig)
+
+    buildSocketOptions(networkConfig, config.socketConfig)
+    clientConfig.setInstanceName(config.group + "-kafka-connect-" + UUID.randomUUID().toString)
+    HazelcastClient.newHazelcastClient(clientConfig)
   }
 
   private def buildSocketOptions(clientNetworkConfig: ClientNetworkConfig, socketConfig: HazelCastSocketConfig): SocketOptions = {
@@ -65,5 +72,36 @@ object HazelCastConnection {
     val cacheManagerName = new URI(name )
     val cacheManager = cachingProvider.getCacheManager(cacheManagerName, null, properties )
     cacheManager
+  }
+
+  def getSSLOptions(config: HazelCastConnectionConfig) : Properties = {
+    val props = new Properties()
+    config.keyStoreLocation match {
+      case Some(path) =>
+        if (!new File(path).exists) {
+          throw new FileNotFoundException(s"Keystore not found in: $path")
+        }
+
+        props.setProperty("javax.net.ssl.keyStorePassword", config.keyStorePassword.getOrElse(""))
+        props.setProperty("javax.net.ssl.keyStore", path)
+        props.setProperty("javax.net.ssl.keyStoreType", config.keyStoreType.getOrElse("jks"))
+
+      case None =>
+    }
+
+    config.trustStoreLocation match {
+      case Some(path) =>
+        if (!new File(path).exists) {
+          throw new FileNotFoundException(s"Truststore not found in: $path")
+        }
+
+        props.setProperty("javax.net.ssl.trustStorePassword", config.trustStorePassword.getOrElse(""))
+        props.setProperty("javax.net.ssl.trustStore", path)
+        props.setProperty("javax.net.ssl.trustStoreType", config.trustStoreType.getOrElse("jks"))
+
+      case None =>
+    }
+
+    props
   }
 }
