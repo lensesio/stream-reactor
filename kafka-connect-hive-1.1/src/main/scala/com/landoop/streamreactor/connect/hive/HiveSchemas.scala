@@ -6,17 +6,18 @@ import org.apache.kafka.connect.data.{Field, Schema, SchemaBuilder}
 import scala.collection.JavaConverters._
 
 /**
-  * Conversions to and from hive types into kafka connect types.
-  *
-  * hive types are taken from the language wiki here:
-  * https://cwiki.apache.org/confluence/display/Hive/LanguageManual+Types
-  */
+ * Conversions to and from hive types into kafka connect types.
+ *
+ * hive types are taken from the language wiki here:
+ * https://cwiki.apache.org/confluence/display/Hive/LanguageManual+Types
+ */
 object HiveSchemas {
 
   private object HiveTypes {
     val string = "string"
     val array_r = "array<(.+)>".r
     val struct_r = "struct<(.+)>".r
+    val struct_r_nested = "(.+):struct<(.+)>".r
     val struct_field_r = "(.+?)\\:(.+?)(,|$)".r
     val varchar_r = "varchar\\((.+?)\\)".r
     val char_r = "char\\((.+?)\\)".r
@@ -75,8 +76,8 @@ object HiveSchemas {
   }
 
   /**
-    * Creates a kafka type from a hive field.
-    */
+   * Creates a kafka type from a hive field.
+   */
   def toKafka(hiveType: String, fieldName: String, optional: Boolean): Schema = {
     val builder: SchemaBuilder = hiveType match {
       case HiveTypes.boolean => SchemaBuilder.bool()
@@ -94,12 +95,26 @@ object HiveSchemas {
       case HiveTypes.decimal_r(_, _) => SchemaBuilder.float64()
       case HiveTypes.array_r(element) => SchemaBuilder.array(toKafka(element.trim, fieldName, true))
       case HiveTypes.struct_r(columns) =>
-        val builder = SchemaBuilder.struct.name(fieldName)
-        for (m <- HiveTypes.struct_field_r.findAllMatchIn(columns)) {
-          builder.field(m.group(1).trim, toKafka(m.group(2).trim, m.group(1).trim, true))
+        val builder = SchemaBuilder.struct//.name(fieldName)
+        columns match {
+          case HiveTypes.struct_r_nested(subkey, subcolumns) =>
+            val subschemaBuilder = SchemaBuilder.struct//.name(subkey)
+            for (m <- HiveTypes.struct_field_r.findAllMatchIn(subcolumns)) {
+              subschemaBuilder.field(m.group(1).trim, toKafka(m.group(2).trim, m.group(1).trim, true))
+            }
+            val subschema = subschemaBuilder.optional().build()
+            builder.field(subkey, subschema)
+
+          case _ =>
+            for (m <- HiveTypes.struct_field_r.findAllMatchIn(columns)) {
+              builder.field(m.group(1).trim, toKafka(m.group(2).trim, m.group(1).trim, true))
+            }
         }
+
         builder
-      case _ => throw UnsupportedHiveTypeConversionException(s"Unknown hive type $hiveType")
+
+      case _ =>
+        throw UnsupportedHiveTypeConversionException(s"Unknown hive type $hiveType")
     }
     if (optional)
       builder.optional()

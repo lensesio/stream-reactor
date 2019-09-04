@@ -61,9 +61,11 @@ class StructWriteSupport(schema: Schema) extends WriteSupport[Struct] {
       case Schema.Type.FLOAT64 => value => consumer.addDouble(value.toString.toDouble)
       case Schema.Type.STRUCT => value => {
         logger.debug(s"Writing nested struct")
-        val values = value.asInstanceOf[Seq[Any]]
+        val struct = value.asInstanceOf[Struct]
         writeGroup {
-          schema.fields.asScala.zip(values).zipWithIndex.foreach { case ((field, v), k) =>
+          schema.fields.asScala
+            .map { field => field -> struct.get(field) }
+            .zipWithIndex.foreach { case ((field, v), k) =>
             writeField(field.name, k) {
               valueWriter(field.schema)(v)
             }
@@ -82,7 +84,9 @@ class StructWriteSupport(schema: Schema) extends WriteSupport[Struct] {
 
   private def writeGroup(f: => Unit): Unit = {
     consumer.startGroup()
+    // consumer.startMessage()
     f
+    //consumer.endMessage()
     consumer.endGroup()
   }
 

@@ -27,7 +27,7 @@ class MetastoreSchemaAlignMapper(schema: Schema) extends StructMapper {
 
   override def map(input: Struct): Struct = {
     //hive converts everything to lowercase
-    val inputFieldsMapping = input.schema().fields().asScala.map{f=> f.name().toLowerCase()-> f.name()}.toMap
+    val inputFieldsMapping = input.schema().fields().asScala.map { f => f.name().toLowerCase() -> f.name() }.toMap
     val struct = schema.fields.asScala.foldLeft(new Struct(schema)) { (struct, field) =>
       Try(input.get(inputFieldsMapping(field.name))).toOption match {
         case Some(value) => struct.put(field.name, value)

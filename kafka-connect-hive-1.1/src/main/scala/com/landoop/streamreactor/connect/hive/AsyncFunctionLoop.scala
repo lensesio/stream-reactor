@@ -16,11 +16,10 @@ class AsyncFunctionLoop(interval: Duration, description: String)(thunk: => Unit)
   private val executorService = Executors.newFixedThreadPool(1)
 
   def start(): Unit = {
-    if (running.get()) {
+    if (!running.compareAndSet(false, true)) {
       throw new IllegalStateException(s"$description already running.")
     }
     logger.info(s"Starting $description loop with an interval of ${interval.toMillis}ms.")
-    running.set(true)
     executorService.submit(new Runnable {
       override def run(): Unit = {
         while (running.get()) {
@@ -36,12 +35,10 @@ class AsyncFunctionLoop(interval: Duration, description: String)(thunk: => Unit)
         }
       }
     })
-
-    executorService.shutdown()
   }
 
   override def close(): Unit = {
-    if (running.getAndSet(false)) {
+    if (running.compareAndSet(true, false)) {
       executorService.shutdownNow()
       executorService.awaitTermination(10000, TimeUnit.MILLISECONDS)
     }

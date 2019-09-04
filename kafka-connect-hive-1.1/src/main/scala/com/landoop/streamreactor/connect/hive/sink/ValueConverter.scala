@@ -24,23 +24,54 @@ object StructValueConverter extends ValueConverter[Struct] {
 }
 
 object MapValueConverter extends ValueConverter[Map[_, _]] {
-  override def convert(map: Map[_, _]): Struct = {
-    val builder = SchemaBuilder.struct()
-    map.foreach {
-      case (key, _: String) => builder.field(key.toString, Schema.OPTIONAL_STRING_SCHEMA)
-      case (key, _: Long) => builder.field(key.toString, Schema.OPTIONAL_INT64_SCHEMA)
-      case (key, _: Int) => builder.field(key.toString, Schema.OPTIONAL_INT64_SCHEMA)
-      case (key, _: Boolean) => builder.field(key.toString, Schema.OPTIONAL_BOOLEAN_SCHEMA)
-      case (key, _: Float) => builder.field(key.toString, Schema.OPTIONAL_FLOAT64_SCHEMA)
-      case (key, _: Double) => builder.field(key.toString, Schema.OPTIONAL_FLOAT64_SCHEMA)
+  def convertValue(value: Any, key: String, builder: SchemaBuilder): Any = {
+    value match {
+      case s: String =>
+        builder.field(key, Schema.OPTIONAL_STRING_SCHEMA)
+        s
+      case l: Long =>
+        builder.field(key, Schema.OPTIONAL_INT64_SCHEMA)
+        l
+      case i: Int =>
+        builder.field(key, Schema.OPTIONAL_INT64_SCHEMA)
+        i.toLong
+      case b: Boolean =>
+        builder.field(key, Schema.OPTIONAL_BOOLEAN_SCHEMA)
+        b
+      case f: Float =>
+        builder.field(key, Schema.OPTIONAL_FLOAT64_SCHEMA)
+        f.toDouble
+      case d: Double =>
+        builder.field(key, Schema.OPTIONAL_FLOAT64_SCHEMA)
+        d
+      case innerMap: java.util.Map[_, _] =>
+        val innerStruct = convert(innerMap.asScala.toMap, true)
+        builder.field(key, innerStruct.schema())
+        innerStruct
+
+      case innerMap: Map[_, _] =>
+        val innerStruct = convert(innerMap, true)
+        builder.field(key, innerStruct.schema())
+        innerStruct
     }
+  }
+
+  def convert(map: Map[_, _], optional: Boolean) = {
+    val builder = SchemaBuilder.struct()
+    val values = map.map { case (k, v) =>
+      val key = k.toString
+      val value = convertValue(v, key, builder)
+      key -> value
+    }.toList
+    if (optional) builder.optional()
     val schema = builder.build
     val struct = new Struct(schema)
-    map.foreach { case (key, value) =>
+    values.foreach { case (key, value) =>
       struct.put(key.toString, value)
     }
     struct
   }
+  override def convert(map: Map[_, _]): Struct = convert(map, false)
 }
 
 object StringValueConverter extends ValueConverter[String] {
