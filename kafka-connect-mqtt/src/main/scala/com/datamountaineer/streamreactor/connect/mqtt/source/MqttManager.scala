@@ -100,7 +100,7 @@ class MqttManager(connectionFn: MqttSourceSettings => MqttConnectOptions,
           val scalaList: Seq[String] = l
           scalaList
         }.getOrElse(Seq.empty[String])
-        Option(converter.convert(kafkaTopic, topic, message.getId.toString, message.getPayload, keys, kcql.getKeyDelimeter)) match {
+        Option(converter.convert(kafkaTopic, kcql.getSource, message.getId.toString, message.getPayload, keys, kcql.getKeyDelimeter)) match {
           case Some(record) =>
             queue.add(record)
             message.setRetained(false)
