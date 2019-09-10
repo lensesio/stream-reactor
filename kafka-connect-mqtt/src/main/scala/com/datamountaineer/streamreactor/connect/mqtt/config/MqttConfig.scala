@@ -79,6 +79,10 @@ object MqttSourceConfig {
     .define(MqttConfigConstants.POLLING_TIMEOUT_CONFIG, Type.INT, MqttConfigConstants.POLLING_TIMEOUT_DEFAULT,
       Importance.LOW, MqttConfigConstants.POLLING_TIMEOUT_DOC,
       "Manager", 1, ConfigDef.Width.MEDIUM, MqttConfigConstants.POLLING_TIMEOUT_DISPLAY)
+    .define(MqttConfigConstants.REPLICATE_SHARED_SUBSCIRPTIONS_CONFIG, Type.BOOLEAN,
+      MqttConfigConstants.REPLICATE_SHARED_SUBSCIRPTIONS_DEFAULT, Importance.LOW,
+      MqttConfigConstants.REPLICATE_SHARED_SUBSCIRPTIONS_DOC, "Manager", 2, ConfigDef.Width.MEDIUM,
+      MqttConfigConstants.REPLICATE_SHARED_SUBSCIRPTIONS_DISPLAY)
 
     .define(MqttConfigConstants.LOG_MESSAGE_ARRIVED_KEY, Type.BOOLEAN, MqttConfigConstants.LOG_MESSAGE_ARRIVED_DEFAULT,
       Importance.MEDIUM, MqttConfigConstants.LOG_MESSAGE_ARRIVED_DISPLAY,

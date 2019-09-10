@@ -40,6 +40,7 @@ case class MqttSourceSettings(connection: String,
                               sslCACertFile: Option[String],
                               sslCertFile: Option[String],
                               sslCertKeyFile: Option[String],
+                              replicateShared: Boolean = false,
                               enableProgress: Boolean = MqttConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
                               logMessageReceived: Boolean = false) {
 
@@ -84,6 +85,8 @@ object MqttSourceSettings {
       case _ => throw new ConfigException(s"You can't define one of the ${MqttConfigConstants.SSL_CA_CERT_CONFIG},${MqttConfigConstants.SSL_CERT_CONFIG}, ${MqttConfigConstants.SSL_CERT_KEY_CONFIG} without the other")
     }
 
+    val replicateShared = config.getBoolean(MqttConfigConstants.REPLICATE_SHARED_SUBSCIRPTIONS_CONFIG)
+
     val progressEnabled = config.getBoolean(MqttConfigConstants.PROGRESS_COUNTER_ENABLED)
 
     val converters = kcql.map(k => {
@@ -121,6 +124,7 @@ object MqttSourceSettings {
       sslCACertFile,
       sslCertFile,
       sslCertKeyFile,
+      replicateShared,
       progressEnabled,
       config.getBoolean(MqttConfigConstants.LOG_MESSAGE_ARRIVED_KEY)
     )
