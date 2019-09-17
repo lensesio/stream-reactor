@@ -16,6 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.mongodb
 
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.NoopErrorPolicy
 import com.datamountaineer.streamreactor.connect.mongodb.Transaction._
 import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
@@ -68,9 +69,9 @@ class SinkRecordToDocumentTest extends WordSpec with Matchers with ConverterUtil
           new Password(""),
           AuthenticationMechanism.SCRAM_SHA_1,
           "database",
-          Set.empty,
+          Set(Kcql.parse("insert into x select * from topic1")),
           Map("topic1" -> Set.empty),
-          Map("topic1" -> Map.empty[String, String]),
+          Map("topic1" -> Map("*" -> "*")),
           Map("topic1" -> Set.empty),
           NoopErrorPolicy())
         val (document, _) = SinkRecordToDocument(record)
@@ -80,6 +81,32 @@ class SinkRecordToDocumentTest extends WordSpec with Matchers with ConverterUtil
         document.toString() shouldBe expected.toString
       }
     }
+
+    "convert String Schema + Json payload to a Mongo Document with selection" in {
+      for (i <- 1 to 4) {
+        val json = scala.io.Source.fromFile(getClass.getResource(s"/transaction$i.json").toURI.getPath).mkString
+
+        val record = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json, 0)
+        val kcql = Kcql.parse("insert into x select * from topic1")
+
+        implicit val settings = MongoSettings(
+          connection = "",
+          username = "",
+          password = new Password(""),
+          authenticationMechanism = AuthenticationMechanism.SCRAM_SHA_1,
+          database = "database",
+          kcql = Set(kcql),
+          keyBuilderMap = Map("topic1" -> Set.empty),
+          fields = Map("topic1" -> Map("lock_time" -> "colc")),
+          ignoredField = Map.empty,
+          NoopErrorPolicy()
+        )
+
+        val (document, _) = SinkRecordToDocument(record)
+        document.size() shouldBe 1
+        document.containsKey("colc")
+    }
+  }
 
     "convert Schemaless + Json payload to a Mongo Document" in {
       // TODO: This test is exactly the same as the above test "convert String Schema + Json payload to a Mongo Document".
@@ -95,9 +122,9 @@ class SinkRecordToDocumentTest extends WordSpec with Matchers with ConverterUtil
           new Password(""),
           AuthenticationMechanism.SCRAM_SHA_1,
           "database",
-          Set.empty,
+          Set(Kcql.parse("insert into x select * from topic1")),
           Map("topic1" -> Set.empty),
-          Map("topic1" -> Map.empty[String, String]),
+          Map("topic1" -> Map("*" -> "*")),
           Map("topic1" -> Set.empty),
           NoopErrorPolicy())
         val (document, _) = SinkRecordToDocument(record)

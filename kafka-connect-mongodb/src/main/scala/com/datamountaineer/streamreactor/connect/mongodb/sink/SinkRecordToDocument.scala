@@ -27,12 +27,19 @@ object SinkRecordToDocument extends ConverterUtil {
   def apply(record: SinkRecord, keys: Set[String] = Set.empty)(implicit settings: MongoSettings): (Document, Iterable[(String, Any)]) = {
     val schema = record.valueSchema()
     val value = record.value()
+    val fields = settings.fields.getOrElse(record.topic(), Map.empty)
+
+    val allFields = if (fields.size == 1 && fields.head._1 == "*") true else false
 
     if (schema == null) {
       //try to take it as string
       value match {
         case _: java.util.Map[_, _] =>
-          val extracted = convertSchemalessJson(record, settings.fields(record.topic()), settings.ignoredField(record.topic()))
+          val extracted = convertSchemalessJson(
+            record,
+            fields,
+            settings.ignoredField.getOrElse(record.topic(), Set.empty)
+          )
           //not ideal; but the implementation is hashmap anyway
 
           SinkRecordConverter.fromMap(extracted.asInstanceOf[java.util.Map[String, AnyRef]]) ->
@@ -42,12 +49,20 @@ object SinkRecordToDocument extends ConverterUtil {
     } else {
       schema.`type`() match {
         case Schema.Type.STRING =>
-          val extracted = convertStringSchemaAndJson(record, settings.fields(record.topic()), settings.ignoredField(record.topic()))
+          val extracted = convertStringSchemaAndJson(
+            record,
+            fields,
+            settings.ignoredField.getOrElse(record.topic(), Set.empty),
+            includeAllFields = allFields)
           SinkRecordConverter.fromJson(extracted) ->
             keys.headOption.map(_ => KeysExtractor.fromJson(extracted, keys)).getOrElse(Iterable.empty)
 
         case Schema.Type.STRUCT =>
-          val extracted = convert(record, settings.fields(record.topic()), settings.ignoredField(record.topic()))
+          val extracted = convert(
+            record,
+            fields,
+            settings.ignoredField.getOrElse(record.topic(), Set.empty)
+          )
           SinkRecordConverter.fromStruct(extracted) ->
             keys.headOption.map(_ => KeysExtractor.fromStruct(extracted.value().asInstanceOf[Struct], keys)).getOrElse(Iterable.empty)
 

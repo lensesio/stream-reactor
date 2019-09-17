@@ -77,7 +77,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
         Map.empty,
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -97,7 +97,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         Set(Kcql.parse("UPSERT INTO upsert_string_json SELECT * FROM topicA PK lock_time")),
         Map("topicA" -> Set("lock_time")),
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -118,7 +118,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         kcql = Set(Kcql.parse("UPSERT INTO upsert_string_json_single_key SELECT * FROM topicA PK C")),
         keyBuilderMap = Map("topicA" -> Set("C")),
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -145,7 +145,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         kcql = Set(Kcql.parse("UPSERT INTO upsert_string_json_multikey SELECT * FROM topicA PK B,C")),
         keyBuilderMap = Map("topicA" -> ListSet("B", "C")),
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -172,7 +172,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         kcql = Set(Kcql.parse("UPSERT INTO upsert_string_json_multikey_embedded SELECT * FROM topicA PK B, C.M, C.N.Y")),
         keyBuilderMap = Map("topicA" -> ListSet("B", "C.M", "C.N.Y")),
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -242,7 +242,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         Set(Kcql.parse("INSERT INTO insert_schemaless_json SELECT * FROM topicA")),
         Map.empty,
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -284,7 +284,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
         Map.empty,
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -301,7 +301,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
         Map.empty,
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -318,7 +318,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
         Map.empty,
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -335,7 +335,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
         Map.empty,
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -352,7 +352,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
         Map.empty,
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 

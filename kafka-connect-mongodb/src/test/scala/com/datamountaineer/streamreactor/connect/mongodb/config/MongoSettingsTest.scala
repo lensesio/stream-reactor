@@ -29,7 +29,7 @@ class MongoSettingsTest extends WordSpec with Matchers {
       val map = Map(
         MongoConfigConstants.DATABASE_CONFIG -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
-        MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
+        MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT cola as cold, colc FROM topic1"
       )
 
       val config = MongoConfig(map)
