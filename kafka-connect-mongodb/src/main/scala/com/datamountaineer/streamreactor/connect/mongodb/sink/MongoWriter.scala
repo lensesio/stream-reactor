@@ -192,6 +192,7 @@ object MongoClientProvider extends StrictLogging {
       case AuthenticationMechanism.MONGODB_X509 => MongoCredential.createMongoX509Credential(settings.username)
       case AuthenticationMechanism.PLAIN => MongoCredential.createPlainCredential(settings.username, settings.database, settings.password.value().toCharArray)
       case AuthenticationMechanism.SCRAM_SHA_1 => MongoCredential.createScramSha1Credential(settings.username, settings.database, settings.password.value().toCharArray)
+      case AuthenticationMechanism.SCRAM_SHA_256 => MongoCredential.createScramSha256Credential(settings.username, settings.database, settings.password.value.toCharArray)
     }
   }
 
