@@ -125,6 +125,13 @@ public class BigQuerySinkTask extends SinkTask {
   }
 
   private PartitionedTableId getRecordTable(SinkRecord record) {
+    // Dynamically update topicToBaseTableIds mapping. topicToBaseTableIds was used to be
+    // constructed when connector starts hence new topic configuration needed connector to restart.
+    // Dynamic update shall not require connector restart and shall compute table id in runtime.
+    if (!topicsToBaseTableIds.containsKey(record.topic())) {
+      TopicToTableResolver.updateTopicToTable(config, record.topic(), topicsToBaseTableIds);
+    }
+
     TableId baseTableId = topicsToBaseTableIds.get(record.topic());
 
     PartitionedTableId.Builder builder = new PartitionedTableId.Builder(baseTableId);
