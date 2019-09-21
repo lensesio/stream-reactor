@@ -31,6 +31,7 @@ case class MqttSinkSettings(connection: String,
                             clientId: String,
                             kcql : Set[Kcql],
                             mqttQualityOfService: Int,
+                            mqttRetainedMessage: Boolean,
                             connectionTimeout: Int,
                             cleanSession: Boolean,
                             keepAliveInterval: Int,
@@ -72,6 +73,8 @@ object MqttSinkSettings {
       throw new ConfigException(s"${MqttConfigConstants.QS_CONFIG} is not valid. Can be 0,1 or 2")
     }
 
+    val rm = config.getBoolean(MqttConfigConstants.RM_CONFIG)
+
     new MqttSinkSettings(
       connection,
       user,
@@ -79,6 +82,7 @@ object MqttSinkSettings {
       clientId,
       kcql,
       qs,
+      rm,
       config.getInt(MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG),
       config.getBoolean(MqttConfigConstants.CLEAN_SESSION_CONFIG),
       config.getInt(MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG),
