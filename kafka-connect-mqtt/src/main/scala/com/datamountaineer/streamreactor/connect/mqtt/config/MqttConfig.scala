@@ -80,6 +80,9 @@ object MqttSourceConfig {
       Importance.LOW, MqttConfigConstants.POLLING_TIMEOUT_DOC,
       "Manager", 1, ConfigDef.Width.MEDIUM, MqttConfigConstants.POLLING_TIMEOUT_DISPLAY)
 
+    .define(MqttConfigConstants.LOG_MESSAGE_ARRIVED_KEY, Type.BOOLEAN, MqttConfigConstants.LOG_MESSAGE_ARRIVED_DEFAULT,
+      Importance.MEDIUM, MqttConfigConstants.LOG_MESSAGE_ARRIVED_DISPLAY,
+      "Debug", 1, ConfigDef.Width.MEDIUM, MqttConfigConstants.LOG_MESSAGE_ARRIVED_DISPLAY)
 }
 
 case class MqttSourceConfig(props: util.Map[String, String])
@@ -87,7 +90,7 @@ case class MqttSourceConfig(props: util.Map[String, String])
     with MqttConfigBase
 
 object MqttSinkConfig {
-  val config = MqttConfig.config
+  val config: ConfigDef = MqttConfig.config
 
     .define(MqttConfigConstants.ERROR_POLICY, Type.STRING, MqttConfigConstants.ERROR_POLICY_DEFAULT,
       Importance.HIGH, MqttConfigConstants.ERROR_POLICY_DOC,

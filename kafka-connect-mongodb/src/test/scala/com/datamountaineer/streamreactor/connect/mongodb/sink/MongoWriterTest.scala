@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.mongodb.sink
 
 import com.datamountaineer.kcql.{Kcql, WriteModeEnum}
 import com.datamountaineer.streamreactor.connect.errors.{NoopErrorPolicy, ThrowErrorPolicy}
-import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
+import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants, MongoSettings}
 import com.datamountaineer.streamreactor.connect.mongodb.{Json, Transaction}
 import com.mongodb.client.MongoCursor
 import com.mongodb.client.model.{Filters, InsertOneModel}
@@ -27,6 +27,7 @@ import de.flapdoodle.embed.mongo.config.{MongodConfigBuilder, Net}
 import de.flapdoodle.embed.mongo.distribution.Version
 import de.flapdoodle.embed.mongo.{MongodExecutable, MongodProcess, MongodStarter}
 import de.flapdoodle.embed.process.runtime.Network
+import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
@@ -76,7 +77,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
         Map.empty,
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -96,7 +97,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         Set(Kcql.parse("UPSERT INTO upsert_string_json SELECT * FROM topicA PK lock_time")),
         Map("topicA" -> Set("lock_time")),
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -117,7 +118,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         kcql = Set(Kcql.parse("UPSERT INTO upsert_string_json_single_key SELECT * FROM topicA PK C")),
         keyBuilderMap = Map("topicA" -> Set("C")),
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -144,7 +145,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         kcql = Set(Kcql.parse("UPSERT INTO upsert_string_json_multikey SELECT * FROM topicA PK B,C")),
         keyBuilderMap = Map("topicA" -> ListSet("B", "C")),
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -171,7 +172,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         kcql = Set(Kcql.parse("UPSERT INTO upsert_string_json_multikey_embedded SELECT * FROM topicA PK B, C.M, C.N.Y")),
         keyBuilderMap = Map("topicA" -> ListSet("B", "C.M", "C.N.Y")),
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -241,7 +242,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         Set(Kcql.parse("INSERT INTO insert_schemaless_json SELECT * FROM topicA")),
         Map.empty,
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -283,7 +284,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
         Map.empty,
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -300,7 +301,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
         Map.empty,
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -317,7 +318,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
         Map.empty,
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -334,7 +335,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
         Map.empty,
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -351,7 +352,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         "local",
         Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
         Map.empty,
-        Map("topicA" -> Map.empty),
+        Map("topicA" -> Map("*" -> "*")),
         Map("topicA" -> Set.empty),
         NoopErrorPolicy())
 
@@ -378,6 +379,46 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
       client.getMongoClientOptions.isSslEnabled shouldBe false
     }
 
+    "MongoClientProvider should set SSL and jvm props in SSL in URI" in {
+
+      val truststoreFilePath = getClass.getResource("/truststore.jks").getPath
+      val keystoreFilePath = getClass.getResource("/keystore.jks").getPath
+
+      val map = Map(
+        MongoConfigConstants.DATABASE_CONFIG -> "database1",
+        MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017/?ssl=true",
+        MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1",
+        SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG -> truststoreFilePath,
+        SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG -> "truststore-password",
+        SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG -> keystoreFilePath,
+        SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG -> "keystore-password"
+      )
+
+      val config = MongoConfig(map)
+      val settings = MongoSettings(config)
+      settings.trustStoreLocation shouldBe Some(truststoreFilePath)
+      settings.keyStoreLocation shouldBe  Some(keystoreFilePath)
+      settings.trustStorePassword shouldBe Some("truststore-password")
+      settings.keyStorePassword shouldBe Some("keystore-password")
+
+      val clientProvider = MongoClientProvider(settings)
+      clientProvider.getMongoClientOptions.isSslEnabled shouldBe true
+
+      val props = System.getProperties
+      props.containsKey("javax.net.ssl.keyStorePassword") shouldBe true
+      props.get("javax.net.ssl.keyStorePassword") shouldBe "keystore-password"
+      props.containsKey("javax.net.ssl.keyStore") shouldBe true
+      props.get("javax.net.ssl.keyStore") shouldBe keystoreFilePath
+      props.containsKey("javax.net.ssl.keyStoreType") shouldBe true
+      props.get("javax.net.ssl.keyStoreType") shouldBe "JKS"
+
+      props.containsKey("javax.net.ssl.trustStorePassword") shouldBe true
+      props.get("javax.net.ssl.trustStorePassword") shouldBe "truststore-password"
+      props.containsKey("javax.net.ssl.trustStore") shouldBe true
+      props.get("javax.net.ssl.trustStore") shouldBe truststoreFilePath
+      props.containsKey("javax.net.ssl.trustStoreType") shouldBe true
+      props.get("javax.net.ssl.trustStoreType") shouldBe "JKS"
+    }
   }
 
   private def runInserts(records: Seq[SinkRecord], settings: MongoSettings) = {

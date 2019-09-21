@@ -20,7 +20,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisSinkSettings}
-import com.datamountaineer.streamreactor.connect.redis.sink.writer.{RedisCache, RedisInsertSortedSet, RedisMultipleSortedSets, RedisWriter}
+import com.datamountaineer.streamreactor.connect.redis.sink.writer._
 import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -68,8 +68,13 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     // Insert Sorted Set mode requires: target name of SortedSet to be defined and STOREAS SortedSet syntax to be provided
     val mode_INSERT_SS = filterModeInsertSS(settings)
 
+    val mode_PUBSUB = filterModePubSub(settings)
+
     // Multiple Sorted Sets mode requires: 1 Primary Key to be defined and STORE SortedSet syntax to be provided
     val mode_PK_SS = filterModePKSS(settings)
+
+    // Geo Add mode requires: >=1 PK and STOREAS GeoAdd syntax to be provided
+    val mode_GEOADD = filterGeoAddMode(settings)
 
     //-- Start as many writers as required
     writer = (modeCache.kcqlSettings.headOption.map { _ =>
@@ -78,9 +83,15 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     } ++ mode_INSERT_SS.kcqlSettings.headOption.map { _ =>
       logger.info("Starting " + mode_INSERT_SS.kcqlSettings.size + " KCQLs with Redis Insert Sorted Set mode")
       List(new RedisInsertSortedSet(mode_INSERT_SS))
+    } ++ mode_PUBSUB.kcqlSettings.headOption.map { _ =>
+      logger.info("Starting " + mode_PUBSUB.kcqlSettings.size + " KCQLs with Redis PubSub mode")
+      List(new RedisPubSub(mode_PUBSUB))
     } ++ mode_PK_SS.kcqlSettings.headOption.map { _ =>
       logger.info("Starting " + mode_PK_SS.kcqlSettings.size + " KCQLs with Redis Multiple Sorted Sets mode")
       List(new RedisMultipleSortedSets(mode_PK_SS))
+    } ++ mode_GEOADD.kcqlSettings.headOption.map{ _ =>
+      logger.info("Starting " + mode_GEOADD.kcqlSettings.size + " KCQLs with Redis Geo Add mode")
+      List(new RedisGeoAdd(mode_GEOADD))
     }).flatten.toList
 
     require(writer.nonEmpty, s"No writers set for ${RedisConfigConstants.KCQL_CONFIG}!")
@@ -119,6 +130,23 @@ class RedisSinkTask extends SinkTask with StrictLogging {
   )
 
   /**
+    * Construct a RedisSinkSettings object containing all the kcqlConfigs that use the PubSub mode.
+    * This function will filter by the presence of the "STOREAS" keyword and a target, as well as the absence of primary keys.
+    *
+    * KCQL Example: SELECT * FROM cpuTopic STOREAS PubSub (channel=channel)
+    *
+    * @param settings The RedisSinkSettings containing all kcqlConfigs.
+    * @return A RedisSinkSettings object containing only the kcqlConfigs that use the PubSub mode.
+    */
+  def filterModePubSub(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(kcqlSettings =
+    settings.kcqlSettings
+      .filter { k =>
+        Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("PUBSUB") &&
+          k.kcqlConfig.getPrimaryKeys.isEmpty
+      }
+  )
+
+  /**
     * Constructs a RedisSinkSettings object containing all the kcqlConfigs that use the Multiple Sorted Sets mode.
     * This function will filter by the presence of the "STOREAS" keyword and the presence of primary keys.
     *
@@ -132,6 +160,24 @@ class RedisSinkTask extends SinkTask with StrictLogging {
       .filter { k =>
         Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SORTEDSET") &&
           k.kcqlConfig.getPrimaryKeys.length >= 1
+      }
+  )
+
+  /**
+    * Constructs a RedisSinkSettings object containing all the kcqlConfigs that use the Geo Add mode.
+    * This function will filter by the presence of the "STOREAS" keyword and the presence of primary keys.
+    *
+    * KCQL Example: SELECT town, country, longitude, latitude FROM addressTopic PK country
+    * STOREAS GeoAdd (longitudeField=longitude,latitudeField=latitude)
+    *
+    * @param settings The RedisSinkSettings containing all kcqlConfigs.
+    * @return A RedisSinkSettings object containing only the kcqlConfigs that use the Geo Add mode.
+    */
+  def filterGeoAddMode(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(kcqlSettings =
+    settings.kcqlSettings
+      .filter { k =>
+        Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("GEOADD") &&
+          k.kcqlConfig.getPrimaryKeys.size() >= 1
       }
   )
 

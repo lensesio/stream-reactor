@@ -114,4 +114,10 @@ object HazelCastSinkConfigConstants {
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
+
+  val SSL_ENABLED = s"$HAZELCAST_CONNECTOR_PREFIX.ssl.enabled"
+  val SSL_ENABLED_DOC: String =
+    """
+      |Enables ssl
+    """.stripMargin
 }

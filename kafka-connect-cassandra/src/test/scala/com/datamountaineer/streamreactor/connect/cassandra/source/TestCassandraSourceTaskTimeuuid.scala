@@ -16,10 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.concurrent.LinkedBlockingQueue
-
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.fasterxml.jackson.databind.JsonNode
@@ -46,7 +42,7 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
   var tableName: String = _
 
   override def beforeAll {
-    session = createKeySpace(keyspace, secure = true, ssl = false)
+    session = createKeySpace(keyspace, secure = true)
     tableName = createTimeuuidTable(session, keyspace)
   }
 
@@ -70,9 +66,8 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
     var sourceRecord = records.asScala.head
     //check a field
     var json: JsonNode = convertValueToJson(sourceRecord)
-    println(json)
     json.get("string_field").asText().equals("magic_string") shouldBe true
-    json.get("timeuuid_field").asText().size > 0
+    json.get("timeuuid_field").asText().nonEmpty shouldBe true
     json.get("int_field") shouldBe null
 
 
@@ -82,9 +77,8 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
     sourceRecord = records.asScala.head
     //check a field
     json = convertValueToJson(sourceRecord)
-    println(json)
     json.get("string_field").asText().equals("magic_string2") shouldBe true
-    json.get("timeuuid_field").asText().size > 0
+    json.get("timeuuid_field").asText().nonEmpty shouldBe true
     json.get("int_field") shouldBe null
 
     //stop task
@@ -154,17 +148,17 @@ class TestCassandraSourceTaskTimeuuid extends WordSpec
     task.stop()
   }
 
-  private def getCassandraConfigWithKcqlNoPrimaryKeyInSelect() = {
+  private def getCassandraConfigWithKcqlNoPrimaryKeyInSelect = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field FROM $tableName PK timeuuid_field INCREMENTALMODE=timeuuid"
     getCassandraConfig(keyspace, tableName, myKcql)
   }
 
-  private def getCassandraConfigWithUnwrap() = {
+  private def getCassandraConfigWithUnwrap = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field, timeuuid_field FROM $tableName IGNORE timeuuid_field PK timeuuid_field WITHUNWRAP INCREMENTALMODE=timeuuid"
     getCassandraConfig(keyspace, tableName, myKcql)
   }
 
-  private def getCassandraConfigDefault() = {
+  private def getCassandraConfigDefault = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field, timeuuid_field FROM $tableName PK timeuuid_field INCREMENTALMODE=timeuuid"
     getCassandraConfig(keyspace, tableName, myKcql)
   }

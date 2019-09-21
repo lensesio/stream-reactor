@@ -16,6 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.writers
 
+import java.util.concurrent.TimeUnit
+
 import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
 import com.hazelcast.core.{HazelcastInstance, IMap}
 import org.apache.kafka.connect.sink.SinkRecord
@@ -27,6 +29,16 @@ import org.apache.kafka.connect.sink.SinkRecord
 case class MapWriter(client: HazelcastInstance, topic: String, settings: HazelCastSinkSettings) extends Writer(settings) {
   val mapWriter: IMap[String, Object] = client.getMap(settings.topicObject(topic).name).asInstanceOf[IMap[String, Object]]
 
-  override def write(record: SinkRecord): Unit = mapWriter.put(buildPKs(record), convert(record))
+  override def write(record: SinkRecord): Unit = {
+    val ttl = settings.topicObject(topic).ttl
+    val keys = buildPKs(record)
+
+    if (ttl > 0) {
+      mapWriter.put(keys, convert(record), ttl, TimeUnit.MILLISECONDS)
+    } else {
+      mapWriter.put(keys, convert(record))
+    }
+  }
+
   override def close: Unit = {}
 }

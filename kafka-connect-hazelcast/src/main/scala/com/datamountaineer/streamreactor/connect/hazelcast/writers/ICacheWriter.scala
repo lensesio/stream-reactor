@@ -32,9 +32,7 @@ case class ICacheWriter(client: HazelcastInstance, topic: String, settings: Haze
   val cacheManager: CacheManager = HazelCastConnection.getCacheManager(client, s"${client.getName}-$name-cache-manager")
   val cacheWriter: Cache[String, Object] = cacheManager.getCache(name, classOf[String], classOf[Object])
 
-  override def write(record: SinkRecord): Unit = {
-    cacheWriter.put(buildPKs(record), convert(record))
-  }
+  override def write(record: SinkRecord): Unit = cacheWriter.put(buildPKs(record), convert(record))
 
   override def close: Unit = {
     cacheWriter.close()

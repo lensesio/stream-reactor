@@ -16,11 +16,14 @@
 
 package com.datamountaineer.streamreactor.connect.mqtt.config
 
-import com.datamountaineer.streamreactor.connect.converters.source.{BytesConverter, Converter}
+import com.datamountaineer.streamreactor.connect.converters.source.BytesConverter
+import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import org.apache.kafka.common.config.ConfigException
 import org.eclipse.paho.client.mqttv3.MqttClient
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 case class MqttSourceSettings(connection: String,
                               user: Option[String],
@@ -37,7 +40,8 @@ case class MqttSourceSettings(connection: String,
                               sslCACertFile: Option[String],
                               sslCertFile: Option[String],
                               sslCertKeyFile: Option[String],
-                              enableProgress : Boolean = MqttConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT) {
+                              enableProgress: Boolean = MqttConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
+                              logMessageReceived: Boolean = false) {
 
   def asMap(): java.util.Map[String, String] = {
     val map = new java.util.HashMap[String, String]()
@@ -54,10 +58,10 @@ case class MqttSourceSettings(connection: String,
     sslCertKeyFile.foreach(s => map.put(MqttConfigConstants.SSL_CERT_KEY_CONFIG, s))
     map.put(MqttConfigConstants.QS_CONFIG, mqttQualityOfService.toString)
     map.put(MqttConfigConstants.KCQL_CONFIG, kcql.mkString(";"))
+    map.put(MqttConfigConstants.LOG_MESSAGE_ARRIVED_KEY, logMessageReceived.toString)
     map
   }
 }
-
 
 object MqttSourceSettings {
   def apply(config: MqttSourceConfig): MqttSourceSettings = {
@@ -66,7 +70,7 @@ object MqttSourceSettings {
     val kcql = config.getKCQL
     val kcqlStr = config.getKCQLRaw
     val user = Some(config.getUsername)
-    val password =  Option(config.getSecret).map(_.value())
+    val password = Option(config.getSecret).map(_.value())
     val connection = config.getHosts
     val clientId = Option(config.getString(MqttConfigConstants.CLIENT_ID_CONFIG)).getOrElse(MqttClient.generateClientId())
 
@@ -86,18 +90,15 @@ object MqttSourceSettings {
       (k.getSource, if (k.getWithConverter == null) classOf[BytesConverter].getCanonicalName else k.getWithConverter)
     }).toMap
 
-    converters.map( {
-        case (mqtt_source, clazz) => {
-          Try(Class.forName(clazz)) match {
-            case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG}. $clazz can't be found for $mqtt_source")
-            case Success(clz) =>
-              if (!classOf[Converter].isAssignableFrom(clz)) {
-                throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG}. $clazz is not inheriting Converter for $mqtt_source")
-              }
+    converters.foreach { case (mqtt_source, clazz) =>
+      Try(Class.forName(clazz)) match {
+        case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG}. $clazz can't be found for $mqtt_source")
+        case Success(clz) =>
+          if (!classOf[Converter].isAssignableFrom(clz)) {
+            throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG}. $clazz is not inheriting Converter for $mqtt_source")
           }
-        }
       }
-    )
+    }
 
     val qs = config.getInt(MqttConfigConstants.QS_CONFIG)
     if (qs < 0 || qs > 2) {
@@ -120,7 +121,8 @@ object MqttSourceSettings {
       sslCACertFile,
       sslCertFile,
       sslCertKeyFile,
-      progressEnabled
+      progressEnabled,
+      config.getBoolean(MqttConfigConstants.LOG_MESSAGE_ARRIVED_KEY)
     )
   }
 }

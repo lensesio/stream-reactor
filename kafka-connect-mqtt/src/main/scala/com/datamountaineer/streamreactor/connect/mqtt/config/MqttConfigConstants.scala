@@ -24,16 +24,16 @@ import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigCo
 object MqttConfigConstants {
 
   val CONNECTOR_PREFIX = "connect.mqtt"
-  
-  val KCQL_CONFIG = s"${CONNECTOR_PREFIX}.${KCQL_PROP_SUFFIX}"
+
+  val KCQL_CONFIG = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
   val KCQL_DOC = "Contains the Kafka Connect Query Language describing the sourced MQTT source and the target Kafka topics"
   val KCQL_DISPLAY = "KCQL commands"
 
-  val HOSTS_CONFIG = s"${CONNECTOR_PREFIX}.${CONNECTION_HOSTS_SUFFIX}"
+  val HOSTS_CONFIG = s"$CONNECTOR_PREFIX.$CONNECTION_HOSTS_SUFFIX"
   val HOSTS_DOC = "Contains the MQTT connection end points."
   val HOSTS_DISPLAY = "Mqtt connection endpoints"
 
-  val QS_CONFIG = s"${CONNECTOR_PREFIX}.service.quality"
+  val QS_CONFIG = s"$CONNECTOR_PREFIX.service.quality"
   val QS_DOC = "Specifies the Mqtt quality of service"
   val QS_DISPLAY =
     """
@@ -51,33 +51,33 @@ object MqttConfigConstants {
     """.stripMargin
   val RM_DEFAULT = false
 
-  val USER_CONFIG = s"${CONNECTOR_PREFIX}.${USERNAME_SUFFIX}"
+  val USER_CONFIG = s"$CONNECTOR_PREFIX.$USERNAME_SUFFIX"
   val USER_DOC = "Contains the Mqtt connection user name"
   val USER_DISPLAY = "Username"
 
-  val PASSWORD_CONFIG = s"${CONNECTOR_PREFIX}.${PASSWORD_SUFFIX}"
+  val PASSWORD_CONFIG = s"$CONNECTOR_PREFIX.$PASSWORD_SUFFIX"
   val PASSWORD_DOC = "Contains the Mqtt connection password"
   val PASSWORD_DISPLAY = "Password"
 
-  val CLIENT_ID_CONFIG = s"${CONNECTOR_PREFIX}.client.id"
+  val CLIENT_ID_CONFIG = s"$CONNECTOR_PREFIX.client.id"
   val CLIENT_ID_DOC = "Contains the Mqtt session client id"
   val CLIENT_ID_DISPLAY = "Client id"
 
-  val CONNECTION_TIMEOUT_CONFIG = s"${CONNECTOR_PREFIX}.timeout"
+  val CONNECTION_TIMEOUT_CONFIG = s"$CONNECTOR_PREFIX.timeout"
   val CONNECTION_TIMEOUT_DOC = "Provides the time interval to establish the mqtt connection"
   val CONNECTION_TIMEOUT_DISPLAY = "Connection timeout"
   val CONNECTION_TIMEOUT_DEFAULT = 3000
 
-  val POLLING_TIMEOUT_CONFIG = s"${CONNECTOR_PREFIX}.polling.timeout"
+  val POLLING_TIMEOUT_CONFIG = s"$CONNECTOR_PREFIX.polling.timeout"
   val POLLING_TIMEOUT_DOC = "Provides the timeout to poll incoming messages"
   val POLLING_TIMEOUT_DISPLAY = "Polling timeout"
   val POLLING_TIMEOUT_DEFAULT = 1000
 
-  val CLEAN_SESSION_CONFIG = s"${CONNECTOR_PREFIX}.clean"
+  val CLEAN_SESSION_CONFIG = s"$CONNECTOR_PREFIX.clean"
   val CLEAN_CONNECTION_DISPLAY = "Clean session"
   val CLEAN_CONNECTION_DEFAULT = true
 
-  val KEEP_ALIVE_INTERVAL_CONFIG = s"${CONNECTOR_PREFIX}.keep.alive"
+  val KEEP_ALIVE_INTERVAL_CONFIG = s"$CONNECTOR_PREFIX.keep.alive"
   val KEEP_ALIVE_INTERVAL_DOC =
     """
       | The keep alive functionality assures that the connection is still open and both broker and client are connected to
@@ -87,19 +87,19 @@ object MqttConfigConstants {
   val KEEP_ALIVE_INTERVAL_DISPLAY = "Keep alive interval"
   val KEEP_ALIVE_INTERVAL_DEFAULT = 5000
 
-  val SSL_CA_CERT_CONFIG = s"${CONNECTOR_PREFIX}.ssl.ca.cert"
+  val SSL_CA_CERT_CONFIG = s"$CONNECTOR_PREFIX.ssl.ca.cert"
   val SSL_CA_CERT_DOC = "Provides the path to the CA certificate file to use with the Mqtt connection"
   val SSL_CA_CERT_DISPLAY = "CA certificate file path"
 
-  val SSL_CERT_CONFIG = s"${CONNECTOR_PREFIX}.ssl.cert"
+  val SSL_CERT_CONFIG = s"$CONNECTOR_PREFIX.ssl.cert"
   val SSL_CERT_DOC = "Provides the path to the certificate file to use with the Mqtt connection"
   val SSL_CERT_DISPLAY = "Certificate key file path"
 
-  val SSL_CERT_KEY_CONFIG = s"${CONNECTOR_PREFIX}.ssl.key"
+  val SSL_CERT_KEY_CONFIG = s"$CONNECTOR_PREFIX.ssl.key"
   val SSL_CERT_KEY_DOC = "Certificate private [config] key file path."
   val SSL_CERT_KEY_DISPLAY = "Certificate private [config] key file path"
 
-  val THROW_ON_CONVERT_ERRORS_CONFIG = s"${CONNECTOR_PREFIX}.converter.throw.on.error"
+  val THROW_ON_CONVERT_ERRORS_CONFIG = s"$CONNECTOR_PREFIX.converter.throw.on.error"
   val THROW_ON_CONVERT_ERRORS_DOC =
     """
       | If set to false the conversion exception will be swallowed and everything carries on BUT the message is lost!!;
@@ -118,7 +118,7 @@ object MqttConfigConstants {
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 
-  val ERROR_POLICY = s"${CONNECTOR_PREFIX}.${ERROR_POLICY_PROP_SUFFIX}"
+  val ERROR_POLICY = s"$CONNECTOR_PREFIX.$ERROR_POLICY_PROP_SUFFIX"
   val ERROR_POLICY_DOC: String =
     """Specifies the action to be taken if an error occurs while inserting the data.
       |There are two available options:
@@ -128,10 +128,14 @@ object MqttConfigConstants {
       |The error will be logged automatically""".stripMargin
   val ERROR_POLICY_DEFAULT = "THROW"
 
-  val ERROR_RETRY_INTERVAL = s"${CONNECTOR_PREFIX}.${RETRY_INTERVAL_PROP_SUFFIX}"
+  val ERROR_RETRY_INTERVAL = s"$CONNECTOR_PREFIX.$RETRY_INTERVAL_PROP_SUFFIX"
   val ERROR_RETRY_INTERVAL_DOC = "The time in milliseconds between retries."
   val ERROR_RETRY_INTERVAL_DEFAULT = "60000"
-  val NBR_OF_RETRIES = s"${CONNECTOR_PREFIX}.max.retries"
+  val NBR_OF_RETRIES = s"$CONNECTOR_PREFIX.max.retries"
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
+
+  val LOG_MESSAGE_ARRIVED_KEY = s"$CONNECTOR_PREFIX.log.message"
+  val LOG_MESSAGE_ARRIVED_DISPLAY = "Logs received MQTT messages"
+  val LOG_MESSAGE_ARRIVED_DEFAULT = false
 }

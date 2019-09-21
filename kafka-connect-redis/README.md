@@ -5,6 +5,7 @@ This Redis Kafka (sink) connector supports at the moment the modes
 * **[cache](#cache-mode)** mode
 * **[insert-sorted-set](#insert-sorted-set)** mode
 * **[multiple-sorted-sets](#multiple-sorted-sets)** mode
+* **[geo-add](#geoadd)** mode
 
 ## Cache Mode
 
@@ -75,6 +76,19 @@ We can prefix the name of the `Key` using the INSERT statement for Multiple Sort
     INSERT INTO FX- SELECT price from yahoo-fx PK symbol STOREAS SortedSet(score=timestamp)
 
 This will create keys with names `FX-USDGBP` , `FX-EURGBP` etc.
+
+
+## GEOADD
+
+To **insert** messages from a Kafka topic into a Redis set using GEOADD command use the folowing **KCQL** syntax:
+
+    INSERT INTO citities: SELECT * from addressTopic PK country STOREAS GeoAdd(longitudeField=longitude,latitudeField=latitude)
+
+This will create and add entries into the (set) named **citities:${country}** with longitude and latitude field values.
+
+The `StoredAs` parameters such as `longitudeField` and `latitudeField` has default values `longitude` and `latitude` accordingly. The `longitude` and `latitude` values are required to be presented in the record in other case the record will be skipped.
+
+In the above example we are selecting and storing all the fields of the Kafka message.
 
 ### Theory on Redis Sorted Set
 

@@ -30,7 +30,10 @@ project(":kafka-connect-hive") {
         compile("org.apache.parquet:parquet-hadoop:$parquetVersion")
         compile("org.jodd:jodd-core:$joddVersion")
         compile("org.apache.hive:hive-jdbc:$hiveVersion")
-        compile("org.apache.hive:hive-exec:$hiveVersion")
+        compile("org.apache.hive:hive-exec:$hiveVersion"){
+            exclude group: "org.apache.calcite", module: "calcite-avatica"
+            exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
+        }
         compile("org.apache.hadoop:hadoop-common:$hadoopVersion")
         compile("org.apache.hadoop:hadoop-hdfs:$hadoopVersion")
         compile("org.apache.hadoop:hadoop-mapreduce:$hadoopVersion")

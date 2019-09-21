@@ -2,7 +2,7 @@
 
 Please review these questions before submitting any issue?
 
-### What version of the Stream Rector are you reporting this issue for?
+### What version of the Stream Reactor are you reporting this issue for?
 
 ### Are you running the correct version of Kafka/Confluent for the Stream reactor release?
 

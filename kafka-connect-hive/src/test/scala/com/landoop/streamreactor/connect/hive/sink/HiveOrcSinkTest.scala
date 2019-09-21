@@ -56,7 +56,7 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
       hadoopConfiguration = HadoopConfiguration.Empty
     )
 
-    val sink = hiveSink(TableName("employees"), config)
+    val sink = HiveSink.from(TableName("employees"), config)
     users.foreach(sink.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
     sink.close()
 
@@ -85,7 +85,7 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
       hadoopConfiguration = HadoopConfiguration.Empty
     )
 
-    val sink = hiveSink(TableName(table), config)
+    val sink = HiveSink.from(TableName(table), config)
     users.foreach(sink.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
     sink.close()
 
@@ -115,7 +115,7 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
       hadoopConfiguration = HadoopConfiguration.Empty
     )
 
-    val sink = hiveSink(TableName(table), config)
+    val sink = HiveSink.from(TableName(table), config)
     users.foreach(sink.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
     sink.close()
 
@@ -149,7 +149,7 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
       client.dropTable(dbname, "abc", true, true)
     }
 
-    val sink1 = hiveSink(TableName("abc"), config1)
+    val sink1 = HiveSink.from(TableName("abc"), config1)
     users.foreach(sink1.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
     sink1.close()
 
@@ -166,7 +166,7 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
       client.dropTable(dbname, "abc", true, true)
     }
 
-    val sink2 = hiveSink(TableName("abc"), config2)
+    val sink2 = HiveSink.from(TableName("abc"), config2)
     users.foreach(sink2.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
     sink2.close()
 
@@ -189,7 +189,7 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
       hadoopConfiguration = HadoopConfiguration.Empty
     )
 
-    val sink = hiveSink(TableName(tableName), config)
+    val sink = HiveSink.from(TableName(tableName), config)
     sink.write(user1, TopicPartitionOffset(Topic("mytopic"), 1, Offset(44)))
     fs.exists(new Path(s"hdfs://namenode:8020/user/hive/warehouse/$dbname/$tableName/streamreactor_mytopic_1")) shouldBe false
     sink.close()
@@ -212,7 +212,7 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
       hadoopConfiguration = HadoopConfiguration.Empty
     )
 
-    val sink = hiveSink(TableName(tableName), config)
+    val sink = HiveSink.from(TableName(tableName), config)
     for (k <- 1 to 1200) {
       sink.write(user1, TopicPartitionOffset(Topic("mytopic"), 1, Offset(k)))
     }
@@ -244,7 +244,7 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
       hadoopConfiguration = HadoopConfiguration.Empty
     )
 
-    val sink = hiveSink(TableName(tableName), config)
+    val sink = HiveSink.from(TableName(tableName), config)
     sink.write(user1, TopicPartitionOffset(Topic("mytopic"), 1, Offset(44)))
     sink.write(user2, TopicPartitionOffset(Topic("mytopic"), 4, Offset(45)))
     sink.close()
@@ -268,7 +268,7 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
       hadoopConfiguration = HadoopConfiguration.Empty
     )
 
-    val sink = hiveSink(TableName(tableName), config)
+    val sink = HiveSink.from(TableName(tableName), config)
     users.foreach(sink.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
     sink.close()
 
@@ -294,7 +294,7 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     )
 
     intercept[RuntimeException] {
-      val sink = hiveSink(TableName(tableName), config)
+      val sink = HiveSink.from(TableName(tableName), config)
       users.foreach(sink.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
       sink.close()
     }.getMessage shouldBe "Partition 'mr' does not exist and strict policy requires upfront creation"
@@ -321,7 +321,7 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
     // first we write out one row, with fields a,b and then we write out a second row, with an extra
     // field, and then the schema should have been evolved to add the extra field.
 
-    val sink1 = hiveSink(TableName(tableName), config)
+    val sink1 = HiveSink.from(TableName(tableName), config)
     list1.foreach(sink1.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
     sink1.close()
 
@@ -335,7 +335,7 @@ class HiveOrcSinkTest extends FlatSpec with Matchers with HiveTestConfig {
 
     val list2 = List(new Struct(schema2).put("a", "aaaa").put("b", "bbbb").put("x", "xxxx"))
 
-    val sink2 = hiveSink(TableName(tableName), config)
+    val sink2 = HiveSink.from(TableName(tableName), config)
     list2.foreach(sink2.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(2))))
     sink2.close()
 

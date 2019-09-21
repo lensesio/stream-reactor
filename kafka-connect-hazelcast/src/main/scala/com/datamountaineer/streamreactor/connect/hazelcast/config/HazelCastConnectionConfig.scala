@@ -16,6 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.config
 
+import org.apache.kafka.common.config.SslConfigs
+
 import scala.collection.JavaConversions._
 
 /**
@@ -28,7 +30,15 @@ case class HazelCastConnectionConfig(group: String,
                                      connectionAttempts: Int,
                                      connectionTimeouts: Long,
                                      pass: String,
-                                     socketConfig: HazelCastSocketConfig)
+                                     socketConfig: HazelCastSocketConfig,
+                                     sslEnabled: Boolean = false,
+                                     trustStoreType: Option[String] = None,
+                                     trustStorePassword: Option[String] = None,
+                                     trustStoreLocation: Option[String] = None,
+                                     keyStoreType: Option[String] = None,
+                                     keyStorePassword: Option[String] = None,
+                                     keyStoreLocation: Option[String] = None
+                                    )
 
 case class HazelCastSocketConfig(keepAlive: Boolean = true,
                                  tcpNoDelay: Boolean = true,
@@ -51,6 +61,37 @@ object HazelCastConnectionConfig {
     val socketConfig = HazelCastSocketConfig(keepAlive, tcpNoDelay, reuse, linger, buffer)
     val pass = config.getPassword(HazelCastSinkConfigConstants.GROUP_PASSWORD).value()
     val group = config.getString(HazelCastSinkConfigConstants.GROUP_NAME)
-    new HazelCastConnectionConfig(group, members, redo, connectionAttempts, connectionTimeouts, pass, socketConfig)
+    val ssl = config.getBoolean(HazelCastSinkConfigConstants.SSL_ENABLED)
+
+    val trustStoreType = Option(config.getString(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG))
+    val trustStorePath = Option(config.getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG))
+    val trustStorePassword = Option(config.getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG)) match {
+      case Some(p) => Some(p.value())
+      case None => None
+    }
+
+    val keyStoreType = Option(config.getString(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG))
+    val keyStorePath = Option(config.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
+    val keyStorePassword = Option(config.getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)) match {
+      case Some(p) => Some(p.value())
+      case None => None
+    }
+
+    new HazelCastConnectionConfig(
+      group,
+      members,
+      redo,
+      connectionAttempts,
+      connectionTimeouts,
+      pass,
+      socketConfig,
+      ssl,
+      trustStoreType,
+      trustStorePassword,
+      trustStorePath,
+      keyStoreType,
+      keyStorePassword,
+      keyStorePath
+    )
   }
 }

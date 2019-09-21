@@ -16,12 +16,17 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.sink
 
-import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastConnectionConfig, HazelCastSinkConfig, HazelCastSinkSettings}
+import java.util.concurrent.TimeUnit
+
+import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastConnectionConfig, HazelCastSinkConfig, HazelCastSinkConfigConstants, HazelCastSinkSettings}
 import com.datamountaineer.streamreactor.connect.hazelcast.writers.HazelCastWriter
 import com.datamountaineer.streamreactor.connect.hazelcast.{HazelCastConnection, MessageListenerImplAvro, MessageListenerImplJson, TestBase}
 import com.hazelcast.core._
 import com.hazelcast.ringbuffer.Ringbuffer
 import org.apache.avro.generic.GenericRecord
+import org.apache.kafka.common.config.SslConfigs
+
+import scala.collection.JavaConversions._
 
 
 /**
@@ -199,6 +204,31 @@ class TestHazelCastWriter extends TestBase {
     conn.shutdown()
   }
 
+  "should write json to hazelcast map default pks and TTL" in {
+
+    val props = Map(HazelCastSinkConfigConstants.KCQL->s"INSERT INTO ${TABLE}_multi SELECT * FROM $TOPIC WITHFORMAT json STOREAS IMAP TTL=5000",
+      HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
+    )
+    val config = new HazelCastSinkConfig(props)
+    val settings = HazelCastSinkSettings(config)
+    val writer = HazelCastWriter(settings)
+    val records = getTestRecords()
+
+    //write
+    writer.write(records)
+    writer.close
+    // sleep so ttl kicks in
+    Thread.sleep(5010)
+
+    val key = s"${TOPIC}-${PARTITION}-1"
+    //get client and check hazelcast
+    val conn = HazelCastConnection.buildClient(HazelCastConnectionConfig(config))
+    val map = conn.getMap(settings.topicObject(TOPIC).name).asInstanceOf[IMap[String, String]]
+    map.size() shouldBe 0
+    conn.shutdown()
+  }
+
   "should write json to hazelcast multi map default pks" in {
 
     val props = getPropsJsonMultiMapDefaultPKS
@@ -217,6 +247,47 @@ class TestHazelCastWriter extends TestBase {
     val message = map.get(s"${TOPIC}-${PARTITION}-1").iterator().next()
     message shouldBe json
     conn.shutdown()
+  }
+
+
+  "Should set SSL system props" in {
+
+    val truststoreFilePath = getClass.getResource("/truststore.jks").getPath
+    val keystoreFilePath = getClass.getResource("/keystore.jks").getPath
+
+    val ssl = Map(
+      HazelCastSinkConfigConstants.KCQL->KCQL_MAP_IGNORED,
+      HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
+      HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost",
+      HazelCastSinkConfigConstants.SSL_ENABLED -> "true",
+      SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG -> truststoreFilePath,
+      SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG -> "truststore-password",
+      SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG -> keystoreFilePath,
+      SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG -> "keystore-password")
+
+    val config = new HazelCastSinkConfig(ssl)
+    val conConfig = HazelCastConnectionConfig(config)
+
+    conConfig.sslEnabled shouldBe true
+    conConfig.trustStoreLocation shouldBe Some(truststoreFilePath)
+    conConfig.keyStoreLocation shouldBe  Some(keystoreFilePath)
+    conConfig.trustStorePassword shouldBe Some("truststore-password")
+    conConfig.keyStorePassword shouldBe Some("keystore-password")
+
+    val sslProps = HazelCastConnection.getSSLOptions(conConfig)
+    sslProps.containsKey("javax.net.ssl.keyStorePassword") shouldBe true
+    sslProps.get("javax.net.ssl.keyStorePassword") shouldBe "keystore-password"
+    sslProps.containsKey("javax.net.ssl.keyStore") shouldBe true
+    sslProps.get("javax.net.ssl.keyStore") shouldBe keystoreFilePath
+    sslProps.containsKey("javax.net.ssl.keyStoreType") shouldBe true
+    sslProps.get("javax.net.ssl.keyStoreType") shouldBe "JKS"
+
+    sslProps.containsKey("javax.net.ssl.trustStorePassword") shouldBe true
+    sslProps.get("javax.net.ssl.trustStorePassword") shouldBe "truststore-password"
+    sslProps.containsKey("javax.net.ssl.trustStore") shouldBe true
+    sslProps.get("javax.net.ssl.trustStore") shouldBe truststoreFilePath
+    sslProps.containsKey("javax.net.ssl.trustStoreType") shouldBe true
+    sslProps.get("javax.net.ssl.trustStoreType") shouldBe "JKS"
   }
 
 //  "should write json to hazelcast ICache" in {

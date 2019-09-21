@@ -62,6 +62,7 @@ object MongoConfig {
       MongoConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
       Importance.MEDIUM, MongoConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
       "Metrics", 1, ConfigDef.Width.MEDIUM, MongoConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
+    .withClientSslSupport()
 }
 
 

@@ -5,7 +5,6 @@ import java.net.InetAddress
 import java.security.PrivilegedAction
 
 import com.landoop.streamreactor.connect.hive.AsyncFunctionLoop
-import com.typesafe.scalalogging.slf4j.StrictLogging
 import javax.security.auth.login.LoginContext
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.security.SecurityUtil
@@ -14,11 +13,13 @@ import org.apache.hadoop.security.UserGroupInformation
 import scala.concurrent.duration._
 import scala.concurrent.duration.Duration
 
-sealed trait KerberosLogin extends StrictLogging with AutoCloseable {
+sealed trait KerberosLogin extends AutoCloseable {
   def run[T](thunk: => T): T
 }
 
 case class UserPasswordLogin(ugi: UserGroupInformation, interval: Duration, lc: LoginContext) extends KerberosLogin {
+  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
+
   private val asyncTicketRenewal = new AsyncFunctionLoop(interval, "Kerberos")(renewKerberosTicket())
   asyncTicketRenewal.start()
 
@@ -48,6 +49,7 @@ case class UserPasswordLogin(ugi: UserGroupInformation, interval: Duration, lc: 
 }
 
 case class KeytabLogin(ugi: UserGroupInformation, interval: Duration) extends KerberosLogin {
+  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
   private val asyncTicketRenewal = new AsyncFunctionLoop(interval, "Kerberos")(renewKerberosTicket())
   asyncTicketRenewal.start()
 
@@ -77,7 +79,7 @@ object KerberosLogin {
   def from(kerberos: Kerberos, configuration: Configuration): KerberosLogin = {
     kerberos.auth match {
       case Left(settings) => from(settings, kerberos.ticketRenewalMs.millis, configuration)
-      case Right(settings) => from(settings, kerberos.asInstanceOf, configuration)
+      case Right(settings) => from(settings, kerberos.ticketRenewalMs.millis, configuration)
     }
   }
 
@@ -96,7 +98,7 @@ object KerberosLogin {
   def from(settings: UserPasswordSettings, interval: Duration, configuration: Configuration): UserPasswordLogin = {
     UserGroupInformation.setConfiguration(configuration)
 
-    val lc = new LoginContext("EntryName", new UserPassCallbackHandler(settings.user, settings.password))
+    val lc = new LoginContext(settings.jaasEntryName, new UserPassCallbackHandler(settings.user, settings.password))
     lc.login()
 
     val subject = lc.getSubject

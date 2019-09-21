@@ -37,34 +37,35 @@ abstract class RedisWriter extends DbWriter with StrictLogging with ConverterUti
     val connection = sinkSettings.connectionInfo
 
     if (connection.isSslConnection) {
+        connection.keyStoreFilepath match {
+          case Some(path) =>
+            if (!new File(path).exists) {
+              throw new FileNotFoundException(s"Keystore not found in: $path")
+            }
 
-        val keyStoreFilepath = connection.keyStoreFilepath.getOrElse("")
+            System.setProperty("javax.net.ssl.keyStorePassword", connection.keyStorePassword.getOrElse(""))
+            System.setProperty("javax.net.ssl.keyStore", path)
+            System.setProperty("javax.net.ssl.keyStoreType", connection.keyStoreType.getOrElse("jceks"))
 
-        if (!new File(keyStoreFilepath).exists) {
-          throw new FileNotFoundException(s"Keystore Certificate not found in: $keyStoreFilepath")
+          case None =>
         }
 
-        val trustStoreFilepath = connection.trustStoreFilepath.getOrElse("")
+        connection.trustStoreFilepath match {
+          case Some(path) =>
+            if (!new File(path).exists) {
+              throw new FileNotFoundException(s"Truststore not found in: $path")
+            }
 
-        if (!new File(trustStoreFilepath).exists) {
-          throw new FileNotFoundException(s"Truststore Certificate not found in: $trustStoreFilepath")
+            System.setProperty("javax.net.ssl.trustStorePassword", connection.trustStorePassword.getOrElse(""))
+            System.setProperty("javax.net.ssl.trustStore", path)
+            System.setProperty("javax.net.ssl.trustStoreType", connection.trustStoreType.getOrElse("jceks"))
+
+          case None =>
         }
-
-        System.setProperty("javax.net.ssl.keyStorePassword", connection.keyStorePassword.getOrElse(""))
-        System.setProperty("javax.net.ssl.keyStore", keyStoreFilepath)
-        System.setProperty("javax.net.ssl.keyStoreType", connection.keyStoreType.getOrElse("jceks"))
-
-        System.setProperty("javax.net.ssl.trustStorePassword", connection.trustStorePassword.getOrElse(""))
-        System.setProperty("javax.net.ssl.trustStore", trustStoreFilepath)
-        System.setProperty("javax.net.ssl.trustStoreType", connection.trustStoreType.getOrElse("jceks"))
-
-        jedis = new Jedis(URI.create(s"rediss://${connection.host}:${connection.port}"))
-    } else {
-      jedis = new Jedis(connection.host, connection.port)
     }
 
+    jedis = new Jedis(connection.host, connection.port, connection.isSslConnection)
     connection.password.foreach(p => jedis.auth(p))
-
     //initialize error tracker
     initialize(sinkSettings.taskRetries, sinkSettings.errorPolicy)
   }

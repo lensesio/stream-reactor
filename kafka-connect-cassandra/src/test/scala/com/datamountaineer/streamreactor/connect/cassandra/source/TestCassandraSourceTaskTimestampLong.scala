@@ -45,7 +45,7 @@ class TestCassandraSourceTaskTimestampLong extends WordSpec
   var tableName: String = _
 
   override def beforeAll {
-    session = createKeySpace(keyspace, secure = true, ssl = false)
+    session = createKeySpace(keyspace, secure = true)
     tableName = createTimestampTable(session, keyspace)
   }
 
@@ -64,7 +64,7 @@ class TestCassandraSourceTaskTimestampLong extends WordSpec
 
     val reader = CassandraTableReader(name = "test", session = session, setting = setting, context = taskContext, queue = queue)
 
-    insertIntoTimestampTable(session, keyspace, tableName, "id1", "magic_string", getFormattedDateNow)
+    insertIntoTimestampTable(session, keyspace, tableName, "id1", "magic_string", getFormattedDateNow(), 1.toByte)
 
     // clear out the default of Jan 1, 1900
     // and read the inserted row
@@ -82,14 +82,14 @@ class TestCassandraSourceTaskTimestampLong extends WordSpec
     json.get("string_field").asText().equals("magic_string") shouldBe true
 
     // insert another two records
-    insertIntoTimestampTable(session, keyspace, tableName, "id2", "magic_string2", getFormattedDateNow)
-    insertIntoTimestampTable(session, keyspace, tableName, "id3", "magic_string3", getFormattedDateNow)
+    insertIntoTimestampTable(session, keyspace, tableName, "id2", "magic_string2", getFormattedDateNow(), 1.toByte)
+    insertIntoTimestampTable(session, keyspace, tableName, "id3", "magic_string3", getFormattedDateNow(), 1.toByte)
 
     // sleep for longer than time slice (10 sec)
     Thread.sleep(11000)
 
     // insert another record
-    insertIntoTimestampTable(session, keyspace, tableName, "id4", "magic_string4", getFormattedDateNow)
+    insertIntoTimestampTable(session, keyspace, tableName, "id4", "magic_string4", getFormattedDateNow() , 1.toByte)
 
     //read
     reader.read()
@@ -126,7 +126,7 @@ class TestCassandraSourceTaskTimestampLong extends WordSpec
 
   }
 
-  private def getCassandraConfigDefault() = {
+  private def getCassandraConfigDefault = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $tableName PK timestamp_field INCREMENTALMODE=timestamp"
     getCassandraConfig(keyspace, tableName, myKcql)
   }

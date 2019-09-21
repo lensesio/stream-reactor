@@ -104,11 +104,17 @@ object RedisConnectionInfo {
 
     val trustStoreType = Option(config.getString(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG))
     val trustStorePath = Option(config.getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG))
-    val trustStorePassword = Option(config.getString(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG))
+    val trustStorePassword = Option(config.getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG)) match {
+      case Some(p) => Some(p.value())
+      case None => None
+    }
 
     val keyStoreType = Option(config.getString(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG))
     val keyStorePath = Option(config.getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
-    val keyStorePassword = Option(config.getString(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG))
+    val keyStorePassword = Option(config.getPassword(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)) match {
+      case Some(p) => Some(p.value())
+      case None => None
+    }
 
     new RedisConnectionInfo(
       host = host,

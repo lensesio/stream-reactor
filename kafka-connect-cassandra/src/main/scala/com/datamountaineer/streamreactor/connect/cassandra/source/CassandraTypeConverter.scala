@@ -38,9 +38,9 @@ class CassandraTypeConverter(private val codecRegistry: CodecRegistry,
                              private val setting: CassandraSourceSetting) extends StrictLogging {
 
   val mapper = new ObjectMapper()
-  val OPTIONAL_DATE_SCHEMA = org.apache.kafka.connect.data.Date.builder().optional().build()
-  val OPTIONAL_TIMESTAMP_SCHEMA = Timestamp.builder().optional().build()
-  val OPTIONAL_DECIMAL_SCHEMA = Decimal.builder(18).optional().build()
+  val OPTIONAL_DATE_SCHEMA: Schema = org.apache.kafka.connect.data.Date.builder().optional().build()
+  val OPTIONAL_TIMESTAMP_SCHEMA: Schema = Timestamp.builder().optional().build()
+  val OPTIONAL_DECIMAL_SCHEMA: Schema = Decimal.builder(18).optional().build()
 
   private val mappingCollectionToJson: Boolean = setting.mappingCollectionToJson
 
@@ -97,7 +97,8 @@ class CassandraTypeConverter(private val codecRegistry: CodecRegistry,
         //need to convert to string since the schema is set to String
         Option(row.getUUID(columnDef.getName)).map(_.toString).orNull
       case DataType.Name.BLOB => row.getBytes(columnDef.getName)
-      case DataType.Name.TINYINT | DataType.Name.SMALLINT => row.getShort(columnDef.getName)
+      case DataType.Name.SMALLINT => row.getShort(columnDef.getName)
+      case DataType.Name.TINYINT => row.getByte(columnDef.getName)
       case DataType.Name.INT => row.getInt(columnDef.getName)
       case DataType.Name.DOUBLE => row.getDouble(columnDef.getName)
       case DataType.Name.FLOAT => row.getFloat(columnDef.getName)

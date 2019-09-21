@@ -142,6 +142,8 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
     val outputStream = new ByteArrayOutputStream
     val bufferLength=4096
     val buffer = new Array[Byte](if (bufferLength > sliceSize) sliceSize else bufferLength)
+
+    logger.info(s"sliceSize=${sliceSize}")
     logger.info(s"buffer.length=${buffer.length}")
 
     connectFtp()
@@ -150,14 +152,19 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
 
     val inputStream = ftp.retrieveFileStream(file.path)
     logger.info(s"inputStream=${inputStream}")
-    var allBytesRead = 0
 
-    var bufferBytesRead=inputStream.read(buffer)
-    while( bufferBytesRead != (-1) && (allBytesRead <= sliceSize) ) {
-      allBytesRead += bufferBytesRead
-      outputStream.write(buffer, 0, bufferBytesRead)
-      bufferBytesRead = inputStream.read(buffer)
-    }
+    var allBytesRead = 0
+    var keepGoing = true
+    do{
+      keepGoing = inputStream.read(buffer, 0, Math.min(buffer.length, sliceSize - allBytesRead)) match {
+        case -1 => false
+        case bufferBytesRead: Int => {
+          allBytesRead += bufferBytesRead
+          outputStream.write(buffer, 0, bufferBytesRead)
+          allBytesRead < sliceSize
+        }
+      }
+    }while(keepGoing)
     logger.info(s"allBytesRead=${allBytesRead}")
 
     inputStream.close()
@@ -294,6 +301,11 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
         return Failure(new Exception("cannot connect to ftp because of some unreported error"))
       }
       logger.info("successfully connected to the ftp server and logged in")
+      if(ftp.isInstanceOf[FTPSClient]) {
+            logger.info("FTPS Connection needed, setting appropriate settings")
+            ftp.asInstanceOf[FTPSClient].execPBSZ(0)
+            ftp.asInstanceOf[FTPSClient].execPROT("P")
+      }
       ftp.enterLocalPassiveMode()
       logger.info("passive we are")
       ftp.setFileType(FTP.BINARY_FILE_TYPE)
