@@ -3,7 +3,7 @@
 [<img src="https://img.shields.io/badge/latest%20release-1.2.1-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22)
 
 
-Join us on slack [![Alt text](images/slack.jpeg)](https://launchpass.com/landoop-community)
+Join us on slack [![Alt text](images/slack.jpeg)](https://launchpass.com/lensesio)
 
 # Lenses for Apache Kafka
 
