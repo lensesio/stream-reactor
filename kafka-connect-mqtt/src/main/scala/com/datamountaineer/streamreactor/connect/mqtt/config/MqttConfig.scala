@@ -104,8 +104,9 @@ object MqttSinkConfig {
       Importance.MEDIUM, MqttConfigConstants.NBR_OF_RETRIES_DOC,
       "Connection", 11, ConfigDef.Width.MEDIUM, MqttConfigConstants.NBR_OF_RETRIES)
 
-
-
+    .define(MqttConfigConstants.RM_CONFIG, Type.BOOLEAN, MqttConfigConstants.RM_DEFAULT,
+      Importance.MEDIUM, MqttConfigConstants.RM_DOC,
+      "Connection", 12, ConfigDef.Width.MEDIUM, MqttConfigConstants.RM_CONFIG)
 }
 
 case class MqttSinkConfig(props: util.Map[String, String])

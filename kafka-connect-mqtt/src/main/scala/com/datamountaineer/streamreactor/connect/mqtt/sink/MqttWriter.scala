@@ -84,6 +84,7 @@ class MqttWriter(client: MqttClient, settings: MqttSinkSettings)
             {
               case (t, json) => {
                 msg.setPayload(json.getBytes)
+                msg.setRetained(settings.mqttRetainedMessage);
                 
                 if (!Option(k.getDynamicTarget).getOrElse("").isEmpty) {
                   var mqtttopic = (parse(json) \ k.getDynamicTarget).extractOrElse[String](null)
