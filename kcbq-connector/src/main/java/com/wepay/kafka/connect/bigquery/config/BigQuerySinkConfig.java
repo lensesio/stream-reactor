@@ -141,6 +141,19 @@ public class BigQuerySinkConfig extends AbstractConfig {
       "Whether to automatically sanitize topic names before using them as table names;"
       + " if not enabled topic names will be used directly as table names";
 
+  public static final String SANITIZE_FIELD_NAME_CONFIG =                     "sanitizeFieldNames";
+  private static final ConfigDef.Type SANITIZE_FIELD_NAME_TYPE =              ConfigDef.Type.BOOLEAN;
+  public static final Boolean SANITIZE_FIELD_NAME_DEFAULT =                   false;
+  private static final ConfigDef.Importance SANITIZE_FIELD_NAME_IMPORTANCE =
+          ConfigDef.Importance.MEDIUM;
+  private static final String SANITIZE_FIELD_NAME_DOC =
+          "Whether to automatically sanitize field names before using them as field names in big query. "
+                  + "Big query specifies that field name can only contain letters, numbers, and "
+                  + "underscores. The sanitizer will replace the invalid symbols with underscore. "
+                  + "If the field name starts with a digit, the sanitizer will add an underscore in "
+                  + "front of field name. Note: field a.b and a_b will have same value after sanitizing, "
+                  + "and might cause key duplication error.";
+
   public static final String INCLUDE_KAFKA_DATA_CONFIG =                   "includeKafkaData";
   public static final ConfigDef.Type INCLUDE_KAFKA_DATA_TYPE =             ConfigDef.Type.BOOLEAN;
   public static final Boolean INCLUDE_KAFKA_DATA_DEFAULT =                 false;
@@ -245,6 +258,12 @@ public class BigQuerySinkConfig extends AbstractConfig {
             SANITIZE_TOPICS_DEFAULT,
             SANITIZE_TOPICS_IMPORTANCE,
             SANITIZE_TOPICS_DOC
+        ).define(
+            SANITIZE_FIELD_NAME_CONFIG,
+            SANITIZE_FIELD_NAME_TYPE,
+            SANITIZE_FIELD_NAME_DEFAULT,
+            SANITIZE_FIELD_NAME_IMPORTANCE,
+            SANITIZE_FIELD_NAME_DOC
         ).define(
             INCLUDE_KAFKA_DATA_CONFIG,
             INCLUDE_KAFKA_DATA_TYPE,
