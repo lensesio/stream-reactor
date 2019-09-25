@@ -36,36 +36,33 @@ import scala.collection.JavaConversions._
 class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSugar {
   private val nanoClock = new NanoClock()
   Thread.sleep(1000)
+  val defaultJsonPayload: String =
+    """
+      | {
+      |    "_id": "580151bca6f3a2f0577baaac",
+      |    "index": 0,
+      |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
+      |    "isActive": false,
+      |    "balance": 3589.15,
+      |    "age": 27,
+      |    "eyeColor": "brown",
+      |    "name": "Clements Crane",
+      |    "company": "TERRAGEN",
+      |    "email": "clements.crane@terragen.io",
+      |    "phone": "+1 (905) 514-3719",
+      |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
+      |    "latitude": "-49.817964",
+      |    "longitude": "-141.645812"
+      | }
+    """.stripMargin
+
 
   "InfluxBatchPointsBuilder" should {
     "convert a sink record with a json string payload when all fields are selected" in {
-      val jsonPayload =
-        """
-          | {
-          |    "_id": "580151bca6f3a2f0577baaac",
-          |    "index": 0,
-          |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
-          |    "isActive": false,
-          |    "balance": 3589.15,
-          |    "age": 27,
-          |    "eyeColor": "brown",
-          |    "name": "Clements Crane",
-          |    "company": "TERRAGEN",
-          |    "email": "clements.crane@terragen.io",
-          |    "phone": "+1 (905) 514-3719",
-          |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
-          |    "latitude": "-49.817964",
-          |    "longitude": "-141.645812"
-          | }
-        """.stripMargin
-
       val topic = "topic1"
       val measurement = "measurement1"
-
       val before = nanoClock.getEpochNanos
-
-      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
-
+      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, defaultJsonPayload, 0)
 
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
         Seq(Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic"))
@@ -103,33 +100,54 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       tags shouldBe Map.empty
     }
 
-    "not throw an exception while converting a sink record with a json string payload and the tag field is missing" in {
-      val jsonPayload =
-        """
-          | {
-          |    "_id": "580151bca6f3a2f0577baaac",
-          |    "index": 0,
-          |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
-          |    "isActive": false,
-          |    "balance": 3589.15,
-          |    "age": 27,
-          |    "eyeColor": "brown",
-          |    "name": "Clements Crane",
-          |    "company": "TERRAGEN",
-          |    "email": "clements.crane@terragen.io",
-          |    "phone": "+1 (905) 514-3719",
-          |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
-          |    "latitude": "-49.817964",
-          |    "longitude": "-141.645812"
-          | }
-        """.stripMargin
-
+    "convert a sink record with a json string payload and key when all fields are selected" in {
       val topic = "topic1"
       val measurement = "measurement1"
-
       val before = nanoClock.getEpochNanos
+      val key = """{"value" : "some_value"}"""
+      val record = new SinkRecord(topic, 0, Schema.STRING_SCHEMA, key, Schema.STRING_SCHEMA, defaultJsonPayload, 0)
 
-      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Seq(Kcql.parse(s"INSERT INTO $measurement SELECT *, _key.* FROM $topic"))
+      )
+      val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
+      val batchPoints = builder.build(Seq(record))
+
+      val points = batchPoints.get.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      PointMapFieldGetter.measurement(point) shouldBe measurement
+      val time = PointMapFieldGetter.time(point)
+      before <= time shouldBe true
+      time <= nanoClock.getEpochNanos shouldBe true
+
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 15
+
+      map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
+      map.get("index") shouldBe 0
+      map.get("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
+      map.get("isActive") shouldBe false
+      map.get("balance") shouldBe 3589.15
+      map.get("age") shouldBe 27
+      map.get("eyeColor") shouldBe "brown"
+      map.get("name") shouldBe "Clements Crane"
+      map.get("company") shouldBe "TERRAGEN"
+      map.get("email") shouldBe "clements.crane@terragen.io"
+      map.get("phone") shouldBe "+1 (905) 514-3719"
+      map.get("address") shouldBe "316 Hoyt Street, Welda, Puerto Rico, 1474"
+      map.get("latitude") shouldBe "-49.817964"
+      map.get("longitude") shouldBe "-141.645812"
+      map.get("value") shouldBe "some_value"
+
+      val tags = PointMapFieldGetter.tags(point)
+      tags shouldBe Map.empty
+    }
+
+    "not throw an exception while converting a sink record with a json string payload and the tag field is missing" in {
+      val topic = "topic1"
+      val measurement = "measurement1"
+      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, defaultJsonPayload, 0)
 
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
         Seq(Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic WITHTAG(abc)")))
@@ -186,8 +204,6 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val settings = InfluxSettings(config)
 
-      val before = nanoClock.getEpochNanos
-
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
@@ -213,32 +229,11 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
     }
 
     "convert a sink record with a json string payload when all fields are selected and tags are applied" in {
-      val jsonPayload =
-        """
-          | {
-          |    "_id": "580151bca6f3a2f0577baaac",
-          |    "index": 0,
-          |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
-          |    "isActive": false,
-          |    "balance": 3589.15,
-          |    "age": 27,
-          |    "eyeColor": "brown",
-          |    "name": "Clements Crane",
-          |    "company": "TERRAGEN",
-          |    "email": "clements.crane@terragen.io",
-          |    "phone": "+1 (905) 514-3719",
-          |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
-          |    "latitude": "-49.817964",
-          |    "longitude": "-141.645812"
-          | }
-        """.stripMargin
-
       val topic = "topic1"
       val measurement = "measurement1"
-
       val before = nanoClock.getEpochNanos
 
-      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
+      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, defaultJsonPayload, 0)
 
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
         Seq(
@@ -278,32 +273,12 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
     }
 
     "convert a sink record with a json string payload when all fields are selected and tags are not defined for the topic" in {
-      val jsonPayload =
-        """
-          | {
-          |    "_id": "580151bca6f3a2f0577baaac",
-          |    "index": 0,
-          |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
-          |    "isActive": false,
-          |    "balance": 3589.15,
-          |    "age": 27,
-          |    "eyeColor": "brown",
-          |    "name": "Clements Crane",
-          |    "company": "TERRAGEN",
-          |    "email": "clements.crane@terragen.io",
-          |    "phone": "+1 (905) 514-3719",
-          |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
-          |    "latitude": "-49.817964",
-          |    "longitude": "-141.645812"
-          | }
-        """.stripMargin
-
       val topic = "topic1"
       val measurement = "measurement1"
 
       val before = nanoClock.getEpochNanos
 
-      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
+      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, defaultJsonPayload, 0)
 
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
         Seq(Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic"))
@@ -426,9 +401,6 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val topic = "topic1"
       val measurement = "measurement1"
-
-      val before = nanoClock.getEpochNanos
-
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
 
@@ -444,32 +416,13 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
     }
 
     "convert a sink record with a json string payload with fields ignored" in {
-      val jsonPayload =
-        """
-          | {
-          |    "_id": "580151bca6f3a2f0577baaac",
-          |    "index": 0,
-          |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
-          |    "isActive": false,
-          |    "balance": 3589.15,
-          |    "age": 27,
-          |    "eyeColor": "brown",
-          |    "name": "Clements Crane",
-          |    "company": "TERRAGEN",
-          |    "email": "clements.crane@terragen.io",
-          |    "phone": "+1 (905) 514-3719",
-          |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
-          |    "latitude": "-49.817964",
-          |    "longitude": "-141.645812"
-          | }
-        """.stripMargin
 
       val topic = "topic1"
       val measurement = "measurement1"
 
       val before = nanoClock.getEpochNanos
 
-      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
+      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, defaultJsonPayload, 0)
 
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
         Seq(
@@ -506,32 +459,12 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
 
     "convert sink record with a json string payload with all fields selected and one aliased" in {
-      val jsonPayload =
-        """
-          | {
-          |    "_id": "580151bca6f3a2f0577baaac",
-          |    "index": 0,
-          |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
-          |    "isActive": false,
-          |    "balance": 3589.15,
-          |    "age": 27,
-          |    "eyeColor": "brown",
-          |    "name": "Clements Crane",
-          |    "company": "TERRAGEN",
-          |    "email": "clements.crane@terragen.io",
-          |    "phone": "+1 (905) 514-3719",
-          |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
-          |    "latitude": "-49.817964",
-          |    "longitude": "-141.645812"
-          | }
-        """.stripMargin
-
       val topic = "topic1"
       val measurement = "measurement1"
 
       val before = nanoClock.getEpochNanos
 
-      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
+      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, defaultJsonPayload, 0)
 
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
         Seq(
@@ -569,34 +502,12 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
     }
 
     "convert a sink record with a json string payload with specific fields being selected" in {
-      val
-      jsonPayload =
-        """
-          | {
-          |    "_id": "580151bca6f3a2f0577baaac",
-          |    "index": 0,
-          |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
-          |    "isActive": false,
-          |    "balance": 3589.15,
-          |    "age": 27,
-          |    "eyeColor": "brown",
-          |    "name": "Clements Crane",
-          |    "company": "TERRAGEN",
-          |    "email": "clements.crane@terragen.io",
-          |    "phone": "+1 (905) 514-3719",
-          |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
-          |    "latitude": "-49.817964",
-          |    "longitude": "-141.645812"
-          | }
-        """.
-          stripMargin
-
       val topic = "topic1"
       val measurement = "measurement1"
 
       val before = nanoClock.getEpochNanos
 
-      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
+      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, defaultJsonPayload, 0)
 
 
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
@@ -625,33 +536,12 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
     }
 
     "convert a sink record with a json string payload with specific fields being selected and tags are applied" in {
-      val jsonPayload =
-        """
-          | {
-          |    "_id": "580151bca6f3a2f0577baaac",
-          |    "index": 0,
-          |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
-          |    "isActive": false,
-          |    "balance": 3589.15,
-          |    "age": 27,
-          |    "eyeColor": "brown",
-          |    "name": "Clements Crane",
-          |    "company": "TERRAGEN",
-          |    "email": "clements.crane@terragen.io",
-          |    "phone": "+1 (905) 514-3719",
-          |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
-          |    "latitude": "-49.817964",
-          |    "longitude": "-141.645812"
-          | }
-        """.
-          stripMargin
-
       val topic = "topic1"
       val measurement = "measurement1"
 
       val before = nanoClock.getEpochNanos
 
-      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
+      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, defaultJsonPayload, 0)
 
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
         Seq(
@@ -681,33 +571,13 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
     }
 
     "convert a sink record with a json string payload with specific fields being selected and tags are applied with dynamic measurements" in {
-      val jsonPayload =
-        """
-          | {
-          |    "_id": "580151bca6f3a2f0577baaac",
-          |    "index": 0,
-          |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
-          |    "isActive": false,
-          |    "balance": 3589.15,
-          |    "age": 27,
-          |    "eyeColor": "brown",
-          |    "name": "Clements Crane",
-          |    "company": "TERRAGEN",
-          |    "email": "clements.crane@terragen.io",
-          |    "phone": "+1 (905) 514-3719",
-          |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
-          |    "latitude": "-49.817964",
-          |    "longitude": "-141.645812"
-          | }
-        """.
-          stripMargin
 
       val topic = "topic1"
       val measurement = "measurement1"
 
       val before = nanoClock.getEpochNanos
 
-      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
+      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, defaultJsonPayload, 0)
 
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
         Seq(
@@ -737,33 +607,12 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
     }
 
     "convert a sink record with a json string payload with specific fields being selected and tags are applied with aliased tag" in {
-      val jsonPayload =
-        """
-          | {
-          |    "_id": "580151bca6f3a2f0577baaac",
-          |    "index": 0,
-          |    "guid": "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba",
-          |    "isActive": false,
-          |    "balance": 3589.15,
-          |    "age": 27,
-          |    "eyeColor": "brown",
-          |    "name": "Clements Crane",
-          |    "company": "TERRAGEN",
-          |    "email": "clements.crane@terragen.io",
-          |    "phone": "+1 (905) 514-3719",
-          |    "address": "316 Hoyt Street, Welda, Puerto Rico, 1474",
-          |    "latitude": "-49.817964",
-          |    "longitude": "-141.645812"
-          | }
-        """.
-          stripMargin
-
       val topic = "topic1"
       val measurement = "measurement1"
 
       val before = nanoClock.getEpochNanos
 
-      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
+      val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, defaultJsonPayload, 0)
 
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
         Seq(

@@ -13,13 +13,17 @@ object SinkRecordParser {
 
   trait ParsedSinkRecord {
     def valueFields(ignored: Set[String]): Seq[(String, Any)]
+
     def field(path: Vector[String]): Option[Any]
+  }
+
+  trait ParsedKeyValueSinkRecord extends ParsedSinkRecord {
+    def keyFields(ignored: Set[String]): Seq[(String, Any)]
   }
 
   private case class JsonSinkRecord(json: JsonNode) extends ParsedSinkRecord {
     override def valueFields(ignored: Set[String]): Seq[(String, Any)] = ValuesExtractor.extractAllFields(json, ignored)
 
-    //TODO: FIX THIS
     override def field(path: Vector[String]): Option[Any] = Option(ValuesExtractor.extract(json, path))
   }
 
@@ -35,17 +39,19 @@ object SinkRecordParser {
     override def field(path: Vector[String]): Option[Any] = Option(ValuesExtractor.extract(map, path))
   }
 
-  private case class KeyValueRecord(key: ParsedSinkRecord, value: ParsedSinkRecord) extends ParsedSinkRecord {
+  private case class KeyValueRecord(key: ParsedSinkRecord, value: ParsedSinkRecord) extends ParsedKeyValueSinkRecord {
     override def valueFields(ignored: Set[String]): Seq[(String, Any)] = value.valueFields(ignored)
 
     override def field(path: Vector[String]): Option[Any] = path.headOption match {
-      case Some(fieldName) if fieldName == Util.KEY_CONSTANT => key.field(path)
+      case Some(fieldName) if fieldName == Util.KEY_CONSTANT => key.field(path.tail)
       case Some(_) => value.field(path)
-      case None => ??? //TODO: What to do here ?
+      case None => throw new IllegalArgumentException("Unreachable situation detected. Path should never be empty")
     }
+
+    override def keyFields(ignored: Set[String]): Seq[(String, Any)] = key.valueFields(ignored)
   }
 
-  def build(record: SinkRecord): Try[ParsedSinkRecord] = {
+  def build(record: SinkRecord): Try[ParsedKeyValueSinkRecord] = {
     val key = Option(record.keySchema()).map(_.`type`()) match {
       case Some(Schema.Type.STRING) => Try(JsonSinkRecord(JacksonJson.asJson(record.key().asInstanceOf[String])))
       case Some(Schema.Type.STRUCT) => Try(StructSinkRecord(record.key().asInstanceOf[Struct]))

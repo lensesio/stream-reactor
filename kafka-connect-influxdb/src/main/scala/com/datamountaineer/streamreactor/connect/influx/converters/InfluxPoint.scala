@@ -6,7 +6,8 @@ import java.util.concurrent.TimeUnit
 
 import com.datamountaineer.kcql.Tag
 import com.datamountaineer.streamreactor.connect.influx.NanoClock
-import com.datamountaineer.streamreactor.connect.influx.converters.SinkRecordParser.ParsedSinkRecord
+import com.datamountaineer.streamreactor.connect.influx.converters.SinkRecordParser.{ParsedKeyValueSinkRecord, ParsedSinkRecord}
+import com.datamountaineer.streamreactor.connect.influx.helpers.Util
 import com.datamountaineer.streamreactor.connect.influx.writers.KcqlCache
 import org.influxdb.dto.Point
 
@@ -14,7 +15,7 @@ import scala.util.{Failure, Try}
 
 object InfluxPoint {
 
-  def build(nanoClock: NanoClock)(record: ParsedSinkRecord, details: KcqlCache): Try[Point] = {
+  def build(nanoClock: NanoClock)(record: ParsedKeyValueSinkRecord, details: KcqlCache): Try[Point] = {
     for {
       (timeUnit, timestamp) <- extractTimeMeasures(nanoClock, record, details)
       measurement = details.DynamicTarget.flatMap { fieldPath => record.field(fieldPath).map(_.toString) }.getOrElse(details.kcql.getTarget)
@@ -23,8 +24,9 @@ object InfluxPoint {
     } yield point.build()
   }
 
-  private def addValuesAndTags(pointBuilder: Point.Builder, record: ParsedSinkRecord, details: KcqlCache): Try[Point.Builder] = {
+  private def addValuesAndTags(pointBuilder: Point.Builder, record: ParsedKeyValueSinkRecord, details: KcqlCache): Try[Point.Builder] = {
     details.nonIgnoredFields.flatMap {
+      case (field, path) if path == Vector(Util.KEY_CONSTANT, "*") => record.keyFields(ignored = details.IgnoredAndAliasFields).map { case (name, value) => name -> Some(value) }
       case (field, _) if field.getName == "*" => record.valueFields(ignored = details.IgnoredAndAliasFields).map { case (name, value) => name -> Some(value) }
       case (field, path) => (field.getAlias -> record.field(path)) :: Nil
     }.foldLeft(Try(pointBuilder))((builder, field) =>
@@ -36,7 +38,7 @@ object InfluxPoint {
       details
         .tagsAndPaths
         .flatMap {
-          case (tag, v) => Option(tag).flatMap(t => Option(t.getKey)).map(_ => tag -> v).toSeq //TODO: Improve error handling
+          case (tag, v) => Option(tag).flatMap(t => Option(t.getKey)).map(_ => tag -> v).toSeq //Ignore potential failures downstream
         }.map {
         case (tag, _) if tag.getType == Tag.TagType.CONSTANT => (tag.getKey, Option(tag.getValue))
         case (tag, path) if tag.getType == Tag.TagType.ALIAS => (tag.getValue, record.field(path).map(_.toString))
