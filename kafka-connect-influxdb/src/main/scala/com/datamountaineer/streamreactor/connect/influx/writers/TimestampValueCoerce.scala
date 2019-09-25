@@ -32,6 +32,8 @@ object TimestampValueCoerce {
       case l: Long => l
       case s: String => Try(Instant.parse(s).toEpochMilli).getOrElse(throw new IllegalArgumentException(s"$s is not a valid format for timestamp, expected 'yyyy-MM-DDTHH:mm:ss.SSSZ'"))
       case d: Date => d.toInstant.toEpochMilli
+      /* Assume Unix timestamps in seconds with double precision, coerce to Long with milliseconds precision */
+      case d: Double => (d * 1E3).toLong
       case other => throw new IllegalArgumentException(s"Invalid value for field:${fieldPath.mkString(".")}.Value '$other' is not a valid field for the timestamp")
     }
   }
