@@ -180,6 +180,16 @@ class ValuesExtractorMapTest extends WordSpec with Matchers {
       }
     }
 
+    "assume unix timestamp in seconds if type is double and coerce to Long in milliseconds" in {
+
+      val payload = new java.util.HashMap[String, Any]()
+
+      payload.put("double", 1.56937031387E9)
+
+      TimestampValueCoerce(ValuesExtractor.extract(payload, Vector("double")))(Vector("double")) shouldBe 1569370313870L
+
+    }
+
     "throw an excception if a field is in bytes" in {
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)
