@@ -60,40 +60,6 @@ object ValuesExtractor {
   }
 
   /**
-    * Extracts all the keys and values from the source json. It will ignore the fields present in the ignored collection
-    *
-    * @param node     -  The source json to extract all the key and values. Only ObjectNode is accepted - those are the ones accepting fields
-    * @param ignored  - A collection of keys to ignore
-    * @param callback - The function to call for each Field-Value tuple
-    * @return Throws [[IllegalArgumentException]] if any of the values are not primitives
-    */
-  def extractAllFieldsCallback(node: JsonNode, ignored: Set[String], callback: (String, Any) => Unit): Unit = {
-    node match {
-      case o: ObjectNode =>
-        o.fields().filter(p => !ignored.contains(p.getKey))
-          .foreach { kvp =>
-            val value = kvp.getValue match {
-              case b: BooleanNode => b.booleanValue()
-              case i: BigIntegerNode => i.bigIntegerValue()
-              case d: DecimalNode => d.decimalValue()
-              case d: DoubleNode => d.doubleValue()
-              case f: FloatNode => f.floatValue()
-              case i: IntNode => i.intValue()
-              case l: LongNode => l.longValue()
-              case s: ShortNode => s.shortValue()
-              case t: TextNode => t.textValue()
-              case _: NullNode => null
-              case _: MissingNode => null
-              case other => throw new IllegalArgumentException(s"You can't select all fields from the Kafka message because ${kvp.getKey} resolves to a complex type:${Option(other).map(_.getClass.getCanonicalName).orNull})")
-            }
-            callback(kvp.getKey, value)
-
-          }
-      case other => throw new IllegalArgumentException(s"You can't select all fields from the Kafka message because the incoming message resolves to a not allowed type:${Option(other).map(_.getClass.getCanonicalName).orNull})")
-    }
-  }
-
-  /**
     * Extracts the value for the given field path from the specified Json
     *
     * @param node      - The Json to extract the field value
@@ -317,7 +283,7 @@ object ValuesExtractor {
               case bd: BigDecimal =>
                 checkValidPath()
                 bd
-              case bd: java.math.BigDecimal=>
+              case bd: java.math.BigDecimal =>
                 checkValidPath()
                 bd
               case array: Array[Byte] =>

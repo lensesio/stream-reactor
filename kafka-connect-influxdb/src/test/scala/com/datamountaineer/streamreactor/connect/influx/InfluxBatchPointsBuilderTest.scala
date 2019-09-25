@@ -439,7 +439,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
 
       val result = builder.build(Seq(record))
-      result.isFailure shouldBe true
+      result shouldBe 'Failure
       result.failed.get shouldBe a[RuntimeException]
     }
 
@@ -820,7 +820,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       )
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
-      builder.build(Seq(record)).isFailure
+      builder.build(Seq(record)) shouldBe 'Failure
       builder.build(Seq(record)).failed.get shouldBe a[RuntimeException]
     }
 
@@ -857,7 +857,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val result = builder.build(Seq(record))
-      result.isFailure shouldBe true
+      result shouldBe 'Failure
       result.failed.get shouldBe a[RuntimeException]
     }
 
@@ -895,7 +895,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val result = builder.build(Seq(record))
-      result.isFailure shouldBe true
+      result shouldBe 'Failure
       result.failed.get shouldBe an[IllegalArgumentException]
     }
 
@@ -1369,7 +1369,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val result = builder.build(Seq(record))
-      result.isFailure shouldBe true
+      result shouldBe 'Failure
       result.failed.get shouldBe a[RuntimeException]
     }
 
@@ -1394,8 +1394,6 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
 
-      val before = nanoClock.getEpochNanos
-
       val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
 
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
@@ -1406,7 +1404,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val result = builder.build(Seq(record))
-      result.isFailure shouldBe true
+      result shouldBe 'Failure
       result.failed.get shouldBe a[RuntimeException]
     }
 

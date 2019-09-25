@@ -13,7 +13,6 @@ object SinkRecordParser {
 
   trait ParsedSinkRecord {
     def valueFields(ignored: Set[String]): Seq[(String, Any)]
-
     def field(path: Vector[String]): Option[Any]
   }
 
@@ -64,7 +63,7 @@ object SinkRecordParser {
 
     key
       .flatMap(key => value.map(key -> _))
-      .map { case (key, value) => KeyValueRecord(key, value) }
+      .map { case (k, v) => KeyValueRecord(k, v) }
   }
 }
 

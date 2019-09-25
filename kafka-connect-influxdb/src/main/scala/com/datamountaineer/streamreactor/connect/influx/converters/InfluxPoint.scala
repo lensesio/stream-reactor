@@ -38,7 +38,7 @@ object InfluxPoint {
         .flatMap {
           case (tag, v) => Option(tag).flatMap(t => Option(t.getKey)).map(_ => tag -> v).toSeq //TODO: Improve error handling
         }.map {
-        case (tag, _) if tag.getType == Tag.TagType.CONSTANT => (tag.getKey, Some(tag.getValue))
+        case (tag, _) if tag.getType == Tag.TagType.CONSTANT => (tag.getKey, Option(tag.getValue))
         case (tag, path) if tag.getType == Tag.TagType.ALIAS => (tag.getValue, record.field(path).map(_.toString))
         case (tag, path) => (tag.getKey, record.field(path).map(_.toString))
       }.foldLeft(Try(builder))((builder, tag) => {
@@ -59,7 +59,7 @@ object InfluxPoint {
       .getOrElse(Try(TimeUnit.NANOSECONDS -> nanoClock.getEpochNanos))
   }
 
-  private def coerceTimeStamp(value: Any, fieldPath: List[String]): Try[Long] = {
+  private[influx] def coerceTimeStamp(value: Any, fieldPath: Traversable[String]): Try[Long] = {
     value match {
       case b: Byte => Try(b.toLong)
       case s: Short => Try(s.toLong)
