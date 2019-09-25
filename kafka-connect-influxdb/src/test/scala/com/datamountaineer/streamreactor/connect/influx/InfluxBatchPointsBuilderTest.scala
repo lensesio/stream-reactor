@@ -73,7 +73,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val batchPoints = builder.build(Seq(record))
 
-      val points = batchPoints.getPoints
+      val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -137,7 +137,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
 
       val points = builder.build(Seq(record))
-      points.getPoints.size() shouldBe 1
+      points.get.getPoints.size() shouldBe 1
     }
 
     "convert a sink record with a json string payload and tag is left out" in {
@@ -192,7 +192,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val batchPoints = builder.build(Seq(record))
-      val points = batchPoints.getPoints
+      val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -247,7 +247,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val batchPoints = builder.build(Seq(record))
-      val points = batchPoints.getPoints
+      val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -311,7 +311,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val batchPoints = builder.build(Seq(record))
-      val points = batchPoints.getPoints
+      val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -365,9 +365,6 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val topic = "topic1"
       val measurement = "measurement1"
-
-      val before = nanoClock.getEpochNanos
-
       val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
 
@@ -379,7 +376,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val batchPoints = builder.build(Seq(record))
-      val points = batchPoints.getPoints
+      val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -440,9 +437,10 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       )
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
-      intercept[RuntimeException] {
-        builder.build(Seq(record))
-      }
+
+      val result = builder.build(Seq(record))
+      result.isFailure shouldBe true
+      result.failed.get shouldBe a[RuntimeException]
     }
 
     "convert a sink record with a json string payload with fields ignored" in {
@@ -481,7 +479,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val batchPoints = builder.build(Seq(record))
-      val points = batchPoints.getPoints
+      val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -542,7 +540,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val batchPoints = builder.build(Seq(record))
-      val points = batchPoints.getPoints
+      val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -609,7 +607,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val batchPoints = builder.build(Seq(record))
-      val points = batchPoints.getPoints
+      val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -663,7 +661,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val batchPoints = builder.build(Seq(record))
-      val points = batchPoints.getPoints
+      val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -719,7 +717,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val batchPoints = builder.build(Seq(record))
-      val points = batchPoints.getPoints
+      val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe "TERRAGEN"
@@ -775,7 +773,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val batchPoints = builder.build(Seq(record))
-      val points = batchPoints.getPoints
+      val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe "TERRAGEN"
@@ -822,9 +820,8 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       )
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
-      intercept[RuntimeException] {
-        builder.build(Seq(record))
-      }
+      builder.build(Seq(record)).isFailure
+      builder.build(Seq(record)).failed.get shouldBe a[RuntimeException]
     }
 
     "throw an error of if array is present in json since there is no flattening of json for a sink record with string json payload" in {
@@ -859,9 +856,9 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       )
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
-      intercept[RuntimeException] {
-        builder.build(Seq(record))
-      }
+      val result = builder.build(Seq(record))
+      result.isFailure shouldBe true
+      result.failed.get shouldBe a[RuntimeException]
     }
 
     "throw an exception if the timestamp field can't be converted to long for a schemaless sink record" in {
@@ -897,10 +894,9 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       )
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
-
-      intercept[RuntimeException] {
-        builder.build(Seq(record))
-      }
+      val result = builder.build(Seq(record))
+      result.isFailure shouldBe true
+      result.failed.get shouldBe an[IllegalArgumentException]
     }
 
     "convert a schemaless sink record when all fields are selected with the timestamp field within the payload" in {
@@ -937,7 +933,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val batchPoints = builder.build(Seq(record))
-      val points = batchPoints.getPoints
+      val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -999,7 +995,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val pb = builder.build(Seq(record))
-      pb.getPoints.size() shouldBe 1
+      pb.get.getPoints.size() shouldBe 1
     }
 
     "convert a schemaless sink record when all fields are selected with the timestamp field within the payload and tags applied" in {
@@ -1035,7 +1031,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val batchPoints = builder.build(Seq(record))
-      val points = batchPoints.getPoints
+      val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -1096,7 +1092,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
 
       val batchPoints = builder.build(Seq(record))
-      val points = batchPoints.getPoints
+      val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -1156,7 +1152,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
 
       val batchPoints = builder.build(Seq(record))
-      val points = batchPoints.getPoints
+      val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -1214,7 +1210,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val batchPoints = builder.build(Seq(record))
-      val points = batchPoints.getPoints
+      val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -1273,7 +1269,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val batchPoints = builder.build(Seq(record))
-      val points = batchPoints.getPoints
+      val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
@@ -1323,7 +1319,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
       val batchPoints = builder.build(Seq(record))
-      val points = batchPoints.getPoints
+      val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe "dynamic1"
@@ -1372,10 +1368,9 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       )
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
-
-      intercept[RuntimeException] {
-        builder.build(Seq(record))
-      }
+      val result = builder.build(Seq(record))
+      result.isFailure shouldBe true
+      result.failed.get shouldBe a[RuntimeException]
     }
 
     "throw an error of if array is present in the generated map for a schemaless sink record" in {
@@ -1410,10 +1405,9 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       )
 
       val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
-
-      intercept[RuntimeException] {
-        builder.build(Seq(record))
-      }
+      val result = builder.build(Seq(record))
+      result.isFailure shouldBe true
+      result.failed.get shouldBe a[RuntimeException]
     }
 
 

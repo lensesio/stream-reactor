@@ -110,7 +110,7 @@ object ValuesExtractor {
       }
 
       n match {
-        case bn: BinaryNode =>
+        case _: BinaryNode =>
           throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. The path is resolving to a binary node and InfluxDB API doesn't support binary fields for a Point.")
         case _: BooleanNode =>
           checkValidPath()
