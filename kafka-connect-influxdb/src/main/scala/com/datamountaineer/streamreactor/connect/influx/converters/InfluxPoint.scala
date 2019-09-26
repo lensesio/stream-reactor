@@ -15,16 +15,15 @@ import scala.util.{Failure, Try}
 
 object InfluxPoint {
 
-  def build(nanoClock: NanoClock)(record: ParsedKeyValueSinkRecord, details: KcqlDetails): Try[Point] = {
+  def build(nanoClock: NanoClock)(record: ParsedKeyValueSinkRecord, details: KcqlDetails): Try[Point] =
     for {
       (timeUnit, timestamp) <- extractTimeMeasures(nanoClock, record, details)
       measurement = details.dynamicTarget.flatMap(record.field).map(_.toString).getOrElse(details.target)
       pointBuilder = Point.measurement(measurement).time(timestamp, timeUnit)
       point <- addValuesAndTags(pointBuilder, record, details)
     } yield point.build()
-  }
 
-  private def addValuesAndTags(pointBuilder: Point.Builder, record: ParsedKeyValueSinkRecord, details: KcqlDetails): Try[Point.Builder] = {
+  private def addValuesAndTags(pointBuilder: Point.Builder, record: ParsedKeyValueSinkRecord, details: KcqlDetails): Try[Point.Builder] =
     details
       .NonIgnoredFields
       .flatMap {
@@ -51,7 +50,6 @@ object InfluxPoint {
               case (_, None) => builder
             }
           }))
-  }
 
   private def extractTimeMeasures(nanoClock: NanoClock, record: ParsedSinkRecord, details: KcqlDetails): Try[(TimeUnit, Long)] =
     details

@@ -54,6 +54,7 @@ object SinkRecordParser {
   }
 
   def build(record: SinkRecord): Try[ParsedKeyValueSinkRecord] = {
+
     val key = Option(record.keySchema()).map(_.`type`()) match {
       case Some(Schema.Type.STRING) => Try(JsonSinkRecord(JacksonJson.asJson(record.key().asInstanceOf[String])))
       case Some(Schema.Type.STRUCT) => Try(StructSinkRecord(record.key().asInstanceOf[Struct]))
