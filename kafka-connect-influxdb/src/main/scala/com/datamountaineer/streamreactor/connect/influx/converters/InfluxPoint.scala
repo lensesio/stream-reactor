@@ -4,62 +4,64 @@ import java.time.Instant
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
-import com.datamountaineer.kcql.Tag
 import com.datamountaineer.streamreactor.connect.influx.NanoClock
 import com.datamountaineer.streamreactor.connect.influx.converters.SinkRecordParser.{ParsedKeyValueSinkRecord, ParsedSinkRecord}
 import com.datamountaineer.streamreactor.connect.influx.helpers.Util
-import com.datamountaineer.streamreactor.connect.influx.writers.KcqlCache
+import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails
+import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails.{ConstantTag, DynamicTag, Path}
 import org.influxdb.dto.Point
 
 import scala.util.{Failure, Try}
 
 object InfluxPoint {
 
-  def build(nanoClock: NanoClock)(record: ParsedKeyValueSinkRecord, details: KcqlCache): Try[Point] = {
+  def build(nanoClock: NanoClock)(record: ParsedKeyValueSinkRecord, details: KcqlDetails): Try[Point] = {
     for {
       (timeUnit, timestamp) <- extractTimeMeasures(nanoClock, record, details)
-      measurement = details.DynamicTarget.flatMap { fieldPath => record.field(fieldPath).map(_.toString) }.getOrElse(details.kcql.getTarget)
+      measurement = details.dynamicTarget.flatMap(record.field).map(_.toString).getOrElse(details.target)
       pointBuilder = Point.measurement(measurement).time(timestamp, timeUnit)
       point <- addValuesAndTags(pointBuilder, record, details)
     } yield point.build()
   }
 
-  private def addValuesAndTags(pointBuilder: Point.Builder, record: ParsedKeyValueSinkRecord, details: KcqlCache): Try[Point.Builder] = {
-    details.nonIgnoredFields.flatMap {
-      case (_, path) if Util.caseInsensitiveComparison(path, Util.KEY_All_ELEMENTS) => record.keyFields(ignored = details.IgnoredAndAliasFields).map { case (name, value) => name -> Some(value) }
-      case (field, _) if field.getName == "*" => record.valueFields(ignored = details.IgnoredAndAliasFields).map { case (name, value) => name -> Some(value) }
-      case (field, path) => (field.getAlias -> record.field(path)) :: Nil
-    }.foldLeft(Try(pointBuilder))((builder, field) =>
-      builder.flatMap(b => field match {
-        case (key, Some(value)) => writeField(b)(key, value)
-        case (key, _) => Failure(new IllegalArgumentException(s"Property $key is referenced but no value could be found ."))
-      })
-    ).flatMap(builder =>
-      details
-        .tagsAndPaths
-        .flatMap {
-          case (tag, v) => Option(tag).flatMap(t => Option(t.getKey)).map(_ => tag -> v).toSeq //Ignore potential failures downstream
-        }.map {
-        case (tag, _) if tag.getType == Tag.TagType.CONSTANT => (tag.getKey, Option(tag.getValue))
-        case (tag, path) if tag.getType == Tag.TagType.ALIAS => (tag.getValue, record.field(path).map(_.toString))
-        case (tag, path) => (tag.getKey, record.field(path).map(_.toString))
-      }.foldLeft(Try(builder))((builder, tag) => {
-        tag match {
-          case (key, Some(value)) => builder.map(_.tag(key, value))
-          case (_, None) => builder
-        }
-      }))
+  private def addValuesAndTags(pointBuilder: Point.Builder, record: ParsedKeyValueSinkRecord, details: KcqlDetails): Try[Point.Builder] = {
+    details
+      .NonIgnoredFields
+      .flatMap {
+        case (_, path, _) if path.equals(Path(Util.KEY_All_ELEMENTS)) => record.keyFields(ignored = details.IgnoredAndAliasFields).map { case (name, value) => name -> Some(value) }
+        case (field, _, _) if field.value == "*" => record.valueFields(ignored = details.IgnoredAndAliasFields).map { case (name, value) => name -> Some(value) }
+        case (field, path, _) => (field.value -> record.field(path)) :: Nil
+      }
+      .foldLeft(Try(pointBuilder))((builder, field) =>
+        builder.flatMap(b => field match {
+          case (key, Some(value)) => writeField(b)(key, value)
+          case (key, _) => Failure(new IllegalArgumentException(s"Property $key is referenced but no value could be found ."))
+        })
+      )
+      .flatMap(builder =>
+        details
+          .tags
+          .map {
+            case ConstantTag(key, value) => (key.value, Some(value))
+            case DynamicTag(name, path) => (name.value, record.field(path).map(_.toString))
+          }
+          .foldLeft(Try(builder))((builder, tag) => {
+            tag match {
+              case (key, Some(value)) => builder.map(_.tag(key, value))
+              case (_, None) => builder
+            }
+          }))
   }
 
-  private def extractTimeMeasures(nanoClock: NanoClock, record: ParsedSinkRecord, details: KcqlCache): Try[(TimeUnit, Long)] = {
+  private def extractTimeMeasures(nanoClock: NanoClock, record: ParsedSinkRecord, details: KcqlDetails): Try[(TimeUnit, Long)] =
     details
       .timestampField
-      .flatMap(record.field)
-      .map(
-        value => coerceTimeStamp(value, details.timestampField.toList.flatten).map(details.kcql.getTimestampUnit -> _)
-      )
+      .flatMap { path =>
+        record
+          .field(path)
+          .map(coerceTimeStamp(_, path.value).map(details.timestampUnit -> _))
+      }
       .getOrElse(Try(TimeUnit.NANOSECONDS -> nanoClock.getEpochNanos))
-  }
 
   private[influx] def coerceTimeStamp(value: Any, fieldPath: Traversable[String]): Try[Long] = {
     value match {

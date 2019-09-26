@@ -1,54 +1,56 @@
 package com.datamountaineer.streamreactor.connect.influx.converters
 
 import com.datamountaineer.streamreactor.connect.influx.helpers.Util
+import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails.Path
 import com.datamountaineer.streamreactor.connect.influx.writers.ValuesExtractor
 import com.landoop.json.sql.JacksonJson
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.data.{Schema, Struct}
 import com.fasterxml.jackson.databind.JsonNode
+
 import scala.util.Try
 
 object SinkRecordParser {
   type Field = String
 
   trait ParsedSinkRecord {
-    def valueFields(ignored: Set[String]): Seq[(String, Any)]
+    def valueFields(ignored: Set[Path]): Seq[(String, Any)]
 
-    def field(path: Vector[String]): Option[Any]
+    def field(path: Path): Option[Any]
   }
 
   trait ParsedKeyValueSinkRecord extends ParsedSinkRecord {
-    def keyFields(ignored: Set[String]): Seq[(String, Any)]
+    def keyFields(ignored: Set[Path]): Seq[(String, Any)]
   }
 
   private case class JsonSinkRecord(json: JsonNode) extends ParsedSinkRecord {
-    override def valueFields(ignored: Set[String]): Seq[(String, Any)] = ValuesExtractor.extractAllFields(json, ignored)
+    override def valueFields(ignored: Set[Path]): Seq[(String, Any)] = ValuesExtractor.extractAllFields(json, ignored.map(_.value.last))
 
-    override def field(path: Vector[String]): Option[Any] = Option(ValuesExtractor.extract(json, path))
+    override def field(path: Path): Option[Any] = Option(ValuesExtractor.extract(json, path.value))
   }
 
   private case class StructSinkRecord(struct: Struct) extends ParsedSinkRecord {
-    override def valueFields(ignored: Set[String]): Seq[(String, Any)] = ValuesExtractor.extractAllFields(struct, ignored)
+    override def valueFields(ignored: Set[Path]): Seq[(String, Any)] = ValuesExtractor.extractAllFields(struct, ignored.map(_.value.last))
 
-    override def field(path: Vector[String]): Option[Any] = Option(ValuesExtractor.extract(struct, path))
+    override def field(path: Path): Option[Any] = Option(ValuesExtractor.extract(struct, path.value))
   }
 
   private case class MapSinkRecord(map: java.util.Map[String, Any]) extends ParsedSinkRecord {
-    override def valueFields(ignored: Set[String]): Seq[(String, Any)] = ValuesExtractor.extractAllFields(map, ignored)
+    override def valueFields(ignored: Set[Path]): Seq[(String, Any)] = ValuesExtractor.extractAllFields(map, ignored.map(_.value.last))
 
-    override def field(path: Vector[String]): Option[Any] = Option(ValuesExtractor.extract(map, path))
+    override def field(path: Path): Option[Any] = Option(ValuesExtractor.extract(map, path.value))
   }
 
   private case class KeyValueRecord(key: ParsedSinkRecord, value: ParsedSinkRecord) extends ParsedKeyValueSinkRecord {
-    override def valueFields(ignored: Set[String]): Seq[(String, Any)] = value.valueFields(ignored)
+    override def valueFields(ignored: Set[Path]): Seq[(String, Any)] = value.valueFields(ignored)
 
-    override def field(path: Vector[String]): Option[Any] = path.headOption match {
-      case Some(fieldName) if Util.caseInsensitiveComparison(fieldName, Util.KEY_CONSTANT) => key.field(path.tail)
+    override def field(path: Path): Option[Any] = path.value.headOption match {
+      case Some(fieldName) if Util.caseInsensitiveComparison(fieldName, Util.KEY_CONSTANT) => key.field(Path(path.value.tail))
       case Some(_) => value.field(path)
       case None => throw new IllegalArgumentException("Unreachable situation detected. Path should never be empty")
     }
 
-    override def keyFields(ignored: Set[String]): Seq[(String, Any)] = key.valueFields(ignored)
+    override def keyFields(ignored: Set[Path]): Seq[(String, Any)] = key.valueFields(ignored)
   }
 
   def build(record: SinkRecord): Try[ParsedKeyValueSinkRecord] = {
