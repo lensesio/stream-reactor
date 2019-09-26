@@ -104,7 +104,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       val topic = "topic1"
       val measurement = "measurement1"
       val before = nanoClock.getEpochNanos
-      val key = """{"value" : "some_value"}"""
+      val key = """{"value" : "some_value", "some_value" : "another_one"}"""
       val record = new SinkRecord(topic, 0, Schema.STRING_SCHEMA, key, Schema.STRING_SCHEMA, defaultJsonPayload, 0)
 
       val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
@@ -122,7 +122,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       time <= nanoClock.getEpochNanos shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
-      map.size shouldBe 15
+      map.size shouldBe 16
 
       map.get("_id") shouldBe "580151bca6f3a2f0577baaac"
       map.get("index") shouldBe 0
@@ -139,6 +139,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers with MockitoSu
       map.get("latitude") shouldBe "-49.817964"
       map.get("longitude") shouldBe "-141.645812"
       map.get("value") shouldBe "some_value"
+      map.get("some_value") shouldBe "another_one"
 
       val tags = PointMapFieldGetter.tags(point)
       tags shouldBe Map.empty

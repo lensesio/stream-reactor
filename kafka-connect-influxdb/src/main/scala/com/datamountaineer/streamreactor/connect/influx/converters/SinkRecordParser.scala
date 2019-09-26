@@ -43,7 +43,7 @@ object SinkRecordParser {
     override def valueFields(ignored: Set[String]): Seq[(String, Any)] = value.valueFields(ignored)
 
     override def field(path: Vector[String]): Option[Any] = path.headOption match {
-      case Some(fieldName) if fieldName == Util.KEY_CONSTANT => key.field(path.tail)
+      case Some(fieldName) if Util.caseInsensitiveComparison(fieldName, Util.KEY_CONSTANT) => key.field(path.tail)
       case Some(_) => value.field(path)
       case None => throw new IllegalArgumentException("Unreachable situation detected. Path should never be empty")
     }

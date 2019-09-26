@@ -26,13 +26,13 @@ object InfluxPoint {
 
   private def addValuesAndTags(pointBuilder: Point.Builder, record: ParsedKeyValueSinkRecord, details: KcqlCache): Try[Point.Builder] = {
     details.nonIgnoredFields.flatMap {
-      case (field, path) if path == Vector(Util.KEY_CONSTANT, "*") => record.keyFields(ignored = details.IgnoredAndAliasFields).map { case (name, value) => name -> Some(value) }
+      case (_, path) if Util.caseInsensitiveComparison(path, Util.KEY_All_ELEMENTS) => record.keyFields(ignored = details.IgnoredAndAliasFields).map { case (name, value) => name -> Some(value) }
       case (field, _) if field.getName == "*" => record.valueFields(ignored = details.IgnoredAndAliasFields).map { case (name, value) => name -> Some(value) }
       case (field, path) => (field.getAlias -> record.field(path)) :: Nil
     }.foldLeft(Try(pointBuilder))((builder, field) =>
       builder.flatMap(b => field match {
         case (key, Some(value)) => writeField(b)(key, value)
-        case (key, _) => ???
+        case (key, _) => Failure(new IllegalArgumentException(s"Property $key is referenced but no value could be found ."))
       })
     ).flatMap(builder =>
       details
@@ -46,7 +46,7 @@ object InfluxPoint {
       }.foldLeft(Try(builder))((builder, tag) => {
         tag match {
           case (key, Some(value)) => builder.map(_.tag(key, value))
-          case (key, None) => builder
+          case (_, None) => builder
         }
       }))
   }

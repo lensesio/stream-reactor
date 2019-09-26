@@ -10,5 +10,12 @@ object Util {
     case (_, Failure(e)) => Failure(e)
   }
 
+  def caseInsensitiveComparison(a: String, b: String): Boolean = a.toUpperCase == b.toUpperCase
+
+  def caseInsensitiveComparison(a: Seq[String], b: Seq[String]): Boolean = a.map(_.toUpperCase) == b.map(_.toUpperCase)
+
   val KEY_CONSTANT = "_key"
+  val KEY_All_ELEMENTS = Vector(KEY_CONSTANT, "*")
+
+
 }
