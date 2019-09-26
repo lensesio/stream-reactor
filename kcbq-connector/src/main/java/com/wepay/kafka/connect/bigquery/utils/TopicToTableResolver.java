@@ -116,6 +116,13 @@ public class TopicToTableResolver {
     return tableIdsToTopics;
   }
 
+  /**
+   * Return a String specifying table corresponding to topic.
+   *
+   * @param config Config that contains properties for configured patterns.
+   * @param topicName The name of topic for which match is to be found.
+   * @return A String resulting match of table for topic name.
+   */
   private static String getTopicToTableSingleMatch(BigQuerySinkConfig config, String topicName) {
     String match = null;
     String previousPattern = null;
