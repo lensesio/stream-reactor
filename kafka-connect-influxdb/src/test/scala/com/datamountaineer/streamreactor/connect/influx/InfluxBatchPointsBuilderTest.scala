@@ -615,19 +615,13 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers {
       sourceMap.put("latitude", "-49.817964")
       sourceMap.put("longitude", "-141.645812")
 
-      val topic = "topic1"
-      val measurement = "measurement1"
-
-      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-
-      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Seq(
-          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp WITHTAG(abc)")
-        )
+      val f = new Fixture(
+        null,
+        sourceMap,
+        s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp WITHTAG(abc)"
       )
 
-      val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
-      val pb = builder.build(Seq(record))
+      val pb = f.batchPoints
       pb.get.getPoints.size() shouldBe 1
     }
 
@@ -650,18 +644,12 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers {
       sourceMap.put("latitude", "-49.817964")
       sourceMap.put("longitude", "-141.645812")
 
-      val topic = "topic1"
-      val measurement = "measurement1"
-
-      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Seq(
-          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp WITHTAG(xyz=zyx, age)")
-        )
+      val f = new Fixture(
+        null,
+        sourceMap,
+        s"INSERT INTO $measurement SELECT * FROM $topic WITHTIMESTAMP timestamp WITHTAG(xyz=zyx, age)"
       )
-
-      val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
-      val batchPoints = builder.build(Seq(record))
+      val batchPoints = f.batchPoints
       val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
@@ -707,29 +695,20 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers {
       sourceMap.put("latitude", "-49.817964")
       sourceMap.put("longitude", "-141.645812")
 
-      val topic = "topic1"
-      val measurement = "measurement1"
-
-      val before = nanoClock.getEpochNanos
-
-      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-
-      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Seq(
-          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic")
-        )
+      val f = new Fixture(
+        null,
+        sourceMap,
+        s"INSERT INTO $measurement SELECT * FROM $topic"
       )
 
-      val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
-
-      val batchPoints = builder.build(Seq(record))
+      val batchPoints = f.batchPoints
       val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
       val time = PointMapFieldGetter.time(point)
-      before <= time shouldBe true
-      time <= nanoClock.getEpochNanos shouldBe true
+      f.before should be <= time
+      time should be <= nanoClock.getEpochNanos
 
       val map = PointMapFieldGetter.fields(point)
       map.size shouldBe 14
@@ -767,28 +746,19 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers {
       sourceMap.put("latitude", "-49.817964")
       sourceMap.put("longitude", "-141.645812")
 
-      val topic = "topic1"
-      val measurement = "measurement1"
-
-      val before = nanoClock.getEpochNanos
-
-      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-
-      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Seq(
-          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic IGNORE longitude,latitude")
-        )
+      val f = new Fixture(
+        null,
+        sourceMap,
+        s"INSERT INTO $measurement SELECT * FROM $topic IGNORE longitude,latitude"
       )
 
-      val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
-
-      val batchPoints = builder.build(Seq(record))
+      val batchPoints = f.batchPoints
       val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
       val time = PointMapFieldGetter.time(point)
-      before <= time shouldBe true
+      f.before <= time shouldBe true
       time <= nanoClock.getEpochNanos shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
@@ -826,27 +796,19 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers {
       sourceMap.put("latitude", "-49.817964")
       sourceMap.put("longitude", "-141.645812")
 
-      val topic = "topic1"
-      val measurement = "measurement1"
-
-      val before = nanoClock.getEpochNanos
-
-      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-
-      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Seq(
-          Kcql.parse(s"INSERT INTO $measurement SELECT *, name as this_is_renamed FROM $topic")
-        )
+      val f = new Fixture(
+        null,
+        sourceMap,
+        s"INSERT INTO $measurement SELECT *, name as this_is_renamed FROM $topic"
       )
 
-      val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
-      val batchPoints = builder.build(Seq(record))
+      val batchPoints = f.batchPoints
       val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
       val time = PointMapFieldGetter.time(point)
-      before <= time shouldBe true
+      f.before <= time shouldBe true
       time <= nanoClock.getEpochNanos shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
@@ -885,27 +847,19 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers {
       sourceMap.put("latitude", "-49.817964")
       sourceMap.put("longitude", "-141.645812")
 
-      val topic = "topic1"
-      val measurement = "measurement1"
-
-      val before = nanoClock.getEpochNanos
-
-      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-
-      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Seq(
-          Kcql.parse(s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic")
-        )
+      val f = new Fixture(
+        null,
+        sourceMap,
+        s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic"
       )
 
-      val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
-      val batchPoints = builder.build(Seq(record))
+      val batchPoints = f.batchPoints
       val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe measurement
       val time = PointMapFieldGetter.time(point)
-      before <= time shouldBe true
+      f.before <= time shouldBe true
       time <= nanoClock.getEpochNanos shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
@@ -935,27 +889,18 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers {
       sourceMap.put("latitude", "-49.817964")
       sourceMap.put("longitude", "-141.645812")
 
-      val topic = "topic1"
-      val measurement = "measurement1"
-
-      val before = nanoClock.getEpochNanos
-
-      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-
-      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Seq(
-          Kcql.parse(s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic WITHTARGET=guid")
-        )
+      val f = new Fixture(
+        null,
+        sourceMap,
+        s"INSERT INTO $measurement SELECT _id, name as this_is_renamed, email FROM $topic WITHTARGET=guid"
       )
-
-      val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
-      val batchPoints = builder.build(Seq(record))
+      val batchPoints = f.batchPoints
       val points = batchPoints.get.getPoints
       points.size() shouldBe 1
       val point = points.get(0)
       PointMapFieldGetter.measurement(point) shouldBe "dynamic1"
       val time = PointMapFieldGetter.time(point)
-      before <= time shouldBe true
+      f.before <= time shouldBe true
       time <= nanoClock.getEpochNanos shouldBe true
 
       val map = PointMapFieldGetter.fields(point)
@@ -984,22 +929,12 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers {
       sourceMap.put("latitude", "-49.817964")
       sourceMap.put("longitude", "-141.645812")
       sourceMap.put("NOT_HANDLED", new util.HashMap[String, Any]())
-
-      val topic = "topic1"
-      val measurement = "measurement1"
-
-      val before = nanoClock.getEpochNanos
-
-      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-
-      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Seq(
-          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic")
-        )
+      val f = new Fixture(
+        null,
+        sourceMap,
+        s"INSERT INTO $measurement SELECT * FROM $topic"
       )
-
-      val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
-      val result = builder.build(Seq(record))
+      val result = f.batchPoints
       result shouldBe 'Failure
       result.failed.get shouldBe a[RuntimeException]
     }
@@ -1022,23 +957,168 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers {
       sourceMap.put("longitude", "-141.645812")
       sourceMap.put("NOT_HANDLED", new util.ArrayList[String])
 
-      val topic = "topic1"
-      val measurement = "measurement1"
-
-      val record = new SinkRecord(topic, 0, null, null, null, sourceMap, 0)
-
-      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
-        Seq(
-          Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic")
-        )
+      val f = new Fixture(
+        null,
+        sourceMap,
+        s"INSERT INTO $measurement SELECT * FROM $topic"
       )
-
-      val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
-      val result = builder.build(Seq(record))
+      val result = f.batchPoints
       result shouldBe 'Failure
       result.failed.get shouldBe a[RuntimeException]
     }
 
+    "allow specifying key fields" in {
+      val sourceMap = new util.HashMap[String, Any]()
+      sourceMap.put("_id", "580151bca6f3a2f0577baaac")
+      sourceMap.put("index", 0)
+      sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
+
+      val f = new Fixture(
+        null,
+        new util.HashMap[String, Any](),
+        s"INSERT INTO $measurement SELECT _key.* FROM $topic",
+        null,
+        sourceMap
+      )
+
+      val batchPoints = f.batchPoints
+      val points = batchPoints.get.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      val time = PointMapFieldGetter.time(point)
+      f.before <= time shouldBe true
+      time <= nanoClock.getEpochNanos shouldBe true
+
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 3
+
+      map("_id") shouldBe "580151bca6f3a2f0577baaac"
+      map("index") shouldBe 0
+      map("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
+    }
+
+
+    "allow specifying key fields with alias" in {
+      val sourceMap = new util.HashMap[String, Any]()
+      sourceMap.put("_id", "580151bca6f3a2f0577baaac")
+      sourceMap.put("index", 0)
+      sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
+
+      val f = new Fixture(
+        null,
+        new util.HashMap[String, Any](),
+        s"INSERT INTO $measurement SELECT _key.*, _key.index as renamed FROM $topic",
+        null,
+        sourceMap
+      )
+
+      val batchPoints = f.batchPoints
+      val points = batchPoints.get.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      val time = PointMapFieldGetter.time(point)
+      f.before <= time shouldBe true
+      time <= nanoClock.getEpochNanos shouldBe true
+
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 3
+
+      map("_id") shouldBe "580151bca6f3a2f0577baaac"
+      map("renamed") shouldBe 0
+      map("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
+      map.get("index") shouldBe 'Empty
+    }
+
+    "correctly select the field if body and key have the same field name" in {
+      val keyMap = new util.HashMap[String, Any]()
+      keyMap.put("_id", "580151bca6f3a2f0577baaac")
+      keyMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
+      val valueMap = new util.HashMap[String, Any]()
+      valueMap.put("_id", "something_else")
+      valueMap.put("index", 0)
+
+      val f = new Fixture(
+        null,
+        valueMap,
+        s"INSERT INTO $measurement SELECT  _key._id, index FROM $topic",
+        null,
+        keyMap
+      )
+
+      val batchPoints = f.batchPoints
+      val points = batchPoints.get.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      val time = PointMapFieldGetter.time(point)
+      f.before <= time shouldBe true
+      time <= nanoClock.getEpochNanos shouldBe true
+
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 2
+
+      map("_id") shouldBe "580151bca6f3a2f0577baaac"
+      map("index") shouldBe 0
+    }
+
+    "allow ignoring key fields" in {
+      val sourceMap = new util.HashMap[String, Any]()
+      sourceMap.put("_id", "580151bca6f3a2f0577baaac")
+      sourceMap.put("index", 0)
+      sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
+
+      val f = new Fixture(
+        null,
+        new util.HashMap[String, Any](),
+        s"INSERT INTO $measurement SELECT _key.* FROM $topic IGNORE index",
+        null,
+        sourceMap
+      )
+
+      val batchPoints = f.batchPoints
+      val points = batchPoints.get.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      val time = PointMapFieldGetter.time(point)
+      f.before <= time shouldBe true
+      time <= nanoClock.getEpochNanos shouldBe true
+
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 2
+
+      map("_id") shouldBe "580151bca6f3a2f0577baaac"
+      map("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
+      map.get("index") shouldBe 'Empty
+    }
+
+    "allow ignoring fully qualified key fields" in {
+      val sourceMap = new util.HashMap[String, Any]()
+      sourceMap.put("_id", "580151bca6f3a2f0577baaac")
+      sourceMap.put("index", 0)
+      sourceMap.put("guid", "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba")
+
+      val f = new Fixture(
+        null,
+        new util.HashMap[String, Any](),
+        s"INSERT INTO $measurement SELECT _key.* FROM $topic IGNORE _key.index",
+        null,
+        sourceMap
+      )
+
+      val batchPoints = f.batchPoints
+      val points = batchPoints.get.getPoints
+      points.size() shouldBe 1
+      val point = points.get(0)
+      val time = PointMapFieldGetter.time(point)
+      f.before <= time shouldBe true
+      time <= nanoClock.getEpochNanos shouldBe true
+
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 2
+
+      map("_id") shouldBe "580151bca6f3a2f0577baaac"
+      map("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
+      map.get("index") shouldBe 'Empty
+    }
 
     object PointMapFieldGetter {
       def fields(point: Point): Map[String, Any] = extractField("fields", point).asInstanceOf[java.util.Map[String, Any]].toMap
