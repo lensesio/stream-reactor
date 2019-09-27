@@ -188,7 +188,7 @@ class ValuesExtractorMapTest extends WordSpec with Matchers {
 
       payload.put("double", 1.56937031387E9)
 
-      TimestampValueCoerce(ValuesExtractor.extract(payload, Vector("double")))(Vector("double")) shouldBe 1569370313870L
+      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, Vector("double")),Vector("double")) shouldBe Success(1569370313870L)
 
     }
 
