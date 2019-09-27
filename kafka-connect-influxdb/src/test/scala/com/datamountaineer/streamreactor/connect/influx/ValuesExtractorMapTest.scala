@@ -16,12 +16,15 @@
 
 package com.datamountaineer.streamreactor.connect.influx
 
+import com.datamountaineer.streamreactor.connect.influx.converters.InfluxPoint
 import com.datamountaineer.streamreactor.connect.influx.data.{Foo, FooInner}
-import com.datamountaineer.streamreactor.connect.influx.writers.{TimestampValueCoerce, ValuesExtractor}
+import com.datamountaineer.streamreactor.connect.influx.writers.ValuesExtractor
 import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.{Matchers, WordSpec}
+
+import scala.util.{Success, Try}
 
 class ValuesExtractorMapTest extends WordSpec with Matchers {
   "ValuesExtractor" should {
@@ -59,11 +62,10 @@ class ValuesExtractorMapTest extends WordSpec with Matchers {
       payload.put("lastName", "Smith")
       payload.put("age", 30)
 
-
-      intercept[IllegalArgumentException] {
-        implicit val path = Vector("ts")
-        TimestampValueCoerce(ValuesExtractor.extract(payload, path))
-      }
+      val path = Vector("ts")
+      val result = InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, path), path)
+      result shouldBe 'Failure
+      result.failed.get shouldBe a[IllegalArgumentException]
     }
 
 
@@ -172,12 +174,12 @@ class ValuesExtractorMapTest extends WordSpec with Matchers {
       payload.put("millis", "2017-01-01T00:00:00.123Z")
       payload.put("bad", "not a time")
 
-      TimestampValueCoerce(ValuesExtractor.extract(payload, Vector("good")))(Vector("good")) shouldBe 1483228800000L
-      TimestampValueCoerce(ValuesExtractor.extract(payload, Vector("millis")))(Vector("millis")) shouldBe 1483228800123L
+      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, Vector("good")), Vector("good")) shouldBe Success(1483228800000L)
+      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, Vector("millis")), Vector("millis")) shouldBe Success(1483228800123L)
 
-      intercept[IllegalArgumentException] {
-        TimestampValueCoerce(ValuesExtractor.extract(payload, Vector("bad")))(Vector("bad"))
-      }
+      val result = InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, Vector("bad")), Vector("bad"))
+      result shouldBe 'Failure
+      result.failed.get shouldBe a[IllegalArgumentException]
     }
 
     "assume unix timestamp in seconds if type is double and coerce to Long in milliseconds" in {
@@ -186,26 +188,20 @@ class ValuesExtractorMapTest extends WordSpec with Matchers {
 
       payload.put("double", 1.56937031387E9)
 
-      TimestampValueCoerce(ValuesExtractor.extract(payload, Vector("double")))(Vector("double")) shouldBe 1569370313870L
+      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(payload, Vector("double")),Vector("double")) shouldBe Success(1569370313870L)
 
     }
 
     "throw an excception if a field is in bytes" in {
-      val schema = SchemaBuilder.struct().name("com.example.Person")
-        .field("firstName", Schema.STRING_SCHEMA)
-        .field("bibble", Schema.BYTES_SCHEMA)
-        .field("age", Schema.INT32_SCHEMA)
-        .field("threshold", Schema.OPTIONAL_FLOAT64_SCHEMA).build()
-
-
       val payload = new java.util.HashMap[String, Any]()
       payload.put("firstName", "Alex")
       payload.put("bibble", Array(1.toByte, 121.toByte, -111.toByte))
       payload.put("age", 30)
 
-      intercept[RuntimeException] {
-        TimestampValueCoerce(ValuesExtractor.extract(payload, Vector("bibble")))(Vector("bibble"))
-      }
+      val result = Try(ValuesExtractor.extract(payload, Vector("bibble")), Vector("bibble"))
+      result shouldBe 'Failure
+      result.failed.get shouldBe a[IllegalArgumentException]
+
     }
   }
 }

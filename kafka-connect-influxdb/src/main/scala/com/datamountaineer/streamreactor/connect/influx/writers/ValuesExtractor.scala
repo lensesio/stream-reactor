@@ -60,49 +60,15 @@ object ValuesExtractor {
   }
 
   /**
-    * Extracts all the keys and values from the source json. It will ignore the fields present in the ignored collection
-    *
-    * @param node     -  The source json to extract all the key and values. Only ObjectNode is accepted - those are the ones accepting fields
-    * @param ignored  - A collection of keys to ignore
-    * @param callback - The function to call for each Field-Value tuple
-    * @return Throws [[IllegalArgumentException]] if any of the values are not primitives
-    */
-  def extractAllFieldsCallback(node: JsonNode, ignored: Set[String], callback: (String, Any) => Unit): Unit = {
-    node match {
-      case o: ObjectNode =>
-        o.fields().filter(p => !ignored.contains(p.getKey))
-          .foreach { kvp =>
-            val value = kvp.getValue match {
-              case b: BooleanNode => b.booleanValue()
-              case i: BigIntegerNode => i.bigIntegerValue()
-              case d: DecimalNode => d.decimalValue()
-              case d: DoubleNode => d.doubleValue()
-              case f: FloatNode => f.floatValue()
-              case i: IntNode => i.intValue()
-              case l: LongNode => l.longValue()
-              case s: ShortNode => s.shortValue()
-              case t: TextNode => t.textValue()
-              case _: NullNode => null
-              case _: MissingNode => null
-              case other => throw new IllegalArgumentException(s"You can't select all fields from the Kafka message because ${kvp.getKey} resolves to a complex type:${Option(other).map(_.getClass.getCanonicalName).orNull})")
-            }
-            callback(kvp.getKey, value)
-
-          }
-      case other => throw new IllegalArgumentException(s"You can't select all fields from the Kafka message because the incoming message resolves to a not allowed type:${Option(other).map(_.getClass.getCanonicalName).orNull})")
-    }
-  }
-
-  /**
     * Extracts the value for the given field path from the specified Json
     *
     * @param node      - The Json to extract the field value
     * @param fieldPath - The path to the field to get the value for.
     * @return
     */
-  def extract(node: JsonNode, fieldPath: Vector[String]): Any = {
+  def extract(node: JsonNode, fieldPath: Seq[String]): Any = {
     @tailrec
-    def innerExtract(n: JsonNode, path: Vector[String]): Any = {
+    def innerExtract(n: JsonNode, path: Seq[String]): Any = {
       def checkValidPath() = {
         if (path.nonEmpty) {
           throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. It doesn't resolve to a primitive field")
@@ -110,7 +76,7 @@ object ValuesExtractor {
       }
 
       n match {
-        case bn: BinaryNode =>
+        case _: BinaryNode =>
           throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. The path is resolving to a binary node and InfluxDB API doesn't support binary fields for a Point.")
         case _: BooleanNode =>
           checkValidPath()
@@ -231,66 +197,6 @@ object ValuesExtractor {
       }
   }
 
-  /**
-    * Extracts all the fields and values from the source struct. It will ignore the fields present in the ignored collection
-    *
-    * @param struct   -  An instance of Kafka Connect [[Struct]] json to extract all the fields and values from. If the fields resolve to Struct/Map/Array and error is thrown
-    * @param ignored  - A collection of keys to ignore
-    * @param callback -The  function to call when a Field-Value pair is identified
-    * @return Throws [[IllegalArgumentException]] if any of the values are not primitives
-    */
-  def extractAllFieldsCallback(struct: Struct, ignored: Set[String], callback: (String, Any) => Unit): Unit = {
-    struct.schema().fields
-      .filter(f => !ignored.contains(f.name()))
-      .foreach { field =>
-        val value = struct.get(field)
-        val actualValue = Option(field.schema().name()).collect {
-          case Decimal.LOGICAL_NAME =>
-            value match {
-              case bd: BigDecimal => bd
-              case array: Array[Byte] => Decimal.toLogical(field.schema, value.asInstanceOf[Array[Byte]])
-
-            }
-          case Date.LOGICAL_NAME =>
-            value.asInstanceOf[Any] match {
-              case d: java.util.Date => d
-              case i: Int => Date.toLogical(field.schema, i)
-              case _ => throw new IllegalArgumentException(s"Can't convert $value to Date for schema:${field.schema().`type`()}")
-            }
-          case Time.LOGICAL_NAME =>
-            value.asInstanceOf[Any] match {
-              case i: Int => Time.toLogical(field.schema, value.asInstanceOf[Int])
-              case d: java.util.Date => d
-              case _ => throw new IllegalArgumentException(s"Can't convert $value to Date for schema:${field.schema().`type`()}")
-            }
-          case Timestamp.LOGICAL_NAME =>
-            value.asInstanceOf[Any] match {
-              case l: Long => Timestamp.toLogical(field.schema, l)
-              case d: java.util.Date => d
-              case _ => throw new IllegalArgumentException(s"Can't convert $value to Date for schema:${field.schema().`type`()}")
-            }
-        }.getOrElse {
-          field.schema().`type`() match {
-            case Schema.Type.BOOLEAN |
-                 Schema.Type.BYTES |
-                 Schema.Type.FLOAT32 |
-                 Schema.Type.FLOAT64 |
-                 Schema.Type.INT8 |
-                 Schema.Type.INT16 |
-                 Schema.Type.INT32 |
-                 Schema.Type.INT64 |
-                 Schema.Type.STRING |
-                 Schema.Type.ARRAY => value
-
-            case other =>
-              throw new IllegalArgumentException(s"You can't select * from the Kafka Message. Field:'${field.name()}' resolves to a Schema '$other' which will end up with a type not supported by InfluxDB API.")
-
-          }
-        }
-        callback(field.name(), actualValue)
-      }
-  }
-
 
   /**
     * Extracts the value for the given field path from the a Kafka Connect Struct
@@ -299,9 +205,9 @@ object ValuesExtractor {
     * @param fieldPath - The path to the field to get the value for.
     * @return
     */
-  def extract(struct: Struct, fieldPath: Vector[String]): Any = {
+  def extract(struct: Struct, fieldPath: Seq[String]): Any = {
     // @tailrec
-    def innerExtract(field: Field, value: AnyRef, path: Vector[String]): Any = {
+    def innerExtract(field: Field, value: AnyRef, path: Seq[String]): Any = {
       def checkValidPath() = {
         if (path.nonEmpty) {
           throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. It doesn't resolve to a primitive field")
@@ -317,7 +223,7 @@ object ValuesExtractor {
               case bd: BigDecimal =>
                 checkValidPath()
                 bd
-              case bd: java.math.BigDecimal=>
+              case bd: java.math.BigDecimal =>
                 checkValidPath()
                 bd
               case array: Array[Byte] =>
@@ -450,45 +356,15 @@ object ValuesExtractor {
   }
 
   /**
-    * Extracts all the keys and values from the input map. It will ignore the keys present in the ignored collection
-    *
-    * @param map      -  The source map to extract all the key and values
-    * @param ignored  - A collection of keys to ignore
-    * @param callback - the function to call for a pair of Field->Value
-    * @return Throws [[IllegalArgumentException]] if any of the values are not primitives
-    */
-  def extractAllFieldsCallback(map: java.util.Map[String, Any], ignored: Set[String], callback: (String, Any) => Unit): Unit = {
-    map.filter(p => !ignored.contains(p._1) && p._2 != null)
-      .foreach { case (k, value) =>
-        value match {
-          case _: Long |
-               _: Int |
-               _: BigInt |
-               _: Byte |
-               _: Short |
-               _: Double |
-               _: Float |
-               _: Boolean |
-               _: java.math.BigDecimal |
-               _: String |
-               _: BigDecimal => callback(k, value)
-
-          case other =>
-            throw new IllegalArgumentException(s"You can't select all the fields because '$k' is resolving to a type: '${other.getClass.getCanonicalName}' which is not supported by InfluxDB API")
-        }
-      }
-  }
-
-  /**
     * Extracts the value for the given field path from the specified map.
     *
     * @param map       - The map to extract the field value
     * @param fieldPath - The path to the field to get the value for.
     * @return
     */
-  def extract(map: java.util.Map[String, Any], fieldPath: Vector[String]): Any = {
+  def extract(map: java.util.Map[String, Any], fieldPath: Seq[String]): Any = {
     @tailrec
-    def innerExtract(value: Any, path: Vector[String]): Any = {
+    def innerExtract(value: Any, path: Seq[String]): Any = {
       def checkValidPath() = {
         if (path.nonEmpty) {
           throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. It doesn't resolve to a primitive field")

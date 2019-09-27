@@ -16,12 +16,15 @@
 
 package com.datamountaineer.streamreactor.connect.influx
 
+import com.datamountaineer.streamreactor.connect.influx.converters.InfluxPoint
 import com.datamountaineer.streamreactor.connect.influx.data.{Foo, FooInner}
-import com.datamountaineer.streamreactor.connect.influx.writers.{TimestampValueCoerce, ValuesExtractor}
+import com.datamountaineer.streamreactor.connect.influx.writers.ValuesExtractor
 import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.{Matchers, WordSpec}
+
+import scala.util.{Success, Try}
 
 class ValuesExtractorStructTest extends WordSpec with Matchers {
   "ValuesExtractor" should {
@@ -75,10 +78,12 @@ class ValuesExtractorStructTest extends WordSpec with Matchers {
         .put("lastName", "Smith")
         .put("age", 30)
 
-      intercept[IllegalArgumentException] {
-        implicit val path = Vector("ts")
-        TimestampValueCoerce(ValuesExtractor.extract(struct, path))
-      }
+      val path = Vector("ts")
+      val result = Try(ValuesExtractor.extract(struct, path))
+      result shouldBe 'Failure
+      result.failed.get shouldBe a[IllegalArgumentException]
+
+
     }
 
 
@@ -199,12 +204,13 @@ class ValuesExtractorStructTest extends WordSpec with Matchers {
         .put("millis", "2017-01-01T00:00:00.123Z")
         .put("bad", "not a time")
 
-      TimestampValueCoerce(ValuesExtractor.extract(struct, Vector("good")))(Vector("good")) shouldBe 1483228800000L
-      TimestampValueCoerce(ValuesExtractor.extract(struct, Vector("millis")))(Vector("millis")) shouldBe 1483228800123L
+      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(struct, Vector("good")), Vector("good")) shouldBe Success(1483228800000L)
+      InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(struct, Vector("millis")), Vector("millis")) shouldBe Success(1483228800123L)
 
-      intercept[IllegalArgumentException] {
-        TimestampValueCoerce(ValuesExtractor.extract(struct, Vector("bad")))(Vector("bad"))
-      }
+      val path = Vector("bad")
+      val result = InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(struct, Vector("bad")), path)
+      result shouldBe 'Failure
+      result.failed.get shouldBe a[IllegalArgumentException]
     }
 
     "throw an excception if a field is in bytes" in {
@@ -219,9 +225,9 @@ class ValuesExtractorStructTest extends WordSpec with Matchers {
         .put("bibble", Array(1.toByte, 121.toByte, -111.toByte))
         .put("age", 30)
 
-      intercept[RuntimeException] {
-        TimestampValueCoerce(ValuesExtractor.extract(struct, Vector("bibble")))(Vector("bibble"))
-      }
+      val result = InfluxPoint.coerceTimeStamp(ValuesExtractor.extract(struct, Vector("bibble")), Vector("bibble"))
+      result shouldBe 'Failure
+      result.failed.get shouldBe a[IllegalArgumentException]
     }
   }
 }
