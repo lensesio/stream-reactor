@@ -434,6 +434,22 @@ public class BigQuerySinkConfig extends AbstractConfig {
     return matches;
   }
 
+  /**
+   * Return a String detailing which BigQuery dataset topic should write to.
+   *
+   * @param topicName The name of the topic for which dataset needs to be fetched.
+   * @return A String associating Kafka topic name to BigQuery dataset.
+   */
+  public String getTopicToDataset(String topicName) {
+    // Do not check for missing key in map as default empty map shall be returned.
+    return getSingleMatches(
+        getSinglePatterns(DATASETS_CONFIG),
+        Collections.singletonList(topicName),
+        TOPICS_CONFIG,
+        DATASETS_CONFIG
+    ).get(topicName);
+  }
+
 
   /**
    * Return a Map detailing which BigQuery dataset each topic should write to.
