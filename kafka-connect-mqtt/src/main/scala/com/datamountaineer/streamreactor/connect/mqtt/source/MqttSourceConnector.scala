@@ -53,7 +53,13 @@ class MqttSourceConnector extends SourceConnector with StrictLogging {
     } else {
       val groups = kcql.length / maxTasks + kcql.length % maxTasks
 
-      settings.kcql.grouped(groups)
+      // If the option is enabled, copy every KCQL instruction with a shared subscription to every tasks, otherwise
+      // the shared subscriptions are distributed as every other instructions.
+      val (replicated, distributed) = if (settings.replicateShared) kcql.partition(shouldReplicate) else (Array[String](), kcql)
+      val configs = Array.fill(maxTasks)(replicated)
+        .zipAll(distributed.grouped(groups).toList, Array[String](), Array[String]())
+        .map (z => z._2 ++ z._1)
+        .filter(_.nonEmpty)
         .zipWithIndex
         .map { case (p, index) =>
           val map = settings.copy(kcql = p, clientId = settings.clientId + "-" + index).asMap()
@@ -63,8 +69,18 @@ class MqttSourceConnector extends SourceConnector with StrictLogging {
             .foreach { case (k, v) => map.put(k, v) }
           map
         }
-        .toList.asJava
+      configs.toList.asJava
     }
+  }
+
+  /**
+    * Indicate if an instruction should be replicated to every tasks
+    * @param instruction A KCQL instruction
+    * @return true if the instruction should be replicated and false if
+    *         the instruction should be given to only one task
+    */
+  def shouldReplicate(instruction: String): Boolean = {
+    instruction.contains("$share/")
   }
 
   /**
