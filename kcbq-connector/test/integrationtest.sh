@@ -33,7 +33,8 @@ YELLOW='\033[1;33m'
 
 usage() {
   echo -e "usage: $0\n" \
-       "[-k|--key-file <JSON key file>] (path must be absolute; relative paths will not work)\n" \
+       "[-k|--key-file <JSON key file or JSON key string>]\n" \
+       "[-k|--key-source <JSON or FILE>] (path must be absolute; relative paths will not work)\n" \
        "[-p|--project <BigQuery project>]\n" \
        "[-d|--dataset <BigQuery project>]\n" \
        "[-b|--bucket <cloud Storage bucket>\n]" \
@@ -102,6 +103,7 @@ KCBQ_TEST_PROJECT=${KCBQ_TEST_PROJECT:-$project}
 KCBQ_TEST_DATASET=${KCBQ_TEST_DATASET:-$dataset}
 KCBQ_TEST_BUCKET=${KCBQ_TEST_BUCKET:-$bucket}
 KCBQ_TEST_FOLDER=${KCBQ_TEST_FOLDER:-$folder}
+KCBQ_TEST_KEYSOURCE=${KCBQ_TEST_KEYSOURCE:-$keysource}
 
 # Capture any command line flags
 while [[ $# -gt 0 ]]; do
@@ -134,6 +136,11 @@ while [[ $# -gt 0 ]]; do
     -h|--help|'-?')
         usage 0
         ;;
+    -kf|--key-source)
+            [[ -z "$2" ]] && { error "key filename must follow $1 flag"; usage 1; }
+            shift
+            KCBQ_TEST_KEYSOURCE="$1"
+            ;;
     *)
         error "unrecognized option: '$1'"; usage 1
         ;;
@@ -241,6 +248,7 @@ done
     -Pkcbq_test_dataset="$KCBQ_TEST_DATASET" \
     -Pkcbq_test_tables="test_tables" \
     -Pkcbq_test_bucket="$KCBQ_TEST_BUCKET" \
+    -Pkcbq_test_keysource="$KCBQ_TEST_KEYSOURCE" \
     integrationTestPrep
 
 ####################################################################################################
@@ -297,5 +305,6 @@ echo "project=$KCBQ_TEST_PROJECT" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
 echo "dataset=$KCBQ_TEST_DATASET" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
 echo "bucket=$KCBQ_TEST_BUCKET" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
 echo "folder=$KCBQ_TEST_FOLDER" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
+echo "keysource=$KCBQ_TEST_KEYSOURCE" > "$INTEGRATION_TEST_PROPERTIES_FILE"
 
 "$GRADLEW" -p "$BASE_DIR/.." cleanIntegrationTest integrationTest

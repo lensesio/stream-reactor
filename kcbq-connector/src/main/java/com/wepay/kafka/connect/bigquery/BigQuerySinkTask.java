@@ -232,8 +232,9 @@ public class BigQuerySinkTask extends SinkTask {
       return testBigQuery;
     }
     String projectName = config.getString(config.PROJECT_CONFIG);
-    String keyFilename = config.getString(config.KEYFILE_CONFIG);
-    return new BigQueryHelper().connect(projectName, keyFilename);
+    String keyFile = config.getString(config.KEYFILE_CONFIG);
+    String keySource = config.getString(config.KEY_SOURCE_CONFIG);
+    return new BigQueryHelper().setKeySource(keySource).connect(projectName, keyFile);
   }
 
   private SchemaManager getSchemaManager(BigQuery bigQuery) {
@@ -263,8 +264,10 @@ public class BigQuerySinkTask extends SinkTask {
       return testGcs;
     }
     String projectName = config.getString(config.PROJECT_CONFIG);
-    String keyFilename = config.getString(config.KEYFILE_CONFIG);
-    return new GCSBuilder(projectName).setKeyFileName(keyFilename).build();
+    String key = config.getString(config.KEYFILE_CONFIG);
+    String keySource = config.getString(config.KEY_SOURCE_CONFIG);
+    return new GCSBuilder(projectName).setKey(key).setKeySource(keySource).build();
+
   }
 
   private GCSToBQWriter getGcsWriter() {

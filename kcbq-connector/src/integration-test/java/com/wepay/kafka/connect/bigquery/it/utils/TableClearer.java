@@ -27,15 +27,20 @@ import org.slf4j.LoggerFactory;
 
 public class TableClearer {
   private static final Logger logger = LoggerFactory.getLogger(TableClearer.class);
+  private static String keySource;
+
 
   /**
    * Clears tables in the given project and dataset, using a provided JSON service account key.
    */
   public static void main(String[] args) {
-    if (args.length < 4) {
+    if (args.length < 5) {
       usage();
     }
-    BigQuery bigQuery = new BigQueryHelper().connect(args[1], args[0]);
+    if (args.length == 5) {
+      keySource = args[4];
+    }
+    BigQuery bigQuery = new BigQueryHelper().setKeySource(keySource).connect(args[1], args[0]);
     for (int i = 3; i < args.length; i++) {
       if (bigQuery.delete(args[2], args[i])) {
         logger.info("Table {} in dataset {} deleted successfully", args[i], args[2]);

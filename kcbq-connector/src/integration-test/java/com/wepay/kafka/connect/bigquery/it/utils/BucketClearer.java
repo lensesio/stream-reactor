@@ -28,16 +28,19 @@ import org.slf4j.LoggerFactory;
 public class BucketClearer {
 
   private static final Logger logger = LoggerFactory.getLogger(BucketClearer.class);
+  private static String keySource;
 
   /**
    * Clears tables in the given project and dataset, using a provided JSON service account key.
    */
   public static void main(String[] args) {
-    if (args.length < 3) {
+    if (args.length < 4) {
       usage();
     }
-
-    Storage gcs = new GCSBuilder(args[1]).setKeyFileName(args[0]).build();
+    if (args.length == 4) {
+      keySource = args[3];
+    }
+    Storage gcs = new GCSBuilder(args[1]).setKey(args[0]).setKeySource(keySource).build();
 
     // if bucket exists, delete it.
     String bucketName = args[2];

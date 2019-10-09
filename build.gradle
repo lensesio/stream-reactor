@@ -152,6 +152,7 @@ project(':kcbq-connector') {
         args findProperty('kcbq_test_keyfile') ?: ''
         args findProperty('kcbq_test_project') ?: ''
         args findProperty('kcbq_test_dataset') ?: ''
+        args findProperty('kcbq_test_keysource') ?: ''
         if (findProperty('kcbq_test_tables') != null)
             args findProperty('kcbq_test_tables').split(' ')
     }
@@ -162,6 +163,7 @@ project(':kcbq-connector') {
         args findProperty('kcbq_test_keyfile') ?: ''
         args findProperty('kcbq_test_project') ?: ''
         args findProperty('kcbq_test_bucket') ?: ''
+        args findProperty('kcbq_test_keysource') ?: ''
     }
 
     task integrationTest(type: Test) {

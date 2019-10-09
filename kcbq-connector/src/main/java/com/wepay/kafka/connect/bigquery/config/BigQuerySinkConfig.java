@@ -132,6 +132,15 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final String KEYFILE_DOC =
       "The file containing a JSON key with BigQuery service account credentials";
 
+  public static final String KEY_SOURCE_CONFIG =                "keySource";
+  private static final ConfigDef.Type KEY_SOURCE_TYPE =         ConfigDef.Type.STRING;
+  public static final String KEY_SOURCE_DEFAULT =               "FILE";
+  private static final ConfigDef.Validator KEY_SOURCE_VALIDATOR =
+          ConfigDef.ValidString.in("FILE", "JSON");
+  private static final ConfigDef.Importance KEY_SOURCE_IMPORTANCE = ConfigDef.Importance.MEDIUM;
+  private static final String KEY_SOURCE_DOC =
+          "Determines whether the keyfile config is the path to the credentials json, or the json itself";
+
   public static final String SANITIZE_TOPICS_CONFIG =                     "sanitizeTopics";
   private static final ConfigDef.Type SANITIZE_TOPICS_TYPE =              ConfigDef.Type.BOOLEAN;
   public static final Boolean SANITIZE_TOPICS_DEFAULT =                   false;
@@ -252,6 +261,13 @@ public class BigQuerySinkConfig extends AbstractConfig {
             KEYFILE_DEFAULT,
             KEYFILE_IMPORTANCE,
             KEYFILE_DOC
+        ).define(
+            KEY_SOURCE_CONFIG,
+            KEY_SOURCE_TYPE,
+            KEY_SOURCE_DEFAULT,
+            KEY_SOURCE_VALIDATOR,
+            KEY_SOURCE_IMPORTANCE,
+            KEY_SOURCE_DOC
         ).define(
             SANITIZE_TOPICS_CONFIG,
             SANITIZE_TOPICS_TYPE,
