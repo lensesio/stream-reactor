@@ -20,16 +20,14 @@
 set -e
 
 if [[ -t 1 ]]; then
-  KCBQ_TEST_COLORS='true'
+	NORMAL="$(tput sgr0)"
+	BOLD="$(tput bold)"
+	RED="$(tput setaf 1)"
+	GREEN="$(tput setaf 2)"
+	YELLOW="$(tput setaf 3)"
 else
-  KCBQ_TEST_COLORS='false'
+	unset NORMAL BOLD RED GREEN YELLOW
 fi
-
-NORMAL='\033[0m'
-BOLD='\033[1m'
-RED='\033[1;31m'
-GREEN='\033[1;32m'
-YELLOW='\033[1;33m'
 
 usage() {
   echo -e "usage: $0\n" \
@@ -58,33 +56,12 @@ usage() {
   exit ${1:-0}
 }
 
-error() {
-  [[ "$KCBQ_TEST_COLORS" = "true" ]] && echo -ne "$RED" 1>&2
-  echo -ne "$0: $@" 1>&2
-  [[ "$KCBQ_TEST_COLORS" = "true" ]] && echo -ne "$NORMAL"
-  echo
-}
+msg() { printf "$1%s: $2$NORMAL\n" "$(basename $0)"; }
+error() { msg "$RED" "$*"; exit 1; } >&2
+warn() { msg "$YELLOW" "$*"; } >&2
+statusupdate() { msg "$GREEN" "$*"; }
+log() { msg "$BOLD" "$*"; }
 
-warn() {
-  [[ "$KCBQ_TEST_COLORS" = "true" ]] && echo -ne "$YELLOW" 1>&2
-  echo -ne "$0: $@" 1>&2
-  [[ "$KCBQ_TEST_COLORS" = "true" ]] && echo -ne "$NORMAL"
-  echo
-}
-
-statusupdate() {
-  [[ "$KCBQ_TEST_COLORS" = "true" ]] && echo -ne "$GREEN"
-  echo -ne "$0: $@"
-  [[ "$KCBQ_TEST_COLORS" = "true" ]] && echo -ne "$NORMAL"
-  echo
-}
-
-log() {
-  [[ "$KCBQ_TEST_COLORS" = "true" ]] && echo -ne "$BOLD"
-  echo -ne "$0: $@"
-  [[ "$KCBQ_TEST_COLORS" = "true" ]] && echo -ne "$NORMAL"
-  echo
-}
 
 BASE_DIR=$(dirname "$0")
 GRADLEW="$BASE_DIR/../../gradlew"
