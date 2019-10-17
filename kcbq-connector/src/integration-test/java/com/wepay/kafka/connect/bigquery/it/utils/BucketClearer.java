@@ -53,7 +53,7 @@ public class BucketClearer {
 
   private static void usage() {
     System.err.println(
-        "usage: BucketClearer <key_file> <project_name> <bucket_name>"
+        "usage: BucketClearer <key_file> <project_name> <key_source> <bucket_name>"
     );
     System.exit(1);
   }

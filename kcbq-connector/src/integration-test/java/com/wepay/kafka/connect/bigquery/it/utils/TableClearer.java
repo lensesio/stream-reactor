@@ -37,11 +37,13 @@ public class TableClearer {
     if (args.length < 5) {
       usage();
     }
+    int tablesStart = 3;
     if (args.length == 5) {
-      keySource = args[4];
+      keySource = args[3];
+      tablesStart = 4;
     }
     BigQuery bigQuery = new BigQueryHelper().setKeySource(keySource).connect(args[1], args[0]);
-    for (int i = 3; i < args.length; i++) {
+    for (int i = tablesStart; i < args.length; i++) {
       if (bigQuery.delete(args[2], args[i])) {
         logger.info("Table {} in dataset {} deleted successfully", args[i], args[2]);
       } else {
@@ -52,7 +54,7 @@ public class TableClearer {
 
   private static void usage() {
     System.err.println(
-        "usage: TableClearer <key_file> <project_name> <dataset_name> <table> [<table> ...]"
+        "usage: TableClearer <key_file> <project_name> <dataset_name> <key_source> <table> [<table> ...]"
     );
     System.exit(1);
   }

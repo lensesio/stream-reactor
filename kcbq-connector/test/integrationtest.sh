@@ -256,7 +256,11 @@ CONNECT_DOCKER_IMAGE='kcbq/connect'
 CONNECT_DOCKER_NAME='kcbq_test_connect'
 
 cp "$BASE_DIR"/../../kcbq-confluent/build/distributions/kcbq-confluent-*.tar "$DOCKER_DIR/connect/kcbq.tar"
-cp "$KCBQ_TEST_KEYFILE" "$DOCKER_DIR/connect/key.json"
+if [[ "$KCBQ_TEST_KEYSOURCE" == "JSON" ]]; then
+    echo "$KCBQ_TEST_KEYFILE" > "$DOCKER_DIR/connect/key.json"
+else
+    cp "$KCBQ_TEST_KEYFILE" "$DOCKER_DIR/connect/key.json"
+fi
 
 if ! dockerimageexists "$CONNECT_DOCKER_IMAGE"; then
   docker build -q -t "$CONNECT_DOCKER_IMAGE" "$DOCKER_DIR/connect"
