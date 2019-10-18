@@ -54,11 +54,16 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final ConfigDef config;
   private static final Validator validator = new Validator();
 
+  // Values taken from https://github.com/apache/kafka/blob/1.1.1/connect/runtime/src/main/java/org/apache/kafka/connect/runtime/SinkConnectorConfig.java#L33
   public static final String TOPICS_CONFIG =                     SinkConnector.TOPICS_CONFIG;
   private static final ConfigDef.Type TOPICS_TYPE =              ConfigDef.Type.LIST;
   private static final ConfigDef.Importance TOPICS_IMPORTANCE =  ConfigDef.Importance.HIGH;
+  private static final String TOPICS_GROUP =                     "Common";
+  private static final int TOPICS_ORDER_IN_GROUP =               4;
+  private static final ConfigDef.Width TOPICS_WIDTH =            ConfigDef.Width.LONG;
   private static final String TOPICS_DOC =
-      "A list of Kafka topics to read from";
+      "List of topics to consume, separated by commas";
+  private static final String TOPICS_DISPLAY =                   "Topics";
 
   public static final String ENABLE_BATCH_CONFIG =                         "enableBatchLoad";
   private static final ConfigDef.Type ENABLE_BATCH_TYPE =                  ConfigDef.Type.LIST;
@@ -206,8 +211,12 @@ public class BigQuerySinkConfig extends AbstractConfig {
             TOPICS_CONFIG,
             TOPICS_TYPE,
             TOPICS_IMPORTANCE,
-            TOPICS_DOC
-        ).define(
+            TOPICS_DOC,
+            TOPICS_GROUP,
+            TOPICS_ORDER_IN_GROUP,
+            TOPICS_WIDTH,
+            TOPICS_DISPLAY)
+        .define(
             ENABLE_BATCH_CONFIG,
             ENABLE_BATCH_TYPE,
             ENABLE_BATCH_DEFAULT,
