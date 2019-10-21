@@ -6,12 +6,13 @@ group: edge
 jdk:
   - oraclejdk8
   - openjdk8
+  - openjdk11
 
 matrix:
   fast_finish: true
 
 script:
-  - gradle test
+  - ./gradlew test
 
 after_success:
   - if [ -e ./gradlew ]; then ./gradlew jacocoTestReport; else gradle jacocoTestReport; fi
