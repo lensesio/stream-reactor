@@ -215,15 +215,15 @@ warn 'Deleting existing BigQuery test tables and existing GCS bucket'
 test_tables=
 test_topics=
 for file in "$BASE_DIR"/resources/test_schemas/*; do
-        test_tables+="${test_tables:+ }$(basename "kcbq_test_${file/-/_}")"
-        test_topics+="${test_topics:+,}$(basename "kcbq_test_$file")"
+        test_tables+="${test_tables:+ }kcbq_test_$(basename "${file/-/_}")"
+        test_topics+="${test_topics:+,}kcbq_test_$(basename "$file")"
 done
 
 "$GRADLEW" -p "$BASE_DIR/.." \
     -Pkcbq_test_keyfile="$KCBQ_TEST_KEYFILE" \
     -Pkcbq_test_project="$KCBQ_TEST_PROJECT" \
     -Pkcbq_test_dataset="$KCBQ_TEST_DATASET" \
-    -Pkcbq_test_tables="test_tables" \
+    -Pkcbq_test_tables="$test_tables" \
     -Pkcbq_test_bucket="$KCBQ_TEST_BUCKET" \
     -Pkcbq_test_keysource="$KCBQ_TEST_KEYSOURCE" \
     integrationTestPrep
