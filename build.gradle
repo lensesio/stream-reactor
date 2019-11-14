@@ -21,7 +21,7 @@ project.ext {
     googleCloudGsonVersion = '2.8.5'
     ioConfluentVersion = '5.1.1'
     junitVersion = '4.12'
-    kafkaVersion = '1.1.1'
+    kafkaVersion = '2.3.0'
     mockitoVersion = '1.10.19'
     slf4jVersion = '1.6.1'
 }
@@ -211,7 +211,6 @@ project(':kcbq-connector') {
                 "org.apache.kafka:connect-api:$kafkaVersion",
                 "org.apache.kafka:kafka-clients:$kafkaVersion",
                 "org.slf4j:slf4j-api:$slf4jVersion",
-                "org.slf4j:slf4j-simple:$slf4jVersion",
         )
 
         testCompile (
