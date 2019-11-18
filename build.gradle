@@ -284,7 +284,7 @@ project('kcbq-confluent') {
 
     configurations.all {
         resolutionStrategy {
-            // depending on debezium results in us pulling in the most recent kafka version, but we want to use 1.1.1.
+            // depending on debezium results in us pulling in the most recent kafka version, but we want to use 2.3.0.
             force 'org.apache.kafka:connect-api:2.3.0', 'org.apache.kafka:kafka-clients:2.3.0'
         }
     }
