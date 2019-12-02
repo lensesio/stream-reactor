@@ -25,20 +25,17 @@ public class KafkaDataConverter {
                 .setMode(com.google.cloud.bigquery.Field.Mode.NULLABLE);
         Field insertTimeField = insertTimeBuilder.build();
 
-        return Field.newBuilder(KAFKA_DATA_FIELD_NAME, LegacySQLTypeName.RECORD, topicField, partitionField,
-                offsetField, insertTimeField).setMode(com.google.cloud.bigquery.Field.Mode.NULLABLE).build();
+        return Field.newBuilder(KAFKA_DATA_FIELD_NAME, LegacySQLTypeName.RECORD,
+                topicField, partitionField, offsetField, insertTimeField)
+                .setMode(com.google.cloud.bigquery.Field.Mode.NULLABLE).build();
     }
 
     public static Map<String, Object> getKafkaDataRecord(SinkRecord kafkaConnectRecord) {
         HashMap<String, Object> kafkaData = new HashMap<>();
-        kafkaData.put(BigQuerySchemaConverter.KAFKA_DATA_TOPIC_FIELD_NAME,
-                kafkaConnectRecord.topic());
-        kafkaData.put(BigQuerySchemaConverter.KAFKA_DATA_PARTITION_FIELD_NAME,
-                kafkaConnectRecord.kafkaPartition());
-        kafkaData.put(BigQuerySchemaConverter.KAFKA_DATA_OFFSET_FIELD_NAME,
-                kafkaConnectRecord.kafkaOffset());
-        kafkaData.put(BigQuerySchemaConverter.KAFKA_DATA_INSERT_TIME_FIELD_NAME,
-                System.currentTimeMillis() / 1000.0);
+        kafkaData.put(KAFKA_DATA_TOPIC_FIELD_NAME, kafkaConnectRecord.topic());
+        kafkaData.put(KAFKA_DATA_PARTITION_FIELD_NAME, kafkaConnectRecord.kafkaPartition());
+        kafkaData.put(KAFKA_DATA_OFFSET_FIELD_NAME, kafkaConnectRecord.kafkaOffset());
+        kafkaData.put(KAFKA_DATA_INSERT_TIME_FIELD_NAME, System.currentTimeMillis() / 1000.0);
         return kafkaData;
     }
 

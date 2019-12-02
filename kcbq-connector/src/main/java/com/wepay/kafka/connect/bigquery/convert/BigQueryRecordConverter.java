@@ -72,15 +72,8 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
    * @return The result BigQuery row content.
    */
   public Map<String, Object> convertRecord(SinkRecord kafkaConnectRecord, boolean convertKey) {
-    Schema kafkaConnectSchema;
-    Object kafkaConnectStruct;
-    if (convertKey) {
-      kafkaConnectSchema = kafkaConnectRecord.keySchema();
-      kafkaConnectStruct = kafkaConnectRecord.key();
-    } else {
-      kafkaConnectSchema = kafkaConnectRecord.valueSchema();
-      kafkaConnectStruct = kafkaConnectRecord.value();
-    }
+    Schema kafkaConnectSchema = convertKey ? kafkaConnectRecord.keySchema() : kafkaConnectRecord.valueSchema();
+    Object kafkaConnectStruct = convertKey ? kafkaConnectRecord.key() : kafkaConnectRecord.value();
     if (kafkaConnectSchema == null) {
       if (kafkaConnectStruct instanceof Map) {
         return (Map<String, Object>) convertSchemalessRecord(kafkaConnectStruct);
