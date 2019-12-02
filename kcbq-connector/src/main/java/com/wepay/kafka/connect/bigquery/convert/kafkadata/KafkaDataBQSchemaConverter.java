@@ -81,4 +81,17 @@ public class KafkaDataBQSchemaConverter extends BigQuerySchemaConverter {
 
     return com.google.cloud.bigquery.Schema.of(allFields);
   }
+
+  public Field getKafkaDataField() {
+    Field topicField = com.google.cloud.bigquery.Field.of(KAFKA_DATA_TOPIC_FIELD_NAME, LegacySQLTypeName.STRING);
+    Field partitionField = com.google.cloud.bigquery.Field.of(KAFKA_DATA_PARTITION_FIELD_NAME, LegacySQLTypeName.INTEGER);
+    Field offsetField = com.google.cloud.bigquery.Field.of(KAFKA_DATA_OFFSET_FIELD_NAME, LegacySQLTypeName.INTEGER);
+    Field.Builder insertTimeBuilder = com.google.cloud.bigquery.Field.newBuilder(
+            KAFKA_DATA_INSERT_TIME_FIELD_NAME, LegacySQLTypeName.TIMESTAMP)
+            .setMode(com.google.cloud.bigquery.Field.Mode.NULLABLE);
+    Field insertTimeField = insertTimeBuilder.build();
+
+    return Field.newBuilder(KAFKA_DATA_FIELD_NAME, LegacySQLTypeName.RECORD, topicField, partitionField,
+            offsetField, insertTimeField).setMode(com.google.cloud.bigquery.Field.Mode.NULLABLE).build();
+  }
 }

@@ -150,11 +150,17 @@ public class BigQuerySinkTask extends SinkTask {
   }
 
   private RowToInsert getRecordRow(SinkRecord record) {
-    Map<String,Object> convertedRecord = recordConverter.convertRecord(record);
+    Map<String, Object> convertedRecord = new HashMap<> ();
+    convertedRecord.putAll(recordConverter.convertRecord(record, false));
+    if (config.getBoolean(config.INCLUDE_KAFKA_KEY_CONFIG)) {
+      convertedRecord.putAll(recordConverter.convertRecord(record, true));
+    }
+    if (config.getBoolean(config.INCLUDE_KAFKA_DATA_CONFIG)) {
+      convertedRecord.putAll(recordConverter.getKafkaDataRecord(record));
+    }
     if (config.getBoolean(config.SANITIZE_FIELD_NAME_CONFIG)) {
       convertedRecord = FieldNameSanitizer.replaceInvalidKeys(convertedRecord);
     }
-
     return RowToInsert.of(getRowId(record), convertedRecord);
   }
 
@@ -241,7 +247,9 @@ public class BigQuerySinkTask extends SinkTask {
     schemaRetriever = config.getSchemaRetriever();
     SchemaConverter<com.google.cloud.bigquery.Schema> schemaConverter =
         config.getSchemaConverter();
-    return new SchemaManager(schemaRetriever, schemaConverter, bigQuery);
+    boolean includeKafkaKey = config.getBoolean(config.INCLUDE_KAFKA_KEY_CONFIG);
+    boolean includeKafkaData = config.getBoolean(config.INCLUDE_KAFKA_DATA_CONFIG);
+    return new SchemaManager(schemaRetriever, schemaConverter, bigQuery, includeKafkaKey, includeKafkaData);
   }
 
   private BigQueryWriter getBigQueryWriter() {

@@ -179,17 +179,6 @@ public class TableWriter implements Runnable {
       rows.add(rowToInsert);
     }
 
-    private RowToInsert getRecordRow(SinkRecord record) {
-      return RowToInsert.of(getRowId(record), recordConverter.convertRecord(record));
-    }
-
-    private String getRowId(SinkRecord record) {
-      return String.format("%s-%d-%d",
-                           record.topic(),
-                           record.kafkaPartition(),
-                           record.kafkaOffset());
-    }
-
     /**
      * Create a {@link TableWriter} from this builder.
      * @return a TableWriter containing the given writer, table, topic, and all added rows.

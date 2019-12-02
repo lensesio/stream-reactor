@@ -173,9 +173,17 @@ public class BigQuerySinkConfig extends AbstractConfig {
   public static final Boolean INCLUDE_KAFKA_DATA_DEFAULT =                 false;
   public static final ConfigDef.Importance INCLUDE_KAFKA_DATA_IMPORTANCE =
       ConfigDef.Importance.LOW;
-  public static final String INSTANCE_KAFKA_DATA_DOC =
+  public static final String INCLUDE_KAFKA_DATA_DOC =
       "Whether to include an extra block containing the Kafka source topic, offset, "
       + "and partition information in the resulting BigQuery rows.";
+
+  public static final String INCLUDE_KAFKA_KEY_CONFIG =                   "includeKafkaKey";
+  public static final ConfigDef.Type INCLUDE_KAFKA_KEY_TYPE =             ConfigDef.Type.BOOLEAN;
+  public static final Boolean INCLUDE_KAFKA_KEY_DEFAULT =                 false;
+  public static final ConfigDef.Importance INCLUDE_KAFKA_KEY_IMPORTANCE =
+          ConfigDef.Importance.LOW;
+  public static final String INCLUDE_KAFKA_KEY_DOC =
+          "Whether to include an extra block containing fields in Kafka key.";
 
   public static final String AVRO_DATA_CACHE_SIZE_CONFIG =                 "avroDataCacheSize";
   private static final ConfigDef.Type AVRO_DATA_CACHE_SIZE_TYPE =          ConfigDef.Type.INT;
@@ -294,7 +302,13 @@ public class BigQuerySinkConfig extends AbstractConfig {
             INCLUDE_KAFKA_DATA_TYPE,
             INCLUDE_KAFKA_DATA_DEFAULT,
             INCLUDE_KAFKA_DATA_IMPORTANCE,
-            INSTANCE_KAFKA_DATA_DOC
+            INCLUDE_KAFKA_DATA_DOC
+        ).define(
+            INCLUDE_KAFKA_KEY_CONFIG,
+            INCLUDE_KAFKA_KEY_TYPE,
+            INCLUDE_KAFKA_KEY_DEFAULT,
+            INCLUDE_KAFKA_KEY_IMPORTANCE,
+            INCLUDE_KAFKA_KEY_DOC
         ).define(
             AVRO_DATA_CACHE_SIZE_CONFIG,
             AVRO_DATA_CACHE_SIZE_TYPE,

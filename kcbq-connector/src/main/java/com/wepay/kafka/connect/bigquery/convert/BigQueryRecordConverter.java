@@ -71,12 +71,19 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
    *                           consist of both a name and a value.
    * @return The result BigQuery row content.
    */
-  public Map<String, Object> convertRecord(SinkRecord kafkaConnectRecord) {
-    Schema kafkaConnectSchema = kafkaConnectRecord.valueSchema();
-    Object kafkaConnectValue = kafkaConnectRecord.value();
+  public Map<String, Object> convertRecord(SinkRecord kafkaConnectRecord, boolean convertKey) {
+    Schema kafkaConnectSchema;
+    Object kafkaConnectStruct;
+    if (convertKey) {
+      kafkaConnectSchema = kafkaConnectRecord.keySchema();
+      kafkaConnectStruct = kafkaConnectRecord.key();
+    } else {
+      kafkaConnectSchema = kafkaConnectRecord.valueSchema();
+      kafkaConnectStruct = kafkaConnectRecord.value();
+    }
     if (kafkaConnectSchema == null) {
-      if (kafkaConnectValue instanceof Map) {
-        return (Map<String, Object>) convertSchemalessRecord(kafkaConnectValue);
+      if (kafkaConnectStruct instanceof Map) {
+        return (Map<String, Object>) convertSchemalessRecord(kafkaConnectStruct);
       }
       throw new ConversionConnectException("Only Map objects supported in absence of schema for " +
               "record conversion to BigQuery format.");
@@ -85,7 +92,20 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
       throw new
           ConversionConnectException("Top-level Kafka Connect schema must be of type 'struct'");
     }
-    return convertStruct(kafkaConnectRecord.value(), kafkaConnectSchema);
+    return convertStruct(kafkaConnectStruct, kafkaConnectSchema);
+  }
+
+  public Map<String, Object> getKafkaDataRecord(SinkRecord kafkaConnectRecord) {
+    HashMap<String, Object> kafkaData = new HashMap<>();
+    kafkaData.put(BigQuerySchemaConverter.KAFKA_DATA_TOPIC_FIELD_NAME,
+            kafkaConnectRecord.topic());
+    kafkaData.put(BigQuerySchemaConverter.KAFKA_DATA_PARTITION_FIELD_NAME,
+            kafkaConnectRecord.kafkaPartition());
+    kafkaData.put(BigQuerySchemaConverter.KAFKA_DATA_OFFSET_FIELD_NAME,
+            kafkaConnectRecord.kafkaOffset());
+    kafkaData.put(BigQuerySchemaConverter.KAFKA_DATA_INSERT_TIME_FIELD_NAME,
+            System.currentTimeMillis() / 1000.0);
+    return kafkaData;
   }
 
   private Object convertSchemalessRecord(Object value) {
