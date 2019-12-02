@@ -1,17 +1,11 @@
 package com.wepay.kafka.connect.bigquery;
 
-import com.google.cloud.bigquery.Field;
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.StandardTableDefinition;
-import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.TableInfo;
-import com.google.cloud.bigquery.TimePartitioning;
 
+import com.google.cloud.bigquery.*;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.convert.KafkaDataConverter;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 
-import com.wepay.kafka.connect.bigquery.write.row.AdaptiveBigQueryWriter;
 import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +24,8 @@ public class SchemaManager {
   private final BigQuery bigQuery;
   private final boolean includeKafkaKey;
   private final boolean includeKafkaData;
+
+    /* package private */ static final String KAFKA_KEY_FIELD_NAME = "kafkaKey";
 
   /**
    * @param schemaRetriever Used to determine the Kafka Connect Schema that should be used for a
@@ -96,7 +92,9 @@ public class SchemaManager {
       allFields.addAll(valueSchema.getFields());
       if (includeKafkaKey) {
           com.google.cloud.bigquery.Schema keySchema = schemaConverter.convertSchema(kafkaKeySchema);
-          allFields.addAll(keySchema.getFields());
+          Field kafkaKeyField = Field.newBuilder(KAFKA_KEY_FIELD_NAME, LegacySQLTypeName.RECORD, keySchema.getFields())
+                  .setMode(Field.Mode.NULLABLE).build();
+          allFields.add(kafkaKeyField);
       }
       if (includeKafkaData) {
           Field kafkaDataField = KafkaDataConverter.getKafkaDataField();
@@ -104,4 +102,5 @@ public class SchemaManager {
       }
       return com.google.cloud.bigquery.Schema.of(allFields);
   }
+
 }

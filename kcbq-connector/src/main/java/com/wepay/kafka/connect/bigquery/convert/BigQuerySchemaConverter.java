@@ -29,7 +29,6 @@ import com.wepay.kafka.connect.bigquery.exception.ConversionConnectException;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.sink.SinkRecord;
 
 import java.util.ArrayList;
 import java.util.HashMap;

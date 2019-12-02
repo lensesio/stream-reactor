@@ -154,10 +154,10 @@ public class BigQuerySinkTask extends SinkTask {
     Map<String, Object> convertedRecord = new HashMap<> ();
     convertedRecord.putAll(recordConverter.convertRecord(record, false));
     if (config.getBoolean(config.INCLUDE_KAFKA_KEY_CONFIG)) {
-      convertedRecord.putAll(recordConverter.convertRecord(record, true));
+      convertedRecord.put(SchemaManager.KAFKA_KEY_FIELD_NAME, recordConverter.convertRecord(record, true));
     }
     if (config.getBoolean(config.INCLUDE_KAFKA_DATA_CONFIG)) {
-      convertedRecord.putAll(KafkaDataConverter.getKafkaDataRecord(record));
+      convertedRecord.put(KafkaDataConverter.KAFKA_DATA_FIELD_NAME, KafkaDataConverter.getKafkaDataRecord(record));
     }
     if (config.getBoolean(config.SANITIZE_FIELD_NAME_CONFIG)) {
       convertedRecord = FieldNameSanitizer.replaceInvalidKeys(convertedRecord);

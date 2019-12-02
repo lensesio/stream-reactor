@@ -10,11 +10,11 @@ import java.util.Map;
 
 public class KafkaDataConverter {
 
-    /* package private */ static final String KAFKA_DATA_FIELD_NAME = "kafkaData";
-    /* package private */ static final String KAFKA_DATA_TOPIC_FIELD_NAME = "topic";
-    /* package private */ static final String KAFKA_DATA_PARTITION_FIELD_NAME = "partition";
-    /* package private */ static final String KAFKA_DATA_OFFSET_FIELD_NAME = "offset";
-    /* package private */ static final String KAFKA_DATA_INSERT_TIME_FIELD_NAME = "insertTime";
+    public static final String KAFKA_DATA_FIELD_NAME = "kafkaData";
+    public static final String KAFKA_DATA_TOPIC_FIELD_NAME = "topic";
+    public static final String KAFKA_DATA_PARTITION_FIELD_NAME = "partition";
+    public static final String KAFKA_DATA_OFFSET_FIELD_NAME = "offset";
+    public static final String KAFKA_DATA_INSERT_TIME_FIELD_NAME = "insertTime";
 
     public static Field getKafkaDataField() {
         Field topicField = com.google.cloud.bigquery.Field.of(KAFKA_DATA_TOPIC_FIELD_NAME, LegacySQLTypeName.STRING);
