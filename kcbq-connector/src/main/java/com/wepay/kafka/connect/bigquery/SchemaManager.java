@@ -25,7 +25,7 @@ public class SchemaManager {
   private final boolean includeKafkaKey;
   private final boolean includeKafkaData;
 
-    /* package private */ static final String KAFKA_KEY_FIELD_NAME = "kafkaKey";
+  public static final String KAFKA_KEY_FIELD_NAME = "kafkaKey";
 
   /**
    * @param schemaRetriever Used to determine the Kafka Connect Schema that should be used for a

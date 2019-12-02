@@ -151,8 +151,7 @@ public class BigQuerySinkTask extends SinkTask {
   }
 
   private RowToInsert getRecordRow(SinkRecord record) {
-    Map<String, Object> convertedRecord = new HashMap<> ();
-    convertedRecord.putAll(recordConverter.convertRecord(record, false));
+    Map<String, Object> convertedRecord = recordConverter.convertRecord(record, false);
     if (config.getBoolean(config.INCLUDE_KAFKA_KEY_CONFIG)) {
       convertedRecord.put(SchemaManager.KAFKA_KEY_FIELD_NAME, recordConverter.convertRecord(record, true));
     }
