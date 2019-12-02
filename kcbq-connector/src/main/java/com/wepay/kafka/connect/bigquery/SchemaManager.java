@@ -65,7 +65,7 @@ public class SchemaManager {
   public void updateSchema(TableId table, String topic) {
     Schema kafkaValueSchema = schemaRetriever.retrieveSchema(table, topic, false);
     Schema kafkaKeySchema = schemaRetriever.retrieveSchema(table, topic, true);
-      TableInfo tableInfo = constructTableInfo(table, kafkaKeySchema, kafkaValueSchema);
+    TableInfo tableInfo = constructTableInfo(table, kafkaKeySchema, kafkaValueSchema);
     logger.info("Attempting to update table `{}` with schema {}",
         table, tableInfo.getDefinition().getSchema());
     bigQuery.update(tableInfo);
@@ -86,7 +86,7 @@ public class SchemaManager {
     return tableInfoBuilder.build();
   }
 
-  com.google.cloud.bigquery.Schema getBigQuerySchema(Schema kafkaKeySchema, Schema kafkaValueSchema) {
+  private com.google.cloud.bigquery.Schema getBigQuerySchema(Schema kafkaKeySchema, Schema kafkaValueSchema) {
       List<Field> allFields = new ArrayList<> ();
       com.google.cloud.bigquery.Schema valueSchema = schemaConverter.convertSchema(kafkaValueSchema);
       allFields.addAll(valueSchema.getFields());
