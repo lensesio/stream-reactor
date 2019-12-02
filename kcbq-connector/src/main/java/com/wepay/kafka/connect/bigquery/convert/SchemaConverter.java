@@ -30,5 +30,4 @@ public interface SchemaConverter<S> {
    * @return The converted schema.
    */
   S convertSchema(Schema schema);
-  com.google.cloud.bigquery.Field getKafkaDataField();
 }

@@ -31,6 +31,4 @@ public interface RecordConverter<R> {
    */
   R convertRecord(SinkRecord record, boolean convertKey);
 
-  R getKafkaDataRecord(SinkRecord record);
-
 }

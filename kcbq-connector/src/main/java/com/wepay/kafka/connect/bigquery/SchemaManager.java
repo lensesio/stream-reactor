@@ -8,6 +8,7 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
 
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
+import com.wepay.kafka.connect.bigquery.convert.KafkaDataConverter;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 
 import com.wepay.kafka.connect.bigquery.write.row.AdaptiveBigQueryWriter;
@@ -98,7 +99,7 @@ public class SchemaManager {
           allFields.addAll(keySchema.getFields());
       }
       if (includeKafkaData) {
-          Field kafkaDataField = schemaConverter.getKafkaDataField();
+          Field kafkaDataField = KafkaDataConverter.getKafkaDataField();
           allFields.add(kafkaDataField);
       }
       return com.google.cloud.bigquery.Schema.of(allFields);

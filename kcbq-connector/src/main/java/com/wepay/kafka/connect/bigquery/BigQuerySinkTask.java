@@ -28,6 +28,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
+import com.wepay.kafka.connect.bigquery.convert.KafkaDataConverter;
 import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
@@ -156,7 +157,7 @@ public class BigQuerySinkTask extends SinkTask {
       convertedRecord.putAll(recordConverter.convertRecord(record, true));
     }
     if (config.getBoolean(config.INCLUDE_KAFKA_DATA_CONFIG)) {
-      convertedRecord.putAll(recordConverter.getKafkaDataRecord(record));
+      convertedRecord.putAll(KafkaDataConverter.getKafkaDataRecord(record));
     }
     if (config.getBoolean(config.SANITIZE_FIELD_NAME_CONFIG)) {
       convertedRecord = FieldNameSanitizer.replaceInvalidKeys(convertedRecord);

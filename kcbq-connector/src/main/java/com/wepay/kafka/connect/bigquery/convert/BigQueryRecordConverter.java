@@ -95,19 +95,6 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
     return convertStruct(kafkaConnectStruct, kafkaConnectSchema);
   }
 
-  public Map<String, Object> getKafkaDataRecord(SinkRecord kafkaConnectRecord) {
-    HashMap<String, Object> kafkaData = new HashMap<>();
-    kafkaData.put(BigQuerySchemaConverter.KAFKA_DATA_TOPIC_FIELD_NAME,
-            kafkaConnectRecord.topic());
-    kafkaData.put(BigQuerySchemaConverter.KAFKA_DATA_PARTITION_FIELD_NAME,
-            kafkaConnectRecord.kafkaPartition());
-    kafkaData.put(BigQuerySchemaConverter.KAFKA_DATA_OFFSET_FIELD_NAME,
-            kafkaConnectRecord.kafkaOffset());
-    kafkaData.put(BigQuerySchemaConverter.KAFKA_DATA_INSERT_TIME_FIELD_NAME,
-            System.currentTimeMillis() / 1000.0);
-    return kafkaData;
-  }
-
   private Object convertSchemalessRecord(Object value) {
     if (value == null) {
       return null;

@@ -53,12 +53,6 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
    */
   public static final String MAP_VALUE_FIELD_NAME = "value";
 
-  /* package private */ static final String KAFKA_DATA_FIELD_NAME = "kafkaData";
-  /* package private */ static final String KAFKA_DATA_TOPIC_FIELD_NAME = "topic";
-  /* package private */ static final String KAFKA_DATA_PARTITION_FIELD_NAME = "partition";
-  /* package private */ static final String KAFKA_DATA_OFFSET_FIELD_NAME = "offset";
-  /* package private */ static final String KAFKA_DATA_INSERT_TIME_FIELD_NAME = "insertTime";
-
   private static final Map<Schema.Type, LegacySQLTypeName> PRIMITIVE_TYPE_MAP;
 
   static {
@@ -224,18 +218,5 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
         LogicalConverterRegistry.getConverter(kafkaConnectSchema.name());
     converter.checkEncodingType(kafkaConnectSchema.type());
     return com.google.cloud.bigquery.Field.newBuilder(fieldName, converter.getBQSchemaType());
-  }
-
-  public com.google.cloud.bigquery.Field getKafkaDataField() {
-    com.google.cloud.bigquery.Field topicField = com.google.cloud.bigquery.Field.of(KAFKA_DATA_TOPIC_FIELD_NAME, LegacySQLTypeName.STRING);
-    com.google.cloud.bigquery.Field partitionField = com.google.cloud.bigquery.Field.of(KAFKA_DATA_PARTITION_FIELD_NAME, LegacySQLTypeName.INTEGER);
-    com.google.cloud.bigquery.Field offsetField = com.google.cloud.bigquery.Field.of(KAFKA_DATA_OFFSET_FIELD_NAME, LegacySQLTypeName.INTEGER);
-    com.google.cloud.bigquery.Field.Builder insertTimeBuilder = com.google.cloud.bigquery.Field.newBuilder(
-            KAFKA_DATA_INSERT_TIME_FIELD_NAME, LegacySQLTypeName.TIMESTAMP)
-            .setMode(com.google.cloud.bigquery.Field.Mode.NULLABLE);
-    com.google.cloud.bigquery.Field insertTimeField = insertTimeBuilder.build();
-
-    return com.google.cloud.bigquery.Field.newBuilder(KAFKA_DATA_FIELD_NAME, LegacySQLTypeName.RECORD, topicField, partitionField,
-            offsetField, insertTimeField).setMode(com.google.cloud.bigquery.Field.Mode.NULLABLE).build();
   }
 }
