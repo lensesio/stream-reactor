@@ -61,8 +61,8 @@ public class SchemaRegistrySchemaRetriever implements SchemaRetriever {
   }
 
   @Override
-  public Schema retrieveSchema(TableId table, String topic, boolean retrieveKeySchema) {
-    String subject = getSubject(topic, retrieveKeySchema);
+  public Schema retrieveSchema(TableId table, String topic, boolean retrieveKey) {
+    String subject = getSubject(topic, retrieveKey);
     try {
       logger.debug("Retrieving schema information for topic {} with subject {}", topic, subject);
       SchemaMetadata latestSchemaMetadata = schemaRegistryClient.getLatestSchemaMetadata(subject);
@@ -80,8 +80,8 @@ public class SchemaRegistrySchemaRetriever implements SchemaRetriever {
   @Override
   public void setLastSeenSchema(TableId table, String topic, Schema schema) { }
 
-  private String getSubject(String topic, boolean retrieveKeySchema) {
-    if (retrieveKeySchema) {
+  private String getSubject(String topic, boolean retrieveKey) {
+    if (retrieveKey) {
       return topic + "-key";
     }
     return topic + "-value";

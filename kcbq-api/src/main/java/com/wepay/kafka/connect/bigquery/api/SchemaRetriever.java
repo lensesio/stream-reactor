@@ -24,7 +24,7 @@ public interface SchemaRetriever {
    * @param topic The topic to retrieve a schema for.
    * @return The Schema for the given table.
    */
-  public Schema retrieveSchema(TableId table, String topic, boolean retrieveKeySchema);
+  public Schema retrieveSchema(TableId table, String topic, boolean retrieveKey);
 
   /**
    * Set the last seen schema for a given topic
