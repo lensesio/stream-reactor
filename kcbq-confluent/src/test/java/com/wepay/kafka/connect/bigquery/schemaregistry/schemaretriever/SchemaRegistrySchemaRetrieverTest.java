@@ -40,6 +40,6 @@ public class SchemaRegistrySchemaRetrieverTest {
     Schema expectedKafkaConnectSchema =
         SchemaBuilder.struct().field("f1", Schema.STRING_SCHEMA).name("testrecord").build();
 
-    assertEquals(expectedKafkaConnectSchema, testSchemaRetriever.retrieveSchema(table, testTopic));
+    assertEquals(expectedKafkaConnectSchema, testSchemaRetriever.retrieveSchema(table, testTopic, false));
   }
 }
