@@ -24,8 +24,8 @@ import static org.junit.Assert.fail;
 
 import com.wepay.kafka.connect.bigquery.SinkPropertiesFactory;
 
-import com.wepay.kafka.connect.bigquery.convert.kafkadata.KafkaDataBQRecordConverter;
-import com.wepay.kafka.connect.bigquery.convert.kafkadata.KafkaDataBQSchemaConverter;
+import com.wepay.kafka.connect.bigquery.convert.BigQueryRecordConverter;
+import com.wepay.kafka.connect.bigquery.convert.BigQuerySchemaConverter;
 import org.apache.kafka.common.config.ConfigException;
 
 import org.junit.Before;
@@ -82,7 +82,7 @@ public class BigQuerySinkConfigTest {
 
     BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
 
-    assertTrue(testConfig.getSchemaConverter() instanceof KafkaDataBQSchemaConverter);
+    assertTrue(testConfig.getSchemaConverter() instanceof BigQuerySchemaConverter);
   }
 
   @Test
@@ -92,7 +92,7 @@ public class BigQuerySinkConfigTest {
 
     BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
 
-    assertTrue(testConfig.getRecordConverter() instanceof KafkaDataBQRecordConverter);
+    assertTrue(testConfig.getRecordConverter() instanceof BigQueryRecordConverter);
   }
 
   @Test(expected = ConfigException.class)
