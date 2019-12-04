@@ -53,7 +53,7 @@ public class SchemaManager {
    */
   public void createTable(TableId table, String topic) {
     Schema kafkaValueSchema = schemaRetriever.retrieveSchema(table, topic, false);
-    Schema kafkaKeySchema = schemaRetriever.retrieveSchema(table, topic, true);
+    Schema kafkaKeySchema = includeKafkaKey ? schemaRetriever.retrieveSchema(table, topic, true) : null;
     bigQuery.create(constructTableInfo(table, kafkaKeySchema, kafkaValueSchema));
   }
 
@@ -64,7 +64,7 @@ public class SchemaManager {
    */
   public void updateSchema(TableId table, String topic) {
     Schema kafkaValueSchema = schemaRetriever.retrieveSchema(table, topic, false);
-    Schema kafkaKeySchema = schemaRetriever.retrieveSchema(table, topic, true);
+    Schema kafkaKeySchema = includeKafkaKey ? schemaRetriever.retrieveSchema(table, topic, true) : null;
     TableInfo tableInfo = constructTableInfo(table, kafkaKeySchema, kafkaValueSchema);
     logger.info("Attempting to update table `{}` with schema {}",
         table, tableInfo.getDefinition().getSchema());
