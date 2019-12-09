@@ -53,8 +53,8 @@ public class SchemaManagerTest {
     SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever,
                                                     mockSchemaConverter,
                                                     mockBigQuery,
-                                                    false,
-                                                    false);
+                                                    true,
+                                                    true);
 
     Schema mockKafkaSchema = mock(Schema.class);
     // we would prefer to mock this class, but it is final.
@@ -64,7 +64,7 @@ public class SchemaManagerTest {
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);
 
-    TableInfo tableInfo = schemaManager.constructTableInfo(tableId, null, mockKafkaSchema);
+    TableInfo tableInfo = schemaManager.constructTableInfo(tableId, mockKafkaSchema, mockKafkaSchema);
 
     Assert.assertEquals("Kafka doc does not match BigQuery table description",
                         testDoc, tableInfo.getDescription());

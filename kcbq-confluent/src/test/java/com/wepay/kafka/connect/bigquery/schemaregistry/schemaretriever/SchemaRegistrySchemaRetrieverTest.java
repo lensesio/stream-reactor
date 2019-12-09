@@ -22,7 +22,8 @@ public class SchemaRegistrySchemaRetrieverTest {
   public void testRetrieveSchema() throws Exception {
     final TableId table = TableId.of("test", "kafka_topic");
     final String testTopic = "kafka-topic";
-    final String testSubject = "kafka-topic-value";
+    final String testSubjectValue = "kafka-topic-value";
+    final String testSubjectKey = "kafka-topic-key";
     final String testAvroSchemaString =
         "{\"type\": \"record\", "
         + "\"name\": \"testrecord\", "
@@ -30,7 +31,8 @@ public class SchemaRegistrySchemaRetrieverTest {
     final SchemaMetadata testSchemaMetadata = new SchemaMetadata(1, 1, testAvroSchemaString);
 
     SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
-    when(schemaRegistryClient.getLatestSchemaMetadata(testSubject)).thenReturn(testSchemaMetadata);
+    when(schemaRegistryClient.getLatestSchemaMetadata(testSubjectValue)).thenReturn(testSchemaMetadata);
+    when(schemaRegistryClient.getLatestSchemaMetadata(testSubjectKey)).thenReturn(testSchemaMetadata);
 
     SchemaRegistrySchemaRetriever testSchemaRetriever = new SchemaRegistrySchemaRetriever(
         schemaRegistryClient,
@@ -41,5 +43,6 @@ public class SchemaRegistrySchemaRetrieverTest {
         SchemaBuilder.struct().field("f1", Schema.STRING_SCHEMA).name("testrecord").build();
 
     assertEquals(expectedKafkaConnectSchema, testSchemaRetriever.retrieveSchema(table, testTopic, false));
+    assertEquals(expectedKafkaConnectSchema, testSchemaRetriever.retrieveSchema(table, testTopic, true));
   }
 }

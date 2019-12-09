@@ -38,7 +38,7 @@ public class MemorySchemaRetrieverTest {
     Schema expectedSchema = Schema.OPTIONAL_FLOAT32_SCHEMA;
     retriever.setLastSeenSchema(tableId, topic, expectedSchema);
 
-    Assert.assertEquals(retriever.retrieveSchema(tableId, topic, false), expectedSchema);
+    Assert.assertEquals(retriever.retrieveSchema(tableId, topic, true), expectedSchema);
   }
 
   @Test
@@ -57,7 +57,7 @@ public class MemorySchemaRetrieverTest {
 
     Assert.assertEquals(
         retriever.retrieveSchema(floatTableId, floatSchemaTopic, false), expectedFloatSchema);
-    Assert.assertEquals(retriever.retrieveSchema(intTableId, intSchemaTopic, false), expectedIntSchema);
+    Assert.assertEquals(retriever.retrieveSchema(intTableId, intSchemaTopic, true), expectedIntSchema);
   }
 
   @Test
