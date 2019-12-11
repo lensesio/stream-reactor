@@ -28,7 +28,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
-import com.wepay.kafka.connect.bigquery.convert.KafkaDataConverter;
+import com.wepay.kafka.connect.bigquery.convert.KafkaDataBuilder;
 import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
@@ -153,10 +153,10 @@ public class BigQuerySinkTask extends SinkTask {
   private RowToInsert getRecordRow(SinkRecord record) {
     Map<String, Object> convertedRecord = recordConverter.convertRecord(record, false);
     if (config.getBoolean(config.INCLUDE_KAFKA_KEY_CONFIG)) {
-      convertedRecord.put(SchemaManager.KAFKA_KEY_FIELD_NAME, recordConverter.convertRecord(record, true));
+      convertedRecord.put(config.KAFKA_KEY_FIELD_NAME_CONFIG, recordConverter.convertRecord(record, true));
     }
     if (config.getBoolean(config.INCLUDE_KAFKA_DATA_CONFIG)) {
-      convertedRecord.put(KafkaDataConverter.KAFKA_DATA_FIELD_NAME, KafkaDataConverter.getKafkaDataRecord(record));
+      convertedRecord.put(config.KAFKA_DATA_FIELD_NAME_CONFIG, KafkaDataBuilder.getKafkaDataRecord(record));
     }
     if (config.getBoolean(config.SANITIZE_FIELD_NAME_CONFIG)) {
       convertedRecord = FieldNameSanitizer.replaceInvalidKeys(convertedRecord);
@@ -249,7 +249,10 @@ public class BigQuerySinkTask extends SinkTask {
         config.getSchemaConverter();
     boolean includeKafkaKey = config.getBoolean(config.INCLUDE_KAFKA_KEY_CONFIG);
     boolean includeKafkaData = config.getBoolean(config.INCLUDE_KAFKA_DATA_CONFIG);
-    return new SchemaManager(schemaRetriever, schemaConverter, bigQuery, includeKafkaKey, includeKafkaData);
+    String kafkaKeyFieldName = config.getString(config.KAFKA_KEY_FIELD_NAME_CONFIG);
+    String kafkaDataFieldName = config.getString(config.KAFKA_DATA_FIELD_NAME_CONFIG);
+    return new SchemaManager(schemaRetriever, schemaConverter, bigQuery,
+            includeKafkaKey, includeKafkaData, kafkaKeyFieldName, kafkaDataFieldName);
   }
 
   private BigQueryWriter getBigQueryWriter() {

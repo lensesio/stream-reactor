@@ -14,7 +14,7 @@ import static org.junit.Assert.assertTrue;
 
 public class KafkaDataConverterTest {
 
-    public static final String KAFKA_DATA_FIELD_NAME = "kafkaData";
+    public static final String kafkaDataFieldName = "kafkaData";
     private static final String kafkaDataTopicName = "topic";
     private static final String kafkaDataPartitionName = "partition";
     private static final String kafkaDataOffsetName = "offset";
@@ -33,7 +33,7 @@ public class KafkaDataConverterTest {
         expectedKafkaDataFields.put(kafkaDataOffsetName, kafkaDataOffsetValue);
 
         SinkRecord record = new SinkRecord(kafkaDataTopicValue, kafkaDataPartitionValue, null, null, null, null, kafkaDataOffsetValue);
-        Map<String, Object> actualKafkaDataFields = KafkaDataConverter.getKafkaDataRecord(record);
+        Map<String, Object> actualKafkaDataFields = KafkaDataBuilder.getKafkaDataRecord(record);
 
         assertTrue(actualKafkaDataFields.containsKey(kafkaDataInsertTimeName));
         assertTrue(actualKafkaDataFields.get(kafkaDataInsertTimeName) instanceof Double);
@@ -52,7 +52,7 @@ public class KafkaDataConverterTest {
                 .setMode(Field.Mode.NULLABLE)
                 .build();
 
-        Field expectedBigQuerySchema = Field.newBuilder(KAFKA_DATA_FIELD_NAME,
+        Field expectedBigQuerySchema = Field.newBuilder(kafkaDataFieldName,
                 LegacySQLTypeName.RECORD,
                 topicField,
                 partitionField,
@@ -60,7 +60,7 @@ public class KafkaDataConverterTest {
                 insertTimeField)
                 .setMode(Field.Mode.NULLABLE)
                 .build();
-        Field actualBigQuerySchema = KafkaDataConverter.getKafkaDataField();
+        Field actualBigQuerySchema = KafkaDataBuilder.getKafkaDataField(kafkaDataFieldName);
         assertEquals(expectedBigQuerySchema, actualBigQuerySchema);
     }
 }

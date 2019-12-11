@@ -11,15 +11,14 @@ import java.util.Map;
 /**
  * Helper class to construct kafka data schema and kafka data record.
  */
-public class KafkaDataConverter {
+public class KafkaDataBuilder {
 
-    public static final String KAFKA_DATA_FIELD_NAME = "kafkaData";
     public static final String KAFKA_DATA_TOPIC_FIELD_NAME = "topic";
     public static final String KAFKA_DATA_PARTITION_FIELD_NAME = "partition";
     public static final String KAFKA_DATA_OFFSET_FIELD_NAME = "offset";
     public static final String KAFKA_DATA_INSERT_TIME_FIELD_NAME = "insertTime";
 
-    public static Field getKafkaDataField() {
+    public static Field getKafkaDataField(String kafkaDataFieldName) {
         Field topicField = com.google.cloud.bigquery.Field.of(KAFKA_DATA_TOPIC_FIELD_NAME, LegacySQLTypeName.STRING);
         Field partitionField = com.google.cloud.bigquery.Field.of(KAFKA_DATA_PARTITION_FIELD_NAME, LegacySQLTypeName.INTEGER);
         Field offsetField = com.google.cloud.bigquery.Field.of(KAFKA_DATA_OFFSET_FIELD_NAME, LegacySQLTypeName.INTEGER);
@@ -28,7 +27,7 @@ public class KafkaDataConverter {
                 .setMode(com.google.cloud.bigquery.Field.Mode.NULLABLE);
         Field insertTimeField = insertTimeBuilder.build();
 
-        return Field.newBuilder(KAFKA_DATA_FIELD_NAME, LegacySQLTypeName.RECORD,
+        return Field.newBuilder(kafkaDataFieldName, LegacySQLTypeName.RECORD,
                 topicField, partitionField, offsetField, insertTimeField)
                 .setMode(com.google.cloud.bigquery.Field.Mode.NULLABLE).build();
     }

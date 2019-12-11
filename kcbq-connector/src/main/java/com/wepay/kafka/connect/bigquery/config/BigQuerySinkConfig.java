@@ -183,6 +183,18 @@ public class BigQuerySinkConfig extends AbstractConfig {
   public static final String INCLUDE_KAFKA_KEY_DOC =
           "Whether to include an extra block containing fields in Kafka key.";
 
+  public static final String KAFKA_KEY_FIELD_NAME_CONFIG =        "kafkaKeyFieldName";
+  private static final ConfigDef.Type KAFKA_KEY_FIELD_NAME_TYPE = ConfigDef.Type.STRING;
+  public static final String KAFKA_KEY_FIELD_NAME_DEFAULT =       "kafkaKey";
+  private static final ConfigDef.Importance KAFKA_KEY_FIELD_NAME_IMPORTANCE = ConfigDef.Importance.LOW;
+  private static final String KAFKA_KEY_FIELD_NAME_DOC = "The name of the field of Kafka key.";
+
+  public static final String KAFKA_DATA_FIELD_NAME_CONFIG =        "kafkaDataFieldName";
+  private static final ConfigDef.Type KAFKA_DATA_FIELD_NAME_TYPE = ConfigDef.Type.STRING;
+  public static final String KAFKA_DATA_FIELD_NAME_DEFAULT =       "kafkaData";
+  private static final ConfigDef.Importance KAFKA_DATA_FIELD_NAME_IMPORTANCE = ConfigDef.Importance.LOW;
+  private static final String KAFKA_DATA_FIELD_NAME_DOC = "The name of the field of Kafka Data.";
+
   public static final String AVRO_DATA_CACHE_SIZE_CONFIG =                 "avroDataCacheSize";
   private static final ConfigDef.Type AVRO_DATA_CACHE_SIZE_TYPE =          ConfigDef.Type.INT;
   public static final Integer AVRO_DATA_CACHE_SIZE_DEFAULT =               100;
@@ -307,6 +319,18 @@ public class BigQuerySinkConfig extends AbstractConfig {
             INCLUDE_KAFKA_KEY_DEFAULT,
             INCLUDE_KAFKA_KEY_IMPORTANCE,
             INCLUDE_KAFKA_KEY_DOC
+        ).define(
+            KAFKA_KEY_FIELD_NAME_CONFIG,
+            KAFKA_KEY_FIELD_NAME_TYPE,
+            KAFKA_KEY_FIELD_NAME_DEFAULT,
+            KAFKA_KEY_FIELD_NAME_IMPORTANCE,
+            KAFKA_KEY_FIELD_NAME_DOC
+        ).define(
+            KAFKA_DATA_FIELD_NAME_CONFIG,
+            KAFKA_DATA_FIELD_NAME_TYPE,
+            KAFKA_DATA_FIELD_NAME_DEFAULT,
+            KAFKA_DATA_FIELD_NAME_IMPORTANCE,
+            KAFKA_DATA_FIELD_NAME_DOC
         ).define(
             AVRO_DATA_CACHE_SIZE_CONFIG,
             AVRO_DATA_CACHE_SIZE_TYPE,

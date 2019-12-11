@@ -104,7 +104,10 @@ public class BigQuerySinkConnector extends SinkConnector {
     SchemaConverter<com.google.cloud.bigquery.Schema> schemaConverter = config.getSchemaConverter();
     boolean includeKafkaKey = config.getBoolean(config.INCLUDE_KAFKA_KEY_CONFIG);
     boolean includeKafkaData = config.getBoolean(config.INCLUDE_KAFKA_DATA_CONFIG);
-    return new SchemaManager(schemaRetriever, schemaConverter, bigQuery, includeKafkaKey, includeKafkaData);
+    String kafkaKeyFieldName = config.getString(config.KAFKA_KEY_FIELD_NAME_CONFIG);
+    String kafkaDataFieldName = config.getString(config.KAFKA_DATA_FIELD_NAME_CONFIG);
+    return new SchemaManager(schemaRetriever, schemaConverter, bigQuery,
+            includeKafkaKey, includeKafkaData, kafkaKeyFieldName, kafkaDataFieldName);
   }
 
   private void ensureExistingTables(

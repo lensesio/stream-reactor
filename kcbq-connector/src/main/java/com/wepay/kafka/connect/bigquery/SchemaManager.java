@@ -3,7 +3,7 @@ package com.wepay.kafka.connect.bigquery;
 
 import com.google.cloud.bigquery.*;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
-import com.wepay.kafka.connect.bigquery.convert.KafkaDataConverter;
+import com.wepay.kafka.connect.bigquery.convert.KafkaDataBuilder;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 
 import org.apache.kafka.connect.data.Schema;
@@ -26,8 +26,8 @@ public class SchemaManager {
   private final BigQuery bigQuery;
   private final boolean includeKafkaKey;
   private final boolean includeKafkaData;
-
-  public static final String KAFKA_KEY_FIELD_NAME = "kafkaKey";
+  private final String kafkaKeyFieldName;
+  private final String kafkaDataFieldName;
 
   /**
    * @param schemaRetriever Used to determine the Kafka Connect Schema that should be used for a
@@ -40,12 +40,16 @@ public class SchemaManager {
       SchemaConverter<com.google.cloud.bigquery.Schema> schemaConverter,
       BigQuery bigQuery,
       boolean includeKafkaKey,
-      boolean includeKafkaData) {
+      boolean includeKafkaData,
+      String kafkaKeyFieldName,
+      String kafkaDataFieldName) {
     this.schemaRetriever = schemaRetriever;
     this.schemaConverter = schemaConverter;
     this.bigQuery = bigQuery;
     this.includeKafkaKey = includeKafkaKey;
     this.includeKafkaData = includeKafkaData;
+    this.kafkaKeyFieldName = kafkaKeyFieldName;
+    this.kafkaDataFieldName = kafkaDataFieldName;
   }
 
   /**
@@ -94,12 +98,12 @@ public class SchemaManager {
       allFields.addAll(valueSchema.getFields());
       if (includeKafkaKey) {
           com.google.cloud.bigquery.Schema keySchema = schemaConverter.convertSchema(kafkaKeySchema);
-          Field kafkaKeyField = Field.newBuilder(KAFKA_KEY_FIELD_NAME, LegacySQLTypeName.RECORD, keySchema.getFields())
+          Field kafkaKeyField = Field.newBuilder(kafkaKeyFieldName, LegacySQLTypeName.RECORD, keySchema.getFields())
                   .setMode(Field.Mode.NULLABLE).build();
           allFields.add(kafkaKeyField);
       }
       if (includeKafkaData) {
-          Field kafkaDataField = KafkaDataConverter.getKafkaDataField();
+          Field kafkaDataField = KafkaDataBuilder.getKafkaDataField(kafkaDataFieldName);
           allFields.add(kafkaDataField);
       }
       return com.google.cloud.bigquery.Schema.of(allFields);
