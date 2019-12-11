@@ -18,6 +18,8 @@ import java.util.List;
  */
 public class SchemaManager {
   private static final Logger logger = LoggerFactory.getLogger(SchemaManager.class);
+  private static final String VALUE = "value";
+  private static final String KEY = "key";
 
   private final SchemaRetriever schemaRetriever;
   private final SchemaConverter<com.google.cloud.bigquery.Schema> schemaConverter;
@@ -52,8 +54,8 @@ public class SchemaManager {
    * @param topic The Kafka topic used to determine the schema.
    */
   public void createTable(TableId table, String topic) {
-    Schema kafkaValueSchema = schemaRetriever.retrieveSchema(table, topic, false);
-    Schema kafkaKeySchema = includeKafkaKey ? schemaRetriever.retrieveSchema(table, topic, true) : null;
+    Schema kafkaValueSchema = schemaRetriever.retrieveSchema(table, topic, VALUE);
+    Schema kafkaKeySchema = includeKafkaKey ? schemaRetriever.retrieveSchema(table, topic, KEY) : null;
     bigQuery.create(constructTableInfo(table, kafkaKeySchema, kafkaValueSchema));
   }
 
@@ -63,8 +65,8 @@ public class SchemaManager {
    * @param topic The Kafka topic used to determine the schema.
    */
   public void updateSchema(TableId table, String topic) {
-    Schema kafkaValueSchema = schemaRetriever.retrieveSchema(table, topic, false);
-    Schema kafkaKeySchema = includeKafkaKey ? schemaRetriever.retrieveSchema(table, topic, true) : null;
+    Schema kafkaValueSchema = schemaRetriever.retrieveSchema(table, topic, VALUE);
+    Schema kafkaKeySchema = includeKafkaKey ? schemaRetriever.retrieveSchema(table, topic, KEY) : null;
     TableInfo tableInfo = constructTableInfo(table, kafkaKeySchema, kafkaValueSchema);
     logger.info("Attempting to update table `{}` with schema {}",
         table, tableInfo.getDefinition().getSchema());

@@ -8,6 +8,9 @@ import org.apache.kafka.connect.sink.SinkRecord;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Helper class to construct kafka data schema and kafka data record.
+ */
 public class KafkaDataConverter {
 
     public static final String KAFKA_DATA_FIELD_NAME = "kafkaData";
