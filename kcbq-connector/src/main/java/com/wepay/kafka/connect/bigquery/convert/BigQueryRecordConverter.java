@@ -65,15 +65,15 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
 
   /**
    * Convert a {@link SinkRecord} into the contents of a BigQuery {@link RowToInsert}.
-   *
-   * @param kafkaConnectRecord The Kafka Connect record to convert. Must be of type {@link Struct},
+   * @param kafkaConnectSchema The schema of the kafka connect record to convert. Must be of type {@link Struct},
+   *                           in order to translate into a row format that requires each field to
+   *                           consist of both a name and a value.
+   * @param kafkaConnectStruct The struct of the kafka connect record to convert. Must be of type {@link Struct},
    *                           in order to translate into a row format that requires each field to
    *                           consist of both a name and a value.
    * @return The result BigQuery row content.
    */
-  public Map<String, Object> convertRecord(SinkRecord kafkaConnectRecord, boolean convertKey) {
-    Schema kafkaConnectSchema = convertKey ? kafkaConnectRecord.keySchema() : kafkaConnectRecord.valueSchema();
-    Object kafkaConnectStruct = convertKey ? kafkaConnectRecord.key() : kafkaConnectRecord.value();
+  public Map<String, Object> convertRecord(Schema kafkaConnectSchema, Object kafkaConnectStruct) {
     if (kafkaConnectSchema == null) {
       if (kafkaConnectStruct instanceof Map) {
         return (Map<String, Object>) convertSchemalessRecord(kafkaConnectStruct);
@@ -172,8 +172,7 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
     }
   }
 
-  private Map<String, Object> convertStruct(Object kafkaConnectObject,
-                                            Schema kafkaConnectSchema) {
+  private Map<String, Object> convertStruct(Object kafkaConnectObject, Schema kafkaConnectSchema) {
     Map<String, Object> bigQueryRecord = new HashMap<>();
     List<Field> kafkaConnectSchemaFields = kafkaConnectSchema.fields();
     Struct kafkaConnectStruct = (Struct) kafkaConnectObject;

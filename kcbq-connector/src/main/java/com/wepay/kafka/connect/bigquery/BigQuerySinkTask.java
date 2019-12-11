@@ -48,6 +48,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.record.TimestampType;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
@@ -151,9 +152,9 @@ public class BigQuerySinkTask extends SinkTask {
   }
 
   private RowToInsert getRecordRow(SinkRecord record) {
-    Map<String, Object> convertedRecord = recordConverter.convertRecord(record, false);
+    Map<String, Object> convertedRecord = recordConverter.convertRecord(record.valueSchema(), record.value());
     if (config.getBoolean(config.INCLUDE_KAFKA_KEY_CONFIG)) {
-      convertedRecord.put(config.KAFKA_KEY_FIELD_NAME_CONFIG, recordConverter.convertRecord(record, true));
+      convertedRecord.put(config.KAFKA_KEY_FIELD_NAME_CONFIG, recordConverter.convertRecord(record.keySchema(), record.key()));
     }
     if (config.getBoolean(config.INCLUDE_KAFKA_DATA_CONFIG)) {
       convertedRecord.put(config.KAFKA_DATA_FIELD_NAME_CONFIG, KafkaDataBuilder.getKafkaDataRecord(record));
