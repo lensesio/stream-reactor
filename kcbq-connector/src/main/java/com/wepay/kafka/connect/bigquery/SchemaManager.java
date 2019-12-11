@@ -103,7 +103,7 @@ public class SchemaManager {
           allFields.add(kafkaKeyField);
       }
       if (includeKafkaData) {
-          Field kafkaDataField = KafkaDataBuilder.getKafkaDataField(kafkaDataFieldName);
+          Field kafkaDataField = KafkaDataBuilder.buildKafkaDataField(kafkaDataFieldName);
           allFields.add(kafkaDataField);
       }
       return com.google.cloud.bigquery.Schema.of(allFields);

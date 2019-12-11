@@ -18,7 +18,7 @@ public class KafkaDataBuilder {
     public static final String KAFKA_DATA_OFFSET_FIELD_NAME = "offset";
     public static final String KAFKA_DATA_INSERT_TIME_FIELD_NAME = "insertTime";
 
-    public static Field getKafkaDataField(String kafkaDataFieldName) {
+    public static Field buildKafkaDataField(String kafkaDataFieldName) {
         Field topicField = com.google.cloud.bigquery.Field.of(KAFKA_DATA_TOPIC_FIELD_NAME, LegacySQLTypeName.STRING);
         Field partitionField = com.google.cloud.bigquery.Field.of(KAFKA_DATA_PARTITION_FIELD_NAME, LegacySQLTypeName.INTEGER);
         Field offsetField = com.google.cloud.bigquery.Field.of(KAFKA_DATA_OFFSET_FIELD_NAME, LegacySQLTypeName.INTEGER);
@@ -32,7 +32,7 @@ public class KafkaDataBuilder {
                 .setMode(com.google.cloud.bigquery.Field.Mode.NULLABLE).build();
     }
 
-    public static Map<String, Object> getKafkaDataRecord(SinkRecord kafkaConnectRecord) {
+    public static Map<String, Object> buildKafkaDataRecord(SinkRecord kafkaConnectRecord) {
         HashMap<String, Object> kafkaData = new HashMap<>();
         kafkaData.put(KAFKA_DATA_TOPIC_FIELD_NAME, kafkaConnectRecord.topic());
         kafkaData.put(KAFKA_DATA_PARTITION_FIELD_NAME, kafkaConnectRecord.kafkaPartition());

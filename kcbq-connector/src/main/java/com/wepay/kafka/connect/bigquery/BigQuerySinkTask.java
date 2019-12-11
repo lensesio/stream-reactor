@@ -157,7 +157,7 @@ public class BigQuerySinkTask extends SinkTask {
       convertedRecord.put(config.getString(config.KAFKA_KEY_FIELD_NAME_CONFIG), recordConverter.convertRecord(record.keySchema(), record.key()));
     }
     if (config.getBoolean(config.INCLUDE_KAFKA_DATA_CONFIG)) {
-      convertedRecord.put(config.getString(config.KAFKA_DATA_FIELD_NAME_CONFIG), KafkaDataBuilder.getKafkaDataRecord(record));
+      convertedRecord.put(config.getString(config.KAFKA_DATA_FIELD_NAME_CONFIG), KafkaDataBuilder.buildKafkaDataRecord(record));
     }
     if (config.getBoolean(config.SANITIZE_FIELD_NAME_CONFIG)) {
       convertedRecord = FieldNameSanitizer.replaceInvalidKeys(convertedRecord);
