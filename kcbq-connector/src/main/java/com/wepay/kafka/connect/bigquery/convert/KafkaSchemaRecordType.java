@@ -1,6 +1,9 @@
 package com.wepay.kafka.connect.bigquery.convert;
 
 
+/**
+ *  Enum class for Kafka schema or record type, either value or key.
+ */
 public enum KafkaSchemaRecordType {
     VALUE("value"),
     KEY("key");
