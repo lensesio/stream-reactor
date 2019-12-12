@@ -65,15 +65,15 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
 
   /**
    * Convert a {@link SinkRecord} into the contents of a BigQuery {@link RowToInsert}.
-   * @param kafkaConnectSchema The schema of the kafka connect record to convert. Must be of type {@link Struct},
-   *                           in order to translate into a row format that requires each field to
-   *                           consist of both a name and a value.
-   * @param kafkaConnectStruct The struct of the kafka connect record to convert. Must be of type {@link Struct},
-   *                           in order to translate into a row format that requires each field to
-   *                           consist of both a name and a value.
+   * @param record The Kafka Connect record to convert. Must be of type {@link Struct},
+   *               in order to translate into a row format that requires each field to
+   *               consist of both a name and a value.
+   * @param recordType The type of the record to convert, either value or key.
    * @return The result BigQuery row content.
    */
-  public Map<String, Object> convertRecord(Schema kafkaConnectSchema, Object kafkaConnectStruct) {
+  public Map<String, Object> convertRecord(SinkRecord record, KafkaSchemaRecordType recordType) {
+    Schema kafkaConnectSchema = recordType == KafkaSchemaRecordType.KEY ? record.keySchema() : record.valueSchema();
+    Object kafkaConnectStruct = recordType == KafkaSchemaRecordType.KEY ? record.key() : record.value();
     if (kafkaConnectSchema == null) {
       if (kafkaConnectStruct instanceof Map) {
         return (Map<String, Object>) convertSchemalessRecord(kafkaConnectStruct);

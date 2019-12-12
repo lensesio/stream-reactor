@@ -61,8 +61,8 @@ public class SchemaRegistrySchemaRetriever implements SchemaRetriever {
   }
 
   @Override
-  public Schema retrieveSchema(TableId table, String topic, String subjectType) {
-    String subject = getSubject(topic, subjectType);
+  public Schema retrieveSchema(TableId table, String topic, String schemaType) {
+    String subject = getSubject(topic, schemaType);
     try {
       logger.debug("Retrieving schema information for topic {} with subject {}", topic, subject);
       SchemaMetadata latestSchemaMetadata = schemaRegistryClient.getLatestSchemaMetadata(subject);
@@ -80,7 +80,7 @@ public class SchemaRegistrySchemaRetriever implements SchemaRetriever {
   @Override
   public void setLastSeenSchema(TableId table, String topic, Schema schema) { }
 
-  private String getSubject(String topic, String subjectType) {
-    return topic + "-" + subjectType;
+  private String getSubject(String topic, String schemaType) {
+    return topic + "-" + schemaType;
   }
 }

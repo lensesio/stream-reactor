@@ -40,7 +40,7 @@ public class MemorySchemaRetriever implements SchemaRetriever {
   }
 
   @Override
-  public Schema retrieveSchema(TableId table, String topic, String subjectType) {
+  public Schema retrieveSchema(TableId table, String topic, String schemaType) {
     String tableName = table.getTable();
     Schema schema = schemaCache.get(getCacheKey(tableName, topic));
     if (schema != null) {
