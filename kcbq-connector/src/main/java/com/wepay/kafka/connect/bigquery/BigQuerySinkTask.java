@@ -65,6 +65,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.Optional;
 
 /**
  * A {@link SinkTask} used to translate Kafka Connect {@link SinkRecord SinkRecords} into BigQuery
@@ -153,11 +154,13 @@ public class BigQuerySinkTask extends SinkTask {
 
   private RowToInsert getRecordRow(SinkRecord record) {
     Map<String, Object> convertedRecord = recordConverter.convertRecord(record, KafkaSchemaRecordType.VALUE);
-    if (config.getBoolean(config.INCLUDE_KAFKA_KEY_CONFIG)) {
-      convertedRecord.put(config.getString(config.KAFKA_KEY_FIELD_NAME_CONFIG), recordConverter.convertRecord(record, KafkaSchemaRecordType.KEY));
+    Optional<String> kafkaKeyFieldName = config.getKafkaKeyFieldName();
+    if (kafkaKeyFieldName.isPresent()) {
+      convertedRecord.put(kafkaKeyFieldName.get(), recordConverter.convertRecord(record, KafkaSchemaRecordType.KEY));
     }
-    if (config.getBoolean(config.INCLUDE_KAFKA_DATA_CONFIG)) {
-      convertedRecord.put(config.getString(config.KAFKA_DATA_FIELD_NAME_CONFIG), KafkaDataBuilder.buildKafkaDataRecord(record));
+    Optional<String> kafkaDataFieldName = config.getKafkaDataFieldName();
+    if (kafkaDataFieldName.isPresent()) {
+      convertedRecord.put(kafkaDataFieldName.get(), KafkaDataBuilder.buildKafkaDataRecord(record));
     }
     if (config.getBoolean(config.SANITIZE_FIELD_NAME_CONFIG)) {
       convertedRecord = FieldNameSanitizer.replaceInvalidKeys(convertedRecord);
@@ -248,12 +251,9 @@ public class BigQuerySinkTask extends SinkTask {
     schemaRetriever = config.getSchemaRetriever();
     SchemaConverter<com.google.cloud.bigquery.Schema> schemaConverter =
         config.getSchemaConverter();
-    boolean includeKafkaKey = config.getBoolean(config.INCLUDE_KAFKA_KEY_CONFIG);
-    boolean includeKafkaData = config.getBoolean(config.INCLUDE_KAFKA_DATA_CONFIG);
-    String kafkaKeyFieldName = config.getString(config.KAFKA_KEY_FIELD_NAME_CONFIG);
-    String kafkaDataFieldName = config.getString(config.KAFKA_DATA_FIELD_NAME_CONFIG);
-    return new SchemaManager(schemaRetriever, schemaConverter, bigQuery,
-            includeKafkaKey, includeKafkaData, kafkaKeyFieldName, kafkaDataFieldName);
+    Optional<String> kafkaKeyFieldName = config.getKafkaKeyFieldName();
+    Optional<String> kafkaDataFieldName = config.getKafkaDataFieldName();
+    return new SchemaManager(schemaRetriever, schemaConverter, bigQuery, kafkaKeyFieldName, kafkaDataFieldName);
   }
 
   private BigQueryWriter getBigQueryWriter() {

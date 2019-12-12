@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * A {@link SinkConnector} used to delegate BigQuery data writes to
@@ -102,12 +103,9 @@ public class BigQuerySinkConnector extends SinkConnector {
     }
     SchemaRetriever schemaRetriever = config.getSchemaRetriever();
     SchemaConverter<com.google.cloud.bigquery.Schema> schemaConverter = config.getSchemaConverter();
-    boolean includeKafkaKey = config.getBoolean(config.INCLUDE_KAFKA_KEY_CONFIG);
-    boolean includeKafkaData = config.getBoolean(config.INCLUDE_KAFKA_DATA_CONFIG);
-    String kafkaKeyFieldName = config.getString(config.KAFKA_KEY_FIELD_NAME_CONFIG);
-    String kafkaDataFieldName = config.getString(config.KAFKA_DATA_FIELD_NAME_CONFIG);
-    return new SchemaManager(schemaRetriever, schemaConverter, bigQuery,
-            includeKafkaKey, includeKafkaData, kafkaKeyFieldName, kafkaDataFieldName);
+    Optional<String> kafkaKeyFieldName = config.getKafkaKeyFieldName();
+    Optional<String> kafkaDataFieldName = config.getKafkaDataFieldName();
+    return new SchemaManager(schemaRetriever, schemaConverter, bigQuery, kafkaKeyFieldName, kafkaDataFieldName);
   }
 
   private void ensureExistingTables(

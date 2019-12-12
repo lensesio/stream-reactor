@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Optional;
 
 /**
  * Base class for connector and task configs; contains properties shared between the two of them.
@@ -166,34 +167,19 @@ public class BigQuerySinkConfig extends AbstractConfig {
                   + "front of field name. Note: field a.b and a_b will have same value after sanitizing, "
                   + "and might cause key duplication error.";
 
-  public static final String INCLUDE_KAFKA_DATA_CONFIG =                   "includeKafkaData";
-  public static final ConfigDef.Type INCLUDE_KAFKA_DATA_TYPE =             ConfigDef.Type.BOOLEAN;
-  public static final Boolean INCLUDE_KAFKA_DATA_DEFAULT =                 false;
-  public static final ConfigDef.Importance INCLUDE_KAFKA_DATA_IMPORTANCE =
-      ConfigDef.Importance.LOW;
-  public static final String INCLUDE_KAFKA_DATA_DOC =
-      "Whether to include an extra block containing the Kafka source topic, offset, "
-      + "and partition information in the resulting BigQuery rows.";
-
-  public static final String INCLUDE_KAFKA_KEY_CONFIG =                   "includeKafkaKey";
-  public static final ConfigDef.Type INCLUDE_KAFKA_KEY_TYPE =             ConfigDef.Type.BOOLEAN;
-  public static final Boolean INCLUDE_KAFKA_KEY_DEFAULT =                 false;
-  public static final ConfigDef.Importance INCLUDE_KAFKA_KEY_IMPORTANCE =
-          ConfigDef.Importance.LOW;
-  public static final String INCLUDE_KAFKA_KEY_DOC =
-          "Whether to include an extra block containing fields in Kafka key.";
-
   public static final String KAFKA_KEY_FIELD_NAME_CONFIG =        "kafkaKeyFieldName";
   private static final ConfigDef.Type KAFKA_KEY_FIELD_NAME_TYPE = ConfigDef.Type.STRING;
-  public static final String KAFKA_KEY_FIELD_NAME_DEFAULT =       "kafkaKey";
+  public static final String KAFKA_KEY_FIELD_NAME_DEFAULT =       null;
   private static final ConfigDef.Importance KAFKA_KEY_FIELD_NAME_IMPORTANCE = ConfigDef.Importance.LOW;
-  private static final String KAFKA_KEY_FIELD_NAME_DOC = "The name of the field of Kafka key.";
+  private static final String KAFKA_KEY_FIELD_NAME_DOC = "The name of the field of Kafka key. " +
+          "Default to be null, which means Kafka Key Field will not be included.";
 
   public static final String KAFKA_DATA_FIELD_NAME_CONFIG =        "kafkaDataFieldName";
   private static final ConfigDef.Type KAFKA_DATA_FIELD_NAME_TYPE = ConfigDef.Type.STRING;
-  public static final String KAFKA_DATA_FIELD_NAME_DEFAULT =       "kafkaData";
+  public static final String KAFKA_DATA_FIELD_NAME_DEFAULT =       null;
   private static final ConfigDef.Importance KAFKA_DATA_FIELD_NAME_IMPORTANCE = ConfigDef.Importance.LOW;
-  private static final String KAFKA_DATA_FIELD_NAME_DOC = "The name of the field of Kafka Data.";
+  private static final String KAFKA_DATA_FIELD_NAME_DOC = "The name of the field of Kafka Data. " +
+          "Default to be null, which means Kafka Data Field will not be included. ";
 
   public static final String AVRO_DATA_CACHE_SIZE_CONFIG =                 "avroDataCacheSize";
   private static final ConfigDef.Type AVRO_DATA_CACHE_SIZE_TYPE =          ConfigDef.Type.INT;
@@ -307,18 +293,6 @@ public class BigQuerySinkConfig extends AbstractConfig {
             SANITIZE_FIELD_NAME_DEFAULT,
             SANITIZE_FIELD_NAME_IMPORTANCE,
             SANITIZE_FIELD_NAME_DOC
-        ).define(
-            INCLUDE_KAFKA_DATA_CONFIG,
-            INCLUDE_KAFKA_DATA_TYPE,
-            INCLUDE_KAFKA_DATA_DEFAULT,
-            INCLUDE_KAFKA_DATA_IMPORTANCE,
-            INCLUDE_KAFKA_DATA_DOC
-        ).define(
-            INCLUDE_KAFKA_KEY_CONFIG,
-            INCLUDE_KAFKA_KEY_TYPE,
-            INCLUDE_KAFKA_KEY_DEFAULT,
-            INCLUDE_KAFKA_KEY_IMPORTANCE,
-            INCLUDE_KAFKA_KEY_DOC
         ).define(
             KAFKA_KEY_FIELD_NAME_CONFIG,
             KAFKA_KEY_FIELD_NAME_TYPE,
@@ -599,6 +573,22 @@ public class BigQuerySinkConfig extends AbstractConfig {
   }
 
   /**
+   *
+   * @return An optional class of KafkaKeyFieldName.
+   */
+  public Optional<String> getKafkaKeyFieldName() {
+    return Optional.ofNullable(getString(KAFKA_KEY_FIELD_NAME_CONFIG));
+  }
+
+  /**
+   *
+   * @return An optional class of KafkaDataFieldName.
+   */
+  public Optional<String> getKafkaDataFieldName() {
+    return Optional.ofNullable(getString(KAFKA_DATA_FIELD_NAME_CONFIG));
+  }
+
+  /**
    * Verifies that a bucket is specified if GCS batch loading is enabled.
    * @throws ConfigException Exception thrown if no bucket is specified and batch loading is on.
    */
@@ -628,4 +618,5 @@ public class BigQuerySinkConfig extends AbstractConfig {
     super(config, properties);
     verifyBucketSpecified();
   }
+
 }

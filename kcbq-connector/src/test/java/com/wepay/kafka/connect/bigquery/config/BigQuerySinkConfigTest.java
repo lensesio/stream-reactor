@@ -78,7 +78,7 @@ public class BigQuerySinkConfigTest {
   @Test
   public void testGetSchemaConverter() {
     Map<String, String> configProperties = propertiesFactory.getProperties();
-    configProperties.put(BigQuerySinkConfig.INCLUDE_KAFKA_DATA_CONFIG, "true");
+    configProperties.put(BigQuerySinkConfig.KAFKA_DATA_FIELD_NAME_CONFIG, "kafkaData");
 
     BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
 
@@ -88,7 +88,7 @@ public class BigQuerySinkConfigTest {
   @Test
   public void testGetRecordConverter() {
     Map<String, String> configProperties = propertiesFactory.getProperties();
-    configProperties.put(BigQuerySinkConfig.INCLUDE_KAFKA_DATA_CONFIG, "true");
+    configProperties.put(BigQuerySinkConfig.KAFKA_DATA_FIELD_NAME_CONFIG, "kafkaData");
 
     BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
 

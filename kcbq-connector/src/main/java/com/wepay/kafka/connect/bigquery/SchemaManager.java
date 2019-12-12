@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Class for managing Schemas of BigQuery tables (creating and updating).
@@ -23,10 +24,8 @@ public class SchemaManager {
   private final SchemaRetriever schemaRetriever;
   private final SchemaConverter<com.google.cloud.bigquery.Schema> schemaConverter;
   private final BigQuery bigQuery;
-  private final boolean includeKafkaKey;
-  private final boolean includeKafkaData;
-  private final String kafkaKeyFieldName;
-  private final String kafkaDataFieldName;
+  private final Optional<String> kafkaKeyFieldName;
+  private final Optional<String> kafkaDataFieldName;
 
   /**
    * @param schemaRetriever Used to determine the Kafka Connect Schema that should be used for a
@@ -38,15 +37,11 @@ public class SchemaManager {
       SchemaRetriever schemaRetriever,
       SchemaConverter<com.google.cloud.bigquery.Schema> schemaConverter,
       BigQuery bigQuery,
-      boolean includeKafkaKey,
-      boolean includeKafkaData,
-      String kafkaKeyFieldName,
-      String kafkaDataFieldName) {
+      Optional<String> kafkaKeyFieldName,
+      Optional<String> kafkaDataFieldName) {
     this.schemaRetriever = schemaRetriever;
     this.schemaConverter = schemaConverter;
     this.bigQuery = bigQuery;
-    this.includeKafkaKey = includeKafkaKey;
-    this.includeKafkaData = includeKafkaData;
     this.kafkaKeyFieldName = kafkaKeyFieldName;
     this.kafkaDataFieldName = kafkaDataFieldName;
   }
@@ -58,7 +53,7 @@ public class SchemaManager {
    */
   public void createTable(TableId table, String topic) {
     Schema kafkaValueSchema = schemaRetriever.retrieveSchema(table, topic, KafkaSchemaRecordType.VALUE.toString());
-    Schema kafkaKeySchema = includeKafkaKey ? schemaRetriever.retrieveSchema(table, topic, KafkaSchemaRecordType.KEY.toString()) : null;
+    Schema kafkaKeySchema = kafkaKeyFieldName.isPresent() ? schemaRetriever.retrieveSchema(table, topic, KafkaSchemaRecordType.KEY.toString()) : null;
     bigQuery.create(constructTableInfo(table, kafkaKeySchema, kafkaValueSchema));
   }
 
@@ -69,7 +64,7 @@ public class SchemaManager {
    */
   public void updateSchema(TableId table, String topic) {
     Schema kafkaValueSchema = schemaRetriever.retrieveSchema(table, topic, KafkaSchemaRecordType.VALUE.toString());
-    Schema kafkaKeySchema = includeKafkaKey ? schemaRetriever.retrieveSchema(table, topic, KafkaSchemaRecordType.KEY.toString()) : null;
+    Schema kafkaKeySchema = kafkaKeyFieldName.isPresent() ? schemaRetriever.retrieveSchema(table, topic, KafkaSchemaRecordType.KEY.toString()) : null;
     TableInfo tableInfo = constructTableInfo(table, kafkaKeySchema, kafkaValueSchema);
     logger.info("Attempting to update table `{}` with schema {}",
         table, tableInfo.getDefinition().getSchema());
@@ -95,14 +90,14 @@ public class SchemaManager {
       List<Field> allFields = new ArrayList<> ();
       com.google.cloud.bigquery.Schema valueSchema = schemaConverter.convertSchema(kafkaValueSchema);
       allFields.addAll(valueSchema.getFields());
-      if (includeKafkaKey) {
+      if (kafkaKeyFieldName.isPresent()) {
           com.google.cloud.bigquery.Schema keySchema = schemaConverter.convertSchema(kafkaKeySchema);
-          Field kafkaKeyField = Field.newBuilder(kafkaKeyFieldName, LegacySQLTypeName.RECORD, keySchema.getFields())
+          Field kafkaKeyField = Field.newBuilder(kafkaKeyFieldName.get(), LegacySQLTypeName.RECORD, keySchema.getFields())
                   .setMode(Field.Mode.NULLABLE).build();
           allFields.add(kafkaKeyField);
       }
-      if (includeKafkaData) {
-          Field kafkaDataField = KafkaDataBuilder.buildKafkaDataField(kafkaDataFieldName);
+      if (kafkaDataFieldName.isPresent()) {
+          Field kafkaDataField = KafkaDataBuilder.buildKafkaDataField(kafkaDataFieldName.get());
           allFields.add(kafkaDataField);
       }
       return com.google.cloud.bigquery.Schema.of(allFields);
