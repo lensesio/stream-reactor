@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.cloud.bigquery.TableId;
 
+import com.wepay.kafka.connect.bigquery.api.KafkaSchemaRecordType;
 import io.confluent.connect.avro.AvroData;
 
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
@@ -42,7 +43,7 @@ public class SchemaRegistrySchemaRetrieverTest {
     Schema expectedKafkaConnectSchema =
         SchemaBuilder.struct().field("f1", Schema.STRING_SCHEMA).name("testrecord").build();
 
-    assertEquals(expectedKafkaConnectSchema, testSchemaRetriever.retrieveSchema(table, testTopic, "value"));
-    assertEquals(expectedKafkaConnectSchema, testSchemaRetriever.retrieveSchema(table, testTopic, "key"));
+    assertEquals(expectedKafkaConnectSchema, testSchemaRetriever.retrieveSchema(table, testTopic, KafkaSchemaRecordType.VALUE));
+    assertEquals(expectedKafkaConnectSchema, testSchemaRetriever.retrieveSchema(table, testTopic, KafkaSchemaRecordType.KEY));
   }
 }
