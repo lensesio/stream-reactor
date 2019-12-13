@@ -18,6 +18,7 @@ package com.wepay.kafka.connect.bigquery.convert;
  */
 
 
+import com.wepay.kafka.connect.bigquery.api.KafkaSchemaRecordType;
 import org.apache.kafka.connect.sink.SinkRecord;
 
 /**

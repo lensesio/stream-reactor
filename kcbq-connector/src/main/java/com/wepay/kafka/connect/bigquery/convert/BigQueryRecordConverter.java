@@ -19,6 +19,7 @@ package com.wepay.kafka.connect.bigquery.convert;
 
 
 import com.google.cloud.bigquery.InsertAllRequest.RowToInsert;
+import com.wepay.kafka.connect.bigquery.api.KafkaSchemaRecordType;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.DebeziumLogicalConverters;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.KafkaLogicalConverters;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.LogicalConverterRegistry;

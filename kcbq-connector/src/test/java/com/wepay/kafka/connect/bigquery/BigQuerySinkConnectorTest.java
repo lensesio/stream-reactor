@@ -33,6 +33,7 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableId;
 
+import com.wepay.kafka.connect.bigquery.api.KafkaSchemaRecordType;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
@@ -61,7 +62,7 @@ public class BigQuerySinkConnectorTest {
     }
 
     @Override
-    public Schema retrieveSchema(TableId table, String topic, String subjectType) {
+    public Schema retrieveSchema(TableId table, String topic, KafkaSchemaRecordType schemaType) {
       // Shouldn't be called
       return null;
     }

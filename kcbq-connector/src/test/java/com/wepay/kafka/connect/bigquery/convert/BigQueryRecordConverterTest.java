@@ -20,6 +20,7 @@ package com.wepay.kafka.connect.bigquery.convert;
 
 import static org.junit.Assert.assertEquals;
 
+import com.wepay.kafka.connect.bigquery.api.KafkaSchemaRecordType;
 import com.wepay.kafka.connect.bigquery.exception.ConversionConnectException;
 
 import org.apache.kafka.connect.data.Schema;

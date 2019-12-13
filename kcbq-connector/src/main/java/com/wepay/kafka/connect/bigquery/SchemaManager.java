@@ -2,9 +2,9 @@ package com.wepay.kafka.connect.bigquery;
 
 
 import com.google.cloud.bigquery.*;
+import com.wepay.kafka.connect.bigquery.api.KafkaSchemaRecordType;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.convert.KafkaDataBuilder;
-import com.wepay.kafka.connect.bigquery.convert.KafkaSchemaRecordType;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 
 import org.apache.kafka.connect.data.Schema;
@@ -52,8 +52,8 @@ public class SchemaManager {
    * @param topic The Kafka topic used to determine the schema.
    */
   public void createTable(TableId table, String topic) {
-    Schema kafkaValueSchema = schemaRetriever.retrieveSchema(table, topic, KafkaSchemaRecordType.VALUE.toString());
-    Schema kafkaKeySchema = kafkaKeyFieldName.isPresent() ? schemaRetriever.retrieveSchema(table, topic, KafkaSchemaRecordType.KEY.toString()) : null;
+    Schema kafkaValueSchema = schemaRetriever.retrieveSchema(table, topic, KafkaSchemaRecordType.VALUE);
+    Schema kafkaKeySchema = kafkaKeyFieldName.isPresent() ? schemaRetriever.retrieveSchema(table, topic, KafkaSchemaRecordType.KEY) : null;
     bigQuery.create(constructTableInfo(table, kafkaKeySchema, kafkaValueSchema));
   }
 
@@ -63,8 +63,8 @@ public class SchemaManager {
    * @param topic The Kafka topic used to determine the schema.
    */
   public void updateSchema(TableId table, String topic) {
-    Schema kafkaValueSchema = schemaRetriever.retrieveSchema(table, topic, KafkaSchemaRecordType.VALUE.toString());
-    Schema kafkaKeySchema = kafkaKeyFieldName.isPresent() ? schemaRetriever.retrieveSchema(table, topic, KafkaSchemaRecordType.KEY.toString()) : null;
+    Schema kafkaValueSchema = schemaRetriever.retrieveSchema(table, topic, KafkaSchemaRecordType.VALUE);
+    Schema kafkaKeySchema = kafkaKeyFieldName.isPresent() ? schemaRetriever.retrieveSchema(table, topic, KafkaSchemaRecordType.KEY) : null;
     TableInfo tableInfo = constructTableInfo(table, kafkaKeySchema, kafkaValueSchema);
     logger.info("Attempting to update table `{}` with schema {}",
         table, tableInfo.getDefinition().getSchema());
