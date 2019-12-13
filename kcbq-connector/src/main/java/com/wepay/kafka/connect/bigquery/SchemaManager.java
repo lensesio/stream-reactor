@@ -38,6 +38,10 @@ public class SchemaManager {
    *                        given table.
    * @param schemaConverter Used to convert Kafka Connect Schemas into BigQuery format.
    * @param bigQuery Used to communicate create/update requests to BigQuery.
+   * @param kafkaKeyFieldName The name of kafka key field to be used in BigQuery.
+   *                         If set to null, Kafka Key Field will not be included in BigQuery.
+   * @param kafkaDataFieldName The name of kafka data field to be used in BigQuery.
+   *                           If set to null, Kafka Data Field will not be included in BigQuery.
    */
   public SchemaManager(
       SchemaRetriever schemaRetriever,
