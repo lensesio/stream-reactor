@@ -18,19 +18,22 @@ package com.datamountaineer.streamreactor.connect.mqtt.sink
 
 import java.util
 
+import com.datamountaineer.streamreactor.connect.converters.sink.Converter
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSinkConfig, MqttSinkSettings}
 import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConversions._
+import scala.util.{Failure, Success, Try}
 
 
 /**
-  * Created by andrew@datamountaineer.com on 27/08/2017. 
+  * Created by andrew@datamountaineer.com on 27/08/2017.
   * stream-reactor
   */
 class MqttSinkTask extends SinkTask with StrictLogging {
@@ -55,7 +58,24 @@ class MqttSinkTask extends SinkTask with StrictLogging {
       context.timeout(sinkConfig.getInt(MqttConfigConstants.ERROR_RETRY_INTERVAL).toLong)
     }
 
-    writer = Some(MqttWriter(settings))
+  val convertersMap = settings.sinksToConverters.map { case (topic, clazz) =>
+      logger.info(s"Creating converter instance for $clazz and topic $topic")
+
+      if (clazz == null) {
+        topic -> null
+      } else {
+        val converter = Try(Class.forName(clazz).newInstance()) match {
+          case Success(value) => value.asInstanceOf[Converter]
+          case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
+        }
+        import scala.collection.JavaConverters._
+        converter.initialize(conf.asScala.toMap)
+        topic -> converter
+      }
+
+    }
+
+    writer = Some(MqttWriter(settings, convertersMap))
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {

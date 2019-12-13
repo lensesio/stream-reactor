@@ -47,7 +47,7 @@ allprojects {
 
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
-    
+
 
     ext {
         scalaMajorVersion = '2.11'
@@ -69,7 +69,7 @@ allprojects {
         // The following 4 need to align to compile against a particular version
         confluentVersion = '5.0.0'
         kafkaVersion = '2.1.0'
-        dataMountaineerCommonVersion = "1.1.8"
+        dataMountaineerCommonVersion = "1.1.9"
         link4jVersion = "1.8.0"
 
         gitCommitHash = ("git rev-parse HEAD").execute().text.trim()

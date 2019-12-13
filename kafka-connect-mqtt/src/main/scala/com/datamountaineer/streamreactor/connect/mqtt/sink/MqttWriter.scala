@@ -18,6 +18,7 @@ package com.datamountaineer.streamreactor.connect.mqtt.sink
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.{FieldConverter, Transform}
+import com.datamountaineer.streamreactor.connect.converters.sink.Converter
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSinkSettings
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
@@ -32,17 +33,18 @@ import org.json4s.native.JsonMethods._
 import org.json4s.DefaultFormats
 
 /**
-  * Created by andrew@datamountaineer.com on 27/08/2017. 
+  * Created by andrew@datamountaineer.com on 27/08/2017.
   * stream-reactor
   */
 
 object MqttWriter {
-  def apply(settings: MqttSinkSettings): MqttWriter = {
-    new MqttWriter(MqttClientConnectionFn.apply(settings), settings)
+  def apply(settings: MqttSinkSettings, convertersMap: Map[String, Converter]): MqttWriter = {
+    new MqttWriter(MqttClientConnectionFn.apply(settings), settings, convertersMap)
   }
 }
 
-class MqttWriter(client: MqttClient, settings: MqttSinkSettings)
+class MqttWriter(client: MqttClient, settings: MqttSinkSettings,
+                convertersMap: Map[String, Converter])
   extends StrictLogging with ErrorHandler {
 
   //initialize error tracker
@@ -65,35 +67,43 @@ class MqttWriter(client: MqttClient, settings: MqttSinkSettings)
         kcqls.map(k => {
           //for all the records in the group transform
           records.map(r => {
+            val transformed = Transform(
+              k.getFields.map(FieldConverter.apply),
+              k.getIgnoredFields.map(FieldConverter.apply),
+              r.valueSchema(),
+              r.value(),
+              k.hasRetainStructure
+            )
+
             //get kafka message key if asked for
-            if (k.getTarget == "_key"){
+            if (!Option(k.getDynamicTarget).getOrElse("").isEmpty) {
+              var mqtttopic = (parse(transformed) \ k.getDynamicTarget).extractOrElse[String](null)
+              if (mqtttopic.nonEmpty) {
+                mqttTarget = mqtttopic
+              }
+            } else if (k.getTarget == "_key") {
               mqttTarget = r.key().toString()
             } else {
               mqttTarget = k.getTarget
             }
-            (mqttTarget,
-               //get kafka message payload
-               Transform(
-                  k.getFields.map(FieldConverter.apply),
-                  k.getIgnoredFields.map(FieldConverter.apply),
-                  r.valueSchema(),
-                  r.value(),
-                  k.hasRetainStructure
-            ))
+
+            val converter = convertersMap.getOrElse(k.getSource, null)
+            val value = if (converter == null) {
+              transformed.getBytes()
+            } else {
+              val converted_record = converter.convert(mqttTarget, r)
+              converted_record.value().asInstanceOf[Array[Byte]]
+            }
+
+            (mqttTarget, value)
           }).map(
             {
-              case (t, json) => {
-                msg.setPayload(json.getBytes)
+              case (t, value) => {
+                msg.setPayload(value)
                 msg.setRetained(settings.mqttRetainedMessage);
-                
-                if (!Option(k.getDynamicTarget).getOrElse("").isEmpty) {
-                  var mqtttopic = (parse(json) \ k.getDynamicTarget).extractOrElse[String](null)
-                  if (mqtttopic.nonEmpty) {
-                    client.publish(mqtttopic, msg)
-                  }
-                } else {
-                  client.publish(t, msg)
-                }
+
+                client.publish(t, msg)
+
               }
             }
           )

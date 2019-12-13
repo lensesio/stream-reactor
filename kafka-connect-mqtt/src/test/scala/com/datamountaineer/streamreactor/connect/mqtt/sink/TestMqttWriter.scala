@@ -21,6 +21,7 @@ import java.nio.ByteBuffer
 import java.util
 import java.util.concurrent.LinkedBlockingQueue
 
+import com.datamountaineer.streamreactor.connect.converters.sink.Converter
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSinkConfig, MqttSinkSettings}
 import org.eclipse.paho.client.mqttv3.MqttClient
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions
@@ -28,6 +29,7 @@ import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import io.moquette.server.Server
 import io.moquette.server.config.ClasspathConfig
+import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -38,7 +40,7 @@ import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpec}
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andrew@datamountaineer.com on 27/08/2017.
@@ -82,7 +84,7 @@ class TestMqttWriter extends WordSpec with Matchers with BeforeAndAfterAll with 
     files.map(f => new File(f)).withFilter(_.exists()).foreach { f => Try(f.delete()) }
   }
 
-
+  val AVRO = "226B61666B615F746F706963322D31322D31181806666F6FCDCCCC3D3FC91D369199C93F010A6279746573"
   val JSON = "{\"id\":\"kafka_topic2-12-1\",\"int_field\":12,\"long_field\":12,\"string_field\":\"foo\",\"float_field\":0.1,\"float64_field\":0.199999,\"boolean_field\":true,\"byte_field\":\"Ynl0ZXM=\"}"
   val JSON_IGNORE_ID = "{\"id\":\"kafka_topic2-12-1\"}}"
   val TOPIC = "kafka_topic"
@@ -165,7 +167,24 @@ class TestMqttWriter extends WordSpec with Matchers with BeforeAndAfterAll with 
 
     val config = MqttSinkConfig(props)
     val settings = MqttSinkSettings(config)
-    val writer = MqttWriter(settings)
+
+    val convertersMap = settings.sinksToConverters.map { case (topic, clazz) =>
+        logger.info(s"Creating converter instance for $clazz and $topic")
+        if (clazz == null) {
+          topic -> null
+        } else {
+          val converter = Try(Class.forName(clazz).newInstance()) match {
+            case Success(value) => value.asInstanceOf[Converter]
+            case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
+          }
+          import scala.collection.JavaConverters._
+          converter.initialize(props)
+          topic -> converter
+        }
+      }
+
+
+    val writer = MqttWriter(settings, convertersMap)
     val records = getTestRecords
 
     client.subscribe(TARGET)
@@ -176,6 +195,57 @@ class TestMqttWriter extends WordSpec with Matchers with BeforeAndAfterAll with 
     queue1.size() shouldBe 3
     val message = new String(queue1.take(1).head.getPayload)
     message shouldBe JSON
+    queue1.clear()
+    writer.close
+  }
+
+
+  "writer should writer all fields in avro" in {
+
+    val userDir = System.getProperty("user.dir")
+    val sinkAvroSchemas = s"kafka_topic=$userDir/src/test/resources/test.avsc;kafka_topic2=$userDir/src/test/resources/test.avsc"
+
+    val props = Map(
+      MqttConfigConstants.HOSTS_CONFIG -> connection,
+      MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $TARGET SELECT * FROM $TOPIC WITHCONVERTER=`com.datamountaineer.streamreactor.connect.converters.sink.AvroConverter` WITHTARGET=string_field;INSERT INTO $TARGET SELECT * FROM $TOPIC2 WITHCONVERTER=`com.datamountaineer.streamreactor.connect.converters.sink.AvroConverter` WITHTARGET=string_field",
+      MqttConfigConstants.QS_CONFIG -> "1",
+      MqttConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES -> sinkAvroSchemas,
+      MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
+      MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
+      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> connectionTimeout.toString,
+      MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
+      MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
+      MqttConfigConstants.USER_CONFIG -> "user"
+    )
+
+    val config = MqttSinkConfig(props)
+    val settings = MqttSinkSettings(config)
+
+    val convertersMap = settings.sinksToConverters.map { case (topic, clazz) =>
+        logger.info(s"Creating converter instance for $clazz")
+        val converter = Try(Class.forName(clazz).newInstance()) match {
+          case Success(value) => value.asInstanceOf[Converter]
+          case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
+        }
+        import scala.collection.JavaConverters._
+        converter.initialize(props)
+        topic -> converter
+      }
+
+    val writer = MqttWriter(settings, convertersMap)
+    val records = getTestRecords
+
+    client.subscribe("foo")
+
+    writer.write(records)
+    Thread.sleep(2000)
+
+    queue1.size() shouldBe 3
+
+    val message = queue1.take(1).head.getPayload.map{
+        b => String.format("%02X", new java.lang.Integer(b & 0xff))
+    }.mkString
+    message shouldBe AVRO
     queue1.clear()
     writer.close
   }
