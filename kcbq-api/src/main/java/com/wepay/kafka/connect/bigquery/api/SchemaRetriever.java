@@ -22,9 +22,10 @@ public interface SchemaRetriever {
    * Retrieve the most current schema for the given topic.
    * @param table The table that will be created.
    * @param topic The topic to retrieve a schema for.
+   * @param schemaType The type of kafka schema, either "value" or "key".
    * @return The Schema for the given table.
    */
-  public Schema retrieveSchema(TableId table, String topic);
+  public Schema retrieveSchema(TableId table, String topic, KafkaSchemaRecordType schemaType);
 
   /**
    * Set the last seen schema for a given topic

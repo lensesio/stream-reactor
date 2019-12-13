@@ -18,6 +18,7 @@ package com.wepay.kafka.connect.bigquery.convert;
  */
 
 
+import com.wepay.kafka.connect.bigquery.api.KafkaSchemaRecordType;
 import org.apache.kafka.connect.sink.SinkRecord;
 
 /**
@@ -27,7 +28,9 @@ import org.apache.kafka.connect.sink.SinkRecord;
 public interface RecordConverter<R> {
   /**
    * @param record The record to convert.
+   * @param recordType The type of the record to convert, either value or key.
    * @return The converted record.
    */
-  R convertRecord(SinkRecord record);
+  R convertRecord(SinkRecord record, KafkaSchemaRecordType recordType);
+
 }

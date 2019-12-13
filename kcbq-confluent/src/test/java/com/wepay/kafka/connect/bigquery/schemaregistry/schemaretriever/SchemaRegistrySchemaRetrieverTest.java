@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.cloud.bigquery.TableId;
 
+import com.wepay.kafka.connect.bigquery.api.KafkaSchemaRecordType;
 import io.confluent.connect.avro.AvroData;
 
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
@@ -22,7 +23,8 @@ public class SchemaRegistrySchemaRetrieverTest {
   public void testRetrieveSchema() throws Exception {
     final TableId table = TableId.of("test", "kafka_topic");
     final String testTopic = "kafka-topic";
-    final String testSubject = "kafka-topic-value";
+    final String testSubjectValue = "kafka-topic-value";
+    final String testSubjectKey = "kafka-topic-key";
     final String testAvroSchemaString =
         "{\"type\": \"record\", "
         + "\"name\": \"testrecord\", "
@@ -30,7 +32,8 @@ public class SchemaRegistrySchemaRetrieverTest {
     final SchemaMetadata testSchemaMetadata = new SchemaMetadata(1, 1, testAvroSchemaString);
 
     SchemaRegistryClient schemaRegistryClient = mock(SchemaRegistryClient.class);
-    when(schemaRegistryClient.getLatestSchemaMetadata(testSubject)).thenReturn(testSchemaMetadata);
+    when(schemaRegistryClient.getLatestSchemaMetadata(testSubjectValue)).thenReturn(testSchemaMetadata);
+    when(schemaRegistryClient.getLatestSchemaMetadata(testSubjectKey)).thenReturn(testSchemaMetadata);
 
     SchemaRegistrySchemaRetriever testSchemaRetriever = new SchemaRegistrySchemaRetriever(
         schemaRegistryClient,
@@ -40,6 +43,7 @@ public class SchemaRegistrySchemaRetrieverTest {
     Schema expectedKafkaConnectSchema =
         SchemaBuilder.struct().field("f1", Schema.STRING_SCHEMA).name("testrecord").build();
 
-    assertEquals(expectedKafkaConnectSchema, testSchemaRetriever.retrieveSchema(table, testTopic));
+    assertEquals(expectedKafkaConnectSchema, testSchemaRetriever.retrieveSchema(table, testTopic, KafkaSchemaRecordType.VALUE));
+    assertEquals(expectedKafkaConnectSchema, testSchemaRetriever.retrieveSchema(table, testTopic, KafkaSchemaRecordType.KEY));
   }
 }

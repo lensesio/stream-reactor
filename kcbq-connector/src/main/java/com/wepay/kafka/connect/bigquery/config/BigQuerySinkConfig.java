@@ -26,8 +26,6 @@ import com.wepay.kafka.connect.bigquery.convert.BigQueryRecordConverter;
 import com.wepay.kafka.connect.bigquery.convert.BigQuerySchemaConverter;
 import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
-import com.wepay.kafka.connect.bigquery.convert.kafkadata.KafkaDataBQRecordConverter;
-import com.wepay.kafka.connect.bigquery.convert.kafkadata.KafkaDataBQSchemaConverter;
 
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
@@ -46,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Optional;
 
 /**
  * Base class for connector and task configs; contains properties shared between the two of them.
@@ -168,14 +167,19 @@ public class BigQuerySinkConfig extends AbstractConfig {
                   + "front of field name. Note: field a.b and a_b will have same value after sanitizing, "
                   + "and might cause key duplication error.";
 
-  public static final String INCLUDE_KAFKA_DATA_CONFIG =                   "includeKafkaData";
-  public static final ConfigDef.Type INCLUDE_KAFKA_DATA_TYPE =             ConfigDef.Type.BOOLEAN;
-  public static final Boolean INCLUDE_KAFKA_DATA_DEFAULT =                 false;
-  public static final ConfigDef.Importance INCLUDE_KAFKA_DATA_IMPORTANCE =
-      ConfigDef.Importance.LOW;
-  public static final String INSTANCE_KAFKA_DATA_DOC =
-      "Whether to include an extra block containing the Kafka source topic, offset, "
-      + "and partition information in the resulting BigQuery rows.";
+  public static final String KAFKA_KEY_FIELD_NAME_CONFIG =        "kafkaKeyFieldName";
+  private static final ConfigDef.Type KAFKA_KEY_FIELD_NAME_TYPE = ConfigDef.Type.STRING;
+  public static final String KAFKA_KEY_FIELD_NAME_DEFAULT =       null;
+  private static final ConfigDef.Importance KAFKA_KEY_FIELD_NAME_IMPORTANCE = ConfigDef.Importance.LOW;
+  private static final String KAFKA_KEY_FIELD_NAME_DOC = "The name of the field of Kafka key. " +
+          "Default to be null, which means Kafka Key Field will not be included.";
+
+  public static final String KAFKA_DATA_FIELD_NAME_CONFIG =        "kafkaDataFieldName";
+  private static final ConfigDef.Type KAFKA_DATA_FIELD_NAME_TYPE = ConfigDef.Type.STRING;
+  public static final String KAFKA_DATA_FIELD_NAME_DEFAULT =       null;
+  private static final ConfigDef.Importance KAFKA_DATA_FIELD_NAME_IMPORTANCE = ConfigDef.Importance.LOW;
+  private static final String KAFKA_DATA_FIELD_NAME_DOC = "The name of the field of Kafka Data. " +
+          "Default to be null, which means Kafka Data Field will not be included. ";
 
   public static final String AVRO_DATA_CACHE_SIZE_CONFIG =                 "avroDataCacheSize";
   private static final ConfigDef.Type AVRO_DATA_CACHE_SIZE_TYPE =          ConfigDef.Type.INT;
@@ -290,11 +294,17 @@ public class BigQuerySinkConfig extends AbstractConfig {
             SANITIZE_FIELD_NAME_IMPORTANCE,
             SANITIZE_FIELD_NAME_DOC
         ).define(
-            INCLUDE_KAFKA_DATA_CONFIG,
-            INCLUDE_KAFKA_DATA_TYPE,
-            INCLUDE_KAFKA_DATA_DEFAULT,
-            INCLUDE_KAFKA_DATA_IMPORTANCE,
-            INSTANCE_KAFKA_DATA_DOC
+            KAFKA_KEY_FIELD_NAME_CONFIG,
+            KAFKA_KEY_FIELD_NAME_TYPE,
+            KAFKA_KEY_FIELD_NAME_DEFAULT,
+            KAFKA_KEY_FIELD_NAME_IMPORTANCE,
+            KAFKA_KEY_FIELD_NAME_DOC
+        ).define(
+            KAFKA_DATA_FIELD_NAME_CONFIG,
+            KAFKA_DATA_FIELD_NAME_TYPE,
+            KAFKA_DATA_FIELD_NAME_DEFAULT,
+            KAFKA_DATA_FIELD_NAME_IMPORTANCE,
+            KAFKA_DATA_FIELD_NAME_DOC
         ).define(
             AVRO_DATA_CACHE_SIZE_CONFIG,
             AVRO_DATA_CACHE_SIZE_TYPE,
@@ -495,9 +505,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
    * @return a {@link SchemaConverter} for BigQuery.
    */
   public SchemaConverter<Schema> getSchemaConverter() {
-    return getBoolean(INCLUDE_KAFKA_DATA_CONFIG)
-        ? new KafkaDataBQSchemaConverter(getBoolean(ALL_BQ_FIELDS_NULLABLE_CONFIG))
-        : new BigQuerySchemaConverter(getBoolean(ALL_BQ_FIELDS_NULLABLE_CONFIG));
+    return new BigQuerySchemaConverter(getBoolean(ALL_BQ_FIELDS_NULLABLE_CONFIG));
   }
 
   /**
@@ -505,9 +513,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
    * @return a {@link RecordConverter} for BigQuery.
    */
   public RecordConverter<Map<String, Object>> getRecordConverter() {
-    return getBoolean(INCLUDE_KAFKA_DATA_CONFIG)
-        ? new KafkaDataBQRecordConverter(getBoolean(CONVERT_DOUBLE_SPECIAL_VALUES_CONFIG))
-        : new BigQueryRecordConverter(getBoolean(CONVERT_DOUBLE_SPECIAL_VALUES_CONFIG));
+    return new BigQueryRecordConverter(getBoolean(CONVERT_DOUBLE_SPECIAL_VALUES_CONFIG));
   }
 
   /**
@@ -567,6 +573,30 @@ public class BigQuerySinkConfig extends AbstractConfig {
   }
 
   /**
+   *
+   * If the connector is configured to load Kafka data into BigQuery, this config defines
+   * the name of the kafka data field. A structure is created under the field name to contain
+   * kafka data schema including topic, offset, partition and insertTime.
+   *
+   * @return Field name of Kafka Data to be used in BigQuery
+   */
+  public Optional<String> getKafkaKeyFieldName() {
+    return Optional.ofNullable(getString(KAFKA_KEY_FIELD_NAME_CONFIG));
+  }
+
+  /**
+   *
+   * If the connector is configured to load Kafka keys into BigQuery, this config defines
+   * the name of the kafka key field. A structure is created under the field name to contain
+   * a topic's Kafka key schema.
+   *
+   * @return Field name of Kafka Key to be used in BigQuery
+   */
+  public Optional<String> getKafkaDataFieldName() {
+    return Optional.ofNullable(getString(KAFKA_DATA_FIELD_NAME_CONFIG));
+  }
+
+  /**
    * Verifies that a bucket is specified if GCS batch loading is enabled.
    * @throws ConfigException Exception thrown if no bucket is specified and batch loading is on.
    */
@@ -596,4 +626,5 @@ public class BigQuerySinkConfig extends AbstractConfig {
     super(config, properties);
     verifyBucketSpecified();
   }
+
 }
