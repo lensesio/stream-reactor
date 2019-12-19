@@ -58,7 +58,7 @@ $ ./gradlew clean distTar
 And then extract its contents:
 
 ```bash
-$ mkdir bin/jar/ && tar -C bin/jar/ -xf kcbq-confluent/build/distributions/kcbq-confluent-*.tar
+$ mkdir -p bin/jar/ && tar -C bin/jar/ -xf kcbq-confluent/build/distributions/kcbq-confluent-*.tar
 ```
 
 ### Setting-Up Background Processes
