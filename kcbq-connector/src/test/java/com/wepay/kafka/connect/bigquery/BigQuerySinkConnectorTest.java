@@ -37,7 +37,6 @@ import com.wepay.kafka.connect.bigquery.api.KafkaSchemaRecordType;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
-import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConnectorConfig;
 
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
@@ -86,7 +85,7 @@ public class BigQuerySinkConnectorTest {
     final TableId nonExistingTable = TableId.of(dataset, "topic_without_existing_table");
 
     Map<String, String> properties = propertiesFactory.getProperties();
-    properties.put(BigQuerySinkConnectorConfig.TABLE_CREATE_CONFIG, "true");
+    properties.put(BigQuerySinkConfig.TABLE_CREATE_CONFIG, "true");
     properties.put(BigQuerySinkConfig.SCHEMA_RETRIEVER_CONFIG, MockSchemaRetriever.class.getName());
     properties.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "true");
     properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
@@ -118,7 +117,7 @@ public class BigQuerySinkConnectorTest {
     final String[] tables = new String[] { "topic_one", "topicTwo", "TOPIC_THREE", "topic_four" };
 
     Map<String, String> properties = propertiesFactory.getProperties();
-    properties.put(BigQuerySinkConnectorConfig.TABLE_CREATE_CONFIG, "false");
+    properties.put(BigQuerySinkConfig.TABLE_CREATE_CONFIG, "false");
     properties.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "true");
     properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
     properties.put(BigQuerySinkConfig.TOPICS_CONFIG, String.join(",", topics));
@@ -150,7 +149,7 @@ public class BigQuerySinkConnectorTest {
     final TableId nonExistingTable = TableId.of(dataset, "topic_without_existing_table");
 
     Map<String, String> properties = propertiesFactory.getProperties();
-    properties.put(BigQuerySinkConnectorConfig.TABLE_CREATE_CONFIG, "false");
+    properties.put(BigQuerySinkConfig.TABLE_CREATE_CONFIG, "false");
     properties.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "true");
     properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
     properties.put(
@@ -216,7 +215,7 @@ public class BigQuerySinkConnectorTest {
 
   @Test
   public void testConfig() {
-    assertEquals(BigQuerySinkConnectorConfig.getConfig(), new BigQuerySinkConnector().config());
+    assertEquals(BigQuerySinkConfig.getConfig(), new BigQuerySinkConnector().config());
   }
 
   // Make sure that a config exception is properly translated into a SinkConfigConnectException

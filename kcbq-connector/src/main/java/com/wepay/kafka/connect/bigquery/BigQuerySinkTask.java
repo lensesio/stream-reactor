@@ -127,7 +127,7 @@ public class BigQuerySinkTask extends SinkTask {
     topicPartitionManager.resumeAll();
   }
 
-  private PartitionedTableId getRecordTable(SinkRecord record) {
+  private PartitionedTableId getRecordTable(boolean autoCreateTables, SinkRecord record) {
     // Dynamically update topicToBaseTableIds mapping. topicToBaseTableIds was used to be
     // constructed when connector starts hence new topic configuration needed connector to restart.
     // Dynamic update shall not require connector restart and shall compute table id in runtime.
@@ -136,6 +136,12 @@ public class BigQuerySinkTask extends SinkTask {
     }
 
     TableId baseTableId = topicsToBaseTableIds.get(record.topic());
+
+    BigQuery bigQuery = getBigQuery();
+    if (autoCreateTables && bigQuery.getTable(baseTableId) == null) {
+      getSchemaManager(bigQuery).createTable(baseTableId, record.topic());
+      logger.info("Table {} does not exist, auto-created table for topic {}", baseTableId, record.topic());
+    }
 
     PartitionedTableId.Builder builder = new PartitionedTableId.Builder(baseTableId);
     if (useMessageTimeDatePartitioning) {
@@ -182,9 +188,11 @@ public class BigQuerySinkTask extends SinkTask {
     // create tableWriters
     Map<PartitionedTableId, TableWriterBuilder> tableWriterBuilders = new HashMap<>();
 
+    boolean autoCreateTables = config.getBoolean(config.TABLE_CREATE_CONFIG);
+
     for (SinkRecord record : records) {
       if (record.value() != null) {
-        PartitionedTableId table = getRecordTable(record);
+        PartitionedTableId table = getRecordTable(autoCreateTables, record);
         if (schemaRetriever != null) {
           schemaRetriever.setLastSeenSchema(table.getBaseTableId(),
                                             record.topic(),
