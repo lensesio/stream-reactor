@@ -29,6 +29,7 @@ import org.apache.kafka.connect.data.Struct;
 
 import org.apache.kafka.connect.sink.SinkRecord;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
@@ -602,6 +603,37 @@ public class BigQueryRecordConverterTest {
     SinkRecord kafkaConnectRecord = spoofSinkRecord(null, kafkaConnectMap, false);
     Map<String, Object> convertedMap =
             new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord, KafkaSchemaRecordType.VALUE);
+  }
+
+  @Test
+  public void testInvalidMapSchemalessNullValue() {
+    Map kafkaConnectMap = new HashMap<Object, Object>(){{
+      put("f1", "abc");
+      put("f2", "abc");
+      put("f3", null);
+    }};
+
+    SinkRecord kafkaConnectRecord = spoofSinkRecord(null, kafkaConnectMap);
+    Map<String, Object> stringObjectMap = new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
+    Assert.assertEquals(kafkaConnectMap, stringObjectMap
+    );
+  }
+
+  @Test
+  public void testInvalidMapSchemalessNestedMapNullValue() {
+    Map kafkaConnectMap = new HashMap<Object, Object>(){{
+      put("f1", "abc");
+      put("f2", "abc");
+      put("f3", new HashMap<Object, Object>() {{
+        put("f31", "xyz");
+        put("f32", null);
+      }});
+    }};
+
+    SinkRecord kafkaConnectRecord = spoofSinkRecord(null, kafkaConnectMap);
+    Map<String, Object> stringObjectMap = new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE)
+        .convertRecord(kafkaConnectRecord);
+    Assert.assertEquals(kafkaConnectMap, stringObjectMap);
   }
 
   @Test

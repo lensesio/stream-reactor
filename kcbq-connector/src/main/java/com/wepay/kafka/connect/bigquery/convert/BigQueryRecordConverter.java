@@ -110,22 +110,22 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
     }
     if (value instanceof Map) {
       return
-        ((Map<Object, Object>) value).entrySet().stream().collect(
-                Collectors.toMap(
-                        entry -> {
-                          if (!(entry.getKey() instanceof String)) {
-                            throw new ConversionConnectException(
-                                    "Failed to convert record to bigQuery format: " +
-                                    "Map objects in absence of schema needs to have string value keys. ");
-                          }
-                          return entry.getKey();
-                        },
-                        entry -> convertSchemalessRecord(entry.getValue())
-                )
-        );
+          ((Map<Object, Object>) value)
+              .entrySet()
+              .stream()
+              .collect(HashMap::new,
+                  (m, e) -> {
+                    if (!(e.getKey() instanceof String)) {
+                      throw new ConversionConnectException(
+                          "Failed to convert record to bigQuery format: " +
+                              "Map objects in absence of schema needs to have string value keys. ");
+                    }
+                    m.put(e.getKey(), convertSchemalessRecord(e.getValue()));
+                  },
+                  HashMap::putAll);
     }
     throw new ConversionConnectException("Unsupported class " + value.getClass() +
-            " found in schemaless record data. Can't convert record to bigQuery format");
+        " found in schemaless record data. Can't convert record to bigQuery format");
   }
 
   @SuppressWarnings("unchecked")
