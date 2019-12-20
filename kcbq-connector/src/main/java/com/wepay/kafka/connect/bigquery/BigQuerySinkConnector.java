@@ -111,7 +111,7 @@ public class BigQuerySinkConnector extends SinkConnector {
     BigQuery bigQuery = getBigQuery();
     Map<String, TableId> topicsToTableIds = TopicToTableResolver.getTopicsToTables(config);
     for (TableId tableId : topicsToTableIds.values()) {
-      if (!config.getBoolean(config.TABLE_CREATE_CONFIG) && bigQuery.getTable(tableId) == null) {
+      if (bigQuery.getTable(tableId) == null) {
         logger.warn(
                 "You may want to enable auto table creation by setting {}=true in the properties file",
                 config.TABLE_CREATE_CONFIG);
@@ -133,7 +133,9 @@ public class BigQuerySinkConnector extends SinkConnector {
       );
     }
 
-    ensureExistingTables();
+    if (!config.getBoolean(config.TABLE_CREATE_CONFIG)) {
+      ensureExistingTables();
+    }
   }
 
   @Override
