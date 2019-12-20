@@ -85,7 +85,7 @@ public class BigQueryWriterTest {
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
 
     Storage storage = mock(Storage.class);
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage, null);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(
@@ -133,7 +133,7 @@ public class BigQueryWriterTest {
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
 
     Storage storage = mock(Storage.class);
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage, null);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(sinkRecordList);
@@ -182,7 +182,7 @@ public class BigQueryWriterTest {
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
 
     Storage storage = mock(Storage.class);
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage, null);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
     testTask.put(sinkRecordList);
