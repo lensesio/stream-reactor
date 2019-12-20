@@ -625,18 +625,13 @@ public class BigQuerySinkConfig extends AbstractConfig {
   }
 
   private void checkAutoCreateTables() {
-    Class<?> schemaRetriever = getClass(BigQuerySinkConfig.SCHEMA_RETRIEVER_CONFIG);
 
+    Class<?> schemaRetriever = getClass(BigQuerySinkConfig.SCHEMA_RETRIEVER_CONFIG);
     boolean autoCreateTables = getBoolean(TABLE_CREATE_CONFIG);
+
     if (autoCreateTables && schemaRetriever == null) {
       throw new ConfigException(
-              "Cannot specify automatic table creation without a schema retriever"
-      );
-    }
-
-    if (schemaRetriever == null) {
-      logger.warn(
-              "No schema retriever class provided; auto table creation is impossible"
+        "Cannot specify automatic table creation without a schema retriever"
       );
     }
   }

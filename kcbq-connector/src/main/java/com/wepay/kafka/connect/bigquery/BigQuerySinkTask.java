@@ -141,11 +141,7 @@ public class BigQuerySinkTask extends SinkTask {
 
     TableId baseTableId = topicsToBaseTableIds.get(record.topic());
 
-    BigQuery bigQuery = getBigQuery();
-    if (autoCreateTables && bigQuery.getTable(baseTableId) == null) {
-      getSchemaManager(bigQuery).createTable(baseTableId, record.topic());
-      logger.info("Table {} does not exist, auto-created table for topic {}", baseTableId, record.topic());
-    }
+    maybeCreateTable(record, baseTableId, autoCreateTables);
 
     PartitionedTableId.Builder builder = new PartitionedTableId.Builder(baseTableId);
     if (useMessageTimeDatePartitioning) {
@@ -160,6 +156,20 @@ public class BigQuerySinkTask extends SinkTask {
     }
 
     return builder.build();
+  }
+
+  /**
+   * Create the table which doesn't exist in BigQuery for a (record's) topic when autoCreateTables config is set to true.
+   * @param record Kafka Sink Record to be streamed into BigQuery.
+   * @param baseTableId BaseTableId in BigQuery.
+   * @param autoCreateTables If this config is set to true, auto-creating the table that doesn't not exist.
+   */
+  private void maybeCreateTable(SinkRecord record, TableId baseTableId, boolean autoCreateTables) {
+    BigQuery bigQuery = getBigQuery();
+    if (autoCreateTables && bigQuery.getTable(baseTableId) == null) {
+      getSchemaManager(bigQuery).createTable(baseTableId, record.topic());
+      logger.info("Table {} does not exist, auto-created table for topic {}", baseTableId, record.topic());
+    }
   }
 
   private RowToInsert getRecordRow(SinkRecord record) {
