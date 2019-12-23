@@ -613,8 +613,8 @@ public class BigQueryRecordConverterTest {
       put("f3", null);
     }};
 
-    SinkRecord kafkaConnectRecord = spoofSinkRecord(null, kafkaConnectMap);
-    Map<String, Object> stringObjectMap = new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord);
+    SinkRecord kafkaConnectRecord = spoofSinkRecord(null, kafkaConnectMap, true);
+    Map<String, Object> stringObjectMap = new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE).convertRecord(kafkaConnectRecord, KafkaSchemaRecordType.KEY);
     Assert.assertEquals(kafkaConnectMap, stringObjectMap
     );
   }
@@ -630,9 +630,9 @@ public class BigQueryRecordConverterTest {
       }});
     }};
 
-    SinkRecord kafkaConnectRecord = spoofSinkRecord(null, kafkaConnectMap);
+    SinkRecord kafkaConnectRecord = spoofSinkRecord(null, kafkaConnectMap, true);
     Map<String, Object> stringObjectMap = new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE)
-        .convertRecord(kafkaConnectRecord);
+        .convertRecord(kafkaConnectRecord, KafkaSchemaRecordType.KEY);
     Assert.assertEquals(kafkaConnectMap, stringObjectMap);
   }
 
