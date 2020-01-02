@@ -131,7 +131,7 @@ public class BigQuerySinkTask extends SinkTask {
     topicPartitionManager.resumeAll();
   }
 
-  private PartitionedTableId getRecordTable(SinkRecord record, boolean autoCreateTables) {
+  private PartitionedTableId getRecordTable(SinkRecord record) {
     // Dynamically update topicToBaseTableIds mapping. topicToBaseTableIds was used to be
     // constructed when connector starts hence new topic configuration needed connector to restart.
     // Dynamic update shall not require connector restart and shall compute table id in runtime.
@@ -141,7 +141,7 @@ public class BigQuerySinkTask extends SinkTask {
 
     TableId baseTableId = topicsToBaseTableIds.get(record.topic());
 
-    maybeCreateTable(record, baseTableId, autoCreateTables);
+    maybeCreateTable(record, baseTableId);
 
     PartitionedTableId.Builder builder = new PartitionedTableId.Builder(baseTableId);
     if (useMessageTimeDatePartitioning) {
@@ -162,10 +162,10 @@ public class BigQuerySinkTask extends SinkTask {
    * Create the table which doesn't exist in BigQuery for a (record's) topic when autoCreateTables config is set to true.
    * @param record Kafka Sink Record to be streamed into BigQuery.
    * @param baseTableId BaseTableId in BigQuery.
-   * @param autoCreateTables If this config is set to true, auto-creating the table that doesn't not exist.
    */
-  private void maybeCreateTable(SinkRecord record, TableId baseTableId, boolean autoCreateTables) {
+  private void maybeCreateTable(SinkRecord record, TableId baseTableId) {
     BigQuery bigQuery = getBigQuery();
+    boolean autoCreateTables = config.getBoolean(config.TABLE_CREATE_CONFIG);
     if (autoCreateTables && bigQuery.getTable(baseTableId) == null) {
       getSchemaManager(bigQuery).createTable(baseTableId, record.topic());
       logger.info("Table {} does not exist, auto-created table for topic {}", baseTableId, record.topic());
@@ -202,11 +202,9 @@ public class BigQuerySinkTask extends SinkTask {
     // create tableWriters
     Map<PartitionedTableId, TableWriterBuilder> tableWriterBuilders = new HashMap<>();
 
-    boolean autoCreateTables = config.getBoolean(config.TABLE_CREATE_CONFIG);
-
     for (SinkRecord record : records) {
       if (record.value() != null) {
-        PartitionedTableId table = getRecordTable(record, autoCreateTables);
+        PartitionedTableId table = getRecordTable(record);
         if (schemaRetriever != null) {
           schemaRetriever.setLastSeenSchema(table.getBaseTableId(),
                                             record.topic(),
