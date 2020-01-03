@@ -89,6 +89,7 @@ public class BigQuerySinkTask extends SinkTask {
   
   private final BigQuery testBigQuery;
   private final Storage testGcs;
+  private final SchemaManager testSchemaManager;
 
   private final UUID uuid = UUID.randomUUID();
   private ScheduledExecutorService gcsLoadExecutor;
@@ -100,6 +101,7 @@ public class BigQuerySinkTask extends SinkTask {
     testBigQuery = null;
     schemaRetriever = null;
     testGcs = null;
+    testSchemaManager = null;
   }
 
   /**
@@ -108,12 +110,14 @@ public class BigQuerySinkTask extends SinkTask {
    * @param testBigQuery {@link BigQuery} to use for testing (likely a mock)
    * @param schemaRetriever {@link SchemaRetriever} to use for testing (likely a mock)
    * @param testGcs {@link Storage} to use for testing (likely a mock)
+   * @param testSchemaManager {@link SchemaManager} to use for testing (likely a mock)
    * @see BigQuerySinkTask#BigQuerySinkTask()
    */
-  public BigQuerySinkTask(BigQuery testBigQuery, SchemaRetriever schemaRetriever, Storage testGcs) {
+  public BigQuerySinkTask(BigQuery testBigQuery, SchemaRetriever schemaRetriever, Storage testGcs, SchemaManager testSchemaManager) {
     this.testBigQuery = testBigQuery;
     this.schemaRetriever = schemaRetriever;
     this.testGcs = testGcs;
+    this.testSchemaManager = testSchemaManager;
   }
 
   @Override
@@ -137,6 +141,8 @@ public class BigQuerySinkTask extends SinkTask {
 
     TableId baseTableId = topicsToBaseTableIds.get(record.topic());
 
+    maybeCreateTable(record, baseTableId);
+
     PartitionedTableId.Builder builder = new PartitionedTableId.Builder(baseTableId);
     if (useMessageTimeDatePartitioning) {
       if (record.timestampType() == TimestampType.NO_TIMESTAMP_TYPE) {
@@ -150,6 +156,20 @@ public class BigQuerySinkTask extends SinkTask {
     }
 
     return builder.build();
+  }
+
+  /**
+   * Create the table which doesn't exist in BigQuery for a (record's) topic when autoCreateTables config is set to true.
+   * @param record Kafka Sink Record to be streamed into BigQuery.
+   * @param baseTableId BaseTableId in BigQuery.
+   */
+  private void maybeCreateTable(SinkRecord record, TableId baseTableId) {
+    BigQuery bigQuery = getBigQuery();
+    boolean autoCreateTables = config.getBoolean(config.TABLE_CREATE_CONFIG);
+    if (autoCreateTables && bigQuery.getTable(baseTableId) == null) {
+      getSchemaManager(bigQuery).createTable(baseTableId, record.topic());
+      logger.info("Table {} does not exist, auto-created table for topic {}", baseTableId, record.topic());
+    }
   }
 
   private RowToInsert getRecordRow(SinkRecord record) {
@@ -248,6 +268,9 @@ public class BigQuerySinkTask extends SinkTask {
   }
 
   private SchemaManager getSchemaManager(BigQuery bigQuery) {
+    if (testSchemaManager != null) {
+      return testSchemaManager;
+    }
     schemaRetriever = config.getSchemaRetriever();
     SchemaConverter<com.google.cloud.bigquery.Schema> schemaConverter =
         config.getSchemaConverter();

@@ -18,7 +18,7 @@ package com.wepay.kafka.connect.bigquery;
  */
 
 
-import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConnectorConfig;
+import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 
 import java.util.Map;
 
@@ -27,7 +27,7 @@ public class SinkConnectorPropertiesFactory extends SinkPropertiesFactory {
   public Map<String, String> getProperties() {
     Map<String, String> properties = super.getProperties();
 
-    properties.put(BigQuerySinkConnectorConfig.TABLE_CREATE_CONFIG, "false");
+    properties.put(BigQuerySinkConfig.TABLE_CREATE_CONFIG, "false");
     return properties;
   }
 
@@ -37,7 +37,7 @@ public class SinkConnectorPropertiesFactory extends SinkPropertiesFactory {
    *
    * @param config The config object to test
    */
-  public void testProperties(BigQuerySinkConnectorConfig config) {
+  public void testProperties(BigQuerySinkConfig config) {
     super.testProperties(config);
 
     config.getBoolean(config.TABLE_CREATE_CONFIG);

@@ -18,6 +18,7 @@ package com.wepay.kafka.connect.bigquery;
  */
 
 
+import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 
 import java.util.Map;
@@ -28,6 +29,7 @@ public class SinkTaskPropertiesFactory extends SinkPropertiesFactory {
     Map<String, String> properties = super.getProperties();
 
     properties.put(BigQuerySinkTaskConfig.SCHEMA_UPDATE_CONFIG, "false");
+    properties.put(BigQuerySinkConfig.TABLE_CREATE_CONFIG, "false");
 
     return properties;
   }

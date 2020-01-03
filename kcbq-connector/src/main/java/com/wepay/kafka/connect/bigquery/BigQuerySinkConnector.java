@@ -24,7 +24,6 @@ import com.google.cloud.bigquery.TableId;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
-import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConnectorConfig;
 
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 
@@ -76,7 +75,7 @@ public class BigQuerySinkConnector extends SinkConnector {
     this.testSchemaManager = schemaManager;
   }
 
-  private BigQuerySinkConnectorConfig config;
+  private BigQuerySinkConfig config;
   private Map<String, String> configProperties;
 
   private static final Logger logger = LoggerFactory.getLogger(BigQuerySinkConnector.class);
@@ -108,41 +107,16 @@ public class BigQuerySinkConnector extends SinkConnector {
     return new SchemaManager(schemaRetriever, schemaConverter, bigQuery, kafkaKeyFieldName, kafkaDataFieldName);
   }
 
-  private void ensureExistingTables(
-      BigQuery bigQuery,
-      SchemaManager schemaManager,
-      Map<String, TableId> topicsToTableIds) {
-    for (Map.Entry<String, TableId> topicToTableId : topicsToTableIds.entrySet()) {
-      String topic = topicToTableId.getKey();
-      TableId tableId = topicToTableId.getValue();
-      if (bigQuery.getTable(tableId) == null) {
-        logger.info("Table {} does not exist; attempting to create", tableId);
-        schemaManager.createTable(tableId, topic);
-      }
-    }
-  }
-
-  private void ensureExistingTables(
-      BigQuery bigQuery,
-      Map<String, TableId> topicsToTableIds) {
-    for (TableId tableId : topicsToTableIds.values()) {
-      if (bigQuery.getTable(tableId) == null) {
-        logger.warn(
-            "You may want to enable auto table creation by setting {}=true in the properties file",
-            config.TABLE_CREATE_CONFIG);
-        throw new BigQueryConnectException("Table '" + tableId + "' does not exist");
-      }
-    }
-  }
-
   private void ensureExistingTables() {
     BigQuery bigQuery = getBigQuery();
     Map<String, TableId> topicsToTableIds = TopicToTableResolver.getTopicsToTables(config);
-    if (config.getBoolean(config.TABLE_CREATE_CONFIG)) {
-      SchemaManager schemaManager = getSchemaManager(bigQuery);
-      ensureExistingTables(bigQuery, schemaManager, topicsToTableIds);
-    } else {
-      ensureExistingTables(bigQuery, topicsToTableIds);
+    for (TableId tableId : topicsToTableIds.values()) {
+      if (bigQuery.getTable(tableId) == null) {
+        logger.warn(
+          "You may want to enable auto table creation by setting {}=true in the properties file",
+          config.TABLE_CREATE_CONFIG);
+        throw new BigQueryConnectException("Table '" + tableId + "' does not exist");
+      }
     }
   }
 
@@ -151,7 +125,7 @@ public class BigQuerySinkConnector extends SinkConnector {
     logger.trace("connector.start()");
     try {
       configProperties = properties;
-      config = new BigQuerySinkConnectorConfig(properties);
+      config = new BigQuerySinkConfig(properties);
     } catch (ConfigException err) {
       throw new SinkConfigConnectException(
           "Couldn't start BigQuerySinkConnector due to configuration error",
@@ -159,7 +133,9 @@ public class BigQuerySinkConnector extends SinkConnector {
       );
     }
 
-    ensureExistingTables();
+    if (!config.getBoolean(config.TABLE_CREATE_CONFIG)) {
+      ensureExistingTables();
+    }
   }
 
   @Override

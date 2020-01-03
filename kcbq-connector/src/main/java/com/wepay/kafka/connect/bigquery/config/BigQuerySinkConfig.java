@@ -32,6 +32,8 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 
 import org.apache.kafka.connect.sink.SinkConnector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -52,6 +54,7 @@ import java.util.Optional;
 public class BigQuerySinkConfig extends AbstractConfig {
   private static final ConfigDef config;
   private static final Validator validator = new Validator();
+  private static final Logger logger = LoggerFactory.getLogger(BigQuerySinkConfig.class);
 
   // Values taken from https://github.com/apache/kafka/blob/1.1.1/connect/runtime/src/main/java/org/apache/kafka/connect/runtime/SinkConnectorConfig.java#L33
   public static final String TOPICS_CONFIG =                     SinkConnector.TOPICS_CONFIG;
@@ -209,6 +212,13 @@ public class BigQuerySinkConfig extends AbstractConfig {
       "If true, no fields in any produced BigQuery schema will be REQUIRED. All "
       + "non-nullable avro fields will be translated as NULLABLE (or REPEATED, if arrays).";
 
+  public static final String TABLE_CREATE_CONFIG =                     "autoCreateTables";
+  private static final ConfigDef.Type TABLE_CREATE_TYPE =              ConfigDef.Type.BOOLEAN;
+  public static final boolean TABLE_CREATE_DEFAULT =                   true;
+  private static final ConfigDef.Importance TABLE_CREATE_IMPORTANCE =  ConfigDef.Importance.HIGH;
+  private static final String TABLE_CREATE_DOC =
+          "Automatically create BigQuery tables if they don't already exist";
+
   static {
     config = new ConfigDef()
         .define(
@@ -324,7 +334,13 @@ public class BigQuerySinkConfig extends AbstractConfig {
             CONVERT_DOUBLE_SPECIAL_VALUES_DEFAULT,
             CONVERT_DOUBLE_SPECIAL_VALUES_IMPORTANCE,
             CONVERT_DOUBLE_SPECIAL_VALUES_DOC
-         );
+         ).define(
+            TABLE_CREATE_CONFIG,
+            TABLE_CREATE_TYPE,
+            TABLE_CREATE_DEFAULT,
+            TABLE_CREATE_IMPORTANCE,
+            TABLE_CREATE_DOC
+        );
   }
 
   @SuppressWarnings("unchecked")
@@ -608,6 +624,18 @@ public class BigQuerySinkConfig extends AbstractConfig {
     }
   }
 
+  private void checkAutoCreateTables() {
+
+    Class<?> schemaRetriever = getClass(BigQuerySinkConfig.SCHEMA_RETRIEVER_CONFIG);
+    boolean autoCreateTables = getBoolean(TABLE_CREATE_CONFIG);
+
+    if (autoCreateTables && schemaRetriever == null) {
+      throw new ConfigException(
+        "Cannot specify automatic table creation without a schema retriever"
+      );
+    }
+  }
+
   /**
    * Return the ConfigDef object used to define this config's fields.
    *
@@ -625,6 +653,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
   public BigQuerySinkConfig(Map<String, String> properties) {
     super(config, properties);
     verifyBucketSpecified();
+    checkAutoCreateTables();
   }
 
 }
