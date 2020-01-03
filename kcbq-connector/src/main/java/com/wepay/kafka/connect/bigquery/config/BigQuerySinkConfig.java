@@ -214,7 +214,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
 
   public static final String TABLE_CREATE_CONFIG =                     "autoCreateTables";
   private static final ConfigDef.Type TABLE_CREATE_TYPE =              ConfigDef.Type.BOOLEAN;
-  public static final boolean TABLE_CREATE_DEFAULT =                   false;
+  public static final boolean TABLE_CREATE_DEFAULT =                   true;
   private static final ConfigDef.Importance TABLE_CREATE_IMPORTANCE =  ConfigDef.Importance.HIGH;
   private static final String TABLE_CREATE_DOC =
           "Automatically create BigQuery tables if they don't already exist";
