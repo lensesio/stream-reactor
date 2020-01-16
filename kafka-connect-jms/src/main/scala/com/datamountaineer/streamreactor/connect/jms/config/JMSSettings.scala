@@ -16,9 +16,11 @@
 
 package com.datamountaineer.streamreactor.connect.jms.config
 
-import com.datamountaineer.kcql.{FormatType, Kcql}
+import com.datamountaineer.kcql.FormatType
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
+import com.datamountaineer.streamreactor.connect.errors.ThrowErrorPolicy
 import com.datamountaineer.streamreactor.connect.jms.config.DestinationSelector.DestinationSelector
 import com.google.common.base.Splitter
 import com.typesafe.scalalogging.slf4j.StrictLogging
@@ -26,7 +28,9 @@ import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
 
 import scala.collection.JavaConversions._
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 case class JMSSetting(source: String,
                       target: String,
@@ -50,20 +54,21 @@ case class JMSSettings(connectionURL: String,
                        batchSize: Int,
                        errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
                        retries: Int,
-                       pollingTimeout: Long) {
+                       pollingTimeout: Long,
+                       evictInterval: Int,
+                       evictThreshold: Int) {
   require(connectionURL != null && connectionURL.trim.length > 0, "Invalid connection URL")
   require(connectionFactoryClass != null, "Invalid class for connection factory")
 }
 
-
 object JMSSettings extends StrictLogging {
 
   /**
-    * Creates an instance of JMSSettings from a JMSSinkConfig
-    *
-    * @param config : The map of all provided configurations
-    * @return An instance of JmsSettings
-    */
+   * Creates an instance of JMSSettings from a JMSSinkConfig
+   *
+   * @param config : The map of all provided configurations
+   * @return An instance of JmsSettings
+   */
   def apply(config: JMSConfig, sink: Boolean): JMSSettings = {
 
     val kcql = config.getKCQL
@@ -162,6 +167,9 @@ object JMSSettings extends StrictLogging {
         headersForJmsDest)
     }).toList
 
+    val evictInterval = config.getInt(JMSConfigConstants.EVICT_UNCOMMITTED_MINUTES)
+    val evictThreshold = config.getInt(JMSConfigConstants.EVICT_THRESHOLD_MINUTES)
+
     new JMSSettings(
       url,
       initialContextFactoryClass,
@@ -175,7 +183,9 @@ object JMSSettings extends StrictLogging {
       batchSize,
       errorPolicy,
       nbrOfRetries,
-      pollingTimeout)
+      pollingTimeout,
+      evictInterval,
+      evictThreshold)
   }
 
   private def parseAdditionalHeaders(cfgLine: String): Map[String, String] =

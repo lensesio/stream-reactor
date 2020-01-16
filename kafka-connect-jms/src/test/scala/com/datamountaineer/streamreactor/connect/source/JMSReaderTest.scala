@@ -16,15 +16,15 @@
 
 package com.datamountaineer.streamreactor.connect.source
 
-
 import java.util.UUID
 
-import javax.jms.Session
 import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
-import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
+import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
+import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
 import com.datamountaineer.streamreactor.connect.jms.source.readers.JMSReader
+import javax.jms.Session
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
@@ -33,9 +33,9 @@ import scala.collection.JavaConverters._
 import scala.reflect.io.Path
 
 /**
-  * Created by andrew@datamountaineer.com on 20/03/2017. 
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 20/03/2017.
+ * stream-reactor
+ */
 class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
 
   override def afterAll(): Unit = {
@@ -128,7 +128,7 @@ class JMSReaderTest extends TestBase with BeforeAndAfterAll with Eventually {
 
     val messagesRead = reader.poll()
     messagesRead.size shouldBe messageCount / 2
-    messagesRead.keySet.foreach { msg =>
+    messagesRead.foreach { case (msg, _) =>
       msg.getStringProperty("Fruit") shouldBe "apples"
     }
 

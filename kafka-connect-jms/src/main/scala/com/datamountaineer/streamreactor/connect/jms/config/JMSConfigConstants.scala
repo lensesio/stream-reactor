@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.jms.config
 import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
 
 object JMSConfigConstants {
-  
+
   val CONNECTOR_PREFIX = "connect.jms"
 
   val JMS_URL = s"${CONNECTOR_PREFIX}.${URL_SUFFIX}"
@@ -39,9 +39,8 @@ object JMSConfigConstants {
     "org.apache.activemq.ActiveMQConnectionFactory"
   val CONNECTION_FACTORY_DEFAULT = "ConnectionFactory"
 
-
   val KCQL = s"${CONNECTOR_PREFIX}.${KCQL_PROP_SUFFIX}"
-  val KCQL_DOC =  "KCQL expression describing field selection and routes."
+  val KCQL_DOC = "KCQL expression describing field selection and routes."
 
   val ERROR_POLICY = s"${CONNECTOR_PREFIX}.${ERROR_POLICY_PROP_SUFFIX}"
   val ERROR_POLICY_DOC: String =
@@ -73,14 +72,12 @@ object JMSConfigConstants {
       |i.e. com.datamountaineer.streamreactor.connect.source.converters.AvroConverter""".stripMargin
   private[config] val DEFAULT_CONVERTER_DISPLAY = "Default Converter class"
 
-
   val HEADERS_CONFIG = s"${CONNECTOR_PREFIX}.headers"
   private[config] val HEADERS_CONFIG_DOC =
     s"""
-      |Contains collection of static JMS headers included in every SinkRecord
-      |The format is ${CONNECTOR_PREFIX}.headers="$$MQTT_TOPIC=rmq.jms.message.type:TextMessage,rmq.jms.message.priority:2;$$MQTT_TOPIC2=rmq.jms.message.type:JSONMessage"""".stripMargin
+       |Contains collection of static JMS headers included in every SinkRecord
+       |The format is ${CONNECTOR_PREFIX}.headers="$$MQTT_TOPIC=rmq.jms.message.type:TextMessage,rmq.jms.message.priority:2;$$MQTT_TOPIC2=rmq.jms.message.type:JSONMessage"""".stripMargin
   private[config] val HEADERS_CONFIG_DISPLAY = "JMS static headers"
-
 
   val THROW_ON_CONVERT_ERRORS_CONFIG = s"${CONNECTOR_PREFIX}.converter.throw.on.error"
   private[config] val THROW_ON_CONVERT_ERRORS_DOC = "If set to false the conversion exception will be swallowed and everything carries on BUT the message is lost!!; true will throw the exception.Default is false."
@@ -112,4 +109,12 @@ object JMSConfigConstants {
   val POLLING_TIMEOUT_DOC = "Provides the timeout to poll incoming messages"
   val POLLING_TIMEOUT_DISPLAY = "Polling timeout"
   val POLLING_TIMEOUT_DEFAULT = 1000L
+
+  val EVICT_UNCOMMITTED_MINUTES = s"$CONNECTOR_PREFIX.evict.interval.minutes"
+  private[config] val EVICT_UNCOMMITTED_MINUTES_DOC = "Removes the uncommitted messages from the internal cache. Each JMS message is linked to the Kafka record to be published. Failure to publish a record to Kafka will mean the JMS message will not be acknowledged."
+  private[config] val EVICT_UNCOMMITTED_MINUTES_DEFAULT = 10
+
+  val EVICT_THRESHOLD_MINUTES = s"$CONNECTOR_PREFIX.evict.threshold.minutes"
+  private[config] val EVICT_THRESHOLD_MINUTES_DOC = "The number of minutes after which an uncommitted entry becomes evictable from the connector cache."
+  private[config] val EVICT_THRESHOLD_MINUTES_DEFAULT = 10
 }
