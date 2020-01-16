@@ -56,56 +56,71 @@ A collection of components to build a real time ingestion pipeline.
 | VoltDB         | Sink   | Kafka connect Voltdb sink to write Kafka topic payloads to Voltdb.                            | [Docs](https://docs.lenses.io/connectors/sink/voltdb.html)                 |
 
 
-
 ## Release Notes
 
+**1.2.4**
+**Bug fixes**
+
+*   JMS Source
+
+    Ack the JMS messages was not always possible. Also there was an issue with producing the messages to Kafka out of order from the JMS queue. 
+    Changes:
+    
+    *  Queue messages order are retained when published to Kafka (although they might be routed to different partitions)
+    *  Ack happens for each message. This is a change from previous behaviour.
+    *  Records which fail to be committed to Kafka are not ack-ed on JMS side
+
+**1.2.3**
+**Features**
+
+*   Influx
+    *   Support for referencing _key values
+    *   Support Unix timestamp as double
+*   MQTT
+    *   Replicate shared subscription to all tasks
+    *   Add sink config to specify retained messages
+    *   Add a config to specify retained messages
+*   Hazelcast
+    *   SSL support
+*   MongoDB
+    *   SSL support
+    *   Removing database name dashes restriction
+*   FTP
+    *   FTPS support
+
+**Bug fixes**
+*   Hive
+    *   Fix for writing nested structures to Hive
+    *   Improves the code for the async function call to use the CAS
+
 **1.2.2**
+**Features**
 
-Features
+*   Redis
+    *   TTL Support
+    *   SSL support
+    *   AWS ElasticCache support
+    *   GEOADD support
+    *   PUB/SUB support
+*   MQTT
+    *   Multi server connection
+    *   Dynamic Target support
+*   Hive
+    *   Kerberos support
+*   Kudu
+    *   Comma separated master endpoints
 
-Redis
+**Bug fixes**
 
-*   TTL Support
-*   SSL support
-*   AWS ElasticCache support
-*   GEOADD support
-*   PUB/SUB support
-
-MQTT
-
-*   Multi server connection
-*   Dynamic Target support
-
-Hive
-
-*   Kerberos support
-
-Kudu
-
-*   Comma separated master endpoints
-
-
-Bug fixes
-Redis:
-
-*   Topic regex
-
-JMS:
-
-*   Filters out Kafka records with null value
-
-Cassandra:
-
-*   Timestamp comparison
-
-Mongo:
-
-*   Memory leak
-
-Cassandra
-
-*   PK check for incremental
-
+*   Redis
+    *   Topic regex
+*   JMS
+    *   Filters out Kafka records with null value
+*   Cassandra
+    *   Timestamp comparison
+    *   PK check for incremental
+*   Mongo
+    *   Memory leak
 
 **1.2.1**
 
