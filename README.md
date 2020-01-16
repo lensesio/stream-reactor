@@ -59,6 +59,54 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
+**1.2.2**
+
+Features
+
+Redis
+
+*   TTL Support
+*   SSL support
+*   AWS ElasticCache support
+*   GEOADD support
+*   PUB/SUB support
+
+MQTT
+
+*   Multi server connection
+*   Dynamic Target support
+
+Hive
+
+*   Kerberos support
+
+Kudu
+
+*   Comma separated master endpoints
+
+
+Bug fixes
+Redis:
+
+*   Topic regex
+
+JMS:
+
+*   Filters out Kafka records with null value
+
+Cassandra:
+
+*   Timestamp comparison
+
+Mongo:
+
+*   Memory leak
+
+Cassandra
+
+*   PK check for incremental
+
+
 **1.2.1**
 
 *   Fixed Set support on the Cassandra source connector
