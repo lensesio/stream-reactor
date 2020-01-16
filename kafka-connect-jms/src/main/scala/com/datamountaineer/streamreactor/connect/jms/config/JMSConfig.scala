@@ -20,7 +20,8 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
+import org.apache.kafka.common.config.ConfigDef.Importance
+import org.apache.kafka.common.config.ConfigDef.Type
 
 object JMSConfig {
 
@@ -58,8 +59,8 @@ object JMSConfig {
       JMSConfigConstants.BATCH_SIZE_DOC,
       "Connection", 13, ConfigDef.Width.MEDIUM, JMSConfigConstants.BATCH_SIZE)
     .define(JMSConfigConstants.POLLING_TIMEOUT_CONFIG, Type.LONG, JMSConfigConstants.POLLING_TIMEOUT_DEFAULT, Importance.MEDIUM,
-        JMSConfigConstants.POLLING_TIMEOUT_DOC,
-        "Connection", 14, ConfigDef.Width.MEDIUM, JMSConfigConstants.POLLING_TIMEOUT_CONFIG)
+      JMSConfigConstants.POLLING_TIMEOUT_DOC,
+      "Connection", 14, ConfigDef.Width.MEDIUM, JMSConfigConstants.POLLING_TIMEOUT_CONFIG)
 
     //converters
 
@@ -69,23 +70,34 @@ object JMSConfig {
       Importance.HIGH, JMSConfigConstants.THROW_ON_CONVERT_ERRORS_DOC, "Converter", 2, ConfigDef.Width.MEDIUM,
       JMSConfigConstants.THROW_ON_CONVERT_ERRORS_DISPLAY)
     .define(JMSConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES, Type.STRING, JMSConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_DEFAULT,
-        Importance.HIGH, JMSConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_DOC, "Converter", 3, ConfigDef.Width.MEDIUM,
-        JMSConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES)
+      Importance.HIGH, JMSConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES_DOC, "Converter", 3, ConfigDef.Width.MEDIUM,
+      JMSConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES)
     .define(JMSConfigConstants.HEADERS_CONFIG,
       Type.STRING, "", Importance.LOW, JMSConfigConstants.HEADERS_CONFIG_DOC,
       "Converter", 4, ConfigDef.Width.MEDIUM, JMSConfigConstants.HEADERS_CONFIG_DISPLAY)
 
     .define(JMSConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, JMSConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
-        Importance.MEDIUM, JMSConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
-        "Metrics", 1, ConfigDef.Width.MEDIUM, JMSConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
+      Importance.MEDIUM, JMSConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
+      "Metrics", 1, ConfigDef.Width.MEDIUM, JMSConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
 
+    .define(JMSConfigConstants.EVICT_UNCOMMITTED_MINUTES,
+      Type.INT,
+      JMSConfigConstants.EVICT_UNCOMMITTED_MINUTES_DEFAULT,
+      Importance.MEDIUM, JMSConfigConstants.EVICT_UNCOMMITTED_MINUTES_DOC,
+      "Settings", 1, ConfigDef.Width.MEDIUM, JMSConfigConstants.EVICT_UNCOMMITTED_MINUTES_DOC)
+
+    .define(JMSConfigConstants.EVICT_THRESHOLD_MINUTES,
+      Type.INT,
+      JMSConfigConstants.EVICT_THRESHOLD_MINUTES_DEFAULT,
+      Importance.MEDIUM, JMSConfigConstants.EVICT_THRESHOLD_MINUTES_DOC,
+      "Settings", 2, ConfigDef.Width.MEDIUM, JMSConfigConstants.EVICT_THRESHOLD_MINUTES_DOC)
 }
 
 /**
-  * <h1>JMSSinkConfig</h1>
-  *
-  * Holds config, extends AbstractConfig.
-  **/
+ * <h1>JMSSinkConfig</h1>
+ *
+ * Holds config, extends AbstractConfig.
+ **/
 case class JMSConfig(props: util.Map[String, String])
   extends BaseConfig(JMSConfigConstants.CONNECTOR_PREFIX, JMSConfig.config, props)
     with KcqlSettings
