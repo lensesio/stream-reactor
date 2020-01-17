@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.mqtt.sink
 
-import java.io.File
+import java.io.{ByteArrayOutputStream, File}
 import java.nio.ByteBuffer
 import java.util
 import java.util.concurrent.LinkedBlockingQueue
@@ -29,6 +29,8 @@ import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import io.moquette.server.Server
 import io.moquette.server.config.ClasspathConfig
+import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericRecord}
+import org.apache.avro.io.EncoderFactory
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
@@ -84,7 +86,6 @@ class TestMqttWriter extends WordSpec with Matchers with BeforeAndAfterAll with 
     files.map(f => new File(f)).withFilter(_.exists()).foreach { f => Try(f.delete()) }
   }
 
-  val AVRO = "226B61666B615F746F706963322D31322D31181806666F6FCDCCCC3D3FC91D369199C93F010A6279746573"
   val JSON = "{\"id\":\"kafka_topic2-12-1\",\"int_field\":12,\"long_field\":12,\"string_field\":\"foo\",\"float_field\":0.1,\"float64_field\":0.199999,\"boolean_field\":true,\"byte_field\":\"Ynl0ZXM=\"}"
   val JSON_IGNORE_ID = "{\"id\":\"kafka_topic2-12-1\"}}"
   val TOPIC = "kafka_topic"
@@ -145,6 +146,36 @@ class TestMqttWriter extends WordSpec with Matchers with BeforeAndAfterAll with 
         new SinkRecord(a.topic(), a.partition(), Schema.STRING_SCHEMA, "key", schema, record, i, System.currentTimeMillis(), TimestampType.CREATE_TIME)
       })
     }).toSet
+  }
+
+  // create a avro record of the test data
+  def createAvroRecord(avro_schema_file: String): Array[Byte] = {
+
+    // Avro schema
+    val avro_schema_source = scala.io.Source.fromFile(avro_schema_file).mkString
+    val avro_schema = new org.apache.avro.Schema.Parser().parse(avro_schema_source)
+
+    // Generic Record
+    val genericValues = new GenericData.Record(avro_schema)
+    genericValues.put("id", "kafka_topic2-12-1")
+    genericValues.put("int_field", 12)
+    genericValues.put("long_field", 12L)
+    genericValues.put("string_field", "foo")
+    genericValues.put("float_field", 0.1.toFloat)
+    genericValues.put("float64_field", 0.199999)
+    genericValues.put("boolean_field", true)
+    genericValues.put("byte_field", ByteBuffer.wrap("bytes".getBytes))
+
+    // Serialize Generic Record
+    val out = new ByteArrayOutputStream()
+    val encoder = EncoderFactory.get().binaryEncoder(out, null)
+    val avro_writer = new GenericDatumWriter[GenericRecord](avro_schema)
+
+    avro_writer.write(genericValues, encoder)
+    encoder.flush()
+    out.close()
+
+    out.toByteArray
   }
 
   //get the assignment of topic partitions for the sinkTask
@@ -242,10 +273,9 @@ class TestMqttWriter extends WordSpec with Matchers with BeforeAndAfterAll with 
 
     queue1.size() shouldBe 3
 
-    val message = queue1.take(1).head.getPayload.map{
-        b => String.format("%02X", new java.lang.Integer(b & 0xff))
-    }.mkString
-    message shouldBe AVRO
+    val message = createAvroRecord(s"$userDir/src/test/resources/test.avsc")
+
+    queue1.take(1).head.getPayload shouldBe message
     queue1.clear()
     writer.close
   }
