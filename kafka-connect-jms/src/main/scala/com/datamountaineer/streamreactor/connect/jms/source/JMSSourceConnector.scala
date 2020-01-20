@@ -18,7 +18,8 @@ package com.datamountaineer.streamreactor.connect.jms.source
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants}
+import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
+import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
@@ -30,9 +31,9 @@ import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
 /**
-  * Created by andrew@datamountaineer.com on 10/03/2017. 
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 10/03/2017.
+ * stream-reactor
+ */
 class JMSSourceConnector extends SourceConnector with StrictLogging {
   private var configProps: util.Map[String, String] = _
   private val configDef = JMSConfig.config
@@ -40,9 +41,9 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
 
   override def taskClass(): Class[_ <: Task] = classOf[JMSSourceTask]
 
-  override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
+  def kcqlTaskScaling(maxTasks: Int): util.List[util.Map[String, String]] = {
     val raw = configProps.get(JMSConfigConstants.KCQL)
-    require(raw != null && !raw.isEmpty,  s"No ${JMSConfigConstants.KCQL} provided!")
+    require(raw != null && !raw.isEmpty, s"No ${JMSConfigConstants.KCQL} provided!")
 
     //sql1, sql2
     val kcqls = raw.split(";")
@@ -50,20 +51,43 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
 
     //split up the kcql statement based on the number of tasks.
     groups
-      .filterNot(g => g.isEmpty)
-      .map(g => {
-        val taskConfigs = new java.util.HashMap[String,String]
+      .filterNot(_.isEmpty)
+      .map { g =>
+        val taskConfigs = new java.util.HashMap[String, String]
         taskConfigs.putAll(configProps)
         taskConfigs.put(JMSConfigConstants.KCQL, g.mkString(";")) //overwrite
         taskConfigs.toMap.asJava
-      })
+      }
+  }
+
+  def defaultTaskScaling(maxTasks: Int): util.List[util.Map[String, String]] = {
+    val raw = configProps.get(JMSConfigConstants.KCQL)
+    require(raw != null && !raw.isEmpty, s"No ${JMSConfigConstants.KCQL} provided!")
+    (1 to maxTasks).map { _ =>
+      val taskConfigs: util.Map[String, String] = new java.util.HashMap[String, String]
+      taskConfigs.putAll(configProps)
+      taskConfigs
+    }.toList.asJava
+  }
+
+  override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
+    val config = new JMSConfig(configProps)
+    val scaleType = config.getString(JMSConfigConstants.TASK_PARALLELIZATION_TYPE).toLowerCase()
+    if (scaleType == JMSConfigConstants.TASK_PARALLELIZATION_TYPE_DEFAULT) {
+      kcqlTaskScaling(maxTasks)
+    } else defaultTaskScaling(maxTasks)
   }
 
   override def config(): ConfigDef = configDef
 
-  override def start(props: util.Map[String, String]): Unit = configProps = props
+  override def start(props: util.Map[String, String]): Unit = {
+    val actualConfig: util.Map[String, AnyRef] = JMSConfig.config.parse(props)
+    val config = new JMSConfig(props)
+
+    configProps = config.props
+  }
 
   override def stop(): Unit = {}
 
-  override def version(): String =  manifest.version()
+  override def version(): String = manifest.version()
 }
