@@ -81,9 +81,7 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
   override def config(): ConfigDef = configDef
 
   override def start(props: util.Map[String, String]): Unit = {
-    val actualConfig: util.Map[String, AnyRef] = JMSConfig.config.parse(props)
     val config = new JMSConfig(props)
-
     configProps = config.props
   }
 
