@@ -58,6 +58,17 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
+**1.2.5**
+**Bug fixes**
+
+*   JMS Source
+
+    Allow for tasks parallelization and how the connector tasks parallelization is decided.
+    
+    Changes:
+    *  Allow the connector to respect the `tasks.max` value provided if the user `connect.jms.scale.type`. Available values are `kcql` and `default`.
+    If `KCQL` is provided it will be based on the number of KCQL statements written, otherwise it will be driven based on the connector `tasks.max`
+
 **1.2.4**
 **Bug fixes**
 
