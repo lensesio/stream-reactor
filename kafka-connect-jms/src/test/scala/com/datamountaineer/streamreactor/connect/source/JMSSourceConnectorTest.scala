@@ -27,15 +27,14 @@ import scala.collection.JavaConverters._
 import scala.reflect.io.Path
 
 /**
-  * Created by andrew@datamountaineer.com on 24/03/2017. 
-  * stream-reactor
-  */
+ * Created by andrew@datamountaineer.com on 24/03/2017.
+ * stream-reactor
+ */
 class JMSSourceConnectorTest extends TestBase with BeforeAndAfterAll {
 
   override def afterAll(): Unit = {
     Path(AVRO_FILE).delete()
   }
-
 
   "should start a JMS Source Connector" in {
     val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
@@ -48,11 +47,32 @@ class JMSSourceConnectorTest extends TestBase with BeforeAndAfterAll {
 
     val connector = new JMSSourceConnector()
     connector.start(props = props.asJava)
-    val configs = connector.taskConfigs(2)
+    val configs = connector.taskConfigs(3)
     val config1 = configs.asScala.head.asScala
     val config2 = configs.asScala.last.asScala
     config1(JMSConfigConstants.KCQL) shouldBe kcqlQ
     config2(JMSConfigConstants.KCQL) shouldBe kcqlT
     connector.stop()
- }
+  }
+
+  "should use the tasks.max to do parallelization" in {
+    val kafkaTopic = s"kafka-${UUID.randomUUID().toString}"
+    val queueName = UUID.randomUUID().toString
+    val topicName = UUID.randomUUID().toString
+
+    val kcqlT = getKCQL(kafkaTopic, topicName, "TOPIC")
+    val kcqlQ = getKCQL(kafkaTopic, queueName, "QUEUE")
+    val kcql = kcqlQ + ";" + kcqlT
+    val props = getProps(kcql, "") + (JMSConfigConstants.TASK_PARALLELIZATION_TYPE -> "default")
+
+    val connector = new JMSSourceConnector()
+    connector.start(props = props.asJava)
+    val configs = connector.taskConfigs(3).asScala.toList match {
+      case l@List(_, _, _) =>
+        l.foreach {
+          _.get(JMSConfigConstants.KCQL) shouldEqual kcql
+        }
+      case _ => fail("Invalid task parallelization")
+    }
+  }
 }
