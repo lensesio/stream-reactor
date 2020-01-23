@@ -133,7 +133,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
       "A class that can be used for automatically creating tables and/or updating schemas";
 
   public static final String KEYFILE_CONFIG =                     "keyfile";
-  private static final ConfigDef.Type KEYFILE_TYPE =              ConfigDef.Type.STRING;
+  private static final ConfigDef.Type KEYFILE_TYPE =              ConfigDef.Type.PASSWORD;
   public static final String KEYFILE_DEFAULT =                    null;
   private static final ConfigDef.Importance KEYFILE_IMPORTANCE =  ConfigDef.Importance.MEDIUM;
   private static final String KEYFILE_DOC =
