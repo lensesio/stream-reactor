@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/lensesio/stream-reactor/tree/master.svg?style=svg&circle-token=4ee64b9b4499a7ad0cb32a7499aa4ef87f355924)](https://circleci.com/gh/Landoop/stream-reactor/tree/master)
+![Actions Status](https://github.com/Landoop/stream-reactor/workflows/CI/badge.svg)
 [<img src="https://img.shields.io/badge/docs--orange.svg?"/>](https://docs.lenses.io/connectors/)
 [<img src="https://img.shields.io/badge/latest%20release-1.2.6-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22)
 
@@ -57,6 +57,18 @@ A collection of components to build a real time ingestion pipeline.
 
 
 ## Release Notes
+
+**Pending**
+**Features**
+*   MQTT Source
+    
+    Support dynamic topic names in Kafka from a wildcard subscription.
+    
+    Example: INSERT INTO `$` SELECT * FROM /mqttSourceTopic/+/test
+    
+    If the MQTT topic is /mqttSourceTopic/A/test this Will result in topics in kafka 
+    mqttSourceTopic_A_test
+    
 
 **1.2.6**
 **Bug fixes**

@@ -93,7 +93,7 @@ class MqttManager(connectionFn: MqttSourceSettings => MqttConnectOptions,
       .getOrElse(wildcard, throw new ConfigException(s"Topic $topic is not configured. Available topics are:${sourceToTopicMap.keySet.mkString(",")}"))
 
     val kafkaTopic = kcql.getTarget match {
-      case "$" => topic.replaceFirst("/", "").replaceAll("/", "_")
+      case "$" => topic.replaceFirst("/", "").replaceAll("/+", "_").replaceAll("/", "_")
       case other => other
     }
 
