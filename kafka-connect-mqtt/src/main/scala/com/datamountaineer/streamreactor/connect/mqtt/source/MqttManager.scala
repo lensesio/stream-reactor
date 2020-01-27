@@ -91,7 +91,11 @@ class MqttManager(connectionFn: MqttSourceSettings => MqttConnectOptions,
     }
     val kcql = sourceToTopicMap
       .getOrElse(wildcard, throw new ConfigException(s"Topic $topic is not configured. Available topics are:${sourceToTopicMap.keySet.mkString(",")}"))
-    val kafkaTopic = kcql.getTarget
+
+    val kafkaTopic = kcql.getTarget match {
+      case "$" => topic.replaceFirst("/", "").replaceAll("/", "_")
+      case other => other
+    }
 
     val converter = convertersMap.getOrElse(wildcard, throw new RuntimeException(s"$wildcard topic is missing the converter instance."))
     if (!message.isDuplicate) {

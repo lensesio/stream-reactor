@@ -100,6 +100,74 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
 
 
   "MqttManager" should {
+
+    "dynamically set the target kafka topic to the topic from the mqtt topic on wildcards" in {
+      val source = "/mqttSourceTopic/+/test"
+      val target = "`$`"
+      val sourcesToConvMap = Map(source -> new BytesConverter)
+      val settings = MqttSourceSettings(
+        connection,
+        None,
+        None,
+        clientId,
+        sourcesToConvMap.map { case (k, v) => k -> v.getClass.getCanonicalName },
+        true,
+        Array(s"INSERT INTO $target SELECT * FROM $source"),
+        qs,
+        connectionTimeout,
+        pollingTimeout,
+        true,
+        keepAlive,
+        None,
+        None,
+        None
+        )
+      val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
+        sourcesToConvMap,
+        settings)
+      Thread.sleep(2000)
+
+      val messages = Seq("message1", "message2")
+
+      publishMessage("/mqttSourceTopic/A/test", messages.head.getBytes)
+      publishMessage("/mqttSourceTopic/B/test", messages.last.getBytes)
+
+      Thread.sleep(3000)
+
+      var records = new util.LinkedList[SourceRecord]()
+      mqttManager.getRecords(records)
+
+      try {
+        records.size() shouldBe 2
+        records.get(0).topic() shouldBe "mqttSourceTopic_A_test"
+        records.get(1).topic() shouldBe "mqttSourceTopic_B_test"
+
+        records.get(0).value() shouldBe messages(0).getBytes()
+        records.get(1).value() shouldBe messages(1).getBytes()
+
+
+        records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
+        records.get(1).valueSchema() shouldBe Schema.BYTES_SCHEMA
+
+        val msg3 = "message3".getBytes
+        publishMessage("/mqttSourceTopic/C/test", msg3)
+
+        Thread.sleep(2000)
+
+        records = new util.LinkedList[SourceRecord]()
+        mqttManager.getRecords(records)
+
+        records.size() shouldBe 1
+        records.get(0).topic() shouldBe "mqttSourceTopic_C_test"
+        records.get(0).value() shouldBe msg3
+        records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
+      }
+      finally {
+        mqttManager.close()
+      }
+    }
+
+
     "process the messages on topic A and create source records with Bytes schema with Wildcards" ignore {
       val source = "/mqttSourceTopic/+/test"
       val target = "kafkaTopic"
