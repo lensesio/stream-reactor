@@ -276,6 +276,61 @@ public class BigQuerySchemaConverterTest {
   }
 
   @Test
+  public void testEmptyStruct() { // Empty struct
+    com.google.cloud.bigquery.Schema bigQueryTestOuterSchema =
+        new BigQuerySchemaConverter(false).convertSchema(
+            SchemaBuilder
+                .struct()
+                .build()
+        );
+    assertEquals(com.google.cloud.bigquery.Schema.of(), bigQueryTestOuterSchema);
+  }
+
+  @Test
+  public void testEmptyInnerStruct() { // Empty nested struct
+    final String outerFieldStructName = "OuterStruct";
+    final String innerFieldStructName = "InnerStruct";
+    final String innerFieldStringName = "InnerString";
+
+    Schema kafkaConnectInnerSchema = SchemaBuilder
+        .struct()
+        .build();
+
+    com.google.cloud.bigquery.Field bigQueryInnerString = com.google.cloud.bigquery.Field.newBuilder(
+        innerFieldStringName,
+        LegacySQLTypeName.STRING
+    ).setMode(
+        com.google.cloud.bigquery.Field.Mode.REQUIRED
+    ).build();
+
+    com.google.cloud.bigquery.Field bigQueryOuterRecord =
+        com.google.cloud.bigquery.Field.newBuilder(
+            outerFieldStructName,
+            LegacySQLTypeName.RECORD,
+            bigQueryInnerString
+        ).setMode(
+            com.google.cloud.bigquery.Field.Mode.REQUIRED
+        ).build();
+
+    Schema kafkaConnectOuterSchema = SchemaBuilder
+        .struct()
+        .field(innerFieldStructName, kafkaConnectInnerSchema)
+        .field(innerFieldStringName, Schema.STRING_SCHEMA)
+        .build();
+
+    com.google.cloud.bigquery.Schema bigQueryExpectedOuterSchema =
+        com.google.cloud.bigquery.Schema.of(bigQueryOuterRecord);
+    com.google.cloud.bigquery.Schema bigQueryTestOuterSchema =
+        new BigQuerySchemaConverter(false).convertSchema(
+            SchemaBuilder
+                .struct()
+                .field(outerFieldStructName, kafkaConnectOuterSchema)
+                .build()
+        );
+    assertEquals(bigQueryExpectedOuterSchema, bigQueryTestOuterSchema);
+  }
+
+  @Test
   public void testMap() {
     final String fieldName = "StringIntegerMap";
     final String keyName = BigQuerySchemaConverter.MAP_KEY_FIELD_NAME;

@@ -178,12 +178,17 @@ public class BigQueryRecordConverter implements RecordConverter<Map<String, Obje
     List<Field> kafkaConnectSchemaFields = kafkaConnectSchema.fields();
     Struct kafkaConnectStruct = (Struct) kafkaConnectObject;
     for (Field kafkaConnectField : kafkaConnectSchemaFields) {
-      Object bigQueryObject = convertObject(
-          kafkaConnectStruct.get(kafkaConnectField.name()),
-          kafkaConnectField.schema()
-      );
-      if (bigQueryObject != null) {
-        bigQueryRecord.put(kafkaConnectField.name(), bigQueryObject);
+      // ignore empty structures
+      boolean isEmptyStruct = kafkaConnectField.schema().type() == Schema.Type.STRUCT &&
+          kafkaConnectField.schema().fields().isEmpty();
+      if (!isEmptyStruct) {
+        Object bigQueryObject = convertObject(
+            kafkaConnectStruct.get(kafkaConnectField.name()),
+            kafkaConnectField.schema()
+        );
+        if (bigQueryObject != null) {
+          bigQueryRecord.put(kafkaConnectField.name(), bigQueryObject);
+        }
       }
     }
     return bigQueryRecord;

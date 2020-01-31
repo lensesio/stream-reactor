@@ -314,6 +314,56 @@ public class BigQueryRecordConverterTest {
   }
 
   @Test
+  public void testEmptyStruct() {
+    Schema kafkaConnectInnerSchema = SchemaBuilder
+        .struct()
+        .build();
+
+    Struct kafkaConnectInnerStruct = new Struct(kafkaConnectInnerSchema);
+
+    SinkRecord kafkaConnectSinkRecord =
+        spoofSinkRecord(kafkaConnectInnerSchema, kafkaConnectInnerStruct, false);
+    Map<String, Object> bigQueryTestInnerRecord =
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE)
+            .convertRecord(kafkaConnectSinkRecord, KafkaSchemaRecordType.VALUE);
+    assertEquals(new HashMap<String, Object>(), bigQueryTestInnerRecord);
+  }
+
+  @Test
+  public void testEmptyInnerStruct() {
+    final String innerFieldStructName = "InnerStruct";
+    final String innerFieldStringName = "InnerString";
+    final String innerStringValue = "forty two";
+
+    Schema kafkaConnectInnerSchema = SchemaBuilder
+        .struct()
+        .build();
+
+    Struct kafkaConnectInnerStruct = new Struct(kafkaConnectInnerSchema);
+
+    Schema kafkaConnectOuterSchema = SchemaBuilder
+        .struct()
+        .field(innerFieldStructName, kafkaConnectInnerSchema)
+        .field(innerFieldStringName, Schema.STRING_SCHEMA)
+        .build();
+
+    Struct kafkaConnectOuterStruct = new Struct(kafkaConnectOuterSchema);
+    kafkaConnectOuterStruct.put(innerFieldStructName, kafkaConnectInnerStruct);
+    kafkaConnectOuterStruct.put(innerFieldStringName, innerStringValue);
+
+    Map<String, Object> bigQueryExpectedOuterRecord = new HashMap<>();
+    bigQueryExpectedOuterRecord.put(innerFieldStringName, innerStringValue);
+
+    SinkRecord kafkaConnectOuterSinkRecord =
+        spoofSinkRecord(kafkaConnectOuterSchema, kafkaConnectOuterStruct, false);
+    Map<String, Object> bigQueryTestOuterRecord =
+        new BigQueryRecordConverter(SHOULD_CONVERT_DOUBLE)
+            .convertRecord(kafkaConnectOuterSinkRecord, KafkaSchemaRecordType.VALUE);
+
+    assertEquals(bigQueryExpectedOuterRecord, bigQueryTestOuterRecord);
+  }
+
+  @Test
   public void testMap() {
     final String fieldName = "StringIntegerMap";
     final Map<Integer, Boolean> fieldValueKafkaConnect = new HashMap<>();
