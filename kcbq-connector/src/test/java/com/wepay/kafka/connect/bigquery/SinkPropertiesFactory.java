@@ -63,7 +63,7 @@ public class SinkPropertiesFactory {
     config.getList(config.TOPICS_TO_TABLES_CONFIG);
     config.getList(config.DATASETS_CONFIG);
 
-    config.getString(config.KEYFILE_CONFIG);
+    config.getPassword(config.KEYFILE_CONFIG);
     config.getString(config.PROJECT_CONFIG);
 
     config.getBoolean(config.SANITIZE_TOPICS_CONFIG);
