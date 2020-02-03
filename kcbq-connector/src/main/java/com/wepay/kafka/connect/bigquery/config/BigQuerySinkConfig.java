@@ -407,6 +407,13 @@ public class BigQuerySinkConfig extends AbstractConfig {
   }
 
   /**
+   * Returns the keyfile
+   */
+  public String getKeyFile() {
+    return getPassword(KEYFILE_CONFIG).value();
+  }
+
+  /**
    * Parses a config map, which must be provided as a list of Strings of the form
    * '&lt;key&gt;=&lt;value&gt;' into a Map. Locates that list, splits its key and value pairs, and
    * returns they Map they represent.

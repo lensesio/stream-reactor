@@ -17,7 +17,7 @@ project.ext {
     avroVersion = '1.8.1'
     debeziumVersion = '0.6.1'
     googleCloudVersion = '1.79.0'
-    googleAuthVersion = '0.10.0'
+    googleAuthVersion = '0.9.0'
     googleCloudGsonVersion = '2.8.5'
     ioConfluentVersion = '5.3.1'
     junitVersion = '4.12'
