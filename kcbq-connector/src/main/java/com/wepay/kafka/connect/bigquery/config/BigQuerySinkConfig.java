@@ -28,6 +28,7 @@ import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 
 import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 
@@ -410,7 +411,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
    * Returns the keyfile
    */
   public String getKeyFile() {
-    return getPassword(KEYFILE_CONFIG).value();
+    return Optional.ofNullable(getPassword(KEYFILE_CONFIG)).map(Password::value).orElse(null);
   }
 
   /**
