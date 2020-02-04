@@ -81,6 +81,7 @@ public class BigQuerySinkTask extends SinkTask {
   private RecordConverter<Map<String, Object>> recordConverter;
   private Map<String, TableId> topicsToBaseTableIds;
   private boolean useMessageTimeDatePartitioning;
+  private boolean usePartitionDecorator;
 
   private TopicPartitionManager topicPartitionManager;
 
@@ -144,15 +145,17 @@ public class BigQuerySinkTask extends SinkTask {
     maybeCreateTable(record, baseTableId);
 
     PartitionedTableId.Builder builder = new PartitionedTableId.Builder(baseTableId);
-    if (useMessageTimeDatePartitioning) {
-      if (record.timestampType() == TimestampType.NO_TIMESTAMP_TYPE) {
-        throw new ConnectException(
-            "Message has no timestamp type, cannot use message timestamp to partition.");
-      }
-
-      builder.setDayPartition(record.timestamp());
-    } else {
-      builder.setDayPartitionForNow();
+    if(usePartitionDecorator) {
+    	
+	  if (useMessageTimeDatePartitioning) {
+	    if (record.timestampType() == TimestampType.NO_TIMESTAMP_TYPE) {
+		  throw new ConnectException(
+	      "Message has no timestamp type, cannot use message timestamp to partition.");
+	    }
+	    builder.setDayPartition(record.timestamp());
+	  } else {
+	    builder.setDayPartitionForNow();
+	  }
     }
 
     return builder.build();
@@ -337,6 +340,8 @@ public class BigQuerySinkTask extends SinkTask {
     topicPartitionManager = new TopicPartitionManager();
     useMessageTimeDatePartitioning =
         config.getBoolean(config.BIGQUERY_MESSAGE_TIME_PARTITIONING_CONFIG);
+    usePartitionDecorator = 
+            config.getBoolean(config.BIGQUERY_PARTITION_DECORATOR_CONFIG);
     if (hasGCSBQTask) {
       startGCSToBQLoadTask();
     }

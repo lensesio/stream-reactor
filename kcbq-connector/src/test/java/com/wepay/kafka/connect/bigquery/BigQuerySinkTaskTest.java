@@ -267,6 +267,67 @@ public class BigQuerySinkTaskTest {
     verify(bigQuery, times(1)).insertAll(argument.capture());
     assertEquals("test-topic$20171026", argument.getValue().getTable().getTable());
   }
+  
+  @Test
+  public void testPutWhenPartitioningIsSetToTrue() {
+    final String topic = "test-topic";
+    
+    Map<String, String> properties = propertiesFactory.getProperties();
+    properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
+    properties.put(BigQuerySinkConfig.DATASETS_CONFIG, ".*=scratch");
+    properties.put(BigQuerySinkTaskConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "true");
+    properties.put(BigQuerySinkTaskConfig.BIGQUERY_MESSAGE_TIME_PARTITIONING_CONFIG, "true");
+    
+    BigQuery bigQuery = mock(BigQuery.class);
+    Storage storage = mock(Storage.class);
+    SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
+    InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
+    
+    when(bigQuery.insertAll(anyObject())).thenReturn(insertAllResponse);
+    when(insertAllResponse.hasErrors()).thenReturn(false);
+    
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage, null);
+    testTask.initialize(sinkTaskContext);
+    testTask.start(properties);
+    
+    testTask.put(Collections.singletonList(spoofSinkRecord(topic, "value", "message text",
+        TimestampType.CREATE_TIME, 1509007584334L)));
+    testTask.flush(Collections.emptyMap());
+    ArgumentCaptor<InsertAllRequest> argument = ArgumentCaptor.forClass(InsertAllRequest.class);
+    
+    verify(bigQuery, times(1)).insertAll(argument.capture());
+    assertEquals("test-topic$20171026", argument.getValue().getTable().getTable());
+  }
+  
+  @Test
+  public void testPutWhenPartitioningIsSetToFalse() {
+    final String topic = "test-topic";
+    
+    Map<String, String> properties = propertiesFactory.getProperties();
+    properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
+    properties.put(BigQuerySinkConfig.DATASETS_CONFIG, ".*=scratch");
+    properties.put(BigQuerySinkTaskConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "false");
+    
+    BigQuery bigQuery = mock(BigQuery.class);
+    Storage storage = mock(Storage.class);
+    SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
+    InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
+    
+    when(bigQuery.insertAll(anyObject())).thenReturn(insertAllResponse);
+    when(insertAllResponse.hasErrors()).thenReturn(false);
+    
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, null, storage, null);
+    testTask.initialize(sinkTaskContext);
+    testTask.start(properties);
+    
+    testTask.put(Collections.singletonList(spoofSinkRecord(topic, "value", "message text",
+        TimestampType.CREATE_TIME, 1509007584334L)));
+    testTask.flush(Collections.emptyMap());
+    ArgumentCaptor<InsertAllRequest> argument = ArgumentCaptor.forClass(InsertAllRequest.class);
+    
+    verify(bigQuery, times(1)).insertAll(argument.capture());
+    assertEquals("test-topic", argument.getValue().getTable().getTable());
+  }
 
   // Make sure a connect exception is thrown when the message has no timestamp type
   @Test(expected = ConnectException.class)
