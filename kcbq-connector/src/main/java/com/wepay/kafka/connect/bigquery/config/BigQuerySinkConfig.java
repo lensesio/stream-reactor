@@ -28,6 +28,7 @@ import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 
 import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 
@@ -133,7 +134,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
       "A class that can be used for automatically creating tables and/or updating schemas";
 
   public static final String KEYFILE_CONFIG =                     "keyfile";
-  private static final ConfigDef.Type KEYFILE_TYPE =              ConfigDef.Type.STRING;
+  private static final ConfigDef.Type KEYFILE_TYPE =              ConfigDef.Type.PASSWORD;
   public static final String KEYFILE_DEFAULT =                    null;
   private static final ConfigDef.Importance KEYFILE_IMPORTANCE =  ConfigDef.Importance.MEDIUM;
   private static final String KEYFILE_DOC =
@@ -404,6 +405,13 @@ public class BigQuerySinkConfig extends AbstractConfig {
 
       return new AbstractMap.SimpleEntry<>(key, value);
     }
+  }
+
+  /**
+   * Returns the keyfile
+   */
+  public String getKeyFile() {
+    return Optional.ofNullable(getPassword(KEYFILE_CONFIG)).map(Password::value).orElse(null);
   }
 
   /**
