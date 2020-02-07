@@ -17,18 +17,22 @@
 package com.datamountaineer.streamreactor.connect.mqtt.config
 
 import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.streamreactor.connect.converters.sink.Converter
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import org.apache.kafka.common.config.ConfigException
 import org.eclipse.paho.client.mqttv3.MqttClient
 
+import scala.util.{Failure, Success, Try}
+
 /**
-  * Created by andrew@datamountaineer.com on 27/08/2017. 
+  * Created by andrew@datamountaineer.com on 27/08/2017.
   * stream-reactor
   */
 case class MqttSinkSettings(connection: String,
                             user: Option[String],
                             password: Option[String],
                             clientId: String,
+                            sinksToConverters: Map[String, String],
                             kcql : Set[Kcql],
                             mqttQualityOfService: Int,
                             mqttRetainedMessage: Boolean,
@@ -75,11 +79,28 @@ object MqttSinkSettings {
 
     val rm = config.getBoolean(MqttConfigConstants.RM_CONFIG)
 
+    val converters = kcql.map(k => {
+      (k.getSource, k.getWithConverter)
+    }).toMap
+
+    converters.foreach { case (kafka_topic, clazz) =>
+      if (clazz != null) {
+        Try(Class.forName(clazz)) match {
+          case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG}. $clazz can't be found for $kafka_topic")
+          case Success(clz) =>
+            if (!classOf[Converter].isAssignableFrom(clz)) {
+              throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG}. $clazz is not inheriting Converter for $kafka_topic")
+            }
+        }
+      }
+    }
+
     new MqttSinkSettings(
       connection,
       user,
       password,
       clientId,
+      converters,
       kcql,
       qs,
       rm,
