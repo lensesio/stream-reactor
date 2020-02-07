@@ -91,6 +91,12 @@ object JMSConfig {
       JMSConfigConstants.EVICT_THRESHOLD_MINUTES_DEFAULT,
       Importance.MEDIUM, JMSConfigConstants.EVICT_THRESHOLD_MINUTES_DOC,
       "Settings", 2, ConfigDef.Width.MEDIUM, JMSConfigConstants.EVICT_THRESHOLD_MINUTES_DOC)
+
+    .define(JMSConfigConstants.TASK_PARALLELIZATION_TYPE,
+        Type.STRING,
+        JMSConfigConstants.TASK_PARALLELIZATION_TYPE_DEFAULT,
+        Importance.MEDIUM, JMSConfigConstants.TASK_PARALLELIZATION_TYPE_DOC,
+        "Settings", 4, ConfigDef.Width.MEDIUM, JMSConfigConstants.TASK_PARALLELIZATION_TYPE_DOC)
 }
 
 /**

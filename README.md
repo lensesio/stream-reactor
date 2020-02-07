@@ -1,6 +1,6 @@
 [![CircleCI](https://circleci.com/gh/lensesio/stream-reactor/tree/master.svg?style=svg&circle-token=4ee64b9b4499a7ad0cb32a7499aa4ef87f355924)](https://circleci.com/gh/Landoop/stream-reactor/tree/master)
 [<img src="https://img.shields.io/badge/docs--orange.svg?"/>](https://docs.lenses.io/connectors/)
-[<img src="https://img.shields.io/badge/latest%20release-1.2.1-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22)
+[<img src="https://img.shields.io/badge/latest%20release-1.2.6-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22)
 
 
 Join us on slack [![Alt text](images/slack.jpeg)](https://launchpass.com/lensesio)
@@ -57,6 +57,17 @@ A collection of components to build a real time ingestion pipeline.
 
 
 ## Release Notes
+
+**1.2.6**
+**Bug fixes**
+
+*   JMS Source
+
+    Allow for tasks parallelization and how the connector tasks parallelization is decided.
+    
+    Changes:
+    *  Allow the connector to respect the `tasks.max` value provided if the user `connect.jms.scale.type`. Available values are `kcql` and `default`.
+    If `KCQL` is provided it will be based on the number of KCQL statements written, otherwise it will be driven based on the connector `tasks.max`
 
 **1.2.4**
 **Bug fixes**
