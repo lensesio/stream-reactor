@@ -50,7 +50,7 @@ class CoapSinkTask extends SinkTask with StrictLogging {
     val settings = CoapSettings(sinkConfig)
 
     //if error policy is retry set retry interval
-    if (settings.head.errorPolicy.equals(Option(ErrorPolicyEnum.RETRY))) {
+    if (settings.head.errorPolicy.getOrElse(ErrorPolicyEnum.THROW).equals(ErrorPolicyEnum.RETRY)) {
       context.timeout(sinkConfig.getString(CoapConstants.ERROR_RETRY_INTERVAL).toLong)
     }
     settings.map(s => (s.kcql.getSource, CoapWriter(s))).map({ case (k, v) => writers.put(k, v) })
