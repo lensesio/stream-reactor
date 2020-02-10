@@ -20,6 +20,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{DoNotDiscover, Matchers, WordSpec}
@@ -133,6 +134,37 @@ class TestCassandraSourceTaskTimestamp extends WordSpec
     //stop task
     task.stop()
   }
+  
+  "A Cassandra SourceTask should read in incremental mode with timestamp and time slices and use json format with key and unwrap" in {
+
+    val taskContext = getSourceTaskContextDefault
+    val config = getCassandraJsonConfigWithKeyAndUnwrap
+    val task = new CassandraSourceTask()
+    
+    truncateTable(session, keyspace, tableName)
+    
+    task.initialize(taskContext)
+    
+    val mapper = new ObjectMapper()
+
+    //start task
+    task.start(config)
+
+    insertIntoTimestampTable(session, keyspace, tableName, "id1", "magic_string", getFormattedDateNow(), 1.toByte)
+
+    val records = pollAndWait(task, tableName)
+    val sourceRecord = records.asScala.head
+    sourceRecord.keySchema shouldBe Schema.STRING_SCHEMA
+    sourceRecord.valueSchema shouldBe Schema.STRING_SCHEMA
+    
+    val json: JsonNode = mapper.readTree(sourceRecord.value.asInstanceOf[String]);
+    val key: String = sourceRecord.key.asInstanceOf[String];
+    json.get("string_field").asText().equals("magic_string") shouldBe true
+    key.equals("id1") shouldBe true
+
+    //stop task
+    task.stop()
+  }
 
   "A Cassandra SourceTask should throw exception when timestamp column is not specified" in {
 
@@ -159,6 +191,11 @@ class TestCassandraSourceTaskTimestamp extends WordSpec
 
   private def getCassandraConfigWithUnwrap = {
     val myKcql = s"INSERT INTO sink_test SELECT string_field, timestamp_field FROM $tableName IGNORE timestamp_field PK timestamp_field WITHUNWRAP INCREMENTALMODE=timestamp"
+    getCassandraConfig(keyspace, tableName, myKcql)
+  }
+  
+  private def getCassandraJsonConfigWithKeyAndUnwrap = {
+    val myKcql = s"INSERT INTO sink_test SELECT id, string_field, timestamp_field FROM $tableName PK timestamp_field WITHFORMAT JSON WITHUNWRAP INCREMENTALMODE=TIMESTAMP WITHKEY(id)"
     getCassandraConfig(keyspace, tableName, myKcql)
   }
 
