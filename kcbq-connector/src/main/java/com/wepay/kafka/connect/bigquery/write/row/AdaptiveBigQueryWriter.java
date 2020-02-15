@@ -37,16 +37,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A {@link BigQueryWriter} capable of updating BigQuery table schemas.
+ * A {@link BigQueryWriter} capable of updating BigQuery table schemas and creating non-existed tables automatically.
  */
 public class AdaptiveBigQueryWriter extends BigQueryWriter {
   private static final Logger logger = LoggerFactory.getLogger(AdaptiveBigQueryWriter.class);
 
   // The maximum number of retries we will attempt to write rows after updating a BQ table schema.
-  private static final int AFTER_UPDATE_RETY_LIMIT = 5;
+  private static final int AFTER_UPDATE_RETRY_LIMIT = 5;
 
   private final BigQuery bigQuery;
   private final SchemaManager schemaManager;
+  private final boolean updateSchemas;
+  private final boolean autoCreateTables;
 
   /**
    * @param bigQuery Used to send write requests to BigQuery.
@@ -57,16 +59,26 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
   public AdaptiveBigQueryWriter(BigQuery bigQuery,
                                 SchemaManager schemaManager,
                                 int retry,
-                                long retryWait) {
+                                long retryWait,
+                                boolean updateSchemas,
+                                boolean autoCreateTables) {
     super(retry, retryWait);
     this.bigQuery = bigQuery;
     this.schemaManager = schemaManager;
+    this.updateSchemas = updateSchemas;
+    this.autoCreateTables = autoCreateTables;
   }
 
   private boolean isTableMissingSchema(BigQueryException exception) {
     // If a table is missing a schema, it will raise a BigQueryException that the input is invalid
     // For more information about BigQueryExceptions, see: https://cloud.google.com/bigquery/troubleshooting-errors
     return exception.getReason() != null && exception.getReason().equalsIgnoreCase("invalid");
+  }
+
+  private boolean isTableNotExisted(BigQueryException exception) {
+    // If a table does not exist, it will raise a BigQueryException that the input is notFound
+    // Referring to Google Cloud Error Codes Doc: https://cloud.google.com/bigquery/docs/error-messages?hl=en
+    return exception.getReason() != null && exception.getReason().equalsIgnoreCase("notFound");
   }
 
   /**
@@ -89,11 +101,13 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
       // Should only perform one schema update attempt; may have to continue insert attempts due to
       // BigQuery schema updates taking up to two minutes to take effect
       if (writeResponse.hasErrors()
-              && onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors())) {
+              && onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors()) && updateSchemas) {
         attemptSchemaUpdate(tableId, topic);
       }
     } catch (BigQueryException exception) {
-      if (isTableMissingSchema(exception)) {
+      if (isTableNotExisted(exception) && autoCreateTables) {
+        attemptTableCreate(tableId, topic);
+      } else if (isTableMissingSchema(exception) && updateSchemas) {
         attemptSchemaUpdate(tableId, topic);
       } else {
         throw exception;
@@ -117,10 +131,10 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
         return writeResponse.getInsertErrors();
       }
       attemptCount++;
-      if (attemptCount >= AFTER_UPDATE_RETY_LIMIT) {
+      if (attemptCount >= AFTER_UPDATE_RETRY_LIMIT) {
         throw new BigQueryConnectException(
             "Failed to write rows after BQ schema update within "
-                + AFTER_UPDATE_RETY_LIMIT + " attempts for: " + tableId.getBaseTableId());
+                + AFTER_UPDATE_RETRY_LIMIT + " attempts for: " + tableId.getBaseTableId());
       }
     }
     logger.debug("table insertion completed successfully");
@@ -133,6 +147,16 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     } catch (BigQueryException exception) {
       throw new BigQueryConnectException(
           "Failed to update table schema for: " + tableId.getBaseTableId(), exception);
+    }
+  }
+
+  private void attemptTableCreate(PartitionedTableId tableId, String topic) {
+    try {
+      schemaManager.createTable(tableId.getBaseTableId(), topic);
+      logger.info("Table {} does not exist, auto-created table for topic {}", tableId.getBaseTableName(), topic);
+    } catch (BigQueryException exception) {
+      throw new BigQueryConnectException(
+              "Failed to create table " + tableId.getBaseTableName(), exception);
     }
   }
 

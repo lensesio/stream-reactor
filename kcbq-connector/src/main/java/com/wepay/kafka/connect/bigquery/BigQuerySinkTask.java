@@ -142,8 +142,6 @@ public class BigQuerySinkTask extends SinkTask {
 
     TableId baseTableId = topicsToBaseTableIds.get(record.topic());
 
-    maybeCreateTable(record, baseTableId);
-
     PartitionedTableId.Builder builder = new PartitionedTableId.Builder(baseTableId);
     if(usePartitionDecorator) {
     	
@@ -159,20 +157,6 @@ public class BigQuerySinkTask extends SinkTask {
     }
 
     return builder.build();
-  }
-
-  /**
-   * Create the table which doesn't exist in BigQuery for a (record's) topic when autoCreateTables config is set to true.
-   * @param record Kafka Sink Record to be streamed into BigQuery.
-   * @param baseTableId BaseTableId in BigQuery.
-   */
-  private void maybeCreateTable(SinkRecord record, TableId baseTableId) {
-    BigQuery bigQuery = getBigQuery();
-    boolean autoCreateTables = config.getBoolean(config.TABLE_CREATE_CONFIG);
-    if (autoCreateTables && bigQuery.getTable(baseTableId) == null) {
-      getSchemaManager(bigQuery).createTable(baseTableId, record.topic());
-      logger.info("Table {} does not exist, auto-created table for topic {}", baseTableId, record.topic());
-    }
   }
 
   private RowToInsert getRecordRow(SinkRecord record) {
@@ -284,14 +268,17 @@ public class BigQuerySinkTask extends SinkTask {
 
   private BigQueryWriter getBigQueryWriter() {
     boolean updateSchemas = config.getBoolean(config.SCHEMA_UPDATE_CONFIG);
+    boolean autoCreateTables = config.getBoolean(config.TABLE_CREATE_CONFIG);
     int retry = config.getInt(config.BIGQUERY_RETRY_CONFIG);
     long retryWait = config.getLong(config.BIGQUERY_RETRY_WAIT_CONFIG);
     BigQuery bigQuery = getBigQuery();
-    if (updateSchemas) {
+    if (updateSchemas || autoCreateTables) {
       return new AdaptiveBigQueryWriter(bigQuery,
                                         getSchemaManager(bigQuery),
                                         retry,
-                                        retryWait);
+                                        retryWait,
+                                        updateSchemas,
+                                        autoCreateTables);
     } else {
       return new SimpleBigQueryWriter(bigQuery, retry, retryWait);
     }
