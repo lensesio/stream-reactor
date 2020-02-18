@@ -22,7 +22,7 @@ project.ext {
     ioConfluentVersion = '5.3.1'
     junitVersion = '4.12'
     kafkaVersion = '2.3.0'
-    mockitoVersion = '1.10.19'
+    mockitoVersion = '3.2.4'
     slf4jVersion = '1.6.1'
 }
 
@@ -215,10 +215,9 @@ project(':kcbq-connector') {
 
         testCompile (
                 "junit:junit:$junitVersion",
-                "org.mockito:mockito-core:$mockitoVersion"
+                "org.mockito:mockito-core:$mockitoVersion",
+                "org.mockito:mockito-inline:$mockitoVersion"
         )
-
-        testImplementation 'org.mockito:mockito-inline:2.13.0'
     }
 
     artifacts {
@@ -336,10 +335,9 @@ project('kcbq-confluent') {
 
         testCompile (
                 "junit:junit:$junitVersion",
-                "org.mockito:mockito-core:$mockitoVersion"
+                "org.mockito:mockito-core:$mockitoVersion",
+                "org.mockito:mockito-inline:$mockitoVersion"
         )
-
-        testImplementation 'org.mockito:mockito-inline:2.13.0'
     }
 
     artifacts {
