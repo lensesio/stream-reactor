@@ -338,6 +338,8 @@ project('kcbq-confluent') {
                 "junit:junit:$junitVersion",
                 "org.mockito:mockito-core:$mockitoVersion"
         )
+
+        testImplementation 'org.mockito:mockito-inline:2.13.0'
     }
 
     artifacts {
