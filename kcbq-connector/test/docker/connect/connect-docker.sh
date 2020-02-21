@@ -20,5 +20,5 @@ connect-standalone \
     /etc/kafka-connect-bigquery/standalone.properties \
     /etc/kafka-connect-bigquery/connector.properties &
 
-sleep 60
+sleep 180
 kill $!

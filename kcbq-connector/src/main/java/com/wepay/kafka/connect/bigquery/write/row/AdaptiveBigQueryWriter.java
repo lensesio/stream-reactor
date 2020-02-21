@@ -44,6 +44,8 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
 
   // The maximum number of retries we will attempt to write rows after updating a BQ table schema.
   private static final int AFTER_UPDATE_RETRY_LIMIT = 5;
+  // Wait for about 30s between each retry since both creating table and updating schema take up to 2 minutes to take effect.
+  private static final int RETRY_WAIT_TIME = 30000;
 
   private final BigQuery bigQuery;
   private final SchemaManager schemaManager;
@@ -105,7 +107,8 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
         attemptSchemaUpdate(tableId, topic);
       }
     } catch (BigQueryException exception) {
-      if (isTableNotExisted(exception) && autoCreateTables) {
+      // Should only perform one table creation attempt.
+      if (isTableNotExisted(exception) && autoCreateTables && bigQuery.getTable(tableId.getBaseTableId()) == null) {
         attemptTableCreate(tableId, topic);
       } else if (isTableMissingSchema(exception) && updateSchemas) {
         attemptSchemaUpdate(tableId, topic);
@@ -135,6 +138,11 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
         throw new BigQueryConnectException(
             "Failed to write rows after BQ schema update within "
                 + AFTER_UPDATE_RETRY_LIMIT + " attempts for: " + tableId.getBaseTableId());
+      }
+      try {
+        Thread.sleep(RETRY_WAIT_TIME);
+      } catch (InterruptedException e) {
+        // no-op, we want to keep retrying the insert
       }
     }
     logger.debug("table insertion completed successfully");
