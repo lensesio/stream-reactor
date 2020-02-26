@@ -81,7 +81,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
   private boolean isTableNotExistedException(BigQueryException exception) {
     // If a table does not exist, it will raise a BigQueryException that the input is notFound
     // Referring to Google Cloud Error Codes Doc: https://cloud.google.com/bigquery/docs/error-messages?hl=en
-    return exception.getReason() != null && exception.getReason().equalsIgnoreCase("notFound");
+    return exception.getCode() == 404;
   }
 
   /**
