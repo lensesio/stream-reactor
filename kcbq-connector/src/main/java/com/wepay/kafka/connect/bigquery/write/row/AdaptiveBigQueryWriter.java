@@ -78,7 +78,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     return exception.getReason() != null && exception.getReason().equalsIgnoreCase("invalid");
   }
 
-  private boolean isTableNotExisted(BigQueryException exception) {
+  private boolean isTableNotExistedException(BigQueryException exception) {
     // If a table does not exist, it will raise a BigQueryException that the input is notFound
     // Referring to Google Cloud Error Codes Doc: https://cloud.google.com/bigquery/docs/error-messages?hl=en
     return exception.getReason() != null && exception.getReason().equalsIgnoreCase("notFound");
@@ -109,7 +109,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
       }
     } catch (BigQueryException exception) {
       // Should only perform one table creation attempt.
-      if (isTableNotExisted(exception) && autoCreateTables && bigQuery.getTable(tableId.getBaseTableId()) == null) {
+      if (isTableNotExistedException(exception) && autoCreateTables && bigQuery.getTable(tableId.getBaseTableId()) == null) {
         attemptTableCreate(tableId.getBaseTableId(), topic);
       } else if (isTableMissingSchema(exception) && updateSchemas) {
         attemptSchemaUpdate(tableId, topic);
@@ -118,7 +118,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
       }
     }
 
-    // Schema update might be delayed, so multiple insertion attempts may be necessary
+    // Schema update or table creation might be delayed, so multiple insertion attempts may be necessary
     int attemptCount = 0;
     while (writeResponse == null || writeResponse.hasErrors()) {
       logger.trace("insertion failed");
