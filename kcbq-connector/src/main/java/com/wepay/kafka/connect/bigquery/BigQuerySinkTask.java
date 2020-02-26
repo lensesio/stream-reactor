@@ -269,17 +269,17 @@ public class BigQuerySinkTask extends SinkTask {
   }
 
   private BigQueryWriter getBigQueryWriter() {
-    boolean updateSchemas = config.getBoolean(config.SCHEMA_UPDATE_CONFIG);
+    boolean autoUpdateSchemas = config.getBoolean(config.SCHEMA_UPDATE_CONFIG);
     boolean autoCreateTables = config.getBoolean(config.TABLE_CREATE_CONFIG);
     int retry = config.getInt(config.BIGQUERY_RETRY_CONFIG);
     long retryWait = config.getLong(config.BIGQUERY_RETRY_WAIT_CONFIG);
     BigQuery bigQuery = getBigQuery();
-    if (updateSchemas || autoCreateTables) {
+    if (autoUpdateSchemas || autoCreateTables) {
       return new AdaptiveBigQueryWriter(bigQuery,
                                         getSchemaManager(bigQuery),
                                         retry,
                                         retryWait,
-                                        updateSchemas,
+                                        autoUpdateSchemas,
                                         autoCreateTables);
     } else {
       return new SimpleBigQueryWriter(bigQuery, retry, retryWait);

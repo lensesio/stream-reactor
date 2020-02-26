@@ -50,7 +50,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
 
   private final BigQuery bigQuery;
   private final SchemaManager schemaManager;
-  private final boolean updateSchemas;
+  private final boolean autoUpdateSchemas;
   private final boolean autoCreateTables;
 
   /**
@@ -63,12 +63,12 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
                                 SchemaManager schemaManager,
                                 int retry,
                                 long retryWait,
-                                boolean updateSchemas,
+                                boolean autoUpdateSchemas,
                                 boolean autoCreateTables) {
     super(retry, retryWait);
     this.bigQuery = bigQuery;
     this.schemaManager = schemaManager;
-    this.updateSchemas = updateSchemas;
+    this.autoUpdateSchemas = autoUpdateSchemas;
     this.autoCreateTables = autoCreateTables;
   }
 
@@ -104,14 +104,14 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
       // Should only perform one schema update attempt; may have to continue insert attempts due to
       // BigQuery schema updates taking up to two minutes to take effect
       if (writeResponse.hasErrors()
-              && onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors()) && updateSchemas) {
+              && onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors()) && autoUpdateSchemas) {
         attemptSchemaUpdate(tableId, topic);
       }
     } catch (BigQueryException exception) {
       // Should only perform one table creation attempt.
       if (isTableNotExistedException(exception) && autoCreateTables && bigQuery.getTable(tableId.getBaseTableId()) == null) {
         attemptTableCreate(tableId.getBaseTableId(), topic);
-      } else if (isTableMissingSchema(exception) && updateSchemas) {
+      } else if (isTableMissingSchema(exception) && autoUpdateSchemas) {
         attemptSchemaUpdate(tableId, topic);
       } else {
         throw exception;
