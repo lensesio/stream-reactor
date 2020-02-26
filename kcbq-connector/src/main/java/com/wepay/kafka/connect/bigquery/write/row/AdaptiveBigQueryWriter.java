@@ -19,6 +19,7 @@ package com.wepay.kafka.connect.bigquery.write.row;
 
 
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest;
@@ -109,7 +110,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     } catch (BigQueryException exception) {
       // Should only perform one table creation attempt.
       if (isTableNotExisted(exception) && autoCreateTables && bigQuery.getTable(tableId.getBaseTableId()) == null) {
-        attemptTableCreate(tableId, topic);
+        attemptTableCreate(tableId.getBaseTableId(), topic);
       } else if (isTableMissingSchema(exception) && updateSchemas) {
         attemptSchemaUpdate(tableId, topic);
       } else {
@@ -158,13 +159,13 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     }
   }
 
-  private void attemptTableCreate(PartitionedTableId tableId, String topic) {
+  private void attemptTableCreate(TableId tableId, String topic) {
     try {
-      schemaManager.createTable(tableId.getBaseTableId(), topic);
-      logger.info("Table {} does not exist, auto-created table for topic {}", tableId.getBaseTableName(), topic);
+      schemaManager.createTable(tableId, topic);
+      logger.info("Table {} does not exist, auto-created table for topic {}", tableId, topic);
     } catch (BigQueryException exception) {
       throw new BigQueryConnectException(
-              "Failed to create table " + tableId.getBaseTableName(), exception);
+              "Failed to create table " + tableId, exception);
     }
   }
 

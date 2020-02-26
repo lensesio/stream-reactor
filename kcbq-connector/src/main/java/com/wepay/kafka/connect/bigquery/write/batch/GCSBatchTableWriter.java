@@ -45,6 +45,7 @@ public class GCSBatchTableWriter implements Runnable {
 
   private final String bucketName;
   private final String blobName;
+  private final String topic;
 
   private final List<RowToInsert> rows;
   private final GCSToBQWriter writer;
@@ -61,10 +62,12 @@ public class GCSBatchTableWriter implements Runnable {
                               GCSToBQWriter writer,
                               TableId tableId,
                               String bucketName,
-                              String baseBlobName) {
+                              String baseBlobName,
+                              String topic) {
     this.tableId = tableId;
     this.bucketName = bucketName;
     this.blobName = baseBlobName;
+    this.topic = topic;
 
     this.rows = rows;
     this.writer = writer;
@@ -73,7 +76,7 @@ public class GCSBatchTableWriter implements Runnable {
   @Override
   public void run() {
     try {
-      writer.writeRows(rows, tableId, bucketName, blobName);
+      writer.writeRows(rows, tableId, bucketName, blobName, topic);
     } catch (ConnectException ex) {
       throw new ConnectException("Failed to write rows to GCS", ex);
     } catch (InterruptedException ex) {
@@ -87,6 +90,7 @@ public class GCSBatchTableWriter implements Runnable {
   public static class Builder implements TableWriterBuilder {
     private final String bucketName;
     private String blobName;
+    private String topic;
 
     private final TableId tableId;
 
@@ -107,10 +111,12 @@ public class GCSBatchTableWriter implements Runnable {
                    TableId tableId,
                    String gcsBucketName,
                    String gcsBlobName,
+                   String topic,
                    RecordConverter<Map<String, Object>> recordConverter) {
 
       this.bucketName = gcsBucketName;
       this.blobName = gcsBlobName;
+      this.topic = topic;
 
       this.tableId = tableId;
 
@@ -133,7 +139,7 @@ public class GCSBatchTableWriter implements Runnable {
     }
 
     public GCSBatchTableWriter build() {
-      return new GCSBatchTableWriter(rows, writer, tableId, bucketName, blobName);
+      return new GCSBatchTableWriter(rows, writer, tableId, bucketName, blobName, topic);
     }
   }
 }
