@@ -19,6 +19,7 @@ package com.wepay.kafka.connect.bigquery.write.row;
 
 
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest.RowToInsert;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.storage.Blob;
@@ -28,6 +29,8 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.gson.Gson;
 
+import com.wepay.kafka.connect.bigquery.SchemaManager;
+import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.GCSConnectException;
 
 import org.apache.kafka.connect.errors.ConnectException;
@@ -53,12 +56,16 @@ public class GCSToBQWriter {
 
   private final BigQuery bigQuery;
 
+  private final SchemaManager schemaManager;
+
   private static final int WAIT_MAX_JITTER = 1000;
 
   private static final Random random = new Random();
 
   private int retries;
   private long retryWaitMs;
+  private boolean autoCreateTables;
+
 
   public static final String GCS_METADATA_TABLE_KEY = "sinkTable";
 
@@ -71,13 +78,17 @@ public class GCSToBQWriter {
    */
   public GCSToBQWriter(Storage storage,
                        BigQuery bigQuery,
+                       SchemaManager schemaManager,
                        int retries,
-                       long retryWaitMs) {
+                       long retryWaitMs,
+                       boolean autoCreateTables) {
     this.storage = storage;
     this.bigQuery = bigQuery;
+    this.schemaManager = schemaManager;
 
     this.retries = retries;
     this.retryWaitMs = retryWaitMs;
+    this.autoCreateTables = autoCreateTables;
   }
 
   /**
@@ -92,7 +103,8 @@ public class GCSToBQWriter {
   public void writeRows(List<RowToInsert> rows,
                         TableId tableId,
                         String bucketName,
-                        String blobName) throws InterruptedException {
+                        String blobName,
+                        String topic) throws InterruptedException {
 
     // Get Source URI
     BlobId blobId = BlobId.of(bucketName, blobName);
@@ -103,9 +115,8 @@ public class GCSToBQWriter {
 
     // Check if the table specified exists
     // This error shouldn't be thrown. All tables should be created by the connector at startup
-    if (bigQuery.getTable(tableId) == null) {
-      throw new ConnectException(
-          String.format("Table with TableId %s does not exist.", tableId.getTable()));
+    if (autoCreateTables && bigQuery.getTable(tableId) == null) {
+      attemptTableCreate(tableId, topic);
     }
 
     int attemptCount = 0;
@@ -183,5 +194,15 @@ public class GCSToBQWriter {
    */
   private void waitRandomTime() throws InterruptedException {
     Thread.sleep(retryWaitMs + random.nextInt(WAIT_MAX_JITTER));
+  }
+
+  private void attemptTableCreate(TableId tableId, String topic) {
+    try {
+      schemaManager.createTable(tableId, topic);
+      logger.info("Table {} does not exist, auto-created table for topic {}", tableId, topic);
+    } catch (BigQueryException exception) {
+      throw new BigQueryConnectException(
+              "Failed to create table " + tableId, exception);
+    }
   }
 }

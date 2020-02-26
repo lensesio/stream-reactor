@@ -19,6 +19,7 @@ package com.wepay.kafka.connect.bigquery.write.row;
 
 
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest;
@@ -37,16 +38,20 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A {@link BigQueryWriter} capable of updating BigQuery table schemas.
+ * A {@link BigQueryWriter} capable of updating BigQuery table schemas and creating non-existed tables automatically.
  */
 public class AdaptiveBigQueryWriter extends BigQueryWriter {
   private static final Logger logger = LoggerFactory.getLogger(AdaptiveBigQueryWriter.class);
 
-  // The maximum number of retries we will attempt to write rows after updating a BQ table schema.
-  private static final int AFTER_UPDATE_RETY_LIMIT = 5;
+  // The maximum number of retries we will attempt to write rows after creating a table or updating a BQ table schema.
+  private static final int RETRY_LIMIT = 5;
+  // Wait for about 30s between each retry since both creating table and updating schema take up to 2~3 minutes to take effect.
+  private static final int RETRY_WAIT_TIME = 30000;
 
   private final BigQuery bigQuery;
   private final SchemaManager schemaManager;
+  private final boolean autoUpdateSchemas;
+  private final boolean autoCreateTables;
 
   /**
    * @param bigQuery Used to send write requests to BigQuery.
@@ -57,16 +62,26 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
   public AdaptiveBigQueryWriter(BigQuery bigQuery,
                                 SchemaManager schemaManager,
                                 int retry,
-                                long retryWait) {
+                                long retryWait,
+                                boolean autoUpdateSchemas,
+                                boolean autoCreateTables) {
     super(retry, retryWait);
     this.bigQuery = bigQuery;
     this.schemaManager = schemaManager;
+    this.autoUpdateSchemas = autoUpdateSchemas;
+    this.autoCreateTables = autoCreateTables;
   }
 
   private boolean isTableMissingSchema(BigQueryException exception) {
     // If a table is missing a schema, it will raise a BigQueryException that the input is invalid
     // For more information about BigQueryExceptions, see: https://cloud.google.com/bigquery/troubleshooting-errors
     return exception.getReason() != null && exception.getReason().equalsIgnoreCase("invalid");
+  }
+
+  private boolean isTableNotExistedException(BigQueryException exception) {
+    // If a table does not exist, it will raise a BigQueryException that the input is notFound
+    // Referring to Google Cloud Error Codes Doc: https://cloud.google.com/bigquery/docs/error-messages?hl=en
+    return exception.getCode() == 404;
   }
 
   /**
@@ -86,21 +101,24 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     try {
       request = createInsertAllRequest(tableId, rows);
       writeResponse = bigQuery.insertAll(request);
-      // Should only perform one schema update attempt; may have to continue insert attempts due to
-      // BigQuery schema updates taking up to two minutes to take effect
+      // Should only perform one schema update attempt.
       if (writeResponse.hasErrors()
-              && onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors())) {
+              && onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors()) && autoUpdateSchemas) {
         attemptSchemaUpdate(tableId, topic);
       }
     } catch (BigQueryException exception) {
-      if (isTableMissingSchema(exception)) {
+      // Should only perform one table creation attempt.
+      if (isTableNotExistedException(exception) && autoCreateTables && bigQuery.getTable(tableId.getBaseTableId()) == null) {
+        attemptTableCreate(tableId.getBaseTableId(), topic);
+      } else if (isTableMissingSchema(exception) && autoUpdateSchemas) {
         attemptSchemaUpdate(tableId, topic);
       } else {
         throw exception;
       }
     }
 
-    // Schema update might be delayed, so multiple insertion attempts may be necessary
+    // Creating tables or updating table schemas in BigQuery takes up to 2~3 minutes to take affect,
+    // so multiple insertion attempts may be necessary.
     int attemptCount = 0;
     while (writeResponse == null || writeResponse.hasErrors()) {
       logger.trace("insertion failed");
@@ -117,10 +135,15 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
         return writeResponse.getInsertErrors();
       }
       attemptCount++;
-      if (attemptCount >= AFTER_UPDATE_RETY_LIMIT) {
+      if (attemptCount >= RETRY_LIMIT) {
         throw new BigQueryConnectException(
             "Failed to write rows after BQ schema update within "
-                + AFTER_UPDATE_RETY_LIMIT + " attempts for: " + tableId.getBaseTableId());
+                + RETRY_LIMIT + " attempts for: " + tableId.getBaseTableId());
+      }
+      try {
+        Thread.sleep(RETRY_WAIT_TIME);
+      } catch (InterruptedException e) {
+        // no-op, we want to keep retrying the insert
       }
     }
     logger.debug("table insertion completed successfully");
@@ -133,6 +156,16 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     } catch (BigQueryException exception) {
       throw new BigQueryConnectException(
           "Failed to update table schema for: " + tableId.getBaseTableId(), exception);
+    }
+  }
+
+  private void attemptTableCreate(TableId tableId, String topic) {
+    try {
+      schemaManager.createTable(tableId, topic);
+      logger.info("Table {} does not exist, auto-created table for topic {}", tableId, topic);
+    } catch (BigQueryException exception) {
+      throw new BigQueryConnectException(
+              "Failed to create table " + tableId, exception);
     }
   }
 

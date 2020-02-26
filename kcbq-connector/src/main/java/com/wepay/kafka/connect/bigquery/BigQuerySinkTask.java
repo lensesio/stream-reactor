@@ -142,8 +142,6 @@ public class BigQuerySinkTask extends SinkTask {
 
     TableId baseTableId = topicsToBaseTableIds.get(record.topic());
 
-    maybeCreateTable(record, baseTableId);
-
     PartitionedTableId.Builder builder = new PartitionedTableId.Builder(baseTableId);
     if(usePartitionDecorator) {
     	
@@ -159,20 +157,6 @@ public class BigQuerySinkTask extends SinkTask {
     }
 
     return builder.build();
-  }
-
-  /**
-   * Create the table which doesn't exist in BigQuery for a (record's) topic when autoCreateTables config is set to true.
-   * @param record Kafka Sink Record to be streamed into BigQuery.
-   * @param baseTableId BaseTableId in BigQuery.
-   */
-  private void maybeCreateTable(SinkRecord record, TableId baseTableId) {
-    BigQuery bigQuery = getBigQuery();
-    boolean autoCreateTables = config.getBoolean(config.TABLE_CREATE_CONFIG);
-    if (autoCreateTables && bigQuery.getTable(baseTableId) == null) {
-      getSchemaManager(bigQuery).createTable(baseTableId, record.topic());
-      logger.info("Table {} does not exist, auto-created table for topic {}", baseTableId, record.topic());
-    }
   }
 
   private RowToInsert getRecordRow(SinkRecord record) {
@@ -217,7 +201,8 @@ public class BigQuerySinkTask extends SinkTask {
         if (!tableWriterBuilders.containsKey(table)) {
           TableWriterBuilder tableWriterBuilder;
           if (config.getList(config.ENABLE_BATCH_CONFIG).contains(record.topic())) {
-            String gcsBlobName = record.topic() + "_" + uuid + "_" + Instant.now().toEpochMilli();
+            String topic = record.topic();
+            String gcsBlobName = topic + "_" + uuid + "_" + Instant.now().toEpochMilli();
             String gcsFolderName = config.getString(config.GCS_FOLDER_NAME_CONFIG);
             if (gcsFolderName != null && !"".equals(gcsFolderName)) {
               gcsBlobName = gcsFolderName + "/" + gcsBlobName;
@@ -227,6 +212,7 @@ public class BigQuerySinkTask extends SinkTask {
                 table.getBaseTableId(),
                 config.getString(config.GCS_BUCKET_NAME_CONFIG),
                 gcsBlobName,
+                topic,
                 recordConverter);
           } else {
             tableWriterBuilder =
@@ -283,15 +269,18 @@ public class BigQuerySinkTask extends SinkTask {
   }
 
   private BigQueryWriter getBigQueryWriter() {
-    boolean updateSchemas = config.getBoolean(config.SCHEMA_UPDATE_CONFIG);
+    boolean autoUpdateSchemas = config.getBoolean(config.SCHEMA_UPDATE_CONFIG);
+    boolean autoCreateTables = config.getBoolean(config.TABLE_CREATE_CONFIG);
     int retry = config.getInt(config.BIGQUERY_RETRY_CONFIG);
     long retryWait = config.getLong(config.BIGQUERY_RETRY_WAIT_CONFIG);
     BigQuery bigQuery = getBigQuery();
-    if (updateSchemas) {
+    if (autoUpdateSchemas || autoCreateTables) {
       return new AdaptiveBigQueryWriter(bigQuery,
                                         getSchemaManager(bigQuery),
                                         retry,
-                                        retryWait);
+                                        retryWait,
+                                        autoUpdateSchemas,
+                                        autoCreateTables);
     } else {
       return new SimpleBigQueryWriter(bigQuery, retry, retryWait);
     }
@@ -312,10 +301,13 @@ public class BigQuerySinkTask extends SinkTask {
     BigQuery bigQuery = getBigQuery();
     int retry = config.getInt(config.BIGQUERY_RETRY_CONFIG);
     long retryWait = config.getLong(config.BIGQUERY_RETRY_WAIT_CONFIG);
+    boolean autoCreateTables = config.getBoolean(config.TABLE_CREATE_CONFIG);
     return new GCSToBQWriter(getGcs(),
                          bigQuery,
+                         getSchemaManager(bigQuery),
                          retry,
-                         retryWait);
+                         retryWait,
+                         autoCreateTables);
   }
 
   @Override
