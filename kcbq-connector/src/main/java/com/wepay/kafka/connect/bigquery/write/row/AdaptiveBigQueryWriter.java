@@ -43,9 +43,9 @@ import java.util.Map;
 public class AdaptiveBigQueryWriter extends BigQueryWriter {
   private static final Logger logger = LoggerFactory.getLogger(AdaptiveBigQueryWriter.class);
 
-  // The maximum number of retries we will attempt to write rows after updating a BQ table schema.
-  private static final int AFTER_UPDATE_RETRY_LIMIT = 5;
-  // Wait for about 30s between each retry since both creating table and updating schema take up to 2 minutes to take effect.
+  // The maximum number of retries we will attempt to write rows after creating a table or updating a BQ table schema.
+  private static final int RETRY_LIMIT = 5;
+  // Wait for about 30s between each retry since both creating table and updating schema take up to 2~3 minutes to take effect.
   private static final int RETRY_WAIT_TIME = 30000;
 
   private final BigQuery bigQuery;
@@ -101,8 +101,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     try {
       request = createInsertAllRequest(tableId, rows);
       writeResponse = bigQuery.insertAll(request);
-      // Should only perform one schema update attempt; may have to continue insert attempts due to
-      // BigQuery schema updates taking up to two minutes to take effect
+      // Should only perform one schema update attempt.
       if (writeResponse.hasErrors()
               && onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors()) && autoUpdateSchemas) {
         attemptSchemaUpdate(tableId, topic);
@@ -118,7 +117,8 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
       }
     }
 
-    // Schema update or table creation might be delayed, so multiple insertion attempts may be necessary
+    // Creating tables or updating table schemas in BigQuery takes up to 2~3 minutes to take affect,
+    // so multiple insertion attempts may be necessary.
     int attemptCount = 0;
     while (writeResponse == null || writeResponse.hasErrors()) {
       logger.trace("insertion failed");
@@ -135,10 +135,10 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
         return writeResponse.getInsertErrors();
       }
       attemptCount++;
-      if (attemptCount >= AFTER_UPDATE_RETRY_LIMIT) {
+      if (attemptCount >= RETRY_LIMIT) {
         throw new BigQueryConnectException(
             "Failed to write rows after BQ schema update within "
-                + AFTER_UPDATE_RETRY_LIMIT + " attempts for: " + tableId.getBaseTableId());
+                + RETRY_LIMIT + " attempts for: " + tableId.getBaseTableId());
       }
       try {
         Thread.sleep(RETRY_WAIT_TIME);

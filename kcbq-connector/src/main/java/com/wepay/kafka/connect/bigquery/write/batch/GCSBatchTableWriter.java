@@ -32,7 +32,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Batch Table Writer that uploads records to GCS as a blob
@@ -57,6 +56,7 @@ public class GCSBatchTableWriter implements Runnable {
    * @param bucketName the name of the GCS bucket where the blob should be uploaded
    * @param baseBlobName the base name of the blob in which the serialized rows should be uploaded.
    *                     The full name is [baseBlobName]_[writerId]_
+   * @param topic Kafka record topic
    */
   private GCSBatchTableWriter(List<RowToInsert> rows,
                               GCSToBQWriter writer,
@@ -105,6 +105,7 @@ public class GCSBatchTableWriter implements Runnable {
      * @param tableId The bigquery table to be written to.
      * @param gcsBucketName The GCS bucket to write to.
      * @param gcsBlobName The name of the GCS blob to write.
+     * @param topic Kafka record topic
      * @param recordConverter the {@link RecordConverter} to use.
      */
     public Builder(GCSToBQWriter writer,
