@@ -20,5 +20,7 @@ connect-standalone \
     /etc/kafka-connect-bigquery/standalone.properties \
     /etc/kafka-connect-bigquery/connector.properties &
 
+# Time (seconds) to wait for the process for inserting rows into BigQuery to be done.
+# This time can be adjusted if necessary.
 sleep 180
 kill $!
