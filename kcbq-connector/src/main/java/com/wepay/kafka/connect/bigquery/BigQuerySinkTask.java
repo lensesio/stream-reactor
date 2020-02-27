@@ -265,7 +265,9 @@ public class BigQuerySinkTask extends SinkTask {
         config.getSchemaConverter();
     Optional<String> kafkaKeyFieldName = config.getKafkaKeyFieldName();
     Optional<String> kafkaDataFieldName = config.getKafkaDataFieldName();
-    return new SchemaManager(schemaRetriever, schemaConverter, bigQuery, kafkaKeyFieldName, kafkaDataFieldName);
+    Optional<String> timestampPartitionFieldName = config.getTimestampPartitionFieldName();
+    return new SchemaManager(schemaRetriever, schemaConverter, bigQuery, kafkaKeyFieldName,
+                             kafkaDataFieldName, timestampPartitionFieldName);
   }
 
   private BigQueryWriter getBigQueryWriter() {

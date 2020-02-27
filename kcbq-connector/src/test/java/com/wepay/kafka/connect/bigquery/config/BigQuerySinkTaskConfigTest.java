@@ -18,6 +18,8 @@ package com.wepay.kafka.connect.bigquery.config;
  */
 
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.wepay.kafka.connect.bigquery.SinkTaskPropertiesFactory;
@@ -60,6 +62,39 @@ public class BigQuerySinkTaskConfigTest {
     badProperties.put(BigQuerySinkTaskConfig.MAX_WRITE_CONFIG, "0");
     new BigQuerySinkTaskConfig(badProperties);
     */
+  }
+
+  /**
+   * Test the default for the field name is not present.
+   */
+  @Test
+  public void testEmptyTimestampPartitionFieldName() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    BigQuerySinkTaskConfig testConfig = new BigQuerySinkTaskConfig(configProperties);
+    assertFalse(testConfig.getTimestampPartitionFieldName().isPresent());
+  }
+
+  /**
+   * Test if the field name being non-empty and the decorator default (true) errors correctly.
+   */
+  @Test (expected = ConfigException.class)
+  public void testTimestampPartitionFieldNameError() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkTaskConfig.BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG, "name");
+    new BigQuerySinkTaskConfig(configProperties);
+  }
+
+  /**
+   * Test the field name being non-empty and the decorator set to false works correctly.
+   */
+  @Test
+  public void testTimestampPartitionFieldName() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+    configProperties.put(BigQuerySinkTaskConfig.BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG, "name");
+    configProperties.put(BigQuerySinkTaskConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "false");
+    BigQuerySinkTaskConfig testConfig = new BigQuerySinkTaskConfig(configProperties);
+    assertTrue(testConfig.getTimestampPartitionFieldName().isPresent());
+    assertFalse(testConfig.getBoolean(BigQuerySinkTaskConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG));
   }
 
   @Test(expected = ConfigException.class)

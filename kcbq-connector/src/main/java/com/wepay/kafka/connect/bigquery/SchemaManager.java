@@ -8,6 +8,7 @@ import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.TimePartitioning.Type;
 import com.wepay.kafka.connect.bigquery.api.KafkaSchemaRecordType;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.convert.KafkaDataBuilder;
@@ -32,6 +33,7 @@ public class SchemaManager {
   private final BigQuery bigQuery;
   private final Optional<String> kafkaKeyFieldName;
   private final Optional<String> kafkaDataFieldName;
+  private final Optional<String> timestampPartitionFieldName;
 
   /**
    * @param schemaRetriever Used to determine the Kafka Connect Schema that should be used for a
@@ -48,12 +50,14 @@ public class SchemaManager {
       SchemaConverter<com.google.cloud.bigquery.Schema> schemaConverter,
       BigQuery bigQuery,
       Optional<String> kafkaKeyFieldName,
-      Optional<String> kafkaDataFieldName) {
+      Optional<String> kafkaDataFieldName,
+      Optional<String> timestampPartitionFieldName) {
     this.schemaRetriever = schemaRetriever;
     this.schemaConverter = schemaConverter;
     this.bigQuery = bigQuery;
     this.kafkaKeyFieldName = kafkaKeyFieldName;
     this.kafkaDataFieldName = kafkaDataFieldName;
+    this.timestampPartitionFieldName = timestampPartitionFieldName;
   }
 
   /**
@@ -84,9 +88,15 @@ public class SchemaManager {
   // package private for testing.
   TableInfo constructTableInfo(TableId table, Schema kafkaKeySchema, Schema kafkaValueSchema) {
     com.google.cloud.bigquery.Schema bigQuerySchema = getBigQuerySchema(kafkaKeySchema, kafkaValueSchema);
+
+    TimePartitioning timePartitioning = TimePartitioning.of(Type.DAY);
+    if (timestampPartitionFieldName.isPresent()){
+      timePartitioning = timePartitioning.toBuilder().setField(timestampPartitionFieldName.get()).build();
+    }
+
     StandardTableDefinition tableDefinition = StandardTableDefinition.newBuilder()
         .setSchema(bigQuerySchema)
-        .setTimePartitioning(TimePartitioning.of(TimePartitioning.Type.DAY))
+        .setTimePartitioning(timePartitioning)
         .build();
     TableInfo.Builder tableInfoBuilder =
         TableInfo.newBuilder(table, tableDefinition);

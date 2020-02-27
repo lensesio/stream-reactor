@@ -96,17 +96,6 @@ public class BigQuerySinkConnector extends SinkConnector {
     return new BigQueryHelper().setKeySource(keySource).connect(projectName, key);
   }
 
-  private SchemaManager getSchemaManager(BigQuery bigQuery) {
-    if (testSchemaManager != null) {
-      return testSchemaManager;
-    }
-    SchemaRetriever schemaRetriever = config.getSchemaRetriever();
-    SchemaConverter<com.google.cloud.bigquery.Schema> schemaConverter = config.getSchemaConverter();
-    Optional<String> kafkaKeyFieldName = config.getKafkaKeyFieldName();
-    Optional<String> kafkaDataFieldName = config.getKafkaDataFieldName();
-    return new SchemaManager(schemaRetriever, schemaConverter, bigQuery, kafkaKeyFieldName, kafkaDataFieldName);
-  }
-
   private void ensureExistingTables() {
     BigQuery bigQuery = getBigQuery();
     Map<String, TableId> topicsToTableIds = TopicToTableResolver.getTopicsToTables(config);

@@ -18,6 +18,7 @@ package com.wepay.kafka.connect.bigquery.config;
  */
 
 
+import java.util.Optional;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 
@@ -107,6 +108,16 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
       + "Default is true. Setting this to true appends partition decorator to table name (e.g. table$yyyyMMdd depending on the configuration set for bigQueryPartitionDecorator). "
       + "Setting this to false bypasses the logic to append the partition decorator and uses raw table name for inserts.";
 
+  public static final String BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG = "timestampPartitionFieldName";
+  private static final ConfigDef.Type BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_TYPE = ConfigDef.Type.STRING;
+  private static final String BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_DEFAULT = null;
+  private static final ConfigDef.Importance BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_IMPORTANCE =
+      ConfigDef.Importance.LOW;
+  private static final String BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_DOC =
+      "The name of the field in the value that contains the timestamp to partition by in BigQuery"
+          + " and enable timestamp partitioning for each table. Leave this configuration blank,"
+          + " to enable ingestion time partitioning for each table.";
+
   static {
     config = BigQuerySinkConfig.getConfig()
         .define(
@@ -155,6 +166,12 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
             BIGQUERY_PARTITION_DECORATOR_DEFAULT,
             BIGQUERY_PARTITION_DECORATOR_IMPORTANCE,
             BIGQUERY_PARTITION_DECORATOR_DOC
+        ).define(
+            BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG,
+            BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_TYPE,
+            BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_DEFAULT,
+            BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_IMPORTANCE,
+            BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_DOC
         );
   }
 
@@ -175,6 +192,26 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
     }
   }
 
+  /**
+   * Returns the field name to use for timestamp partitioning.
+   * @return String that represents the field name.
+   */
+  public Optional<String> getTimestampPartitionFieldName() {
+    return Optional.ofNullable(getString(BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG));
+  }
+
+  /**
+   * Check the validity of table partitioning configs.
+   */
+  private void checkPartitionCofigs() {
+    if (getTimestampPartitionFieldName().isPresent() && getBoolean(BIGQUERY_PARTITION_DECORATOR_CONFIG)){
+      throw new ConfigException(
+          "Only one partitioning configuration mode may be specified for the connector. "
+              + "Use either bigQueryPartitionDecorator OR timestampPartitionFieldName."
+      );
+    }
+  }
+
   public static ConfigDef getConfig() {
     return config;
   }
@@ -185,5 +222,6 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
   public BigQuerySinkTaskConfig(Map<String, String> properties) {
     super(config, properties);
     checkAutoUpdateSchemas();
+    checkPartitionCofigs();
   }
 }
