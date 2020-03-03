@@ -304,9 +304,12 @@ public class BigQuerySinkTask extends SinkTask {
     int retry = config.getInt(config.BIGQUERY_RETRY_CONFIG);
     long retryWait = config.getLong(config.BIGQUERY_RETRY_WAIT_CONFIG);
     boolean autoCreateTables = config.getBoolean(config.TABLE_CREATE_CONFIG);
+    // schemaManager shall only be needed for creating table hence do not fetch instance if not
+    // needed.
+    SchemaManager schemaManager = autoCreateTables ? getSchemaManager(bigQuery) : null;
     return new GCSToBQWriter(getGcs(),
                          bigQuery,
-                         getSchemaManager(bigQuery),
+                         schemaManager,
                          retry,
                          retryWait,
                          autoCreateTables);
