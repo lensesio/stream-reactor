@@ -122,6 +122,7 @@ object SinkRecordConverter extends StrictLogging {
               case Schema.Type.BYTES =>
                 if (schema != null && Decimal.LOGICAL_NAME == schema.name) {
                   value match {
+                    case jbd: java.math.BigDecimal => jbd
                     case bd: BigDecimal => bd.bigDecimal
                     case bb: ByteBuffer => Decimal.toLogical(schema, bb.array())
                     case _ => Decimal.toLogical(schema, value.asInstanceOf[Array[Byte]])
