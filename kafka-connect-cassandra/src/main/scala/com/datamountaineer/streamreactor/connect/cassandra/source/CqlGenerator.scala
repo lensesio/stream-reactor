@@ -84,15 +84,23 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
 
   def getDefaultOffsetValue(offset: Option[String]): Option[String] = {
     incrementMode match {
-      case TimestampType.TIMESTAMP | TimestampType.TIMEUUID | TimestampType.NONE => Some(offset.getOrElse(defaultTimestamp))
+      case TimestampType.TIMESTAMP | TimestampType.SOLRTIMESTAMP |
+           TimestampType.TIMEUUID | TimestampType.NONE => Some(offset.getOrElse(defaultTimestamp))
       case TimestampType.TOKEN => offset
     }
   }
 
   def isTokenBased(): Boolean = {
     incrementMode match {
-      case TimestampType.TIMESTAMP | TimestampType.TIMEUUID  | TimestampType.NONE => false
+      case TimestampType.TIMESTAMP | TimestampType.SOLRTIMESTAMP | TimestampType.TIMEUUID | TimestampType.NONE => false
       case TimestampType.TOKEN => true
+    }
+  }
+
+  def isSolrBased(): Boolean = {
+    incrementMode match {
+      case TimestampType.TIMESTAMP | TimestampType.TOKEN | TimestampType.TIMEUUID | TimestampType.NONE => false
+      case TimestampType.SOLRTIMESTAMP => true
     }
   }
 
@@ -149,7 +157,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
   private def generateCqlForSolrTimestampMode: String = {
     val pkCol = setting.primaryKeyColumn.getOrElse("")
     checkCqlForPrimaryKey(pkCol)
-    val whereClause = s" WHERE solr_query='$pkCol:{? TO ?]'"
+    val whereClause = s" WHERE solr_query=?"
     generateCqlForBulkMode + whereClause
   }
 

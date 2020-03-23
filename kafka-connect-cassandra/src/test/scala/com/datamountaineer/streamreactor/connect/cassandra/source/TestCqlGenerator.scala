@@ -53,7 +53,7 @@ class TestCqlGenerator extends WordSpec
     val cqlGenerator = new CqlGenerator(configureMe("INCREMENTALMODE=solrtimestamp"))
     val cqlStatement = cqlGenerator.getCqlStatement
 
-    cqlStatement shouldBe "SELECT string_field,the_pk_field FROM test.cassandra-table WHERE solr_query='the_pk_field:{? TO ?]'"
+    cqlStatement shouldBe "SELECT string_field,the_pk_field FROM test.cassandra-table WHERE solr_query=?"
   }
 
   "CqlGenerator should generate token based CQL statement based on KCQL" in {
