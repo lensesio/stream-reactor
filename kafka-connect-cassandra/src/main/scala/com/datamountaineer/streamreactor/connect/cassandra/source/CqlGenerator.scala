@@ -49,6 +49,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
         case TimestampType.TIMEUUID => generateCqlForTimeUuidMode
         case TimestampType.TIMESTAMP => generateCqlForTimestampMode
         case TimestampType.TOKEN => generateCqlForTokenMode
+        case TimestampType.SOLRTIMESTAMP => generateCqlForSolrTimestampMode
         case _ => throw new ConfigException(s"Unknown incremental mode ($incrementMode)")
       }
     }
@@ -73,6 +74,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
         case TimestampType.TIMEUUID => generateCqlForTimeUuidMode
         case TimestampType.TIMESTAMP => generateCqlForTimestampMode
         case TimestampType.TOKEN => generateCqlForTokenModeNoOffset
+        case TimestampType.SOLRTIMESTAMP => generateCqlForSolrTimestampMode
         case _ => throw new ConfigException(s"unknown incremental mode ($incrementMode)")
       }
     }
@@ -141,6 +143,13 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
     val pkCol = setting.primaryKeyColumn.getOrElse("")
     checkCqlForPrimaryKey(pkCol)
     val whereClause = s" WHERE $pkCol > ? AND $pkCol <= ? ALLOW FILTERING"
+    generateCqlForBulkMode + whereClause
+  }
+
+  private def generateCqlForSolrTimestampMode: String = {
+    val pkCol = setting.primaryKeyColumn.getOrElse("")
+    checkCqlForPrimaryKey(pkCol)
+    val whereClause = s" WHERE solr_query='$pkCol:{? TO ?]'"
     generateCqlForBulkMode + whereClause
   }
 
