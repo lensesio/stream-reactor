@@ -74,7 +74,7 @@ class CassandraTableReader(private val name: String,
   private var schema: Option[Schema] = None
   private val ignoreList = config.getIgnoredFields.map(_.getName).toSet
   private val isTokenBased = cqlGenerator.isTokenBased()
-  private val isSolrBased = cqlGenerator.isSolrBased()
+  private val isDSESearchBased = cqlGenerator.isDSESearchBased()
   private val cassandraTypeConverter : CassandraTypeConverter =
     new CassandraTypeConverter(session.getCluster.getConfiguration.getCodecRegistry, setting)
   private var structColDefs: List[ColumnDefinitions.Definition] = _
@@ -178,7 +178,7 @@ class CassandraTableReader(private val name: String,
     // logging the CQL
     val formattedPrevious = previous.toString()
     val formattedNow = upperBound.toString()
-    val bound = if (isSolrBased) {
+    val bound = if (isDSESearchBased) {
       val solrWhere = s"$primaryKeyCol:{$formattedPrevious TO $formattedNow]"
       logger.info(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($solrWhere).")
       preparedStatement.bind(solrWhere)

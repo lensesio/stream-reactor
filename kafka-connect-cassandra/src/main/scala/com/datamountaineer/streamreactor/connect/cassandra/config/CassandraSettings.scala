@@ -38,7 +38,7 @@ trait CassandraSetting
 
 object TimestampType extends Enumeration {
   type TimestampType = Value
-  val TIMESTAMP, SOLRTIMESTAMP, TIMEUUID, TOKEN, NONE = Value
+  val TIMESTAMP, DSESEARCHTIMESTAMP, TIMEUUID, TOKEN, NONE = Value
 }
 
 case class CassandraSourceSetting(kcql: Kcql,

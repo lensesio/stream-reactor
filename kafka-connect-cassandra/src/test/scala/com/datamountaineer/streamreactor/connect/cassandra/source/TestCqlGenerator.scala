@@ -48,9 +48,9 @@ class TestCqlGenerator extends WordSpec
     cqlStatement shouldBe "SELECT string_field,the_pk_field FROM test.cassandra-table WHERE the_pk_field > ? AND the_pk_field <= ? ALLOW FILTERING"
   }
 
-  "CqlGenerator should generate solr timestamp statement based on KCQL" in {
+  "CqlGenerator should generate dse search timestamp statement based on KCQL" in {
 
-    val cqlGenerator = new CqlGenerator(configureMe("INCREMENTALMODE=solrtimestamp"))
+    val cqlGenerator = new CqlGenerator(configureMe("INCREMENTALMODE=dsesearchtimestamp"))
     val cqlStatement = cqlGenerator.getCqlStatement
 
     cqlStatement shouldBe "SELECT string_field,the_pk_field FROM test.cassandra-table WHERE solr_query=?"
