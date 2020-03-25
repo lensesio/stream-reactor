@@ -180,8 +180,10 @@ class CassandraTableReader(private val name: String,
     val formattedNow = upperBound.toString()
     val bound = if (isDSESearchBased) {
       val solrWhere = s"$primaryKeyCol:{$formattedPrevious TO $formattedNow]"
-      logger.info(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($solrWhere).")
-      preparedStatement.bind(solrWhere)
+      // we need that to be able to page results even with the solr_query being used, that's why we use the paging and sort configs
+      val solrQuery = "{\"q\": \"" + solrWhere + "\", \"sort\":\"" + primaryKeyCol + " asc\", \"paging\":\"driver\"}"
+      logger.info(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($solrQuery).")
+      preparedStatement.bind(solrQuery)
     } else {
       logger.info(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow).")
       preparedStatement.bind(Date.from(previous), Date.from(upperBound))
