@@ -16,14 +16,13 @@
 
 package com.datamountaineer.streamreactor.connect.kudu
 
-import java.util
 import java.util.Collections
 
 import com.datamountaineer.kcql.{Bucketing, Kcql}
 import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduSettings}
 import com.datamountaineer.streamreactor.connect.kudu.sink.KuduWriter
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kudu.client.SessionConfiguration.FlushMode
@@ -46,6 +45,8 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
     when(bucketing.getBucketNames).thenReturn(Collections.emptyIterator[String]())
     when(kcql.getBucketing).thenReturn(bucketing)
     val record = getTestRecords.head
+
+    val x = record.value().asInstanceOf[Struct].schema().field("optional").schema().defaultValue()
     val kuduSchema = convertToKuduSchema(record, kcql)
     val kuduRow = kuduSchema.newPartialRow()
 

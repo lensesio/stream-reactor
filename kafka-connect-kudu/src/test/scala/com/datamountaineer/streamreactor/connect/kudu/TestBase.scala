@@ -23,9 +23,8 @@ package com.datamountaineer.streamreactor.connect.kudu
 
 import java.nio.ByteBuffer
 import java.util
-import java.util.{ArrayList, List}
 
-import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfigConstants, WriteFlushMode}
+import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfigConstants}
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -305,6 +304,13 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
 
   //build a test record schema
   def createSchema: Schema = {
+    import org.apache.kafka.connect.data._
+    val o = SchemaBuilder.bytes()
+      .name(Decimal.LOGICAL_NAME)
+      .optional()
+      .parameter("connect.decimal.precision", "18")
+      .parameter("scale", "4")
+      .build()
     SchemaBuilder.struct.name("record")
       .version(1)
       .field("id", Schema.STRING_SCHEMA)
@@ -315,6 +321,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       .field("float64_field", Schema.FLOAT64_SCHEMA)
       .field("boolean_field", Schema.BOOLEAN_SCHEMA)
       .field("byte_field", Schema.BYTES_SCHEMA)
+      .field( "optional", o)
       .build
   }
 
