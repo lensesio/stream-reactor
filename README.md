@@ -69,9 +69,6 @@ A collection of components to build a real time ingestion pipeline.
     If the MQTT topic is /mqttSourceTopic/A/test this Will result in topics in kafka 
     mqttSourceTopic_A_test
     
-
-**1.2.6**
-**Features**
 *   Cassandra (source)
     *   Support for sending JSON formatted message (with string key) to kafka topic.
     
