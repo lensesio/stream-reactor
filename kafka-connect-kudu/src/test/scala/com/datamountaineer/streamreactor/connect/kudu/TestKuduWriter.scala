@@ -46,7 +46,6 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
     when(kcql.getBucketing).thenReturn(bucketing)
     val record = getTestRecords.head
 
-    val x = record.value().asInstanceOf[Struct].schema().field("optional").schema().defaultValue()
     val kuduSchema = convertToKuduSchema(record, kcql)
     val kuduRow = kuduSchema.newPartialRow()
 
