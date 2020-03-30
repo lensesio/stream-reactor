@@ -49,6 +49,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
         case TimestampType.TIMEUUID => generateCqlForTimeUuidMode
         case TimestampType.TIMESTAMP => generateCqlForTimestampMode
         case TimestampType.TOKEN => generateCqlForTokenMode
+        case TimestampType.DSESEARCHTIMESTAMP => generateCqlForDseSearchTimestampMode
         case _ => throw new ConfigException(s"Unknown incremental mode ($incrementMode)")
       }
     }
@@ -73,6 +74,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
         case TimestampType.TIMEUUID => generateCqlForTimeUuidMode
         case TimestampType.TIMESTAMP => generateCqlForTimestampMode
         case TimestampType.TOKEN => generateCqlForTokenModeNoOffset
+        case TimestampType.DSESEARCHTIMESTAMP => generateCqlForDseSearchTimestampMode
         case _ => throw new ConfigException(s"unknown incremental mode ($incrementMode)")
       }
     }
@@ -82,15 +84,23 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
 
   def getDefaultOffsetValue(offset: Option[String]): Option[String] = {
     incrementMode match {
-      case TimestampType.TIMESTAMP | TimestampType.TIMEUUID | TimestampType.NONE => Some(offset.getOrElse(defaultTimestamp))
+      case TimestampType.TIMESTAMP | TimestampType.DSESEARCHTIMESTAMP |
+           TimestampType.TIMEUUID | TimestampType.NONE => Some(offset.getOrElse(defaultTimestamp))
       case TimestampType.TOKEN => offset
     }
   }
 
   def isTokenBased(): Boolean = {
     incrementMode match {
-      case TimestampType.TIMESTAMP | TimestampType.TIMEUUID  | TimestampType.NONE => false
+      case TimestampType.TIMESTAMP | TimestampType.DSESEARCHTIMESTAMP | TimestampType.TIMEUUID | TimestampType.NONE => false
       case TimestampType.TOKEN => true
+    }
+  }
+
+  def isDSESearchBased(): Boolean = {
+    incrementMode match {
+      case TimestampType.TIMESTAMP | TimestampType.TOKEN | TimestampType.TIMEUUID | TimestampType.NONE => false
+      case TimestampType.DSESEARCHTIMESTAMP => true
     }
   }
 
@@ -141,6 +151,13 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
     val pkCol = setting.primaryKeyColumn.getOrElse("")
     checkCqlForPrimaryKey(pkCol)
     val whereClause = s" WHERE $pkCol > ? AND $pkCol <= ? ALLOW FILTERING"
+    generateCqlForBulkMode + whereClause
+  }
+
+  private def generateCqlForDseSearchTimestampMode: String = {
+    val pkCol = setting.primaryKeyColumn.getOrElse("")
+    checkCqlForPrimaryKey(pkCol)
+    val whereClause = s" WHERE solr_query=?"
     generateCqlForBulkMode + whereClause
   }
 
