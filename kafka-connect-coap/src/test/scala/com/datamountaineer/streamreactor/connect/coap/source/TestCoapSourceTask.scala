@@ -24,16 +24,17 @@ import org.apache.kafka.connect.source.SourceTaskContext
 import org.eclipse.californium.core.{CaliforniumLogger, CoapClient}
 import org.eclipse.californium.scandium.ScandiumLogger
 import org.mockito.Mockito.when
-import org.scalatest.mockito.MockitoSugar
+import org.mockito.MockitoSugar
+import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, WordSpec}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 28/12/2016. 
   * stream-reactor
   */
-class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase with MockitoSugar {
+class TestCoapSourceTask extends AnyWordSpec with BeforeAndAfter with TestBase with MockitoSugar {
   val server = new Server(SOURCE_PORT_SECURE, SOURCE_PORT_INSECURE, KEY_PORT_INSECURE)
 
   before {
@@ -91,7 +92,7 @@ class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase with
       Thread.sleep(3000)
       val records2 = task.poll()
       records2.size() shouldBe 1
-      val record2 = records2.head
+      val record2 = records2.asScala.head
       val struct2 = record2.value().asInstanceOf[Struct]
       struct2.getString("payload") shouldBe "Message1"
       struct2.getString("type") shouldBe "ACK"
@@ -100,7 +101,7 @@ class TestCoapSourceTask extends WordSpec with BeforeAndAfter with TestBase with
       Thread.sleep(3000)
       val records3 = task.poll()
       records3.size() shouldBe 1
-      val record3 = records3.head
+      val record3 = records3.asScala.head
       val struct3 = record3.value().asInstanceOf[Struct]
       struct3.getString("payload") shouldBe "Message2"
       struct3.getString("type") shouldBe "ACK"

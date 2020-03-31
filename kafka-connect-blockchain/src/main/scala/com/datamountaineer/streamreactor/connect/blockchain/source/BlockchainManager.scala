@@ -29,7 +29,7 @@ import akka.stream.{ActorMaterializer, StreamTcpException}
 import com.datamountaineer.streamreactor.connect.blockchain.config.BlockchainSettings
 import com.datamountaineer.streamreactor.connect.blockchain.data.BlockchainMessage
 import com.datamountaineer.streamreactor.connect.blockchain.json.JacksonJson
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord
 
 import scala.concurrent.duration._

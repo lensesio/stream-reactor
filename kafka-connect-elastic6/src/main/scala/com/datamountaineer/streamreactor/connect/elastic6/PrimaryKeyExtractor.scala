@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.node._
 import org.apache.kafka.connect.data._
 
 import scala.annotation.tailrec
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 object PrimaryKeyExtractor {
   def extract(node: JsonNode, path: Vector[String]): Any = {
@@ -79,7 +79,7 @@ object PrimaryKeyExtractor {
             throw new IllegalArgumentException(s"Invalid field selection for '${path.mkString(".")}'. The path is not resolving to a primitive field")
           }
           val childNode = Option(node.get(p.head)).getOrElse {
-            throw new IllegalArgumentException(s"Invalid field selection for '${path.mkString(".")}'. Can't find ${p.head} field. Field found are:${node.fieldNames().mkString(",")}")
+            throw new IllegalArgumentException(s"Invalid field selection for '${path.mkString(".")}'. Can't find ${p.head} field. Field found are:${node.fieldNames().asScala.mkString(",")}")
           }
 
           innerExtract(childNode, p.tail)

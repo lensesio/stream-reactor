@@ -12,10 +12,10 @@ import com.landoop.streamreactor.connect.hive.TopicPartition
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.Matchers
-import org.scalatest.WordSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class HiveSinkConfigTest extends WordSpec with Matchers {
+class HiveSinkConfigTest extends AnyWordSpec with Matchers {
 
   "HiveSink" should {
     "populate required table properties from KCQL" in {

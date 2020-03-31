@@ -27,12 +27,13 @@ import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.influxdb.InfluxDB.ConsistencyLevel
 import org.influxdb.dto.{BatchPoints, Point}
-import org.scalatest.{Matchers, WordSpec}
-import scala.collection.JavaConversions._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import scala.collection.JavaConverters._
 import scala.util.Try
 
 
-class InfluxBatchPointsBuilderTest extends WordSpec with Matchers {
+class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
   private val nanoClock = new NanoClock()
   Thread.sleep(1000)
   val defaultJsonPayload: String =
@@ -145,7 +146,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers {
           |}
         """.stripMargin
 
-      val sourceMap: util.HashMap[String, Any] = JacksonJson.mapper.readValue(jsonPayload, new TypeReference[util.HashMap[String, Object]]() {})
+      val sourceMap: util.HashMap[String, Any] = JacksonJson.mapper.readValue(jsonPayload, new TypeReference[util.HashMap[String, Any]]() {})
       val f = new Fixture(
         valueSchema = null,
         value = sourceMap,
@@ -162,8 +163,8 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers {
       map.size shouldBe 17
 
       map("sid") shouldBe "SymvD4Ghg"
-      map.containsKey("pid") shouldBe false
-      map.containsKey("ptype") shouldBe false
+      map.asJava.containsKey("pid") shouldBe false
+      map.asJava.containsKey("ptype") shouldBe false
 
       val tags = PointMapFieldGetter.tags(point)
       tags.size shouldBe 2
@@ -360,7 +361,7 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers {
       map.size shouldBe 14
       (map - "this_is_renamed") shouldBe (defaultJsonResult - "name")
       map("this_is_renamed") shouldBe "Clements Crane"
-      map.containsKey("name") shouldBe false
+      map.asJava.containsKey("name") shouldBe false
     }
 
     "convert a sink record with a json string payload with specific fields being selected" in {
@@ -1121,13 +1122,13 @@ class InfluxBatchPointsBuilderTest extends WordSpec with Matchers {
     }
 
     object PointMapFieldGetter {
-      def fields(point: Point): Map[String, Any] = extractField("fields", point).asInstanceOf[java.util.Map[String, Any]].toMap
+      def fields(point: Point): Map[String, Any] = extractField("fields", point).asInstanceOf[java.util.Map[String, Any]].asScala.toMap
 
       def time(point: Point): Long = extractField("time", point).asInstanceOf[Long]
 
       def measurement(point: Point): String = extractField("measurement", point).asInstanceOf[String]
 
-      def tags(point: Point): Map[String, String] = extractField("tags", point).asInstanceOf[java.util.Map[String, String]].toMap
+      def tags(point: Point): Map[String, String] = extractField("tags", point).asInstanceOf[java.util.Map[String, String]].asScala.toMap
 
       private def extractField(fieldName: String, point: Point): Any = {
         val field = point.getClass.getDeclaredField(fieldName)

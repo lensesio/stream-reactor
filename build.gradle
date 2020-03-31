@@ -51,26 +51,25 @@ allprojects {
 
 
     ext {
-        scalaMajorVersion = '2.11'
-        scala = '2.11.7'
-        scalaCheck = '1.13.4'
-        scalaTest = '3.0.0'
+        scalaMajorVersion = '2.12'
+        scala = '2.12.10'
+        scalaCheck = '1.14.3'
+        scalaTest = '3.1.1'
         junit = '4.11'
         //avroVersion="1.8.1"
-        scalaLoggingVersion = '2.1.2'
-        mockitoVersion = '1.10.19'
-        jacksonDatabind = '2.8.5'
+        scalaLoggingVersion = '3.9.2'
+        mockitoVersion = '1.13.0'
         slf4jVersion = "1.7.7"
-        json4sVersion = "3.5.3"
+        json4sVersion = "3.6.7"
         gsonVersion = "2.6.2"
         KCQLVersion = "2.8.4"
-        akkaVersion = "2.4.10"
         connectCLIVersion = "1.0.6"
+        avro4sVersion = "1.6.4"
 
         // The following 4 need to align to compile against a particular version
-        confluentVersion = '5.0.0'
-        kafkaVersion = '2.1.0'
-        dataMountaineerCommonVersion = "1.1.9"
+        confluentVersion = '5.4.0'
+        kafkaVersion = '2.4.0'
+        dataMountaineerCommonVersion = "2.0.0"
         link4jVersion = "1.8.0"
 
         gitCommitHash = ("git rev-parse HEAD").execute().text.trim()
@@ -109,7 +108,7 @@ allprojects {
     }
 
     repositories {
-       // mavenLocal()
+        mavenLocal()
         mavenCentral()
         maven { url "http://packages.confluent.io/maven/" }
         maven { url "http://repo.typesafe.com/typesafe/releases/" }
@@ -178,23 +177,20 @@ allprojects {
     dependencies {
         compile "org.scala-lang:scala-library:$scala"
         compile "org.scala-lang:scala-compiler:$scala"
-        compile "com.typesafe.scala-logging:scala-logging-slf4j_$scalaMajorVersion:$scalaLoggingVersion"
-
-        compile ("org.apache.kafka:connect-json:$kafkaVersion")
+        compile "com.typesafe.scala-logging:scala-logging_${scalaMajorVersion}:${scalaLoggingVersion}"
+        compile "org.apache.kafka:connect-json:$kafkaVersion"
         compile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
         compile "io.confluent:kafka-schema-registry:$confluentVersion"
-
-        compile("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion") {
-
-        }
+        compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
         compile "org.apache.calcite:calcite-linq4j:$link4jVersion"
 
-        testCompile "org.mockito:mockito-core:$mockitoVersion"
+        testCompile "org.mockito:mockito-scala_$scalaMajorVersion:$mockitoVersion"
         testCompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
         testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
         testCompile "junit:junit:$junit"
 
         testRuntime 'org.pegdown:pegdown:1.1.0'
+        testCompile "com.vladsch.flexmark:flexmark-all:0.35.10"
     }
 
     test {

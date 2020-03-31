@@ -1,13 +1,15 @@
 package com.datamountaineer.streamreactor.connect.ftp.source
 
 import com.datamountaineer.streamreactor.connect.ftp.source
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.commons.net.ftp.FTPFile
-import org.mockito.Mockito.when
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
+import org.mockito.MockitoSugar
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.BeforeAndAfter
+import org.scalatest.matchers.should.Matchers
 
-class RegExTest extends FunSuite with Matchers with BeforeAndAfter with StrictLogging with MockitoSugar  {
+
+class RegExTest extends AnyFunSuite with Matchers with BeforeAndAfter with StrictLogging with MockitoSugar  {
   def mockFile(name: String) = {
     val f = mock[FTPFile]
     when(f.isFile).thenReturn(true)

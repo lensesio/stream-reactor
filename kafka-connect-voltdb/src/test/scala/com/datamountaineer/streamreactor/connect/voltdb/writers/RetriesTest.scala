@@ -17,9 +17,10 @@
 package com.datamountaineer.streamreactor.connect.voltdb.writers
 
 import io.confluent.common.config.ConfigException
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class RetriesTest extends WordSpec with Matchers with Retries {
+class RetriesTest extends AnyWordSpec with Matchers with Retries {
   "Retries" should {
     "return the value when no error is encountered" in {
       val expected = "The return value"

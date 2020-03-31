@@ -17,7 +17,9 @@
 package com.datamountaineer.streamreactor.connect.cassandra
 
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSink}
-import org.scalatest.{DoNotDiscover, Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.DoNotDiscover
 import scala.collection.JavaConverters._
 
 /**
@@ -25,7 +27,7 @@ import scala.collection.JavaConverters._
   * stream-reactor
   */
 @DoNotDiscover
-class TestCassandraConnectionSecure extends WordSpec with Matchers with TestConfig {
+class TestCassandraConnectionSecure extends AnyWordSpec with Matchers with TestConfig {
 
   "should return a secured session" in {
     createKeySpace("connection", secure = true, ssl = false)

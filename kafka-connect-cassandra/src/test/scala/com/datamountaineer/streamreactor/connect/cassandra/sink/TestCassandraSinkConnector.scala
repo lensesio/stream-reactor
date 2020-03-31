@@ -18,11 +18,13 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
+import org.scalatest.BeforeAndAfter
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
-class TestCassandraSinkConnector extends WordSpec with BeforeAndAfter with Matchers with TestConfig {
+class TestCassandraSinkConnector extends AnyWordSpec with BeforeAndAfter with Matchers with TestConfig {
   "Should start a Cassandra Sink Connector" in {
     val props =  Map(
       "topics" -> s"$TOPIC1, $TOPIC2",

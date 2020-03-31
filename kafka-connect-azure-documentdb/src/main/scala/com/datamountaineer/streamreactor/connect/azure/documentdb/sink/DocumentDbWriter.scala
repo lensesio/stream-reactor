@@ -22,7 +22,7 @@ import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{Docume
 import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.microsoft.azure.documentdb._
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 
 import scala.util.Failure

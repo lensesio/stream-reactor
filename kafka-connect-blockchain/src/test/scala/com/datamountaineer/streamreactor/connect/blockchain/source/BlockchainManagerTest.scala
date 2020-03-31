@@ -29,13 +29,14 @@ import com.datamountaineer.streamreactor.connect.blockchain.config.BlockchainSet
 import com.datamountaineer.streamreactor.connect.blockchain.data.{BlockchainMessage, Transaction}
 import com.datamountaineer.streamreactor.connect.blockchain.json.JacksonJson
 import org.apache.kafka.connect.data.Struct
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-class BlockchainManagerTest extends WordSpec with Matchers {
+class BlockchainManagerTest extends AnyWordSpec with Matchers {
   "BlockchainManager" should {
     "fail if it can not connect to the websocket" in {
       val manager = new BlockchainManager(BlockchainSettings("ws://localhost:12456", "blockchain", Set.empty))
@@ -143,13 +144,13 @@ class BlockchainManagerTest extends WordSpec with Matchers {
     Await.ready(binding.unbind(), 3.seconds)
 
     records.size() shouldBe 6
-    records.foreach { record =>
+    records.asScala.foreach { record =>
       record.kafkaPartition() shouldBe 0
       record.topic() shouldBe settings.kafkaTopic
       record.valueSchema() shouldBe Transaction.ConnectSchema
     }
 
-    records.map(_.value().asInstanceOf[Struct]) shouldBe structs
+    records.asScala.map(_.value().asInstanceOf[Struct]) shouldBe structs
 
     materializer.shutdown()
     system.terminate()

@@ -21,9 +21,10 @@ import java.time.format.DateTimeFormatter
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.elastic.indexname.CreateIndex
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class CreateIndexTest extends WordSpec with Matchers {
+class CreateIndexTest extends AnyWordSpec with Matchers {
   "CreateIndex" should {
     "create an index name without suffix when suffix not set" in {
       val config = Kcql.parse("INSERT INTO index_name SELECT * FROM topicA")

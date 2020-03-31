@@ -2,9 +2,10 @@ package com.landoop.streamreactor.connect.hive.source
 
 import com.landoop.streamreactor.connect.hive.source.config.{HiveSourceConfig, ProjectionField}
 import com.landoop.streamreactor.connect.hive.{TableName, Topic}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class HiveSourceConfigTest extends WordSpec with Matchers {
+class HiveSourceConfigTest extends AnyWordSpec with Matchers {
 
   "HiveSource" should {
     "populate required table properties from KCQL" in {

@@ -19,15 +19,17 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import redis.clients.jedis.{Jedis, JedisPubSub}
 import redis.embedded.RedisServer
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
-class RedisPubSubTest extends WordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
+class RedisPubSubTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
 
   val redisServer = new RedisServer(6379)
 

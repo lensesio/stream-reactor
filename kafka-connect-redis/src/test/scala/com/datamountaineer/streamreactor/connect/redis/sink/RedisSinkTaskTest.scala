@@ -2,11 +2,12 @@ package com.datamountaineer.streamreactor.connect.redis.sink
 
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
 import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSupport
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
-class RedisSinkTaskTest extends WordSpec with Matchers with RedisMockSupport {
+class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport {
 
   "work with Cache" -> {
     val KCQL = s"INSERT INTO cache SELECT price from yahoo-fx PK symbol;"

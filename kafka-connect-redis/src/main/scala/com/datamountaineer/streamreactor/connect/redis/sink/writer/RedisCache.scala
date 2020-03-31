@@ -20,7 +20,7 @@ import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisKCQLSetting, RedisSinkSettings}
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.Try
 
 /**
@@ -40,7 +40,7 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
   val configs: Set[Kcql] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
     assert(c.getSource.trim.length > 0, "You need to supply a valid source kafka topic to fetch records from. Review your KCQL syntax")
-    assert(c.getPrimaryKeys.nonEmpty, "The Redis CACHE mode requires at least 1 PK (Primary Key) to be defined")
+    assert(c.getPrimaryKeys.asScala.nonEmpty, "The Redis CACHE mode requires at least 1 PK (Primary Key) to be defined")
     assert(c.getStoredAs == null, "The Redis CACHE mode does not support STOREAS")
   }
 
@@ -70,7 +70,7 @@ class RedisCache(sinkSettings: RedisSinkSettings) extends RedisWriter {
                 val optionalPrefix = if (Option(KCQL.kcqlConfig.getTarget).isEmpty) "" else KCQL.kcqlConfig.getTarget.trim
                 // Use first primary key's value and (optional) prefix
                 val pkDelimiter = sinkSettings.pkDelimiter
-                val keyBuilder = RedisFieldsKeyBuilder(KCQL.kcqlConfig.getPrimaryKeys.map(_.toString), pkDelimiter)
+                val keyBuilder = RedisFieldsKeyBuilder(KCQL.kcqlConfig.getPrimaryKeys.asScala.map(_.toString), pkDelimiter)
                 val extracted = convert(record, fields = KCQL.fieldsAndAliases, ignoreFields = KCQL.ignoredFields)
                 val key = optionalPrefix + keyBuilder.build(record)
                 val payload = convertValueToJson(extracted).toString

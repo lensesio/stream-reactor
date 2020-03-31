@@ -19,10 +19,11 @@ package com.datamountaineer.streamreactor.connect.redis.sink.config
 import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSupport
 import com.datamountaineer.streamreactor.connect.rowkeys.{StringGenericRowKeyBuilder, StringStructFieldsStringKeyBuilder}
 import org.apache.kafka.common.config.ConfigException
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import scala.collection.JavaConverters._
 
-class RedisSinkSettingsTest extends WordSpec with Matchers with RedisMockSupport {
+class RedisSinkSettingsTest extends AnyWordSpec with Matchers with RedisMockSupport {
 
   "throw [config exception] if NO KCQL is provided" in {
     intercept[ConfigException] {

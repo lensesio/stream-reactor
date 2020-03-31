@@ -18,8 +18,8 @@ package com.datamountaineer.streamreactor.connect.kudu
 
 import com.datamountaineer.streamreactor.connect.kudu.sink.KuduSinkTask
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
-import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+
+import org.mockito.MockitoSugar
 
 import scala.collection.JavaConverters._
 

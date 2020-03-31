@@ -23,8 +23,8 @@ import com.datamountaineer.streamreactor.connect.elastic5.config.{ElasticConfig,
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.embedded.LocalNode
 import org.apache.kafka.connect.sink.SinkTaskContext
-import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+
+import org.mockito.MockitoSugar
 
 import scala.reflect.io.File
 

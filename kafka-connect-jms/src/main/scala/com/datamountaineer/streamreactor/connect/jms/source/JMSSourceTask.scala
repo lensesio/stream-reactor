@@ -28,7 +28,7 @@ import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
 import com.datamountaineer.streamreactor.connect.jms.source.readers.JMSReader
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import javax.jms.Message
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.source.SourceTask

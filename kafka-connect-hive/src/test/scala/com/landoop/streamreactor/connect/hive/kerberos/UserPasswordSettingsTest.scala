@@ -5,12 +5,12 @@ import java.io.File
 import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfigDefBuilder
 import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
 import org.apache.kafka.common.config.ConfigException
-import org.scalatest.FunSuite
-import org.scalatest.Matchers
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.JavaConverters._
 
-class UserPasswordSettingsTest extends FunSuite with Matchers with FileCreation {
+class UserPasswordSettingsTest extends AnyFunSuite with Matchers with FileCreation {
   test("validate a user-password setting") {
     val fileKrb5 = createFile(s"krb1.krb5")
     val fileJaas = createFile(s"jaas1.jaas")

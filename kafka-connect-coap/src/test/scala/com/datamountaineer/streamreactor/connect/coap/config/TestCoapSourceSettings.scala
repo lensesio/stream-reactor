@@ -19,13 +19,13 @@ package com.datamountaineer.streamreactor.connect.coap.config
 import com.datamountaineer.streamreactor.connect.coap.TestBase
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapSettings, CoapSinkConfig, CoapSourceConfig}
 import org.apache.kafka.common.config.ConfigException
-import org.scalatest.WordSpec
+import org.scalatest.wordspec.AnyWordSpec
 
 /**
   * Created by andrew@datamountaineer.com on 28/12/2016. 
   * stream-reactor
   */
-class TestCoapSourceSettings extends WordSpec with TestBase {
+class TestCoapSourceSettings extends AnyWordSpec with TestBase {
   "should create CoapSettings for an insecure connection" in {
     val props = getPropsInsecure
     val config = CoapSourceConfig(props)

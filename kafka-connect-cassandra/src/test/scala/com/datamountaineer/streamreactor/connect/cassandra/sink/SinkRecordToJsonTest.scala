@@ -23,12 +23,13 @@ import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.landoop.json.sql.JacksonJson
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 
-class SinkRecordToJsonTest extends WordSpec with Matchers with ConverterUtil {
+class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil {
   "SinkRecordToDocument" should {
     "convert Kafka Struct to a JSON" in {
       implicit val settings = CassandraSinkSetting(
@@ -49,8 +50,8 @@ class SinkRecordToJsonTest extends WordSpec with Matchers with ConverterUtil {
 
         val kcql= kcqlMap(record.topic())
         val actual = Transform(
-          kcql.getFields.map(FieldConverter.apply),
-          kcql.getIgnoredFields.map(FieldConverter.apply),
+          kcql.getFields.asScala.map(FieldConverter.apply),
+          kcql.getIgnoredFields.asScala.map(FieldConverter.apply),
           record.valueSchema(),
           record.value(),
           kcql.hasRetainStructure())
@@ -79,8 +80,8 @@ class SinkRecordToJsonTest extends WordSpec with Matchers with ConverterUtil {
 
         val kcql= kcqlMap(record.topic())
         val actual = Transform(
-          kcql.getFields.map(FieldConverter.apply),
-          kcql.getIgnoredFields.map(FieldConverter.apply),
+          kcql.getFields.asScala.map(FieldConverter.apply),
+          kcql.getIgnoredFields.asScala.map(FieldConverter.apply),
           record.valueSchema(),
           record.value(),
           kcql.hasRetainStructure())
@@ -110,8 +111,8 @@ class SinkRecordToJsonTest extends WordSpec with Matchers with ConverterUtil {
 
         val kcql= kcqlMap(record.topic())
         val actual = Transform(
-          kcql.getFields.map(FieldConverter.apply),
-          kcql.getIgnoredFields.map(FieldConverter.apply),
+          kcql.getFields.asScala.map(FieldConverter.apply),
+          kcql.getIgnoredFields.asScala.map(FieldConverter.apply),
           record.valueSchema(),
           record.value(),
           kcql.hasRetainStructure())

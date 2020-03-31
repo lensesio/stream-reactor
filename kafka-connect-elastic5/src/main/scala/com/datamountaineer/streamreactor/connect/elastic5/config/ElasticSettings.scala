@@ -20,7 +20,6 @@ import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.elastic5.config.ClientType.ClientType
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
 import org.apache.kafka.common.config.ConfigException
-import org.apache.kafka.common.config.types.Password
 import org.elasticsearch.plugins.Plugin
 
 import scala.util.Try

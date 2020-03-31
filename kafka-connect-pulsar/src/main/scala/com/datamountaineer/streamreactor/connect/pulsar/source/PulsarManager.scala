@@ -24,7 +24,7 @@ import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.pulsar.ConsumerConfigFactory
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.source.SourceRecord

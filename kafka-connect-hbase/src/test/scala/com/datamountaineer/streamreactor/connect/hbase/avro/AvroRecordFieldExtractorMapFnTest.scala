@@ -20,9 +20,10 @@ import java.nio.file.Paths
 
 import org.apache.avro.Schema
 import org.apache.hadoop.hbase.util.Bytes
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class AvroRecordFieldExtractorMapFnTest extends WordSpec with Matchers {
+class AvroRecordFieldExtractorMapFnTest extends AnyWordSpec with Matchers {
 
   val schema: Schema = new Schema.Parser().parse(Paths.get(getClass.getResource("/person.avsc").toURI).toFile)
 

@@ -6,7 +6,7 @@ import com.datamountaineer.streamreactor.connect.schemas.StructFieldsExtractor
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.Try
 import scala.util.control.Exception.allCatch
 
@@ -17,7 +17,7 @@ class RedisGeoAdd(sinkSettings: RedisSinkSettings) extends RedisWriter with GeoA
   val configs: Set[Kcql] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
     assert(c.getSource.trim.length > 0, "You need to supply a valid source kafka topic to fetch records from. Review your KCQL syntax")
-    assert(c.getPrimaryKeys.length >= 1, "The Redis GeoAdd mode requires at least 1 PK (Primary Key) to be defined")
+    assert(c.getPrimaryKeys.asScala.length >= 1, "The Redis GeoAdd mode requires at least 1 PK (Primary Key) to be defined")
     assert(c.getStoredAs.equalsIgnoreCase("GeoAdd"), "The Redis GeoAdd mode requires the KCQL syntax: STOREAS GeoAdd")
   }
 
@@ -43,9 +43,9 @@ class RedisGeoAdd(sinkSettings: RedisSinkSettings) extends RedisWriter with GeoA
           sinkRecords.foreach { record =>
             topicSettings.map { KCQL =>
 
-              val extractor = StructFieldsExtractor(includeAllFields = false, KCQL.kcqlConfig.getPrimaryKeys.map(f => f.getName -> f.getName).toMap)
+              val extractor = StructFieldsExtractor(includeAllFields = false, KCQL.kcqlConfig.getPrimaryKeys.asScala.map(f => f.getName -> f.getName).toMap)
               val fieldsAndValues = extractor.get(record.value.asInstanceOf[Struct]).toMap
-              val pkValue = KCQL.kcqlConfig.getPrimaryKeys.map(pk => fieldsAndValues(pk.getName).toString).mkString(":")
+              val pkValue = KCQL.kcqlConfig.getPrimaryKeys.asScala.map(pk => fieldsAndValues(pk.getName).toString).mkString(":")
 
               // Use the target (and optionally the prefix) to name the GeoAdd key
               val optionalPrefix = if (Option(KCQL.kcqlConfig.getTarget).isEmpty) "" else KCQL.kcqlConfig.getTarget.trim

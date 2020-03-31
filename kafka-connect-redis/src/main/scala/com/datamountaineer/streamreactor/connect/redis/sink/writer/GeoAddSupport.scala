@@ -1,7 +1,7 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.kcql.Kcql
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.JavaConverters._
 

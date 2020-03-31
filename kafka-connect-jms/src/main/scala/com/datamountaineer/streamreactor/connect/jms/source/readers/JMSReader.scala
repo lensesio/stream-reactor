@@ -20,7 +20,7 @@ import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import javax.jms.Message
 import javax.jms.MessageConsumer
 import org.apache.kafka.connect.source.SourceRecord

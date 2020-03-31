@@ -2,7 +2,8 @@ package com.datamountaineer.streamreactor.connect.pulsar
 
 import com.datamountaineer.streamreactor.connect.pulsar.config._
 import org.apache.pulsar.client.api.SubscriptionType
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
@@ -10,7 +11,7 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 23/01/2018. 
   * stream-reactor
   */
-class ConsumerConfigFactoryTest extends WordSpec with Matchers {
+class ConsumerConfigFactoryTest extends AnyWordSpec with Matchers {
   val pulsarTopic = "persistent://landoop/standalone/connect/kafka-topic"
 
   "should create a config with batch settings" in {

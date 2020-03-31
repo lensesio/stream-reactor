@@ -24,13 +24,13 @@ import java.util.Base64
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.source.SourceRecord
 import org.eclipse.paho.client.mqttv3._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 class MqttManager(connectionFn: MqttSourceSettings => MqttConnectOptions,
                   convertersMap: Map[String, Converter],
@@ -101,7 +101,7 @@ class MqttManager(connectionFn: MqttSourceSettings => MqttConnectOptions,
     if (!message.isDuplicate) {
       try {
         val keys = Option(kcql.getWithKeys).map { l =>
-          val scalaList: Seq[String] = l
+          val scalaList: Seq[String] = l.asScala
           scalaList
         }.getOrElse(Seq.empty[String])
         Option(converter.convert(kafkaTopic, topic, message.getId.toString, message.getPayload, keys, kcql.getKeyDelimeter)) match {

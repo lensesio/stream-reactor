@@ -20,11 +20,12 @@ import java.util
 
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
-class ConnectSchemaTest extends WordSpec with Matchers {
+class ConnectSchemaTest extends AnyWordSpec with Matchers {
   val namespace = "io.confluent.connect.avro"
   val schemaGenerator = new ConnectSchema(namespace)
 

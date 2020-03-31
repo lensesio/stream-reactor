@@ -21,7 +21,7 @@ import java.util
 import com.bloomberglp.blpapi._
 import com.datamountaineer.streamreactor.connect.bloomberg.config.BloombergSourceConfig
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 

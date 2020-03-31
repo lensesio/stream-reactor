@@ -24,11 +24,11 @@ import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
 import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 class MqttSourceTask extends SourceTask with StrictLogging {
@@ -92,7 +92,7 @@ class MqttSourceTask extends SourceTask with StrictLogging {
     }.orNull
 
     if (enableProgress) {
-      progressCounter.update(records.toVector)
+      progressCounter.update(records.asScala.toVector)
     }
     records
   }

@@ -20,12 +20,12 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.elastic.config.{ElasticConfig, ElasticConfigConstants}
 import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 class ElasticSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[ElasticJsonWriter] = None
@@ -53,8 +53,8 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
     **/
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    writer.foreach(w => w.write(records.toSet))
-    val seq = records.toVector
+    writer.foreach(w => w.write(records.asScala.toSet))
+    val seq = records.asScala.toVector
     if (enableProgress) {
       progressCounter.update(seq)
     }

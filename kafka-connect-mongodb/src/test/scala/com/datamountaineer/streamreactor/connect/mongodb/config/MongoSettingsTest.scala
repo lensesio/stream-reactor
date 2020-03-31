@@ -19,18 +19,19 @@ package com.datamountaineer.streamreactor.connect.mongodb.config
 
 import com.datamountaineer.streamreactor.connect.errors.ThrowErrorPolicy
 import org.apache.kafka.common.config.ConfigException
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
-class MongoSettingsTest extends WordSpec with Matchers {
+class MongoSettingsTest extends AnyWordSpec with Matchers {
   "MongoSinkSettings" should {
     "default the host if the hosts settings not provided" in {
       val map = Map(
         MongoConfigConstants.DATABASE_CONFIG -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT cola as cold, colc FROM topic1"
-      )
+      ).asJava
 
       val config = MongoConfig(map)
       val settings = MongoSettings(config)
@@ -47,7 +48,7 @@ class MongoSettingsTest extends WordSpec with Matchers {
         MongoConfigConstants.DATABASE_CONFIG -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT a as F1, b as F2 FROM topic2"
-      )
+      ).asJava
 
       val config = MongoConfig(map)
       val settings = MongoSettings(config)
@@ -64,7 +65,7 @@ class MongoSettingsTest extends WordSpec with Matchers {
         MongoConfigConstants.DATABASE_CONFIG -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1 IGNORE a,b,c"
-      )
+      ).asJava
 
       val config = MongoConfig(map)
       val settings = MongoSettings(config)
@@ -82,7 +83,7 @@ class MongoSettingsTest extends WordSpec with Matchers {
         MongoConfigConstants.DATABASE_CONFIG -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1 PK a,b"
-      )
+      ).asJava
 
       val config = MongoConfig(map)
       val settings = MongoSettings(config)
@@ -100,7 +101,7 @@ class MongoSettingsTest extends WordSpec with Matchers {
         MongoConfigConstants.DATABASE_CONFIG -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO  SELECT * FROM topic1"
-      )
+      ).asJava
 
       val config = MongoConfig(map)
       intercept[IllegalArgumentException] {
@@ -112,7 +113,7 @@ class MongoSettingsTest extends WordSpec with Matchers {
       val map = Map(
         MongoConfigConstants.DATABASE_CONFIG -> "database1",
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
-      )
+      ).asJava
 
       intercept[ConfigException] {
         val config = MongoConfig(map)
@@ -125,7 +126,7 @@ class MongoSettingsTest extends WordSpec with Matchers {
         MongoConfigConstants.DATABASE_CONFIG -> "",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
-      )
+      ).asJava
 
       val config = MongoConfig(map)
       intercept[IllegalArgumentException] {
@@ -141,7 +142,7 @@ class MongoSettingsTest extends WordSpec with Matchers {
         MongoConfigConstants.DATABASE_CONFIG -> "db",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
-      )
+      ).asJava
       val settings = MongoSettings(MongoConfig(map))
       settings.jsonDateTimeFields shouldBe Set.empty[List[String]]
     }
@@ -152,7 +153,7 @@ class MongoSettingsTest extends WordSpec with Matchers {
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1",
         MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG -> ""
-      )
+      ).asJava
       val settings = MongoSettings(MongoConfig(map))
       settings.jsonDateTimeFields shouldBe Set.empty[Seq[String]]
     }
@@ -163,7 +164,7 @@ class MongoSettingsTest extends WordSpec with Matchers {
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1",
         MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG -> "a, b, c.m, d, e.n.y, f"
-      )
+      ).asJava
       val settings = MongoSettings(MongoConfig(map))
       settings.jsonDateTimeFields shouldBe Set(
         List("a"),

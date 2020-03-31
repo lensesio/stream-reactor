@@ -20,9 +20,10 @@ import io.confluent.connect.avro.AvroData
 import org.apache.avro.generic.GenericData
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class StructFieldsExtractorTest extends WordSpec with Matchers {
+class StructFieldsExtractorTest extends AnyWordSpec with Matchers {
   "StructFieldsExtractor" should {
     "return all the fields and their bytes value" in {
       val schema = SchemaBuilder.struct().name("com.example.Person")

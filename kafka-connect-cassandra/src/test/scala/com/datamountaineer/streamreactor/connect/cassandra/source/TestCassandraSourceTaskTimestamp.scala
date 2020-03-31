@@ -22,16 +22,17 @@ import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.kafka.common.config.ConfigException
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{DoNotDiscover, Matchers, WordSpec}
+import org.mockito.MockitoSugar
 
 import scala.collection.JavaConverters._
 import com.datastax.driver.core.Session
 import org.apache.kafka.connect.data.Schema
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
 
 @DoNotDiscover
-class TestCassandraSourceTaskTimestamp extends WordSpec
+class TestCassandraSourceTaskTimestamp extends AnyWordSpec
     with Matchers
     with MockitoSugar
     with TestConfig

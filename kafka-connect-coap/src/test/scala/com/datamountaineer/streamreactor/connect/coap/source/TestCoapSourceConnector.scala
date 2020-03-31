@@ -18,25 +18,25 @@ package com.datamountaineer.streamreactor.connect.coap.source
 
 import com.datamountaineer.streamreactor.connect.coap.TestBase
 import com.datamountaineer.streamreactor.connect.coap.configs.CoapConstants
-import org.scalatest.WordSpec
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 28/12/2016. 
   * stream-reactor
   */
-class TestCoapSourceConnector extends WordSpec with TestBase {
+class TestCoapSourceConnector extends AnyWordSpec with TestBase {
   "should create a CoapSourceConnector" in {
     val props = getPropsSecure
     val connector = new CoapSourceConnector
     connector.start(props)
     val taskConfigs = connector.taskConfigs(2)
     taskConfigs.size() shouldBe 1
-    taskConfigs.head.get(CoapConstants.COAP_KCQL) shouldBe SOURCE_KCQL_SECURE
-    taskConfigs.head.get(CoapConstants.COAP_KEY_STORE_PATH) shouldBe KEYSTORE_PATH
-    taskConfigs.head.get(CoapConstants.COAP_TRUST_STORE_PATH) shouldBe TRUSTSTORE_PATH
-    taskConfigs.head.get(CoapConstants.COAP_URI) shouldBe SOURCE_URI_SECURE
+    taskConfigs.asScala.head.get(CoapConstants.COAP_KCQL) shouldBe SOURCE_KCQL_SECURE
+    taskConfigs.asScala.head.get(CoapConstants.COAP_KEY_STORE_PATH) shouldBe KEYSTORE_PATH
+    taskConfigs.asScala.head.get(CoapConstants.COAP_TRUST_STORE_PATH) shouldBe TRUSTSTORE_PATH
+    taskConfigs.asScala.head.get(CoapConstants.COAP_URI) shouldBe SOURCE_URI_SECURE
     connector.taskClass() shouldBe classOf[CoapSourceTask]
   }
 
@@ -46,10 +46,10 @@ class TestCoapSourceConnector extends WordSpec with TestBase {
     connector.start(props)
     val taskConfigs = connector.taskConfigs(2)
     taskConfigs.size() shouldBe 2
-    taskConfigs.head.get(CoapConstants.COAP_KCQL) shouldBe SOURCE_KCQL_SECURE
-    taskConfigs.head.get(CoapConstants.COAP_KEY_STORE_PATH) shouldBe KEYSTORE_PATH
-    taskConfigs.head.get(CoapConstants.COAP_TRUST_STORE_PATH) shouldBe TRUSTSTORE_PATH
-    taskConfigs.head.get(CoapConstants.COAP_URI) shouldBe SOURCE_URI_SECURE
+    taskConfigs.asScala.head.get(CoapConstants.COAP_KCQL) shouldBe SOURCE_KCQL_SECURE
+    taskConfigs.asScala.head.get(CoapConstants.COAP_KEY_STORE_PATH) shouldBe KEYSTORE_PATH
+    taskConfigs.asScala.head.get(CoapConstants.COAP_TRUST_STORE_PATH) shouldBe TRUSTSTORE_PATH
+    taskConfigs.asScala.head.get(CoapConstants.COAP_URI) shouldBe SOURCE_URI_SECURE
     connector.taskClass() shouldBe classOf[CoapSourceTask]
   }
 }

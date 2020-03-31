@@ -16,9 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.blockchain
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class GetResourcesFromDirectoryFnTest extends WordSpec with Matchers {
+class GetResourcesFromDirectoryFnTest extends AnyWordSpec with Matchers {
   "GetResourcesFromDirectoryFn" should {
     "list all the files in a specified resource folder" in {
       val actualFiles = GetResourcesFromDirectoryFn("/testResources")

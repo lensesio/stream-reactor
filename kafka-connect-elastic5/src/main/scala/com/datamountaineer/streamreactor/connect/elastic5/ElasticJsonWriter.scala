@@ -28,11 +28,11 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.landoop.sql.Field
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.Indexable
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -55,14 +55,13 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
   settings.kcqls.foreach { kcql =>
     kcqlMap.put(kcql,
       KcqlValues(
-        kcql.getFields.map(FieldConverter.apply),
-        kcql.getIgnoredFields.map(FieldConverter.apply),
-        kcql.getPrimaryKeys.map { pk =>
-          val path = Option(pk.getParentFields).map(_.toVector).getOrElse(Vector.empty)
+        kcql.getFields.asScala.map(FieldConverter.apply),
+        kcql.getIgnoredFields.asScala.map(FieldConverter.apply),
+        kcql.getPrimaryKeys.asScala.map { pk =>
+          val path = Option(pk.getParentFields).map(_.asScala.toVector).getOrElse(Vector.empty)
           path :+ pk.getName
         }
       ))
-
   }
 
 
@@ -99,13 +98,13 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
   def insert(records: Map[String, Vector[SinkRecord]]): Unit = {
     val fut = records.flatMap {
       case (topic, sinkRecords) =>
-        val kcqls = topicKcqlMap.getOrElse(topic, throw new IllegalArgumentException(s"$topic hasn't been configured in KCQL. Configured topics is ${topicKcqlMap.keys.mkString(",")}"))
+        val kcqls = topicKcqlMap.getOrElse(topic, throw new IllegalArgumentException(s"$topic hasn't been configured in KCQL. Configured topics are ${topicKcqlMap.keys.mkString(",")}"))
 
         //we might have multiple inserts from the same Kafka Message
         kcqls.flatMap { kcql =>
           val i = CreateIndex.getIndexName(kcql)
           val documentType = Option(kcql.getDocType).getOrElse(i)
-          val kcqlValue = kcqlMap(kcql)
+          val kcqlValue = kcqlMap.get(kcql)
           sinkRecords.grouped(settings.batchSize)
             .map { batch =>
               val indexes = batch.map { r =>

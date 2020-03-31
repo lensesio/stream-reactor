@@ -1,14 +1,17 @@
 package com.datamountaineer.streamreactor.connect.ftp.source
 
 
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
-
+import com.typesafe.scalalogging.StrictLogging
 import java.util
+
+import org.scalatest.BeforeAndAfter
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+
 import scala.collection.JavaConverters._
 
 
-class BySlicesTest extends FunSuite with Matchers with BeforeAndAfter with StrictLogging {
+class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with StrictLogging {
 
   val ftpServer = new EmbeddedFtpServer(3333)
 

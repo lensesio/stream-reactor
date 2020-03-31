@@ -3,7 +3,7 @@ package com.landoop.streamreactor.connect.hive.orc
 import com.landoop.streamreactor.connect.hive.OrcSourceConfig
 import com.landoop.streamreactor.connect.hive.orc.vectors.OrcVectorReader.fromSchema
 import com.landoop.streamreactor.connect.hive.orc.vectors.StructVectorReader
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.hive.ql.exec.vector.{StructColumnVector, VectorizedRowBatch}
 import org.apache.kafka.connect.data.Struct

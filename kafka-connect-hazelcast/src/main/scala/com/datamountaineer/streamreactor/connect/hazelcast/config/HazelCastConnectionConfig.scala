@@ -18,7 +18,7 @@ package com.datamountaineer.streamreactor.connect.hazelcast.config
 
 import org.apache.kafka.common.config.SslConfigs
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 10/08/16. 
@@ -49,7 +49,7 @@ case class HazelCastSocketConfig(keepAlive: Boolean = true,
 
 object HazelCastConnectionConfig {
   def apply(config: HazelCastSinkConfig): HazelCastConnectionConfig = {
-    val members = config.getList(HazelCastSinkConfigConstants.CLUSTER_MEMBERS).toSet
+    val members = config.getList(HazelCastSinkConfigConstants.CLUSTER_MEMBERS).asScala.toSet
     val redo = true
     val connectionAttempts = config.getInt(HazelCastSinkConfigConstants.CONNECTION_RETRY_ATTEMPTS)
     val connectionTimeouts = config.getLong(HazelCastSinkConfigConstants.CONNECTION_TIMEOUT)

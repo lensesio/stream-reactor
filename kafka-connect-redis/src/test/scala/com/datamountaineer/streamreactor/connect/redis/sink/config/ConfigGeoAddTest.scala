@@ -1,7 +1,8 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.config
 
 import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSupport
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
@@ -14,7 +15,7 @@ import scala.collection.JavaConverters._
   * 3. If not does not exist record will be skipped
   */
 
-class ConfigGeoAddTest extends WordSpec with Matchers with RedisMockSupport {
+class ConfigGeoAddTest extends AnyWordSpec with Matchers with RedisMockSupport {
 
   // GEOADD with PK
   val KCQL1 = "SELECT * from addressTopic PK addressId STOREAS GeoAdd"

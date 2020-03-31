@@ -23,7 +23,6 @@ project(":kafka-connect-cassandra") {
         jPountzVersion = "1.3.0"
         jsonPathVersion = "2.4.0"
         snappyVersion = "1.1.2.1"
-        smt = "0.1"
         nettyVersion = '4.0.47.Final'
         pegDownversion = "1.6.0"
     }

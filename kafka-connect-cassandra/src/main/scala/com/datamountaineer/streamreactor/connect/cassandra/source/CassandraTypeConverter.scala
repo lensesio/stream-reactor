@@ -23,11 +23,10 @@ import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSourc
 import com.datastax.driver.core.ColumnDefinitions.Definition
 import com.datastax.driver.core.{CodecRegistry, _}
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.ConnectException
 
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
 /**
@@ -54,7 +53,7 @@ class CassandraTypeConverter(private val codecRegistry: CodecRegistry,
     */
   def getStructColumns(row: Row, ignoreList: Set[String]): List[ColumnDefinitions.Definition] = {
     //TODO do we need to get the list of columns everytime?
-    row.getColumnDefinitions.filter(cd => !ignoreList.contains(cd.getName)).toList
+    row.getColumnDefinitions.asScala.filter(cd => !ignoreList.contains(cd.getName)).toList
   }
 
   /**
@@ -131,7 +130,7 @@ class CassandraTypeConverter(private val codecRegistry: CodecRegistry,
     dataType.getName match {
       case DataType.Name.MAP => row.getMap(columnDef.getName, asJavaType(dataType.getTypeArguments.get(0)), asJavaType(dataType.getTypeArguments.get(1)))
       case DataType.Name.LIST => row.getList(columnDef.getName, asJavaType(dataType.getTypeArguments.get(0)))
-      case DataType.Name.SET => row.getSet(columnDef.getName, asJavaType(dataType.getTypeArguments.get(0))).toList.asJava
+      case DataType.Name.SET => row.getSet(columnDef.getName, asJavaType(dataType.getTypeArguments.get(0))).asScala.toList.asJava
       case a@_ => throw new ConnectException(s"Unsupported Cassandra type $a.")
     }
   }

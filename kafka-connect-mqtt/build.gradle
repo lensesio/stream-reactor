@@ -21,7 +21,6 @@ project(":kafka-connect-mqtt") {
         bouncyCastle = "1.54"
         json4s = "3.5.0"
         activeMq = "5.7.0"
-        avro4sVersion = "1.6.4"
     }
 
     dependencies {

@@ -24,11 +24,11 @@ import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, Mo
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.mongodb._
 import com.mongodb.client.model._
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.bson.Document
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.Failure
 import scala.util.Try
 
@@ -125,7 +125,7 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient) extends Str
           }
         }.grouped(batchSize)
           .foreach { batch =>
-            collection.bulkWrite(batch.toList)
+            collection.bulkWrite(batch.toList.asJava)
           }
       }
     }
@@ -177,7 +177,7 @@ object MongoClientProvider extends StrictLogging {
 
     if (settings.username.nonEmpty) {
       val credentials = getCredentials(settings)
-      val servers = connectionString.getHosts.map(h => new ServerAddress(h))
+      val servers = connectionString.getHosts.asScala.map(h => new ServerAddress(h)).asJava
       new MongoClient(servers, credentials, options)
     } else {
       new MongoClient(connectionString)
