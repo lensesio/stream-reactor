@@ -1,9 +1,10 @@
 package com.landoop.streamreactor.connect.hive
 
 import cats.data.NonEmptyList
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class DefaultPartitionLocationTest extends FunSuite with Matchers {
+class DefaultPartitionLocationTest extends AnyFunSuite with Matchers {
   test("show should generate path using the standard metastore pattern") {
     val p1 = (PartitionKey("country"), "usa")
     val p2 = (PartitionKey("city"), "philly")

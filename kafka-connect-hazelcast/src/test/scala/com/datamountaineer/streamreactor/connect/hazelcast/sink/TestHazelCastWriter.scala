@@ -26,7 +26,7 @@ import com.hazelcast.ringbuffer.Ringbuffer
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.common.config.SslConfigs
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 
 /**
@@ -210,7 +210,7 @@ class TestHazelCastWriter extends TestBase {
       HazelCastSinkConfigConstants.GROUP_NAME->TESTS_GROUP_NAME,
       HazelCastSinkConfigConstants.CLUSTER_MEMBERS->"localhost"
     )
-    val config = new HazelCastSinkConfig(props)
+    val config = new HazelCastSinkConfig(props.asJava)
     val settings = HazelCastSinkSettings(config)
     val writer = HazelCastWriter(settings)
     val records = getTestRecords()
@@ -265,7 +265,7 @@ class TestHazelCastWriter extends TestBase {
       SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG -> keystoreFilePath,
       SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG -> "keystore-password")
 
-    val config = new HazelCastSinkConfig(ssl)
+    val config = new HazelCastSinkConfig(ssl.asJava)
     val conConfig = HazelCastConnectionConfig(config)
 
     conConfig.sslEnabled shouldBe true

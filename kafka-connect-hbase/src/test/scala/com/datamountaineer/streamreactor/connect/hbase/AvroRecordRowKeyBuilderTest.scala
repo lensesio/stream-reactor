@@ -22,10 +22,11 @@ import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.mockito.MockitoSugar
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class AvroRecordRowKeyBuilderTest extends WordSpec with Matchers with MockitoSugar {
+class AvroRecordRowKeyBuilderTest extends AnyWordSpec with Matchers with MockitoSugar {
   val schema: Schema = new Schema.Parser().parse(PersonAvroSchema.schema)
 
   "AvroRecordRowKeyBuilder" should {

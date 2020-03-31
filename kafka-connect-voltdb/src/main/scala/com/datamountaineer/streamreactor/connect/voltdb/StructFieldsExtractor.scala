@@ -19,10 +19,10 @@ package com.datamountaineer.streamreactor.connect.voltdb
 import java.text.SimpleDateFormat
 import java.util.TimeZone
 
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.{Field, Struct, _}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 trait FieldsValuesExtractor {
   def get(struct: Struct): Map[String, Any]
@@ -38,9 +38,9 @@ case class StructFieldsExtractor(targetTable: String,
     val schema = struct.schema()
     val fields: Seq[Field] = {
       if (includeAllFields) {
-        schema.fields()
+        schema.fields().asScala
       } else {
-        val selectedFields = schema.fields().filter(f => fieldsAliasMap.contains(f.name()))
+        val selectedFields = schema.fields().asScala.filter(f => fieldsAliasMap.contains(f.name()))
         val diffSet = fieldsAliasMap.keySet.diff(selectedFields.map(_.name()).toSet)
         if (diffSet.nonEmpty) {
           val errMsg = s"Following columns ${diffSet.mkString(",")} have not been found. Available columns:${fieldsAliasMap.keys.mkString(",")}"

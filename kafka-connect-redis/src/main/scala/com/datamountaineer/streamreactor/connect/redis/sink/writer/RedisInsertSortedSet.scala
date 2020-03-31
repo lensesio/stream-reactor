@@ -21,7 +21,7 @@ import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisKCQLSet
 import com.datamountaineer.streamreactor.connect.rowkeys.StringStructFieldsStringKeyBuilder
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.Try
 
 /**
@@ -46,7 +46,7 @@ class RedisInsertSortedSet(sinkSettings: RedisSinkSettings) extends RedisWriter 
     assert(c.getTarget.length > 0, "Add to your KCQL syntax : INSERT INTO REDIS_KEY_NAME ")
     assert(c.getSource.trim.length > 0, "You need to define one (1) topic to source data. Add to your KCQL syntax: SELECT * FROM topicName")
     val allFields = if (c.getIgnoredFields.isEmpty) false else true
-    assert(c.getFields.nonEmpty || allFields, "You need to SELECT at least one field from the topic to be stored in the Redis (sorted) set. Please review the KCQL syntax of connector")
+    assert(c.getFields.asScala.nonEmpty || allFields, "You need to SELECT at least one field from the topic to be stored in the Redis (sorted) set. Please review the KCQL syntax of connector")
     assert(c.getPrimaryKeys.isEmpty, s"They keyword PK (Primary Key) is not supported in Redis INSERT_SS mode. Please review the KCQL syntax of connector")
     assert(c.getStoredAs.equalsIgnoreCase("SortedSet"), "This mode requires the KCQL syntax: STOREAS SortedSet")
   }

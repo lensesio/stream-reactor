@@ -11,13 +11,13 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.metastore.api.Database
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
-import org.scalatest.FlatSpec
-import org.scalatest.Matchers
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-class HiveParquetSinkTest extends FlatSpec with Matchers with HiveTestConfig {
+class HiveParquetSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig {
 
   val schema = SchemaBuilder.struct()
     .field("name", SchemaBuilder.string().required().build())

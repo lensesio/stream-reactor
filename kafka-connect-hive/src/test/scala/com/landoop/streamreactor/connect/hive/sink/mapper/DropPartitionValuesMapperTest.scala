@@ -3,11 +3,12 @@ package com.landoop.streamreactor.connect.hive.sink.mapper
 import cats.data.NonEmptyList
 import com.landoop.streamreactor.connect.hive.{PartitionKey, PartitionPlan, TableName}
 import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.JavaConverters._
 
-class DropPartitionValuesMapperTest extends FunSuite with Matchers {
+class DropPartitionValuesMapperTest extends AnyFunSuite with Matchers {
 
   test("strip partition values") {
 

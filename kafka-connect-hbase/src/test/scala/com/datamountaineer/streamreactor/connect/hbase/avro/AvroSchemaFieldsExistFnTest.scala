@@ -18,10 +18,11 @@ package com.datamountaineer.streamreactor.connect.hbase.avro
 
 import com.datamountaineer.streamreactor.connect.hbase.PersonAvroSchema
 import org.apache.avro.Schema
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 
-class AvroSchemaFieldsExistFnTest extends WordSpec with Matchers {
+class AvroSchemaFieldsExistFnTest extends AnyWordSpec with Matchers {
   val schema: Schema = new Schema.Parser().parse(PersonAvroSchema.schema)
 
   "AvroSchemaFieldsExistFn" should {

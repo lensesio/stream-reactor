@@ -27,9 +27,10 @@ import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.bson.Document
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class SinkRecordToDocumentTest extends WordSpec with Matchers with ConverterUtil {
+class SinkRecordToDocumentTest extends AnyWordSpec with Matchers with ConverterUtil {
   "SinkRecordToDocument" should {
     "convert Kafka Struct to a Mongo Document" in {
       for (i <- 1 to 4) {

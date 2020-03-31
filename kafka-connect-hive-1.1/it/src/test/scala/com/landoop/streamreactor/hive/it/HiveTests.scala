@@ -16,7 +16,7 @@ import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord, KafkaC
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
 import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
 import org.asynchttpclient.Dsl
-import org.scalatest.Matchers
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
@@ -49,7 +49,7 @@ trait HiveTests extends Matchers {
   protected def createTopic(): String = {
     val name = "no_partition_" + Math.abs(Random.nextInt)
     Try {
-      admin.createTopics(List(new NewTopic(name, 1, 1)).asJavaCollection).all().get(30, TimeUnit.SECONDS)
+      admin.createTopics(List(new NewTopic(name, 1, 1.toShort)).asJavaCollection).all().get(30, TimeUnit.SECONDS)
       name
     }.getOrElse(sys.error(s"Could not create topic $name"))
   }

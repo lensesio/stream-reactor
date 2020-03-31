@@ -5,7 +5,7 @@ import org.apache.kafka.connect.data.{Field, Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.annotation.tailrec
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Builds a new key from the payload fields specified
@@ -28,7 +28,7 @@ case class RedisFieldsKeyBuilder(keys: Seq[String], pkDelimiter: String) extends
     def extractAvailableFieldNames(schema: Schema): Seq[String] = {
       if (schema.`type` == Schema.Type.STRUCT) {
         val fields = schema.fields
-        fields.map(_.name) ++ fields.flatMap { f =>
+        fields.asScala.map(_.name) ++ fields.asScala.flatMap { f =>
           extractAvailableFieldNames(f.schema).map(name => f.name + "." + name)
         }
       } else Seq.empty

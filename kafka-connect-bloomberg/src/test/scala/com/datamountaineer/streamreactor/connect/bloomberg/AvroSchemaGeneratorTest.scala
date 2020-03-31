@@ -22,12 +22,12 @@ import com.datamountaineer.streamreactor.connect.bloomberg.avro.AvroSchemaGenera
 import org.apache.avro.Schema
 import org.apache.avro.generic.{GenericData, GenericDatumReader, GenericRecord}
 import org.apache.avro.io.DecoderFactory
-import org.codehaus.jackson.JsonNode
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
-class AvroSchemaGeneratorTest extends WordSpec with Matchers {
+class AvroSchemaGeneratorTest extends AnyWordSpec with Matchers {
   val namespace = "io.confluent.connect.avro"
   val schemaGenerator = new AvroSchemaGenerator(namespace)
 

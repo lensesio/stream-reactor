@@ -27,11 +27,10 @@ import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kudu.client.SessionConfiguration.FlushMode
 import org.apache.kudu.client._
-import org.mockito.Matchers.{any, eq => mockEq}
-import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+import org.mockito.ArgumentMatchers .{any, eq => mockEq}
 
-import scala.collection.JavaConversions._
+import org.mockito.MockitoSugar
+
 import scala.collection.JavaConverters._
 
 /**
@@ -292,7 +291,7 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
     when(resp.hasRowError).thenReturn(true)
     when(errorRow.toString).thenReturn("Test error string")
     when(resp.getRowError).thenReturn(errorRow)
-    when(kuduSession.flush()).thenReturn(List(resp))
+    when(kuduSession.flush()).thenReturn(List(resp).asJava)
     when(kuduSession.getFlushMode).thenReturn(FlushMode.AUTO_FLUSH_SYNC)
     when(client.getTablesList).thenReturn(tableresp)
     when(tableresp.getTablesList).thenReturn(List.empty[String].asJava)

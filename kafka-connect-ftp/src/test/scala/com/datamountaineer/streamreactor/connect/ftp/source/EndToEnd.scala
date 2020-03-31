@@ -21,7 +21,7 @@ import java.util
 
 import better.files._
 import com.datamountaineer.streamreactor.connect.ftp.source.KeyStyle.KeyStyle
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.ftpserver.listener.ListenerFactory
 import org.apache.ftpserver.usermanager.PropertiesUserManagerFactory
 import org.apache.ftpserver.usermanager.impl.BaseUser

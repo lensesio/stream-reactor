@@ -24,7 +24,7 @@ import com.landoop.connect.sql.StructSql._
 import com.landoop.json.sql.JacksonJson
 import com.landoop.json.sql.JsonSql._
 import com.landoop.sql.Field
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.{Schema, Struct}
 
 import scala.util.{Failure, Success, Try}

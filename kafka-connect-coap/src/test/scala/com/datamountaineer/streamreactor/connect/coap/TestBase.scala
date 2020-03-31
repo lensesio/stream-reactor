@@ -28,9 +28,10 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.eclipse.californium.core.coap.CoAP.{ResponseCode, Type}
 import org.eclipse.californium.core.coap.{MediaTypeRegistry, OptionSet, Response}
 import org.eclipse.californium.elements.{RawData, RawDataChannel}
-import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
+import org.scalatest.BeforeAndAfter
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
@@ -38,7 +39,7 @@ import scala.collection.mutable
   * Created by andrew@datamountaineer.com on 08/08/16. 
   * stream-reactor
   */
-trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
+trait TestBase extends AnyWordSpec with BeforeAndAfter with Matchers {
   val TOPIC = "coap_test"
   val RESOURCE_SECURE = "secure"
   val RESOURCE_INSECURE = "insecure"
@@ -244,7 +245,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
   //generate some test records
   def getTestRecords(nbr : Int = 1) : Set[SinkRecord]= {
     val schema = createSchema
-    val assignment: mutable.Set[TopicPartition] = getAssignment
+    val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
 
     assignment.flatMap(a => {
       (1 to nbr).map(i => {

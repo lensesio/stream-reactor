@@ -17,10 +17,10 @@
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSourceSetting, TimestampType}
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLogging {
 
@@ -100,7 +100,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
    * @return the comma separated columns
    */
   private def getSelectColumns(): String = {
-    val fieldList = kcql.getFields.map(fa => fa.getName)
+    val fieldList = kcql.getFields.asScala.map(fa => fa.getName)
     // if no columns set then select all the columns in the table
     val selectColumns = if (fieldList == null || fieldList.isEmpty) "*" else fieldList.mkString(",")
     logger.debug(s"the fields to select are $selectColumns")

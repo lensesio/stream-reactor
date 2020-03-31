@@ -35,12 +35,14 @@ import io.moquette.server.Server
 import io.moquette.server.config.ClasspathConfig
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.source.SourceRecord
-import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
+import org.scalatest.BeforeAndAfter
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.Try
 
-class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
+class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
 
   val classPathConfig = new ClasspathConfig()
   val connection = "tcp://0.0.0.0:1883"
@@ -421,7 +423,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
 
         val avroData = new AvroData(4)
 
-        records.foreach { record =>
+        records.asScala.foreach { record =>
 
           record.keySchema() shouldBe MsgKey.schema
           val source = record.key().asInstanceOf[Struct].get("topic")
@@ -545,7 +547,7 @@ class MqttManagerTest extends WordSpec with Matchers with BeforeAndAfter {
       )
       val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
         sourcesToConvMap,
-        MqttSourceSettings(MqttSourceConfig(props)))
+        MqttSourceSettings(MqttSourceConfig(props.asJava)))
       Thread.sleep(2000)
 
       val message = "message"

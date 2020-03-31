@@ -24,12 +24,12 @@ import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
 import com.datamountaineer.streamreactor.connect.influx.converters.{InfluxPoint, SinkRecordParser}
 import com.datamountaineer.streamreactor.connect.influx.helpers.Util
 import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails._
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.influxdb.dto.{BatchPoints, Point}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 
@@ -50,19 +50,19 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
         case other => other
       }).map(_.split('.')).map(_.toSeq)
 
-      val fields: Seq[(FieldName, Path, Option[Alias])] = kcql.getFields.toList.map { field =>
+      val fields: Seq[(FieldName, Path, Option[Alias])] = kcql.getFields.asScala.toList.map { field =>
         (
           FieldName(Option(field.getAlias).getOrElse(field.getName)),
-          Path(Option(field.getParentFields).map(_.toList).getOrElse(List.empty[String]) ::: field.getName :: Nil),
+          Path(Option(field.getParentFields).map(_.asScala.toList).getOrElse(List.empty[String]) ::: field.getName :: Nil),
           Option(field.getAlias).filter(_ != field.getName).map(Alias)
         )
       }
 
-      val ignores = kcql.getIgnoredFields.toList.map(field =>
-        (FieldName(field.getName), Path(Option(field.getParentFields).map(_.toList).getOrElse(List.empty[String]) ::: field.getName :: Nil), Option(field.getAlias).map(Alias))
+      val ignores = kcql.getIgnoredFields.asScala.toList.map(field =>
+        (FieldName(field.getName), Path(Option(field.getParentFields).map(_.asScala.toList).getOrElse(List.empty[String]) ::: field.getName :: Nil), Option(field.getAlias).map(Alias))
       ).toSet
 
-      val tags = Option(kcql.getTags).toList.flatten.map { tag =>
+      val tags = Option(kcql.getTags.asScala).toList.flatten.map { tag =>
         tag.getType match {
           case Tag.TagType.ALIAS => DynamicTag(FieldName(tag.getValue),Path(tag.getKey.split('.').toList))
           case Tag.TagType.CONSTANT => ConstantTag(FieldName(tag.getKey), tag.getValue)
@@ -108,12 +108,6 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
 
 /**
   * Builds a cache of fields path (fields to select, fields to ignore, tags and timestamp)
-  *
-  * @param kcql
-  * @param fieldsAndPaths
-  * @param ignoredFields
-  * @param tags
-  * @param timestampField
   */
 case class KcqlDetails(fields: Seq[(FieldName, Path, Option[Alias])],
                        ignoredFields: Set[(FieldName, Path, Option[Alias])],

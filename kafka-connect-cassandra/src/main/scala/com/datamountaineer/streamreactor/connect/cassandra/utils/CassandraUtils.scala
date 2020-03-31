@@ -20,7 +20,7 @@ import com.datamountaineer.kcql.Kcql
 import com.datastax.driver.core.Cluster
 import org.apache.kafka.connect.errors.ConnectException
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 21/04/16.
@@ -36,7 +36,7 @@ object CassandraUtils {
     **/
   def checkCassandraTables(cluster: Cluster, routes: Seq[Kcql], keySpace: String): Unit = {
     val metaData = cluster.getMetadata.getKeyspace(keySpace).getTables
-    val tables = metaData.map(t => t.getName.toLowerCase).toSeq
+    val tables = metaData.asScala.map(t => t.getName.toLowerCase).toSeq
     val topics = routes.map(rm => rm.getTarget.toLowerCase)
 
     //check tables

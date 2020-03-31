@@ -23,7 +23,7 @@ import java.util
 import java.util.TimeZone
 
 import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.DataException
 import org.apache.kafka.connect.sink.SinkRecord
@@ -32,7 +32,7 @@ import org.json4s.JValue
 import org.json4s.JsonAST._
 
 import scala.annotation.tailrec
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.Try
 
 object SinkRecordConverter extends StrictLogging {
@@ -138,7 +138,7 @@ object SinkRecordConverter extends StrictLogging {
                 val valueSchema = Option(schema).map(_.valueSchema()).orNull
                 val list = new java.util.ArrayList[Any]
                 value
-                  .asInstanceOf[java.util.Collection[_]]
+                  .asInstanceOf[java.util.Collection[_]].asScala
                   .foreach { elem =>
                     list.add(convertToDocument(valueSchema, elem))
                   }
@@ -149,7 +149,7 @@ object SinkRecordConverter extends StrictLogging {
                 // If true, using string keys and JSON object; if false, using non-string keys and Array-encoding
                 val objectMode: Boolean = Option(schema)
                   .map(_.keySchema.`type` eq Schema.Type.STRING)
-                  .getOrElse(map.entrySet().headOption.forall(_.getKey.isInstanceOf[String]))
+                  .getOrElse(map.entrySet().asScala.headOption.forall(_.getKey.isInstanceOf[String]))
 
                 var obj: Document = null
                 var list: java.util.ArrayList[Any] = null
@@ -157,7 +157,7 @@ object SinkRecordConverter extends StrictLogging {
                 if (objectMode) obj = new Document()
                 else list = new util.ArrayList[Any]()
 
-                for (entry <- map.entrySet) {
+                for (entry <- map.entrySet.asScala) {
                   val keySchema = Option(schema).map(_.keySchema()).orNull
                   val valueSchema = Option(schema).map(_.valueSchema).orNull
 
@@ -183,7 +183,7 @@ object SinkRecordConverter extends StrictLogging {
                 val struct = value.asInstanceOf[Struct]
                 if (struct.schema != schema) throw new DataException("Mismatching schema.")
 
-                schema.fields
+                schema.fields.asScala
                   .foldLeft(new Document) { (document, field) =>
                     Option(convertToDocument(field.schema, struct.get(field)))
                       .foreach(//case bd: BigDecimal => document.append(field.name, bd.toDouble)

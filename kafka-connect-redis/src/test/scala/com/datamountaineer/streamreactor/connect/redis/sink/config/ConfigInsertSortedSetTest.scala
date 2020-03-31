@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.config
 
 import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSupport
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
@@ -31,7 +32,7 @@ import scala.collection.JavaConverters._
   * 2. If not, try to use the field `timestamp` (if it exists)
   * 3. If not does not exist use current time as the timestamp <system.now>
   */
-class ConfigInsertSortedSetTest extends WordSpec with Matchers with RedisMockSupport {
+class ConfigInsertSortedSetTest extends AnyWordSpec with Matchers with RedisMockSupport {
 
   // Insert into a Single Sorted Set
   val KCQL1 = "INSERT INTO cpu_stats SELECT * from cpuTopic STOREAS SortedSet"

@@ -19,11 +19,8 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.config
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
 import com.microsoft.azure.documentdb.ConsistencyLevel
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
-
-import scala.util.{Failure, Success, Try}
-
 
 case class DocumentDbSinkSettings(endpoint: String,
                                   masterKey: String,

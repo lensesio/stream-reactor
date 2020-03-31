@@ -1,7 +1,8 @@
 package com.datamountaineer.streamreactor.connect.pulsar.config
 
 import com.datamountaineer.kcql.CompressionType
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
@@ -9,7 +10,7 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 22/01/2018. 
   * stream-reactor
   */
-class PulsarSinkSettingsTest extends WordSpec with Matchers {
+class PulsarSinkSettingsTest extends AnyWordSpec with Matchers {
 
   val topic = "persistent://landoop/standalone/connect/kafka-topic"
 

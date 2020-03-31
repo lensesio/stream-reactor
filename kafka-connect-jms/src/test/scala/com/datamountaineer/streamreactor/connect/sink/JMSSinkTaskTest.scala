@@ -30,9 +30,9 @@ import org.apache.activemq.broker.BrokerService
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.json.JsonDeserializer
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
-import org.mockito.Mockito._
+
 import org.scalatest.BeforeAndAfterAll
-import org.scalatest.mockito.MockitoSugar
+import org.mockito.MockitoSugar
 
 import scala.reflect.io.Path
 

@@ -22,8 +22,7 @@ import java.security.cert.Certificate
 import java.security.{KeyStore, PrivateKey}
 
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSetting}
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.ConfigException
+import com.typesafe.scalalogging.StrictLogging
 import org.eclipse.californium.core.coap.CoAP
 import org.eclipse.californium.core.CoapClient
 import org.eclipse.californium.core.network.CoapEndpoint

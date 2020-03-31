@@ -16,14 +16,11 @@
 
 package com.datamountaineer.streamreactor.connect.coap.connection
 
-import java.net.{ConnectException, URI}
 
-import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSetting}
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.eclipse.californium.core.network.CoapEndpoint
-import org.eclipse.californium.core.network.config.NetworkConfig
-import org.eclipse.californium.core.{CoapClient, CoapResponse}
-import org.eclipse.californium.scandium.DTLSConnector
+import com.datamountaineer.streamreactor.connect.coap.configs.CoapSetting
+import com.typesafe.scalalogging.StrictLogging
+ import org.eclipse.californium.core.{CoapClient, CoapResponse}
+
 
 /**
   * Created by andrew@datamountaineer.com on 29/12/2016. 

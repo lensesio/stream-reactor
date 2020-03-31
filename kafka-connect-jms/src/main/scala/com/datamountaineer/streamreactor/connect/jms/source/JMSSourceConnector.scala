@@ -21,13 +21,13 @@ import java.util
 import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
 import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.collection.JavaConverters._
 
 /**
@@ -47,7 +47,7 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
 
     //sql1, sql2
     val kcqls = raw.split(";")
-    val groups = ConnectorUtils.groupPartitions(kcqls.toList, maxTasks)
+    val groups = ConnectorUtils.groupPartitions(kcqls.toList.asJava, maxTasks).asScala
 
     //split up the kcql statement based on the number of tasks.
     groups
@@ -55,10 +55,10 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
       .map { g =>
         val taskConfigs = new java.util.HashMap[String, String]
         taskConfigs.putAll(configProps)
-        taskConfigs.put(JMSConfigConstants.KCQL, g.mkString(";")) //overwrite
-        taskConfigs.toMap.asJava
+        taskConfigs.put(JMSConfigConstants.KCQL, g.asScala.mkString(";")) //overwrite
+        taskConfigs.asScala.toMap.asJava
       }
-  }
+  }.asJava
 
   def defaultTaskScaling(maxTasks: Int): util.List[util.Map[String, String]] = {
     val raw = configProps.get(JMSConfigConstants.KCQL)

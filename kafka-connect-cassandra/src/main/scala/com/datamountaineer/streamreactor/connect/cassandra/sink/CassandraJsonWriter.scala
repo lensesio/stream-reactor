@@ -29,12 +29,12 @@ import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datastax.driver.core.exceptions.SyntaxError
 import com.datastax.driver.core.{PreparedStatement, Session}
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
@@ -180,8 +180,8 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
     val tables = preparedCache.getOrElse(record.topic(), throw new IllegalArgumentException(s"Topic ${record.topic()} doesn't have a KCQL setup"))
     tables.foreach { case (table, (statement, kcql)) =>
       val json = Transform(
-        kcql.getFields.map(FieldConverter.apply),
-        kcql.getIgnoredFields.map(FieldConverter.apply),
+        kcql.getFields.asScala.map(FieldConverter.apply),
+        kcql.getIgnoredFields.asScala.map(FieldConverter.apply),
         record.valueSchema(),
         record.value(),
         kcql.hasRetainStructure())

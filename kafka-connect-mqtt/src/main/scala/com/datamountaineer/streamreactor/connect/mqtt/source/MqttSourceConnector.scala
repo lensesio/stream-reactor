@@ -21,7 +21,7 @@ import java.util.Collections
 
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttSourceConfig, MqttSourceSettings}
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
@@ -63,8 +63,8 @@ class MqttSourceConnector extends SourceConnector with StrictLogging {
         .zipWithIndex
         .map { case (p, index) =>
           val map = settings.copy(kcql = p, clientId = settings.clientId + "-" + index).asMap()
-          import scala.collection.JavaConversions._
-          configProps
+          import scala.collection.JavaConverters._
+          configProps.asScala
             .filterNot { case (k, _) => map.containsKey(k) }
             .foreach { case (k, v) => map.put(k, v) }
           map

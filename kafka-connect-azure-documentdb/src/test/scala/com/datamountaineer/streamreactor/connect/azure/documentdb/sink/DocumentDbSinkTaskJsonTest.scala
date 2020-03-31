@@ -22,13 +22,13 @@ import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.mockito.ArgumentMatchers.{any, eq => mockEq}
-import org.mockito.Mockito.{verify, _}
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.mockito.MockitoSugar
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
-class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSugar with MatchingArgument {
+class DocumentDbSinkTaskJsonTest extends AnyWordSpec with Matchers with MockitoSugar with MatchingArgument {
   private val connection = "https://accountName.documents.azure.com:443/"
   private val avroData = new AvroData(4)
 
@@ -39,7 +39,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
         DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO coll1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topic2"
-      )
+      ).asJava
 
       val documentClient = mock[DocumentClient]
       val dbResource: ResourceResponse[Database] = mock[ResourceResponse[Database]]
@@ -104,7 +104,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
             mockEq(false)))
         .thenReturn(r2)
 
-      task.put(Seq(sinkRecord1, sinkRecord2))
+      task.put(Seq(sinkRecord1, sinkRecord2).asJava)
 
       verify(documentClient)
         .createDocument(
@@ -136,7 +136,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
         DocumentDbConfigConstants.CONSISTENCY_CONFIG -> ConsistencyLevel.Eventual.toString,
         DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO coll1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topic2"
-      )
+      ).asJava
 
       val documentClient = mock[DocumentClient]
       val dbResource: ResourceResponse[Database] = mock[ResourceResponse[Database]]
@@ -199,7 +199,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
             },
             mockEq(false)))
         .thenReturn(r2)
-      task.put(Seq(sinkRecord1, sinkRecord2))
+      task.put(Seq(sinkRecord1, sinkRecord2).asJava)
 
       verify(documentClient)
         .createDocument(
@@ -231,7 +231,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
         DocumentDbConfigConstants.CONSISTENCY_CONFIG -> ConsistencyLevel.Eventual.toString,
         DocumentDbConfigConstants.KCQL_CONFIG -> "UPSERT INTO coll1 SELECT * FROM topic1 PK time"
-      )
+      ).asJava
 
       val documentClient = mock[DocumentClient]
       val dbResource: ResourceResponse[Database] = mock[ResourceResponse[Database]]
@@ -295,7 +295,7 @@ class DocumentDbSinkTaskJsonTest extends WordSpec with Matchers with MockitoSuga
             }, mockEq(true)))
         .thenReturn(r2)
 
-      task.put(Seq(sinkRecord1, sinkRecord2))
+      task.put(Seq(sinkRecord1, sinkRecord2).asJava)
 
       verify(documentClient)
         .upsertDocument(

@@ -6,8 +6,9 @@ import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarConfigConst
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.mockito.Mockito.when
-import org.scalatest.{Matchers, WordSpec}
-import org.scalatest.mockito.MockitoSugar
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.mockito.MockitoSugar
 
 import scala.collection.JavaConverters._
 
@@ -15,7 +16,7 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 24/01/2018. 
   * stream-reactor
   */
-class PulsarSinkTaskTest extends WordSpec with Matchers with MockitoSugar {
+class PulsarSinkTaskTest extends AnyWordSpec with Matchers with MockitoSugar {
 
   val pulsarTopic = "persistent://landoop/standalone/connect/kafka-topic"
 

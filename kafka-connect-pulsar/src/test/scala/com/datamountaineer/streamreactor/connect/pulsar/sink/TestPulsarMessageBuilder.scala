@@ -17,14 +17,16 @@
 package com.datamountaineer.streamreactor.connect.pulsar.sink
 
 import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSinkConfig, PulsarSinkSettings}
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
-class TestPulsarMessageBuilder extends WordSpec with Matchers with BeforeAndAfterAll with StrictLogging {
+class TestPulsarMessageBuilder extends AnyWordSpec with Matchers with BeforeAndAfterAll with StrictLogging {
 
   val pulsarTopic = "persistent://landoop/standalone/connect/kafka-topic"
 

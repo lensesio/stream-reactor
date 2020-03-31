@@ -28,8 +28,8 @@ import com.sksamuel.elastic4s.http.HttpClient
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.elasticsearch.common.settings.Settings
 import org.elasticsearch.index.IndexNotFoundException
-import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+
+import org.mockito.MockitoSugar
 
 import scala.reflect.io.File
 

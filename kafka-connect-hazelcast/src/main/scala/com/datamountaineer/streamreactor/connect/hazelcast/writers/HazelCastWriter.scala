@@ -23,7 +23,7 @@ import com.datamountaineer.streamreactor.connect.concurrent.FutureAwaitWithFailF
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkSettings, HazelCastStoreAsType, TargetType}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.concurrent.duration._

@@ -23,11 +23,12 @@ import com.landoop.json.sql.JacksonJson
 import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.util.{Success, Try}
 
-class ValuesExtractorJsonTest extends WordSpec with Matchers {
+class ValuesExtractorJsonTest extends AnyWordSpec with Matchers {
   val avroData = new AvroData(8)
 
   "ValuesExtractor" should {

@@ -20,7 +20,7 @@ import java.util
 import java.util.concurrent.{ArrayBlockingQueue, BlockingQueue}
 
 import com.bloomberglp.blpapi._
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 
 import scala.collection.JavaConverters._
 

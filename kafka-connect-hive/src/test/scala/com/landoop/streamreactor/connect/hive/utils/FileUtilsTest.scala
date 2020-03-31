@@ -2,12 +2,11 @@ package com.landoop.streamreactor.connect.hive.utils
 
 import java.io.File
 
-
 import org.apache.kafka.common.config.ConfigException
-import org.scalatest.FunSuite
-import org.scalatest.Matchers
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class FileUtilsTest extends FunSuite with Matchers {
+class FileUtilsTest extends AnyFunSuite with Matchers {
   test("raises an exception if the file does not exists") {
     intercept[ConfigException] {
       FileUtils.throwIfNotExists("does_not_exist.file", "k1")

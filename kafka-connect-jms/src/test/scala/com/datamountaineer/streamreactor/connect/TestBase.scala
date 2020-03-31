@@ -30,8 +30,9 @@ import org.apache.activemq.broker.BrokerService
 import org.apache.activemq.jndi.ActiveMQInitialContextFactory
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.mockito.MockitoSugar
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
@@ -42,7 +43,7 @@ import scala.collection.JavaConverters._
 case class Student(name: String, age: Int, note: Double)
 
 
-trait TestBase extends WordSpec with Matchers with MockitoSugar {
+trait TestBase extends AnyWordSpec with Matchers with MockitoSugar {
 
   val MESSAGE_SELECTOR = "a > b"
   val JMS_USER = ""

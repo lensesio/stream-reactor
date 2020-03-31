@@ -28,7 +28,7 @@ import com.hazelcast.client.config.{ClientConfig, ClientNetworkConfig, SocketOpt
 import com.hazelcast.config.{GroupConfig, SSLConfig}
 import com.hazelcast.core.HazelcastInstance
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 10/08/16. 
@@ -42,7 +42,7 @@ object HazelCastConnection {
    if (config.sslEnabled) {
      networkConfig.setSSLConfig(new SSLConfig().setEnabled(true).setProperties(getSSLOptions(config)))
    }
-    networkConfig.setAddresses(config.members.toList)
+    networkConfig.setAddresses(config.members.toList.asJava)
 
     val groupConfig = new GroupConfig(config.group, config.pass)
     clientConfig.setGroupConfig(groupConfig)

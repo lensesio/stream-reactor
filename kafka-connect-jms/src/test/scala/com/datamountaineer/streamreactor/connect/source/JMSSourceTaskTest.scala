@@ -28,9 +28,9 @@ import org.apache.activemq.broker.BrokerService
 import org.apache.activemq.broker.jmx.QueueViewMBean
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.scalatest.concurrent.Eventually
-import org.mockito.Mockito._
+
 import org.scalatest.BeforeAndAfterAll
-import org.scalatest.mockito.MockitoSugar
+import org.mockito.MockitoSugar
 
 import scala.collection.JavaConverters._
 import scala.reflect.io.Path

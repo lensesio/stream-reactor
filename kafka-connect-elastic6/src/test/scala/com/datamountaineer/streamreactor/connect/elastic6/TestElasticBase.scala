@@ -25,12 +25,14 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
+import org.scalatest.BeforeAndAfter
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-trait TestElasticBase extends WordSpec with Matchers with BeforeAndAfter {
+trait TestElasticBase extends AnyWordSpec with Matchers with BeforeAndAfter {
   val ELASTIC_SEARCH_HOSTNAMES = "localhost:9300"
   val BASIC_AUTH_USERNAME = "usertest"
   val BASIC_AUTH_PASSWORD = "userpassword"
