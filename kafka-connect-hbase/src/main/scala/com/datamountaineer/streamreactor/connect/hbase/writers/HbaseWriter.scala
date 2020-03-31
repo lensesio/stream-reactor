@@ -22,6 +22,7 @@ import com.datamountaineer.streamreactor.connect.hbase.config.HBaseSettings
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.sink.DbWriter
 import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.client.{Connection, ConnectionFactory, Put}
 import org.apache.hadoop.hbase.util.Bytes

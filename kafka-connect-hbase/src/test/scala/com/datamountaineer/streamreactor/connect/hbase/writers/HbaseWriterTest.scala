@@ -38,6 +38,11 @@ import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kafka.connect.sink.SinkRecord
+import org.kitesdk.minicluster.{HBaseService, HdfsService, MiniCluster, ZookeeperService}
+import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterAll
@@ -46,6 +51,21 @@ import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
+class HbaseWriterTest extends AnyWordSpec with Matchers with MockitoSugar with BeforeAndAfterAll {
+//
+//  var miniCluster: Option[HBaseTestingUtility] = None
+//  var connection : Option[Connection] = None
+//
+//  override def beforeAll(): Unit = {
+//    miniCluster = Some(new HBaseTestingUtility())
+//    miniCluster.get.startMiniCluster(1)
+//    connection = Some(miniCluster.get.getConnection())
+//  }
+//
+//  override def afterAll() {
+////    connection.get.close()
+////    miniCluster.get.shutdownMiniCluster()
+//  }
 
 class HbaseWriterTest
     extends AnyWordSpec

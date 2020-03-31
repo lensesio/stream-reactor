@@ -17,6 +17,7 @@
 project(":kafka-connect-voltdb") {
 
     ext {
+        jnaVersion = '3.0.9'
         voltVersion = "6.4"
     }
 

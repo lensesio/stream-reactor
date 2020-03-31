@@ -24,6 +24,11 @@ import scala.collection.JavaConverters._
 import scala.util.Try
 
 class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with StrictLogging {
+class HiveSourceTest
+    extends AnyWordSpec
+    with Matchers
+    with HiveTestConfig
+    with StrictLogging {
 
   val dbname = "source_test2"
 

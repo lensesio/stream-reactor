@@ -21,14 +21,16 @@ import java.util
 import java.util.UUID
 
 import javax.jms.{Message, MessageListener, Session, TextMessage}
-import com.datamountaineer.streamreactor.connect.{TestBase, Using}
+import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.sink.JMSSinkTask
 import com.fasterxml.jackson.databind.node.{ArrayNode, IntNode}
+import com.sksamuel.scalax.io.Using
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.json.JsonDeserializer
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
+
 import org.scalatest.BeforeAndAfterAll
 import org.mockito.MockitoSugar
 
