@@ -6,7 +6,7 @@ import cats.data.NonEmptyList
 import com.landoop.streamreactor.connect.hive.formats.HiveFormat
 import com.landoop.streamreactor.connect.hive.sink.HiveSink
 import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfig
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.hive.metastore.api.{FieldSchema, SerDeInfo, StorageDescriptor, Table}
 import org.apache.hadoop.hive.metastore.{IMetaStoreClient, TableType}

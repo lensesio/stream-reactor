@@ -23,14 +23,14 @@ import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{Docume
 import com.datamountaineer.streamreactor.connect.config.Helpers
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.microsoft.azure.documentdb._
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.{ConfigDef, ConfigException}
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkConnector
 
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -63,17 +63,18 @@ class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => D
     val kcql = configProps.get(DocumentDbConfigConstants.KCQL_CONFIG).split(";")
 
     if (maxTasks == 1 || kcql.length == 1) {
-      List(configProps)
+      List(configProps).asJava
     }
     else {
       val groups = kcql.length / maxTasks + kcql.length % maxTasks
       kcql.grouped(groups)
         .map(_.mkString(";"))
         .map { routes =>
-          val taskProps = new util.HashMap[String, String](configProps)
+          val taskProps = mutable.Map[String, String]()
+          taskProps ++= configProps.asScala
           taskProps.put(DocumentDbConfigConstants.KCQL_CONFIG, routes)
-          taskProps
-        }.toList
+          taskProps.asJava
+        }.toList.asJava
     }
   }
 

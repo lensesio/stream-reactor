@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.voltdb.writers
 
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 
 object CreateSqlFn extends StrictLogging {
   def apply(targetTable: String, isUpsert: Boolean, columns: Seq[String]): String = {

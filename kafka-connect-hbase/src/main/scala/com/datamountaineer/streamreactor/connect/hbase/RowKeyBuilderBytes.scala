@@ -22,7 +22,7 @@ import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Builds a row key for the given connect record and payload. The implementations would decide what is using and how.
@@ -118,7 +118,7 @@ case class StructFieldsRowKeyBuilderBytes(fm : List[String],
     val struct = record.value().asInstanceOf[Struct]
     val schema = struct.schema
 
-    val availableFields: Set[String] = schema.fields().map(_.name).toSet
+    val availableFields: Set[String] = schema.fields().asScala.map(_.name).toSet
     val missingKeys = fm.filterNot(p => availableFields.contains(p))
     require(missingKeys.isEmpty, s"${missingKeys.mkString(",")} keys are not present in the SinkRecord payload:${availableFields.mkString(",")}")
 

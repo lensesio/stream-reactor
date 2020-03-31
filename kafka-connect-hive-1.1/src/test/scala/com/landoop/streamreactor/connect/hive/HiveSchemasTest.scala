@@ -2,9 +2,10 @@ package com.landoop.streamreactor.connect.hive
 
 import org.apache.hadoop.hive.metastore.api.FieldSchema
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class HiveSchemasTest extends FlatSpec with Matchers {
+class HiveSchemasTest extends AnyFlatSpec with Matchers {
 
   "toKafka" should "support string" in {
     HiveSchemas.toKafka("string", "myfield", true) shouldBe Schema.OPTIONAL_STRING_SCHEMA

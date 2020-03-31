@@ -23,7 +23,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.ftp.source.FtpProtocol.FtpProtocol
 import com.datamountaineer.streamreactor.connect.ftp.source.MonitorMode.MonitorMode
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.net.ftp.{FTP, FTPClient, FTPReply, FTPSClient}
 import org.apache.commons.net.{ProtocolCommandEvent, ProtocolCommandListener}

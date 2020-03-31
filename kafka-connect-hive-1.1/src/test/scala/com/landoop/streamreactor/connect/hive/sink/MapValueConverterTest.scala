@@ -4,12 +4,12 @@ import com.landoop.json.sql.JacksonJson
 import com.landoop.streamreactor.connect.hive.JacksonSupport
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
-import org.scalatest.FunSuite
-import org.scalatest.Matchers
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.JavaConverters._
 
-class MapValueConverterTest extends FunSuite with Matchers {
+class MapValueConverterTest extends AnyFunSuite with Matchers {
   test("converts nested payload") {
     val json =
       """

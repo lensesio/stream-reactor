@@ -4,9 +4,10 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
 import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 import org.apache.parquet.schema.Type.Repetition
 import org.apache.parquet.schema.{OriginalType, Types}
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class ParquetSchemasTest extends FlatSpec with Matchers {
+class ParquetSchemasTest extends AnyFlatSpec with Matchers {
 
   "ParquetSchemas.toKafka" should "support boolean" in {
     ParquetSchemas.toKafka(Types.optional(PrimitiveTypeName.BOOLEAN).named("foo")) shouldBe Schema.OPTIONAL_BOOLEAN_SCHEMA

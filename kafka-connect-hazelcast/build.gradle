@@ -17,7 +17,7 @@
 project(":kafka-connect-hazelcast") {
 
     ext {
-        hazelCastVersion = "3.12.2"
+        hazelCastVersion = "3.12.6"
         javaxCacheversion = "1.0.0"
     }
 

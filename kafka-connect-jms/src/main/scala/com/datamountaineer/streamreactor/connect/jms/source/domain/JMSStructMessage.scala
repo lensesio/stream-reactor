@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.source.SourceRecord
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 11/03/2017.
@@ -68,13 +68,13 @@ import scala.collection.JavaConversions._
           struct.put("properties", getProperties(message))
         }
         struct.put("bytes_payload", getPayload(message))
-        new SourceRecord(sourcePartition, offset, target, null, null, struct.schema(), struct)
+        new SourceRecord(sourcePartition.asJava, offset.asJava, target, null, null, struct.schema(), struct)
       }
 
       def getProperties(message: Message): util.Map[String, String] =
-        message.getPropertyNames.foldLeft(Map.empty[String, String])( (acc, propertyName) =>
+        message.getPropertyNames.asScala.foldLeft(Map.empty[String, String])( (acc, propertyName) =>
             acc + (propertyName.toString -> message.getStringProperty(propertyName.toString))
-        )
+        ).asJava
 
       def getPayload(message: Message): Array[Byte] = {
         message match {

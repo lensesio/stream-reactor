@@ -22,13 +22,13 @@ import java.util.Collections
 import com.datamountaineer.streamreactor.connect.config.Helpers
 import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSourceConfig, PulsarSourceSettings}
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 
 import scala.collection.JavaConverters._
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 class PulsarSourceConnector extends SourceConnector with StrictLogging {
   private val configDef = PulsarSourceConfig.config
@@ -51,7 +51,7 @@ class PulsarSourceConnector extends SourceConnector with StrictLogging {
     // call settings here makes sure we don't have an exclusive subscription over more than one worker
     PulsarSourceSettings(PulsarSourceConfig(configProps), maxTasks)
     // distribute all kcqls to all workers and let the Pulsar subscription type handle the routing
-    (1 to maxTasks).map(_ => configProps).toList
+    (1 to maxTasks).map(_ => configProps).toList.asJava
   }
 
   /**

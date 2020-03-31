@@ -3,12 +3,12 @@ package com.landoop.streamreactor.connect.hive.kerberos
 import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfigDefBuilder
 import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
 import org.apache.kafka.common.config.ConfigException
-import org.scalatest.FunSuite
-import org.scalatest.Matchers
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.JavaConverters._
 
-class KeytabSettingsTest extends FunSuite with Matchers with FileCreation {
+class KeytabSettingsTest extends AnyFunSuite with Matchers with FileCreation {
   test("validate a keytab setting") {
     val file = createFile("keytab1.keytab")
     try {

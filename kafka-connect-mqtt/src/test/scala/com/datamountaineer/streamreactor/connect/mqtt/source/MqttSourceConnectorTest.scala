@@ -19,11 +19,12 @@ package com.datamountaineer.streamreactor.connect.mqtt.source
 import java.util
 
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
-class MqttSourceConnectorTest extends WordSpec with Matchers {
+class MqttSourceConnectorTest extends AnyWordSpec with Matchers {
   val baseProps: Map[String, String] = Map(
     MqttConfigConstants.HOSTS_CONFIG -> "tcp://0.0.0.0:1883",
     MqttConfigConstants.QS_CONFIG -> "1"

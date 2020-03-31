@@ -3,9 +3,10 @@ package com.landoop.streamreactor.connect.hive.sink.staging
 import com.landoop.streamreactor.connect.hive.{Offset, Topic, TopicPartition, TopicPartitionOffset}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class StageManagerTest extends WordSpec with Matchers {
+class StageManagerTest extends AnyWordSpec with Matchers {
 
   implicit val conf = new Configuration()
   implicit val fs = FileSystem.getLocal(conf)

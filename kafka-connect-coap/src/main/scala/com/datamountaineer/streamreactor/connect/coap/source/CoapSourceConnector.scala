@@ -25,7 +25,6 @@ import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
 /**
@@ -45,18 +44,18 @@ class CoapSourceConnector extends SourceConnector {
 
     //sql1, sql2
     val kcqls = raw.split(";")
-    val groups = ConnectorUtils.groupPartitions(kcqls.toList, maxTasks)
+    val groups = ConnectorUtils.groupPartitions(kcqls.toList.asJava, maxTasks).asScala
 
     //split up the kcql statement based on the number of tasks.
     groups
-      .filterNot(g => g.isEmpty)
+      .filterNot(g => g.asScala.isEmpty)
       .map(g => {
         val taskConfigs = new java.util.HashMap[String,String]
         taskConfigs.putAll(configProps)
-        taskConfigs.put(CoapConstants.COAP_KCQL, g.mkString(";")) //overwrite
-        taskConfigs.toMap.asJava
+        taskConfigs.put(CoapConstants.COAP_KCQL, g.asScala.mkString(";")) //overwrite
+        taskConfigs.asScala.asJava
       })
-  }
+  }.asJava
 
   override def config(): ConfigDef = configDef
 

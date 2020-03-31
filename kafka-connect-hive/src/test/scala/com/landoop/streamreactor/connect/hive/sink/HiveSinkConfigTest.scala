@@ -13,9 +13,10 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient
 import org.apache.kafka.connect.errors.ConnectException
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class HiveSinkConfigTest extends WordSpec with Matchers {
+class HiveSinkConfigTest extends AnyWordSpec with Matchers {
 
   "HiveSink" should {
     "populate required table properties from KCQL" in {

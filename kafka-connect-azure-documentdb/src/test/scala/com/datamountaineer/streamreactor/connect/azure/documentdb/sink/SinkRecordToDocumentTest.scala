@@ -23,9 +23,10 @@ import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.microsoft.azure.documentdb.{ConsistencyLevel, Document}
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class SinkRecordToDocumentTest extends WordSpec with Matchers with ConverterUtil {
+class SinkRecordToDocumentTest extends AnyWordSpec with Matchers with ConverterUtil {
   private val connection = "https://accountName.documents.azure.com:443/"
 
   "SinkRecordToDocument" should {

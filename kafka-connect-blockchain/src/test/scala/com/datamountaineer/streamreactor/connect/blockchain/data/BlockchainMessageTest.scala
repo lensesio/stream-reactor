@@ -17,9 +17,10 @@
 package com.datamountaineer.streamreactor.connect.blockchain.data
 
 import com.datamountaineer.streamreactor.connect.blockchain.json.JacksonJson
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class BlockchainMessageTest extends WordSpec with Matchers {
+class BlockchainMessageTest extends AnyWordSpec with Matchers {
   "BlockChainMessage" should {
     "be parseable for a status message" in {
       val msg = JacksonJson.fromJson[BlockchainMessage]("{\"op\":\"status\", \"msg\": \"Connected, Subscribed, Welcome etc...\"}")

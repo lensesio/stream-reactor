@@ -28,11 +28,11 @@ import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Decimal, Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
-import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest._
+import org.mockito.MockitoSugar
+import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
 /**
@@ -40,7 +40,7 @@ import scala.collection.JavaConverters._
   * stream-reactor
   */
 @DoNotDiscover
-class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar with TestConfig with BeforeAndAfterAll {
+class TestCassandraJsonWriter extends AnyWordSpec with Matchers with MockitoSugar with TestConfig with BeforeAndAfterAll {
   
   val keyspace = "sink"
   val contactPoint = "localhost"
@@ -163,7 +163,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     val res1 = session.execute(s"SELECT * FROM $keyspace.$table")
     val list1 = res1.all()
     list1.size() shouldBe 1
-    list1.foreach { r =>
+    list1.asScala.foreach { r =>
       r.getString("id") shouldBe "id1"
       r.getInt("int_field1") shouldBe 11
       r.getDouble("double_field1") shouldBe 11.11
@@ -173,7 +173,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     val res2 = session.execute(s"SELECT * FROM $keyspace.$table1")
     val list2 = res2.all()
     list2.size() shouldBe 1
-    list2.foreach { r =>
+    list2.asScala.foreach { r =>
       r.getString("id") shouldBe "id1"
       r.getInt("int_field2") shouldBe 12
       r.getDouble("double_field2") shouldBe 12.12
@@ -309,7 +309,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     val res1 = session.execute(s"SELECT * FROM $keyspace.$table")
     val list1 = res1.all()
     list1.size() shouldBe 1
-    list1.foreach { r =>
+    list1.asScala.foreach { r =>
       r.getString("id") shouldBe "id1"
       r.getInt("int_field") shouldBe 1111
       r.getDouble("double_field") shouldBe 1111.22
@@ -396,7 +396,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     val res1 = session.execute(s"SELECT * FROM $keyspace.$table")
     val list1 = res1.all()
     list1.size() shouldBe 1
-    list1.foreach { r =>
+    list1.asScala.foreach { r =>
       r.getString("id") shouldBe "id1"
       r.getInt("int_field") shouldBe 1111
       r.getDouble("double_field") shouldBe 1111.22
@@ -802,7 +802,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     val validate = session.prepare(s"select * from $keyspace.$table where id = ?").bind(idField)
     val inserted = session.execute(validate)
     // data is in the table...
-    (inserted.isEmpty) shouldBe true
+    (inserted.asScala.isEmpty) shouldBe true
     writer.close()
   }
 
@@ -852,7 +852,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     val validate = session.prepare(s"select * from $keyspace.$table where id = ?").bind(idField)
     val inserted = session.execute(validate)
     // data is in the table...
-    (inserted.isEmpty) shouldBe true
+    (inserted.asScala.isEmpty) shouldBe true
     writer.close()
   }
 
@@ -913,7 +913,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     val validate = session.prepare(s"SELECT * FROM $keyspace.$table WHERE key1 = ? AND key2 = ?").bind(key1, key2)
     val result = session.execute(validate)
 
-    (result.isEmpty) shouldBe true
+    (result.asScala.isEmpty) shouldBe true
     writer.close()
   }
 
@@ -976,7 +976,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     val validate = session.prepare(s"SELECT * FROM $keyspace.$table WHERE key1 = ? AND key2 = ?").bind(Int.box(key1), key2)
     val result = session.execute(validate)
 
-    (result.isEmpty) shouldBe true
+    (result.asScala.isEmpty) shouldBe true
     writer.close()
   }
 
@@ -1037,7 +1037,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     val validate = session.prepare(s"SELECT * FROM $keyspace.$table WHERE key1 = ? AND key2 = ?").bind(key1, key2)
     val result = session.execute(validate)
 
-    (result.isEmpty) shouldBe true
+    (result.asScala.isEmpty) shouldBe true
     writer.close()
   }
 
@@ -1093,7 +1093,7 @@ class TestCassandraJsonWriter extends WordSpec with Matchers with MockitoSugar w
     val validate = session.prepare(s"SELECT * FROM $keyspace.$table WHERE key = ?").bind(key)
     val result = session.execute(validate)
 
-    (result.isEmpty) shouldBe true
+    (result.asScala.isEmpty) shouldBe true
     writer.close()
   }
 

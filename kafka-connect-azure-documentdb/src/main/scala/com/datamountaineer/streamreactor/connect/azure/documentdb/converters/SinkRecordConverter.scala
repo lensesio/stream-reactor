@@ -28,7 +28,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.json4s.JValue
 import org.json4s.JsonAST._
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 object SinkRecordConverter {
   private val ISO_DATE_FORMAT: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
@@ -93,7 +93,7 @@ object SinkRecordConverter {
                 val valueSchema = Option(schema).map(_.valueSchema()).orNull
                 val list = new java.util.ArrayList[Any]
                 value
-                  .asInstanceOf[java.util.Collection[_]]
+                  .asInstanceOf[java.util.Collection[_]].asScala
                   .foreach { elem =>
                     list.add(convertToDocument(valueSchema, elem))
                   }
@@ -104,7 +104,7 @@ object SinkRecordConverter {
                 // If true, using string keys and JSON object; if false, using non-string keys and Array-encoding
                 var objectMode: Boolean = Option(schema)
                   .map(_.keySchema.`type` eq Schema.Type.STRING)
-                  .getOrElse(map.entrySet().headOption.forall(_.getKey.isInstanceOf[String]))
+                  .getOrElse(map.entrySet().asScala.headOption.forall(_.getKey.isInstanceOf[String]))
 
                 var obj: Document = null
                 var list: java.util.ArrayList[Any] = null
@@ -112,7 +112,7 @@ object SinkRecordConverter {
                 if (objectMode) obj = new Document()
                 else list = new util.ArrayList[Any]()
 
-                for (entry <- map.entrySet) {
+                for (entry <- map.entrySet.asScala) {
                   val keySchema = Option(schema).map(_.keySchema()).orNull
                   val valueSchema = Option(schema).map(_.valueSchema).orNull
 
@@ -138,7 +138,7 @@ object SinkRecordConverter {
                 val struct = value.asInstanceOf[Struct]
                 if (struct.schema != schema) throw new DataException("Mismatching schema.")
 
-                schema.fields
+                schema.fields.asScala
                   .foldLeft(new Document) { (document, field) =>
                     Option(convertToDocument(field.schema, struct.get(field)))
                       .foreach {

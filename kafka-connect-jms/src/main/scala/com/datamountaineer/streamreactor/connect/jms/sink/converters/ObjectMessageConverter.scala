@@ -23,7 +23,7 @@ import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.collection.JavaConverters._
 
 class ObjectMessageConverter extends JMSMessageConverter with ConverterUtil {
@@ -35,7 +35,7 @@ class ObjectMessageConverter extends JMSMessageConverter with ConverterUtil {
     schema.`type`() match {
       case Schema.Type.STRUCT =>
         val struct = value.asInstanceOf[Struct]
-        struct.schema().fields().foreach { f =>
+        struct.schema().fields().asScala.foreach { f =>
           ObjectMessageConverterFn(f.name(), struct.get(f), f.schema(), msg, session)
         }
 
@@ -62,7 +62,7 @@ object ObjectMessageConverterFn {
       case Schema.Type.STRUCT =>
         val nestedMsg = session.createObjectMessage()
         val struct = value.asInstanceOf[Struct]
-        struct.schema().fields().foreach { f =>
+        struct.schema().fields().asScala.foreach { f =>
           ObjectMessageConverterFn(f.name(), struct.get(f), f.schema(), nestedMsg, session)
         }
         msg.setObjectProperty(fieldName, nestedMsg)

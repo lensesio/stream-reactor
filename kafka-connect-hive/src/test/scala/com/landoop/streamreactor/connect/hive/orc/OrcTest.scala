@@ -4,9 +4,10 @@ import com.landoop.streamreactor.connect.hive.{OrcSinkConfig, OrcSourceConfig, S
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class OrcTest extends FlatSpec with Matchers {
+class OrcTest extends AnyFlatSpec with Matchers {
 
   implicit val conf = new Configuration()
   implicit val fs = FileSystem.getLocal(conf)

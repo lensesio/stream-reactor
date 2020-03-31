@@ -3,7 +3,7 @@ package com.datamountaineer.streamreactor.connect.pulsar
 import java.util.concurrent.TimeUnit
 
 import com.datamountaineer.kcql.Kcql
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.pulsar.client.api.ProducerConfiguration.MessageRoutingMode
 import org.apache.pulsar.client.api.{CompressionType, ProducerConfiguration}
 

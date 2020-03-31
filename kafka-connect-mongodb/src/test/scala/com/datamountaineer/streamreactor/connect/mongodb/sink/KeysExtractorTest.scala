@@ -23,12 +23,13 @@ import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data.Struct
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.collection.immutable.ListSet
 
-class KeysExtractorTest extends WordSpec with Matchers {
+class KeysExtractorTest extends AnyWordSpec with Matchers {
   private val avroData = new AvroData(4)
 
   case class WithNested(id: Int, nested: SomeTest)
@@ -44,7 +45,7 @@ class KeysExtractorTest extends WordSpec with Matchers {
       val jvalue = Json.parseJson(json)
 
       val actual = KeysExtractor.fromJson(jvalue, ListSet("lock_time", "rbf"))
-      actual shouldBe List("lock_time" -> 9223372036854775807L, "rbf" -> true)
+      actual.sorted shouldBe List("lock_time" -> 9223372036854775807L, "rbf" -> true).sorted
     }
 
     "extract embedded keys out of JSON" in {
@@ -52,8 +53,8 @@ class KeysExtractorTest extends WordSpec with Matchers {
       val keys = ListSet( "B", "C.M", "C.N.X" )
       // SCALA 2.12 WARNING: If you upgrade to 2.12 and this test fails, 
       // you need to remove the "reverse()" calls in KeysExtractor.scala:
-      KeysExtractor.fromJson(jvalue, keys) shouldBe
-        List("B"->"0", "M"->"1000", "X"->10)
+      KeysExtractor.fromJson(jvalue, keys).sorted shouldBe
+        List("B"->"0", "M"->"1000", "X"->10).sorted
     }
 
     "throw exception when extracting the keys from JSON" in {
@@ -65,7 +66,7 @@ class KeysExtractorTest extends WordSpec with Matchers {
     }
 
     "extract keys from a Map" in {
-      val actual = KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> "tripple"), Set("key1", "key3"))
+      val actual = KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> "tripple").asJava, Set("key1", "key3"))
       actual shouldBe Set("key1" -> 12, "key3" -> "tripple")
     }
 
@@ -81,13 +82,13 @@ class KeysExtractorTest extends WordSpec with Matchers {
 
     "extract keys from a Map should throw an exception if the key is another map" in {
       intercept[ConfigException] {
-        KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> Map.empty[String, String]), Set("key1", "key3"))
+        KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> Map.empty[String, String]).asJava, Set("key1", "key3"))
       }
     }
 
     "extract keys from a Map should throw an exception if the key is an array" in {
       intercept[ConfigException] {
-        KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> new util.ArrayList[String]), Set("key1", "key3"))
+        KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> new util.ArrayList[String]).asJava, Set("key1", "key3"))
       }
     }
 

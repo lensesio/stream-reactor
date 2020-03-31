@@ -24,12 +24,14 @@ import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSetti
 import com.datamountaineer.streamreactor.connect.jms.sink.converters.MapMessageConverter
 import com.sksamuel.scalax.io.Using
 import org.apache.activemq.ActiveMQConnectionFactory
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, Matchers, WordSpec}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 import scala.reflect.io.Path
 
-class MapMessageConverterTest extends WordSpec with Matchers with Using with BeforeAndAfterAll with TestBase {
+class MapMessageConverterTest extends AnyWordSpec with Matchers with Using with BeforeAndAfterAll with TestBase {
   val converter = new MapMessageConverter()
 
   val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"

@@ -4,9 +4,10 @@ import com.landoop.streamreactor.connect.hive.StructUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class ParquetWriterTest extends WordSpec with Matchers {
+class ParquetWriterTest extends AnyWordSpec with Matchers {
 
   implicit val conf = new Configuration()
   implicit val fs = FileSystem.getLocal(conf)

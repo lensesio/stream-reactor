@@ -18,7 +18,8 @@ package com.datamountaineer.streamreactor.connect.redis.sink.config
 
 import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSupport
 import com.datamountaineer.streamreactor.connect.rowkeys.StringStructFieldsStringKeyBuilder
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
@@ -30,7 +31,7 @@ import scala.collection.JavaConverters._
   * 2. If not, try to use the field `timestamp` (if it exists)
   * 3. If not does not exist use current time as the timestamp <system.now>
   */
-class ConfigMultipleSortedSetsTest extends WordSpec with Matchers with RedisMockSupport {
+class ConfigMultipleSortedSetsTest extends AnyWordSpec with Matchers with RedisMockSupport {
 
   // A Sorted Set will be used for every sensorID
   val KCQL1 = "SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS SortedSet TTL = 60"

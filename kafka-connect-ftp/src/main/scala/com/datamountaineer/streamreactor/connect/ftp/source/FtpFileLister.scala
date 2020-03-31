@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.ftp.source
 import java.nio.file.{FileSystems, Paths}
 import java.time.{Duration, Instant}
 
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.commons.net.ftp.{FTPClient, FTPFile}
 
 // org.apache.commons.net.ftp.FTPFile only contains the relative path

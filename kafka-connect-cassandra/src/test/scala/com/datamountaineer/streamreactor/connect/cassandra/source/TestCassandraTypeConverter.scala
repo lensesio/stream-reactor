@@ -9,14 +9,13 @@ import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConf
 import com.datastax.driver.core.{CodecRegistry, _}
 import org.apache.kafka.connect.data.{Decimal, Schema, Struct, Timestamp}
 import org.apache.kafka.connect.errors.DataException
-import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.mockito.MockitoSugar
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
-class TestCassandraTypeConverter extends WordSpec
+class TestCassandraTypeConverter extends AnyWordSpec
   with TestConfig
   with Matchers
   with MockitoSugar {
@@ -267,7 +266,7 @@ class TestCassandraTypeConverter extends WordSpec
       CassandraConfigConstants.POLL_INTERVAL -> "1000",
       CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON -> mappingCollectionToJson.toString
     )
-    val taskConfig = CassandraConfigSource(config);
+    val taskConfig = CassandraConfigSource(config.asJava);
     CassandraSettings.configureSource(taskConfig).toList.head
   }
 

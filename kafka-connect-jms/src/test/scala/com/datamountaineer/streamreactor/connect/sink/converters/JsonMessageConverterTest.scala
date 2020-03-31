@@ -25,13 +25,15 @@ import com.datamountaineer.streamreactor.connect.jms.sink.converters.JsonMessage
 import com.sksamuel.scalax.io.Using
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.reflect.io.Path
 import scala.collection.JavaConverters._
 
 
-class JsonMessageConverterTest extends WordSpec with Matchers with Using with TestBase with BeforeAndAfterAll {
+class JsonMessageConverterTest extends AnyWordSpec with Matchers with Using with TestBase with BeforeAndAfterAll {
 
   val converter = new JsonMessageConverter()
 

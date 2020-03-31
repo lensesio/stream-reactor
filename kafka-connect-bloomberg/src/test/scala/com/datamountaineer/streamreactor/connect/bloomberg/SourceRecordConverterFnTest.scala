@@ -21,11 +21,12 @@ import java.util
 import com.datamountaineer.streamreactor.connect.bloomberg.avro.AvroSchemaGenerator._
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.Schema
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
-class SourceRecordConverterFnTest extends WordSpec with Matchers {
+class SourceRecordConverterFnTest extends AnyWordSpec with Matchers {
   "SourceRecordConverterFn" should {
     "handle null kafka topic parameter" in {
       intercept[IllegalArgumentException] {

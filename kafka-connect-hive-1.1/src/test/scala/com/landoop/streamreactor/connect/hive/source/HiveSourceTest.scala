@@ -12,22 +12,18 @@ import com.landoop.streamreactor.connect.hive.source.config.ProjectionField
 import com.landoop.streamreactor.connect.hive.source.config.SourceTableOptions
 import com.landoop.streamreactor.connect.hive.source.offset.HiveSourceOffsetStorageReader
 import com.landoop.streamreactor.connect.hive.source.offset.MockOffsetStorageReader
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.metastore.api.Database
 import org.apache.kafka.connect.data.SchemaBuilder
 import org.apache.kafka.connect.data.Struct
-import org.scalatest.Matchers
-import org.scalatest.WordSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-class HiveSourceTest
-    extends WordSpec
-    with Matchers
-    with HiveTestConfig
-    with StrictLogging {
+class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with StrictLogging {
 
   val dbname = "source_test2"
 

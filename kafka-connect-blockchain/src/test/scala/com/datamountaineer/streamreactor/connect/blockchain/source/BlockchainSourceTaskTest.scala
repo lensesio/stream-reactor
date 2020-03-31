@@ -19,9 +19,10 @@ package com.datamountaineer.streamreactor.connect.blockchain.source
 import java.util
 
 import com.datamountaineer.streamreactor.connect.blockchain.config.BlockchainConfigConstants
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class BlockchainSourceTaskTest extends WordSpec with Matchers {
+class BlockchainSourceTaskTest extends AnyWordSpec with Matchers {
   "BlockchainSourceTask" should {
     "start and stop on request" ignore {
       val task = new BlockchainSourceTask()

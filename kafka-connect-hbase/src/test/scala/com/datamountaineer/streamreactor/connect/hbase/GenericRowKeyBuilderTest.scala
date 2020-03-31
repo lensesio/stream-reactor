@@ -20,9 +20,10 @@ import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class GenericRowKeyBuilderTest extends WordSpec with Matchers {
+class GenericRowKeyBuilderTest extends AnyWordSpec with Matchers {
   "GenericRowKeyBuilder" should {
     "use the topic, partition and offset to make the key" in {
 

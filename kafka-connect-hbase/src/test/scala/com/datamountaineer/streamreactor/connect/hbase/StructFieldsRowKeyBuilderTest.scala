@@ -20,9 +20,10 @@ import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class StructFieldsRowKeyBuilderTest extends WordSpec with Matchers {
+class StructFieldsRowKeyBuilderTest extends AnyWordSpec with Matchers {
   "StructFieldsRowKeyBuilder" should {
     "raise an exception if the field is not present in the struct" in {
       intercept[IllegalArgumentException] {

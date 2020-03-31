@@ -22,7 +22,7 @@ import org.apache.hadoop.hbase.client.{Connection, ConnectionFactory, Scan}
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.hadoop.hbase.{CellUtil, HBaseConfiguration, TableName}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 object HbaseReaderHelper {
   def createConnection: Connection = {
@@ -34,7 +34,7 @@ object HbaseReaderHelper {
       val scan = new Scan()
       scan.addFamily(columnFamily.fromString())
       val scanner = tbl.getScanner(scan)
-      scanner.map { rs =>
+      scanner.asScala.map { rs =>
         val cells = rs.rawCells().map { cell =>
           Bytes.toString(CellUtil.cloneQualifier(cell)) -> CellUtil.cloneValue(cell)
         }.toMap

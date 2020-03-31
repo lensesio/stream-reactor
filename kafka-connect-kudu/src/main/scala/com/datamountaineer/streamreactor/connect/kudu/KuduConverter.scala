@@ -25,7 +25,7 @@ import org.apache.kudu.client.{KuduTable, PartialRow, Upsert}
 import org.apache.kudu.{ColumnSchema, ColumnTypeAttributes}
 import org.json4s.JsonAST._
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 trait KuduConverter {
 
@@ -40,10 +40,10 @@ trait KuduConverter {
     **/
   def convertToKuduUpsert(record: SinkRecord, table: KuduTable): Upsert = {
     val recordFields = record.valueSchema().fields()
-    val kuduColNames = table.getSchema.getColumns.map(c => c.getName)
+    val kuduColNames = table.getSchema.getColumns.asScala.map(c => c.getName)
     val upsert = table.newUpsert()
     val row = upsert.getRow
-    recordFields
+    recordFields.asScala
       .filter(f => kuduColNames.contains(f.name())) //handle missing fields in target (maybe dropped)
       .map(f => addFieldToRow(record, f, row))
     upsert
@@ -58,7 +58,7 @@ trait KuduConverter {
     **/
   def convertJsonToKuduUpsert(payload: JValue, table: KuduTable): Upsert = {
     val recordFields = payload.values.asInstanceOf[Map[String, Any]].keySet
-    val kuduColNames = table.getSchema.getColumns.map(_.getName)
+    val kuduColNames = table.getSchema.getColumns.asScala.map(_.getName)
     val upsert = table.newUpsert()
     val row = upsert.getRow
     //    recordFields
@@ -156,8 +156,8 @@ trait KuduConverter {
     **/
   def convertToKuduSchema(record: SinkRecord, kcql: Kcql): org.apache.kudu.Schema = {
     val connectFields = record.valueSchema().fields()
-    val kuduFields = createKuduColumns(connectFields.toSeq, kcql)
-    new org.apache.kudu.Schema(kuduFields.toList)
+    val kuduFields = createKuduColumns(connectFields.asScala, kcql)
+    new org.apache.kudu.Schema(kuduFields.toList.asJava)
   }
 
   /**
@@ -169,7 +169,7 @@ trait KuduConverter {
   def convertToKuduSchemaFromJson(payload: JValue, topic: String): org.apache.kudu.Schema = {
     val fieldsMap = extractJSONFields(payload, topic)
     val kuduFields = fieldsMap.map(c => convertJsonToColumnSchema(c)).toSet
-    new org.apache.kudu.Schema(kuduFields.toList)
+    new org.apache.kudu.Schema(kuduFields.toList.asJava)
   }
 
   def extractJSONFields(payload: JValue, topic: String): Map[String, JValue] = {
@@ -200,12 +200,12 @@ trait KuduConverter {
   }
 
   def convertToKuduSchema(schema: Schema, kcql: Kcql): org.apache.kudu.Schema = {
-    val connectFields = createKuduColumns(schema.fields().toSeq.distinct, kcql)
-    new org.apache.kudu.Schema(connectFields.toList)
+    val connectFields = createKuduColumns(schema.fields().asScala.distinct, kcql)
+    new org.apache.kudu.Schema(connectFields.toList.asJava)
   }
 
   def createKuduColumns(fields: Seq[Field], kcql: Kcql): Seq[ColumnSchema] = fields.map(cf =>
-    convertConnectField(cf, kcql.getBucketing.getBucketNames.contains(cf.name())))
+    convertConnectField(cf, kcql.getBucketing.getBucketNames.asScala.contains(cf.name())))
 
 
   /**

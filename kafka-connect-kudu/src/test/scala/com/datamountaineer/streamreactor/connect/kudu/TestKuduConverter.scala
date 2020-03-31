@@ -22,10 +22,10 @@ import com.datamountaineer.kcql.{Bucketing, Kcql}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.avro.{Schema, SchemaBuilder}
 import org.apache.kudu.client.{KuduTable, Upsert}
-import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
 
-import scala.collection.JavaConversions._
+import org.mockito.MockitoSugar
+
+import scala.collection.JavaConverters._
 import scala.collection.JavaConverters._
 
 /**
@@ -109,7 +109,7 @@ class TestKuduConverter extends TestBase with KuduConverter with ConverterUtil w
       .endRecord()
 
 
-    val kuduFields = schema.getFields.map(f => fromAvro(f.schema(), f.name()).build())
+    val kuduFields = schema.getFields.asScala.map(f => fromAvro(f.schema(), f.name()).build())
     kuduFields.head.getName shouldBe "string_field"
     kuduFields.head.getType shouldBe org.apache.kudu.Type.STRING
     kuduFields(1).getName shouldBe "int_field"

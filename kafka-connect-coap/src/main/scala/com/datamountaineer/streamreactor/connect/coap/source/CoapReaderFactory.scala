@@ -22,7 +22,7 @@ import java.util.concurrent.LinkedBlockingQueue
 import com.datamountaineer.streamreactor.connect.coap.configs.CoapSetting
 import com.datamountaineer.streamreactor.connect.coap.connection.CoapManager
 import com.datamountaineer.streamreactor.connect.coap.domain.CoapMessageConverter
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord
 import org.eclipse.californium.core.{CoapHandler, CoapObserveRelation, CoapResponse, WebLink}
 

@@ -18,11 +18,12 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.config
 
 import com.datamountaineer.streamreactor.connect.errors.ThrowErrorPolicy
 import org.apache.kafka.common.config.ConfigException
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
-class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
+class DocumentDbSinkSettingsTest extends AnyWordSpec with Matchers {
   private val connection = "https://accountName.documents.azure.com:443/"
 
   "DocumentDbSinkSettings" should {
@@ -31,7 +32,7 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
         DocumentDbConfigConstants.DATABASE_CONFIG -> "dbs/database1",
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
-      )
+      ).asJava
 
       intercept[ConfigException] {
         DocumentDbConfig(map)
@@ -43,7 +44,7 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
         DocumentDbConfigConstants.DATABASE_CONFIG -> "dbs/database1",
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
         DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
-      )
+      ).asJava
 
       intercept[ConfigException] {
         DocumentDbConfig(map)
@@ -57,7 +58,7 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
         DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT a as F1, b as F2 FROM topic2"
-      )
+      ).asJava
 
       val config = DocumentDbConfig(map)
       val settings = DocumentDbSinkSettings(config)
@@ -75,7 +76,7 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
         DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1 IGNORE a,b,c"
-      )
+      ).asJava
 
       val config = DocumentDbConfig(map)
       val settings = DocumentDbSinkSettings(config)
@@ -94,7 +95,7 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
         DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1 PK a,b"
-      )
+      ).asJava
 
       val config = DocumentDbConfig(map)
       val settings = DocumentDbSinkSettings(config)
@@ -112,7 +113,7 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
         DocumentDbConfigConstants.CONSISTENCY_CONFIG -> "invalid",
         DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1 PK a,b"
-      )
+      ).asJava
 
       val config = DocumentDbConfig(map)
       intercept[ConfigException] {
@@ -126,7 +127,7 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
         DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO  SELECT * FROM topic1"
-      )
+      ).asJava
 
       val config = DocumentDbConfig(map)
       intercept[IllegalArgumentException] {
@@ -141,7 +142,7 @@ class DocumentDbSinkSettingsTest extends WordSpec with Matchers {
         DocumentDbConfigConstants.CONNECTION_CONFIG -> connection,
         DocumentDbConfigConstants.MASTER_KEY_CONFIG -> "secret",
         DocumentDbConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1"
-      )
+      ).asJava
 
       val config = DocumentDbConfig(map)
       intercept[ConfigException] {

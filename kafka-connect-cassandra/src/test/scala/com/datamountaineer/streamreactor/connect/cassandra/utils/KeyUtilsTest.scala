@@ -3,9 +3,10 @@ package com.datamountaineer.streamreactor.connect.cassandra.utils
 import java.util.UUID
 
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class KeyUtilsTest extends WordSpec with Matchers {
+class KeyUtilsTest extends AnyWordSpec with Matchers {
 
   val uuid = UUID.randomUUID()
   val key1 = Int.box(uuid.hashCode)

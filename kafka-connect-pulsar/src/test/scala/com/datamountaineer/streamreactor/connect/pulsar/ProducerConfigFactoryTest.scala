@@ -3,7 +3,8 @@ package com.datamountaineer.streamreactor.connect.pulsar
 import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSinkConfig, PulsarSinkSettings}
 import org.apache.pulsar.client.api.CompressionType
 import org.apache.pulsar.client.api.ProducerConfiguration.MessageRoutingMode
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
@@ -11,7 +12,7 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 23/01/2018. 
   * stream-reactor
   */
-class ProducerConfigFactoryTest extends WordSpec with Matchers {
+class ProducerConfigFactoryTest extends AnyWordSpec with Matchers {
 
   val pulsarTopic = "persistent://landoop/standalone/connect/kafka-topic"
 

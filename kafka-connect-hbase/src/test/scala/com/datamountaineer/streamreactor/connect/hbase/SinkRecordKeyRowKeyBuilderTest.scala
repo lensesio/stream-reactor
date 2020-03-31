@@ -19,10 +19,11 @@ package com.datamountaineer.streamreactor.connect.hbase
 import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.mockito.MockitoSugar
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class SinkRecordKeyRowKeyBuilderTest extends WordSpec with Matchers with MockitoSugar {
+class SinkRecordKeyRowKeyBuilderTest extends AnyWordSpec with Matchers with MockitoSugar {
   val keyRowKeyBuilder = new SinkRecordKeyRowKeyBuilderBytes()
 
   "SinkRecordKeyRowKeyBuilder" should {

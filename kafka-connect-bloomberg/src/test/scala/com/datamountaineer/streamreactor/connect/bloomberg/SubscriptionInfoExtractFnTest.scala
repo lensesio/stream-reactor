@@ -16,9 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.bloomberg
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class SubscriptionInfoExtractFnTest extends WordSpec with Matchers {
+class SubscriptionInfoExtractFnTest extends AnyWordSpec with Matchers {
   "SubscriptionInfoExtractFn" should {
     "handle empty settings" in {
       intercept[IllegalArgumentException] {
