@@ -221,7 +221,7 @@ class ValuesExtractorJsonTest extends AnyWordSpec with Matchers {
       result.failed.get shouldBe a[IllegalArgumentException]
     }
 
-    "throw an excception if a field is in bytes" in {
+    "throw an exception if a field is in bytes" in {
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)
         .field("bibble", Schema.BYTES_SCHEMA)

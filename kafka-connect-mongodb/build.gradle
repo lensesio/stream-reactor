@@ -16,7 +16,7 @@
 
 project(":kafka-connect-mongodb") {
     ext {
-        mongoVersion = "3.11.0"
+        mongoVersion = "3.12.2"
     }
 
     dependencies {
