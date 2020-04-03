@@ -17,7 +17,7 @@
 project(":kafka-connect-mqtt") {
 
     ext {
-        mqttVersion = "1.2.0"
+        mqttVersion = "1.2.2"
         bouncyCastle = "1.54"
         json4s = "3.5.0"
         activeMq = "5.7.0"
