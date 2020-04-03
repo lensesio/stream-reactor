@@ -40,6 +40,7 @@ import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
+import org.apache.kafka.common.config.ConfigException;
 
 import org.apache.kafka.connect.data.Schema;
 
@@ -131,9 +132,14 @@ public class BigQuerySinkConnectorTest {
   // Make sure that a config exception is properly translated into a SinkConfigConnectException
   @Test(expected = SinkConfigConnectException.class)
   public void testConfigException() {
-    Map<String, String> badProperties = propertiesFactory.getProperties();
-    badProperties.remove(BigQuerySinkConfig.TOPICS_CONFIG);
-    new BigQuerySinkConnector().start(badProperties);
+    try {
+      Map<String, String> badProperties = propertiesFactory.getProperties();
+      badProperties.remove(BigQuerySinkConfig.TOPICS_CONFIG);
+      BigQuerySinkConfig.validate(badProperties);
+      new BigQuerySinkConnector().start(badProperties);
+    } catch (ConfigException e) {
+      throw new SinkConfigConnectException(e);
+    }
   }
 
   @Test
