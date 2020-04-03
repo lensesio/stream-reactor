@@ -45,7 +45,7 @@ class KeysExtractorTest extends AnyWordSpec with Matchers {
       val jvalue = Json.parseJson(json)
 
       val actual = KeysExtractor.fromJson(jvalue, ListSet("lock_time", "rbf"))
-      actual.sorted shouldBe List("lock_time" -> 9223372036854775807L, "rbf" -> true).sorted
+      actual shouldBe List("lock_time" -> 9223372036854775807L, "rbf" -> true)
     }
 
     "extract embedded keys out of JSON" in {
@@ -53,8 +53,8 @@ class KeysExtractorTest extends AnyWordSpec with Matchers {
       val keys = ListSet( "B", "C.M", "C.N.X" )
       // SCALA 2.12 WARNING: If you upgrade to 2.12 and this test fails, 
       // you need to remove the "reverse()" calls in KeysExtractor.scala:
-      KeysExtractor.fromJson(jvalue, keys).sorted shouldBe
-        List("B"->"0", "M"->"1000", "X"->10).sorted
+      KeysExtractor.fromJson(jvalue, keys) shouldBe
+        List("B"->"0", "M"->"1000", "X"->10)
     }
 
     "throw exception when extracting the keys from JSON" in {

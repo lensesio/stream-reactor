@@ -75,7 +75,7 @@ trait TestBase extends AnyWordSpec with BeforeAndAfter with Matchers {
       |{      "name": "integer32", "type": "long"},
       |{      "name": "integer64", "type": "long"},
       |{      "name": "float32",   "type": "float"},
-      |{      "name": "float64",   "type": ["null", "double"], "default" : 10.00}
+      |{      "name": "float64",   "type": ["double", "null"], "default" : 10.0}
       |]}"
     """.stripMargin
 

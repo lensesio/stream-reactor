@@ -16,10 +16,11 @@
 
 package com.datamountaineer.streamreactor.connect.elastic6.indexname
 
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, TableDrivenPropertyChecks}
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.prop.TableDrivenPropertyChecks
 
-class TestCustomIndexName extends FlatSpec with TableDrivenPropertyChecks with GeneratorDrivenPropertyChecks with Matchers {
+class TestCustomIndexName extends AnyFlatSpec with TableDrivenPropertyChecks with Matchers {
 
   val ValidIndexNames = Table(
     ("Valid index name", "Expectations"),

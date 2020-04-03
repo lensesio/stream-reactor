@@ -15,11 +15,11 @@ object ConsumerConfigFactory extends StrictLogging {
     kcqls.map(kcql => {
       val config = new ConsumerConfiguration
 
-      if (kcql.getBatchSize != null || kcql.getBatchSize == 0) {
-        config.setReceiverQueueSize(kcql.getBatchSize())
+      Option(kcql.getBatchSize) match {
+        case Some(b)  => config.setReceiverQueueSize(b)
+        case None     =>
       }
-
-      config.setSubscriptionType(getSubscriptionType(kcql))
+        config.setSubscriptionType(getSubscriptionType(kcql))
       config.setConsumerName(name)
       (kcql.getSource, config)
     }).toMap

@@ -197,7 +197,7 @@ object PrimaryKeyExtractor {
             val s = value.asInstanceOf[Struct]
             val childField = Option(s.schema().field(p.head))
               .getOrElse {
-                throw new IllegalArgumentException(s"Invalid field selection for '${path.mkString(".")}'. Can't find field '${p.head}'. Fields available:${s.schema().fields().map(_.name()).mkString(",")}")
+                throw new IllegalArgumentException(s"Invalid field selection for '${path.mkString(".")}'. Can't find field '${p.head}'. Fields available:${s.schema().fields().asScala.map(_.name()).mkString(",")}")
               }
 
             innerExtract(childField, s.get(childField), p.tail)
@@ -208,7 +208,7 @@ object PrimaryKeyExtractor {
     }
 
     val field = Option(struct.schema().field(path.head)).getOrElse {
-      throw new IllegalArgumentException(s"Couldn't find field '${path.head}' in the schema:${struct.schema().fields().map(_.name()).mkString(",")}")
+      throw new IllegalArgumentException(s"Couldn't find field '${path.head}' in the schema:${struct.schema().fields().asScala.map(_.name()).mkString(",")}")
     }
 
     innerExtract(field, struct.get(field), path.tail)

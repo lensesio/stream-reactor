@@ -113,6 +113,7 @@ class PulsarSourceSettingsTest extends AnyWordSpec with Matchers {
           PulsarConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
           PulsarConfigConstants.POLLING_TIMEOUT_CONFIG -> "500"
         ).asJava)
+        val settings = PulsarSourceSettings(config, 2)
       }
     }
   }
