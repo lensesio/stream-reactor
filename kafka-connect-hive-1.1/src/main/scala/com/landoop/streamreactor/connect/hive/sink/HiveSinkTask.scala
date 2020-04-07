@@ -84,7 +84,7 @@ class HiveSinkTask extends SinkTask {
 
     val databases = execute(client.getAllDatabases)
     if (!databases.contains(config.dbName.value)) {
-      throw new ConnectException(s"Can not find database [${config.dbName.value}]. Current database(-s): ${databases.asScala.mkString(",")}. Please make sure the database is created before sinking to it.")
+      throw new ConnectException(s"Cannot find database [${config.dbName.value}]. Current database(-s): ${databases.asScala.mkString(",")}. Please make sure the database is created before sinking to it.")
     }
   }
 
@@ -148,7 +148,7 @@ class HiveSinkTask extends SinkTask {
             context.offset(new KafkaTopicPartition(topic.value, partition), offset.value)
           }
         logger.info(s"Opening sink for ${config.dbName.value}.${tableName.value} for ${tp.topic.value}:${tp.partition}")
-        val sink = HiveSink.from(tableName, config)(client, fs)
+        val sink: HiveSink = HiveSink.from(tableName, config)(client, fs)
         sinks.put(tp, sink)
       }
     }
