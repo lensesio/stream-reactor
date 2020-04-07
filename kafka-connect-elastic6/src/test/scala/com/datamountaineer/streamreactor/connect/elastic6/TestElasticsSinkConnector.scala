@@ -23,7 +23,7 @@ import scala.collection.JavaConverters._
 class TestElasticsSinkConnector extends TestElasticBase {
   "Should start a Elastic Search Connector" in {
     //get config
-    val config = getElasticSinkConfigProps
+    val config = getElasticSinkConfigProps()
     //get connector
     val connector = new ElasticSinkConnector()
     //start with config

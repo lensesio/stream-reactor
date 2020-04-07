@@ -114,7 +114,7 @@ trait TestElasticBase extends AnyWordSpec with Matchers with BeforeAndAfter {
   }
 
   //generate some test records
-  def getTestRecords: Vector[SinkRecord] = {
+  def getTestRecords(): Vector[SinkRecord] = {
     val schema = createSchema
     val assignment: mutable.Set[TopicPartition] = getAssignment.asScala
 
@@ -162,55 +162,55 @@ trait TestElasticBase extends AnyWordSpec with Matchers with BeforeAndAfter {
     }).toVector
   }
 
-  def getElasticSinkConfigProps = {
-    getBaseElasticSinkConfigProps(QUERY)
+  def getElasticSinkConfigProps(clusterName : String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
+    getBaseElasticSinkConfigProps(QUERY, clusterName)
   }
 
-  def getElasticSinkConfigPropsSelection = {
-    getBaseElasticSinkConfigProps(QUERY_SELECTION)
+  def getElasticSinkConfigPropsSelection(clusterName : String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
+    getBaseElasticSinkConfigProps(QUERY_SELECTION, clusterName)
   }
 
-  def getElasticSinkConfigPropsPk = {
-    getBaseElasticSinkConfigProps(QUERY_PK)
+  def getElasticSinkConfigPropsPk(clusterName : String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
+    getBaseElasticSinkConfigProps(QUERY_PK, clusterName)
   }
 
-  def getElasticSinkUpdateConfigProps = {
-    getBaseElasticSinkConfigProps(UPDATE_QUERY)
+  def getElasticSinkUpdateConfigProps(clusterName : String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
+    getBaseElasticSinkConfigProps(UPDATE_QUERY, clusterName)
   }
 
-  def getElasticSinkUpdateConfigPropsSelection = {
-    getBaseElasticSinkConfigProps(UPDATE_QUERY_SELECTION)
+  def getElasticSinkUpdateConfigPropsSelection(clusterName : String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
+    getBaseElasticSinkConfigProps(UPDATE_QUERY_SELECTION, clusterName)
   }
 
-  def getBaseElasticSinkConfigProps(query: String) = {
+  def getBaseElasticSinkConfigProps(query: String, clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
     Map(
       "topics" -> TOPIC,
       ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
-      ElasticConfigConstants.ES_CLUSTER_NAME -> ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
+      ElasticConfigConstants.ES_CLUSTER_NAME -> clusterName,
       ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
       ElasticConfigConstants.KCQL -> query
     ).asJava
   }
 
-  def getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate: Boolean) = {
+  def getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate: Boolean, clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
     Map(
       ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
-      ElasticConfigConstants.ES_CLUSTER_NAME -> ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
+      ElasticConfigConstants.ES_CLUSTER_NAME -> clusterName,
       ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
       ElasticConfigConstants.KCQL -> (QUERY + (if (autoCreate) " AUTOCREATE " else "") + " WITHINDEXSUFFIX=_{YYYY-MM-dd}")
     ).asJava
   }
 
-  def getElasticSinkConfigPropsDefaults = {
+  def getElasticSinkConfigPropsDefaults(clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
     Map(
       ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES
     ).asJava
   }
 
-  def getElasticSinkConfigPropsHTTPClient(autoCreate: Boolean, auth: Boolean = false) = {
+  def getElasticSinkConfigPropsHTTPClient(autoCreate: Boolean, auth: Boolean = false, clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
     Map(
       ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
-      ElasticConfigConstants.ES_CLUSTER_NAME -> ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT,
+      ElasticConfigConstants.ES_CLUSTER_NAME -> clusterName,
       ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
       ElasticConfigConstants.KCQL -> QUERY,
       ElasticConfigConstants.CLIENT_TYPE_CONFIG -> ClientType.HTTP.toString,

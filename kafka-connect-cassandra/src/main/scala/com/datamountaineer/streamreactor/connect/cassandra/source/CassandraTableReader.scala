@@ -17,10 +17,10 @@
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import java.text.SimpleDateFormat
-import java.time.{Instant}
+import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
-import java.util.{Collections, Date}
+import java.util.{Calendar, Collections, Date}
 
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSourceSetting, TimestampType}
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraResultSetWrapper.resultSetFutureToScala
@@ -36,7 +36,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 import com.datamountaineer.kcql.FormatType
-
 import org.json4s.native.Json
 import org.json4s.DefaultFormats
 
