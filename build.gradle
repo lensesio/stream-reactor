@@ -21,7 +21,7 @@ import de.undercouch.gradle.tasks.download.Download
 plugins {
     id "de.undercouch.download" version "3.4.3"
     id "com.github.maiflai.scalatest" version "0.26"
-    id "com.github.johnrengelman.shadow" version "5.2.0"
+    id "com.github.johnrengelman.shadow" version "4.0.3"
 }
 
 
@@ -110,12 +110,12 @@ allprojects {
     repositories {
         mavenLocal()
         mavenCentral()
-        maven { url "https://packages.confluent.io/maven/" }
-        maven { url "https://repo.typesafe.com/typesafe/releases/" }
+        maven { url "http://packages.confluent.io/maven/" }
+        maven { url "http://repo.typesafe.com/typesafe/releases/" }
         maven { url "https://repository.cloudera.com/artifactory/cloudera-repos/" }
-        maven { url "https://conjars.org/repo" }
+        maven { url "http://conjars.org/repo" }
         maven {
-            url 'https://dl.bintray.com/andsel/maven/'
+            url 'http://dl.bintray.com/andsel/maven/'
         }
         maven { url "https://dl.bintray.com/spinnaker/spinnaker/" }
     }
@@ -272,15 +272,15 @@ allprojects {
                     url 'https://github.com/landoop/stream-reactor'
 
                     scm {
-                        connection 'scm:git:https://github.com/lensesio/stream-reactor.git'
-                        developerConnection 'scm:git:git@github.com:lensesio/stream-reactor.git'
-                        url 'https://github.com/lensesio/stream-reactor.git'
+                        connection 'scm:git:https://github.com/landoop/stream-reactor.git'
+                        developerConnection 'scm:git:git@github.com:landoop/stream-reactor.git'
+                        url 'https://github.com/landoop/stream-reactor.git'
                     }
 
                     licenses {
                         license {
                             name 'Apache License 2.0'
-                            url 'https://www.apache.org/licenses/LICENSE-2.0.html'
+                            url 'http://www.apache.org/licenses/LICENSE-2.0.html'
                             distribution 'repo'
                         }
                     }
@@ -289,17 +289,17 @@ allprojects {
                         developer {
                             id = 'andrewstevenson'
                             name = 'Andrew Stevenson'
-                            email = 'andrew@lenses.io'
+                            email = 'andrew@landoop.com'
                         }
                         developer {
                             id = 'stheppi'
                             name = 'Stefan Bocutiu'
-                            email = 'stefan@lenses.io'
+                            email = 'stefan@landoop.com'
                         }
                         developer {
                             id = 'antwins'
                             name = 'Antonios Chalkiopoulos'
-                            email = 'antonios@lenses.io'
+                            email = 'antonios@landoop.com'
                         }
                     }
                 }

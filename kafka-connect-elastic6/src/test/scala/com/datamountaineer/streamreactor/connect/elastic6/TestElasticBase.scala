@@ -20,7 +20,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter._
 import java.util
 
-import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticConfigConstants
+import com.datamountaineer.streamreactor.connect.elastic6.config.{ClientType, ElasticConfigConstants}
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -185,34 +185,35 @@ trait TestElasticBase extends AnyWordSpec with Matchers with BeforeAndAfter {
   def getBaseElasticSinkConfigProps(query: String, clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
     Map(
       "topics" -> TOPIC,
-      ElasticConfigConstants.HOSTS -> ELASTIC_SEARCH_HOSTNAMES,
+      ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> clusterName,
-      ElasticConfigConstants.PROTOCOL -> ElasticConfigConstants.PROTOCOL_DEFAULT,
+      ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
       ElasticConfigConstants.KCQL -> query
     ).asJava
   }
 
   def getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate: Boolean, clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
     Map(
-      ElasticConfigConstants.HOSTS -> ELASTIC_SEARCH_HOSTNAMES,
+      ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> clusterName,
-      ElasticConfigConstants.PROTOCOL -> ElasticConfigConstants.PROTOCOL_DEFAULT,
+      ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
       ElasticConfigConstants.KCQL -> (QUERY + (if (autoCreate) " AUTOCREATE " else "") + " WITHINDEXSUFFIX=_{YYYY-MM-dd}")
     ).asJava
   }
 
   def getElasticSinkConfigPropsDefaults(clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
     Map(
-      ElasticConfigConstants.HOSTS -> ELASTIC_SEARCH_HOSTNAMES
+      ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES
     ).asJava
   }
 
   def getElasticSinkConfigPropsHTTPClient(autoCreate: Boolean, auth: Boolean = false, clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
     Map(
-      ElasticConfigConstants.HOSTS -> ELASTIC_SEARCH_HOSTNAMES,
+      ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> clusterName,
-      ElasticConfigConstants.PROTOCOL -> ElasticConfigConstants.PROTOCOL_DEFAULT,
+      ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
       ElasticConfigConstants.KCQL -> QUERY,
+      ElasticConfigConstants.CLIENT_TYPE_CONFIG -> ClientType.HTTP.toString,
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME -> (if (auth) BASIC_AUTH_USERNAME else ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT),
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD -> (if (auth) BASIC_AUTH_PASSWORD else ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD_DEFAULT)
     ).asJava
