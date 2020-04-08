@@ -20,11 +20,10 @@ import java.nio.ByteBuffer
 import java.util.UUID
 
 import javax.jms.BytesMessage
-import com.datamountaineer.streamreactor.connect.TestBase
+import com.datamountaineer.streamreactor.connect.{TestBase, Using}
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.converters.AvroMessageConverter
 import com.datamountaineer.streamreactor.connect.sink.AvroDeserializer
-import com.sksamuel.scalax.io.Using
 import io.confluent.connect.avro.AvroData
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.avro.generic.GenericData
