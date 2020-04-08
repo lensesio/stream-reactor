@@ -19,10 +19,9 @@ package com.datamountaineer.streamreactor.connect.sink.converters
 import java.util.UUID
 
 import javax.jms.ObjectMessage
-import com.datamountaineer.streamreactor.connect.TestBase
+import com.datamountaineer.streamreactor.connect.{TestBase, Using}
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.converters.ObjectMessageConverter
-import com.sksamuel.scalax.io.Using
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
