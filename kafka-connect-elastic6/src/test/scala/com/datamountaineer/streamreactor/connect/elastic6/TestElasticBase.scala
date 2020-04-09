@@ -20,7 +20,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter._
 import java.util
 
-import com.datamountaineer.streamreactor.connect.elastic6.config.{ClientType, ElasticConfigConstants}
+import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticConfigConstants
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -213,7 +213,6 @@ trait TestElasticBase extends AnyWordSpec with Matchers with BeforeAndAfter {
       ElasticConfigConstants.ES_CLUSTER_NAME -> clusterName,
       ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
       ElasticConfigConstants.KCQL -> QUERY,
-      ElasticConfigConstants.CLIENT_TYPE_CONFIG -> ClientType.HTTP.toString,
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME -> (if (auth) BASIC_AUTH_USERNAME else ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT),
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD -> (if (auth) BASIC_AUTH_PASSWORD else ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD_DEFAULT)
     ).asJava

@@ -43,9 +43,6 @@ trait KElasticClient extends AutoCloseable {
 
 object KElasticClient extends StrictLogging {
   def getClient(settings: ElasticSettings, essettings: Settings, uri: ElasticsearchClientUri): KElasticClient = {
-    if (settings.xPackSettings.nonEmpty) {
-      logger.warn("XPack connection is deprecated, falling back to Http connection")
-    }
     createHttpClient(settings, uri)
   }
 
