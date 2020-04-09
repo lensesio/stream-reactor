@@ -22,16 +22,25 @@ object ElasticConfigConstants {
 
   val CONNECTOR_PREFIX = "connect.elastic"
 
-  val URL = s"${CONNECTOR_PREFIX}.${URL_SUFFIX}"
-  val URL_DOC = "Url including port for Elastic Search cluster node."
-  val URL_DEFAULT = "localhost:9300"
-  val ES_CLUSTER_NAME = s"${CONNECTOR_PREFIX}.${CLUSTER_NAME_SUFFIX}"
-  val ES_CLUSTER_NAME_DEFAULT = "elasticsearch"
-  val ES_CLUSTER_NAME_DOC = "Name of the elastic search cluster, used in local mode for setting the connection"
+  val PROTOCOL = s"${CONNECTOR_PREFIX}.protocol"
+  val PROTOCOL_DOC = "URL protocol (http, https)"
+  val PROTOCOL_DEFAULT = "http"
 
-  val URL_PREFIX = s"${URL}.prefix"
-  val URL_PREFIX_DOC = "URL connection string prefix"
-  val URL_PREFIX_DEFAULT = "elasticsearch"
+  val HOSTS = s"${CONNECTOR_PREFIX}.${CONNECTION_HOSTS_SUFFIX}"
+  val HOSTS_DOC = "List of hostnames for Elastic Search cluster node, not including protocol or port."
+  val HOSTS_DEFAULT = "localhost"
+
+  val ES_PORT = s"${CONNECTOR_PREFIX}.${CONNECTION_PORT_SUFFIX}"
+  val ES_PORT_DOC = "Port on which Elastic Search node listens on"
+  val ES_PORT_DEFAULT = "9300"
+
+  val ES_PREFIX = s"${CONNECTOR_PREFIX}.tableprefix"
+  val ES_PREFIX_DOC = "Table prefix (optional)"
+  val ES_PREFIX_DEFAULT = ""
+
+  val ES_CLUSTER_NAME = s"${CONNECTOR_PREFIX}.${CLUSTER_NAME_SUFFIX}"
+  val ES_CLUSTER_NAME_DOC = "Name of the elastic search cluster, used in local mode for setting the connection"
+  val ES_CLUSTER_NAME_DEFAULT = "elasticsearch"
 
   val KCQL = s"${CONNECTOR_PREFIX}.${KCQL_PROP_SUFFIX}"
   val KCQL_DOC = "KCQL expression describing field selection and routes."

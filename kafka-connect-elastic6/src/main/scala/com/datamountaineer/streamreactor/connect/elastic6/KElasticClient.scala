@@ -19,18 +19,15 @@ package com.datamountaineer.streamreactor.connect.elastic6
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticSettings
 import com.datamountaineer.streamreactor.connect.elastic6.indexname.CreateIndex.getIndexName
-import com.sksamuel.elastic4s.ElasticsearchClientUri
 import com.sksamuel.elastic4s.bulk.BulkRequest
 import com.sksamuel.elastic4s.http.bulk.BulkResponse
-import com.sksamuel.elastic4s.http.{ElasticClient, Response}
+import com.sksamuel.elastic4s.http.{ElasticClient, ElasticNodeEndpoint, ElasticProperties, Response}
 import com.sksamuel.elastic4s.mappings.MappingDefinition
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.http.auth.{AuthScope, UsernamePasswordCredentials}
 import org.apache.http.client.config.RequestConfig.Builder
 import org.apache.http.impl.client.BasicCredentialsProvider
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder
-import org.elasticsearch.client.RestClientBuilder.{HttpClientConfigCallback, RequestConfigCallback}
-import org.elasticsearch.common.settings.Settings
 
 import scala.concurrent.Future
 
@@ -42,11 +39,8 @@ trait KElasticClient extends AutoCloseable {
 
 
 object KElasticClient extends StrictLogging {
-  def getClient(settings: ElasticSettings, essettings: Settings, uri: ElasticsearchClientUri): KElasticClient = {
-    createHttpClient(settings, uri)
-  }
 
-  private def createHttpClient(settings: ElasticSettings, uri: ElasticsearchClientUri) : KElasticClient = {
+  def createHttpClient(settings: ElasticSettings, endpoints: Seq[ElasticNodeEndpoint]): KElasticClient = {
     if (settings.httpBasicAuthUsername.nonEmpty && settings.httpBasicAuthPassword.nonEmpty) {
       lazy val provider = {
         val provider = new BasicCredentialsProvider
@@ -54,17 +48,16 @@ object KElasticClient extends StrictLogging {
         provider.setCredentials(AuthScope.ANY, credentials)
         provider
       }
-      new HttpKElasticClient(ElasticClient(uri, new RequestConfigCallback {
-        override def customizeRequestConfig(requestConfigBuilder: Builder) = {
-          requestConfigBuilder
-        }
-      }, new HttpClientConfigCallback {
-        override def customizeHttpClient(httpClientBuilder: HttpAsyncClientBuilder) = {
-          httpClientBuilder.setDefaultCredentialsProvider(provider)
-        }
-      }))
+
+      val client: ElasticClient = ElasticClient(
+        ElasticProperties(endpoints),
+        (requestConfigBuilder: Builder) => requestConfigBuilder,
+        (httpClientBuilder: HttpAsyncClientBuilder) => httpClientBuilder.setDefaultCredentialsProvider(provider)
+      )
+      new HttpKElasticClient(client)
     } else {
-      new HttpKElasticClient(ElasticClient(uri))
+      val client: ElasticClient = ElasticClient(ElasticProperties(endpoints))
+      new HttpKElasticClient(client)
     }
   }
 }
