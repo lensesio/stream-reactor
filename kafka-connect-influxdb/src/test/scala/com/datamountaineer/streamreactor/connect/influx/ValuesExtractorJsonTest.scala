@@ -22,6 +22,7 @@ import com.datamountaineer.streamreactor.connect.influx.writers.ValuesExtractor
 import com.landoop.json.sql.JacksonJson
 import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
+import org.apache.avro.generic.GenericData
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -233,10 +234,16 @@ class ValuesExtractorJsonTest extends AnyWordSpec with Matchers {
         .put("bibble", Array(1.toByte, 121.toByte, -111.toByte))
         .put("age", 30)
 
-      val json = JacksonJson.asJson(avroData.fromConnectData(schema, struct).toString)
-      val result = Try(ValuesExtractor.extract(json, Vector("bibble")), Vector("bibble"))
-      result shouldBe 'Failure
-      result.failed.get shouldBe a[IllegalArgumentException]
+      avroData.fromConnectData(schema, struct) match {
+        case avroRecord : GenericData.Record =>
+          val json = JacksonJson.asJson(AvroConverterUtil.convertAvroToJsonString(avroRecord))
+          val result = Try(ValuesExtractor.extract(json, Vector("bibble")), Vector("bibble"))
+          result shouldBe 'Failure
+          result.failed.get shouldBe a[IllegalArgumentException]
+
+        case _ => fail("Should have been a GenericData.Record");
+      }
+
     }
   }
 }
