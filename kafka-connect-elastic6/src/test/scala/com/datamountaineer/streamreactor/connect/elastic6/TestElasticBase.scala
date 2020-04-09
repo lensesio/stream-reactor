@@ -185,33 +185,33 @@ trait TestElasticBase extends AnyWordSpec with Matchers with BeforeAndAfter {
   def getBaseElasticSinkConfigProps(query: String, clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
     Map(
       "topics" -> TOPIC,
-      ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
+      ElasticConfigConstants.HOSTS -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> clusterName,
-      ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
+      ElasticConfigConstants.PROTOCOL -> ElasticConfigConstants.PROTOCOL_DEFAULT,
       ElasticConfigConstants.KCQL -> query
     ).asJava
   }
 
   def getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate: Boolean, clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
     Map(
-      ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
+      ElasticConfigConstants.HOSTS -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> clusterName,
-      ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
+      ElasticConfigConstants.PROTOCOL -> ElasticConfigConstants.PROTOCOL_DEFAULT,
       ElasticConfigConstants.KCQL -> (QUERY + (if (autoCreate) " AUTOCREATE " else "") + " WITHINDEXSUFFIX=_{YYYY-MM-dd}")
     ).asJava
   }
 
   def getElasticSinkConfigPropsDefaults(clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
     Map(
-      ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES
+      ElasticConfigConstants.HOSTS -> ELASTIC_SEARCH_HOSTNAMES
     ).asJava
   }
 
   def getElasticSinkConfigPropsHTTPClient(autoCreate: Boolean, auth: Boolean = false, clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
     Map(
-      ElasticConfigConstants.URL -> ELASTIC_SEARCH_HOSTNAMES,
+      ElasticConfigConstants.HOSTS -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> clusterName,
-      ElasticConfigConstants.URL_PREFIX -> ElasticConfigConstants.URL_PREFIX_DEFAULT,
+      ElasticConfigConstants.PROTOCOL -> ElasticConfigConstants.PROTOCOL_DEFAULT,
       ElasticConfigConstants.KCQL -> QUERY,
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME -> (if (auth) BASIC_AUTH_USERNAME else ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT),
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD -> (if (auth) BASIC_AUTH_PASSWORD else ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD_DEFAULT)
