@@ -30,7 +30,6 @@ import org.scalatest.wordspec.AnyWordSpec
 
 import scala.util.{Success, Try}
 
-class ValuesExtractorJsonTest extends AnyWordSpec with Matchers {
 class ValuesExtractorJsonTest extends AnyWordSpec with Matchers with LazyLogging {
   val avroData = new AvroData(8)
 
