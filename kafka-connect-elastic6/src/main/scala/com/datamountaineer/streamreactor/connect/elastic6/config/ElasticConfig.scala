@@ -68,16 +68,6 @@ object ElasticConfig {
       ConfigDef.Width.MEDIUM,
       ElasticConfigConstants.WRITE_TIMEOUT_DISPLAY)
     .define(
-      ElasticConfigConstants.CLIENT_TYPE_CONFIG,
-      Type.STRING,
-      ElasticConfigConstants.CLIENT_TYPE_CONFIG_DEFAULT,
-      Importance.MEDIUM,
-      ElasticConfigConstants.CLIENT_TYPE_CONFIG_DOC,
-      "Connection",
-      5,
-      ConfigDef.Width.MEDIUM,
-      ElasticConfigConstants.CLIENT_TYPE_CONFIG)
-    .define(
       ElasticConfigConstants.BATCH_SIZE_CONFIG,
       Type.INT,
       ElasticConfigConstants.BATCH_SIZE_DEFAULT,
@@ -151,27 +141,6 @@ object ElasticConfig {
       2,
       ConfigDef.Width.SHORT,
       ElasticConfigConstants.PK_JOINER_SEPARATOR)
-    .define(
-      ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS,
-      Type.PASSWORD,
-      ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS_DEFAULT,
-      Importance.MEDIUM,
-      ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS_DOC,
-      "XPack",
-      1,
-      ConfigDef.Width.LONG,
-      ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS_DOC)
-
-    .define(
-      ElasticConfigConstants.ES_CLUSTER_XPACK_PLUGINS,
-      Type.STRING,
-      ElasticConfigConstants.ES_CLUSTER_XPACK_PLUGINS_DEFAULT,
-      Importance.MEDIUM,
-      ElasticConfigConstants.ES_CLUSTER_XPACK_PLUGINS_DOC,
-      "XPack",
-      2,
-      ConfigDef.Width.LONG,
-      ElasticConfigConstants.ES_CLUSTER_XPACK_PLUGINS_DOC)
     .define(ElasticConfigConstants.PROGRESS_COUNTER_ENABLED,
       Type.BOOLEAN,
       ElasticConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
