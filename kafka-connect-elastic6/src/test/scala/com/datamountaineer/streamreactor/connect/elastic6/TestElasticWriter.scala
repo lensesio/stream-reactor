@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.elastic6
 import java.nio.file.Paths
 import java.util.UUID
 
-import com.datamountaineer.streamreactor.connect.elastic6.config.{ClientType, ElasticConfig, ElasticSettings}
+import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticSettings}
 import com.sksamuel.elastic4s.embedded.LocalNode
 import com.sksamuel.elastic4s.http.ElasticClient
 import com.sksamuel.elastic4s.http.ElasticDsl._
@@ -162,19 +162,6 @@ class TestElasticWriter extends TestElasticBase with MockitoSugar with BeforeAnd
     client.close()
     TemporaryLocalNodeDir.deleteRecursively()
 
-  }
-
-  "A writer should be using TCP by default" in new TestContext {
-    val config = new ElasticConfig(getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate = false, RandomClusterName))
-    val settings = ElasticSettings(config)
-    settings.clientType.toString shouldBe ClientType.TCP.toString
-    TemporaryLocalNodeDir.deleteRecursively()
-  }
-
-  "A writer should be using HTTP is set" in {
-    val config = new ElasticConfig(getElasticSinkConfigPropsHTTPClient(autoCreate = false))
-    val settings = ElasticSettings(config)
-    settings.clientType.toString shouldBe ClientType.HTTP.toString
   }
 
   "A writer should be using HTTP is set with HTTP Basic Auth Credentials" in {
