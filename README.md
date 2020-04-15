@@ -1,7 +1,5 @@
 ![Actions Status](https://github.com/Landoop/stream-reactor/workflows/CI/badge.svg)
 [<img src="https://img.shields.io/badge/docs--orange.svg?"/>](https://docs.lenses.io/connectors/)
-[<img src="https://img.shields.io/badge/latest%20release-1.2.6-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22)
-
 
 Join us on slack [![Alt text](images/slack.jpeg)](https://launchpass.com/lensesio)
 
@@ -58,7 +56,7 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
-**Pending**
+**1.2.7**
 **Features**
 *   MQTT Source
     
@@ -78,9 +76,24 @@ A collection of components to build a real time ingestion pipeline.
         
         This would send field's values as JSON object to the said topic.
         
-        Note that in kafka connect properies one needs to set `key.converter` and `value.converter` as `org.apache.kafka.connect.storage.StringConverter`
+        Note that in kafka connect properties one needs to set `key.converter` and `value.converter` as `org.apache.kafka.connect.storage.StringConverter`
          
+    * Added a new INCREMENTALMODE called dsesearchtimestamp that will make a DSE Search queries using Solr instead of a native Cassandra query.
 
+        Instead of the native query:
+
+        SELECT a, b, c, d FROM keyspace.table WHERE pkCol > ? AND pkCol <= ? ALLOW FILTERING;
+        We will have now the query with Solr on the dsesearchtimestamp INCREMENTALMODE:
+
+        SELECT a, b, c, d FROM keyspace.table WHERE solr_query=?;
+        Where the solr_query will be something like this:
+
+        pkCol:{2020-03-23T15:02:21Z TO 2020-03-23T15:30:12.989Z]
+        
+*   AzureDocumentDB
+
+    *   Move to version 2.x since 1.x is deprecated in May 2020
+        
 **Bug fixes**
 
 *   JMS Source
@@ -90,6 +103,14 @@ A collection of components to build a real time ingestion pipeline.
     Changes:
     *  Allow the connector to respect the `tasks.max` value provided if the user `connect.jms.scale.type`. Available values are `kcql` and `default`.
     If `KCQL` is provided it will be based on the number of KCQL statements written, otherwise it will be driven based on the connector `tasks.max`
+
+*   Kudu Sink
+    
+    Handle null decimal types correctly
+    
+*   Mongo Sink
+
+    Handle decimal types
 
 **1.2.4**
 **Bug fixes**
@@ -392,7 +413,7 @@ A collection of components to build a real time ingestion pipeline.
 
 ### Building
 
-***Requires gradle 3.0 to build.***
+***Requires gradle 5.0 to build.***
 
 To build
 
