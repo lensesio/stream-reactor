@@ -1,6 +1,5 @@
-![Actions Status](https://github.com/Landoop/stream-reactor/workflows/CI/badge.svg)
+![Actions Status](https://github.com/lensesio/stream-reactor/workflows/CI/badge.svg)
 [<img src="https://img.shields.io/badge/docs--orange.svg?"/>](https://docs.lenses.io/connectors/)
-[<img src="https://img.shields.io/badge/latest%20release-1.2.6-blue.svg?label=latest%20release"/>](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.datamountaineer%22)
 
 
 Join us on slack [![Alt text](images/slack.jpeg)](https://launchpass.com/lensesio)
@@ -32,9 +31,6 @@ A collection of components to build a real time ingestion pipeline.
 | *Cassandra     | Sink   | Certified DSE Kafka connect Cassandra sink task to write Kafka topic payloads to Cassandra.   | [Docs](https://docs.lenses.io/connectors/sink/cassandra.html)              |
 | Coap           | Source | Kafka connect Coap source to read from IoT Coap endpoints using Californium.                  | [Docs](https://docs.lenses.io/connectors/source/coap.html)                 |
 | Coap           | Sink   | Kafka connect Coap sink to write kafka topic payload to IoT Coap endpoints using Californium. | [Docs](https://docs.lenses.io/connectors/sink/coap.html)                   |
-| Druid          | Sink   | Kafka connect Druid sink to write Kafka topic payloads to Druid.                              |             |
-| Elastic        | Sink   | Kafka connect Elastic Search sink to write Kafka topic payloads to Elastic Search 2.x         | [Docs](https://docs.lenses.io/connectors/sink/elastic.html)                |
-| Elastic 5      | Sink   | Kafka connect Elastic Search sink to write payloads to Elastic Search 5.x w. tcp or http      | [Docs](https://docs.lenses.io/connectors/sink/elastic5.html)               |
 | Elastic 6      | Sink   | Kafka connect Elastic Search sink to write payloads to Elastic Search 6.x w. tcp or http      | [Docs](https://docs.lenses.io/connectors/sink/elastic6.html)               |
 | FTP/HTTP       | Source | Kafka connect FTP and HTTP source to write file data into Kafka topics.                       | [Docs](https://docs.lenses.io/connectors/source/ftp.html)                  |
 | Hazelcast      | Sink   | Kafka connect Hazelcast sink to write Kafka topic payloads to Hazelcast.                      | [Docs](https://docs.lenses.io/connectors/sink/hazelcast.html)              |
@@ -51,14 +47,23 @@ A collection of components to build a real time ingestion pipeline.
 | Pulsar         | Source | Kafka connect Pulsar source to write data from Pulsar to Kafka.                               | [Docs](https://docs.lenses.io/connectors/source/pulsar.html)                 |
 | Pulsar         | Sink   | Kafka connect Pulsar sink to write data from Kafka to Pulsar.                                 | [Docs](https://docs.lenses.io/connectors/sink/pulsar.html)                   |
 | Redis          | Sink   | Kafka connect Redis sink to write Kafka topic payloads to Redis.                              | [Docs](https://docs.lenses.io/connectors/sink/redis.html)                  |
-| ReThinkDB      | Source | Kafka connect RethinkDb source subscribe to ReThinkDB changefeeds and write to Kafka.         | [Docs](https://docs.lenses.io/connectors/source/rethink.html)              |
-| ReThinkDB      | Sink   | Kafka connect RethinkDb sink to write Kafka topic payloads to RethinkDb.                      | [Docs](https://docs.lenses.io/connectors/sink/rethink.html)                |
 | VoltDB         | Sink   | Kafka connect Voltdb sink to write Kafka topic payloads to Voltdb.                            | [Docs](https://docs.lenses.io/connectors/sink/voltdb.html)                 |
 
 
 ## Release Notes
 
 **Pending**
+
+Move to Scala 2.12
+Move to Kafka 2.4.1 and Confluent 5.4
+
+Deprecated:
+    * Druid Sink
+    * Elastic Sink
+    * Elastic5 Sink
+    * Rethink Sink     
+
+**1.2.7**
 **Features**
 *   MQTT Source
     

@@ -66,7 +66,7 @@ allprojects {
         connectCLIVersion = "1.0.6"
         avro4sVersion = "1.6.4"
 
-        // The following 4 need to align to compile against a particular version
+        // The following 4 need to align to implementation against a particular version
         confluentVersion = '5.4.0'
         kafkaVersion = '2.4.0'
         dataMountaineerCommonVersion = "2.0.0"
@@ -77,7 +77,7 @@ allprojects {
         gitRepo = ("git remote get-url origin").execute().text.trim()
 
 
-//        // The following 4 need to align to compile against a particular version
+//        // The following 4 need to align to implementation against a particular version
 //        confluentVersion = '3.3.0'
 //        kafkaVersion = '0.11.0.0'
 //        dataMountaineerCommonVersion = "0.9.7"
@@ -108,14 +108,14 @@ allprojects {
     }
 
     repositories {
-        mavenLocal()
+        //mavenLocal()
         mavenCentral()
-        maven { url "http://packages.confluent.io/maven/" }
-        maven { url "http://repo.typesafe.com/typesafe/releases/" }
+        maven { url "https://packages.confluent.io/maven/" }
+        maven { url "https://repo.typesafe.com/typesafe/releases/" }
         maven { url "https://repository.cloudera.com/artifactory/cloudera-repos/" }
-        maven { url "http://conjars.org/repo" }
+        maven { url "https://conjars.org/repo" }
         maven {
-            url 'http://dl.bintray.com/andsel/maven/'
+            url 'https://dl.bintray.com/andsel/maven/'
         }
         maven { url "https://dl.bintray.com/spinnaker/spinnaker/" }
     }
@@ -137,9 +137,9 @@ allprojects {
 
     shadowJar {
         configurations = [project.configurations.runtime]
-        baseName = "${project.name}-${project.version}-${kafkaVersion}-all"
+        archiveFileName = "${project.name}-${project.version}-${kafkaVersion}-all"
         classifier = null
-        version = null
+        archiveVersion = null
 
         zip64 true
 
@@ -175,22 +175,22 @@ allprojects {
     }
 
     dependencies {
-        compile "org.scala-lang:scala-library:$scala"
-        compile "org.scala-lang:scala-compiler:$scala"
-        compile "com.typesafe.scala-logging:scala-logging_${scalaMajorVersion}:${scalaLoggingVersion}"
-        compile "org.apache.kafka:connect-json:$kafkaVersion"
-        compile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
-        compile "io.confluent:kafka-schema-registry:$confluentVersion"
-        compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
-        compile "org.apache.calcite:calcite-linq4j:$link4jVersion"
+        implementation "org.scala-lang:scala-library:$scala"
+        implementation "org.scala-lang:scala-compiler:$scala"
+        implementation "com.typesafe.scala-logging:scala-logging_${scalaMajorVersion}:${scalaLoggingVersion}"
+        implementation "org.apache.kafka:connect-json:$kafkaVersion"
+        implementation "io.confluent:kafka-connect-avro-converter:$confluentVersion"
+        implementation "io.confluent:kafka-schema-registry:$confluentVersion"
+        implementation "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
+        implementation "org.apache.calcite:calcite-linq4j:$link4jVersion"
 
-        testCompile "org.mockito:mockito-scala_$scalaMajorVersion:$mockitoVersion"
-        testCompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
-        testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
-        testCompile "junit:junit:$junit"
+        testImplementation "org.mockito:mockito-scala_$scalaMajorVersion:$mockitoVersion"
+        testImplementation "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
+        testImplementation "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
+        testImplementation "junit:junit:$junit"
 
-        testRuntime 'org.pegdown:pegdown:1.1.0'
-        testCompile "com.vladsch.flexmark:flexmark-all:0.35.10"
+        testImplementation 'org.pegdown:pegdown:1.1.0'
+        testImplementation "com.vladsch.flexmark:flexmark-all:0.35.10"
     }
 
     test {
@@ -200,7 +200,7 @@ allprojects {
     }
 
     task testJar(type: Jar, dependsOn: testClasses) {
-        baseName = "test-${project.archivesBaseName}"
+        archiveFileName = "test-${project.archivesBaseName}"
         from sourceSets.test.output
     }
 
@@ -222,7 +222,7 @@ allprojects {
 
     tasks.withType(Tar) {
         compression Compression.GZIP
-        extension = 'tgz'
+        archiveExtension = 'tgz'
     }
 
     task compile(dependsOn: 'compileScala')
@@ -272,15 +272,15 @@ allprojects {
                     url 'https://github.com/landoop/stream-reactor'
 
                     scm {
-                        connection 'scm:git:https://github.com/landoop/stream-reactor.git'
-                        developerConnection 'scm:git:git@github.com:landoop/stream-reactor.git'
-                        url 'https://github.com/landoop/stream-reactor.git'
+                        connection 'scm:git:https://github.com/lensesio/stream-reactor.git'
+                        developerConnection 'scm:git:git@github.com:lensesio/stream-reactor.git'
+                        url 'https://github.com/lensesio/stream-reactor.git'
                     }
 
                     licenses {
                         license {
                             name 'Apache License 2.0'
-                            url 'http://www.apache.org/licenses/LICENSE-2.0.html'
+                            url 'https://www.apache.org/licenses/LICENSE-2.0.html'
                             distribution 'repo'
                         }
                     }
@@ -289,17 +289,17 @@ allprojects {
                         developer {
                             id = 'andrewstevenson'
                             name = 'Andrew Stevenson'
-                            email = 'andrew@landoop.com'
+                            email = 'andrew@lenses.io'
                         }
                         developer {
                             id = 'stheppi'
                             name = 'Stefan Bocutiu'
-                            email = 'stefan@landoop.com'
+                            email = 'stefan@lenses.io'
                         }
                         developer {
                             id = 'antwins'
                             name = 'Antonios Chalkiopoulos'
-                            email = 'antonios@landoop.com'
+                            email = 'antonios@lenses.io'
                         }
                     }
                 }
@@ -371,8 +371,8 @@ task prepareRelease(dependsOn: [downloadCli, downloadSchemaCli, collectConfs, co
 task tar(type: Tar, dependsOn: prepareRelease) {
     from rootRelease
     exclude "**.gz"
-    archiveName = tarName
-    destinationDir = file(rootRelease)
+    archiveFileName = tarName
+    destinationDirectory = file(rootRelease)
     compression = Compression.GZIP
 }
 

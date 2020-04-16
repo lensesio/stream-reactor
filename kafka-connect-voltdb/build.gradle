@@ -21,6 +21,6 @@ project(":kafka-connect-voltdb") {
     }
 
     dependencies {
-        compile "org.voltdb:voltdbclient:$voltVersion"
+        implementation "org.voltdb:voltdbclient:$voltVersion"
     }
 }
