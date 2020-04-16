@@ -24,17 +24,17 @@ project(":kafka-connect-mqtt") {
     }
 
     dependencies {
-        compile "org.eclipse.paho:org.eclipse.paho.client.mqttv3:$mqttVersion"
-        compile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
-        compile "com.sksamuel.avro4s:avro4s-json_$scalaMajorVersion:$avro4sVersion"
+        implementation "org.eclipse.paho:org.eclipse.paho.client.mqttv3:$mqttVersion"
+        implementation "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
+        implementation "com.sksamuel.avro4s:avro4s-json_$scalaMajorVersion:$avro4sVersion"
 
-        compile "org.bouncycastle:bcprov-jdk15on:$bouncyCastle"
-        compile "org.bouncycastle:bcpkix-jdk15on:$bouncyCastle"
-        compile "org.bouncycastle:bcpg-jdk15on:$bouncyCastle"
+        implementation "org.bouncycastle:bcprov-jdk15on:$bouncyCastle"
+        implementation "org.bouncycastle:bcpkix-jdk15on:$bouncyCastle"
+        implementation "org.bouncycastle:bcpg-jdk15on:$bouncyCastle"
 
-        testCompile "org.json4s:json4s-core_$scalaMajorVersion:$json4s"
-        testCompile "org.json4s:json4s-jackson_$scalaMajorVersion:$json4s"
-        //testCompile("org.apache.activemq:activemq-core:$activeMq")
-        testCompile("io.moquette:moquette-broker:0.8.1")
+        testImplementation "org.json4s:json4s-core_$scalaMajorVersion:$json4s"
+        testImplementation "org.json4s:json4s-jackson_$scalaMajorVersion:$json4s"
+        //testImplementation("org.apache.activemq:activemq-core:$activeMq")
+        testImplementation("io.moquette:moquette-broker:0.8.1")
     }
 }
