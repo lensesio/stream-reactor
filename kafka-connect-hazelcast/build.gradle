@@ -26,7 +26,7 @@ project(":kafka-connect-hazelcast") {
     }
 
     dependencies {
-        compile "com.hazelcast:hazelcast-all:$hazelCastVersion"
-        compile "javax.cache:cache-api:$javaxCacheversion"
+        implementation "com.hazelcast:hazelcast-all:$hazelCastVersion"
+        implementation "javax.cache:cache-api:$javaxCacheversion"
     }
 }
