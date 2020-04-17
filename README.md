@@ -397,7 +397,7 @@ Deprecated:
 
 ### Building
 
-***Requires gradle 3.0 to build.***
+***Requires gradle 6.0 to build.***
 
 To build
 
