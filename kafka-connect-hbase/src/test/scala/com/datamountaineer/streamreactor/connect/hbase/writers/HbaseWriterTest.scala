@@ -46,6 +46,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
+
 class HbaseWriterTest
     extends AnyWordSpec
     with Matchers
@@ -63,7 +64,7 @@ class HbaseWriterTest
 
   "HbaseWriter" should {
 
-    "write an Hbase row for each SinkRecord provided using StructFieldsRowKeyBuilderBytes" in {
+    "write an Hbase row for each SinkRecord provided using StructFieldsRowKeyBuilderBytes" ignore  {
 
       val fieldsExtractor = mock[FieldsValuesExtractor]
       val rowKeyBuilder = mock[StructFieldsRowKeyBuilderBytes]
@@ -148,7 +149,7 @@ class HbaseWriterTest
       }
     }
 
-    "write an Hbase row for each SinkRecord provided using GenericRowKeyBuilderBytes" in {
+    "write an Hbase row for each SinkRecord provided using GenericRowKeyBuilderBytes" ignore  {
 
       val fieldsExtractor = mock[FieldsValuesExtractor]
       val tableName = "someTable"
@@ -227,7 +228,7 @@ class HbaseWriterTest
       }
     }
 
-    "should recover from failure if set to retry" in {
+    "should recover from failure if set to retry" ignore  {
 
       val fieldsExtractor = mock[FieldsValuesExtractor]
       val rowKeyBuilder = mock[StructFieldsRowKeyBuilderBytes]
