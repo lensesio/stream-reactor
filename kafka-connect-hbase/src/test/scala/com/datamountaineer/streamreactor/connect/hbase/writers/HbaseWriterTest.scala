@@ -34,11 +34,23 @@ import com.datamountaineer.streamreactor.connect.hbase.{
   StructFieldsRowKeyBuilderBytes
 }
 import org.apache.hadoop.hbase.HBaseTestingUtility
+import com.datamountaineer.streamreactor.connect.hbase.config.{
+  HBaseConfig,
+  HBaseConfigConstants,
+  HBaseSettings
+}
+import com.datamountaineer.streamreactor.connect.hbase.{
+  FieldsValuesExtractor,
+  HbaseHelper,
+  HbaseTableHelper,
+  StructFieldsRowKeyBuilderBytes
+}
+import org.apache.hadoop.hbase.HBaseTestingUtility
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kafka.connect.sink.SinkRecord
-import org.kitesdk.minicluster.{HBaseService, HdfsService, MiniCluster, ZookeeperService}
+
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -50,22 +62,8 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
+import org.apache.hadoop.hbase.HBaseTestingUtility
 
-class HbaseWriterTest extends AnyWordSpec with Matchers with MockitoSugar with BeforeAndAfterAll {
-//
-//  var miniCluster: Option[HBaseTestingUtility] = None
-//  var connection : Option[Connection] = None
-//
-//  override def beforeAll(): Unit = {
-//    miniCluster = Some(new HBaseTestingUtility())
-//    miniCluster.get.startMiniCluster(1)
-//    connection = Some(miniCluster.get.getConnection())
-//  }
-//
-//  override def afterAll() {
-////    connection.get.close()
-////    miniCluster.get.shutdownMiniCluster()
-//  }
 
 class HbaseWriterTest
     extends AnyWordSpec
@@ -76,8 +74,17 @@ class HbaseWriterTest
   var miniCluster: HBaseTestingUtility = _
 
   override def beforeAll() {
-    miniCluster = new HBaseTestingUtility()
-    miniCluster.startMiniCluster()
+    val workDir = "target/kite-minicluster-workdir-hbase"
+    miniCluster = Some(new MiniCluster
+    .Builder()
+      .workDir(workDir)
+      .bindIP("localhost")
+      .zkPort(2181)
+      .addService(classOf[HdfsService])
+      .addService(classOf[ZookeeperService])
+      .addService(classOf[HBaseService])
+      .clean(true).build)
+    miniCluster.get.start()
   }
 
   override def afterAll() {}
