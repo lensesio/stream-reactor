@@ -40,7 +40,8 @@ object HazelCastConnection {
    val networkConfig = clientConfig.getNetworkConfig
 
    if (config.sslEnabled) {
-     networkConfig.setSSLConfig(new SSLConfig().setEnabled(true).setProperties(getSSLOptions(config)))
+     setSSLOptions(config)
+     networkConfig.setSSLConfig(new SSLConfig().setEnabled(true))
    }
     networkConfig.setAddresses(config.members.toList.asJava)
 
@@ -74,17 +75,16 @@ object HazelCastConnection {
     cacheManager
   }
 
-  def getSSLOptions(config: HazelCastConnectionConfig) : Properties = {
-    val props = new Properties()
+  def setSSLOptions(config: HazelCastConnectionConfig) = {
     config.keyStoreLocation match {
       case Some(path) =>
         if (!new File(path).exists) {
           throw new FileNotFoundException(s"Keystore not found in: $path")
         }
 
-        props.setProperty("javax.net.ssl.keyStorePassword", config.keyStorePassword.getOrElse(""))
-        props.setProperty("javax.net.ssl.keyStore", path)
-        props.setProperty("javax.net.ssl.keyStoreType", config.keyStoreType.getOrElse("jks"))
+        System.setProperty("javax.net.ssl.keyStorePassword", config.keyStorePassword.getOrElse(""))
+        System.setProperty("javax.net.ssl.keyStore", path)
+        System.setProperty("javax.net.ssl.keyStoreType", config.keyStoreType.getOrElse("jks"))
 
       case None =>
     }
@@ -95,13 +95,11 @@ object HazelCastConnection {
           throw new FileNotFoundException(s"Truststore not found in: $path")
         }
 
-        props.setProperty("javax.net.ssl.trustStorePassword", config.trustStorePassword.getOrElse(""))
-        props.setProperty("javax.net.ssl.trustStore", path)
-        props.setProperty("javax.net.ssl.trustStoreType", config.trustStoreType.getOrElse("jks"))
+        System.setProperty("javax.net.ssl.trustStorePassword", config.trustStorePassword.getOrElse(""))
+        System.setProperty("javax.net.ssl.trustStore", path)
+        System.setProperty("javax.net.ssl.trustStoreType", config.trustStoreType.getOrElse("jks"))
 
       case None =>
     }
-
-    props
   }
 }
