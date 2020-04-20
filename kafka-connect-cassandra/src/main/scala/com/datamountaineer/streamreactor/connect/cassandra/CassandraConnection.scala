@@ -16,10 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra
 
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, LoadBalancingPolicy}
 import com.datamountaineer.streamreactor.connect.config.{SSLConfig, SSLConfigContext}
 import com.datastax.driver.core.Cluster.Builder
-import com.datastax.driver.core.policies.{DCAwareRoundRobinPolicy, TokenAwarePolicy}
+import com.datastax.driver.core.policies.{DCAwareRoundRobinPolicy, LatencyAwarePolicy, RoundRobinPolicy, TokenAwarePolicy}
 import com.datastax.driver.core.{Cluster, JdkSSLOptions, QueryOptions, Session}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.AbstractConfig
@@ -40,11 +40,26 @@ object CassandraConnection extends StrictLogging {
     val contactPoints: String = connectorConfig.getString(CassandraConfigConstants.CONTACT_POINTS)
     val port = connectorConfig.getInt(CassandraConfigConstants.PORT)
     val fetchSize = connectorConfig.getInt(CassandraConfigConstants.FETCH_SIZE)
+
+    val loadBalancer = LoadBalancingPolicy.withName(connectorConfig.getString(CassandraConfigConstants.LOAD_BALANCING_POLICY).toUpperCase) match {
+      case LoadBalancingPolicy.TOKEN_AWARE =>
+        new TokenAwarePolicy(DCAwareRoundRobinPolicy.builder().build())
+
+      case LoadBalancingPolicy.ROUND_ROBIN =>
+        new RoundRobinPolicy()
+
+      case LoadBalancingPolicy.DC_AWARE_ROUND_ROBIN =>
+        DCAwareRoundRobinPolicy.builder().build()
+
+      case LoadBalancingPolicy.LATENCY_AWARE =>
+        LatencyAwarePolicy.builder(DCAwareRoundRobinPolicy.builder().build()).build()
+    }
+
     val builder: Builder = Cluster
       .builder()
       .addContactPoints(contactPoints.split(","): _*)
       .withPort(port)
-      .withLoadBalancingPolicy(new TokenAwarePolicy(DCAwareRoundRobinPolicy.builder().build()))
+      .withLoadBalancingPolicy(loadBalancer)
       .withQueryOptions(new QueryOptions().setFetchSize(fetchSize))
 
     //get authentication mode, only support NONE and USERNAME_PASSWORD for now

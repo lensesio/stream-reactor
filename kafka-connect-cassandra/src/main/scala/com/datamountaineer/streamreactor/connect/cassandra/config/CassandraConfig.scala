@@ -208,6 +208,17 @@ case class CassandraConfig() {
       15,
       ConfigDef.Width.LONG,
       CassandraConfigConstants.FETCH_SIZE)
+    .define(
+      CassandraConfigConstants.LOAD_BALANCING_POLICY,
+      Type.STRING,
+      LoadBalancingPolicy.TOKEN_AWARE.toString,
+      Importance.MEDIUM,
+      CassandraConfigConstants.LOAD_BALANCING_POLICY_DOC,
+      "Connection",
+      16,
+      ConfigDef.Width.MEDIUM,
+      CassandraConfigConstants.LOAD_BALANCING_POLICY
+    )
 
 }
 
@@ -410,6 +421,7 @@ object CassandraConfigSink {
       1,
       ConfigDef.Width.MEDIUM,
       CassandraConfigConstants.DEFAULT_VALUE_SERVE_STRATEGY_DISPLAY)
+
 }
 
 case class CassandraConfigSink(props: util.Map[String, String])
