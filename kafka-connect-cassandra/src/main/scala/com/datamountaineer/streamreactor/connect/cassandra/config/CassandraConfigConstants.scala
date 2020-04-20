@@ -202,4 +202,7 @@ object CassandraConfigConstants {
 
   val DEFAULT_VALUE_SERVE_STRATEGY_DEFAULT = ""
   val DEFAULT_VALUE_SERVE_STRATEGY_DISPLAY = "Default value serve strategy"
+
+  val LOAD_BALANCING_POLICY = s"$CONNECTOR_PREFIX.load.balancing.policy"
+  val LOAD_BALANCING_POLICY_DOC = "Cassandra Load balancing policy. ROUND_ROBIN, TOKEN_AWARE, LATENCY_AWARE or DC_AWARE_ROUND_ROBIN. TOKEN_AWARE and LATENCY_AWARE use DC_AWARE_ROUND_ROBIN"
 }
