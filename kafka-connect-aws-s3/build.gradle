@@ -1,0 +1,60 @@
+/*
+ * Copyright 2018 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+project(":kafka-connect-aws-s3") {
+
+    ext {
+        awsSdkVersion = "1.11.762"
+        jCloudsSdkVersion = "2.2.0"
+        enumeratumVersion = "1.5.15"
+        catsVersion = "1.2.0"
+        parquetVersion = "1.11.0"
+        hadoopVersion = "2.10.0"
+        s3ProxyVersion = "1.6.1"
+        guavaVersion = "18.0"
+        guiceVersion = "3.0"
+    }
+    configurations.all {
+        resolutionStrategy {
+            force "com.google.guava:guava:$guavaVersion"
+            force "com.google.inject:guice:$guiceVersion"
+            force "com.google.inject.extensions:guice-assistedinject:$guiceVersion"
+        }
+    }
+    dependencies {
+        compile("com.google.guava:guava:$guavaVersion")
+
+        compile("com.google.inject:guice:$guiceVersion")
+        compile("com.google.inject.extensions:guice-assistedinject:$guiceVersion")
+
+        compile("com.amazonaws:aws-java-sdk-s3:$awsSdkVersion")
+        compile("org.apache.jclouds:jclouds-blobstore:$jCloudsSdkVersion")
+        compile("org.apache.jclouds.provider:aws-s3:$jCloudsSdkVersion")
+        compile("com.beachape:enumeratum_$scalaMajorVersion:$enumeratumVersion")
+        compile("org.typelevel:cats-core_2.12:$catsVersion")
+        compile("org.typelevel:cats-effect_2.12:$catsVersion")
+
+        compile("org.apache.parquet:parquet-avro:$parquetVersion")
+
+        compile("org.apache.parquet:parquet-hadoop:$parquetVersion")
+        compile("org.apache.hadoop:hadoop-common:$hadoopVersion")
+        compile("org.apache.hadoop:hadoop-mapreduce-client-core:$hadoopVersion")
+
+        testCompile("org.gaul:s3proxy:$s3ProxyVersion")
+
+    }
+
+}

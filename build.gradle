@@ -15,9 +15,6 @@
  */
 
 
-import de.undercouch.gradle.tasks.download.Download
-
-
 plugins {
     id "de.undercouch.download" version "3.4.3"
     id "com.github.maiflai.scalatest" version "0.26"
@@ -52,7 +49,7 @@ allprojects {
 
     ext {
         scalaMajorVersion = '2.12'
-        scala = '2.12.10'
+        scala = '2.12.11'
         scalaCheck = '1.14.3'
         scalaTest = '3.1.1'
         junit = '4.11'

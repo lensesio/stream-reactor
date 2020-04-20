@@ -35,5 +35,6 @@ include 'kafka-connect-bloomberg',
         'kafka-connect-ftp',
         'kafka-connect-azure-documentdb',
         'kafka-connect-pulsar',
-        'kafka-connect-rethink'
+        'kafka-connect-rethink',
+        'kafka-connect-aws-s3'
 
