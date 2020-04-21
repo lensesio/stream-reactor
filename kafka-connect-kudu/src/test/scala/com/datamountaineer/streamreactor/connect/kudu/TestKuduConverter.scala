@@ -26,7 +26,6 @@ import org.apache.kudu.client.{KuduTable, Upsert}
 import org.mockito.MockitoSugar
 
 import scala.collection.JavaConverters._
-import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 04/03/16.
