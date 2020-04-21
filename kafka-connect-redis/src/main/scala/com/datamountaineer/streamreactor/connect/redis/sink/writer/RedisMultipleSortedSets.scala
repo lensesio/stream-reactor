@@ -35,8 +35,6 @@ import scala.util.Try
   */
 class RedisMultipleSortedSets(sinkSettings: RedisSinkSettings) extends RedisWriter with SortedSetSupport {
 
-  apply(sinkSettings)
-
   val configs: Set[Kcql] = sinkSettings.kcqlSettings.map(_.kcqlConfig)
   configs.foreach { c =>
     assert(c.getSource.trim.length > 0, "You need to supply a valid source kafka topic to fetch records from. Review your KCQL syntax")

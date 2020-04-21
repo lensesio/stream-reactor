@@ -37,6 +37,7 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisGeoAdd(settings)
+      writer.createClient(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Cpu")
         .field("longitude", Schema.STRING_SCHEMA)
@@ -83,6 +84,7 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisGeoAdd(settings)
+      writer.createClient(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Cpu")
         .field("longitude", Schema.STRING_SCHEMA)
@@ -129,6 +131,7 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisGeoAdd(settings)
+      writer.createClient(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Cpu")
         .field("lng", Schema.STRING_SCHEMA)

@@ -54,8 +54,10 @@ A collection of components to build a real time ingestion pipeline.
 
 **Pending**
 
-Move to Scala 2.12
-Move to Kafka 2.4.1 and Confluent 5.4
+*   Move to Scala 2.12
+*   Move to Kafka 2.4.1 and Confluent 5.4
+*   Add support for Redis Streams
+
 
 Deprecated:
     * Druid Sink

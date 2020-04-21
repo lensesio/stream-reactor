@@ -76,22 +76,34 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     // Geo Add mode requires: >=1 PK and STOREAS GeoAdd syntax to be provided
     val mode_GEOADD = filterGeoAddMode(settings)
 
+    val mode_STREAM = filterStream(settings)
+
     //-- Start as many writers as required
     writer = (modeCache.kcqlSettings.headOption.map { _ =>
       logger.info("Starting " + modeCache.kcqlSettings.size + " KCQLs with Redis Cache mode")
-      List(new RedisCache(modeCache))
+      val writer = new RedisCache(modeCache)
+      writer.createClient(settings)
+      List(writer)
     } ++ mode_INSERT_SS.kcqlSettings.headOption.map { _ =>
       logger.info("Starting " + mode_INSERT_SS.kcqlSettings.size + " KCQLs with Redis Insert Sorted Set mode")
-      List(new RedisInsertSortedSet(mode_INSERT_SS))
+      val writer = new RedisInsertSortedSet(mode_INSERT_SS)
+      writer.createClient(settings)
+      List(writer)
     } ++ mode_PUBSUB.kcqlSettings.headOption.map { _ =>
       logger.info("Starting " + mode_PUBSUB.kcqlSettings.size + " KCQLs with Redis PubSub mode")
-      List(new RedisPubSub(mode_PUBSUB))
+      val writer = new RedisInsertSortedSet(mode_INSERT_SS)
+      writer.createClient(settings)
+      List(writer)
     } ++ mode_PK_SS.kcqlSettings.headOption.map { _ =>
       logger.info("Starting " + mode_PK_SS.kcqlSettings.size + " KCQLs with Redis Multiple Sorted Sets mode")
-      List(new RedisMultipleSortedSets(mode_PK_SS))
-    } ++ mode_GEOADD.kcqlSettings.headOption.map{ _ =>
-      logger.info("Starting " + mode_GEOADD.kcqlSettings.size + " KCQLs with Redis Geo Add mode")
-      List(new RedisGeoAdd(mode_GEOADD))
+      val writer = new RedisMultipleSortedSets(mode_PK_SS)
+      writer.createClient(settings)
+      List(writer)
+    } ++ mode_GEOADD.kcqlSettings.headOption.map { _ =>
+      logger.info("Starting " + mode_STREAM.kcqlSettings.size + " KCQLs with Redis Stream mode")
+      val writer = new RedisStreams(mode_STREAM)
+      writer.createClient(settings)
+      List(writer)
     }).flatten.toList
 
     require(writer.nonEmpty, s"No writers set for ${RedisConfigConstants.KCQL_CONFIG}!")
@@ -177,6 +189,22 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     settings.kcqlSettings
       .filter { k =>
         Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("GEOADD") &&
+          k.kcqlConfig.getPrimaryKeys.size() >= 1
+      }
+  )
+
+  def filterStream(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(kcqlSettings =
+    settings.kcqlSettings
+      .filter { k =>
+        Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("STREAM") &&
+          k.kcqlConfig.getPrimaryKeys.size() >= 1
+      }
+  )
+
+  def filterSearch(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(kcqlSettings =
+    settings.kcqlSettings
+      .filter { k =>
+        Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SEARCH") &&
           k.kcqlConfig.getPrimaryKeys.size() >= 1
       }
   )

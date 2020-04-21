@@ -52,6 +52,7 @@ class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
       val config = RedisConfig(props)
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
+      writer.createClient(settings)
 
       val childSchema = SchemaBuilder.struct().name("com.example.Child")
         .field("firstName", Schema.STRING_SCHEMA)
@@ -106,6 +107,7 @@ class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
       val config = RedisConfig(props)
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
+      writer.createClient(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)
@@ -141,6 +143,7 @@ class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
       val config = RedisConfig(props)
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
+      writer.createClient(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)
@@ -203,6 +206,7 @@ class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
 
+      writer.createClient(settings)
       writer.write(Seq(nickRecord))
 
       val key = nick.get("firstName") + RedisConfigConstants.REDIS_PK_DELIMITER_DEFAULT_VALUE + nickJr.get("firstName")
@@ -218,6 +222,7 @@ class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
       val config = RedisConfig(props)
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
+      writer.createClient(settings)
 
       writer.write(Seq(nickRecord))
 
@@ -234,6 +239,7 @@ class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
       val config = RedisConfig(props)
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
+      writer.createClient(settings)
 
       writer.write(Seq(nickRecord))
 
