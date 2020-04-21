@@ -66,7 +66,20 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final ConfigDef.Width TOPICS_WIDTH =            ConfigDef.Width.LONG;
   private static final String TOPICS_DOC =
       "List of topics to consume, separated by commas";
+  public static final String TOPICS_DEFAULT = "";
   private static final String TOPICS_DISPLAY =                   "Topics";
+
+  public static final String TOPICS_REGEX_CONFIG =                     "topics.regex";
+  private static final ConfigDef.Type TOPICS_REGEX_TYPE =              ConfigDef.Type.STRING;
+  private static final ConfigDef.Importance TOPICS_REGEX_IMPORTANCE =  ConfigDef.Importance.HIGH;
+  private static final String TOPICS_REGEX_GROUP =                     "Common";
+  private static final int TOPICS_REGEX_ORDER_IN_GROUP =               4;
+  private static final ConfigDef.Width TOPICS_REGEX_WIDTH =            ConfigDef.Width.LONG;
+  private static final String TOPICS_REGEX_DOC = "Regular expression giving topics to consume. " +
+	  "Under the hood, the regex is compiled to a <code>java.util.regex.Pattern</code>. " +
+	  "Only one of " + TOPICS_CONFIG + " or " + TOPICS_REGEX_CONFIG + " should be specified.";
+  public static final String TOPICS_REGEX_DEFAULT = "";
+  private static final String TOPICS_REGEX_DISPLAY = "Topics regex";
 
   public static final String ENABLE_BATCH_CONFIG =                         "enableBatchLoad";
   private static final ConfigDef.Type ENABLE_BATCH_TYPE =                  ConfigDef.Type.LIST;
@@ -225,12 +238,23 @@ public class BigQuerySinkConfig extends AbstractConfig {
         .define(
             TOPICS_CONFIG,
             TOPICS_TYPE,
+            TOPICS_DEFAULT,
             TOPICS_IMPORTANCE,
             TOPICS_DOC,
             TOPICS_GROUP,
             TOPICS_ORDER_IN_GROUP,
             TOPICS_WIDTH,
             TOPICS_DISPLAY)
+        .define(
+            TOPICS_REGEX_CONFIG,
+            TOPICS_REGEX_TYPE,
+            TOPICS_REGEX_DEFAULT,
+            TOPICS_REGEX_IMPORTANCE,
+            TOPICS_REGEX_DOC,
+            TOPICS_REGEX_GROUP,
+            TOPICS_REGEX_ORDER_IN_GROUP,
+            TOPICS_REGEX_WIDTH,
+            TOPICS_REGEX_DISPLAY)
         .define(
             ENABLE_BATCH_CONFIG,
             ENABLE_BATCH_TYPE,
@@ -343,6 +367,34 @@ public class BigQuerySinkConfig extends AbstractConfig {
             TABLE_CREATE_DOC
         );
   }
+    /**
+     * Throw an exception if the passed-in properties do not constitute a valid sink.
+     * @param props sink configuration properties
+     */
+    public static void validate(Map<String, String> props) {
+        final boolean hasTopicsConfig = hasTopicsConfig(props);
+        final boolean hasTopicsRegexConfig = hasTopicsRegexConfig(props);
+
+        if (hasTopicsConfig && hasTopicsRegexConfig) {
+            throw new ConfigException(TOPICS_CONFIG + " and " + TOPICS_REGEX_CONFIG +
+                " are mutually exclusive options, but both are set.");
+        }
+
+        if (!hasTopicsConfig && !hasTopicsRegexConfig) {
+            throw new ConfigException("Must configure one of " +
+                TOPICS_CONFIG + " or " + TOPICS_REGEX_CONFIG);
+        }
+    }
+
+    public static boolean hasTopicsConfig(Map<String, String> props) {
+        String topicsStr = props.get(TOPICS_CONFIG);
+        return topicsStr != null && !topicsStr.trim().isEmpty();
+    }
+
+    public static boolean hasTopicsRegexConfig(Map<String, String> props) {
+        String topicsRegexStr = props.get(TOPICS_REGEX_CONFIG);
+        return topicsRegexStr != null && !topicsRegexStr.trim().isEmpty();
+    }
 
   @SuppressWarnings("unchecked")
   public static class Validator implements ConfigDef.Validator {
