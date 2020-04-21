@@ -26,6 +26,7 @@ import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import org.apache.kafka.connect.storage.OffsetStorageReader
 
 import scala.collection.JavaConverters._
+import scala.collection.immutable
 import scala.collection.immutable.Stream.Empty
 import scala.util.{Failure, Success}
 
@@ -67,14 +68,10 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
   }
 
   def poll(): Stream[SourceRecord] = {
-    if(ftpMonitor.isBySlices){
-      fetchRecords()
-    } else {
-      val stream = if (buffer.isEmpty) fetchRecords() else buffer
+      val stream: Stream[SourceRecord] = if (buffer.isEmpty) fetchRecords() else buffer
       val (head, tail) = stream.splitAt(cfg.maxPollRecords)
       buffer = tail
       head
-    }
   }
 
   def fetchRecords(): Stream[SourceRecord] = {
@@ -83,10 +80,7 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
       ftpMonitor.poll() match {
         case Success(fileChanges) =>
           backoff = backoff.nextSuccess
-          fileChanges.flatMap({ case (meta, body, w) =>
-            logger.info(s"got some fileChanges: ${meta.attribs.path}, offset = ${meta.offset}")
-            fileConverter.convert(monitor2topic(w), meta, body)
-          })
+          fileChangesToRecords(fileChanges)
         case Failure(err) =>
           logger.warn(s"ftp monitor failed: $err", err)
           backoff = backoff.nextFailure
@@ -97,6 +91,13 @@ class FtpSourcePoller(cfg: FtpSourceConfig, offsetStorage: OffsetStorageReader) 
       Thread.sleep(1000)
       Empty
     }
+  }
+
+  def fileChangesToRecords(fileChanges: Stream[(FileMetaData, FileBody, MonitoredPath)]): Stream[SourceRecord] = {
+    fileChanges.flatMap({ case (meta, body, w) =>
+      logger.info(s"got some fileChanges: ${meta.attribs.path}, offset = ${meta.offset}")
+      fileConverter.convert(monitor2topic(w), meta, body)
+    })
   }
 }
 
