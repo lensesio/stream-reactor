@@ -28,7 +28,6 @@ import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.net.ftp.{FTP, FTPClient, FTPReply, FTPSClient}
 import org.apache.commons.net.{ProtocolCommandEvent, ProtocolCommandListener}
 
-
 import scala.util.{Failure, Success, Try}
 
 // a full downloaded file
@@ -240,14 +239,22 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
     }
   }
 
+  def listFilesToFetchFrom(monitoredPath: MonitoredPath): Seq[AbsoluteFtpFile] = {
+    val files = FtpFileLister(ftp).listFiles(monitoredPath.p.toString).filter(f => !MaxAge.minus(f.age).isNegative && f.name.matches(settings.filter) )
+    logger.info(s"Found ${files.length} items in ${monitoredPath.p}")
+    files
+  }
+
   // fetches files from a monitored directory when needed
-  def fetchFromMonitoredPlaces(w:MonitoredPath): Stream[(FileMetaData, FileBody)] = {
+  def fetchFromMonitoredPlaces(monitoredPath: MonitoredPath): Stream[(FileMetaData, FileBody)] = {
+    fetchFromFiles(listFilesToFetchFrom(monitoredPath), monitoredPath.mode)
+  }
 
-    val files = FtpFileLister(ftp).listFiles(w.p.toString).filter(f => !MaxAge.minus(f.age).isNegative && f.name.matches(settings.filter) )
-
-    logger.info(s"Found ${files.length} items in ${w.p}")
+  def fetchFromFiles(files: Seq[AbsoluteFtpFile], mode: MonitorMode): Stream[(FileMetaData, FileBody)] = {
     if(!isBySlices) {
-      files.toStream
+      files
+        // sort ?
+        .toStream
         // Get the metadata from the offset store
         .map(file => (file, fileConverter.getFileOffset(file.path)))
         // Filter out the files that do not need to be fetched
@@ -255,7 +262,7 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
         // Fetch the latest file contents
         .flatMap { case (file, prevFetch) => fetch(file, prevFetch) }
         // Extract the file changes depending on the tracking mode
-        .map { case (prevFile, currentFile) => handleFetchedFile(w.mode == MonitorMode.Tail, prevFile, currentFile) }
+        .map { case (prevFile, currentFile) => handleFetchedFile(mode == MonitorMode.Tail, prevFile, currentFile) }
     } else {
       files.toStream
         // Get the metadata from the offset store
@@ -263,9 +270,9 @@ class FtpMonitor(settings:FtpMonitorSettings, fileConverter: FileConverter) exte
         // Filter out the files that do not need to be fetched
         .filter { case (file, prevFetch) => bySlicesRequiresFetch(file, prevFetch) }
         // Fetch the latest file contents
-        .flatMap { case (file, prevFetch) => bySlicesFetch(w.mode, file, prevFetch) }
+        .flatMap { case (file, prevFetch) => bySlicesFetch(mode, file, prevFetch) }
         // Extract the file changes depending on the tracking mode
-        .map { case (prevFile, currentFile) => bySlicesHandleFetchedFile(w.mode, prevFile, currentFile) }
+        .map { case (prevFile, currentFile) => bySlicesHandleFetchedFile(mode, prevFile, currentFile) }
     }
   }
 
