@@ -55,6 +55,7 @@ class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with BeforeA
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisMultipleSortedSets(settings)
+      writer.createClient(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.device")
         .field("sensorID", Schema.STRING_SCHEMA)

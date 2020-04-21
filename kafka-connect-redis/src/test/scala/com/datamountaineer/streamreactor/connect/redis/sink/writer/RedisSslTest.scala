@@ -100,7 +100,9 @@ class RedisSslTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with
       val config =  RedisConfig(map.asJava)
       val settings = RedisSinkSettings(config)
 
+
       val writer = new RedisCache(settings)
+      writer.createClient(settings)
 
       val props = System.getProperties
       props.containsKey("javax.net.ssl.keyStorePassword") shouldBe true

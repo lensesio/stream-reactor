@@ -53,6 +53,7 @@ class RedisInsertSortedSetTest extends AnyWordSpec with Matchers with BeforeAndA
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisInsertSortedSet(settings)
+      writer.createClient(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Cpu")
         .field("type", Schema.STRING_SCHEMA)
