@@ -16,6 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.hbase.writers
 
+import java.io.File
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.hbase._
 import com.datamountaineer.streamreactor.connect.hbase.config.HBaseSettings
@@ -44,7 +45,7 @@ class HbaseWriter(settings: HBaseSettings
   initialize(settings.maxRetries, settings.errorPolicy)
 
   private var columnsBytesMap = Map.empty[String, Array[Byte]]
-  private var connection = ConnectionFactory.createConnection(HBaseConfiguration.create())
+  private var connection = createConnection()
   private val tables = routeMapping.map(rm => (rm.getSource, connection.getTable(TableName.valueOf(rm.getTarget)))).toMap
   private val rowKeyMap = settings.rowKeyModeMap
 
@@ -55,7 +56,7 @@ class HbaseWriter(settings: HBaseSettings
       logger.debug(s"Received ${records.size} records.")
 
       if (connection.isClosed) {
-        val t = Try(ConnectionFactory.createConnection(HBaseConfiguration.create()))
+        val t = Try(createConnection())
         val dt = handleTry(t)
         connection = dt.get
       }
@@ -63,6 +64,15 @@ class HbaseWriter(settings: HBaseSettings
       val grouped = records.groupBy(_.topic())
       insert(grouped)
     }
+  }
+
+  def createConnection(): Connection = {
+    val conf = HBaseConfiguration.create()
+    if (!settings.configFile.isEmpty) {
+      conf.addResource(new File(settings.configFile).toURI.toURL)
+    }
+
+    ConnectionFactory.createConnection(conf)
   }
 
   /**

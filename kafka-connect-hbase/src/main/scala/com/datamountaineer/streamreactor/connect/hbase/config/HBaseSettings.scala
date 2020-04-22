@@ -16,6 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.hbase.config
 
+import java.io.File
+
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfigConstants._
@@ -29,7 +31,8 @@ case class HBaseSettings(columnFamilyMap: String,
                          routes: List[Kcql],
                          extractorFields: Map[String, StructFieldsExtractorBytes],
                          errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                         maxRetries: Int = HBaseConfigConstants.NBR_OF_RETIRES_DEFAULT
+                         maxRetries: Int = HBaseConfigConstants.NBR_OF_RETIRES_DEFAULT,
+                         configFile: String
                         )
 
 object HBaseSettings {
@@ -56,12 +59,23 @@ object HBaseSettings {
     }
     ).toMap
 
-
     val extractorFields = kcql.map(rm => {
       val allFields = rm.getFields.asScala.exists(_.getName.equals("*"))
       (rm.getSource, StructFieldsExtractorBytes(allFields, fields(rm.getSource)))
     }).toMap
 
-    new HBaseSettings(columnFamily, rowKeyModeMap, kcql.toList, extractorFields, errorPolicy, nbrOfRetries)
+    val configFile = config.getString(HBaseConfigConstants.CONFIG_FILE).trim
+    if (!configFile.isEmpty) {
+      if (!new File(configFile).exists()) {
+        throw new ConfigException(s"${HBaseConfigConstants.CONFIG_FILE} is not set correctly.")
+      }
+
+      val fileContents = scala.io.Source.fromFile(configFile).mkString
+      if (fileContents.isEmpty) {
+        throw new ConfigException(s"Empty ${HBaseConfigConstants.CONFIG_FILE}.")
+      }
+    }
+
+    new HBaseSettings(columnFamily, rowKeyModeMap, kcql.toList, extractorFields, errorPolicy, nbrOfRetries, configFile)
   }
 }

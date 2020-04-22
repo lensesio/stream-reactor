@@ -16,6 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.hbase.config
 
+import java.util.UUID
+
 import com.datamountaineer.streamreactor.connect.hbase.{GenericRowKeyBuilderBytes, StructFieldsRowKeyBuilderBytes}
 import org.apache.kafka.common.config.ConfigException
 import org.mockito.Mockito._
@@ -119,6 +121,18 @@ class HBaseSettingsTest extends WordSpec with Matchers with MockitoSugar {
     fields.head.getAlias shouldBe "surname"
     fields.last.getName shouldBe "firstName"
     fields.last.getAlias shouldBe "firstName"
+  }
+
+  "raise an exception when the config file does not exist" in {
+    intercept[org.apache.kafka.common.config.ConfigException] {
+      val props = Map(
+        HBaseConfigConstants.KCQL_QUERY->QUERY_SELECT_KEYS,
+        HBaseConfigConstants.COLUMN_FAMILY->"somecolumnFamily",
+        HBaseConfigConstants.CONFIG_FILE->s"/tmp/${UUID.randomUUID().toString}"
+      ).asJava
+      val config = HBaseConfig(props)
+      HBaseSettings(config)
+    }
   }
 
   //  "raise an exception when the row key builder is set to FIELDS but pks not in query map" in {

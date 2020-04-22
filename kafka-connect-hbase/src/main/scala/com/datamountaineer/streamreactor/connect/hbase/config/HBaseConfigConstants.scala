@@ -48,6 +48,10 @@ object HBaseConfigConstants {
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
+  val CONFIG_FILE = s"${CONNECTOR_PREFIX}.config.file"
+  val CONFIG_FILE_DOC = "The path to the configuration file."
+  val CONFIG_FILE_DEFAULT = ""
+
   val PROGRESS_COUNTER_ENABLED = PROGRESS_ENABLED_CONST
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false

@@ -34,6 +34,8 @@ object HBaseConfig {
       "Connection", 4, ConfigDef.Width.MEDIUM, HBaseConfigConstants.ERROR_RETRY_INTERVAL)
     .define(HBaseConfigConstants.NBR_OF_RETRIES, Type.INT, HBaseConfigConstants.NBR_OF_RETIRES_DEFAULT, Importance.MEDIUM, HBaseConfigConstants.NBR_OF_RETRIES_DOC,
       "Connection", 5, ConfigDef.Width.MEDIUM, HBaseConfigConstants.NBR_OF_RETRIES)
+    .define(HBaseConfigConstants.CONFIG_FILE, Type.STRING, HBaseConfigConstants.CONFIG_FILE_DEFAULT, Importance.LOW, HBaseConfigConstants.CONFIG_FILE_DOC,
+      "Connection", 6, ConfigDef.Width.LONG, HBaseConfigConstants.CONFIG_FILE)
     .define(HBaseConfigConstants.PROGRESS_COUNTER_ENABLED, Type.BOOLEAN, HBaseConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
       Importance.MEDIUM, HBaseConfigConstants.PROGRESS_COUNTER_ENABLED_DOC,
       "Metrics", 1, ConfigDef.Width.MEDIUM, HBaseConfigConstants.PROGRESS_COUNTER_ENABLED_DISPLAY)
