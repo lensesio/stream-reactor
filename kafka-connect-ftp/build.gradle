@@ -25,6 +25,7 @@ project(":kafka-connect-ftp") {
     // detect memory leaks by constraining the Heap size
     maxHeapSize = "200m"
     jvmArgs "-Xms100m"
+    maxParallelForks = 1
   }
 
   dependencies {

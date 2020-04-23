@@ -22,7 +22,6 @@ import com.microsoft.azure.documentdb._
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.mockito.ArgumentMatchers.{any, eq => mockEq}
-import org.mockito.Mockito.{verify, _}
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

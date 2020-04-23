@@ -1,7 +1,6 @@
 ![Actions Status](https://github.com/lensesio/stream-reactor/workflows/CI/badge.svg)
 [<img src="https://img.shields.io/badge/docs--orange.svg?"/>](https://docs.lenses.io/connectors/)
 
-
 Join us on slack [![Alt text](images/slack.jpeg)](https://launchpass.com/lensesio)
 
 # Lenses for Apache Kafka
@@ -47,6 +46,8 @@ A collection of components to build a real time ingestion pipeline.
 | Pulsar         | Source | Kafka connect Pulsar source to write data from Pulsar to Kafka.                               | [Docs](https://docs.lenses.io/connectors/source/pulsar.html)                 |
 | Pulsar         | Sink   | Kafka connect Pulsar sink to write data from Kafka to Pulsar.                                 | [Docs](https://docs.lenses.io/connectors/sink/pulsar.html)                   |
 | Redis          | Sink   | Kafka connect Redis sink to write Kafka topic payloads to Redis.                              | [Docs](https://docs.lenses.io/connectors/sink/redis.html)                  |
+| ReThinkDB      | Source | Kafka connect RethinkDb source subscribe to ReThinkDB changefeeds and write to Kafka.         | [Docs](https://docs.lenses.io/connectors/source/rethink.html)              |
+| ReThinkDB      | Sink   | Kafka connect RethinkDb sink to write Kafka topic payloads to RethinkDb.                      | [Docs](https://docs.lenses.io/connectors/sink/rethink.html)                |
 | VoltDB         | Sink   | Kafka connect Voltdb sink to write Kafka topic payloads to Voltdb.                            | [Docs](https://docs.lenses.io/connectors/sink/voltdb.html)                 |
 
 
@@ -60,10 +61,10 @@ A collection of components to build a real time ingestion pipeline.
 
 
 Deprecated:
-    * Druid Sink
-    * Elastic Sink
-    * Elastic5 Sink
-    * Rethink Sink     
+    * Druid Sink (not scala 2.12 compatible)
+    * Elastic Sink (not scala 2.12 compatible)
+    * Elastic5 Sink(not scala 2.12 compatible)
+  
 
 **1.2.7**
 **Features**

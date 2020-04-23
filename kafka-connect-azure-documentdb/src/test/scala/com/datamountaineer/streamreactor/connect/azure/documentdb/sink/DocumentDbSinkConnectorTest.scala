@@ -19,9 +19,7 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbConfigConstants
 import com.microsoft.azure.documentdb._
 import org.mockito.ArgumentMatchers.{any, eq => mockEq}
-
 import org.mockito.MockitoSugar
-import org.scalatest.Matchers._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

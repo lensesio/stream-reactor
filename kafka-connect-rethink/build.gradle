@@ -14,20 +14,12 @@
  * limitations under the License.
  */
 
-project(':kafka-connect-redis') {
-
+project(":kafka-connect-rethink") {
     ext {
-        jedisVersion = "3.2.0"
-        embeddedRedisVersion = "0.8.0"
-    }
-
-    test {
-        maxParallelForks = 1
+        rethinkDbVersion = "2.3.3"
     }
 
     dependencies {
-        implementation "redis.clients:jedis:$jedisVersion"
-        testImplementation "com.google.code.gson:gson:$gsonVersion"
-        testImplementation "com.netflix.spinnaker.embedded-redis:embedded-redis:$embeddedRedisVersion"
+        compile "com.rethinkdb:rethinkdb-driver:$rethinkDbVersion"
     }
 }

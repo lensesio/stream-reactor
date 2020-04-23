@@ -45,11 +45,6 @@ object LoadBalancingPolicy extends Enumeration {
   val TOKEN_AWARE, ROUND_ROBIN, DC_AWARE_ROUND_ROBIN, LATENCY_AWARE = Value
 }
 
-object LoadBalancingPolicy extends Enumeration {
-  type LoadBalancingPolicy = Value
-  val TOKEN_AWARE, ROUND_ROBIN, DC_AWARE_ROUND_ROBIN, LATENCY_AWARE = Value
-}
-
 case class CassandraSourceSetting(kcql: Kcql,
                                   keySpace: String,
                                   primaryKeyColumn: Option[String] = None,
