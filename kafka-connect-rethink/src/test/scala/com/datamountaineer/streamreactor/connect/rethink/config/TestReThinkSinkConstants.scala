@@ -1,0 +1,63 @@
+/*
+ * Copyright 2017 Datamountaineer.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.datamountaineer.streamreactor.connect.rethink.config
+
+import org.scalatest.WordSpec
+
+/**
+  * The point of this test is to check that constants keys are not changed after the refactor of the code.
+  */
+class TestReThinkSinkConstants extends WordSpec {
+
+  // Constants
+  val RETHINK_HOST = "connect.rethink.host"
+  val RETHINK_DB = "connect.rethink.db"
+  val RETHINK_PORT = "connect.rethink.port"
+  val ROUTE_QUERY = "connect.rethink.kcql"
+  val ERROR_POLICY = "connect.rethink.error.policy"
+  val ERROR_RETRY_INTERVAL = "connect.rethink.retry.interval"
+  val NBR_OF_RETRIES = "connect.rethink.max.retries"
+  val BATCH_SIZE = "connect.rethink.batch.size"
+
+  "RETHINK_HOST should have the same key in ReThinkSinkConfigConstants" in {
+    assert(RETHINK_HOST.equals(ReThinkConfigConstants.RETHINK_HOST))
+  }
+
+  "RETHINK_DB should have the same key in ReThinkSinkConfigConstants" in {
+    assert(RETHINK_DB.equals(ReThinkConfigConstants.RETHINK_DB))
+  }
+
+  "RETHINK_PORT should have the same key in ReThinkSinkConfigConstants" in {
+    assert(RETHINK_PORT.equals(ReThinkConfigConstants.RETHINK_PORT))
+  }
+
+  "ROUTE_QUERY should have the same key in ReThinkSinkConfigConstants" in {
+    assert(ROUTE_QUERY.equals(ReThinkConfigConstants.KCQL))
+  }
+
+  "ERROR_POLICY should have the same key in ReThinkSinkConfigConstants" in {
+    assert(ERROR_POLICY.equals(ReThinkConfigConstants.ERROR_POLICY))
+  }
+
+  "ERROR_RETRY_INTERVAL should have the same key in ReThinkSinkConfigConstants" in {
+    assert(ERROR_RETRY_INTERVAL.equals(ReThinkConfigConstants.ERROR_RETRY_INTERVAL))
+  }
+
+  "NBR_OF_RETRIES should have the same key in ReThinkSinkConfigConstants" in {
+    assert(NBR_OF_RETRIES.equals(ReThinkConfigConstants.NBR_OF_RETRIES))
+  }
+}

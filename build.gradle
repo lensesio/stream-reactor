@@ -58,7 +58,7 @@ allprojects {
         junit = '4.11'
         //avroVersion="1.8.1"
         scalaLoggingVersion = '3.9.2'
-        mockitoVersion = '1.13.0'
+        mockitoVersion = '1.13.9'
         slf4jVersion = "1.7.7"
         json4sVersion = "3.6.7"
         gsonVersion = "2.6.2"
@@ -194,7 +194,7 @@ allprojects {
     }
 
     test {
-        maxParallelForks = 1
+        //maxParallelForks = 1
         minHeapSize '256m'
         maxHeapSize '2048m'
     }

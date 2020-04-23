@@ -31,6 +31,10 @@ project(":kafka-connect-cassandra") {
         testImplementation.exclude group: "org.slf4j", module: "slf4j-log4j12"
     }
 
+    test {
+        maxParallelForks = 1
+    }
+
     dependencies {
 
         implementation "com.datastax.cassandra:cassandra-driver-core:$cassandraDriverVersion"
