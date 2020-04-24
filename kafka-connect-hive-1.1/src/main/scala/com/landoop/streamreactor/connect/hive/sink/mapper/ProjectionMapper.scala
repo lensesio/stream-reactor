@@ -6,7 +6,7 @@ import com.landoop.streamreactor.connect.hive.StructMapper
 import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
 
 /**
-  * Implementation of [[StructMapper]] that will apply
+  * compile of [[StructMapper]] that will apply
   * a KCQL projection - dropping fields not specified in the
   * projection and mapping fields to their aliases.
   */

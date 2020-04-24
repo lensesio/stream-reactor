@@ -8,7 +8,7 @@ import org.apache.kafka.connect.data.Schema
 import scala.util.Try
 
 /**
-  * An implementation of [[EvolutionPolicy]] that peforms no checks.
+  * An compile of [[EvolutionPolicy]] that peforms no checks.
   *
   * This means that invalid data may be written and/or exceptions may be thrown.
   *

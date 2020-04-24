@@ -16,7 +16,7 @@ import scala.util.{Failure, Success, Try}
   *
   * The path of the partition is determined by the given
   * [[PartitionPathPolicy]] parameter. By default this will
-  * be an implementation that uses the standard hive
+  * be an compile that uses the standard hive
   * paths of key1=value1/key2=value2.
   */
 class DynamicPartitionHandler(pathPolicy: PartitionPathPolicy = DefaultMetastorePartitionPathPolicy)

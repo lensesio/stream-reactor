@@ -10,7 +10,7 @@ import scala.collection.JavaConverters._
 import scala.util.Try
 
 /**
-  * An implementation of [[EvolutionPolicy]] that attempts to evolve
+  * An compile of [[EvolutionPolicy]] that attempts to evolve
   * the metastore schema to match the input schema by adding missing fields.
   */
 object AddEvolutionPolicy extends EvolutionPolicy {

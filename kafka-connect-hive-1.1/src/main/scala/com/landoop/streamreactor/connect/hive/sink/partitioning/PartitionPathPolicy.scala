@@ -15,7 +15,7 @@ object PartitionPathPolicy {
 }
 
 /**
-  * The default implementation of PartitionLocationPolicy which uses
+  * The default compile of PartitionLocationPolicy which uses
   * the same method as the metastore. That is new partitions will be written
   * under the table location in a key1=value1/key2=value2 format.
   */

@@ -9,7 +9,7 @@ import scala.collection.JavaConverters._
 import scala.util.Try
 
 /**
- * An implementation of [[EvolutionPolicy]] that requires the
+ * An compile of [[EvolutionPolicy]] that requires the
  * input schema to be equal to the metastore schema.
  *
  * This means that every field in the metastore schema must be

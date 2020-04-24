@@ -34,7 +34,7 @@ object SinkRecordToDocument extends ConverterUtil {
 
           val fields = settings.fields(record.topic())
           val extracted = convertSchemalessJson(record, settings.fields(record.topic()), settings.ignoredField(record.topic()))
-          //not ideal; but the implementation is hashmap anyway
+          //not ideal; but the compile is hashmap anyway
 
           SinkRecordConverter.fromMap(extracted.asInstanceOf[java.util.Map[String, AnyRef]]) ->
             keys.headOption.map(_ => KeysExtractor.fromMap(extracted, keys)).getOrElse(Iterable.empty)

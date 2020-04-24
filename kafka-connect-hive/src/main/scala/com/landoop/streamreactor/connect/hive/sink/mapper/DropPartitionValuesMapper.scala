@@ -4,7 +4,7 @@ import com.landoop.streamreactor.connect.hive.{PartitionPlan, StructMapper}
 import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
 
 /**
-  * Implementation of [[StructMapper]] that will strip partition values
+  * compile of [[StructMapper]] that will strip partition values
   * from an input [[Struct]] using a supplied [[PartitionPlan]].
   *
   * Hive does not, by default, include partition values in

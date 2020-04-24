@@ -28,7 +28,6 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkConnector
 
 import scala.collection.JavaConverters._
-import scala.collection.JavaConverters._
 import scala.util.{Failure, Try}
 
 /**
