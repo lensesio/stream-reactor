@@ -194,7 +194,7 @@ allprojects {
     }
 
     test {
-        //maxParallelForks = 1
+        maxParallelForks = 1
         minHeapSize '256m'
         maxHeapSize '2048m'
     }
