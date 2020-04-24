@@ -40,7 +40,7 @@ object SinkRecordToDocument extends ConverterUtil {
             fields,
             settings.ignoredField.getOrElse(record.topic(), Set.empty)
           )
-          //not ideal; but the implementation is hashmap anyway
+          //not ideal; but the compile is hashmap anyway
 
           SinkRecordConverter.fromMap(extracted.asInstanceOf[java.util.Map[String, AnyRef]]) ->
             keys.headOption.map(_ => KeysExtractor.fromMap(extracted, keys)).getOrElse(Iterable.empty)

@@ -223,15 +223,15 @@ key_cache_save_period: 14400
 # Disabled by default, meaning all keys are going to be saved
 # key_cache_keys_to_save: 100
 
-# Row cache implementation class name.
+# Row cache compile class name.
 # Available implementations:
-#   org.apache.cassandra.cache.OHCProvider                Fully off-heap row cache implementation (default).
-#   org.apache.cassandra.cache.SerializingCacheProvider   This is the row cache implementation availabile
+#   org.apache.cassandra.cache.OHCProvider                Fully off-heap row cache compile (default).
+#   org.apache.cassandra.cache.SerializingCacheProvider   This is the row cache compile availabile
 #                                                         in previous releases of Cassandra.
 # row_cache_class_name: org.apache.cassandra.cache.OHCProvider
 
 # Maximum size of the row cache in memory.
-# Please note that OHC cache implementation requires some additional off-heap memory to manage
+# Please note that OHC cache compile requires some additional off-heap memory to manage
 # the map structures and some in-flight memory during operations before/after cache entries can be
 # accounted against the cache capacity. This overhead is usually small compared to the whole capacity.
 # Do not specify more memory that the system can afford in the worst usual situation and leave some

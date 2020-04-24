@@ -21,10 +21,10 @@ project(":kafka-connect-azure-documentdb") {
     }
 
     dependencies {
-        implementation "com.microsoft.azure:azure-documentdb:$documentDbVersion"
-        testImplementation "org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion"
-        testImplementation "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
-        testImplementation "org.scalatest:scalatest_$scalaMajorVersion:3.0.1"
-        testImplementation "org.mockito:mockito-core:2.7.7"
+        compile "com.microsoft.azure:azure-documentdb:$documentDbVersion"
+        testcompile "org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion"
+        testcompile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
+        testcompile "org.scalatest:scalatest_$scalaMajorVersion:3.0.1"
+        testcompile "org.mockito:mockito-core:2.7.7"
     }
 }

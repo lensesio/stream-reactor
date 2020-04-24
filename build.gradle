@@ -66,10 +66,10 @@ allprojects {
         connectCLIVersion = "1.0.6"
         avro4sVersion = "1.6.4"
 
-        // The following 4 need to align to implementation against a particular version
+        // The following 4 need to align to compile against a particular version
         confluentVersion = '5.4.0'
         kafkaVersion = '2.4.0'
-        dataMountaineerCommonVersion = "2.0.1"
+        dataMountaineerCommonVersion = "2.0.2"
         link4jVersion = "1.8.0"
 
         gitCommitHash = ("git rev-parse HEAD").execute().text.trim()
@@ -77,7 +77,7 @@ allprojects {
         gitRepo = ("git remote get-url origin").execute().text.trim()
 
 
-//        // The following 4 need to align to implementation against a particular version
+//        // The following 4 need to align to compile against a particular version
 //        confluentVersion = '3.3.0'
 //        kafkaVersion = '0.11.0.0'
 //        dataMountaineerCommonVersion = "0.9.7"
@@ -108,7 +108,7 @@ allprojects {
     }
 
     repositories {
-       // mavenLocal()
+        mavenLocal()
         mavenCentral()
         maven { url "https://packages.confluent.io/maven/" }
         maven { url "https://repo.typesafe.com/typesafe/releases/" }
@@ -125,7 +125,7 @@ allprojects {
             attributes( "StreamReactor-Version": project.version,
                         "KCQL-Version" : "${KCQLVersion}",
                         "Kafka-Version": "${kafkaVersion}",
-                        "Created-By" : "Landoop",
+                        "Created-By" : "Lenses",
                         "Created-At" :  new Date().format("YYYYMMDDHHmm"),
                         "Git-Repo": "${gitRepo}",
                         "Git-Commit-Hash": "${gitCommitHash}",
@@ -147,7 +147,7 @@ allprojects {
             attributes( "StreamReactor-Version": project.version,
                     "KCQL-Version" : "${KCQLVersion}",
                     "Kafka-Version": "${kafkaVersion}",
-                    "Created-By" : "Landoop",
+                    "Created-By" : "Lenses",
                     "Created-At" : new Date().format("YYYYMMDDHHmm"),
                     "Git-Repo": "${gitRepo}",
                     "Git-Commit-Hash": "${gitCommitHash}",
@@ -175,22 +175,22 @@ allprojects {
     }
 
     dependencies {
-        implementation "org.scala-lang:scala-library:$scala"
-        implementation "org.scala-lang:scala-compiler:$scala"
-        implementation "com.typesafe.scala-logging:scala-logging_${scalaMajorVersion}:${scalaLoggingVersion}"
-        implementation "org.apache.kafka:connect-json:$kafkaVersion"
-        implementation "io.confluent:kafka-connect-avro-converter:$confluentVersion"
-        implementation "io.confluent:kafka-schema-registry:$confluentVersion"
-        implementation "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
-        implementation "org.apache.calcite:calcite-linq4j:$link4jVersion"
+        compile "org.scala-lang:scala-library:$scala"
+        compile "org.scala-lang:scala-compiler:$scala"
+        compile "com.typesafe.scala-logging:scala-logging_${scalaMajorVersion}:${scalaLoggingVersion}"
+        compile "org.apache.kafka:connect-json:$kafkaVersion"
+        compile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
+        compile "io.confluent:kafka-schema-registry:$confluentVersion"
+        compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
+        compile "org.apache.calcite:calcite-linq4j:$link4jVersion"
 
-        testImplementation "org.mockito:mockito-scala_$scalaMajorVersion:$mockitoVersion"
-        testImplementation "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
-        testImplementation "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
-        testImplementation "junit:junit:$junit"
+        testcompile "org.mockito:mockito-scala_$scalaMajorVersion:$mockitoVersion"
+        testcompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
+        testcompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
+        testcompile "junit:junit:$junit"
 
-        testImplementation 'org.pegdown:pegdown:1.1.0'
-        testImplementation "com.vladsch.flexmark:flexmark-all:0.35.10"
+        testcompile 'org.pegdown:pegdown:1.1.0'
+        testcompile "com.vladsch.flexmark:flexmark-all:0.35.10"
     }
 
     test {

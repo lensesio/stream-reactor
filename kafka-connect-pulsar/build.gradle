@@ -21,12 +21,12 @@ project(":kafka-connect-pulsar") {
     }
 
     dependencies {
-        implementation "org.apache.pulsar:pulsar-client:$pulsarVersion"
-        implementation "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
-        implementation "com.sksamuel.avro4s:avro4s-json_$scalaMajorVersion:$avro4sVersion"
+        compile "org.apache.pulsar:pulsar-client:$pulsarVersion"
+        compile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
+        compile "com.sksamuel.avro4s:avro4s-json_$scalaMajorVersion:$avro4sVersion"
 
-        testImplementation "org.json4s:json4s-core_$scalaMajorVersion:$json4sVersion"
-        testImplementation "org.json4s:json4s-jackson_$scalaMajorVersion:$json4sVersion"
+        testcompile "org.json4s:json4s-core_$scalaMajorVersion:$json4sVersion"
+        testcompile "org.json4s:json4s-jackson_$scalaMajorVersion:$json4sVersion"
     }
 
     project.tasks.compileScala.scalaCompileOptions.additionalParameters = ["-target:jvm-1.8"]

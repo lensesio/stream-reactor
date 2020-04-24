@@ -29,7 +29,7 @@ project(":kafka-connect-hbase") {
             }
         }
 
-        implementation "org.apache.hadoop:hadoop-hdfs:$hdfsVersion"
+        compile "org.apache.hadoop:hadoop-hdfs:$hdfsVersion"
 
         implementation("org.apache.hbase:hbase-client:$hbaseClientVersion") {
             exclude group: "tomcat"

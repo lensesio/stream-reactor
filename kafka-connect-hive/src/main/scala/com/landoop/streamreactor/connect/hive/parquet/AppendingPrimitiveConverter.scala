@@ -3,7 +3,7 @@ package com.landoop.streamreactor.connect.hive.parquet
 import org.apache.kafka.connect.data.Field
 import org.apache.parquet.io.api.{Binary, PrimitiveConverter}
 
-// reimplementation of Parquet's SimplePrimitiveConverter that appends to a scala ListBuffer
+// recompile of Parquet's SimplePrimitiveConverter that appends to a scala ListBuffer
 class AppendingPrimitiveConverter(field: Field, builder: scala.collection.mutable.Map[String, Any]) extends PrimitiveConverter {
   override def addBinary(x: Binary): Unit = builder.put(field.name, x.getBytes)
   override def addBoolean(x: Boolean): Unit = builder.put(field.name, x)

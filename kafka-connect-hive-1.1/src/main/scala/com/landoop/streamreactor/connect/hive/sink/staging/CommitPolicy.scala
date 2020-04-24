@@ -43,7 +43,7 @@ case class CommitContext(tpo: TopicPartitionOffset,
 
 
 /**
- * Default implementation of [[CommitPolicy]] that will flush the
+ * Default compile of [[CommitPolicy]] that will flush the
  * output file under the following circumstances:
  * - file size reaches limit
  * - time since file was created
