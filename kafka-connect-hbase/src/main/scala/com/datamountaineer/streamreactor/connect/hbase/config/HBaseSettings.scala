@@ -16,9 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.hbase.config
 
+import java.io.File
+
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfigConstants._
+import com.datamountaineer.streamreactor.connect.hbase.kerberos.{Kerberos, KerberosSettings}
 import com.datamountaineer.streamreactor.connect.hbase.{GenericRowKeyBuilderBytes, RowKeyBuilderBytes, StructFieldsExtractorBytes, StructFieldsRowKeyBuilderBytes}
 import org.apache.kafka.common.config.ConfigException
 
@@ -29,7 +32,9 @@ case class HBaseSettings(columnFamilyMap: String,
                          routes: List[Kcql],
                          extractorFields: Map[String, StructFieldsExtractorBytes],
                          errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
-                         maxRetries: Int = HBaseConfigConstants.NBR_OF_RETIRES_DEFAULT
+                         maxRetries: Int = HBaseConfigConstants.NBR_OF_RETIRES_DEFAULT,
+                         hbaseConfigDir: Option[String],
+                         kerberos: Option[Kerberos]
                         )
 
 object HBaseSettings {
@@ -56,12 +61,22 @@ object HBaseSettings {
     }
     ).toMap
 
-
     val extractorFields = kcql.map(rm => {
       val allFields = rm.getFields.asScala.exists(_.getName.equals("*"))
       (rm.getSource, StructFieldsExtractorBytes(allFields, fields(rm.getSource)))
     }).toMap
 
-    new HBaseSettings(columnFamily, rowKeyModeMap, kcql.toList, extractorFields, errorPolicy, nbrOfRetries)
+    val hbaseConfigDir = Option(config.getString(HBaseConfigConstants.HBaseConfigDirKey))
+
+    def validate(dir: String, key: String): Unit = {
+      val folder = new File(dir)
+      if (!folder.exists() || !folder.isDirectory) {
+        throw new ConfigException(s"Invalid configuration for [$key]. Folder can not be found")
+      }
+    }
+    hbaseConfigDir.foreach(validate(_, HBaseConfigConstants.HBaseConfigDirKey))
+
+    new HBaseSettings(columnFamily, rowKeyModeMap, kcql.toList, extractorFields,
+      errorPolicy, nbrOfRetries, hbaseConfigDir, Kerberos.from(config, HBaseConfigConstants))
   }
 }

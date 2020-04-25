@@ -17,11 +17,13 @@
 package com.datamountaineer.streamreactor.connect.hbase.config
 
 import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
+import com.datamountaineer.streamreactor.connect.hbase.kerberos.KerberosSettings
 
 /**
   * Created by tomasfartaria on 10/04/2017.
   */
-object HBaseConfigConstants {
+object HBaseConfigConstants extends KerberosSettings {
+
   val CONNECTOR_PREFIX = "connect.hbase"
 
   val COLUMN_FAMILY = s"${CONNECTOR_PREFIX}.column.family"
@@ -48,8 +50,14 @@ object HBaseConfigConstants {
   val NBR_OF_RETRIES_DOC = "The maximum number of times to try the write again."
   val NBR_OF_RETIRES_DEFAULT = 20
 
-  val PROGRESS_COUNTER_ENABLED = PROGRESS_ENABLED_CONST
+  val PROGRESS_COUNTER_ENABLED: String = PROGRESS_ENABLED_CONST
   val PROGRESS_COUNTER_ENABLED_DOC = "Enables the output for how many records have been processed"
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
+
+  def HBaseConfigDirKey = s"$CONNECTOR_PREFIX.conf.dir"
+  def HBaseConfigDirDoc = "The HBase configuration directory."
+  def HBaseConfigDirDefault: String = null
+  def HBaseConfigDirDisplay = "HBase Config Folder"
+
 }
