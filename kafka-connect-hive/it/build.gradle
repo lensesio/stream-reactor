@@ -25,11 +25,11 @@ project(":kafka-connect-hive:it") {
     }
 
     dependencies {
-        testcompile 'org.asynchttpclient:async-http-client:2.5.2'
-        testcompile 'org.apache.logging.log4j:log4j:2.11.0'
+        testImplementation 'org.asynchttpclient:async-http-client:2.5.2'
+        testImplementation 'org.apache.logging.log4j:log4j:2.11.0'
 
         testImplementation("org.apache.hive:hive-jdbc:$hiveVersion")
-        testcompile project(":kafka-connect-hive")
+        testImplementation project(":kafka-connect-hive")
     }
 
     test {

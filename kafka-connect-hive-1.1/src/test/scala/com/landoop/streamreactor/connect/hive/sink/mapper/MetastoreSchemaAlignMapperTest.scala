@@ -1,13 +1,12 @@
 package com.landoop.streamreactor.connect.hive.sink.mapper
 
-import cats.data.NonEmptyList
-import com.landoop.streamreactor.connect.hive.{PartitionKey, PartitionPlan}
 import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.JavaConverters._
 
-class MetastoreSchemaAlignMapperTest extends FunSuite with Matchers {
+class MetastoreSchemaAlignMapperTest extends AnyFunSuite with Matchers {
 
   test("pad optional missing fields with null") {
 

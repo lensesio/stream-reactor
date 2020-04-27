@@ -21,6 +21,6 @@ project(":kafka-connect-influxdb") {
     }
 
     dependencies {
-       compile ("org.influxdb:influxdb-java:$influxDbVersion")
+       implementation ("org.influxdb:influxdb-java:$influxDbVersion")
     }
 }

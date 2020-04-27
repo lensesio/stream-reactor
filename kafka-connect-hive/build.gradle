@@ -41,7 +41,7 @@ project(":kafka-connect-hive") {
         implementation("org.apache.hadoop:hadoop-mapreduce-client-core:$hadoopVersion")
         implementation("org.typelevel:cats-core_$scalaMajorVersion:$catsVersion")
 
-        //testcompile 'org.apache.logging.log4j:log4j:2.11.0'
+        //testImplementation 'org.apache.logging.log4j:log4j:2.11.0'
     }
 
     test {

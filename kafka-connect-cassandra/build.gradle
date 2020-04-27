@@ -37,9 +37,9 @@ project(":kafka-connect-cassandra") {
 
     dependencies {
 
-        compile "com.datastax.cassandra:cassandra-driver-core:$cassandraDriverVersion"
-        compile "com.jayway.jsonpath:json-path:$jsonPathVersion"
-        compile group: 'io.netty', name: 'netty-transport-native-epoll', version: '4.0.47.Final', classifier: 'linux-x86_64'
+        implementation "com.datastax.cassandra:cassandra-driver-core:$cassandraDriverVersion"
+        implementation "com.jayway.jsonpath:json-path:$jsonPathVersion"
+        implementation group: 'io.netty', name: 'netty-transport-native-epoll', version: '4.0.47.Final', classifier: 'linux-x86_64'
 
         testImplementation("org.apache.cassandra:cassandra-all:$cassandraVersion") {
             exclude group: "org.slf4j", module: "log4j-over-slf4j"
@@ -49,12 +49,12 @@ project(":kafka-connect-cassandra") {
         }
         testImplementation("org.pegdown:pegdown:$pegDownversion")
         testImplementation("com.google.code.findbugs:jsr305:1.3.9")
-        testcompile ("net.jpountz.lz4:lz4:$jPountzVersion")
-        testcompile ("org.xerial.snappy:snappy-java:$snappyVersion")
+        testImplementation ("net.jpountz.lz4:lz4:$jPountzVersion")
+        testImplementation ("org.xerial.snappy:snappy-java:$snappyVersion")
         testImplementation("org.cassandraunit:cassandra-unit:$cassandraUnitVersion") {
             exclude group: "org.slf4j", module: "log4j-over-slf4j"
         }
 
-        testcompile 'org.ow2.asm:asm-all:4.2'
+        testImplementation 'org.ow2.asm:asm-all:4.2'
     }
 }
