@@ -117,4 +117,8 @@ object JMSConfigConstants {
   val EVICT_THRESHOLD_MINUTES = s"$CONNECTOR_PREFIX.evict.threshold.minutes"
   private[config] val EVICT_THRESHOLD_MINUTES_DOC = "The number of minutes after which an uncommitted entry becomes evictable from the connector cache."
   private[config] val EVICT_THRESHOLD_MINUTES_DEFAULT = 10
+
+  val TASK_PARALLELIZATION_TYPE = s"$CONNECTOR_PREFIX.scale.type"
+  private[config] val TASK_PARALLELIZATION_TYPE_DOC = "How the connector tasks parallelization is decided. Available values are kcql and default. If kcql is provided it will be based on the number of KCQL statements written; otherwise it will be driven based on the connector tasks.max"
+  val TASK_PARALLELIZATION_TYPE_DEFAULT = "kcql"
 }

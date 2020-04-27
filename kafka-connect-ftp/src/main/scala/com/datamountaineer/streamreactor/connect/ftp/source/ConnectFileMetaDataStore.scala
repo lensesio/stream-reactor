@@ -38,8 +38,7 @@ class ConnectFileMetaDataStore(offsetStorage: OffsetStorageReader) extends FileM
     })
 
   override def set(path: String, fileMetaData: FileMetaData): Unit = {
-    logger.info(s"ConnectFileMetaDataStore set ${path}")
-    logger.info(s"path = ${path}, fileMetaData.offset = ${fileMetaData.offset}, fileMetaData.attribs.size = ${fileMetaData.attribs.size}")
+    logger.debug(s"ConnectFileMetaDataStore path = ${path}, fileMetaData.offset = ${fileMetaData.offset}, fileMetaData.attribs.size = ${fileMetaData.attribs.size}")
     cache.put(path, fileMetaData)
   }
 

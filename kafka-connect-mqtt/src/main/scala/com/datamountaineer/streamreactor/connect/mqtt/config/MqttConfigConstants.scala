@@ -110,7 +110,7 @@ object MqttConfigConstants {
   val THROW_ON_CONVERT_ERRORS_DEFAULT = false
 
   val AVRO_CONVERTERS_SCHEMA_FILES = "connect.converter.avro.schemas"
-  val AVRO_CONVERTERS_SCHEMA_FILES_DOC = "If the AvroConverter is used you need to provide an avro Schema to be able to read and translate the raw bytes to an avro record. The format is $MQTT_TOPIC=$PATH_TO_AVRO_SCHEMA_FILE"
+  val AVRO_CONVERTERS_SCHEMA_FILES_DOC = "If the AvroConverter is used you need to provide an avro Schema to be able to read and translate the raw bytes to an avro record. The format is $MQTT_TOPIC=$PATH_TO_AVRO_SCHEMA_FILE in case of source converter, or $KAFKA_TOPIC=PATH_TO_AVRO_SCHEMA in case of sink converter"
   val AVRO_CONVERTERS_SCHEMA_FILES_DEFAULT = ""
 
   val REPLICATE_SHARED_SUBSCIRPTIONS_CONFIG = s"$CONNECTOR_PREFIX.share.replicate"

@@ -13,21 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 project(":kafka-connect-ftp") {
+  ext {
+    pathikritVersion = '2.16.0'
+    ftpserverVersion = '1.0.6'
+    commonsnetVersion = '3.5'
+    commonsCodecVersion = '1.10'
+  }
 
-    ext {
-        pathikritVersion = '2.16.0'
-        ftpserverVersion = '1.0.6'
-        commonsnetVersion = '3.5'
-        commonsCodecVersion = '1.10'
-    }
+  test {
+    // detect memory leaks by constraining the Heap size
+    maxHeapSize = "200m"
+    jvmArgs "-Xms100m"
+  }
 
-    dependencies {
-        compile "commons-net:commons-net:${commonsnetVersion}"
-        compile "commons-codec:commons-codec:${commonsCodecVersion}"
-        testCompile "com.github.pathikrit:better-files_2.11:${pathikritVersion}"
-        testCompile "org.apache.ftpserver:ftpserver-core:${ftpserverVersion}"
-    }
+  dependencies {
+    compile "commons-net:commons-net:${commonsnetVersion}"
+    compile "commons-codec:commons-codec:${commonsCodecVersion}"
+    testCompile "com.github.pathikrit:better-files_2.11:${pathikritVersion}"
+    testCompile "org.apache.ftpserver:ftpserver-core:${ftpserverVersion}"
+  }
 }
 

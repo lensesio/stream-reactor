@@ -55,6 +55,7 @@ class JMSSourceTask extends SourceTask with StrictLogging {
   private var lastEvictedTimestamp: FiniteDuration = FiniteDuration(System.currentTimeMillis(), MILLISECONDS)
   private var evictInterval: Int = 0
   private var evictThreshold: Int = 0
+
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/jms-source-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())

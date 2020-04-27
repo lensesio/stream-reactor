@@ -103,7 +103,7 @@ trait KuduConverter {
           case other => throw new UnsupportedOperationException(s"Unsupported value ${other.getClass.getCanonicalName}")
         }
       case Decimal.LOGICAL_NAME =>
-        struct.get(field.name()) match {
+        Option(struct.get(field.name())).foreach {
           case a: Array[_] => {
             row.addBinary(fieldName, a.asInstanceOf[Array[Byte]])
           }
@@ -229,13 +229,28 @@ trait KuduConverter {
       case Type.BYTES => {
         field.schema().name() match {
           case Decimal.LOGICAL_NAME => {
-            val precision = field.schema().parameters().get("connect.decimal.precision").toInt
-            val scale = field.schema().parameters().get("scale").toInt
-            new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.DECIMAL).typeAttributes(
-              new ColumnTypeAttributes.ColumnTypeAttributesBuilder()
-                .precision(precision).scale(scale).build()
-            )
-          }
+            Option(field.schema().parameters()) match {
+              case Some(params)  =>
+                if (params.containsKey("connect.decimal.precision")) {
+                  val precision = field.schema().parameters().get("connect.decimal.precision").toInt
+
+                  if (params.containsKey("scale")) {
+                    val scale = field.schema().parameters().get("scale").toInt
+                    new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.DECIMAL).typeAttributes(
+                      new ColumnTypeAttributes.ColumnTypeAttributesBuilder().precision(precision).scale(scale).build()
+                    )
+                  } else {
+                    throw new UnsupportedOperationException(s"Unknown scale for field $fieldName, type $fieldType")
+                  }
+
+                } else {
+                  throw new UnsupportedOperationException(s"Unknown precision for field $fieldName, type $fieldType")
+                }
+
+              case None     =>
+                throw new UnsupportedOperationException(s"No parameters set for field $fieldName, type $fieldType")
+            }
+                    }
           case _ => new ColumnSchemaBuilder(fieldName, org.apache.kudu.Type.BINARY)
         }
       }

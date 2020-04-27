@@ -72,3 +72,5 @@ classes/*
 /kafka-connect-*/it/out
 
 /*/*/build
+*.cache-main
+*.cache-tests

@@ -48,6 +48,14 @@ class TestCqlGenerator extends WordSpec
     cqlStatement shouldBe "SELECT string_field,the_pk_field FROM test.cassandra-table WHERE the_pk_field > ? AND the_pk_field <= ? ALLOW FILTERING"
   }
 
+  "CqlGenerator should generate dse search timestamp statement based on KCQL" in {
+
+    val cqlGenerator = new CqlGenerator(configureMe("INCREMENTALMODE=dsesearchtimestamp"))
+    val cqlStatement = cqlGenerator.getCqlStatement
+
+    cqlStatement shouldBe "SELECT string_field,the_pk_field FROM test.cassandra-table WHERE solr_query=?"
+  }
+
   "CqlGenerator should generate token based CQL statement based on KCQL" in {
 
     val cqlGenerator = new CqlGenerator(configureMe("INCREMENTALMODE=token"))
@@ -62,6 +70,52 @@ class TestCqlGenerator extends WordSpec
     val cqlStatement = cqlGenerator.getCqlStatementNoOffset
 
     cqlStatement shouldBe "SELECT string_field,the_pk_field FROM test.cassandra-table LIMIT 200"
+  }
+  
+  "CqlGenerator should generate format type json CQL statement based on KCQL" in {
+
+    val cqlGenerator = new CqlGenerator(configureJSON())
+    val cqlStatement = cqlGenerator.getCqlStatement
+
+    cqlStatement shouldBe "SELECT string_field,the_pk_field FROM test.cassandra-table WHERE the_pk_field > ? AND the_pk_field <= ? ALLOW FILTERING"
+  }
+  
+  "CqlGenerator should generate format type json CQL with keys statement based on KCQL" in {
+
+    val cqlGenerator = new CqlGenerator(configureJSONWithKey("string_field"))
+    val cqlStatement = cqlGenerator.getCqlStatement
+
+    cqlStatement shouldBe "SELECT string_field,the_pk_field FROM test.cassandra-table WHERE the_pk_field > ? AND the_pk_field <= ? ALLOW FILTERING"
+  }
+  
+  def configureJSON(): CassandraSourceSetting = {
+    val myKcql = s"INSERT INTO kafka-topic SELECT string_field, the_pk_field FROM cassandra-table PK the_pk_field WITHFORMAT JSON WITHUNWRAP INCREMENTALMODE=TIMESTAMP"
+    val configMap = {
+      Map(
+        CassandraConfigConstants.KEY_SPACE -> "test",
+        CassandraConfigConstants.KCQL -> myKcql,
+        CassandraConfigConstants.ASSIGNED_TABLES -> "cassandra-table",
+        CassandraConfigConstants.POLL_INTERVAL -> "1000",
+        CassandraConfigConstants.FETCH_SIZE -> "500",
+        CassandraConfigConstants.BATCH_SIZE -> "800").asJava
+    }
+    val configSource = new CassandraConfigSource(configMap)
+    CassandraSettings.configureSource(configSource).head
+  }
+  
+  def configureJSONWithKey(keyField: String): CassandraSourceSetting = {
+    val myKcql = s"INSERT INTO kafka-topic SELECT string_field, the_pk_field FROM cassandra-table PK the_pk_field WITHFORMAT JSON WITHUNWRAP INCREMENTALMODE=TIMESTAMP WITHKEY($keyField)"
+    val configMap = {
+      Map(
+        CassandraConfigConstants.KEY_SPACE -> "test",
+        CassandraConfigConstants.KCQL -> myKcql,
+        CassandraConfigConstants.ASSIGNED_TABLES -> "cassandra-table",
+        CassandraConfigConstants.POLL_INTERVAL -> "1000",
+        CassandraConfigConstants.FETCH_SIZE -> "500",
+        CassandraConfigConstants.BATCH_SIZE -> "800").asJava
+    }
+    val configSource = new CassandraConfigSource(configMap)
+    CassandraSettings.configureSource(configSource).head
   }
 
 

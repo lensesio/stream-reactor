@@ -1,0 +1,39 @@
+{
+    "namespace": "com.datamountaineer.streamreactor.connect",
+    "type": "record",
+    "name": "Test",
+    "fields": [
+        {
+            "name": "id",
+            "type": "string"
+        },
+        {
+            "name": "int_field",
+            "type": "int"
+        },
+        {
+            "name": "long_field",
+            "type": "long"
+        },
+        {
+            "name": "string_field",
+            "type": "string"
+        },
+        {
+            "name": "float_field",
+            "type": "float"
+        },
+        {
+            "name": "float64_field",
+            "type": "double"
+        },
+        {
+            "name": "boolean_field",
+            "type": "boolean"
+        },
+        {
+            "name": "byte_field",
+            "type": "bytes"
+        }
+    ]
+}

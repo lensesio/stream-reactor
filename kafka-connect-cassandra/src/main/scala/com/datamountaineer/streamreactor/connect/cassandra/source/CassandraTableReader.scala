@@ -37,6 +37,10 @@ import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
+import com.datamountaineer.kcql.FormatType
+
+import org.json4s.native.Json
+import org.json4s.DefaultFormats
 
 /**
   * Created by andrew@datamountaineer.com on 20/04/16.
@@ -70,6 +74,7 @@ class CassandraTableReader(private val name: String,
   private var schema: Option[Schema] = None
   private val ignoreList = config.getIgnoredFields.map(_.getName).toSet
   private val isTokenBased = cqlGenerator.isTokenBased()
+  private val isDSESearchBased = cqlGenerator.isDSESearchBased()
   private val cassandraTypeConverter : CassandraTypeConverter =
     new CassandraTypeConverter(session.getCluster.getConfiguration.getCodecRegistry, setting)
   private var structColDefs: List[ColumnDefinitions.Definition] = _
@@ -173,9 +178,17 @@ class CassandraTableReader(private val name: String,
     // logging the CQL
     val formattedPrevious = previous.toString()
     val formattedNow = upperBound.toString()
-    logger.info(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow).")
+    val bound = if (isDSESearchBased) {
+      val solrWhere = s"$primaryKeyCol:{$formattedPrevious TO $formattedNow]"
+      // we need that to be able to page results even with the solr_query being used, that's why we use the paging and sort configs
+      val solrQuery = "{\"q\": \"" + solrWhere + "\", \"sort\":\"" + primaryKeyCol + " asc\", \"paging\":\"driver\"}"
+      logger.info(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($solrQuery).")
+      preparedStatement.bind(solrQuery)
+    } else {
+      logger.info(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow).")
+      preparedStatement.bind(Date.from(previous), Date.from(upperBound))
+    }
     // bind the offset and db time
-    val bound = preparedStatement.bind(Date.from(previous), Date.from(upperBound))
     bound.setFetchSize(setting.fetchSize)
     session.executeAsync(bound)
   }
@@ -314,8 +327,20 @@ class CassandraTableReader(private val name: String,
 
     // create source record
     val record = if (config.isUnwrapping) {
-      val structValue = structColDefs.map(d => d.getName).map(name => row.getObject(name)).mkString(",")
-      new SourceRecord(sourcePartition, Map(primaryKeyCol -> offset), topic, Schema.STRING_SCHEMA, structValue)
+      if (config.getFormatType == FormatType.JSON) {
+        val keys = config.getWithKeys
+        val v = structColDefs.map(d => d.getName -> row.getObject(d.getName)).toMap
+        val structValue = Json(DefaultFormats).write(v)
+        if(keys.isEmpty) {
+          new SourceRecord(sourcePartition, Map(primaryKeyCol -> offset), topic, Schema.STRING_SCHEMA, structValue)
+        } else {
+          val keyValue = keys.map(k => row.getObject(k)).mkString(",")
+          new SourceRecord(sourcePartition, Map(primaryKeyCol -> offset), topic, Schema.STRING_SCHEMA, keyValue, Schema.STRING_SCHEMA, structValue)
+        }
+      } else {
+        val structValue = structColDefs.map(d => d.getName).map(name => row.getObject(name)).mkString(",")
+        new SourceRecord(sourcePartition, Map(primaryKeyCol -> offset), topic, Schema.STRING_SCHEMA, structValue)
+      }
     } else {
       if (schema.isEmpty) {
         schema = Some(struct.schema())

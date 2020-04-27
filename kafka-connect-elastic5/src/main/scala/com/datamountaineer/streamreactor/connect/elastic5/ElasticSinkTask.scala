@@ -49,7 +49,7 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
 
     //if error policy is retry set retry interval
     val settings = ElasticSettings(sinkConfig)
-    if (settings.errorPolicy.equals(Option(ErrorPolicyEnum.RETRY))) {
+    if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
       context.timeout(sinkConfig.getString(ElasticConfigConstants.ERROR_RETRY_INTERVAL).toLong)
     }
 

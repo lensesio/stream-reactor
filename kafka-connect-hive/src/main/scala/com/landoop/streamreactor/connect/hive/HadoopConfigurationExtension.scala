@@ -6,7 +6,6 @@ import com.landoop.streamreactor.connect.hive.kerberos.Kerberos
 import com.landoop.streamreactor.connect.hive.kerberos.KeytabSettings
 import com.landoop.streamreactor.connect.hive.kerberos.UserPasswordSettings
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.security.SecurityUtil
 
 object HadoopConfigurationExtension {
 
