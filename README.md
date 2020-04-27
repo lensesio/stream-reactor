@@ -59,6 +59,19 @@ A collection of components to build a real time ingestion pipeline.
 ## Release Notes
 
 **1.2.6**
+**Features**
+*   Cassandra (source)
+    *   Support for sending JSON formatted message (with string key) to kafka topic.
+    
+        Sample KCQL would be like:
+        
+        `INSERT INTO <topic> SELECT <fields> FROM <column_family> PK <PK_field> WITHFORMAT JSON WITHUNWRAP INCREMENTALMODE=<mode> WITHKEY(<key_field>)`
+        
+        This would send field's values as JSON object to the said topic.
+        
+        Note that in kafka connect properies one needs to set `key.converter` and `value.converter` as `org.apache.kafka.connect.storage.StringConverter`
+         
+
 **Bug fixes**
 
 *   JMS Source
