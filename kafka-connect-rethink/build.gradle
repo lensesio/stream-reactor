@@ -20,6 +20,6 @@ project(":kafka-connect-rethink") {
     }
 
     dependencies {
-        compile "com.rethinkdb:rethinkdb-driver:$rethinkDbVersion"
+        implementation "com.rethinkdb:rethinkdb-driver:$rethinkDbVersion"
     }
 }

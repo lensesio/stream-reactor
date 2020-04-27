@@ -32,13 +32,13 @@ project(":kafka-connect-blockchain") {
 
 
     dependencies {
-        compile "com.typesafe.akka:akka-actor_$scalaMajorVersion:$akkaVersion"
-        compile "com.typesafe.akka:akka-stream_$scalaMajorVersion:$akkaVersion"
-        compile "com.typesafe.akka:akka-http_$scalaMajorVersion:10.0.0"
-        compile "org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion"
+        implementation "com.typesafe.akka:akka-actor_$scalaMajorVersion:$akkaVersion"
+        implementation "com.typesafe.akka:akka-stream_$scalaMajorVersion:$akkaVersion"
+        implementation "com.typesafe.akka:akka-http_$scalaMajorVersion:10.0.0"
+        implementation "org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion"
 
-        testcompile group: 'com.typesafe.akka', name: 'akka-http-testkit_2.12', version: '10.0.0'
-        testcompile "com.google.code.findbugs:jsr305:1.3.9"
+        testImplementation group: 'com.typesafe.akka', name: 'akka-http-testkit_2.12', version: '10.0.0'
+        testImplementation "com.google.code.findbugs:jsr305:1.3.9"
 
     }
 }
