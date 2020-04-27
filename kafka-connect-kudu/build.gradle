@@ -20,6 +20,6 @@ project(":kafka-connect-kudu") {
     }
 
     dependencies {
-        implementation "org.apache.kudu:kudu-client:$kuduVersion"
+        compile "org.apache.kudu:kudu-client:$kuduVersion"
     }
 }

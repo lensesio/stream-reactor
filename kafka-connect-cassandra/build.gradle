@@ -37,9 +37,9 @@ project(":kafka-connect-cassandra") {
 
     dependencies {
 
-        implementation "com.datastax.cassandra:cassandra-driver-core:$cassandraDriverVersion"
-        implementation "com.jayway.jsonpath:json-path:$jsonPathVersion"
-        implementation group: 'io.netty', name: 'netty-transport-native-epoll', version: '4.0.47.Final', classifier: 'linux-x86_64'
+        compile "com.datastax.cassandra:cassandra-driver-core:$cassandraDriverVersion"
+        compile "com.jayway.jsonpath:json-path:$jsonPathVersion"
+        compile group: 'io.netty', name: 'netty-transport-native-epoll', version: '4.0.47.Final', classifier: 'linux-x86_64'
 
         testImplementation("org.apache.cassandra:cassandra-all:$cassandraVersion") {
             exclude group: "org.slf4j", module: "log4j-over-slf4j"
