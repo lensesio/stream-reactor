@@ -25,23 +25,23 @@ project(":kafka-connect-hive") {
     }
 
     dependencies {
-        implementation("org.apache.parquet:parquet-column:$parquetVersion")
-        implementation("org.apache.parquet:parquet-encoding:$parquetVersion")
-        implementation("org.apache.parquet:parquet-hadoop:$parquetVersion")
-        implementation("org.jodd:jodd-core:$joddVersion")
-        implementation("org.apache.hive:hive-jdbc:$hiveVersion")
-        implementation("org.apache.hive:hive-exec:$hiveVersion"){
+        compile("org.apache.parquet:parquet-column:$parquetVersion")
+        compile("org.apache.parquet:parquet-encoding:$parquetVersion")
+        compile("org.apache.parquet:parquet-hadoop:$parquetVersion")
+        compile("org.jodd:jodd-core:$joddVersion")
+        compile("org.apache.hive:hive-jdbc:$hiveVersion")
+        compile("org.apache.hive:hive-exec:$hiveVersion"){
             exclude group: "org.apache.calcite", module: "calcite-avatica"
             exclude group: "com.fasterxml.jackson.core", module: "jackson-annotations"
         }
-        implementation("org.apache.hadoop:hadoop-common:$hadoopVersion")
-        implementation("org.apache.hadoop:hadoop-hdfs:$hadoopVersion")
-        implementation("org.apache.hadoop:hadoop-mapreduce:$hadoopVersion")
-        implementation("org.apache.hadoop:hadoop-mapreduce-client:$hadoopVersion")
-        implementation("org.apache.hadoop:hadoop-mapreduce-client-core:$hadoopVersion")
-        implementation("org.typelevel:cats-core_$scalaMajorVersion:$catsVersion")
+        compile("org.apache.hadoop:hadoop-common:$hadoopVersion")
+        compile("org.apache.hadoop:hadoop-hdfs:$hadoopVersion")
+        compile("org.apache.hadoop:hadoop-mapreduce:$hadoopVersion")
+        compile("org.apache.hadoop:hadoop-mapreduce-client:$hadoopVersion")
+        compile("org.apache.hadoop:hadoop-mapreduce-client-core:$hadoopVersion")
+        compile("org.typelevel:cats-core_$scalaMajorVersion:$catsVersion")
 
-        //testImplementation 'org.apache.logging.log4j:log4j:2.11.0'
+        //testCompile 'org.apache.logging.log4j:log4j:2.11.0'
     }
 
     test {

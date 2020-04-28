@@ -30,13 +30,13 @@ project(":kafka-connect-elastic6") {
     }
 
     dependencies {
-        implementation("com.sksamuel.elastic4s:elastic4s-core_$scalaMajorVersion:$elastic4sVersion") {
+        compile("com.sksamuel.elastic4s:elastic4s-core_$scalaMajorVersion:$elastic4sVersion") {
             exclude group: "org.scala-lang", module: "scala-library"
             exclude group: "org.scalactic", module: "scalactic_2.11"
         }
 
         // for the http client
-        implementation("com.sksamuel.elastic4s:elastic4s-http_$scalaMajorVersion:$elastic4sVersion") {
+        compile("com.sksamuel.elastic4s:elastic4s-http_$scalaMajorVersion:$elastic4sVersion") {
             exclude group: "org.scala-lang", module: "scala-library"
             exclude group: "org.scalactic", module: "scalactic_2.11"
         }
@@ -46,8 +46,8 @@ project(":kafka-connect-elastic6") {
 
         compile'org.apache.logging.log4j:log4j-core:2.11.1'
 
-        testImplementation("com.sksamuel.elastic4s:elastic4s-testkit_$scalaMajorVersion:$elastic4sVersion")
-        testImplementation("com.sksamuel.elastic4s:elastic4s-embedded_$scalaMajorVersion:$elastic4sVersion")
+        testCompile("com.sksamuel.elastic4s:elastic4s-testkit_$scalaMajorVersion:$elastic4sVersion")
+        testCompile("com.sksamuel.elastic4s:elastic4s-embedded_$scalaMajorVersion:$elastic4sVersion")
 
     }
 }

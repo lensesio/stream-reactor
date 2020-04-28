@@ -27,7 +27,7 @@ project(':kafka-connect-redis') {
 
     dependencies {
         compile "redis.clients:jedis:$jedisVersion"
-        testImplementation "com.google.code.gson:gson:$gsonVersion"
-        testImplementation "com.netflix.spinnaker.embedded-redis:embedded-redis:$embeddedRedisVersion"
+        testCompile "com.google.code.gson:gson:$gsonVersion"
+        testCompile "com.netflix.spinnaker.embedded-redis:embedded-redis:$embeddedRedisVersion"
     }
 }
