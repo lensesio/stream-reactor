@@ -32,9 +32,9 @@ project(":kafka-connect-mqtt") {
         compile "org.bouncycastle:bcpkix-jdk15on:$bouncyCastle"
         compile "org.bouncycastle:bcpg-jdk15on:$bouncyCastle"
 
-        testImplementation "org.json4s:json4s-core_$scalaMajorVersion:$json4s"
-        testImplementation "org.json4s:json4s-jackson_$scalaMajorVersion:$json4s"
-        //testImplementation("org.apache.activemq:activemq-core:$activeMq")
-        testImplementation("io.moquette:moquette-broker:0.8.1")
+        testCompile "org.json4s:json4s-core_$scalaMajorVersion:$json4s"
+        testCompile "org.json4s:json4s-jackson_$scalaMajorVersion:$json4s"
+        //testCompile("org.apache.activemq:activemq-core:$activeMq")
+        testCompile("io.moquette:moquette-broker:0.8.1")
     }
 }

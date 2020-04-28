@@ -21,9 +21,9 @@ project(":kafka-connect-mongodb") {
 
     dependencies {
         compile "org.mongodb:mongo-java-driver:$mongoVersion"
-        testImplementation "org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion"
-        testImplementation "de.flapdoodle.embed:de.flapdoodle.embed.mongo:1.50.5"
-        testImplementation "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
+        testCompile "org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion"
+        testCompile "de.flapdoodle.embed:de.flapdoodle.embed.mongo:1.50.5"
+        testCompile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
     }
 
 }

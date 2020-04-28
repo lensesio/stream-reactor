@@ -22,11 +22,11 @@ project(":kafka-connect-jms") {
     }
 
     dependencies {
-        implementation("javax.jms:javax.jms-api:$jmsVersion")
-        testImplementation("org.apache.activemq:activemq-all:5.14.5")
-        testImplementation("org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion")
-        testImplementation("com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion")
-        testImplementation("com.sksamuel.avro4s:avro4s-macros_$scalaMajorVersion:$avro4sVersion")
-        testImplementation("com.sksamuel.avro4s:avro4s-generator_2.12.0-M4:1.6.0")
+        compile("javax.jms:javax.jms-api:$jmsVersion")
+        testCompile("org.apache.activemq:activemq-all:5.14.5")
+        testCompile("org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion")
+        testCompile("com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion")
+        testCompile("com.sksamuel.avro4s:avro4s-macros_$scalaMajorVersion:$avro4sVersion")
+        testCompile("com.sksamuel.avro4s:avro4s-generator_2.12.0-M4:1.6.0")
     }
 }
