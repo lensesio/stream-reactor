@@ -184,13 +184,13 @@ allprojects {
         compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
         compile "org.apache.calcite:calcite-linq4j:$link4jVersion"
 
-        testImplementation "org.mockito:mockito-scala_$scalaMajorVersion:$mockitoVersion"
-        testImplementation "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
-        testImplementation "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
-        testImplementation "junit:junit:$junit"
+        testCompile "org.mockito:mockito-scala_$scalaMajorVersion:$mockitoVersion"
+        testCompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
+        testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
+        testCompile "junit:junit:$junit"
 
-        testImplementation 'org.pegdown:pegdown:1.1.0'
-        testImplementation "com.vladsch.flexmark:flexmark-all:0.35.10"
+        testCompile 'org.pegdown:pegdown:1.1.0'
+        testCompile "com.vladsch.flexmark:flexmark-all:0.35.10"
     }
 
     test {
