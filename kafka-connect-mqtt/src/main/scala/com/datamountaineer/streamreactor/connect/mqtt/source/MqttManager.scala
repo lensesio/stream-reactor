@@ -98,13 +98,17 @@ class MqttManager(connectionFn: MqttSourceSettings => MqttConnectOptions,
     }
 
     val converter = convertersMap.getOrElse(wildcard, throw new RuntimeException(s"$wildcard topic is missing the converter instance."))
+
+    // is we are dealing with avro we need the wildcard to lookup the avro schema
+    val sourceTopic = if (settings.avro) wildcard else topic
+
     if (!message.isDuplicate) {
       try {
         val keys = Option(kcql.getWithKeys).map { l =>
           val scalaList: Seq[String] = l.asScala
           scalaList
         }.getOrElse(Seq.empty[String])
-        Option(converter.convert(kafkaTopic, topic, message.getId.toString, message.getPayload, keys, kcql.getKeyDelimeter)) match {
+        Option(converter.convert(kafkaTopic, sourceTopic, message.getId.toString, message.getPayload, keys, kcql.getKeyDelimeter)) match {
           case Some(record) =>
             queue.add(record)
             message.setRetained(false)

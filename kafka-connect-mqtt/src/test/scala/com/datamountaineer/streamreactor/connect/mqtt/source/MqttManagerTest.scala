@@ -170,7 +170,7 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
     }
 
 
-    "process the messages on topic A and create source records with Bytes schema with Wildcards" ignore {
+    "process the messages on topic A and create source records with Bytes schema with Wildcards" in {
       val source = "/mqttSourceTopic/+/test"
       val target = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)

@@ -42,7 +42,9 @@ case class MqttSourceSettings(connection: String,
                               sslCertKeyFile: Option[String],
                               replicateShared: Boolean = false,
                               enableProgress: Boolean = MqttConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
-                              logMessageReceived: Boolean = false) {
+                              logMessageReceived: Boolean = false,
+                              avro: Boolean = false
+                             ) {
 
   def asMap(): java.util.Map[String, String] = {
     val map = new java.util.HashMap[String, String]()
@@ -108,6 +110,8 @@ object MqttSourceSettings {
       throw new ConfigException(s"${MqttConfigConstants.QS_CONFIG} is not valid. Can be 0,1 or 2")
     }
 
+    val avro = if (config.getString(MqttConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES).isEmpty) false else true
+
     MqttSourceSettings(
       connection,
       user,
@@ -126,7 +130,8 @@ object MqttSourceSettings {
       sslCertKeyFile,
       replicateShared,
       progressEnabled,
-      config.getBoolean(MqttConfigConstants.LOG_MESSAGE_ARRIVED_KEY)
+      config.getBoolean(MqttConfigConstants.LOG_MESSAGE_ARRIVED_KEY),
+      avro = avro
     )
   }
 }
