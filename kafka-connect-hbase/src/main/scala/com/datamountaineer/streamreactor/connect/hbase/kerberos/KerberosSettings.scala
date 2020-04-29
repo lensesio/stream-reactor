@@ -8,6 +8,11 @@ trait KerberosSettings {
   def KerberosDefault = false
   def KerberosDisplay = "HDFS Authentication Kerberos"
 
+  def KerberosDebugKey = s"$CONNECTOR_PREFIX.security.kerberos.debug"
+  def KerberosDebugDoc = "Configuration to enable Kerberos debug logging"
+  def KerberosDebugDefault = false
+  def KerberosDebugDisplay = "Kerberos debug logging"
+
   def PrincipalKey = s"$CONNECTOR_PREFIX.security.principal"
   def PrincipalDoc = "The principal to use when HDFS is using Kerberos to for authentication."
   def PrincipalDefault: String = null
