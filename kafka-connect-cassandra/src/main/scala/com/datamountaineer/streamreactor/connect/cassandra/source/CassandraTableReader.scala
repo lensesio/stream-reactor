@@ -228,7 +228,7 @@ class CassandraTableReader(private val name: String,
     var maxOffset: Option[String] = None
     //on success start writing the row to the queue
     future.onComplete {
-      case rs: ResultSet =>
+      case Success(rs) =>
         try {
           logger.info(s"Connector $name processing results for $keySpace.$table.")
           val iter = rs.iterator()

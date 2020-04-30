@@ -123,14 +123,14 @@ allprojects {
     jar {
         manifest {
             attributes( "StreamReactor-Version": project.version,
-                        "KCQL-Version" : "${KCQLVersion}",
-                        "Kafka-Version": "${kafkaVersion}",
-                        "Created-By" : "Lenses",
-                        "Created-At" :  new Date().format("YYYYMMDDHHmm"),
-                        "Git-Repo": "${gitRepo}",
-                        "Git-Commit-Hash": "${gitCommitHash}",
-                        "Git-Tag": "${gitTag}",
-                        "StreamReactor-Docs" : "https://docs.lenses.io/connectors/"
+                    "KCQL-Version" : "${KCQLVersion}",
+                    "Kafka-Version": "${kafkaVersion}",
+                    "Created-By" : "Lenses",
+                    "Created-At" :  new Date().format("YYYYMMDDHHmm"),
+                    "Git-Repo": "${gitRepo}",
+                    "Git-Commit-Hash": "${gitCommitHash}",
+                    "Git-Tag": "${gitTag}",
+                    "StreamReactor-Docs" : "https://docs.lenses.io/connectors/"
             )
         }
     }

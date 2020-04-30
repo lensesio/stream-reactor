@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-project(":kafka-connect-azure-documentdb") {
+project(":kafka-connect-influxdb") {
+
     ext {
-        documentDbVersion = "2.4.7"
+        influxDbVersion = "2.9"
     }
 
     dependencies {
-        compile "com.microsoft.azure:azure-documentdb:$documentDbVersion"
-        testCompile "org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion"
-        testCompile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
-        testCompile "org.scalatest:scalatest_$scalaMajorVersion:3.0.1"
-        testCompile "org.mockito:mockito-core:2.7.7"
+       compile("org.influxdb:influxdb-java:$influxDbVersion")
     }
 }

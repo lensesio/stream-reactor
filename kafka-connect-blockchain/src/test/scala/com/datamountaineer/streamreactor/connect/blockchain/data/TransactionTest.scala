@@ -21,6 +21,7 @@ import com.datamountaineer.streamreactor.connect.blockchain.{GetResourcesFromDir
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+
 class TransactionTest extends AnyWordSpec with Matchers with Using {
   "Transaction" should {
     "be initialized from json" in {

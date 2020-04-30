@@ -53,17 +53,30 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
-**Pending**
+**2.0.0**
 
 *   Move to Scala 2.12
 *   Move to Kafka 2.4.1 and Confluent 5.4
-*   Add support for Redis Streams
-
 
 Deprecated:
     * Druid Sink (not scala 2.12 compatible)
     * Elastic Sink (not scala 2.12 compatible)
     * Elastic5 Sink(not scala 2.12 compatible)
+
+*   Redis
+    *   Add support for Redis Streams
+
+*   Cassandra
+    *   Add support for setting the LoadBalancer policy on the Cassandra Sink
+
+*   ReThinkDB
+    *   Use SSL connection on Rethink initialize tables is ssl set
+
+*   FTP Source
+    *   Respect "connect.ftp.max.poll.records" when reading slices
+
+*   MQTT Source
+    *   Allow lookup of avro schema files with wildcard subscriptions
   
 
 **1.2.7**
