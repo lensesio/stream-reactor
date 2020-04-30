@@ -19,9 +19,11 @@ package com.datamountaineer.streamreactor.connect.hbase
 import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.hbase.config.{HBaseConfig, HBaseConfigConstants, HBaseSettings}
+import com.datamountaineer.streamreactor.connect.hbase.config.{ConfigurationBuilder, HBaseConfig, HBaseConfigConstants, HBaseSettings}
+import com.datamountaineer.streamreactor.connect.hbase.kerberos.KerberosLogin
 import com.datamountaineer.streamreactor.connect.hbase.writers.{HbaseWriter, WriterFactoryFn}
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
+import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfigExtension._
 import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -37,10 +39,12 @@ import scala.collection.JavaConversions._
   **/
 class HbaseSinkTask extends SinkTask with StrictLogging {
 
+  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+
   var writer: Option[HbaseWriter] = None
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
-  private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
+  private var kerberosLogin = Option.empty[KerberosLogin]
 
   /**
     * Parse the configurations and setup the writer
@@ -60,11 +64,19 @@ class HbaseSinkTask extends SinkTask with StrictLogging {
       context.timeout(sinkConfig.getInt(HBaseConfigConstants.ERROR_RETRY_INTERVAL).toLong)
     }
 
+    val hbaseConf = ConfigurationBuilder.buildHBaseConfig(hbaseSettings)
+
+    kerberosLogin = hbaseSettings.kerberos.map { kerberos =>
+      hbaseConf.withKerberos(kerberos)
+      KerberosLogin.from(kerberos, hbaseConf)
+    }
+
     logger.info(
       s"""Settings:
          |$hbaseSettings
       """.stripMargin)
-    writer = Some(WriterFactoryFn(hbaseSettings))
+
+    writer = Some(WriterFactoryFn(hbaseSettings, hbaseConf))
 
   }
 

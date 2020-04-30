@@ -19,8 +19,9 @@
 package com.datamountaineer.streamreactor.connect.hbase.writers
 
 import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
-import com.datamountaineer.streamreactor.connect.hbase.config.{HBaseConfig, HBaseConfigConstants, HBaseSettings}
+import com.datamountaineer.streamreactor.connect.hbase.config.{ConfigurationBuilder, HBaseConfig, HBaseConfigConstants, HBaseSettings}
 import com.datamountaineer.streamreactor.connect.hbase.{FieldsValuesExtractor, HbaseHelper, HbaseTableHelper, StructFieldsRowKeyBuilderBytes}
+import org.apache.hadoop.hbase.client.Connection
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.RetriableException
@@ -87,8 +88,9 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
 
       val config = HBaseConfig(props)
       val settings = HBaseSettings(config)
+      val hbaseConfig = ConfigurationBuilder.buildHBaseConfig(settings)
 
-      val writer = new HbaseWriter(settings)
+      val writer = new HbaseWriter(settings, hbaseConfig)
 
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)
@@ -108,7 +110,7 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
       when(fieldsExtractor.get(struct2)).thenReturn(Seq("firstName" -> "Mara".fromString(), "age" -> 22.fromInt(), "threshold" -> 12.4.fromDouble()))
 
       HbaseHelper.autoclose(HbaseReaderHelper.createConnection) { connection =>
-        implicit val conn = connection
+        implicit val conn: Connection = connection
         try {
           HbaseTableHelper.createTable(tableName, columnFamily)
           writer.write(Seq(sinkRecord1, sinkRecord2))
@@ -154,7 +156,8 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
 
       val config = HBaseConfig(props)
       val settings = HBaseSettings(config)
-      val writer = new HbaseWriter(settings)
+      val hbaseConfig = ConfigurationBuilder.buildHBaseConfig(settings)
+      val writer = new HbaseWriter(settings, hbaseConfig)
 
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)
@@ -171,7 +174,7 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
       when(fieldsExtractor.get(struct2)).thenReturn(Seq("firstName" -> "Mara".fromString(), "age" -> 22.fromInt(), "threshold" -> 12.4.fromDouble()))
 
       HbaseHelper.autoclose(HbaseReaderHelper.createConnection) { connection =>
-        implicit val conn = connection
+        implicit val conn: Connection = connection
         try {
           HbaseTableHelper.createTable(tableName, columnFamily)
           writer.write(Seq(sinkRecord1, sinkRecord2))
@@ -219,7 +222,8 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
 
       val config = HBaseConfig(props)
       val settings = HBaseSettings(config)
-      val writer = new HbaseWriter(settings)
+      val hbaseConfig = ConfigurationBuilder.buildHBaseConfig(settings)
+      val writer = new HbaseWriter(settings, hbaseConfig)
 
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)
@@ -239,7 +243,7 @@ class HbaseWriterTest extends WordSpec with Matchers with MockitoSugar with Befo
       when(fieldsExtractor.get(struct2)).thenReturn(Seq("firstName" -> "Mara".fromString(), "age" -> 22.fromInt(), "threshold" -> 12.4.fromDouble()))
 
       HbaseHelper.autoclose(HbaseReaderHelper.createConnection) { connection =>
-        implicit val conn = connection
+        implicit val conn: Connection = connection
         try {
           //HbaseTableHelper.createTable(tableName, columnFamily)
 

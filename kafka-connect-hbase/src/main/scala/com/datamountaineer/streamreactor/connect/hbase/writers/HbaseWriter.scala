@@ -22,17 +22,18 @@ import com.datamountaineer.streamreactor.connect.hbase.config.HBaseSettings
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.sink.DbWriter
 import com.typesafe.scalalogging.slf4j.StrictLogging
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.client.{Connection, ConnectionFactory, Put}
 import org.apache.hadoop.hbase.util.Bytes
-import org.apache.hadoop.hbase.{HBaseConfiguration, TableName}
+import org.apache.hadoop.hbase.TableName
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.collection.JavaConversions._
 import scala.util.Try
 
-class HbaseWriter(settings: HBaseSettings
-                 ) extends DbWriter with StrictLogging with ConverterUtil with ErrorHandler {
+class HbaseWriter(settings: HBaseSettings, hbaseConfig: Configuration) extends DbWriter
+  with StrictLogging with ConverterUtil with ErrorHandler {
 
 
   ValidateStringParameterFn(settings.columnFamilyMap, "columnFamily")
@@ -44,7 +45,7 @@ class HbaseWriter(settings: HBaseSettings
   initialize(settings.maxRetries, settings.errorPolicy)
 
   private var columnsBytesMap = Map.empty[String, Array[Byte]]
-  private var connection = ConnectionFactory.createConnection(HBaseConfiguration.create())
+  private var connection = createConnection()
   private val tables = routeMapping.map(rm => (rm.getSource, connection.getTable(TableName.valueOf(rm.getTarget)))).toMap
   private val rowKeyMap = settings.rowKeyModeMap
 
@@ -55,7 +56,7 @@ class HbaseWriter(settings: HBaseSettings
       logger.debug(s"Received ${records.size} records.")
 
       if (connection.isClosed) {
-        val t = Try(ConnectionFactory.createConnection(HBaseConfiguration.create()))
+        val t = Try(createConnection())
         val dt = handleTry(t)
         connection = dt.get
       }
@@ -63,6 +64,10 @@ class HbaseWriter(settings: HBaseSettings
       val grouped = records.groupBy(_.topic())
       insert(grouped)
     }
+  }
+
+  def createConnection(): Connection = {
+    ConnectionFactory.createConnection(hbaseConfig)
   }
 
   /**
