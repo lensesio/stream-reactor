@@ -18,7 +18,6 @@ package com.datamountaineer.streamreactor.connect.hbase.config
 
 import com.datamountaineer.streamreactor.connect.hbase.{GenericRowKeyBuilderBytes, StructFieldsRowKeyBuilderBytes}
 import org.apache.kafka.common.config.ConfigException
-
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

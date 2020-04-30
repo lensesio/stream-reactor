@@ -20,13 +20,13 @@ import java.io.{File, FileNotFoundException}
 import java.net.URI
 import java.util.{Properties, UUID}
 
-import javax.cache.{CacheManager, Caching}
 import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastConnectionConfig, HazelCastSocketConfig}
 import com.hazelcast.cache.HazelcastCachingProvider
 import com.hazelcast.client.HazelcastClient
 import com.hazelcast.client.config.{ClientConfig, ClientNetworkConfig, SocketOptions}
 import com.hazelcast.config.{GroupConfig, SSLConfig}
 import com.hazelcast.core.HazelcastInstance
+import javax.cache.{CacheManager, Caching}
 
 import scala.collection.JavaConverters._
 

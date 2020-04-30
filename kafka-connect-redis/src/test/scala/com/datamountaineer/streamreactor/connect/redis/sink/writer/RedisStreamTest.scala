@@ -17,7 +17,6 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
  */
 
 import java.util
-import java.util.AbstractMap.SimpleImmutableEntry
 
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -27,7 +26,6 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import redis.clients.jedis.{Jedis, StreamEntryID}
-import org.mockito.ArgumentMatchers.{any, eq => mockEq}
 
 import scala.collection.JavaConverters._
 

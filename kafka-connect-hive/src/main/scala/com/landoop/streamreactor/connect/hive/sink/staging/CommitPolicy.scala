@@ -1,8 +1,7 @@
 package com.landoop.streamreactor.connect.hive.sink.staging
 
 import com.landoop.streamreactor.connect.hive.TopicPartitionOffset
-import org.apache.hadoop.fs.FileSystem
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.{FileSystem, Path}
 
 import scala.concurrent.duration.FiniteDuration
 

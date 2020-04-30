@@ -21,6 +21,7 @@ import com.datamountaineer.streamreactor.connect.errors.ThrowErrorPolicy
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
 import scala.collection.JavaConverters._
 
 class VoltSettingsTest extends AnyWordSpec with Matchers {

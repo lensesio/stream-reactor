@@ -17,28 +17,21 @@
 package com.datamountaineer.streamreactor.connect.jms.source
 
 import java.util
+import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
-import java.util.Collections
 import java.util.function.BiConsumer
 
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
-import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
+import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.source.readers.JMSReader
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
-import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.StrictLogging
 import javax.jms.Message
-import org.apache.kafka.connect.source.SourceRecord
-import org.apache.kafka.connect.source.SourceTask
+import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConverters._
-import scala.concurrent.duration._
-import scala.concurrent.duration.FiniteDuration
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
+import scala.concurrent.duration.{FiniteDuration, _}
+import scala.util.{Failure, Success, Try}
 
 /**
  * Created by andrew@datamountaineer.com on 10/03/2017.

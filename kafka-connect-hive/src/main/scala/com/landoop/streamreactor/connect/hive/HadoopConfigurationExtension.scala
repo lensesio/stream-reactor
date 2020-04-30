@@ -1,8 +1,6 @@
 package com.landoop.streamreactor.connect.hive
 
-import com.landoop.streamreactor.connect.hive.kerberos.Kerberos
-import com.landoop.streamreactor.connect.hive.kerberos.KeytabSettings
-import com.landoop.streamreactor.connect.hive.kerberos.UserPasswordSettings
+import com.landoop.streamreactor.connect.hive.kerberos.{Kerberos, KeytabSettings, UserPasswordSettings}
 import org.apache.hadoop.conf.Configuration
 
 object HadoopConfigurationExtension {

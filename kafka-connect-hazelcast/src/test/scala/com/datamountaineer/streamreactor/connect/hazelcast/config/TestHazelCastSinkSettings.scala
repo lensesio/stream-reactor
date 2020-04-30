@@ -17,10 +17,9 @@
 package com.datamountaineer.streamreactor.connect.hazelcast.config
 
 import com.datamountaineer.streamreactor.connect.errors.ThrowErrorPolicy
-import com.datamountaineer.streamreactor.connect.hazelcast.{HazelCastConnection, TestBase}
+import com.datamountaineer.streamreactor.connect.hazelcast.TestBase
 import com.hazelcast.config.{Config, GroupConfig}
 import com.hazelcast.core.{Hazelcast, HazelcastInstance}
-import org.apache.kafka.common.config.SslConfigs
 
 import scala.collection.JavaConverters._
 

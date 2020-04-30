@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.voltdb
 import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
+import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
 import com.datamountaineer.streamreactor.connect.voltdb.config.{VoltSettings, VoltSinkConfig, VoltSinkConfigConstants}
 import com.datamountaineer.streamreactor.connect.voltdb.writers.VoltDbWriter
 import com.typesafe.scalalogging.StrictLogging

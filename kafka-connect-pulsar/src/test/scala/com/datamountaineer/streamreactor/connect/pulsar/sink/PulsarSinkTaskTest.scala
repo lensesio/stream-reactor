@@ -5,10 +5,9 @@ import java.util
 import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarConfigConstants
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.SinkTaskContext
-import org.mockito.Mockito.when
+import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.mockito.MockitoSugar
 
 import scala.collection.JavaConverters._
 

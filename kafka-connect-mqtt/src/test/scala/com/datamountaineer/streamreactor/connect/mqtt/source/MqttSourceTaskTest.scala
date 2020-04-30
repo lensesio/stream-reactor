@@ -31,7 +31,6 @@ import io.moquette.server.Server
 import io.moquette.server.config.ClasspathConfig
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.source.SourceTaskContext
-
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers

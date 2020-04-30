@@ -19,12 +19,12 @@ package com.datamountaineer.streamreactor.connect.sink.converters
 import java.nio.ByteBuffer
 import java.util.UUID
 
-import javax.jms.BytesMessage
-import com.datamountaineer.streamreactor.connect.{TestBase, Using}
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.converters.AvroMessageConverter
 import com.datamountaineer.streamreactor.connect.sink.AvroDeserializer
+import com.datamountaineer.streamreactor.connect.{TestBase, Using}
 import io.confluent.connect.avro.AvroData
+import javax.jms.BytesMessage
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8

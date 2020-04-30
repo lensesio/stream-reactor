@@ -1,7 +1,5 @@
 package com.landoop.streamreactor.connect.hive
 
-import com.landoop.streamreactor.connect.hive.ConfigurationBuilder.getClass
-import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.parquet.column.ParquetProperties

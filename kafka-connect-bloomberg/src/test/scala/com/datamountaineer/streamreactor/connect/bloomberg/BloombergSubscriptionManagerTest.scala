@@ -18,7 +18,6 @@ package com.datamountaineer.streamreactor.connect.bloomberg
 
 import com.bloomberglp.blpapi.Event.EventType
 import com.bloomberglp.blpapi._
-
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

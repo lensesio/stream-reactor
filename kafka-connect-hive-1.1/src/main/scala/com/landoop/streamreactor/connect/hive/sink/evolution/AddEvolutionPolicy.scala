@@ -1,8 +1,6 @@
 package com.landoop.streamreactor.connect.hive.sink.evolution
 
 import com.landoop.streamreactor.connect.hive.{DatabaseName, HiveSchemas, TableName}
-import com.landoop.streamreactor.connect.hive.ConfigurationBuilder.getClass
-import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 import org.apache.kafka.connect.data.Schema
 

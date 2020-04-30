@@ -20,8 +20,9 @@ import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
-import java.util.{Calendar, Collections, Date}
+import java.util.{Collections, Date}
 
+import com.datamountaineer.kcql.FormatType
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSourceSetting, TimestampType}
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraResultSetWrapper.resultSetFutureToScala
 import com.datamountaineer.streamreactor.connect.offsets.OffsetHandler
@@ -30,14 +31,13 @@ import com.datastax.driver.core.utils.UUIDs
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.source.{SourceRecord, SourceTaskContext}
+import org.json4s.DefaultFormats
+import org.json4s.native.Json
 
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
-import com.datamountaineer.kcql.FormatType
-import org.json4s.native.Json
-import org.json4s.DefaultFormats
 
 /**
   * Created by andrew@datamountaineer.com on 20/04/16.

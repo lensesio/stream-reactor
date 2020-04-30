@@ -1,7 +1,6 @@
 package com.landoop.streamreactor.connect.hive
 
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.{Executors, TimeUnit}
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.StrictLogging

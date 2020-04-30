@@ -23,8 +23,8 @@ import java.security.{KeyStore, PrivateKey}
 
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSetting}
 import com.typesafe.scalalogging.StrictLogging
-import org.eclipse.californium.core.coap.CoAP
 import org.eclipse.californium.core.CoapClient
+import org.eclipse.californium.core.coap.CoAP
 import org.eclipse.californium.core.network.CoapEndpoint
 import org.eclipse.californium.core.network.config.NetworkConfig
 import org.eclipse.californium.scandium.DTLSConnector

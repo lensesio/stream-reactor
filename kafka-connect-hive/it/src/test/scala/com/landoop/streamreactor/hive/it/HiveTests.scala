@@ -2,7 +2,7 @@ package com.landoop.streamreactor.hive.it
 
 import java.sql.{Connection, DriverManager}
 import java.time.Duration
-import java.util.{Collections, Properties}
+import java.util.Properties
 import java.util.concurrent.TimeUnit
 
 import org.apache.hadoop.conf.Configuration

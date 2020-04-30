@@ -3,10 +3,7 @@ package com.landoop.streamreactor.connect.hive.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
-import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfigDef
-import com.landoop.streamreactor.connect.hive.ConfigurationBuilder.getClass
 import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfigDef
-import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector

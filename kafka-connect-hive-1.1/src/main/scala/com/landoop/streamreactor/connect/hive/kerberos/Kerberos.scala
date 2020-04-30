@@ -1,7 +1,6 @@
 package com.landoop.streamreactor.connect.hive.kerberos
 
-import org.apache.kafka.common.config.AbstractConfig
-import org.apache.kafka.common.config.ConfigException
+import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 
 import scala.util.Try
 

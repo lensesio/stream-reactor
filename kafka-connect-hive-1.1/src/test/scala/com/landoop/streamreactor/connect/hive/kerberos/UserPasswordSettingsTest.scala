@@ -1,9 +1,6 @@
 package com.landoop.streamreactor.connect.hive.kerberos
 
-import java.io.File
-
-import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfigDefBuilder
-import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
+import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfigDefBuilder, SinkConfigSettings}
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers

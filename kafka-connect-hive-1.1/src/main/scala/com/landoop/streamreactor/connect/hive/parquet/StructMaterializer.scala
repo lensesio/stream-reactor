@@ -1,6 +1,5 @@
 package com.landoop.streamreactor.connect.hive.parquet
 
-import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.parquet.io.api.{GroupConverter, RecordMaterializer}
 

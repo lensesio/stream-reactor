@@ -19,12 +19,11 @@ package com.datamountaineer.streamreactor.connect.hbase
 import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
+import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfigExtension._
 import com.datamountaineer.streamreactor.connect.hbase.config.{ConfigurationBuilder, HBaseConfig, HBaseConfigConstants, HBaseSettings}
 import com.datamountaineer.streamreactor.connect.hbase.kerberos.KerberosLogin
 import com.datamountaineer.streamreactor.connect.hbase.writers.{HbaseWriter, WriterFactoryFn}
 import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
-import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfigExtension._
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition

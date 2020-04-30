@@ -3,20 +3,15 @@ package com.landoop.streamreactor.connect.hive.sink
 import com.landoop.streamreactor.connect.hive
 import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.formats.HiveWriter
-import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfig
-import com.landoop.streamreactor.connect.hive.sink.config.TableOptions
+import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfig, TableOptions}
 import com.landoop.streamreactor.connect.hive.sink.partitioning.CachedPartitionHandler
-import com.landoop.streamreactor.connect.hive.sink.staging.CommitContext
-import com.landoop.streamreactor.connect.hive.sink.staging.CommitPolicy
-import com.landoop.streamreactor.connect.hive.sink.staging.StageManager
-import org.apache.hadoop.fs.FileSystem
-import org.apache.hadoop.fs.Path
+import com.landoop.streamreactor.connect.hive.sink.staging.{CommitContext, CommitPolicy, StageManager}
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.ConnectException
 
-import scala.util.Failure
-import scala.util.Success
+import scala.util.{Failure, Success}
 
 /**
  * A [[HiveSink]] handles writing records to a single hive table.

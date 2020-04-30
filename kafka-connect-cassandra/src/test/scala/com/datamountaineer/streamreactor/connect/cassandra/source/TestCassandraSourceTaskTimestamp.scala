@@ -19,17 +19,16 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-import org.apache.kafka.common.config.ConfigException
-import org.mockito.MockitoSugar
-
-import scala.collection.JavaConverters._
 import com.datastax.driver.core.Session
+import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
+import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data.Schema
+import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
+
+import scala.collection.JavaConverters._
 
 @DoNotDiscover
 class TestCassandraSourceTaskTimestamp extends AnyWordSpec

@@ -2,16 +2,16 @@ package com.datamountaineer.streamreactor.connect.source
 
 import java.util.UUID
 
-import javax.naming.NameNotFoundException
-import javax.jms.Session
 import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
 import com.datamountaineer.streamreactor.connect.jms.config.{DestinationSelector, JMSConfig, JMSSettings}
+import javax.jms.Session
+import javax.naming.NameNotFoundException
 import org.apache.activemq.ActiveMQConnection
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
-import scala.collection.JavaConverters._
 
+import scala.collection.JavaConverters._
 import scala.util.Try
 
 class JMSSessionProviderTest extends TestBase with BeforeAndAfterAll with Eventually {

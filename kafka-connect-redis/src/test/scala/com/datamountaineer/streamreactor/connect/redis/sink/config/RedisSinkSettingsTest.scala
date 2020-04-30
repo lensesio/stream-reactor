@@ -21,6 +21,7 @@ import com.datamountaineer.streamreactor.connect.rowkeys.{StringGenericRowKeyBui
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
 import scala.collection.JavaConverters._
 
 class RedisSinkSettingsTest extends AnyWordSpec with Matchers with RedisMockSupport {

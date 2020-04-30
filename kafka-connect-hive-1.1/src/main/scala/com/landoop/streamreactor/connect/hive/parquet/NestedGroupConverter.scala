@@ -3,6 +3,7 @@ package com.landoop.streamreactor.connect.hive.parquet
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.{Field, Schema}
 import org.apache.parquet.io.api.{Converter, GroupConverter}
+
 import scala.collection.JavaConverters._
 
 class NestedGroupConverter(schema: Schema,

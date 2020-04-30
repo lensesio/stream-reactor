@@ -5,7 +5,6 @@ import java.time.Duration
 import java.util.Properties
 import java.util.concurrent.TimeUnit
 
-
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hive.conf.HiveConf

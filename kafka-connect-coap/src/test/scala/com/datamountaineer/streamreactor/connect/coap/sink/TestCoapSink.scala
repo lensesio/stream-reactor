@@ -21,8 +21,8 @@ import com.datamountaineer.streamreactor.connect.converters.source.SinkRecordToJ
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.eclipse.californium.core.CoapClient
 import org.mockito.MockitoSugar
-import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.BeforeAndAfter
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 

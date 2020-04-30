@@ -26,7 +26,6 @@ import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Success, Try}
 import scala.util.control.Breaks._
 
 /**

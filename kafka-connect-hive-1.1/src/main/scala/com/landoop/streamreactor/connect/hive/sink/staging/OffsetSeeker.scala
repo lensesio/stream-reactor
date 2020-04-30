@@ -1,8 +1,7 @@
 package com.landoop.streamreactor.connect.hive.sink.staging
 
 import com.landoop.streamreactor.connect.hive._
-import org.apache.hadoop.fs.FileSystem
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 
 import scala.util.control.NonFatal

@@ -1,13 +1,12 @@
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
-import com.datastax.driver.core._
-import java.util.UUID
-import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
-import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import scala.collection.JavaConverters._
-import java.util.Date
-import java.util.Map
 import java.text.SimpleDateFormat
+import java.util.{Date, Map, UUID}
+
+import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
+import com.datastax.driver.core._
+
+import scala.collection.JavaConverters._
 
 trait TestCassandraSourceUtil {
 

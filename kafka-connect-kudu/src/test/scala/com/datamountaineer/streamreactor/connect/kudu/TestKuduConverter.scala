@@ -22,7 +22,6 @@ import com.datamountaineer.kcql.{Bucketing, Kcql}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.avro.{Schema, SchemaBuilder}
 import org.apache.kudu.client.{KuduTable, Upsert}
-
 import org.mockito.MockitoSugar
 
 import scala.collection.JavaConverters._

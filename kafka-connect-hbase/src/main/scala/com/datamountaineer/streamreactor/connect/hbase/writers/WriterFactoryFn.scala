@@ -17,8 +17,8 @@
 package com.datamountaineer.streamreactor.connect.hbase.writers
 
 import com.datamountaineer.streamreactor.connect.hbase.config.HBaseSettings
-import org.apache.hadoop.conf.Configuration
 import com.typesafe.scalalogging.StrictLogging
+import org.apache.hadoop.conf.Configuration
 
 
 /**

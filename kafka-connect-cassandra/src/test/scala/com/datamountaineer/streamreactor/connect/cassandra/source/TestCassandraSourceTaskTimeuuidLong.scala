@@ -19,19 +19,18 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 import java.util.concurrent.LinkedBlockingQueue
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import com.datamountaineer.streamreactor.connect.cassandra.config.{ CassandraConfigSource, CassandraSettings }
+import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigSource, CassandraSettings}
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.datastax.driver.core.Session
 import com.fasterxml.jackson.databind.JsonNode
 import org.apache.kafka.connect.source.SourceRecord
 import org.mockito.MockitoSugar
+import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.DoNotDiscover
 
 import scala.collection.JavaConverters._
-import com.datastax.driver.core.Session
-import org.scalatest.BeforeAndAfterAll
 
 @DoNotDiscover
 class TestCassandraSourceTaskTimeuuidLong extends AnyWordSpec

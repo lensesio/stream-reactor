@@ -1,6 +1,6 @@
 package com.datamountaineer.streamreactor.connect.redis.sink
 
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
+import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisSinkSettings}
 import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSupport
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

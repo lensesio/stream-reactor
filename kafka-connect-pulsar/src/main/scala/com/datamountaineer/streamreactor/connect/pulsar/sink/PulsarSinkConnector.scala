@@ -27,7 +27,6 @@ import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
 import scala.collection.JavaConverters._
-import scala.collection.JavaConverters._
 
 class PulsarSinkConnector extends SinkConnector with StrictLogging {
   private val configDef = PulsarSinkConfig.config

@@ -19,18 +19,17 @@ package com.datamountaineer.streamreactor.connect.source
 import java.io.File
 import java.util.UUID
 
-import javax.jms.Session
 import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.source.JMSSourceTask
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
+import javax.jms.Session
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService
 import org.apache.activemq.broker.jmx.QueueViewMBean
 import org.apache.kafka.connect.source.SourceTaskContext
-import org.scalatest.concurrent.Eventually
-
-import org.scalatest.BeforeAndAfterAll
 import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.concurrent.Eventually
 
 import scala.collection.JavaConverters._
 import scala.reflect.io.Path

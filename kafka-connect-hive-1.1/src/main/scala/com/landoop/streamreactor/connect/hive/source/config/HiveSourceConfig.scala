@@ -3,10 +3,7 @@ package com.landoop.streamreactor.connect.hive.source.config
 import java.util.Collections
 
 import cats.data.NonEmptyList
-import com.landoop.streamreactor.connect.hive.DatabaseName
-import com.landoop.streamreactor.connect.hive.TableName
-import com.landoop.streamreactor.connect.hive.Topic
-import com.landoop.streamreactor.connect.hive.HadoopConfiguration
+import com.landoop.streamreactor.connect.hive.{DatabaseName, HadoopConfiguration, TableName, Topic}
 import com.landoop.streamreactor.connect.hive.kerberos.Kerberos
 
 import scala.collection.JavaConverters._

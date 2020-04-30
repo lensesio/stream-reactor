@@ -22,7 +22,6 @@ import java.nio.file.Paths
 import java.util
 import java.util.UUID
 
-import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.MsgKey
 import com.datamountaineer.streamreactor.connect.converters.source._
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}

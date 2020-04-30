@@ -19,8 +19,8 @@ package com.datamountaineer.streamreactor.connect.ftp.source
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.commons.net.ftp.{FTPClient, FTPFile}
 import org.mockito.MockitoSugar
-import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.BeforeAndAfter
+import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 /**

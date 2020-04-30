@@ -16,9 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
-import javax.jms.{Message, Session}
-
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
+import javax.jms.{Message, Session}
 import org.apache.kafka.connect.sink.SinkRecord
 
 

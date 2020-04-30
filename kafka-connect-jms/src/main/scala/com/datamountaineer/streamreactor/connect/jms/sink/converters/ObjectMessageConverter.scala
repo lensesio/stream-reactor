@@ -16,14 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
-import javax.jms.{ObjectMessage, Session}
-
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import javax.jms.{ObjectMessage, Session}
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConverters._
 import scala.collection.JavaConverters._
 
 class ObjectMessageConverter extends JMSMessageConverter with ConverterUtil {

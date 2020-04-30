@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigSink, CassandraSettings}
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
+import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition

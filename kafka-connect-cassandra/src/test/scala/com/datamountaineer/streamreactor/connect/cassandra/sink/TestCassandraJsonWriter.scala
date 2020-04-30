@@ -22,16 +22,16 @@ import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSink}
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import com.datastax.driver.core.{ConsistencyLevel, Session}
 import com.datastax.driver.core.utils.UUIDs
+import com.datastax.driver.core.{ConsistencyLevel, Session}
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Decimal, Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
 
 import scala.collection.JavaConverters._
 

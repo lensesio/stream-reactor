@@ -1,8 +1,6 @@
 package com.landoop.streamreactor.connect.hive.parquet
 
 import com.landoop.streamreactor.connect.hive._
-import com.landoop.streamreactor.connect.hive.ConfigurationBuilder.getClass
-import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.parquet.hadoop.api.WriteSupport

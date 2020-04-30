@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.coap.connection
 
 import com.datamountaineer.streamreactor.connect.coap.configs.CoapSetting
 import com.typesafe.scalalogging.StrictLogging
- import org.eclipse.californium.core.{CoapClient, CoapResponse}
+import org.eclipse.californium.core.{CoapClient, CoapResponse}
 
 
 /**

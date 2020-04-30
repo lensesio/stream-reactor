@@ -4,19 +4,14 @@ import java.util
 
 import cats.data.NonEmptyList
 import com.landoop.streamreactor.connect.hive._
-import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfig
-import com.landoop.streamreactor.connect.hive.sink.config.TableOptions
 import com.landoop.streamreactor.connect.hive.sink.HiveSink
-import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfig
-import com.landoop.streamreactor.connect.hive.source.config.ProjectionField
-import com.landoop.streamreactor.connect.hive.source.config.SourceTableOptions
-import com.landoop.streamreactor.connect.hive.source.offset.HiveSourceOffsetStorageReader
-import com.landoop.streamreactor.connect.hive.source.offset.MockOffsetStorageReader
+import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfig, TableOptions}
+import com.landoop.streamreactor.connect.hive.source.config.{HiveSourceConfig, ProjectionField, SourceTableOptions}
+import com.landoop.streamreactor.connect.hive.source.offset.{HiveSourceOffsetStorageReader, MockOffsetStorageReader}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.metastore.api.Database
-import org.apache.kafka.connect.data.SchemaBuilder
-import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

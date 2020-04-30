@@ -29,8 +29,7 @@ import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.bson.Document
 
 import scala.collection.JavaConverters._
-import scala.util.Failure
-import scala.util.Try
+import scala.util.{Failure, Try}
 
 /**
   * <h1>MongoJsonWriter</h1>

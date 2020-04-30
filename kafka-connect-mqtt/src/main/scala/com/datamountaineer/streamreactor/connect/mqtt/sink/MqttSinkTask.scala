@@ -21,7 +21,7 @@ import java.util
 import com.datamountaineer.streamreactor.connect.converters.sink.Converter
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSinkConfig, MqttSinkSettings}
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
+import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition

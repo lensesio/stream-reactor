@@ -16,10 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
-import javax.jms.{MapMessage, Session}
-
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import javax.jms.{MapMessage, Session}
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 

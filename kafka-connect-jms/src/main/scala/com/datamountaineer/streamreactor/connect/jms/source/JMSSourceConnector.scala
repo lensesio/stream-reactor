@@ -18,8 +18,7 @@ package com.datamountaineer.streamreactor.connect.jms.source
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
+import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants}
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
@@ -27,7 +26,6 @@ import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 
-import scala.collection.JavaConverters._
 import scala.collection.JavaConverters._
 
 /**

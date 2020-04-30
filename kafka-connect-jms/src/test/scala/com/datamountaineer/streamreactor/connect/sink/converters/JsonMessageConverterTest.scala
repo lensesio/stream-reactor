@@ -18,18 +18,18 @@ package com.datamountaineer.streamreactor.connect.sink.converters
 
 import java.util.UUID
 
-import javax.jms.TextMessage
-import com.datamountaineer.streamreactor.connect.{TestBase, Using}
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.converters.JsonMessageConverter
+import com.datamountaineer.streamreactor.connect.{TestBase, Using}
+import javax.jms.TextMessage
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.reflect.io.Path
 import scala.collection.JavaConverters._
+import scala.reflect.io.Path
 
 
 class JsonMessageConverterTest extends AnyWordSpec with Matchers with Using with TestBase with BeforeAndAfterAll {

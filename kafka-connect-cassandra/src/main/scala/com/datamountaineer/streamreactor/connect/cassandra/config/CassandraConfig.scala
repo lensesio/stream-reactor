@@ -18,11 +18,10 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import java.util
 
-import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.config.base.traits._
 import com.datastax.driver.core.ConsistencyLevel
+import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
-import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 /**
   * Holds the base configuration.

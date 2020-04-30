@@ -2,8 +2,7 @@ package com.landoop.streamreactor.connect.hive
 
 import java.io.File
 
-import org.apache.kafka.common.config.AbstractConfig
-import org.apache.kafka.common.config.ConfigException
+import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 
 case class HadoopConfiguration(hdfsDir: Option[String], hiveDir: Option[String])
 

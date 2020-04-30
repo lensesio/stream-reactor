@@ -22,13 +22,12 @@ import com.datamountaineer.kcql.{Bucketing, Kcql}
 import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduSettings}
 import com.datamountaineer.streamreactor.connect.kudu.sink.KuduWriter
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kudu.client.SessionConfiguration.FlushMode
 import org.apache.kudu.client._
-import org.mockito.ArgumentMatchers .{any, eq => mockEq}
-
+import org.mockito.ArgumentMatchers.{any, eq => mockEq}
 import org.mockito.MockitoSugar
 
 import scala.collection.JavaConverters._

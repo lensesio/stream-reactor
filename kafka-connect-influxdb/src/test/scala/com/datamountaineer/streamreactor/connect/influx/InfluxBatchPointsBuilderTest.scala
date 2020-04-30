@@ -29,6 +29,7 @@ import org.influxdb.InfluxDB.ConsistencyLevel
 import org.influxdb.dto.{BatchPoints, Point}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
 import scala.collection.JavaConverters._
 import scala.util.Try
 

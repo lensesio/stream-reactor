@@ -17,9 +17,10 @@
 package com.datamountaineer.streamreactor.connect.cassandra
 
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSink}
+import org.scalatest.DoNotDiscover
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.DoNotDiscover
+
 import scala.collection.JavaConverters._
 
 /**

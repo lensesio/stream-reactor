@@ -26,9 +26,8 @@ import com.datamountaineer.streamreactor.connect.schemas.SchemaRegistry
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.avro.{JsonProperties, Schema}
 import org.apache.kafka.connect.errors.ConnectException
-import org.apache.kudu.client.{KuduClient, KuduTable}
 import org.apache.kudu.ColumnSchema
-import org.apache.kudu.client._
+import org.apache.kudu.client.{KuduClient, KuduTable, _}
 import org.json4s.JsonAST.JValue
 
 import scala.collection.JavaConverters._

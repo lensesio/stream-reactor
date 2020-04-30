@@ -16,8 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.sink
 
-import java.util.concurrent.TimeUnit
-
 import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastConnectionConfig, HazelCastSinkConfig, HazelCastSinkConfigConstants, HazelCastSinkSettings}
 import com.datamountaineer.streamreactor.connect.hazelcast.writers.HazelCastWriter
 import com.datamountaineer.streamreactor.connect.hazelcast.{HazelCastConnection, MessageListenerImplAvro, MessageListenerImplJson, TestBase}

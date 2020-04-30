@@ -18,12 +18,10 @@ package com.datamountaineer.streamreactor.connect.elastic6
 
 import java.util.UUID
 
-import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticSettings
-import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticConfigConstants}
-import com.sksamuel.elastic4s.http.ElasticDsl._
+import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
 import com.sksamuel.elastic4s.embedded.LocalNode
+import com.sksamuel.elastic4s.http.ElasticDsl._
 import org.apache.kafka.connect.sink.SinkTaskContext
-
 import org.mockito.MockitoSugar
 
 import scala.reflect.io.File

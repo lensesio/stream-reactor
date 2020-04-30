@@ -21,12 +21,11 @@ import java.util.concurrent.LinkedBlockingQueue
 
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSettings, CoapSourceConfig}
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
+import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Success, Try}
 
 /**
   * Created by andrew@datamountaineer.com on 27/12/2016. 

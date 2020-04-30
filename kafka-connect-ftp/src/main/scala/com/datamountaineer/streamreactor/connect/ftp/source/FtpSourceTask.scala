@@ -26,7 +26,6 @@ import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import org.apache.kafka.connect.storage.OffsetStorageReader
 
 import scala.collection.JavaConverters._
-import scala.collection.immutable
 import scala.collection.immutable.Stream.Empty
 import scala.util.{Failure, Success}
 

@@ -1,7 +1,7 @@
 package com.datamountaineer.kcql
 
 import cats.data.NonEmptyList
-import com.landoop.streamreactor.connect.hive.sink.mapper.{MetastoreSchemaAlignMapper, ProjectionMapper}
+import com.landoop.streamreactor.connect.hive.sink.mapper.ProjectionMapper
 import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers

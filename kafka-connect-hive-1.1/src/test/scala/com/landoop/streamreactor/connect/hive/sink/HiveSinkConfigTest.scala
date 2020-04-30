@@ -1,17 +1,11 @@
 package com.landoop.streamreactor.connect.hive.sink
 
-import com.landoop.streamreactor.connect.hive.PartitionField
-import com.landoop.streamreactor.connect.hive.TableName
-import com.landoop.streamreactor.connect.hive.Topic
+import com.landoop.streamreactor.connect.hive.{PartitionField, TableName, Topic}
 import com.landoop.streamreactor.connect.hive.formats.ParquetHiveFormat
 import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfig
 import com.landoop.streamreactor.connect.hive.sink.evolution.AddEvolutionPolicy
 import com.landoop.streamreactor.connect.hive.sink.partitioning.DynamicPartitionHandler
 import com.landoop.streamreactor.connect.hive.sink.staging.DefaultCommitPolicy
-import com.landoop.streamreactor.connect.hive.TopicPartition
-import org.apache.kafka.connect.data.SchemaBuilder
-import org.apache.kafka.connect.data.Struct
-import org.apache.kafka.connect.sink.SinkRecord
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

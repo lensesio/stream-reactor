@@ -25,7 +25,6 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
-import scala.collection.JavaConverters._
 
 class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
 

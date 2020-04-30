@@ -6,12 +6,12 @@ import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
 import com.datastax.driver.core.Session
 import org.apache.kafka.common.record.TimestampType
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{BeforeAndAfterAll, DoNotDiscover}
 
 import scala.collection.JavaConverters._
 

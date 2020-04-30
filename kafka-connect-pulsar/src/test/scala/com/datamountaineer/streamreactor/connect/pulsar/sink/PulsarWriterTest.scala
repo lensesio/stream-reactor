@@ -5,11 +5,10 @@ import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigCons
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.pulsar.client.api.{Message, MessageId, Producer, PulsarClient}
+import org.mockito.ArgumentMatchers.any
+import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-
-import org.mockito.MockitoSugar
-import org.mockito.ArgumentMatchers .{any, eq => mockEq}
 
 import scala.collection.JavaConverters._
 

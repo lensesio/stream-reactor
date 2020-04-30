@@ -18,15 +18,14 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import com.datamountaineer.kcql.{Field, Kcql}
 import com.datamountaineer.streamreactor.connect.cassandra.config.DefaultValueServeStrategy.DefaultValueServeStrategy
-import com.datamountaineer.streamreactor.connect.cassandra.config.LoadBalancingPolicy.LoadBalancingPolicy
 import com.datamountaineer.streamreactor.connect.cassandra.config.TimestampType.TimestampType
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datastax.driver.core.ConsistencyLevel
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 
-import scala.util.{Success, Try}
 import scala.collection.JavaConverters._
+import scala.util.{Success, Try}
 
 /**
   * Created by andrew@datamountaineer.com on 22/04/16. 

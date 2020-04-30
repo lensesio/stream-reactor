@@ -23,7 +23,6 @@ import com.datamountaineer.streamreactor.connect.pulsar.ProducerConfigFactory
 import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSinkSettings
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
-import org.apache.pulsar.client.api.ProducerConfiguration.MessageRoutingMode
 import org.apache.pulsar.client.api._
 import org.apache.pulsar.client.impl.auth.AuthenticationTls
 

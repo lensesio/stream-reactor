@@ -1,9 +1,7 @@
 package com.landoop.streamreactor.connect.hive.sink
 
 import com.landoop.json.sql.JacksonJson
-import com.landoop.streamreactor.connect.hive.JacksonSupport
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.data.{Schema, Struct}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 

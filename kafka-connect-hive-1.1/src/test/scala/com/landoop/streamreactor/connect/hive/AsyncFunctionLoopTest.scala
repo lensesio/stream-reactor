@@ -1,9 +1,10 @@
 package com.landoop.streamreactor.connect.hive
 
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.{CountDownLatch, TimeUnit}
+
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+
 import scala.concurrent.duration._
 
 class AsyncFunctionLoopTest extends AnyFunSuite with Matchers {

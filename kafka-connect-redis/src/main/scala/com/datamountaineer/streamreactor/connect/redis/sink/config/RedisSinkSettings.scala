@@ -17,7 +17,6 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.config
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.config.SSLConfig
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.rowkeys._
 import org.apache.kafka.common.config.{ConfigException, SslConfigs}

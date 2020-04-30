@@ -24,7 +24,6 @@ import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicyEnum, RetryE
 import com.datastax.driver.core.ConsistencyLevel
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkTaskContext
-
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

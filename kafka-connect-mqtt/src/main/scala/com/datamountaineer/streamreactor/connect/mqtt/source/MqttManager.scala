@@ -17,9 +17,8 @@
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import java.util
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.TimeUnit
 import java.util.Base64
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.converters.source.Converter

@@ -23,20 +23,18 @@ import java.util.concurrent.LinkedBlockingQueue
 
 import com.datamountaineer.streamreactor.connect.converters.sink.Converter
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSinkConfig, MqttSinkSettings}
-import org.eclipse.paho.client.mqttv3.MqttClient
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions
-import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence
 import com.typesafe.scalalogging.StrictLogging
 import io.moquette.server.Server
 import io.moquette.server.config.ClasspathConfig
 import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericRecord}
 import org.apache.avro.io.EncoderFactory
-import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttMessage}
+import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence
+import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttClient, MqttConnectOptions, MqttMessage}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -209,7 +207,6 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
             case Success(value) => value.asInstanceOf[Converter]
             case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
           }
-          import scala.collection.JavaConverters._
           converter.initialize(props)
           topic -> converter
         }

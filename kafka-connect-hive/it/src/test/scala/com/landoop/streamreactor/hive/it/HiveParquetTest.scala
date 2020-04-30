@@ -3,8 +3,8 @@ package com.landoop.streamreactor.hive.it
 import java.util.concurrent.TimeUnit
 
 import org.scalatest.concurrent.Eventually
-import org.scalatest.time.{Millis, Span}
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.time.{Millis, Span}
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.io.Source

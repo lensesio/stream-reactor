@@ -31,7 +31,6 @@ import org.bson.Document
 import org.json4s.JValue
 import org.json4s.JsonAST._
 
-import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.util.Try
 

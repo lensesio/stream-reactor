@@ -23,7 +23,6 @@ import com.datamountaineer.streamreactor.connect.rethink.ReThinkConnection
 import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkConfigConstants, ReThinkSinkConfig, ReThinkSinkSettings}
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.rethinkdb.RethinkDB
-import com.rethinkdb.net.Connection
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task

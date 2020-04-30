@@ -16,12 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.mqtt.connection
 
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSinkSettings
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
+import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttSinkSettings, MqttSourceSettings}
 import com.datamountaineer.streamreactor.connect.mqtt.source.MqttSSLSocketFactory
 import com.typesafe.scalalogging.StrictLogging
-import org.eclipse.paho.client.mqttv3.MqttClient
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions
+import org.eclipse.paho.client.mqttv3.{MqttClient, MqttConnectOptions}
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 object MqttClientConnectionFn extends StrictLogging {

@@ -1,7 +1,7 @@
 package com.datamountaineer.streamreactor.connect.hbase.kerberos.utils
 
-import java.util.concurrent.{Executors, TimeUnit}
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.{Executors, TimeUnit}
 
 import com.typesafe.scalalogging.StrictLogging
 

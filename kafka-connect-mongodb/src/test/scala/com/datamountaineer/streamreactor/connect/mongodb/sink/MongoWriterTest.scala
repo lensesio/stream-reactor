@@ -32,14 +32,14 @@ import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.bson.Document
-
-import scala.collection.JavaConverters._
-import scala.collection.immutable.{ListMap, ListSet}
 import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
+import scala.collection.JavaConverters._
+import scala.collection.immutable.{ListMap, ListSet}
 
 class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
 

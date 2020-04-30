@@ -19,17 +19,13 @@ package com.datamountaineer.streamreactor.connect.jms.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
-import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
+import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.writer.JMSWriter
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
-import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
+import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.connect.sink.SinkRecord
-import org.apache.kafka.connect.sink.SinkTask
+import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConverters._
 

@@ -4,8 +4,8 @@ import java.util.concurrent.TimeUnit
 
 import org.apache.hadoop.fs.Path
 import org.scalatest.concurrent.Eventually
-import org.scalatest.time.{Millis, Span}
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.time.{Millis, Span}
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.io.Source

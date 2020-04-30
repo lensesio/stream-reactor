@@ -17,12 +17,12 @@
 package com.datamountaineer.streamreactor.connect.jms
 
 import java.util.Properties
-import javax.jms._
-import javax.naming.InitialContext
 
 import com.datamountaineer.streamreactor.connect.jms.config.DestinationSelector.DestinationSelector
 import com.datamountaineer.streamreactor.connect.jms.config._
 import com.typesafe.scalalogging.StrictLogging
+import javax.jms._
+import javax.naming.InitialContext
 import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.errors.ConnectException
 

@@ -1,12 +1,10 @@
 package com.landoop.streamreactor.connect.hive.formats
 
-import com.landoop.streamreactor.connect.hive.parquet.ParquetSinkConfig
 import com.landoop.streamreactor.connect.hive.Serde
-import org.apache.hadoop.fs.FileSystem
-import org.apache.hadoop.fs.Path
+import com.landoop.streamreactor.connect.hive.parquet.ParquetSinkConfig
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.fs.permission.FsPermission
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.parquet.hadoop.ParquetWriter
 
 import scala.util.Try

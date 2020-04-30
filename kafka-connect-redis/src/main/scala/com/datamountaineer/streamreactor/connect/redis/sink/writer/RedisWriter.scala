@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
 import java.io.{File, FileNotFoundException}
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfigConstants, RedisSinkSettings}
+import com.datamountaineer.streamreactor.connect.redis.sink.config.RedisSinkSettings
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.sink._
 import com.typesafe.scalalogging.StrictLogging

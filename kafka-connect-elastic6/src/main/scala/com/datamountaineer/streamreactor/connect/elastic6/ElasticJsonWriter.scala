@@ -26,8 +26,8 @@ import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.fasterxml.jackson.databind.JsonNode
 import com.landoop.sql.Field
-import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.Indexable
+import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 

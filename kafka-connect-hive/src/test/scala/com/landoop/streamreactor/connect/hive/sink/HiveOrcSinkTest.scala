@@ -4,14 +4,12 @@ import java.util
 
 import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.formats.OrcHiveFormat
-import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfig
-import com.landoop.streamreactor.connect.hive.sink.config.TableOptions
+import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfig, TableOptions}
 import com.landoop.streamreactor.connect.hive.sink.evolution.AddEvolutionPolicy
 import com.landoop.streamreactor.connect.hive.sink.partitioning.StrictPartitionHandler
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.metastore.api.Database
-import org.apache.kafka.connect.data.SchemaBuilder
-import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

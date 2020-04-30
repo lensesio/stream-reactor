@@ -4,8 +4,7 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.common.config.ConfigDef.Importance
-import org.apache.kafka.common.config.ConfigDef.Type
+import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
 object HiveSinkConfigDef {
 

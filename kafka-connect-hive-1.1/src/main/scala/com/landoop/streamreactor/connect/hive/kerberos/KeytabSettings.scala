@@ -1,8 +1,7 @@
 package com.landoop.streamreactor.connect.hive.kerberos
 
 import com.landoop.streamreactor.connect.hive.utils.FileUtils
-import org.apache.kafka.common.config.AbstractConfig
-import org.apache.kafka.common.config.ConfigException
+import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 
 case class KeytabSettings(principal: String,
                           keytab: String,

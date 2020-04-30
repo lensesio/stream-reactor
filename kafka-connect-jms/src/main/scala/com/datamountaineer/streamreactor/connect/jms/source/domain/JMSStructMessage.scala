@@ -17,9 +17,9 @@
 package com.datamountaineer.streamreactor.connect.jms.source.domain
 
 import java.util
-import javax.jms.{BytesMessage, MapMessage, Message, TextMessage, ObjectMessage}
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import javax.jms._
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.source.SourceRecord
 

@@ -17,20 +17,19 @@
 package com.datamountaineer.streamreactor.connect.mqtt.sink
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.converters.{FieldConverter, Transform}
 import com.datamountaineer.streamreactor.connect.converters.sink.Converter
+import com.datamountaineer.streamreactor.connect.converters.{FieldConverter, Transform}
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSinkSettings
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 import org.eclipse.paho.client.mqttv3.{MqttClient, MqttMessage}
+import org.json4s.DefaultFormats
+import org.json4s.native.JsonMethods._
 
 import scala.collection.JavaConverters._
 import scala.util.Try
-
-import org.json4s.native.JsonMethods._
-import org.json4s.DefaultFormats
 
 /**
   * Created by andrew@datamountaineer.com on 27/08/2017.

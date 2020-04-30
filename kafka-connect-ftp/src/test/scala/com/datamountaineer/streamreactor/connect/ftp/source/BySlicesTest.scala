@@ -1,9 +1,9 @@
 package com.datamountaineer.streamreactor.connect.ftp.source
 
 
-import com.typesafe.scalalogging.StrictLogging
 import java.util
 
+import com.typesafe.scalalogging.StrictLogging
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers

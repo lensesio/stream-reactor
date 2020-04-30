@@ -23,9 +23,9 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable

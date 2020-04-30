@@ -16,11 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.jms.config
 
-import com.datamountaineer.kcql.FormatType
-import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.kcql.{FormatType, Kcql}
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
-import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
-import com.datamountaineer.streamreactor.connect.errors.ThrowErrorPolicy
+import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.jms.config.DestinationSelector.DestinationSelector
 import com.google.common.base.Splitter
 import com.typesafe.scalalogging.StrictLogging
@@ -28,9 +26,7 @@ import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
 
 import scala.collection.JavaConverters._
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 case class JMSSetting(source: String,
                       target: String,

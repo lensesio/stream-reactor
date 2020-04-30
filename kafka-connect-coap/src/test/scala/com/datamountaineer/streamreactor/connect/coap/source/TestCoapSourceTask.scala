@@ -23,10 +23,9 @@ import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.eclipse.californium.core.{CaliforniumLogger, CoapClient}
 import org.eclipse.californium.scandium.ScandiumLogger
-import org.mockito.Mockito.when
 import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfter
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{BeforeAndAfter, WordSpec}
 
 import scala.collection.JavaConverters._
 

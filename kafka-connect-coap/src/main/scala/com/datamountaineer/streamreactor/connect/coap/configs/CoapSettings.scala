@@ -17,8 +17,8 @@
 package com.datamountaineer.streamreactor.connect.coap.configs
 
 import java.io.{File, FileInputStream, InputStreamReader}
-import java.security.spec.{PKCS8EncodedKeySpec, X509EncodedKeySpec}
 import java.security._
+import java.security.spec.{PKCS8EncodedKeySpec, X509EncodedKeySpec}
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
@@ -26,7 +26,6 @@ import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.io.pem.PemReader
-import org.eclipse.californium.scandium.dtls.cipher.CipherSuite
 
 import scala.collection.JavaConverters._
 

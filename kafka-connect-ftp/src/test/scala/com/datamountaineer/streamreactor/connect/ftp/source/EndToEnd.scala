@@ -29,8 +29,8 @@ import org.apache.ftpserver.{FtpServer, FtpServerFactory}
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.storage.OffsetStorageReader
-import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.BeforeAndAfter
+import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import scala.collection.JavaConverters._

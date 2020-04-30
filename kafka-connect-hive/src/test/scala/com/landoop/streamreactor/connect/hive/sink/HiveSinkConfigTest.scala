@@ -1,18 +1,11 @@
 package com.landoop.streamreactor.connect.hive.sink
 
 import com.landoop.streamreactor.connect.hive.formats.{OrcHiveFormat, ParquetHiveFormat}
-import com.landoop.streamreactor.connect.hive.{PartitionField, TableName, Topic}
 import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfig
-import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
 import com.landoop.streamreactor.connect.hive.sink.evolution.AddEvolutionPolicy
 import com.landoop.streamreactor.connect.hive.sink.partitioning.DynamicPartitionHandler
 import com.landoop.streamreactor.connect.hive.sink.staging.DefaultCommitPolicy
-import com.landoop.streamreactor.connect.hive.ConfigurationBuilder
-import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.FileSystem
-import org.apache.hadoop.hive.metastore.HiveMetaStoreClient
-import org.apache.kafka.connect.errors.ConnectException
+import com.landoop.streamreactor.connect.hive.{PartitionField, TableName, Topic}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

@@ -23,9 +23,9 @@ import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.sink.DbWriter
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hbase.TableName
 import org.apache.hadoop.hbase.client.{Connection, ConnectionFactory, Put}
 import org.apache.hadoop.hbase.util.Bytes
-import org.apache.hadoop.hbase.TableName
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 
