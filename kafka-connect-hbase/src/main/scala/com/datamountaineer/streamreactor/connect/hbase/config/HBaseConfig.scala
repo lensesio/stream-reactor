@@ -42,7 +42,7 @@ object HBaseConfig {
       "Metrics", 1, ConfigDef.Width.MEDIUM, PROGRESS_COUNTER_ENABLED_DISPLAY)
 
     //config folders
-    .define(HBaseConfigDirKey, Type.STRING, HBaseConfigDirDefault, Importance.MEDIUM, HBaseConfigDirDoc, "Configs", 1, ConfigDef.Width.MEDIUM, HBaseConfigDirDisplay)
+    .define(HBASE_CONFIG_DIR, Type.STRING, HBASE_CONFIG_DIR_DEFAULT, Importance.MEDIUM, HBASE_CONFIG_DIR_DOC, "Configs", 1, ConfigDef.Width.MEDIUM, HBASE_CONFIG_DIR_DISPLAY)
 
     //security
     .define(KerberosKey, Type.BOOLEAN, KerberosDefault, Importance.MEDIUM, KerberosDoc, "Security", 1, ConfigDef.Width.MEDIUM, KerberosDisplay)

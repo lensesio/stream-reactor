@@ -5,25 +5,23 @@ import java.io.File
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hbase.HBaseConfiguration
-import org.slf4j.Logger
+import org.apache.kafka.common.config.ConfigException
 
 object ConfigurationBuilder {
-
-  val logger: Logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
   def buildHBaseConfig(hBaseSettings: HBaseSettings): Configuration = {
     val configuration = HBaseConfiguration.create()
 
-    def appendFile(dir:String, file:String): Unit = {
-      val hbaseFile = new File(dir + s"/$file")
+    def appendFile(file:String): Unit = {
+      val hbaseFile = new File(file)
       if (!hbaseFile.exists) {
-        logger.warn(s"$file does not exist in provided HBase configuration directory $hbaseFile.")
+        throw new ConfigException(s"$file does not exist in provided HBase configuration directory $hbaseFile.")
       } else {
         configuration.addResource(new Path(hbaseFile.toString))
       }
     }
     hBaseSettings.hbaseConfigDir.foreach { dir =>
-      appendFile(dir, "hbase-site.xml")
+      appendFile(dir + s"/hbase-site.xml")
     }
     configuration
   }

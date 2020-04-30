@@ -66,7 +66,7 @@ object HBaseSettings {
       (rm.getSource, StructFieldsExtractorBytes(allFields, fields(rm.getSource)))
     }).toMap
 
-    val hbaseConfigDir = Option(config.getString(HBaseConfigConstants.HBaseConfigDirKey))
+    val hbaseConfigDir = Option(config.getString(HBaseConfigConstants.HBASE_CONFIG_DIR))
 
     def validate(dir: String, key: String): Unit = {
       val folder = new File(dir)
@@ -74,7 +74,7 @@ object HBaseSettings {
         throw new ConfigException(s"Invalid configuration for [$key]. Folder can not be found")
       }
     }
-    hbaseConfigDir.foreach(validate(_, HBaseConfigConstants.HBaseConfigDirKey))
+    hbaseConfigDir.foreach(validate(_, HBaseConfigConstants.HBASE_CONFIG_DIR))
 
     new HBaseSettings(columnFamily, rowKeyModeMap, kcql.toList, extractorFields,
       errorPolicy, nbrOfRetries, hbaseConfigDir, Kerberos.from(config, HBaseConfigConstants))

@@ -5,6 +5,7 @@ import java.net.InetAddress
 import java.security.PrivilegedAction
 
 import com.datamountaineer.streamreactor.connect.hbase.kerberos.utils.AsyncFunctionLoop
+import com.typesafe.scalalogging.StrictLogging
 import javax.security.auth.login.LoginContext
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.security.{SecurityUtil, UserGroupInformation}
@@ -15,8 +16,7 @@ sealed trait KerberosLogin extends AutoCloseable {
   def run[T](thunk: => T): T
 }
 
-case class UserPasswordLogin(ugi: UserGroupInformation, interval: Duration, lc: LoginContext) extends KerberosLogin {
-  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
+case class UserPasswordLogin(ugi: UserGroupInformation, interval: Duration, lc: LoginContext) extends KerberosLogin with StrictLogging {
 
   private val asyncTicketRenewal = new AsyncFunctionLoop(interval, "Kerberos")(renewKerberosTicket())
   asyncTicketRenewal.start()

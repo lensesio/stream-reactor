@@ -55,9 +55,9 @@ object HBaseConfigConstants extends KerberosSettings {
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 
-  def HBaseConfigDirKey = s"$CONNECTOR_PREFIX.conf.dir"
-  def HBaseConfigDirDoc = "The HBase configuration directory."
-  def HBaseConfigDirDefault: String = null
-  def HBaseConfigDirDisplay = "HBase Config Folder"
+  val HBASE_CONFIG_DIR = s"$CONNECTOR_PREFIX.conf.dir"
+  val HBASE_CONFIG_DIR_DOC = "The HBase configuration directory."
+  val HBASE_CONFIG_DIR_DEFAULT: String = null
+  val HBASE_CONFIG_DIR_DISPLAY = "HBase Config Folder"
 
 }
