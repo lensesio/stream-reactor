@@ -3,14 +3,16 @@ package com.datamountaineer.streamreactor.connect.redis.sink.writer
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import redis.clients.jedis.{GeoUnit, Jedis}
 import redis.embedded.RedisServer
 
 import scala.collection.JavaConverters._
 
-class RedisGeoAddTest extends WordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
+class RedisGeoAddTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
 
   val redisServer = new RedisServer(6379)
 
@@ -35,6 +37,7 @@ class RedisGeoAddTest extends WordSpec with Matchers with BeforeAndAfterAll with
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisGeoAdd(settings)
+      writer.createClient(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Cpu")
         .field("longitude", Schema.STRING_SCHEMA)
@@ -81,6 +84,7 @@ class RedisGeoAddTest extends WordSpec with Matchers with BeforeAndAfterAll with
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisGeoAdd(settings)
+      writer.createClient(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Cpu")
         .field("longitude", Schema.STRING_SCHEMA)
@@ -127,6 +131,7 @@ class RedisGeoAddTest extends WordSpec with Matchers with BeforeAndAfterAll with
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisGeoAdd(settings)
+      writer.createClient(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Cpu")
         .field("lng", Schema.STRING_SCHEMA)

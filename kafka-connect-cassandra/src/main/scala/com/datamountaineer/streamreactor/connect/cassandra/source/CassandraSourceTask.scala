@@ -23,11 +23,11 @@ import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource, CassandraSettings, CassandraSourceSetting}
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
@@ -112,7 +112,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     settings
       .map(s => s.kcql)
       .flatten(r => process(r.getSource))
-      .toList
+      .toList.asJava
   }
 
   /**
@@ -166,7 +166,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     // available for publishing to Kafka
     val records = if (!queue.isEmpty) {
       logger.info(s"Connector $name attempting to drain $batchSize items from the queue for table $tableName")
-      QueueHelpers.drainQueue(queue, batchSize.get).toList
+      QueueHelpers.drainQueue(queue, batchSize.get).asScala.toList
     } else {
       List[SourceRecord]()
     }

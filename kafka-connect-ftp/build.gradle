@@ -15,7 +15,7 @@
  */
 project(":kafka-connect-ftp") {
   ext {
-    pathikritVersion = '2.16.0'
+    pathikritVersion = '3.8.0'
     ftpserverVersion = '1.0.6'
     commonsnetVersion = '3.5'
     commonsCodecVersion = '1.10'
@@ -25,12 +25,13 @@ project(":kafka-connect-ftp") {
     // detect memory leaks by constraining the Heap size
     maxHeapSize = "200m"
     jvmArgs "-Xms100m"
+    maxParallelForks = 1
   }
 
   dependencies {
     compile "commons-net:commons-net:${commonsnetVersion}"
     compile "commons-codec:commons-codec:${commonsCodecVersion}"
-    testCompile "com.github.pathikrit:better-files_2.11:${pathikritVersion}"
+    testCompile "com.github.pathikrit:better-files_2.12:${pathikritVersion}"
     testCompile "org.apache.ftpserver:ftpserver-core:${ftpserverVersion}"
   }
 }

@@ -20,8 +20,7 @@ import java.util.UUID
 
 import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
-import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
+import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.source.domain.JMSStructMessage
 import com.datamountaineer.streamreactor.connect.jms.source.readers.JMSReader
 import javax.jms.Session

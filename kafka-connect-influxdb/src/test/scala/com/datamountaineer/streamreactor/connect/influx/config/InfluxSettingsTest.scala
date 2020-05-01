@@ -20,13 +20,13 @@ import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.ThrowErrorPolicy
 import org.apache.kafka.common.config.ConfigException
 import org.influxdb.InfluxDB.ConsistencyLevel
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.mockito.MockitoSugar
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
-class InfluxSettingsTest extends WordSpec with Matchers with MockitoSugar {
+class InfluxSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
 
   val MEASURE_NAME = "someMeasurement"
   val TOPIC_NAME = "mykafkatopic"
@@ -150,7 +150,7 @@ class InfluxSettingsTest extends WordSpec with Matchers with MockitoSugar {
     settings.password shouldBe pass
     settings.errorPolicy shouldBe ThrowErrorPolicy()
     settings.kcqls.size shouldBe 1
-    settings.kcqls.head.getFields.exists(_.getName == "*") shouldBe false
+    settings.kcqls.head.getFields.asScala.exists(_.getName == "*") shouldBe false
     settings.kcqls.head.getTimestamp shouldBe null
   }
 
@@ -178,7 +178,7 @@ class InfluxSettingsTest extends WordSpec with Matchers with MockitoSugar {
     settings.password shouldBe pass
     settings.errorPolicy shouldBe ThrowErrorPolicy()
     settings.kcqls.size shouldBe 1
-    settings.kcqls.head.getFields.exists(_.getName == "*") shouldBe true
+    settings.kcqls.head.getFields.asScala.exists(_.getName == "*") shouldBe true
     settings.kcqls.head.getTimestamp shouldBe "ts"
     settings.consistencyLevel shouldBe ConsistencyLevel.ONE
   }
@@ -208,7 +208,7 @@ class InfluxSettingsTest extends WordSpec with Matchers with MockitoSugar {
     settings.password shouldBe pass
     settings.errorPolicy shouldBe ThrowErrorPolicy()
     settings.kcqls.size shouldBe 1
-    settings.kcqls.head.getFields.exists(_.getName == "*") shouldBe true
+    settings.kcqls.head.getFields.asScala.exists(_.getName == "*") shouldBe true
     settings.kcqls.head.getTimestamp shouldBe Kcql.TIMESTAMP
   }
 }

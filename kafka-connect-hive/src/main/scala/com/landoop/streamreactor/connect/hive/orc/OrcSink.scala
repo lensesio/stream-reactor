@@ -2,7 +2,7 @@ package com.landoop.streamreactor.connect.hive.orc
 
 import com.landoop.streamreactor.connect.hive.orc.vectors.{OrcVectorWriter, StructVectorWriter}
 import com.landoop.streamreactor.connect.hive.{OrcSinkConfig, StructUtils}
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.hive.ql.exec.vector.StructColumnVector
 import org.apache.kafka.connect.data.{Schema, Struct}

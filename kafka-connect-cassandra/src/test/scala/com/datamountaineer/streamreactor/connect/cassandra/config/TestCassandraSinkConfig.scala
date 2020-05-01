@@ -17,10 +17,13 @@
 package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
+import org.scalatest.BeforeAndAfter
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+
 import scala.collection.JavaConverters._
 
-class TestCassandraSinkConfig extends WordSpec with BeforeAndAfter with Matchers with TestConfig {
+class TestCassandraSinkConfig extends AnyWordSpec with BeforeAndAfter with Matchers with TestConfig {
 
   "A CassandraConfig should return configured for username and password" in {
     val props = Map(

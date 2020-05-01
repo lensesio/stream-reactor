@@ -122,9 +122,7 @@ object KeysExtractor {
 
   def fromJson(jvalue: JValue, keys: Set[String]): List[(String, Any)] = {
 
-    // SCALA 2.12 WARNING: remove the 'reverse' when you upgrade to 2.12;
-    // the insertion order of ListSet.toList is preserved in 2.12:
-    keys.toList.reverse.map{ longKey =>
+    keys.toList.map{ longKey =>
       val segments = longKey.split('.').toIndexedSeq
 
       @tailrec

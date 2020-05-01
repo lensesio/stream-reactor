@@ -23,14 +23,14 @@ import scala.collection.JavaConverters._
 class TestElasticsSinkConnector extends TestElasticBase {
   "Should start a Elastic Search Connector" in {
     //get config
-    val config = getElasticSinkConfigProps
+    val config = getElasticSinkConfigProps()
     //get connector
     val connector = new ElasticSinkConnector()
     //start with config
     connector.start(config)
     //check config
     val taskConfigs = connector.taskConfigs(10)
-    taskConfigs.asScala.head.get(ElasticConfigConstants.URL) shouldBe ELASTIC_SEARCH_HOSTNAMES
+    taskConfigs.asScala.head.get(ElasticConfigConstants.HOSTS) shouldBe ELASTIC_SEARCH_HOSTNAMES
     taskConfigs.size() shouldBe 10
     //check connector
     connector.taskClass() shouldBe classOf[ElasticSinkTask]

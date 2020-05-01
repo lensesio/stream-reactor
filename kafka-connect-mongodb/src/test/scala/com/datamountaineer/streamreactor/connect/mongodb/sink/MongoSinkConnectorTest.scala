@@ -17,12 +17,13 @@
 package com.datamountaineer.streamreactor.connect.mongodb.sink
 
 import com.datamountaineer.streamreactor.connect.mongodb.config.MongoConfigConstants
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.mockito.MockitoSugar
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
-class MongoSinkConnectorTest extends WordSpec with Matchers with MockitoSugar {
+class MongoSinkConnectorTest extends AnyWordSpec with Matchers with MockitoSugar {
   "MongoSinkConnector" should {
 
 
@@ -32,11 +33,11 @@ class MongoSinkConnectorTest extends WordSpec with Matchers with MockitoSugar {
         MongoConfigConstants.DATABASE_CONFIG -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017",
         MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT * FROM topic1; INSERT INTO coll2 SELECT * FROM topicA"
-      )
+      ).asJava
 
       val connector = new MongoSinkConnector()
       connector.start(map)
-      connector.taskConfigs(1).length shouldBe 1
+      connector.taskConfigs(1).size() shouldBe 1
     }
   }
 }

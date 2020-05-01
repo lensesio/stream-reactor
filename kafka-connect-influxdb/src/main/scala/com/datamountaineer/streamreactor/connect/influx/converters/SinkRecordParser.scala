@@ -3,10 +3,10 @@ package com.datamountaineer.streamreactor.connect.influx.converters
 import com.datamountaineer.streamreactor.connect.influx.helpers.Util
 import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails.Path
 import com.datamountaineer.streamreactor.connect.influx.writers.ValuesExtractor
-import com.landoop.json.sql.JacksonJson
-import org.apache.kafka.connect.sink.SinkRecord
-import org.apache.kafka.connect.data.{Schema, Struct}
 import com.fasterxml.jackson.databind.JsonNode
+import com.landoop.json.sql.JacksonJson
+import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.util.Try
 

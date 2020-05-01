@@ -30,11 +30,11 @@ project(":kafka-connect-coap") {
     }
 
     dependencies {
-        compile ("org.eclipse.californium:californium-core:$califVersion")
-        compile ("org.eclipse.californium:scandium:$scandiamVersion")
+        compile("org.eclipse.californium:californium-core:$califVersion")
+        compile("org.eclipse.californium:scandium:$scandiamVersion")
         compile "org.bouncycastle:bcprov-jdk15on:$bouncyCastle"
         compile "org.bouncycastle:bcpkix-jdk15on:$bouncyCastle"
         compile "org.bouncycastle:bcpg-jdk15on:$bouncyCastle"
-//        compile ("org.eclipse.californium:demo-certs:$demoCerts")
+//        compile("org.eclipse.californium:demo-certs:$demoCerts")
     }
 }

@@ -32,14 +32,16 @@ import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.bson.Document
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
-
-import scala.collection.JavaConversions._
-import scala.collection.immutable.{ListMap, ListSet}
 import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
+import scala.collection.JavaConverters._
+import scala.collection.immutable.{ListMap, ListSet}
+
+class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
 
   val starter = MongodStarter.getDefaultInstance
   val port = 12345
@@ -289,7 +291,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         NoopErrorPolicy())
 
       val client = MongoClientProvider(settings = settings)
-      val auth = client.getCredentialsList.head
+      val auth = client.getCredential
       auth.getAuthenticationMechanism shouldBe (AuthenticationMechanism.PLAIN)
     }
 
@@ -306,7 +308,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         NoopErrorPolicy())
 
       val client = MongoClientProvider(settings = settings)
-      val auth = client.getCredentialsList.head
+      val auth = client.getCredential
       auth.getAuthenticationMechanism shouldBe (AuthenticationMechanism.GSSAPI)
     }
 
@@ -323,7 +325,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         NoopErrorPolicy())
 
       val client = MongoClientProvider(settings = settings)
-      val auth = client.getCredentialsList.head
+      val auth = client.getCredential
       auth.getAuthenticationMechanism shouldBe (AuthenticationMechanism.SCRAM_SHA_1)
     }
 
@@ -340,7 +342,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         NoopErrorPolicy())
 
       val client = MongoClientProvider(settings = settings)
-      val auth = client.getCredentialsList.head
+      val auth = client.getCredential
       auth.getAuthenticationMechanism shouldBe (AuthenticationMechanism.MONGODB_CR)
     }
 
@@ -357,7 +359,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         NoopErrorPolicy())
 
       val client = MongoClientProvider(settings = settings)
-      val auth = client.getCredentialsList.head
+      val auth = client.getCredential
       auth.getAuthenticationMechanism shouldBe (AuthenticationMechanism.MONGODB_CR)
       client.getMongoClientOptions.isSslEnabled shouldBe true
     }
@@ -392,7 +394,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
         SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG -> "truststore-password",
         SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG -> keystoreFilePath,
         SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG -> "keystore-password"
-      )
+      ).asJava
 
       val config = MongoConfig(map)
       val settings = MongoSettings(config)
@@ -460,7 +462,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
 
       new InsertOneModel[Document](doc)
     }
-    collection.bulkWrite(inserts)
+    collection.bulkWrite(inserts.asJava)
 
     val mongoWriter = new MongoWriter(settings, mongoClient.get)
     mongoWriter.write(records)
@@ -523,7 +525,7 @@ class MongoWriterTest extends WordSpec with Matchers with BeforeAndAfterAll {
       val doc = Document.parse(rec)
       new InsertOneModel[Document](doc)
     }
-    collection.bulkWrite(inserts)
+    collection.bulkWrite(inserts.asJava)
 
     // Now do upsert with an added field
     val mongoWriter = new MongoWriter(settings, mongoClient.get)

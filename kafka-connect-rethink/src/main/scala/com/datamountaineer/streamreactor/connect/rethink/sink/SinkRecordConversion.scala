@@ -24,7 +24,7 @@ import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.sink.SinkRecord
 import org.json4s.{DefaultFormats, JValue}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Created by stepi on 11/10/16.
@@ -52,7 +52,7 @@ object SinkRecordConversion {
     }
 
     //add the sinkrecord fields to the MapObject
-    fields.map(f => buildField(f, s, mo))
+    fields.asScala.map(f => buildField(f, s, mo))
     mo
   }
 
@@ -118,7 +118,7 @@ object SinkRecordConversion {
         val schema = nested.schema()
         val fields = schema.fields()
         val mo = new util.HashMap[String, Any]()
-        fields.map(f => buildField(f, nested, mo))
+        fields.asScala.map(f => buildField(f, nested, mo))
         hm.put(field.name, mo)
 
       case Type.BYTES =>

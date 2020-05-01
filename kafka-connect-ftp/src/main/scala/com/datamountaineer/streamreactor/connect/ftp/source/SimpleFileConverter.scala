@@ -21,6 +21,7 @@ import java.util
 import com.datamountaineer.streamreactor.connect.ftp.source.SourceRecordProducers.SourceRecordProducer
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.storage.OffsetStorageReader
+
 import scala.collection.JavaConverters._
 
 /**

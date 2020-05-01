@@ -16,9 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.voltdb.writers
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class PrepareProcedureFieldsFnTest extends WordSpec with Matchers {
+class PrepareProcedureFieldsFnTest extends AnyWordSpec with Matchers {
   "PrepareProcedureFieldsFn" should {
     //    "return null for all fields if they are not found" in {
     //      val actual = PrepareProcedureFieldsFn(Seq("A", "B", "C"), Map("d" -> 1, "e" -> "aa"))

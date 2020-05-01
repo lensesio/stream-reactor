@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.hbase
 
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.hbase.TableName
 import org.apache.hadoop.hbase.client.{Connection, Table}
 

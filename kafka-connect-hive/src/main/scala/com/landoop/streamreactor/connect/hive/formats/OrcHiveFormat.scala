@@ -1,14 +1,10 @@
 package com.landoop.streamreactor.connect.hive.formats
 
-import com.landoop.streamreactor.connect.hive.OrcSinkConfig
-import com.landoop.streamreactor.connect.hive.OrcSourceConfig
-import com.landoop.streamreactor.connect.hive.Serde
+import com.landoop.streamreactor.connect.hive.{OrcSinkConfig, OrcSourceConfig, Serde}
 import com.landoop.streamreactor.connect.hive.orc.OrcSink
-import org.apache.hadoop.fs.FileSystem
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.fs.permission.FsPermission
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.data.{Schema, Struct}
 
 import scala.util.Try
 

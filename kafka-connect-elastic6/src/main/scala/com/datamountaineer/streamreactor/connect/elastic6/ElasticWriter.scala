@@ -17,11 +17,13 @@
 package com.datamountaineer.streamreactor.connect.elastic6
 
 import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
-import com.sksamuel.elastic4s.ElasticsearchClientUri
-import org.elasticsearch.common.settings.Settings
+import com.sksamuel.elastic4s.http.ElasticNodeEndpoint
+
+import scala.util.{Failure, Success, Try}
 
 
 object ElasticWriter {
+
   /**
     * Construct a JSONWriter.
     *
@@ -29,18 +31,26 @@ object ElasticWriter {
     * @return An ElasticJsonWriter to write records from Kafka to ElasticSearch.
     **/
   def apply(config: ElasticConfig): ElasticJsonWriter = {
-    val hostNames = config.getString(ElasticConfigConstants.URL)
-    val esClusterName = config.getString(ElasticConfigConstants.ES_CLUSTER_NAME)
-    val esPrefix = config.getString(ElasticConfigConstants.URL_PREFIX)
-    val essettings: Settings = Settings
-      .builder()
-      .put("cluster.name", esClusterName)
-      .build()
-    val uri: ElasticsearchClientUri = ElasticsearchClientUri(s"$esPrefix://$hostNames")
+
+    val hostNames = config.getString(ElasticConfigConstants.HOSTS).split(",")
+    val protocol = config.getString(ElasticConfigConstants.PROTOCOL)
+    val port = config.getInt(ElasticConfigConstants.ES_PORT)
+    val prefix = Try(config.getString(ElasticConfigConstants.ES_PREFIX)) match {
+      case Success("") => None
+      case Success(configString) => Some(configString)
+      case Failure(_) => None
+    }
 
     val settings = ElasticSettings(config)
 
+    new ElasticJsonWriter(
+      KElasticClient.createHttpClient(settings, endpoints(hostNames, protocol, port, prefix)),
+      settings
+    )
+  }
 
-    new ElasticJsonWriter(KElasticClient.getClient(settings, essettings, uri), settings)
+  private def endpoints(hostNames: Array[String], protocol: String, port: Integer, prefix: Option[String]) = {
+    hostNames
+      .map(hostname => ElasticNodeEndpoint(protocol, hostname, port, prefix))
   }
 }

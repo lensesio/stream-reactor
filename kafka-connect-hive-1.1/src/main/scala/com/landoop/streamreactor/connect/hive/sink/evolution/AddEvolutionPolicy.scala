@@ -1,8 +1,6 @@
 package com.landoop.streamreactor.connect.hive.sink.evolution
 
 import com.landoop.streamreactor.connect.hive.{DatabaseName, HiveSchemas, TableName}
-import com.landoop.streamreactor.connect.hive.ConfigurationBuilder.getClass
-import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 import org.apache.kafka.connect.data.Schema
 
@@ -10,7 +8,7 @@ import scala.collection.JavaConverters._
 import scala.util.Try
 
 /**
-  * An implementation of [[EvolutionPolicy]] that attempts to evolve
+  * An compile of [[EvolutionPolicy]] that attempts to evolve
   * the metastore schema to match the input schema by adding missing fields.
   */
 object AddEvolutionPolicy extends EvolutionPolicy {

@@ -23,23 +23,22 @@ import java.util.concurrent.LinkedBlockingQueue
 
 import com.datamountaineer.streamreactor.connect.converters.sink.Converter
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSinkConfig, MqttSinkSettings}
-import org.eclipse.paho.client.mqttv3.MqttClient
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions
-import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import io.moquette.server.Server
 import io.moquette.server.config.ClasspathConfig
 import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericRecord}
 import org.apache.avro.io.EncoderFactory
-import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttMessage}
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpec}
+import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence
+import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttClient, MqttConnectOptions, MqttMessage}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
@@ -48,7 +47,7 @@ import scala.util.{Failure, Success, Try}
   * Created by andrew@datamountaineer.com on 27/08/2017.
   * stream-reactor
   */
-class TestMqttWriter extends WordSpec with Matchers with BeforeAndAfterAll with MqttCallback with StrictLogging {
+class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll with MqttCallback with StrictLogging {
 
   val classPathConfig = new ClasspathConfig()
   val connection = "tcp://0.0.0.0:1883"
@@ -196,7 +195,7 @@ class TestMqttWriter extends WordSpec with Matchers with BeforeAndAfterAll with 
       MqttConfigConstants.USER_CONFIG -> "user"
     )
 
-    val config = MqttSinkConfig(props)
+    val config = MqttSinkConfig(props.asJava)
     val settings = MqttSinkSettings(config)
 
     val convertersMap = settings.sinksToConverters.map { case (topic, clazz) =>
@@ -208,7 +207,6 @@ class TestMqttWriter extends WordSpec with Matchers with BeforeAndAfterAll with 
             case Success(value) => value.asInstanceOf[Converter]
             case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
           }
-          import scala.collection.JavaConverters._
           converter.initialize(props)
           topic -> converter
         }
@@ -224,7 +222,7 @@ class TestMqttWriter extends WordSpec with Matchers with BeforeAndAfterAll with 
     Thread.sleep(2000)
 
     queue1.size() shouldBe 3
-    val message = new String(queue1.take(1).head.getPayload)
+    val message = new String(queue1.asScala.take(1).head.getPayload)
     message shouldBe JSON
     queue1.clear()
     writer.close
@@ -247,7 +245,7 @@ class TestMqttWriter extends WordSpec with Matchers with BeforeAndAfterAll with 
       MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
       MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
       MqttConfigConstants.USER_CONFIG -> "user"
-    )
+    ).asJava
 
     val config = MqttSinkConfig(props)
     val settings = MqttSinkSettings(config)
@@ -258,8 +256,8 @@ class TestMqttWriter extends WordSpec with Matchers with BeforeAndAfterAll with 
           case Success(value) => value.asInstanceOf[Converter]
           case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
         }
-        import scala.collection.JavaConverters._
-        converter.initialize(props)
+
+        converter.initialize(props.asScala.toMap)
         topic -> converter
       }
 
@@ -275,7 +273,7 @@ class TestMqttWriter extends WordSpec with Matchers with BeforeAndAfterAll with 
 
     val message = createAvroRecord(s"$userDir/src/test/resources/test.avsc")
 
-    queue1.take(1).head.getPayload shouldBe message
+    queue1.asScala.take(1).head.getPayload shouldBe message
     queue1.clear()
     writer.close
   }

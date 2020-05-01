@@ -20,15 +20,16 @@ import com.datamountaineer.streamreactor.connect.redis.sink.RedisSinkTask
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
-import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import redis.clients.jedis.Jedis
 import redis.embedded.RedisServer
 
 import scala.collection.JavaConverters._
 
-class RedisMultipleSortedSetsTest extends WordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
+class RedisMultipleSortedSetsTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
 
   val redisServer = new RedisServer(6379)
 
@@ -54,6 +55,7 @@ class RedisMultipleSortedSetsTest extends WordSpec with Matchers with BeforeAndA
       val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisMultipleSortedSets(settings)
+      writer.createClient(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.device")
         .field("sensorID", Schema.STRING_SCHEMA)

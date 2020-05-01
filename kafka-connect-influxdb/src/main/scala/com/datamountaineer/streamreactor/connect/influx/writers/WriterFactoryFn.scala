@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.influx.writers
 
 import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 
 /**
   * Provides the logic for instantiating the appropriate InfluxDb writer

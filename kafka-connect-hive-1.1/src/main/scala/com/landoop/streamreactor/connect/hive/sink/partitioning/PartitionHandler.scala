@@ -1,9 +1,10 @@
 package com.landoop.streamreactor.connect.hive.sink.partitioning
 
+import com.landoop.streamreactor.connect.hive.sink.HiveSink
 import com.landoop.streamreactor.connect.hive.{DatabaseName, Partition, TableName}
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
-import com.landoop.streamreactor.connect.hive.sink.HiveSink
+
 import scala.util.Try
 
 /**

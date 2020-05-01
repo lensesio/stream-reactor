@@ -20,8 +20,8 @@ import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig,
 
 class TestElasticConfig extends TestElasticBase {
   "A ElasticConfig should return the client mode and hostnames" in {
-    val config = new ElasticConfig(getElasticSinkConfigProps)
-    config.getString(ElasticConfigConstants.URL) shouldBe ELASTIC_SEARCH_HOSTNAMES
+    val config = new ElasticConfig(getElasticSinkConfigProps())
+    config.getString(ElasticConfigConstants.HOSTS) shouldBe ELASTIC_SEARCH_HOSTNAMES
     config.getString(ElasticConfigConstants.ES_CLUSTER_NAME) shouldBe ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT
     config.getString(ElasticConfigConstants.KCQL) shouldBe QUERY
   }

@@ -21,7 +21,7 @@ import java.io.File
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfigConstants._
-import com.datamountaineer.streamreactor.connect.hbase.kerberos.{Kerberos, KerberosSettings}
+import com.datamountaineer.streamreactor.connect.hbase.kerberos.Kerberos
 import com.datamountaineer.streamreactor.connect.hbase.{GenericRowKeyBuilderBytes, RowKeyBuilderBytes, StructFieldsExtractorBytes, StructFieldsRowKeyBuilderBytes}
 import org.apache.kafka.common.config.ConfigException
 

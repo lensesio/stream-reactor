@@ -20,7 +20,7 @@ import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.kudu.KuduConverter
 import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduConfigConstants, KuduSettings, WriteFlushMode}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kudu.client.SessionConfiguration.FlushMode

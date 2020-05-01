@@ -20,8 +20,8 @@ import de.undercouch.gradle.tasks.download.Download
 
 plugins {
     id "de.undercouch.download" version "3.4.3"
-    id "com.github.maiflai.scalatest" version "0.23"
-    id "com.github.johnrengelman.shadow" version "4.0.3"
+    id "com.github.maiflai.scalatest" version "0.26"
+    id "com.github.johnrengelman.shadow" version "5.2.0"
 }
 
 
@@ -51,26 +51,25 @@ allprojects {
 
 
     ext {
-        scalaMajorVersion = '2.11'
-        scala = '2.11.7'
-        scalaCheck = '1.13.4'
-        scalaTest = '3.0.0'
+        scalaMajorVersion = '2.12'
+        scala = '2.12.10'
+        scalaCheck = '1.14.3'
+        scalaTest = '3.1.1'
         junit = '4.11'
         //avroVersion="1.8.1"
-        scalaLoggingVersion = '2.1.2'
-        mockitoVersion = '1.10.19'
-        jacksonDatabind = '2.8.5'
+        scalaLoggingVersion = '3.9.2'
+        mockitoVersion = '1.13.9'
         slf4jVersion = "1.7.7"
-        json4sVersion = "3.5.3"
+        json4sVersion = "3.6.7"
         gsonVersion = "2.6.2"
         KCQLVersion = "2.8.4"
-        akkaVersion = "2.4.10"
         connectCLIVersion = "1.0.6"
+        avro4sVersion = "1.6.4"
 
-        // The following 4 need to align to compile against a particular version
-        confluentVersion = '5.0.0'
-        kafkaVersion = '2.1.0'
-        dataMountaineerCommonVersion = "1.1.9"
+        // The following 4 need to align to compileagainst a particular version
+        confluentVersion = '5.4.0'
+        kafkaVersion = '2.4.0'
+        dataMountaineerCommonVersion = "2.0.1"
         link4jVersion = "1.8.0"
 
         gitCommitHash = ("git rev-parse HEAD").execute().text.trim()
@@ -78,7 +77,7 @@ allprojects {
         gitRepo = ("git remote get-url origin").execute().text.trim()
 
 
-//        // The following 4 need to align to compile against a particular version
+//        // The following 4 need to align to compileagainst a particular version
 //        confluentVersion = '3.3.0'
 //        kafkaVersion = '0.11.0.0'
 //        dataMountaineerCommonVersion = "0.9.7"
@@ -109,14 +108,14 @@ allprojects {
     }
 
     repositories {
-       // mavenLocal()
+        mavenLocal()
         mavenCentral()
-        maven { url "http://packages.confluent.io/maven/" }
-        maven { url "http://repo.typesafe.com/typesafe/releases/" }
+        maven { url "https://packages.confluent.io/maven/" }
+        maven { url "https://repo.typesafe.com/typesafe/releases/" }
         maven { url "https://repository.cloudera.com/artifactory/cloudera-repos/" }
-        maven { url "http://conjars.org/repo" }
+        maven { url "https://conjars.org/repo" }
         maven {
-            url 'http://dl.bintray.com/andsel/maven/'
+            url 'https://dl.bintray.com/andsel/maven/'
         }
         maven { url "https://dl.bintray.com/spinnaker/spinnaker/" }
     }
@@ -124,14 +123,14 @@ allprojects {
     jar {
         manifest {
             attributes( "StreamReactor-Version": project.version,
-                        "KCQL-Version" : "${KCQLVersion}",
-                        "Kafka-Version": "${kafkaVersion}",
-                        "Created-By" : "Landoop",
-                        "Created-At" :  new Date().format("YYYYMMDDHHmm"),
-                        "Git-Repo": "${gitRepo}",
-                        "Git-Commit-Hash": "${gitCommitHash}",
-                        "Git-Tag": "${gitTag}",
-                        "StreamReactor-Docs" : "https://docs.lenses.io/connectors/"
+                    "KCQL-Version" : "${KCQLVersion}",
+                    "Kafka-Version": "${kafkaVersion}",
+                    "Created-By" : "Lenses",
+                    "Created-At" :  new Date().format("YYYYMMDDHHmm"),
+                    "Git-Repo": "${gitRepo}",
+                    "Git-Commit-Hash": "${gitCommitHash}",
+                    "Git-Tag": "${gitTag}",
+                    "StreamReactor-Docs" : "https://docs.lenses.io/connectors/"
             )
         }
     }
@@ -148,7 +147,7 @@ allprojects {
             attributes( "StreamReactor-Version": project.version,
                     "KCQL-Version" : "${KCQLVersion}",
                     "Kafka-Version": "${kafkaVersion}",
-                    "Created-By" : "Landoop",
+                    "Created-By" : "Lenses",
                     "Created-At" : new Date().format("YYYYMMDDHHmm"),
                     "Git-Repo": "${gitRepo}",
                     "Git-Commit-Hash": "${gitCommitHash}",
@@ -178,23 +177,20 @@ allprojects {
     dependencies {
         compile "org.scala-lang:scala-library:$scala"
         compile "org.scala-lang:scala-compiler:$scala"
-        compile "com.typesafe.scala-logging:scala-logging-slf4j_$scalaMajorVersion:$scalaLoggingVersion"
-
-        compile ("org.apache.kafka:connect-json:$kafkaVersion")
+        compile "com.typesafe.scala-logging:scala-logging_${scalaMajorVersion}:${scalaLoggingVersion}"
+        compile "org.apache.kafka:connect-json:$kafkaVersion"
         compile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
         compile "io.confluent:kafka-schema-registry:$confluentVersion"
-
-        compile("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion") {
-
-        }
+        compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
         compile "org.apache.calcite:calcite-linq4j:$link4jVersion"
 
-        testCompile "org.mockito:mockito-core:$mockitoVersion"
+        testCompile "org.mockito:mockito-scala_$scalaMajorVersion:$mockitoVersion"
         testCompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
         testCompile "org.scalatest:scalatest_$scalaMajorVersion:$scalaTest"
         testCompile "junit:junit:$junit"
 
-        testRuntime 'org.pegdown:pegdown:1.1.0'
+        testCompile 'org.pegdown:pegdown:1.1.0'
+        testCompile "com.vladsch.flexmark:flexmark-all:0.35.10"
     }
 
     test {
@@ -276,15 +272,15 @@ allprojects {
                     url 'https://github.com/landoop/stream-reactor'
 
                     scm {
-                        connection 'scm:git:https://github.com/landoop/stream-reactor.git'
-                        developerConnection 'scm:git:git@github.com:landoop/stream-reactor.git'
-                        url 'https://github.com/landoop/stream-reactor.git'
+                        connection 'scm:git:https://github.com/lensesio/stream-reactor.git'
+                        developerConnection 'scm:git:git@github.com:lensesio/stream-reactor.git'
+                        url 'https://github.com/lensesio/stream-reactor.git'
                     }
 
                     licenses {
                         license {
                             name 'Apache License 2.0'
-                            url 'http://www.apache.org/licenses/LICENSE-2.0.html'
+                            url 'https://www.apache.org/licenses/LICENSE-2.0.html'
                             distribution 'repo'
                         }
                     }
@@ -293,17 +289,17 @@ allprojects {
                         developer {
                             id = 'andrewstevenson'
                             name = 'Andrew Stevenson'
-                            email = 'andrew@landoop.com'
+                            email = 'andrew@lenses.io'
                         }
                         developer {
                             id = 'stheppi'
                             name = 'Stefan Bocutiu'
-                            email = 'stefan@landoop.com'
+                            email = 'stefan@lenses.io'
                         }
                         developer {
                             id = 'antwins'
                             name = 'Antonios Chalkiopoulos'
-                            email = 'antonios@landoop.com'
+                            email = 'antonios@lenses.io'
                         }
                     }
                 }

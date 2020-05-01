@@ -24,9 +24,9 @@ import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicyEnum, RetryE
 import com.datastax.driver.core.ConsistencyLevel
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkTaskContext
-import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.mockito.MockitoSugar
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
@@ -34,7 +34,7 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 28/04/16. 
   * stream-reactor
   */
-class TestCassandraSinkSettings extends WordSpec with Matchers with MockitoSugar with TestConfig {
+class TestCassandraSinkSettings extends AnyWordSpec with Matchers with MockitoSugar with TestConfig {
 
   def getCassandraConfigSinkPropsRetry = {
     Map(

@@ -16,23 +16,24 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.config
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
-class RedisConfigTest extends WordSpec with Matchers {
+class RedisConfigTest extends AnyWordSpec with Matchers {
 
   "RedisSinkConfig" should {
 
     "work without a <password>" in {
-      RedisConfig.config.parse(propsWithoutPass)
+      RedisConfig.config.parse(propsWithoutPass.asJava)
     }
     "work with <password>" in {
-      RedisConfig.config.parse(propsWithoutPass + (RedisConfigConstants.REDIS_PASSWORD -> "pass"))
+      RedisConfig.config.parse((propsWithoutPass + (RedisConfigConstants.REDIS_PASSWORD -> "pass")).asJava)
     }
 
     "use custom delimiter for primary key" in {
-      RedisConfig.config.parse(propsWithoutPass + (RedisConfigConstants.REDIS_PK_DELIMITER -> "-"))
+      RedisConfig.config.parse((propsWithoutPass + (RedisConfigConstants.REDIS_PK_DELIMITER -> "-")).asJava)
     }
 
   }

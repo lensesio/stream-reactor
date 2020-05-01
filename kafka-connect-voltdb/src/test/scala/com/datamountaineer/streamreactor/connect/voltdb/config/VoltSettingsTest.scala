@@ -19,10 +19,12 @@ package com.datamountaineer.streamreactor.connect.voltdb.config
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.ThrowErrorPolicy
 import org.apache.kafka.common.config.ConfigException
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+
 import scala.collection.JavaConverters._
 
-class VoltSettingsTest extends WordSpec with Matchers {
+class VoltSettingsTest extends AnyWordSpec with Matchers {
 
   val MEASURE_NAME = "someMeasurement"
   val TOPIC_NAME = "mykafkatopic"

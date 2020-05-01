@@ -17,10 +17,9 @@
 package com.datamountaineer.streamreactor.connect.hazelcast.config
 
 import com.datamountaineer.streamreactor.connect.errors.ThrowErrorPolicy
-import com.datamountaineer.streamreactor.connect.hazelcast.{HazelCastConnection, TestBase}
-import com.hazelcast.config.Config
+import com.datamountaineer.streamreactor.connect.hazelcast.TestBase
+import com.hazelcast.config.{Config, GroupConfig}
 import com.hazelcast.core.{Hazelcast, HazelcastInstance}
-import org.apache.kafka.common.config.SslConfigs
 
 import scala.collection.JavaConverters._
 
@@ -34,7 +33,8 @@ class TestHazelCastSinkSettings extends TestBase {
 
   before {
     val configApp1 = new Config()
-    configApp1.getGroupConfig.setName(TESTS_GROUP_NAME).setPassword(HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DEFAULT)
+    val gc = new GroupConfig(TESTS_GROUP_NAME, HazelCastSinkConfigConstants.SINK_GROUP_PASSWORD_DEFAULT)
+    configApp1.setGroupConfig(gc)
     instance = Hazelcast.newHazelcastInstance(configApp1)
   }
 

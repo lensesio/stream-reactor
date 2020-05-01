@@ -1,7 +1,6 @@
 package com.landoop.streamreactor.connect.hive.sink.evolution
 
 import com.landoop.streamreactor.connect.hive.{DatabaseName, HiveSchemas, TableName}
-import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 import org.apache.kafka.connect.data.Schema
 
@@ -9,7 +8,7 @@ import scala.collection.JavaConverters._
 import scala.util.Try
 
 /**
-  * An implementation of [[EvolutionPolicy]] that requires the
+  * An compile of [[EvolutionPolicy]] that requires the
   * input schema be equal or a superset of the metastore schema.
   *
   * This means that every field in the metastore schema must be

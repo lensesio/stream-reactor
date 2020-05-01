@@ -4,7 +4,6 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfigDef
-import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfigDef
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector

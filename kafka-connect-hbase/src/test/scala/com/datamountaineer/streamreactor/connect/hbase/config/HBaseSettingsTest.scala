@@ -18,13 +18,13 @@ package com.datamountaineer.streamreactor.connect.hbase.config
 
 import com.datamountaineer.streamreactor.connect.hbase.{GenericRowKeyBuilderBytes, StructFieldsRowKeyBuilderBytes}
 import org.apache.kafka.common.config.ConfigException
-import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.mockito.MockitoSugar
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
-class HBaseSettingsTest extends WordSpec with Matchers with MockitoSugar {
+class HBaseSettingsTest extends AnyWordSpec with Matchers with MockitoSugar {
 
   val TABLE_NAME_RAW = "someTable"
   val QUERY_ALL = s"INSERT INTO $TABLE_NAME_RAW SELECT * FROM $TABLE_NAME_RAW"

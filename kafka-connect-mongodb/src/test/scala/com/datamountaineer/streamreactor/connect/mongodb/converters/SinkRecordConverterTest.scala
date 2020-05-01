@@ -17,18 +17,15 @@
 package com.datamountaineer.streamreactor.connect.mongodb.converters
 
 import java.time.OffsetDateTime
-import java.util
-
-import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants, MongoSettings}
-import org.scalatest.{Matchers, WordSpec}
-import org.json4s.jackson.JsonMethods._
-import org.bson.Document
-
-import scala.annotation.tailrec
-import scala.collection.mutable
 import java.util.{LinkedList, Map => JavaMap}
 
-class SinkRecordConverterTest extends WordSpec with Matchers {
+import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants, MongoSettings}
+import org.bson.Document
+import org.json4s.jackson.JsonMethods._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+
+class SinkRecordConverterTest extends AnyWordSpec with Matchers {
 
   implicit val jsonFormats = org.json4s.DefaultFormats
   import scala.collection.JavaConverters._

@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.node._
 import org.apache.kafka.connect.data._
 
 import scala.annotation.tailrec
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 object ValuesExtractor {
 
@@ -36,7 +36,7 @@ object ValuesExtractor {
   def extractAllFields(node: JsonNode, ignored: Set[String]): Seq[(String, Any)] = {
     node match {
       case o: ObjectNode =>
-        o.fields().filter(p => !ignored.contains(p.getKey))
+        o.fields().asScala.filter(p => !ignored.contains(p.getKey))
           .map { kvp =>
             val value = kvp.getValue match {
               case b: BooleanNode => b.booleanValue()
@@ -146,7 +146,7 @@ object ValuesExtractor {
     * The list of keys and values. Throws [[IllegalArgumentException]] if any of the values are not primitives
     */
   def extractAllFields(struct: Struct, ignored: Set[String]): Seq[(String, Any)] = {
-    struct.schema().fields
+    struct.schema().fields.asScala
       .filter(f => !ignored.contains(f.name()))
       .map { field =>
         val value = struct.get(field)
@@ -306,7 +306,7 @@ object ValuesExtractor {
               val s = value.asInstanceOf[Struct]
               val childField = Option(s.schema().field(path.head))
                 .getOrElse {
-                  throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. Can't find field '${path.head}'. Fields available:${s.schema().fields().map(_.name()).mkString(",")}")
+                  throw new IllegalArgumentException(s"Invalid field selection for '${fieldPath.mkString(".")}'. Can't find field '${path.head}'. Fields available:${s.schema().fields().asScala.map(_.name()).mkString(",")}")
                 }
 
               innerExtract(childField, s.get(childField), path.tail)
@@ -318,7 +318,7 @@ object ValuesExtractor {
     }
 
     val field = Option(struct.schema().field(fieldPath.head)).getOrElse {
-      throw new IllegalArgumentException(s"Couldn't find field '${fieldPath.head}' in the schema:${struct.schema().fields().map(_.name()).mkString(",")}")
+      throw new IllegalArgumentException(s"Couldn't find field '${fieldPath.head}' in the schema:${struct.schema().fields().asScala.map(_.name()).mkString(",")}")
     }
 
     innerExtract(field, struct.get(field), fieldPath.tail)
@@ -334,7 +334,7 @@ object ValuesExtractor {
     * The list of keys and values. Throws [[IllegalArgumentException]] if any of the values are not primitives
     */
   def extractAllFields(map: java.util.Map[String, Any], ignored: Set[String]): Seq[(String, Any)] = {
-    map.filter(p => !ignored.contains(p._1) && p._2 != null)
+    map.asScala.filter(p => !ignored.contains(p._1) && p._2 != null)
       .map { case (k, value) =>
         value match {
           case _: Long |

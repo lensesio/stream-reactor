@@ -1,8 +1,7 @@
 package com.landoop.streamreactor.connect.hive.sink.staging
 
 import com.landoop.streamreactor.connect.hive.TopicPartitionOffset
-import org.apache.hadoop.fs.FileSystem
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.{FileSystem, Path}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -43,7 +42,7 @@ case class CommitContext(tpo: TopicPartitionOffset,
 
 
 /**
- * Default implementation of [[CommitPolicy]] that will flush the
+ * Default compile of [[CommitPolicy]] that will flush the
  * output file under the following circumstances:
  * - file size reaches limit
  * - time since file was created

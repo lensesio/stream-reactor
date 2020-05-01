@@ -1,13 +1,10 @@
 package com.datamountaineer.streamreactor.connect.coap.connection
 
 
-import java.util.logging.Level
-import javax.ws.rs.core.MediaType
 
-import com.datamountaineer.streamreactor.connect.coap.{Server, TestBase}
+import com.datamountaineer.streamreactor.connect.coap.TestBase
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapSettings, CoapSinkConfig}
-import org.eclipse.californium.core.{CaliforniumLogger, CoapClient}
-import org.eclipse.californium.scandium.ScandiumLogger
+import org.eclipse.californium.core.CoapClient
 import org.scalatest.BeforeAndAfter
 
 /**

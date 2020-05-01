@@ -1,21 +1,15 @@
 package com.landoop.streamreactor.connect.hive.sink.staging
 
-import com.landoop.streamreactor.connect.hive.Offset
-import com.landoop.streamreactor.connect.hive.Topic
-import com.landoop.streamreactor.connect.hive.TopicPartitionOffset
+import com.landoop.streamreactor.connect.hive.{Offset, Topic, TopicPartitionOffset}
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.FileSystem
-import org.apache.hadoop.fs.LocalFileSystem
-import org.apache.hadoop.fs.Path
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.data.SchemaBuilder
-import org.apache.kafka.connect.data.Struct
-import org.scalatest.Matchers
-import org.scalatest.WordSpec
+import org.apache.hadoop.fs.{FileSystem, LocalFileSystem, Path}
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.concurrent.duration._
 
-class DefaultCommitPolicyTest extends WordSpec with Matchers {
+class DefaultCommitPolicyTest extends AnyWordSpec with Matchers {
 
   val schema: Schema = SchemaBuilder.struct()
     .field("name", SchemaBuilder.string().required().build())

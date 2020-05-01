@@ -17,16 +17,16 @@
 package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 28/04/16. 
   * stream-reactor
   */
-class TestCassandraSourceSettings extends WordSpec with Matchers with TestConfig {
+class TestCassandraSourceSettings extends AnyWordSpec with Matchers with TestConfig {
   "CassandraSettings should return setting for a source" in {
     val props =  Map(
       CassandraConfigConstants.CONTACT_POINTS -> CONTACT_POINT,
@@ -58,7 +58,7 @@ class TestCassandraSourceSettings extends WordSpec with Matchers with TestConfig
       CassandraConfigConstants.KCQL -> "INSERT INTO cassandra-source SELECT * FROM orders PK created",
       CassandraConfigConstants.POLL_INTERVAL -> "1000"
     )
-    val taskConfig = CassandraConfigSource(map)
+    val taskConfig = CassandraConfigSource(map.asJava)
     val settings = CassandraSettings.configureSource(taskConfig).toList
     settings.size shouldBe 1
   }

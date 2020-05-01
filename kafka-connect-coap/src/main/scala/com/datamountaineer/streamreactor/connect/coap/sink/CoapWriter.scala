@@ -25,7 +25,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.eclipse.californium.core.CoapResponse
 import org.eclipse.californium.core.coap.MediaTypeRegistry
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.Try
 
 /**
@@ -38,8 +38,8 @@ class CoapWriter(setting: CoapSetting) extends CoapManager(setting) with ErrorHa
   //initialize error tracker
   initialize(setting.retries.get, setting.errorPolicy.get)
 
-  val fields = Map(setting.kcql.getSource -> setting.kcql.getFields.map(fa => (fa.getName, fa.getAlias)).toMap)
-  val ignoredFields = Map(setting.kcql.getSource -> setting.kcql.getIgnoredFields.map(f => f.getName).toSet)
+  val fields = Map(setting.kcql.getSource -> setting.kcql.getFields.asScala.map(fa => (fa.getName, fa.getAlias)).toMap)
+  val ignoredFields = Map(setting.kcql.getSource -> setting.kcql.getIgnoredFields.asScala.map(f => f.getName).toSet)
 
   def write(records: List[SinkRecord]): Option[Unit] = {
     val responses = Try(records

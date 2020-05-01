@@ -42,7 +42,7 @@
 //  * Created by andrew@datamountaineer.com on 30/12/2016.
 //  * stream-reactor
 //  */
-//class TestDiscovery extends WordSpec with BeforeAndAfter with TestBase {
+//class TestDiscovery extends AnyWordSpec with BeforeAndAfter with TestBase {
 //
 //  val server = new Server(SOURCE_PORT_SECURE, SOURCE_PORT_INSECURE)
 //

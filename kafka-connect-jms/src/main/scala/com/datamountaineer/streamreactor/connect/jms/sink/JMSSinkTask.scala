@@ -19,19 +19,15 @@ package com.datamountaineer.streamreactor.connect.jms.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfig
-import com.datamountaineer.streamreactor.connect.jms.config.JMSConfigConstants
-import com.datamountaineer.streamreactor.connect.jms.config.JMSSettings
+import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.writer.JMSWriter
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
-import com.datamountaineer.streamreactor.connect.utils.ProgressCounter
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.connect.sink.SinkRecord
-import org.apache.kafka.connect.sink.SinkTask
+import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * <h1>JMSSinkTask</h1>
@@ -72,7 +68,7 @@ class JMSSinkTask extends SinkTask with StrictLogging {
   override def put(records: util.Collection[SinkRecord]): Unit = {
     //filter out records which have null value. it will fail otherwise projecting the payload in order to be sent
     //to the JMS system
-    val seq = records.filter(_.value() != null).toVector
+    val seq = records.asScala.filter(_.value() != null).toVector
     writer.foreach(w => w.write(seq))
 
     if (enableProgress) {

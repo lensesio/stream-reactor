@@ -1,7 +1,6 @@
 package com.datamountaineer.streamreactor.connect.hbase.kerberos.utils
 
-import org.apache.kafka.common.config.AbstractConfig
-import org.apache.kafka.common.config.ConfigException
+import org.apache.kafka.common.config.{AbstractConfig, ConfigException}
 
 object AbstractConfigExtension {
 

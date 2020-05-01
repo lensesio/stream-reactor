@@ -21,12 +21,11 @@ import java.util.concurrent.LinkedBlockingQueue
 
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSettings, CoapSourceConfig}
 import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
-import scala.collection.JavaConversions._
-import scala.util.{Failure, Success, Try}
+import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 27/12/2016. 
@@ -62,7 +61,7 @@ class CoapSourceTask extends SourceTask with StrictLogging {
     QueueHelpers.drainWithTimeoutNoGauva(records, batchSize, lingerTimeout * 1000000 , queue)
 
     if (enableProgress) {
-      progressCounter.update(records.toVector)
+      progressCounter.update(records.asScala.toVector)
     }
     records
   }

@@ -23,7 +23,9 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
+import org.scalatest.BeforeAndAfter
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -32,7 +34,7 @@ import scala.collection.mutable
   * Created by andrew@datamountaineer.com on 21/06/16. 
   * stream-reactor
   */
-trait TestBase extends WordSpec with Matchers with BeforeAndAfter {
+trait TestBase extends AnyWordSpec with Matchers with BeforeAndAfter {
   val TABLE = "rethink_table"
   val TOPIC = "rethink_topic"
   val BATCH_SIZE = 10

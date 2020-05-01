@@ -20,12 +20,12 @@ import java.util
 
 import com.datamountaineer.streamreactor.connect.blockchain.config.BlockchainConfig
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 class BlockchainSourceConnector extends SourceConnector with StrictLogging {
   private var configProps: Option[util.Map[String, String]] = None
@@ -44,7 +44,7 @@ class BlockchainSourceConnector extends SourceConnector with StrictLogging {
     * @param maxTasks The max number of task workers be can spawn.
     * @return a List of configuration properties per worker.
     **/
-  override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = Seq(configProps.get)
+  override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = Seq(configProps.get).asJava
 
   /**
     * Start the sink and set to configuration.

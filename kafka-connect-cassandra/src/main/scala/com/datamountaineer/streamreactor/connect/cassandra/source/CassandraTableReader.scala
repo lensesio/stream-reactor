@@ -17,30 +17,27 @@
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import java.text.SimpleDateFormat
-import java.time.{Instant}
+import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 import java.util.{Collections, Date}
 
+import com.datamountaineer.kcql.FormatType
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSourceSetting, TimestampType}
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraResultSetWrapper.resultSetFutureToScala
-import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
 import com.datamountaineer.streamreactor.connect.offsets.OffsetHandler
 import com.datastax.driver.core._
 import com.datastax.driver.core.utils.UUIDs
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTaskContext}
+import org.json4s.DefaultFormats
+import org.json4s.native.Json
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
-import com.datamountaineer.kcql.FormatType
-
-import org.json4s.native.Json
-import org.json4s.DefaultFormats
 
 /**
   * Created by andrew@datamountaineer.com on 20/04/16.
@@ -72,7 +69,7 @@ class CassandraTableReader(private val name: String,
   private val schemaName = s"$keySpace.$table".replace('-', '.')
   private val bulk = if (setting.timestampColType.equals(TimestampType.NONE)) true else false
   private var schema: Option[Schema] = None
-  private val ignoreList = config.getIgnoredFields.map(_.getName).toSet
+  private val ignoreList = config.getIgnoredFields.asScala.map(_.getName).toSet
   private val isTokenBased = cqlGenerator.isTokenBased()
   private val isDSESearchBased = cqlGenerator.isDSESearchBased()
   private val cassandraTypeConverter : CassandraTypeConverter =
@@ -88,7 +85,7 @@ class CassandraTableReader(private val name: String,
   private def buildOffsetMap(context: SourceTaskContext): Option[String] = {
     val offsetStorageKey = CassandraConfigConstants.ASSIGNED_TABLES
     val tables = List(table)
-    val recoveredOffsets = OffsetHandler.recoverOffsets(offsetStorageKey, tables, context)
+    val recoveredOffsets = OffsetHandler.recoverOffsets(offsetStorageKey, tables.asJava, context)
     val offset = OffsetHandler.recoverOffset[String](recoveredOffsets, offsetStorageKey, table, primaryKeyCol)
     offset.foreach(s => logger.info(s"Recovered offset $s for connector $name"))
     cqlGenerator.getDefaultOffsetValue(offset)
@@ -230,8 +227,8 @@ class CassandraTableReader(private val name: String,
     //get the max offset per query
     var maxOffset: Option[String] = None
     //on success start writing the row to the queue
-    future.onSuccess {
-      case rs: ResultSet =>
+    future.onComplete {
+      case Success(rs) =>
         try {
           logger.info(s"Connector $name processing results for $keySpace.$table.")
           val iter = rs.iterator()
@@ -266,10 +263,11 @@ class CassandraTableReader(private val name: String,
             logger.error(s"Connector $name error processing table $keySpace.$table.", t)
             reset(tableOffset)
         }
+      case Failure(e) => logger.error("Exception occurred inside future", e)
     }
 
     //On failure, reset and throw
-    future.onFailure {
+    future.failed.foreach {
       case t: Throwable =>
         logger.warn(s"Connector $name error querying $table.", t)
         reset(tableOffset)
@@ -332,20 +330,20 @@ class CassandraTableReader(private val name: String,
         val v = structColDefs.map(d => d.getName -> row.getObject(d.getName)).toMap
         val structValue = Json(DefaultFormats).write(v)
         if(keys.isEmpty) {
-          new SourceRecord(sourcePartition, Map(primaryKeyCol -> offset), topic, Schema.STRING_SCHEMA, structValue)
+          new SourceRecord(sourcePartition, Map(primaryKeyCol -> offset).asJava, topic, Schema.STRING_SCHEMA, structValue)
         } else {
-          val keyValue = keys.map(k => row.getObject(k)).mkString(",")
-          new SourceRecord(sourcePartition, Map(primaryKeyCol -> offset), topic, Schema.STRING_SCHEMA, keyValue, Schema.STRING_SCHEMA, structValue)
+          val keyValue = keys.asScala.map(k => row.getObject(k)).mkString(",")
+          new SourceRecord(sourcePartition, Map(primaryKeyCol -> offset).asJava, topic, Schema.STRING_SCHEMA, keyValue, Schema.STRING_SCHEMA, structValue)
         }
       } else {
         val structValue = structColDefs.map(d => d.getName).map(name => row.getObject(name)).mkString(",")
-        new SourceRecord(sourcePartition, Map(primaryKeyCol -> offset), topic, Schema.STRING_SCHEMA, structValue)
+        new SourceRecord(sourcePartition, Map(primaryKeyCol -> offset).asJava, topic, Schema.STRING_SCHEMA, structValue)
       }
     } else {
       if (schema.isEmpty) {
         schema = Some(struct.schema())
       }
-      new SourceRecord(sourcePartition, Map(primaryKeyCol -> offset), topic, struct.schema(), struct)
+      new SourceRecord(sourcePartition, Map(primaryKeyCol -> offset).asJava, topic, struct.schema(), struct)
     }
 
     // add source record to queue

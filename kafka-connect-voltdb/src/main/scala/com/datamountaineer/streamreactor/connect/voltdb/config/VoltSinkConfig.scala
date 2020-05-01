@@ -19,8 +19,8 @@ package com.datamountaineer.streamreactor.connect.voltdb.config
 import java.util
 
 import com.datamountaineer.streamreactor.connect.config.base.traits._
+import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
-import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 object VoltSinkConfig {
   val config: ConfigDef = new ConfigDef()

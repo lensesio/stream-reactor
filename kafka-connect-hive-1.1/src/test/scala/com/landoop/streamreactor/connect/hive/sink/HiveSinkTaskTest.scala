@@ -5,19 +5,17 @@ import java.util
 import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hive.metastore.api.Database
-import org.apache.hadoop.hive.metastore.api.NoSuchObjectException
+import org.apache.hadoop.hive.metastore.api.{Database, NoSuchObjectException}
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.connect.data.SchemaBuilder
-import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.FlatSpec
-import org.scalatest.Matchers
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-class HiveSinkTaskTest extends FlatSpec with Matchers with HiveTestConfig {
+class HiveSinkTaskTest extends AnyFlatSpec with Matchers with HiveTestConfig {
 
   val schema = SchemaBuilder.struct()
     .field("name", SchemaBuilder.string().required().build())

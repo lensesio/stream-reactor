@@ -21,7 +21,7 @@ import java.util
 
 import better.files._
 import com.datamountaineer.streamreactor.connect.ftp.source.KeyStyle.KeyStyle
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.ftpserver.listener.ListenerFactory
 import org.apache.ftpserver.usermanager.PropertiesUserManagerFactory
 import org.apache.ftpserver.usermanager.impl.BaseUser
@@ -29,7 +29,9 @@ import org.apache.ftpserver.{FtpServer, FtpServerFactory}
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.storage.OffsetStorageReader
-import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
+import org.scalatest.BeforeAndAfter
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.JavaConverters._
 
@@ -114,7 +116,7 @@ class FileSystem(rootDir:Path) {
 }
 
 // spins up an embedded ftp server, updates files, uses FtpSourcePoller to obtain SourceRecords which are verified
-class EndToEndTests extends FunSuite with Matchers with BeforeAndAfter with StrictLogging {
+class EndToEndTests extends AnyFunSuite with Matchers with BeforeAndAfter with StrictLogging {
   val sEmpty = new Array[Byte](0)
   val s0 = (0 to 255).map(_.toByte).toArray
   val s1 = "Hebban olla vogala nestas hagunnan hinase hic enda thu wat unbidan we nu\r\n\t\u0000:)".getBytes

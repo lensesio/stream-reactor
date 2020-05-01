@@ -2,7 +2,8 @@ package com.datamountaineer.streamreactor.connect.pulsar.source
 
 import com.datamountaineer.streamreactor.connect.converters.source.{Converter, JsonSimpleConverter}
 import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSourceConfig, PulsarSourceSettings}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
@@ -10,7 +11,7 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 24/01/2018. 
   * stream-reactor
   */
-class PulsarSourceTaskTest extends WordSpec with Matchers {
+class PulsarSourceTaskTest extends AnyWordSpec with Matchers {
 
   val pulsarTopic = "persistent://landoop/standalone/connect/kafka-topic"
 

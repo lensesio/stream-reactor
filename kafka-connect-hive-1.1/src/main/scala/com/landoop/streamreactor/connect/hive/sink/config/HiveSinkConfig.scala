@@ -3,25 +3,13 @@ package com.landoop.streamreactor.connect.hive.sink.config
 import java.util.Collections
 
 import cats.data.NonEmptyList
-import com.datamountaineer.kcql.Field
-import com.datamountaineer.kcql.PartitioningStrategy
-import com.datamountaineer.kcql.SchemaEvolution
-import com.landoop.streamreactor.connect.hive.DatabaseName
-import com.landoop.streamreactor.connect.hive.PartitionField
-import com.landoop.streamreactor.connect.hive.TableName
-import com.landoop.streamreactor.connect.hive.Topic
-import com.landoop.streamreactor.connect.hive.formats.HiveFormat
-import com.landoop.streamreactor.connect.hive.formats.ParquetHiveFormat
-import com.landoop.streamreactor.connect.hive.sink.evolution.AddEvolutionPolicy
-import com.landoop.streamreactor.connect.hive.sink.evolution.EvolutionPolicy
-import com.landoop.streamreactor.connect.hive.sink.evolution.IgnoreEvolutionPolicy
-import com.landoop.streamreactor.connect.hive.sink.evolution.StrictEvolutionPolicy
-import com.landoop.streamreactor.connect.hive.sink.partitioning.DynamicPartitionHandler
-import com.landoop.streamreactor.connect.hive.sink.partitioning.PartitionHandler
-import com.landoop.streamreactor.connect.hive.sink.partitioning.StrictPartitionHandler
-import com.landoop.streamreactor.connect.hive.sink.staging._
-import com.landoop.streamreactor.connect.hive.HadoopConfiguration
+import com.datamountaineer.kcql.{Field, PartitioningStrategy, SchemaEvolution}
+import com.landoop.streamreactor.connect.hive._
+import com.landoop.streamreactor.connect.hive.formats.{HiveFormat, ParquetHiveFormat}
 import com.landoop.streamreactor.connect.hive.kerberos.Kerberos
+import com.landoop.streamreactor.connect.hive.sink.evolution.{AddEvolutionPolicy, EvolutionPolicy, IgnoreEvolutionPolicy, StrictEvolutionPolicy}
+import com.landoop.streamreactor.connect.hive.sink.partitioning.{DynamicPartitionHandler, PartitionHandler, StrictPartitionHandler}
+import com.landoop.streamreactor.connect.hive.sink.staging._
 
 import scala.collection.JavaConverters._
 

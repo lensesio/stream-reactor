@@ -35,7 +35,7 @@ object JMSConfigConstants {
   private[config] val INITIAL_CONTEXT_FACTORY_DOC = "Initial Context Factory, e.g: org.apache.activemq.jndi.ActiveMQInitialContextFactory"
 
   val CONNECTION_FACTORY = s"${CONNECTOR_PREFIX}.connection.factory"
-  private[config] val CONNECTION_FACTORY_DOC = "Provides the full class name for the ConnectionFactory implementation to use, e.g" +
+  private[config] val CONNECTION_FACTORY_DOC = "Provides the full class name for the ConnectionFactory compile to use, e.g" +
     "org.apache.activemq.ActiveMQConnectionFactory"
   val CONNECTION_FACTORY_DEFAULT = "ConnectionFactory"
 

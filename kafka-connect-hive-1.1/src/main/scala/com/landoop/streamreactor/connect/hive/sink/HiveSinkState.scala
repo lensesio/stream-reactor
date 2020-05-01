@@ -1,22 +1,13 @@
 package com.landoop.streamreactor.connect.hive.sink
 
 import com.landoop.streamreactor.connect.hive
-import com.landoop.streamreactor.connect.hive.Offset
-import com.landoop.streamreactor.connect.hive.PartitionPlan
-import com.landoop.streamreactor.connect.hive.TopicPartition
-import com.landoop.streamreactor.connect.hive.sink.mapper.DropPartitionValuesMapper
-import com.landoop.streamreactor.connect.hive.sink.mapper.MetastoreSchemaAlignMapper
-import com.landoop.streamreactor.connect.hive.sink.mapper.ProjectionMapper
-import com.landoop.streamreactor.connect.hive.HiveSchemas
+import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.sink.config.TableOptions
-import com.landoop.streamreactor.connect.hive.DatabaseName
-import com.landoop.streamreactor.connect.hive.TopicPartitionOffset
-import org.apache.hadoop.fs.FileSystem
-import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hive.metastore.api.Table
+import com.landoop.streamreactor.connect.hive.sink.mapper.{DropPartitionValuesMapper, MetastoreSchemaAlignMapper, ProjectionMapper}
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
-import org.apache.kafka.connect.data.Schema
-import org.apache.kafka.connect.data.Struct
+import org.apache.hadoop.hive.metastore.api.Table
+import org.apache.kafka.connect.data.{Schema, Struct}
 
 case class HiveSinkState(offsets: Map[TopicPartition, Offset],
                          committedOffsets: Map[TopicPartition, Offset],

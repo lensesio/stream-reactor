@@ -36,7 +36,7 @@
 //import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
 //import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 //import com.fasterxml.jackson.databind.JsonNode
-//import org.scalatest.mockito.MockitoSugar
+//import org.mockito.MockitoSugar
 //import org.scalatest.{DoNotDiscover, Matchers, WordSpec}
 //
 //import scala.collection.JavaConverters._
@@ -50,7 +50,7 @@
 // */
 //
 //@DoNotDiscover
-//class TestCassandraSourceTaskTokenCql extends WordSpec with Matchers with MockitoSugar with TestConfig
+//class TestCassandraSourceTaskTokenCql extends AnyWordSpec with Matchers with MockitoSugar with TestConfig
 //    with ConverterUtil {
 //
 //  "A Cassandra SourceTask should read records with only columns specified using Token CQL" in {

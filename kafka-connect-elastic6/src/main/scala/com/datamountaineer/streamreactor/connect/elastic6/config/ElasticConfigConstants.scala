@@ -22,25 +22,25 @@ object ElasticConfigConstants {
 
   val CONNECTOR_PREFIX = "connect.elastic"
 
-  val URL = s"${CONNECTOR_PREFIX}.${URL_SUFFIX}"
-  val URL_DOC = "Url including port for Elastic Search cluster node."
-  val URL_DEFAULT = "localhost:9300"
+  val PROTOCOL = s"${CONNECTOR_PREFIX}.protocol"
+  val PROTOCOL_DOC = "URL protocol (http, https)"
+  val PROTOCOL_DEFAULT = "http"
+
+  val HOSTS = s"${CONNECTOR_PREFIX}.${CONNECTION_HOSTS_SUFFIX}"
+  val HOSTS_DOC = "List of hostnames for Elastic Search cluster node, not including protocol or port."
+  val HOSTS_DEFAULT = "localhost"
+
+  val ES_PORT = s"${CONNECTOR_PREFIX}.${CONNECTION_PORT_SUFFIX}"
+  val ES_PORT_DOC = "Port on which Elastic Search node listens on"
+  val ES_PORT_DEFAULT = "9300"
+
+  val ES_PREFIX = s"${CONNECTOR_PREFIX}.tableprefix"
+  val ES_PREFIX_DOC = "Table prefix (optional)"
+  val ES_PREFIX_DEFAULT = ""
+
   val ES_CLUSTER_NAME = s"${CONNECTOR_PREFIX}.${CLUSTER_NAME_SUFFIX}"
-  val ES_CLUSTER_NAME_DEFAULT = "elasticsearch"
   val ES_CLUSTER_NAME_DOC = "Name of the elastic search cluster, used in local mode for setting the connection"
-
-  val ES_CLUSTER_XPACK_SETTINGS = s"${CONNECTOR_PREFIX}.xpack.settings"
-  val ES_CLUSTER_XPACK_SETTINGS_DEFAULT = null
-  val ES_CLUSTER_XPACK_SETTINGS_DOC = "Enable xpack security add on by providing this setting"
-
-  val ES_CLUSTER_XPACK_PLUGINS = s"${CONNECTOR_PREFIX}.xpack.plugins"
-  val ES_CLUSTER_XPACK_PLUGINS_DEFAULT = null
-  val ES_CLUSTER_XPACK_PLUGINS_DOC = "Provide the full class name for all the plugins you want to enable."
-
-
-  val URL_PREFIX = s"${URL}.prefix"
-  val URL_PREFIX_DOC = "URL connection string prefix"
-  val URL_PREFIX_DEFAULT = "elasticsearch"
+  val ES_CLUSTER_NAME_DEFAULT = "elasticsearch"
 
   val KCQL = s"${CONNECTOR_PREFIX}.${KCQL_PROP_SUFFIX}"
   val KCQL_DOC = "KCQL expression describing field selection and routes."
@@ -50,9 +50,6 @@ object ElasticConfigConstants {
   val WRITE_TIMEOUT_DISPLAY = "Write timeout"
   val WRITE_TIMEOUT_DEFAULT = 300000
 
-  val CLIENT_TYPE_CONFIG = s"$CONNECTOR_PREFIX.use.http"
-  val CLIENT_TYPE_CONFIG_DOC = "TCP or HTTP. Elastic4s client type to use, http or tcp, default is tcp."
-  val CLIENT_TYPE_CONFIG_DEFAULT = "tcp"
   val CLIENT_HTTP_BASIC_AUTH_USERNAME = s"$CONNECTOR_PREFIX.use.http.username"
   val CLIENT_HTTP_BASIC_AUTH_USERNAME_DEFAULT = ""
   val CLIENT_HTTP_BASIC_AUTH_USERNAME_DOC = "Username if HTTP Basic Auth required default is null."

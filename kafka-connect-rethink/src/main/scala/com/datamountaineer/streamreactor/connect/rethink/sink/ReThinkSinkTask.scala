@@ -19,13 +19,13 @@ package com.datamountaineer.streamreactor.connect.rethink.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkConfigConstants, ReThinkSinkConfig}
-import com.datamountaineer.streamreactor.connect.utils.{ProgressCounter, JarManifest}
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Created by andrew@datamountaineer.com on 24/03/16. 
@@ -56,8 +56,8 @@ class ReThinkSinkTask extends SinkTask with StrictLogging {
     **/
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
-    val seq = records.toVector
-    writer.foreach(w => w.write(records.toList))
+    val seq = records.asScala.toVector
+    writer.foreach(w => w.write(records.asScala.toList))
 
     if (enableProgress) {
       progressCounter.update(seq)

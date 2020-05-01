@@ -18,9 +18,11 @@ package com.datamountaineer.streamreactor.connect.blockchain.data
 
 import com.datamountaineer.streamreactor.connect.blockchain.json.JacksonJson
 import com.datamountaineer.streamreactor.connect.blockchain.{GetResourcesFromDirectoryFn, Using}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class TransactionTest extends WordSpec with Matchers with Using {
+
+class TransactionTest extends AnyWordSpec with Matchers with Using {
   "Transaction" should {
     "be initialized from json" in {
       GetResourcesFromDirectoryFn("/transactions").foreach { file =>

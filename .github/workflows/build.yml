@@ -1,0 +1,13 @@
+
+name: CI
+
+on: [pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Test
+        run: ./gradlew compile --parallel && ./gradlew test
+        env:
+          JVM_OPTS: -Xmx3200m

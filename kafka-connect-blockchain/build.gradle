@@ -19,8 +19,8 @@ project(":kafka-connect-blockchain") {
 
     ext {
         snappyVersion = "1.1.2.1"
-        avro4sVersion = "1.6.0"
         jacksonVersion = "2.8.2"
+        akkaVersion = "2.4.12"
     }
 
     test {
@@ -32,24 +32,12 @@ project(":kafka-connect-blockchain") {
 
 
     dependencies {
-        /*compile ("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"){
-            exclude()
-        }*/
-        //compile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
-        //akka
         compile "com.typesafe.akka:akka-actor_$scalaMajorVersion:$akkaVersion"
         compile "com.typesafe.akka:akka-stream_$scalaMajorVersion:$akkaVersion"
+        compile "com.typesafe.akka:akka-http_$scalaMajorVersion:10.0.0"
+        compile "org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion"
 
-        compile "com.typesafe.akka:akka-http-experimental_$scalaMajorVersion:$akkaVersion"
-
-        //compile "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
-        //compile "com.fasterxml.jackson.module:jackson-module-scala_$scalaMajorVersion:$jacksonVersion"
-
-        compile "org.json4s:json4s-native_$scalaMajorVersion:3.4.0"
-
-        //test deps
-        testCompile "com.typesafe.akka:akka-http-testkit_$scalaMajorVersion:$akkaVersion"
-        testCompile "com.typesafe.akka:akka-stream-testkit_$scalaMajorVersion:$akkaVersion"
+        testCompile group: 'com.typesafe.akka', name: 'akka-http-testkit_2.12', version: '10.0.0'
         testCompile "com.google.code.findbugs:jsr305:1.3.9"
 
     }

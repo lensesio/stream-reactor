@@ -18,11 +18,10 @@ package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import java.util
 
-import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.config.base.traits._
 import com.datastax.driver.core.ConsistencyLevel
+import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
-import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
 /**
   * Holds the base configuration.
@@ -208,6 +207,17 @@ case class CassandraConfig() {
       15,
       ConfigDef.Width.LONG,
       CassandraConfigConstants.FETCH_SIZE)
+    .define(
+      CassandraConfigConstants.LOAD_BALANCING_POLICY,
+      Type.STRING,
+      LoadBalancingPolicy.TOKEN_AWARE.toString,
+      Importance.MEDIUM,
+      CassandraConfigConstants.LOAD_BALANCING_POLICY_DOC,
+      "Connection",
+      16,
+      ConfigDef.Width.MEDIUM,
+      CassandraConfigConstants.LOAD_BALANCING_POLICY
+    )
 
 }
 
@@ -410,6 +420,7 @@ object CassandraConfigSink {
       1,
       ConfigDef.Width.MEDIUM,
       CassandraConfigConstants.DEFAULT_VALUE_SERVE_STRATEGY_DISPLAY)
+
 }
 
 case class CassandraConfigSink(props: util.Map[String, String])

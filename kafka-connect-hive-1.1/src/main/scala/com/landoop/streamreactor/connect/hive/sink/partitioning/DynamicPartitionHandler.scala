@@ -1,8 +1,6 @@
 package com.landoop.streamreactor.connect.hive.sink.partitioning
 
 import com.landoop.streamreactor.connect.hive.{DatabaseName, Partition, TableName}
-import com.landoop.streamreactor.connect.hive.ConfigurationBuilder.getClass
-import com.typesafe.scalalogging.slf4j.StrictLogging
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 import org.apache.hadoop.hive.metastore.api.{StorageDescriptor, Table}
@@ -16,7 +14,7 @@ import scala.util.{Failure, Success, Try}
   *
   * The path of the partition is determined by the given
   * [[PartitionPathPolicy]] parameter. By default this will
-  * be an implementation that uses the standard hive
+  * be an compile that uses the standard hive
   * paths of key1=value1/key2=value2.
   */
 class DynamicPartitionHandler(pathPolicy: PartitionPathPolicy = DefaultMetastorePartitionPathPolicy)

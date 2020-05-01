@@ -22,12 +22,12 @@ import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisSinkSettings}
 import com.datamountaineer.streamreactor.connect.redis.sink.writer._
 import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * <h1>RedisSinkTask</h1>
@@ -76,22 +76,34 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     // Geo Add mode requires: >=1 PK and STOREAS GeoAdd syntax to be provided
     val mode_GEOADD = filterGeoAddMode(settings)
 
+    val mode_STREAM = filterStream(settings)
+
     //-- Start as many writers as required
     writer = (modeCache.kcqlSettings.headOption.map { _ =>
       logger.info("Starting " + modeCache.kcqlSettings.size + " KCQLs with Redis Cache mode")
-      List(new RedisCache(modeCache))
+      val writer = new RedisCache(modeCache)
+      writer.createClient(settings)
+      List(writer)
     } ++ mode_INSERT_SS.kcqlSettings.headOption.map { _ =>
       logger.info("Starting " + mode_INSERT_SS.kcqlSettings.size + " KCQLs with Redis Insert Sorted Set mode")
-      List(new RedisInsertSortedSet(mode_INSERT_SS))
+      val writer = new RedisInsertSortedSet(mode_INSERT_SS)
+      writer.createClient(settings)
+      List(writer)
     } ++ mode_PUBSUB.kcqlSettings.headOption.map { _ =>
       logger.info("Starting " + mode_PUBSUB.kcqlSettings.size + " KCQLs with Redis PubSub mode")
-      List(new RedisPubSub(mode_PUBSUB))
+      val writer = new RedisInsertSortedSet(mode_INSERT_SS)
+      writer.createClient(settings)
+      List(writer)
     } ++ mode_PK_SS.kcqlSettings.headOption.map { _ =>
       logger.info("Starting " + mode_PK_SS.kcqlSettings.size + " KCQLs with Redis Multiple Sorted Sets mode")
-      List(new RedisMultipleSortedSets(mode_PK_SS))
-    } ++ mode_GEOADD.kcqlSettings.headOption.map{ _ =>
-      logger.info("Starting " + mode_GEOADD.kcqlSettings.size + " KCQLs with Redis Geo Add mode")
-      List(new RedisGeoAdd(mode_GEOADD))
+      val writer = new RedisMultipleSortedSets(mode_PK_SS)
+      writer.createClient(settings)
+      List(writer)
+    } ++ mode_GEOADD.kcqlSettings.headOption.map { _ =>
+      logger.info("Starting " + mode_STREAM.kcqlSettings.size + " KCQLs with Redis Stream mode")
+      val writer = new RedisStreams(mode_STREAM)
+      writer.createClient(settings)
+      List(writer)
     }).flatten.toList
 
     require(writer.nonEmpty, s"No writers set for ${RedisConfigConstants.KCQL_CONFIG}!")
@@ -159,7 +171,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     settings.kcqlSettings
       .filter { k =>
         Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SORTEDSET") &&
-          k.kcqlConfig.getPrimaryKeys.length >= 1
+          k.kcqlConfig.getPrimaryKeys.asScala.length >= 1
       }
   )
 
@@ -181,6 +193,22 @@ class RedisSinkTask extends SinkTask with StrictLogging {
       }
   )
 
+  def filterStream(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(kcqlSettings =
+    settings.kcqlSettings
+      .filter { k =>
+        Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("STREAM") &&
+          k.kcqlConfig.getPrimaryKeys.size() >= 1
+      }
+  )
+
+  def filterSearch(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(kcqlSettings =
+    settings.kcqlSettings
+      .filter { k =>
+        Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("SEARCH") &&
+          k.kcqlConfig.getPrimaryKeys.size() >= 1
+      }
+  )
+
   /**
     * Pass the SinkRecords to the writer for Writing
     **/
@@ -190,7 +218,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
     }
     else {
       require(writer.nonEmpty, "Writer is not set!")
-      val seq = records.toVector
+      val seq = records.asScala.toVector
       writer.foreach(w => w.write(seq))
 
       if (enableProgress) {

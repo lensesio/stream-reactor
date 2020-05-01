@@ -2,7 +2,7 @@ package com.landoop.streamreactor.hive.it
 
 import java.sql.{Connection, DriverManager}
 import java.time.Duration
-import java.util.{Collections, Properties}
+import java.util.Properties
 import java.util.concurrent.TimeUnit
 
 import org.apache.hadoop.conf.Configuration
@@ -49,7 +49,7 @@ trait HiveTests extends Matchers {
   protected def createTopic(): String = {
     val name = "no_partition_" + Math.abs(Random.nextInt)
     Try {
-      admin.createTopics(List(new NewTopic(name, 1, 1)).asJavaCollection).all().get(30, TimeUnit.SECONDS)
+      admin.createTopics(List(new NewTopic(name, 1, 1.toShort)).asJavaCollection).all().get(30, TimeUnit.SECONDS)
       name
     }.getOrElse(sys.error(s"Could not create topic $name"))
   }

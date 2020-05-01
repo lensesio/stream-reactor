@@ -19,10 +19,10 @@ package com.datamountaineer.streamreactor.connect.rethink.sink
 import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkSinkSetting
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.net.Connection
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -56,7 +56,7 @@ object ReThinkHelper extends StrictLogging {
 
 
         //set primary keys if we have them
-        val pk = r.getPrimaryKeys.toSet
+        val pk = r.getPrimaryKeys.asScala.toSet
         val pkName = if (pk.isEmpty) "id" else pk.head.getName
         logger.info(s"Setting primary as first field found: $pkName")
 
@@ -72,7 +72,7 @@ object ReThinkHelper extends StrictLogging {
             logger.info(s"Created table ${r.getTarget}.")
           case Failure(f) =>
             logger.error(s"Failed to create table ${r.getTarget}." +
-              s" Error message  ${create.mkString(",")}, ${f.getMessage}")
+              s" Error message  ${create.asScala.mkString(",")}, ${f.getMessage}")
         }
       })
   }

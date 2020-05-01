@@ -16,16 +16,17 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
-import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisSinkSettings}
-import com.google.gson.Gson
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
-import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
-import java.io.File
 import java.net.URI
 
+import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisSinkSettings}
+import com.google.gson.Gson
 import org.apache.kafka.common.config.SslConfigs
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.sink.SinkRecord
+import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import redis.clients.jedis.Jedis
 
 import scala.collection.JavaConverters._
@@ -42,7 +43,7 @@ The test requires to:
 3) set the runTests to true
 */
 
-class RedisSslTest extends WordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
+class RedisSslTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
 
   val runTests = false;
 
@@ -98,7 +99,9 @@ class RedisSslTest extends WordSpec with Matchers with BeforeAndAfterAll with Mo
       val config =  RedisConfig(map.asJava)
       val settings = RedisSinkSettings(config)
 
+
       val writer = new RedisCache(settings)
+      writer.createClient(settings)
 
       val props = System.getProperties
       props.containsKey("javax.net.ssl.keyStorePassword") shouldBe true

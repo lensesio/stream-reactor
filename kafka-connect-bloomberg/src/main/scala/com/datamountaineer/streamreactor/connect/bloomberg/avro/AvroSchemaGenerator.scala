@@ -18,11 +18,9 @@ package com.datamountaineer.streamreactor.connect.bloomberg.avro
 
 import com.datamountaineer.streamreactor.connect.bloomberg.BloombergData
 import com.datamountaineer.streamreactor.connect.bloomberg.avro.AvroSchemaGenerator._
+import com.fasterxml.jackson.databind.node.TextNode
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Field
-import org.apache.avro.Schema.Field.Order
-import org.codehaus.jackson.JsonNode
-import org.codehaus.jackson.node.TextNode
 
 import scala.collection.JavaConverters._
 

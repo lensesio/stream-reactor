@@ -299,7 +299,7 @@ rpc_keepalive: true
 #          factor; on a 64 bit JVM, 128KB is the minimum stack size per thread.
 #          Connection pooling is very, very strongly recommended.
 #
-# async -> Nonblocking server implementation with one thread to serve
+# async -> Nonblocking server compile with one thread to serve
 #          rpc connections.  This is not recommended for high throughput use
 #          cases. Async has been tested to be about 50% slower than sync
 #          or hsha and is deprecated: it will be removed in the next major release.

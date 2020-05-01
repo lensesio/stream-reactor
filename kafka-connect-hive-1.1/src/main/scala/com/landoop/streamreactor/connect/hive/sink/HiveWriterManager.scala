@@ -1,13 +1,9 @@
 package com.landoop.streamreactor.connect.hive.sink
 
-import com.landoop.streamreactor.connect.hive.Offset
-import com.landoop.streamreactor.connect.hive.TopicPartition
-import com.landoop.streamreactor.connect.hive.TopicPartitionOffset
-import com.landoop.streamreactor.connect.hive.formats.HiveFormat
-import com.landoop.streamreactor.connect.hive.formats.HiveWriter
+import com.landoop.streamreactor.connect.hive.{Offset, TopicPartition, TopicPartitionOffset}
+import com.landoop.streamreactor.connect.hive.formats.{HiveFormat, HiveWriter}
 import com.landoop.streamreactor.connect.hive.sink.staging.StageManager
-import org.apache.hadoop.fs.FileSystem
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.kafka.connect.data.Schema
 
 /**

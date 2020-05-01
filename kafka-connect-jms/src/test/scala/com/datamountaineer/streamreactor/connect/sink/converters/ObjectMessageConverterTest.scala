@@ -18,18 +18,19 @@ package com.datamountaineer.streamreactor.connect.sink.converters
 
 import java.util.UUID
 
-import javax.jms.ObjectMessage
-import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.converters.ObjectMessageConverter
-import com.sksamuel.scalax.io.Using
+import com.datamountaineer.streamreactor.connect.{TestBase, Using}
+import javax.jms.ObjectMessage
 import org.apache.activemq.ActiveMQConnectionFactory
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 import scala.reflect.io.Path
 
-class ObjectMessageConverterTest extends WordSpec with Matchers with Using with TestBase with BeforeAndAfterAll {
+class ObjectMessageConverterTest extends AnyWordSpec with Matchers with Using with TestBase with BeforeAndAfterAll {
   val converter = new ObjectMessageConverter()
   val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
   val topicName = UUID.randomUUID().toString

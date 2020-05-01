@@ -23,11 +23,12 @@ import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data.Struct
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
-class KeysExtractorTest extends WordSpec with Matchers {
+class KeysExtractorTest extends AnyWordSpec with Matchers {
   private val avroData = new AvroData(4)
 
   case class WithNested(id: Int, nested: SomeTest)
@@ -53,19 +54,19 @@ class KeysExtractorTest extends WordSpec with Matchers {
 
 
     "extract keys from a Map" in {
-      val actual = KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> "tripple"), Set("key1", "key3"))
+      val actual = KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> "tripple").asJava, Set("key1", "key3"))
       actual shouldBe Set("key1" -> 12, "key3" -> "tripple")
     }
 
     "extract keys from a Map should throw an exception if the key is another map" in {
       intercept[ConfigException] {
-        KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> Map.empty[String, String]), Set("key1", "key3"))
+        KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> Map.empty[String, String]).asJava, Set("key1", "key3"))
       }
     }
 
     "extract keys from a Map should throw an exception if the key is an array" in {
       intercept[ConfigException] {
-        KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> new util.ArrayList[String]), Set("key1", "key3"))
+        KeysExtractor.fromMap(Map("key1" -> 12, "key2" -> 10L, "key3" -> new util.ArrayList[String]).asJava, Set("key1", "key3"))
       }
     }
 

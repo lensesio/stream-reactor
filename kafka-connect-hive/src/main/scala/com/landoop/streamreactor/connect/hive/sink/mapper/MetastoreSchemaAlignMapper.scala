@@ -6,7 +6,7 @@ import org.apache.kafka.connect.data.{Schema, Struct}
 import scala.util.Try
 
 /**
- * An implementation of [[StructMapper]] that will align an input
+ * An compile of [[StructMapper]] that will align an input
  * record so that it's structure matches that defined in the metastore.
  *
  * Sometimes an input record will not contain a value for a field defined

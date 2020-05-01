@@ -16,17 +16,15 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.config
 
-import java.lang.Boolean
-
 import com.datamountaineer.kcql.{Field, Kcql}
 import com.datamountaineer.streamreactor.connect.cassandra.config.DefaultValueServeStrategy.DefaultValueServeStrategy
 import com.datamountaineer.streamreactor.connect.cassandra.config.TimestampType.TimestampType
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datastax.driver.core.ConsistencyLevel
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.{Success, Try}
 
 /**
@@ -39,6 +37,11 @@ trait CassandraSetting
 object TimestampType extends Enumeration {
   type TimestampType = Value
   val TIMESTAMP, DSESEARCHTIMESTAMP, TIMEUUID, TOKEN, NONE = Value
+}
+
+object LoadBalancingPolicy extends Enumeration {
+  type LoadBalancingPolicy = Value
+  val TOKEN_AWARE, ROUND_ROBIN, DC_AWARE_ROUND_ROBIN, LATENCY_AWARE = Value
 }
 
 case class CassandraSourceSetting(kcql: Kcql,
@@ -69,7 +72,8 @@ case class CassandraSinkSetting(keySpace: String,
                                 deleteEnabled: Boolean = CassandraConfigConstants.DELETE_ROW_ENABLED_DEFAULT,
                                 deleteStatement: String = CassandraConfigConstants.DELETE_ROW_STATEMENT_DEFAULT,
                                 deleteStructFields: Seq[String] = Seq.empty,
-                                defaultValueStrategy: Option[DefaultValueServeStrategy] = None) extends CassandraSetting
+                                defaultValueStrategy: Option[DefaultValueServeStrategy] = None
+                               ) extends CassandraSetting
 
 /**
   * Cassandra Setting used for both Readers and writers
@@ -161,8 +165,9 @@ object CassandraSettings extends StrictLogging {
       enableCounter,
       deleteEnabled,
       deleteStmt,
-      structFlds,
-      defaultValueStrategy)
+      structFlds.asScala,
+      defaultValueStrategy
+    )
   }
 }
 

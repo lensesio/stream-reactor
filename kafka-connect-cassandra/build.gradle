@@ -23,7 +23,6 @@ project(":kafka-connect-cassandra") {
         jPountzVersion = "1.3.0"
         jsonPathVersion = "2.4.0"
         snappyVersion = "1.1.2.1"
-        smt = "0.1"
         nettyVersion = '4.0.47.Final'
         pegDownversion = "1.6.0"
     }
@@ -32,10 +31,14 @@ project(":kafka-connect-cassandra") {
         testCompile.exclude group: "org.slf4j", module: "slf4j-log4j12"
     }
 
+    test {
+        maxParallelForks = 1
+    }
+
     dependencies {
 
-        compile("com.datastax.cassandra:cassandra-driver-core:$cassandraDriverVersion")
-        compile("com.jayway.jsonpath:json-path:$jsonPathVersion")
+        compile "com.datastax.cassandra:cassandra-driver-core:$cassandraDriverVersion"
+        compile "com.jayway.jsonpath:json-path:$jsonPathVersion"
         compile group: 'io.netty', name: 'netty-transport-native-epoll', version: '4.0.47.Final', classifier: 'linux-x86_64'
 
         testCompile("org.apache.cassandra:cassandra-all:$cassandraVersion") {
@@ -52,6 +55,6 @@ project(":kafka-connect-cassandra") {
             exclude group: "org.slf4j", module: "log4j-over-slf4j"
         }
 
-        testRuntime 'org.ow2.asm:asm-all:4.2'
+        testCompile 'org.ow2.asm:asm-all:4.2'
     }
 }

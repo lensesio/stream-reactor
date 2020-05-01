@@ -24,7 +24,9 @@ project(":kafka-connect-hbase") {
 
     dependencies {
         compile("com.google.guava:guava:$guavaVersion") {
-            force = true
+            version {
+                strictly "$guavaVersion"
+            }
         }
 
         compile "org.apache.hadoop:hadoop-hdfs:$hdfsVersion"
@@ -33,7 +35,9 @@ project(":kafka-connect-hbase") {
             exclude group: "tomcat"
         }
 
-        testCompile group: 'org.kitesdk', name: 'kite-minicluster', version: '1.0.0-cdh5.12.0'
+        //testCompile group: 'org.kitesdk', name: 'kite-minicluster', version: '1.0.0-cdh5.12.0'
+
+        testCompile group: 'org.apache.hbase', name: 'hbase-testing-util', version: '1.1.0'
         testCompile("org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion")
     }
 }

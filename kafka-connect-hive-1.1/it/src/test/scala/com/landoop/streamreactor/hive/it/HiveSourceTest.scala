@@ -4,12 +4,13 @@ import java.util.Collections
 import java.util.concurrent.TimeUnit
 
 import org.scalatest.concurrent.Eventually
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{Millis, Span}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.io.Source
 
-class HiveSourceTest extends WordSpec with Matchers with PersonTestData with Eventually with HiveTests {
+class HiveSourceTest extends AnyWordSpec with Matchers with PersonTestData with Eventually with HiveTests {
 
   private implicit val patience: PatienceConfig = PatienceConfig(Span(60000, Millis), Span(5000, Millis))
 

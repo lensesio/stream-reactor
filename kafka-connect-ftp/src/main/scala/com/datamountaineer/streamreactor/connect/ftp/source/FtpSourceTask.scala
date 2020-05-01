@@ -20,13 +20,12 @@ import java.time.Duration
 import java.util
 
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import org.apache.kafka.connect.storage.OffsetStorageReader
 
 import scala.collection.JavaConverters._
-import scala.collection.immutable
 import scala.collection.immutable.Stream.Empty
 import scala.util.{Failure, Success}
 

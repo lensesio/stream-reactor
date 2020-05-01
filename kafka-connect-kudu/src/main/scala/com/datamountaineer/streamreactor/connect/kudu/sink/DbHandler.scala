@@ -23,15 +23,14 @@ import com.datamountaineer.streamreactor.connect.kudu.KuduConverter
 import com.datamountaineer.streamreactor.connect.kudu.config.KuduSettings
 import com.datamountaineer.streamreactor.connect.kudu.sink.DbHandler.kuduSchema
 import com.datamountaineer.streamreactor.connect.schemas.SchemaRegistry
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.avro.{JsonProperties, Schema}
 import org.apache.kafka.connect.errors.ConnectException
-import org.apache.kudu.client.{KuduClient, KuduTable}
 import org.apache.kudu.ColumnSchema
-import org.apache.kudu.client._
+import org.apache.kudu.client.{KuduClient, KuduTable, _}
 import org.json4s.JsonAST.JValue
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -49,9 +48,9 @@ object DbHandler extends StrictLogging with KuduConverter {
 
   def checkTables(client: KuduClient, settings: KuduSettings) = {
     val kuduTables = client.getTablesList.getTablesList
-    logger.info(s"Found the following tables in Kudu, ${kuduTables.mkString(",")}")
+    logger.info(s"Found the following tables in Kudu, ${kuduTables.asScala.mkString(",")}")
     val tables = settings.kcql.map(s => s.getTarget.trim).toSet
-    val missing = tables diff kuduTables.toSet
+    val missing = tables diff kuduTables.asScala.toSet
 
     //filter for autocreate as the schema may not exist yet in the registry, they will be create on arrival of the first message if
     //set to auto create
@@ -165,18 +164,18 @@ object DbHandler extends StrictLogging with KuduConverter {
     **/
   private def getKuduCols(kcql: Kcql, avroFields: avroSchema): util.List[ColumnSchema] = {
 
-    if (kcql.getFields.head.equals("*")) {
+    if (kcql.getFields.asScala.head.equals("*")) {
       logger.info(s"All fields from topic will be used to create Kudu table ${kcql.getTarget}. ")
     } else {
-      logger.info(s"Using fields ${kcql.getFields.mkString(",")} to create the ${kcql.getTarget}")
+      logger.info(s"Using fields ${kcql.getFields.asScala.mkString(",")} to create the ${kcql.getTarget}")
     }
 
-    val mappingFields = kcql.getFields.map(f => (f.getName, f.getAlias)).toMap
-    val ignored = kcql.getIgnoredFields.toSet
-    val fields = avroFields.getFields.filterNot(f => ignored.contains(f.name()))
+    val mappingFields = kcql.getFields.asScala.map(f => (f.getName, f.getAlias)).toMap
+    val ignored = kcql.getIgnoredFields.asScala
+    val fields = avroFields.getFields.asScala.filterNot(f => ignored.contains(f.name()))
 
     //only allow auto creation if distribute by and bucketing are specified
-    val pks = Try(kcql.getBucketing.getBucketNames.toSet) match {
+    val pks = Try(kcql.getBucketing.getBucketNames.asScala.toSet) match {
       case Success(s) => s
       case Failure(_) => throw new ConnectException("DISTRIBUTEBY columns INTO BUCKETS n must be specified for table " +
         "auto creation!")
@@ -200,7 +199,7 @@ object DbHandler extends StrictLogging with KuduConverter {
 
     logger.info(s"Setting columns as ${cols.map(c => c.getName).mkString(",")} for ${kcql.getTarget}")
     cols
-  }
+  }.asJava
 
   /**
     * Alter a Kudu table, new columns only
@@ -247,7 +246,7 @@ object DbHandler extends StrictLogging with KuduConverter {
   def compare(old: kuduSchema, current: kuduSchema): List[AlterTableOptions] = {
     ///look for new fields
     logger.info("Found a difference in the schemas.")
-    val diff = current.getColumns.toSet.diff(old.getColumns.toSet)
+    val diff = current.getColumns.asScala.toSet.diff(old.getColumns.asScala.toSet)
     diff.map(d => {
       val schema = current.getColumn(d.getName)
       val ato = new AlterTableOptions()
@@ -350,8 +349,8 @@ object DbHandler extends StrictLogging with KuduConverter {
     **/
   private def getCreateTableOptions(config: Kcql): CreateTableOptions = {
     new CreateTableOptions()
-      .addHashPartitions(config.getBucketing.getBucketNames.toList, config.getBucketing.getBucketsNumber)
-      .setRangePartitionColumns(List.empty[String])
+      .addHashPartitions(config.getBucketing.getBucketNames.asScala.toList.asJava, config.getBucketing.getBucketsNumber)
+      .setRangePartitionColumns(List.empty[String].asJava)
   }
 }
 

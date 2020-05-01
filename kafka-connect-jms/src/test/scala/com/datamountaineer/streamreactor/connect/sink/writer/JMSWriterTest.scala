@@ -19,13 +19,12 @@ package com.datamountaineer.streamreactor.connect.sink.writer
 import java.io.File
 import java.util.UUID
 
-import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.writer.JMSWriter
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.sink.IteratorToSeqFn
+import com.datamountaineer.streamreactor.connect.{TestBase, Using}
 import com.fasterxml.jackson.databind.node.{ArrayNode, IntNode}
-import com.sksamuel.scalax.io.Using
 import javax.jms.{Message, MessageListener, Session, TextMessage}
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.broker.BrokerService

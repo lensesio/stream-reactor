@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.connect.rethink.config
 
 import com.datamountaineer.streamreactor.connect.rethink.TestBase
-import org.scalatest.mockito.MockitoSugar
+import org.mockito.MockitoSugar
+
 
 
 /**

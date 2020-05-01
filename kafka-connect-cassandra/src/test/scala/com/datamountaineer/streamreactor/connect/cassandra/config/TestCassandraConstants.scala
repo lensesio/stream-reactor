@@ -16,12 +16,13 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.config
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 /**
   * The point of this test is to check that constants keys are not changed after the refactor of the code.
   */
-class TestCassandraConstants extends WordSpec with Matchers {
+class TestCassandraConstants extends AnyWordSpec with Matchers {
 
   // Constants
   val POLL_INTERVAL = "connect.cassandra.import.poll.interval"

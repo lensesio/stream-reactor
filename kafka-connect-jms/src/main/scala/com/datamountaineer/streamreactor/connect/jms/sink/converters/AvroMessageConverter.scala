@@ -17,11 +17,11 @@
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
 import java.io.ByteArrayOutputStream
-import javax.jms.{BytesMessage, Session}
 
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.serialization.AvroSerializer
+import javax.jms.{BytesMessage, Session}
 import org.apache.kafka.connect.sink.SinkRecord
 
 class AvroMessageConverter extends JMSMessageConverter with ConverterUtil {

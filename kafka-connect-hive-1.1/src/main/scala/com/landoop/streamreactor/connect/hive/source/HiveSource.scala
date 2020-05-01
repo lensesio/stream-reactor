@@ -1,11 +1,10 @@
 package com.landoop.streamreactor.connect.hive.source
 
 import com.landoop.streamreactor.connect.hive
+import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.formats.{HiveFormat, HiveReader, Record}
 import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfig
-import com.landoop.streamreactor.connect.hive._
-import com.landoop.streamreactor.connect.hive.source.mapper.ProjectionMapper
-import com.landoop.streamreactor.connect.hive.source.mapper.PartitionValueMapper
+import com.landoop.streamreactor.connect.hive.source.mapper.{PartitionValueMapper, ProjectionMapper}
 import com.landoop.streamreactor.connect.hive.source.offset.HiveSourceOffsetStorageReader
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hive.metastore.IMetaStoreClient

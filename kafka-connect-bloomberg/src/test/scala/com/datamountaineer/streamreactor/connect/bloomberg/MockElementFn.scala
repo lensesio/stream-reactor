@@ -18,8 +18,7 @@ package com.datamountaineer.streamreactor.connect.bloomberg
 
 import com.bloomberglp.blpapi.Schema.Datatype
 import com.bloomberglp.blpapi.{Datetime, Element, Name}
-import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+import org.mockito.MockitoSugar
 
 object MockElementFn extends MockitoSugar {
   def apply(value: Boolean, fieldName: String): Element = {

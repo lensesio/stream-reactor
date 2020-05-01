@@ -39,7 +39,7 @@ project(":kafka-connect-hive") {
         compile("org.apache.hadoop:hadoop-mapreduce:$hadoopVersion")
         compile("org.apache.hadoop:hadoop-mapreduce-client:$hadoopVersion")
         compile("org.apache.hadoop:hadoop-mapreduce-client-core:$hadoopVersion")
-        compile("org.typelevel:cats-core_2.11:$catsVersion")
+        compile("org.typelevel:cats-core_$scalaMajorVersion:$catsVersion")
 
         //testCompile 'org.apache.logging.log4j:log4j:2.11.0'
     }

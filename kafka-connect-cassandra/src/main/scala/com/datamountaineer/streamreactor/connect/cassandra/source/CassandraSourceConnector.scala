@@ -21,13 +21,13 @@ import java.util
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource}
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * <h1>CassandraSourceConnector</h1>
@@ -62,17 +62,17 @@ class CassandraSourceConnector extends SourceConnector with StrictLogging {
     val numGroups = Math.min(tables.size, maxTasks)
 
     logger.info(s"Setting task configurations for $numGroups workers.")
-    val groups = ConnectorUtils.groupPartitions(tables, maxTasks)
+    val groups = ConnectorUtils.groupPartitions(tables.asJava, maxTasks).asScala
 
     //setup the config for each task and set assigned tables
     groups
-      .withFilter(g => g.nonEmpty)
+      .withFilter(g => g.asScala.nonEmpty)
       .map { g =>
         val taskConfigs = new java.util.HashMap[String, String](configProps.get)
-        taskConfigs.put(CassandraConfigConstants.ASSIGNED_TABLES, g.mkString(","))
-        taskConfigs
+        taskConfigs.put(CassandraConfigConstants.ASSIGNED_TABLES, g.asScala.mkString(","))
+        taskConfigs.asScala.asJava
       }
-  }
+  }.asJava
 
   /**
     * Start the sink and set to configuration.

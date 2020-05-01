@@ -18,13 +18,11 @@ package com.datamountaineer.streamreactor.connect.elastic6
 
 import java.util.UUID
 
-import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticSettings
-import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticConfigConstants}
-import com.sksamuel.elastic4s.ElasticDsl._
+import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
 import com.sksamuel.elastic4s.embedded.LocalNode
+import com.sksamuel.elastic4s.http.ElasticDsl._
 import org.apache.kafka.connect.sink.SinkTaskContext
-import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+import org.mockito.MockitoSugar
 
 import scala.reflect.io.File
 
@@ -40,14 +38,14 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecords
     //get config
-    val config = new ElasticConfig(getElasticSinkConfigPropsSelection)
+    val config = new ElasticConfig(getElasticSinkConfigPropsSelection())
 
     val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
-    val client = localNode.elastic4sclient(true)
+    val client = localNode.client(true)
     //get writer
 
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(new TcpKElasticClient(client), settings)
+    val writer = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
     //write records to elastic
     writer.write(testRecords)
 
@@ -56,7 +54,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     val res = client.execute {
       search(INDEX)
     }.await
-    res.totalHits shouldBe testRecords.size
+    res.result.totalHits shouldBe testRecords.size
     //close writer
     writer.close()
     client.close()
@@ -75,11 +73,11 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     val config = new ElasticConfig( getBaseElasticSinkConfigProps(s"INSERT INTO $INDEX SELECT id, nested.string_field FROM $TOPIC"))
 
     val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
-    val client = localNode.elastic4sclient(true)
+    val client = localNode.client(true)
     //get writer
 
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(new TcpKElasticClient(client), settings)
+    val writer = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
     //write records to elastic
     writer.write(testRecords)
 
@@ -88,7 +86,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     val res = client.execute {
       search(INDEX)
     }.await
-    res.totalHits shouldBe testRecords.size
+    res.result.totalHits shouldBe testRecords.size
     //close writer
     writer.close()
     client.close()
@@ -104,12 +102,12 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //get test records
     val testRecords = getTestRecords
     //get config
-    val config = new ElasticConfig(getElasticSinkUpdateConfigPropsSelection)
+    val config = new ElasticConfig(getElasticSinkUpdateConfigPropsSelection())
 
     val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
-    val client = localNode.elastic4sclient(true)
+    val client = localNode.client(true)
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(new TcpKElasticClient(client), settings)
+    val writer = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
     //First run writes records to elastic
     writer.write(testRecords)
 
@@ -118,7 +116,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     val res = client.execute {
       search(INDEX)
     }.await
-    res.totalHits shouldBe testRecords.size
+    res.result.totalHits shouldBe testRecords.size
 
     val testUpdateRecords = getUpdateTestRecord
 
@@ -130,7 +128,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     val updateRes = client.execute {
       search(INDEX)
     }.await
-    updateRes.totalHits shouldBe testRecords.size
+    updateRes.result.totalHits shouldBe testRecords.size
 
     //close writer
     writer.close()
@@ -150,9 +148,9 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     val config = new ElasticConfig(getBaseElasticSinkConfigProps(s"UPSERT INTO $INDEX SELECT nested.id, string_field FROM $TOPIC PK nested.id"))
 
     val localNode = LocalNode(ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT, TMP.toString)
-    val client = localNode.elastic4sclient(true)
+    val client = localNode.client(true)
     val settings = ElasticSettings(config)
-    val writer = new ElasticJsonWriter(new TcpKElasticClient(client), settings)
+    val writer = new ElasticJsonWriter(new HttpKElasticClient(client), settings)
     //First run writes records to elastic
     writer.write(testRecords)
 
@@ -161,7 +159,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     val res = client.execute {
       search(INDEX)
     }.await
-    res.totalHits shouldBe testRecords.size
+    res.result.totalHits shouldBe testRecords.size
 
     val testUpdateRecords = getUpdateTestRecordNested
 
@@ -173,7 +171,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     val updateRes = client.execute {
       search(INDEX)
     }.await
-    updateRes.totalHits shouldBe testRecords.size
+    updateRes.result.totalHits shouldBe testRecords.size
 
     //close writer
     writer.close()

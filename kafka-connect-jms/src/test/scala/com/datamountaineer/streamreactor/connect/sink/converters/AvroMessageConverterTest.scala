@@ -19,22 +19,23 @@ package com.datamountaineer.streamreactor.connect.sink.converters
 import java.nio.ByteBuffer
 import java.util.UUID
 
-import javax.jms.BytesMessage
-import com.datamountaineer.streamreactor.connect.TestBase
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSSettings}
 import com.datamountaineer.streamreactor.connect.jms.sink.converters.AvroMessageConverter
 import com.datamountaineer.streamreactor.connect.sink.AvroDeserializer
-import com.sksamuel.scalax.io.Using
+import com.datamountaineer.streamreactor.connect.{TestBase, Using}
 import io.confluent.connect.avro.AvroData
+import javax.jms.BytesMessage
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 import scala.reflect.io.Path
 
-class AvroMessageConverterTest extends WordSpec with Matchers with Using with TestBase with BeforeAndAfterAll {
+class AvroMessageConverterTest extends AnyWordSpec with Matchers with Using with TestBase with BeforeAndAfterAll {
   val converter = new AvroMessageConverter()
   private lazy val avroData = new AvroData(128)
   val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"

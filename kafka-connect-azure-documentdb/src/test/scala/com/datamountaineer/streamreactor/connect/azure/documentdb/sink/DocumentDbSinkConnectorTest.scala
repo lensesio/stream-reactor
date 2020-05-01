@@ -19,13 +19,13 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbConfigConstants
 import com.microsoft.azure.documentdb._
 import org.mockito.ArgumentMatchers.{any, eq => mockEq}
-import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.mockito.MockitoSugar
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
-class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSugar {
+class DocumentDbSinkConnectorTest extends AnyWordSpec with Matchers with MockitoSugar {
   private val connection = "https://accountName.documents.azure.com:443/"
 
   "DocumentDbSinkConnector" should {
@@ -51,8 +51,8 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
         .thenReturn(collResource)
 
       val connector = new DocumentDbSinkConnector((s) => documentClient)
-      connector.start(map)
-      connector.taskConfigs(3).length shouldBe 1
+      connector.start(map.asJava)
+      connector.taskConfigs(3).asScala.length shouldBe 1
     }
 
     "return one task when multiple routes are provided but maxTasks is 1" in {
@@ -81,8 +81,8 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
       }
       val connector = new DocumentDbSinkConnector((s) => documentClient)
 
-      connector.start(map)
-      connector.taskConfigs(1).length shouldBe 1
+      connector.start(map.asJava)
+      connector.taskConfigs(1).asScala.length shouldBe 1
     }
 
     "return 2 configs when 3 routes are provided and maxTasks is 2" in {
@@ -113,8 +113,8 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
 
       val connector = new DocumentDbSinkConnector((s) => documentClient)
 
-      connector.start(map)
-      val tasksConfigs = connector.taskConfigs(2)
+      connector.start(map.asJava)
+      val tasksConfigs = connector.taskConfigs(2).asScala
       tasksConfigs.length shouldBe 2
       tasksConfigs(0).get(DocumentDbConfigConstants.KCQL_CONFIG) shouldBe "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA"
       tasksConfigs(1).get(DocumentDbConfigConstants.KCQL_CONFIG) shouldBe "INSERT INTO coll3 SELECT * FROM topicB"
@@ -148,8 +148,8 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
 
       val connector = new DocumentDbSinkConnector((s) => documentClient)
 
-      connector.start(map)
-      val tasksConfigs = connector.taskConfigs(3)
+      connector.start(map.asJava)
+      val tasksConfigs = connector.taskConfigs(3).asScala
       tasksConfigs.length shouldBe 3
       tasksConfigs(0).get(DocumentDbConfigConstants.KCQL_CONFIG) shouldBe "INSERT INTO collection1 SELECT * FROM topic1"
       tasksConfigs(1).get(DocumentDbConfigConstants.KCQL_CONFIG) shouldBe "INSERT INTO coll2 SELECT * FROM topicA"
@@ -185,8 +185,8 @@ class DocumentDbSinkConnectorTest extends WordSpec with Matchers with MockitoSug
 
       val connector = new DocumentDbSinkConnector((s) => documentClient)
 
-      connector.start(map)
-      val tasksConfigs = connector.taskConfigs(2)
+      connector.start(map.asJava)
+      val tasksConfigs = connector.taskConfigs(2).asScala
       tasksConfigs.length shouldBe 2
       tasksConfigs(0).get(DocumentDbConfigConstants.KCQL_CONFIG) shouldBe "INSERT INTO collection1 SELECT * FROM topic1;INSERT INTO coll2 SELECT * FROM topicA"
       tasksConfigs(1).get(DocumentDbConfigConstants.KCQL_CONFIG) shouldBe "INSERT INTO coll3 SELECT * FROM topicB;INSERT INTO coll4 SELECT * FROM topicC"

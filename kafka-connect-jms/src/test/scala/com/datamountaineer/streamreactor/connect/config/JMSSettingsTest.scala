@@ -25,8 +25,8 @@ import com.datamountaineer.streamreactor.connect.jms.config._
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.BeforeAndAfterAll
 
-import scala.reflect.io.Path
 import scala.collection.JavaConverters._
+import scala.reflect.io.Path
 
 class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
 

@@ -17,12 +17,11 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.config
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.config.SSLConfig
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.rowkeys._
 import org.apache.kafka.common.config.{ConfigException, SslConfigs}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 // Redis connection details: host, port, password
 case class RedisConnectionInfo(host: String,
@@ -67,7 +66,7 @@ object RedisSinkSettings {
     // Get the aliases
     val aliases = config.getFieldsAliases()
     // Get the ignored fields
-    val ignoredFields = kcqlConfigs.map(r => r.getIgnoredFields.map(f => f.getName).toSet)
+    val ignoredFields = kcqlConfigs.map(r => r.getIgnoredFields.asScala.map(f => f.getName).toSet)
     // Get connection info
     val connectionInfo = RedisConnectionInfo(config)
 
@@ -80,7 +79,7 @@ object RedisSinkSettings {
 
     val allRedisKCQLSettings = (0 until size).map { i =>
       RedisKCQLSetting(
-        kcqlConfigs.get(i).getSource,
+        kcqlConfigs(i).getSource,
         kcqlConfigs(i),
         builders(i),
         aliases(i),

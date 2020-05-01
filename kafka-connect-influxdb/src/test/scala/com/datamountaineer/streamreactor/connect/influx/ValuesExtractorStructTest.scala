@@ -22,11 +22,12 @@ import com.datamountaineer.streamreactor.connect.influx.writers.ValuesExtractor
 import com.sksamuel.avro4s.RecordFormat
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.util.{Success, Try}
 
-class ValuesExtractorStructTest extends WordSpec with Matchers {
+class ValuesExtractorStructTest extends AnyWordSpec with Matchers {
   "ValuesExtractor" should {
     "return all the fields and their values" in {
       val schema = SchemaBuilder.struct().name("com.example.Person")

@@ -31,8 +31,7 @@ import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper
-import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+import org.mockito.MockitoSugar
 
 import scala.collection.JavaConverters._
 

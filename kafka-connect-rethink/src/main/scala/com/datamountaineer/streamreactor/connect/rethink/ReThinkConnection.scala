@@ -21,7 +21,7 @@ import java.io.{BufferedInputStream, FileInputStream}
 import com.datamountaineer.streamreactor.connect.rethink.config.ReThinkConfigConstants
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.net.Connection
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.AbstractConfig
 import org.apache.kafka.connect.errors.ConnectException
 

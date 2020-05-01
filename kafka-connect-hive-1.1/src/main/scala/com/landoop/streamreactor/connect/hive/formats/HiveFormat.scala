@@ -8,13 +8,13 @@ import org.apache.kafka.connect.data.{Schema, Struct}
   * [[HiveFormat]] encapsulates the ability to read and write files
   * in HDFS in file formats that are compatible with hive.
   *
-  * Each implementation will support a different underlying file format.
+  * Each compile will support a different underlying file format.
   *
   * For example, a [[ParquetHiveFormat]] will support files in the Apache Parquet
   * format, which would be compatible with the
   * org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe serde used by Hive.
   *
-  * Another implementation may use Apache Orc, or Apache Avro, or "your own format".
+  * Another compile may use Apache Orc, or Apache Avro, or "your own format".
   *
   * The idea behind this interface is similar to the
   * org.apache.hadoop.mapreduce.InputFormat interface that hadoop uses.

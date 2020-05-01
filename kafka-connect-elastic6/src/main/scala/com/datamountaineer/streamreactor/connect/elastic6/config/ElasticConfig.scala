@@ -28,15 +28,45 @@ object ElasticConfig {
 
   val config: ConfigDef = new ConfigDef()
     .define(
-      ElasticConfigConstants.URL,
+      ElasticConfigConstants.PROTOCOL,
       Type.STRING,
-      ElasticConfigConstants.URL_DEFAULT,
-      Importance.HIGH,
-      ElasticConfigConstants.URL_DOC,
+      ElasticConfigConstants.PROTOCOL_DEFAULT,
+      Importance.LOW,
+      ElasticConfigConstants.PROTOCOL_DOC,
       "Connection",
       1,
       ConfigDef.Width.MEDIUM,
-      ElasticConfigConstants.URL)
+      ElasticConfigConstants.PROTOCOL)
+    .define(
+      ElasticConfigConstants.HOSTS,
+      Type.STRING,
+      ElasticConfigConstants.HOSTS_DEFAULT,
+      Importance.HIGH,
+      ElasticConfigConstants.HOSTS_DOC,
+      "Connection",
+      2,
+      ConfigDef.Width.MEDIUM,
+      ElasticConfigConstants.HOSTS)
+    .define(
+      ElasticConfigConstants.ES_PORT,
+      Type.STRING,
+      ElasticConfigConstants.ES_PORT_DEFAULT,
+      Importance.HIGH,
+      ElasticConfigConstants.ES_PORT_DOC,
+      "Connection",
+      3,
+      ConfigDef.Width.MEDIUM,
+      ElasticConfigConstants.HOSTS)
+    .define(
+      ElasticConfigConstants.ES_PREFIX,
+      Type.STRING,
+      ElasticConfigConstants.ES_PREFIX_DEFAULT,
+      Importance.HIGH,
+      ElasticConfigConstants.ES_PREFIX_DOC,
+      "Connection",
+      4,
+      ConfigDef.Width.MEDIUM,
+      ElasticConfigConstants.HOSTS)
     .define(
       ElasticConfigConstants.ES_CLUSTER_NAME,
       Type.STRING,
@@ -44,19 +74,10 @@ object ElasticConfig {
       Importance.HIGH,
       ElasticConfigConstants.ES_CLUSTER_NAME_DOC,
       "Connection",
-      2,
+      5,
       ConfigDef.Width.MEDIUM,
       ElasticConfigConstants.ES_CLUSTER_NAME)
-    .define(
-      ElasticConfigConstants.URL_PREFIX,
-      Type.STRING,
-      ElasticConfigConstants.URL_PREFIX_DEFAULT,
-      Importance.LOW,
-      ElasticConfigConstants.URL_PREFIX_DOC,
-      "Connection",
-      3,
-      ConfigDef.Width.MEDIUM,
-      ElasticConfigConstants.URL_PREFIX)
+
     .define(
       ElasticConfigConstants.WRITE_TIMEOUT_CONFIG,
       Type.INT,
@@ -64,19 +85,9 @@ object ElasticConfig {
       Importance.MEDIUM,
       ElasticConfigConstants.WRITE_TIMEOUT_DOC,
       "Connection",
-      4,
+      6,
       ConfigDef.Width.MEDIUM,
       ElasticConfigConstants.WRITE_TIMEOUT_DISPLAY)
-    .define(
-      ElasticConfigConstants.CLIENT_TYPE_CONFIG,
-      Type.STRING,
-      ElasticConfigConstants.CLIENT_TYPE_CONFIG_DEFAULT,
-      Importance.MEDIUM,
-      ElasticConfigConstants.CLIENT_TYPE_CONFIG_DOC,
-      "Connection",
-      5,
-      ConfigDef.Width.MEDIUM,
-      ElasticConfigConstants.CLIENT_TYPE_CONFIG)
     .define(
       ElasticConfigConstants.BATCH_SIZE_CONFIG,
       Type.INT,
@@ -84,7 +95,7 @@ object ElasticConfig {
       Importance.MEDIUM,
       ElasticConfigConstants.BATCH_SIZE_DOC,
       "Connection",
-      6,
+      7,
       ConfigDef.Width.MEDIUM,
       ElasticConfigConstants.BATCH_SIZE_DISPLAY)
     .define(
@@ -94,7 +105,7 @@ object ElasticConfig {
       Importance.LOW,
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME_DOC,
       "Connection",
-      7,
+      8,
       ConfigDef.Width.MEDIUM,
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_USERNAME)
     .define(
@@ -104,7 +115,7 @@ object ElasticConfig {
       Importance.LOW,
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD_DOC,
       "Connection",
-      8,
+      9,
       ConfigDef.Width.MEDIUM,
       ElasticConfigConstants.CLIENT_HTTP_BASIC_AUTH_PASSWORD)
     .define(
@@ -151,27 +162,6 @@ object ElasticConfig {
       2,
       ConfigDef.Width.SHORT,
       ElasticConfigConstants.PK_JOINER_SEPARATOR)
-    .define(
-      ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS,
-      Type.PASSWORD,
-      ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS_DEFAULT,
-      Importance.MEDIUM,
-      ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS_DOC,
-      "XPack",
-      1,
-      ConfigDef.Width.LONG,
-      ElasticConfigConstants.ES_CLUSTER_XPACK_SETTINGS_DOC)
-
-    .define(
-      ElasticConfigConstants.ES_CLUSTER_XPACK_PLUGINS,
-      Type.STRING,
-      ElasticConfigConstants.ES_CLUSTER_XPACK_PLUGINS_DEFAULT,
-      Importance.MEDIUM,
-      ElasticConfigConstants.ES_CLUSTER_XPACK_PLUGINS_DOC,
-      "XPack",
-      2,
-      ConfigDef.Width.LONG,
-      ElasticConfigConstants.ES_CLUSTER_XPACK_PLUGINS_DOC)
     .define(ElasticConfigConstants.PROGRESS_COUNTER_ENABLED,
       Type.BOOLEAN,
       ElasticConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,

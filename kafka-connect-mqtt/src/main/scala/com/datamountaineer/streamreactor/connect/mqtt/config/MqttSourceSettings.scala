@@ -16,14 +16,11 @@
 
 package com.datamountaineer.streamreactor.connect.mqtt.config
 
-import com.datamountaineer.streamreactor.connect.converters.source.BytesConverter
-import com.datamountaineer.streamreactor.connect.converters.source.Converter
+import com.datamountaineer.streamreactor.connect.converters.source.{BytesConverter, Converter}
 import org.apache.kafka.common.config.ConfigException
 import org.eclipse.paho.client.mqttv3.MqttClient
 
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 case class MqttSourceSettings(connection: String,
                               user: Option[String],
@@ -42,7 +39,9 @@ case class MqttSourceSettings(connection: String,
                               sslCertKeyFile: Option[String],
                               replicateShared: Boolean = false,
                               enableProgress: Boolean = MqttConfigConstants.PROGRESS_COUNTER_ENABLED_DEFAULT,
-                              logMessageReceived: Boolean = false) {
+                              logMessageReceived: Boolean = false,
+                              avro: Boolean = false
+                             ) {
 
   def asMap(): java.util.Map[String, String] = {
     val map = new java.util.HashMap[String, String]()
@@ -108,6 +107,8 @@ object MqttSourceSettings {
       throw new ConfigException(s"${MqttConfigConstants.QS_CONFIG} is not valid. Can be 0,1 or 2")
     }
 
+    val avro = if (config.getString(MqttConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES).isEmpty) false else true
+
     MqttSourceSettings(
       connection,
       user,
@@ -126,7 +127,8 @@ object MqttSourceSettings {
       sslCertKeyFile,
       replicateShared,
       progressEnabled,
-      config.getBoolean(MqttConfigConstants.LOG_MESSAGE_ARRIVED_KEY)
+      config.getBoolean(MqttConfigConstants.LOG_MESSAGE_ARRIVED_KEY),
+      avro = avro
     )
   }
 }

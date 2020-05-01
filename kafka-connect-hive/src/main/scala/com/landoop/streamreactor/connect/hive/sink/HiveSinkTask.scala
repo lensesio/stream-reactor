@@ -3,24 +3,22 @@ package com.landoop.streamreactor.connect.hive.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
-import com.landoop.streamreactor.connect.hive._
-import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfig
-import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
-import com.landoop.streamreactor.connect.hive.sink.staging.OffsetSeeker
 import com.landoop.streamreactor.connect.hive.HadoopConfigurationExtension._
+import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
+import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfig, SinkConfigSettings}
+import com.landoop.streamreactor.connect.hive.sink.staging.OffsetSeeker
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
 import org.apache.kafka.connect.errors.ConnectException
-import org.apache.kafka.connect.sink.SinkRecord
-import org.apache.kafka.connect.sink.SinkTask
+import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import scala.collection.JavaConverters._
-import scala.util.control.NonFatal
 import scala.util.Try
+import scala.util.control.NonFatal
 
 class HiveSinkTask extends SinkTask {
 

@@ -1,7 +1,7 @@
 package com.datamountaineer.streamreactor.connect.influx
 
-import java.time.{Clock, Instant, ZoneId}
 import java.time.temporal.ChronoField
+import java.time.{Clock, Instant, ZoneId}
 
 /**
   * Trying to work against JVM time precision where Nano support is not provided until Java 9.

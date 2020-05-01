@@ -20,18 +20,17 @@ project(":kafka-connect-elastic6") {
         maven { url "https://artifacts.elastic.co/maven" }
     }
     ext {
-        elastic4sVersion = '6.2.5'
+        elastic4sVersion = '6.7.4'
+        elasticSearchVersion = '6.7.2'
         jnaVersion = '3.0.9'
+    }
+
+    test {
+        maxParallelForks = 1
     }
 
     dependencies {
         compile("com.sksamuel.elastic4s:elastic4s-core_$scalaMajorVersion:$elastic4sVersion") {
-            exclude group: "org.scala-lang", module: "scala-library"
-            exclude group: "org.scalactic", module: "scalactic_2.11"
-        }
-
-        // for the tcp client
-        compile("com.sksamuel.elastic4s:elastic4s-tcp_$scalaMajorVersion:$elastic4sVersion") {
             exclude group: "org.scala-lang", module: "scala-library"
             exclude group: "org.scalactic", module: "scalactic_2.11"
         }
@@ -42,7 +41,10 @@ project(":kafka-connect-elastic6") {
             exclude group: "org.scalactic", module: "scalactic_2.11"
         }
         compile "com.sun.jna:jna:$jnaVersion"
-        compile("com.sksamuel.elastic4s:elastic4s-xpack-security_$scalaMajorVersion:$elastic4sVersion")
+        compile "org.elasticsearch:elasticsearch:$elasticSearchVersion"
+        compile "org.codelibs.elasticsearch.module:analysis-common:$elasticSearchVersion"
+
+        compile'org.apache.logging.log4j:log4j-core:2.11.1'
 
         testCompile("com.sksamuel.elastic4s:elastic4s-testkit_$scalaMajorVersion:$elastic4sVersion")
         testCompile("com.sksamuel.elastic4s:elastic4s-embedded_$scalaMajorVersion:$elastic4sVersion")

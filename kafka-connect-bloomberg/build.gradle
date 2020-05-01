@@ -16,7 +16,7 @@
 
 project(":kafka-connect-bloomberg") {
     dependencies {
-        compile ("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion") {
+        compile("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion") {
             exclude group: "org.mortbay.jetty", module: "jetty-util"
             exclude group: "org.mortbay.jetty", module: "jetty"
         }

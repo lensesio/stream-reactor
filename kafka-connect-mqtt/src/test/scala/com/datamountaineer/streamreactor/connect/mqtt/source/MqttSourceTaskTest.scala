@@ -30,16 +30,16 @@ import io.moquette.proto.messages.{AbstractMessage, PublishMessage}
 import io.moquette.server.Server
 import io.moquette.server.config.ClasspathConfig
 import org.apache.kafka.connect.data.{Schema, Struct}
-import org.apache.kafka.connect.sink.SinkTaskContext
 import org.apache.kafka.connect.source.SourceTaskContext
-import org.mockito.Mockito.when
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
+import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfter
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.Try
 
-class MqttSourceTaskTest extends WordSpec with Matchers with BeforeAndAfter with MockitoSugar {
+class MqttSourceTaskTest extends AnyWordSpec with Matchers with BeforeAndAfter with MockitoSugar {
   val classPathConfig = new ClasspathConfig()
 
   val connection = "tcp://0.0.0.0:1883"
@@ -104,7 +104,7 @@ class MqttSourceTaskTest extends WordSpec with Matchers with BeforeAndAfter with
       MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
       MqttConfigConstants.HOSTS_CONFIG -> connection,
       MqttConfigConstants.QS_CONFIG -> qs.toString
-    )
+    ).asJava
     val context = mock[SourceTaskContext]
     when(context.configs()).thenReturn(props)
     task.initialize(context)
@@ -122,8 +122,8 @@ class MqttSourceTaskTest extends WordSpec with Matchers with BeforeAndAfter with
     publishMessage(source3, message3)
     Thread.sleep(2000)
 
-    val records = task.poll()
-    records.size() shouldBe 3
+    val records = task.poll().asScala
+    records.size shouldBe 3
 
     records.foreach { record =>
 

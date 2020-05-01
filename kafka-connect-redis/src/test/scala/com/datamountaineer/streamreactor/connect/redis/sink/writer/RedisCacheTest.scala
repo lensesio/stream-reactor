@@ -20,14 +20,16 @@ import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig,
 import com.google.gson.Gson
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec}
+import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import redis.clients.jedis.Jedis
 import redis.embedded.RedisServer
 
 import scala.collection.JavaConverters._
 
-class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
+class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
 
   val redisServer = new RedisServer(6379)
   val gson = new Gson()
@@ -50,6 +52,7 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
       val config = RedisConfig(props)
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
+      writer.createClient(settings)
 
       val childSchema = SchemaBuilder.struct().name("com.example.Child")
         .field("firstName", Schema.STRING_SCHEMA)
@@ -104,6 +107,7 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
       val config = RedisConfig(props)
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
+      writer.createClient(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)
@@ -139,6 +143,7 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
       val config = RedisConfig(props)
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
+      writer.createClient(settings)
 
       val schema = SchemaBuilder.struct().name("com.example.Person")
         .field("firstName", Schema.STRING_SCHEMA)
@@ -201,6 +206,7 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
 
+      writer.createClient(settings)
       writer.write(Seq(nickRecord))
 
       val key = nick.get("firstName") + RedisConfigConstants.REDIS_PK_DELIMITER_DEFAULT_VALUE + nickJr.get("firstName")
@@ -216,6 +222,7 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
       val config = RedisConfig(props)
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
+      writer.createClient(settings)
 
       writer.write(Seq(nickRecord))
 
@@ -232,6 +239,7 @@ class RedisCacheTest extends WordSpec with Matchers with BeforeAndAfterAll with 
       val config = RedisConfig(props)
       val settings = RedisSinkSettings(config)
       val writer = new RedisCache(settings)
+      writer.createClient(settings)
 
       writer.write(Seq(nickRecord))
 

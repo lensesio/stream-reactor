@@ -16,11 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.writers
 
-import javax.cache.{Cache, CacheManager}
-
 import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
 import com.datamountaineer.streamreactor.connect.hazelcast.config.HazelCastSinkSettings
 import com.hazelcast.core.HazelcastInstance
+import javax.cache.{Cache, CacheManager}
 import org.apache.kafka.connect.sink.SinkRecord
 
 /**

@@ -6,7 +6,8 @@ import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigCons
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.pulsar.client.api.MessageBuilder
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
@@ -14,7 +15,7 @@ import scala.collection.JavaConverters._
   * Created by andrew@datamountaineer.com on 24/01/2018. 
   * stream-reactor
   */
-class PulsarMessageConverterTest extends WordSpec with Matchers with ConverterUtil {
+class PulsarMessageConverterTest extends AnyWordSpec with Matchers with ConverterUtil {
 
   val pulsarTopic = "persistent://landoop/standalone/connect/kafka-topic"
   val jsonMessage = "{\"int8\":12,\"int16\":12,\"int32\":12,\"int64\":12,\"float32\":12.2,\"float64\":12.2,\"boolean\":true,\"string\":\"foo\"}"

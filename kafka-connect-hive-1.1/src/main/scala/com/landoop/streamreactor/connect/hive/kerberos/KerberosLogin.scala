@@ -7,11 +7,9 @@ import java.security.PrivilegedAction
 import com.landoop.streamreactor.connect.hive.AsyncFunctionLoop
 import javax.security.auth.login.LoginContext
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.security.SecurityUtil
-import org.apache.hadoop.security.UserGroupInformation
+import org.apache.hadoop.security.{SecurityUtil, UserGroupInformation}
 
-import scala.concurrent.duration._
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, _}
 
 sealed trait KerberosLogin extends AutoCloseable {
   def run[T](thunk: => T): T

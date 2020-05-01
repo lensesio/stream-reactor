@@ -18,13 +18,13 @@ package com.datamountaineer.streamreactor.connect.bloomberg
 
 import com.bloomberglp.blpapi.Event.EventType
 import com.bloomberglp.blpapi._
-import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.mockito.MockitoSugar
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
-class BloombergSubscriptionManagerTest extends WordSpec with Matchers with MockitoSugar {
+class BloombergSubscriptionManagerTest extends AnyWordSpec with Matchers with MockitoSugar {
   "BloombergSubscriptionManager" should {
     "return null if there are no items in the manager buffer" in {
       val manager = new BloombergSubscriptionManager(Map(1L -> "ticker1"))

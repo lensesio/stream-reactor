@@ -19,8 +19,6 @@ package com.datamountaineer.streamreactor.connect.influx.writers
 import java.time.Instant
 import java.util.Date
 
-import org.apache.kafka.common.config.ConfigException
-
 import scala.util.Try
 
 object TimestampValueCoerce {

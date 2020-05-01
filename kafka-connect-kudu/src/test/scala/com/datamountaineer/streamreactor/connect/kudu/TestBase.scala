@@ -24,19 +24,21 @@ package com.datamountaineer.streamreactor.connect.kudu
 import java.nio.ByteBuffer
 import java.util
 
-import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfigConstants}
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfigConstants
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kudu.ColumnSchema.ColumnSchemaBuilder
 import org.apache.kudu.{ColumnSchema, Type}
-import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
+import org.scalatest.BeforeAndAfter
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
+trait TestBase extends AnyWordSpec with BeforeAndAfter with Matchers {
   val TOPIC = "sink_test"
   val TABLE = "table1"
   val KUDU_MASTER = "127.0.0.1"
@@ -73,7 +75,7 @@ trait TestBase extends WordSpec with BeforeAndAfter with Matchers {
       |{      "name": "integer32", "type": "long"},
       |{      "name": "integer64", "type": "long"},
       |{      "name": "float32",   "type": "float"},
-      |{      "name": "float64",   "type": ["null", "double"], "default" : 10.00}
+      |{      "name": "float64",   "type": ["double", "null"], "default" : 10.0}
       |]}"
     """.stripMargin
 

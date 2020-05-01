@@ -18,15 +18,16 @@ package com.datamountaineer.streamreactor.connect.cassandra.source
 
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource, CassandraSettings, CassandraSourceSetting}
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{Matchers, WordSpec}
+import org.mockito.MockitoSugar
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
 /**
  *
  */
-class TestCqlGenerator extends WordSpec 
+class TestCqlGenerator extends AnyWordSpec
     with Matchers 
     with MockitoSugar 
     with ConverterUtil {

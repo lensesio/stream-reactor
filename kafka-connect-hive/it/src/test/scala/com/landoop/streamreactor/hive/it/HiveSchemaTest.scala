@@ -5,14 +5,15 @@ import java.util.concurrent.TimeUnit
 import com.landoop.streamreactor.connect.hive.{DatabaseName, TableName}
 import org.apache.kafka.connect.data.Schema
 import org.scalatest.concurrent.Eventually
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{Millis, Span}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.wordspec.AnyWordSpec
 
+import scala.collection.JavaConverters._
 import scala.io.Source
 import scala.util.Random
-import scala.collection.JavaConverters._
 
-class HiveSchemaTest extends WordSpec with Matchers with PersonTestData with Eventually with HiveTests {
+class HiveSchemaTest extends AnyWordSpec with Matchers with PersonTestData with Eventually with HiveTests {
 
   private implicit val patience: PatienceConfig = PatienceConfig(Span(60000, Millis), Span(5000, Millis))
 

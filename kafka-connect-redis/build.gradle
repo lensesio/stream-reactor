@@ -17,8 +17,12 @@
 project(':kafka-connect-redis') {
 
     ext {
-        jedisVersion = "3.1.0-m1"
+        jedisVersion = "3.2.0"
         embeddedRedisVersion = "0.8.0"
+    }
+
+    test {
+        maxParallelForks = 1
     }
 
     dependencies {

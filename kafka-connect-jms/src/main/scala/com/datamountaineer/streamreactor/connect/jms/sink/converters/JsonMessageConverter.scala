@@ -16,11 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.jms.sink.converters
 
-import javax.jms.{Message, Session}
-
 import com.datamountaineer.streamreactor.connect.converters.source.SinkRecordToJson
 import com.datamountaineer.streamreactor.connect.jms.config.JMSSetting
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import javax.jms.{Message, Session}
 import org.apache.kafka.connect.sink.SinkRecord
 
 class JsonMessageConverter extends JMSMessageConverter with ConverterUtil {

@@ -17,8 +17,9 @@
 package com.datamountaineer.streamreactor.connect.hbase.writers
 
 import com.datamountaineer.streamreactor.connect.hbase.config.HBaseSettings
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.conf.Configuration
+
 
 /**
   * Provides the logic for instantiating the appropriate Hbase writer

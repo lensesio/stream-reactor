@@ -19,8 +19,8 @@ package com.datamountaineer.streamreactor.connect.mongodb.config
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
 import com.mongodb.AuthenticationMechanism
-import com.typesafe.scalalogging.slf4j.StrictLogging
-import org.apache.kafka.common.config.{ConfigException, SslConfigs}
+import com.typesafe.scalalogging.StrictLogging
+import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.common.config.types.Password
 
 

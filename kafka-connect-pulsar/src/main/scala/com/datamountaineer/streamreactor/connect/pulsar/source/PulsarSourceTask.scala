@@ -22,13 +22,13 @@ import java.util.UUID
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSourceConfig, PulsarSourceSettings}
 import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
-import com.typesafe.scalalogging.slf4j.StrictLogging
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import org.apache.pulsar.client.api.{ClientConfiguration, PulsarClient}
 import org.apache.pulsar.client.impl.auth.AuthenticationTls
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 class PulsarSourceTask extends SourceTask with StrictLogging {
@@ -64,7 +64,7 @@ class PulsarSourceTask extends SourceTask with StrictLogging {
       clientConf.setTlsTrustCertsFilePath(f)
 
       val authParams = settings.sslCertFile.map(f => ("tlsCertFile", f)).toMap ++ settings.sslCertKeyFile.map(f => ("tlsKeyFile", f)).toMap
-      clientConf.setAuthentication(classOf[AuthenticationTls].getName, authParams)
+      clientConf.setAuthentication(classOf[AuthenticationTls].getName, authParams.asJava)
     })
 
     pulsarManager = Some(new PulsarManager(PulsarClient.create(settings.connection, clientConf), name, settings.kcql, messageConverter))
@@ -96,7 +96,7 @@ class PulsarSourceTask extends SourceTask with StrictLogging {
     }.orNull
 
     if (enableProgress) {
-      progressCounter.update(records.toVector)
+      progressCounter.update(records.asScala.toVector)
     }
     records
   }
