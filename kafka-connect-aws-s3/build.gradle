@@ -45,7 +45,6 @@ project(":kafka-connect-aws-s3") {
         compile("org.apache.jclouds.provider:aws-s3:$jCloudsSdkVersion")
         compile("com.beachape:enumeratum_$scalaMajorVersion:$enumeratumVersion")
         compile("org.typelevel:cats-core_2.12:$catsVersion")
-        compile("org.typelevel:cats-effect_2.12:$catsVersion")
 
         compile("org.apache.parquet:parquet-avro:$parquetVersion")
 
