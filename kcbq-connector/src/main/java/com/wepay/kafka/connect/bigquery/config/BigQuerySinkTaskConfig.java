@@ -18,6 +18,7 @@ package com.wepay.kafka.connect.bigquery.config;
  */
 
 
+import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
@@ -118,6 +119,14 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
           + " and enable timestamp partitioning for each table. Leave this configuration blank,"
           + " to enable ingestion time partitioning for each table.";
 
+  public static final String BIGQUERY_CLUSTERING_FIELD_NAMES_CONFIG = "clusteringPartitionFieldNames";
+  private static final ConfigDef.Type BIGQUERY_CLUSTERING_FIELD_NAMES_TYPE = ConfigDef.Type.LIST;
+  private static final List<String> BIGQUERY_CLUSTERING_FIELD_NAMES_DEFAULT = null;
+  private static final ConfigDef.Importance BIGQUERY_CLUSTERING_FIELD_NAMES_IMPORTANCE =
+      ConfigDef.Importance.LOW;
+  private static final String BIGQUERY_CLUSTERING_FIELD_NAMES_DOC =
+      "List of fields on which data should be clustered by in BigQuery, separated by commas";
+
   static {
     config = BigQuerySinkConfig.getConfig()
         .define(
@@ -172,6 +181,12 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
             BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_DEFAULT,
             BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_IMPORTANCE,
             BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_DOC
+        ).define(
+            BIGQUERY_CLUSTERING_FIELD_NAMES_CONFIG,
+            BIGQUERY_CLUSTERING_FIELD_NAMES_TYPE,
+            BIGQUERY_CLUSTERING_FIELD_NAMES_DEFAULT,
+            BIGQUERY_CLUSTERING_FIELD_NAMES_IMPORTANCE,
+            BIGQUERY_CLUSTERING_FIELD_NAMES_DOC
         );
   }
 
@@ -201,14 +216,40 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
   }
 
   /**
+   * Returns the field names to use for clustering.
+   * @return List of Strings that represent the field names.
+   */
+  public Optional<List<String>> getClusteringPartitionFieldName() {
+    return Optional.ofNullable(getList(BIGQUERY_CLUSTERING_FIELD_NAMES_CONFIG));
+  }
+
+  /**
    * Check the validity of table partitioning configs.
    */
-  private void checkPartitionCofigs() {
-    if (getTimestampPartitionFieldName().isPresent() && getBoolean(BIGQUERY_PARTITION_DECORATOR_CONFIG)){
+  private void checkPartitionConfigs() {
+    if (getTimestampPartitionFieldName().isPresent() && getBoolean(BIGQUERY_PARTITION_DECORATOR_CONFIG)) {
       throw new ConfigException(
           "Only one partitioning configuration mode may be specified for the connector. "
               + "Use either bigQueryPartitionDecorator OR timestampPartitionFieldName."
       );
+    }
+  }
+
+  /**
+   * Check the validity of table clustering configs.
+   */
+  private void checkClusteringConfigs() {
+    if (getClusteringPartitionFieldName().isPresent()) {
+      if (!getTimestampPartitionFieldName().isPresent() && !getBoolean(BIGQUERY_PARTITION_DECORATOR_CONFIG)) {
+        throw new ConfigException(
+            "Clustering field name may be specified only on a partitioned table."
+        );
+      }
+      if (getClusteringPartitionFieldName().get().size() > 4) {
+        throw new ConfigException(
+            "You can only specify up to four clustering field names."
+        );
+      }
     }
   }
 
@@ -222,6 +263,7 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
   public BigQuerySinkTaskConfig(Map<String, String> properties) {
     super(config, properties);
     checkAutoUpdateSchemas();
-    checkPartitionCofigs();
+    checkPartitionConfigs();
+    checkClusteringConfigs();
   }
 }

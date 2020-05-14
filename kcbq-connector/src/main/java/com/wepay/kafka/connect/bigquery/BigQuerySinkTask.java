@@ -58,6 +58,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -143,17 +144,17 @@ public class BigQuerySinkTask extends SinkTask {
     TableId baseTableId = topicsToBaseTableIds.get(record.topic());
 
     PartitionedTableId.Builder builder = new PartitionedTableId.Builder(baseTableId);
-    if(usePartitionDecorator) {
-    	
-	  if (useMessageTimeDatePartitioning) {
-	    if (record.timestampType() == TimestampType.NO_TIMESTAMP_TYPE) {
-		  throw new ConnectException(
-	      "Message has no timestamp type, cannot use message timestamp to partition.");
-	    }
-	    builder.setDayPartition(record.timestamp());
-	  } else {
-	    builder.setDayPartitionForNow();
-	  }
+    if (usePartitionDecorator) {
+
+      if (useMessageTimeDatePartitioning) {
+        if (record.timestampType() == TimestampType.NO_TIMESTAMP_TYPE) {
+          throw new ConnectException(
+              "Message has no timestamp type, cannot use message timestamp to partition.");
+        }
+        builder.setDayPartition(record.timestamp());
+      } else {
+        builder.setDayPartitionForNow();
+      }
     }
 
     return builder.build();
@@ -266,8 +267,9 @@ public class BigQuerySinkTask extends SinkTask {
     Optional<String> kafkaKeyFieldName = config.getKafkaKeyFieldName();
     Optional<String> kafkaDataFieldName = config.getKafkaDataFieldName();
     Optional<String> timestampPartitionFieldName = config.getTimestampPartitionFieldName();
+    Optional<List<String>> clusteringFieldName = config.getClusteringPartitionFieldName();
     return new SchemaManager(schemaRetriever, schemaConverter, bigQuery, kafkaKeyFieldName,
-                             kafkaDataFieldName, timestampPartitionFieldName);
+                             kafkaDataFieldName, timestampPartitionFieldName, clusteringFieldName);
   }
 
   private BigQueryWriter getBigQueryWriter() {

@@ -37,6 +37,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 public class SchemaManagerTest {
@@ -68,7 +70,7 @@ public class SchemaManagerTest {
     Optional<String> kafkaKeyFieldName = Optional.of("kafkaKey");
     Optional<String> kafkaDataFieldName = Optional.of("kafkaData");
     SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
-        mockBigQuery, kafkaKeyFieldName, kafkaDataFieldName, Optional.empty());
+        mockBigQuery, kafkaKeyFieldName, kafkaDataFieldName, Optional.empty(), Optional.empty());
 
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);
@@ -86,7 +88,7 @@ public class SchemaManagerTest {
   public void testTimestampPartitionSet() {
     Optional<String> testField = Optional.of("testField");
     SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
-        mockBigQuery, Optional.empty(), Optional.empty(), testField);
+        mockBigQuery, Optional.empty(), Optional.empty(), testField, Optional.empty());
 
     when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
     when(mockKafkaSchema.doc()).thenReturn(testDoc);
@@ -101,4 +103,25 @@ public class SchemaManagerTest {
         ((StandardTableDefinition) tableInfo.getDefinition()).getTimePartitioning().getField());
   }
 
+  @Test
+  public void testClusteringPartitionSet() {
+    Optional<String> timestampPartitionFieldName = Optional.of("testField");
+    Optional<List<String>> testField = Optional.of(Arrays.asList("column1", "column2"));
+    SchemaManager schemaManager = new SchemaManager(mockSchemaRetriever, mockSchemaConverter,
+        mockBigQuery, Optional.empty(), Optional.empty(), timestampPartitionFieldName, testField);
+
+    when(mockSchemaConverter.convertSchema(mockKafkaSchema)).thenReturn(fakeBigQuerySchema);
+    when(mockKafkaSchema.doc()).thenReturn(testDoc);
+
+    TableInfo tableInfo = schemaManager
+        .constructTableInfo(tableId, mockKafkaSchema, mockKafkaSchema);
+
+    Assert.assertEquals("Kafka doc does not match BigQuery table description",
+        testDoc, tableInfo.getDescription());
+    StandardTableDefinition definition = tableInfo.getDefinition();
+    Assert.assertNotNull(definition.getClustering());
+    Assert.assertEquals("The field name does not match the field name of time partition",
+        testField.get(),
+        definition.getClustering().getFields());
+  }
 }
