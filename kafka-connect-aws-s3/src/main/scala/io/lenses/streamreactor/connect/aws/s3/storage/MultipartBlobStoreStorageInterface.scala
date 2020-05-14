@@ -112,12 +112,14 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
     blobStore.list(bucketAndPrefix.bucket, ListContainerOptions.Builder.prefix(bucketAndPrefix.prefix.getOrElse(""))).size() > 0
 
   override def list(bucketAndPrefix: BucketAndPrefix): List[String] = {
-    val options = bucketAndPrefix.prefix match {
-      case None =>
+    val options = bucketAndPrefix
+      .prefix
+      .fold(
         ListContainerOptions.Builder.recursive()
-      case Some(prefix) =>
-        ListContainerOptions.Builder.recursive().prefix(prefix)
-    }
+      )(
+        ListContainerOptions.Builder.recursive().prefix
+      )
+
     val pageSet = blobStore.list(bucketAndPrefix.bucket, options)
 
     pageSet
