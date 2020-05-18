@@ -67,8 +67,8 @@ allprojects {
         avro4sVersion = "1.6.4"
 
         // The following 4 need to align to compileagainst a particular version
-        confluentVersion = '5.4.0'
-        kafkaVersion = '2.4.0'
+        confluentVersion = '5.5.0'
+        kafkaVersion = '2.5.0'
         dataMountaineerCommonVersion = "2.0.1"
         link4jVersion = "1.8.0"
 
@@ -114,10 +114,9 @@ allprojects {
         maven { url "https://repo.typesafe.com/typesafe/releases/" }
         maven { url "https://repository.cloudera.com/artifactory/cloudera-repos/" }
         maven { url "https://conjars.org/repo" }
-        maven {
-            url 'https://dl.bintray.com/andsel/maven/'
-        }
+        maven { url 'https://dl.bintray.com/andsel/maven/'}
         maven { url "https://dl.bintray.com/spinnaker/spinnaker/" }
+        maven { url "https://jitpack.io"}
     }
 
     jar {
