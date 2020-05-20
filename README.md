@@ -17,6 +17,12 @@ You can find more on [lenses.io](http://www.lenses.io)
 
 A collection of components to build a real time ingestion pipeline.
 
+## Kafka Compatibility
+
+*    Kafka 2.5+ (Confluent 5.5) - Stream reactor 2.0.0+
+*    Kafka 2.0 -> 2.4 (Confluent 5.4) - Stream reactor 1.2.7
+
+
 ### Connectors
 
 **Please take a moment and read the documentation and make sure the software prerequisites are met!!**
@@ -52,6 +58,13 @@ A collection of components to build a real time ingestion pipeline.
 
 
 ## Release Notes
+
+**2.0.1** PENDING
+
+*   Hive Source
+    *    Rename option `connect.hive.hive.metastore` to `connect.hive.metastore`
+    *    Rename option `connect.hive.hive.metastore.uris` to `connect.hive.metastore.uris`
+
 
 **2.0.0**
 

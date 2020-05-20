@@ -25,10 +25,10 @@ object HiveSourceConfigConstants
   val DatabaseNameKey = s"$CONNECTOR_PREFIX.database.name"
   val DatabaseNameDoc = "Sets the database name"
 
-  val MetastoreTypeKey = s"$CONNECTOR_PREFIX.hive.metastore"
+  val MetastoreTypeKey = s"$CONNECTOR_PREFIX.metastore"
   val MetastoreTypeDoc = "Protocol used by the hive metastore"
 
-  val MetastoreUrisKey = s"$CONNECTOR_PREFIX.hive.metastore.uris"
+  val MetastoreUrisKey = s"$CONNECTOR_PREFIX.metastore.uris"
   val MetastoreUrisDoc = "URI to point to the metastore"
 
   val FsDefaultKey = s"$CONNECTOR_PREFIX.fs.defaultFS"
