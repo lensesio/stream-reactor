@@ -196,8 +196,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
   def filterStream(settings: RedisSinkSettings): RedisSinkSettings = settings.copy(kcqlSettings =
     settings.kcqlSettings
       .filter { k =>
-        Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("STREAM") &&
-          k.kcqlConfig.getPrimaryKeys.size() >= 1
+        Option(k.kcqlConfig.getStoredAs).map(_.toUpperCase).contains("STREAM")
       }
   )
 
