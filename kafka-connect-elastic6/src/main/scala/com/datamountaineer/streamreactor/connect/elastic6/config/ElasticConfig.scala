@@ -49,7 +49,7 @@ object ElasticConfig {
       ElasticConfigConstants.HOSTS)
     .define(
       ElasticConfigConstants.ES_PORT,
-      Type.STRING,
+      Type.INT,
       ElasticConfigConstants.ES_PORT_DEFAULT,
       Importance.HIGH,
       ElasticConfigConstants.ES_PORT_DOC,
