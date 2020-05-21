@@ -25,6 +25,8 @@ import org.apache.avro.file.DataFileWriter
 import org.apache.avro.generic.{GenericDatumWriter, GenericRecord}
 import org.apache.kafka.connect.data.Struct
 
+import scala.util.Try
+
 class AvroFormatWriter(outputStreamFn : () => S3OutputStream) extends S3FormatWriter with LazyLogging {
 
   private val avroDataConverter = new AvroData(100)
@@ -54,12 +56,12 @@ class AvroFormatWriter(outputStreamFn : () => S3OutputStream) extends S3FormatWr
   override def rolloverFileOnSchemaChange() = true
 
   override def close: Unit = {
-    fileWriter.flush()
+    Try (fileWriter.flush())
 
-    outstandingRename = outputStream.complete()
+    Try (outstandingRename = outputStream.complete())
 
-    fileWriter.close()
-    outputStream.close()
+    Try (fileWriter.close())
+    Try (outputStream.close())
 
   }
 
