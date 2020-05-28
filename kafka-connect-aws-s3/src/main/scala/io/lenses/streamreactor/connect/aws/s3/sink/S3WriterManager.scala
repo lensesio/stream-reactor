@@ -164,13 +164,13 @@ object S3WriterManager {
     val outputStreamFn: (BucketAndPath, Int) => () => MultipartBlobStoreOutputStream = {
       (bucketAndPath, int) =>
         () => new MultipartBlobStoreOutputStream(bucketAndPath, int)
-
     }
 
     val formatWriterFn: TopicPartition => S3FormatWriter = topicPartition =>
       config.bucketOptions.find(_.sourceTopic == topicPartition.topic.value) match {
         case Some(bucketOptions) =>
-          val path: BucketAndPath = fileNamingStrategyFn(topicPartition.topic).stagingFilename(bucketOptions.bucketAndPrefix, topicPartition)
+          val path: BucketAndPath = fileNamingStrategyFn(topicPartition.topic)
+            .stagingFilename(bucketOptions.bucketAndPrefix, topicPartition)
           val size: Int = minAllowedMultipartSizeFn()
           S3FormatWriter(bucketOptions.format, outputStreamFn(path, size))
         case None => throw new IllegalArgumentException("Can't find commitPolicy in config")

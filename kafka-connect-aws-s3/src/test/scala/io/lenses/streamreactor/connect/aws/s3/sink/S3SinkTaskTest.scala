@@ -43,7 +43,6 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
   val parquetFormatReader = new ParquetFormatReader()
   val avroFormatReader = new AvroFormatReader()
 
-  val s3SinkTask = new S3SinkTask()
   val PrefixName = "streamReactorBackups"
   val TopicName = "mytopic"
 
@@ -304,6 +303,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     file1CsvReader.readNext() should be (Array("name", "title", "salary"))
     file1CsvReader.readNext() should be (Array("sam", "mr", "100.43"))
     file1CsvReader.readNext() should be (Array("laura", "ms", "429.06"))
+    file1CsvReader.readNext() should be (null)
 
     val file2Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/mytopic/1/3.csv", blobStoreContext)
 
@@ -315,4 +315,44 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     file2CsvReader.readNext() should be (Array("bob", "mr", "200.86"))
     file2CsvReader.readNext() should be (null)
   }
+
+  "S3SinkTask" should "use custom partitioning scheme and flush for every record" in {
+
+    val task = new S3SinkTask()
+
+    val partitionedData: List[Struct] = List(
+      new Struct(schema).put("name", "first").put("title", "primary").put("salary", null),
+      new Struct(schema).put("name", "second").put("title", "secondary").put("salary", 100.00),
+      new Struct(schema).put("name", "third").put("title", "primary").put("salary", 100.00),
+      new Struct(schema).put("name", "first").put("title", null).put("salary", 200.00),
+      new Struct(schema).put("name", "second").put("title", null).put("salary", 100.00),
+      new Struct(schema).put("name", "third").put("title", null).put("salary", 100.00)
+    )
+
+    val records = partitionedData.zipWithIndex.map { case (user, k) =>
+      new SinkRecord(TopicName, 1, null, null, schema, user, k)
+    }
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY name,title,salary")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(records.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.recursive().prefix("streamReactorBackups/")).size() should be(6)
+
+    readFileToString("streamReactorBackups/name=first/title=primary/salary=[missing]/mytopic/1/0.json", blobStoreContext) should be("""{"name":"first","title":"primary","salary":null}""")
+    readFileToString("streamReactorBackups/name=second/title=secondary/salary=100.0/mytopic/1/1.json", blobStoreContext) should be("""{"name":"second","title":"secondary","salary":100.0}""")
+    readFileToString("streamReactorBackups/name=third/title=primary/salary=100.0/mytopic/1/2.json", blobStoreContext) should be("""{"name":"third","title":"primary","salary":100.0}""")
+    readFileToString("streamReactorBackups/name=first/title=[missing]/salary=200.0/mytopic/1/3.json", blobStoreContext) should be("""{"name":"first","title":null,"salary":200.0}""")
+    readFileToString("streamReactorBackups/name=second/title=[missing]/salary=100.0/mytopic/1/4.json", blobStoreContext) should be("""{"name":"second","title":null,"salary":100.0}""")
+    readFileToString("streamReactorBackups/name=third/title=[missing]/salary=100.0/mytopic/1/5.json", blobStoreContext) should be("""{"name":"third","title":null,"salary":100.0}""")
+
+  }
+
 }

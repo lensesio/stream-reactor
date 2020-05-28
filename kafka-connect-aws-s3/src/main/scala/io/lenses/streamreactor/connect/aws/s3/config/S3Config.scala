@@ -19,9 +19,9 @@ package io.lenses.streamreactor.connect.aws.s3.config
 
 import com.datamountaineer.kcql.Kcql
 import enumeratum._
-import io.lenses.streamreactor.connect.aws.s3.BucketAndPrefix
+import io.lenses.streamreactor.connect.aws.s3.{BucketAndPrefix, PartitionField}
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
-import io.lenses.streamreactor.connect.aws.s3.sink.{CommitPolicy, DefaultCommitPolicy, HierarchicalS3FileNamingStrategy, S3FileNamingStrategy}
+import io.lenses.streamreactor.connect.aws.s3.sink.{CommitPolicy, DefaultCommitPolicy, HierarchicalS3FileNamingStrategy, PartitionedS3FileNamingStrategy, S3FileNamingStrategy}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable
@@ -100,7 +100,6 @@ object BucketOptions {
 
     config.getKCQL.map { kcql: Kcql =>
 
-      val flushSize = Option(kcql.getWithFlushSize).filter(_ > 0)
       val flushInterval = Option(kcql.getWithFlushInterval).filter(_ > 0).map(_.seconds)
       val flushCount = Option(kcql.getWithFlushCount).filter(_ > 0)
 
@@ -112,16 +111,21 @@ object BucketOptions {
         case None => Json
       }
 
-      // we must have at least one way of committing files
-      val finalFlushSize = Some(flushSize.fold(1000L * 1000 * 128)(identity)) //if (flushSize.isEmpty /*&& flushInterval.isEmpty && flushCount.isEmpty*/) Some(1000L * 1000 * 128) else flushSize
+      val partitions = Option(kcql.getPartitionBy).map(_.asScala).getOrElse(Nil).map(name => PartitionField(name)).toVector
+      val namingStrategy = if (partitions.nonEmpty) new PartitionedS3FileNamingStrategy(format, partitions) else new HierarchicalS3FileNamingStrategy(format)
 
-      val namingStrategy = new HierarchicalS3FileNamingStrategy(format)
+      val flushSize = Option(kcql.getWithFlushSize).filter(_ > 0)
+      val overrideFlushSize = if (partitions.nonEmpty) Some(1L) else flushSize
+
+      // we must have at least one way of committing files
+      val finalFlushSize = Some(overrideFlushSize.fold(1000L * 1000 * 128)(identity)) //if (flushSize.isEmpty /*&& flushInterval.isEmpty && flushCount.isEmpty*/) Some(1000L * 1000 * 128) else flushSize
 
       BucketOptions(
         kcql.getSource,
         BucketAndPrefix(kcql.getTarget),
         format = format,
         fileNamingStrategy = namingStrategy,
+        partitions = partitions,
         commitPolicy = DefaultCommitPolicy(
           fileSize = finalFlushSize,
           interval = flushInterval,
@@ -139,5 +143,6 @@ case class BucketOptions(
                           bucketAndPrefix: BucketAndPrefix,
                           format: Format,
                           fileNamingStrategy: S3FileNamingStrategy,
+                          partitions: Seq[PartitionField] = Nil,
                           commitPolicy: CommitPolicy = DefaultCommitPolicy(Some(1000 * 1000 * 128), None, None),
                         )

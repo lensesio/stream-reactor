@@ -40,7 +40,8 @@ case class S3WriterState(
                           createdTimestamp: Long = System.currentTimeMillis(),
                           recordCount: Long = 0,
                           lastKnownFileSize: Long = 0,
-                          lastKnownSchema: Option[Schema] = None
+                          lastKnownSchema: Option[Schema] = None,
+                          partitionValues: Map[String,String],
                         )
 
 
@@ -72,20 +73,22 @@ class S3WriterImpl(
         tpo.toTopicPartition,
         tpo.offset,
         None,
-        createdTimestamp = System.currentTimeMillis()
+        createdTimestamp = System.currentTimeMillis(),
+        partitionValues = Map.empty[String,String],
       )
     }
 
     // appends to output stream
     formatWriter.write(struct, tpo.topic)
 
+    val partitionValues = if (fileNamingStrategy.shouldProcessPartitionValues) fileNamingStrategy.processPartitionValues(struct) else Map.empty[String,String]
     internalState = internalState.copy(
       lastKnownFileSize = formatWriter.getPointer,
       lastKnownSchema = Option(struct.schema()),
       recordCount = internalState.recordCount + 1,
-      offset = tpo.offset
+      offset = tpo.offset,
+      partitionValues = partitionValues
     )
-
   }
 
   private def shouldRollover(struct: Struct) = {
@@ -113,7 +116,7 @@ class S3WriterImpl(
 
     formatWriter.close()
     if(formatWriter.getOutstandingRename) {
-      renameFile(topicPartitionOffset)
+      renameFile(topicPartitionOffset, internalState.partitionValues)
     }
 
     resetState(topicPartitionOffset)
@@ -121,14 +124,15 @@ class S3WriterImpl(
     topicPartitionOffset
   }
 
-  def renameFile(topicPartitionOffset: TopicPartitionOffset): Unit = {
+  def renameFile(topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[String,String]): Unit = {
     val originalFilename = fileNamingStrategy.stagingFilename(
       bucketAndPrefix,
       topicPartitionOffset.toTopicPartition
     )
     val finalFilename = fileNamingStrategy.finalFilename(
       bucketAndPrefix,
-      topicPartitionOffset
+      topicPartitionOffset,
+      partitionValues
     )
     storageInterface.rename(originalFilename, finalFilename)
   }
