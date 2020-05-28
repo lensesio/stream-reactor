@@ -93,8 +93,13 @@ object MapValueConverter extends ValueConverter[Map[_, _]] {
 }
 
 object StringValueConverter extends ValueConverter[String] {
+
+  val TextFieldName = "a"
+  val TextFieldSchemaName = "struct"
+  val TextFieldOptionalStringSchema = Schema.OPTIONAL_STRING_SCHEMA
+
   override def convert(string: String): Struct = {
-    val schema = SchemaBuilder.struct().field("a", Schema.OPTIONAL_STRING_SCHEMA).name("struct").build()
-    new Struct(schema).put("a", string)
+    val schema = SchemaBuilder.struct().field(TextFieldName, TextFieldOptionalStringSchema).name(TextFieldSchemaName).build()
+    new Struct(schema).put(TextFieldName, string)
   }
 }

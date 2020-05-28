@@ -218,4 +218,55 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     checkRecord(genericRecords(0), "sam", "mr", 100.43)
 
   }
+
+
+  "S3SinkTask" should "error when trying to write AVRO to text format" in {
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `TEXT` WITH_FLUSH_COUNT = 2")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+
+    assertThrows[IllegalStateException] {
+      task.put(records.asJava)
+    }
+
+    task.stop()
+  }
+
+  "S3SinkTask" should "write to text format" in {
+
+    val textRecords = List(
+      new SinkRecord(TopicName, 1, null, null, null, "Sausages", 0),
+      new SinkRecord(TopicName, 1, null, null, null, "Mash", 1),
+      new SinkRecord(TopicName, 1, null, null, null, "Peas", 2),
+      new SinkRecord(TopicName, 1, null, null, null, "Gravy", 3)
+    )
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `TEXT` WITH_FLUSH_COUNT = 2")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(textRecords.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/mytopic/1/")).size() should be(2)
+
+    val file1Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/mytopic/1/1.text", blobStoreContext)
+    new String(file1Bytes) should be ("Sausages\nMash\n")
+
+    val file2Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/mytopic/1/3.text", blobStoreContext)
+    new String(file2Bytes) should be ("Peas\nGravy\n")
+
+  }
 }

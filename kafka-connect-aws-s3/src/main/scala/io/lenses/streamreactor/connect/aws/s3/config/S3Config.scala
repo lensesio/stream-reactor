@@ -56,6 +56,8 @@ object Format extends Enum[Format] {
 
   case object Parquet extends Format
 
+  case object Text extends Format
+
 }
 
 
