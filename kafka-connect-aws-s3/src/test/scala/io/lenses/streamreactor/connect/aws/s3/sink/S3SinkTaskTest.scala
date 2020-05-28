@@ -17,6 +17,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+import java.io.StringReader
+
+import au.com.bytecode.opencsv.CSVReader
 import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3SinkConfigSettings._
@@ -24,6 +27,7 @@ import io.lenses.streamreactor.connect.aws.s3.formats.{AvroFormatReader, Parquet
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContext.{Credential, Identity}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig, S3TestPayloadReader}
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.jclouds.blobstore.options.ListContainerOptions
 import org.mockito.MockitoSugar
@@ -268,5 +272,47 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     val file2Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/mytopic/1/3.text", blobStoreContext)
     new String(file2Bytes) should be ("Peas\nGravy\n")
 
+  }
+
+  "S3SinkTask" should "write to csv format" in {
+
+    val task = new S3SinkTask()
+
+    val extraRecord = new SinkRecord(TopicName, 1, null, null, schema,
+      new Struct(schema).put("name", "bob").put("title", "mr").put("salary", 200.86), 3)
+
+    val allRecords : List[SinkRecord] = records :+ extraRecord
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV` WITH_FLUSH_COUNT = 2")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(allRecords.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/mytopic/1/")).size() should be(2)
+
+    val file1Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/mytopic/1/1.csv", blobStoreContext)
+
+    val file1Reader = new StringReader(new String(file1Bytes))
+    val file1CsvReader = new CSVReader(file1Reader)
+
+    file1CsvReader.readNext() should be (Array("name", "title", "salary"))
+    file1CsvReader.readNext() should be (Array("sam", "mr", "100.43"))
+    file1CsvReader.readNext() should be (Array("laura", "ms", "429.06"))
+
+    val file2Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/mytopic/1/3.csv", blobStoreContext)
+
+    val file2Reader = new StringReader(new String(file2Bytes))
+    val file2CsvReader = new CSVReader(file2Reader)
+
+    file2CsvReader.readNext() should be (Array("name", "title", "salary"))
+    file2CsvReader.readNext() should be (Array("tom", "", "395.44"))
+    file2CsvReader.readNext() should be (Array("bob", "mr", "200.86"))
+    file2CsvReader.readNext() should be (null)
   }
 }

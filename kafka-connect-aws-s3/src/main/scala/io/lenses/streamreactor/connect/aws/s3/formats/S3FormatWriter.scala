@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.Topic
 import io.lenses.streamreactor.connect.aws.s3.config.Format
-import io.lenses.streamreactor.connect.aws.s3.config.Format.{Avro, Json, Parquet, Text}
+import io.lenses.streamreactor.connect.aws.s3.config.Format.{Avro, Csv, Json, Parquet, Text}
 import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreOutputStream
 import org.apache.kafka.connect.data.Struct
 
@@ -35,6 +35,7 @@ object S3FormatWriter {
       case Json => new JsonFormatWriter(outputStreamFn)
       case Avro => new AvroFormatWriter(outputStreamFn)
       case Text => new TextFormatWriter(outputStreamFn)
+      case Csv => new CsvFormatWriter(outputStreamFn)
       case _ => sys.error(s"Unsupported S3 format $format")
     }
   }

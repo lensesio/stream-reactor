@@ -58,6 +58,8 @@ object Format extends Enum[Format] {
 
   case object Text extends Format
 
+  case object Csv extends Format
+
 }
 
 
