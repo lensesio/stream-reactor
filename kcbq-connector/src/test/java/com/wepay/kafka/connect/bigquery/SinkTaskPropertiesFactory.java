@@ -29,6 +29,7 @@ public class SinkTaskPropertiesFactory extends SinkPropertiesFactory {
     Map<String, String> properties = super.getProperties();
 
     properties.put(BigQuerySinkConfig.TABLE_CREATE_CONFIG, "false");
+    properties.put(BigQuerySinkTaskConfig.TASK_ID_CONFIG, "4");
 
     return properties;
   }

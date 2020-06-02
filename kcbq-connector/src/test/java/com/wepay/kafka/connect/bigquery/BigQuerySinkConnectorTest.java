@@ -38,6 +38,7 @@ import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 
+import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
 import org.apache.kafka.common.config.ConfigException;
@@ -102,6 +103,7 @@ public class BigQuerySinkConnectorTest {
       List<Map<String, String>> taskConfigs = testConnector.taskConfigs(i);
       assertEquals(i, taskConfigs.size());
       for (int j = 0; j < i; j++) {
+        expectedProperties.put(BigQuerySinkTaskConfig.TASK_ID_CONFIG, Integer.toString(j));
         assertEquals(
             "Connector properties should match task configs",
             expectedProperties,
@@ -127,7 +129,7 @@ public class BigQuerySinkConnectorTest {
 
   @Test
   public void testConfig() {
-    assertEquals(BigQuerySinkConfig.getConfig(), new BigQuerySinkConnector().config());
+    assertNotNull(new BigQuerySinkConnector().config());
   }
 
   // Make sure that a config exception is properly translated into a SinkConfigConnectException

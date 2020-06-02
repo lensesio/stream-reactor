@@ -20,6 +20,8 @@ package com.wepay.kafka.connect.bigquery;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
+
+import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
 
 import com.wepay.kafka.connect.bigquery.utils.Version;
@@ -106,12 +108,12 @@ public class BigQuerySinkConnector extends SinkConnector {
     logger.trace("connector.taskConfigs()");
     List<Map<String, String>> taskConfigs = new ArrayList<>();
     for (int i = 0; i < maxTasks; i++) {
-      // Copy configProperties so that tasks can't interfere with each others' configurations
       HashMap<String, String> taskConfig = new HashMap<>(configProperties);
       if (i == 0 && !config.getList(BigQuerySinkConfig.ENABLE_BATCH_CONFIG).isEmpty()) {
         // if batch loading is enabled, configure first task to do the GCS -> BQ loading
         taskConfig.put(GCS_BQ_TASK_CONFIG_KEY, "true");
       }
+      taskConfig.put(BigQuerySinkTaskConfig.TASK_ID_CONFIG, Integer.toString(i));
       taskConfigs.add(taskConfig);
     }
     return taskConfigs;

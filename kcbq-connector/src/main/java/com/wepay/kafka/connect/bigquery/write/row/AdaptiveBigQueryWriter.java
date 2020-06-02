@@ -47,7 +47,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
   private static final Logger logger = LoggerFactory.getLogger(AdaptiveBigQueryWriter.class);
 
   // The maximum number of retries we will attempt to write rows after creating a table or updating a BQ table schema.
-  private static final int RETRY_LIMIT = 5;
+  private static final int RETRY_LIMIT = 10;
   // Wait for about 30s between each retry since both creating table and updating schema take up to 2~3 minutes to take effect.
   private static final int RETRY_WAIT_TIME = 30000;
 
@@ -60,6 +60,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
    * @param schemaManager Used to update BigQuery tables.
    * @param retry How many retries to make in the event of a 500/503 error.
    * @param retryWait How long to wait in between retries.
+   * @param autoCreateTables Whether tables should be automatically created
    */
   public AdaptiveBigQueryWriter(BigQuery bigQuery,
                                 SchemaManager schemaManager,
@@ -149,7 +150,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     return new HashMap<>();
   }
 
-  private void attemptSchemaUpdate(PartitionedTableId tableId, Set<SinkRecord> records) {
+  protected void attemptSchemaUpdate(PartitionedTableId tableId, Set<SinkRecord> records) {
     try {
       schemaManager.updateSchema(tableId.getBaseTableId(), records);
     } catch (BigQueryException exception) {
@@ -158,9 +159,8 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     }
   }
 
-  private void attemptTableCreate(TableId tableId, Set<SinkRecord> records) {
+  protected void attemptTableCreate(TableId tableId, Set<SinkRecord> records) {
     try {
-      logger.info("Table {} does not exist, auto-creating table", tableId);
       schemaManager.createTable(tableId, records);
     } catch (BigQueryException exception) {
       throw new BigQueryConnectException(

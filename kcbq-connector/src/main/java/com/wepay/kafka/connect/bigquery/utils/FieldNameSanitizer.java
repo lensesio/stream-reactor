@@ -20,6 +20,7 @@ public class FieldNameSanitizer {
   // letters, numbers, and underscores.
   // Note: a.b and a/b will have the same value after sanitization which will cause Duplicate key
   // Exception.
+  @SuppressWarnings("unchecked")
   public static Map<String, Object> replaceInvalidKeys(Map<String, Object> map) {
     return map.entrySet().stream().collect(Collectors.toMap(
         (entry) -> sanitizeName(entry.getKey()),

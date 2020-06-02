@@ -314,7 +314,7 @@ public class BigQuerySinkTaskTest {
         TimestampType.NO_TIMESTAMP_TYPE, null)));
   }
 
-  // It's important that the buffer be completely wiped after a call to flush, since any execption
+  // It's important that the buffer be completely wiped after a call to flush, since any exception
   // thrown during flush causes Kafka Connect to not commit the offsets for any records sent to the
   // task since the last flush
   @Test
