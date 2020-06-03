@@ -18,6 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
+import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import io.lenses.streamreactor.connect.aws.s3.{BucketAndPrefix, Offset, Topic, TopicPartitionOffset}
 import org.mockito.MockitoSugar
@@ -26,7 +27,7 @@ import org.scalatest.matchers.should.Matchers
 
 class OffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
-  private val fileNamingStrategy = new HierarchicalS3FileNamingStrategy(Json)
+  private val fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json))
   private val offsetSeeker = new OffsetSeeker(fileNamingStrategy)
 
   private implicit val storageInterface: StorageInterface = mock[StorageInterface]

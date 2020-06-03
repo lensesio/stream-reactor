@@ -38,7 +38,7 @@ class TextFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
     val dataBytes = Try {
       struct.getString(StringValueConverter.TextFieldName).getBytes()
     } match {
-      case Failure(exception) => throw new IllegalStateException("Unable to retrieve text field value.  Text format is only for output of kafka text values.", exception)
+      case Failure(exception) => throw new IllegalStateException("Unable to retrieve text field value.  Text format is only for output of kafka string values.", exception)
       case Success(value) => value
     }
 

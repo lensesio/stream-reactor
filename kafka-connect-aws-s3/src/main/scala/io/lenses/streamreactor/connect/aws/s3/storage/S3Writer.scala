@@ -40,8 +40,7 @@ case class S3WriterState(
                           createdTimestamp: Long = System.currentTimeMillis(),
                           recordCount: Long = 0,
                           lastKnownFileSize: Long = 0,
-                          lastKnownSchema: Option[Schema] = None,
-                          partitionValues: Map[String,String],
+                          lastKnownSchema: Option[Schema] = None
                         )
 
 
@@ -50,6 +49,7 @@ class S3WriterImpl(
                     commitPolicy: CommitPolicy,
                     formatWriterFn: TopicPartition => S3FormatWriter,
                     fileNamingStrategy: S3FileNamingStrategy,
+                    partitionValues: Map[String,String]
                   )(implicit storageInterface: StorageInterface) extends S3Writer {
 
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
@@ -74,20 +74,17 @@ class S3WriterImpl(
         tpo.offset,
         None,
         createdTimestamp = System.currentTimeMillis(),
-        partitionValues = Map.empty[String,String],
       )
     }
 
     // appends to output stream
     formatWriter.write(struct, tpo.topic)
 
-    val partitionValues = if (fileNamingStrategy.shouldProcessPartitionValues) fileNamingStrategy.processPartitionValues(struct) else Map.empty[String,String]
     internalState = internalState.copy(
       lastKnownFileSize = formatWriter.getPointer,
       lastKnownSchema = Option(struct.schema()),
       recordCount = internalState.recordCount + 1,
-      offset = tpo.offset,
-      partitionValues = partitionValues
+      offset = tpo.offset
     )
   }
 
@@ -116,7 +113,7 @@ class S3WriterImpl(
 
     formatWriter.close()
     if(formatWriter.getOutstandingRename) {
-      renameFile(topicPartitionOffset, internalState.partitionValues)
+      renameFile(topicPartitionOffset, partitionValues)
     }
 
     resetState(topicPartitionOffset)

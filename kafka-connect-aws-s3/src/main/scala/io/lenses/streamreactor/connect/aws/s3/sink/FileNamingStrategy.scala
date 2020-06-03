@@ -18,8 +18,11 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.connect.aws.s3._
-import io.lenses.streamreactor.connect.aws.s3.config.Format
+import io.lenses.streamreactor.connect.aws.s3.config.PartitionDisplay.KeysAndValues
+import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection, PartitionSelection}
 import org.apache.kafka.connect.data.Struct
+
+import scala.util.matching.Regex
 
 trait S3FileNamingStrategy {
 
@@ -36,9 +39,13 @@ trait S3FileNamingStrategy {
   def shouldProcessPartitionValues : Boolean
 
   def processPartitionValues(struct: Struct) : Map[String,String]
+
+  val committedFilenameRegex : Regex
 }
 
-class HierarchicalS3FileNamingStrategy(format: Format) extends S3FileNamingStrategy {
+class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends S3FileNamingStrategy {
+
+  val format: Format = formatSelection.format
 
   override def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[String,String] = Map.empty): BucketAndPath =
     BucketAndPath(bucketAndPrefix.bucket, s"${Prefix(bucketAndPrefix)}/.temp/${topicPartition.topic.value}/${topicPartition.partition}.${format.entryName.toLowerCase}")
@@ -52,47 +59,55 @@ class HierarchicalS3FileNamingStrategy(format: Format) extends S3FileNamingStrat
 
   override def processPartitionValues(struct: Struct): Map[String, String] = throw new UnsupportedOperationException("This should never be called for this object")
 
-
+  override val committedFilenameRegex: Regex =  s"(.+)/(.+)/(\\d+)/(\\d+).(.+)".r
 }
 
-class PartitionedS3FileNamingStrategy(format: Format, partitions: Vector[PartitionField]) extends S3FileNamingStrategy {
+class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitionSelection: PartitionSelection) extends S3FileNamingStrategy {
+
+  val format: Format = formatSelection.format
 
   override def getFormat: Format = format
 
   override def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[String,String]): BucketAndPath = {
-    val hierarchical = new HierarchicalS3FileNamingStrategy(format)
-    hierarchical.stagingFilename(bucketAndPrefix, topicPartition)
+    BucketAndPath(bucketAndPrefix.bucket, s"${Prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartition.topic.value}/${topicPartition.partition}/temp.${format.entryName.toLowerCase}")
   }
 
   private def buildPartitionPrefix(partitionValues: Map[String,String]) : String = {
-    partitions.map(
-      partition => partition.name + "=" + partitionValues.getOrElse(partition.name, "[missing]")
+    partitionSelection.partitions.map(
+      partition => {
+        partitionValuePrefix(partition) + partitionValues.getOrElse(partition.name, "[missing]")
+      }
     ).mkString("/")
+  }
+
+  private def partitionValuePrefix(partition: PartitionField): String = {
+    if (partitionSelection.partitionDisplay == KeysAndValues) s"${partition.name}=" else ""
   }
 
   override def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[String,String]): BucketAndPath =
     BucketAndPath(bucketAndPrefix.bucket, s"${Prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartitionOffset.topic.value}/${topicPartitionOffset.partition}/${topicPartitionOffset.offset.value}.${format.entryName.toLowerCase}")
 
   override def processPartitionValues(struct: Struct): Map[String, String] = {
-    partitions
+    partitionSelection
+      .partitions
       .map(partition => partition.name -> Option(struct.get(partition.name)).getOrElse("[missing]").toString)
       .toMap
   }
 
   override def shouldProcessPartitionValues: Boolean = true
+
+  override val committedFilenameRegex: Regex =  s"^([^/]+?)/(?:.+/)*(.+)/(\\d+)/(\\d+).(.+)".r
 }
 
 
 object CommittedFileName {
 
-  private val Regex = s"(.+)/(.+)/(\\d+)/(\\d+).(.+)".r
-
-  def unapply(filename: String): Option[(String, Topic, Int, Offset, Format)] = {
+  def unapply(filename: String)(implicit s3FileNamingStrategy: S3FileNamingStrategy): Option[(String, Topic, Int, Offset, Format)] = {
     filename match {
-      case Regex(prefix, topic, partition, end, extension) =>
-        Format.withNameInsensitiveOption(extension) match {
-          case Some(format) => Some(prefix, Topic(topic), partition.toInt, Offset(end.toLong), format)
-          case None => None
+      case s3FileNamingStrategy.committedFilenameRegex(prefix, topic, partition, end, extension) =>
+        Format.withNameInsensitiveOption(extension)
+          .fold(Option.empty[(String, Topic, Int, Offset, Format)]) {
+          format => Some(prefix, Topic(topic), partition.toInt, Offset(end.toLong), format)
         }
 
       case _ => None

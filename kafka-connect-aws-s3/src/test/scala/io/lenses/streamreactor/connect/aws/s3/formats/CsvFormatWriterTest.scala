@@ -16,22 +16,23 @@
  */
 
 package io.lenses.streamreactor.connect.aws.s3.formats
-
+import scala.collection.JavaConverters._
 import java.io.StringReader
-
+import org.apache.kafka.connect.data.Schema.STRING_SCHEMA
 import au.com.bytecode.opencsv.CSVReader
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.storage.S3ByteArrayOutputStream
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.scalatest.Assertions
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class CsvFormatWriterTest extends AnyFlatSpec with Matchers {
-
+class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
   "convert" should "write byteoutputstream with csv for a single record" in {
 
     val outputStream = new S3ByteArrayOutputStream()
-    val formatWriter = new CsvFormatWriter(() => outputStream)
+    val formatWriter = new CsvFormatWriter(() => outputStream, true)
     formatWriter.write(users(0), topic)
 
     val reader = new StringReader(new String(outputStream.toByteArray()))
@@ -49,7 +50,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers {
   "convert" should "write byteoutputstream with csv for multiple records" in {
 
     val outputStream = new S3ByteArrayOutputStream()
-    val formatWriter = new CsvFormatWriter(() => outputStream)
+    val formatWriter = new CsvFormatWriter(() => outputStream, true)
     users.foreach(formatWriter.write(_, topic))
 
     val reader = new StringReader(new String(outputStream.toByteArray()))
@@ -64,5 +65,89 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers {
     csvReader.close()
     reader.close()
 
+  }
+
+  "convert" should "allow all primitive types" in {
+
+    val schema: Schema = SchemaBuilder.struct()
+      .field("mystring", SchemaBuilder.string().build())
+      .field("mybool", SchemaBuilder.bool().build())
+      .field("mybytes", SchemaBuilder.bytes().build())
+      .field("myfloat32", SchemaBuilder.float32().build())
+      .field("myfloat64", SchemaBuilder.float64().build())
+      .field("myint8", SchemaBuilder.int8().build())
+      .field("myint16", SchemaBuilder.int16().build())
+      .field("myint32", SchemaBuilder.int32().build())
+      .field("myint64", SchemaBuilder.int64().build())
+      .build()
+
+    val struct = new Struct(schema)
+      .put("mystring", "teststring")
+      .put("mybool", true)
+      .put("mybytes", "testBytes".getBytes)
+      .put("myfloat32", 32.0.toFloat)
+      .put("myfloat64", 64.02)
+      .put("myint8", 8.asInstanceOf[Byte])
+      .put("myint16", 16.toShort)
+      .put("myint32", 32)
+      .put("myint64", 64.toLong)
+
+
+    val outputStream = new S3ByteArrayOutputStream()
+    val formatWriter = new CsvFormatWriter(() => outputStream, true)
+    formatWriter.write(struct, topic)
+
+    val reader = new StringReader(new String(outputStream.toByteArray()))
+
+    val csvReader = new CSVReader(reader)
+
+    csvReader.readNext() should be (Array("mystring", "mybool", "mybytes", "myfloat32", "myfloat64", "myint8", "myint16", "myint32", "myint64"))
+    csvReader.readNext() should be (Array("teststring", "true", "testBytes", "32.0", "64.02", "8", "16", "32", "64"))
+    csvReader.readNext() should be (null)
+
+    csvReader.close()
+    reader.close()
+  }
+
+  "convert" should "not allow complex array types" in {
+
+    val schema: Schema = SchemaBuilder.struct()
+      .field("mystringarray", SchemaBuilder.array(STRING_SCHEMA).build())
+      .build()
+
+    val struct = new Struct(schema)
+      .put("mystringarray", List("cheese", "biscuits").asJava)
+
+    val outputStream = new S3ByteArrayOutputStream()
+    val formatWriter = new CsvFormatWriter(() => outputStream, true)
+
+    val caught = intercept[IllegalArgumentException] {
+      formatWriter.write(struct, topic)
+    }
+    formatWriter.close()
+    caught.getMessage should be ("Non-primitive values not supported")
+  }
+
+  "convert" should "not allow complex struct types" in {
+
+    val insideSchema: Schema = SchemaBuilder.struct().field("mystringstruct", STRING_SCHEMA).build()
+    val envelopingSchema: Schema = SchemaBuilder.struct()
+      .field("myenvelopingstruct", insideSchema)
+      .build()
+
+    val struct = new Struct(envelopingSchema)
+      .put("myenvelopingstruct",
+        new Struct(insideSchema)
+          .put("mystringstruct", "mystringfieldvalue")
+      )
+
+    val outputStream = new S3ByteArrayOutputStream()
+    val formatWriter = new CsvFormatWriter(() => outputStream, true)
+
+    val caught = intercept[IllegalArgumentException] {
+      formatWriter.write(struct, topic)
+    }
+    formatWriter.close()
+    caught.getMessage should be ("Non-primitive values not supported")
   }
 }

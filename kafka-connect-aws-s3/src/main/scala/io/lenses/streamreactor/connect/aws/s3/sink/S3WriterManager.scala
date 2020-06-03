@@ -43,14 +43,15 @@ class S3WriterManager(formatWriterFn: TopicPartition => S3FormatWriter,
 
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
-  private val writers = scala.collection.mutable.Map.empty[TopicPartition, S3Writer]
+  case class MapKey(topicPartition: TopicPartition, bucketAndPath: BucketAndPath)
+
+  private val writers = scala.collection.mutable.Map.empty[MapKey, S3Writer]
 
   def commit(): Map[TopicPartition, Offset] = {
 
     logger.debug("Received call to S3WriterManager.commit")
     writers.values.flatMap {
-      writer =>
-        writer.commitChecks()
+      writer => writer.commitChecks()
     }
       .map(tpo => (tpo.toTopicPartition, tpo.offset))
       .toMap
@@ -81,7 +82,7 @@ class S3WriterManager(formatWriterFn: TopicPartition => S3FormatWriter,
   def write(topicPartitionOffset: TopicPartitionOffset, struct: Struct): Unit = {
     logger.debug(s"Received call to S3WriterManager.write")
 
-    val newWriter = writer(topicPartitionOffset.toTopicPartition)
+    val newWriter = writer(topicPartitionOffset.toTopicPartition, struct)
     newWriter.write(struct, topicPartitionOffset)
     newWriter.commitChecks()
 
@@ -91,12 +92,18 @@ class S3WriterManager(formatWriterFn: TopicPartition => S3FormatWriter,
     * Returns a writer that can write records for a particular topic and partition.
     * The writer will create a file inside the given directory if there is no open writer.
     */
-  def writer(topicPartition: TopicPartition): S3Writer = {
+  def writer(topicPartition: TopicPartition, struct: Struct): S3Writer = {
     val bucketAndPrefix = bucketAndPrefixFn(topicPartition.topic)
-    writers.getOrElseUpdate(topicPartition, createWriter(bucketAndPrefix, topicPartition))
+    val fileNamingStrategy: S3FileNamingStrategy = fileNamingStrategyFn(topicPartition.topic)
+
+    val partitionValues = if (fileNamingStrategy.shouldProcessPartitionValues) fileNamingStrategy.processPartitionValues(struct) else Map.empty[String, String]
+
+    val tempBucketAndPath: BucketAndPath = fileNamingStrategy.stagingFilename(bucketAndPrefix, topicPartition, partitionValues)
+
+    writers.getOrElseUpdate(MapKey(topicPartition, tempBucketAndPath), createWriter(bucketAndPrefix, topicPartition, partitionValues))
   }
 
-  private def createWriter(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): S3Writer = {
+  private def createWriter(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[String, String]): S3Writer = {
 
     logger.debug(s"Creating new writer for bucketAndPrefix [$bucketAndPrefix]")
 
@@ -104,7 +111,8 @@ class S3WriterManager(formatWriterFn: TopicPartition => S3FormatWriter,
       bucketAndPrefix,
       commitPolicyFn(topicPartition.topic),
       formatWriterFn,
-      fileNamingStrategyFn(topicPartition.topic)
+      fileNamingStrategyFn(topicPartition.topic),
+      partitionValues
     )
   }
 
@@ -113,15 +121,25 @@ class S3WriterManager(formatWriterFn: TopicPartition => S3FormatWriter,
                ): Map[TopicPartition, OffsetAndMetadata] = {
     logger.debug("Received call to S3WriterManager.preCommit")
 
+    import Offset.orderingByOffsetValue
     currentOffsets
       .collect {
         case (topicPartition, offsetAndMetadata) =>
-          val writer: Option[S3Writer] = writers.get(topicPartition)
-          writer match {
-            case Some(writer: S3Writer) if writer.getCommittedOffset.isDefined =>
-              Some(topicPartition, createOffsetAndMetadata(offsetAndMetadata, writer))
-            case None => None
+          val candidateWriters = writers
+            .filter {
+              case (key, writer) => key.topicPartition == topicPartition && writer.getCommittedOffset.nonEmpty
+            }
+            .values
+          if (candidateWriters.isEmpty) {
+            None
+          } else {
+            Some(
+              topicPartition,
+              createOffsetAndMetadata(offsetAndMetadata, candidateWriters
+                .maxBy(_.getCommittedOffset))
+            )
           }
+
       }.flatten.toMap
   }
 
@@ -172,7 +190,7 @@ object S3WriterManager {
           val path: BucketAndPath = fileNamingStrategyFn(topicPartition.topic)
             .stagingFilename(bucketOptions.bucketAndPrefix, topicPartition)
           val size: Int = minAllowedMultipartSizeFn()
-          S3FormatWriter(bucketOptions.format, outputStreamFn(path, size))
+          S3FormatWriter(bucketOptions.formatSelection, outputStreamFn(path, size))
         case None => throw new IllegalArgumentException("Can't find commitPolicy in config")
       }
 

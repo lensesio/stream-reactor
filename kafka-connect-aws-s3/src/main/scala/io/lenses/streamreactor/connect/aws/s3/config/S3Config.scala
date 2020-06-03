@@ -19,9 +19,10 @@ package io.lenses.streamreactor.connect.aws.s3.config
 
 import com.datamountaineer.kcql.Kcql
 import enumeratum._
-import io.lenses.streamreactor.connect.aws.s3.{BucketAndPrefix, PartitionField}
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
-import io.lenses.streamreactor.connect.aws.s3.sink.{CommitPolicy, DefaultCommitPolicy, HierarchicalS3FileNamingStrategy, PartitionedS3FileNamingStrategy, S3FileNamingStrategy}
+import io.lenses.streamreactor.connect.aws.s3.config.PartitionDisplay.{KeysAndValues, Values}
+import io.lenses.streamreactor.connect.aws.s3.sink._
+import io.lenses.streamreactor.connect.aws.s3.{BucketAndPrefix, PartitionField}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable
@@ -43,6 +44,40 @@ object AuthMode extends Enum[AuthMode] {
 
 }
 
+sealed trait FormatOptions extends EnumEntry
+
+object FormatOptions extends Enum[FormatOptions] {
+
+  val values: immutable.IndexedSeq[FormatOptions] = findValues
+
+  case object WithHeaders extends FormatOptions
+
+}
+
+
+
+case object FormatSelection {
+
+  def apply(formatAsString : String): FormatSelection = {
+    val withoutTicks = formatAsString.replace("`", "")
+    val split = withoutTicks.split("_")
+
+    val formatOptions: Set[FormatOptions] = if(split.size > 1) {
+      split.splitAt(1)._2.flatMap(FormatOptions.withNameInsensitiveOption(_)).toSet
+    } else {
+      Set.empty
+    }
+
+    FormatSelection(Format
+      .withNameInsensitiveOption(split(0))
+      .getOrElse(throw new IllegalArgumentException(s"Unsupported format - $formatAsString")), formatOptions)
+  }
+
+}
+case class FormatSelection(
+                       format: Format,
+                       formatOptions: Set[FormatOptions] = Set.empty
+                     )
 
 sealed trait Format extends EnumEntry
 
@@ -60,6 +95,16 @@ object Format extends Enum[Format] {
 
   case object Csv extends Format
 
+}
+
+sealed trait PartitionDisplay extends EnumEntry
+
+object PartitionDisplay extends Enum[PartitionDisplay] {
+  val values: immutable.IndexedSeq[PartitionDisplay] = findValues
+
+  case object KeysAndValues extends PartitionDisplay
+
+  case object Values extends PartitionDisplay
 }
 
 
@@ -103,29 +148,29 @@ object BucketOptions {
       val flushInterval = Option(kcql.getWithFlushInterval).filter(_ > 0).map(_.seconds)
       val flushCount = Option(kcql.getWithFlushCount).filter(_ > 0)
 
-      val format: Format = Option(kcql.getStoredAs) match {
-        case Some(format: String) =>
-          Format
-            .withNameInsensitiveOption(format.replace("`", ""))
-            .getOrElse(throw new IllegalArgumentException(s"Unsupported format - $format"))
-        case None => Json
+
+      val formatSelection: FormatSelection = Option(kcql.getStoredAs) match {
+        case Some(format: String) => FormatSelection(format)
+        case None => FormatSelection(Json, Set.empty)
       }
 
-      val partitions = Option(kcql.getPartitionBy).map(_.asScala).getOrElse(Nil).map(name => PartitionField(name)).toVector
-      val namingStrategy = if (partitions.nonEmpty) new PartitionedS3FileNamingStrategy(format, partitions) else new HierarchicalS3FileNamingStrategy(format)
+      val partitionSelection = PartitionSelection(kcql)
+      val namingStrategy = partitionSelection match {
+        case Some(partSel) => new PartitionedS3FileNamingStrategy(formatSelection, partSel)
+        case None => new HierarchicalS3FileNamingStrategy(formatSelection)
+      }
 
       val flushSize = Option(kcql.getWithFlushSize).filter(_ > 0)
-      val overrideFlushSize = if (partitions.nonEmpty) Some(1L) else flushSize
 
       // we must have at least one way of committing files
-      val finalFlushSize = Some(overrideFlushSize.fold(1000L * 1000 * 128)(identity)) //if (flushSize.isEmpty /*&& flushInterval.isEmpty && flushCount.isEmpty*/) Some(1000L * 1000 * 128) else flushSize
+      val finalFlushSize = Some(flushSize.fold(1000L * 1000 * 128)(identity)) //if (flushSize.isEmpty /*&& flushInterval.isEmpty && flushCount.isEmpty*/) Some(1000L * 1000 * 128) else flushSize
 
       BucketOptions(
         kcql.getSource,
         BucketAndPrefix(kcql.getTarget),
-        format = format,
+        formatSelection = formatSelection,
         fileNamingStrategy = namingStrategy,
-        partitions = partitions,
+        partitionSelection = partitionSelection,
         commitPolicy = DefaultCommitPolicy(
           fileSize = finalFlushSize,
           interval = flushInterval,
@@ -135,14 +180,36 @@ object BucketOptions {
     }
 
   }
+
 }
 
+case object PartitionSelection {
+
+  def apply(kcql: Kcql): Option[PartitionSelection] = {
+    val partitions = Option(kcql.getPartitionBy).map(_.asScala).getOrElse(Nil).map(name => PartitionField(name)).toVector
+    if(partitions.isEmpty) None else partitionDisplayFromKcql(kcql, partitions)
+  }
+
+  private def partitionDisplayFromKcql(kcql: Kcql, partitions: Vector[PartitionField]): Option[PartitionSelection] = {
+    val partitionDisplay = Option(kcql.getWithPartitioner).fold[PartitionDisplay](KeysAndValues) {
+        PartitionDisplay
+          .withNameInsensitiveOption(_)
+          .getOrElse(KeysAndValues)
+    }
+    Some(PartitionSelection(partitions, partitionDisplay))
+  }
+}
+
+case class PartitionSelection(
+                               partitions: Seq[PartitionField],
+                               partitionDisplay: PartitionDisplay = PartitionDisplay.Values
+                             )
 
 case class BucketOptions(
                           sourceTopic: String,
                           bucketAndPrefix: BucketAndPrefix,
-                          format: Format,
+                          formatSelection: FormatSelection,
                           fileNamingStrategy: S3FileNamingStrategy,
-                          partitions: Seq[PartitionField] = Nil,
+                          partitionSelection: Option[PartitionSelection] = None,
                           commitPolicy: CommitPolicy = DefaultCommitPolicy(Some(1000 * 1000 * 128), None, None),
                         )

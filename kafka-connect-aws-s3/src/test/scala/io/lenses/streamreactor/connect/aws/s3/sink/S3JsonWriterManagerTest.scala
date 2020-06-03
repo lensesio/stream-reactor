@@ -18,7 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
-import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, BucketOptions, S3Config}
+import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, BucketOptions, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig}
 import io.lenses.streamreactor.connect.aws.s3.{BucketAndPrefix, Offset, Topic, TopicPartitionOffset}
 import org.apache.kafka.connect.data.Struct
@@ -45,8 +45,8 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
       AuthMode.Credentials,
       bucketOptions = Set(
         BucketOptions(TopicName, bucketAndPrefix, commitPolicy = DefaultCommitPolicy(None, None, Some(1)),
-          format = Json,
-          fileNamingStrategy = new HierarchicalS3FileNamingStrategy(Json),
+          formatSelection = FormatSelection(Json),
+          fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json)),
         ) // JsonS3Format
       )
     )
@@ -73,8 +73,8 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
       AuthMode.Credentials,
       bucketOptions = Set(
         BucketOptions(TopicName, bucketAndPrefix, commitPolicy = DefaultCommitPolicy(None, None, Some(3)),
-          format = Json,
-          fileNamingStrategy = new HierarchicalS3FileNamingStrategy(Json)) // JsonS3Format
+          formatSelection = FormatSelection(Json),
+          fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json))) // JsonS3Format
       )
     )
 

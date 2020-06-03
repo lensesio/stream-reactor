@@ -49,8 +49,14 @@ case class BucketAndPath(
 case class Topic(value: String) {
   require(value != null && value.trim.nonEmpty)
 }
+object Offset {
 
+  implicit def orderingByOffsetValue[A <: Offset]: Ordering[A] =
+Ordering.by(_.value)
+
+}
 case class Offset(value: Long) {
+
   require(value >= 0)
 }
 

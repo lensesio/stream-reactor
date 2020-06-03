@@ -273,7 +273,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
   }
 
-  "S3SinkTask" should "write to csv format" in {
+  "S3SinkTask" should "write to csv format with headers" in {
 
     val task = new S3SinkTask()
 
@@ -284,7 +284,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     val props = DefaultProps
       .combine(
-        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV` WITH_FLUSH_COUNT = 2")
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV_WITHHEADERS` WITH_FLUSH_COUNT = 2")
       ).asJava
 
     task.start(props)
@@ -316,6 +316,47 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     file2CsvReader.readNext() should be (null)
   }
 
+  "S3SinkTask" should "write to csv format without headers" in {
+
+    val task = new S3SinkTask()
+
+    val extraRecord = new SinkRecord(TopicName, 1, null, null, schema,
+      new Struct(schema).put("name", "bob").put("title", "mr").put("salary", 200.86), 3)
+
+    val allRecords : List[SinkRecord] = records :+ extraRecord
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `CSV` WITH_FLUSH_COUNT = 2")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(allRecords.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/mytopic/1/")).size() should be(2)
+
+    val file1Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/mytopic/1/1.csv", blobStoreContext)
+
+    val file1Reader = new StringReader(new String(file1Bytes))
+    val file1CsvReader = new CSVReader(file1Reader)
+
+    file1CsvReader.readNext() should be (Array("sam", "mr", "100.43"))
+    file1CsvReader.readNext() should be (Array("laura", "ms", "429.06"))
+    file1CsvReader.readNext() should be (null)
+
+    val file2Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/mytopic/1/3.csv", blobStoreContext)
+
+    val file2Reader = new StringReader(new String(file2Bytes))
+    val file2CsvReader = new CSVReader(file2Reader)
+
+    file2CsvReader.readNext() should be (Array("tom", "", "395.44"))
+    file2CsvReader.readNext() should be (Array("bob", "mr", "200.86"))
+    file2CsvReader.readNext() should be (null)
+  }
+
   "S3SinkTask" should "use custom partitioning scheme and flush for every record" in {
 
     val task = new S3SinkTask()
@@ -335,7 +376,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     val props = DefaultProps
       .combine(
-        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY name,title,salary")
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY name,title,salary WITH_FLUSH_COUNT = 1")
       ).asJava
 
     task.start(props)
@@ -352,6 +393,80 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     readFileToString("streamReactorBackups/name=first/title=[missing]/salary=200.0/mytopic/1/3.json", blobStoreContext) should be("""{"name":"first","title":null,"salary":200.0}""")
     readFileToString("streamReactorBackups/name=second/title=[missing]/salary=100.0/mytopic/1/4.json", blobStoreContext) should be("""{"name":"second","title":null,"salary":100.0}""")
     readFileToString("streamReactorBackups/name=third/title=[missing]/salary=100.0/mytopic/1/5.json", blobStoreContext) should be("""{"name":"third","title":null,"salary":100.0}""")
+
+  }
+
+  "S3SinkTask" should "use custom partitioning scheme and flush after two written records" in {
+
+    val task = new S3SinkTask()
+
+    val partitionedData: List[Struct] = List(
+      new Struct(schema).put("name", "first").put("title", "primary").put("salary", null),
+      new Struct(schema).put("name", "first").put("title", "secondary").put("salary", 100.00),
+      new Struct(schema).put("name", "first").put("title", "primary").put("salary", 100.00),
+      new Struct(schema).put("name", "second").put("title", "secondary").put("salary", 200.00),
+      new Struct(schema).put("name", "second").put("title", "primary").put("salary", 100.00),
+      new Struct(schema).put("name", "second").put("title", "secondary").put("salary", 100.00)
+    )
+
+    val records = partitionedData.zipWithIndex.map { case (user, k) =>
+      new SinkRecord(TopicName, 1, null, null, schema, user, k)
+    }
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY name,title WITH_FLUSH_COUNT = 2")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(records.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.recursive().prefix("streamReactorBackups/")).size() should be(2)
+
+    readFileToString("streamReactorBackups/name=first/title=primary/mytopic/1/2.json", blobStoreContext) should be("""{"name":"first","title":"primary","salary":null}{"name":"first","title":"primary","salary":100.0}""")
+    readFileToString("streamReactorBackups/name=second/title=secondary/mytopic/1/5.json", blobStoreContext) should be("""{"name":"second","title":"secondary","salary":200.0}{"name":"second","title":"secondary","salary":100.0}""")
+
+  }
+
+  "S3SinkTask" should "use custom partitioning with key display only" in {
+
+    val task = new S3SinkTask()
+
+    val partitionedData: List[Struct] = List(
+      new Struct(schema).put("name", "first").put("title", "primary").put("salary", null),
+      new Struct(schema).put("name", "second").put("title", "secondary").put("salary", 100.00),
+      new Struct(schema).put("name", "third").put("title", "primary").put("salary", 100.00),
+      new Struct(schema).put("name", "first").put("title", null).put("salary", 200.00),
+      new Struct(schema).put("name", "second").put("title", null).put("salary", 100.00),
+      new Struct(schema).put("name", "third").put("title", null).put("salary", 100.00)
+    )
+
+    val records = partitionedData.zipWithIndex.map { case (user, k) =>
+      new SinkRecord(TopicName, 1, null, null, schema, user, k)
+    }
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY name,title,salary WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(records.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.recursive().prefix("streamReactorBackups/")).size() should be(6)
+
+    readFileToString("streamReactorBackups/first/primary/[missing]/mytopic/1/0.json", blobStoreContext) should be("""{"name":"first","title":"primary","salary":null}""")
+    readFileToString("streamReactorBackups/second/secondary/100.0/mytopic/1/1.json", blobStoreContext) should be("""{"name":"second","title":"secondary","salary":100.0}""")
+    readFileToString("streamReactorBackups/third/primary/100.0/mytopic/1/2.json", blobStoreContext) should be("""{"name":"third","title":"primary","salary":100.0}""")
+    readFileToString("streamReactorBackups/first/[missing]/200.0/mytopic/1/3.json", blobStoreContext) should be("""{"name":"first","title":null,"salary":200.0}""")
+    readFileToString("streamReactorBackups/second/[missing]/100.0/mytopic/1/4.json", blobStoreContext) should be("""{"name":"second","title":null,"salary":100.0}""")
+    readFileToString("streamReactorBackups/third/[missing]/100.0/mytopic/1/5.json", blobStoreContext) should be("""{"name":"third","title":null,"salary":100.0}""")
 
   }
 

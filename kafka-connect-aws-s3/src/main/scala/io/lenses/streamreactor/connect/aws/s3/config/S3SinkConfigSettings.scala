@@ -30,7 +30,7 @@ object S3SinkConfigSettings {
   val CUSTOM_ENDPOINT: String = "aws.custom.endpoint"
   val ENABLE_VIRTUAL_HOST_BUCKETS: String = "aws.vhost.bucket"
 
-  val AWS_BUCKET_NAME: String = "aws.secret.key"
+  val AWS_BUCKET_NAME: String = "aws.bucket.name"
   val AWS_PREFIX: String = "aws.prefix"
 
   val KcqlKey = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"

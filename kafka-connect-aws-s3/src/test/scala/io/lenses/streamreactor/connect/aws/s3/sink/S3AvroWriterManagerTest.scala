@@ -18,7 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Avro
-import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, BucketOptions, S3Config}
+import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, BucketOptions, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.formats.AvroFormatReader
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig, S3TestPayloadReader}
@@ -48,8 +48,8 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
         TopicName,
         bucketAndPrefix,
         commitPolicy = DefaultCommitPolicy(None, None, Some(2)),
-        format = Avro,
-        fileNamingStrategy = new HierarchicalS3FileNamingStrategy(Avro),
+        formatSelection = FormatSelection(Avro),
+        fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Avro)),
       )
     )
   )
