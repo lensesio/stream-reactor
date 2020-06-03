@@ -111,7 +111,6 @@ class OffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
   }
 
 
-
   "seek" should "ignore files with no extensions" in {
 
     when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)

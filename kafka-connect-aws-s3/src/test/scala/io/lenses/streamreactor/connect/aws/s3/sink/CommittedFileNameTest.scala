@@ -39,15 +39,15 @@ class CommittedFileNameTest extends AnyFlatSpecLike with Matchers {
     CommittedFileName.unapply("prefix/topic/927/77.json") should be(Some("prefix", Topic("topic"), 927, Offset(77), Json))
   }
 
-  "unapply" should "not recognise hierarchical filenames other formats" in new HierarchicalJsonTestContext  {
+  "unapply" should "not recognise hierarchical filenames other formats" in new HierarchicalJsonTestContext {
     CommittedFileName.unapply("prefix/topic/927/77") should be(None)
   }
 
-  "unapply" should "not recognise hierarchical filenames for non-supported file types" in new HierarchicalJsonTestContext  {
+  "unapply" should "not recognise hierarchical filenames for non-supported file types" in new HierarchicalJsonTestContext {
     CommittedFileName.unapply("prefix/topic/927/77.doc") should be(None)
   }
 
-  "unapply" should "not recognise hierarchical filenames for a long path" in new HierarchicalJsonTestContext  {
+  "unapply" should "not recognise hierarchical filenames for a long path" in new HierarchicalJsonTestContext {
     CommittedFileName.unapply("extra/long/prefix/topic/927/77.doc") should be(None)
   }
 
@@ -57,15 +57,15 @@ class CommittedFileNameTest extends AnyFlatSpecLike with Matchers {
     CommittedFileName.unapply("prefix/partition1=something/partition2=else/partition3=sausages/topic/927/77.json") should be(Some("prefix", Topic("topic"), 927, Offset(77), Json))
   }
 
-  "unapply" should "not recognise partitioned filenames other formats" in new PartitionedAvroTestContext  {
+  "unapply" should "not recognise partitioned filenames other formats" in new PartitionedAvroTestContext {
     CommittedFileName.unapply("prefix/partition1=something/partition2=else/topic/927/77") should be(None)
   }
 
-  "unapply" should "not recognise partitioned filenames for non-supported file types" in new PartitionedAvroTestContext  {
+  "unapply" should "not recognise partitioned filenames for non-supported file types" in new PartitionedAvroTestContext {
     CommittedFileName.unapply("prefix/partition1=something/partition2=else/topic/927/77.doc") should be(None)
   }
 
-  "unapply" should "not recognise partitioned filenames for a long path" in new PartitionedAvroTestContext  {
+  "unapply" should "not recognise partitioned filenames for a long path" in new PartitionedAvroTestContext {
     CommittedFileName.unapply("extra/long/prefix/partition1=something/partition2=else/topic/927/77.doc") should be(None)
   }
 

@@ -40,5 +40,4 @@ class AvroFormatReader extends Using {
   }
 
 
-
 }

@@ -20,7 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.config
 import com.datamountaineer.kcql.Kcql
 import enumeratum._
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
-import io.lenses.streamreactor.connect.aws.s3.config.PartitionDisplay.{KeysAndValues, Values}
+import io.lenses.streamreactor.connect.aws.s3.config.PartitionDisplay.KeysAndValues
 import io.lenses.streamreactor.connect.aws.s3.sink._
 import io.lenses.streamreactor.connect.aws.s3.{BucketAndPrefix, PartitionField}
 
@@ -55,14 +55,13 @@ object FormatOptions extends Enum[FormatOptions] {
 }
 
 
-
 case object FormatSelection {
 
-  def apply(formatAsString : String): FormatSelection = {
+  def apply(formatAsString: String): FormatSelection = {
     val withoutTicks = formatAsString.replace("`", "")
     val split = withoutTicks.split("_")
 
-    val formatOptions: Set[FormatOptions] = if(split.size > 1) {
+    val formatOptions: Set[FormatOptions] = if (split.size > 1) {
       split.splitAt(1)._2.flatMap(FormatOptions.withNameInsensitiveOption(_)).toSet
     } else {
       Set.empty
@@ -74,10 +73,11 @@ case object FormatSelection {
   }
 
 }
+
 case class FormatSelection(
-                       format: Format,
-                       formatOptions: Set[FormatOptions] = Set.empty
-                     )
+                            format: Format,
+                            formatOptions: Set[FormatOptions] = Set.empty
+                          )
 
 sealed trait Format extends EnumEntry
 
@@ -105,6 +105,7 @@ object PartitionDisplay extends Enum[PartitionDisplay] {
   case object KeysAndValues extends PartitionDisplay
 
   case object Values extends PartitionDisplay
+
 }
 
 
@@ -187,14 +188,14 @@ case object PartitionSelection {
 
   def apply(kcql: Kcql): Option[PartitionSelection] = {
     val partitions = Option(kcql.getPartitionBy).map(_.asScala).getOrElse(Nil).map(name => PartitionField(name)).toVector
-    if(partitions.isEmpty) None else partitionDisplayFromKcql(kcql, partitions)
+    if (partitions.isEmpty) None else partitionDisplayFromKcql(kcql, partitions)
   }
 
   private def partitionDisplayFromKcql(kcql: Kcql, partitions: Vector[PartitionField]): Option[PartitionSelection] = {
     val partitionDisplay = Option(kcql.getWithPartitioner).fold[PartitionDisplay](KeysAndValues) {
-        PartitionDisplay
-          .withNameInsensitiveOption(_)
-          .getOrElse(KeysAndValues)
+      PartitionDisplay
+        .withNameInsensitiveOption(_)
+        .getOrElse(KeysAndValues)
     }
     Some(PartitionSelection(partitions, partitionDisplay))
   }

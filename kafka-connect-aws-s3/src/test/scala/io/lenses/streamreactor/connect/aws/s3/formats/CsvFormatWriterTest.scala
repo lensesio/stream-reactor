@@ -16,16 +16,19 @@
  */
 
 package io.lenses.streamreactor.connect.aws.s3.formats
-import scala.collection.JavaConverters._
+
 import java.io.StringReader
-import org.apache.kafka.connect.data.Schema.STRING_SCHEMA
+
 import au.com.bytecode.opencsv.CSVReader
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.storage.S3ByteArrayOutputStream
+import org.apache.kafka.connect.data.Schema.STRING_SCHEMA
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.Assertions
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import scala.collection.JavaConverters._
 
 class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
@@ -39,9 +42,9 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
     val csvReader = new CSVReader(reader)
 
-    csvReader.readNext() should be (Array("name", "title", "salary"))
-    csvReader.readNext() should be (Array("sam", "mr", "100.43"))
-    csvReader.readNext() should be (null)
+    csvReader.readNext() should be(Array("name", "title", "salary"))
+    csvReader.readNext() should be(Array("sam", "mr", "100.43"))
+    csvReader.readNext() should be(null)
 
     csvReader.close()
     reader.close()
@@ -56,11 +59,11 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
     val reader = new StringReader(new String(outputStream.toByteArray()))
     val csvReader = new CSVReader(reader)
 
-    csvReader.readNext() should be (Array("name", "title", "salary"))
-    csvReader.readNext() should be (Array("sam", "mr", "100.43"))
-    csvReader.readNext() should be (Array("laura", "ms", "429.06"))
-    csvReader.readNext() should be (Array("tom", "", "395.44"))
-    csvReader.readNext() should be (null)
+    csvReader.readNext() should be(Array("name", "title", "salary"))
+    csvReader.readNext() should be(Array("sam", "mr", "100.43"))
+    csvReader.readNext() should be(Array("laura", "ms", "429.06"))
+    csvReader.readNext() should be(Array("tom", "", "395.44"))
+    csvReader.readNext() should be(null)
 
     csvReader.close()
     reader.close()
@@ -101,9 +104,9 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
     val csvReader = new CSVReader(reader)
 
-    csvReader.readNext() should be (Array("mystring", "mybool", "mybytes", "myfloat32", "myfloat64", "myint8", "myint16", "myint32", "myint64"))
-    csvReader.readNext() should be (Array("teststring", "true", "testBytes", "32.0", "64.02", "8", "16", "32", "64"))
-    csvReader.readNext() should be (null)
+    csvReader.readNext() should be(Array("mystring", "mybool", "mybytes", "myfloat32", "myfloat64", "myint8", "myint16", "myint32", "myint64"))
+    csvReader.readNext() should be(Array("teststring", "true", "testBytes", "32.0", "64.02", "8", "16", "32", "64"))
+    csvReader.readNext() should be(null)
 
     csvReader.close()
     reader.close()
@@ -125,7 +128,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
       formatWriter.write(struct, topic)
     }
     formatWriter.close()
-    caught.getMessage should be ("Non-primitive values not supported")
+    caught.getMessage should be("Non-primitive values not supported")
   }
 
   "convert" should "not allow complex struct types" in {
@@ -148,6 +151,6 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
       formatWriter.write(struct, topic)
     }
     formatWriter.close()
-    caught.getMessage should be ("Non-primitive values not supported")
+    caught.getMessage should be("Non-primitive values not supported")
   }
 }

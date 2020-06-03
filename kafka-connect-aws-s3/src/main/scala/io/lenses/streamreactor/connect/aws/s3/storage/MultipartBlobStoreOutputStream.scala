@@ -98,6 +98,7 @@ class MultipartBlobStoreOutputStream(
     }
 
   }
+
   private def validateRange(startOffset: Int, numberOfBytes: Int) = startOffset >= 0 && startOffset <= numberOfBytes
 
   def getCurrentBufferContents: Array[Byte] = {

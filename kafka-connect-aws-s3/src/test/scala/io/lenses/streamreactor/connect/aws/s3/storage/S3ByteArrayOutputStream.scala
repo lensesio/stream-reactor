@@ -23,7 +23,7 @@ class S3ByteArrayOutputStream extends S3OutputStream {
 
   val wrappedOutputStream = new ByteArrayOutputStream()
 
-  var pointer : Long = 0L
+  var pointer: Long = 0L
 
   override def complete(): Boolean = true
 

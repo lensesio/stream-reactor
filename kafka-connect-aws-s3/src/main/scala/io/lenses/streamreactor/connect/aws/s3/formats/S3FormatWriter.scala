@@ -19,8 +19,8 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.Topic
 import io.lenses.streamreactor.connect.aws.s3.config.Format._
-import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
+import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreOutputStream
 import org.apache.kafka.connect.data.Struct
 
@@ -28,7 +28,7 @@ object S3FormatWriter {
 
   def apply(
              formatInfo: FormatSelection,
-             outputStreamFn : () => MultipartBlobStoreOutputStream
+             outputStreamFn: () => MultipartBlobStoreOutputStream
            ): S3FormatWriter = {
 
     formatInfo.format match {

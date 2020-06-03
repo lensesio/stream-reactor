@@ -34,11 +34,11 @@ case class BucketAndPrefix(
                             bucket: String,
                             prefix: Option[String]
                           ) {
-    val filtered = prefix
-      .filter(_.contains("/"))
+  val filtered = prefix
+    .filter(_.contains("/"))
 
-    filtered
-      .foreach(_ => throw new IllegalArgumentException("Nested prefix not currently supported"))
+  filtered
+    .foreach(_ => throw new IllegalArgumentException("Nested prefix not currently supported"))
 }
 
 case class BucketAndPath(
@@ -49,12 +49,14 @@ case class BucketAndPath(
 case class Topic(value: String) {
   require(value != null && value.trim.nonEmpty)
 }
+
 object Offset {
 
   implicit def orderingByOffsetValue[A <: Offset]: Ordering[A] =
-Ordering.by(_.value)
+    Ordering.by(_.value)
 
 }
+
 case class Offset(value: Long) {
 
   require(value >= 0)

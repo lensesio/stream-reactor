@@ -31,7 +31,7 @@ import org.apache.parquet.hadoop.ParquetWriter.{DEFAULT_BLOCK_SIZE, DEFAULT_PAGE
 
 import scala.util.Try
 
-class ParquetFormatWriter(outputStreamFn : () => S3OutputStream) extends S3FormatWriter with LazyLogging {
+class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWriter with LazyLogging {
   private var outstandingRename: Boolean = false
 
   private var outputStream: S3OutputStream = _
@@ -69,10 +69,10 @@ class ParquetFormatWriter(outputStreamFn : () => S3OutputStream) extends S3Forma
   override def rolloverFileOnSchemaChange() = true
 
   override def close: Unit = {
-    Try (writer.close())
-    Try (outputStream.flush())
-    Try (outstandingRename = outputStream.complete())
-    Try (outputStream.close())
+    Try(writer.close())
+    Try(outputStream.flush())
+    Try(outstandingRename = outputStream.complete())
+    Try(outputStream.close())
   }
 
   override def getOutstandingRename: Boolean = outstandingRename

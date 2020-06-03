@@ -33,7 +33,7 @@ class BucketAndPrefixTest extends AnyFlatSpec with Matchers {
   }
 
   "bucketAndPrefix" should "split a the bucket and path" in {
-    BucketAndPrefix("bucket:path") should be (BucketAndPrefix("bucket", Some("path")))
+    BucketAndPrefix("bucket:path") should be(BucketAndPrefix("bucket", Some("path")))
   }
 
   "bucketAndPrefix" should "fail if given too many components to split" in {

@@ -49,7 +49,7 @@ class S3WriterImpl(
                     commitPolicy: CommitPolicy,
                     formatWriterFn: TopicPartition => S3FormatWriter,
                     fileNamingStrategy: S3FileNamingStrategy,
-                    partitionValues: Map[String,String]
+                    partitionValues: Map[String, String]
                   )(implicit storageInterface: StorageInterface) extends S3Writer {
 
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
@@ -112,7 +112,7 @@ class S3WriterImpl(
       internalState.offset)
 
     formatWriter.close()
-    if(formatWriter.getOutstandingRename) {
+    if (formatWriter.getOutstandingRename) {
       renameFile(topicPartitionOffset, partitionValues)
     }
 
@@ -121,7 +121,7 @@ class S3WriterImpl(
     topicPartitionOffset
   }
 
-  def renameFile(topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[String,String]): Unit = {
+  def renameFile(topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[String, String]): Unit = {
     val originalFilename = fileNamingStrategy.stagingFilename(
       bucketAndPrefix,
       topicPartitionOffset.toTopicPartition

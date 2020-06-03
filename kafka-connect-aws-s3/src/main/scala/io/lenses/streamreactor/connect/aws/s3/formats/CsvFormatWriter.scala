@@ -38,7 +38,7 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
 
   private var fieldsWritten = false
 
-  private var fields : Array[String] = _
+  private var fields: Array[String] = _
 
   private val supportedPrimitiveTypes = Set(
     classOf[java.lang.Boolean],
@@ -54,12 +54,12 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
   override def write(struct: Struct, topic: Topic): Unit = {
 
     // TODO fields
-    if(!fieldsWritten) {
+    if (!fieldsWritten) {
       writeFields(struct.schema())
     }
     val structValueLookupFn: String => String = lookupFieldValueFromStruct(struct)
     val nextRow = fields.map(structValueLookupFn)
-    csvWriter.writeNext(nextRow:_*)
+    csvWriter.writeNext(nextRow: _*)
     csvWriter.flush()
 
   }
@@ -96,8 +96,8 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
 
   private def writeFields(schema: Schema) = {
     fields = schema.fields().asScala.map(_.name()).toArray
-    if(writeHeaders) {
-      csvWriter.writeNext(fields:_*)
+    if (writeHeaders) {
+      csvWriter.writeNext(fields: _*)
     }
     fieldsWritten = true
   }

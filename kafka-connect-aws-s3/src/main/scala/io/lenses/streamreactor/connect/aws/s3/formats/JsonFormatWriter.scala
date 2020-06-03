@@ -27,7 +27,7 @@ import org.apache.kafka.connect.json.JsonConverter
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-class JsonFormatWriter(outputStreamFn : () => S3OutputStream) extends S3FormatWriter {
+class JsonFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWriter {
 
   private val LineSeparatorBytes: Array[Byte] = System.lineSeparator.getBytes(StandardCharsets.UTF_8)
 
@@ -51,10 +51,10 @@ class JsonFormatWriter(outputStreamFn : () => S3OutputStream) extends S3FormatWr
   override def rolloverFileOnSchemaChange(): Boolean = false
 
   override def close: Unit = {
-    Try (outstandingRename = outputStream.complete())
+    Try(outstandingRename = outputStream.complete())
 
-    Try (outputStream.flush())
-    Try (outputStream.close())
+    Try(outputStream.flush())
+    Try(outputStream.close())
   }
 
   override def getOutstandingRename: Boolean = outstandingRename

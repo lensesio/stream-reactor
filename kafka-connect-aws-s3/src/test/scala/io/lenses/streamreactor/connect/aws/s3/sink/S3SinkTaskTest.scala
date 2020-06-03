@@ -266,10 +266,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/mytopic/1/")).size() should be(2)
 
     val file1Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/mytopic/1/1.text", blobStoreContext)
-    new String(file1Bytes) should be ("Sausages\nMash\n")
+    new String(file1Bytes) should be("Sausages\nMash\n")
 
     val file2Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/mytopic/1/3.text", blobStoreContext)
-    new String(file2Bytes) should be ("Peas\nGravy\n")
+    new String(file2Bytes) should be("Peas\nGravy\n")
 
   }
 
@@ -280,7 +280,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     val extraRecord = new SinkRecord(TopicName, 1, null, null, schema,
       new Struct(schema).put("name", "bob").put("title", "mr").put("salary", 200.86), 3)
 
-    val allRecords : List[SinkRecord] = records :+ extraRecord
+    val allRecords: List[SinkRecord] = records :+ extraRecord
 
     val props = DefaultProps
       .combine(
@@ -300,20 +300,20 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     val file1Reader = new StringReader(new String(file1Bytes))
     val file1CsvReader = new CSVReader(file1Reader)
 
-    file1CsvReader.readNext() should be (Array("name", "title", "salary"))
-    file1CsvReader.readNext() should be (Array("sam", "mr", "100.43"))
-    file1CsvReader.readNext() should be (Array("laura", "ms", "429.06"))
-    file1CsvReader.readNext() should be (null)
+    file1CsvReader.readNext() should be(Array("name", "title", "salary"))
+    file1CsvReader.readNext() should be(Array("sam", "mr", "100.43"))
+    file1CsvReader.readNext() should be(Array("laura", "ms", "429.06"))
+    file1CsvReader.readNext() should be(null)
 
     val file2Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/mytopic/1/3.csv", blobStoreContext)
 
     val file2Reader = new StringReader(new String(file2Bytes))
     val file2CsvReader = new CSVReader(file2Reader)
 
-    file2CsvReader.readNext() should be (Array("name", "title", "salary"))
-    file2CsvReader.readNext() should be (Array("tom", "", "395.44"))
-    file2CsvReader.readNext() should be (Array("bob", "mr", "200.86"))
-    file2CsvReader.readNext() should be (null)
+    file2CsvReader.readNext() should be(Array("name", "title", "salary"))
+    file2CsvReader.readNext() should be(Array("tom", "", "395.44"))
+    file2CsvReader.readNext() should be(Array("bob", "mr", "200.86"))
+    file2CsvReader.readNext() should be(null)
   }
 
   "S3SinkTask" should "write to csv format without headers" in {
@@ -323,7 +323,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     val extraRecord = new SinkRecord(TopicName, 1, null, null, schema,
       new Struct(schema).put("name", "bob").put("title", "mr").put("salary", 200.86), 3)
 
-    val allRecords : List[SinkRecord] = records :+ extraRecord
+    val allRecords: List[SinkRecord] = records :+ extraRecord
 
     val props = DefaultProps
       .combine(
@@ -343,18 +343,18 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     val file1Reader = new StringReader(new String(file1Bytes))
     val file1CsvReader = new CSVReader(file1Reader)
 
-    file1CsvReader.readNext() should be (Array("sam", "mr", "100.43"))
-    file1CsvReader.readNext() should be (Array("laura", "ms", "429.06"))
-    file1CsvReader.readNext() should be (null)
+    file1CsvReader.readNext() should be(Array("sam", "mr", "100.43"))
+    file1CsvReader.readNext() should be(Array("laura", "ms", "429.06"))
+    file1CsvReader.readNext() should be(null)
 
     val file2Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/mytopic/1/3.csv", blobStoreContext)
 
     val file2Reader = new StringReader(new String(file2Bytes))
     val file2CsvReader = new CSVReader(file2Reader)
 
-    file2CsvReader.readNext() should be (Array("tom", "", "395.44"))
-    file2CsvReader.readNext() should be (Array("bob", "mr", "200.86"))
-    file2CsvReader.readNext() should be (null)
+    file2CsvReader.readNext() should be(Array("tom", "", "395.44"))
+    file2CsvReader.readNext() should be(Array("bob", "mr", "200.86"))
+    file2CsvReader.readNext() should be(null)
   }
 
   "S3SinkTask" should "use custom partitioning scheme and flush for every record" in {
