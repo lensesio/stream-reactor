@@ -32,9 +32,9 @@ trait S3FileNamingStrategy {
 
   def Prefix(bucketAndPrefix: BucketAndPrefix) = bucketAndPrefix.prefix.getOrElse(DefaultPrefix)
 
-  def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[String, String] = Map.empty): BucketAndPath
+  def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[String, String]): BucketAndPath
 
-  def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[String, String] = Map.empty): BucketAndPath
+  def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[String, String]): BucketAndPath
 
   def shouldProcessPartitionValues: Boolean
 
@@ -47,10 +47,10 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends
 
   val format: Format = formatSelection.format
 
-  override def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[String, String] = Map.empty): BucketAndPath =
+  override def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[String, String]): BucketAndPath =
     BucketAndPath(bucketAndPrefix.bucket, s"${Prefix(bucketAndPrefix)}/.temp/${topicPartition.topic.value}/${topicPartition.partition}.${format.entryName.toLowerCase}")
 
-  override def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[String, String] = Map.empty): BucketAndPath =
+  override def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[String, String]): BucketAndPath =
     BucketAndPath(bucketAndPrefix.bucket, s"${Prefix(bucketAndPrefix)}/${topicPartitionOffset.topic.value}/${topicPartitionOffset.partition}/${topicPartitionOffset.offset.value}.${format.entryName.toLowerCase}")
 
   override def getFormat: Format = format

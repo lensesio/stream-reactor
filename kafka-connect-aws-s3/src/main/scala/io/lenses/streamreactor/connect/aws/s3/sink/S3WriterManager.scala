@@ -34,7 +34,7 @@ import org.apache.kafka.connect.errors.ConnectException
   * This class is not thread safe as it is not designed to be shared between concurrent
   * sinks, since file handles cannot be safely shared without considerable overhead.
   */
-class S3WriterManager(formatWriterFn: TopicPartition => S3FormatWriter,
+class S3WriterManager(formatWriterFn: (TopicPartition, Map[String,String]) => S3FormatWriter,
                       commitPolicyFn: Topic => CommitPolicy,
                       bucketAndPrefixFn: Topic => BucketAndPrefix,
                       fileNamingStrategyFn: Topic => S3FileNamingStrategy
@@ -184,11 +184,13 @@ object S3WriterManager {
         () => new MultipartBlobStoreOutputStream(bucketAndPath, int)
     }
 
-    val formatWriterFn: TopicPartition => S3FormatWriter = topicPartition =>
+    val formatWriterFn: (TopicPartition, Map[String, String]) => S3FormatWriter = (topicPartition, partitionValues) =>
       config.bucketOptions.find(_.sourceTopic == topicPartition.topic.value) match {
         case Some(bucketOptions) =>
-          val path: BucketAndPath = fileNamingStrategyFn(topicPartition.topic)
-            .stagingFilename(bucketOptions.bucketAndPrefix, topicPartition)
+          val fileNamingStrategy = fileNamingStrategyFn(topicPartition.topic)
+
+          val path: BucketAndPath = fileNamingStrategy
+            .stagingFilename(bucketOptions.bucketAndPrefix, topicPartition, partitionValues)
           val size: Int = minAllowedMultipartSizeFn()
           S3FormatWriter(bucketOptions.formatSelection, outputStreamFn(path, size))
         case None => throw new IllegalArgumentException("Can't find commitPolicy in config")

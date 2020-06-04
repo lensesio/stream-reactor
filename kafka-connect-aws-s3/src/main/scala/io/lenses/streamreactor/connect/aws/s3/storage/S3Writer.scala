@@ -47,7 +47,7 @@ case class S3WriterState(
 class S3WriterImpl(
                     bucketAndPrefix: BucketAndPrefix,
                     commitPolicy: CommitPolicy,
-                    formatWriterFn: TopicPartition => S3FormatWriter,
+                    formatWriterFn: (TopicPartition, Map[String,String]) => S3FormatWriter,
                     fileNamingStrategy: S3FileNamingStrategy,
                     partitionValues: Map[String, String]
                   )(implicit storageInterface: StorageInterface) extends S3Writer {
@@ -61,7 +61,7 @@ class S3WriterImpl(
   override def write(struct: Struct, tpo: TopicPartitionOffset): Unit = {
 
     if (formatWriter == null) {
-      formatWriter = formatWriterFn(tpo.toTopicPartition)
+      formatWriter = formatWriterFn(tpo.toTopicPartition, partitionValues)
     }
 
     logger.debug(s"S3Writer.write: Internal state: $internalState")
@@ -124,7 +124,8 @@ class S3WriterImpl(
   def renameFile(topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[String, String]): Unit = {
     val originalFilename = fileNamingStrategy.stagingFilename(
       bucketAndPrefix,
-      topicPartitionOffset.toTopicPartition
+      topicPartitionOffset.toTopicPartition,
+      partitionValues
     )
     val finalFilename = fileNamingStrategy.finalFilename(
       bucketAndPrefix,
@@ -143,7 +144,7 @@ class S3WriterImpl(
       recordCount = 0.toLong
     )
 
-    formatWriter = formatWriterFn(topicPartitionOffset.toTopicPartition)
+    formatWriter = formatWriterFn(topicPartitionOffset.toTopicPartition, partitionValues)
 
     logger.debug(s"S3Writer.resetState: New internal state: $internalState")
   }

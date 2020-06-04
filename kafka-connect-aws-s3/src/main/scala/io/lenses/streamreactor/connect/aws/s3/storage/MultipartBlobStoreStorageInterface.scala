@@ -96,7 +96,7 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
   }
 
   override def rename(originalFilename: BucketAndPath, newFilename: BucketAndPath): Unit = {
-    logger.debug(s"StorageInterface - renaming upload from $originalFilename to $newFilename")
+    logger.info(s"StorageInterface - renaming upload from $originalFilename to $newFilename")
 
     blobStore.copyBlob(
       originalFilename.bucket, originalFilename.path, newFilename.bucket, newFilename.path, CopyOptions.NONE)
