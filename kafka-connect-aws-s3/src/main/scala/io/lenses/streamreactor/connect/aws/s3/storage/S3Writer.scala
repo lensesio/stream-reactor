@@ -27,7 +27,7 @@ trait S3Writer {
 
   def close(): Unit
 
-  def write(struct: Struct, tpo: TopicPartitionOffset): Unit
+  def write(keyStruct: Option[Struct], valueStruct: Struct, tpo: TopicPartitionOffset): Unit
 
   def getCommittedOffset: Option[Offset]
 }
@@ -58,7 +58,7 @@ class S3WriterImpl(
 
   private var formatWriter: S3FormatWriter = _
 
-  override def write(struct: Struct, tpo: TopicPartitionOffset): Unit = {
+  override def write(keyStruct: Option[Struct], valueStruct: Struct, tpo: TopicPartitionOffset): Unit = {
 
     if (formatWriter == null) {
       formatWriter = formatWriterFn(tpo.toTopicPartition, partitionValues)
@@ -66,7 +66,7 @@ class S3WriterImpl(
 
     logger.debug(s"S3Writer.write: Internal state: $internalState")
 
-    if (shouldRollover(struct)) commit()
+    if (shouldRollover(valueStruct)) commit()
 
     if (internalState == null) {
       internalState = S3WriterState(
@@ -78,11 +78,11 @@ class S3WriterImpl(
     }
 
     // appends to output stream
-    formatWriter.write(struct, tpo.topic)
+    formatWriter.write(keyStruct, valueStruct, tpo.topic)
 
     internalState = internalState.copy(
       lastKnownFileSize = formatWriter.getPointer,
-      lastKnownSchema = Option(struct.schema()),
+      lastKnownSchema = Option(valueStruct.schema()),
       recordCount = internalState.recordCount + 1,
       offset = tpo.offset
     )

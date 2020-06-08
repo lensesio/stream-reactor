@@ -23,9 +23,10 @@ import au.com.bytecode.opencsv.CSVReader
 import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
 import io.lenses.streamreactor.connect.aws.s3.config.S3SinkConfigSettings._
-import io.lenses.streamreactor.connect.aws.s3.formats.{AvroFormatReader, ParquetFormatReader}
+import io.lenses.streamreactor.connect.aws.s3.formats.{AvroFormatReader, BytesFormatWriter, ParquetFormatReader}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContext.{Credential, Identity}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig, S3TestPayloadReader}
+import org.apache.commons.io.IOUtils
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
@@ -469,5 +470,36 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     readFileToString("streamReactorBackups/third/[missing]/100.0/mytopic/1/5.json", blobStoreContext) should be("""{"name":"third","title":null,"salary":100.0}""")
 
   }
+
+  "S3SinkTask" should "write to bytes format and combine files" in {
+
+    val stream = classOf[BytesFormatWriter].getResourceAsStream("/streamreactor-logo.png")
+    val bytes: Array[Byte] = IOUtils.toByteArray(stream)
+    val (bytes1, bytes2) = bytes.splitAt(bytes.length/2)
+
+    val textRecords = List(
+      new SinkRecord(TopicName, 1, null, null, null, bytes1, 0),
+      new SinkRecord(TopicName, 1, null, null, null, bytes2, 1)
+    )
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `BYTES_ValueOnly` WITH_FLUSH_COUNT = 2")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(textRecords.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/mytopic/1/")).size() should be(1)
+
+    val file1Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/mytopic/1/1.bytes", blobStoreContext)
+    file1Bytes should be(bytes)
+
+  }
+
 
 }

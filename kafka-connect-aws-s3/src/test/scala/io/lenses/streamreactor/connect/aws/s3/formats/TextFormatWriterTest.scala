@@ -30,7 +30,7 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new TextFormatWriter(() => outputStream)
-    jsonFormatWriter.write(StringValueConverter.convert("Sausages"), topic)
+    jsonFormatWriter.write(None, StringValueConverter.convert("Sausages"), topic)
 
     outputStream.toString should be("Sausages\n")
 
@@ -40,9 +40,9 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new TextFormatWriter(() => outputStream)
-    jsonFormatWriter.write(StringValueConverter.convert("Sausages"), topic)
-    jsonFormatWriter.write(StringValueConverter.convert("Mash"), topic)
-    jsonFormatWriter.write(StringValueConverter.convert("Peas"), topic)
+    jsonFormatWriter.write(None, StringValueConverter.convert("Sausages"), topic)
+    jsonFormatWriter.write(None, StringValueConverter.convert("Mash"), topic)
+    jsonFormatWriter.write(None, StringValueConverter.convert("Peas"), topic)
 
     outputStream.toString should be("Sausages\nMash\nPeas\n")
 
@@ -53,7 +53,7 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers {
     val outputStream = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new TextFormatWriter(() => outputStream)
     assertThrows[IllegalStateException] {
-      jsonFormatWriter.write(users(0), topic)
+      jsonFormatWriter.write(None, users(0), topic)
     }
   }
 }

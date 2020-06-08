@@ -60,7 +60,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
     val sink = S3WriterManager.from(avroConfig)
     users.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
-        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), struct)
+        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), struct, None)
     }
 
     sink.close()
@@ -95,7 +95,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
     val sink = S3WriterManager.from(avroConfig)
     users.union(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
-        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), user)
+        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), user, None)
     }
     sink.close()
 

@@ -39,9 +39,9 @@ class JsonFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
     Map("schemas.enable" -> false).asJava, false
   )
 
-  override def write(struct: Struct, topic: Topic): Unit = {
+  override def write(keyStruct: Option[Struct], valueStruct: Struct, topic: Topic): Unit = {
 
-    val dataBytes = jsonConverter.fromConnectData(topic.value, struct.schema(), struct)
+    val dataBytes = jsonConverter.fromConnectData(topic.value, valueStruct.schema(), valueStruct)
 
     outputStream.write(dataBytes)
     outputStream.write(LineSeparatorBytes)

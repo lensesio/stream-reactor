@@ -79,11 +79,11 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[String,String]) => S3
     writers.values.foreach(_.close())
   }
 
-  def write(topicPartitionOffset: TopicPartitionOffset, struct: Struct): Unit = {
+  def write(topicPartitionOffset: TopicPartitionOffset, valueStruct: Struct, keyStruct: Option[Struct]): Unit = {
     logger.debug(s"Received call to S3WriterManager.write")
 
-    val newWriter = writer(topicPartitionOffset.toTopicPartition, struct)
-    newWriter.write(struct, topicPartitionOffset)
+    val newWriter = writer(topicPartitionOffset.toTopicPartition, valueStruct)
+    newWriter.write(keyStruct, valueStruct, topicPartitionOffset)
     newWriter.commitChecks()
 
   }

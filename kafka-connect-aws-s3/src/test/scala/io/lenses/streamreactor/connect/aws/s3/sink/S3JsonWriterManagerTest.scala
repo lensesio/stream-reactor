@@ -52,7 +52,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
     )
 
     val sink = S3WriterManager.from(config)
-    sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(1)), users.head)
+    sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(1)), users.head, None)
     sink.close()
 
 
@@ -80,7 +80,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
     val sink = S3WriterManager.from(config)
     users.zipWithIndex.foreach {
-      case (struct: Struct, index: Int) => sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), struct)
+      case (struct: Struct, index: Int) => sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), struct, None)
     }
 
     sink.close()

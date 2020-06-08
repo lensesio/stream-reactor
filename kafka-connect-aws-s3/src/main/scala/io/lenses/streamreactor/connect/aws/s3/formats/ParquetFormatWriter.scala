@@ -40,10 +40,10 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
 
   private var writer: ParquetWriter[GenericRecord] = _
 
-  override def write(struct: Struct, topic: Topic): Unit = {
+  override def write(keyStruct: Option[Struct], valueStruct: Struct, topic: Topic): Unit = {
     logger.debug("AvroFormatWriter - write")
 
-    val genericRecord: GenericRecord = avroDataConverter.fromConnectData(struct.schema(), struct).asInstanceOf[GenericRecord]
+    val genericRecord: GenericRecord = avroDataConverter.fromConnectData(valueStruct.schema(), valueStruct).asInstanceOf[GenericRecord]
     if (writer == null) {
       writer = init(genericRecord.getSchema)
     }

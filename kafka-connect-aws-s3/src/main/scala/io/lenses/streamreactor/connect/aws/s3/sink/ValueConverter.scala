@@ -22,12 +22,26 @@ import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.collection.JavaConverters._
 
+
+object KeyConverter {
+  def apply(record: SinkRecord): Option[Struct] = record.key match {
+    //case struct: Struct => StructValueConverter.convert(struct)
+    //case map: Map[_, _] => MapValueConverter.convert(map)
+    //case map: java.util.Map[_, _] => MapValueConverter.convert(map.asScala.toMap)
+    //case string: String => StringValueConverter.convert(string)
+    case bytes: Array[Byte] => Some(ByteArrayValueConverter.convert(bytes))
+    //case other => sys.error(s"Unsupported record $other:${other.getClass.getCanonicalName}")
+    case other => None
+  }
+}
+
 object ValueConverter {
   def apply(record: SinkRecord): Struct = record.value match {
     case struct: Struct => StructValueConverter.convert(struct)
     case map: Map[_, _] => MapValueConverter.convert(map)
     case map: java.util.Map[_, _] => MapValueConverter.convert(map.asScala.toMap)
     case string: String => StringValueConverter.convert(string)
+    case bytes: Array[Byte] => ByteArrayValueConverter.convert(bytes)
     case other => sys.error(s"Unsupported record $other:${other.getClass.getCanonicalName}")
   }
 }
@@ -101,5 +115,17 @@ object StringValueConverter extends ValueConverter[String] {
   override def convert(string: String): Struct = {
     val schema = SchemaBuilder.struct().field(TextFieldName, TextFieldOptionalStringSchema).name(TextFieldSchemaName).build()
     new Struct(schema).put(TextFieldName, string)
+  }
+}
+
+object ByteArrayValueConverter extends ValueConverter[Array[Byte]] {
+
+  val BytesFieldName = "b"
+  val BytesSchemaName = "struct"
+  val OptionalBytesSchema = Schema.OPTIONAL_BYTES_SCHEMA
+
+  override def convert(bytes: Array[Byte]): Struct = {
+    val schema = SchemaBuilder.struct().field(BytesFieldName, OptionalBytesSchema).name(BytesSchemaName).build()
+    new Struct(schema).put(BytesFieldName, bytes)
   }
 }

@@ -20,11 +20,21 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import io.lenses.streamreactor.connect.aws.s3.Topic
 import io.lenses.streamreactor.connect.aws.s3.config.Format._
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
-import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
+import io.lenses.streamreactor.connect.aws.s3.config.{BytesWriteMode, FormatOptions, FormatSelection}
 import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreOutputStream
 import org.apache.kafka.connect.data.Struct
 
 object S3FormatWriter {
+
+  def convertToBytesWriteMode(formatOptions: Set[FormatOptions]): BytesWriteMode = {
+    require(formatOptions.size <= 1, "FormatOptions should contain at max a single byte write mode")
+    if(formatOptions.isEmpty) {
+      BytesWriteMode.ValueWithSize
+    } else {
+      val headFormatOption = formatOptions.head
+      BytesWriteMode.withName(headFormatOption.entryName)
+    }
+  }
 
   def apply(
              formatInfo: FormatSelection,
@@ -39,6 +49,7 @@ object S3FormatWriter {
       case Csv => {
         new CsvFormatWriter(outputStreamFn, formatInfo.formatOptions.contains(WithHeaders))
       }
+      case Bytes => new BytesFormatWriter(outputStreamFn, convertToBytesWriteMode(formatInfo.formatOptions))
       case _ => sys.error(s"Unsupported S3 format $formatInfo.format")
     }
   }
@@ -49,7 +60,7 @@ trait S3FormatWriter extends AutoCloseable {
 
   def rolloverFileOnSchemaChange(): Boolean
 
-  def write(struct: Struct, topic: Topic): Unit
+  def write(keyStruct: Option[Struct], valueStruct: Struct, topic: Topic): Unit
 
   def getOutstandingRename: Boolean
 

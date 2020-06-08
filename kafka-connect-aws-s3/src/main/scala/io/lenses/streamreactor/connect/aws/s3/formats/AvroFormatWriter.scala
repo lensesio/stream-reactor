@@ -36,10 +36,10 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
   private var fileWriter: DataFileWriter[GenericRecord] = _
   private var outstandingRename: Boolean = false
 
-  override def write(struct: Struct, topic: Topic): Unit = {
+  override def write(keyStruct: Option[Struct], valueStruct: Struct, topic: Topic): Unit = {
     logger.debug("AvroFormatWriter - write")
 
-    val genericRecord: GenericRecord = avroDataConverter.fromConnectData(struct.schema(), struct).asInstanceOf[GenericRecord]
+    val genericRecord: GenericRecord = avroDataConverter.fromConnectData(valueStruct.schema(), valueStruct).asInstanceOf[GenericRecord]
     if (outputStream == null || fileWriter == null) {
       init(genericRecord.getSchema)
     }

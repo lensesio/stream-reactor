@@ -36,7 +36,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
     val outputStream = new S3ByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
-    formatWriter.write(users(0), topic)
+    formatWriter.write(None, users(0), topic)
 
     val reader = new StringReader(new String(outputStream.toByteArray()))
 
@@ -54,7 +54,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
     val outputStream = new S3ByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
-    users.foreach(formatWriter.write(_, topic))
+    users.foreach(formatWriter.write(None, _, topic))
 
     val reader = new StringReader(new String(outputStream.toByteArray()))
     val csvReader = new CSVReader(reader)
@@ -98,7 +98,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
     val outputStream = new S3ByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
-    formatWriter.write(struct, topic)
+    formatWriter.write(None, struct, topic)
 
     val reader = new StringReader(new String(outputStream.toByteArray()))
 
@@ -125,7 +125,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
 
     val caught = intercept[IllegalArgumentException] {
-      formatWriter.write(struct, topic)
+      formatWriter.write(None, struct, topic)
     }
     formatWriter.close()
     caught.getMessage should be("Non-primitive values not supported")
@@ -148,7 +148,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
 
     val caught = intercept[IllegalArgumentException] {
-      formatWriter.write(struct, topic)
+      formatWriter.write(None, struct, topic)
     }
     formatWriter.close()
     caught.getMessage should be("Non-primitive values not supported")

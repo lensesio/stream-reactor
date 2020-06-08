@@ -51,13 +51,13 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
     classOf[java.lang.String],
   )
 
-  override def write(struct: Struct, topic: Topic): Unit = {
+  override def write(keyStruct: Option[Struct], valueStruct: Struct, topic: Topic): Unit = {
 
     // TODO fields
     if (!fieldsWritten) {
-      writeFields(struct.schema())
+      writeFields(valueStruct.schema())
     }
-    val structValueLookupFn: String => String = lookupFieldValueFromStruct(struct)
+    val structValueLookupFn: String => String = lookupFieldValueFromStruct(valueStruct)
     val nextRow = fields.map(structValueLookupFn)
     csvWriter.writeNext(nextRow: _*)
     csvWriter.flush()

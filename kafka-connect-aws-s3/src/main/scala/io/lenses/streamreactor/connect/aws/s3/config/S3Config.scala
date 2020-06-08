@@ -50,7 +50,15 @@ object FormatOptions extends Enum[FormatOptions] {
 
   val values: immutable.IndexedSeq[FormatOptions] = findValues
 
+  /** CSV Options */
   case object WithHeaders extends FormatOptions
+
+  /** Byte Options */
+  case object KeyAndValueWithSizes extends FormatOptions
+  case object KeyWithSize extends FormatOptions
+  case object ValueWithSize extends FormatOptions
+  case object KeyOnly extends FormatOptions
+  case object ValueOnly extends FormatOptions
 
 }
 
@@ -95,6 +103,8 @@ object Format extends Enum[Format] {
 
   case object Csv extends Format
 
+  case object Bytes extends Format
+
 }
 
 sealed trait PartitionDisplay extends EnumEntry
@@ -105,6 +115,23 @@ object PartitionDisplay extends Enum[PartitionDisplay] {
   case object KeysAndValues extends PartitionDisplay
 
   case object Values extends PartitionDisplay
+
+}
+
+sealed trait BytesWriteMode extends EnumEntry
+
+object BytesWriteMode extends Enum[BytesWriteMode] {
+  val values: immutable.IndexedSeq[BytesWriteMode] = findValues
+
+  case object KeyAndValueWithSizes extends BytesWriteMode
+
+  case object KeyWithSize extends BytesWriteMode
+
+  case object ValueWithSize extends BytesWriteMode
+
+  case object KeyOnly extends BytesWriteMode
+
+  case object ValueOnly extends BytesWriteMode
 
 }
 

@@ -33,10 +33,10 @@ class TextFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
   private val outputStream: S3OutputStream = outputStreamFn()
   private var outstandingRename: Boolean = false
 
-  override def write(struct: Struct, topic: Topic): Unit = {
+  override def write(keyStruct: Option[Struct], valueStruct: Struct, topic: Topic): Unit = {
 
     val dataBytes = Try {
-      struct.getString(StringValueConverter.TextFieldName).getBytes()
+      valueStruct.getString(StringValueConverter.TextFieldName).getBytes()
     } match {
       case Failure(exception) => throw new IllegalStateException("Unable to retrieve text field value.  Text format is only for output of kafka string values.", exception)
       case Success(value) => value
