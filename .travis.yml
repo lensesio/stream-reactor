@@ -1,7 +1,6 @@
 language: scala
 scala: 2.11.7
 jdk: oraclejdk8
-before_script: ulimit -u 30000
 before_install:
  - chmod +x gradlew
 install: ./gradlew check

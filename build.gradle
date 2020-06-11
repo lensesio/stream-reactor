@@ -1,12 +1,13 @@
 buildscript {
     repositories {
         jcenter()
+        mavenLocal()
         maven {
             url 'https://plugins.gradle.org/m2/'
         }
     }
     dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:5.0.0'
         classpath 'io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.11.0'
         classpath 'net.researchgate:gradle-release:2.6.0'
     }
@@ -16,6 +17,7 @@ apply plugin: 'signing'
 apply plugin: 'io.codearte.nexus-staging'
 apply plugin: 'net.researchgate.release'
 apply plugin: 'antlr'
+apply plugin: 'maven-publish'
 
 allprojects {
     group = 'com.datamountaineer'

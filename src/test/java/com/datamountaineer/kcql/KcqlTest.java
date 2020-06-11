@@ -1130,6 +1130,15 @@ public class KcqlTest {
     String syntax = String.format("INSERT INTO %s SELECT col1,col2 FROM %s TTL=1", table, topic);
     Kcql kcql = Kcql.parse(syntax);
     assertEquals(topic, kcql.getSource());
+    assertEquals(1, kcql.getTTL());
+  }
+
+  @Test
+  public void handleTTLSelectOnly() {
+    String table = "TABLE_A";
+    String syntax = String.format("SELECT * FROM %sPK sensorID STOREAS SortedSet(score=ts) TTL = 60", table);
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(60, kcql.getTTL());
   }
 
   @Test
