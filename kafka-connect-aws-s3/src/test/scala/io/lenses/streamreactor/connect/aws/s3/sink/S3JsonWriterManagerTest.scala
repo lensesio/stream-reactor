@@ -20,7 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, BucketOptions, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig}
-import io.lenses.streamreactor.connect.aws.s3.{BucketAndPrefix, Offset, Topic, TopicPartitionOffset}
+import io.lenses.streamreactor.connect.aws.s3.{BucketAndPrefix, MessageDetail, Offset, Topic, TopicPartitionOffset}
 import org.apache.kafka.connect.data.Struct
 import org.jclouds.blobstore.options.ListContainerOptions
 import org.scalatest.flatspec.AnyFlatSpec
@@ -52,7 +52,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
     )
 
     val sink = S3WriterManager.from(config)
-    sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(1)), users.head, None)
+    sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(1)), MessageDetail(None, users.head, Map.empty[String,String]))
     sink.close()
 
 
@@ -80,7 +80,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
     val sink = S3WriterManager.from(config)
     users.zipWithIndex.foreach {
-      case (struct: Struct, index: Int) => sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), struct, None)
+      case (struct: Struct, index: Int) => sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, struct, Map.empty[String,String]))
     }
 
     sink.close()

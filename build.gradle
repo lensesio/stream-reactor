@@ -59,14 +59,14 @@ allprojects {
         slf4jVersion = "1.7.7"
         json4sVersion = "3.6.7"
         gsonVersion = "2.6.2"
-        KCQLVersion = "2.8.4"
+        KCQLVersion = "2.8.5"
         connectCLIVersion = "1.0.6"
         avro4sVersion = "1.6.4"
 
         // The following 4 need to align to compileagainst a particular version
         confluentVersion = '5.5.0'
         kafkaVersion = '2.5.0'
-        dataMountaineerCommonVersion = "2.0.1"
+        dataMountaineerCommonVersion = "2.0.2"
         link4jVersion = "1.8.0"
 
         gitCommitHash = ("git rev-parse HEAD").execute().text.trim()

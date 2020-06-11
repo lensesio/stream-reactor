@@ -68,14 +68,19 @@ class S3SinkTask extends SinkTask {
 
     records.asScala.foreach {
       record =>
-        val keyStruct = KeyConverter(record)
-        val valueStruct = ValueConverter(record)
         val tpo = TopicPartitionOffset(
           Topic(record.topic),
           record.kafkaPartition.intValue,
           Offset(record.kafkaOffset)
         )
-        writerManager.write(tpo, valueStruct, keyStruct)
+        writerManager.write(
+          tpo,
+          MessageDetail(
+            KeyConverter(record),
+            ValueConverter(record),
+            HeaderConverter(record)
+          )
+        )
     }
 
     if (records.isEmpty) writerManager.commit()

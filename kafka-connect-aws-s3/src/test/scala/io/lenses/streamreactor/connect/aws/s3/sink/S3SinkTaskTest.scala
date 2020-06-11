@@ -18,6 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import java.io.StringReader
+import java.lang
 
 import au.com.bytecode.opencsv.CSVReader
 import cats.implicits._
@@ -29,6 +30,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3Test
 import org.apache.commons.io.IOUtils
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.header.{ConnectHeaders, Header}
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.jclouds.blobstore.options.ListContainerOptions
 import org.mockito.MockitoSugar
@@ -55,6 +57,20 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     CUSTOM_ENDPOINT -> S3ProxyContext.Uri,
     ENABLE_VIRTUAL_HOST_BUCKETS -> "true"
   )
+
+
+  val partitionedData: List[Struct] = List(
+    new Struct(schema).put("name", "first").put("title", "primary").put("salary", null),
+    new Struct(schema).put("name", "second").put("title", "secondary").put("salary", 100.00),
+    new Struct(schema).put("name", "third").put("title", "primary").put("salary", 100.00),
+    new Struct(schema).put("name", "first").put("title", null).put("salary", 200.00),
+    new Struct(schema).put("name", "second").put("title", null).put("salary", 100.00),
+    new Struct(schema).put("name", "third").put("title", null).put("salary", 100.00)
+  )
+
+  val partitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
+    new SinkRecord(TopicName, 1, null, null, schema, user, k, null, null, createHeaders(("headerPartitionKey",(k % 2).toString)))
+  }
 
   private val records = users.zipWithIndex.map { case (user, k) =>
     new SinkRecord(TopicName, 1, null, null, schema, user, k)
@@ -362,19 +378,6 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     val task = new S3SinkTask()
 
-    val partitionedData: List[Struct] = List(
-      new Struct(schema).put("name", "first").put("title", "primary").put("salary", null),
-      new Struct(schema).put("name", "second").put("title", "secondary").put("salary", 100.00),
-      new Struct(schema).put("name", "third").put("title", "primary").put("salary", 100.00),
-      new Struct(schema).put("name", "first").put("title", null).put("salary", 200.00),
-      new Struct(schema).put("name", "second").put("title", null).put("salary", 100.00),
-      new Struct(schema).put("name", "third").put("title", null).put("salary", 100.00)
-    )
-
-    val records = partitionedData.zipWithIndex.map { case (user, k) =>
-      new SinkRecord(TopicName, 1, null, null, schema, user, k)
-    }
-
     val props = DefaultProps
       .combine(
         Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY name,title,salary WITH_FLUSH_COUNT = 1")
@@ -382,7 +385,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
-    task.put(records.asJava)
+    task.put(partitionedRecords.asJava)
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
@@ -436,19 +439,6 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     val task = new S3SinkTask()
 
-    val partitionedData: List[Struct] = List(
-      new Struct(schema).put("name", "first").put("title", "primary").put("salary", null),
-      new Struct(schema).put("name", "second").put("title", "secondary").put("salary", 100.00),
-      new Struct(schema).put("name", "third").put("title", "primary").put("salary", 100.00),
-      new Struct(schema).put("name", "first").put("title", null).put("salary", 200.00),
-      new Struct(schema).put("name", "second").put("title", null).put("salary", 100.00),
-      new Struct(schema).put("name", "third").put("title", null).put("salary", 100.00)
-    )
-
-    val records = partitionedData.zipWithIndex.map { case (user, k) =>
-      new SinkRecord(TopicName, 1, null, null, schema, user, k)
-    }
-
     val props = DefaultProps
       .combine(
         Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY name,title,salary WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1")
@@ -456,7 +446,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
-    task.put(records.asJava)
+    task.put(partitionedRecords.asJava)
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
@@ -502,4 +492,145 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
   }
 
 
+  "S3SinkTask" should "support header values for data partitioning" in {
+
+    val textRecords = List(
+      new SinkRecord(TopicName, 1, null, null, null, users(0), 0, null, null, createHeaders(("phoneprefix","+44"),("region", "8"))),
+      new SinkRecord(TopicName, 1, null, null, null, users(1), 1, null, null, createHeaders(("phoneprefix","+49"),("region","5"))),
+      new SinkRecord(TopicName, 1, null, null, null, users(2), 2, null, null, createHeaders(("phoneprefix","+49"),("region","5")))
+    )
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.phoneprefix,_header.region STOREAS `CSV` WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(textRecords.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive()).size() should be(3)
+
+    val file1CsvReader: CSVReader = openCsvReaderToBucketFile("streamReactorBackups/phoneprefix=+44/region=8/mytopic/1/0.csv")
+    file1CsvReader.readNext() should be(Array("sam", "mr", "100.43"))
+    file1CsvReader.readNext() should be(null)
+
+    val file2CsvReader: CSVReader = openCsvReaderToBucketFile("streamReactorBackups/phoneprefix=+49/region=5/mytopic/1/1.csv")
+    file2CsvReader.readNext() should be(Array("laura", "ms", "429.06"))
+    file2CsvReader.readNext() should be(null)
+
+    val file3CsvReader: CSVReader = openCsvReaderToBucketFile("streamReactorBackups/phoneprefix=+49/region=5/mytopic/1/2.csv")
+    file3CsvReader.readNext() should be(Array("tom", "", "395.44"))
+    file3CsvReader.readNext() should be(null)
+
+  }
+
+  "S3SinkTask" should "combine header and value-extracted partition" in {
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.headerPartitionKey,_value.name STOREAS `CSV` WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(partitionedRecords.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
+    fileList.size() should be(6)
+
+    fileList.asScala.map(file => file.getName) should contain allOf(
+      "streamReactorBackups/headerPartitionKey=0/name=first/mytopic/1/0.csv",
+      "streamReactorBackups/headerPartitionKey=1/name=second/mytopic/1/1.csv",
+      "streamReactorBackups/headerPartitionKey=0/name=third/mytopic/1/2.csv",
+      "streamReactorBackups/headerPartitionKey=1/name=first/mytopic/1/3.csv",
+      "streamReactorBackups/headerPartitionKey=0/name=second/mytopic/1/4.csv",
+      "streamReactorBackups/headerPartitionKey=1/name=third/mytopic/1/5.csv"
+    )
+  }
+
+  "S3SinkTask" should "fail when header value is missing from the record when header partitioning activated" in {
+
+    val textRecords = List(
+      createSinkRecord(1, users(0), 0, createHeaders(("feet", "5"))),
+      createSinkRecord(1, users(1), 0, createHeaders(("hair", "blue"), ("feet","5"))),
+    )
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.hair,_header.feet STOREAS `CSV` WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    val caught = intercept[IllegalArgumentException] {
+      task.put(textRecords.asJava)
+    }
+
+    assert(caught.getMessage.equalsIgnoreCase("Header 'hair' not found in message"))
+
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive()).size() should be(0)
+
+  }
+
+  "S3SinkTask" should "support numeric header data types" in {
+
+    val textRecords = List(
+      createSinkRecord(1, users(0), 0, createHeaders(("intheader", 1),("longheader", 2L))),
+      createSinkRecord(1, users(1), 1, createHeaders(("longheader", 2L),("intheader", 2))),
+      createSinkRecord(2, users(2), 2, createHeaders(("intheader", 1),("longheader", 1L))),
+    )
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _header.intheader,_header.longheader STOREAS `CSV` WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(textRecords.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
+    fileList.size() should be(3)
+
+    fileList.asScala.map(file => file.getName) should contain allOf(
+      "streamReactorBackups/intheader=1/longheader=2/mytopic/1/0.csv",
+      "streamReactorBackups/intheader=2/longheader=2/mytopic/1/1.csv",
+      "streamReactorBackups/intheader=1/longheader=1/mytopic/2/2.csv",
+    )
+  }
+
+  private def createSinkRecord(partition: Int, valueStruct: Struct, offset: Int, headers: lang.Iterable[Header]) = {
+    new SinkRecord(TopicName, partition, null, null, null, valueStruct, offset, null, null, headers)
+  }
+
+  private def createHeaders[T](keyValuePair: (String, T)*): lang.Iterable[Header] = {
+    val headers = new ConnectHeaders()
+    keyValuePair.foreach {
+      case (key: String, value: T) => headers.add(key, value, null)
+    }
+    headers
+  }
+
+  private def openCsvReaderToBucketFile(bucketFileName: String) = {
+    val file1Bytes = S3TestPayloadReader.readPayload(BucketName, bucketFileName, blobStoreContext)
+
+    val file1Reader = new StringReader(new String(file1Bytes))
+    new CSVReader(file1Reader)
+  }
 }

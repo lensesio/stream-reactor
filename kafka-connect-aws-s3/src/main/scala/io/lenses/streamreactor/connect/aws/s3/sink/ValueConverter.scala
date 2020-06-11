@@ -17,21 +17,40 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.collection.JavaConverters._
 
+object HeaderConverter {
 
-object KeyConverter {
+  def apply(record: SinkRecord): Map[String, String] = record.headers().asScala.map(header => (header.key() -> headerValueToString(header.value())) ).toMap
+
+  def headerValueToString(value: Any): String = {
+    value match {
+      case stringVal: String => stringVal
+      case intVal: Int => String.valueOf(intVal)
+      case longVal: Long => String.valueOf(longVal)
+      case otherVal => sys.error(s"Unsupported header value type $otherVal:${otherVal.getClass.getCanonicalName}")
+      //case value: Integer => value.toString
+    }
+  }
+
+
+}
+
+object KeyConverter extends LazyLogging {
   def apply(record: SinkRecord): Option[Struct] = record.key match {
+    case null => None
     //case struct: Struct => StructValueConverter.convert(struct)
     //case map: Map[_, _] => MapValueConverter.convert(map)
     //case map: java.util.Map[_, _] => MapValueConverter.convert(map.asScala.toMap)
     //case string: String => StringValueConverter.convert(string)
     case bytes: Array[Byte] => Some(ByteArrayValueConverter.convert(bytes))
     //case other => sys.error(s"Unsupported record $other:${other.getClass.getCanonicalName}")
-    case other => None
+    case other => logger.warn(s"Unsupported record $other:${other.getClass.getCanonicalName}")
+      None
   }
 }
 

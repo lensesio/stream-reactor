@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.connect.aws.s3._
 import io.lenses.streamreactor.connect.aws.s3.config.PartitionDisplay.KeysAndValues
-import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection, PartitionSelection}
+import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection, PartitionSelection, PartitionSource}
 import org.apache.kafka.connect.data.Struct
 
 import scala.util.matching.Regex
@@ -32,13 +32,13 @@ trait S3FileNamingStrategy {
 
   def Prefix(bucketAndPrefix: BucketAndPrefix) = bucketAndPrefix.prefix.getOrElse(DefaultPrefix)
 
-  def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[String, String]): BucketAndPath
+  def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): BucketAndPath
 
-  def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[String, String]): BucketAndPath
+  def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath
 
   def shouldProcessPartitionValues: Boolean
 
-  def processPartitionValues(struct: Struct): Map[String, String]
+  def processPartitionValues(messageDetail: MessageDetail): Map[PartitionField, String]
 
   val committedFilenameRegex: Regex
 }
@@ -47,17 +47,17 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends
 
   val format: Format = formatSelection.format
 
-  override def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[String, String]): BucketAndPath =
+  override def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): BucketAndPath =
     BucketAndPath(bucketAndPrefix.bucket, s"${Prefix(bucketAndPrefix)}/.temp/${topicPartition.topic.value}/${topicPartition.partition}.${format.entryName.toLowerCase}")
 
-  override def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[String, String]): BucketAndPath =
+  override def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath =
     BucketAndPath(bucketAndPrefix.bucket, s"${Prefix(bucketAndPrefix)}/${topicPartitionOffset.topic.value}/${topicPartitionOffset.partition}/${topicPartitionOffset.offset.value}.${format.entryName.toLowerCase}")
 
   override def getFormat: Format = format
 
   override def shouldProcessPartitionValues: Boolean = false
 
-  override def processPartitionValues(struct: Struct): Map[String, String] = throw new UnsupportedOperationException("This should never be called for this object")
+  override def processPartitionValues(messageDetail: MessageDetail): Map[PartitionField, String] = throw new UnsupportedOperationException("This should never be called for this object")
 
   override val committedFilenameRegex: Regex = s"(.+)/(.+)/(\\d+)/(\\d+).(.+)".r
 }
@@ -68,14 +68,14 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
 
   override def getFormat: Format = format
 
-  override def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[String, String]): BucketAndPath = {
+  override def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): BucketAndPath = {
     BucketAndPath(bucketAndPrefix.bucket, s"${Prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartition.topic.value}/${topicPartition.partition}/temp.${format.entryName.toLowerCase}")
   }
 
-  private def buildPartitionPrefix(partitionValues: Map[String, String]): String = {
+  private def buildPartitionPrefix(partitionValues: Map[PartitionField, String]): String = {
     partitionSelection.partitions.map(
-      partition => {
-        partitionValuePrefix(partition) + partitionValues.getOrElse(partition.name, "[missing]")
+      (partition: PartitionField) => {
+        partitionValuePrefix(partition) + partitionValues.getOrElse(partition, "[missing]")
       }
     ).mkString("/")
   }
@@ -84,14 +84,25 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
     if (partitionSelection.partitionDisplay == KeysAndValues) s"${partition.name}=" else ""
   }
 
-  override def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[String, String]): BucketAndPath =
+  override def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath =
     BucketAndPath(bucketAndPrefix.bucket, s"${Prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartitionOffset.topic.value}/${topicPartitionOffset.partition}/${topicPartitionOffset.offset.value}.${format.entryName.toLowerCase}")
 
-  override def processPartitionValues(struct: Struct): Map[String, String] = {
+  override def processPartitionValues(messageDetail: MessageDetail): Map[PartitionField, String] = {
     partitionSelection
       .partitions
-      .map(partition => partition.name -> Option(struct.get(partition.name)).getOrElse("[missing]").toString)
+      .map(partition => {
+        partition.partitionSource match {
+          case PartitionSource.Header => partition -> messageDetail.headers.getOrElse(partition.name, throw new IllegalArgumentException(s"Header '${partition.name}' not found in message"))
+          case PartitionSource.Key => partition -> getPartitionValueFromStruct("key", messageDetail.keyStruct, partition)
+          case PartitionSource.Value => partition -> getPartitionValueFromStruct("value", Some(messageDetail.valueStruct), partition)
+        }
+      })
       .toMap
+  }
+
+  private def getPartitionValueFromStruct(structName: String, structOpt: Option[Struct], partition: PartitionField) = {
+    val struct = structOpt.getOrElse(throw new IllegalArgumentException(s"No $structName struct found, but requested to partition by $structName: $partition"))
+    Option(struct.get(partition.name)).getOrElse("[missing]").toString
   }
 
   override def shouldProcessPartitionValues: Boolean = true

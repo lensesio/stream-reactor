@@ -18,7 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format.{Avro, Json}
-import io.lenses.streamreactor.connect.aws.s3.config.{FormatSelection, PartitionSelection}
+import io.lenses.streamreactor.connect.aws.s3.config.{FormatSelection, PartitionSelection, PartitionSource}
 import io.lenses.streamreactor.connect.aws.s3.{Offset, PartitionField, Topic}
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
@@ -29,7 +29,7 @@ class CommittedFileNameTest extends AnyFlatSpecLike with Matchers {
     implicit val impFileNamingStrategy = fileNamingStrategy
   }
 
-  val partitions = PartitionSelection(Vector(PartitionField("partition1"), PartitionField("partition2")))
+  val partitions = PartitionSelection(Vector(PartitionField("partition1", PartitionSource.Value), PartitionField("partition2", PartitionSource.Value)))
 
   class HierarchicalJsonTestContext extends TestContext(new HierarchicalS3FileNamingStrategy(FormatSelection(Json)))
 

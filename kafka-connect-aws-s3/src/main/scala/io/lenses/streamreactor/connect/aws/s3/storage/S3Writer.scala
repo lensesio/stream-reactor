@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.sink.{CommitContext, CommitPolicy, S3FileNamingStrategy}
-import io.lenses.streamreactor.connect.aws.s3.{BucketAndPrefix, Offset, TopicPartition, TopicPartitionOffset}
+import io.lenses.streamreactor.connect.aws.s3.{BucketAndPrefix, MessageDetail, Offset, PartitionField, TopicPartition, TopicPartitionOffset}
 import org.apache.kafka.connect.data.{Schema, Struct}
 
 trait S3Writer {
@@ -27,7 +27,7 @@ trait S3Writer {
 
   def close(): Unit
 
-  def write(keyStruct: Option[Struct], valueStruct: Struct, tpo: TopicPartitionOffset): Unit
+  def write(messageDetail: MessageDetail, tpo: TopicPartitionOffset): Unit
 
   def getCommittedOffset: Option[Offset]
 }
@@ -47,9 +47,9 @@ case class S3WriterState(
 class S3WriterImpl(
                     bucketAndPrefix: BucketAndPrefix,
                     commitPolicy: CommitPolicy,
-                    formatWriterFn: (TopicPartition, Map[String,String]) => S3FormatWriter,
+                    formatWriterFn: (TopicPartition, Map[PartitionField,String]) => S3FormatWriter,
                     fileNamingStrategy: S3FileNamingStrategy,
-                    partitionValues: Map[String, String]
+                    partitionValues: Map[PartitionField, String]
                   )(implicit storageInterface: StorageInterface) extends S3Writer {
 
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
@@ -58,7 +58,7 @@ class S3WriterImpl(
 
   private var formatWriter: S3FormatWriter = _
 
-  override def write(keyStruct: Option[Struct], valueStruct: Struct, tpo: TopicPartitionOffset): Unit = {
+  override def write(messageDetail: MessageDetail, tpo: TopicPartitionOffset): Unit = {
 
     if (formatWriter == null) {
       formatWriter = formatWriterFn(tpo.toTopicPartition, partitionValues)
@@ -66,7 +66,8 @@ class S3WriterImpl(
 
     logger.debug(s"S3Writer.write: Internal state: $internalState")
 
-    if (shouldRollover(valueStruct)) commit()
+    // TOOD: Decide what do do about this logic
+    if (shouldRollover(messageDetail.valueStruct)) commit()
 
     if (internalState == null) {
       internalState = S3WriterState(
@@ -78,11 +79,11 @@ class S3WriterImpl(
     }
 
     // appends to output stream
-    formatWriter.write(keyStruct, valueStruct, tpo.topic)
+    formatWriter.write(messageDetail.keyStruct, messageDetail.valueStruct, tpo.topic)
 
     internalState = internalState.copy(
       lastKnownFileSize = formatWriter.getPointer,
-      lastKnownSchema = Option(valueStruct.schema()),
+      lastKnownSchema = Option(messageDetail.valueStruct.schema()),
       recordCount = internalState.recordCount + 1,
       offset = tpo.offset
     )
@@ -121,7 +122,7 @@ class S3WriterImpl(
     topicPartitionOffset
   }
 
-  def renameFile(topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[String, String]): Unit = {
+  def renameFile(topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): Unit = {
     val originalFilename = fileNamingStrategy.stagingFilename(
       bucketAndPrefix,
       topicPartitionOffset.toTopicPartition,

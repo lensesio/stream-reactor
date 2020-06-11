@@ -17,8 +17,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3
 
+import io.lenses.streamreactor.connect.aws.s3.config.PartitionSource
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
-import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 
 case object BucketAndPrefix {
   def apply(bucketAndPath: String): BucketAndPrefix = {
@@ -79,6 +80,12 @@ case class TopicPartitionOffset(topic: Topic, partition: Int, offset: Offset) {
 }
 
 // defines a partition key field
-case class PartitionField(name: String, schema: Schema = Schema.STRING_SCHEMA, comment: Option[String] = None) {
+case class PartitionField(name: String, partitionSource: PartitionSource) {
   require(name != null && name.trim.nonEmpty)
 }
+
+case class MessageDetail(
+                          keyStruct: Option[Struct],
+                          valueStruct: Struct,
+                          headers: Map[String,String]
+                        )

@@ -107,6 +107,27 @@ object Format extends Enum[Format] {
 
 }
 
+sealed trait PartitionSource extends EnumEntry
+
+object PartitionSource extends Enum[PartitionSource] {
+  override def values: immutable.IndexedSeq[PartitionSource] = findValues
+
+  case object Header extends PartitionSource
+
+  case object Key extends PartitionSource
+
+  case object Value extends PartitionSource
+
+  def withIncomingPrefixedValue(input: String) = {
+
+    require(input.startsWith("_"), "Invalid input PartitionSource, should be value with underscore (_) prefix")
+
+    withNameInsensitive(input.substring(1))
+
+  }
+
+}
+
 sealed trait PartitionDisplay extends EnumEntry
 
 object PartitionDisplay extends Enum[PartitionDisplay] {
@@ -213,18 +234,42 @@ object BucketOptions {
 
 case object PartitionSelection {
 
+
+
   def apply(kcql: Kcql): Option[PartitionSelection] = {
-    val partitions = Option(kcql.getPartitionBy).map(_.asScala).getOrElse(Nil).map(name => PartitionField(name)).toVector
-    if (partitions.isEmpty) None else partitionDisplayFromKcql(kcql, partitions)
+    val partitions = partitionFieldsFromKcql(kcql)
+    if (partitions.isEmpty) None else Some(partitionSelectionFromKcql(kcql, partitions))
   }
 
-  private def partitionDisplayFromKcql(kcql: Kcql, partitions: Vector[PartitionField]): Option[PartitionSelection] = {
-    val partitionDisplay = Option(kcql.getWithPartitioner).fold[PartitionDisplay](KeysAndValues) {
+  private def partitionFieldsFromKcql(kcql: Kcql): Seq[PartitionField] =
+    Option(kcql.getPartitionBy)
+      .map(_.asScala)
+      .getOrElse(Nil) // TODO : TEST
+      .map(name => {
+        val split = name.split("\\.")
+        if(split.size == 1) {
+          PartitionField(name, PartitionSource.Value)
+        } else if (split.size == 2) {
+          PartitionField(split(1), PartitionSource.withIncomingPrefixedValue(split(0)))
+        } else {
+          throw new IllegalArgumentException("Invalid partition specification")
+        }
+      }).toSeq
+
+  private def partitionSelectionFromKcql(kcql: Kcql, partitions: Seq[PartitionField]): PartitionSelection = {
+
+      PartitionSelection(
+        partitions,
+        partitionDisplayFromKcql(kcql)
+      )
+  }
+
+  private def partitionDisplayFromKcql(kcql: Kcql): PartitionDisplay = {
+    Option(kcql.getWithPartitioner).fold[PartitionDisplay](KeysAndValues) {
       PartitionDisplay
         .withNameInsensitiveOption(_)
         .getOrElse(KeysAndValues)
     }
-    Some(PartitionSelection(partitions, partitionDisplay))
   }
 }
 
