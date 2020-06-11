@@ -126,7 +126,7 @@ initialize
    ;
 
 partition_name
-   : FIELD
+   : column
    ;
 
 partition_list

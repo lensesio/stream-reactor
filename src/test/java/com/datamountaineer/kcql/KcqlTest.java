@@ -470,6 +470,23 @@ public class KcqlTest {
   }
 
   @Test
+  public void handlerPartitionByFromHeader() {
+    String topic = "TOPIC_A";
+    String table = "TABLE_A";
+    String syntax = String.format("UPSERT INTO %s SELECT * FROM %s IGNORE col1, 1col2 PARTITIONBY _header.col1,_header.col2  ", table, topic);
+    Kcql kcql = Kcql.parse(syntax);
+
+    Set<String> partitionBy = new HashSet<>();
+    Iterator<String> iter = kcql.getPartitionBy();
+    while (iter.hasNext()) {
+      partitionBy.add(iter.next());
+    }
+
+    assertTrue(partitionBy.contains("_header.col1"));
+    assertTrue(partitionBy.contains("_header.col1"));
+  }
+
+  @Test
   public void handlerPartitionByWhenSpecificFieldsAreIncluded() {
     String topic = "TOPIC_A";
     String table = "TABLE_A";
