@@ -16,6 +16,7 @@
  */
 
 package io.lenses.streamreactor.connect.aws.s3.formats
+
 import io.lenses.streamreactor.connect.aws.s3.config.BytesWriteMode
 import io.lenses.streamreactor.connect.aws.s3.sink.ByteArrayValueConverter
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
@@ -110,7 +111,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val stream = classOf[BytesFormatWriter].getResourceAsStream("/streamreactor-logo.png")
     val bytes: Array[Byte] = IOUtils.toByteArray(stream)
-    val (bytes1, bytes2) = bytes.splitAt(bytes.length/2)
+    val (bytes1, bytes2) = bytes.splitAt(bytes.length / 2)
 
     val outputStream = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.ValueOnly)

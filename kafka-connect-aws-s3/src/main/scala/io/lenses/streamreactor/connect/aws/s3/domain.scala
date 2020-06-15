@@ -17,7 +17,6 @@
 
 package io.lenses.streamreactor.connect.aws.s3
 
-import io.lenses.streamreactor.connect.aws.s3.config.PartitionSource
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
 import org.apache.kafka.connect.data.Struct
 
@@ -79,13 +78,8 @@ case class TopicPartitionOffset(topic: Topic, partition: Int, offset: Offset) {
   def toTopicPartition: TopicPartition = TopicPartition(topic, partition)
 }
 
-// defines a partition key field
-case class PartitionField(name: String, partitionSource: PartitionSource) {
-  require(name != null && name.trim.nonEmpty)
-}
-
 case class MessageDetail(
                           keyStruct: Option[Struct],
                           valueStruct: Struct,
-                          headers: Map[String,String]
+                          headers: Map[String, String]
                         )

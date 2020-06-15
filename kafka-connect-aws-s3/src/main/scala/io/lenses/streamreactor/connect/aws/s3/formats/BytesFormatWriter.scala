@@ -44,7 +44,7 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
       Array.empty
     )
 
-    if(writeKeys) {
+    if (writeKeys) {
       keyStruct.fold(throw new IllegalArgumentException("No key supplied however requested to write key."))(keyStruct => {
         val keyDataBytes: Array[Byte] = convertToBytes(keyStruct)
         byteOutputRow = byteOutputRow.copy(
@@ -54,7 +54,7 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
       })
     }
 
-    if(writeValues) {
+    if (writeValues) {
       val valueDataBytes: Array[Byte] = convertToBytes(valueStruct)
       byteOutputRow = byteOutputRow.copy(
         valueSize = if (writeSizes) Some(valueDataBytes.size.longValue()) else None,
@@ -67,23 +67,23 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
   }
 
   case class ByteOutputRow(
-                           keySize: Option[Long],
-                           valueSize: Option[Long],
-                           key: Array[Byte],
-                           value: Array[Byte]
+                            keySize: Option[Long],
+                            valueSize: Option[Long],
+                            key: Array[Byte],
+                            value: Array[Byte]
                           ) {
-    def toByteArray() : Array[Byte] = {
+    def toByteArray(): Array[Byte] = {
       val buffer = new ListBuffer[Byte]()
       keySize.map(keySize => buffer += keySize.byteValue())
       valueSize.map(valueSize => buffer += valueSize.byteValue())
-      if(key.nonEmpty) buffer ++= key
-      if(value.nonEmpty) buffer ++= value
+      if (key.nonEmpty) buffer ++= key
+      if (value.nonEmpty) buffer ++= value
       buffer.toArray
     }
   }
 
   def convertToBytes(struct: Struct): Array[Byte] = {
-     Try {
+    Try {
       struct.getBytes(ByteArrayValueConverter.BytesFieldName)
     } match {
       case Failure(exception) => throw new IllegalStateException("Non-binary content received.  Please check your configuration.  It may be advisable to ensure you are using org.apache.kafka.connect.converters.ByteArrayConverter", exception)

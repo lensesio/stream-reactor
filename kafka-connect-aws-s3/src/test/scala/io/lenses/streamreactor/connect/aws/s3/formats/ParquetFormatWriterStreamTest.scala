@@ -21,7 +21,6 @@ import io.lenses.streamreactor.connect.aws.s3.BucketAndPath
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3TestConfig, S3TestPayloadReader}
 import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreOutputStream
-import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

@@ -20,6 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import io.lenses.streamreactor.connect.aws.s3._
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
+import io.lenses.streamreactor.connect.aws.s3.model.PartitionField
 import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreOutputStream, S3Writer, S3WriterImpl, StorageInterface}
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.errors.ConnectException
@@ -33,7 +34,7 @@ import org.apache.kafka.connect.errors.ConnectException
   * This class is not thread safe as it is not designed to be shared between concurrent
   * sinks, since file handles cannot be safely shared without considerable overhead.
   */
-class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField,String]) => S3FormatWriter,
+class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, String]) => S3FormatWriter,
                       commitPolicyFn: Topic => CommitPolicy,
                       bucketAndPrefixFn: Topic => BucketAndPrefix,
                       fileNamingStrategyFn: Topic => S3FileNamingStrategy

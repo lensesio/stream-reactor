@@ -22,7 +22,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, BucketOptions, F
 import io.lenses.streamreactor.connect.aws.s3.formats.AvroFormatReader
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig, S3TestPayloadReader}
-import io.lenses.streamreactor.connect.aws.s3.{BucketAndPrefix, MessageDetail, Offset, Topic, TopicPartitionOffset}
+import io.lenses.streamreactor.connect.aws.s3._
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.jclouds.blobstore.options.ListContainerOptions
@@ -60,7 +60,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
     val sink = S3WriterManager.from(avroConfig)
     users.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
-        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, struct, Map.empty[String,String]))
+        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, struct, Map.empty[String, String]))
     }
 
     sink.close()
@@ -95,7 +95,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
     val sink = S3WriterManager.from(avroConfig)
     users.union(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
-        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, user, Map.empty[String,String]))
+        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, user, Map.empty[String, String]))
     }
     sink.close()
 

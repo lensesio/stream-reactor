@@ -29,7 +29,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContext.{Credent
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig, S3TestPayloadReader}
 import org.apache.commons.io.IOUtils
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.header.{ConnectHeaders, Header}
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.jclouds.blobstore.options.ListContainerOptions
@@ -43,13 +43,13 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
   import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 
-  val parquetFormatReader = new ParquetFormatReader()
-  val avroFormatReader = new AvroFormatReader()
+  private val parquetFormatReader = new ParquetFormatReader()
+  private val avroFormatReader = new AvroFormatReader()
 
-  val PrefixName = "streamReactorBackups"
-  val TopicName = "mytopic"
+  private val PrefixName = "streamReactorBackups"
+  private val TopicName = "mytopic"
 
-  val DefaultProps = Map(
+  private val DefaultProps = Map(
     AWS_REGION -> "eu-west-1",
     AWS_ACCESS_KEY -> Identity,
     AWS_SECRET_KEY -> Credential,
@@ -59,7 +59,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
   )
 
 
-  val partitionedData: List[Struct] = List(
+  private val partitionedData: List[Struct] = List(
     new Struct(schema).put("name", "first").put("title", "primary").put("salary", null),
     new Struct(schema).put("name", "second").put("title", "secondary").put("salary", 100.00),
     new Struct(schema).put("name", "third").put("title", "primary").put("salary", 100.00),
@@ -68,13 +68,24 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     new Struct(schema).put("name", "third").put("title", null).put("salary", 100.00)
   )
 
-  val partitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
-    new SinkRecord(TopicName, 1, null, null, schema, user, k, null, null, createHeaders(("headerPartitionKey",(k % 2).toString)))
+  private val headerPartitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
+    new SinkRecord(TopicName, 1, null, null, schema, user, k, null, null, createHeaders(("headerPartitionKey", (k % 2).toString)))
   }
 
   private val records = users.zipWithIndex.map { case (user, k) =>
     new SinkRecord(TopicName, 1, null, null, schema, user, k)
   }
+
+  private val keySchema = SchemaBuilder.struct()
+    .field("phoneprefix", SchemaBuilder.string().required().build())
+    .field("region", SchemaBuilder.int32().optional().build())
+    .build()
+
+  private val keyPartitionedRecords = List(
+    new SinkRecord(TopicName, 1, null, createKey(keySchema, ("phoneprefix", "+44"), ("region", 8)), null, users(0), 0, null, null),
+    new SinkRecord(TopicName, 1, null, createKey(keySchema, ("phoneprefix", "+49"), ("region", 5)), null, users(1), 1, null, null),
+    new SinkRecord(TopicName, 1, null, createKey(keySchema, ("phoneprefix", "+49"), ("region", 5)), null, users(2), 2, null, null)
+  )
 
   "S3SinkTask" should "flush on configured flush time intervals" in {
 
@@ -385,7 +396,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
-    task.put(partitionedRecords.asJava)
+    task.put(headerPartitionedRecords.asJava)
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
@@ -435,7 +446,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
   }
 
-  "S3SinkTask" should "use custom partitioning with key display only" in {
+  "S3SinkTask" should "use custom partitioning with value display only" in {
 
     val task = new S3SinkTask()
 
@@ -446,7 +457,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
-    task.put(partitionedRecords.asJava)
+    task.put(headerPartitionedRecords.asJava)
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
@@ -465,7 +476,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     val stream = classOf[BytesFormatWriter].getResourceAsStream("/streamreactor-logo.png")
     val bytes: Array[Byte] = IOUtils.toByteArray(stream)
-    val (bytes1, bytes2) = bytes.splitAt(bytes.length/2)
+    val (bytes1, bytes2) = bytes.splitAt(bytes.length / 2)
 
     val textRecords = List(
       new SinkRecord(TopicName, 1, null, null, null, bytes1, 0),
@@ -495,9 +506,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
   "S3SinkTask" should "support header values for data partitioning" in {
 
     val textRecords = List(
-      new SinkRecord(TopicName, 1, null, null, null, users(0), 0, null, null, createHeaders(("phoneprefix","+44"),("region", "8"))),
-      new SinkRecord(TopicName, 1, null, null, null, users(1), 1, null, null, createHeaders(("phoneprefix","+49"),("region","5"))),
-      new SinkRecord(TopicName, 1, null, null, null, users(2), 2, null, null, createHeaders(("phoneprefix","+49"),("region","5")))
+      new SinkRecord(TopicName, 1, null, null, null, users(0), 0, null, null, createHeaders(("phoneprefix", "+44"), ("region", "8"))),
+      new SinkRecord(TopicName, 1, null, null, null, users(1), 1, null, null, createHeaders(("phoneprefix", "+49"), ("region", "5"))),
+      new SinkRecord(TopicName, 1, null, null, null, users(2), 2, null, null, createHeaders(("phoneprefix", "+49"), ("region", "5")))
     )
     val task = new S3SinkTask()
 
@@ -539,7 +550,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
-    task.put(partitionedRecords.asJava)
+    task.put(headerPartitionedRecords.asJava)
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
@@ -560,7 +571,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     val textRecords = List(
       createSinkRecord(1, users(0), 0, createHeaders(("feet", "5"))),
-      createSinkRecord(1, users(1), 0, createHeaders(("hair", "blue"), ("feet","5"))),
+      createSinkRecord(1, users(1), 0, createHeaders(("hair", "blue"), ("feet", "5"))),
     )
 
     val task = new S3SinkTask()
@@ -588,9 +599,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
   "S3SinkTask" should "support numeric header data types" in {
 
     val textRecords = List(
-      createSinkRecord(1, users(0), 0, createHeaders(("intheader", 1),("longheader", 2L))),
-      createSinkRecord(1, users(1), 1, createHeaders(("longheader", 2L),("intheader", 2))),
-      createSinkRecord(2, users(2), 2, createHeaders(("intheader", 1),("longheader", 1L))),
+      createSinkRecord(1, users(0), 0, createHeaders(("intheader", 1), ("longheader", 2L))),
+      createSinkRecord(1, users(1), 1, createHeaders(("longheader", 2L), ("intheader", 2))),
+      createSinkRecord(2, users(2), 2, createHeaders(("intheader", 1), ("longheader", 1L))),
     )
     val task = new S3SinkTask()
 
@@ -615,14 +626,196 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     )
   }
 
+  "S3SinkTask" should "partition by whole of kafka message key with key label" in {
+
+    val keyPartitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
+      new SinkRecord(TopicName, 1, null, (k % 2).toString, schema, user, k, null, null)
+    }
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(keyPartitionedRecords.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
+    fileList.size() should be(6)
+
+    fileList.asScala.map(file => file.getName) should contain allOf(
+      "streamReactorBackups/key=0/mytopic/1/0.csv",
+      "streamReactorBackups/key=1/mytopic/1/1.csv",
+      "streamReactorBackups/key=0/mytopic/1/2.csv",
+      "streamReactorBackups/key=1/mytopic/1/3.csv",
+      "streamReactorBackups/key=0/mytopic/1/4.csv",
+      "streamReactorBackups/key=1/mytopic/1/5.csv"
+    )
+  }
+
+  "S3SinkTask" should "partition by whole of kafka message key without key label" in {
+
+    val keyPartitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
+      new SinkRecord(TopicName, 1, null, (k % 2).toString, schema, user, k, null, null)
+    }
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(keyPartitionedRecords.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
+    fileList.size() should be(6)
+
+    fileList.asScala.map(file => file.getName) should contain allOf(
+      "streamReactorBackups/0/mytopic/1/0.csv",
+      "streamReactorBackups/1/mytopic/1/1.csv",
+      "streamReactorBackups/0/mytopic/1/2.csv",
+      "streamReactorBackups/1/mytopic/1/3.csv",
+      "streamReactorBackups/0/mytopic/1/4.csv",
+      "streamReactorBackups/1/mytopic/1/5.csv"
+    )
+  }
+
+  "S3SinkTask" should "fail if the key is non-primitive but requests _key partitioning" in {
+
+    val keyPartitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
+      new SinkRecord(TopicName, 1, null, user, schema, user, k, null, null)
+    }
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    val intercepted = intercept[IllegalStateException] {
+      task.put(keyPartitionedRecords.asJava)
+    }
+    intercepted.getMessage should be("Non primitive struct provided, PARTITIONBY _key requested in KCQL")
+
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
+    fileList.size() should be(0)
+
+  }
+
+  "S3SinkTask" should "allow a primitive int key for _key partitioning" in {
+
+    val keyPartitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
+      new SinkRecord(TopicName, 1, null, k % 2, schema, user, k, null, null)
+    }
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(keyPartitionedRecords.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
+    fileList.size() should be(6)
+
+    fileList.asScala.map(file => file.getName) should contain allOf(
+      "streamReactorBackups/0/mytopic/1/0.csv",
+      "streamReactorBackups/1/mytopic/1/1.csv",
+      "streamReactorBackups/0/mytopic/1/2.csv",
+      "streamReactorBackups/1/mytopic/1/3.csv",
+      "streamReactorBackups/0/mytopic/1/4.csv",
+      "streamReactorBackups/1/mytopic/1/5.csv"
+    )
+  }
+
+  "S3SinkTask" should "allow partitioning by complex key" in {
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.region, _key.phoneprefix STOREAS `CSV` WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(keyPartitionedRecords.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
+    fileList.size() should be(3)
+
+    fileList.asScala.map(file => file.getName) should contain allOf(
+      "streamReactorBackups/region=8/phoneprefix=+44/mytopic/1/0.csv",
+      "streamReactorBackups/region=5/phoneprefix=+49/mytopic/1/1.csv",
+      "streamReactorBackups/region=5/phoneprefix=+49/mytopic/1/2.csv"
+    )
+  }
+
+  "S3SinkTask" should "allow partitioning by complex key and values" in {
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key.region, name WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(keyPartitionedRecords.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
+    fileList.size() should be(3)
+
+    fileList.asScala.map(file => file.getName) should contain allOf(
+      "streamReactorBackups/region=8/name=sam/mytopic/1/0.json",
+      "streamReactorBackups/region=5/name=laura/mytopic/1/1.json",
+      "streamReactorBackups/region=5/name=tom/mytopic/1/2.json"
+    )
+  }
+
   private def createSinkRecord(partition: Int, valueStruct: Struct, offset: Int, headers: lang.Iterable[Header]) = {
     new SinkRecord(TopicName, partition, null, null, null, valueStruct, offset, null, null, headers)
+  }
+
+  private def createKey(keySchema: Schema, keyValuePair: (String, Any)*): Struct = {
+    val struct = new Struct(keySchema)
+    keyValuePair.foreach {
+      case (key: String, value) => struct.put(key, value)
+    }
+    struct
   }
 
   private def createHeaders[T](keyValuePair: (String, T)*): lang.Iterable[Header] = {
     val headers = new ConnectHeaders()
     keyValuePair.foreach {
-      case (key: String, value: T) => headers.add(key, value, null)
+      case (key: String, value) => headers.add(key, value, null)
     }
     headers
   }

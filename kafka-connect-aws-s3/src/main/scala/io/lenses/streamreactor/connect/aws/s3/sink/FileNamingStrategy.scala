@@ -18,11 +18,14 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.connect.aws.s3._
-import io.lenses.streamreactor.connect.aws.s3.config.PartitionDisplay.KeysAndValues
-import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection, PartitionSelection, PartitionSource}
+import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection}
+import io.lenses.streamreactor.connect.aws.s3.formats.StructValueLookup.lookupFieldValueFromStruct
+import io.lenses.streamreactor.connect.aws.s3.model.PartitionDisplay.KeysAndValues
+import io.lenses.streamreactor.connect.aws.s3.model._
 import org.apache.kafka.connect.data.Struct
 
 import scala.util.matching.Regex
+import scala.util.{Failure, Success, Try}
 
 trait S3FileNamingStrategy {
 
@@ -81,7 +84,7 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
   }
 
   private def partitionValuePrefix(partition: PartitionField): String = {
-    if (partitionSelection.partitionDisplay == KeysAndValues) s"${partition.name}=" else ""
+    if (partitionSelection.partitionDisplay == KeysAndValues) s"${partition.valuePrefixDisplay()}=" else ""
   }
 
   override def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath =
@@ -90,19 +93,29 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
   override def processPartitionValues(messageDetail: MessageDetail): Map[PartitionField, String] = {
     partitionSelection
       .partitions
-      .map(partition => {
-        partition.partitionSource match {
-          case PartitionSource.Header => partition -> messageDetail.headers.getOrElse(partition.name, throw new IllegalArgumentException(s"Header '${partition.name}' not found in message"))
-          case PartitionSource.Key => partition -> getPartitionValueFromStruct("key", messageDetail.keyStruct, partition)
-          case PartitionSource.Value => partition -> getPartitionValueFromStruct("value", Some(messageDetail.valueStruct), partition)
-        }
-      })
+      .map {
+        case partition@HeaderPartitionField(name) => partition -> messageDetail.headers.getOrElse(name, throw new IllegalArgumentException(s"Header '${name}' not found in message"))
+        case partition@KeyPartitionField(name) => partition -> getPartitionValueFromStruct("key", messageDetail.keyStruct, name)
+        case partition@ValuePartitionField(name) => partition -> getPartitionValueFromStruct("value", Some(messageDetail.valueStruct), name)
+        case partition@WholeKeyPartitionField() => partition -> getPartitionByWholeKeyValue(messageDetail.keyStruct)
+      }
       .toMap
   }
 
-  private def getPartitionValueFromStruct(structName: String, structOpt: Option[Struct], partition: PartitionField) = {
-    val struct = structOpt.getOrElse(throw new IllegalArgumentException(s"No $structName struct found, but requested to partition by $structName: $partition"))
-    Option(struct.get(partition.name)).getOrElse("[missing]").toString
+  private def getPartitionByWholeKeyValue(structOpt: Option[Struct]): String = {
+    val struct = structOpt
+      .getOrElse(throw new IllegalArgumentException(s"No key struct found, but requested to partition by whole key"))
+
+    Try(struct.getString(StringValueConverter.TextFieldName)) match {
+      case Failure(exception) => throw new IllegalStateException("Non primitive struct provided, PARTITIONBY _key requested in KCQL", exception)
+      case Success(value) => value
+    }
+
+  }
+
+  private def getPartitionValueFromStruct(partitionByName: String, structOpt: Option[Struct], partitionName: String) = {
+    val struct = structOpt.getOrElse(throw new IllegalArgumentException(s"No $partitionByName struct found, but requested to partition by $partitionByName: $partitionName"))
+    lookupFieldValueFromStruct(struct)(partitionName).getOrElse("[missing]")
   }
 
   override def shouldProcessPartitionValues: Boolean = true

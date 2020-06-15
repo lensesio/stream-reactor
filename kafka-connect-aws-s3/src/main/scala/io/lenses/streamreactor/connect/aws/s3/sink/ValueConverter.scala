@@ -25,7 +25,7 @@ import scala.collection.JavaConverters._
 
 object HeaderConverter {
 
-  def apply(record: SinkRecord): Map[String, String] = record.headers().asScala.map(header => (header.key() -> headerValueToString(header.value())) ).toMap
+  def apply(record: SinkRecord): Map[String, String] = record.headers().asScala.map(header => (header.key() -> headerValueToString(header.value()))).toMap
 
   def headerValueToString(value: Any): String = {
     value match {
@@ -41,16 +41,19 @@ object HeaderConverter {
 }
 
 object KeyConverter extends LazyLogging {
-  def apply(record: SinkRecord): Option[Struct] = record.key match {
-    case null => None
-    //case struct: Struct => StructValueConverter.convert(struct)
-    //case map: Map[_, _] => MapValueConverter.convert(map)
-    //case map: java.util.Map[_, _] => MapValueConverter.convert(map.asScala.toMap)
-    //case string: String => StringValueConverter.convert(string)
-    case bytes: Array[Byte] => Some(ByteArrayValueConverter.convert(bytes))
-    //case other => sys.error(s"Unsupported record $other:${other.getClass.getCanonicalName}")
-    case other => logger.warn(s"Unsupported record $other:${other.getClass.getCanonicalName}")
-      None
+  def apply(record: SinkRecord): Option[Struct] = keyValueToString(record.key)
+
+  def keyValueToString(value: Any) = {
+    value match {
+      case null => None
+      case stringVal: String => Some(StringValueConverter.convert(stringVal))
+      case intVal: Int => Some(StringValueConverter.convert(String.valueOf(intVal)))
+      case longVal: Long => Some(StringValueConverter.convert(String.valueOf(longVal)))
+      case struct: Struct => Some(StructValueConverter.convert(struct))
+      case bytes: Array[Byte] => Some(ByteArrayValueConverter.convert(bytes))
+      case other => logger.warn(s"Unsupported record $other:${other.getClass.getCanonicalName}")
+        None
+    }
   }
 }
 

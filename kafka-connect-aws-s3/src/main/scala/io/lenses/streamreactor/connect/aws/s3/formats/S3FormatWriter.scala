@@ -28,7 +28,7 @@ object S3FormatWriter {
 
   def convertToBytesWriteMode(formatOptions: Set[FormatOptions]): BytesWriteMode = {
     require(formatOptions.size <= 1, "FormatOptions should contain at max a single byte write mode")
-    if(formatOptions.isEmpty) {
+    if (formatOptions.isEmpty) {
       BytesWriteMode.ValueWithSize
     } else {
       val headFormatOption = formatOptions.head

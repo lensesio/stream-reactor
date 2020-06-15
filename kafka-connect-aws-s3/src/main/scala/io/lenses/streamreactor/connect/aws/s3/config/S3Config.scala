@@ -19,10 +19,10 @@ package io.lenses.streamreactor.connect.aws.s3.config
 
 import com.datamountaineer.kcql.Kcql
 import enumeratum._
+import io.lenses.streamreactor.connect.aws.s3.BucketAndPrefix
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
-import io.lenses.streamreactor.connect.aws.s3.config.PartitionDisplay.KeysAndValues
+import io.lenses.streamreactor.connect.aws.s3.model.PartitionSelection
 import io.lenses.streamreactor.connect.aws.s3.sink._
-import io.lenses.streamreactor.connect.aws.s3.{BucketAndPrefix, PartitionField}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable
@@ -55,9 +55,13 @@ object FormatOptions extends Enum[FormatOptions] {
 
   /** Byte Options */
   case object KeyAndValueWithSizes extends FormatOptions
+
   case object KeyWithSize extends FormatOptions
+
   case object ValueWithSize extends FormatOptions
+
   case object KeyOnly extends FormatOptions
+
   case object ValueOnly extends FormatOptions
 
 }
@@ -104,38 +108,6 @@ object Format extends Enum[Format] {
   case object Csv extends Format
 
   case object Bytes extends Format
-
-}
-
-sealed trait PartitionSource extends EnumEntry
-
-object PartitionSource extends Enum[PartitionSource] {
-  override def values: immutable.IndexedSeq[PartitionSource] = findValues
-
-  case object Header extends PartitionSource
-
-  case object Key extends PartitionSource
-
-  case object Value extends PartitionSource
-
-  def withIncomingPrefixedValue(input: String) = {
-
-    require(input.startsWith("_"), "Invalid input PartitionSource, should be value with underscore (_) prefix")
-
-    withNameInsensitive(input.substring(1))
-
-  }
-
-}
-
-sealed trait PartitionDisplay extends EnumEntry
-
-object PartitionDisplay extends Enum[PartitionDisplay] {
-  val values: immutable.IndexedSeq[PartitionDisplay] = findValues
-
-  case object KeysAndValues extends PartitionDisplay
-
-  case object Values extends PartitionDisplay
 
 }
 
@@ -231,52 +203,6 @@ object BucketOptions {
   }
 
 }
-
-case object PartitionSelection {
-
-
-
-  def apply(kcql: Kcql): Option[PartitionSelection] = {
-    val partitions = partitionFieldsFromKcql(kcql)
-    if (partitions.isEmpty) None else Some(partitionSelectionFromKcql(kcql, partitions))
-  }
-
-  private def partitionFieldsFromKcql(kcql: Kcql): Seq[PartitionField] =
-    Option(kcql.getPartitionBy)
-      .map(_.asScala)
-      .getOrElse(Nil) // TODO : TEST
-      .map(name => {
-        val split = name.split("\\.")
-        if(split.size == 1) {
-          PartitionField(name, PartitionSource.Value)
-        } else if (split.size == 2) {
-          PartitionField(split(1), PartitionSource.withIncomingPrefixedValue(split(0)))
-        } else {
-          throw new IllegalArgumentException("Invalid partition specification")
-        }
-      }).toSeq
-
-  private def partitionSelectionFromKcql(kcql: Kcql, partitions: Seq[PartitionField]): PartitionSelection = {
-
-      PartitionSelection(
-        partitions,
-        partitionDisplayFromKcql(kcql)
-      )
-  }
-
-  private def partitionDisplayFromKcql(kcql: Kcql): PartitionDisplay = {
-    Option(kcql.getWithPartitioner).fold[PartitionDisplay](KeysAndValues) {
-      PartitionDisplay
-        .withNameInsensitiveOption(_)
-        .getOrElse(KeysAndValues)
-    }
-  }
-}
-
-case class PartitionSelection(
-                               partitions: Seq[PartitionField],
-                               partitionDisplay: PartitionDisplay = PartitionDisplay.Values
-                             )
 
 case class BucketOptions(
                           sourceTopic: String,

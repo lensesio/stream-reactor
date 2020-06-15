@@ -18,8 +18,9 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
+import io.lenses.streamreactor.connect.aws.s3.model.PartitionField
 import io.lenses.streamreactor.connect.aws.s3.sink.{CommitContext, CommitPolicy, S3FileNamingStrategy}
-import io.lenses.streamreactor.connect.aws.s3.{BucketAndPrefix, MessageDetail, Offset, PartitionField, TopicPartition, TopicPartitionOffset}
+import io.lenses.streamreactor.connect.aws.s3._
 import org.apache.kafka.connect.data.{Schema, Struct}
 
 trait S3Writer {
@@ -47,7 +48,7 @@ case class S3WriterState(
 class S3WriterImpl(
                     bucketAndPrefix: BucketAndPrefix,
                     commitPolicy: CommitPolicy,
-                    formatWriterFn: (TopicPartition, Map[PartitionField,String]) => S3FormatWriter,
+                    formatWriterFn: (TopicPartition, Map[PartitionField, String]) => S3FormatWriter,
                     fileNamingStrategy: S3FileNamingStrategy,
                     partitionValues: Map[PartitionField, String]
                   )(implicit storageInterface: StorageInterface) extends S3Writer {
@@ -66,7 +67,6 @@ class S3WriterImpl(
 
     logger.debug(s"S3Writer.write: Internal state: $internalState")
 
-    // TOOD: Decide what do do about this logic
     if (shouldRollover(messageDetail.valueStruct)) commit()
 
     if (internalState == null) {

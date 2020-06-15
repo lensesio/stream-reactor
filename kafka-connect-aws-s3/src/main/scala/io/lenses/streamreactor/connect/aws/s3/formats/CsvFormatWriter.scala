@@ -22,6 +22,7 @@ import java.io.OutputStreamWriter
 import au.com.bytecode.opencsv.CSVWriter
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.Topic
+import io.lenses.streamreactor.connect.aws.s3.formats.StructValueLookup.lookupFieldValueFromStruct
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 import org.apache.kafka.connect.data.{Schema, Struct}
 
@@ -40,25 +41,16 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
 
   private var fields: Array[String] = _
 
-  private val supportedPrimitiveTypes = Set(
-    classOf[java.lang.Boolean],
-    classOf[java.lang.Byte],
-    classOf[java.lang.Double],
-    classOf[java.lang.Float],
-    classOf[java.lang.Integer],
-    classOf[java.lang.Long],
-    classOf[java.lang.Short],
-    classOf[java.lang.String],
-  )
-
   override def write(keyStruct: Option[Struct], valueStruct: Struct, topic: Topic): Unit = {
 
-    // TODO fields
     if (!fieldsWritten) {
       writeFields(valueStruct.schema())
     }
-    val structValueLookupFn: String => String = lookupFieldValueFromStruct(valueStruct)
-    val nextRow = fields.map(structValueLookupFn)
+    val structValueLookupFn: String => Option[String] = lookupFieldValueFromStruct(valueStruct)
+    val nextRow = fields.map(f => structValueLookupFn(f) match {
+      case Some(something) => something
+      case None => null
+    })
     csvWriter.writeNext(nextRow: _*)
     csvWriter.flush()
 
@@ -79,20 +71,6 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
   override def getOutstandingRename: Boolean = outstandingRename
 
   override def getPointer: Long = outputStream.getPointer()
-
-  private def lookupFieldValueFromStruct(struct: Struct)(fieldName: String) = {
-    Option(struct.get(fieldName)) match {
-      case Some(primitiveValue) if supportedPrimitiveTypes.exists(c => c.isInstance(primitiveValue)) =>
-        primitiveValue.toString
-      case Some(byteArray@Array(_*)) if byteArray.forall(entry => entry.isInstanceOf[Byte]) =>
-        new String(byteArray.asInstanceOf[Array[Byte]])
-      case Some(other) =>
-        logger.error("Non-primitive values not supported: " + other.getClass);
-        throw new IllegalArgumentException("Non-primitive values not supported")
-      case None =>
-        null
-    }
-  }
 
   private def writeFields(schema: Schema) = {
     fields = schema.fields().asScala.map(_.name()).toArray
