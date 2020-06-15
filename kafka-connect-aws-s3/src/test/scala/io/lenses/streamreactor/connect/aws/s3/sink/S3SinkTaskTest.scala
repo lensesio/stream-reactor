@@ -411,6 +411,11 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
   }
 
+  /**
+    * As soon as one file is eligible for writing, it will write all those from the same topic partition.  Therefore 4
+    * files are written instead of 2, as there are 2 points at which the write is triggered and the half-full files must
+    * be written as well as those reaching the threshold.
+    */
   "S3SinkTask" should "use custom partitioning scheme and flush after two written records" in {
 
     val task = new S3SinkTask()
@@ -439,10 +444,12 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.recursive().prefix("streamReactorBackups/")).size() should be(2)
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.recursive().prefix("streamReactorBackups/")).size() should be(4)
 
     readFileToString("streamReactorBackups/name=first/title=primary/mytopic/1/2.json", blobStoreContext) should be("""{"name":"first","title":"primary","salary":null}{"name":"first","title":"primary","salary":100.0}""")
+    readFileToString("streamReactorBackups/name=first/title=secondary/mytopic/1/1.json", blobStoreContext) should be("""{"name":"first","title":"secondary","salary":100.0}""")
     readFileToString("streamReactorBackups/name=second/title=secondary/mytopic/1/5.json", blobStoreContext) should be("""{"name":"second","title":"secondary","salary":200.0}{"name":"second","title":"secondary","salary":100.0}""")
+    readFileToString("streamReactorBackups/name=second/title=primary/mytopic/1/4.json", blobStoreContext) should be("""{"name":"second","title":"primary","salary":100.0}""")
 
   }
 

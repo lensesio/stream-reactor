@@ -17,6 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
+import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionField
 import io.lenses.streamreactor.connect.aws.s3.sink.{CommitContext, CommitPolicy, S3FileNamingStrategy}
@@ -24,13 +25,17 @@ import io.lenses.streamreactor.connect.aws.s3._
 import org.apache.kafka.connect.data.{Schema, Struct}
 
 trait S3Writer {
-  def commitChecks(): Option[TopicPartitionOffset]
+  def shouldFlush(): Boolean
 
   def close(): Unit
 
   def write(messageDetail: MessageDetail, tpo: TopicPartitionOffset): Unit
 
   def getCommittedOffset: Option[Offset]
+
+  def shouldRollover(struct: Struct): Boolean
+
+  def commit(): TopicPartitionOffset
 }
 
 
@@ -51,9 +56,7 @@ class S3WriterImpl(
                     formatWriterFn: (TopicPartition, Map[PartitionField, String]) => S3FormatWriter,
                     fileNamingStrategy: S3FileNamingStrategy,
                     partitionValues: Map[PartitionField, String]
-                  )(implicit storageInterface: StorageInterface) extends S3Writer {
-
-  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
+                  )(implicit storageInterface: StorageInterface) extends S3Writer with LazyLogging {
 
   private var internalState: S3WriterState = _
 
@@ -66,8 +69,6 @@ class S3WriterImpl(
     }
 
     logger.debug(s"S3Writer.write: Internal state: $internalState")
-
-    if (shouldRollover(messageDetail.valueStruct)) commit()
 
     if (internalState == null) {
       internalState = S3WriterState(
@@ -89,7 +90,7 @@ class S3WriterImpl(
     )
   }
 
-  private def shouldRollover(struct: Struct) = {
+  override def shouldRollover(struct: Struct) = {
     rolloverOnSchemaChange &&
       internalState != null &&
       schemaHasChanged(struct)
@@ -105,7 +106,7 @@ class S3WriterImpl(
       formatWriter.rolloverFileOnSchemaChange()
   }
 
-  private def commit(): TopicPartitionOffset = {
+  override def commit(): TopicPartitionOffset = {
     logger.debug(s"S3Writer - Commit")
     val topicPartitionOffset = TopicPartitionOffset(
       internalState.topicPartition.topic,
@@ -122,7 +123,7 @@ class S3WriterImpl(
     topicPartitionOffset
   }
 
-  def renameFile(topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): Unit = {
+  private def renameFile(topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): Unit = {
     val originalFilename = fileNamingStrategy.stagingFilename(
       bucketAndPrefix,
       topicPartitionOffset.toTopicPartition,
@@ -136,7 +137,7 @@ class S3WriterImpl(
     storageInterface.rename(originalFilename, finalFilename)
   }
 
-  def resetState(topicPartitionOffset: TopicPartitionOffset): Unit = {
+  private def resetState(topicPartitionOffset: TopicPartitionOffset): Unit = {
     logger.debug(s"S3Writer.resetState: Resetting state: $internalState")
 
     internalState = internalState.copy(
@@ -154,7 +155,7 @@ class S3WriterImpl(
 
   override def getCommittedOffset: Option[Offset] = internalState.committedOffset
 
-  override def commitChecks: Option[TopicPartitionOffset] = {
+  override def shouldFlush: Boolean = {
 
     val commitContext = CommitContext(
       TopicPartitionOffset(internalState.topicPartition.topic, internalState.topicPartition.partition, internalState.offset),
@@ -162,16 +163,8 @@ class S3WriterImpl(
       internalState.lastKnownFileSize,
       internalState.createdTimestamp
     )
-    if (commitPolicy.shouldFlush(commitContext)) {
 
-      logger.debug(s"S3Writer - Flushing according to commit policy with commitContext $commitContext, State: $internalState")
-
-      Some(commit())
-    } else {
-      logger.debug(s"S3Writer - Skipped Flushing according to commit policy with commitContext $commitContext, State: $internalState")
-
-      None
-    }
+    commitPolicy.shouldFlush(commitContext)
   }
 
 }

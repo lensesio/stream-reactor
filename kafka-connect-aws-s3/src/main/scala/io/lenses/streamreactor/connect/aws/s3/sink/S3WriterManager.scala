@@ -47,14 +47,27 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
 
   private val writers = scala.collection.mutable.Map.empty[MapKey, S3Writer]
 
-  def commit(): Map[TopicPartition, Offset] = {
+  def commitAllWriters(): Map[TopicPartition, Offset] = {
 
     logger.debug("Received call to S3WriterManager.commit")
-    writers.values.flatMap {
-      writer => writer.commitChecks()
-    }
+    val topicPartitions = writers.map {
+      case (key, _) => key.topicPartition
+    }.toSet
+
+    topicPartitions
+      .map(commitTopicPartitionWriters(_))
       .map(tpo => (tpo.toTopicPartition, tpo.offset))
       .toMap
+  }
+
+  def commitTopicPartitionWriters(topicPartition: TopicPartition): TopicPartitionOffset = {
+    import Offset.orderingByOffsetValue
+
+    writers
+      .filterKeys(mapKey => mapKey.topicPartition == topicPartition)
+      .mapValues(_.commit())
+      .values
+      .maxBy(_.offset)
   }
 
   def open(partitions: Set[TopicPartition]): Map[TopicPartition, Offset] = {
@@ -83,8 +96,15 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
     logger.debug(s"Received call to S3WriterManager.write")
 
     val newWriter = writer(topicPartitionOffset.toTopicPartition, messageDetail)
+
+    if (newWriter.shouldRollover(messageDetail.valueStruct)) {
+      commitTopicPartitionWriters(topicPartitionOffset.toTopicPartition)
+    }
+
     newWriter.write(messageDetail, topicPartitionOffset)
-    newWriter.commitChecks()
+
+    if (newWriter.shouldFlush())
+      commitTopicPartitionWriters(topicPartitionOffset.toTopicPartition)
 
   }
 

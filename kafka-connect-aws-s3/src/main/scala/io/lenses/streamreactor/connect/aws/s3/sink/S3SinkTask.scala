@@ -83,7 +83,7 @@ class S3SinkTask extends SinkTask {
         )
     }
 
-    if (records.isEmpty) writerManager.commit()
+    if (records.isEmpty) writerManager.commitAllWriters()
   }
 
   override def preCommit(currentOffsets: util.Map[KafkaTopicPartition, OffsetAndMetadata]): util.Map[KafkaTopicPartition, OffsetAndMetadata] = {
