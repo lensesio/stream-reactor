@@ -807,6 +807,43 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     )
   }
 
+  /**
+    * This should write partition 1 but not partition 0
+    */
+  "S3SinkTask" should "write multiple partitions independently" in {
+
+    val kafkaPartitionedRecords = List(
+      new SinkRecord(TopicName, 0, null, null, schema, users(0), 0),
+      new SinkRecord(TopicName, 1, null, null, schema, users(1), 0),
+      new SinkRecord(TopicName, 1, null, null, schema, users(2), 1)
+    )
+
+    val topicPartitionsToManage = Seq(
+      new TopicPartition(TopicName, 0),
+      new TopicPartition(TopicName, 1)
+    ).asJava
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 2")
+      ).asJava
+
+    task.start(props)
+
+    task.open(topicPartitionsToManage)
+    task.put(kafkaPartitionedRecords.asJava)
+    task.close(topicPartitionsToManage)
+    task.stop()
+
+    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
+    fileList.size() should be(1)
+
+    fileList.asScala.map(file => file.getName) should contain (
+      "streamReactorBackups/mytopic/1/1.json",
+    )
+  }
   private def createSinkRecord(partition: Int, valueStruct: Struct, offset: Int, headers: lang.Iterable[Header]) = {
     new SinkRecord(TopicName, partition, null, null, null, valueStruct, offset, null, null, headers)
   }
