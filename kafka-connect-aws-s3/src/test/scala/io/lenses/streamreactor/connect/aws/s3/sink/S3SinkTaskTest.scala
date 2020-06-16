@@ -402,12 +402,12 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.recursive().prefix("streamReactorBackups/")).size() should be(6)
 
-    readFileToString("streamReactorBackups/name=first/title=primary/salary=[missing]/mytopic/1/0.json", blobStoreContext) should be("""{"name":"first","title":"primary","salary":null}""")
-    readFileToString("streamReactorBackups/name=second/title=secondary/salary=100.0/mytopic/1/1.json", blobStoreContext) should be("""{"name":"second","title":"secondary","salary":100.0}""")
-    readFileToString("streamReactorBackups/name=third/title=primary/salary=100.0/mytopic/1/2.json", blobStoreContext) should be("""{"name":"third","title":"primary","salary":100.0}""")
-    readFileToString("streamReactorBackups/name=first/title=[missing]/salary=200.0/mytopic/1/3.json", blobStoreContext) should be("""{"name":"first","title":null,"salary":200.0}""")
-    readFileToString("streamReactorBackups/name=second/title=[missing]/salary=100.0/mytopic/1/4.json", blobStoreContext) should be("""{"name":"second","title":null,"salary":100.0}""")
-    readFileToString("streamReactorBackups/name=third/title=[missing]/salary=100.0/mytopic/1/5.json", blobStoreContext) should be("""{"name":"third","title":null,"salary":100.0}""")
+    readFileToString("streamReactorBackups/name=first/title=primary/salary=[missing]/mytopic(1_0).json", blobStoreContext) should be("""{"name":"first","title":"primary","salary":null}""")
+    readFileToString("streamReactorBackups/name=second/title=secondary/salary=100.0/mytopic(1_1).json", blobStoreContext) should be("""{"name":"second","title":"secondary","salary":100.0}""")
+    readFileToString("streamReactorBackups/name=third/title=primary/salary=100.0/mytopic(1_2).json", blobStoreContext) should be("""{"name":"third","title":"primary","salary":100.0}""")
+    readFileToString("streamReactorBackups/name=first/title=[missing]/salary=200.0/mytopic(1_3).json", blobStoreContext) should be("""{"name":"first","title":null,"salary":200.0}""")
+    readFileToString("streamReactorBackups/name=second/title=[missing]/salary=100.0/mytopic(1_4).json", blobStoreContext) should be("""{"name":"second","title":null,"salary":100.0}""")
+    readFileToString("streamReactorBackups/name=third/title=[missing]/salary=100.0/mytopic(1_5).json", blobStoreContext) should be("""{"name":"third","title":null,"salary":100.0}""")
 
   }
 
@@ -446,10 +446,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.recursive().prefix("streamReactorBackups/")).size() should be(4)
 
-    readFileToString("streamReactorBackups/name=first/title=primary/mytopic/1/2.json", blobStoreContext) should be("""{"name":"first","title":"primary","salary":null}{"name":"first","title":"primary","salary":100.0}""")
-    readFileToString("streamReactorBackups/name=first/title=secondary/mytopic/1/1.json", blobStoreContext) should be("""{"name":"first","title":"secondary","salary":100.0}""")
-    readFileToString("streamReactorBackups/name=second/title=secondary/mytopic/1/5.json", blobStoreContext) should be("""{"name":"second","title":"secondary","salary":200.0}{"name":"second","title":"secondary","salary":100.0}""")
-    readFileToString("streamReactorBackups/name=second/title=primary/mytopic/1/4.json", blobStoreContext) should be("""{"name":"second","title":"primary","salary":100.0}""")
+    readFileToString("streamReactorBackups/name=first/title=primary/mytopic(1_2).json", blobStoreContext) should be("""{"name":"first","title":"primary","salary":null}{"name":"first","title":"primary","salary":100.0}""")
+    readFileToString("streamReactorBackups/name=first/title=secondary/mytopic(1_1).json", blobStoreContext) should be("""{"name":"first","title":"secondary","salary":100.0}""")
+    readFileToString("streamReactorBackups/name=second/title=secondary/mytopic(1_5).json", blobStoreContext) should be("""{"name":"second","title":"secondary","salary":200.0}{"name":"second","title":"secondary","salary":100.0}""")
+    readFileToString("streamReactorBackups/name=second/title=primary/mytopic(1_4).json", blobStoreContext) should be("""{"name":"second","title":"primary","salary":100.0}""")
 
   }
 
@@ -470,12 +470,12 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.recursive().prefix("streamReactorBackups/")).size() should be(6)
 
-    readFileToString("streamReactorBackups/first/primary/[missing]/mytopic/1/0.json", blobStoreContext) should be("""{"name":"first","title":"primary","salary":null}""")
-    readFileToString("streamReactorBackups/second/secondary/100.0/mytopic/1/1.json", blobStoreContext) should be("""{"name":"second","title":"secondary","salary":100.0}""")
-    readFileToString("streamReactorBackups/third/primary/100.0/mytopic/1/2.json", blobStoreContext) should be("""{"name":"third","title":"primary","salary":100.0}""")
-    readFileToString("streamReactorBackups/first/[missing]/200.0/mytopic/1/3.json", blobStoreContext) should be("""{"name":"first","title":null,"salary":200.0}""")
-    readFileToString("streamReactorBackups/second/[missing]/100.0/mytopic/1/4.json", blobStoreContext) should be("""{"name":"second","title":null,"salary":100.0}""")
-    readFileToString("streamReactorBackups/third/[missing]/100.0/mytopic/1/5.json", blobStoreContext) should be("""{"name":"third","title":null,"salary":100.0}""")
+    readFileToString("streamReactorBackups/first/primary/[missing]/mytopic(1_0).json", blobStoreContext) should be("""{"name":"first","title":"primary","salary":null}""")
+    readFileToString("streamReactorBackups/second/secondary/100.0/mytopic(1_1).json", blobStoreContext) should be("""{"name":"second","title":"secondary","salary":100.0}""")
+    readFileToString("streamReactorBackups/third/primary/100.0/mytopic(1_2).json", blobStoreContext) should be("""{"name":"third","title":"primary","salary":100.0}""")
+    readFileToString("streamReactorBackups/first/[missing]/200.0/mytopic(1_3).json", blobStoreContext) should be("""{"name":"first","title":null,"salary":200.0}""")
+    readFileToString("streamReactorBackups/second/[missing]/100.0/mytopic(1_4).json", blobStoreContext) should be("""{"name":"second","title":null,"salary":100.0}""")
+    readFileToString("streamReactorBackups/third/[missing]/100.0/mytopic(1_5).json", blobStoreContext) should be("""{"name":"third","title":null,"salary":100.0}""")
 
   }
 
@@ -532,15 +532,15 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive()).size() should be(3)
 
-    val file1CsvReader: CSVReader = openCsvReaderToBucketFile("streamReactorBackups/phoneprefix=+44/region=8/mytopic/1/0.csv")
+    val file1CsvReader: CSVReader = openCsvReaderToBucketFile("streamReactorBackups/phoneprefix=+44/region=8/mytopic(1_0).csv")
     file1CsvReader.readNext() should be(Array("sam", "mr", "100.43"))
     file1CsvReader.readNext() should be(null)
 
-    val file2CsvReader: CSVReader = openCsvReaderToBucketFile("streamReactorBackups/phoneprefix=+49/region=5/mytopic/1/1.csv")
+    val file2CsvReader: CSVReader = openCsvReaderToBucketFile("streamReactorBackups/phoneprefix=+49/region=5/mytopic(1_1).csv")
     file2CsvReader.readNext() should be(Array("laura", "ms", "429.06"))
     file2CsvReader.readNext() should be(null)
 
-    val file3CsvReader: CSVReader = openCsvReaderToBucketFile("streamReactorBackups/phoneprefix=+49/region=5/mytopic/1/2.csv")
+    val file3CsvReader: CSVReader = openCsvReaderToBucketFile("streamReactorBackups/phoneprefix=+49/region=5/mytopic(1_2).csv")
     file3CsvReader.readNext() should be(Array("tom", "", "395.44"))
     file3CsvReader.readNext() should be(null)
 
@@ -565,12 +565,12 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     fileList.size() should be(6)
 
     fileList.asScala.map(file => file.getName) should contain allOf(
-      "streamReactorBackups/headerPartitionKey=0/name=first/mytopic/1/0.csv",
-      "streamReactorBackups/headerPartitionKey=1/name=second/mytopic/1/1.csv",
-      "streamReactorBackups/headerPartitionKey=0/name=third/mytopic/1/2.csv",
-      "streamReactorBackups/headerPartitionKey=1/name=first/mytopic/1/3.csv",
-      "streamReactorBackups/headerPartitionKey=0/name=second/mytopic/1/4.csv",
-      "streamReactorBackups/headerPartitionKey=1/name=third/mytopic/1/5.csv"
+      "streamReactorBackups/headerPartitionKey=0/name=first/mytopic(1_0).csv",
+      "streamReactorBackups/headerPartitionKey=1/name=second/mytopic(1_1).csv",
+      "streamReactorBackups/headerPartitionKey=0/name=third/mytopic(1_2).csv",
+      "streamReactorBackups/headerPartitionKey=1/name=first/mytopic(1_3).csv",
+      "streamReactorBackups/headerPartitionKey=0/name=second/mytopic(1_4).csv",
+      "streamReactorBackups/headerPartitionKey=1/name=third/mytopic(1_5).csv"
     )
   }
 
@@ -627,9 +627,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     fileList.size() should be(3)
 
     fileList.asScala.map(file => file.getName) should contain allOf(
-      "streamReactorBackups/intheader=1/longheader=2/mytopic/1/0.csv",
-      "streamReactorBackups/intheader=2/longheader=2/mytopic/1/1.csv",
-      "streamReactorBackups/intheader=1/longheader=1/mytopic/2/2.csv",
+      "streamReactorBackups/intheader=1/longheader=2/mytopic(1_0).csv",
+      "streamReactorBackups/intheader=2/longheader=2/mytopic(1_1).csv",
+      "streamReactorBackups/intheader=1/longheader=1/mytopic(2_2).csv",
     )
   }
 
@@ -656,12 +656,12 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     fileList.size() should be(6)
 
     fileList.asScala.map(file => file.getName) should contain allOf(
-      "streamReactorBackups/key=0/mytopic/1/0.csv",
-      "streamReactorBackups/key=1/mytopic/1/1.csv",
-      "streamReactorBackups/key=0/mytopic/1/2.csv",
-      "streamReactorBackups/key=1/mytopic/1/3.csv",
-      "streamReactorBackups/key=0/mytopic/1/4.csv",
-      "streamReactorBackups/key=1/mytopic/1/5.csv"
+      "streamReactorBackups/key=0/mytopic(1_0).csv",
+      "streamReactorBackups/key=1/mytopic(1_1).csv",
+      "streamReactorBackups/key=0/mytopic(1_2).csv",
+      "streamReactorBackups/key=1/mytopic(1_3).csv",
+      "streamReactorBackups/key=0/mytopic(1_4).csv",
+      "streamReactorBackups/key=1/mytopic(1_5).csv"
     )
   }
 
@@ -688,12 +688,12 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     fileList.size() should be(6)
 
     fileList.asScala.map(file => file.getName) should contain allOf(
-      "streamReactorBackups/0/mytopic/1/0.csv",
-      "streamReactorBackups/1/mytopic/1/1.csv",
-      "streamReactorBackups/0/mytopic/1/2.csv",
-      "streamReactorBackups/1/mytopic/1/3.csv",
-      "streamReactorBackups/0/mytopic/1/4.csv",
-      "streamReactorBackups/1/mytopic/1/5.csv"
+      "streamReactorBackups/0/mytopic(1_0).csv",
+      "streamReactorBackups/1/mytopic(1_1).csv",
+      "streamReactorBackups/0/mytopic(1_2).csv",
+      "streamReactorBackups/1/mytopic(1_3).csv",
+      "streamReactorBackups/0/mytopic(1_4).csv",
+      "streamReactorBackups/1/mytopic(1_5).csv"
     )
   }
 
@@ -748,12 +748,12 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     fileList.size() should be(6)
 
     fileList.asScala.map(file => file.getName) should contain allOf(
-      "streamReactorBackups/0/mytopic/1/0.csv",
-      "streamReactorBackups/1/mytopic/1/1.csv",
-      "streamReactorBackups/0/mytopic/1/2.csv",
-      "streamReactorBackups/1/mytopic/1/3.csv",
-      "streamReactorBackups/0/mytopic/1/4.csv",
-      "streamReactorBackups/1/mytopic/1/5.csv"
+      "streamReactorBackups/0/mytopic(1_0).csv",
+      "streamReactorBackups/1/mytopic(1_1).csv",
+      "streamReactorBackups/0/mytopic(1_2).csv",
+      "streamReactorBackups/1/mytopic(1_3).csv",
+      "streamReactorBackups/0/mytopic(1_4).csv",
+      "streamReactorBackups/1/mytopic(1_5).csv"
     )
   }
 
@@ -776,9 +776,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     fileList.size() should be(3)
 
     fileList.asScala.map(file => file.getName) should contain allOf(
-      "streamReactorBackups/region=8/phoneprefix=+44/mytopic/1/0.csv",
-      "streamReactorBackups/region=5/phoneprefix=+49/mytopic/1/1.csv",
-      "streamReactorBackups/region=5/phoneprefix=+49/mytopic/1/2.csv"
+      "streamReactorBackups/region=8/phoneprefix=+44/mytopic(1_0).csv",
+      "streamReactorBackups/region=5/phoneprefix=+49/mytopic(1_1).csv",
+      "streamReactorBackups/region=5/phoneprefix=+49/mytopic(1_2).csv"
     )
   }
 
@@ -801,9 +801,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     fileList.size() should be(3)
 
     fileList.asScala.map(file => file.getName) should contain allOf(
-      "streamReactorBackups/region=8/name=sam/mytopic/1/0.json",
-      "streamReactorBackups/region=5/name=laura/mytopic/1/1.json",
-      "streamReactorBackups/region=5/name=tom/mytopic/1/2.json"
+      "streamReactorBackups/region=8/name=sam/mytopic(1_0).json",
+      "streamReactorBackups/region=5/name=laura/mytopic(1_1).json",
+      "streamReactorBackups/region=5/name=tom/mytopic(1_2).json"
     )
   }
 
@@ -840,10 +840,11 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
     fileList.size() should be(1)
 
-    fileList.asScala.map(file => file.getName) should contain (
+    fileList.asScala.map(file => file.getName) should contain(
       "streamReactorBackups/mytopic/1/1.json",
     )
   }
+
   private def createSinkRecord(partition: Int, valueStruct: Struct, offset: Int, headers: lang.Iterable[Header]) = {
     new SinkRecord(TopicName, partition, null, null, null, valueStruct, offset, null, null, headers)
   }

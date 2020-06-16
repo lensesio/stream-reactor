@@ -17,10 +17,10 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+import io.lenses.streamreactor.connect.aws.s3._
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, BucketOptions, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig}
-import io.lenses.streamreactor.connect.aws.s3._
 import org.apache.kafka.connect.data.Struct
 import org.jclouds.blobstore.options.ListContainerOptions
 import org.scalatest.flatspec.AnyFlatSpec

@@ -17,7 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import io.lenses.streamreactor.connect.aws.s3.config.Format.{Avro, Json}
+import io.lenses.streamreactor.connect.aws.s3.config.Format.{Avro, Csv, Json}
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.model.{PartitionSelection, ValuePartitionField}
 import io.lenses.streamreactor.connect.aws.s3.{Offset, Topic}
@@ -37,7 +37,7 @@ class CommittedFileNameTest extends AnyFlatSpecLike with Matchers {
   class PartitionedAvroTestContext extends TestContext(new PartitionedS3FileNamingStrategy(FormatSelection(Avro), partitions))
 
   "unapply" should "recognise hierarchical filenames in prefix/topic/927/77.json format" in new HierarchicalJsonTestContext {
-    CommittedFileName.unapply("prefix/topic/927/77.json") should be(Some("prefix", Topic("topic"), 927, Offset(77), Json))
+    CommittedFileName.unapply("prefix/topic/927/77.json") should be(Some(Topic("topic"), 927, Offset(77), Json))
   }
 
   "unapply" should "not recognise hierarchical filenames other formats" in new HierarchicalJsonTestContext {
@@ -53,21 +53,26 @@ class CommittedFileNameTest extends AnyFlatSpecLike with Matchers {
   }
 
   "unapply" should "recognise partitioned filenames in prefix/topic/927/77.json format" in new PartitionedAvroTestContext {
-    CommittedFileName.unapply("prefix/partition1=something/topic/927/77.json") should be(Some("prefix", Topic("topic"), 927, Offset(77), Json))
-    CommittedFileName.unapply("prefix/partition1=something/partition2=else/topic/927/77.json") should be(Some("prefix", Topic("topic"), 927, Offset(77), Json))
-    CommittedFileName.unapply("prefix/partition1=something/partition2=else/partition3=sausages/topic/927/77.json") should be(Some("prefix", Topic("topic"), 927, Offset(77), Json))
+    CommittedFileName.unapply("prefix/partition1=something/topic(927_77).json") should be(Some(Topic("topic"), 927, Offset(77), Json))
+    CommittedFileName.unapply("prefix/partition1=something/partition2=else/topic(927_77).json") should be(Some(Topic("topic"), 927, Offset(77), Json))
+    CommittedFileName.unapply("prefix/partition1=something/partition2=else/partition3=sausages/topic(927_77).json") should be(Some(Topic("topic"), 927, Offset(77), Json))
   }
 
   "unapply" should "not recognise partitioned filenames other formats" in new PartitionedAvroTestContext {
-    CommittedFileName.unapply("prefix/partition1=something/partition2=else/topic/927/77") should be(None)
+    CommittedFileName.unapply("prefix/partition1=something/partition2=else/topic(927_77)") should be(None)
   }
 
   "unapply" should "not recognise partitioned filenames for non-supported file types" in new PartitionedAvroTestContext {
-    CommittedFileName.unapply("prefix/partition1=something/partition2=else/topic/927/77.doc") should be(None)
+    CommittedFileName.unapply("prefix/partition1=something/partition2=else/topic(927_77).doc") should be(None)
   }
 
   "unapply" should "not recognise partitioned filenames for a long path" in new PartitionedAvroTestContext {
-    CommittedFileName.unapply("extra/long/prefix/partition1=something/partition2=else/topic/927/77.doc") should be(None)
+    CommittedFileName.unapply("extra/long/prefix/partition1=something/partition2=else/topic(927_77).doc") should be(None)
+  }
+
+  "unapply" should "support valid kafka topic name" in new PartitionedAvroTestContext {
+    CommittedFileName.unapply("extra/long/prefix/partition1=something/partition2=else/REAL_val1d-T0PIC.name(927_77).csv") should
+      be(Some((Topic("REAL_val1d-T0PIC.name"), 927, Offset(77), Csv)))
   }
 
 }

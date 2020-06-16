@@ -41,7 +41,7 @@ class OffsetSeeker(fileNamingStrategy: S3FileNamingStrategy) {
         implicit val impFileNamingStrategy = fileNamingStrategy
 
         listOfFilesInBucket.collect {
-          case CommittedFileName(_, topic, partition, end, format)
+          case CommittedFileName(topic, partition, end, format)
             if format == fileNamingStrategy.getFormat =>
             TopicPartitionOffset(topic, partition, end)
         }.groupBy(_.toTopicPartition).map { case (tp, tpo) =>

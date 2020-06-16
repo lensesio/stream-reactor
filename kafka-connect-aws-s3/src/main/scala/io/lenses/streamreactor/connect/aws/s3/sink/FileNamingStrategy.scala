@@ -62,7 +62,7 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends
 
   override def processPartitionValues(messageDetail: MessageDetail): Map[PartitionField, String] = throw new UnsupportedOperationException("This should never be called for this object")
 
-  override val committedFilenameRegex: Regex = s"(.+)/(.+)/(\\d+)/(\\d+).(.+)".r
+  override val committedFilenameRegex: Regex = s".+/(.+)/(\\d+)/(\\d+).(.+)".r
 }
 
 class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitionSelection: PartitionSelection) extends S3FileNamingStrategy {
@@ -88,7 +88,7 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
   }
 
   override def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath =
-    BucketAndPath(bucketAndPrefix.bucket, s"${Prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartitionOffset.topic.value}/${topicPartitionOffset.partition}/${topicPartitionOffset.offset.value}.${format.entryName.toLowerCase}")
+    BucketAndPath(bucketAndPrefix.bucket, s"${Prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartitionOffset.topic.value}(${topicPartitionOffset.partition}_${topicPartitionOffset.offset.value}).${format.entryName.toLowerCase}")
 
   override def processPartitionValues(messageDetail: MessageDetail): Map[PartitionField, String] = {
     partitionSelection
@@ -120,18 +120,18 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
 
   override def shouldProcessPartitionValues: Boolean = true
 
-  override val committedFilenameRegex: Regex = s"^([^/]+?)/(?:.+/)*(.+)/(\\d+)/(\\d+).(.+)".r
+  override val committedFilenameRegex: Regex = s"^[^/]+?/(?:.+/)*(.+)\\((\\d+)_(\\d+)\\).(.+)".r
 }
 
 
 object CommittedFileName {
 
-  def unapply(filename: String)(implicit s3FileNamingStrategy: S3FileNamingStrategy): Option[(String, Topic, Int, Offset, Format)] = {
+  def unapply(filename: String)(implicit s3FileNamingStrategy: S3FileNamingStrategy): Option[(Topic, Int, Offset, Format)] = {
     filename match {
-      case s3FileNamingStrategy.committedFilenameRegex(prefix, topic, partition, end, extension) =>
+      case s3FileNamingStrategy.committedFilenameRegex(topic, partition, end, extension) =>
         Format.withNameInsensitiveOption(extension)
-          .fold(Option.empty[(String, Topic, Int, Offset, Format)]) {
-            format => Some(prefix, Topic(topic), partition.toInt, Offset(end.toLong), format)
+          .fold(Option.empty[(Topic, Int, Offset, Format)]) {
+            format => Some(Topic(topic), partition.toInt, Offset(end.toLong), format)
           }
 
       case _ => None

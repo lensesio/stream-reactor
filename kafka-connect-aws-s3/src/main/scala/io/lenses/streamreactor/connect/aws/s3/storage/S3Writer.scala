@@ -18,10 +18,10 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3._
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionField
 import io.lenses.streamreactor.connect.aws.s3.sink.{CommitContext, CommitPolicy, S3FileNamingStrategy}
-import io.lenses.streamreactor.connect.aws.s3._
 import org.apache.kafka.connect.data.{Schema, Struct}
 
 trait S3Writer {
