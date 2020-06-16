@@ -32,7 +32,6 @@ import java.util.Map;
  * Class for task-specific configuration properties.
  */
 public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
-  private static final ConfigDef config;
   private static final Logger logger = LoggerFactory.getLogger(BigQuerySinkTaskConfig.class);
 
   public static final String THREAD_POOL_SIZE_CONFIG =                  "threadPoolSize";
@@ -125,8 +124,13 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
   public static final ConfigDef.Importance TASK_ID_IMPORTANCE = ConfigDef.Importance.LOW;
   private static final String TASK_ID_DOC =                     "A unique for each task created by the connector";
 
-  static {
-    config = BigQuerySinkConfig.getConfig()
+  /**
+   * Return a ConfigDef object used to define this config's fields.
+   *
+   * @return A ConfigDef object used to define this config's fields.
+   */
+  public static ConfigDef getConfig() {
+    return BigQuerySinkConfig.getConfig()
         .define(
             THREAD_POOL_SIZE_CONFIG,
             THREAD_POOL_SIZE_TYPE,
@@ -251,15 +255,11 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
     }
   }
 
-  public static ConfigDef getConfig() {
-    return config;
-  }
-
   /**
    * @param properties A Map detailing configuration properties and their respective values.
    */
   public BigQuerySinkTaskConfig(Map<String, String> properties) {
-    super(config, properties);
+    super(getConfig(), properties);
     checkSchemaUpdates();
     checkPartitionConfigs();
     checkClusteringConfigs();

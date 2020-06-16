@@ -163,6 +163,7 @@ public class GCSToBQWriterTest {
     Map<String, String> properties = propertiesFactory.getProperties();
     properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_CONFIG, bigqueryRetry);
     properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_WAIT_CONFIG, bigqueryRetryWait);
+    properties.put(BigQuerySinkTaskConfig.TASK_ID_CONFIG, "9");
     properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
     properties.put(BigQuerySinkConfig.DEFAULT_DATASET_CONFIG, dataset);
     // gcs config
