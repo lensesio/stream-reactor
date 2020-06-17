@@ -45,6 +45,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.Optional;
 
 /**
@@ -473,62 +476,71 @@ public class BigQuerySinkConfig extends AbstractConfig {
    * @param props sink configuration properties
    */
   public static void validate(Map<String, String> props) {
-      final boolean hasTopicsConfig = hasTopicsConfig(props);
-      final boolean hasTopicsRegexConfig = hasTopicsRegexConfig(props);
+    final boolean hasTopicsConfig = hasTopicsConfig(props);
+    final boolean hasTopicsRegexConfig = hasTopicsRegexConfig(props);
 
-      if (hasTopicsConfig && hasTopicsRegexConfig) {
-          throw new ConfigException(TOPICS_CONFIG + " and " + TOPICS_REGEX_CONFIG +
-              " are mutually exclusive options, but both are set.");
+    if (hasTopicsConfig && hasTopicsRegexConfig) {
+      throw new ConfigException(TOPICS_CONFIG + " and " + TOPICS_REGEX_CONFIG +
+          " are mutually exclusive options, but both are set.");
+    }
+
+    if (!hasTopicsConfig && !hasTopicsRegexConfig) {
+      throw new ConfigException("Must configure one of " +
+          TOPICS_CONFIG + " or " + TOPICS_REGEX_CONFIG);
+    }
+
+    if (upsertDeleteEnabled(props)) {
+      if (gcsBatchLoadingEnabled(props)) {
+        throw new ConfigException("Cannot enable both upsert/delete and GCS batch loading");
       }
 
-      if (!hasTopicsConfig && !hasTopicsRegexConfig) {
-          throw new ConfigException("Must configure one of " +
-              TOPICS_CONFIG + " or " + TOPICS_REGEX_CONFIG);
+      String mergeIntervalStr = Optional.ofNullable(props.get(MERGE_INTERVAL_MS_CONFIG))
+          .map(String::trim)
+          .orElse(Long.toString(MERGE_INTERVAL_MS_DEFAULT));
+      String mergeRecordsThresholdStr = Optional.ofNullable(props.get(MERGE_RECORDS_THRESHOLD_CONFIG))
+          .map(String::trim)
+          .orElse(Long.toString(MERGE_RECORDS_THRESHOLD_DEFAULT));
+      if ("-1".equals(mergeIntervalStr) && "-1".equals(mergeRecordsThresholdStr)) {
+        throw new ConfigException(MERGE_INTERVAL_MS_CONFIG + " and "
+            + MERGE_RECORDS_THRESHOLD_CONFIG + " cannot both be -1");
       }
 
-      if (upsertDeleteEnabled(props)) {
-          String mergeIntervalStr = Optional.ofNullable(props.get(MERGE_INTERVAL_MS_CONFIG))
-              .map(String::trim)
-              .orElse(Long.toString(MERGE_INTERVAL_MS_DEFAULT));
-          String mergeRecordsThresholdStr = Optional.ofNullable(props.get(MERGE_RECORDS_THRESHOLD_CONFIG))
-              .map(String::trim)
-              .orElse(Long.toString(MERGE_RECORDS_THRESHOLD_DEFAULT));
-          if ("-1".equals(mergeIntervalStr) && "-1".equals(mergeRecordsThresholdStr)) {
-            throw new ConfigException(MERGE_INTERVAL_MS_CONFIG + " and "
-                + MERGE_RECORDS_THRESHOLD_CONFIG + " cannot both be -1");
-          }
+      if ("0".equals(mergeIntervalStr)) {
+        throw new ConfigException(MERGE_INTERVAL_MS_CONFIG, mergeIntervalStr, "cannot be zero");
+      }
+      if ("0".equals(mergeRecordsThresholdStr)) {
+        throw new ConfigException(MERGE_RECORDS_THRESHOLD_CONFIG, mergeRecordsThresholdStr, "cannot be zero");
+      }
 
-          if ("0".equals(mergeIntervalStr)) {
-            throw new ConfigException(MERGE_INTERVAL_MS_CONFIG, mergeIntervalStr, "cannot be zero");
-          }
-          if ("0".equals(mergeRecordsThresholdStr)) {
-            throw new ConfigException(MERGE_RECORDS_THRESHOLD_CONFIG, mergeRecordsThresholdStr, "cannot be zero");
-          }
-
-          String kafkaKeyFieldStr = props.get(KAFKA_KEY_FIELD_NAME_CONFIG);
-          if (kafkaKeyFieldStr == null || kafkaKeyFieldStr.trim().isEmpty()) {
-            throw new ConfigException(KAFKA_KEY_FIELD_NAME_CONFIG + " must be specified when "
-                + UPSERT_ENABLED_CONFIG + " and/or " + DELETE_ENABLED_CONFIG + " are set to true");
-          }
+      String kafkaKeyFieldStr = props.get(KAFKA_KEY_FIELD_NAME_CONFIG);
+      if (kafkaKeyFieldStr == null || kafkaKeyFieldStr.trim().isEmpty()) {
+        throw new ConfigException(KAFKA_KEY_FIELD_NAME_CONFIG + " must be specified when "
+            + UPSERT_ENABLED_CONFIG + " and/or " + DELETE_ENABLED_CONFIG + " are set to true");
       }
     }
+  }
 
-    public static boolean hasTopicsConfig(Map<String, String> props) {
-        String topicsStr = props.get(TOPICS_CONFIG);
-        return topicsStr != null && !topicsStr.trim().isEmpty();
-    }
+  public static boolean hasTopicsConfig(Map<String, String> props) {
+    String topicsStr = props.get(TOPICS_CONFIG);
+    return topicsStr != null && !topicsStr.trim().isEmpty();
+  }
 
-    public static boolean hasTopicsRegexConfig(Map<String, String> props) {
-        String topicsRegexStr = props.get(TOPICS_REGEX_CONFIG);
-        return topicsRegexStr != null && !topicsRegexStr.trim().isEmpty();
-    }
+  public static boolean hasTopicsRegexConfig(Map<String, String> props) {
+    String topicsRegexStr = props.get(TOPICS_REGEX_CONFIG);
+    return topicsRegexStr != null && !topicsRegexStr.trim().isEmpty();
+  }
 
-    public static boolean upsertDeleteEnabled(Map<String, String> props) {
-        String upsertStr = props.get(UPSERT_ENABLED_CONFIG);
-        String deleteStr = props.get(DELETE_ENABLED_CONFIG);
-        return Boolean.TRUE.toString().equalsIgnoreCase(upsertStr)
-            || Boolean.TRUE.toString().equalsIgnoreCase(deleteStr);
-    }
+  public static boolean upsertDeleteEnabled(Map<String, String> props) {
+    String upsertStr = props.get(UPSERT_ENABLED_CONFIG);
+    String deleteStr = props.get(DELETE_ENABLED_CONFIG);
+    return Boolean.TRUE.toString().equalsIgnoreCase(upsertStr)
+        || Boolean.TRUE.toString().equalsIgnoreCase(deleteStr);
+  }
+
+  public static boolean gcsBatchLoadingEnabled(Map<String, String> props) {
+    String batchLoadStr = props.get(ENABLE_BATCH_CONFIG);
+    return batchLoadStr != null && !batchLoadStr.isEmpty();
+  }
 
   /**
    * Returns the keyfile

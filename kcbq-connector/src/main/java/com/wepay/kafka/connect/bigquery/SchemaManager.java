@@ -410,7 +410,8 @@ public class SchemaManager {
 
     com.google.cloud.bigquery.Schema keySchema = schemaConverter.convertSchema(kafkaKeySchema);
     Field kafkaKeyField = Field.newBuilder(MergeQueries.INTERMEDIATE_TABLE_KEY_FIELD_NAME, LegacySQLTypeName.RECORD, keySchema.getFields())
-        .setMode(Field.Mode.REQUIRED).build();
+        .setMode(Field.Mode.REQUIRED)
+        .build();
     result.add(kafkaKeyField);
 
     Field partitionTimeField = Field

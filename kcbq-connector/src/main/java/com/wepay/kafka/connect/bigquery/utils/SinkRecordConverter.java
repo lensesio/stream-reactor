@@ -84,8 +84,6 @@ public class SinkRecordConverter {
             ? null
             : recordConverter.convertRecord(record, KafkaSchemaRecordType.VALUE);
 
-        Map<String, Object> convertedKey = recordConverter.convertRecord(record, KafkaSchemaRecordType.KEY);
-
         if (convertedValue != null) {
             config.getKafkaDataFieldName().ifPresent(
                 fieldName -> convertedValue.put(fieldName, KafkaDataBuilder.buildKafkaDataRecord(record))
@@ -99,6 +97,11 @@ public class SinkRecordConverter {
                     + "exceeded the configured threshold of {}}",
                 table, mergeRecordsThreshold);
             mergeQueries.mergeFlush(table);
+        }
+
+        Map<String, Object> convertedKey = recordConverter.convertRecord(record, KafkaSchemaRecordType.KEY);
+        if (convertedKey == null) {
+            throw new ConnectException("Record keys must be non-null when upsert/delete is enabled");
         }
 
         result.put(MergeQueries.INTERMEDIATE_TABLE_KEY_FIELD_NAME, convertedKey);

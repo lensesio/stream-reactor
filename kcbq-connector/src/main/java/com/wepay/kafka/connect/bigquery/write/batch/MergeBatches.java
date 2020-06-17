@@ -20,6 +20,7 @@ package com.wepay.kafka.connect.bigquery.write.batch;
 
 import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.TableId;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
@@ -45,11 +46,23 @@ public class MergeBatches {
   private static final Logger logger = LoggerFactory.getLogger(MergeBatches.class);
   private static final long STREAMING_BUFFER_AVAILABILITY_WAIT_MS = 10_000L;
 
+  private static long streamingBufferAvailabilityWaitMs = STREAMING_BUFFER_AVAILABILITY_WAIT_MS;
+
   private final String intermediateTableSuffix;
   private final BiMap<TableId, TableId> intermediateToDestinationTables;
   private final ConcurrentMap<TableId, AtomicInteger> batchNumbers;
   private final ConcurrentMap<TableId, ConcurrentMap<Integer, Batch>> batches;
   private final Map<TopicPartition, Long> offsets;
+
+  @VisibleForTesting
+  public static void setStreamingBufferAvailabilityWait(long waitMs) {
+    streamingBufferAvailabilityWaitMs = waitMs;
+  }
+
+  @VisibleForTesting
+  public static void resetStreamingBufferAvailabilityWait() {
+    streamingBufferAvailabilityWaitMs = STREAMING_BUFFER_AVAILABILITY_WAIT_MS;
+  }
 
   public MergeBatches(String intermediateTableSuffix) {
     this.intermediateTableSuffix = intermediateTableSuffix;
@@ -243,10 +256,10 @@ public class MergeBatches {
 
     try {
       logger.trace(
-          "Waiting {} seconds before running merge query on batch {} from intermediate table {} "
+          "Waiting {}ms before running merge query on batch {} from intermediate table {} "
               + "in order to ensure that all rows are available in the streaming buffer",
-          STREAMING_BUFFER_AVAILABILITY_WAIT_MS, batchNumber, intermediateTable);
-      Thread.sleep(STREAMING_BUFFER_AVAILABILITY_WAIT_MS);
+          streamingBufferAvailabilityWaitMs, batchNumber, intermediateTable);
+      Thread.sleep(streamingBufferAvailabilityWaitMs);
     } catch (InterruptedException e) {
       logger.warn("Interrupted while waiting before merge flushing batch {} for intermediate table {}",
           batchNumber, intermediateTable);

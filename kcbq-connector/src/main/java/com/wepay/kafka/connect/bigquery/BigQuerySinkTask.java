@@ -90,7 +90,6 @@ public class BigQuerySinkTask extends SinkTask {
   private boolean upsertDelete;
   private MergeBatches mergeBatches;
   private MergeQueries mergeQueries;
-  private long mergeRecordsThreshold;
 
   private TopicPartitionManager topicPartitionManager;
 
@@ -218,7 +217,7 @@ public class BigQuerySinkTask extends SinkTask {
     Map<PartitionedTableId, TableWriterBuilder> tableWriterBuilders = new HashMap<>();
 
     for (SinkRecord record : records) {
-      if (record.value() != null) {
+      if (record.value() != null || config.getBoolean(config.DELETE_ENABLED_CONFIG)) {
         PartitionedTableId table = getRecordTable(record);
         if (!tableWriterBuilders.containsKey(table)) {
           TableWriterBuilder tableWriterBuilder;
@@ -400,12 +399,10 @@ public class BigQuerySinkTask extends SinkTask {
           Instant.now().toEpochMilli()
       );
       mergeBatches = new MergeBatches(intermediateTableSuffix);
-      mergeRecordsThreshold = config.getLong(config.MERGE_RECORDS_THRESHOLD_CONFIG);
     }
 
     bigQueryWriter = getBigQueryWriter();
     gcsToBQWriter = getGcsWriter();
-    recordConverter = getConverter(config);
     executor = new KCBQThreadPoolExecutor(config, new LinkedBlockingQueue<>());
     topicPartitionManager = new TopicPartitionManager();
     useMessageTimeDatePartitioning =
@@ -421,6 +418,8 @@ public class BigQuerySinkTask extends SinkTask {
           new MergeQueries(config, mergeBatches, executor, getBigQuery(), getSchemaManager(), context);
       maybeStartMergeFlushTask();
     }
+
+    recordConverter = getConverter(config);
   }
 
   private void startGCSToBQLoadTask() {

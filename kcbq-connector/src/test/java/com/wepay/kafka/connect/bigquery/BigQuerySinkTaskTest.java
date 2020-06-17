@@ -20,6 +20,7 @@ package com.wepay.kafka.connect.bigquery;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
@@ -31,10 +32,12 @@ import static org.mockito.Mockito.when;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.InsertAllResponse;
 import com.google.cloud.bigquery.Table;
-import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.LegacySQLTypeName;
+import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.storage.Storage;
 
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
@@ -42,6 +45,7 @@ import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
+import com.wepay.kafka.connect.bigquery.write.batch.MergeBatches;
 import org.apache.kafka.common.config.ConfigException;
 
 import org.apache.kafka.common.record.TimestampType;
@@ -52,22 +56,40 @@ import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTaskContext;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class BigQuerySinkTaskTest {
   private static SinkTaskPropertiesFactory propertiesFactory;
 
+  private static AtomicLong spoofedRecordOffset = new AtomicLong();
+
   @BeforeClass
   public static void initializePropertiesFactory() {
     propertiesFactory = new SinkTaskPropertiesFactory();
+  }
+
+  @Before
+  public void setUp() {
+    MergeBatches.setStreamingBufferAvailabilityWait(0);
+    spoofedRecordOffset.set(0);
+  }
+
+  @After
+  public void cleanUp() {
+    MergeBatches.resetStreamingBufferAvailabilityWait();
   }
 
   @Test
@@ -171,8 +193,6 @@ public class BigQuerySinkTaskTest {
 
     testTask.put(Collections.singletonList(emptyRecord));
   }
-
-  @Captor ArgumentCaptor<InsertAllRequest> captor;
 
   @Test
   public void testPutWhenPartitioningOnMessageTime() {
@@ -312,6 +332,76 @@ public class BigQuerySinkTaskTest {
 
     testTask.put(Collections.singletonList(spoofSinkRecord(topic, "value", "message text",
         TimestampType.NO_TIMESTAMP_TYPE, null)));
+  }
+
+  @Test
+  public void testPutWithUpsertDelete() throws Exception {
+    final String topic = "test-topic";
+    final String key = "kafkaKey";
+    final String value = "recordValue";
+
+    Map<String, String> properties = propertiesFactory.getProperties();
+    properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
+    properties.put(BigQuerySinkConfig.UPSERT_ENABLED_CONFIG, "true");
+    properties.put(BigQuerySinkConfig.DELETE_ENABLED_CONFIG, "true");
+    properties.put(BigQuerySinkConfig.MERGE_INTERVAL_MS_CONFIG, "-1");
+    properties.put(BigQuerySinkConfig.MERGE_RECORDS_THRESHOLD_CONFIG, "2");
+    properties.put(BigQuerySinkConfig.KAFKA_KEY_FIELD_NAME_CONFIG, key);
+
+    BigQuery bigQuery = mock(BigQuery.class);
+    Storage storage = mock(Storage.class);
+    SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
+
+    InsertAllResponse insertAllResponse = mock(InsertAllResponse.class);
+    when(bigQuery.insertAll(anyObject())).thenReturn(insertAllResponse);
+    when(insertAllResponse.hasErrors()).thenReturn(false);
+
+    SchemaRetriever schemaRetriever = mock(SchemaRetriever.class);
+    SchemaManager schemaManager = mock(SchemaManager.class);
+    Field keyField = Field.of(key, LegacySQLTypeName.STRING);
+    Field valueField = Field.of(value, LegacySQLTypeName.STRING);
+    com.google.cloud.bigquery.Schema intermediateSchema = com.google.cloud.bigquery.Schema.of(
+        Field.newBuilder(MergeQueries.INTERMEDIATE_TABLE_BATCH_NUMBER_FIELD, LegacySQLTypeName.INTEGER)
+            .setMode(Field.Mode.REQUIRED)
+            .build(),
+        Field.newBuilder(MergeQueries.INTERMEDIATE_TABLE_PARTITION_TIME_FIELD_NAME, LegacySQLTypeName.TIMESTAMP)
+            .setMode(Field.Mode.NULLABLE)
+            .build(),
+        Field.newBuilder(MergeQueries.INTERMEDIATE_TABLE_KEY_FIELD_NAME, LegacySQLTypeName.RECORD, keyField)
+            .setMode(Field.Mode.REQUIRED)
+            .build(),
+        Field.newBuilder(MergeQueries.INTERMEDIATE_TABLE_VALUE_FIELD_NAME, LegacySQLTypeName.RECORD, valueField)
+            .build()
+    );
+    when(schemaManager.cachedSchema(any())).thenReturn(intermediateSchema);
+
+    CountDownLatch executedMerges = new CountDownLatch(2);
+    CountDownLatch executedBatchClears = new CountDownLatch(2);
+
+    when(bigQuery.query(any(QueryJobConfiguration.class))).then(invocation -> {
+      String query = invocation.getArgument(0, QueryJobConfiguration.class).getQuery();
+      if (query.startsWith("MERGE")) {
+        executedMerges.countDown();
+      } else if (query.startsWith("DELETE")) {
+        executedBatchClears.countDown();
+      }
+      return null;
+    });
+
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager);
+    testTask.initialize(sinkTaskContext);
+    testTask.start(properties);
+
+    // Insert a few regular records and one tombstone record
+    testTask.put(Arrays.asList(
+        spoofSinkRecord(topic, key, "4761", "value", "message text", TimestampType.NO_TIMESTAMP_TYPE, null),
+        spoofSinkRecord(topic, key, "489", "value", "other message text", TimestampType.NO_TIMESTAMP_TYPE, null),
+        spoofSinkRecord(topic, key, "28980", "value", "more message text", TimestampType.NO_TIMESTAMP_TYPE, null),
+        spoofSinkRecord(topic, key, "4761", null, null, TimestampType.NO_TIMESTAMP_TYPE, null)
+    ));
+
+    assertTrue("Merge queries should be executed", executedMerges.await(5, TimeUnit.SECONDS));
+    assertTrue("Batch clears should be executed", executedBatchClears.await(1, TimeUnit.SECONDS));
   }
 
   // It's important that the buffer be completely wiped after a call to flush, since any exception
@@ -582,38 +672,57 @@ public class BigQuerySinkTaskTest {
   }
 
   /**
-   * Utility method for spoofing InsertAllRequests that should be sent to a BigQuery object.
-   * @param table The table to write to.
-   * @param rows The rows to write.
-   * @return The spoofed InsertAllRequest.
+   * Utility method for spoofing SinkRecords that should be passed to SinkTask.put()
+   * @param topic The topic of the record.
+   * @param keyField The field name for the record key; may be null.
+   * @param key The content of the record key; may be null.
+   * @param valueField The field name for the record value; may be null
+   * @param value The content of the record value; may be null
+   * @param timestampType The type of timestamp embedded in the message
+   * @param timestamp The timestamp in milliseconds
+   * @return The spoofed SinkRecord.
    */
-  public static InsertAllRequest buildExpectedInsertAllRequest(
-      TableId table,
-      InsertAllRequest.RowToInsert... rows) {
-    return InsertAllRequest.newBuilder(table, rows)
-        .setIgnoreUnknownValues(false)
-        .setSkipInvalidRows(false)
-        .build();
+  public static SinkRecord spoofSinkRecord(String topic, String keyField, String key,
+                                           String valueField, String value,
+                                           TimestampType timestampType, Long timestamp) {
+    Schema basicKeySchema = null;
+    Struct basicKey = null;
+    if (keyField != null) {
+      basicKeySchema = SchemaBuilder
+          .struct()
+          .field(keyField, Schema.STRING_SCHEMA)
+          .build();
+      basicKey = new Struct(basicKeySchema);
+      basicKey.put(keyField, key);
+    }
+
+    Schema basicValueSchema = null;
+    Struct basicValue = null;
+    if (valueField != null) {
+      basicValueSchema = SchemaBuilder
+          .struct()
+          .field(valueField, Schema.STRING_SCHEMA)
+          .build();
+      basicValue = new Struct(basicValueSchema);
+      basicValue.put(valueField, value);
+    }
+
+    return new SinkRecord(topic, 0, basicKeySchema, basicKey,
+        basicValueSchema, basicValue, spoofedRecordOffset.getAndIncrement(), timestamp, timestampType);
   }
 
   /**
    * Utility method for spoofing SinkRecords that should be passed to SinkTask.put()
    * @param topic The topic of the record.
-   * @param value The content of the record.
+   * @param field The field name for the record value.
+   * @param value The content of the record value.
    * @param timestampType The type of timestamp embedded in the message
    * @param timestamp The timestamp in milliseconds
    * @return The spoofed SinkRecord.
    */
   public static SinkRecord spoofSinkRecord(String topic, String field, String value,
                                            TimestampType timestampType, Long timestamp) {
-    Schema basicRowSchema = SchemaBuilder
-            .struct()
-            .field(field, Schema.STRING_SCHEMA)
-            .build();
-    Struct basicRowValue = new Struct(basicRowSchema);
-    basicRowValue.put(field, value);
-    return new SinkRecord(topic, 0, null, null,
-        basicRowSchema, basicRowValue, 0, timestamp, timestampType);
+    return spoofSinkRecord(topic, null, null, field, value, timestampType, timestamp);
   }
 
   /**

@@ -24,7 +24,9 @@ import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
+import com.google.common.annotations.VisibleForTesting;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
+import com.wepay.kafka.connect.bigquery.write.batch.KCBQThreadPoolExecutor;
 import com.wepay.kafka.connect.bigquery.write.batch.MergeBatches;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkTaskContext;
@@ -32,7 +34,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -45,28 +46,50 @@ public class MergeQueries {
   private static final Logger logger = LoggerFactory.getLogger(MergeQueries.class);
 
   private final String keyFieldName;
-  private final boolean usePartitionDecorator;
+  private final boolean insertPartitionTime;
   private final boolean upsertEnabled;
   private final boolean deleteEnabled;
   private final MergeBatches mergeBatches;
-  private final ExecutorService executor;
+  private final KCBQThreadPoolExecutor executor;
   private final BigQuery bigQuery;
   private final SchemaManager schemaManager;
   private final SinkTaskContext context;
 
   public MergeQueries(BigQuerySinkTaskConfig config,
                       MergeBatches mergeBatches,
-                      ExecutorService executor,
+                      KCBQThreadPoolExecutor executor,
                       BigQuery bigQuery,
                       SchemaManager schemaManager,
                       SinkTaskContext context) {
-    this.keyFieldName = config.getKafkaKeyFieldName().orElseThrow(() ->
-        new ConnectException("Kafka key field must be configured when upsert/delete is enabled")
+    this(
+      config.getKafkaKeyFieldName().orElseThrow(() ->
+          new ConnectException("Kafka key field must be configured when upsert/delete is enabled")
+      ),
+      config.getBoolean(config.BIGQUERY_PARTITION_DECORATOR_CONFIG),
+      config.getBoolean(config.UPSERT_ENABLED_CONFIG),
+      config.getBoolean(config.DELETE_ENABLED_CONFIG),
+      mergeBatches,
+      executor,
+      bigQuery,
+      schemaManager,
+      context
     );
-    this.usePartitionDecorator = config.getBoolean(config.BIGQUERY_PARTITION_DECORATOR_CONFIG);
-    this.upsertEnabled = config.getBoolean(config.UPSERT_ENABLED_CONFIG);
-    this.deleteEnabled = config.getBoolean(config.DELETE_ENABLED_CONFIG);
+  }
 
+  @VisibleForTesting
+  MergeQueries(String keyFieldName,
+               boolean insertPartitionTime,
+               boolean upsertEnabled,
+               boolean deleteEnabled,
+               MergeBatches mergeBatches,
+               KCBQThreadPoolExecutor executor,
+               BigQuery bigQuery,
+               SchemaManager schemaManager,
+               SinkTaskContext context) {
+    this.keyFieldName = keyFieldName;
+    this.insertPartitionTime = insertPartitionTime;
+    this.upsertEnabled = upsertEnabled;
+    this.deleteEnabled = deleteEnabled;
     this.mergeBatches = mergeBatches;
     this.executor = executor;
     this.bigQuery = bigQuery;
@@ -85,54 +108,48 @@ public class MergeQueries {
     logger.trace("Triggering merge flush from intermediate table {} to destination table {} for batch {}",
         intermediateTable, destinationTable, batchNumber);
 
-    executor.submit(() -> {
-      // If there are rows to flush in this batch, flush them
-      if (mergeBatches.prepareToFlush(intermediateTable, batchNumber)) {
-        try {
-          logger.debug("Running merge query on batch {} from intermediate table {}",
-              batchNumber, intermediateTable);
-          String mergeFlushQuery = mergeFlushQuery(intermediateTable, destinationTable, batchNumber);
-          logger.trace(mergeFlushQuery);
-          bigQuery.query(QueryJobConfiguration.of(mergeFlushQuery));
-          logger.trace("Merge from intermediate table {} to destination table {} completed",
-              intermediateTable, destinationTable);
-        } catch (Throwable t) {
-          logger.warn("Failed on merge flush from intermediate table {} to destination table {}",
-              intermediateTable, destinationTable, t);
-          throw new ConnectException(
-              String.format("Failed to perform merge flush from intermediate table %s to destination table %s",
-                  intermediateTable,
-                  destinationTable),
-              t);
-        }
-
-        logger.debug("Recording flush success for batch {} from {}",
-            batchNumber, intermediateTable);
-        mergeBatches.recordSuccessfulFlush(intermediateTable, batchNumber);
-
-        // Commit those offsets ASAP
-        context.requestCommit();
-
-        logger.info("Completed merge flush of batch {} from {} to {}",
-            batchNumber, intermediateTable, destinationTable);
-      }
-
-      // After, regardless of whether we flushed or not, clean up old batches from the intermediate
-      // table. Some rows may be several batches old but still in the table if they were in the
-      // streaming buffer during the last purge.
+    executor.execute(() -> {
       try {
-        logger.trace("Clearing batches from {} on back from intermediate table {}", batchNumber, intermediateTable);
-        String tableClearQuery = clearBatchQuery(intermediateTable, batchNumber);
-        logger.trace(tableClearQuery);
-        bigQuery.query(QueryJobConfiguration.of(tableClearQuery));
-      } catch (Throwable t) {
-        logger.error("Failed to clear old batches from intermediate table {}", intermediateTable, t);
-        throw new ConnectException(
-            String.format("Failed to clear old batches from intermediate table %s",
-                intermediateTable),
-            t);
+        mergeFlush(intermediateTable, destinationTable, batchNumber);
+      } catch (InterruptedException e) {
+        throw new ConnectException(String.format(
+            "Interrupted while performing merge flush of batch %d from %s to %s",
+            batchNumber, intermediateTable, destinationTable));
       }
     });
+  }
+
+  private void mergeFlush(
+      TableId intermediateTable, TableId destinationTable, int batchNumber
+  ) throws InterruptedException{
+    // If there are rows to flush in this batch, flush them
+    if (mergeBatches.prepareToFlush(intermediateTable, batchNumber)) {
+      logger.debug("Running merge query on batch {} from intermediate table {}",
+          batchNumber, intermediateTable);
+      String mergeFlushQuery = mergeFlushQuery(intermediateTable, destinationTable, batchNumber);
+      logger.trace(mergeFlushQuery);
+      bigQuery.query(QueryJobConfiguration.of(mergeFlushQuery));
+      logger.trace("Merge from intermediate table {} to destination table {} completed",
+          intermediateTable, destinationTable);
+
+      logger.debug("Recording flush success for batch {} from {}",
+          batchNumber, intermediateTable);
+      mergeBatches.recordSuccessfulFlush(intermediateTable, batchNumber);
+
+      // Commit those offsets ASAP
+      context.requestCommit();
+
+      logger.info("Completed merge flush of batch {} from {} to {}",
+          batchNumber, intermediateTable, destinationTable);
+    }
+
+    // After, regardless of whether we flushed or not, clean up old batches from the intermediate
+    // table. Some rows may be several batches old but still in the table if they were in the
+    // streaming buffer during the last purge.
+    logger.trace("Clearing batches from {} on back from intermediate table {}", batchNumber, intermediateTable);
+    String batchClearQuery = batchClearQuery(intermediateTable, batchNumber);
+    logger.trace(batchClearQuery);
+    bigQuery.query(QueryJobConfiguration.of(batchClearQuery));
   }
 
   /*
@@ -214,13 +231,14 @@ public class MergeQueries {
       );
 
    */
-  private String mergeFlushQuery(TableId intermediateTable, TableId destinationTable, int batchNumber) {
+  @VisibleForTesting
+  String mergeFlushQuery(TableId intermediateTable, TableId destinationTable, int batchNumber) {
     Schema intermediateSchema = schemaManager.cachedSchema(intermediateTable);
 
     String srcKey = INTERMEDIATE_TABLE_KEY_FIELD_NAME;
 
     List<String> keyFields = listFields(
-        intermediateSchema.getFields().get(keyFieldName).getSubFields(),
+        intermediateSchema.getFields().get(srcKey).getSubFields(),
         srcKey + "."
     );
     List<String> dstValueFields = intermediateSchema.getFields().get(INTERMEDIATE_TABLE_VALUE_FIELD_NAME).getSubFields()
@@ -235,8 +253,8 @@ public class MergeQueries {
         .map(field -> field + "=`src`." + INTERMEDIATE_TABLE_VALUE_FIELD_NAME + "." + field)
         .collect(Collectors.toList());
 
-    String partitionTimeField = usePartitionDecorator ? "_PARTITIONTIME, " : "";
-    String partitionTimeValue = usePartitionDecorator
+    String partitionTimeField = insertPartitionTime ? "_PARTITIONTIME, " : "";
+    String partitionTimeValue = insertPartitionTime
         ? "CAST(CAST(DATE(`src`." + INTERMEDIATE_TABLE_PARTITION_TIME_FIELD_NAME + ") AS DATE) AS TIMESTAMP), "
         : "";
 
@@ -299,9 +317,9 @@ public class MergeQueries {
       // Assume all rows have non-null values and upsert them all
       return mergeOpening
           .append("ON ").append(keysMatch).append(" ")
-          .append("WHEN MATCHED")
+          .append("WHEN MATCHED ")
             .append(updateClause).append(" ")
-          .append("WHEN NOT MATCHED")
+          .append("WHEN NOT MATCHED ")
             .append(insertClause)
           .append(";")
           .toString();
@@ -311,7 +329,8 @@ public class MergeQueries {
   }
 
   // DELETE FROM `<intermediateTable>` WHERE batchNumber <= <batchNumber> AND _PARTITIONTIME IS NOT NULL;
-  private static String clearBatchQuery(TableId intermediateTable, int batchNumber) {
+  @VisibleForTesting
+  static String batchClearQuery(TableId intermediateTable, int batchNumber) {
     return new StringBuilder("DELETE FROM `").append(intermediateTable.getDataset()).append("`.`").append(intermediateTable.getTable()).append("` ")
         .append("WHERE ")
           .append(INTERMEDIATE_TABLE_BATCH_NUMBER_FIELD).append(" <= ").append(batchNumber).append(" ")
