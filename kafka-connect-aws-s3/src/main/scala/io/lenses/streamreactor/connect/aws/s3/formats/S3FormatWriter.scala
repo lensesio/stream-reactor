@@ -27,13 +27,10 @@ import org.apache.kafka.connect.data.Struct
 object S3FormatWriter {
 
   def convertToBytesWriteMode(formatOptions: Set[FormatOptions]): BytesWriteMode = {
-    require(formatOptions.size <= 1, "FormatOptions should contain at max a single byte write mode")
-    if (formatOptions.isEmpty) {
-      BytesWriteMode.ValueWithSize
-    } else {
-      val headFormatOption = formatOptions.head
-      BytesWriteMode.withName(headFormatOption.entryName)
-    }
+    require(formatOptions.size <= 1, "Cannot have more than one format option provided.")
+    formatOptions
+      .headOption
+      .fold[BytesWriteMode]( BytesWriteMode.ValueWithSize )(fo => BytesWriteMode.withName(fo.entryName))
   }
 
   def apply(
@@ -46,9 +43,7 @@ object S3FormatWriter {
       case Json => new JsonFormatWriter(outputStreamFn)
       case Avro => new AvroFormatWriter(outputStreamFn)
       case Text => new TextFormatWriter(outputStreamFn)
-      case Csv => {
-        new CsvFormatWriter(outputStreamFn, formatInfo.formatOptions.contains(WithHeaders))
-      }
+      case Csv => new CsvFormatWriter(outputStreamFn, formatInfo.formatOptions.contains(WithHeaders))
       case Bytes => new BytesFormatWriter(outputStreamFn, convertToBytesWriteMode(formatInfo.formatOptions))
       case _ => sys.error(s"Unsupported S3 format $formatInfo.format")
     }

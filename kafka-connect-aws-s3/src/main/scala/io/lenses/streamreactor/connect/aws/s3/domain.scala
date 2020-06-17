@@ -34,11 +34,9 @@ case class BucketAndPrefix(
                             bucket: String,
                             prefix: Option[String]
                           ) {
-  val filtered = prefix
-    .filter(_.contains("/"))
-
-  filtered
-    .foreach(_ => throw new IllegalArgumentException("Nested prefix not currently supported"))
+    prefix
+      .filter(_.contains("/"))
+      .foreach(_ => throw new IllegalArgumentException("Nested prefix not currently supported"))
 }
 
 case class BucketAndPath(

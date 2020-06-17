@@ -56,7 +56,7 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
 
   }
 
-  override def rolloverFileOnSchemaChange(): Boolean = false
+  override def rolloverFileOnSchemaChange(): Boolean = true
 
   override def close: Unit = {
     Try(outstandingRename = outputStream.complete())
