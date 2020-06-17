@@ -29,19 +29,21 @@ object StructValueLookup extends LazyLogging {
     Option(struct.schema().field(fieldName))
       .fold(Option.empty[String]) {
         _.schema().`type`() match {
-          case INT8 => Some(struct.getInt8(fieldName).toString)
-          case INT16 => Some(struct.getInt16(fieldName).toString)
-          case INT32 => Some(struct.getInt32(fieldName).toString)
-          case INT64 => Some(struct.getInt64(fieldName).toString)
-          case FLOAT32 => Some(struct.getFloat32(fieldName).toString)
-          case FLOAT64 => Some(struct.getFloat64(fieldName).toString)
-          case BOOLEAN => Some(struct.getBoolean(fieldName).toString)
-          case STRING => Some(struct.getString(fieldName))
-          case BYTES => Some(new String(struct.getBytes(fieldName)))
+          case INT8 => convertToOption(struct.getInt8(fieldName))
+          case INT16 => convertToOption(struct.getInt16(fieldName))
+          case INT32 => convertToOption(struct.getInt32(fieldName))
+          case INT64 => convertToOption(struct.getInt64(fieldName))
+          case FLOAT32 => convertToOption(struct.getFloat32(fieldName))
+          case FLOAT64 => convertToOption(struct.getFloat64(fieldName))
+          case BOOLEAN => convertToOption(struct.getBoolean(fieldName))
+          case STRING => convertToOption(struct.getString(fieldName))
+          case BYTES => Option(struct.getBytes(fieldName)).fold(Option.empty[String])(byteVal => Some(new String(byteVal)))
           case other => logger.error("Non-primitive values not supported: " + other);
             throw new IllegalArgumentException("Non-primitive values not supported: " + other)
         }
       }
   }
+
+  private def convertToOption(any: Any): Option[String] = Option(any).fold(Option.empty[String])(e => Option(e.toString))
 
 }

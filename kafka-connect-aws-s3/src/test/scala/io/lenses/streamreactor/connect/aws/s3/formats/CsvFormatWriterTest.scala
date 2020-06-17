@@ -128,7 +128,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
       formatWriter.write(None, struct, topic)
     }
     formatWriter.close()
-    caught.getMessage should be("Non-primitive values not supported")
+    caught.getMessage should be("Non-primitive values not supported: ARRAY")
   }
 
   "convert" should "not allow complex struct types" in {
@@ -151,6 +151,6 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
       formatWriter.write(None, struct, topic)
     }
     formatWriter.close()
-    caught.getMessage should be("Non-primitive values not supported")
+    caught.getMessage should be("Non-primitive values not supported: STRUCT")
   }
 }
