@@ -197,8 +197,7 @@ public class SchemaManager {
       } catch (BigQueryException e) {
         if (e.getCode() == 409) {
           logger.debug("Failed to create {} as it already exists (possibly created by another task)", table(table));
-          com.google.cloud.bigquery.Schema schema = bigQuery.getTable(table).getDefinition().getSchema();
-          schemaCache.put(table, schema);
+          schemaCache.put(table, readTableSchema(table));
         }
       }
     }
@@ -210,12 +209,10 @@ public class SchemaManager {
    * @param records The sink records used to update the schema.
    */
   public void updateSchema(TableId table, Set<SinkRecord> records) {
-    synchronized (tableUpdateLocks.computeIfAbsent(table, t -> new Object())) {
+    synchronized (lock(tableUpdateLocks, table)) {
       TableInfo tableInfo = getTableInfo(table, records);
-
       if (!schemaCache.containsKey(table)) {
-        logger.debug("Reading schema for {}", table(table));
-        schemaCache.put(table, bigQuery.getTable(table).getDefinition().getSchema());
+        schemaCache.put(table, readTableSchema(table));
       }
 
       if (!schemaCache.get(table).equals(tableInfo.getDefinition().getSchema())) {
@@ -451,6 +448,11 @@ public class SchemaManager {
     return (intermediateTables ? "intermediate " : "")
         + "table "
         + table;
+  }
+
+  private com.google.cloud.bigquery.Schema readTableSchema(TableId table) {
+    logger.trace("Reading schema for {}", table(table));
+    return bigQuery.getTable(table).getDefinition().getSchema();
   }
 
   private Object lock(ConcurrentMap<TableId, Object> locks, TableId table) {
