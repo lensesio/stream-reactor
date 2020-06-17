@@ -17,33 +17,31 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.kafka.connect.data.Schema.Type._
 import org.apache.kafka.connect.data.Struct
 
 object StructValueLookup extends LazyLogging {
 
-  private val supportedPrimitiveTypes = Set(
-    classOf[java.lang.Boolean],
-    classOf[java.lang.Byte],
-    classOf[java.lang.Double],
-    classOf[java.lang.Float],
-    classOf[java.lang.Integer],
-    classOf[java.lang.Long],
-    classOf[java.lang.Short],
-    classOf[java.lang.String],
-  )
-
+  /**
+    * Returns the value of a struct as a String for text output
+    */
   def lookupFieldValueFromStruct(struct: Struct)(fieldName: String): Option[String] = {
-    Option(struct.get(fieldName)) match {
-      case Some(primitiveValue) if supportedPrimitiveTypes.exists(c => c.isInstance(primitiveValue)) =>
-        Some(primitiveValue.toString)
-      case Some(byteArray@Array(_*)) if byteArray.forall(entry => entry.isInstanceOf[Byte]) =>
-        Some(new String(byteArray.asInstanceOf[Array[Byte]]))
-      case Some(other) =>
-        logger.error("Non-primitive values not supported: " + other.getClass);
-        throw new IllegalArgumentException("Non-primitive values not supported")
-      case None =>
-        None
-    }
+    Option(struct.schema().field(fieldName))
+      .fold(Option.empty[String]) {
+        _.schema().`type`() match {
+          case INT8 => Some(struct.getInt8(fieldName).toString)
+          case INT16 => Some(struct.getInt16(fieldName).toString)
+          case INT32 => Some(struct.getInt32(fieldName).toString)
+          case INT64 => Some(struct.getInt64(fieldName).toString)
+          case FLOAT32 => Some(struct.getFloat32(fieldName).toString)
+          case FLOAT64 => Some(struct.getFloat64(fieldName).toString)
+          case BOOLEAN => Some(struct.getBoolean(fieldName).toString)
+          case STRING => Some(struct.getString(fieldName))
+          case BYTES => Some(new String(struct.getBytes(fieldName)))
+          case other => logger.error("Non-primitive values not supported: " + other);
+            throw new IllegalArgumentException("Non-primitive values not supported: " + other)
+        }
+      }
   }
 
 }
