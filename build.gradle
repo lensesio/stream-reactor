@@ -210,6 +210,7 @@ project(':kcbq-connector') {
                 "io.debezium:debezium-core:$debeziumVersion",
                 "org.apache.kafka:connect-api:$kafkaVersion",
                 "org.apache.kafka:kafka-clients:$kafkaVersion",
+                "org.apache.kafka:connect-runtime:$kafkaVersion",
                 "org.slf4j:slf4j-api:$slf4jVersion",
         )
 
@@ -285,7 +286,7 @@ project('kcbq-confluent') {
 
     configurations.all {
         resolutionStrategy {
-            // depending on debezium results in us pulling in the most recent kafka version, but we want to use 2.3.0.
+            // depending on debezium results in us pulling in the most recent kafka version.
             force 'org.apache.kafka:connect-api:2.5.0', 'org.apache.kafka:kafka-clients:2.5.0'
         }
     }
