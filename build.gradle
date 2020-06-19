@@ -10,6 +10,12 @@ allprojects {
     targetCompatibility = JavaVersion.VERSION_1_8
 }
 
+def withoutKafka = {
+    exclude group: 'org.apache.kafka', module: 'connect-api'
+    exclude group: 'org.apache.kafka', module: 'connect-transforms'
+    exclude group: 'org.apache.kafka', module: 'kafka-clients'
+}
+
 // END ALL PROJECTS
 
 project.ext {
@@ -207,17 +213,20 @@ project(':kcbq-connector') {
                 "com.google.cloud:google-cloud-storage:$googleCloudVersion",
                 "com.google.auth:google-auth-library-oauth2-http:$googleAuthVersion",
                 "com.google.code.gson:gson:$googleCloudGsonVersion",
-                "io.debezium:debezium-core:$debeziumVersion",
-                "org.apache.kafka:connect-api:$kafkaVersion",
-                "org.apache.kafka:kafka-clients:$kafkaVersion",
-                "org.apache.kafka:connect-runtime:$kafkaVersion",
                 "org.slf4j:slf4j-api:$slf4jVersion",
+        )
+
+        compile "io.debezium:debezium-core:$debeziumVersion", withoutKafka
+
+        compileOnly (
+                "org.apache.kafka:connect-api:$kafkaVersion"
         )
 
         testCompile (
                 "junit:junit:$junitVersion",
                 "org.mockito:mockito-core:$mockitoVersion",
-                "org.mockito:mockito-inline:$mockitoVersion"
+                "org.mockito:mockito-inline:$mockitoVersion",
+                "org.apache.kafka:connect-api:$kafkaVersion"
         )
     }
 
@@ -257,10 +266,9 @@ project('kcbq-api') {
     }
 
     dependencies {
-        compile (
-                "com.google.cloud:google-cloud-bigquery:$googleCloudVersion",
-                "org.apache.kafka:connect-api:$kafkaVersion"
-        )
+        compile "com.google.cloud:google-cloud-bigquery:$googleCloudVersion"
+
+        compileOnly "org.apache.kafka:connect-api:$kafkaVersion"
     }
 
     artifacts {
@@ -283,13 +291,6 @@ project('kcbq-api') {
 
 project('kcbq-confluent') {
     apply plugin: 'distribution'
-
-    configurations.all {
-        resolutionStrategy {
-            // depending on debezium results in us pulling in the most recent kafka version.
-            force 'org.apache.kafka:connect-api:2.5.0', 'org.apache.kafka:kafka-clients:2.5.0'
-        }
-    }
 
     distributions {
         main {
@@ -321,23 +322,30 @@ project('kcbq-confluent') {
     }
 
     dependencies {
-        runtime project(':kcbq-connector')
 
         compile (
+                project(':kcbq-connector'),
                 project(':kcbq-api'),
 
-                "io.confluent:kafka-connect-avro-converter:$ioConfluentVersion",
-                "io.confluent:kafka-schema-registry-client:$ioConfluentVersion",
                 "org.apache.avro:avro:$avroVersion",
-                "org.apache.kafka:connect-api:$kafkaVersion",
-                "org.apache.kafka:kafka-clients:$kafkaVersion",
                 "org.slf4j:slf4j-api:$slf4jVersion",
+        )
+
+        compile "io.confluent:kafka-connect-avro-converter:$ioConfluentVersion", withoutKafka
+        compile "io.confluent:kafka-schema-registry-client:$ioConfluentVersion", withoutKafka
+
+        compileOnly (
+                "org.apache.kafka:connect-api:$kafkaVersion",
+                "org.apache.kafka:kafka-clients:$kafkaVersion"
         )
 
         testCompile (
                 "junit:junit:$junitVersion",
                 "org.mockito:mockito-core:$mockitoVersion",
-                "org.mockito:mockito-inline:$mockitoVersion"
+                "org.mockito:mockito-inline:$mockitoVersion",
+                "org.apache.kafka:connect-api:$kafkaVersion",
+                "org.apache.kafka:kafka-clients:$kafkaVersion"
+
         )
     }
 
