@@ -18,17 +18,16 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.typesafe.scalalogging.LazyLogging
-import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.aws.s3.Topic
+import io.lenses.streamreactor.connect.aws.s3.formats.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.formats.parquet.ParquetOutputFile
+import io.lenses.streamreactor.connect.aws.s3.model.SinkData
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 import org.apache.avro.Schema
-import org.apache.avro.generic.GenericRecord
-import org.apache.kafka.connect.data.Struct
 import org.apache.parquet.avro.AvroParquetWriter
 import org.apache.parquet.hadoop.ParquetWriter
 import org.apache.parquet.hadoop.ParquetWriter.{DEFAULT_BLOCK_SIZE, DEFAULT_PAGE_SIZE}
-
+import org.apache.kafka.connect.data.{Schema => ConnectSchema}
 import scala.util.Try
 
 class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWriter with LazyLogging {
@@ -36,16 +35,14 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
 
   private var outputStream: S3OutputStream = _
 
-  private val avroDataConverter = new AvroData(100)
+  private var writer: ParquetWriter[AnyRef] = _
 
-  private var writer: ParquetWriter[GenericRecord] = _
-
-  override def write(keyStruct: Option[Struct], valueStruct: Struct, topic: Topic): Unit = {
+  override def write(keyStruct: Option[SinkData], valueStruct: SinkData, topic: Topic): Unit = {
     logger.debug("AvroFormatWriter - write")
 
-    val genericRecord: GenericRecord = avroDataConverter.fromConnectData(valueStruct.schema(), valueStruct).asInstanceOf[GenericRecord]
+    val genericRecord: AnyRef = ToAvroDataConverter.convertToGenericRecord(valueStruct)
     if (writer == null) {
-      writer = init(genericRecord.getSchema)
+      writer = init(valueStruct.schema())
     }
 
     writer.write(genericRecord)
@@ -53,12 +50,14 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
 
   }
 
-  private def init(schema: Schema): ParquetWriter[GenericRecord] = {
+  private def init(connectSchema: Option[ConnectSchema]): ParquetWriter[AnyRef] = {
+    val schema: Schema = ToAvroDataConverter.convertSchema(connectSchema)
+
     outputStream = outputStreamFn()
     val outputFile = new ParquetOutputFile(outputStream)
 
     AvroParquetWriter
-      .builder[GenericRecord](outputFile)
+      .builder[AnyRef](outputFile)
       .withRowGroupSize(DEFAULT_BLOCK_SIZE)
       .withPageSize(DEFAULT_PAGE_SIZE)
       .withSchema(schema)

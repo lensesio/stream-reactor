@@ -21,7 +21,8 @@ import java.io.InputStream
 
 import com.google.common.io.ByteStreams
 import io.lenses.streamreactor.connect.aws.s3.Topic
-import org.apache.avro.generic.GenericRecord
+import org.apache.avro.generic.{GenericData, GenericRecord}
+import org.apache.avro.util.Utf8
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
@@ -64,6 +65,13 @@ object TestSampleSchemaAndData extends Matchers {
     genericRecord.get("name").toString should be(name)
     genericRecord.get("title").toString should be(title)
     genericRecord.get("salary") should be(salary)
+  }
+
+  def checkArray(genericRecord: GenericData.Array[Utf8], values: String*) = {
+    values.zipWithIndex.foreach{
+      case (string, index) => genericRecord.get(index).toString should be(string)
+    }
+
   }
 
 }

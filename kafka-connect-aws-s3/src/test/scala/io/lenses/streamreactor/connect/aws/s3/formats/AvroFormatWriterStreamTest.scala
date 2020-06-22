@@ -18,6 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.BucketAndPath
+import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3TestConfig, S3TestPayloadReader}
 import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreOutputStream
@@ -32,7 +33,7 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3TestCo
     val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"), 20000)(storageInterface)
 
     val avroFormatWriter = new AvroFormatWriter(() => blobStream)
-    avroFormatWriter.write(None, users(0), topic)
+    avroFormatWriter.write(None, StructSinkData(users(0)), topic)
     avroFormatWriter.close()
 
     val bytes = S3TestPayloadReader.readPayload(BucketName, "myPrefix", blobStoreContext)
@@ -47,7 +48,7 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3TestCo
     val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"), 100)(storageInterface)
 
     val avroFormatWriter = new AvroFormatWriter(() => blobStream)
-    users.foreach(avroFormatWriter.write(None, _, topic))
+    users.foreach(u => avroFormatWriter.write(None, StructSinkData(u), topic))
     avroFormatWriter.close()
 
     val bytes = S3TestPayloadReader.readPayload(BucketName, "myPrefix", blobStoreContext)

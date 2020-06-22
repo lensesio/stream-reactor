@@ -21,6 +21,7 @@ import io.lenses.streamreactor.connect.aws.s3._
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Parquet
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, BucketOptions, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.formats.ParquetFormatReader
+import io.lenses.streamreactor.connect.aws.s3.model.{MessageDetail, StructSinkData}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig, S3TestPayloadReader}
 import org.apache.avro.generic.GenericRecord
@@ -60,7 +61,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
     val sink = S3WriterManager.from(parquetConfig)
     users.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
-        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, struct, Map.empty[String, String]))
+        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(struct), Map.empty[String, String]))
     }
 
     sink.close()
@@ -95,7 +96,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
     val sink = S3WriterManager.from(parquetConfig)
     users.union(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
-        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, user, Map.empty[String, String]))
+        sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(user), Map.empty[String, String]))
     }
     sink.close()
 

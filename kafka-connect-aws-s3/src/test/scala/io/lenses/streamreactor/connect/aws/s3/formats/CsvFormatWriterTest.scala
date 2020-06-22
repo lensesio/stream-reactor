@@ -20,6 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import java.io.StringReader
 
 import au.com.bytecode.opencsv.CSVReader
+import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.storage.S3ByteArrayOutputStream
 import org.apache.kafka.connect.data.Schema.STRING_SCHEMA
@@ -36,7 +37,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
     val outputStream = new S3ByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
-    formatWriter.write(None, users(0), topic)
+    formatWriter.write(None, StructSinkData(users(0)), topic)
 
     val reader = new StringReader(new String(outputStream.toByteArray()))
 
@@ -54,7 +55,14 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
     val outputStream = new S3ByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
-    users.foreach(formatWriter.write(None, _, topic))
+    users.foreach(
+      e =>
+        formatWriter.write(
+          None,
+          StructSinkData(e),
+          topic
+        )
+    )
 
     val reader = new StringReader(new String(outputStream.toByteArray()))
     val csvReader = new CSVReader(reader)
@@ -98,7 +106,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
     val outputStream = new S3ByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
-    formatWriter.write(None, struct, topic)
+    formatWriter.write(None, StructSinkData(struct), topic)
 
     val reader = new StringReader(new String(outputStream.toByteArray()))
 
@@ -125,7 +133,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
 
     val caught = intercept[IllegalArgumentException] {
-      formatWriter.write(None, struct, topic)
+      formatWriter.write(None, StructSinkData(struct), topic)
     }
     formatWriter.close()
     caught.getMessage should be("Non-primitive values not supported: ARRAY")
@@ -148,7 +156,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
 
     val caught = intercept[IllegalArgumentException] {
-      formatWriter.write(None, struct, topic)
+      formatWriter.write(None, StructSinkData(struct), topic)
     }
     formatWriter.close()
     caught.getMessage should be("Non-primitive values not supported: STRUCT")

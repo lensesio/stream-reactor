@@ -21,8 +21,8 @@ import io.lenses.streamreactor.connect.aws.s3.Topic
 import io.lenses.streamreactor.connect.aws.s3.config.Format._
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
 import io.lenses.streamreactor.connect.aws.s3.config.{BytesWriteMode, FormatOptions, FormatSelection}
+import io.lenses.streamreactor.connect.aws.s3.model.SinkData
 import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreOutputStream
-import org.apache.kafka.connect.data.Struct
 
 object S3FormatWriter {
 
@@ -55,7 +55,7 @@ trait S3FormatWriter extends AutoCloseable {
 
   def rolloverFileOnSchemaChange(): Boolean
 
-  def write(keyStruct: Option[Struct], valueStruct: Struct, topic: Topic): Unit
+  def write(keyStruct: Option[SinkData], valueStruct: SinkData, topic: Topic): Unit
 
   def getOutstandingRename: Boolean
 

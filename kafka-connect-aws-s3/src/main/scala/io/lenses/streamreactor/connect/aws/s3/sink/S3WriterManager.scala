@@ -20,7 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import io.lenses.streamreactor.connect.aws.s3._
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
-import io.lenses.streamreactor.connect.aws.s3.model.PartitionField
+import io.lenses.streamreactor.connect.aws.s3.model.{MessageDetail, PartitionField}
 import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreOutputStream, S3Writer, S3WriterImpl, StorageInterface}
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.errors.ConnectException
@@ -97,7 +97,8 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
 
     val newWriter = writer(topicPartitionOffset.toTopicPartition, messageDetail)
 
-    if (newWriter.shouldRollover(messageDetail.valueStruct)) {
+    val schema = messageDetail.valueSinkData.schema()
+    if (schema.isDefined && newWriter.shouldRollover(schema.get)) {
       commitTopicPartitionWriters(topicPartitionOffset.toTopicPartition)
     }
 

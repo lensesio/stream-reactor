@@ -20,9 +20,8 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import java.nio.charset.StandardCharsets
 
 import io.lenses.streamreactor.connect.aws.s3.Topic
-import io.lenses.streamreactor.connect.aws.s3.sink.StringValueConverter
+import io.lenses.streamreactor.connect.aws.s3.model.{PrimitiveSinkData, SinkData}
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
-import org.apache.kafka.connect.data.Struct
 
 import scala.util.{Failure, Success, Try}
 
@@ -33,10 +32,13 @@ class TextFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
   private val outputStream: S3OutputStream = outputStreamFn()
   private var outstandingRename: Boolean = false
 
-  override def write(keyStruct: Option[Struct], valueStruct: Struct, topic: Topic): Unit = {
+  override def write(keyStruct: Option[SinkData], valueStruct: SinkData, topic: Topic): Unit = {
 
-    val dataBytes = Try {
-      valueStruct.getString(StringValueConverter.TextFieldName).getBytes()
+    val dataBytes: Array[Byte] = Try {
+      valueStruct match {
+        case data: PrimitiveSinkData => data.primVal().toString.getBytes
+        case _ => throw new IllegalArgumentException("Not a string")
+      }
     } match {
       case Failure(exception) => throw new IllegalStateException("Unable to retrieve text field value.  Text format is only for output of kafka string values.", exception)
       case Success(value) => value

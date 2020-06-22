@@ -17,8 +17,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3
 
+import io.lenses.streamreactor.connect.aws.s3.model.SinkData
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
-import org.apache.kafka.connect.data.Struct
 
 case object BucketAndPrefix {
   def apply(bucketAndPath: String): BucketAndPrefix = {
@@ -75,9 +75,3 @@ case class TopicPartition(topic: Topic, partition: Int) {
 case class TopicPartitionOffset(topic: Topic, partition: Int, offset: Offset) {
   def toTopicPartition: TopicPartition = TopicPartition(topic, partition)
 }
-
-case class MessageDetail(
-                          keyStruct: Option[Struct],
-                          valueStruct: Struct,
-                          headers: Map[String, String]
-                        )

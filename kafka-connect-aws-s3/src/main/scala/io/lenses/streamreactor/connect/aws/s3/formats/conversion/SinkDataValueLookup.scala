@@ -14,18 +14,50 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.formats
+package io.lenses.streamreactor.connect.aws.s3.formats.conversion
 
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.model._
 import org.apache.kafka.connect.data.Schema.Type._
 import org.apache.kafka.connect.data.Struct
 
-object StructValueLookup extends LazyLogging {
+object SinkDataValueLookup extends LazyLogging {
+
 
   /**
     * Returns the value of a struct as a String for text output
     */
-  def lookupFieldValueFromStruct(struct: Struct)(fieldName: String): Option[String] = {
+  def lookupFieldValueFromSinkData(sinkData: SinkData)(fieldNameOpt: Option[String]): Option[String] = {
+    sinkData match {
+      case data: PrimitiveSinkData => Some(data.primVal().toString)
+      case ByteArraySinkData(array, _) => Some(new String(array))
+      case other => fieldNameOpt.fold(throw new IllegalArgumentException("FieldName not specified"))(fieldName =>
+        other match {
+          case StructSinkData(structVal) => lookupFieldValueFromStruct(structVal, fieldName)
+          case MapSinkData(map, _) => lookupFieldValueFromMap(map, fieldName)
+          case ArraySinkData(array, schema) => throw new IllegalArgumentException("Cannot retrieve a named field from an Array")
+          case _ => throw new IllegalArgumentException("Unknown type")
+        }
+      )
+    }
+  }
+
+  def lookupFieldValueFromMap(map: Map[SinkData, SinkData], fieldName: String): Option[String] = {
+    map.get(StringSinkData(fieldName, None)).fold(throw new IllegalArgumentException("Cannot field from specified map"))(
+      e => e match {
+        case data: PrimitiveSinkData => Some(data.primVal().toString)
+
+        case ByteArraySinkData(array, schema) => Some(new String(array.array))
+        case StructSinkData(structVal) => throw new IllegalArgumentException("Unable to represent a struct as a string value")
+        case MapSinkData(map, schema) => throw new IllegalArgumentException("Unable to represent a map as a string value")
+        case ArraySinkData(array, schema) => throw new IllegalArgumentException("Unable to represent an array as a string value")
+        case _ => throw new IllegalArgumentException("Unable to represent a complex object")
+      }
+    )
+  }
+
+  def lookupFieldValueFromStruct(struct: Struct, fieldName: String) = {
+
     Option(struct.schema().field(fieldName))
       .fold(Option.empty[String]) {
         _.schema().`type`() match {
@@ -41,6 +73,7 @@ object StructValueLookup extends LazyLogging {
           case other => logger.error("Non-primitive values not supported: " + other);
             throw new IllegalArgumentException("Non-primitive values not supported: " + other)
         }
+
       }
   }
 

@@ -20,9 +20,9 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3._
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
-import io.lenses.streamreactor.connect.aws.s3.model.PartitionField
+import io.lenses.streamreactor.connect.aws.s3.model.{MessageDetail, PartitionField}
 import io.lenses.streamreactor.connect.aws.s3.sink.{CommitContext, CommitPolicy, S3FileNamingStrategy}
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
 
 trait S3Writer {
   def shouldFlush(): Boolean
@@ -33,7 +33,7 @@ trait S3Writer {
 
   def getCommittedOffset: Option[Offset]
 
-  def shouldRollover(struct: Struct): Boolean
+  def shouldRollover(schema: Schema): Boolean
 
   def commit(): TopicPartitionOffset
 }
@@ -80,25 +80,25 @@ class S3WriterImpl(
     }
 
     // appends to output stream
-    formatWriter.write(messageDetail.keyStruct, messageDetail.valueStruct, tpo.topic)
+    formatWriter.write(messageDetail.keySinkData, messageDetail.valueSinkData, tpo.topic)
 
     internalState = internalState.copy(
       lastKnownFileSize = formatWriter.getPointer,
-      lastKnownSchema = Option(messageDetail.valueStruct.schema()),
+      lastKnownSchema = messageDetail.valueSinkData.schema(),
       recordCount = internalState.recordCount + 1,
       offset = tpo.offset
     )
   }
 
-  override def shouldRollover(struct: Struct) = {
+  override def shouldRollover(schema: Schema) = {
     rolloverOnSchemaChange &&
       internalState != null &&
-      schemaHasChanged(struct)
+      schemaHasChanged(schema)
   }
 
-  private def schemaHasChanged(struct: Struct) = {
+  private def schemaHasChanged(schema: Schema) = {
     internalState.lastKnownSchema.isEmpty ||
-      internalState.lastKnownSchema.get != struct.schema()
+      internalState.lastKnownSchema.get != schema
   }
 
   private def rolloverOnSchemaChange = {

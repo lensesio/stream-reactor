@@ -17,15 +17,13 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import com.typesafe.scalalogging.LazyLogging
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.collection.JavaConverters._
 
 object HeaderConverter {
 
-  def apply(record: SinkRecord): Map[String, String] = record.headers().asScala.map(header => (header.key() -> headerValueToString(header.value()))).toMap
+  def apply(record: SinkRecord): Map[String, String] = record.headers().asScala.map(header => header.key() -> headerValueToString(header.value())).toMap
 
   def headerValueToString(value: Any): String = {
     value match {
@@ -33,14 +31,13 @@ object HeaderConverter {
       case intVal: Int => String.valueOf(intVal)
       case longVal: Long => String.valueOf(longVal)
       case otherVal => sys.error(s"Unsupported header value type $otherVal:${otherVal.getClass.getCanonicalName}")
-      //case value: Integer => value.toString
     }
   }
 
 
 }
 
-object KeyConverter extends LazyLogging {
+/*object KeyConverter extends LazyLogging {
   def apply(record: SinkRecord): Option[Struct] = keyValueToString(record.key)
 
   def keyValueToString(value: Any) = {
@@ -49,7 +46,11 @@ object KeyConverter extends LazyLogging {
       case stringVal: String => Some(StringValueConverter.convert(stringVal))
       case intVal: Int => Some(StringValueConverter.convert(String.valueOf(intVal)))
       case longVal: Long => Some(StringValueConverter.convert(String.valueOf(longVal)))
+      case floatVal: Float => Some(StringValueConverter.convert(String.valueOf(floatVal)))
+      case doubleVal: Double => Some(StringValueConverter.convert(String.valueOf(doubleVal)))
       case struct: Struct => Some(StructValueConverter.convert(struct))
+      case map: Map[_, _] => Some(MapValueConverter.convert(map))
+      case map: java.util.Map[_, _] => Some(MapValueConverter.convert(map.asScala.toMap))
       case bytes: Array[Byte] => Some(ByteArrayValueConverter.convert(bytes))
       case other => logger.warn(s"Unsupported record $other:${other.getClass.getCanonicalName}")
         None
@@ -64,6 +65,8 @@ object ValueConverter {
     case map: java.util.Map[_, _] => MapValueConverter.convert(map.asScala.toMap)
     case string: String => StringValueConverter.convert(string)
     case bytes: Array[Byte] => ByteArrayValueConverter.convert(bytes)
+    case array: Array[Any] => ArrayValueConverter.convert(array)
+    case array: util.List[_] => ArrayValueConverter.convert(array.asScala.toArray)
     case other => sys.error(s"Unsupported record $other:${other.getClass.getCanonicalName}")
   }
 }
@@ -97,6 +100,13 @@ object MapValueConverter extends ValueConverter[Map[_, _]] {
       case d: Double =>
         builder.field(key, Schema.OPTIONAL_FLOAT64_SCHEMA)
         d
+      case b: Byte =>
+        builder.field(key, Schema.OPTIONAL_INT8_SCHEMA)
+        b
+      case b: Array[Byte] =>
+        builder.field(key, Schema.OPTIONAL_BYTES_SCHEMA)
+        b
+
       case innerMap: java.util.Map[_, _] =>
         val innerStruct = convert(innerMap.asScala.toMap, true)
         builder.field(key, innerStruct.schema())
@@ -106,6 +116,19 @@ object MapValueConverter extends ValueConverter[Map[_, _]] {
         val innerStruct = convert(innerMap, true)
         builder.field(key, innerStruct.schema())
         innerStruct
+
+      case innerMapStruct: Struct =>
+        val innerStruct = StructValueConverter.convert(innerMapStruct)
+        builder.field(key, innerStruct.schema())
+        innerStruct
+
+      case array: Array[Any] =>
+        ArrayValueConverter.convert(array)
+        builder.field(key, Schema.BOOLEAN_SCHEMA)
+
+
+      case other => sys.error(s"Unsupported map field type $other:${other.getClass.getCanonicalName}")
+
     }
   }
 
@@ -151,3 +174,41 @@ object ByteArrayValueConverter extends ValueConverter[Array[Byte]] {
     new Struct(schema).put(BytesFieldName, bytes)
   }
 }
+
+object ArrayValueConverter extends ValueConverter[Array[Any]] {
+
+  val ArrayFieldName = "c"
+  val ArraySchemaName = "struct"
+
+  override def convert(incoming: Array[Any]): Struct = {
+
+    val fieldSchema = SchemaBuilder.array(elementSchema(incoming))
+    val schema = SchemaBuilder
+      .struct()
+      .field(ArrayFieldName, fieldSchema)
+
+    new ArrayWrapperStruct(schema).put(ArrayFieldName, incoming.toList.asJava)
+  }
+
+  private def elementSchema(incoming: Array[Any]) = {
+    val defaultSchema: Schema = Schema.OPTIONAL_STRING_SCHEMA
+    incoming.headOption.fold(defaultSchema) {
+      case anyVal: Any =>
+        anyVal match {
+          case _: String => Schema.OPTIONAL_STRING_SCHEMA
+          case _: Boolean => Schema.OPTIONAL_BOOLEAN_SCHEMA
+          case _: Array[Byte] => Schema.OPTIONAL_BYTES_SCHEMA
+          case _: Float => Schema.OPTIONAL_FLOAT32_SCHEMA
+          case _: Double => Schema.OPTIONAL_FLOAT64_SCHEMA
+          case _: Byte => Schema.OPTIONAL_INT8_SCHEMA
+          case _: Short => Schema.OPTIONAL_INT16_SCHEMA
+          case _: Int => Schema.OPTIONAL_INT32_SCHEMA
+          case _: Long => Schema.OPTIONAL_INT64_SCHEMA
+          case _ => Schema.OPTIONAL_STRING_SCHEMA
+        }
+    }
+  }
+
+}
+
+*/

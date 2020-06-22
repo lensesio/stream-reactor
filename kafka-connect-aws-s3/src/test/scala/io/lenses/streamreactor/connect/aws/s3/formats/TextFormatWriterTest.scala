@@ -17,7 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.sink.StringValueConverter
+import io.lenses.streamreactor.connect.aws.s3.model.{StringSinkData, StructSinkData}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.storage.S3ByteArrayOutputStream
 import org.scalatest.flatspec.AnyFlatSpec
@@ -30,7 +30,7 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new TextFormatWriter(() => outputStream)
-    jsonFormatWriter.write(None, StringValueConverter.convert("Sausages"), topic)
+    jsonFormatWriter.write(None, StringSinkData("Sausages"), topic)
 
     outputStream.toString should be("Sausages\n")
 
@@ -40,9 +40,9 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new TextFormatWriter(() => outputStream)
-    jsonFormatWriter.write(None, StringValueConverter.convert("Sausages"), topic)
-    jsonFormatWriter.write(None, StringValueConverter.convert("Mash"), topic)
-    jsonFormatWriter.write(None, StringValueConverter.convert("Peas"), topic)
+    jsonFormatWriter.write(None, StringSinkData("Sausages"), topic)
+    jsonFormatWriter.write(None, StringSinkData("Mash"), topic)
+    jsonFormatWriter.write(None, StringSinkData("Peas"), topic)
 
     outputStream.toString should be("Sausages\nMash\nPeas\n")
 
@@ -53,7 +53,7 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers {
     val outputStream = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new TextFormatWriter(() => outputStream)
     assertThrows[IllegalStateException] {
-      jsonFormatWriter.write(None, users(0), topic)
+      jsonFormatWriter.write(None, StructSinkData(users(0)), topic)
     }
   }
 }

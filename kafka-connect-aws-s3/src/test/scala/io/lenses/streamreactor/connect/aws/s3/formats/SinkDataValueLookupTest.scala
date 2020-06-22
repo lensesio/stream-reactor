@@ -16,11 +16,13 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import io.lenses.streamreactor.connect.aws.s3.formats.conversion.SinkDataValueLookup
+import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class StructValueLookupTest extends AnyFlatSpec with Matchers {
+class SinkDataValueLookupTest extends AnyFlatSpec with Matchers {
 
   private val emptyStructSchema: Schema = SchemaBuilder.struct()
     .field("testField", SchemaBuilder.string().build())
@@ -52,36 +54,36 @@ class StructValueLookupTest extends AnyFlatSpec with Matchers {
     .put("mystruct", new Struct(emptyStructSchema).put("testField", "atoz"))
 
   "lookupFieldValueFromStruct" should "convert boolean to string" in {
-    StructValueLookup.lookupFieldValueFromStruct(struct)("mybool") should be(Some("true"))
+    SinkDataValueLookup.lookupFieldValueFromSinkData(StructSinkData(struct))(Some("mybool")) should be(Some("true"))
   }
 
   "lookupFieldValueFromStruct" should "convert byte to string" in {
-    StructValueLookup.lookupFieldValueFromStruct(struct)("mybytes") should be(Some("testBytes"))
+    SinkDataValueLookup.lookupFieldValueFromSinkData(StructSinkData(struct))(Some("mybytes")) should be(Some("testBytes"))
   }
 
   "lookupFieldValueFromStruct" should "convert floats to string" in {
-    StructValueLookup.lookupFieldValueFromStruct(struct)("myfloat32") should be(Some("32.0"))
-    StructValueLookup.lookupFieldValueFromStruct(struct)("myfloat64") should be(Some("64.02"))
+    SinkDataValueLookup.lookupFieldValueFromSinkData(StructSinkData(struct))(Some("myfloat32")) should be(Some("32.0"))
+    SinkDataValueLookup.lookupFieldValueFromSinkData(StructSinkData(struct))(Some("myfloat64")) should be(Some("64.02"))
   }
 
   "lookupFieldValueFromStruct" should "convert ints to string" in {
-    StructValueLookup.lookupFieldValueFromStruct(struct)("myint8") should be(Some("8"))
-    StructValueLookup.lookupFieldValueFromStruct(struct)("myint16") should be(Some("16"))
-    StructValueLookup.lookupFieldValueFromStruct(struct)("myint32") should be(Some("32"))
-    StructValueLookup.lookupFieldValueFromStruct(struct)("myint64") should be(Some("64"))
+    SinkDataValueLookup.lookupFieldValueFromSinkData(StructSinkData(struct))(Some("myint8")) should be(Some("8"))
+    SinkDataValueLookup.lookupFieldValueFromSinkData(StructSinkData(struct))(Some("myint16")) should be(Some("16"))
+    SinkDataValueLookup.lookupFieldValueFromSinkData(StructSinkData(struct))(Some("myint32")) should be(Some("32"))
+    SinkDataValueLookup.lookupFieldValueFromSinkData(StructSinkData(struct))(Some("myint64")) should be(Some("64"))
   }
 
   "lookupFieldValueFromStruct" should "retain string as string" in {
-    StructValueLookup.lookupFieldValueFromStruct(struct)("mystring") should be(Some("teststring"))
+    SinkDataValueLookup.lookupFieldValueFromSinkData(StructSinkData(struct))(Some("mystring")) should be(Some("teststring"))
   }
 
   "lookupFieldValueFromStruct" should "return None when field not found" in {
-    StructValueLookup.lookupFieldValueFromStruct(struct)("not-there") should be(None)
+    SinkDataValueLookup.lookupFieldValueFromSinkData(StructSinkData(struct))(Some("not-there")) should be(None)
   }
 
   "lookupFieldValueFromStruct" should "throw error when non-primitive supplied" in {
     val ex = intercept[IllegalArgumentException] {
-      StructValueLookup.lookupFieldValueFromStruct(struct)("mystruct")
+      SinkDataValueLookup.lookupFieldValueFromSinkData(StructSinkData(struct))(Some("mystruct"))
     }
     ex.getMessage should be("Non-primitive values not supported: STRUCT")
   }

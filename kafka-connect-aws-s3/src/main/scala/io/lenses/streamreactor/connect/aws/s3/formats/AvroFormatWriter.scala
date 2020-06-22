@@ -17,55 +17,70 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.typesafe.scalalogging.LazyLogging
-import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.aws.s3.Topic
+import io.lenses.streamreactor.connect.aws.s3.formats.conversion.ToAvroDataConverter
+import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 import org.apache.avro.Schema
 import org.apache.avro.file.DataFileWriter
-import org.apache.avro.generic.{GenericDatumWriter, GenericRecord}
-import org.apache.kafka.connect.data.Struct
-
+import org.apache.avro.generic.GenericDatumWriter
+import org.apache.kafka.connect.data.{Schema => ConnectSchema}
 import scala.util.Try
 
 class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWriter with LazyLogging {
 
-  private val avroDataConverter = new AvroData(100)
+  private var avroWriterState: Option[AvroWriterState] = None
 
-  private var outputStream: S3OutputStream = _
-  private var writer: GenericDatumWriter[GenericRecord] = _
-  private var fileWriter: DataFileWriter[GenericRecord] = _
   private var outstandingRename: Boolean = false
-
-  override def write(keyStruct: Option[Struct], valueStruct: Struct, topic: Topic): Unit = {
-    logger.debug("AvroFormatWriter - write")
-
-    val genericRecord: GenericRecord = avroDataConverter.fromConnectData(valueStruct.schema(), valueStruct).asInstanceOf[GenericRecord]
-    if (outputStream == null || fileWriter == null) {
-      init(genericRecord.getSchema)
-    }
-    fileWriter.append(genericRecord)
-    fileWriter.flush()
-  }
-
-  private def init(schema: Schema): Unit = {
-    outputStream = outputStreamFn()
-    writer = new GenericDatumWriter[GenericRecord](schema)
-    fileWriter = new DataFileWriter[GenericRecord](writer).create(schema, outputStream)
-  }
 
   override def rolloverFileOnSchemaChange() = true
 
-  override def close: Unit = {
-    Try(fileWriter.flush())
+  override def write(keyStruct: Option[SinkData], valueStruct: SinkData, topic: Topic): Unit = {
 
-    Try(outstandingRename = outputStream.complete())
+    logger.debug("AvroFormatWriter - write")
 
-    Try(fileWriter.close())
-    Try(outputStream.close())
+    avroWriterState
+      .fold {
+        val newWs = new AvroWriterState(outputStreamFn(), valueStruct.schema())
+        avroWriterState = Some(newWs)
+        newWs
+      }(ws => ws)
+      .write(valueStruct)
 
+  }
+
+  override def close = {
+      avroWriterState.fold(logger.debug("Requesting close when there's nothing to close"))(_.close())
   }
 
   override def getOutstandingRename: Boolean = outstandingRename
 
-  override def getPointer: Long = outputStream.getPointer()
+  override def getPointer: Long = avroWriterState.fold(0L)(_.pointer)
+
+
+  class AvroWriterState(outputStream: S3OutputStream, connectSchema: Option[ConnectSchema]) {
+    private val schema: Schema = ToAvroDataConverter.convertSchema(connectSchema)
+    private val writer: GenericDatumWriter[AnyRef] = new GenericDatumWriter[AnyRef](schema)
+    private val fileWriter: DataFileWriter[AnyRef] = new DataFileWriter[AnyRef](writer).create(schema, outputStream)
+
+    def write(valueStruct: SinkData): Unit = {
+
+      val genericRecord: AnyRef = ToAvroDataConverter.convertToGenericRecord(valueStruct)
+
+      fileWriter.append(genericRecord)
+      fileWriter.flush()
+
+    }
+
+    def close(): Unit = {
+      Try(fileWriter.flush())
+      Try(outstandingRename = outputStream.complete())
+
+      Try(fileWriter.close())
+      Try(outputStream.close())
+    }
+
+    def pointer(): Long = outputStream.getPointer()
+
+  }
 }

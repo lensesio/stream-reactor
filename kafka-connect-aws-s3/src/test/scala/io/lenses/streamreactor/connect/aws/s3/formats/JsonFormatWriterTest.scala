@@ -17,6 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.storage.S3ByteArrayOutputStream
 import org.scalatest.flatspec.AnyFlatSpec
@@ -29,7 +30,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
-    jsonFormatWriter.write(None, users(0), topic)
+    jsonFormatWriter.write(None, StructSinkData(users(0)), topic)
 
     outputStream.toString should be(recordsAsJson.head + "\n")
 
@@ -39,7 +40,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
-    users.foreach(jsonFormatWriter.write(None, _, topic))
+    users.foreach(e => jsonFormatWriter.write(None, StructSinkData(e), topic))
 
     outputStream.toString should be(recordsAsJson.mkString("\n"))
 

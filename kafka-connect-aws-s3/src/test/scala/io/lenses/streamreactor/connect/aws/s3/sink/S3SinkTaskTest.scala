@@ -27,6 +27,8 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3SinkConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.formats.{AvroFormatReader, BytesFormatWriter, ParquetFormatReader}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContext.{Credential, Identity}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig, S3TestPayloadReader}
+import org.apache.avro.generic.GenericData
+import org.apache.avro.util.Utf8
 import org.apache.commons.io.IOUtils
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -843,6 +845,120 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     fileList.asScala.map(file => file.getName) should contain(
       "streamReactorBackups/mytopic/1/1.json",
     )
+  }
+
+  "S3SinkTask" should "process and partition records by a map value" in {
+
+    val map = Map(
+      "jedi" -> 1,
+      "klingons" -> 2,
+      "cylons" -> 3
+    ).asJava
+
+    val kafkaPartitionedRecords = List(
+      new SinkRecord(TopicName, 0, null, null, null, map, 0)
+    )
+
+    val topicPartitionsToManage = Seq(
+      new TopicPartition(TopicName, 0)
+    ).asJava
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY jedi WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    task.start(props)
+
+    task.open(topicPartitionsToManage)
+    task.put(kafkaPartitionedRecords.asJava)
+    task.close(topicPartitionsToManage)
+    task.stop()
+
+    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
+    fileList.size() should be(1)
+
+    fileList.asScala.map(file => file.getName) should contain(
+      "streamReactorBackups/jedi=1/mytopic(0_0).json",
+    )
+  }
+
+  "S3SinkTask" should "process and partition records by an array value json" in {
+
+    val array = Array(
+      "jedi",
+      "klingons",
+      "cylons"
+    )
+
+    val kafkaPartitionedRecords = List(
+      new SinkRecord(TopicName, 0, null, null, null, array, 0)
+    )
+
+    val topicPartitionsToManage = Seq(
+      new TopicPartition(TopicName, 0)
+    ).asJava
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    task.start(props)
+
+    task.open(topicPartitionsToManage)
+    task.put(kafkaPartitionedRecords.asJava)
+    task.close(topicPartitionsToManage)
+    task.stop()
+
+    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
+    fileList.size() should be(1)
+
+    readFileToString("streamReactorBackups/mytopic/0/0.json", blobStoreContext) should be("""["jedi","klingons","cylons"]""")
+
+  }
+
+  "S3SinkTask" should "process and partition records by an array value avro" in {
+
+    val array = List(
+      "jedi",
+      "klingons",
+      "cylons"
+    ).asJava
+
+    val kafkaPartitionedRecords = List(
+      new SinkRecord(TopicName, 0, null, null, SchemaBuilder.array(Schema.STRING_SCHEMA), array, 0)
+    )
+
+    val topicPartitionsToManage = Seq(
+      new TopicPartition(TopicName, 0)
+    ).asJava
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    task.start(props)
+
+    task.open(topicPartitionsToManage)
+    task.put(kafkaPartitionedRecords.asJava)
+    task.close(topicPartitionsToManage)
+    task.stop()
+
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/mytopic/0/")).size() should be(1)
+
+    val bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/mytopic/0/0.avro", blobStoreContext)
+
+    val genericRecords = avroFormatReader.read(bytes)
+    genericRecords.size should be(1)
+    checkArray(genericRecords(0).asInstanceOf[GenericData.Array[Utf8]], "jedi", "klingons", "cylons")
   }
 
   private def createSinkRecord(partition: Int, valueStruct: Struct, offset: Int, headers: lang.Iterable[Header]) = {

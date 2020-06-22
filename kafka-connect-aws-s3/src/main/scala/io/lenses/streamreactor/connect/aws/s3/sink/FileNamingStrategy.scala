@@ -19,13 +19,12 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.connect.aws.s3._
 import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection}
-import io.lenses.streamreactor.connect.aws.s3.formats.StructValueLookup.lookupFieldValueFromStruct
+import io.lenses.streamreactor.connect.aws.s3.formats.conversion.SinkDataValueLookup
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionDisplay.KeysAndValues
 import io.lenses.streamreactor.connect.aws.s3.model._
-import org.apache.kafka.connect.data.Struct
 
-import scala.util.matching.Regex
 import scala.util.{Failure, Success, Try}
+import scala.util.matching.Regex
 
 trait S3FileNamingStrategy {
 
@@ -95,27 +94,29 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
       .partitions
       .map {
         case partition@HeaderPartitionField(name) => partition -> messageDetail.headers.getOrElse(name, throw new IllegalArgumentException(s"Header '${name}' not found in message"))
-        case partition@KeyPartitionField(name) => partition -> getPartitionValueFromStruct("key", messageDetail.keyStruct, name)
-        case partition@ValuePartitionField(name) => partition -> getPartitionValueFromStruct("value", Some(messageDetail.valueStruct), name)
-        case partition@WholeKeyPartitionField() => partition -> getPartitionByWholeKeyValue(messageDetail.keyStruct)
+        case partition@KeyPartitionField(name) => partition -> {val sinkData = messageDetail.keySinkData.getOrElse(throw new IllegalArgumentException(s"No key data found"))
+          getPartitionValueFromSinkData("key", sinkData, name)}
+        case partition@ValuePartitionField(name) => partition -> getPartitionValueFromSinkData("value", messageDetail.valueSinkData, name)
+        case partition@WholeKeyPartitionField() => partition -> getPartitionByWholeKeyValue(messageDetail.keySinkData)
       }
       .toMap
   }
 
-  private def getPartitionByWholeKeyValue(structOpt: Option[Struct]): String = {
+  private def getPartitionByWholeKeyValue(structOpt: Option[SinkData]): String = {
     val struct = structOpt
       .getOrElse(throw new IllegalArgumentException(s"No key struct found, but requested to partition by whole key"))
 
-    Try(struct.getString(StringValueConverter.TextFieldName)) match {
+    Try {
+      SinkDataValueLookup.lookupFieldValueFromSinkData(struct)(None).getOrElse("[missing]")
+    } match {
       case Failure(exception) => throw new IllegalStateException("Non primitive struct provided, PARTITIONBY _key requested in KCQL", exception)
       case Success(value) => value
     }
 
   }
 
-  private def getPartitionValueFromStruct(partitionByName: String, structOpt: Option[Struct], partitionName: String) = {
-    val struct = structOpt.getOrElse(throw new IllegalArgumentException(s"No $partitionByName struct found, but requested to partition by $partitionByName: $partitionName"))
-    lookupFieldValueFromStruct(struct)(partitionName).getOrElse("[missing]")
+  def getPartitionValueFromSinkData(partitionByName: String, sinkData: SinkData, partitionName: String): String = {
+    SinkDataValueLookup.lookupFieldValueFromSinkData(sinkData)(Option(partitionName)).getOrElse("[missing]")
   }
 
   override def shouldProcessPartitionValues: Boolean = true

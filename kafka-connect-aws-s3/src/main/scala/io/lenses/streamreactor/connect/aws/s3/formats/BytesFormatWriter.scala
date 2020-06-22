@@ -19,19 +19,18 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.Topic
 import io.lenses.streamreactor.connect.aws.s3.config.BytesWriteMode
-import io.lenses.streamreactor.connect.aws.s3.sink.ByteArrayValueConverter
+import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, SinkData}
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
-import org.apache.kafka.connect.data.Struct
 
 import scala.collection.mutable.ListBuffer
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 
 class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: BytesWriteMode) extends S3FormatWriter with LazyLogging {
 
   private val outputStream: S3OutputStream = outputStreamFn()
   private var outstandingRename: Boolean = false
 
-  override def write(keyStruct: Option[Struct], valueStruct: Struct, topic: Topic): Unit = {
+  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit = {
 
     val writeKeys = bytesWriteMode.entryName.contains("Key")
     val writeValues = bytesWriteMode.entryName.contains("Value")
@@ -45,7 +44,7 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
     )
 
     if (writeKeys) {
-      keyStruct.fold(throw new IllegalArgumentException("No key supplied however requested to write key."))(keyStruct => {
+      keySinkData.fold(throw new IllegalArgumentException("No key supplied however requested to write key."))(keyStruct => {
         val keyDataBytes: Array[Byte] = convertToBytes(keyStruct)
         byteOutputRow = byteOutputRow.copy(
           keySize = if (writeSizes) Some(keyDataBytes.size.longValue()) else None,
@@ -55,7 +54,7 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
     }
 
     if (writeValues) {
-      val valueDataBytes: Array[Byte] = convertToBytes(valueStruct)
+      val valueDataBytes: Array[Byte] = convertToBytes(valueSinkData)
       byteOutputRow = byteOutputRow.copy(
         valueSize = if (writeSizes) Some(valueDataBytes.size.longValue()) else None,
         value = valueDataBytes
@@ -82,12 +81,10 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
     }
   }
 
-  def convertToBytes(struct: Struct): Array[Byte] = {
-    Try {
-      struct.getBytes(ByteArrayValueConverter.BytesFieldName)
-    } match {
-      case Failure(exception) => throw new IllegalStateException("Non-binary content received.  Please check your configuration.  It may be advisable to ensure you are using org.apache.kafka.connect.converters.ByteArrayConverter", exception)
-      case Success(value) => value
+  def convertToBytes(sinkData: SinkData): Array[Byte] = {
+    sinkData match {
+      case ByteArraySinkData(array, _) => array
+      case _ => throw new IllegalStateException("Non-binary content received.  Please check your configuration.  It may be advisable to ensure you are using org.apache.kafka.connect.converters.ByteArrayConverter\", exception)\n      case Success(value) => value")
     }
   }
 

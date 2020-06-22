@@ -20,8 +20,9 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import java.nio.charset.StandardCharsets
 
 import io.lenses.streamreactor.connect.aws.s3.Topic
+import io.lenses.streamreactor.connect.aws.s3.formats.conversion.ToAvroDataConverter
+import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
-import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.json.JsonConverter
 
 import scala.collection.JavaConverters._
@@ -39,9 +40,15 @@ class JsonFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
     Map("schemas.enable" -> false).asJava, false
   )
 
-  override def write(keyStruct: Option[Struct], valueStruct: Struct, topic: Topic): Unit = {
+  override def write(keyStruct: Option[SinkData], valueStruct: SinkData, topic: Topic): Unit = {
 
-    val dataBytes = jsonConverter.fromConnectData(topic.value, valueStruct.schema(), valueStruct)
+    val dataBytes = valueStruct match {
+      case data: PrimitiveSinkData => throw new IllegalStateException("Cannot currently write primitive value as Json")
+      case StructSinkData(structVal) => jsonConverter.fromConnectData(topic.value, valueStruct.schema().orNull, structVal)
+      case MapSinkData(map, schema) => throw new IllegalStateException("Cannot currently write map value as Json")
+      case ArraySinkData(array, schema) => jsonConverter.fromConnectData(topic.value, schema.orNull, ToAvroDataConverter.convertArray(array).asJava)
+      case ByteArraySinkData(array, schema) => throw new IllegalStateException("Cannot currently write byte array as json")
+    }
 
     outputStream.write(dataBytes)
     outputStream.write(LineSeparatorBytes)
