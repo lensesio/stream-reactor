@@ -118,6 +118,24 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
   }
 
+  "S3SinkTask" should "throw error if prefix contains a slash" in {
+
+    val task = new S3SinkTask()
+
+    val prefixWithSlashes = "my/prefix/that/is/a/path"
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$prefixWithSlashes select * from $TopicName WITH_FLUSH_INTERVAL = 1")
+      ).asJava
+
+    val intercepted = intercept[IllegalArgumentException] {
+      task.start(props)
+    }
+
+    intercepted.getMessage should be ("Nested prefix not currently supported")
+
+  }
+
   "S3SinkTask" should "flush for every record when configured flush count size of 1" in {
 
     val task = new S3SinkTask()
@@ -784,6 +802,23 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     )
   }
 
+  "S3SinkTask" should "not get passed csql parser when contains a slash" in {
+
+    val task = new S3SinkTask()
+
+    val keyWithSlash = "_key.date/of/birth"
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY $keyWithSlash, _key.phoneprefix STOREAS `CSV` WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    intercept[IllegalArgumentException] {
+      task.start(props)
+    }.getMessage contains "no viable alternative at input"
+
+  }
+
   "S3SinkTask" should "allow partitioning by complex key and values" in {
 
     val task = new S3SinkTask()
@@ -856,7 +891,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     ).asJava
 
     val kafkaPartitionedRecords = List(
-      new SinkRecord(TopicName, 0, null, null, null, map, 0)
+      new SinkRecord(TopicName, 0, null, null, SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA).build(), map, 0)
     )
 
     val topicPartitionsToManage = Seq(

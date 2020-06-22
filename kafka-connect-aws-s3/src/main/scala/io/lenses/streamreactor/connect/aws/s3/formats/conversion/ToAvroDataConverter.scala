@@ -53,4 +53,8 @@ object ToAvroDataConverter {
     case _ => throw new IllegalArgumentException("Complex array writing not currently supported")
   })
 
+  def convertMap(map: Map[SinkData, SinkData]): Map[Any,Any] = map.map{
+    case (data, data1) => convertToGenericRecord(data) -> convertToGenericRecord(data1)
+  }
+
 }

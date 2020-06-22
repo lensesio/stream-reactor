@@ -55,7 +55,7 @@ trait S3FormatWriter extends AutoCloseable {
 
   def rolloverFileOnSchemaChange(): Boolean
 
-  def write(keyStruct: Option[SinkData], valueStruct: SinkData, topic: Topic): Unit
+  def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit
 
   def getOutstandingRename: Boolean
 

@@ -107,7 +107,7 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
       .getOrElse(throw new IllegalArgumentException(s"No key struct found, but requested to partition by whole key"))
 
     Try {
-      SinkDataValueLookup.lookupFieldValueFromSinkData(struct)(None).getOrElse("[missing]")
+      getFieldStringValue(struct, None).getOrElse("[missing]")
     } match {
       case Failure(exception) => throw new IllegalStateException("Non primitive struct provided, PARTITIONBY _key requested in KCQL", exception)
       case Success(value) => value
@@ -115,8 +115,20 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
 
   }
 
+  val reservedCharacters = Set("/", "\\")
+
+  private def getFieldStringValue(struct: SinkData, partitionName: Option[String]) = {
+
+    SinkDataValueLookup.lookupFieldValueFromSinkData(struct)(partitionName)
+      .fold(Option.empty[String])(fieldVal => Option(fieldVal
+        .replace("/", "-")
+        .replace("\\", "-"))
+
+      )
+  }
+
   def getPartitionValueFromSinkData(partitionByName: String, sinkData: SinkData, partitionName: String): String = {
-    SinkDataValueLookup.lookupFieldValueFromSinkData(sinkData)(Option(partitionName)).getOrElse("[missing]")
+    getFieldStringValue(sinkData, Option(partitionName)).getOrElse("[missing]")
   }
 
   override def shouldProcessPartitionValues: Boolean = true

@@ -43,12 +43,12 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
 
   private var fields: Array[String] = _
 
-  override def write(keyStruct: Option[SinkData], valueStruct: SinkData, topic: Topic): Unit = {
+  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit = {
 
     if (!fieldsWritten) {
-      writeFields(valueStruct.schema().orNull)
+      writeFields(valueSinkData.schema().orNull)
     }
-    val structValueLookupFn: Option[String] => Option[String] = SinkDataValueLookup.lookupFieldValueFromSinkData(valueStruct)
+    val structValueLookupFn: Option[String] => Option[String] = SinkDataValueLookup.lookupFieldValueFromSinkData(valueSinkData)
     val nextRow = fields.map(f => structValueLookupFn(Some(f)) match {
       case Some(something) => something
       case None => null

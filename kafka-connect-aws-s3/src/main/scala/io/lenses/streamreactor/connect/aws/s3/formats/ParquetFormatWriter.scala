@@ -37,12 +37,12 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
 
   private var writer: ParquetWriter[AnyRef] = _
 
-  override def write(keyStruct: Option[SinkData], valueStruct: SinkData, topic: Topic): Unit = {
+  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit = {
     logger.debug("AvroFormatWriter - write")
 
-    val genericRecord: AnyRef = ToAvroDataConverter.convertToGenericRecord(valueStruct)
+    val genericRecord: AnyRef = ToAvroDataConverter.convertToGenericRecord(valueSinkData)
     if (writer == null) {
-      writer = init(valueStruct.schema())
+      writer = init(valueSinkData.schema())
     }
 
     writer.write(genericRecord)

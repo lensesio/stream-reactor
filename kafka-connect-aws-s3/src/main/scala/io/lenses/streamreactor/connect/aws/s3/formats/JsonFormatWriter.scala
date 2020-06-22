@@ -40,12 +40,12 @@ class JsonFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
     Map("schemas.enable" -> false).asJava, false
   )
 
-  override def write(keyStruct: Option[SinkData], valueStruct: SinkData, topic: Topic): Unit = {
+  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit = {
 
-    val dataBytes = valueStruct match {
-      case data: PrimitiveSinkData => throw new IllegalStateException("Cannot currently write primitive value as Json")
-      case StructSinkData(structVal) => jsonConverter.fromConnectData(topic.value, valueStruct.schema().orNull, structVal)
-      case MapSinkData(map, schema) => throw new IllegalStateException("Cannot currently write map value as Json")
+    val dataBytes = valueSinkData match {
+      case data: PrimitiveSinkData => jsonConverter.fromConnectData(topic.value, valueSinkData.schema().orNull, data.primVal())
+      case StructSinkData(structVal) => jsonConverter.fromConnectData(topic.value, valueSinkData.schema().orNull, structVal)
+      case MapSinkData(map, schema) => jsonConverter.fromConnectData(topic.value, valueSinkData.schema().orNull, ToAvroDataConverter.convertMap(map).asJava)
       case ArraySinkData(array, schema) => jsonConverter.fromConnectData(topic.value, schema.orNull, ToAvroDataConverter.convertArray(array).asJava)
       case ByteArraySinkData(array, schema) => throw new IllegalStateException("Cannot currently write byte array as json")
     }

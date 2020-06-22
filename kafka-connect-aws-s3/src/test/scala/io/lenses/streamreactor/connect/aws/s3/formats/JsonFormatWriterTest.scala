@@ -17,9 +17,11 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
+import com.fasterxml.jackson.databind.ObjectMapper
+import io.lenses.streamreactor.connect.aws.s3.model.{StringSinkData, StructSinkData}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.storage.S3ByteArrayOutputStream
+import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -44,5 +46,33 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     outputStream.toString should be(recordsAsJson.mkString("\n"))
 
+  }
+
+  "convert" should "write primitive to json for a single record" in {
+
+    val outputStream = new S3ByteArrayOutputStream()
+    val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
+    jsonFormatWriter.write(None, StringSinkData("bees", Some(SchemaBuilder.string().build())), topic)
+
+    val objectMapper = new ObjectMapper()
+    val tree = objectMapper.readTree(outputStream.toString())
+
+    tree.textValue() should be ("bees")
+  }
+
+
+  "convert" should "write primitives to json for multiple records" in {
+
+    val outputStream = new S3ByteArrayOutputStream()
+    val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
+    jsonFormatWriter.write(None, StringSinkData("bees", Some(SchemaBuilder.string().build())), topic)
+    jsonFormatWriter.write(None, StringSinkData("wasps", Some(SchemaBuilder.string().build())), topic)
+
+    val lines = outputStream.toString().split(System.lineSeparator())
+    val treeLine1 = new ObjectMapper().readTree(lines(0))
+    treeLine1.textValue() should be ("bees")
+
+    val treeLine2 = new ObjectMapper().readTree(lines(1))
+    treeLine2.textValue() should be ("wasps")
   }
 }

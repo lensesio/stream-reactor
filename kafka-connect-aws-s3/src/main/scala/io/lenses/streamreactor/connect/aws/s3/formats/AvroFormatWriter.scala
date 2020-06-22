@@ -35,17 +35,17 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
   override def rolloverFileOnSchemaChange() = true
 
-  override def write(keyStruct: Option[SinkData], valueStruct: SinkData, topic: Topic): Unit = {
+  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit = {
 
     logger.debug("AvroFormatWriter - write")
 
     avroWriterState
       .fold {
-        val newWs = new AvroWriterState(outputStreamFn(), valueStruct.schema())
+        val newWs = new AvroWriterState(outputStreamFn(), valueSinkData.schema())
         avroWriterState = Some(newWs)
         newWs
       }(ws => ws)
-      .write(valueStruct)
+      .write(valueSinkData)
 
   }
 

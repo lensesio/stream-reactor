@@ -32,10 +32,10 @@ class TextFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
   private val outputStream: S3OutputStream = outputStreamFn()
   private var outstandingRename: Boolean = false
 
-  override def write(keyStruct: Option[SinkData], valueStruct: SinkData, topic: Topic): Unit = {
+  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit = {
 
     val dataBytes: Array[Byte] = Try {
-      valueStruct match {
+      valueSinkData match {
         case data: PrimitiveSinkData => data.primVal().toString.getBytes
         case _ => throw new IllegalArgumentException("Not a string")
       }
