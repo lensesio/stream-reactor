@@ -19,7 +19,6 @@ package com.wepay.kafka.connect.bigquery;
 
 
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
-import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 
 import java.util.HashMap;
 import java.util.Map;
