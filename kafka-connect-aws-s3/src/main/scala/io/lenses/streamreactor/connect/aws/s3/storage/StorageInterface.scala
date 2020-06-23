@@ -17,7 +17,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import io.lenses.streamreactor.connect.aws.s3.{BucketAndPath, BucketAndPrefix}
+
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix}
 import org.jclouds.blobstore.domain.{MultipartPart, MultipartUpload}
 
 case class MultiPartUploadState(

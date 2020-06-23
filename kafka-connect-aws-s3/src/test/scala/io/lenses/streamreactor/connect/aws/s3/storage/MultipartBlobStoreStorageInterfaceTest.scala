@@ -17,7 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import io.lenses.streamreactor.connect.aws.s3.BucketAndPath
+import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPath
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestPayloadReader
 import org.jclouds.blobstore.domain.{BlobMetadata, MultipartPart, MultipartUpload}
 import org.jclouds.blobstore.options.PutOptions

@@ -21,8 +21,7 @@ import java.io.OutputStreamWriter
 
 import au.com.bytecode.opencsv.CSVWriter
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.Topic
-import io.lenses.streamreactor.connect.aws.s3.model.SinkData
+import io.lenses.streamreactor.connect.aws.s3.model.{SinkData, Topic}
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.FieldValueToStringConverter
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 import org.apache.kafka.connect.data.Schema

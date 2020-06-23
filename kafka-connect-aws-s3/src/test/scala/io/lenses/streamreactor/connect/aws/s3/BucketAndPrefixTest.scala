@@ -17,6 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3
 
+import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPrefix
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

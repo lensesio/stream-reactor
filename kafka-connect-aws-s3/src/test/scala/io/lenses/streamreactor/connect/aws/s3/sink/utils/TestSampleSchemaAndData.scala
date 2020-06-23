@@ -21,7 +21,7 @@ import java.io.InputStream
 import java.util
 
 import com.google.common.io.ByteStreams
-import io.lenses.streamreactor.connect.aws.s3.Topic
+import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import org.apache.avro.generic.{GenericData, GenericRecord}
 import org.apache.avro.util.Utf8
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}

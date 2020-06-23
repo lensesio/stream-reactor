@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -15,9 +14,8 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3
+package io.lenses.streamreactor.connect.aws.s3.model
 
-import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
 
 case object BucketAndPrefix {
   def apply(bucketAndPath: String): BucketAndPrefix = {
@@ -42,35 +40,3 @@ case class BucketAndPath(
                           bucket: String,
                           path: String
                         )
-
-case class Topic(value: String) {
-  require(value != null && value.trim.nonEmpty)
-}
-
-object Offset {
-
-  implicit def orderingByOffsetValue[A <: Offset]: Ordering[A] =
-    Ordering.by(_.value)
-
-}
-
-case class Offset(value: Long) {
-
-  require(value >= 0)
-}
-
-object TopicPartition {
-  def apply(kafkaTopicPartition: KafkaTopicPartition): TopicPartition = {
-    TopicPartition(Topic(kafkaTopicPartition.topic()), kafkaTopicPartition.partition())
-  }
-}
-
-case class TopicPartition(topic: Topic, partition: Int) {
-  def withOffset(offset: Offset): TopicPartitionOffset = TopicPartitionOffset(topic, partition, offset)
-
-  def toKafka = new KafkaTopicPartition(topic.value, partition)
-}
-
-case class TopicPartitionOffset(topic: Topic, partition: Int, offset: Offset) {
-  def toTopicPartition: TopicPartition = TopicPartition(topic, partition)
-}

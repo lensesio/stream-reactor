@@ -17,11 +17,10 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import io.lenses.streamreactor.connect.aws.s3._
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Parquet
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, BucketOptions, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.formats.ParquetFormatReader
-import io.lenses.streamreactor.connect.aws.s3.model.{MessageDetail, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPrefix, MessageDetail, Offset, StructSinkData, Topic, TopicPartitionOffset}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig, S3TestPayloadReader}
 import org.apache.avro.generic.GenericRecord

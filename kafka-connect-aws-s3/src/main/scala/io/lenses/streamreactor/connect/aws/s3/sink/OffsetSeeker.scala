@@ -17,8 +17,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPrefix, TopicPartitionOffset}
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
-import io.lenses.streamreactor.connect.aws.s3.{BucketAndPrefix, TopicPartitionOffset}
 
 import scala.util.control.NonFatal
 

@@ -21,7 +21,7 @@ import java.io.OutputStream
 import java.nio.ByteBuffer
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.BucketAndPath
+import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPath
 
 class MultipartBlobStoreOutputStream(
                                       bucketAndPath: BucketAndPath,

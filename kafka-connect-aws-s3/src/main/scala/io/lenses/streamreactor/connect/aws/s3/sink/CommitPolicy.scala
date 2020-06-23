@@ -17,7 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import io.lenses.streamreactor.connect.aws.s3.TopicPartitionOffset
+import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
 import org.slf4j.Logger
 
 import scala.concurrent.duration.FiniteDuration

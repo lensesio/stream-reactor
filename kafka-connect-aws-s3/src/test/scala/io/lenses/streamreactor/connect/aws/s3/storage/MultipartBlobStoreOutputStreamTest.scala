@@ -17,7 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import io.lenses.streamreactor.connect.aws.s3.BucketAndPath
+import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPath
 import org.jclouds.blobstore.domain.{MultipartPart, MultipartUpload}
 import org.mockito.ArgumentMatchers._
 import org.mockito.{ArgumentCaptor, ArgumentMatchers, MockitoSugar}

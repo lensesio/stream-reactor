@@ -19,8 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import java.nio.charset.StandardCharsets
 
-import io.lenses.streamreactor.connect.aws.s3.Topic
-import io.lenses.streamreactor.connect.aws.s3.model.{PrimitiveSinkData, SinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.{PrimitiveSinkData, SinkData, Topic}
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 
 import scala.util.{Failure, Success, Try}

@@ -19,9 +19,8 @@ package io.lenses.streamreactor.connect.aws.s3.config
 
 import com.datamountaineer.kcql.Kcql
 import enumeratum._
-import io.lenses.streamreactor.connect.aws.s3.BucketAndPrefix
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
-import io.lenses.streamreactor.connect.aws.s3.model.PartitionSelection
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPrefix, PartitionSelection}
 import io.lenses.streamreactor.connect.aws.s3.sink._
 
 import scala.collection.JavaConverters._

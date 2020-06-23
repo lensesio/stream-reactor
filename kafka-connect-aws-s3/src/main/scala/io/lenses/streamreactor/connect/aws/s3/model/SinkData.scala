@@ -32,9 +32,6 @@ sealed trait PrimitiveSinkData extends SinkData {
   def primVal(): Any
 }
 
-//sealed trait ComplexSinkData extends SinkData {
-//}
-
 case class BooleanSinkData(primVal: Boolean, schema: Option[Schema] = None) extends PrimitiveSinkData
 
 case class StringSinkData(primVal: String, schema: Option[Schema] = None) extends PrimitiveSinkData

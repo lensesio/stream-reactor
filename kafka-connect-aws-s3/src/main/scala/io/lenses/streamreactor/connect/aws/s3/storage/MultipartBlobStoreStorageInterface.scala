@@ -21,7 +21,7 @@ import java.io.ByteArrayInputStream
 import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.{BucketAndPath, BucketAndPrefix}
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix}
 import org.jclouds.blobstore.BlobStoreContext
 import org.jclouds.blobstore.domain.internal.MutableBlobMetadataImpl
 import org.jclouds.blobstore.domain.{BlobMetadata, StorageType}

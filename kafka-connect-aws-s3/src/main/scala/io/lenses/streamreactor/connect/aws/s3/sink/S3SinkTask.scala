@@ -20,10 +20,9 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
-import io.lenses.streamreactor.connect.aws.s3._
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsContextCreator
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
-import io.lenses.streamreactor.connect.aws.s3.model.{MessageDetail, SinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.{MessageDetail, Offset, SinkData, Topic, TopicPartition, TopicPartitionOffset}
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.{HeaderToStringConverter, SinkDataValueConverter}
 import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreStorageInterface, StorageInterface}
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
