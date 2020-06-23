@@ -20,8 +20,8 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import java.nio.charset.StandardCharsets
 
 import io.lenses.streamreactor.connect.aws.s3.Topic
-import io.lenses.streamreactor.connect.aws.s3.formats.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 import org.apache.kafka.connect.json.JsonConverter
 
@@ -45,9 +45,9 @@ class JsonFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
     val dataBytes = valueSinkData match {
       case data: PrimitiveSinkData => jsonConverter.fromConnectData(topic.value, valueSinkData.schema().orNull, data.primVal())
       case StructSinkData(structVal) => jsonConverter.fromConnectData(topic.value, valueSinkData.schema().orNull, structVal)
-      case MapSinkData(map, schema) => jsonConverter.fromConnectData(topic.value, valueSinkData.schema().orNull, ToAvroDataConverter.convertMap(map).asJava)
+      case MapSinkData(map, _) => jsonConverter.fromConnectData(topic.value, valueSinkData.schema().orNull, ToAvroDataConverter.convertMap(map).asJava)
       case ArraySinkData(array, schema) => jsonConverter.fromConnectData(topic.value, schema.orNull, ToAvroDataConverter.convertArray(array).asJava)
-      case ByteArraySinkData(array, schema) => throw new IllegalStateException("Cannot currently write byte array as json")
+      case ByteArraySinkData(_, _) => throw new IllegalStateException("Cannot currently write byte array as json")
     }
 
     outputStream.write(dataBytes)

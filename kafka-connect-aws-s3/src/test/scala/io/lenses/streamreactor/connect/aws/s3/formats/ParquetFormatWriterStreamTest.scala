@@ -18,10 +18,11 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.BucketAndPath
-import io.lenses.streamreactor.connect.aws.s3.model.StructSinkData
+import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3TestConfig, S3TestPayloadReader}
 import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreOutputStream
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -55,5 +56,41 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
     val genericRecords = parquetFormatReader.read(bytes)
     genericRecords.size should be(3)
 
+  }
+
+  "convert" should "throw an error when writing array without schema" in {
+
+    val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"), 100)(storageInterface)
+    val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
+    intercept[IllegalArgumentException] {
+      parquetFormatWriter.write(
+        None,
+        ArraySinkData(
+          Array(
+            StringSinkData("batman"),
+            StringSinkData("robin"),
+            StringSinkData("alfred")
+          )),
+        topic)
+    }.getMessage should be("Schema-less data is not supported for Avro/Parquet")
+  }
+
+  "convert" should "throw an exception when trying to write map values" in {
+    val mapSchema = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA)
+
+    val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"), 100)(storageInterface)
+    val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
+    intercept[IllegalArgumentException] {
+      parquetFormatWriter.write(
+        None,
+        MapSinkData(
+          Map(
+            StringSinkData("batman") -> IntSinkData(1),
+            StringSinkData("robin") -> IntSinkData(2),
+            StringSinkData("alfred") -> IntSinkData(3)
+          ), Some(mapSchema)),
+        topic)
+    }.getMessage should be("Avro schema must be a record.")
+    parquetFormatWriter.close()
   }
 }

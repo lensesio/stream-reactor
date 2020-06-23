@@ -22,15 +22,14 @@ import java.io.OutputStreamWriter
 import au.com.bytecode.opencsv.CSVWriter
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.Topic
-import io.lenses.streamreactor.connect.aws.s3.formats.conversion.SinkDataValueLookup
 import io.lenses.streamreactor.connect.aws.s3.model.SinkData
+import io.lenses.streamreactor.connect.aws.s3.sink.conversion.FieldValueToStringConverter
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 import org.apache.kafka.connect.data.Schema
 
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-// TODO Build in support for non-struct
 class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolean) extends S3FormatWriter with LazyLogging {
 
   private val outputStream: S3OutputStream = outputStreamFn()
@@ -48,7 +47,7 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
     if (!fieldsWritten) {
       writeFields(valueSinkData.schema().orNull)
     }
-    val structValueLookupFn: Option[String] => Option[String] = SinkDataValueLookup.lookupFieldValueFromSinkData(valueSinkData)
+    val structValueLookupFn: Option[String] => Option[String] = FieldValueToStringConverter.lookupFieldValueFromSinkData(valueSinkData)
     val nextRow = fields.map(f => structValueLookupFn(Some(f)) match {
       case Some(something) => something
       case None => null

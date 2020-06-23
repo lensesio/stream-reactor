@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.formats.conversion
+package io.lenses.streamreactor.connect.aws.s3.sink.conversion
+
+import java.nio.ByteBuffer
 
 import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.aws.s3.model._
@@ -27,18 +29,15 @@ object ToAvroDataConverter {
 
   private val avroDataConverter = new AvroData(100)
 
-  def convertSchema(connectSchema: Option[ConnectSchema]): Schema = {
-    // TODO: Should we try to figure out the schema if there is not one supplied?
-    avroDataConverter.fromConnectSchema(connectSchema.orNull)
-  }
+  def convertSchema(connectSchema: Option[ConnectSchema]): Schema = connectSchema
+    .fold(throw new IllegalArgumentException("Schema-less data is not supported for Avro/Parquet"))(avroDataConverter.fromConnectSchema)
 
   def convertToGenericRecord[Any](sinkData: SinkData): AnyRef = {
-
     sinkData match {
       case StructSinkData(structVal) => avroDataConverter.fromConnectData(structVal.schema(), structVal)
-      //case MapSinkData(map, schema) =>
+      case MapSinkData(map, _) => convertMap(map).asJava
       case ArraySinkData(array, _) => convertArray(array).asJava
-      //case ByteArraySinkData(array, schema) =>
+      case ByteArraySinkData(array, _) => ByteBuffer.wrap(array)
       case primitive: PrimitiveSinkData => primitive.primVal().asInstanceOf[AnyRef]
       case other => throw new IllegalArgumentException(s"Unknown SinkData type, ${other.getClass.getSimpleName}")
     }
@@ -53,7 +52,7 @@ object ToAvroDataConverter {
     case _ => throw new IllegalArgumentException("Complex array writing not currently supported")
   })
 
-  def convertMap(map: Map[SinkData, SinkData]): Map[Any,Any] = map.map{
+  def convertMap(map: Map[SinkData, SinkData]): Map[Any, Any] = map.map {
     case (data, data1) => convertToGenericRecord(data) -> convertToGenericRecord(data1)
   }
 

@@ -18,6 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.utils
 
 import java.io.InputStream
+import java.util
 
 import com.google.common.io.ByteStreams
 import io.lenses.streamreactor.connect.aws.s3.Topic
@@ -26,6 +27,8 @@ import org.apache.avro.util.Utf8
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
+
+import scala.collection.JavaConverters._
 
 
 object TestSampleSchemaAndData extends Matchers {
@@ -68,10 +71,15 @@ object TestSampleSchemaAndData extends Matchers {
   }
 
   def checkArray(genericRecord: GenericData.Array[Utf8], values: String*) = {
-    values.zipWithIndex.foreach{
+    values.zipWithIndex.foreach {
       case (string, index) => genericRecord.get(index).toString should be(string)
     }
+  }
 
+  def readFromStringKeyedMap[T](genericRecords: List[GenericRecord], recordsArrayPosition: Int): Any = {
+    genericRecords(recordsArrayPosition).asInstanceOf[util.HashMap[_, _]].asScala.map {
+      case (k, v) => k.asInstanceOf[Utf8].toString -> v
+    }
   }
 
 }

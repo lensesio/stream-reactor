@@ -18,13 +18,14 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.Topic
-import io.lenses.streamreactor.connect.aws.s3.formats.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 import org.apache.avro.Schema
 import org.apache.avro.file.DataFileWriter
 import org.apache.avro.generic.GenericDatumWriter
 import org.apache.kafka.connect.data.{Schema => ConnectSchema}
+
 import scala.util.Try
 
 class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWriter with LazyLogging {
@@ -50,7 +51,7 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
   }
 
   override def close = {
-      avroWriterState.fold(logger.debug("Requesting close when there's nothing to close"))(_.close())
+    avroWriterState.fold(logger.debug("Requesting close when there's nothing to close"))(_.close())
   }
 
   override def getOutstandingRename: Boolean = outstandingRename
@@ -83,4 +84,5 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
     def pointer(): Long = outputStream.getPointer()
 
   }
+
 }

@@ -195,10 +195,7 @@ object S3WriterManager {
       case None => throw new IllegalArgumentException("Can't find fileNamingStrategy in config")
     }
 
-    val minAllowedMultipartSizeFn: () => Int = () => {
-      // TODO : configuration
-      MinAllowedMultipartSize
-    }
+    val minAllowedMultipartSizeFn: () => Int = () => MinAllowedMultipartSize
 
     val outputStreamFn: (BucketAndPath, Int) => () => MultipartBlobStoreOutputStream = {
       (bucketAndPath, int) =>

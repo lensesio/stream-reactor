@@ -132,7 +132,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
       task.start(props)
     }
 
-    intercepted.getMessage should be ("Nested prefix not currently supported")
+    intercepted.getMessage should be("Nested prefix not currently supported")
 
   }
 

@@ -19,12 +19,12 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.connect.aws.s3._
 import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection}
-import io.lenses.streamreactor.connect.aws.s3.formats.conversion.SinkDataValueLookup
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionDisplay.KeysAndValues
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.sink.conversion.FieldValueToStringConverter
 
-import scala.util.{Failure, Success, Try}
 import scala.util.matching.Regex
+import scala.util.{Failure, Success, Try}
 
 trait S3FileNamingStrategy {
 
@@ -94,8 +94,10 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
       .partitions
       .map {
         case partition@HeaderPartitionField(name) => partition -> messageDetail.headers.getOrElse(name, throw new IllegalArgumentException(s"Header '${name}' not found in message"))
-        case partition@KeyPartitionField(name) => partition -> {val sinkData = messageDetail.keySinkData.getOrElse(throw new IllegalArgumentException(s"No key data found"))
-          getPartitionValueFromSinkData("key", sinkData, name)}
+        case partition@KeyPartitionField(name) => partition -> {
+          val sinkData = messageDetail.keySinkData.getOrElse(throw new IllegalArgumentException(s"No key data found"))
+          getPartitionValueFromSinkData("key", sinkData, name)
+        }
         case partition@ValuePartitionField(name) => partition -> getPartitionValueFromSinkData("value", messageDetail.valueSinkData, name)
         case partition@WholeKeyPartitionField() => partition -> getPartitionByWholeKeyValue(messageDetail.keySinkData)
       }
@@ -119,7 +121,7 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
 
   private def getFieldStringValue(struct: SinkData, partitionName: Option[String]) = {
 
-    SinkDataValueLookup.lookupFieldValueFromSinkData(struct)(partitionName)
+    FieldValueToStringConverter.lookupFieldValueFromSinkData(struct)(partitionName)
       .fold(Option.empty[String])(fieldVal => Option(fieldVal
         .replace("/", "-")
         .replace("\\", "-"))

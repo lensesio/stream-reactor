@@ -25,28 +25,36 @@ case class MessageDetail(
                         )
 
 sealed trait SinkData {
-  def schema() : Option[Schema]
+  def schema(): Option[Schema]
 }
 
 sealed trait PrimitiveSinkData extends SinkData {
-  def primVal() : Any
+  def primVal(): Any
 }
 
 //sealed trait ComplexSinkData extends SinkData {
 //}
 
 case class BooleanSinkData(primVal: Boolean, schema: Option[Schema] = None) extends PrimitiveSinkData
+
 case class StringSinkData(primVal: String, schema: Option[Schema] = None) extends PrimitiveSinkData
+
 case class LongSinkData(primVal: Long, schema: Option[Schema] = None) extends PrimitiveSinkData
+
 case class IntSinkData(primVal: Int, schema: Option[Schema] = None) extends PrimitiveSinkData
+
 case class ByteSinkData(primVal: Byte, schema: Option[Schema] = None) extends PrimitiveSinkData
+
 case class DoubleSinkData(primVal: Double, schema: Option[Schema] = None) extends PrimitiveSinkData
+
 case class FloatSinkData(primVal: Float, schema: Option[Schema] = None) extends PrimitiveSinkData
 
 case class StructSinkData(structVal: Struct) extends SinkData {
   override def schema(): Option[Schema] = Option(structVal.schema())
 }
 
-case class MapSinkData(map: Map[SinkData,SinkData], schema: Option[Schema] = None) extends SinkData
+case class MapSinkData(map: Map[SinkData, SinkData], schema: Option[Schema] = None) extends SinkData
+
 case class ArraySinkData(array: Seq[SinkData], schema: Option[Schema] = None) extends SinkData
+
 case class ByteArraySinkData(array: Array[Byte], schema: Option[Schema] = None) extends SinkData

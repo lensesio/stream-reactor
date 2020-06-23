@@ -17,6 +17,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import java.nio.ByteBuffer
+
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.storage.S3ByteArrayOutputStream
@@ -61,28 +63,28 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
-    avroFormatWriter.write(None, IntSinkData(100, Some( Schema.OPTIONAL_INT32_SCHEMA)), topic)
+    avroFormatWriter.write(None, IntSinkData(100, Some(Schema.OPTIONAL_INT32_SCHEMA)), topic)
     avroFormatWriter.close()
 
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)
 
     genericRecords.size should be(1)
-    genericRecords(0) should be (100)
+    genericRecords(0) should be(100)
   }
 
   "convert" should "write byteoutputstream with avro for a multiple primitive records" in {
 
     val outputStream = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
-    avroFormatWriter.write(None, IntSinkData(100, Some( Schema.OPTIONAL_INT32_SCHEMA)), topic)
-    avroFormatWriter.write(None, IntSinkData(200, Some( Schema.OPTIONAL_INT32_SCHEMA)), topic)
+    avroFormatWriter.write(None, IntSinkData(100, Some(Schema.OPTIONAL_INT32_SCHEMA)), topic)
+    avroFormatWriter.write(None, IntSinkData(200, Some(Schema.OPTIONAL_INT32_SCHEMA)), topic)
     avroFormatWriter.close()
 
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)
 
     genericRecords.size should be(2)
-    genericRecords(0) should be (100)
-    genericRecords(1) should be (200)
+    genericRecords(0) should be(100)
+    genericRecords(1) should be(200)
   }
 
 
@@ -138,4 +140,78 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers {
     checkArray(genericRecords(1).asInstanceOf[GenericData.Array[Utf8]], "superman", "lois lane")
 
   }
+
+  "convert" should "throw an error when writing array without schema" in {
+
+    val outputStream = new S3ByteArrayOutputStream()
+    val avroFormatWriter = new AvroFormatWriter(() => outputStream)
+    intercept[IllegalArgumentException] {
+      avroFormatWriter.write(
+        None,
+        ArraySinkData(
+          Array(
+            StringSinkData("batman"),
+            StringSinkData("robin"),
+            StringSinkData("alfred")
+          )),
+        topic)
+    }.getMessage should be("Schema-less data is not supported for Avro/Parquet")
+  }
+
+  "convert" should "write byteoutputstream with avro for multiple map records" in {
+    val mapSchema = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA)
+
+    val outputStream = new S3ByteArrayOutputStream()
+    val avroFormatWriter = new AvroFormatWriter(() => outputStream)
+    avroFormatWriter.write(
+      None,
+      MapSinkData(
+        Map(
+          StringSinkData("batman") -> IntSinkData(1),
+          StringSinkData("robin") -> IntSinkData(2),
+          StringSinkData("alfred") -> IntSinkData(3)
+        ), Some(mapSchema)),
+      topic)
+    avroFormatWriter.write(
+      None,
+      MapSinkData(
+        Map(
+          StringSinkData("superman") -> IntSinkData(4),
+          StringSinkData("lois lane") -> IntSinkData(5)
+        ), Some(mapSchema)),
+      topic)
+    avroFormatWriter.close()
+
+    val genericRecords = avroFormatReader.read(outputStream.toByteArray)
+    genericRecords.size should be(2)
+
+    readFromStringKeyedMap(genericRecords, 0) should be(Map(
+      "batman" -> 1,
+      "robin" -> 2,
+      "alfred" -> 3
+    ))
+
+    readFromStringKeyedMap(genericRecords, 1) should be(Map(
+      "superman" -> 4,
+      "lois lane" -> 5
+    ))
+
+  }
+
+  "convert" should "write byte to avro" in {
+    val byteSchema = SchemaBuilder.bytes().build()
+
+    val outputStream = new S3ByteArrayOutputStream()
+    val avroFormatWriter = new AvroFormatWriter(() => outputStream)
+    avroFormatWriter.write(None, ByteArraySinkData("Sausages".getBytes(), Some(byteSchema)), topic)
+    avroFormatWriter.write(None, ByteArraySinkData("Mash".getBytes(), Some(byteSchema)), topic)
+    avroFormatWriter.close()
+
+    val genericRecords = avroFormatReader.read(outputStream.toByteArray)
+    genericRecords.size should be(2)
+
+    genericRecords(0).asInstanceOf[ByteBuffer].array() should be("Sausages".getBytes())
+    genericRecords(1).asInstanceOf[ByteBuffer].array() should be("Mash".getBytes())
+  }
+
 }

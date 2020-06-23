@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.sink
+package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
 import java.util
 
@@ -38,7 +38,6 @@ object SinkDataValueConverter {
     case mapVal: util.Map[_, _] => MapSinkDataConverter(mapVal.asScala.toMap, schema)
     case bytesVal: Array[Byte] => ByteArraySinkData(bytesVal, schema)
     case arrayVal: Array[_] => ArraySinkDataConverter(arrayVal, schema)
-    //case listVal: List[_] => ArraySinkDataConverter(listVal.toArray, schema)
     case listVal: util.List[_] => ArraySinkDataConverter(listVal.toArray, schema)
     case otherVal => sys.error(s"Unsupported record $otherVal:${otherVal.getClass.getCanonicalName}")
   }
@@ -51,9 +50,9 @@ object ArraySinkDataConverter {
 }
 
 object MapSinkDataConverter {
-  def apply(map: Map[_,_], schema: Option[Schema]): SinkData = {
-    MapSinkData(map.map{
-      case (k: String,v) => StringSinkData(k, None) -> SinkDataValueConverter(v, None)
+  def apply(map: Map[_, _], schema: Option[Schema]): SinkData = {
+    MapSinkData(map.map {
+      case (k: String, v) => StringSinkData(k, None) -> SinkDataValueConverter(v, None)
       case (k, v) => sys.error(s"Non-string map values including (${k.getClass.getCanonicalName}) are not currently supported")
     }, schema)
   }

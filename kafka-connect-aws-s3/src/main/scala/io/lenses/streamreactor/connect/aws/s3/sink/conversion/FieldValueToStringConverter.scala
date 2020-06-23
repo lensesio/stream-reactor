@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.formats.conversion
+package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model._
 import org.apache.kafka.connect.data.Schema.Type._
 import org.apache.kafka.connect.data.Struct
 
-object SinkDataValueLookup extends LazyLogging {
-
+object FieldValueToStringConverter extends LazyLogging {
 
   /**
     * Returns the value of a struct as a String for text output

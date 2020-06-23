@@ -30,7 +30,7 @@ object S3FormatWriter {
     require(formatOptions.size <= 1, "Cannot have more than one format option provided.")
     formatOptions
       .headOption
-      .fold[BytesWriteMode]( BytesWriteMode.ValueWithSize )(fo => BytesWriteMode.withName(fo.entryName))
+      .fold[BytesWriteMode](BytesWriteMode.ValueWithSize)(fo => BytesWriteMode.withName(fo.entryName))
   }
 
   def apply(

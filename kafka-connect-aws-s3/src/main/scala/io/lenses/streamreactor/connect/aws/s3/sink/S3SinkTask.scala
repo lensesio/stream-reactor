@@ -24,6 +24,7 @@ import io.lenses.streamreactor.connect.aws.s3._
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsContextCreator
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.model.{MessageDetail, SinkData}
+import io.lenses.streamreactor.connect.aws.s3.sink.conversion.{HeaderToStringConverter, SinkDataValueConverter}
 import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreStorageInterface, StorageInterface}
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
@@ -77,9 +78,9 @@ class S3SinkTask extends SinkTask {
         writerManager.write(
           tpo,
           MessageDetail(
-            keySinkData = Option(record.key()).fold(Option.empty[SinkData])( key => Option(SinkDataValueConverter(key, Option(record.keySchema())))),
+            keySinkData = Option(record.key()).fold(Option.empty[SinkData])(key => Option(SinkDataValueConverter(key, Option(record.keySchema())))),
             valueSinkData = SinkDataValueConverter(record.value(), Option(record.valueSchema())),
-            headers = HeaderConverter(record)
+            headers = HeaderToStringConverter(record)
           )
         )
     }

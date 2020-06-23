@@ -17,7 +17,6 @@
 
 package io.lenses.streamreactor.connect.aws.s3
 
-import io.lenses.streamreactor.connect.aws.s3.model.SinkData
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
 
 case object BucketAndPrefix {
@@ -34,9 +33,9 @@ case class BucketAndPrefix(
                             bucket: String,
                             prefix: Option[String]
                           ) {
-    prefix
-      .filter(_.contains("/"))
-      .foreach(_ => throw new IllegalArgumentException("Nested prefix not currently supported"))
+  prefix
+    .filter(_.contains("/"))
+    .foreach(_ => throw new IllegalArgumentException("Nested prefix not currently supported"))
 }
 
 case class BucketAndPath(
