@@ -45,12 +45,11 @@ object FieldValueToStringConverter extends LazyLogging {
     map.get(StringSinkData(fieldName, None)).fold(throw new IllegalArgumentException("Cannot field from specified map"))(
       e => e match {
         case data: PrimitiveSinkData => Some(data.primVal().toString)
-
-        case ByteArraySinkData(array, schema) => Some(new String(array.array))
-        case StructSinkData(structVal) => throw new IllegalArgumentException("Unable to represent a struct as a string value")
-        case MapSinkData(map, schema) => throw new IllegalArgumentException("Unable to represent a map as a string value")
-        case ArraySinkData(array, schema) => throw new IllegalArgumentException("Unable to represent an array as a string value")
-        case _ => throw new IllegalArgumentException("Unable to represent a complex object")
+        case ByteArraySinkData(array, _) => Some(new String(array.array))
+        case StructSinkData(_) => throw new IllegalArgumentException("Unable to represent a struct as a string value")
+        case MapSinkData(_, _) => throw new IllegalArgumentException("Unable to represent a map as a string value")
+        case ArraySinkData(_, _) => throw new IllegalArgumentException("Unable to represent an array as a string value")
+        case other => throw new IllegalArgumentException(s"Unable to represent a complex object as a string value ${other.getClass.getCanonicalName}")
       }
     )
   }

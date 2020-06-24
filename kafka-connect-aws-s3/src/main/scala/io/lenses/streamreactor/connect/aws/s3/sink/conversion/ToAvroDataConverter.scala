@@ -43,12 +43,12 @@ object ToAvroDataConverter {
     }
   }
 
-  def convertArray(array: Seq[SinkData]) = array.map(e => e match {
+  def convertArray(array: Seq[SinkData]): Seq[Any] = array.map(e => e match {
     case data: PrimitiveSinkData => data.primVal()
-    case StructSinkData(structVal) => throw new IllegalArgumentException("Complex struct writing not currently supported")
-    case MapSinkData(map, schema) => throw new IllegalArgumentException("Complex map writing not currently supported")
-    case ArraySinkData(array, schema) => throw new IllegalArgumentException("Complex array writing not currently supported")
-    case ByteArraySinkData(array, schema) => throw new IllegalArgumentException("Complex byte array writing not currently supported")
+    case StructSinkData(structVal) => structVal
+    case MapSinkData(map, _) => convertMap(map)
+    case ArraySinkData(iArray, _) => convertArray(iArray)
+    case ByteArraySinkData(bArray, _) => ByteBuffer.wrap(bArray)
     case _ => throw new IllegalArgumentException("Complex array writing not currently supported")
   })
 

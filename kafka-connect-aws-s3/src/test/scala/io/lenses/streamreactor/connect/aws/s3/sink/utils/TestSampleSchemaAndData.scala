@@ -64,9 +64,13 @@ object TestSampleSchemaAndData extends Matchers {
   }
 
   def checkRecord(genericRecord: GenericRecord, name: String, title: String, salary: Double): Assertion = {
+    checkRecord(genericRecord, name, Some(title), salary)
+  }
+
+  def checkRecord(genericRecord: GenericRecord, name: String, title: Option[String], salary: Double): Assertion = {
 
     genericRecord.get("name").toString should be(name)
-    genericRecord.get("title").toString should be(title)
+    Option(genericRecord.get("title")).fold(Option.empty[String])(e => Some(e.toString)) should be(title)
     genericRecord.get("salary") should be(salary)
   }
 
