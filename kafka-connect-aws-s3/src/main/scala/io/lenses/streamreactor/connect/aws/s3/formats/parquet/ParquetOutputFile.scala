@@ -32,7 +32,7 @@ class ParquetOutputFile(multipartBlobStoreOutputStream: S3OutputStream) extends 
 
   class PositionOutputStreamWrapper(multipartBlobStoreOutputStream: S3OutputStream) extends PositionOutputStream {
 
-    override def getPos: Long = multipartBlobStoreOutputStream.getPointer()
+    override def getPos: Long = multipartBlobStoreOutputStream.getPointer
 
     override def write(b: Int): Unit = multipartBlobStoreOutputStream.write(b)
 

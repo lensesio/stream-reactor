@@ -29,6 +29,11 @@ object HeaderToStringConverter {
     value match {
       case stringVal: String => stringVal
       case intVal: Int => String.valueOf(intVal)
+      case shortVal: Short => String.valueOf(shortVal)
+      case floatVal: Float => String.valueOf(floatVal)
+      case doubleVal: Double => String.valueOf(doubleVal)
+      case byteVal: Byte => String.valueOf(byteVal)
+      case boolVal: Boolean => String.valueOf(boolVal)
       case longVal: Long => String.valueOf(longVal)
       case otherVal => sys.error(s"Unsupported header value type $otherVal:${otherVal.getClass.getCanonicalName}")
     }
