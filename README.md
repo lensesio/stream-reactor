@@ -59,12 +59,14 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
-**2.0.1** PENDING
+**2.0.1** 
 
 *   Hive Source
     *    Rename option `connect.hive.hive.metastore` to `connect.hive.metastore`
     *    Rename option `connect.hive.hive.metastore.uris` to `connect.hive.metastore.uris`
-
+    
+*   Fix Elastic start up NPE
+*   Fix to correct batch size extraction from KCQL on Pulsar    
 
 **2.0.0**
 
@@ -75,6 +77,7 @@ Deprecated:
     * Druid Sink (not scala 2.12 compatible)
     * Elastic Sink (not scala 2.12 compatible)
     * Elastic5 Sink(not scala 2.12 compatible)
+    * RabbitMQ (not support and JMS connector can be used)
 
 *   Redis
     *   Add support for Redis Streams
