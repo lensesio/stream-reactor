@@ -74,3 +74,13 @@ classes/*
 /*/*/build
 *.cache-main
 *.cache-tests
+
+
+/kafka-connect-hive-1.1/it/.classpath
+/kafka-connect-hive-1.1/it/.project
+/kafka-connect-hive-1.1/it/.settings/
+/kafka-connect-hive-1.1/it/bin/
+/kafka-connect-hive/it/.classpath
+/kafka-connect-hive/it/.project
+/kafka-connect-hive/it/.settings/
+/kafka-connect-hive/it/bin/
