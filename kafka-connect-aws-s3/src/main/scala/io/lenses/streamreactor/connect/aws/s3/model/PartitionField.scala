@@ -26,7 +26,7 @@ sealed trait PartitionField {
   val reservedCharacters = Set("/", "\\")
 
   def validateProtectedCharacters(name: String) =
-    require(name != null && name.trim.nonEmpty && reservedCharacters.forall(!name.contains(_)), "name must not be empty and must not contain a slash character")
+    require(name != null && name.trim.nonEmpty && reservedCharacters.forall(!name.contains(_)), "Name must not be empty and must not contain a slash character")
 
 }
 

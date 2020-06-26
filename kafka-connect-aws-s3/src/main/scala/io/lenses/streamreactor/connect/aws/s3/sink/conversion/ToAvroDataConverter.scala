@@ -43,14 +43,14 @@ object ToAvroDataConverter {
     }
   }
 
-  def convertArray(array: Seq[SinkData]): Seq[Any] = array.map(e => e match {
+  def convertArray(array: Seq[SinkData]): Seq[Any] = array.map {
     case data: PrimitiveSinkData => data.primVal()
     case StructSinkData(structVal) => structVal
     case MapSinkData(map, _) => convertMap(map)
     case ArraySinkData(iArray, _) => convertArray(iArray)
     case ByteArraySinkData(bArray, _) => ByteBuffer.wrap(bArray)
     case _ => throw new IllegalArgumentException("Complex array writing not currently supported")
-  })
+  }
 
   def convertMap(map: Map[SinkData, SinkData]): Map[Any, Any] = map.map {
     case (data, data1) => convertToGenericRecord(data) -> convertToGenericRecord(data1)
