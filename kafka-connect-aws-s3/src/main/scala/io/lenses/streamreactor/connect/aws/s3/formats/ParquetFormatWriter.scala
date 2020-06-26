@@ -67,14 +67,14 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
 
   override def rolloverFileOnSchemaChange() = true
 
-  override def close: Unit = {
+  override def close(): Unit = {
     Try(writer.close())
     Try(outputStream.flush())
-    Try(outstandingRename = outputStream.complete())
+    Try(outstandingRename = outputStream.complete)
     Try(outputStream.close())
   }
 
   override def getOutstandingRename: Boolean = outstandingRename
 
-  override def getPointer: Long = outputStream.getPointer()
+  override def getPointer: Long = outputStream.getPointer
 }

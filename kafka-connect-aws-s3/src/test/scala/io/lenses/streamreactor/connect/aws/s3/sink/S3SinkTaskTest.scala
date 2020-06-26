@@ -242,7 +242,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     val genericRecords = parquetFormatReader.read(bytes)
     genericRecords.size should be(1)
-    checkRecord(genericRecords(0), "sam", "mr", 100.43)
+    checkRecord(genericRecords.head, "sam", "mr", 100.43)
 
   }
 
@@ -267,7 +267,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)
-    checkRecord(genericRecords(0), "sam", "mr", 100.43)
+    checkRecord(genericRecords.head, "sam", "mr", 100.43)
 
   }
 
@@ -993,7 +993,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)
-    checkArray(genericRecords(0).asInstanceOf[GenericData.Array[Utf8]], "jedi", "klingons", "cylons")
+    checkArray(genericRecords.head.asInstanceOf[GenericData.Array[Utf8]], "jedi", "klingons", "cylons")
   }
 
   "S3SinkTask" should "process and map of structs avro" in {
@@ -1033,7 +1033,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)
 
-    val recordsMap = genericRecords(0).asInstanceOf[util.Map[Utf8, GenericData.Record]].asScala
+    val recordsMap = genericRecords.head.asInstanceOf[util.Map[Utf8, GenericData.Record]].asScala
 
     checkRecord(recordsMap.getOrElse(new Utf8("jedi"), fail("can't find in map")), "sam", Some("mr"), 100.43)
     checkRecord(recordsMap.getOrElse(new Utf8("klingons"), fail("can't find in map")), "laura", Some("ms"), 429.06)
@@ -1078,7 +1078,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)
 
-    val recordsMap = genericRecords(0).asInstanceOf[util.Map[Utf8, GenericData.Array[Utf8]]].asScala
+    val recordsMap = genericRecords.head.asInstanceOf[util.Map[Utf8, GenericData.Array[Utf8]]].asScala
 
     checkArray(recordsMap.getOrElse(new Utf8("jedi"), fail("can't find in map")), "bob", "john")
     checkArray(recordsMap.getOrElse(new Utf8("klingons"), fail("can't find in map")), "joe")

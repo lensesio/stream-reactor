@@ -33,14 +33,14 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
     val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"), 20000)(storageInterface)
 
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
-    parquetFormatWriter.write(None, StructSinkData(users(0)), topic)
+    parquetFormatWriter.write(None, StructSinkData(users.head), topic)
     parquetFormatWriter.close()
 
     val bytes = S3TestPayloadReader.readPayload(BucketName, "myPrefix", blobStoreContext)
 
     val genericRecords = parquetFormatReader.read(bytes)
     genericRecords.size should be(1)
-    checkRecord(genericRecords(0), "sam", "mr", 100.43)
+    checkRecord(genericRecords.head, "sam", "mr", 100.43)
 
   }
 

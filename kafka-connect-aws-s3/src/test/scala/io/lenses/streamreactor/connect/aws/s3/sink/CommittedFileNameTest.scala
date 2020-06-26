@@ -26,10 +26,10 @@ import org.scalatest.matchers.should.Matchers
 class CommittedFileNameTest extends AnyFlatSpecLike with Matchers {
 
   class TestContext(fileNamingStrategy: S3FileNamingStrategy) {
-    implicit val impFileNamingStrategy = fileNamingStrategy
+    implicit val impFileNamingStrategy: S3FileNamingStrategy = fileNamingStrategy
   }
 
-  val partitions = PartitionSelection(Vector(ValuePartitionField("partition1"), ValuePartitionField("partition2")))
+  val partitions: PartitionSelection = PartitionSelection(Vector(ValuePartitionField("partition1"), ValuePartitionField("partition2")))
 
   class HierarchicalJsonTestContext extends TestContext(new HierarchicalS3FileNamingStrategy(FormatSelection(Json)))
 

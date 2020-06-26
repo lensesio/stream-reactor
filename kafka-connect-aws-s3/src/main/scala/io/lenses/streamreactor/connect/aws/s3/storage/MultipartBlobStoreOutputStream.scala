@@ -83,7 +83,7 @@ class MultipartBlobStoreOutputStream(
     pointer += numberOfBytes
   }
 
-  def complete(): Boolean = {
+  def complete: Boolean = {
 
     if (buffer.position() > 0)
       uploadState = storageInterface.uploadPart(uploadState, buffer.array(), buffer.position)
@@ -105,5 +105,5 @@ class MultipartBlobStoreOutputStream(
     buffer.array().slice(0, minAllowedMultipartSize - buffer.remaining())
   }
 
-  override def getPointer(): Long = pointer
+  override def getPointer: Long = pointer
 }

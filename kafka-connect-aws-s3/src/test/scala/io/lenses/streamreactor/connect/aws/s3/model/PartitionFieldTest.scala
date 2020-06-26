@@ -27,7 +27,7 @@ import scala.collection.JavaConverters._
 
 class PartitionFieldTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
-  val kcql = mock[Kcql]
+  val kcql: Kcql = mock[Kcql]
 
   "partitionField.apply" should "return empty list if null kcql partitionBy supplied" in {
     when(kcql.getPartitionBy).thenReturn(null)

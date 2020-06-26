@@ -24,7 +24,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.{CommitContext, CommitPolicy,
 import org.apache.kafka.connect.data.Schema
 
 trait S3Writer {
-  def shouldFlush(): Boolean
+  def shouldFlush: Boolean
 
   def close(): Unit
 
@@ -89,7 +89,7 @@ class S3WriterImpl(
     )
   }
 
-  override def shouldRollover(schema: Schema) = {
+  override def shouldRollover(schema: Schema): Boolean = {
     rolloverOnSchemaChange &&
       internalState != null &&
       schemaHasChanged(schema)

@@ -38,13 +38,13 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
-    avroFormatWriter.write(None, StructSinkData(users(0)), topic)
+    avroFormatWriter.write(None, StructSinkData(users.head), topic)
     avroFormatWriter.close()
 
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)
 
     genericRecords.size should be(1)
-    checkRecord(genericRecords(0), "sam", "mr", 100.43)
+    checkRecord(genericRecords.head, "sam", "mr", 100.43)
   }
 
   "convert" should "write byteoutputstream with avro for multiple records" in {
@@ -69,7 +69,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers {
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)
 
     genericRecords.size should be(1)
-    genericRecords(0) should be(100)
+    genericRecords.head should be(100)
   }
 
   "convert" should "write byteoutputstream with avro for a multiple primitive records" in {
@@ -106,7 +106,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers {
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)
     genericRecords.size should be(1)
 
-    checkArray(genericRecords(0).asInstanceOf[GenericData.Array[Utf8]], "batman", "robin", "alfred")
+    checkArray(genericRecords.head.asInstanceOf[GenericData.Array[Utf8]], "batman", "robin", "alfred")
 
   }
 

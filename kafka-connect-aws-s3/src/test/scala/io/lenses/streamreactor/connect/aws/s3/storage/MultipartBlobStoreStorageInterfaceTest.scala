@@ -72,7 +72,7 @@ class MultipartBlobStoreStorageInterfaceTest extends AnyFlatSpec with MockitoSug
 
     val submittedPayloads: Seq[ByteSourcePayload] = payloadCaptor.getAllValues.asScala.toList
     submittedPayloads should have size 1
-    S3TestPayloadReader.extractPayload(submittedPayloads(0)) should be("Sausages")
+    S3TestPayloadReader.extractPayload(submittedPayloads.head) should be("Sausages")
   }
 
   "completeUpload" should "complete the upload" in {

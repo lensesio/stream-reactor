@@ -25,16 +25,16 @@ class S3ByteArrayOutputStream extends S3OutputStream {
 
   var pointer: Long = 0L
 
-  override def complete(): Boolean = true
+  override def complete: Boolean = true
 
-  override def getPointer(): Long = pointer
+  override def getPointer: Long = pointer
 
   override def write(b: Int): Unit = {
     wrappedOutputStream.write(b)
     pointer += 1
   }
 
-  def toByteArray() = wrappedOutputStream.toByteArray
+  def toByteArray: Array[Byte] = wrappedOutputStream.toByteArray
 
-  override def toString(): String = wrappedOutputStream.toString("UTF-8")
+  override def toString: String = wrappedOutputStream.toString("UTF-8")
 }

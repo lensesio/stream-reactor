@@ -46,7 +46,7 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
       keySinkData.fold(throw new IllegalArgumentException("No key supplied however requested to write key."))(keyStruct => {
         val keyDataBytes: Array[Byte] = convertToBytes(keyStruct)
         byteOutputRow = byteOutputRow.copy(
-          keySize = if (writeSizes) Some(keyDataBytes.size.longValue()) else None,
+          keySize = if (writeSizes) Some(keyDataBytes.length.longValue()) else None,
           key = keyDataBytes
         )
       })
@@ -55,12 +55,12 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
     if (writeValues) {
       val valueDataBytes: Array[Byte] = convertToBytes(valueSinkData)
       byteOutputRow = byteOutputRow.copy(
-        valueSize = if (writeSizes) Some(valueDataBytes.size.longValue()) else None,
+        valueSize = if (writeSizes) Some(valueDataBytes.length.longValue()) else None,
         value = valueDataBytes
       )
     }
 
-    outputStream.write(byteOutputRow.toByteArray())
+    outputStream.write(byteOutputRow.toByteArray)
     outputStream.flush()
   }
 
@@ -70,7 +70,7 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
                             key: Array[Byte],
                             value: Array[Byte]
                           ) {
-    def toByteArray(): Array[Byte] = {
+    def toByteArray: Array[Byte] = {
       val buffer = new ListBuffer[Byte]()
       keySize.map(keySize => buffer += keySize.byteValue())
       valueSize.map(valueSize => buffer += valueSize.byteValue())
@@ -89,8 +89,8 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
 
   override def rolloverFileOnSchemaChange(): Boolean = false
 
-  override def close: Unit = {
-    Try(outstandingRename = outputStream.complete())
+  override def close(): Unit = {
+    Try(outstandingRename = outputStream.complete)
 
     Try(outputStream.flush())
     Try(outputStream.close())
@@ -98,6 +98,6 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
 
   override def getOutstandingRename: Boolean = outstandingRename
 
-  override def getPointer: Long = outputStream.getPointer()
+  override def getPointer: Long = outputStream.getPointer
 
 }

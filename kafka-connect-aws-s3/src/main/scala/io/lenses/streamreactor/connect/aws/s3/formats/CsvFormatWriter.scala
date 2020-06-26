@@ -58,8 +58,8 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
 
   override def rolloverFileOnSchemaChange(): Boolean = true
 
-  override def close: Unit = {
-    Try(outstandingRename = outputStream.complete())
+  override def close(): Unit = {
+    Try(outstandingRename = outputStream.complete)
 
     Try(csvWriter.flush())
     Try(outputStream.flush())
@@ -70,9 +70,9 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
 
   override def getOutstandingRename: Boolean = outstandingRename
 
-  override def getPointer: Long = outputStream.getPointer()
+  override def getPointer: Long = outputStream.getPointer
 
-  private def writeFields(schema: Schema) = {
+  private def writeFields(schema: Schema): Unit = {
     fields = schema.fields().asScala.map(_.name()).toArray
     if (writeHeaders) {
       csvWriter.writeNext(fields: _*)

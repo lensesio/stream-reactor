@@ -74,7 +74,7 @@ object TestSampleSchemaAndData extends Matchers {
     genericRecord.get("salary") should be(salary)
   }
 
-  def checkArray(genericRecord: GenericData.Array[Utf8], values: String*) = {
+  def checkArray(genericRecord: GenericData.Array[Utf8], values: String*): Unit = {
     values.zipWithIndex.foreach {
       case (string, index) => genericRecord.get(index).toString should be(string)
     }

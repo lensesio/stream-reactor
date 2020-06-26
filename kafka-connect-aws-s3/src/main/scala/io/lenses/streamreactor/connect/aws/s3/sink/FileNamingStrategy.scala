@@ -17,7 +17,6 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import io.lenses.streamreactor.connect.aws.s3._
 import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection}
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionDisplay.KeysAndValues
 import io.lenses.streamreactor.connect.aws.s3.model._
@@ -32,7 +31,7 @@ trait S3FileNamingStrategy {
 
   def getFormat: Format
 
-  def Prefix(bucketAndPrefix: BucketAndPrefix) = bucketAndPrefix.prefix.getOrElse(DefaultPrefix)
+  def prefix(bucketAndPrefix: BucketAndPrefix): String = bucketAndPrefix.prefix.getOrElse(DefaultPrefix)
 
   def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): BucketAndPath
 
@@ -50,10 +49,10 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends
   val format: Format = formatSelection.format
 
   override def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): BucketAndPath =
-    BucketAndPath(bucketAndPrefix.bucket, s"${Prefix(bucketAndPrefix)}/.temp/${topicPartition.topic.value}/${topicPartition.partition}.${format.entryName.toLowerCase}")
+    BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/.temp/${topicPartition.topic.value}/${topicPartition.partition}.${format.entryName.toLowerCase}")
 
   override def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath =
-    BucketAndPath(bucketAndPrefix.bucket, s"${Prefix(bucketAndPrefix)}/${topicPartitionOffset.topic.value}/${topicPartitionOffset.partition}/${topicPartitionOffset.offset.value}.${format.entryName.toLowerCase}")
+    BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${topicPartitionOffset.topic.value}/${topicPartitionOffset.partition}/${topicPartitionOffset.offset.value}.${format.entryName.toLowerCase}")
 
   override def getFormat: Format = format
 
@@ -71,7 +70,7 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
   override def getFormat: Format = format
 
   override def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): BucketAndPath = {
-    BucketAndPath(bucketAndPrefix.bucket, s"${Prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartition.topic.value}/${topicPartition.partition}/temp.${format.entryName.toLowerCase}")
+    BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartition.topic.value}/${topicPartition.partition}/temp.${format.entryName.toLowerCase}")
   }
 
   private def buildPartitionPrefix(partitionValues: Map[PartitionField, String]): String = {
@@ -87,18 +86,18 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
   }
 
   override def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath =
-    BucketAndPath(bucketAndPrefix.bucket, s"${Prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartitionOffset.topic.value}(${topicPartitionOffset.partition}_${topicPartitionOffset.offset.value}).${format.entryName.toLowerCase}")
+    BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartitionOffset.topic.value}(${topicPartitionOffset.partition}_${topicPartitionOffset.offset.value}).${format.entryName.toLowerCase}")
 
   override def processPartitionValues(messageDetail: MessageDetail): Map[PartitionField, String] = {
     partitionSelection
       .partitions
       .map {
-        case partition@HeaderPartitionField(name) => partition -> messageDetail.headers.getOrElse(name, throw new IllegalArgumentException(s"Header '${name}' not found in message"))
+        case partition@HeaderPartitionField(name) => partition -> messageDetail.headers.getOrElse(name, throw new IllegalArgumentException(s"Header '$name' not found in message"))
         case partition@KeyPartitionField(name) => partition -> {
           val sinkData = messageDetail.keySinkData.getOrElse(throw new IllegalArgumentException(s"No key data found"))
-          getPartitionValueFromSinkData("key", sinkData, name)
+          getPartitionValueFromSinkData(sinkData, name)
         }
-        case partition@ValuePartitionField(name) => partition -> getPartitionValueFromSinkData("value", messageDetail.valueSinkData, name)
+        case partition@ValuePartitionField(name) => partition -> getPartitionValueFromSinkData(messageDetail.valueSinkData, name)
         case partition@WholeKeyPartitionField() => partition -> getPartitionByWholeKeyValue(messageDetail.keySinkData)
       }
       .toMap
@@ -129,7 +128,7 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
       )
   }
 
-  def getPartitionValueFromSinkData(partitionByName: String, sinkData: SinkData, partitionName: String): String = {
+  def getPartitionValueFromSinkData(sinkData: SinkData, partitionName: String): String = {
     getFieldStringValue(sinkData, Option(partitionName)).getOrElse("[missing]")
   }
 

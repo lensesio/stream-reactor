@@ -65,8 +65,6 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
 
     sink.close()
 
-    val list1 = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/mytopic/1/"))
-
     blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/mytopic/1/")).size() should be(1)
 
     val byteArray = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/mytopic/1/2.parquet", blobStoreContext)

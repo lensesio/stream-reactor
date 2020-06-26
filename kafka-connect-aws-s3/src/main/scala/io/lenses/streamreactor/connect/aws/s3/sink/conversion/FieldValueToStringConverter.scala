@@ -34,7 +34,7 @@ object FieldValueToStringConverter extends LazyLogging {
         other match {
           case StructSinkData(structVal) => lookupFieldValueFromStruct(structVal, fieldName)
           case MapSinkData(map, _) => lookupFieldValueFromMap(map, fieldName)
-          case ArraySinkData(array, schema) => throw new IllegalArgumentException("Cannot retrieve a named field from an Array")
+          case ArraySinkData(_, _) => throw new IllegalArgumentException("Cannot retrieve a named field from an Array")
           case _ => throw new IllegalArgumentException("Unknown type")
         }
       )
@@ -42,19 +42,17 @@ object FieldValueToStringConverter extends LazyLogging {
   }
 
   def lookupFieldValueFromMap(map: Map[SinkData, SinkData], fieldName: String): Option[String] = {
-    map.get(StringSinkData(fieldName, None)).fold(throw new IllegalArgumentException("Cannot field from specified map"))(
-      e => e match {
-        case data: PrimitiveSinkData => Some(data.primVal().toString)
-        case ByteArraySinkData(array, _) => Some(new String(array.array))
-        case StructSinkData(_) => throw new IllegalArgumentException("Unable to represent a struct as a string value")
-        case MapSinkData(_, _) => throw new IllegalArgumentException("Unable to represent a map as a string value")
-        case ArraySinkData(_, _) => throw new IllegalArgumentException("Unable to represent an array as a string value")
-        case other => throw new IllegalArgumentException(s"Unable to represent a complex object as a string value ${other.getClass.getCanonicalName}")
-      }
-    )
+    map.get(StringSinkData(fieldName, None)).fold(throw new IllegalArgumentException("Cannot field from specified map")) {
+      case data: PrimitiveSinkData => Some(data.primVal().toString)
+      case ByteArraySinkData(array, _) => Some(new String(array.array))
+      case StructSinkData(_) => throw new IllegalArgumentException("Unable to represent a struct as a string value")
+      case MapSinkData(_, _) => throw new IllegalArgumentException("Unable to represent a map as a string value")
+      case ArraySinkData(_, _) => throw new IllegalArgumentException("Unable to represent an array as a string value")
+      case other => throw new IllegalArgumentException(s"Unable to represent a complex object as a string value ${other.getClass.getCanonicalName}")
+    }
   }
 
-  def lookupFieldValueFromStruct(struct: Struct, fieldName: String) = {
+  def lookupFieldValueFromStruct(struct: Struct, fieldName: String): Option[String] = {
 
     Option(struct.schema().field(fieldName))
       .fold(Option.empty[String]) {
@@ -68,7 +66,7 @@ object FieldValueToStringConverter extends LazyLogging {
           case BOOLEAN => convertToOption(struct.getBoolean(fieldName))
           case STRING => convertToOption(struct.getString(fieldName))
           case BYTES => Option(struct.getBytes(fieldName)).fold(Option.empty[String])(byteVal => Some(new String(byteVal)))
-          case other => logger.error("Non-primitive values not supported: " + other);
+          case other => logger.error("Non-primitive values not supported: " + other)
             throw new IllegalArgumentException("Non-primitive values not supported: " + other)
         }
 

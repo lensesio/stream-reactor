@@ -37,9 +37,9 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
     val outputStream = new S3ByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
-    formatWriter.write(None, StructSinkData(users(0)), topic)
+    formatWriter.write(None, StructSinkData(users.head), topic)
 
-    val reader = new StringReader(new String(outputStream.toByteArray()))
+    val reader = new StringReader(new String(outputStream.toByteArray))
 
     val csvReader = new CSVReader(reader)
 
@@ -64,7 +64,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
         )
     )
 
-    val reader = new StringReader(new String(outputStream.toByteArray()))
+    val reader = new StringReader(new String(outputStream.toByteArray))
     val csvReader = new CSVReader(reader)
 
     csvReader.readNext() should be(Array("name", "title", "salary"))
@@ -108,7 +108,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
     formatWriter.write(None, StructSinkData(struct), topic)
 
-    val reader = new StringReader(new String(outputStream.toByteArray()))
+    val reader = new StringReader(new String(outputStream.toByteArray))
 
     val csvReader = new CSVReader(reader)
 

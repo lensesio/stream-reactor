@@ -24,7 +24,7 @@ import org.scalatest.matchers.should.Matchers
 
 class PartitionDisplayTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
-  val kcql = mock[Kcql]
+  val kcql: Kcql = mock[Kcql]
 
   "apply" should "recognise KeysAndValues from KCQL" in {
     when(kcql.getWithPartitioner).thenReturn("KEYSANDVALUES")

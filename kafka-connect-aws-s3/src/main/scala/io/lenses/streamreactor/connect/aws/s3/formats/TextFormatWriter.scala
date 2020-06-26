@@ -50,8 +50,8 @@ class TextFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
   override def rolloverFileOnSchemaChange(): Boolean = false
 
-  override def close: Unit = {
-    Try(outstandingRename = outputStream.complete())
+  override def close(): Unit = {
+    Try(outstandingRename = outputStream.complete)
 
     Try(outputStream.flush())
     Try(outputStream.close())
@@ -59,5 +59,5 @@ class TextFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
   override def getOutstandingRename: Boolean = outstandingRename
 
-  override def getPointer: Long = outputStream.getPointer()
+  override def getPointer: Long = outputStream.getPointer
 }

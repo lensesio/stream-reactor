@@ -73,7 +73,7 @@ case object FormatSelection {
     val split = withoutTicks.split("_")
 
     val formatOptions: Set[FormatOptions] = if (split.size > 1) {
-      split.splitAt(1)._2.flatMap(FormatOptions.withNameInsensitiveOption(_)).toSet
+      split.splitAt(1)._2.flatMap(FormatOptions.withNameInsensitiveOption).toSet
     } else {
       Set.empty
     }

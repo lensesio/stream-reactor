@@ -54,7 +54,7 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
     }.toSet
 
     topicPartitions
-      .map(commitTopicPartitionWriters(_))
+      .map(commitTopicPartitionWriters)
       .map(tpo => (tpo.toTopicPartition, tpo.offset))
       .toMap
   }
@@ -103,7 +103,7 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
 
     newWriter.write(messageDetail, topicPartitionOffset)
 
-    if (newWriter.shouldFlush())
+    if (newWriter.shouldFlush)
       commitTopicPartitionWriters(topicPartitionOffset.toTopicPartition)
 
   }

@@ -32,7 +32,7 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
-    jsonFormatWriter.write(None, StructSinkData(users(0)), topic)
+    jsonFormatWriter.write(None, StructSinkData(users.head), topic)
 
     outputStream.toString should be(recordsAsJson.head + "\n")
 

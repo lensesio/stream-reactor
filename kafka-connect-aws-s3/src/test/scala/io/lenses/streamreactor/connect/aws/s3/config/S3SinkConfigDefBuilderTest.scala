@@ -32,7 +32,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
 
   "apply" should "respect defined properties" in {
     val kcql = S3SinkConfigDefBuilder(props.asJava).getKCQL
-    kcql should have size (1)
+    kcql should have size 1
 
     val element = kcql.head
 

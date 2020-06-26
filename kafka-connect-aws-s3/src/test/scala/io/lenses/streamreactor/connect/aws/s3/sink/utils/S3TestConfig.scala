@@ -37,7 +37,7 @@ object S3TestPayloadReader {
     new BufferedReader(new StringReader(state)).lines().collect(Collectors.joining())
   }
 
-  def toFile(bucketName: String, fileName: String, blobStoreContext: BlobStoreContext, localFileName: String): Unit = {
+  def writeToFile(bucketName: String, fileName: String, blobStoreContext: BlobStoreContext, localFileName: String): Unit = {
     val bytes = readPayload(bucketName, fileName, blobStoreContext)
     FileUtils.writeByteArrayToFile(new File(localFileName), bytes)
   }

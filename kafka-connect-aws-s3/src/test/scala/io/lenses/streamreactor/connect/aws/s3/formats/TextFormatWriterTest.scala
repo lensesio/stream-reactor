@@ -53,7 +53,7 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers {
     val outputStream = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new TextFormatWriter(() => outputStream)
     assertThrows[IllegalStateException] {
-      jsonFormatWriter.write(None, StructSinkData(users(0)), topic)
+      jsonFormatWriter.write(None, StructSinkData(users.head), topic)
     }
   }
 }

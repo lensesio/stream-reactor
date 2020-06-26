@@ -28,7 +28,7 @@ import org.scalatest.matchers.should.Matchers
 class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
   val bytes: Array[Byte] = getPixelBytes
-  val byteArrayValue = ByteArraySinkData(bytes, None)
+  val byteArrayValue: ByteArraySinkData = ByteArraySinkData(bytes, None)
   val pixelLengthBytes: Byte = bytes.length.byteValue()
 
 
@@ -40,7 +40,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     outputStream.toString should be("Sausages")
 
-    bytesFormatWriter.close
+    bytesFormatWriter.close()
   }
 
   "convert" should "write binary with ValueOnly" in {
@@ -50,9 +50,9 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.ValueOnly)
     bytesFormatWriter.write(None, byteArrayValue, topic)
 
-    outputStream.toByteArray() should be(bytes)
+    outputStream.toByteArray should be(bytes)
 
-    bytesFormatWriter.close
+    bytesFormatWriter.close()
 
   }
 
@@ -62,9 +62,9 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.KeyOnly)
     bytesFormatWriter.write(Some(byteArrayValue), ByteArraySinkData("Notused".getBytes, None), topic)
 
-    outputStream.toByteArray() should be(bytes)
+    outputStream.toByteArray should be(bytes)
 
-    bytesFormatWriter.close
+    bytesFormatWriter.close()
 
   }
 
@@ -75,9 +75,9 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.KeyAndValueWithSizes)
     bytesFormatWriter.write(Some(byteArrayValue), byteArrayValue, topic)
 
-    outputStream.toByteArray() should be(Array(pixelLengthBytes, pixelLengthBytes) ++ bytes ++ bytes)
+    outputStream.toByteArray should be(Array(pixelLengthBytes, pixelLengthBytes) ++ bytes ++ bytes)
 
-    bytesFormatWriter.close
+    bytesFormatWriter.close()
 
   }
 
@@ -88,9 +88,9 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     bytesFormatWriter.write(Some(byteArrayValue), ByteArraySinkData("Notused".getBytes, None), topic)
 
-    outputStream.toByteArray() should be(Array(pixelLengthBytes) ++ bytes)
+    outputStream.toByteArray should be(Array(pixelLengthBytes) ++ bytes)
 
-    bytesFormatWriter.close
+    bytesFormatWriter.close()
 
   }
 
@@ -101,9 +101,9 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.ValueWithSize)
     bytesFormatWriter.write(Some(ByteArraySinkData("Notused".getBytes, None)), byteArrayValue, topic)
 
-    outputStream.toByteArray() should be(Array(pixelLengthBytes) ++ bytes)
+    outputStream.toByteArray should be(Array(pixelLengthBytes) ++ bytes)
 
-    bytesFormatWriter.close
+    bytesFormatWriter.close()
 
   }
 
@@ -118,9 +118,9 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     bytesFormatWriter.write(None, ByteArraySinkData(bytes1, None), topic)
     bytesFormatWriter.write(None, ByteArraySinkData(bytes2, None), topic)
 
-    outputStream.toByteArray() should be(bytes)
+    outputStream.toByteArray should be(bytes)
 
-    bytesFormatWriter.close
+    bytesFormatWriter.close()
   }
 
   "convert" should "throw error when avro value is supplied" in {
@@ -128,9 +128,9 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     val outputStream = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.ValueOnly)
     assertThrows[IllegalStateException] {
-      bytesFormatWriter.write(None, StructSinkData(users(0)), topic)
+      bytesFormatWriter.write(None, StructSinkData(users.head), topic)
     }
-    bytesFormatWriter.close
+    bytesFormatWriter.close()
   }
 
   private def getPixelBytes = {

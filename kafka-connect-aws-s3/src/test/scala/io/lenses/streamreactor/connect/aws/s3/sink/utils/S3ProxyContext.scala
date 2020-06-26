@@ -69,7 +69,7 @@ class S3ProxyContext {
 
   def startProxy: S3Proxy = {
 
-    proxy.start
+    proxy.start()
     while ( {
       !proxy.getState.equals(AbstractLifeCycle.STARTED)
     }) Thread.sleep(1)

@@ -38,7 +38,7 @@ class OffsetSeeker(fileNamingStrategy: S3FileNamingStrategy) {
       if (storageInterface.pathExists(bucketAndPrefix)) {
 
         val listOfFilesInBucket = storageInterface.list(bucketAndPrefix)
-        implicit val impFileNamingStrategy = fileNamingStrategy
+        implicit val impFileNamingStrategy: S3FileNamingStrategy = fileNamingStrategy
 
         listOfFilesInBucket.collect {
           case CommittedFileName(topic, partition, end, format)

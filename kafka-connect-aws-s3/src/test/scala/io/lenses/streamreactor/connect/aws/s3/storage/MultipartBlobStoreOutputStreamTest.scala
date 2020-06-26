@@ -110,11 +110,11 @@ class MultipartBlobStoreOutputStreamTest extends AnyFlatSpec with MockitoSugar w
     val payloadCaptor: ArgumentCaptor[Array[Byte]] = setUpUploadPartPayloadCaptor(returnState)
 
     target.write(nBytes(8, 'X'), 0, 8)
-    target.complete()
+    target.complete
 
     val submittedPayloads: Seq[Array[Byte]] = payloadCaptor.getAllValues.asScala.toList
     submittedPayloads should have size 1
-    new String(submittedPayloads(0)).trim() should be("XXXXXXXX")
+    new String(submittedPayloads.head).trim() should be("XXXXXXXX")
   }
 
   "complete" should "complete the upload if no data remains in the buffer" in new TestContext {
@@ -127,7 +127,7 @@ class MultipartBlobStoreOutputStreamTest extends AnyFlatSpec with MockitoSugar w
 
     reset(mockStorageInterface)
 
-    target.complete()
+    target.complete
 
     verify(mockStorageInterface, never).uploadPart(any[MultiPartUploadState], payloadCaptor.capture(), ArgumentMatchers.eq(8))
 
