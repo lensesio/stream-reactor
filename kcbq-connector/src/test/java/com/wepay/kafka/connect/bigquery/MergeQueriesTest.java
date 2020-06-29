@@ -98,26 +98,25 @@ public class MergeQueriesTest {
   public void testUpsertQueryWithPartitionTime() {
     String expectedQuery =
         "MERGE " + table(DESTINATION_TABLE) + " "
-          + "USING (SELECT * FROM (SELECT ARRAY_AGG(x ORDER BY partitionTime DESC LIMIT 1)[OFFSET(0)] src "
+          + "USING (SELECT * FROM (SELECT ARRAY_AGG(x ORDER BY i DESC LIMIT 1)[OFFSET(0)] src "
             + "FROM " + table(INTERMEDIATE_TABLE) + " x "
             + "WHERE batchNumber=" + BATCH_NUMBER + " "
             + "GROUP BY key.k1, key.k2.nested_k1.doubly_nested_k, key.k2.nested_k2)) "
-          + "ON `" + DESTINATION_TABLE.getTable() + "`.kafkaKey=`src`.key "
+          + "ON `" + DESTINATION_TABLE.getTable() + "`." + KEY + "=src.key "
           + "WHEN MATCHED "
-            + "THEN UPDATE SET f1=`src`.value.f1, f2=`src`.value.f2, f3=`src`.value.f3, f4=`src`.value.f4 "
+            + "THEN UPDATE SET f1=src.value.f1, f2=src.value.f2, f3=src.value.f3, f4=src.value.f4 "
           + "WHEN NOT MATCHED "
-            + "THEN INSERT (" 
+            + "THEN INSERT ("
               + KEY + ", "
-              + "_PARTITIONTIME, " 
+              + "_PARTITIONTIME, "
               + "f1, f2, f3, f4) "
-            + "VALUES (" 
-              + "`src`.key, " 
-              + "CAST(CAST(DATE(`src`.partitionTime) AS DATE) AS TIMESTAMP), " 
-              + "`src`.value.f1, `src`.value.f2, `src`.value.f3, `src`.value.f4" 
+            + "VALUES ("
+              + "src.key, "
+              + "CAST(CAST(DATE(src.partitionTime) AS DATE) AS TIMESTAMP), "
+              + "src.value.f1, src.value.f2, src.value.f3, src.value.f4"
             + ");";
     String actualQuery = mergeQueries(true, true, false)
         .mergeFlushQuery(INTERMEDIATE_TABLE, DESTINATION_TABLE, BATCH_NUMBER);
-    System.out.println(actualQuery);
     assertEquals(expectedQuery, actualQuery);
   }
 
@@ -125,24 +124,23 @@ public class MergeQueriesTest {
   public void testUpsertQueryWithoutPartitionTime() {
     String expectedQuery =
         "MERGE " + table(DESTINATION_TABLE) + " "
-          + "USING (SELECT * FROM (SELECT ARRAY_AGG(x ORDER BY partitionTime DESC LIMIT 1)[OFFSET(0)] src "
+          + "USING (SELECT * FROM (SELECT ARRAY_AGG(x ORDER BY i DESC LIMIT 1)[OFFSET(0)] src "
             + "FROM " + table(INTERMEDIATE_TABLE) + " x "
             + "WHERE batchNumber=" + BATCH_NUMBER + " "
             + "GROUP BY key.k1, key.k2.nested_k1.doubly_nested_k, key.k2.nested_k2)) "
-          + "ON `" + DESTINATION_TABLE.getTable() + "`.kafkaKey=`src`.key "
+          + "ON `" + DESTINATION_TABLE.getTable() + "`." + KEY + "=src.key "
           + "WHEN MATCHED "
-            + "THEN UPDATE SET f1=`src`.value.f1, f2=`src`.value.f2, f3=`src`.value.f3, f4=`src`.value.f4 "
+            + "THEN UPDATE SET f1=src.value.f1, f2=src.value.f2, f3=src.value.f3, f4=src.value.f4 "
           + "WHEN NOT MATCHED "
             + "THEN INSERT ("
               + KEY + ", "
               + "f1, f2, f3, f4) "
             + "VALUES ("
-              + "`src`.key, "
-              + "`src`.value.f1, `src`.value.f2, `src`.value.f3, `src`.value.f4"
+              + "src.key, "
+              + "src.value.f1, src.value.f2, src.value.f3, src.value.f4"
             + ");";
     String actualQuery = mergeQueries(false, true, false)
         .mergeFlushQuery(INTERMEDIATE_TABLE, DESTINATION_TABLE, BATCH_NUMBER);
-    System.out.println(actualQuery);
     assertEquals(expectedQuery, actualQuery);
   }
 
@@ -150,26 +148,41 @@ public class MergeQueriesTest {
   public void testDeleteQueryWithPartitionTime() {
     String expectedQuery =
         "MERGE " + table(DESTINATION_TABLE) + " "
-          + "USING (SELECT * FROM (SELECT ARRAY_AGG(x ORDER BY partitionTime DESC LIMIT 1)[OFFSET(0)] src " 
-            + "FROM " + table(INTERMEDIATE_TABLE) + " x "
-            + "WHERE batchNumber=" + BATCH_NUMBER + " " 
-            + "GROUP BY key.k1, key.k2.nested_k1.doubly_nested_k, key.k2.nested_k2)) " 
-          + "ON `" + DESTINATION_TABLE.getTable() + "`.kafkaKey=`src`.key AND `src`.value IS NULL " 
-          + "WHEN MATCHED " 
-            + "THEN DELETE " 
-          + "WHEN NOT MATCHED " 
-            + "THEN INSERT (" 
-              + KEY + ", "
-              + "_PARTITIONTIME, " 
-              + "f1, f2, f3, f4) " 
-            + "VALUES (" 
-              + "`src`.key, " 
-              + "CAST(CAST(DATE(`src`.partitionTime) AS DATE) AS TIMESTAMP), " 
-              + "`src`.value.f1, `src`.value.f2, `src`.value.f3, `src`.value.f4" 
+          + "USING ("
+            + "SELECT batch.key AS key, partitionTime, value "
+              + "FROM ("
+                + "SELECT src.i, src.key FROM ("
+                  + "SELECT ARRAY_AGG("
+                    + "x ORDER BY i DESC LIMIT 1"
+                  + ")[OFFSET(0)] src "
+                  + "FROM ("
+                    + "SELECT * FROM " + table(INTERMEDIATE_TABLE) + " "
+                      + "WHERE batchNumber=" + BATCH_NUMBER
+                  + ") x "
+                  + "WHERE x.value IS NULL "
+                  + "GROUP BY key.k1, key.k2.nested_k1.doubly_nested_k, key.k2.nested_k2)) AS deletes "
+                + "RIGHT JOIN ("
+                  + "SELECT * FROM " + table(INTERMEDIATE_TABLE) + " "
+                    + "WHERE batchNumber=" + BATCH_NUMBER
+                + ") AS batch "
+                + "USING (key) "
+              + "WHERE deletes.i IS NULL OR batch.i >= deletes.i "
+              + "ORDER BY batch.i ASC) AS src "
+            + "ON `" + DESTINATION_TABLE.getTable() + "`." + KEY + "=src.key AND src.value IS NULL "
+            + "WHEN MATCHED "
+              + "THEN DELETE "
+            + "WHEN NOT MATCHED AND src.value IS NOT NULL "
+              + "THEN INSERT ("
+                + KEY + ", "
+                + "_PARTITIONTIME, "
+                + "f1, f2, f3, f4) "
+              + "VALUES ("
+                + "src.key, "
+                + "CAST(CAST(DATE(src.partitionTime) AS DATE) AS TIMESTAMP), "
+                + "src.value.f1, src.value.f2, src.value.f3, src.value.f4"
             + ");";
     String actualQuery = mergeQueries(true, false, true)
         .mergeFlushQuery(INTERMEDIATE_TABLE, DESTINATION_TABLE, BATCH_NUMBER);
-    System.out.println(actualQuery);
     assertEquals(expectedQuery, actualQuery);
   }
 
@@ -177,24 +190,39 @@ public class MergeQueriesTest {
   public void testDeleteQueryWithoutPartitionTime() {
     String expectedQuery =
         "MERGE " + table(DESTINATION_TABLE) + " "
-          + "USING (SELECT * FROM (SELECT ARRAY_AGG(x ORDER BY partitionTime DESC LIMIT 1)[OFFSET(0)] src "
-            + "FROM " + table(INTERMEDIATE_TABLE) + " x "
-            + "WHERE batchNumber=" + BATCH_NUMBER + " "
-            + "GROUP BY key.k1, key.k2.nested_k1.doubly_nested_k, key.k2.nested_k2)) "
-          + "ON `" + DESTINATION_TABLE.getTable() + "`.kafkaKey=`src`.key AND `src`.value IS NULL "
-          + "WHEN MATCHED "
-            + "THEN DELETE "
-          + "WHEN NOT MATCHED "
-            + "THEN INSERT ("
-              + KEY + ", "
-              + "f1, f2, f3, f4) "
-            + "VALUES ("
-              + "`src`.key, "
-              + "`src`.value.f1, `src`.value.f2, `src`.value.f3, `src`.value.f4"
+          + "USING ("
+            + "SELECT batch.key AS key, value "
+              + "FROM ("
+                + "SELECT src.i, src.key FROM ("
+                  + "SELECT ARRAY_AGG("
+                    + "x ORDER BY i DESC LIMIT 1"
+                  + ")[OFFSET(0)] src "
+                  + "FROM ("
+                    + "SELECT * FROM " + table(INTERMEDIATE_TABLE) + " "
+                      + "WHERE batchNumber=" + BATCH_NUMBER
+                  + ") x "
+                  + "WHERE x.value IS NULL "
+                  + "GROUP BY key.k1, key.k2.nested_k1.doubly_nested_k, key.k2.nested_k2)) AS deletes "
+                + "RIGHT JOIN ("
+                  + "SELECT * FROM " + table(INTERMEDIATE_TABLE) + " "
+                    + "WHERE batchNumber=" + BATCH_NUMBER
+                + ") AS batch "
+                + "USING (key) "
+              + "WHERE deletes.i IS NULL OR batch.i >= deletes.i "
+              + "ORDER BY batch.i ASC) AS src "
+            + "ON `" + DESTINATION_TABLE.getTable() + "`." + KEY + "=src.key AND src.value IS NULL "
+            + "WHEN MATCHED "
+              + "THEN DELETE "
+            + "WHEN NOT MATCHED AND src.value IS NOT NULL "
+              + "THEN INSERT ("
+                + KEY + ", "
+                + "f1, f2, f3, f4) "
+              + "VALUES ("
+                + "src.key, "
+                + "src.value.f1, src.value.f2, src.value.f3, src.value.f4"
             + ");";
     String actualQuery = mergeQueries(false, false, true)
         .mergeFlushQuery(INTERMEDIATE_TABLE, DESTINATION_TABLE, BATCH_NUMBER);
-    System.out.println(actualQuery);
     assertEquals(expectedQuery, actualQuery);
   }
 
@@ -202,28 +230,27 @@ public class MergeQueriesTest {
   public void testUpsertDeleteQueryWithPartitionTime() {
     String expectedQuery =
         "MERGE " + table(DESTINATION_TABLE) + " "
-          + "USING (SELECT * FROM (SELECT ARRAY_AGG(x ORDER BY partitionTime DESC LIMIT 1)[OFFSET(0)] src " 
-            + "FROM " + table(INTERMEDIATE_TABLE) + " x " 
+          + "USING (SELECT * FROM (SELECT ARRAY_AGG(x ORDER BY i DESC LIMIT 1)[OFFSET(0)] src "
+            + "FROM " + table(INTERMEDIATE_TABLE) + " x "
             + "WHERE batchNumber=" + BATCH_NUMBER + " "
-            + "GROUP BY key.k1, key.k2.nested_k1.doubly_nested_k, key.k2.nested_k2)) " 
-          + "ON `" + DESTINATION_TABLE.getTable() + "`.kafkaKey=`src`.key " 
-          + "WHEN MATCHED AND `src`.value IS NOT NULL " 
-            + "THEN UPDATE SET f1=`src`.value.f1, f2=`src`.value.f2, f3=`src`.value.f3, f4=`src`.value.f4 " 
-          + "WHEN MATCHED AND `src`.value IS NULL " 
-            + "THEN DELETE " 
-          + "WHEN NOT MATCHED AND `src`.value IS NOT NULL " 
-            + "THEN INSERT (" 
-              + KEY + ", " 
-              + "_PARTITIONTIME, " 
-              + "f1, f2, f3, f4) " 
-            + "VALUES (" 
-              + "`src`.key, " 
-              + "CAST(CAST(DATE(`src`.partitionTime) AS DATE) AS TIMESTAMP), " 
-              + "`src`.value.f1, `src`.value.f2, `src`.value.f3, `src`.value.f4" 
+            + "GROUP BY key.k1, key.k2.nested_k1.doubly_nested_k, key.k2.nested_k2)) "
+          + "ON `" + DESTINATION_TABLE.getTable() + "`." + KEY + "=src.key "
+          + "WHEN MATCHED AND src.value IS NOT NULL "
+            + "THEN UPDATE SET f1=src.value.f1, f2=src.value.f2, f3=src.value.f3, f4=src.value.f4 "
+          + "WHEN MATCHED AND src.value IS NULL "
+            + "THEN DELETE "
+          + "WHEN NOT MATCHED AND src.value IS NOT NULL "
+            + "THEN INSERT ("
+              + KEY + ", "
+              + "_PARTITIONTIME, "
+              + "f1, f2, f3, f4) "
+            + "VALUES ("
+              + "src.key, "
+              + "CAST(CAST(DATE(src.partitionTime) AS DATE) AS TIMESTAMP), "
+              + "src.value.f1, src.value.f2, src.value.f3, src.value.f4"
             + ");";
     String actualQuery = mergeQueries(true, true, true)
         .mergeFlushQuery(INTERMEDIATE_TABLE, DESTINATION_TABLE, BATCH_NUMBER);
-    System.out.println(actualQuery);
     assertEquals(expectedQuery, actualQuery);
   }
 
@@ -231,38 +258,35 @@ public class MergeQueriesTest {
   public void testUpsertDeleteQueryWithoutPartitionTime() {
     String expectedQuery =
         "MERGE " + table(DESTINATION_TABLE) + " "
-          + "USING (SELECT * FROM (SELECT ARRAY_AGG(x ORDER BY partitionTime DESC LIMIT 1)[OFFSET(0)] src "
+          + "USING (SELECT * FROM (SELECT ARRAY_AGG(x ORDER BY i DESC LIMIT 1)[OFFSET(0)] src "
             + "FROM " + table(INTERMEDIATE_TABLE) + " x "
             + "WHERE batchNumber=" + BATCH_NUMBER + " "
             + "GROUP BY key.k1, key.k2.nested_k1.doubly_nested_k, key.k2.nested_k2)) "
-          + "ON `" + DESTINATION_TABLE.getTable() + "`.kafkaKey=`src`.key "
-          + "WHEN MATCHED AND `src`.value IS NOT NULL "
-            + "THEN UPDATE SET f1=`src`.value.f1, f2=`src`.value.f2, f3=`src`.value.f3, f4=`src`.value.f4 "
-          + "WHEN MATCHED AND `src`.value IS NULL "
+          + "ON `" + DESTINATION_TABLE.getTable() + "`." + KEY + "=src.key "
+          + "WHEN MATCHED AND src.value IS NOT NULL "
+            + "THEN UPDATE SET f1=src.value.f1, f2=src.value.f2, f3=src.value.f3, f4=src.value.f4 "
+          + "WHEN MATCHED AND src.value IS NULL "
             + "THEN DELETE "
-          + "WHEN NOT MATCHED AND `src`.value IS NOT NULL "
+          + "WHEN NOT MATCHED AND src.value IS NOT NULL "
             + "THEN INSERT ("
               + KEY + ", "
               + "f1, f2, f3, f4) "
             + "VALUES ("
-              + "`src`.key, "
-              + "`src`.value.f1, `src`.value.f2, `src`.value.f3, `src`.value.f4"
+              + "src.key, "
+              + "src.value.f1, src.value.f2, src.value.f3, src.value.f4"
             + ");";    String actualQuery = mergeQueries(false, true, true)
         .mergeFlushQuery(INTERMEDIATE_TABLE, DESTINATION_TABLE, BATCH_NUMBER);
-    System.out.println(actualQuery);
     assertEquals(expectedQuery, actualQuery);
   }
 
   @Test
   public void testBatchClearQuery() {
-    String expectedQuery = 
+    String expectedQuery =
         "DELETE FROM " + table(INTERMEDIATE_TABLE)
           + " WHERE batchNumber <= " + BATCH_NUMBER
           + " AND _PARTITIONTIME IS NOT NULL;";
     // No difference in batch clearing between upsert, delete, and both, or with or without partition time
-    String actualQuery = mergeQueries(false, false, false)
-        .batchClearQuery(INTERMEDIATE_TABLE, BATCH_NUMBER);
-    System.out.println(actualQuery);
+    String actualQuery = MergeQueries.batchClearQuery(INTERMEDIATE_TABLE, BATCH_NUMBER);
     assertEquals(expectedQuery, actualQuery);
   }
 

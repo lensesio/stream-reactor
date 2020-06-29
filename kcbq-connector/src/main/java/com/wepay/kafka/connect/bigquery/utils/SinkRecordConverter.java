@@ -106,6 +106,7 @@ public class SinkRecordConverter {
 
         result.put(MergeQueries.INTERMEDIATE_TABLE_KEY_FIELD_NAME, convertedKey);
         result.put(MergeQueries.INTERMEDIATE_TABLE_VALUE_FIELD_NAME, convertedValue);
+        result.put(MergeQueries.INTERMEDIATE_TABLE_ITERATION_FIELD_NAME, totalBatchSize);
         if (usePartitionDecorator && useMessageTimeDatePartitioning) {
             if (record.timestampType() == TimestampType.NO_TIMESTAMP_TYPE) {
                 throw new ConnectException(

@@ -17,17 +17,19 @@ import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.convert.KafkaDataBuilder;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
-
+import com.wepay.kafka.connect.bigquery.utils.TableNameUtils;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.concurrent.ConcurrentHashMap;
@@ -249,8 +251,7 @@ public class SchemaManager {
     } catch (BigQueryConnectException exception) {
       throw new BigQueryConnectException("Failed to unionize schemas of records for the table " + table, exception);
     }
-    TableInfo tableInfo = constructTableInfo(table, schema, tableDescription);
-    return tableInfo;
+    return constructTableInfo(table, schema, tableDescription);
   }
 
   /**
@@ -294,14 +295,8 @@ public class SchemaManager {
    * @return The resulting unionized BigQuery schema
    */
   private com.google.cloud.bigquery.Schema unionizeSchemas(com.google.cloud.bigquery.Schema firstSchema, com.google.cloud.bigquery.Schema secondSchema) {
-    Map<String, Field> firstSchemaFields = firstSchema
-            .getFields()
-            .stream()
-            .collect(Collectors.toMap(Field::getName, Function.identity()));
-    Map<String, Field> secondSchemaFields = secondSchema
-            .getFields()
-            .stream()
-            .collect(Collectors.toMap(Field::getName, Function.identity()));
+    Map<String, Field> firstSchemaFields = schemaFields(firstSchema);
+    Map<String, Field> secondSchemaFields = schemaFields(secondSchema);
     for (Map.Entry<String, Field> entry : secondSchemaFields.entrySet()) {
       if (!firstSchemaFields.containsKey(entry.getKey())) {
         if (allowNewBQFields && (entry.getValue().getMode().equals(Field.Mode.NULLABLE)
@@ -338,6 +333,18 @@ public class SchemaManager {
       tableDescription = kafkaValueSchema.doc() != null ? kafkaValueSchema.doc() : tableDescription;
     }
     return tableDescription;
+  }
+
+  /**
+   * Returns a dictionary providing lookup of each field in the schema by name. The ordering of the
+   * fields in the schema is preserved in the returned map.
+   * @param schema The BigQuery schema
+   * @return A map allowing lookup of schema fields by name
+   */
+  private Map<String, Field> schemaFields(com.google.cloud.bigquery.Schema schema) {
+    Map<String, Field> result = new LinkedHashMap<>();
+    schema.getFields().forEach(field -> result.put(field.getName(), field));
+    return result;
   }
 
   // package private for testing.
@@ -416,6 +423,12 @@ public class SchemaManager {
         .build();
     result.add(kafkaKeyField);
 
+    Field iterationField = Field
+        .newBuilder(MergeQueries.INTERMEDIATE_TABLE_ITERATION_FIELD_NAME, LegacySQLTypeName.INTEGER)
+        .setMode(Field.Mode.REQUIRED)
+        .build();
+    result.add(iterationField);
+
     Field partitionTimeField = Field
         .newBuilder(MergeQueries.INTERMEDIATE_TABLE_PARTITION_TIME_FIELD_NAME, LegacySQLTypeName.TIMESTAMP)
         .setMode(Field.Mode.NULLABLE)
@@ -450,9 +463,9 @@ public class SchemaManager {
   }
 
   private String table(TableId table) {
-    return (intermediateTables ? "intermediate " : "")
-        + "table "
-        + table;
+    return intermediateTables
+        ? TableNameUtils.intTable(table)
+        : TableNameUtils.table(table);
   }
 
   private com.google.cloud.bigquery.Schema readTableSchema(TableId table) {

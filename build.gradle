@@ -28,6 +28,7 @@ project.ext {
     ioConfluentVersion = '5.5.0'
     junitVersion = '4.12'
     kafkaVersion = '2.5.0'
+    kafkaScalaVersion = '2.12' // For integration testing only
     mockitoVersion = '3.2.4'
     slf4jVersion = '1.6.1'
 }
@@ -153,6 +154,26 @@ project(':kcbq-connector') {
         }
     }
 
+    test {
+        useJUnit {
+            // Exclude embedded integration tests from normal testing since they require BigQuery
+            // credentials and can take a while
+            excludeCategories 'org.apache.kafka.test.IntegrationTest'
+        }
+    }
+
+    task embeddedIntegrationTest(type: Test) {
+        useJUnit {
+            includeCategories 'org.apache.kafka.test.IntegrationTest'
+        }
+
+        // Enable logging for integration tests
+        testLogging {
+            outputs.upToDateWhen {false}
+            showStandardStreams = true
+        }
+    }
+
     task integrationTestPrep() {
         dependsOn 'integrationTestTablePrep'
         dependsOn 'integrationTestBucketPrep'
@@ -226,7 +247,12 @@ project(':kcbq-connector') {
                 "junit:junit:$junitVersion",
                 "org.mockito:mockito-core:$mockitoVersion",
                 "org.mockito:mockito-inline:$mockitoVersion",
-                "org.apache.kafka:connect-api:$kafkaVersion"
+                "org.apache.kafka:kafka_$kafkaScalaVersion:$kafkaVersion",
+                "org.apache.kafka:kafka_$kafkaScalaVersion:$kafkaVersion:test",
+                "org.apache.kafka:kafka-clients:$kafkaVersion:test",
+                "org.apache.kafka:connect-api:$kafkaVersion",
+                "org.apache.kafka:connect-runtime:$kafkaVersion",
+                "org.apache.kafka:connect-runtime:$kafkaVersion:test",
         )
     }
 

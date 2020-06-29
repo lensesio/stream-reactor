@@ -28,6 +28,7 @@ import com.google.cloud.bigquery.InsertAllResponse;
 import com.wepay.kafka.connect.bigquery.SchemaManager;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 
+import com.wepay.kafka.connect.bigquery.exception.ExpectedInterruptException;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -130,6 +131,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
           writeResponse = bigQuery.insertAll(request);
         } catch (BigQueryException exception) {
           // no-op, we want to keep retrying the insert
+          logger.trace("insertion failed", exception);
         }
       } else {
         return writeResponse.getInsertErrors();
@@ -143,7 +145,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
       try {
         Thread.sleep(RETRY_WAIT_TIME);
       } catch (InterruptedException e) {
-        // no-op, we want to keep retrying the insert
+        throw new ExpectedInterruptException("Interrupted while waiting to retry write");
       }
     }
     logger.debug("table insertion completed successfully");
@@ -178,6 +180,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
    * This is why we can't have nice things, Google.
    */
   private boolean onlyContainsInvalidSchemaErrors(Map<Long, List<BigQueryError>> errors) {
+    logger.trace("write response contained errors: \n{}", errors);
     boolean invalidSchemaError = false;
     for (List<BigQueryError> errorList : errors.values()) {
       for (BigQueryError error : errorList) {

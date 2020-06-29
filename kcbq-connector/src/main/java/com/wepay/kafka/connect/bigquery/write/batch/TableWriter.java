@@ -23,6 +23,7 @@ import com.google.cloud.bigquery.InsertAllRequest.RowToInsert;
 
 import com.google.cloud.bigquery.TableId;
 import com.wepay.kafka.connect.bigquery.utils.SinkRecordConverter;
+import com.wepay.kafka.connect.bigquery.exception.ExpectedInterruptException;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
 
@@ -102,7 +103,7 @@ public class TableWriter implements Runnable {
         }
       }
     } catch (InterruptedException err) {
-      throw new ConnectException("Thread interrupted while writing to BigQuery.", err);
+      throw new ExpectedInterruptException("Thread interrupted while writing to BigQuery.");
     }
 
     // Common case is 1 successful call and 0 failed calls:

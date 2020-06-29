@@ -131,12 +131,41 @@ adjusting flags given to the Avro Console Producer and tweaking the config setti
 
 ## Integration Testing the Connector
 
+There is a legacy Docker-based integration test for the connector, and newer integration tests that
+programmatically instantiate an embedded Connect cluster.
+
+### Embedded integration tests
+
+Currently these tests only verify the connector's upsert/delete feature. They should eventually
+replace all of the existing Docker-based tests.
+
+#### Configuring the tests
+
+You must supply the following environment variables in order to run the tests:
+
+- `$KCBQ_TEST_PROJECT`: The name of the BigQuery project to use for the test
+- `$KCBQ_TEST_DATASET`: The name of the BigQuery dataset to use for the test
+- `$KCBQ_TEST_KEYFILE`: The key (either file or raw contents) used to authenticate with BigQuery
+during the test
+
+Additionally, the `$KCBQ_TEST_KEYSOURCE` variable can be supplied to specify whether the value of
+`$KCBQ_TEST_KEYFILE` are a path to a key file (if set to `FILE`) or the raw contents of a key file
+(if set to `JSON`). The default is `FILE`.
+
+#### Running the Integration Tests
+
+```bash
+./gradlew embeddedIntegrationTest
+```
+
+### Docker-based tests
+
 > **NOTE**: You must have [Docker] installed and running on your machine in order to run integration
 tests for the connector.
 
 This all takes place in the `kcbq-connector` directory.
 
-### How Integration Testing Works
+#### How Integration Testing Works
 
 Integration tests run by creating [Docker] instances for [Zookeeper], [Kafka], [Schema Registry], 
 and the BigQuery Connector itself, then verifying the results using a [JUnit] test.
@@ -148,7 +177,7 @@ The project and dataset they write to, as well as the specific JSON key file the
 specified by command-line flag, environment variable, or configuration file — the exact details of
 each can be found by running the integration test script with the `-?` flag.
 
-### Data Corruption Concerns
+#### Data Corruption Concerns
 
 In order to ensure the validity of each test, any table that will be written to in the course of
 integration testing is preemptively deleted before the connector is run. This will only be an issue
@@ -161,7 +190,7 @@ tests will corrupt any existing data that is already on your machine, and there 
 free up any of your ports that might currently be in use by real instances of the programs that are 
 faked in the process of testing.
 
-### Running the Integration Tests
+#### Running the Integration Tests
 
 Running the series of integration tests is easy:
 
@@ -176,7 +205,7 @@ the `--help` flag.
 > **NOTE:** You must have a recent version of [boot2docker], [Docker Machine], [Docker], etc.
 installed. Older versions will hang when cleaning containers, and linking doesn't work properly.
 
-### Adding New Integration Tests
+#### Adding New Integration Tests
 
 Adding an integration test is a little more involved, and consists of two major steps: specifying
 Avro data to be sent to Kafka, and specifying via JUnit test how to verify that such data made 

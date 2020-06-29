@@ -25,6 +25,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import com.wepay.kafka.connect.bigquery.MergeQueries;
+import com.wepay.kafka.connect.bigquery.exception.ExpectedInterruptException;
 import com.wepay.kafka.connect.bigquery.utils.FieldNameSanitizer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -41,6 +42,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+
+import static com.wepay.kafka.connect.bigquery.utils.TableNameUtils.intTable;
 
 public class MergeBatches {
   private static final Logger logger = LoggerFactory.getLogger(MergeBatches.class);
@@ -156,8 +159,8 @@ public class MergeBatches {
       batch.recordOffsetFor(record);
 
       long pendingBatchSize = batch.increment();
-      logger.trace("Added record to batch {} for intermediate table {}; {} rows are currently pending",
-          batchNumber, intermediateTable, pendingBatchSize);
+      logger.trace("Added record to batch {} for {}; {} rows are currently pending",
+          batchNumber, intTable(intermediateTable), pendingBatchSize);
       return batch.total();
     }
   }
@@ -180,8 +183,8 @@ public class MergeBatches {
         long remainder = batch.recordWrites(batchSize);
         batch.notifyAll();
         logger.trace("Notified merge flush executor of successful write of {} rows "
-                + "for batch {} for intermediate table {}; {} rows remaining",
-            batchSize, batchNumber, intermediateTable, remainder);
+                + "for batch {} for {}; {} rows remaining",
+            batchSize, batchNumber, intTable(intermediateTable), remainder);
       }
     });
   }
@@ -211,45 +214,45 @@ public class MergeBatches {
     if (batchNumber != 0) {
       final int priorBatchNumber = batchNumber - 1;
       synchronized (allBatchesForTable) {
-        logger.debug("Ensuring batch {} is completed for intermediate table {} before flushing batch {}",
-            priorBatchNumber, intermediateTable, batchNumber);
+        logger.debug("Ensuring batch {} is completed for {} before flushing batch {}",
+            priorBatchNumber, intTable(intermediateTable), batchNumber);
         while (allBatchesForTable.containsKey(priorBatchNumber)) {
           try {
             allBatchesForTable.wait();
           } catch (InterruptedException e) {
-            logger.warn("Interrupted while waiting for batch {} to complete for intermediate table {}",
-                batchNumber, intermediateTable);
-            throw new ConnectException(String.format(
-                "Interrupted while waiting for batch %d to complete for intermediate tabld %s",
-                batchNumber, intermediateTable
+            logger.warn("Interrupted while waiting for batch {} to complete for {}",
+                batchNumber, intTable(intermediateTable));
+            throw new ExpectedInterruptException(String.format(
+                "Interrupted while waiting for batch %d to complete for %s",
+                batchNumber, intTable(intermediateTable)
             ));
           }
         }
       }
     } else {
-      logger.debug("Flushing first batch for intermediate table {}", intermediateTable);
+      logger.debug("Flushing first batch for {}", intTable(intermediateTable));
     }
 
     final Batch currentBatch = allBatchesForTable.get(batchNumber);
     if (currentBatch == null) {
-      logger.trace("No rows to write in batch {} for intermediate table {}", batchNumber, intermediateTable);
+      logger.trace("No rows to write in batch {} for {}", batchNumber, intTable(intermediateTable));
       return false;
     }
 
     synchronized (currentBatch) {
-      logger.debug("{} rows currently remaining for batch {} for intermediate table {}",
-          currentBatch.pending(), batchNumber, intermediateTable);
+      logger.debug("{} rows currently remaining for batch {} for {}",
+          currentBatch.pending(), batchNumber, intTable(intermediateTable));
       while (currentBatch.pending() != 0) {
-        logger.trace("Waiting for all rows for batch {} from intermediate table {} to be written before flushing; {} remaining",
-            batchNumber, intermediateTable, currentBatch.pending());
+        logger.trace("Waiting for all rows for batch {} from {} to be written before flushing; {} remaining",
+            batchNumber, intTable(intermediateTable), currentBatch.pending());
         try {
           currentBatch.wait();
         } catch (InterruptedException e) {
-          logger.warn("Interrupted while waiting for all rows for batch {} from intermediate table {} to be written",
-              batchNumber, intermediateTable);
-          throw new ConnectException(String.format(
-              "Interrupted while waiting for all rows for batch %d from intermediate table %s to be written",
-              batchNumber, intermediateTable
+          logger.warn("Interrupted while waiting for all rows for batch {} from {} to be written",
+              batchNumber, intTable(intermediateTable));
+          throw new ExpectedInterruptException(String.format(
+              "Interrupted while waiting for all rows for batch %d from %s to be written",
+              batchNumber, intTable(intermediateTable)
           ));
         }
       }
@@ -257,16 +260,16 @@ public class MergeBatches {
 
     try {
       logger.trace(
-          "Waiting {}ms before running merge query on batch {} from intermediate table {} "
+          "Waiting {}ms before running merge query on batch {} from {} "
               + "in order to ensure that all rows are available in the streaming buffer",
-          streamingBufferAvailabilityWaitMs, batchNumber, intermediateTable);
+          streamingBufferAvailabilityWaitMs, batchNumber, intTable(intermediateTable));
       Thread.sleep(streamingBufferAvailabilityWaitMs);
     } catch (InterruptedException e) {
-      logger.warn("Interrupted while waiting before merge flushing batch {} for intermediate table {}",
-          batchNumber, intermediateTable);
-      throw new ConnectException(String.format(
-          "Interrupted while waiting before merge flushing batch %d for intermediate table %s",
-          batchNumber, intermediateTable
+      logger.warn("Interrupted while waiting before merge flushing batch {} for {}",
+          batchNumber, intTable(intermediateTable));
+      throw new ExpectedInterruptException(String.format(
+          "Interrupted while waiting before merge flushing batch %d for %s",
+          batchNumber, intTable(intermediateTable)
       ));
     }
     return true;
@@ -280,8 +283,8 @@ public class MergeBatches {
    * @param batchNumber the batch for the merge flush
    */
   public void recordSuccessfulFlush(TableId intermediateTable, int batchNumber) {
-    logger.trace("Successfully merge flushed batch {} for intermediate table {}",
-        batchNumber, intermediateTable);
+    logger.trace("Successfully merge flushed batch {} for {}",
+        batchNumber, intTable(intermediateTable));
     final ConcurrentMap<Integer, Batch> allBatchesForTable = batches.get(intermediateTable);
     Batch batch = allBatchesForTable.remove(batchNumber);
 

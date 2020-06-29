@@ -62,12 +62,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static com.wepay.kafka.connect.bigquery.utils.TableNameUtils.intTable;
 
 /**
  * A {@link SinkTask} used to translate Kafka Connect {@link SinkRecord SinkRecords} into BigQuery
@@ -131,6 +134,11 @@ public class BigQuerySinkTask extends SinkTask {
 
   @Override
   public void flush(Map<TopicPartition, OffsetAndMetadata> offsets) {
+    if (upsertDelete) {
+      throw new ConnectException("This connector cannot perform upsert/delete on older versions of "
+          + "the Connect framework; please upgrade to version 0.10.2.0 or later");
+    }
+
     try {
       executor.awaitCurrentTasks();
     } catch (InterruptedException err) {
@@ -459,33 +467,36 @@ public class BigQuerySinkTask extends SinkTask {
 
   @Override
   public void stop() {
+    maybeStopExecutor(loadExecutor, "load executor");
+    maybeStopExecutor(executor, "table write executor");
+    if (upsertDelete) {
+      mergeBatches.intermediateTables().forEach(table -> {
+        logger.debug("Deleting {}", intTable(table));
+        getBigQuery().delete(table);
+      });
+    }
+
+    logger.trace("task.stop()");
+  }
+
+  private void maybeStopExecutor(ExecutorService executor, String executorName) {
+    if (executor == null) {
+      return;
+    }
+
     try {
       if (upsertDelete) {
-        mergeBatches.intermediateTables().forEach(table -> {
-          logger.debug("Deleting intermediate table {}", table);
-          getBigQuery().delete(table);
-        });
-      }
-    } finally {
-      try {
+        logger.trace("Forcibly shutting down {}", executorName);
+        executor.shutdownNow();
+      } else {
+        logger.trace("Requesting shutdown for {}", executorName);
         executor.shutdown();
-        executor.awaitTermination(EXECUTOR_SHUTDOWN_TIMEOUT_SEC, TimeUnit.SECONDS);
-        if (loadExecutor != null) {
-          try {
-            logger.info("Attempting to shut down load executor.");
-            loadExecutor.shutdown();
-            loadExecutor.awaitTermination(EXECUTOR_SHUTDOWN_TIMEOUT_SEC, TimeUnit.SECONDS);
-          } catch (InterruptedException ex) {
-            logger.warn("Could not shut down load executor within {}s.",
-                EXECUTOR_SHUTDOWN_TIMEOUT_SEC);
-          }
-        }
-      } catch (InterruptedException ex) {
-        logger.warn("{} active threads are still executing tasks {}s after shutdown is signaled.",
-            executor.getActiveCount(), EXECUTOR_SHUTDOWN_TIMEOUT_SEC);
-      } finally {
-        logger.trace("task.stop()");
       }
+      logger.trace("Awaiting termination of {}", executorName);
+      executor.awaitTermination(EXECUTOR_SHUTDOWN_TIMEOUT_SEC, TimeUnit.SECONDS);
+      logger.trace("Shut down {} successfully", executorName);
+    } catch (Exception e) {
+      logger.warn("Failed to shut down {}", executorName, e);
     }
   }
 
