@@ -35,7 +35,7 @@ object HeaderToStringConverter {
       case byteVal: Byte => String.valueOf(byteVal)
       case boolVal: Boolean => String.valueOf(boolVal)
       case longVal: Long => String.valueOf(longVal)
-      case otherVal => sys.error(s"Unsupported header value type $otherVal:${otherVal.getClass.getCanonicalName}")
+      case otherVal => throw new IllegalArgumentException(s"Unsupported header value type $otherVal:${otherVal.getClass.getCanonicalName}. Consider if you need to set the header.converter property in your connector configuration.")
     }
   }
 
