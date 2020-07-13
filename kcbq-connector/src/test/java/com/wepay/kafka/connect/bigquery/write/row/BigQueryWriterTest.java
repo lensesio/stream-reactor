@@ -142,7 +142,7 @@ public class BigQueryWriterTest {
     verify(bigQuery, times(2)).insertAll(anyObject());
   }
 
-  @Test
+  @Test(expected = BigQueryConnectException.class)
   public void testNonAutoCreateTables() {
     final String topic = "test_topic";
     final String dataset = "scratch";
@@ -174,9 +174,6 @@ public class BigQueryWriterTest {
     testTask.put(
             Collections.singletonList(spoofSinkRecord(topic, 0, 0, "some_field", "some_value")));
     testTask.flush(Collections.emptyMap());
-
-    verify(schemaManager, times(0)).createTable(anyObject(), anyObject());
-    verify(bigQuery, times(2)).insertAll(anyObject());
   }
 
   @Test

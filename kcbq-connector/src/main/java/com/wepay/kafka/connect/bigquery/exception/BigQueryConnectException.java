@@ -61,4 +61,10 @@ public class BigQueryConnectException extends ConnectException {
     }
     return messageBuilder.toString();
   }
+
+  @Override
+  public String toString() {
+    return getCause() != null ?
+        super.toString() + "\nCaused by: " + getCause().getLocalizedMessage() : super.toString();
+  }
 }

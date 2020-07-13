@@ -29,7 +29,6 @@ import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -105,7 +104,6 @@ public class KCBQThreadPoolExecutor extends ThreadPoolExecutor {
   public void maybeThrowEncounteredErrors() {
     if (encounteredErrors.size() > 0) {
       String errorString = createErrorString(encounteredErrors);
-      encounteredErrors.clear();
       throw new BigQueryConnectException("Some write threads encountered unrecoverable errors: "
           + errorString + "; See logs for more detail");
     }

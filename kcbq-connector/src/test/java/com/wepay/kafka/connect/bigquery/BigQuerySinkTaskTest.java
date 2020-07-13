@@ -21,7 +21,6 @@ package com.wepay.kafka.connect.bigquery;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
@@ -408,41 +407,43 @@ public class BigQuerySinkTaskTest {
     assertTrue("Batch clears should be executed", executedBatchClears.await(1, TimeUnit.SECONDS));
   }
 
-  // It's important that the buffer be completely wiped after a call to flush, since any exception
-  // thrown during flush causes Kafka Connect to not commit the offsets for any records sent to the
-  // task since the last flush
-  @Test
-  public void testBufferClearOnFlushError() {
-    final String dataset = "scratch";
-    final String topic = "test_topic";
-
+  // Throw an exception on the first put, and assert the Exception will be exposed in subsequent
+  // put call.
+  @Test(expected = BigQueryConnectException.class, timeout = 30000L)
+  public void testSimplePutException() throws InterruptedException {
+    final String topic = "test-topic";
     Map<String, String> properties = propertiesFactory.getProperties();
     properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
-    properties.put(BigQuerySinkConfig.DEFAULT_DATASET_CONFIG, dataset);
+    properties.put(BigQuerySinkConfig.DEFAULT_DATASET_CONFIG, "scratch");
 
     BigQuery bigQuery = mock(BigQuery.class);
     Table mockTable = mock(Table.class);
     when(bigQuery.getTable(any())).thenReturn(mockTable);
 
     Storage storage = mock(Storage.class);
-    when(bigQuery.insertAll(any(InsertAllRequest.class)))
-        .thenThrow(new RuntimeException("This is a test"));
+    String error = "Cannot add required fields to an existing schema.";
+    SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
+    when(bigQuery.insertAll(any()))
+        .thenThrow(
+            new BigQueryException(400, error, new BigQueryError("invalid", "global", error)));
 
     SchemaRetriever schemaRetriever = mock(SchemaRetriever.class);
     SchemaManager schemaManager = mock(SchemaManager.class);
 
-    SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
-    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager);
+    BigQuerySinkTask testTask =
+        new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager);
     testTask.initialize(sinkTaskContext);
     testTask.start(properties);
 
+    testTask.put(Collections.singletonList(spoofSinkRecord(topic)));
     try {
-      testTask.put(Collections.singletonList(spoofSinkRecord(topic)));
-      testTask.flush(Collections.emptyMap());
-      fail("An exception should have been thrown by now");
-    } catch (BigQueryConnectException err) {
-      testTask.flush(Collections.emptyMap());
-      verify(bigQuery, times(1)).insertAll(any(InsertAllRequest.class));
+      while (true) {
+        Thread.sleep(100);
+        testTask.put(Collections.emptyList());
+      }
+    } catch (Exception e) {
+      assertTrue(e.getMessage().contains(error));
+      throw e;
     }
   }
 

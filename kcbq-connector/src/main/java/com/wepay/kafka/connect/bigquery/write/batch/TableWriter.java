@@ -23,11 +23,11 @@ import com.google.cloud.bigquery.InsertAllRequest.RowToInsert;
 
 import com.google.cloud.bigquery.TableId;
 import com.wepay.kafka.connect.bigquery.utils.SinkRecordConverter;
+import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.ExpectedInterruptException;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
 
-import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,7 +98,10 @@ public class TableWriter implements Runnable {
           logger.warn("Could not write batch of size {} to BigQuery.", currentBatchList.size(), err);
           if (isBatchSizeError(err)) {
             failureCount++;
-            currentBatchSize = getNewBatchSize(currentBatchSize);
+            currentBatchSize = getNewBatchSize(currentBatchSize, err);
+          } else {
+            // Throw exception on write errors such as 403.
+            throw new BigQueryConnectException("Failed to write to table", err);
           }
         }
       }
@@ -119,10 +122,10 @@ public class TableWriter implements Runnable {
     onFinish.accept(rows.values());
   }
 
-  private static int getNewBatchSize(int currentBatchSize) {
+  private static int getNewBatchSize(int currentBatchSize, Throwable err) {
     if (currentBatchSize == 1) {
       // todo correct exception type?
-      throw new ConnectException("Attempted to reduce batch size below 1.");
+      throw new BigQueryConnectException("Attempted to reduce batch size below 1.", err);
     }
     // round batch size up so we don't end up with a dangling 1 row at the end.
     return (int) Math.ceil(currentBatchSize / 2.0);
