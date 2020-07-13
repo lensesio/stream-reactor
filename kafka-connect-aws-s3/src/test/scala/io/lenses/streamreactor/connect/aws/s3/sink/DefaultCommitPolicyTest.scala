@@ -34,7 +34,7 @@ class DefaultCommitPolicyTest extends AnyWordSpec with Matchers {
 
     val nowTime = System.currentTimeMillis()
     val timeAdjusted = timestampAdjuster(nowTime)
-    val tpo = TopicPartitionOffset(Topic("mytopic"), 1, Offset(100))
+    val tpo = TopicPartitionOffset(Topic("myTopic"), 1, Offset(100))
 
     policy.shouldFlush(CommitContext(tpo, count, fileSize, timeAdjusted))
   }

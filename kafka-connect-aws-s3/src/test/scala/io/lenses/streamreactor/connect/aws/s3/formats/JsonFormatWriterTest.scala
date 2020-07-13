@@ -29,7 +29,7 @@ import org.scalatest.matchers.should.Matchers
 class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
 
-  "convert" should "write byteoutputstream with json for a single record" in {
+  "convert" should "write byte output stream with json for a single record" in {
 
     val outputStream = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
@@ -39,11 +39,11 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
 
   }
 
-  "convert" should "write byteoutputstream with json for multiple records" in {
+  "convert" should "write byte output stream with json for multiple records" in {
 
     val outputStream = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
-    users.foreach(e => jsonFormatWriter.write(None, StructSinkData(e), topic))
+    firstUsers.foreach(e => jsonFormatWriter.write(None, StructSinkData(e), topic))
 
     outputStream.toString should be(recordsAsJson.mkString("\n"))
 

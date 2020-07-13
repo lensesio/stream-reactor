@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -17,15 +16,10 @@
 
 package io.lenses.streamreactor.connect.aws.s3.config
 
-import com.datamountaineer.kcql.Kcql
-import enumeratum._
-import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPrefix, PartitionSelection}
-import io.lenses.streamreactor.connect.aws.s3.sink._
+import enumeratum.{Enum, EnumEntry}
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 
-import scala.collection.JavaConverters._
 import scala.collection.immutable
-import scala.concurrent.duration._
 
 sealed trait AuthMode extends EnumEntry
 
@@ -108,6 +102,16 @@ object Format extends Enum[Format] {
 
   case object Bytes extends Format
 
+
+  def apply(format: String): Format = {
+    Option(format) match {
+      case Some(format: String) =>
+        Format
+          .withNameInsensitiveOption(format.replace("`", ""))
+          .getOrElse(throw new IllegalArgumentException(s"Unsupported format - $format"))
+      case None => Json
+    }
+  }
 }
 
 sealed trait BytesWriteMode extends EnumEntry
@@ -127,11 +131,7 @@ object BytesWriteMode extends Enum[BytesWriteMode] {
 
 }
 
-
 object S3Config {
-
-  import S3SinkConfigSettings._
-
   def apply(props: Map[String, String]): S3Config = S3Config(
     props.getOrElse(AWS_REGION, throw new IllegalArgumentException("No AWS_REGION supplied")),
     props.getOrElse(AWS_ACCESS_KEY, throw new IllegalArgumentException("No AWS_ACCESS_KEY supplied")),
@@ -141,10 +141,7 @@ object S3Config {
     ),
     props.get(CUSTOM_ENDPOINT),
     props.getOrElse(ENABLE_VIRTUAL_HOST_BUCKETS, "false").toBoolean,
-    BucketOptions(props)
-
   )
-
 }
 
 case class S3Config(
@@ -154,60 +151,4 @@ case class S3Config(
                      authMode: AuthMode,
                      customEndpoint: Option[String] = None,
                      enableVirtualHostBuckets: Boolean = false,
-
-                     bucketOptions: Set[BucketOptions] = Set.empty
                    )
-
-object BucketOptions {
-  def apply(props: Map[String, String]): Set[BucketOptions] = {
-
-    val config = S3SinkConfigDefBuilder(props.asJava)
-
-    config.getKCQL.map { kcql: Kcql =>
-
-      val flushInterval = Option(kcql.getWithFlushInterval).filter(_ > 0).map(_.seconds)
-      val flushCount = Option(kcql.getWithFlushCount).filter(_ > 0)
-
-
-      val formatSelection: FormatSelection = Option(kcql.getStoredAs) match {
-        case Some(format: String) => FormatSelection(format)
-        case None => FormatSelection(Json, Set.empty)
-      }
-
-      val partitionSelection = PartitionSelection(kcql)
-      val namingStrategy = partitionSelection match {
-        case Some(partSel) => new PartitionedS3FileNamingStrategy(formatSelection, partSel)
-        case None => new HierarchicalS3FileNamingStrategy(formatSelection)
-      }
-
-      val flushSize = Option(kcql.getWithFlushSize).filter(_ > 0)
-
-      // we must have at least one way of committing files
-      val finalFlushSize = Some(flushSize.fold(1000L * 1000 * 128)(identity)) //if (flushSize.isEmpty /*&& flushInterval.isEmpty && flushCount.isEmpty*/) Some(1000L * 1000 * 128) else flushSize
-
-      BucketOptions(
-        kcql.getSource,
-        BucketAndPrefix(kcql.getTarget),
-        formatSelection = formatSelection,
-        fileNamingStrategy = namingStrategy,
-        partitionSelection = partitionSelection,
-        commitPolicy = DefaultCommitPolicy(
-          fileSize = finalFlushSize,
-          interval = flushInterval,
-          recordCount = flushCount
-        )
-      )
-    }
-
-  }
-
-}
-
-case class BucketOptions(
-                          sourceTopic: String,
-                          bucketAndPrefix: BucketAndPrefix,
-                          formatSelection: FormatSelection,
-                          fileNamingStrategy: S3FileNamingStrategy,
-                          partitionSelection: Option[PartitionSelection] = None,
-                          commitPolicy: CommitPolicy = DefaultCommitPolicy(Some(1000 * 1000 * 128), None, None),
-                        )

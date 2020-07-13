@@ -25,6 +25,7 @@ import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.model.{DeleteObjectsRequest, DeleteObjectsResult}
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
+import com.typesafe.scalalogging.LazyLogging
 import org.eclipse.jetty.util.component.AbstractLifeCycle
 import org.gaul.s3proxy.S3Proxy
 import org.jclouds.ContextBuilder
@@ -43,7 +44,7 @@ object S3ProxyContext {
   val TestBucket: String = "employees"
 }
 
-class S3ProxyContext {
+class S3ProxyContext extends LazyLogging {
 
   import S3ProxyContext._
 

@@ -72,15 +72,15 @@ case class DefaultCommitPolicy(fileSize: Option[Long],
 
   override def shouldFlush(context: CommitContext): Boolean = {
     val open_time = System.currentTimeMillis() - context.createdTimestamp
-    val flushDueToFilesize = fileSize.exists(_ <= context.fileSize)
+    val flushDueToFileSize = fileSize.exists(_ <= context.fileSize)
     val flushDueToInterval = interval.exists(_.toMillis <= open_time)
     val flushDueToCount = recordCount.exists(_ <= context.count)
 
-    val flush = flushDueToFilesize ||
+    val flush = flushDueToFileSize ||
       flushDueToInterval ||
       flushDueToCount
 
-    if (flush) logger.debug(s"Flushing: Because why? size: $flushDueToFilesize, interval: $flushDueToInterval, count: $flushDueToCount, CommitContext: $context")
+    if (flush) logger.debug(s"Flushing: Because why? size: $flushDueToFileSize, interval: $flushDueToInterval, count: $flushDueToCount, CommitContext: $context")
 
     flush
   }

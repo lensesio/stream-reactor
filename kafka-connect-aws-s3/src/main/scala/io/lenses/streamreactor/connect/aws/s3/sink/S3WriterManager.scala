@@ -17,9 +17,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix, MessageDetail, Offset, PartitionField, Topic, TopicPartition, TopicPartitionOffset}
+import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreOutputStream, S3Writer, S3WriterImpl, StorageInterface}
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.errors.ConnectException
@@ -179,7 +179,7 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
 
 
 object S3WriterManager {
-  def from(config: S3Config)
+  def from(config: S3SinkConfig)
           (implicit storageInterface: StorageInterface): S3WriterManager = {
 
     // TODO: make this configurable

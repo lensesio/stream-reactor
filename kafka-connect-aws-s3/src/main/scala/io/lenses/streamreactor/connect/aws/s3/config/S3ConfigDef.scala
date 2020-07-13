@@ -23,9 +23,9 @@ import com.datamountaineer.streamreactor.connect.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
-object S3SinkConfigDef {
+object S3ConfigDef {
 
-  import S3SinkConfigSettings._
+  import S3ConfigSettings._
 
   val config: ConfigDef = new ConfigDef()
     .define(
@@ -74,8 +74,8 @@ object S3SinkConfigDef {
 
 }
 
-case class S3SinkConfigDefBuilder(props: util.Map[String, String])
-  extends BaseConfig(S3SinkConfigSettings.CONNECTOR_PREFIX, S3SinkConfigDef.config, props)
+case class S3ConfigDefBuilder(props: util.Map[String, String])
+  extends BaseConfig(S3ConfigSettings.CONNECTOR_PREFIX, S3ConfigDef.config, props)
     with KcqlSettings
     with ErrorPolicySettings
     with NumberRetriesSettings
