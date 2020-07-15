@@ -136,8 +136,7 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
 
                   case WriteModeEnum.UPSERT =>
                     require(pks.nonEmpty, "Error extracting primary keys")
-                    update(idFromPk)
-                      .in(new Index(i))
+                    updateById(new Index(i), idFromPk)
                       .docAsUpsert(json)(IndexableJsonNode)
                 }
               }
