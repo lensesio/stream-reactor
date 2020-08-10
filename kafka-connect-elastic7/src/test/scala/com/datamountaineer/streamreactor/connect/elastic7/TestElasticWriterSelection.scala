@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.elastic6
+package com.datamountaineer.streamreactor.connect.elastic7
 
 import java.util.UUID
 
-import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
+import com.datamountaineer.streamreactor.connect.elastic7.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
 import com.sksamuel.elastic4s.embedded.LocalNode
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import org.apache.kafka.connect.sink.SinkTaskContext

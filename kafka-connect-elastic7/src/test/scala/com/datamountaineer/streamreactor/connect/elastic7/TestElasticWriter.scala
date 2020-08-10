@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.elastic6
+package com.datamountaineer.streamreactor.connect.elastic7
 
 import java.nio.file.Paths
 import java.util.UUID
 
-import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticSettings}
+import com.datamountaineer.streamreactor.connect.elastic7.config.{ElasticConfig, ElasticSettings}
 import com.sksamuel.elastic4s.embedded.LocalNode
 import com.sksamuel.elastic4s.http.ElasticClient
 import com.sksamuel.elastic4s.http.ElasticDsl._

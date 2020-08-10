@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.elastic6.indexname
+package com.datamountaineer.streamreactor.connect.elastic7.indexname
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
