@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.elastic6
+package com.datamountaineer.streamreactor.connect.elastic7
 
-import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticConfigConstants
+import com.datamountaineer.streamreactor.connect.elastic7.config.ElasticConfigConstants
 
 import scala.collection.JavaConverters._
 

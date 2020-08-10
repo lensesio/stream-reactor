@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.connect.elastic6.indexname
+package com.datamountaineer.streamreactor.connect.elastic7.indexname
 
 import java.time.{Clock, Instant, ZoneOffset}
 

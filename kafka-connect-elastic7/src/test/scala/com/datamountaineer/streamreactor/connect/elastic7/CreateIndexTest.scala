@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.elastic6
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.elastic6.indexname.CreateIndex
+import com.datamountaineer.streamreactor.connect.elastic7.indexname.CreateIndex
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
