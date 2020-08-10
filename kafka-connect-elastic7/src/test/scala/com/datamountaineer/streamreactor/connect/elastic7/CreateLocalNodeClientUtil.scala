@@ -26,7 +26,7 @@ object CreateLocalNodeClientUtil {
 
   def createLocalNode() = {
     val container = new ElasticsearchContainer(url)
-    container.withReuse(true)
+    //container.withReuse(true)
     container.start()
     container
   }
