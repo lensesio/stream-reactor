@@ -59,6 +59,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //close writer
     writer.close()
     client.close()
+    localNode.close()
     TMP.deleteRecursively()
   }
 
@@ -91,6 +92,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //close writer
     writer.close()
     client.close()
+    localNode.close()
     TMP.deleteRecursively()
   }
 
@@ -134,6 +136,7 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //close writer
     writer.close()
     client.close()
+    localNode.close()
     TMP.deleteRecursively()
   }
 
@@ -177,6 +180,8 @@ class TestElasticWriterSelection extends TestElasticBase with MockitoSugar {
     //close writer
     writer.close()
     client.close()
+    localNode.close()
+
     TMP.deleteRecursively()
   }
 }
