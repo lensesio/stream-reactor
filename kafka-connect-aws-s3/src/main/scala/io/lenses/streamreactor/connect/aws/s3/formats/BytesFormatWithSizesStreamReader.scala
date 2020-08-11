@@ -17,6 +17,7 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import java.io.InputStream
+import java.util.concurrent.atomic.AtomicLong
 
 import io.lenses.streamreactor.connect.aws.s3.config.BytesWriteMode
 import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, ByteArraySourceData, BytesOutputRow}
@@ -29,14 +30,14 @@ class BytesFormatWithSizesStreamReader(inputStreamFn: () => InputStream, fileSiz
 
   private var recordNumber: Long = -1
 
-  private val fileSizeCounter = new FileSizeCounter(fileSizeFn())
+  private val fileSizeCounter = new AtomicLong(fileSizeFn())
 
-  override def hasNext: Boolean = fileSizeCounter.getRemaining > 0
+  override def hasNext: Boolean = fileSizeCounter.get() > 0
 
   override def next(): ByteArraySourceData = {
     recordNumber += 1
     val ret = ByteArraySourceData(BytesOutputRow(inputStream, bytesWriteMode), recordNumber)
-    fileSizeCounter.decrementBy(ret.data.bytesRead.get)
+    fileSizeCounter.addAndGet(- ret.data.bytesRead.get)
     ret
   }
 

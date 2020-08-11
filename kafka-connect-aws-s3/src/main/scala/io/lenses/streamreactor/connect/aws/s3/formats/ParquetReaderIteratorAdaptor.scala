@@ -28,11 +28,6 @@ class ParquetReaderIteratorAdaptor(parquetReader: ParquetReader[GenericRecord]) 
     nextRecord.nonEmpty
   }
 
-  def peek: Option[GenericRecord] = {
-    hasNext
-    nextRecord
-  }
-
   override def next(): GenericRecord = {
 
     currentRecord = nextRecord

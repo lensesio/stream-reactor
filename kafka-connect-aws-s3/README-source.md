@@ -2,7 +2,9 @@
 
 Before reading this document it is recommended to be familiar with the [general readme for the S3 Connectors](README-sink.md).
 
-The primary use case of the source is to read in files written to S3 by the S3 Sink back into Kafka through Kafka Connect.
+The primary use case of the source is to read in files stored on S3 into Kafka through Kafka Connect.
+
+The source files may have been written by the Lenses.io S3 Sink or other producers.
 
 
 ## Source Configuration
@@ -39,14 +41,13 @@ The options for the formats are case-insensitive, but they are presented here in
 
 #### JSON Input Format Configuration
 
-Using JSON as an input format allows you to read in the JSON-written sink files, line by line.
+Using JSON as an input format allows you to read in files containing JSON content (delimited by new lines), line by line.
 
     STOREAS `JSON`
 
-Please note: The JSON is not parsed by the S3 Source connector.  It is recommended to configure the JsonConverter if you wish the Json to be parsed on entry into Kafka.
+Please note: The JSON is not parsed by the S3 Source connector.  There is no difference in handling between Json and Text by the S3 Source connector.
 
-    value.converter=org.apache.kafka.connect.json.JsonConverter
-    value.converter.schemas.enable=false
+    value.converter=org.apache.kafka.connect.storage.StringConverter
 
 #### Avro Input Format Configuration
 

@@ -64,10 +64,10 @@ class S3BucketReaderManager(
       chooseReader() match {
         case Some(currentReader) =>
           val newResults = resultReader.retrieveResults(currentReader, allLimit)
-          state = if (newResults.isEmpty || (newResults.nonEmpty && newResults.get.resultList.size < allLimit)) {
-            state.copy(currentReader = None)
-          } else {
-            state.copy(terminated = true)
+          state = newResults match {
+            case Some(value) if value.resultList.size < allLimit => state.copy(currentReader = None)
+            case Some(_) => state.copy(terminated = true)
+            case None => state.copy(currentReader = None)
           }
           allLimit -= newResults.fold(0)(_.resultList.size)
           allResults = allResults ++ newResults

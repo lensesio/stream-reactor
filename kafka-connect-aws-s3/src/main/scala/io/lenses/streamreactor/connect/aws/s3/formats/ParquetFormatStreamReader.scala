@@ -22,7 +22,6 @@ import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.aws.s3.formats.parquet.ParquetStreamingInputFile
 import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, SchemaAndValueSourceData}
 import org.apache.avro.generic.GenericRecord
-import org.apache.kafka.connect.data.SchemaAndValue
 import org.apache.parquet.avro.AvroParquetReader
 import org.apache.parquet.hadoop.ParquetReader
 
@@ -50,13 +49,9 @@ class ParquetFormatStreamReader(inputStreamFn: () => InputStream, fileSizeFn: ()
     lineNumber += 1
     val nextRec = iterator.next()
 
-    val asConnect = convertToConnectModel(nextRec)
+    val asConnect = avroDataConverter.toConnectData(nextRec.getSchema, nextRec)
     SchemaAndValueSourceData(asConnect, lineNumber)
 
-  }
-
-  private def convertToConnectModel(nextRec: GenericRecord): SchemaAndValue = {
-    avroDataConverter.toConnectData(nextRec.getSchema, nextRec)
   }
 
 }
