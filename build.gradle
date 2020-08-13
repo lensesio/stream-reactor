@@ -25,7 +25,7 @@ project.ext {
     googleCloudVersion = '1.79.0'
     googleAuthVersion = '0.9.0'
     googleCloudGsonVersion = '2.8.5'
-    ioConfluentVersion = '5.5.0'
+    ioConfluentVersion = '5.5.1'
     junitVersion = '4.12'
     kafkaVersion = '2.5.0'
     kafkaScalaVersion = '2.12' // For integration testing only
@@ -213,7 +213,7 @@ project(':kcbq-connector') {
 
     javadoc {
         options.links 'http://docs.oracle.com/javase/8/docs/api/'
-        options.links 'http://docs.confluent.io/3.2.0/connect/javadocs/'
+        options.links 'http://docs.confluent.io/5.5.1/connect/javadocs/'
         options.links 'https://googleapis.dev/java/google-cloud-clients/0.97.0-alpha/'
         options.links 'https://kafka.apache.org/0100/javadoc/'
         options.links 'https://avro.apache.org/docs/1.8.1/api/java/'
@@ -288,7 +288,7 @@ project('kcbq-api') {
 
     javadoc {
         options.links 'http://docs.oracle.com/javase/8/docs/api/'
-        options.links 'http://docs.confluent.io/3.2.0/connect/javadocs/'
+        options.links 'http://docs.confluent.io/5.5.1/connect/javadocs/'
     }
 
     dependencies {
@@ -344,7 +344,7 @@ project('kcbq-confluent') {
 
     javadoc {
         options.links 'http://docs.oracle.com/javase/8/docs/api/'
-        options.links 'http://docs.confluent.io/3.2.0/connect/javadocs/'
+        options.links 'http://docs.confluent.io/5.5.1/connect/javadocs/'
     }
 
     dependencies {
