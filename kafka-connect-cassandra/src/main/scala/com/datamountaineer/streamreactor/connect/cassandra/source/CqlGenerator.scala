@@ -50,6 +50,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
         case TimestampType.TIMESTAMP => generateCqlForTimestampMode
         case TimestampType.TOKEN => generateCqlForTokenMode
         case TimestampType.DSESEARCHTIMESTAMP => generateCqlForDseSearchTimestampMode
+        case TimestampType.BUCKETTIMESERIES => generateCqlForBucketTimeSeriesMode
         case _ => throw new ConfigException(s"Unknown incremental mode ($incrementMode)")
       }
     }
@@ -92,15 +93,22 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
 
   def isTokenBased(): Boolean = {
     incrementMode match {
-      case TimestampType.TIMESTAMP | TimestampType.DSESEARCHTIMESTAMP | TimestampType.TIMEUUID | TimestampType.NONE => false
+      case TimestampType.TIMESTAMP | TimestampType.DSESEARCHTIMESTAMP | TimestampType.TIMEUUID | TimestampType.BUCKETTIMESERIES | TimestampType.NONE => false
       case TimestampType.TOKEN => true
     }
   }
 
   def isDSESearchBased(): Boolean = {
     incrementMode match {
-      case TimestampType.TIMESTAMP | TimestampType.TOKEN | TimestampType.TIMEUUID | TimestampType.NONE => false
+      case TimestampType.TIMESTAMP | TimestampType.TOKEN | TimestampType.TIMEUUID | TimestampType.BUCKETTIMESERIES | TimestampType.NONE => false
       case TimestampType.DSESEARCHTIMESTAMP => true
+    }
+  }
+
+  def isBucketBased(): Boolean = {
+    incrementMode match {
+      case TimestampType.TIMESTAMP | TimestampType.TOKEN | TimestampType.TIMEUUID | TimestampType.DSESEARCHTIMESTAMP | TimestampType.NONE => false
+      case TimestampType.BUCKETTIMESERIES => true
     }
   }
 
@@ -158,6 +166,13 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
     val pkCol = setting.primaryKeyColumn.getOrElse("")
     checkCqlForPrimaryKey(pkCol)
     val whereClause = s" WHERE solr_query=?"
+    generateCqlForBulkMode + whereClause
+  }
+
+  private def generateCqlForBucketTimeSeriesMode: String = {
+    val pkCol = setting.primaryKeyColumn.getOrElse("")
+    checkCqlForPrimaryKey(pkCol)
+    val whereClause = s" WHERE bucket IN (?) AND $pkCol > ? AND $pkCol <= ?"
     generateCqlForBulkMode + whereClause
   }
 

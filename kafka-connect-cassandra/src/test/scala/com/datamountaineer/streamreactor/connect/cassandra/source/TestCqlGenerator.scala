@@ -57,6 +57,14 @@ class TestCqlGenerator extends AnyWordSpec
     cqlStatement shouldBe "SELECT string_field,the_pk_field FROM test.cassandra-table WHERE solr_query=?"
   }
 
+  "CqlGenerator should generate bucket timeseries statement based on KCQL" in {
+
+    val cqlGenerator = new CqlGenerator(configureMeBucketTimeSeries("INCREMENTALMODE=buckettimeseries"))
+    val cqlStatement = cqlGenerator.getCqlStatement
+
+    cqlStatement shouldBe "SELECT string_field,the_pk_field FROM test.cassandra-table WHERE bucket IN (?) AND the_pk_field > ? AND the_pk_field <= ?"
+  }
+
   "CqlGenerator should generate token based CQL statement based on KCQL" in {
 
     val cqlGenerator = new CqlGenerator(configureMe("INCREMENTALMODE=token"))
@@ -130,6 +138,25 @@ class TestCqlGenerator extends AnyWordSpec
         CassandraConfigConstants.POLL_INTERVAL -> "1000",
         CassandraConfigConstants.FETCH_SIZE -> "500",
         CassandraConfigConstants.BATCH_SIZE -> "800").asJava
+    }
+    val configSource = new CassandraConfigSource(configMap)
+    CassandraSettings.configureSource(configSource).head
+  }
+
+
+  def configureMeBucketTimeSeries(kcqlIncrementMode: String): CassandraSourceSetting = {
+    val myKcql = s"INSERT INTO kafka-topic SELECT string_field, the_pk_field FROM cassandra-table PK the_pk_field BATCH=200 $kcqlIncrementMode"
+    val configMap = {
+      Map(
+        CassandraConfigConstants.KEY_SPACE -> "test",
+        CassandraConfigConstants.KCQL -> myKcql,
+        CassandraConfigConstants.ASSIGNED_TABLES -> "cassandra-table",
+        CassandraConfigConstants.POLL_INTERVAL -> "1000",
+        CassandraConfigConstants.FETCH_SIZE -> "500",
+        CassandraConfigConstants.BATCH_SIZE -> "800",
+        CassandraConfigConstants.BUCKET_TIME_SERIES_MODE -> "MINUTE",
+        CassandraConfigConstants.BUCKET_TIME_SERIES_FORMAT -> "yyMMddHHmm",
+      ).asJava
     }
     val configSource = new CassandraConfigSource(configMap)
     CassandraSettings.configureSource(configSource).head

@@ -342,6 +342,26 @@ object CassandraConfigSource {
       ConfigDef.Width.LONG,
       CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON)
 
+    .define(CassandraConfigConstants.BUCKET_TIME_SERIES_MODE,
+      Type.STRING,
+      "",
+      Importance.MEDIUM,
+      CassandraConfigConstants.BUCKET_TIME_SERIES_MODE_DOC,
+      "Import",
+      12,
+      ConfigDef.Width.LONG,
+      CassandraConfigConstants.BUCKET_TIME_SERIES_MODE)
+
+    .define(CassandraConfigConstants.BUCKET_TIME_SERIES_FORMAT,
+      Type.STRING,
+      "",
+      Importance.MEDIUM,
+      CassandraConfigConstants.BUCKET_TIME_SERIES_FORMAT_DOC,
+      "Import",
+      13,
+      ConfigDef.Width.LONG,
+      CassandraConfigConstants.BUCKET_TIME_SERIES_FORMAT)
+
 }
 
 case class CassandraConfigSource(props: util.Map[String, String])

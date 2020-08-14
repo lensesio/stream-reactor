@@ -193,6 +193,12 @@ object CassandraConfigConstants {
   val MAPPING_COLLECTION_TO_JSON_DOC = "Mapping columns with type Map, List and Set like json"
   val MAPPING_COLLECTION_TO_JSON_DEFAULT = true
 
+  val BUCKET_TIME_SERIES_MODE = s"$CONNECTOR_PREFIX.bucket.timeseries.mode"
+  val BUCKET_TIME_SERIES_MODE_DOC = "The bucket mode to retrieve timeseries data. DAY, HOUR, MINUTE, SECOND."
+
+  val BUCKET_TIME_SERIES_FORMAT = s"$CONNECTOR_PREFIX.bucket.timeseries.format"
+  val BUCKET_TIME_SERIES_FORMAT_DOC = "The bucket format to retrieve timeseries data"
+
   val DEFAULT_VALUE_SERVE_STRATEGY_PROPERTY = s"$CONNECTOR_PREFIX.default.value"
   val DEFAULT_VALUE_SERVE_STRATEGY_DOC =
     """

@@ -16,11 +16,17 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.utils
 
+import java.time.{Instant, ZoneId}
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
+
 import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.streamreactor.connect.cassandra.config.BucketMode.{BucketMode, DAY, HOUR, MINUTE, SECOND}
 import com.datastax.driver.core.Cluster
 import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable.ListBuffer
 
 /**
   * Created by andrew@datamountaineer.com on 21/04/16.
@@ -46,6 +52,40 @@ object CassandraUtils {
     val missing = topics.toSet.diff(tables.toSet)
 
     if (missing.nonEmpty) throw new ConnectException(s"No tables found in Cassandra for topics ${missing.mkString(",")}")
+  }
+
+  /**
+    * Get buckets between two dates (Instant), this is used within the BUCKETTIMESERIES mode
+    * @param previousDate The first date
+    * @param upperBoundDate The second date
+    * @param bucketMode The bucket mode that is been used on BUCKETTIMESERIES
+    * @param bucketFormat The format of the bucket that is been used BUCKETTIMESERIES
+    *
+    * @return a list of buckets that are between the two dates.
+    */
+  def getBucketsBetweenDates(previousDate: Instant,
+                             upperBoundDate: Instant,
+                             bucketMode: BucketMode,
+                             bucketFormat: String): List[String] = {
+    val unit = bucketMode match {
+      case MINUTE => ChronoUnit.MINUTES
+      case DAY => ChronoUnit.DAYS
+      case HOUR => ChronoUnit.HOURS
+      case SECOND => ChronoUnit.SECONDS
+    }
+    val difference = previousDate.until(upperBoundDate, unit)
+    val formatter = DateTimeFormatter.ofPattern(bucketFormat).withZone(ZoneId.of("UTC"))
+
+    var dates = ListBuffer[String]()
+    dates += formatter.format(previousDate)
+
+    if (difference > 0) {
+      for (f <- 1 to difference.toInt) {
+        dates += formatter.format(previousDate.plus(f, unit))
+      }
+    }
+
+    dates.toList
   }
 
 }
