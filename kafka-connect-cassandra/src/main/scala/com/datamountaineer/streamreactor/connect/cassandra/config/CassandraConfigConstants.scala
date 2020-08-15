@@ -199,6 +199,10 @@ object CassandraConfigConstants {
   val BUCKET_TIME_SERIES_FORMAT = s"$CONNECTOR_PREFIX.bucket.timeseries.format"
   val BUCKET_TIME_SERIES_FORMAT_DOC = "The bucket format to retrieve timeseries data"
 
+  val BUCKET_TIME_SERIES_FIELD_NAME = s"$CONNECTOR_PREFIX.bucket.timeseries.field.name"
+  val BUCKET_TIME_SERIES_FIELD_NAME_DOC = "The name of the field to use on bucket"
+  val BUCKET_TIME_SERIES_FIELD_NAME_DEFAULT = "bucket"
+
   val DEFAULT_VALUE_SERVE_STRATEGY_PROPERTY = s"$CONNECTOR_PREFIX.default.value"
   val DEFAULT_VALUE_SERVE_STRATEGY_DOC =
     """

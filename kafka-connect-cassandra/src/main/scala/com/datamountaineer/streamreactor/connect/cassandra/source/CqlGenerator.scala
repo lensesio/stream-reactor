@@ -76,6 +76,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
         case TimestampType.TIMESTAMP => generateCqlForTimestampMode
         case TimestampType.TOKEN => generateCqlForTokenModeNoOffset
         case TimestampType.DSESEARCHTIMESTAMP => generateCqlForDseSearchTimestampMode
+        case TimestampType.BUCKETTIMESERIES => generateCqlForBucketTimeSeriesMode
         case _ => throw new ConfigException(s"unknown incremental mode ($incrementMode)")
       }
     }
@@ -85,7 +86,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
 
   def getDefaultOffsetValue(offset: Option[String]): Option[String] = {
     incrementMode match {
-      case TimestampType.TIMESTAMP | TimestampType.DSESEARCHTIMESTAMP |
+      case TimestampType.TIMESTAMP | TimestampType.DSESEARCHTIMESTAMP | TimestampType.BUCKETTIMESERIES |
            TimestampType.TIMEUUID | TimestampType.NONE => Some(offset.getOrElse(defaultTimestamp))
       case TimestampType.TOKEN => offset
     }
@@ -172,7 +173,7 @@ class CqlGenerator(private val setting: CassandraSourceSetting) extends StrictLo
   private def generateCqlForBucketTimeSeriesMode: String = {
     val pkCol = setting.primaryKeyColumn.getOrElse("")
     checkCqlForPrimaryKey(pkCol)
-    val whereClause = s" WHERE bucket IN (?) AND $pkCol > ? AND $pkCol <= ?"
+    val whereClause = s" WHERE $pkCol > ? AND $pkCol <= ? AND ${setting.bucketFieldName} IN ?"
     generateCqlForBulkMode + whereClause
   }
 

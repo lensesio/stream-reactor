@@ -185,9 +185,9 @@ class CassandraTableReader(private val name: String,
       preparedStatement.bind(solrQuery)
     } else if (isBucketBased) {
       val buckets = CassandraUtils.getBucketsBetweenDates(previous, upperBound, setting.bucketMode, setting.bucketFormat)
-      val inValues = buckets.mkString(",")
-      logger.info(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($inValues, $formattedPrevious, $formattedNow).")
-      preparedStatement.bind(inValues, Date.from(previous), Date.from(upperBound))
+
+      logger.info(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow, $buckets).")
+      preparedStatement.bind(Date.from(previous), Date.from(upperBound), buckets)
     } else {
       logger.info(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow).")
       preparedStatement.bind(Date.from(previous), Date.from(upperBound))

@@ -65,7 +65,8 @@ case class CassandraSourceSetting(kcql: Kcql,
                                   timeSliceMillis: Long = CassandraConfigConstants.TIME_SLICE_MILLIS_DEFAULT,
                                   mappingCollectionToJson: Boolean = CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON_DEFAULT,
                                   bucketMode: BucketMode,
-                                  bucketFormat: String
+                                  bucketFormat: String,
+                                  bucketFieldName: String
                                  ) extends CassandraSetting
 
 case class CassandraSinkSetting(keySpace: String,
@@ -97,6 +98,7 @@ object CassandraSettings extends StrictLogging {
     val pollInterval = config.getLong(CassandraConfigConstants.POLL_INTERVAL)
 
     val bucketFormat = config.getString(CassandraConfigConstants.BUCKET_TIME_SERIES_FORMAT)
+    val bucketFieldName = config.getString(CassandraConfigConstants.BUCKET_TIME_SERIES_FIELD_NAME)
 
     val consistencyLevel = config.getConsistencyLevel
     val errorPolicy = config.getErrorPolicy
@@ -150,7 +152,8 @@ object CassandraSettings extends StrictLogging {
         timeSliceMillis = timeSliceMillis,
         mappingCollectionToJson = mappingCollectionToJson,
         bucketMode = bucketMode,
-        bucketFormat = bucketFormat
+        bucketFormat = bucketFormat,
+        bucketFieldName = bucketFieldName
       )
     }.toSeq
   }

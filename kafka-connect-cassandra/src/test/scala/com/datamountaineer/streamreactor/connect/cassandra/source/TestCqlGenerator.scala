@@ -62,7 +62,7 @@ class TestCqlGenerator extends AnyWordSpec
     val cqlGenerator = new CqlGenerator(configureMeBucketTimeSeries("INCREMENTALMODE=buckettimeseries"))
     val cqlStatement = cqlGenerator.getCqlStatement
 
-    cqlStatement shouldBe "SELECT string_field,the_pk_field FROM test.cassandra-table WHERE bucket IN (?) AND the_pk_field > ? AND the_pk_field <= ?"
+    cqlStatement shouldBe "SELECT string_field,the_pk_field FROM test.cassandra-table WHERE the_pk_field > ? AND the_pk_field <= ? AND bucket IN ?"
   }
 
   "CqlGenerator should generate token based CQL statement based on KCQL" in {

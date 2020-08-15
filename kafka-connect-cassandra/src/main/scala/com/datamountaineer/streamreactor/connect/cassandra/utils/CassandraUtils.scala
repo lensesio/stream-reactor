@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.cassandra.utils
 import java.time.{Instant, ZoneId}
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.util
 
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.cassandra.config.BucketMode.{BucketMode, DAY, HOUR, MINUTE, SECOND}
@@ -26,7 +27,6 @@ import com.datastax.driver.core.Cluster
 import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable.ListBuffer
 
 /**
   * Created by andrew@datamountaineer.com on 21/04/16.
@@ -66,7 +66,7 @@ object CassandraUtils {
   def getBucketsBetweenDates(previousDate: Instant,
                              upperBoundDate: Instant,
                              bucketMode: BucketMode,
-                             bucketFormat: String): List[String] = {
+                             bucketFormat: String): util.List[String] = {
     val unit = bucketMode match {
       case MINUTE => ChronoUnit.MINUTES
       case DAY => ChronoUnit.DAYS
@@ -76,16 +76,21 @@ object CassandraUtils {
     val difference = previousDate.until(upperBoundDate, unit)
     val formatter = DateTimeFormatter.ofPattern(bucketFormat).withZone(ZoneId.of("UTC"))
 
-    var dates = ListBuffer[String]()
-    dates += formatter.format(previousDate)
+    val dates = new util.ArrayList[String]()
+    dates.add(formatter.format(previousDate))
 
     if (difference > 0) {
       for (f <- 1 to difference.toInt) {
-        dates += formatter.format(previousDate.plus(f, unit))
+        dates.add(formatter.format(previousDate.plus(f, unit)))
       }
     }
 
-    dates.toList
+    val lastDateFormatted = formatter.format(upperBoundDate)
+    if (!dates.contains(lastDateFormatted)) {
+      dates.add(lastDateFormatted)
+    }
+
+    dates
   }
 
 }
