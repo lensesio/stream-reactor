@@ -46,6 +46,11 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
 
   private val writers = scala.collection.mutable.Map.empty[MapKey, S3Writer]
 
+  def commitAllWritersIfFlushRequired() = {
+    val shouldFlush = writers.values.exists(_.shouldFlush)
+    if(shouldFlush) commitAllWriters()
+  }
+
   def commitAllWriters(): Map[TopicPartition, Offset] = {
 
     logger.debug("Received call to S3WriterManager.commit")
