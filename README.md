@@ -59,6 +59,11 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
+**2.1.0**
+
+*   AWS S3 Sink Connector
+*   Elasticsearch 7 Support
+
 **2.0.1** 
 
 *   Hive Source
