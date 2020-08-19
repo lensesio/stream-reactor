@@ -29,7 +29,7 @@ A collection of components to build a real time ingestion pipeline.
 
 |Connector       | Type   | Description                                                                                   | Docs |
 |----------------|--------|-----------------------------------------------------------------------------------------------|------|
-| AWS S3         | Sink   | Uploads Kafka data into S3.                                                     | [Docs](https://docs.lenses.io/4.0/integrations/connectors/stream-reactor/sinks/s3sinkconnector/)             |
+| AWS S3         | Sink   | Copy data from Kafka to AWS S3.                                                     | [Docs](https://docs.lenses.io/4.0/integrations/connectors/stream-reactor/sinks/s3sinkconnector/)             |
 | AzureDocumentDb| Sink   | Copy data from Kafka and Azure Document Db.                                          | [Docs](https://docs.lenses.io/connectors/sink/azuredocdb.html)             |
 | Bloomberg      | Source | Copy data from Bloomberg streams and Kafka.                              | [Docs](https://docs.lenses.io/connectors/source/bloomberg.html)            |
 | Cassandra      | Source | Copy data from Cassandra and Kafka.                          | [Docs](https://docs.lenses.io/connectors/source/cassandra.html)            |
