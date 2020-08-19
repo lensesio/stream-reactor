@@ -1152,7 +1152,7 @@ public class KcqlTest {
     String syntax = "insert into mytopic select a, b, c from topic WITH_SESSION = andrew";
     Kcql kcql = Kcql.parse(syntax);
     String session = "andrew";
-    assertEquals(session, kcql.getSession());
+    assertEquals(session, kcql.getWithSession());
   }
 
 

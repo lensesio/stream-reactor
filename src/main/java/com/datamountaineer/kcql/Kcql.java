@@ -70,8 +70,6 @@ public class Kcql {
 
   public String getWithSession() {return this.withSession; }
 
-  public void setWithSession(String session) { this.withSession = session; }
-
   public String getWithPartitioner() {
     return this.partitioner;
   }
@@ -199,8 +197,6 @@ public class Kcql {
   public String getStoredAs() {
     return storedAs;
   }
-
-  public String getSession() { return withSession; }
 
   public Map<String, String> getStoredAsParameters() {
     return storedAsParameters;
