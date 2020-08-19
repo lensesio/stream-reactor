@@ -1122,7 +1122,6 @@ public class KcqlTest {
     Kcql.parse(syntax);
   }
 
-
   @Test
   public void handleTTL() {
     String topic = "TOPIC_A";
@@ -1147,4 +1146,14 @@ public class KcqlTest {
     Kcql kcql = Kcql.parse(syntax);
     assertEquals(200, kcql.getLimit());
   }
+
+  @Test
+  public void handleSession() {
+    String syntax = "insert into mytopic select a, b, c from topic WITH_SESSION = andrew";
+    Kcql kcql = Kcql.parse(syntax);
+    String session = "andrew";
+    assertEquals(session, kcql.getSession());
+  }
+
+
 }

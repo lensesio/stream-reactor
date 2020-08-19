@@ -65,8 +65,12 @@ public class Kcql {
   private String withTableLocation;
   private boolean withOverwrite;
   private PartitioningStrategy withPartitioningStrategy;
-
   private int delay;
+  private String withSession;
+
+  public String getWithSession() {return this.withSession; }
+
+  public void setWithSession(String session) { this.withSession = session; }
 
   public String getWithPartitioner() {
     return this.partitioner;
@@ -196,6 +200,8 @@ public class Kcql {
     return storedAs;
   }
 
+  public String getSession() { return withSession; }
+
   public Map<String, String> getStoredAsParameters() {
     return storedAsParameters;
   }
@@ -204,7 +210,7 @@ public class Kcql {
     return consumerGroup;
   }
 
-  public List<PartitionOffset> getPartitonOffset() {
+  public List<PartitionOffset> getPartitionOffset() {
     return partitions;
   }
 
@@ -412,6 +418,11 @@ public class Kcql {
     final String[] tagKey = {null};
 
     parser.addParseListener(new ConnectorParserBaseListener() {
+
+      @Override
+      public void exitWith_session_value(ConnectorParser.With_session_valueContext ctx) {
+        kcql.withSession = ctx.getText();
+      }
 
       @Override
       public void exitWith_subscription_value(ConnectorParser.With_subscription_valueContext ctx) {

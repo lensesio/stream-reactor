@@ -221,6 +221,10 @@ WITH_PARTITIONING
     : 'WITH_PARTITIONING' | 'with_partitioning'
     ;
 
+WITH_SESSION
+    : 'WITH_SESSION' | 'with_session'
+    ;
+
 TTL
    : 'TTL'|'ttl'
    ;

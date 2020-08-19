@@ -182,7 +182,7 @@ public class KcqlSelectOnlyTest {
 
         assertEquals(0, pks.size());
 
-        List<PartitionOffset> partitionOffsets = kcql.getPartitonOffset();
+        List<PartitionOffset> partitionOffsets = kcql.getPartitionOffset();
         assertNotNull(partitionOffsets);
         assertEquals(2, partitionOffsets.size());
 
@@ -214,9 +214,9 @@ public class KcqlSelectOnlyTest {
 
 
         assertEquals(0, pks.size());
-        assertNotNull(kcql.getPartitonOffset());
-        assertEquals(1, kcql.getPartitonOffset().size());
-        PartitionOffset po = kcql.getPartitonOffset().get(0);
+        assertNotNull(kcql.getPartitionOffset());
+        assertEquals(1, kcql.getPartitionOffset().size());
+        PartitionOffset po = kcql.getPartitionOffset().get(0);
         assertEquals(0, po.getPartition());
         assertNull(po.getOffset());
 
