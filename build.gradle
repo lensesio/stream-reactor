@@ -100,6 +100,11 @@ allprojects {
         sign configurations.archives
     }
 
+    nexusStaging {
+        numberOfRetries = 50
+        delayBetweenRetriesInMillis = 3000
+    }
+
     // OSSRH publication
     if (project.hasProperty('release')) {
         uploadArchives {
