@@ -25,6 +25,7 @@ import java.util.{Collections, Date}
 import com.datamountaineer.kcql.FormatType
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraSourceSetting, TimestampType}
 import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraResultSetWrapper.resultSetFutureToScala
+import com.datamountaineer.streamreactor.connect.cassandra.utils.CassandraUtils
 import com.datamountaineer.streamreactor.connect.offsets.OffsetHandler
 import com.datastax.driver.core._
 import com.datastax.driver.core.utils.UUIDs
@@ -72,6 +73,7 @@ class CassandraTableReader(private val name: String,
   private val ignoreList = config.getIgnoredFields.asScala.map(_.getName).toSet
   private val isTokenBased = cqlGenerator.isTokenBased()
   private val isDSESearchBased = cqlGenerator.isDSESearchBased()
+  private val isBucketBased = cqlGenerator.isBucketBased()
   private val cassandraTypeConverter : CassandraTypeConverter =
     new CassandraTypeConverter(session.getCluster.getConfiguration.getCodecRegistry, setting)
   private var structColDefs: List[ColumnDefinitions.Definition] = _
@@ -181,6 +183,11 @@ class CassandraTableReader(private val name: String,
       val solrQuery = "{\"q\": \"" + solrWhere + "\", \"sort\":\"" + primaryKeyCol + " asc\", \"paging\":\"driver\"}"
       logger.info(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($solrQuery).")
       preparedStatement.bind(solrQuery)
+    } else if (isBucketBased) {
+      val buckets = CassandraUtils.getBucketsBetweenDates(previous, upperBound, setting.bucketMode, setting.bucketFormat)
+
+      logger.info(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow, $buckets).")
+      preparedStatement.bind(Date.from(previous), Date.from(upperBound), buckets)
     } else {
       logger.info(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow).")
       preparedStatement.bind(Date.from(previous), Date.from(upperBound))
