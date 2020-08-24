@@ -186,10 +186,12 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
       stopControl.notifyAll
     }
     readers.foreach({ case (_, v) => v.close() })
-    val cluster = connection.get.session.getCluster
+
     logger.info(s"Shutting down Cassandra driver connections for $name.")
-    connection.get.session.close()
-    cluster.close()
+    connection.foreach(c => {
+      c.session.close()
+      c.cluster.close()
+    })
   }
 
   /**
