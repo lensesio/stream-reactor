@@ -21,7 +21,7 @@ package com.wepay.kafka.connect.bigquery.write.batch;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest.RowToInsert;
 
-import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
+import com.wepay.kafka.connect.bigquery.utils.SinkRecordConverter;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
 
@@ -31,8 +31,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 /**
  * Simple Table Writer that attempts to write all the rows it is given at once.
@@ -46,23 +49,19 @@ public class TableWriter implements Runnable {
 
   private final BigQueryWriter writer;
   private final PartitionedTableId table;
-  private final List<RowToInsert> rows;
-  private final String topic;
+  private final SortedMap<SinkRecord, RowToInsert> rows;
 
   /**
    * @param writer the {@link BigQueryWriter} to use.
    * @param table the BigQuery table to write to.
    * @param rows the rows to write.
-   * @param topic the kafka source topic of this data.
    */
   public TableWriter(BigQueryWriter writer,
                      PartitionedTableId table,
-                     List<RowToInsert> rows,
-                     String topic) {
+                     SortedMap<SinkRecord, RowToInsert> rows) {
     this.writer = writer;
     this.table = table;
     this.rows = rows;
-    this.topic = topic;
   }
 
   @Override
@@ -72,16 +71,21 @@ public class TableWriter implements Runnable {
     int successCount = 0;
     int failureCount = 0;
 
+    List<Map.Entry<SinkRecord, RowToInsert>> rowsList = new ArrayList<>(rows.entrySet());
     try {
       while (currentIndex < rows.size()) {
-        List<RowToInsert> currentBatch =
-            rows.subList(currentIndex, Math.min(currentIndex + currentBatchSize, rows.size()));
+        List<Map.Entry<SinkRecord, RowToInsert>> currentBatchList =
+                rowsList.subList(currentIndex, Math.min(currentIndex + currentBatchSize, rows.size()));
         try {
-          writer.writeRows(table, currentBatch, topic);
+          SortedMap<SinkRecord, RowToInsert> currentBatch = new TreeMap<>(rows.comparator());
+          for (Map.Entry<SinkRecord, RowToInsert> record: currentBatchList) {
+            currentBatch.put(record.getKey(), record.getValue());
+          }
+          writer.writeRows(table, currentBatch);
           currentIndex += currentBatchSize;
           successCount++;
         } catch (BigQueryException err) {
-          logger.warn("Could not write batch of size {} to BigQuery.", currentBatch.size(), err);
+          logger.warn("Could not write batch of size {} to BigQuery.", currentBatchList.size(), err);
           if (isBatchSizeError(err)) {
             failureCount++;
             currentBatchSize = getNewBatchSize(currentBatchSize);
@@ -141,42 +145,34 @@ public class TableWriter implements Runnable {
     return false;
   }
 
-  public String getTopic() {
-    return topic;
-  }
 
   public static class Builder implements TableWriterBuilder {
     private final BigQueryWriter writer;
     private final PartitionedTableId table;
-    private final String topic;
 
-    private List<RowToInsert> rows;
-
-    private RecordConverter<Map<String, Object>> recordConverter;
+    private SortedMap<SinkRecord, RowToInsert> rows;
+    private SinkRecordConverter recordConverter;
 
     /**
      * @param writer the BigQueryWriter to use
      * @param table the BigQuery table to write to.
-     * @param topic the kafka source topic associated with the given table.
      * @param recordConverter the record converter used to convert records to rows
      */
-    public Builder(BigQueryWriter writer, PartitionedTableId table, String topic,
-                   RecordConverter<Map<String, Object>> recordConverter) {
+    public Builder(BigQueryWriter writer, PartitionedTableId table, SinkRecordConverter recordConverter) {
       this.writer = writer;
       this.table = table;
-      this.topic = topic;
 
-      this.rows = new ArrayList<>();
-
+      this.rows = new TreeMap<>(Comparator.comparing(SinkRecord::kafkaPartition)
+              .thenComparing(SinkRecord::kafkaOffset));
       this.recordConverter = recordConverter;
     }
 
     /**
      * Add a record to the builder.
-     * @param rowToInsert the row to add
+     * @param record the row to add
      */
-    public void addRow(RowToInsert rowToInsert) {
-      rows.add(rowToInsert);
+    public void addRow(SinkRecord record) {
+      rows.put(record, recordConverter.getRecordRow(record));
     }
 
     /**
@@ -184,7 +180,7 @@ public class TableWriter implements Runnable {
      * @return a TableWriter containing the given writer, table, topic, and all added rows.
      */
     public TableWriter build() {
-      return new TableWriter(writer, table, rows, topic);
+      return new TableWriter(writer, table, rows);
     }
   }
 }

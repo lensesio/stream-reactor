@@ -35,13 +35,6 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
   private static final ConfigDef config;
   private static final Logger logger = LoggerFactory.getLogger(BigQuerySinkTaskConfig.class);
 
-  public static final String SCHEMA_UPDATE_CONFIG =                     "autoUpdateSchemas";
-  private static final ConfigDef.Type SCHEMA_UPDATE_TYPE =              ConfigDef.Type.BOOLEAN;
-  public static final Boolean SCHEMA_UPDATE_DEFAULT =                   false;
-  private static final ConfigDef.Importance SCHEMA_UPDATE_IMPORTANCE =  ConfigDef.Importance.HIGH;
-  private static final String SCHEMA_UPDATE_DOC =
-      "Whether or not to automatically update BigQuery schemas";
-
   public static final String THREAD_POOL_SIZE_CONFIG =                  "threadPoolSize";
   private static final ConfigDef.Type THREAD_POOL_SIZE_TYPE =           ConfigDef.Type.INT;
   public static final Integer THREAD_POOL_SIZE_DEFAULT =                10;
@@ -130,12 +123,6 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
   static {
     config = BigQuerySinkConfig.getConfig()
         .define(
-            SCHEMA_UPDATE_CONFIG,
-            SCHEMA_UPDATE_TYPE,
-            SCHEMA_UPDATE_DEFAULT,
-            SCHEMA_UPDATE_IMPORTANCE,
-            SCHEMA_UPDATE_DOC
-        ).define(
             THREAD_POOL_SIZE_CONFIG,
             THREAD_POOL_SIZE_TYPE,
             THREAD_POOL_SIZE_DEFAULT,
@@ -190,13 +177,14 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
         );
   }
 
-  private void checkAutoUpdateSchemas() {
+  private void checkSchemaUpdates() {
     Class<?> schemaRetriever = getClass(BigQuerySinkConfig.SCHEMA_RETRIEVER_CONFIG);
 
-    boolean autoUpdateSchemas = getBoolean(SCHEMA_UPDATE_CONFIG);
-    if (autoUpdateSchemas && schemaRetriever == null) {
+    boolean allowNewBigQueryFields = getBoolean(BigQuerySinkConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG);
+    boolean allowRequiredFieldRelaxation = getBoolean(BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG);
+    if ((allowNewBigQueryFields || allowRequiredFieldRelaxation) && schemaRetriever == null) {
       throw new ConfigException(
-          "Cannot specify automatic table creation without a schema retriever"
+          "Cannot perform schema updates without a schema retriever"
       );
     }
 
@@ -262,7 +250,7 @@ public class BigQuerySinkTaskConfig extends BigQuerySinkConfig {
    */
   public BigQuerySinkTaskConfig(Map<String, String> properties) {
     super(config, properties);
-    checkAutoUpdateSchemas();
+    checkSchemaUpdates();
     checkPartitionConfigs();
     checkClusteringConfigs();
   }

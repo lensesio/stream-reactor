@@ -23,15 +23,17 @@ import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.InsertAllResponse;
 
-import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
+import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
 
 /**
  * A simple BigQueryWriter implementation. Sends the request to BigQuery, and throws an exception if
@@ -55,19 +57,18 @@ public class SimpleBigQueryWriter extends BigQueryWriter {
   /**
    * Sends the request to BigQuery, and return a map of insertErrors in case of partial failure.
    * Throws an exception if any other errors occur as a result of doing so.
-   * @see BigQueryWriter#performWriteRequest(PartitionedTableId, List, String)
+   * @see BigQueryWriter#performWriteRequest(PartitionedTableId, SortedMap)
    */
   @Override
   public Map<Long, List<BigQueryError>> performWriteRequest(PartitionedTableId tableId,
-                                                            List<InsertAllRequest.RowToInsert> rows,
-                                                            String topic) {
-    InsertAllRequest request = createInsertAllRequest(tableId, rows);
+                                                            SortedMap<SinkRecord, InsertAllRequest.RowToInsert> rows) {
+    InsertAllRequest request = createInsertAllRequest(tableId, rows.values());
     InsertAllResponse writeResponse = bigQuery.insertAll(request);
     if (writeResponse.hasErrors()) {
       logger.warn(
-          "You may want to enable auto schema updates by specifying "
-          + "{}=true in the properties file",
-          BigQuerySinkTaskConfig.SCHEMA_UPDATE_CONFIG
+          "You may want to enable schema updates by specifying "
+          + "{}=true or {}=true in the properties file",
+          BigQuerySinkConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG, BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG
       );
       return writeResponse.getInsertErrors();
     } else {

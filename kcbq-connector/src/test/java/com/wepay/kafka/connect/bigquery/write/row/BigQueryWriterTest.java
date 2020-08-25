@@ -19,6 +19,7 @@ package com.wepay.kafka.connect.bigquery.write.row;
 
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -30,6 +31,7 @@ import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.InsertAllResponse;
+import com.google.cloud.bigquery.Table;
 import com.google.cloud.storage.Storage;
 
 import com.wepay.kafka.connect.bigquery.BigQuerySinkTask;
@@ -74,6 +76,9 @@ public class BigQueryWriterTest {
     final Map<String, String> properties = makeProperties("3", "2000", topic, dataset);
 
     BigQuery bigQuery = mock(BigQuery.class);
+    Table mockTable = mock(Table.class);
+    when(bigQuery.getTable(any())).thenReturn(mockTable);
+
     Map<Long, List<BigQueryError>> emptyMap = mock(Map.class);
     when(emptyMap.isEmpty()).thenReturn(true);
 
@@ -144,6 +149,8 @@ public class BigQueryWriterTest {
     final Map<String, String> properties = makeProperties("3", "2000", topic, dataset);
 
     BigQuery bigQuery = mock(BigQuery.class);
+    Table mockTable = mock(Table.class);
+    when(bigQuery.getTable(any())).thenReturn(mockTable);
 
     Map<Long, List<BigQueryError>> emptyMap = mock(Map.class);
     when(emptyMap.isEmpty()).thenReturn(true);
@@ -197,6 +204,8 @@ public class BigQueryWriterTest {
     when(insertAllResponseNoError.getInsertErrors()).thenReturn(emptyMap);
 
     BigQuery bigQuery = mock(BigQuery.class);
+    Table mockTable = mock(Table.class);
+    when(bigQuery.getTable(any())).thenReturn(mockTable);
 
     //first attempt (partial failure); second attempt (success)
     when(bigQuery.insertAll(anyObject()))
@@ -250,6 +259,8 @@ public class BigQueryWriterTest {
     when(insertAllResponseNoError.getInsertErrors()).thenReturn(emptyMap);
 
     BigQuery bigQuery = mock(BigQuery.class);
+    Table mockTable = mock(Table.class);
+    when(bigQuery.getTable(any())).thenReturn(mockTable);
 
     //first attempt (complete failure); second attempt (not expected)
     when(bigQuery.insertAll(anyObject()))
@@ -288,7 +299,7 @@ public class BigQueryWriterTest {
     properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_CONFIG, bigqueryRetry);
     properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_WAIT_CONFIG, bigqueryRetryWait);
     properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
-    properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
+    properties.put(BigQuerySinkConfig.DEFAULT_DATASET_CONFIG, dataset);
     return properties;
   }
 

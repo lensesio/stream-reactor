@@ -36,13 +36,15 @@ public class SinkPropertiesFactory {
     properties.put(BigQuerySinkConfig.TABLE_CREATE_CONFIG, "false");
     properties.put(BigQuerySinkConfig.TOPICS_CONFIG, "kcbq-test");
     properties.put(BigQuerySinkConfig.PROJECT_CONFIG, "test-project");
-    properties.put(BigQuerySinkConfig.DATASETS_CONFIG, ".*=test");
-    properties.put(BigQuerySinkConfig.DATASETS_CONFIG, "kcbq-test=kcbq-test-table");
+    properties.put(BigQuerySinkConfig.DEFAULT_DATASET_CONFIG, "kcbq-test");
 
     properties.put(BigQuerySinkConfig.KEYFILE_CONFIG, "key.json");
 
     properties.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "false");
     properties.put(BigQuerySinkConfig.AVRO_DATA_CACHE_SIZE_CONFIG, "10");
+
+    properties.put(BigQuerySinkConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG, "false");
+    properties.put(BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG, "false");
 
     return properties;
   }
@@ -54,19 +56,17 @@ public class SinkPropertiesFactory {
    * @param config The config object to test
    */
   public void testProperties(BigQuerySinkConfig config) {
-    config.getTopicsToDatasets();
-
-    config.getMap(config.DATASETS_CONFIG);
-    config.getMap(config.TOPICS_TO_TABLES_CONFIG);
 
     config.getList(config.TOPICS_CONFIG);
-    config.getList(config.TOPICS_TO_TABLES_CONFIG);
-    config.getList(config.DATASETS_CONFIG);
+    config.getString(config.DEFAULT_DATASET_CONFIG);
 
     config.getKeyFile();
     config.getString(config.PROJECT_CONFIG);
 
     config.getBoolean(config.SANITIZE_TOPICS_CONFIG);
     config.getInt(config.AVRO_DATA_CACHE_SIZE_CONFIG);
+
+    config.getBoolean(config.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG);
+    config.getBoolean(config.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG);
   }
 }

@@ -164,7 +164,7 @@ public class GCSToBQWriterTest {
     properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_CONFIG, bigqueryRetry);
     properties.put(BigQuerySinkTaskConfig.BIGQUERY_RETRY_WAIT_CONFIG, bigqueryRetryWait);
     properties.put(BigQuerySinkConfig.TOPICS_CONFIG, topic);
-    properties.put(BigQuerySinkConfig.DATASETS_CONFIG, String.format(".*=%s", dataset));
+    properties.put(BigQuerySinkConfig.DEFAULT_DATASET_CONFIG, dataset);
     // gcs config
     properties.put(BigQuerySinkConfig.ENABLE_BATCH_CONFIG, topic);
     properties.put(BigQuerySinkConfig.GCS_BUCKET_NAME_CONFIG, "myBucket");

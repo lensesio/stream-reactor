@@ -44,6 +44,7 @@ import org.apache.kafka.common.config.ConfigException;
 
 import org.apache.kafka.connect.data.Schema;
 
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -62,13 +63,13 @@ public class BigQuerySinkConnectorTest {
     }
 
     @Override
-    public Schema retrieveSchema(TableId table, String topic, KafkaSchemaRecordType schemaType) {
-      // Shouldn't be called
+    public Schema retrieveKeySchema(SinkRecord record){
       return null;
     }
 
     @Override
-    public void setLastSeenSchema(TableId table, String topic, Schema schema) {
+    public Schema retrieveValueSchema(SinkRecord record){
+      return null;
     }
   }
 

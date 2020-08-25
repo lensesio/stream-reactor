@@ -19,18 +19,9 @@ package com.wepay.kafka.connect.bigquery;
 
 
 import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.TableId;
-
-import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
-
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
-
-import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
-
-import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
 
-import com.wepay.kafka.connect.bigquery.utils.TopicToTableResolver;
 import com.wepay.kafka.connect.bigquery.utils.Version;
 
 import org.apache.kafka.common.config.ConfigDef;
@@ -46,7 +37,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * A {@link SinkConnector} used to delegate BigQuery data writes to
@@ -86,29 +76,6 @@ public class BigQuerySinkConnector extends SinkConnector {
     return config.getConfig();
   }
 
-  private BigQuery getBigQuery() {
-    if (testBigQuery != null) {
-      return testBigQuery;
-    }
-    String projectName = config.getString(config.PROJECT_CONFIG);
-    String key = config.getKeyFile();
-    String keySource = config.getString(config.KEY_SOURCE_CONFIG);
-    return new BigQueryHelper().setKeySource(keySource).connect(projectName, key);
-  }
-
-  private void ensureExistingTables() {
-    BigQuery bigQuery = getBigQuery();
-    Map<String, TableId> topicsToTableIds = TopicToTableResolver.getTopicsToTables(config);
-    for (TableId tableId : topicsToTableIds.values()) {
-      if (bigQuery.getTable(tableId) == null) {
-        logger.warn(
-          "You may want to enable auto table creation by setting {}=true in the properties file",
-          config.TABLE_CREATE_CONFIG);
-        throw new BigQueryConnectException("Table '" + tableId + "' does not exist");
-      }
-    }
-  }
-
   @Override
   public void start(Map<String, String> properties) {
     logger.trace("connector.start()");
@@ -120,10 +87,6 @@ public class BigQuerySinkConnector extends SinkConnector {
           "Couldn't start BigQuerySinkConnector due to configuration error",
           err
       );
-    }
-
-    if (!config.getBoolean(config.TABLE_CREATE_CONFIG)) {
-      ensureExistingTables();
     }
   }
 

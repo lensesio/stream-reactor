@@ -25,14 +25,17 @@ import com.google.cloud.bigquery.InsertAllRequest;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 /**
  * A class for writing lists of rows to a BigQuery table.
@@ -71,13 +74,11 @@ public abstract class BigQueryWriter {
    * errors that happen as a result.
    * @param tableId The PartitionedTableId.
    * @param rows The rows to write.
-   * @param topic The Kafka topic that the row data came from.
    * @return map from failed row id to the BigQueryError.
    */
   protected abstract Map<Long, List<BigQueryError>> performWriteRequest(
-      PartitionedTableId tableId,
-      List<InsertAllRequest.RowToInsert> rows,
-      String topic)
+          PartitionedTableId tableId,
+          SortedMap<SinkRecord, InsertAllRequest.RowToInsert> rows)
       throws BigQueryException, BigQueryConnectException;
 
   /**
@@ -87,7 +88,7 @@ public abstract class BigQueryWriter {
    * @return the InsertAllRequest.
    */
   protected InsertAllRequest createInsertAllRequest(PartitionedTableId tableId,
-                                                    List<InsertAllRequest.RowToInsert> rows) {
+                                                    Collection<InsertAllRequest.RowToInsert> rows) {
     return InsertAllRequest.newBuilder(tableId.getFullTableId(), rows)
         .setIgnoreUnknownValues(false)
         .setSkipInvalidRows(false)
@@ -97,12 +98,10 @@ public abstract class BigQueryWriter {
   /**
    * @param table The BigQuery table to write the rows to.
    * @param rows The rows to write.
-   * @param topic The Kafka topic that the row data came from.
    * @throws InterruptedException if interrupted.
    */
   public void writeRows(PartitionedTableId table,
-                        List<InsertAllRequest.RowToInsert> rows,
-                        String topic)
+                        SortedMap<SinkRecord, InsertAllRequest.RowToInsert> rows)
       throws BigQueryConnectException, BigQueryException, InterruptedException {
     logger.debug("writing {} row{} to table {}", rows.size(), rows.size() != 1 ? "s" : "", table);
 
@@ -115,7 +114,7 @@ public abstract class BigQueryWriter {
         waitRandomTime();
       }
       try {
-        failedRowsMap = performWriteRequest(table, rows, topic);
+        failedRowsMap = performWriteRequest(table, rows);
         if (failedRowsMap.isEmpty()) {
           // table insertion completed with no reported errors
           return;
@@ -123,7 +122,7 @@ public abstract class BigQueryWriter {
           logger.info("{} rows succeeded, {} rows failed",
               rows.size() - failedRowsMap.size(), failedRowsMap.size());
           // update insert rows and retry in case of partial failure
-          rows = getFailedRows(rows, failedRowsMap.keySet(), topic, table);
+          rows = getFailedRows(rows, failedRowsMap.keySet(), table);
           mostRecentException = new BigQueryConnectException(failedRowsMap);
           retryCount++;
         } else {
@@ -170,7 +169,7 @@ public abstract class BigQueryWriter {
    * @param failedRowsMap A map from failed row index to the BigQueryError.
    * @return isPartialFailure.
    */
-  private boolean isPartialFailure(List<InsertAllRequest.RowToInsert> rows,
+  private boolean isPartialFailure(SortedMap<SinkRecord, InsertAllRequest.RowToInsert> rows,
                                    Map<Long, List<BigQueryError>> failedRowsMap) {
     return failedRowsMap.size() < rows.size();
   }
@@ -181,17 +180,18 @@ public abstract class BigQueryWriter {
    * @param failRowsSet A set of failed row index.
    * @return A list of failed rows.
    */
-  private List<InsertAllRequest.RowToInsert> getFailedRows(List<InsertAllRequest.RowToInsert> rows,
+  private SortedMap<SinkRecord, InsertAllRequest.RowToInsert> getFailedRows(SortedMap<SinkRecord, InsertAllRequest.RowToInsert> rows,
                                                            Set<Long> failRowsSet,
-                                                           String topic,
                                                            PartitionedTableId table) {
-    List<InsertAllRequest.RowToInsert> failRows = new ArrayList<>();
-    for (int index = 0; index < rows.size(); index++) {
+    SortedMap<SinkRecord, InsertAllRequest.RowToInsert> failRows = new TreeMap<>(rows.comparator());
+    int index = 0;
+    for (Map.Entry<SinkRecord, InsertAllRequest.RowToInsert> row: rows.entrySet()) {
       if (failRowsSet.contains((long)index)) {
-        failRows.add(rows.get(index));
+        failRows.put(row.getKey(), row.getValue());
       }
+      index++;
     }
-    logger.debug("{} rows from topic {} failed to be written to table {}.", rows.size(), topic, table.getFullTableName());
+    logger.debug("{} rows failed to be written to table {}.", rows.size(), table.getFullTableName());
     return failRows;
   }
 

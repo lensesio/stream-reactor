@@ -28,7 +28,6 @@ public class SinkTaskPropertiesFactory extends SinkPropertiesFactory {
   public Map<String, String> getProperties() {
     Map<String, String> properties = super.getProperties();
 
-    properties.put(BigQuerySinkTaskConfig.SCHEMA_UPDATE_CONFIG, "false");
     properties.put(BigQuerySinkConfig.TABLE_CREATE_CONFIG, "false");
 
     return properties;
@@ -42,7 +41,5 @@ public class SinkTaskPropertiesFactory extends SinkPropertiesFactory {
    */
   public void testProperties(BigQuerySinkTaskConfig config) {
     super.testProperties(config);
-
-    config.getBoolean(config.SCHEMA_UPDATE_CONFIG);
   }
 }

@@ -1,13 +1,12 @@
 package com.wepay.kafka.connect.bigquery.api;
 
-import com.google.cloud.bigquery.TableId;
-
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.sink.SinkRecord;
 
 import java.util.Map;
 
 /**
- * Interface for retrieving the most up-to-date schemas for a given BigQuery table. Used in
+ * Interface for retrieving the most up-to-date schemas for a given Sink Record. Used in
  * automatic table creation and schema updates.
  */
 public interface SchemaRetriever {
@@ -16,22 +15,20 @@ public interface SchemaRetriever {
    * {@link org.apache.kafka.connect.sink.SinkConnector#start(Map)} method.
    * @param properties The configuration settings of the connector.
    */
-  public void configure(Map<String, String> properties);
+  void configure(Map<String, String> properties);
 
   /**
-   * Retrieve the most current schema for the given topic.
-   * @param table The table that will be created.
-   * @param topic The topic to retrieve a schema for.
-   * @param schemaType The type of kafka schema, either "value" or "key".
-   * @return The Schema for the given table.
+   * Retrieve the most current key schema for the given sink record.
+   * @param record The record to retrieve a key schema for.
+   * @return The key Schema for the given record.
    */
-  public Schema retrieveSchema(TableId table, String topic, KafkaSchemaRecordType schemaType);
+  Schema retrieveKeySchema(SinkRecord record);
 
   /**
-   * Set the last seen schema for a given topic
-   * @param table The table that will be created.
-   * @param topic The topic to retrieve a schema for.
-   * @param schema The last seen Kafka Connect Schema
+   * Retrieve the most current value schema for the given sink record.
+   * @param record The record to retrieve a value schema for.
+   * @return The value Schema for the given record.
    */
-  public void setLastSeenSchema(TableId table, String topic, Schema schema);
+  Schema retrieveValueSchema(SinkRecord record);
+
 }

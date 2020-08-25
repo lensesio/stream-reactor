@@ -1,4 +1,4 @@
-package com.wepay.kafka.connect.bigquery.write.batch;
+package com.wepay.kafka.connect.bigquery.retrieve;
 
 /*
  * Copyright 2016 WePay, Inc.
@@ -17,23 +17,28 @@ package com.wepay.kafka.connect.bigquery.write.batch;
  * under the License.
  */
 
-
+import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.sink.SinkRecord;
 
+import java.util.Map;
+
 /**
- * Interface for building a {@link TableWriter} or TableWriterGCS.
+ * Fetches the key Schema and value Schema from a Sink Record
  */
-public interface TableWriterBuilder {
+public class IdentitySchemaRetriever implements SchemaRetriever {
 
-  /**
-   * Add a record to the builder.
-   * @param sinkRecord the row to add.
-   */
-  void addRow(SinkRecord sinkRecord);
+    @Override
+    public void configure(Map<String, String> properties) {
+    }
 
-  /**
-   * Create a {@link TableWriter} from this builder.
-   * @return a TableWriter containing the given writer, table, topic, and all added rows.
-   */
-  Runnable build();
+    @Override
+    public Schema retrieveKeySchema(SinkRecord record) {
+        return record.keySchema();
+    }
+
+    @Override
+    public Schema retrieveValueSchema(SinkRecord record) {
+        return record.valueSchema();
+    }
 }
