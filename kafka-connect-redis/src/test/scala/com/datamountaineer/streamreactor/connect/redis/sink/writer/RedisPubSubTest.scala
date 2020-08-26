@@ -17,10 +17,12 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisConnectionInfo, RedisSinkSettings}
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterAll
+import org.scalatest.concurrent.Eventually._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import redis.clients.jedis.{Jedis, JedisPubSub}
@@ -29,7 +31,7 @@ import redis.embedded.RedisServer
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
-class RedisPubSubTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
+class RedisPubSubTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar with LazyLogging {
 
   val redisServer = new RedisServer(6379)
 
@@ -45,9 +47,9 @@ class RedisPubSubTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
       val KCQL = s"SELECT * from $TOPIC STOREAS PubSub (channel=type)"
       println("Testing KCQL : " + KCQL)
       val props = Map(
-        RedisConfigConstants.REDIS_HOST->"localhost",
-        RedisConfigConstants.REDIS_PORT->"6379",
-        RedisConfigConstants.KCQL_CONFIG->KCQL
+        RedisConfigConstants.REDIS_HOST -> "localhost",
+        RedisConfigConstants.REDIS_PORT -> "6379",
+        RedisConfigConstants.KCQL_CONFIG -> KCQL
       ).asJava
 
       val config = RedisConfig(props)
@@ -80,7 +82,10 @@ class RedisPubSubTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
         private val pubsub = new JedisPubSub {
           override def onMessage(channel: String, message: String): Unit = {
             messagesMap.get(channel) match {
-              case Some(msgs) => messagesMap.put(channel, msgs += message)
+              case Some(msgs) => {
+                logger.info("Receiving message!")
+                messagesMap.put(channel, msgs += message)
+              }
               case None => messagesMap.put(channel, ListBuffer(message))
             }
           }
@@ -102,11 +107,14 @@ class RedisPubSubTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
       writer.write(Seq(sinkRecord1))
       writer.write(Seq(sinkRecord2, sinkRecord3))
 
-      messagesMap.size shouldBe 3
+      eventually {
+        messagesMap.size shouldBe 3
 
-      messagesMap("Xeon").head shouldBe """{"type":"Xeon","temperature":60.4,"voltage":90.1,"ts":1482180657010}"""
-      messagesMap("i7").head shouldBe """{"type":"i7","temperature":62.1,"voltage":103.3,"ts":1482180657020}"""
-      messagesMap("i7-i").head shouldBe """{"type":"i7-i","temperature":64.5,"voltage":101.1,"ts":1482180657030}"""
+        messagesMap("Xeon").head shouldBe """{"type":"Xeon","temperature":60.4,"voltage":90.1,"ts":1482180657010}"""
+        messagesMap("i7").head shouldBe """{"type":"i7","temperature":62.1,"voltage":103.3,"ts":1482180657020}"""
+        messagesMap("i7-i").head shouldBe """{"type":"i7-i","temperature":64.5,"voltage":101.1,"ts":1482180657030}"""
+      }
+
     }
   }
 }
