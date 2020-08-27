@@ -144,7 +144,7 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
     val reader = readers(tableName)
     val queue = queues(tableName)
 
-    logger.info(s"Connector $name start of poll queue size for $tableName is: ${queue.size}")
+    logger.debug(s"Connector $name start of poll queue size for $tableName is: ${queue.size}")
 
     // minimized the changes but still fix #300
     // depending on buffer size, batch size, and volume of data coming in
@@ -159,19 +159,20 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
       // if we are in the middle of working
       // on data from the last polling cycle
       // we will not attempt to get more data
-      logger.info(s"Connector $name reader for table $tableName is still querying...")
+      logger.debug(s"Connector $name reader for table $tableName is still querying...")
     }
 
     // let's make some of the data on the queue
     // available for publishing to Kafka
     val records = if (!queue.isEmpty) {
-      logger.info(s"Connector $name attempting to drain $batchSize items from the queue for table $tableName")
+      val sendSize = if (queue.size() > batchSize.get) batchSize.get else queue.size()
+      logger.info(s"Sending $sendSize records for connector $name")
       QueueHelpers.drainQueue(queue, batchSize.get).asScala.toList
     } else {
       List[SourceRecord]()
     }
 
-    logger.info(s"Connector $name end of poll queue size for $tableName is: ${queue.size}")
+    logger.debug(s"Connector $name end of poll queue size for $tableName is: ${queue.size}")
 
     records
   }
@@ -185,10 +186,12 @@ class CassandraSourceTask extends SourceTask with StrictLogging {
       stopControl.notifyAll
     }
     readers.foreach({ case (_, v) => v.close() })
-    val cluster = connection.get.session.getCluster
+
     logger.info(s"Shutting down Cassandra driver connections for $name.")
-    connection.get.session.close()
-    cluster.close()
+    connection.foreach(c => {
+      c.session.close()
+      c.cluster.close()
+    })
   }
 
   /**

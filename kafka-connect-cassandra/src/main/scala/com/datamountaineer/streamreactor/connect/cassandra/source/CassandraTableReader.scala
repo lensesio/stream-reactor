@@ -179,10 +179,10 @@ class CassandraTableReader(private val name: String,
       val solrWhere = s"$primaryKeyCol:{$formattedPrevious TO $formattedNow]"
       // we need that to be able to page results even with the solr_query being used, that's why we use the paging and sort configs
       val solrQuery = "{\"q\": \"" + solrWhere + "\", \"sort\":\"" + primaryKeyCol + " asc\", \"paging\":\"driver\"}"
-      logger.info(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($solrQuery).")
+      logger.debug(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($solrQuery).")
       preparedStatement.bind(solrQuery)
     } else {
-      logger.info(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow).")
+      logger.debug(s"Connector $name query ${preparedStatement.getQueryString} executing with bindings ($formattedPrevious, $formattedNow).")
       preparedStatement.bind(Date.from(previous), Date.from(upperBound))
     }
     // bind the offset and db time
@@ -230,7 +230,7 @@ class CassandraTableReader(private val name: String,
     future.onComplete {
       case Success(rs) =>
         try {
-          logger.info(s"Connector $name processing results for $keySpace.$table.")
+          logger.debug(s"Connector $name processing results for $keySpace.$table.")
           val iter = rs.iterator()
           var counter = 0
 
@@ -253,7 +253,7 @@ class CassandraTableReader(private val name: String,
               counter += 1
             }
           }
-          logger.info(s"Connector $name processed $counter row(-s) into $topic topic for table $table")
+          logger.debug(s"Connector $name processed $counter row(-s) into $topic topic for table $table")
 
           alterTimeSliceValueBasedOnRowsProcessess(counter)
           reset(maxOffset)

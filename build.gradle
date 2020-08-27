@@ -167,16 +167,20 @@ allprojects {
             exclude(dependency("io.confluent:.*"))
             exclude(dependency("org.apache.kafka:.*"))
             exclude(dependency("org.apache.zookeeper:.*"))
+            exclude(dependency("com.google.guava:guava:28.1-android"))
         }
     }
 
     dependencies {
+
         compile "org.scala-lang:scala-library:$scala"
         compile "org.scala-lang:scala-compiler:$scala"
         compile "com.typesafe.scala-logging:scala-logging_${scalaMajorVersion}:${scalaLoggingVersion}"
         compile "org.apache.kafka:connect-json:$kafkaVersion"
         compile "io.confluent:kafka-connect-avro-converter:$confluentVersion"
-        compile "io.confluent:kafka-schema-registry:$confluentVersion"
+        compile ("io.confluent:kafka-schema-registry:$confluentVersion") {
+            exclude group: 'com.google.guava', module: 'guava'
+        }
         compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
         compile "org.apache.calcite:calcite-linq4j:$link4jVersion"
 
