@@ -32,7 +32,7 @@ object ElasticConfigConstants {
 
   val ES_PORT = s"${CONNECTOR_PREFIX}.${CONNECTION_PORT_SUFFIX}"
   val ES_PORT_DOC = "Port on which Elastic Search node listens on"
-  val ES_PORT_DEFAULT = 9300
+  val ES_PORT_DEFAULT = 9200
 
   val ES_PREFIX = s"${CONNECTOR_PREFIX}.tableprefix"
   val ES_PREFIX_DOC = "Table prefix (optional)"
