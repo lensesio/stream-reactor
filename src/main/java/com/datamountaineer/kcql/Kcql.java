@@ -67,8 +67,21 @@ public class Kcql {
   private PartitioningStrategy withPartitioningStrategy;
   private int delay;
   private String withSession;
+  private boolean withAck = false;
+  private boolean withEncodeBase64 = false;
+  private long withLockTime = -1;
 
-  public String getWithSession() {return this.withSession; }
+  public boolean getWithEncodeBase64() { return this.withEncodeBase64; }
+
+  public void setWithEncodeBase64(boolean encode) { this.withEncodeBase64 = encode; }
+
+  public boolean getWithAck() { return this.withAck; }
+
+  public void setWithAck(boolean ack) {
+    this.withAck = ack;
+  }
+
+  public String getWithSession() { return this.withSession; }
 
   public String getWithPartitioner() {
     return this.partitioner;
@@ -109,6 +122,10 @@ public class Kcql {
   public long getTTL() {
     return this.ttl;
   }
+
+  public long getWithLockTime() { return this.withLockTime; }
+
+  public void setWithLockTime(long lock) { this.withLockTime = lock;}
 
   private void addField(final Field field) {
     if (field == null) {
@@ -581,6 +598,11 @@ public class Kcql {
       }
 
       @Override
+      public void exitUpdate_into(ConnectorParser.Update_intoContext ctx) {
+        kcql.writeMode = WriteModeEnum.UPDATE;
+      }
+
+      @Override
       public void exitAutocreate(ConnectorParser.AutocreateContext ctx) {
         kcql.autoCreate = true;
       }
@@ -691,6 +713,20 @@ public class Kcql {
           kcql.setTTL(newTTL);
         } catch (NumberFormatException ex) {
           throw new IllegalArgumentException(value + " is not a valid number for a TTL.");
+        }
+      }
+
+      @Override
+      public void exitLock_time_type(ConnectorParser.Lock_time_typeContext ctx) {
+        final String value = ctx.getText();
+        try {
+          long lockTime = Long.parseLong(value);
+          if (lockTime <= 0) {
+            throw new IllegalArgumentException(value + " is not a valid number for a WITH_LOCK_TIME.");
+          }
+          kcql.setWithLockTime(lockTime);
+        } catch (NumberFormatException ex) {
+          throw new IllegalArgumentException(value + " is not a valid number for a WITH_LOCK_TIME.");
         }
       }
 
@@ -895,6 +931,17 @@ public class Kcql {
         } catch (Throwable t) {
           throw new IllegalArgumentException("Invalid value specified for WITH_SCHEMA_EVOLUTION. Expecting one of the values:" + EnumsHelper.mkString(PartitioningStrategy.values()));
         }
+      }
+
+      @Override
+      public void exitWith_ack_clause(ConnectorParser.With_ack_clauseContext ctx) {
+        kcql.setWithAck(true);
+      }
+
+
+      @Override
+      public void exitWith_encode_base64(ConnectorParser.With_encode_base64Context ctx) {
+        kcql.setWithEncodeBase64(true);
       }
     });
 

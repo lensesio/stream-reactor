@@ -4,5 +4,6 @@ import java.util.Enumeration;
 
 public enum WriteModeEnum {
   INSERT,
-  UPSERT;
+  UPSERT,
+  UPDATE;
 }

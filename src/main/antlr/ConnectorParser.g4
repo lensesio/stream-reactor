@@ -23,12 +23,16 @@ upsert_into
    : UPSERT into
    ;
 
+update_into
+   : UPDATE into
+   ;
+
 upsert_pk_into
    : ( UPSERT pk FIELD into)
    ;
 
 write_mode
-   : insert_into | upsert_into | upsert_pk_into
+   : insert_into | upsert_into | upsert_pk_into | update_into
    ;
 
 schema_name
@@ -42,7 +46,7 @@ insert_from_clause
     (ttl_clause)? (with_converter)? (with_jms_selector)? (with_key)? (key_delimiter)? (with_pipeline_clause)? (with_partitioner_clause)?
     (with_subscription_clause)? (with_compression_clause)? (with_delay_clause)? (with_regex_clause)? (with_flush_size_clause)?
     (with_flush_interval_clause)? (with_flush_records_clause)? (with_schema_evolution_clause)? (with_table_location_clause)? (with_overwrite_clause)?
-    (with_partitioning_clause)? (limit_clause)? (with_session_clause)?
+    (with_partitioning_clause)? (limit_clause)? (with_session_clause)? (with_ack_clause)? (with_encode_base64)? (with_lock_time_clause)?
    ;
 
 select_clause
@@ -482,3 +486,19 @@ with_session_clause
 with_session_value
     : FIELD
     ;
+
+with_ack_clause
+    : WITH_ACK
+    ;
+
+ with_encode_base64
+    : WITH_ENCODE_BASE64
+    ;
+
+ with_lock_time_clause
+    : WITH_LOCK_TIME EQUAL lock_time_type
+    ;
+
+ lock_time_type
+     : INT
+     ;

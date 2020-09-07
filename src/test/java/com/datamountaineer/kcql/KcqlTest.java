@@ -1155,5 +1155,33 @@ public class KcqlTest {
     assertEquals(session, kcql.getWithSession());
   }
 
+  @Test
+  public void handleAck() {
+    String syntax = "insert into mytopic select a, b, c from topic WITH_ACK";
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(true, kcql.getWithAck());
+  }
+
+  @Test
+  public void handleEncode() {
+    String syntax = "insert into mytopic select a, b, c from topic WITH_ENCODE_BASE64";
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(true, kcql.getWithEncodeBase64());
+  }
+
+  @Test
+  public void handleLockTime() {
+    String syntax = "insert into mytopic select a, b, c from topic WITH_LOCK_TIME = 10";
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(10, kcql.getWithLockTime());
+  }
+
+  @Test
+  public void handleUpdate() {
+    String syntax = "update into mytopic select a, b, c from topic";
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(WriteModeEnum.UPDATE, kcql.getWriteMode());
+  }
+
 
 }
