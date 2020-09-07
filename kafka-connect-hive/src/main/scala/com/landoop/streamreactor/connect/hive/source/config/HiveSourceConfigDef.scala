@@ -20,6 +20,7 @@ object HiveSourceConfigDef {
     .define(MetastoreUrisKey, Type.STRING, Importance.HIGH, MetastoreUrisDoc)
     .define(FsDefaultKey, Type.STRING, Importance.HIGH, FsDefaultDoc)
     .define(PollSizeKey, Type.INT, 1024, Importance.HIGH, PollSizeDoc)
+    .define(RefreshFrequencyKey, Type.INT, 0, Importance.HIGH, RefreshFrequencyDoc)
 
     //config folders
     .define(HdfsConfigDirKey, Type.STRING, HdfsConfigDirDefault, Importance.MEDIUM, HdfsConfigDirDoc, "Configs", 1, ConfigDef.Width.MEDIUM, HdfsConfigDirDisplay)

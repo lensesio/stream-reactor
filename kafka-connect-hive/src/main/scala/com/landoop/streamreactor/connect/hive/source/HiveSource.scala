@@ -5,7 +5,7 @@ import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.formats.{HiveFormat, HiveReader, Record}
 import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfig
 import com.landoop.streamreactor.connect.hive.source.mapper.{PartitionValueMapper, ProjectionMapper}
-import com.landoop.streamreactor.connect.hive.source.offset.HiveSourceOffsetStorageReader
+import com.landoop.streamreactor.connect.hive.source.offset.HiveOffsetStorageReader
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 import org.apache.kafka.connect.data.Struct
@@ -25,7 +25,7 @@ import scala.collection.JavaConverters._
 class HiveSource(db: DatabaseName,
                  tableName: TableName,
                  topic: Topic,
-                 offsetReader: HiveSourceOffsetStorageReader,
+                 offsetReader: HiveOffsetStorageReader,
                  config: HiveSourceConfig)
                 (implicit client: IMetaStoreClient, fs: FileSystem) extends Iterator[SourceRecord] {
 
@@ -36,6 +36,8 @@ class HiveSource(db: DatabaseName,
   private val format = HiveFormat(hive.serde(table))
   private val metastoreSchema = HiveSchemas.toKafka(table)
   private val parts = TableFileScanner.scan(db, tableName)
+  private var latestPartition : Option[SourcePartition] = None
+  private var latestOffset : Option[SourceOffset] = None
 
   private val readers = parts.map { case (path, partition) =>
 
@@ -56,7 +58,8 @@ class HiveSource(db: DatabaseName,
     }
   }
 
-  private val iterator: Iterator[Record] = readers.map(_.iterator).reduce(_ ++ _).take(tableConfig.limit)
+  private val iterator: Iterator[Record] = readers.map(_.iterator).reduceOption(_ ++ _)
+    .fold(List.empty[Record].toIterator)(_.take(tableConfig.limit))
 
   override def hasNext: Boolean = iterator.hasNext
 
@@ -65,6 +68,8 @@ class HiveSource(db: DatabaseName,
     val record = iterator.next
     val sourcePartition = SourcePartition(db, tableName, topic, record.path)
     val offset = SourceOffset(record.offset)
+    latestOffset = Some(offset)
+    latestPartition = Some(sourcePartition)
 
     new SourceRecord(
       fromSourcePartition(sourcePartition).asJava,
@@ -78,4 +83,9 @@ class HiveSource(db: DatabaseName,
   def close(): Unit = {
     readers.foreach(_.close())
   }
+
+  def getLatestOffset: Option[SourceOffset] = latestOffset
+
+  def getLatestPartition: Option[SourcePartition] = latestPartition
+
 }

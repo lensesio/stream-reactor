@@ -6,7 +6,7 @@ import org.apache.kafka.connect.storage.OffsetStorageReader
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-class HiveSourceOffsetStorageReader(reader: OffsetStorageReader) {
+class HiveSourceInitOffsetStorageReader(reader: OffsetStorageReader) extends HiveOffsetStorageReader {
   def offset(partition: SourcePartition): Option[SourceOffset] = {
     val offsetMap = reader.offset(fromSourcePartition(partition).asJava)
     Try(toSourceOffset(offsetMap.asScala.toMap)).toOption

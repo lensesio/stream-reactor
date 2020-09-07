@@ -36,4 +36,8 @@ object HiveSourceConfigConstants
 
   val PollSizeKey = s"$CONNECTOR_PREFIX.poll.size"
   val PollSizeDoc = "Max number of records to read each time poll is called"
+
+  val RefreshFrequencyKey = s"$CONNECTOR_PREFIX.refresh.frequency"
+  val RefreshFrequencyDoc = "Minimum duration before refreshing the hive partitions on the next poll. 0 is disabled.s"
+
 }
