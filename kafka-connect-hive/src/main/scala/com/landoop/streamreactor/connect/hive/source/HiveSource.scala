@@ -12,6 +12,7 @@ import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceRecord
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 /**
   * A [[HiveSource]] will read files from a single hive table and generate
@@ -36,8 +37,7 @@ class HiveSource(db: DatabaseName,
   private val format = HiveFormat(hive.serde(table))
   private val metastoreSchema = HiveSchemas.toKafka(table)
   private val parts = TableFileScanner.scan(db, tableName)
-  private var latestPartition : Option[SourcePartition] = None
-  private var latestOffset : Option[SourceOffset] = None
+  private val offsets: mutable.Map[SourcePartition, SourceOffset] = mutable.Map.empty[SourcePartition, SourceOffset]
 
   private val readers = parts.map { case (path, partition) =>
 
@@ -51,9 +51,11 @@ class HiveSource(db: DatabaseName,
 
     new HiveReader {
       lazy val reader = format.reader(path, sourceOffset.rowNumber, metastoreSchema)
+
       override def iterator: Iterator[Record] = reader.iterator.map { record =>
         Record(mapper(record.struct), record.path, record.offset)
       }
+
       override def close(): Unit = reader.close()
     }
   }
@@ -68,8 +70,7 @@ class HiveSource(db: DatabaseName,
     val record = iterator.next
     val sourcePartition = SourcePartition(db, tableName, topic, record.path)
     val offset = SourceOffset(record.offset)
-    latestOffset = Some(offset)
-    latestPartition = Some(sourcePartition)
+    offsets.put(sourcePartition, offset)
 
     new SourceRecord(
       fromSourcePartition(sourcePartition).asJava,
@@ -84,8 +85,6 @@ class HiveSource(db: DatabaseName,
     readers.foreach(_.close())
   }
 
-  def getLatestOffset: Option[SourceOffset] = latestOffset
-
-  def getLatestPartition: Option[SourcePartition] = latestPartition
+  def getOffsets: Map[SourcePartition, SourceOffset] = offsets.toMap
 
 }

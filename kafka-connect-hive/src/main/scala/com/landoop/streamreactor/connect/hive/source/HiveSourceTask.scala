@@ -33,7 +33,8 @@ class HiveSourceTask extends SourceTask with StrictLogging {
   private var sources: Set[HiveSource] = Set.empty
   private var iterator: Iterator[SourceRecord] = Iterator.empty
   private var kerberosLogin = Option.empty[KerberosLogin]
-  private var lastRefresh : Instant = Instant.now()
+  private var lastRefresh: Instant = Instant.now()
+  private var lastOffsets: Option[Map[SourcePartition, SourceOffset]] = None
 
   def this(fs: FileSystem, client: HiveMetaStoreClient) {
     this()
@@ -85,6 +86,7 @@ class HiveSourceTask extends SourceTask with StrictLogging {
       fs = FileSystem.get(conf)
       client = new HiveMetaStoreClient(hiveConf)
     }
+
     kerberosLogin.fold(initialize())(_.run(initialize()))
 
     val databases = execute(client.getAllDatabases)
@@ -94,7 +96,11 @@ class HiveSourceTask extends SourceTask with StrictLogging {
       )
     }
 
-    initSources(new HiveSourceInitOffsetStorageReader(context.offsetStorageReader))
+    initSources(contextReader)
+  }
+
+  private def contextReader = {
+    new HiveSourceInitOffsetStorageReader(context.offsetStorageReader)
   }
 
   private def initSources(reader: HiveOffsetStorageReader) = {
@@ -118,13 +124,7 @@ class HiveSourceTask extends SourceTask with StrictLogging {
   }
 
   private def originalSourceOffsets = {
-    sources
-      .filter(orig => orig.getLatestOffset.isDefined && orig.getLatestPartition.isDefined)
-      .map(
-        src => {
-          src.getLatestPartition.get -> src.getLatestOffset.get
-        }
-      ).toMap
+    sources.map(_.getOffsets).reduce(_ ++ _)
   }
 
   override def poll(): util.List[SourceRecord] = {
@@ -138,7 +138,16 @@ class HiveSourceTask extends SourceTask with StrictLogging {
     if (config.refreshFrequency > 0) {
       val nextRefresh = lastRefresh.plus(config.refreshFrequency, ChronoUnit.SECONDS)
       if (Instant.now().isAfter(nextRefresh)) {
-        initSources(new HiveSourceRefreshOffsetStorageReader(originalSourceOffsets))
+
+        val currentOffsets = originalSourceOffsets
+        val allOffsets = lastOffsets
+          .fold(currentOffsets) {
+            previousOffsets: Map[SourcePartition, SourceOffset] =>
+              Map() ++ previousOffsets ++ currentOffsets
+          }
+
+        lastOffsets = Some(allOffsets)
+        initSources(new HiveSourceRefreshOffsetStorageReader(allOffsets, contextReader))
       }
     }
   }

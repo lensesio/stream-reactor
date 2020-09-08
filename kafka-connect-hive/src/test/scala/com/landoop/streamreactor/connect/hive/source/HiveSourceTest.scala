@@ -279,21 +279,38 @@ class HiveSourceTest extends AnyWordSpec with Matchers with HiveTestConfig with 
       val reader = mock[OffsetStorageReader]
       when(sourceTaskContext.offsetStorageReader()).thenReturn(reader)
 
-      populateEmployees(table)
-
       val sourceTask = new HiveSourceTask()
       sourceTask.initialize(sourceTaskContext)
       sourceTask.start(props.asJava)
 
+      val res0 = sourceTask.poll()
+      res0.size shouldBe (0)
+
+      populateEmployees(table)
+
       val res1 = sourceTask.poll()
-      res1.size shouldBe (6)
+      res1.size shouldBe (0)
+
+      Thread.sleep(1200)
+      val res2 = sourceTask.poll()
+      res2.size shouldBe (6)
 
       populateEmployees(table, dropTableFirst = false, offsetAdd = 6)
       populateEmployees(table, dropTableFirst = false, offsetAdd = 12)
 
       Thread.sleep(1200)
-      val res2 = sourceTask.poll()
-      res2.size shouldBe (12)
+      val res3 = sourceTask.poll()
+      res3.size shouldBe (12)
+
+      Thread.sleep(1200)
+      val res4 = sourceTask.poll()
+      res4.size shouldBe (0)
+
+      //populateEmployees(table, dropTableFirst = false, offsetAdd = 18)
+
+      //Thread.sleep(1200)
+      //val res4 = sourceTask.poll()
+      //res4.size shouldBe (6)
 
     }
   }
