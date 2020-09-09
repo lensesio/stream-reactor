@@ -47,10 +47,11 @@ class HiveSource(db: DatabaseName,
     ).flatten
     val mapper: Struct => Struct = Function.chain(fns)
 
-    val sourceOffset = offsetReader.offset(SourcePartition(db, tableName, topic, path)).getOrElse(SourceOffset(0))
+    val lastSeenOffset = offsetReader.offset(SourcePartition(db, tableName, topic, path))
+    val readFromRow = lastSeenOffset.fold(0)(_.rowNumber + 1)
 
     new HiveReader {
-      lazy val reader = format.reader(path, sourceOffset.rowNumber, metastoreSchema)
+      lazy val reader = format.reader(path, readFromRow, metastoreSchema)
 
       override def iterator: Iterator[Record] = reader.iterator.map { record =>
         Record(mapper(record.struct), record.path, record.offset)

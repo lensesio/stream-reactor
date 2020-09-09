@@ -21,15 +21,8 @@ import com.landoop.streamreactor.connect.hive.source.{SourceOffset, SourcePartit
 
 class HiveSourceRefreshOffsetStorageReader(originalOffsets: Map[SourcePartition, SourceOffset], contextReader: HiveOffsetStorageReader) extends HiveOffsetStorageReader {
 
-  override def offset(partition: source.SourcePartition): Option[source.SourceOffset] = {
-    originalOffsets.get(partition)
-      .fold(
-        contextReader.offset(partition)
-      ) { eo =>
-        val nextStartOffset = eo.rowNumber + 1
-        // the source wants the first offset to read, not the last offset encountered, therefore we add 1 here
-        Some(SourceOffset(nextStartOffset))
-      }
+  override def offset(partition: source.SourcePartition): Option[SourceOffset] = {
+    originalOffsets.get(partition).fold(contextReader.offset(partition))(Some(_))
   }
 
 }

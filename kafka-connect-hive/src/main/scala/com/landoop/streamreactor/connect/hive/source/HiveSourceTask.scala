@@ -147,6 +147,7 @@ class HiveSourceTask extends SourceTask with StrictLogging {
           }
 
         lastOffsets = Some(allOffsets)
+
         initSources(new HiveSourceRefreshOffsetStorageReader(allOffsets, contextReader))
       }
     }
