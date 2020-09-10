@@ -10,7 +10,7 @@ import com.landoop.streamreactor.connect.hive.HadoopConfigurationExtension._
 import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
 import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
 import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfig
-import com.landoop.streamreactor.connect.hive.source.offset.{HiveOffsetStorageReader, HiveSourceInitOffsetStorageReader, HiveSourceRefreshOffsetStorageReader}
+import com.landoop.streamreactor.connect.hive.source.offset.{HiveSourceOffsetStorageReader, HiveSourceInitOffsetStorageReader, HiveSourceRefreshOffsetStorageReader}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
@@ -103,7 +103,7 @@ class HiveSourceTask extends SourceTask with StrictLogging {
     new HiveSourceInitOffsetStorageReader(context.offsetStorageReader)
   }
 
-  private def initSources(reader: HiveOffsetStorageReader) = {
+  private def initSources(reader: HiveSourceOffsetStorageReader): Unit = {
     lastRefresh = Instant.now()
 
     sources = config.tableOptions.map { options =>
@@ -129,12 +129,12 @@ class HiveSourceTask extends SourceTask with StrictLogging {
 
   override def poll(): util.List[SourceRecord] = {
 
-    refreshIfNecessary
+    refreshIfNecessary()
 
     iterator.take(config.pollSize).toList.asJava
   }
 
-  private def refreshIfNecessary = {
+  private def refreshIfNecessary(): Unit = {
     if (config.refreshFrequency > 0) {
       val nextRefresh = lastRefresh.plus(config.refreshFrequency, ChronoUnit.SECONDS)
       if (Instant.now().isAfter(nextRefresh)) {

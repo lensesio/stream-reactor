@@ -3,9 +3,9 @@ package com.landoop.streamreactor.connect.hive.source
 import com.landoop.streamreactor.connect.hive
 import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.formats.{HiveFormat, HiveReader, Record}
-import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfig
+import com.landoop.streamreactor.connect.hive.source.config.{HiveSourceConfig, SourceTableOptions}
 import com.landoop.streamreactor.connect.hive.source.mapper.{PartitionValueMapper, ProjectionMapper}
-import com.landoop.streamreactor.connect.hive.source.offset.HiveOffsetStorageReader
+import com.landoop.streamreactor.connect.hive.source.offset.HiveSourceOffsetStorageReader
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 import org.apache.kafka.connect.data.Struct
@@ -26,11 +26,11 @@ import scala.collection.mutable
 class HiveSource(db: DatabaseName,
                  tableName: TableName,
                  topic: Topic,
-                 offsetReader: HiveOffsetStorageReader,
+                 offsetReader: HiveSourceOffsetStorageReader,
                  config: HiveSourceConfig)
                 (implicit client: IMetaStoreClient, fs: FileSystem) extends Iterator[SourceRecord] {
 
-  val tableConfig = config.tableOptions.filter(_.tableName == tableName).find(_.topic == topic)
+  val tableConfig: SourceTableOptions = config.tableOptions.filter(_.tableName == tableName).find(_.topic == topic)
     .getOrElse(sys.error(s"Cannot find table configuration for ${db.value}.${tableName.value} => ${topic.value}"))
 
   private val table = client.getTable(db.value, tableName.value)
@@ -51,7 +51,7 @@ class HiveSource(db: DatabaseName,
     val readFromRow = lastSeenOffset.fold(0)(_.rowNumber + 1)
 
     new HiveReader {
-      lazy val reader = format.reader(path, readFromRow, metastoreSchema)
+      lazy val reader: HiveReader = format.reader(path, readFromRow, metastoreSchema)
 
       override def iterator: Iterator[Record] = reader.iterator.map { record =>
         Record(mapper(record.struct), record.path, record.offset)

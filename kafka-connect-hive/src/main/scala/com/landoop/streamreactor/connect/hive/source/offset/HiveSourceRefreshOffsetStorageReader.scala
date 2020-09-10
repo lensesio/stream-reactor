@@ -19,7 +19,7 @@ package com.landoop.streamreactor.connect.hive.source.offset
 import com.landoop.streamreactor.connect.hive.source
 import com.landoop.streamreactor.connect.hive.source.{SourceOffset, SourcePartition}
 
-class HiveSourceRefreshOffsetStorageReader(originalOffsets: Map[SourcePartition, SourceOffset], contextReader: HiveOffsetStorageReader) extends HiveOffsetStorageReader {
+class HiveSourceRefreshOffsetStorageReader(originalOffsets: Map[SourcePartition, SourceOffset], contextReader: HiveSourceOffsetStorageReader) extends HiveSourceOffsetStorageReader {
 
   override def offset(partition: source.SourcePartition): Option[SourceOffset] = {
     originalOffsets.get(partition).fold(contextReader.offset(partition))(Some(_))
