@@ -6,6 +6,14 @@
 This is an implementation of a sink connector from [Apache Kafka] to [Google BigQuery], built on top 
 of [Apache Kafka Connect]. For a comprehensive list of configuration options, see the [Connector Configuration Wiki].
 
+## History
+
+This connector was [originally developed by WePay](https://github.com/wepay/kafka-connect-bigquery).
+In late 2020 the project moved to [Confluent](https://github.com/confluentinc/kafka-connect-bigquery),
+with both companies taking on maintenance duties. All new activity such as filing issues and opening
+pull requests should now target the [Confluent](https://github.com/confluentinc/kafka-connect-bigquery)
+fork of the project.
+
 ## Download
 
 The latest releases are available in the GitHub release tab, or via [tarballs in Maven central](http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22kcbq-connector%22).
