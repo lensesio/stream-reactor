@@ -245,7 +245,7 @@ CONNECTOR_PROPS="$DOCKER_DIR/connect/properties/connector.properties"
 cp "$RESOURCES_DIR/connector-template.properties" "$CONNECTOR_PROPS"
 cat << EOF >> $CONNECTOR_PROPS
 project=$KCBQ_TEST_PROJECT
-datasets=.*=$KCBQ_TEST_DATASET
+defaultDataset=$KCBQ_TEST_DATASET
 gcsBucketName=$KCBQ_TEST_BUCKET
 gcsFolderName=$KCBQ_TEST_FOLDER
 topics=$test_topics
