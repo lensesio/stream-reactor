@@ -30,7 +30,7 @@ class BytesFormatWithSizesStreamReaderTest extends AnyFlatSpec with MockitoSugar
 
   private val bucketAndPath: BucketAndPath = mock[BucketAndPath]
 
-  private val bytesKeyAndValueWithSizes2: Array[Byte] = Array(4L.byteValue(), 3L.byteValue(), 'c', 'a', 'k', 'e', 't', 'e', 'a')
+  private val bytesKeyAndValueWithSizes2: Array[Byte] = BytesOutputRow.longToByteArray(4L) ++ BytesOutputRow.longToByteArray(3L) ++ "caketea".getBytes
 
   private val outputKeyAndValueWithSizes2 = BytesOutputRow(Some(4L), Some(3L), "cake".getBytes, "tea".getBytes)
 

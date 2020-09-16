@@ -18,7 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.config.BytesWriteMode
-import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, BytesOutputRow, StructSinkData}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.storage.S3ByteArrayOutputStream
 import org.apache.commons.io.IOUtils
@@ -29,7 +29,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
   val bytes: Array[Byte] = getPixelBytes
   val byteArrayValue: ByteArraySinkData = ByteArraySinkData(bytes, None)
-  val pixelLengthBytes: Array[Byte] = ByteOutputRow.longToByteArray(bytes.length.longValue())
+  val pixelLengthBytes: Array[Byte] = BytesOutputRow.longToByteArray(bytes.length.longValue())
 
 
   "convert" should "write a string to byte stream" in {

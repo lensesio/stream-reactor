@@ -16,7 +16,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.model
 
-import java.io.InputStream
+import java.io.{DataInputStream, InputStream}
+import java.nio.ByteBuffer
 
 import io.lenses.streamreactor.connect.aws.s3.config.BytesWriteMode
 import io.lenses.streamreactor.connect.aws.s3.config.BytesWriteMode._
@@ -39,6 +40,7 @@ object BytesOutputRow {
   }
 
   def apply(inputStream: InputStream, bytesWriteMode: BytesWriteMode): BytesOutputRow = {
+    val dataInputStream = new DataInputStream(inputStream)
 
     var bytesRead: Int = 0
 
@@ -47,23 +49,23 @@ object BytesOutputRow {
     }
 
     val keySize: Option[Long] = if (bytesWriteMode == KeyAndValueWithSizes || bytesWriteMode == KeyWithSize) {
-      bytesRead += 1
-      Some(inputStream.read().longValue())
+      bytesRead += java.lang.Long.BYTES
+      Some(dataInputStream.readLong())
     } else {
       None
     }
 
     val valSize: Option[Long] = if (bytesWriteMode == KeyAndValueWithSizes || bytesWriteMode == ValueWithSize) {
-      bytesRead += 1
-      Some(inputStream.read().longValue())
+      bytesRead += java.lang.Long.BYTES
+      Some(dataInputStream.readLong())
     } else {
       None
     }
 
-    val theKey: Array[Byte] = readSegmentFromInputStream(inputStream, keySize)
+    val theKey: Array[Byte] = readSegmentFromInputStream(dataInputStream, keySize)
     bytesRead += theKey.length
 
-    val theValue: Array[Byte] = readSegmentFromInputStream(inputStream, valSize)
+    val theValue: Array[Byte] = readSegmentFromInputStream(dataInputStream, valSize)
     bytesRead += theValue.length
 
     BytesOutputRow(keySize, valSize, theKey, theValue, Some(bytesRead))
@@ -78,6 +80,15 @@ object BytesOutputRow {
         bArray
     }
   }
+
+  def longToByteArray(l: Long): Array[Byte] = {
+    val buffer = ByteBuffer.allocate(java.lang.Long.BYTES)
+    buffer.putLong(l)
+    val ret = buffer.array()
+    require(ret.size == java.lang.Long.BYTES)
+    ret
+  }
+
 }
 
 case class BytesOutputRow(
@@ -90,8 +101,10 @@ case class BytesOutputRow(
 
   def toByteArray: Array[Byte] = {
     val buffer = new ListBuffer[Byte]()
-    keySize.foreach(buffer += _.byteValue())
-    valueSize.foreach(buffer += _.byteValue())
+
+    keySize.foreach {buffer ++= BytesOutputRow.longToByteArray(_)}
+    valueSize.foreach {buffer ++= BytesOutputRow.longToByteArray(_)}
+
     if (key.nonEmpty) buffer ++= key
     if (value.nonEmpty) buffer ++= value
     buffer.toArray

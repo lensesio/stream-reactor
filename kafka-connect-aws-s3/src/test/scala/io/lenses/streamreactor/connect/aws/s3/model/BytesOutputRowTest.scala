@@ -30,12 +30,20 @@ object BytesOutputRowTest extends Matchers {
   private val outputValueWithSize = BytesOutputRow(None, Some(5L), Array(), "chips".getBytes)
   private val outputKeyOnly = BytesOutputRow(None, None, "fish".getBytes, Array())
   private val outputValueOnly = BytesOutputRow(None, None, Array(), "chips".getBytes)
+  private val outputLongKeyValueSizes = BytesOutputRow(
+    Some(50000),
+    Some(2000),
+    List.fill(50000)("a").mkString.getBytes,
+    List.fill(2000)("b").mkString.getBytes
+  )
 
-  val bytesKeyAndValueWithSizes: Array[Byte] = Array(4L.byteValue(), 5L.byteValue(), 'f', 'i', 's', 'h', 'c', 'h', 'i', 'p', 's')
-  private val bytesKeyWithSize: Array[Byte] = Array(4L.byteValue(), 'f', 'i', 's', 'h')
-  private val bytesValueWithSize: Array[Byte] = Array(5L.byteValue(), 'c', 'h', 'i', 'p', 's')
+
+  val bytesKeyAndValueWithSizes: Array[Byte] = BytesOutputRow.longToByteArray(4L) ++ BytesOutputRow.longToByteArray(5) ++ "fishchips".getBytes
+  private val bytesKeyWithSize: Array[Byte] = BytesOutputRow.longToByteArray(4L) ++ "fish".getBytes
+  private val bytesValueWithSize: Array[Byte] = BytesOutputRow.longToByteArray(5L) ++ "chips".getBytes
   private val bytesKeyOnly: Array[Byte] = Array('f', 'i', 's', 'h')
   private val bytesValueOnly: Array[Byte] = Array('c', 'h', 'i', 'p', 's')
+  private val bytesLongKeyValueSizes: Array[Byte] = BytesOutputRow.longToByteArray(50000L) ++ BytesOutputRow.longToByteArray(2000L) ++ List.fill(50000)("a").mkString.getBytes ++ List.fill(2000)("b").mkString.getBytes
 
   def checkEqualsByteArrayValue(res: BytesOutputRow, expected: BytesOutputRow): Any = {
     res.keySize should be(expected.keySize)
@@ -54,6 +62,7 @@ class BytesOutputRowTest extends AnyFlatSpec with Matchers {
     (outputKeyAndValueWithSizes, bytesKeyAndValueWithSizes, BytesWriteMode.KeyAndValueWithSizes),
     (outputKeyWithSize, bytesKeyWithSize, BytesWriteMode.KeyWithSize),
     (outputValueWithSize, bytesValueWithSize, BytesWriteMode.ValueWithSize),
+    (outputLongKeyValueSizes, bytesLongKeyValueSizes, BytesWriteMode.KeyAndValueWithSizes)
   )
 
   private val testDataKeyOrValueOnly = Table(
