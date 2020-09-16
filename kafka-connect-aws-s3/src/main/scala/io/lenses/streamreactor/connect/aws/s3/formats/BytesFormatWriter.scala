@@ -16,6 +16,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import java.nio.ByteBuffer
+
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.BytesWriteMode
 import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, SinkData, Topic}
@@ -64,21 +66,6 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
     outputStream.flush()
   }
 
-  case class ByteOutputRow(
-                            keySize: Option[Long],
-                            valueSize: Option[Long],
-                            key: Array[Byte],
-                            value: Array[Byte]
-                          ) {
-    def toByteArray: Array[Byte] = {
-      val buffer = new ListBuffer[Byte]()
-      keySize.map(keySize => buffer += keySize.byteValue())
-      valueSize.map(valueSize => buffer += valueSize.byteValue())
-      if (key.nonEmpty) buffer ++= key
-      if (value.nonEmpty) buffer ++= value
-      buffer.toArray
-    }
-  }
 
   def convertToBytes(sinkData: SinkData): Array[Byte] = {
     sinkData match {
@@ -100,4 +87,33 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
 
   override def getPointer: Long = outputStream.getPointer
 
+}
+
+case class ByteOutputRow(
+                          keySize: Option[Long],
+                          valueSize: Option[Long],
+                          key: Array[Byte],
+                          value: Array[Byte]
+                        ) {
+
+  def toByteArray: Array[Byte] = {
+    val buffer = new ListBuffer[Byte]()
+
+    keySize.foreach {buffer ++= ByteOutputRow.longToByteArray(_)}
+    valueSize.foreach {buffer ++= ByteOutputRow.longToByteArray(_)}
+
+    if (key.nonEmpty) buffer ++= key
+    if (value.nonEmpty) buffer ++= value
+    buffer.toArray
+  }
+}
+object ByteOutputRow {
+
+  def longToByteArray(l: Long): Array[Byte] = {
+    val buffer = ByteBuffer.allocate(java.lang.Long.BYTES)
+    buffer.putLong(l)
+    val ret = buffer.array()
+    require(ret.size == java.lang.Long.BYTES)
+    ret
+  }
 }
