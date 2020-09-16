@@ -33,6 +33,6 @@ class ParquetReaderIteratorAdaptor(parquetReader: ParquetReader[GenericRecord]) 
     currentRecord = nextRecord
     nextRecord = Option(parquetReader.read())
 
-    currentRecord.getOrElse(throw new IndexOutOfBoundsException("Unable to call next on reaching the end"))
+    currentRecord.getOrElse(throw new IndexOutOfBoundsException("Invalid state reached: invalid state reached. The file content has been consumed, no further calls to next() are possible."))
   }
 }

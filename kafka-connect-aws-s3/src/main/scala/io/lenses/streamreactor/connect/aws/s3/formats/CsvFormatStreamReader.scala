@@ -70,10 +70,6 @@ class CsvFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: Buc
     Try {
       csvReader.close()
     }
-    Try {
-      inputStreamReader.close()
-    }
-
   }
 
   override def getBucketAndPath: BucketAndPath = bucketAndPath

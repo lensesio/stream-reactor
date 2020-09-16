@@ -48,7 +48,7 @@ class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSu
     val reader = setUpReader(List(TestSampleSchemaAndData.csvHeader), includesHeaders = true)
     intercept[IndexOutOfBoundsException] {
       reader.next()
-    }.getMessage should be("Unable to call next on reaching the end")
+    }.getMessage should be("Invalid state reached: invalid state reached. The file content has been consumed, no further calls to next() are possible.")
     reader.close()
   }
 

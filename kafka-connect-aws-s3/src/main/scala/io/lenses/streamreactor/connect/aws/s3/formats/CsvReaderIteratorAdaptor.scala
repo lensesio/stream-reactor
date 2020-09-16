@@ -28,7 +28,6 @@ class CsvReaderIteratorAdaptor(csvReader: CSVReader) extends Iterator[Array[Stri
   }
 
   def peek: Option[Array[String]] = {
-    hasNext
     nextRecord
   }
 
@@ -37,6 +36,6 @@ class CsvReaderIteratorAdaptor(csvReader: CSVReader) extends Iterator[Array[Stri
     currentRecord = nextRecord
     nextRecord = Option(csvReader.readNext())
 
-    currentRecord.getOrElse(throw new IndexOutOfBoundsException("Unable to call next on reaching the end"))
+    currentRecord.getOrElse(throw new IndexOutOfBoundsException("Invalid state reached: invalid state reached. The file content has been consumed, no further calls to next() are possible."))
   }
 }
