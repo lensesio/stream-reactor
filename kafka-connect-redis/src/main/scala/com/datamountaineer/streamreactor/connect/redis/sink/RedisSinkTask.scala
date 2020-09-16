@@ -100,6 +100,9 @@ class RedisSinkTask extends SinkTask with StrictLogging {
       writer.createClient(settings)
       List(writer)
     } ++ mode_GEOADD.kcqlSettings.headOption.map { _ =>
+      logger.info("Starting " + mode_GEOADD.kcqlSettings.size + " KCQLs with Redis Geo Add mode")
+      List(new RedisGeoAdd(mode_GEOADD))
+    }  ++ mode_STREAM.kcqlSettings.headOption.map { _ =>
       logger.info("Starting " + mode_STREAM.kcqlSettings.size + " KCQLs with Redis Stream mode")
       val writer = new RedisStreams(mode_STREAM)
       writer.createClient(settings)

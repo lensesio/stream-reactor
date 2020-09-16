@@ -106,4 +106,20 @@ class RedisSinkTaskTest extends AnyWordSpec with Matchers with RedisMockSupport 
     mssSettings.exists(_.kcqlConfig.getSource == "sensorsTopic") shouldBe true
     mssSettings.exists(_.kcqlConfig.getSource == "sensorsTopic2") shouldBe true
   }
+
+  "work with streams" -> {
+    val KCQL = s"SELECT temperature, humidity FROM sensorsTopic PK sensorID STOREAS STREAM;"
+    println("Testing mode for KCQL : " + KCQL)
+    val props = Map(
+      RedisConfigConstants.REDIS_HOST->"localhost",
+      RedisConfigConstants.REDIS_PORT->"0000",
+      RedisConfigConstants.KCQL_CONFIG->KCQL
+    ).asJava
+
+    val config = RedisConfig(props)
+    val settings = RedisSinkSettings(config)
+
+    val task = new RedisSinkTask
+    task.filterStream(settings).kcqlSettings.isEmpty shouldBe false
+  }
 }
