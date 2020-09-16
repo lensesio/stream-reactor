@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import com.datamountaineer.kcql.{Field, Kcql}
+import com.datamountaineer.streamreactor.connect.cassandra.config.BucketMode.BucketMode
 import com.datamountaineer.streamreactor.connect.cassandra.config.DefaultValueServeStrategy.DefaultValueServeStrategy
 import com.datamountaineer.streamreactor.connect.cassandra.config.TimestampType.TimestampType
 import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
@@ -36,7 +37,12 @@ trait CassandraSetting
 
 object TimestampType extends Enumeration {
   type TimestampType = Value
-  val TIMESTAMP, DSESEARCHTIMESTAMP, TIMEUUID, TOKEN, NONE = Value
+  val TIMESTAMP, DSESEARCHTIMESTAMP, TIMEUUID, TOKEN, BUCKETTIMESERIES, NONE = Value
+}
+
+object BucketMode extends Enumeration {
+  type BucketMode = Value
+  val DAY, HOUR, MINUTE, SECOND, NONE = Value
 }
 
 object LoadBalancingPolicy extends Enumeration {
@@ -57,7 +63,10 @@ case class CassandraSourceSetting(kcql: Kcql,
                                   timeSliceDelay: Long = CassandraConfigConstants.TIMESLICE_DELAY_DEFAULT,
                                   initialOffset: String = CassandraConfigConstants.INITIAL_OFFSET_DEFAULT,
                                   timeSliceMillis: Long = CassandraConfigConstants.TIME_SLICE_MILLIS_DEFAULT,
-                                  mappingCollectionToJson: Boolean = CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON_DEFAULT
+                                  mappingCollectionToJson: Boolean = CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON_DEFAULT,
+                                  bucketMode: BucketMode,
+                                  bucketFormat: String,
+                                  bucketFieldName: String
                                  ) extends CassandraSetting
 
 case class CassandraSinkSetting(keySpace: String,
@@ -88,6 +97,9 @@ object CassandraSettings extends StrictLogging {
     require(!keySpace.isEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
     val pollInterval = config.getLong(CassandraConfigConstants.POLL_INTERVAL)
 
+    val bucketFormat = config.getString(CassandraConfigConstants.BUCKET_TIME_SERIES_FORMAT)
+    val bucketFieldName = config.getString(CassandraConfigConstants.BUCKET_TIME_SERIES_FIELD_NAME)
+
     val consistencyLevel = config.getConsistencyLevel
     val errorPolicy = config.getErrorPolicy
     val kcqls = config.getKCQL
@@ -105,6 +117,19 @@ object CassandraSettings extends StrictLogging {
       val timestampType = Try(TimestampType.withName(incrementalModes(r.getSource).toUpperCase)) match {
         case Success(s) => s
         case _ => TimestampType.NONE
+      }
+
+      val bucketMode = Try(BucketMode.withName(config.getString(CassandraConfigConstants.BUCKET_TIME_SERIES_MODE))) match {
+        case Success(s) => s
+        case _ => BucketMode.NONE
+      }
+
+      if (timestampType == TimestampType.BUCKETTIMESERIES && bucketMode == BucketMode.NONE) {
+        throw new ConfigException("You should specify a bucketMode while using BUCKETTIMESERIES")
+      }
+
+      if (bucketMode != BucketMode.NONE && bucketFormat.isEmpty) {
+        throw new ConfigException("You should specify a bucketFormat while using BUCKETTIMESERIES")
       }
 
       if (timestampType != TimestampType.NONE && tCols.size != 1) {
@@ -125,7 +150,10 @@ object CassandraSettings extends StrictLogging {
         timeSliceDelay = timeSliceDelay,
         initialOffset = initialOffset,
         timeSliceMillis = timeSliceMillis,
-        mappingCollectionToJson = mappingCollectionToJson
+        mappingCollectionToJson = mappingCollectionToJson,
+        bucketMode = bucketMode,
+        bucketFormat = bucketFormat,
+        bucketFieldName = bucketFieldName
       )
     }.toSeq
   }
