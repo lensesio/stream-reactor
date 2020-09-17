@@ -17,37 +17,28 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import java.io.InputStream
-import java.util.concurrent.atomic.AtomicLong
 
+import com.google.common.io.ByteStreams
 import io.lenses.streamreactor.connect.aws.s3.config.BytesWriteMode
 import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, ByteArraySourceData, BytesOutputRow}
 
 import scala.util.Try
 
-class BytesFormatChunkedStreamReader(inputStreamFn: () => InputStream, fileSizeFn: () => Long, bucketAndPath: BucketAndPath, bytesWriteMode: BytesWriteMode, chunkSizeBytes: Int) extends S3FormatStreamReader[ByteArraySourceData] {
+class BytesFormatStreamFileReader(inputStreamFn: () => InputStream, fileSizeFn: () => Long, bucketAndPath: BucketAndPath, bytesWriteMode: BytesWriteMode) extends S3FormatStreamReader[ByteArraySourceData] {
 
+  private var consumed : Boolean = false
   private val inputStream = inputStreamFn()
-  private var recordNumber: Long = -1
+  private val fileSize = fileSizeFn()
 
-  private val fileSizeCounter = new AtomicLong(fileSizeFn())
-
-  override def hasNext: Boolean = fileSizeCounter.get() > 0
-
-  def readNextChunk(inputStream: InputStream): Array[Byte] = {
-    val numBytes = Set(fileSizeCounter.get(), chunkSizeBytes.longValue()).min.intValue()
-    val bArray = Array.ofDim[Byte](numBytes)
-    inputStream.read(bArray, 0, numBytes)
-    fileSizeCounter.addAndGet(- numBytes)
-    bArray
-  }
+  override def hasNext: Boolean = !consumed && fileSize > 0L
 
   override def next(): ByteArraySourceData = {
-    recordNumber += 1
-    val nextChunk = readNextChunk(inputStream)
-    ByteArraySourceData(BytesOutputRow(nextChunk, bytesWriteMode), recordNumber)
+    val nextChunk = ByteStreams.toByteArray(inputStream)
+    consumed = true
+    ByteArraySourceData(BytesOutputRow(nextChunk, bytesWriteMode), getLineNumber)
   }
 
-  override def getLineNumber: Long = recordNumber
+  override def getLineNumber: Long = if (consumed) 0 else -1
 
   override def close(): Unit = {
     Try {

@@ -43,8 +43,7 @@ case class SourceBucketOptions(
                                 targetTopic: String,
                                 format: FormatSelection,
                                 fileNamingStrategy: S3FileNamingStrategy,
-                                limit: Int,
-                                byteChunkSize: Int
+                                limit: Int
                               )
 
 
@@ -75,8 +74,7 @@ object SourceBucketOptions {
           kcql.getTarget,
           format = formatSelection,
           fileNamingStrategy = namingStrategy,
-          limit = if (kcql.getLimit < 1) DEFAULT_LIMIT else kcql.getLimit,
-          byteChunkSize = if (kcql.getBatchSize < 1) DEFAULT_BATCH_SIZE else kcql.getBatchSize
+          limit = if (kcql.getLimit < 1) DEFAULT_LIMIT else kcql.getLimit
         )
     }.toList
 

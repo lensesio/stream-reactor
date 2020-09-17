@@ -42,7 +42,7 @@ object S3FormatStreamReader {
         if (bytesWriteMode.entryName.toLowerCase.contains("size")) {
           new BytesFormatWithSizesStreamReader(inputStreamFn, fileSizeFn, bucketAndPath, bytesWriteMode)
         } else {
-          new BytesFormatChunkedStreamReader(inputStreamFn, fileSizeFn, bucketAndPath, bytesWriteMode, options.byteChunkSize)
+          new BytesFormatStreamFileReader(inputStreamFn, fileSizeFn, bucketAndPath, bytesWriteMode)
         }
     }
 }

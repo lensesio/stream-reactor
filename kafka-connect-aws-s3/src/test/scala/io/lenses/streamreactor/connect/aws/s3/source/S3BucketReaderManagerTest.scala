@@ -42,7 +42,7 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
   private val targetTopic: String = "topic"
 
   private val sourceBucketOptions = SourceBucketOptions(
-    bucketAndPrefix, targetTopic, format, fileNamingStrategy, 10, 0
+    bucketAndPrefix, targetTopic, format, fileNamingStrategy, 10
   )
 
 
@@ -128,7 +128,7 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
   "poll" should "poll for records from the requested resumption point with multiple files, starting from first file" in {
 
     val sourceBucketOptions = SourceBucketOptions(
-      bucketAndPrefix, targetTopic, format, fileNamingStrategy, 200, 0
+      bucketAndPrefix, targetTopic, format, fileNamingStrategy, 200
     )
 
     val file1ByteArray = resourceToByteArray(getClass.getClassLoader.getResourceAsStream("json/1.json"))
@@ -174,7 +174,7 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
   "poll" should "poll for records from the requested resumption point with multiple polls from the same file" in {
 
     val sourceBucketOptions = SourceBucketOptions(
-      bucketAndPrefix, targetTopic, format, fileNamingStrategy, 20, 0
+      bucketAndPrefix, targetTopic, format, fileNamingStrategy, 20
     )
 
     val file1ByteArray = resourceToByteArray(getClass.getClassLoader.getResourceAsStream("json/1.json"))
@@ -232,7 +232,7 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
   "poll" should "poll for records from the requested resumption point with multiple files, starting from second file" in {
 
     val sourceBucketOptions = SourceBucketOptions(
-      bucketAndPrefix, targetTopic, format, fileNamingStrategy, 190, 0
+      bucketAndPrefix, targetTopic, format, fileNamingStrategy, 190
     )
 
     val file1ByteArray = resourceToByteArray(getClass.getClassLoader.getResourceAsStream("json/1.json"))

@@ -98,7 +98,7 @@ Please note there is little distinction between the handling of CSV and handling
 
 Bytes can be read back in from S3 and back into message keys/values, depending on how the data was written to the source.
 
-This can be used for reading back in a messages containing binary data that were written out using the s3 source, or alternatively reading binary files into chunks to be loaded onto a Kafka queue.
+This can be used for reading back in a messages containing binary data that were written out using the s3 source, or alternatively reading binary files to be loaded onto a Kafka queue.
 
 Please see the KCQL options available and the results of these configurations:
 
@@ -118,14 +118,6 @@ In order to ensure the message is passed through as bytes it may be necessary to
 
     value.converter=org.apache.kafka.connect.converters.ByteArrayConverter
     key.converter=org.apache.kafka.connect.converters.ByteArrayConverter
-
-Only when using KeyOnly and ValueOnly mode, the size of the chunks of data can be controlled using the additional KCQL option:
-
-    BATCH EQUAL batch_size
-    
-For example, if you want a file to be split into ~0.5 MB chunks then you can configure it using this syntax:
-
-    insert into $TOPIC_NAME select * from $BUCKET_NAME:$PREFIX_NAME BATCH=500000 STOREAS `Bytes_ValueOnly`
 
 
 ## Partitioning Options
@@ -170,9 +162,7 @@ Often, no error will be presented if this is the case.
 
 The correct order for defining options for the S3 Source is
 
-    BATCH PARTITIONBY STOREAS WITHPARTITIONER LIMIT
-
-Note BATCH is used for BYTE stored source files only.
+    PARTITIONBY STOREAS WITHPARTITIONER LIMIT
 
 An example Kcql string showing most of the available config options for the Sink follows:
 

@@ -24,28 +24,34 @@ import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class BytesFormatChunkedStreamReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
+class BytesFormatStreamFileReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   import BytesOutputRowTest._
 
   val bucketAndPath: BucketAndPath = mock[BucketAndPath]
+  val fileContents = "lemonOlivelemonOlive".getBytes
 
-  "read" should "read chunks at a time" in {
+  "read" should "read entire file at once" in {
 
-    val fileContents = List.fill(2)("lemonOlive").mkString("").getBytes
     val inputStreamFn = () => new ByteArrayInputStream(fileContents)
     val sizeFn = () => fileContents.length.longValue()
-    val target = new BytesFormatChunkedStreamReader(inputStreamFn, sizeFn, bucketAndPath, BytesWriteMode.ValueOnly, 5)
+    val target = new BytesFormatStreamFileReader(inputStreamFn, sizeFn, bucketAndPath, BytesWriteMode.ValueOnly)
 
-    checkRecord(target, BytesOutputRow(None, None, Array.empty[Byte], "lemon".getBytes))
-    checkRecord(target, BytesOutputRow(None, None, Array.empty[Byte], "Olive".getBytes))
-    checkRecord(target, BytesOutputRow(None, None, Array.empty[Byte], "lemon".getBytes))
-    checkRecord(target, BytesOutputRow(None, None, Array.empty[Byte], "Olive".getBytes))
+    checkRecord(target, BytesOutputRow(None, None, Array.empty[Byte], fileContents))
 
     target.hasNext should be(false)
   }
 
-  private def checkRecord(target: BytesFormatChunkedStreamReader, expectedOutputRow: BytesOutputRow) = {
+  "hasNext" should "return false for empty file" in {
+
+    val inputStreamFn = () => new ByteArrayInputStream(Array[Byte]())
+    val sizeFn = () => 0L
+    val target = new BytesFormatStreamFileReader(inputStreamFn, sizeFn, bucketAndPath, BytesWriteMode.ValueOnly)
+
+    target.hasNext should be(false)
+  }
+
+  private def checkRecord(target: BytesFormatStreamFileReader, expectedOutputRow: BytesOutputRow) = {
     target.hasNext should be(true)
     val record = target.next()
     checkEqualsByteArrayValue(record.data, expectedOutputRow)
