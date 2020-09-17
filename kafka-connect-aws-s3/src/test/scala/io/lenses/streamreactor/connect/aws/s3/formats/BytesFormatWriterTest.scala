@@ -29,7 +29,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
   val bytes: Array[Byte] = getPixelBytes
   val byteArrayValue: ByteArraySinkData = ByteArraySinkData(bytes, None)
-  val pixelLengthBytes: Byte = bytes.length.byteValue()
+  val pixelLengthBytes: Array[Byte] = ByteOutputRow.longToByteArray(bytes.length.longValue())
 
 
   "convert" should "write a string to byte stream" in {
@@ -75,7 +75,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.KeyAndValueWithSizes)
     bytesFormatWriter.write(Some(byteArrayValue), byteArrayValue, topic)
 
-    outputStream.toByteArray should be(Array(pixelLengthBytes, pixelLengthBytes) ++ bytes ++ bytes)
+    outputStream.toByteArray should be(pixelLengthBytes ++ pixelLengthBytes ++ bytes ++ bytes)
 
     bytesFormatWriter.close()
 
@@ -88,7 +88,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     bytesFormatWriter.write(Some(byteArrayValue), ByteArraySinkData("Notused".getBytes, None), topic)
 
-    outputStream.toByteArray should be(Array(pixelLengthBytes) ++ bytes)
+    outputStream.toByteArray should be(pixelLengthBytes ++ bytes)
 
     bytesFormatWriter.close()
 
@@ -101,7 +101,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.ValueWithSize)
     bytesFormatWriter.write(Some(ByteArraySinkData("Notused".getBytes, None)), byteArrayValue, topic)
 
-    outputStream.toByteArray should be(Array(pixelLengthBytes) ++ bytes)
+    outputStream.toByteArray should be(pixelLengthBytes ++ bytes)
 
     bytesFormatWriter.close()
 
