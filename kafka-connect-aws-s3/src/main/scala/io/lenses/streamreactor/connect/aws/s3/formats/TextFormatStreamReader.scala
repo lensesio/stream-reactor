@@ -26,8 +26,8 @@ import scala.util.Try
 class TextFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: BucketAndPath) extends S3FormatStreamReader[StringSourceData] {
 
   private val inputStream: InputStream = inputStreamFn()
-  private val scanner = new Scanner(new InputStreamReader(inputStream))
-  private var lineNumber: Long = -1
+  protected val scanner = new Scanner(new InputStreamReader(inputStream))
+  protected var lineNumber: Long = -1
 
   override def close(): Unit = {
     Try(scanner.close())
@@ -40,6 +40,9 @@ class TextFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: Bu
 
   override def next(): StringSourceData = {
     lineNumber += 1
+    if(!scanner.hasNextLine) {
+      throw new IllegalStateException("Invalid state reached: invalid state reached. The file content has been consumed, no further calls to next() are possible.")
+    }
     StringSourceData(scanner.nextLine(), lineNumber)
   }
 

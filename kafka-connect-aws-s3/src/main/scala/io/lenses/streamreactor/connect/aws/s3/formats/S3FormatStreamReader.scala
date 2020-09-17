@@ -36,7 +36,7 @@ object S3FormatStreamReader {
       case Format.Json => new TextFormatStreamReader(inputStreamFn, bucketAndPath)
       case Format.Text => new TextFormatStreamReader(inputStreamFn, bucketAndPath)
       case Format.Parquet => new ParquetFormatStreamReader(inputStreamFn, fileSizeFn, bucketAndPath)
-      case Format.Csv => new CsvFormatStreamReader(inputStreamFn, bucketAndPath, readHeaders = options.format.formatOptions.contains(WithHeaders))
+      case Format.Csv => new CsvFormatStreamReader(inputStreamFn, bucketAndPath, hasHeaders = options.format.formatOptions.contains(WithHeaders))
       case Format.Bytes =>
         val bytesWriteMode = S3FormatWriter.convertToBytesWriteMode(options.format.formatOptions)
         if (bytesWriteMode.entryName.toLowerCase.contains("size")) {

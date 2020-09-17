@@ -16,8 +16,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.model
 
-import io.lenses.streamreactor.connect.aws.s3.source.conversion.CsvToStructConverter
-import org.apache.kafka.connect.data.{SchemaAndValue, Struct}
+import org.apache.kafka.connect.data.SchemaAndValue
 
 abstract class SourceData(lineNumber: Long) {
   def getLineNumber: Long = lineNumber
@@ -37,11 +36,3 @@ case class ByteArraySourceData(
                                 data: BytesOutputRow,
                                 lineNumber: Long
                               ) extends SourceData(lineNumber)
-
-case class CsvSourceData(
-                          columnHeaders: List[String],
-                          data: List[String],
-                          lineNumber: Long
-                        ) extends SourceData(lineNumber) {
-  def toStruct: Struct = CsvToStructConverter.convertToStruct(columnHeaders, data)
-}

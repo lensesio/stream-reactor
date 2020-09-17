@@ -86,16 +86,14 @@ It may be required to use the additional configuration options for this connecto
 
 #### CSV Input Format Configuration
 
-This reads CSV files written to S3 into an Avro struct to be written back to the Kafka source.
-There are 2 options for CSV format, to read CSV files with the column headers or without.
+This reads CSV files written to S3 into a string to be written back to the Kafka source.
+There are 2 options for CSV format, if WithHeaders is included then the first row is skipped.
 
     STOREAS `CSV_WithHeaders`
     STOREAS `CSV`
+
+Please note there is little distinction between the handling of CSV and handling of TEXT (with the exception that the header row can be skipped).  The CSV is not parsed within the connector.
     
-If the headers are included then the Avro message will use these as the field names.
-
-If the headers are not included then field names will be created using the prefix 'col'. (eg. col1, col2... col<sup>n</sup>)
-
 #### Byte(Binary) Input Format Configuration
 
 Bytes can be read back in from S3 and back into message keys/values, depending on how the data was written to the source.

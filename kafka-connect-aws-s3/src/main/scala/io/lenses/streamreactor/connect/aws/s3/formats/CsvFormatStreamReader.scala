@@ -16,62 +16,30 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.io.{InputStream, InputStreamReader}
+import java.io.InputStream
 
-import au.com.bytecode.opencsv.CSVReader
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, CsvSourceData}
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, StringSourceData}
 
-import scala.util.Try
 
-class CsvFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: BucketAndPath, readHeaders: Boolean) extends S3FormatStreamReader[CsvSourceData] {
+class CsvFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: BucketAndPath, hasHeaders: Boolean)
+  extends TextFormatStreamReader(inputStreamFn, bucketAndPath) {
 
-  private val inputStreamReader = new InputStreamReader(inputStreamFn())
-  private val csvReader = new CSVReader(inputStreamReader)
-  private val iterator = new CsvReaderIteratorAdaptor(csvReader)
+  private var firstRun : Boolean = true;
 
-  private var columnHeaders: Option[Array[String]] = None
-  private var lineNumber: Long = -1
-
-  private def inventColumnHeaders(size: Int): Option[Array[String]] = Some((1 to size).map(n => s"col$n").toArray)
-
-  override def hasNext: Boolean = iterator.hasNext
-
-  def discoverColumnHeaders(): Option[Array[String]] = {
-
-    if (readHeaders && iterator.hasNext) {
-      lineNumber += 1
-      Some(iterator.next())
-    } else {
-      iterator.peek match {
-        case Some(value) => inventColumnHeaders(value.length)
-        case None => if (readHeaders) {
-          throw new IllegalStateException("No column headers are available")
+  override def next(): StringSourceData = {
+    if(firstRun) {
+      if(hasHeaders) {
+        if(scanner.hasNextLine) {
+          scanner.nextLine()
+          lineNumber += 1
         } else {
-          throw new IllegalStateException("No rows available from which to create column headers")
+          throw new IllegalStateException("No column headers are available")
         }
       }
-
+      firstRun = false
     }
-
+    super.next()
   }
 
-  override def next(): CsvSourceData = {
-    if (columnHeaders.isEmpty) {
-      columnHeaders = discoverColumnHeaders()
-    }
-    val colHeaders = columnHeaders.getOrElse(throw new IllegalArgumentException("No header rows found"))
-    lineNumber += 1
-    CsvSourceData(colHeaders.toList, iterator.next().toList, lineNumber)
-  }
-
-  override def getLineNumber: Long = lineNumber
-
-  override def close(): Unit = {
-    Try {
-      csvReader.close()
-    }
-  }
-
-  override def getBucketAndPath: BucketAndPath = bucketAndPath
 
 }

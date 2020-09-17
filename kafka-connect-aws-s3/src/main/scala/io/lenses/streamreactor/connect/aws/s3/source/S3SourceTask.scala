@@ -114,9 +114,6 @@ class S3SourceTask extends SourceTask {
         (Some(result.schema()), result.value(), None)
       case StringSourceData(result: String, _) =>
         (None, result, None)
-      case csvSourceData@CsvSourceData(_, _, _) =>
-        val asStruct = csvSourceData.toStruct
-        (Some(asStruct.schema()), asStruct, None)
       case ByteArraySourceData(resultBytes, _) =>
         (None, resultBytes.value, resultBytes.key)
       case _ =>
