@@ -39,6 +39,7 @@ object ToAvroDataConverter {
       case ArraySinkData(array, _) => convertArray(array).asJava
       case ByteArraySinkData(array, _) => ByteBuffer.wrap(array)
       case primitive: PrimitiveSinkData => primitive.primVal().asInstanceOf[AnyRef]
+      case _: NullSinkData => null
       case other => throw new IllegalArgumentException(s"Unknown SinkData type, ${other.getClass.getSimpleName}")
     }
   }

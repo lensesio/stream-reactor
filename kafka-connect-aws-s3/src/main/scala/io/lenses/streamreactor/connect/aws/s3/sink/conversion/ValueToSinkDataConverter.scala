@@ -39,6 +39,7 @@ object SinkDataValueConverter {
     case bytesVal: Array[Byte] => ByteArraySinkData(bytesVal, schema)
     case arrayVal: Array[_] => ArraySinkDataConverter(arrayVal, schema)
     case listVal: util.List[_] => ArraySinkDataConverter(listVal.toArray, schema)
+    case null => NullSinkData(schema)
     case otherVal => sys.error(s"Unsupported record $otherVal:${otherVal.getClass.getCanonicalName}")
   }
 }

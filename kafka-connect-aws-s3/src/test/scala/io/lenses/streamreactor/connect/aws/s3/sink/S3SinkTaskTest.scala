@@ -1041,6 +1041,56 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
   }
 
+  "S3SinkTask" should "process and map of structs with nulls avro" in {
+
+    val map = Map(
+      "jedi" -> users(0),
+      "cylons" -> null
+    ).asJava
+
+    val optionalSchema: Schema = SchemaBuilder.struct()
+      .optional()
+      .field("name", SchemaBuilder.string().required().build())
+      .field("title", SchemaBuilder.string().optional().build())
+      .field("salary", SchemaBuilder.float64().optional().build())
+      .build()
+
+    val kafkaPartitionedRecords = List(
+      new SinkRecord(TopicName, 0, null, null, SchemaBuilder.map(Schema.STRING_SCHEMA, optionalSchema), map, 0)
+    )
+
+    val topicPartitionsToManage = Seq(
+      new TopicPartition(TopicName, 0)
+    ).asJava
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `AVRO` WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    task.start(props)
+
+    task.open(topicPartitionsToManage)
+    task.put(kafkaPartitionedRecords.asJava)
+    task.close(topicPartitionsToManage)
+    task.stop()
+
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/mytopic/0/")).size() should be(1)
+
+    val bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/mytopic/0/0.avro", blobStoreContext)
+
+    val genericRecords = avroFormatReader.read(bytes)
+    genericRecords.size should be(1)
+
+    val recordsMap = genericRecords.head.asInstanceOf[util.Map[Utf8, GenericData.Record]].asScala
+
+    checkRecord(recordsMap.getOrElse(new Utf8("jedi"), fail("can't find in map")), "sam", Some("mr"), 100.43)
+    recordsMap.getOrElse(new Utf8("cylons"), fail("can't find in map")) should be (null)
+
+  }
+
   "S3SinkTask" should "process and map of arrays avro" in {
 
     val map = Map(
