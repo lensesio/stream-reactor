@@ -54,7 +54,7 @@ class HiveSourceTask extends SourceTask with StrictLogging {
     val conf: Configuration =
       ConfigurationBuilder.buildHdfsConfiguration(config.hadoopConfiguration)
     conf.set("fs.defaultFS", configs.get(SinkConfigSettings.FsDefaultKey))
-    conf.set(ParquetFileReader.PARQUET_READ_PARALLELISM, "1")
+    conf.setInt(ParquetFileReader.PARQUET_READ_PARALLELISM, 1)
 
     kerberosLogin = config.kerberos.map { kerberos =>
       conf.withKerberos(kerberos)
