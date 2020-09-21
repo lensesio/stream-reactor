@@ -17,6 +17,7 @@ import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
+import org.apache.parquet.hadoop.ParquetFileReader
 
 import scala.collection.JavaConverters._
 import scala.util.Try
@@ -53,6 +54,7 @@ class HiveSourceTask extends SourceTask with StrictLogging {
     val conf: Configuration =
       ConfigurationBuilder.buildHdfsConfiguration(config.hadoopConfiguration)
     conf.set("fs.defaultFS", configs.get(SinkConfigSettings.FsDefaultKey))
+    conf.set(ParquetFileReader.PARQUET_READ_PARALLELISM, "1")
 
     kerberosLogin = config.kerberos.map { kerberos =>
       conf.withKerberos(kerberos)
