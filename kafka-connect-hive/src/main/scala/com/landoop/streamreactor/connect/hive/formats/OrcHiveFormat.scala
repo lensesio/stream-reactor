@@ -26,7 +26,7 @@ object OrcHiveFormat extends HiveFormat {
     Try(fs.setPermission(path, FsPermission.valueOf("-rwxrwxrwx")))
 
     val cretedTimestamp: Long = System.currentTimeMillis()
-    var lastKnownFileSize:Long = fs.getFileStatus(path).getLen
+    var lastKnownFileSize:Long = if(fs.exists(path)) fs.getFileStatus(path).getLen else 0L
     var readFileSize = false
     var count = 0
 
