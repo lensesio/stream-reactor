@@ -84,7 +84,6 @@ log() {
 }
 
 BASE_DIR=$(dirname "$0")
-GRADLEW="$BASE_DIR/../../gradlew"
 
 ####################################################################################################
 # Configuration processing
@@ -194,19 +193,17 @@ docker start -a "$POPULATE_DOCKER_NAME"
 # Deleting existing BigQuery tables
 warn 'Deleting existing BigQuery test tables'
 
-"$GRADLEW" -p "$BASE_DIR/.." \
-    -Pkcbq_test_keyfile="$KCBQ_TEST_KEYFILE" \
-    -Pkcbq_test_project="$KCBQ_TEST_PROJECT" \
-    -Pkcbq_test_dataset="$KCBQ_TEST_DATASET" \
-    -Pkcbq_test_tables="$(basename "$BASE_DIR"/resources/test_schemas/* | sed -E -e 's/[^a-zA-Z0-9_]/_/g' -e 's/^(.*)$/kcbq_test_\1/' | xargs echo -n)" \
-    integrationTestPrep
+TEST_TABLES="$(basename "$BASE_DIR"/resources/test_schemas/* | sed -E -e 's/[^a-zA-Z0-9_]/_/g' -e 's/^(.*)$/kcbq_test_\1/' | xargs echo -n)"
+mvn -f "$BASE_DIR/.." clean test-compile exec:java \
+  -Dexec.mainClass=com.wepay.kafka.connect.bigquery.it.utils.TableClearer \
+  -Dexec.classpathScope=test \
+  -Dexec.args="${KCBQ_TEST_KEYFILE} ${KCBQ_TEST_PROJECT} ${KCBQ_TEST_DATASET} ${TEST_TABLES}"
 
 ####################################################################################################
 # Executing connector in standalone mode (this is the execution portion of the actual test)
 statusupdate 'Executing Kafka Connect in Docker'
 
-# Run clean task to ensure there's only one connector tarball in the build directory
-"$GRADLEW" -q -p "$BASE_DIR/../.." clean confluentTarBall
+mvn -f "$BASE_DIR/.." install -Dskip.unit.tests=true
 
 [[ ! -e "$DOCKER_DIR/connect/properties" ]] && mkdir "$DOCKER_DIR/connect/properties"
 RESOURCES_DIR="$BASE_DIR/resources"
@@ -232,8 +229,7 @@ echo >> "$CONNECTOR_PROPS"
 CONNECT_DOCKER_IMAGE='kcbq/connect'
 CONNECT_DOCKER_NAME='kcbq_test_connect'
 
-cp "$BASE_DIR"/../../bin/tar/kcbq-connector-*-confluent-dist.tar "$DOCKER_DIR/connect/kcbq.tar"
-cp "$BASE_DIR"/../../bin/tar/kcbq-connector-*-confluent-dist.tar "$DOCKER_DIR/connect/retriever.tar"
+cp "$BASE_DIR"/../target/components/packages/wepay-kafka-connect-bigquery-*.zip "$DOCKER_DIR/connect/kcbq.zip"
 cp "$KCBQ_TEST_KEYFILE" "$DOCKER_DIR/connect/key.json"
 
 if ! dockerimageexists "$CONNECT_DOCKER_IMAGE"; then
@@ -242,8 +238,7 @@ fi
 docker create --name "$CONNECT_DOCKER_NAME" \
               --link "$KAFKA_DOCKER_NAME:kafka" --link "$SCHEMA_REGISTRY_DOCKER_NAME:schema-registry" \
               -t "$CONNECT_DOCKER_IMAGE" /bin/bash
-docker cp "$DOCKER_DIR/connect/kcbq.tar" "$CONNECT_DOCKER_NAME:/usr/share/java/kafka-connect-bigquery/kcbq.tar"
-docker cp "$DOCKER_DIR/connect/retriever.tar" "$CONNECT_DOCKER_NAME:/usr/share/java/kafka-connect-bigquery/retriever.tar"
+docker cp "$DOCKER_DIR/connect/kcbq.zip" "$CONNECT_DOCKER_NAME:/usr/share/java/kafka-connect-bigquery/kcbq.zip"
 docker cp "$DOCKER_DIR/connect/properties/" "$CONNECT_DOCKER_NAME:/etc/kafka-connect-bigquery/"
 docker cp "$DOCKER_DIR/connect/key.json" "$CONNECT_DOCKER_NAME:/tmp/key.json"
 docker start -a "$CONNECT_DOCKER_NAME"
@@ -252,12 +247,12 @@ docker start -a "$CONNECT_DOCKER_NAME"
 # Checking on BigQuery data via Java test (this is the verification portion of the actual test)
 statusupdate 'Verifying that test data made it successfully to BigQuery'
 
-INTEGRATION_TEST_RESOURCE_DIR="$BASE_DIR/../src/integration-test/resources"
-[[ ! -d "$INTEGRATION_TEST_RESOURCE_DIR" ]] && mkdir -p "$INTEGRATION_TEST_RESOURCE_DIR"
-INTEGRATION_TEST_PROPERTIES_FILE="$INTEGRATION_TEST_RESOURCE_DIR/test.properties"
+TEST_RESOURCE_DIR="$BASE_DIR/../src/test/resources"
+[[ ! -d "$TEST_RESOURCE_DIR" ]] && mkdir -p "$TEST_RESOURCE_DIR"
+INTEGRATION_TEST_PROPERTIES_FILE="$TEST_RESOURCE_DIR/test.properties"
 
 echo "keyfile=$KCBQ_TEST_KEYFILE" > "$INTEGRATION_TEST_PROPERTIES_FILE"
 echo "project=$KCBQ_TEST_PROJECT" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
 echo "dataset=$KCBQ_TEST_DATASET" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
 
-"$GRADLEW" -p "$BASE_DIR/.." cleanIntegrationTest integrationTest
+mvn -f "$BASE_DIR/.." -Dskip.unit.tests=true integration-test

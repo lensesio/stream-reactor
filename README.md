@@ -38,7 +38,7 @@ save the properties file.
 Once you get more familiar with the connector, you might want to revisit the `connector.properties`
 file and experiment with tweaking its settings.
    
-### Building and Extracting a Tarball
+### Building and Extracting a Confluent Hub archive
 
 If you haven't already, move into the repository's top-level directory:
 
@@ -46,16 +46,16 @@ If you haven't already, move into the repository's top-level directory:
 $ cd /path/to/kafka-connect-bigquery/
 ```
 
-Begin by creating a tarball of the connector with the Confluent Schema Retriever included:
+Begin by creating Confluent Hub archive of the connector with the Confluent Schema Retriever included:
 
 ```bash
-$ ./gradlew clean confluentTarBall
+$ mvn clean package -DskipTests
 ```
 
 And then extract its contents:
 
 ```bash
-$ mkdir bin/jar/ && tar -C bin/jar/ -xf bin/tar/kcbq-connector-*-confluent-dist.tar
+$ mkdir -p bin/jar/ && cp kcbq-connector/target/components/packages/wepay-kafka-connect-bigquery-*/wepay-kafka-connect-bigquery-*/lib/*.jar bin/jar/
 ```
 
 ### Setting-Up Background Processes
@@ -193,7 +193,7 @@ cannot occupy more than one line** (this inconvenience is due to limitations in 
 Console Producer, and may be addressed in future commits).
 
 To specify data verification, add a new JUnit test to the file 
-`src/integration-test/java/com/wepay/kafka/connect/bigquery/it/BigQueryConnectorIntegrationTest.java`.
+`src/test/java/com/wepay/kafka/connect/bigquery/it/BigQueryConnectorIntegrationTest.java`.
 Rows that are retrieved from BigQuery in the test are only returned as _Lists_ of _Objects_. The 
 names of their columns are not tracked. Construct a _List_ of the _Objects_ that you expect to be 
 stored in the test's BigQuery table, retrieve the actual _List_ of _Objects_ stored via a call to 
