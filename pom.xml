@@ -48,6 +48,7 @@
         <jacoco.plugin.version>0.8.5</jacoco.plugin.version>
         <kafka.connect.plugin.version>0.11.1</kafka.connect.plugin.version>
         <release.plugin.version>2.5.3</release.plugin.version>
+        <site.plugin.version>3.7.1</site.plugin.version>
         <surefire.plugin.version>3.0.0-M4</surefire.plugin.version>
 
         <skip.unit.tests>${maven.test.skip}</skip.unit.tests>
@@ -322,6 +323,7 @@
                             <phase>validate</phase>
                             <configuration>
                                 <configLocation>${project.parent.basedir}/config/checkstyle/google_checks.xml</configLocation>
+                                <suppressionsLocation>${project.parent.basedir}/config/checkstyle/suppressions.xml</suppressionsLocation>
                             </configuration>
                             <goals>
                                 <goal>check</goal>
@@ -336,6 +338,15 @@
                         </dependency>
                     </dependencies>
                 </plugin>
+                <!--
+                    Override the default version for the site plugin to fix ClassNotFoundExceptions
+                    being thrown during build, as suggested by https://stackoverflow.com/a/51099913
+                -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-site-plugin</artifactId>
+                    <version>${site.plugin.version}</version>
+                </plugin>
                 <plugin>
                     <groupId>io.confluent</groupId>
                     <artifactId>kafka-connect-maven-plugin</artifactId>
@@ -344,4 +355,22 @@
             </plugins>
         </pluginManagement>
     </build>
+    <profiles>
+        <profile>
+            <id>jenkins</id>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-checkstyle-plugin</artifactId>
+                            <configuration>
+                                <skip>true</skip>
+                            </configuration>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+            </build>
+        </profile>
+    </profiles>
 </project>

@@ -17,7 +17,7 @@
 ####################################################################################################
 # Basic script setup
 
-set -e
+set -ex
 
 if [[ -t 1 ]]; then
 	NORMAL="$(tput sgr0)"
@@ -285,4 +285,4 @@ folder=$KCBQ_TEST_FOLDER
 keysource=$KCBQ_TEST_KEYSOURCE
 EOF
 
-mvn -f "$BASE_DIR/.." -Dskip.unit.tests=true failsafe:integration-test@verify-docker-test
+mvn -f "$BASE_DIR/.." clean test-compile -Dskip.unit.tests=true failsafe:integration-test@verify-docker-test
