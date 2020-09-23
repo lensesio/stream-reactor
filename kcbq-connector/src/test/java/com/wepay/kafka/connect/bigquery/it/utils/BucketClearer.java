@@ -18,8 +18,6 @@ package com.wepay.kafka.connect.bigquery.it.utils;
  */
 
 
-import com.google.cloud.storage.Bucket;
-
 import com.google.cloud.storage.Storage;
 import com.wepay.kafka.connect.bigquery.GCSBuilder;
 import org.slf4j.Logger;

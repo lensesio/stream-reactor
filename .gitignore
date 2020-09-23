@@ -1,8 +1,10 @@
 bin/
 build/
+target/
 *.class
 *.jar
 *.tar
+*.zip
 
 .gradle
 
@@ -22,6 +24,6 @@ build/
 key.json
 
 test.conf
-kcbq-connector/src/integration-test/resources/test.properties
+kcbq-connector/src/test/resources/test.properties
 kcbq-connector/test/docker/connect/properties/
 kcbq-connector/out/
