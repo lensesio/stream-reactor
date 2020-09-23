@@ -17,7 +17,7 @@
 ####################################################################################################
 # Basic script setup
 
-set -e
+set -ex
 
 if [[ -t 1 ]]; then
   KCBQ_TEST_COLORS='true'
@@ -290,4 +290,4 @@ echo "dataset=$KCBQ_TEST_DATASET" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
 echo "bucket=$KCBQ_TEST_BUCKET" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
 echo "folder=$KCBQ_TEST_FOLDER" >> "$INTEGRATION_TEST_PROPERTIES_FILE"
 
-mvn -f "$BASE_DIR/.." -Dskip.unit.tests=true integration-test
+mvn -f "$BASE_DIR/.." clean test-compile -Dskip.unit.tests=true failsafe:integration-test@verify-docker-test
