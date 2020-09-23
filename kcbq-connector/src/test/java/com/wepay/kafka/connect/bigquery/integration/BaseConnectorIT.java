@@ -51,6 +51,7 @@ import org.apache.kafka.connect.runtime.WorkerConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.apache.kafka.connect.util.clusters.EmbeddedConnectCluster;
 import org.apache.kafka.test.IntegrationTest;
+import org.apache.kafka.test.NoRetryException;
 import org.apache.kafka.test.TestUtils;
 import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
@@ -162,9 +163,13 @@ public abstract class BaseConnectorIT {
             return true;
           } else {
             // Check to make sure the connector is still running. If not, fail fast
-            assertTrue(
-                "Connector or one of its tasks failed during testing",
-                assertConnectorAndTasksRunning(connector, numTasks).orElse(false));
+            try {
+              assertTrue(
+                  "Connector or one of its tasks failed during testing",
+                  assertConnectorAndTasksRunning(connector, numTasks).orElse(false));
+            } catch (AssertionError e) {
+              throw new NoRetryException(e);
+            }
             logger.debug("Connector has only committed {} records for topic {} so far; {} expected",
                 totalCommittedRecords, topic, numRecords);
             // Sleep here so as not to spam Kafka with list-offsets requests

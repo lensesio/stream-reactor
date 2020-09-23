@@ -35,10 +35,11 @@ public class BucketClearer {
    * Clears tables in the given project and dataset, using a provided JSON service account key.
    */
   public static void main(String[] args) {
-    if (args.length < 4) {
+    if (args.length < 3 || args.length > 4) {
       usage();
-    }
-    if (args.length == 4) {
+    } else if (args.length == 3) {
+      keySource = "FILE";
+    } else {
       keySource = args[3];
     }
     Storage gcs = new GCSBuilder(args[1]).setKey(args[0]).setKeySource(keySource).build();
@@ -57,7 +58,7 @@ public class BucketClearer {
 
   private static void usage() {
     System.err.println(
-        "usage: BucketClearer <key_file> <project_name> <key_source> <bucket_name>"
+        "usage: BucketClearer <key_file> <project_name> <bucket_name> [<key_source>]"
     );
     System.exit(1);
   }
