@@ -116,8 +116,7 @@ public class BigQueryWriterTest {
     when(insertAllResponse.hasErrors()).thenReturn(false);
     when(insertAllResponse.getInsertErrors()).thenReturn(emptyMap);
 
-    BigQueryException missTableException = mock(BigQueryException.class);
-    when(missTableException.getCode()).thenReturn(404);
+    BigQueryException missTableException = new BigQueryException(404, "Table is missing");
 
     when(bigQuery.insertAll(anyObject())).thenThrow(missTableException).thenReturn(insertAllResponse);
 
@@ -151,8 +150,7 @@ public class BigQueryWriterTest {
     when(insertAllResponse.hasErrors()).thenReturn(false);
     when(insertAllResponse.getInsertErrors()).thenReturn(emptyMap);
 
-    BigQueryException missTableException = mock(BigQueryException.class);
-    when(missTableException.getCode()).thenReturn(404);
+    BigQueryException missTableException = new BigQueryException(404, "Table is missing");
 
     when(bigQuery.insertAll(anyObject())).thenThrow(missTableException).thenReturn(insertAllResponse);
 
