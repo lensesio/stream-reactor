@@ -109,7 +109,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
       }
     } catch (BigQueryException exception) {
       // Should only perform one table creation attempt.
-      if (isTableNotExistedException(exception) && autoCreateTables && bigQuery.getTable(tableId.getBaseTableId()) == null) {
+      if (isTableNotExistedException(exception) && autoCreateTables) {
         attemptTableCreate(tableId.getBaseTableId(), rows.keySet());
       } else if (isTableMissingSchema(exception)) {
         attemptSchemaUpdate(tableId, rows.keySet());
