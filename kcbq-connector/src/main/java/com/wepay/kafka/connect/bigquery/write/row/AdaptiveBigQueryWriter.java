@@ -35,6 +35,7 @@ import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -105,14 +106,14 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
       // Should only perform one schema update attempt.
       if (writeResponse.hasErrors()
               && onlyContainsInvalidSchemaErrors(writeResponse.getInsertErrors())) {
-        attemptSchemaUpdate(tableId, rows.keySet());
+        attemptSchemaUpdate(tableId, new ArrayList<>(rows.keySet()));
       }
     } catch (BigQueryException exception) {
       // Should only perform one table creation attempt.
       if (isTableNotExistedException(exception) && autoCreateTables) {
-        attemptTableCreate(tableId.getBaseTableId(), rows.keySet());
+        attemptTableCreate(tableId.getBaseTableId(), new ArrayList<>(rows.keySet()));
       } else if (isTableMissingSchema(exception)) {
-        attemptSchemaUpdate(tableId, rows.keySet());
+        attemptSchemaUpdate(tableId, new ArrayList<>(rows.keySet()));
       } else {
         throw exception;
       }
@@ -152,7 +153,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     return new HashMap<>();
   }
 
-  protected void attemptSchemaUpdate(PartitionedTableId tableId, Set<SinkRecord> records) {
+  protected void attemptSchemaUpdate(PartitionedTableId tableId, List<SinkRecord> records) {
     try {
       schemaManager.updateSchema(tableId.getBaseTableId(), records);
     } catch (BigQueryException exception) {
@@ -161,7 +162,7 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
     }
   }
 
-  protected void attemptTableCreate(TableId tableId, Set<SinkRecord> records) {
+  protected void attemptTableCreate(TableId tableId, List<SinkRecord> records) {
     try {
       schemaManager.createTable(tableId, records);
     } catch (BigQueryException exception) {
