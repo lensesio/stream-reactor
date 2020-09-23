@@ -2,9 +2,14 @@ package com.landoop.streamreactor.connect.hive.source
 
 import com.landoop.streamreactor.connect.hive
 import com.landoop.streamreactor.connect.hive._
-import com.landoop.streamreactor.connect.hive.formats.{HiveFormat, HiveReader, Record}
-import com.landoop.streamreactor.connect.hive.source.config.{HiveSourceConfig, SourceTableOptions}
-import com.landoop.streamreactor.connect.hive.source.mapper.{PartitionValueMapper, ProjectionMapper}
+import com.landoop.streamreactor.connect.hive.formats.HiveFormat
+import com.landoop.streamreactor.connect.hive.formats.HiveReader
+import com.landoop.streamreactor.connect.hive.formats.Record
+import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
+import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfig
+import com.landoop.streamreactor.connect.hive.source.config.SourceTableOptions
+import com.landoop.streamreactor.connect.hive.source.mapper.PartitionValueMapper
+import com.landoop.streamreactor.connect.hive.source.mapper.ProjectionMapper
 import com.landoop.streamreactor.connect.hive.source.offset.HiveSourceOffsetStorageReader
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
@@ -27,7 +32,8 @@ class HiveSource(db: DatabaseName,
                  tableName: TableName,
                  topic: Topic,
                  offsetReader: HiveSourceOffsetStorageReader,
-                 config: HiveSourceConfig)
+                 config: HiveSourceConfig,
+                 kerberosLogin: Option[KerberosLogin] = None)
                 (implicit client: IMetaStoreClient, fs: FileSystem) extends Iterator[SourceRecord] {
 
   val tableConfig: SourceTableOptions = config.tableOptions.filter(_.tableName == tableName).find(_.topic == topic)
@@ -51,22 +57,30 @@ class HiveSource(db: DatabaseName,
     val readFromRow = lastSeenOffset.fold(0)(_.rowNumber + 1)
 
     new HiveReader {
-      lazy val reader: HiveReader = format.reader(path, readFromRow, metastoreSchema)
+      lazy val reader: HiveReader = execute {
+        format.reader(path, readFromRow, metastoreSchema)
+      }
 
-      override def iterator: Iterator[Record] = reader.iterator.map { record =>
-        Record(mapper(record.struct), record.path, record.offset)
+      override def iterator: Iterator[Record] = execute {
+        reader.iterator.map { record =>
+          Record(mapper(record.struct), record.path, record.offset)
+        }
       }
 
       override def close(): Unit = reader.close()
     }
   }
 
-  private val iterator: Iterator[Record] = readers.map(_.iterator).reduceOption(_ ++ _)
-    .fold(List.empty[Record].toIterator)(_.take(tableConfig.limit))
+  private val iterator: Iterator[Record] = execute {
+    readers.map(_.iterator).reduceOption(_ ++ _)
+      .fold(List.empty[Record].toIterator)(_.take(tableConfig.limit))
+  }
 
-  override def hasNext: Boolean = iterator.hasNext
+  override def hasNext: Boolean = execute {
+    iterator.hasNext
+  }
 
-  override def next(): SourceRecord = {
+  override def next(): SourceRecord = execute {
 
     val record = iterator.next
     val sourcePartition = SourcePartition(db, tableName, topic, record.path)
@@ -82,10 +96,11 @@ class HiveSource(db: DatabaseName,
     )
   }
 
-  def close(): Unit = {
+  def close(): Unit = execute {
     readers.foreach(_.close())
   }
 
   def getOffsets: Map[SourcePartition, SourceOffset] = offsets.toMap
 
+  private def execute[T](thunk: => T): T = kerberosLogin.fold(thunk)(_.run(thunk))
 }

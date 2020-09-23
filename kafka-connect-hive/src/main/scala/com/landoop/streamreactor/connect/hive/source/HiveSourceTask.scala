@@ -85,13 +85,10 @@ class HiveSourceTask extends SourceTask with StrictLogging {
       hiveConf.set("hive.metastore.kerberos.principal", principal)
     }
 
-    def initialize(): Unit = {
+    execute{
       fs = FileSystem.get(conf)
       client = new HiveMetaStoreClient(hiveConf)
     }
-
-    kerberosLogin.fold(initialize())(_.run(initialize()))
-
     val databases = execute(client.getAllDatabases)
     if (!databases.contains(config.dbName.value)) {
       throw new ConnectException(
@@ -110,28 +107,26 @@ class HiveSourceTask extends SourceTask with StrictLogging {
     lastRefresh = Instant.now()
 
     sources = config.tableOptions.map { options =>
-
       new HiveSource(
         config.dbName,
         options.tableName,
         options.topic,
         reader,
-        config
+        config,
+        kerberosLogin
       )(client, fs)
     }
 
     iterator = sources.reduce(
       (a: Iterator[SourceRecord], b: Iterator[SourceRecord]) => a ++ b
     )
-
   }
 
-  private def originalSourceOffsets = {
+  private def originalSourceOffsets = execute{
     sources.map(_.getOffsets).reduce(_ ++ _)
   }
 
   override def poll(): util.List[SourceRecord] = execute {
-
     refreshIfNecessary()
 
     iterator.take(config.pollSize).toList.asJava
@@ -157,17 +152,14 @@ class HiveSourceTask extends SourceTask with StrictLogging {
   }
 
   override def stop(): Unit = {
-    sources.foreach(_.close())
+    execute{
+      sources.foreach(_.close())
+    }
     kerberosLogin.foreach(_.close())
     kerberosLogin = None
   }
 
   override def version(): String = manifest.version()
 
-  private def execute[T](thunk: => T): T = {
-    kerberosLogin match {
-      case None => thunk
-      case Some(login) => login.run(thunk)
-    }
-  }
+  private def execute[T](thunk: => T): T = kerberosLogin.fold(thunk)(_.run(thunk))
 }
