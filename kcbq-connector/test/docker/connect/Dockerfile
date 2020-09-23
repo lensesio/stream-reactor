@@ -24,6 +24,9 @@
 
 FROM confluentinc/cp-kafka-connect-base:4.1.2
 
+RUN ["apt", "update"]
+RUN ["apt", "install", "unzip"]
+
 COPY connect-docker.sh /usr/local/bin/
 
 RUN ["chmod", "+x", "/usr/local/bin/connect-docker.sh"]
