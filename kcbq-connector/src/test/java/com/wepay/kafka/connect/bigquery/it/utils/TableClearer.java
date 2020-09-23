@@ -35,15 +35,11 @@ public class TableClearer {
    * Clears tables in the given project and dataset, using a provided JSON service account key.
    */
   public static void main(String[] args) {
-    if (args.length < 5) {
+    if (args.length < 4) {
       usage();
     }
     int tablesStart = 3;
-    if (args.length == 5) {
-      keySource = args[3];
-      tablesStart = 4;
-    }
-    BigQuery bigQuery = new BigQueryHelper().setKeySource(keySource).connect(args[1], args[0]);
+    BigQuery bigQuery = new BigQueryHelper().connect(args[1], args[0]);
     for (int i = tablesStart; i < args.length; i++) {
       // May be consider using sanitizeTopics property value in future to decide table name
       // sanitization but as currently we always run test cases with sanitizeTopics value as true
@@ -59,7 +55,7 @@ public class TableClearer {
 
   private static void usage() {
     System.err.println(
-        "usage: TableClearer <key_file> <project_name> <dataset_name> <key_source> <table> [<table> ...]"
+        "usage: TableClearer <key_file> <project_name> <dataset_name> <table> [<table> ...]"
     );
     System.exit(1);
   }
