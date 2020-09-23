@@ -64,7 +64,6 @@ log() { msg "$BOLD" "$*"; }
 
 
 BASE_DIR=$(dirname "$0")
-GRADLEW="$BASE_DIR/../../gradlew"
 
 ####################################################################################################
 # Configuration processing
@@ -211,29 +210,26 @@ docker start -a "$POPULATE_DOCKER_NAME"
 # Deleting existing BigQuery tables/bucket
 warn 'Deleting existing BigQuery test tables and existing GCS bucket'
 
-
-test_tables=
-test_topics=
+unset TEST_TABLES
+unset TEST_TOPICS
 for file in "$BASE_DIR"/resources/test_schemas/*; do
-        test_tables+="${test_tables:+ }kcbq_test_$(basename "${file/-/_}")"
-        test_topics+="${test_topics:+,}kcbq_test_$(basename "$file")"
+        TEST_TABLES+="${TEST_TABLES:+ }kcbq_test_$(basename "${file/-/_}")"
+        TEST_TOPICS+="${TEST_TOPICS:+,}kcbq_test_$(basename "$file")"
 done
 
-"$GRADLEW" -p "$BASE_DIR/.." \
-    -Pkcbq_test_keyfile="$KCBQ_TEST_KEYFILE" \
-    -Pkcbq_test_project="$KCBQ_TEST_PROJECT" \
-    -Pkcbq_test_dataset="$KCBQ_TEST_DATASET" \
-    -Pkcbq_test_tables="$test_tables" \
-    -Pkcbq_test_bucket="$KCBQ_TEST_BUCKET" \
-    -Pkcbq_test_keysource="$KCBQ_TEST_KEYSOURCE" \
-    integrationTestPrep
+mvn -f "$BASE_DIR/.." clean test-compile
+mvn -f "$BASE_DIR/.." exec:java -Dexec.mainClass=com.wepay.kafka.connect.bigquery.it.utils.TableClearer \
+  -Dexec.classpathScope=test \
+  -Dexec.args="${KCBQ_TEST_KEYFILE} ${KCBQ_TEST_PROJECT} ${KCBQ_TEST_DATASET} ${TEST_TABLES}"
+mvn -f "$BASE_DIR/.." exec:java -Dexec.mainClass=com.wepay.kafka.connect.bigquery.it.utils.BucketClearer \
+  -Dexec.classpathScope=test \
+  -Dexec.args="${KCBQ_TEST_KEYFILE} ${KCBQ_TEST_PROJECT} ${KCBQ_TEST_BUCKET}"
 
 ####################################################################################################
 # Executing connector in standalone mode (this is the execution portion of the actual test)
 statusupdate 'Executing Kafka Connect in Docker'
 
-# Run clean task to ensure there's only one connector tarball in the build/dist directory
-"$GRADLEW" -q -p "$BASE_DIR/../.." clean distTar
+mvn -f "$BASE_DIR/.." install -Dskip.unit.tests=true
 
 [[ ! -e "$DOCKER_DIR/connect/properties" ]] && mkdir "$DOCKER_DIR/connect/properties"
 RESOURCES_DIR="$BASE_DIR/resources"
@@ -248,14 +244,14 @@ project=$KCBQ_TEST_PROJECT
 datasets=.*=$KCBQ_TEST_DATASET
 gcsBucketName=$KCBQ_TEST_BUCKET
 gcsFolderName=$KCBQ_TEST_FOLDER
-topics=$test_topics
+topics=$TEST_TOPICS
 
 EOF
 
 CONNECT_DOCKER_IMAGE='kcbq/connect'
 CONNECT_DOCKER_NAME='kcbq_test_connect'
 
-cp "$BASE_DIR"/../../kcbq-confluent/build/distributions/kcbq-confluent-*.tar "$DOCKER_DIR/connect/kcbq.tar"
+cp "$BASE_DIR"/../target/components/packages/wepay-kafka-connect-bigquery-*.zip "$DOCKER_DIR/connect/kcbq.zip"
 if [[ "$KCBQ_TEST_KEYSOURCE" == "JSON" ]]; then
     echo "$KCBQ_TEST_KEYFILE" > "$DOCKER_DIR/connect/key.json"
 else
@@ -268,7 +264,7 @@ fi
 docker create --name "$CONNECT_DOCKER_NAME" \
               --link "$KAFKA_DOCKER_NAME:kafka" --link "$SCHEMA_REGISTRY_DOCKER_NAME:schema-registry" \
               -t "$CONNECT_DOCKER_IMAGE" /bin/bash
-docker cp "$DOCKER_DIR/connect/kcbq.tar" "$CONNECT_DOCKER_NAME:/usr/local/share/kafka/plugins/kafka-connect-bigquery/kcbq.tar"
+docker cp "$DOCKER_DIR/connect/kcbq.zip" "$CONNECT_DOCKER_NAME:/usr/local/share/kafka/plugins/kafka-connect-bigquery/kcbq.zip"
 docker cp "$DOCKER_DIR/connect/properties/" "$CONNECT_DOCKER_NAME:/etc/kafka-connect-bigquery/"
 docker cp "$DOCKER_DIR/connect/key.json" "$CONNECT_DOCKER_NAME:/tmp/key.json"
 docker start -a "$CONNECT_DOCKER_NAME"
@@ -277,10 +273,10 @@ docker start -a "$CONNECT_DOCKER_NAME"
 # Checking on BigQuery data via Java test (this is the verification portion of the actual test)
 statusupdate 'Verifying that test data made it successfully to BigQuery'
 
-INTEGRATION_TEST_RESOURCE_DIR="$BASE_DIR/../src/integration-test/resources"
-[[ ! -d "$INTEGRATION_TEST_RESOURCE_DIR" ]] && mkdir -p "$INTEGRATION_TEST_RESOURCE_DIR"
+TEST_RESOURCE_DIR="$BASE_DIR/../src/test/resources"
+[[ ! -d "$TEST_RESOURCE_DIR" ]] && mkdir -p "$TEST_RESOURCE_DIR"
 
-cat << EOF > "$INTEGRATION_TEST_RESOURCE_DIR/test.properties"
+cat << EOF > "$TEST_RESOURCE_DIR/test.properties"
 keyfile=$KCBQ_TEST_KEYFILE
 project=$KCBQ_TEST_PROJECT
 dataset=$KCBQ_TEST_DATASET
@@ -289,5 +285,4 @@ folder=$KCBQ_TEST_FOLDER
 keysource=$KCBQ_TEST_KEYSOURCE
 EOF
 
-
-"$GRADLEW" -p "$BASE_DIR/.." cleanIntegrationTest integrationTest
+mvn -f "$BASE_DIR/.." -Dskip.unit.tests=true integration-test
