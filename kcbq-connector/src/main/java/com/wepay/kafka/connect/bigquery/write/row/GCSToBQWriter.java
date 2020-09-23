@@ -40,11 +40,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.SortedMap;
 
 /**
@@ -118,7 +119,7 @@ public class GCSToBQWriter {
     // Check if the table specified exists
     // This error shouldn't be thrown. All tables should be created by the connector at startup
     if (autoCreateTables && bigQuery.getTable(tableId) == null) {
-      attemptTableCreate(tableId, rows.keySet());
+      attemptTableCreate(tableId, new ArrayList<>(rows.keySet()));
     }
 
     int attemptCount = 0;
@@ -198,7 +199,7 @@ public class GCSToBQWriter {
     Thread.sleep(retryWaitMs + random.nextInt(WAIT_MAX_JITTER));
   }
 
-  private void attemptTableCreate(TableId tableId, Set<SinkRecord> records) {
+  private void attemptTableCreate(TableId tableId, List<SinkRecord> records) {
     try {
       logger.info("Table {} does not exist, auto-creating table ", tableId);
       schemaManager.createTable(tableId, records);

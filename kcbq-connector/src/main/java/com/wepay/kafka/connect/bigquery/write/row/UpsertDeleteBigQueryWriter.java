@@ -26,9 +26,8 @@ import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import org.apache.kafka.connect.sink.SinkRecord;
 
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Future;
 
 public class UpsertDeleteBigQueryWriter extends AdaptiveBigQueryWriter {
 
@@ -64,7 +63,7 @@ public class UpsertDeleteBigQueryWriter extends AdaptiveBigQueryWriter {
   }
 
   @Override
-  protected void attemptSchemaUpdate(PartitionedTableId tableId, Set<SinkRecord> records) {
+  protected void attemptSchemaUpdate(PartitionedTableId tableId, List<SinkRecord> records) {
     // Update the intermediate table here...
     super.attemptSchemaUpdate(tableId, records);
     try {
@@ -77,7 +76,7 @@ public class UpsertDeleteBigQueryWriter extends AdaptiveBigQueryWriter {
   }
 
   @Override
-  protected void attemptTableCreate(TableId tableId, Set<SinkRecord> records) {
+  protected void attemptTableCreate(TableId tableId, List<SinkRecord> records) {
     // Create the intermediate table here...
     super.attemptTableCreate(tableId, records);
     if (autoCreateTables) {

@@ -217,27 +217,35 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final String TABLE_CREATE_DOC =
           "Automatically create BigQuery tables if they don't already exist";
 
-  public static final String AUTO_CREATE_BUCKET_CONFIG =                "autoCreateBucket";
-  private static final ConfigDef.Type AUTO_CREATE_BUCKET_TYPE =          ConfigDef.Type.BOOLEAN;
-  public static final Boolean AUTO_CREATE_BUCKET_DEFAULT =                true;
+  public static final String AUTO_CREATE_BUCKET_CONFIG =                    "autoCreateBucket";
+  private static final ConfigDef.Type AUTO_CREATE_BUCKET_TYPE =             ConfigDef.Type.BOOLEAN;
+  public static final Boolean AUTO_CREATE_BUCKET_DEFAULT =                  true;
   private static final ConfigDef.Importance AUTO_CREATE_BUCKET_IMPORTANCE = ConfigDef.Importance.MEDIUM;
   private static final String AUTO_CREATE_BUCKET_DOC =
           "Whether to automatically create the given bucket, if it does not exist. " +
                   "Only relevant if enableBatchLoad is configured.";
 
-  public static final String ALLOW_NEW_BIGQUERY_FIELDS_CONFIG =                 "allowNewBigQueryFields";
-  private static final ConfigDef.Type ALLOW_NEW_BIGQUERY_FIELDS_TYPE =          ConfigDef.Type.BOOLEAN;
-  public static final Boolean ALLOW_NEW_BIGQUERY_FIELDS_DEFAULT =               false;
+  public static final String ALLOW_NEW_BIGQUERY_FIELDS_CONFIG =                    "allowNewBigQueryFields";
+  private static final ConfigDef.Type ALLOW_NEW_BIGQUERY_FIELDS_TYPE =             ConfigDef.Type.BOOLEAN;
+  public static final Boolean ALLOW_NEW_BIGQUERY_FIELDS_DEFAULT =                  false;
   private static final ConfigDef.Importance ALLOW_NEW_BIGQUERY_FIELDS_IMPORTANCE = ConfigDef.Importance.MEDIUM;
   private static final String ALLOW_NEW_BIGQUERY_FIELDS_DOC =
           "If true, new fields can be added to BigQuery tables during subsequent schema updates";
 
-  public static final String ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG =   "allowBigQueryRequiredFieldRelaxation";
-  private static final ConfigDef.Type ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_TYPE = ConfigDef.Type.BOOLEAN;
-  public static final Boolean ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_DEFAULT =      false;
+  public static final String ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG =                    "allowBigQueryRequiredFieldRelaxation";
+  private static final ConfigDef.Type ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_TYPE =             ConfigDef.Type.BOOLEAN;
+  public static final Boolean ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_DEFAULT =                  false;
   private static final ConfigDef.Importance ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_IMPORTANCE = ConfigDef.Importance.MEDIUM;
   private static final String ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_DOC =
           "If true, fields in BigQuery Schema can be changed from REQUIRED to NULLABLE";
+
+  public static final String ALLOW_SCHEMA_UNIONIZATION_CONFIG =                    "allowSchemaUnionization";
+  private static final ConfigDef.Type ALLOW_SCHEMA_UNIONIZATION_TYPE =             ConfigDef.Type.BOOLEAN;
+  public static final Boolean ALLOW_SCHEMA_UNIONIZATION_DEFAULT =                  false;
+  private static final ConfigDef.Importance ALLOW_SCHEMA_UNIONIZATION_IMPORTANCE = ConfigDef.Importance.MEDIUM;
+  private static final String ALLOW_SCHEMA_UNIONIZATION_DOC =
+          "If true, the existing table schema (if one is present) will be unionized with new "
+              + "record schemas during schema updates";
 
   public static final String UPSERT_ENABLED_CONFIG =                    "upsertEnabled";
   private static final ConfigDef.Type UPSERT_ENABLED_TYPE =             ConfigDef.Type.BOOLEAN;
@@ -435,6 +443,12 @@ public class BigQuerySinkConfig extends AbstractConfig {
             ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_DEFAULT,
             ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_IMPORTANCE,
             ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_DOC
+        ).define(
+            ALLOW_SCHEMA_UNIONIZATION_CONFIG,
+            ALLOW_SCHEMA_UNIONIZATION_TYPE,
+            ALLOW_SCHEMA_UNIONIZATION_DEFAULT,
+            ALLOW_SCHEMA_UNIONIZATION_IMPORTANCE,
+            ALLOW_SCHEMA_UNIONIZATION_DOC
         ).define(
             UPSERT_ENABLED_CONFIG,
             UPSERT_ENABLED_TYPE,
