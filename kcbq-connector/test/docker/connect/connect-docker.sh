@@ -14,7 +14,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-tar -C /usr/local/share/kafka/plugins/kafka-connect-bigquery/ -xf /usr/local/share/kafka/plugins/kafka-connect-bigquery/kcbq.tar
+unzip -j -d /usr/local/share/kafka/plugins/kafka-connect-bigquery/ /usr/local/share/kafka/plugins/kafka-connect-bigquery/kcbq.zip 'wepay-kafka-connect-bigquery-*/lib/*.jar'
 
 connect-standalone \
     /etc/kafka-connect-bigquery/standalone.properties \
