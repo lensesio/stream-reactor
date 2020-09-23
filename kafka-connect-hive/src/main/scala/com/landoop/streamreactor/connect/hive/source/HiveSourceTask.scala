@@ -55,7 +55,7 @@ class HiveSourceTask extends SourceTask with StrictLogging {
       ConfigurationBuilder.buildHdfsConfiguration(config.hadoopConfiguration)
     conf.set("fs.defaultFS", configs.get(SinkConfigSettings.FsDefaultKey))
     conf.setInt(ParquetFileReader.PARQUET_READ_PARALLELISM, 1)
-    conf.setInt(CommonConfigurationKeys.IPC_CLIENT_CONNECT_MAX_RETRIES_ON_SASL_KEY, 300)
+    conf.setInt(CommonConfigurationKeys.IPC_CLIENT_CONNECT_MAX_RETRIES_ON_SASL_KEY, 10)
 
     kerberosLogin = config.kerberos.map { kerberos =>
       conf.withKerberos(kerberos)
@@ -106,7 +106,7 @@ class HiveSourceTask extends SourceTask with StrictLogging {
     new HiveSourceInitOffsetStorageReader(context.offsetStorageReader)
   }
 
-  private def initSources(reader: HiveSourceOffsetStorageReader): Unit = {
+  private def initSources(reader: HiveSourceOffsetStorageReader): Unit = execute {
     lastRefresh = Instant.now()
 
     sources = config.tableOptions.map { options =>
@@ -130,7 +130,7 @@ class HiveSourceTask extends SourceTask with StrictLogging {
     sources.map(_.getOffsets).reduce(_ ++ _)
   }
 
-  override def poll(): util.List[SourceRecord] = {
+  override def poll(): util.List[SourceRecord] = execute {
 
     refreshIfNecessary()
 
