@@ -1,6 +1,8 @@
 package com.landoop.streamreactor.connect.hive.formats
 
 import com.landoop.streamreactor.connect.hive.{OrcSinkConfig, OrcSourceConfig, Serde}
+import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
+import com.landoop.streamreactor.connect.hive.kerberos.UgiExecute
 import com.landoop.streamreactor.connect.hive.orc.OrcSink
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.fs.permission.FsPermission
@@ -54,11 +56,11 @@ object OrcHiveFormat extends HiveFormat {
     }
   }
 
-  override def reader(path: Path, startAt: Int, schema: Schema)
+  override def reader(path: Path, startAt: Int, schema: Schema, ugi:UgiExecute)
                      (implicit fs: FileSystem): HiveReader = new HiveReader {
 
     logger.debug(s"Creating orc reader for $path with offset $startAt")
-    val reader = com.landoop.streamreactor.connect.hive.orc.source(path, OrcSourceConfig())
+    val reader = com.landoop.streamreactor.connect.hive.orc.source(path, OrcSourceConfig(), ugi)
     var offset = startAt
 
     override def iterator: Iterator[Record] = reader.iterator.map { struct =>

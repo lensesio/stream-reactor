@@ -5,7 +5,9 @@ import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.formats.HiveFormat
 import com.landoop.streamreactor.connect.hive.formats.HiveReader
 import com.landoop.streamreactor.connect.hive.formats.Record
+import com.landoop.streamreactor.connect.hive.kerberos.KerberosExecute
 import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
+import com.landoop.streamreactor.connect.hive.kerberos.UgiExecute
 import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfig
 import com.landoop.streamreactor.connect.hive.source.config.SourceTableOptions
 import com.landoop.streamreactor.connect.hive.source.mapper.PartitionValueMapper
@@ -33,8 +35,11 @@ class HiveSource(db: DatabaseName,
                  topic: Topic,
                  offsetReader: HiveSourceOffsetStorageReader,
                  config: HiveSourceConfig,
-                 kerberosLogin: Option[KerberosLogin] = None)
-                (implicit client: IMetaStoreClient, fs: FileSystem) extends Iterator[SourceRecord] {
+                 ugi: UgiExecute = new UgiExecute {
+                   override def execute[T](thunk: => T): T = thunk
+                 })
+                (implicit client: IMetaStoreClient, fs: FileSystem) extends Iterator[SourceRecord]
+  with KerberosExecute {
 
   val tableConfig: SourceTableOptions = config.tableOptions.filter(_.tableName == tableName).find(_.topic == topic)
     .getOrElse(sys.error(s"Cannot find table configuration for ${db.value}.${tableName.value} => ${topic.value}"))
@@ -57,11 +62,11 @@ class HiveSource(db: DatabaseName,
     val readFromRow = lastSeenOffset.fold(0)(_.rowNumber + 1)
 
     new HiveReader {
-      lazy val reader: HiveReader = execute {
-        format.reader(path, readFromRow, metastoreSchema)
+        lazy val reader: HiveReader = ugi.execute {
+        format.reader(path, readFromRow, metastoreSchema, ugi)
       }
 
-      override def iterator: Iterator[Record] = execute {
+      override def iterator: Iterator[Record] = ugi.execute {
         reader.iterator.map { record =>
           Record(mapper(record.struct), record.path, record.offset)
         }
@@ -71,16 +76,16 @@ class HiveSource(db: DatabaseName,
     }
   }
 
-  private val iterator: Iterator[Record] = execute {
+  private val iterator: Iterator[Record] = ugi.execute {
     readers.map(_.iterator).reduceOption(_ ++ _)
       .fold(List.empty[Record].toIterator)(_.take(tableConfig.limit))
   }
 
-  override def hasNext: Boolean = execute {
+  override def hasNext: Boolean = ugi.execute {
     iterator.hasNext
   }
 
-  override def next(): SourceRecord = execute {
+  override def next(): SourceRecord = ugi.execute {
 
     val record = iterator.next
     val sourcePartition = SourcePartition(db, tableName, topic, record.path)
@@ -96,11 +101,10 @@ class HiveSource(db: DatabaseName,
     )
   }
 
-  def close(): Unit = execute {
+  def close(): Unit = ugi.execute {
     readers.foreach(_.close())
   }
 
   def getOffsets: Map[SourcePartition, SourceOffset] = offsets.toMap
 
-  private def execute[T](thunk: => T): T = kerberosLogin.fold(thunk)(_.run(thunk))
 }

@@ -8,6 +8,7 @@ import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.landoop.streamreactor.connect.hive.ConfigurationBuilder
 import com.landoop.streamreactor.connect.hive.HadoopConfigurationExtension._
 import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
+import com.landoop.streamreactor.connect.hive.kerberos.UgiExecute
 import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
 import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfig
 import com.landoop.streamreactor.connect.hive.source.offset.{HiveSourceInitOffsetStorageReader, HiveSourceOffsetStorageReader, HiveSourceRefreshOffsetStorageReader}
@@ -22,7 +23,7 @@ import org.apache.parquet.hadoop.ParquetFileReader
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-class HiveSourceTask extends SourceTask with StrictLogging {
+class HiveSourceTask extends SourceTask with StrictLogging with UgiExecute {
 
   private val manifest = JarManifest(
     getClass.getProtectionDomain.getCodeSource.getLocation
@@ -113,7 +114,7 @@ class HiveSourceTask extends SourceTask with StrictLogging {
         options.topic,
         reader,
         config,
-        kerberosLogin
+        this
       )(client, fs)
     }
 
@@ -161,5 +162,5 @@ class HiveSourceTask extends SourceTask with StrictLogging {
 
   override def version(): String = manifest.version()
 
-  private def execute[T](thunk: => T): T = kerberosLogin.fold(thunk)(_.run(thunk))
+  def execute[T](thunk: => T): T = kerberosLogin.fold(thunk)(_.run(thunk))
 }
