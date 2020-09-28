@@ -18,7 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import java.io.StringReader
-import java.lang
+import java.{lang, util}
 
 import au.com.bytecode.opencsv.CSVReader
 import cats.implicits._
@@ -38,7 +38,6 @@ import org.jclouds.blobstore.options.ListContainerOptions
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import java.util
 
 import scala.collection.JavaConverters._
 
@@ -1056,7 +1055,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
       .build()
 
     val kafkaPartitionedRecords = List(
-      new SinkRecord(TopicName, 0, null, null, SchemaBuilder.map(Schema.STRING_SCHEMA, optionalSchema), map, 0)
+      new SinkRecord(TopicName, 0, null, null, SchemaBuilder.map(Schema.STRING_SCHEMA, optionalSchema).build(), map, 0)
     )
 
     val topicPartitionsToManage = Seq(
@@ -1087,7 +1086,55 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     val recordsMap = genericRecords.head.asInstanceOf[util.Map[Utf8, GenericData.Record]].asScala
 
     checkRecord(recordsMap.getOrElse(new Utf8("jedi"), fail("can't find in map")), "sam", Some("mr"), 100.43)
-    recordsMap.getOrElse(new Utf8("cylons"), fail("can't find in map")) should be (null)
+    recordsMap.getOrElse(new Utf8("cylons"), fail("can't find in map")) should be(null)
+
+  }
+
+  "S3SinkTask" should "process and map of structs with nulls json" in {
+
+    val keySchema = Schema.STRING_SCHEMA
+    val valSchema = SchemaBuilder.struct()
+      .optional()
+      .field("name", SchemaBuilder.string().required().build())
+      .field("title", SchemaBuilder.string().optional().build())
+      .field("salary", SchemaBuilder.float64().optional().build())
+      .build()
+    val mapSchema = SchemaBuilder.map(
+      keySchema,
+      valSchema
+    ).build()
+
+    val map = Map(
+      "jedi" -> new Struct(valSchema).put("name", "sam").put("title", "mr").put("salary", 100.43),
+      "cylons" -> null
+    ).asJava
+
+
+    val kafkaPartitionedRecords = List(
+      new SinkRecord(TopicName, 0, null, null, mapSchema, map, 0)
+    )
+
+    val topicPartitionsToManage = Seq(
+      new TopicPartition(TopicName, 0)
+    ).asJava
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `JSON` WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    task.start(props)
+
+    task.open(topicPartitionsToManage)
+    task.put(kafkaPartitionedRecords.asJava)
+    task.close(topicPartitionsToManage)
+    task.stop()
+
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/mytopic/0/")).size() should be(1)
+
+    readFileToString("streamReactorBackups/mytopic/0/0.json", blobStoreContext) should be("""{"jedi":{"name":"sam","title":"mr","salary":100.43},"cylons":null}""")
 
   }
 
@@ -1132,7 +1179,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     checkArray(recordsMap.getOrElse(new Utf8("jedi"), fail("can't find in map")), "bob", "john")
     checkArray(recordsMap.getOrElse(new Utf8("klingons"), fail("can't find in map")), "joe")
-    checkArray(recordsMap.getOrElse(new Utf8("cylons"), fail("can't find in map")), "merv","marv")
+    checkArray(recordsMap.getOrElse(new Utf8("cylons"), fail("can't find in map")), "merv", "marv")
 
   }
 

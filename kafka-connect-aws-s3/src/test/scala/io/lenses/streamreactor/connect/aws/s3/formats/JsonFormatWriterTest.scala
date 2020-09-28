@@ -133,7 +133,8 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
       Map(
         StringSinkData("bees") -> StringSinkData("sting when scared"),
         StringSinkData("wasps") -> NullSinkData()
-      )
+      ),
+      Some(SchemaBuilder.map(SchemaBuilder.string().build(), SchemaBuilder.string().optional().build()).build())
     ), topic)
 
     val lines = outputStream.toString().split(System.lineSeparator())
