@@ -19,8 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import java.io.InputStream
 
 import com.google.common.io.ByteStreams
-import io.lenses.streamreactor.connect.aws.s3.config.BytesWriteMode
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, ByteArraySourceData, BytesOutputRow}
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, ByteArraySourceData, BytesWriteMode}
 
 import scala.util.Try
 
@@ -33,9 +32,9 @@ class BytesFormatStreamFileReader(inputStreamFn: () => InputStream, fileSizeFn: 
   override def hasNext: Boolean = !consumed && fileSize > 0L
 
   override def next(): ByteArraySourceData = {
-    val nextChunk = ByteStreams.toByteArray(inputStream)
+    val fileAsBytes = ByteStreams.toByteArray(inputStream)
     consumed = true
-    ByteArraySourceData(BytesOutputRow(nextChunk, bytesWriteMode), getLineNumber)
+    ByteArraySourceData(bytesWriteMode.read(fileAsBytes), getLineNumber)
   }
 
   override def getLineNumber: Long = if (consumed) 0 else -1

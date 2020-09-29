@@ -114,22 +114,9 @@ object Format extends Enum[Format] {
   }
 }
 
-sealed trait BytesWriteMode extends EnumEntry
 
-object BytesWriteMode extends Enum[BytesWriteMode] {
-  val values: immutable.IndexedSeq[BytesWriteMode] = findValues
 
-  case object KeyAndValueWithSizes extends BytesWriteMode
 
-  case object KeyWithSize extends BytesWriteMode
-
-  case object ValueWithSize extends BytesWriteMode
-
-  case object KeyOnly extends BytesWriteMode
-
-  case object ValueOnly extends BytesWriteMode
-
-}
 
 object S3Config {
   def apply(props: Map[String, String]): S3Config = S3Config(

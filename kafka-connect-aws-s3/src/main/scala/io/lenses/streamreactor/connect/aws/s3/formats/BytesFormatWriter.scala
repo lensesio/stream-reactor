@@ -17,8 +17,7 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.BytesWriteMode
-import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, BytesOutputRow, SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, BytesOutputRow, BytesWriteMode, SinkData, Topic}
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 
 import scala.util.Try

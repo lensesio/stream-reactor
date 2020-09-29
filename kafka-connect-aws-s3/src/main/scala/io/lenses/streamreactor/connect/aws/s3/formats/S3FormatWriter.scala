@@ -19,8 +19,8 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format._
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
-import io.lenses.streamreactor.connect.aws.s3.config.{BytesWriteMode, FormatOptions, FormatSelection}
-import io.lenses.streamreactor.connect.aws.s3.model.{SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.config.{FormatOptions, FormatSelection}
+import io.lenses.streamreactor.connect.aws.s3.model.{BytesWriteMode, SinkData, Topic}
 import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreOutputStream
 
 object S3FormatWriter {

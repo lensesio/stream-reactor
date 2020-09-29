@@ -18,8 +18,8 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import java.io.ByteArrayInputStream
 
-import io.lenses.streamreactor.connect.aws.s3.config.BytesWriteMode
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BytesOutputRow, BytesOutputRowTest}
+import io.lenses.streamreactor.connect.aws.s3.formats.bytes.{ByteArrayUtils, WithSizesBytesOutputRowReader}
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BytesOutputRow, BytesOutputRowTest, BytesWriteMode}
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -30,7 +30,7 @@ class BytesFormatWithSizesStreamReaderTest extends AnyFlatSpec with MockitoSugar
 
   private val bucketAndPath: BucketAndPath = mock[BucketAndPath]
 
-  private val bytesKeyAndValueWithSizes2: Array[Byte] = BytesOutputRow.longToByteArray(4L) ++ BytesOutputRow.longToByteArray(3L) ++ "caketea".getBytes
+  private val bytesKeyAndValueWithSizes2: Array[Byte] = ByteArrayUtils.longToByteArray(4L) ++ ByteArrayUtils.longToByteArray(3L) ++ "caketea".getBytes
 
   private val outputKeyAndValueWithSizes2 = BytesOutputRow(Some(4L), Some(3L), "cake".getBytes, "tea".getBytes)
 

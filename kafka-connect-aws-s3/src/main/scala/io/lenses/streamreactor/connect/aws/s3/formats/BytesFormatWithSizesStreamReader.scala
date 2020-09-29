@@ -16,17 +16,16 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.io.InputStream
+import java.io.{DataInputStream, InputStream}
 import java.util.concurrent.atomic.AtomicLong
 
-import io.lenses.streamreactor.connect.aws.s3.config.BytesWriteMode
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, ByteArraySourceData, BytesOutputRow}
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, ByteArraySourceData, BytesWriteMode}
 
 import scala.util.Try
 
 class BytesFormatWithSizesStreamReader(inputStreamFn: () => InputStream, fileSizeFn: () => Long, bucketAndPath: BucketAndPath, bytesWriteMode: BytesWriteMode) extends S3FormatStreamReader[ByteArraySourceData] {
 
-  private val inputStream = inputStreamFn()
+  private val inputStream = new DataInputStream(inputStreamFn())
 
   private var recordNumber: Long = -1
 
@@ -36,7 +35,7 @@ class BytesFormatWithSizesStreamReader(inputStreamFn: () => InputStream, fileSiz
 
   override def next(): ByteArraySourceData = {
     recordNumber += 1
-    val ret = ByteArraySourceData(BytesOutputRow(inputStream, bytesWriteMode), recordNumber)
+    val ret = ByteArraySourceData(bytesWriteMode.read(inputStream), recordNumber)
     fileSizeCounter.addAndGet(- ret.data.bytesRead.get)
     ret
   }

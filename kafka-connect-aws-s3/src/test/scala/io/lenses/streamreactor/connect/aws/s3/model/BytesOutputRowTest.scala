@@ -16,9 +16,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.model
 
-import java.io.ByteArrayInputStream
+import java.io.{ByteArrayInputStream, DataInputStream}
 
-import io.lenses.streamreactor.connect.aws.s3.config.BytesWriteMode
+import io.lenses.streamreactor.connect.aws.s3.formats.bytes.ByteArrayUtils
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
@@ -38,12 +38,12 @@ object BytesOutputRowTest extends Matchers {
   )
 
 
-  val bytesKeyAndValueWithSizes: Array[Byte] = BytesOutputRow.longToByteArray(4L) ++ BytesOutputRow.longToByteArray(5) ++ "fishchips".getBytes
-  private val bytesKeyWithSize: Array[Byte] = BytesOutputRow.longToByteArray(4L) ++ "fish".getBytes
-  private val bytesValueWithSize: Array[Byte] = BytesOutputRow.longToByteArray(5L) ++ "chips".getBytes
+  val bytesKeyAndValueWithSizes: Array[Byte] = ByteArrayUtils.longToByteArray(4L) ++ ByteArrayUtils.longToByteArray(5) ++ "fishchips".getBytes
+  private val bytesKeyWithSize: Array[Byte] = ByteArrayUtils.longToByteArray(4L) ++ "fish".getBytes
+  private val bytesValueWithSize: Array[Byte] = ByteArrayUtils.longToByteArray(5L) ++ "chips".getBytes
   private val bytesKeyOnly: Array[Byte] = Array('f', 'i', 's', 'h')
   private val bytesValueOnly: Array[Byte] = Array('c', 'h', 'i', 'p', 's')
-  private val bytesLongKeyValueSizes: Array[Byte] = BytesOutputRow.longToByteArray(50000L) ++ BytesOutputRow.longToByteArray(2000L) ++ List.fill(50000)("a").mkString.getBytes ++ List.fill(2000)("b").mkString.getBytes
+  private val bytesLongKeyValueSizes: Array[Byte] = ByteArrayUtils.longToByteArray(50000L) ++ ByteArrayUtils.longToByteArray(2000L) ++ List.fill(50000)("a").mkString.getBytes ++ List.fill(2000)("b").mkString.getBytes
 
   def checkEqualsByteArrayValue(res: BytesOutputRow, expected: BytesOutputRow): Any = {
     res.keySize should be(expected.keySize)
@@ -85,14 +85,14 @@ class BytesOutputRowTest extends AnyFlatSpec with Matchers {
 
   "apply" should "create output rows from byte arrays keys or values only" in {
     forAll(testDataKeyOrValueOnly) { (outputRow: BytesOutputRow, byteArray: Array[Byte], bytesWriteMode: BytesWriteMode) =>
-      val res = BytesOutputRow(byteArray, bytesWriteMode)
+      val res = bytesWriteMode.read(byteArray)
       checkEqualsByteArrayValue(res, outputRow)
     }
   }
 
   "apply" should "create output rows from byte arrays with sizes" in {
     forAll(testDataWithSize) { (outputRow: BytesOutputRow, byteArray: Array[Byte], bytesWriteMode: BytesWriteMode) =>
-      val res = BytesOutputRow(new ByteArrayInputStream(byteArray), bytesWriteMode)
+      val res = bytesWriteMode.read(new DataInputStream(new ByteArrayInputStream(byteArray)))
       checkEqualsByteArrayValue(res, outputRow)
     }
   }
