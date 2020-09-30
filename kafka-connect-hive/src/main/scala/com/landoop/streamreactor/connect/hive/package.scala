@@ -12,6 +12,7 @@ import org.apache.kafka.connect.data.{Schema, Struct}
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
+import scala.util.Try
 
 package object hive extends StrictLogging {
 
@@ -169,7 +170,8 @@ package object hive extends StrictLogging {
   // each struct must supply a non null value for each partition key
   def partition(struct: Struct, plan: PartitionPlan): Partition = {
     val entries = plan.keys.map { key =>
-      Option(struct.get(key.value)) match {
+      //we need to lowercase the field names because hive works with lowercase fields
+      Try(struct.get(key.value.toLowerCase)).toOption match {
         case None => sys.error(s"Partition value for $key must be defined")
         case Some(null) => sys.error(s"Partition values cannot be null [was null for $key]")
         case Some(value) => key -> value.toString
