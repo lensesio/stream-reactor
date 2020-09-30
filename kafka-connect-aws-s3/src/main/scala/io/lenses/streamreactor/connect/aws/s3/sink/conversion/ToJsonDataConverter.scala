@@ -18,31 +18,10 @@ package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
 import java.nio.ByteBuffer
 
-import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.aws.s3.model._
-import org.apache.avro.Schema
-import org.apache.kafka.connect.data.{Schema => ConnectSchema}
-
 import scala.collection.JavaConverters._
 
-object ToAvroDataConverter {
-
-  private val avroDataConverter = new AvroData(100)
-
-  def convertSchema(connectSchema: Option[ConnectSchema]): Schema = connectSchema
-    .fold(throw new IllegalArgumentException("Schema-less data is not supported for Avro/Parquet"))(avroDataConverter.fromConnectSchema)
-
-  def convertToGenericRecord[Any](sinkData: SinkData): AnyRef = {
-    sinkData match {
-      case StructSinkData(structVal) => avroDataConverter.fromConnectData(structVal.schema(), structVal)
-      case MapSinkData(map, _) => convertMap(map)
-      case ArraySinkData(array, _) => convertArray(array)
-      case ByteArraySinkData(array, _) => ByteBuffer.wrap(array)
-      case primitive: PrimitiveSinkData => primitive.primVal().asInstanceOf[AnyRef]
-      case _: NullSinkData => null
-      case other => throw new IllegalArgumentException(s"Unknown SinkData type, ${other.getClass.getSimpleName}")
-    }
-  }
+object ToJsonDataConverter {
 
   def convertArray(array: Seq[SinkData]): java.util.List[Any] = array.map {
     case data: PrimitiveSinkData => data.primVal()
@@ -53,8 +32,17 @@ object ToAvroDataConverter {
     case _ => throw new IllegalArgumentException("Complex array writing not currently supported")
   }.asJava
 
-  def convertMap(map: Map[SinkData, SinkData]): java.util.Map[AnyRef, AnyRef] = map.map {
-    case (data, data1) => convertToGenericRecord(data) -> convertToGenericRecord(data1)
+  def convertMap(map: Map[SinkData, SinkData]): java.util.Map[Any,Any] = map.map{
+    case (data, data1) => convert(data) -> convert(data1)
   }.asJava
+
+  def convert(data: SinkData): Any = data match {
+    case data: PrimitiveSinkData => data.primVal()
+    case StructSinkData(structVal) => structVal
+    case MapSinkData(map, _) => convertMap(map)
+    case ArraySinkData(array, _) => convertArray(array)
+    case ByteArraySinkData(bArray, _) => ByteBuffer.wrap(bArray)
+    case NullSinkData(_) => null
+  }
 
 }

@@ -18,7 +18,8 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import io.lenses.streamreactor.connect.aws.s3.model.{ArraySinkData, MapSinkData, StringSinkData, StructSinkData}
+import com.fasterxml.jackson.databind.node.NullNode
+import io.lenses.streamreactor.connect.aws.s3.model.{ArraySinkData, MapSinkData, NullSinkData, StringSinkData, StructSinkData}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.storage.S3ByteArrayOutputStream
 import org.apache.kafka.connect.data.SchemaBuilder
@@ -122,5 +123,23 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
     val treeLine1 = new ObjectMapper().readTree(lines(0))
     treeLine1.get("bees").textValue() should be("sting when scared")
     treeLine1.get("wasps").textValue() should be("sting for fun")
+  }
+
+  "convert" should "write maps containing nulls as null in json" in {
+
+    val outputStream = new S3ByteArrayOutputStream()
+    val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
+    jsonFormatWriter.write(None, MapSinkData(
+      Map(
+        StringSinkData("bees") -> StringSinkData("sting when scared"),
+        StringSinkData("wasps") -> NullSinkData()
+      ),
+      Some(SchemaBuilder.map(SchemaBuilder.string().build(), SchemaBuilder.string().optional().build()).build())
+    ), topic)
+
+    val lines = outputStream.toString().split(System.lineSeparator())
+    val treeLine1 = new ObjectMapper().readTree(lines(0))
+    treeLine1.get("bees").textValue() should be("sting when scared")
+    treeLine1.get("wasps") shouldBe a [NullNode]
   }
 }

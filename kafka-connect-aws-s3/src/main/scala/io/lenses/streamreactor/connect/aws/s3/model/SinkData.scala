@@ -55,3 +55,5 @@ case class MapSinkData(map: Map[SinkData, SinkData], schema: Option[Schema] = No
 case class ArraySinkData(array: Seq[SinkData], schema: Option[Schema] = None) extends SinkData
 
 case class ByteArraySinkData(array: Array[Byte], schema: Option[Schema] = None) extends SinkData
+
+case class NullSinkData(schema: Option[Schema] = None) extends SinkData
