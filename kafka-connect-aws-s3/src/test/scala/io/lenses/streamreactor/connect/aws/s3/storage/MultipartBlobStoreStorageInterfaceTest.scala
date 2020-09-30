@@ -36,7 +36,7 @@ class MultipartBlobStoreStorageInterfaceTest extends AnyFlatSpec with MockitoSug
 
   private val blobStoreContext: BlobStoreContext = mock[BlobStoreContext]
   private val blobStore: BlobStore = mock[BlobStore]
-  private val testBucketAndPath = BucketAndPath("mybucket", "mypath")
+  private val testBucketAndPath = BucketAndPath("myBucket", "myPath")
 
   when(blobStoreContext.getBlobStore).thenReturn(blobStore)
 

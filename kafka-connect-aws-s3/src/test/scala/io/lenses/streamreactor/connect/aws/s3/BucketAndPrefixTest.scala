@@ -30,7 +30,7 @@ class BucketAndPrefixTest extends AnyFlatSpec with Matchers {
   }
 
   "bucketAndPrefix" should "allow prefixes without slashes" in {
-    BucketAndPrefix("bucket", Some("noslash"))
+    BucketAndPrefix("bucket", Some("noSlash"))
   }
 
   "bucketAndPrefix" should "split a the bucket and path" in {
@@ -39,7 +39,7 @@ class BucketAndPrefixTest extends AnyFlatSpec with Matchers {
 
   "bucketAndPrefix" should "fail if given too many components to split" in {
     assertThrows[IllegalArgumentException] {
-      BucketAndPrefix("bucket:path:whatisthis")
+      BucketAndPrefix("bucket:path:whatIsThis")
     }
   }
 

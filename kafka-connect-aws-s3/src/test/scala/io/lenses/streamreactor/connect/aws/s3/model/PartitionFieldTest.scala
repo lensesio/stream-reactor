@@ -68,7 +68,7 @@ class PartitionFieldTest extends AnyFlatSpec with MockitoSugar with Matchers {
   }
 
   "partitionField.apply" should "throw exception when partition supplied with too many parts" in {
-    when(kcql.getPartitionBy).thenReturn(List("_value.extrapart.fieldA").toIterator.asJava)
+    when(kcql.getPartitionBy).thenReturn(List("_value.extraPart.fieldA").toIterator.asJava)
     val caught = intercept[IllegalArgumentException] {
       PartitionField(kcql)
     }

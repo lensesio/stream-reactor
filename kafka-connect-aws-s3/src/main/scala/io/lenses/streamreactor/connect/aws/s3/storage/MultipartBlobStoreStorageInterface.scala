@@ -17,7 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import java.io.ByteArrayInputStream
+import java.io.{ByteArrayInputStream, InputStream}
 import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
@@ -141,6 +141,14 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
     } while (nextMarker.nonEmpty)
     pageSetStrings
 
+  }
+
+  override def getBlob(bucketAndPath: BucketAndPath): InputStream = {
+    blobStore.getBlob(bucketAndPath.bucket, bucketAndPath.path).getPayload.openStream()
+  }
+
+  override def getBlobSize(bucketAndPath: BucketAndPath): Long = {
+    blobStore.getBlob(bucketAndPath.bucket, bucketAndPath.path).getMetadata.getSize
   }
 
 }

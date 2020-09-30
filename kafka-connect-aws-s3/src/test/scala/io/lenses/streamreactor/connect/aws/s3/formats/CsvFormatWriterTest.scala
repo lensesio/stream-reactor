@@ -33,7 +33,7 @@ import scala.collection.JavaConverters._
 
 class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
-  "convert" should "write byteoutputstream with csv for a single record" in {
+  "convert" should "write byte output stream with csv for a single record" in {
 
     val outputStream = new S3ByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
@@ -51,11 +51,11 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
     reader.close()
   }
 
-  "convert" should "write byteoutputstream with csv for multiple records" in {
+  "convert" should "write byte output stream with csv for multiple records" in {
 
     val outputStream = new S3ByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
-    users.foreach(
+    firstUsers.foreach(
       e =>
         formatWriter.write(
           None,
@@ -81,27 +81,27 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
   "convert" should "allow all primitive types" in {
 
     val schema: Schema = SchemaBuilder.struct()
-      .field("mystring", SchemaBuilder.string().build())
-      .field("mybool", SchemaBuilder.bool().build())
-      .field("mybytes", SchemaBuilder.bytes().build())
-      .field("myfloat32", SchemaBuilder.float32().build())
-      .field("myfloat64", SchemaBuilder.float64().build())
-      .field("myint8", SchemaBuilder.int8().build())
-      .field("myint16", SchemaBuilder.int16().build())
-      .field("myint32", SchemaBuilder.int32().build())
-      .field("myint64", SchemaBuilder.int64().build())
+      .field("myString", SchemaBuilder.string().build())
+      .field("myBool", SchemaBuilder.bool().build())
+      .field("myBytes", SchemaBuilder.bytes().build())
+      .field("myFloat32", SchemaBuilder.float32().build())
+      .field("myFloat64", SchemaBuilder.float64().build())
+      .field("myInt8", SchemaBuilder.int8().build())
+      .field("myInt16", SchemaBuilder.int16().build())
+      .field("myInt32", SchemaBuilder.int32().build())
+      .field("myInt64", SchemaBuilder.int64().build())
       .build()
 
     val struct = new Struct(schema)
-      .put("mystring", "teststring")
-      .put("mybool", true)
-      .put("mybytes", "testBytes".getBytes)
-      .put("myfloat32", 32.0.toFloat)
-      .put("myfloat64", 64.02)
-      .put("myint8", 8.asInstanceOf[Byte])
-      .put("myint16", 16.toShort)
-      .put("myint32", 32)
-      .put("myint64", 64.toLong)
+      .put("myString", "testString")
+      .put("myBool", true)
+      .put("myBytes", "testBytes".getBytes)
+      .put("myFloat32", 32.0.toFloat)
+      .put("myFloat64", 64.02)
+      .put("myInt8", 8.asInstanceOf[Byte])
+      .put("myInt16", 16.toShort)
+      .put("myInt32", 32)
+      .put("myInt64", 64.toLong)
 
 
     val outputStream = new S3ByteArrayOutputStream()
@@ -112,8 +112,8 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
     val csvReader = new CSVReader(reader)
 
-    csvReader.readNext() should be(Array("mystring", "mybool", "mybytes", "myfloat32", "myfloat64", "myint8", "myint16", "myint32", "myint64"))
-    csvReader.readNext() should be(Array("teststring", "true", "testBytes", "32.0", "64.02", "8", "16", "32", "64"))
+    csvReader.readNext() should be(Array("myString", "myBool", "myBytes", "myFloat32", "myFloat64", "myInt8", "myInt16", "myInt32", "myInt64"))
+    csvReader.readNext() should be(Array("testString", "true", "testBytes", "32.0", "64.02", "8", "16", "32", "64"))
     csvReader.readNext() should be(null)
 
     csvReader.close()
@@ -123,11 +123,11 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
   "convert" should "not allow complex array types" in {
 
     val schema: Schema = SchemaBuilder.struct()
-      .field("mystringarray", SchemaBuilder.array(STRING_SCHEMA).build())
+      .field("myStringArray", SchemaBuilder.array(STRING_SCHEMA).build())
       .build()
 
     val struct = new Struct(schema)
-      .put("mystringarray", List("cheese", "biscuits").asJava)
+      .put("myStringArray", List("cheese", "biscuits").asJava)
 
     val outputStream = new S3ByteArrayOutputStream()
     val formatWriter = new CsvFormatWriter(() => outputStream, true)
@@ -141,15 +141,15 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
 
   "convert" should "not allow complex struct types" in {
 
-    val insideSchema: Schema = SchemaBuilder.struct().field("mystringstruct", STRING_SCHEMA).build()
+    val insideSchema: Schema = SchemaBuilder.struct().field("myStringStruct", STRING_SCHEMA).build()
     val envelopingSchema: Schema = SchemaBuilder.struct()
-      .field("myenvelopingstruct", insideSchema)
+      .field("myEnvelopingStruct", insideSchema)
       .build()
 
     val struct = new Struct(envelopingSchema)
-      .put("myenvelopingstruct",
+      .put("myEnvelopingStruct",
         new Struct(insideSchema)
-          .put("mystringstruct", "mystringfieldvalue")
+          .put("myStringStruct", "myStringFieldValue")
       )
 
     val outputStream = new S3ByteArrayOutputStream()

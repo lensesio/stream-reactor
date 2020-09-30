@@ -17,7 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.model.{ArraySinkData, BucketAndPath, IntSinkData, MapSinkData, StringSinkData, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3TestConfig, S3TestPayloadReader}
 import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreOutputStream
@@ -29,7 +29,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
 
   val parquetFormatReader = new ParquetFormatReader()
 
-  "convert" should "write byteoutputstream with json for a single record" in {
+  "convert" should "write byte output stream with json for a single record" in {
     val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"), 20000)(storageInterface)
 
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
@@ -44,11 +44,11 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
 
   }
 
-  "convert" should "write byteoutputstream with json for multiple records" in {
+  "convert" should "write byte output stream with json for multiple records" in {
     val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"), 100)(storageInterface)
 
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
-    users.foreach(e => parquetFormatWriter.write(None, StructSinkData(e), topic))
+    firstUsers.foreach(e => parquetFormatWriter.write(None, StructSinkData(e), topic))
     parquetFormatWriter.close()
 
     val bytes = S3TestPayloadReader.readPayload(BucketName, "myPrefix", blobStoreContext)

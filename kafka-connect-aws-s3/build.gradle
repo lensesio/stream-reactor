@@ -23,7 +23,7 @@ project(":kafka-connect-aws-s3") {
         catsVersion = "1.2.0"
         parquetVersion = "1.11.0"
         hadoopVersion = "2.10.0"
-        s3ProxyVersion = "1.6.1"
+        s3ProxyVersion = "1.7.1"
         guavaVersion = "18.0"
         guiceVersion = "3.0"
     }

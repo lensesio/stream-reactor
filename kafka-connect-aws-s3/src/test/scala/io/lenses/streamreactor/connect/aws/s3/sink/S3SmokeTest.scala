@@ -28,7 +28,7 @@ class S3SmokeTest extends AnyFlatSpec with Matchers with S3TestConfig {
 
   "smoke test" should "be able to write directly to s3 proxy" in {
 
-    val blob: Blob = blobStoreContext.getBlobStore.blobBuilder("testblob")
+    val blob: Blob = blobStoreContext.getBlobStore.blobBuilder("testBlob")
       .payload("<html><body>hello world2</body></html>")
       .contentType("text/html")
       .eTag(UUID.randomUUID().toString)
