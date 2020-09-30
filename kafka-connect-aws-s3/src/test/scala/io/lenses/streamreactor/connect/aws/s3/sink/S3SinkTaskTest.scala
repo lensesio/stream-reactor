@@ -996,7 +996,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     checkArray(genericRecords.head.asInstanceOf[GenericData.Array[Utf8]], "jedi", "klingons", "cylons")
   }
 
-  "S3SinkTask" should "process and map of structs avro" in {
+  "S3SinkTask" should "process a map of structs avro" in {
 
     val map = Map(
       "jedi" -> users(0),
@@ -1041,7 +1041,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
   }
 
-  "S3SinkTask" should "process and map of structs with nulls avro" in {
+  "S3SinkTask" should "process a map of structs with nulls avro" in {
 
     val map = Map(
       "jedi" -> users(0),
@@ -1077,9 +1077,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(topicPartitionsToManage)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/mytopic/0/")).size() should be(1)
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/0/")).size() should be(1)
 
-    val bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/mytopic/0/0.avro", blobStoreContext)
+    val bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/0/0.avro", blobStoreContext)
 
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)
@@ -1091,7 +1091,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
   }
 
-  "S3SinkTask" should "process and map of structs with nulls json" in {
+  "S3SinkTask" should "process a map of structs with nulls json" in {
 
     val keySchema = Schema.STRING_SCHEMA
     val valSchema = SchemaBuilder.struct()
@@ -1133,9 +1133,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(topicPartitionsToManage)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/mytopic/0/")).size() should be(1)
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/0/")).size() should be(1)
 
-    readFileToString(BucketName, "streamReactorBackups/mytopic/0/0.json", blobStoreContext) should be("""{"jedi":{"name":"sam","title":"mr","salary":100.43},"cylons":null}""")
+    readFileToString(BucketName, "streamReactorBackups/myTopic/0/0.json", blobStoreContext) should be("""{"jedi":{"name":"sam","title":"mr","salary":100.43},"cylons":null}""")
 
   }
 
