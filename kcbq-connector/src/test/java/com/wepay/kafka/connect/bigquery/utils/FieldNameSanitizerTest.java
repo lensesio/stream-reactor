@@ -1,5 +1,6 @@
 package com.wepay.kafka.connect.bigquery.utils;
 
+import java.util.Collections;
 import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
@@ -74,5 +75,27 @@ public class FieldNameSanitizerTest {
 
     // Validate map size.
     assertEquals(5, sanitizedMap.size());
+  }
+
+  /**
+   * Verifies that null values are acceptable while sanitizing keys.
+   */
+  @Test
+  public void testNullValue() {
+    assertEquals(
+        Collections.singletonMap("abc", null),
+        FieldNameSanitizer.replaceInvalidKeys(Collections.singletonMap("abc", null)));
+  }
+
+  @Test
+  public void testDeeplyNestedNullValues() {
+    testMap = new HashMap<>();
+    testMap.put("top", null);
+    testMap.put("middle", Collections.singletonMap("key", null));
+    testMap.put("bottom", Collections.singletonMap("key", Collections.singletonMap("key", null)));
+    assertEquals(
+        testMap,
+        FieldNameSanitizer.replaceInvalidKeys(testMap)
+    );
   }
 }
