@@ -131,15 +131,7 @@ adjusting flags given to the Avro Console Producer and tweaking the config setti
 
 ## Integration Testing the Connector
 
-There is a legacy Docker-based integration test for the connector, and newer integration tests that
-programmatically instantiate an embedded Connect cluster.
-
-### Embedded integration tests
-
-Currently these tests only verify the connector's upsert/delete feature. They should eventually
-replace all of the existing Docker-based tests.
-
-#### Configuring the tests
+### Configuring the tests
 
 You must supply the following environment variables in order to run the tests:
 
@@ -147,37 +139,33 @@ You must supply the following environment variables in order to run the tests:
 - `$KCBQ_TEST_DATASET`: The name of the BigQuery dataset to use for the test
 - `$KCBQ_TEST_KEYFILE`: The key (either file or raw contents) used to authenticate with BigQuery
 during the test
+- `$KCBQ_TEST_BUCKET`: The name of the GCS bucket to use (for testing the GCS batch loading feature)
 
-Additionally, the `$KCBQ_TEST_KEYSOURCE` variable can be supplied to specify whether the value of
-`$KCBQ_TEST_KEYFILE` are a path to a key file (if set to `FILE`) or the raw contents of a key file
+Optionally, the `$KCBQ_TEST_KEYSOURCE` variable can be supplied to specify whether the value of
+`$KCBQ_TEST_KEYFILE` is a path to a key file (if set to `FILE`) or the raw contents of a key file
 (if set to `JSON`). The default is `FILE`.
 
-#### Running the Integration Tests
+The `$KCBQ_TEST_FOLDER` variable can be supplied to specify which subfolder of the GCS bucket should
+be used when testing the GCS batch loading feature; if not supplied, the top-level folder will be
+used.
+
+### Running the Integration Tests
 
 ```bash
-mvn failsafe:integration-test@embedded-integration-test
+# (Re)builds the project and runs the integration tests, skipping unit tests to save a bit of time
+mvn clean package failsafe:integration-test@embedded-integration-test -Dskip.unit.tests=true
 ```
 
-### Docker-based tests
+### How Integration Testing Works
 
-> **NOTE**: You must have [Docker] installed and running on your machine in order to run integration
-tests for the connector.
-
-This all takes place in the `kcbq-connector` directory.
-
-#### How Integration Testing Works
-
-Integration tests run by creating [Docker] instances for [Zookeeper], [Kafka], [Schema Registry], 
+Integration tests run by creating embedded instances for [Zookeeper], [Kafka], [Schema Registry],
 and the BigQuery Connector itself, then verifying the results using a [JUnit] test.
 
-They use schemas and data that can be found in the `test/docker/populate/test_schemas/` directory, 
-and rely on a user-provided JSON key file (like in the `quickstart` example) to access BigQuery.
+They use schemas and data that can be found in the
+`kcbq-connector/src/test/resources/integration_test_cases/` directory, and rely on a user-provided
+JSON key file (like in the `quickstart` example) to access BigQuery.
 
-The project and dataset they write to, as well as the specific JSON key file they use, can be
-specified by command-line flag, environment variable, or configuration file — the exact details of
-each can be found by running the integration test script with the `-?` flag.
-
-#### Data Corruption Concerns
+### Data Corruption Concerns
 
 In order to ensure the validity of each test, any table that will be written to in the course of
 integration testing is preemptively deleted before the connector is run. This will only be an issue
@@ -185,70 +173,49 @@ if you have any tables in your dataset whose names begin with `kcbq_test_` and m
 name of any of the `test_schema` subdirectories. If that is the case, you should probably consider
 writing to a different project/dataset.
 
-Because Kafka and Schema Registry are run in Docker, there is no risk that running integration 
-tests will corrupt any existing data that is already on your machine, and there is also no need to 
-free up any of your ports that might currently be in use by real instances of the programs that are 
-faked in the process of testing.
+Kafka, Schema Registry, Zookeeper, and Kafka Connect are all run as temporary embedded instances, so
+there is no risk that running integration tests will corrupt any existing data that is already on
+your machine, and there is also no need to free up any of your ports that might currently be in use
+by instances of the services that are brought up in the process of testing.
 
-#### Running the Integration Tests
-
-Running the series of integration tests is easy:
-
-```bash
-$ test/integrationtest.sh
-```
-
-This assumes that the project, dataset, and key file have been specified by variable or 
-configuration file. For more information on how to specify these, run the test script with
-the `--help` flag.
-
-> **NOTE:** You must have a recent version of [boot2docker], [Docker Machine], [Docker], etc.
-installed. Older versions will hang when cleaning containers, and linking doesn't work properly.
-
-#### Adding New Integration Tests
+### Adding New Integration Tests
 
 Adding an integration test is a little more involved, and consists of two major steps: specifying
-Avro data to be sent to Kafka, and specifying via JUnit test how to verify that such data made 
+Avro data to be sent to Kafka, and specifying via JUnit test how to verify that such data made
 it to BigQuery as expected.
 
-To specify input data, you must create a new directory in the `test/resources/test_schemas/`
-directory with whatever name you want the Kafka topic of your test to be named, and whatever 
-string you want the name of your test's BigQuery table to be derived from. Then, create two files 
-in that directory:
+To specify input data, you must create a new directory in the
+`kcbq-connector/src/test/resources/integration_test_cases/` directory with whatever name you want
+the Kafka topic of your test to be named, and whatever string you want the name of your test's
+BigQuery table to be derived from. Then, create two files in that directory:
 
 * `schema.json` will contain the Avro schema of the type of data the new test will send
 through the connector.
 
-* `data.json` will contain a series of JSON objects, each of which should represent an [Avro] record 
-that matches the specified schema. **Each JSON object must occupy its own line, and each object 
-cannot occupy more than one line** (this inconvenience is due to limitations in the Avro 
+* `data.json` will contain a series of JSON objects, each of which should represent an [Avro] record
+that matches the specified schema. **Each JSON object must occupy its own line, and each object
+cannot occupy more than one line** (this inconvenience is due to limitations in the Avro
 Console Producer, and may be addressed in future commits).
 
-To specify data verification, add a new JUnit test to the file 
-`src/test/java/com/wepay/kafka/connect/bigquery/it/BigQueryConnectorIntegrationTest.java`.
-Rows that are retrieved from BigQuery in the test are only returned as _Lists_ of _Objects_. The 
-names of their columns are not tracked. Construct a _List_ of the _Objects_ that you expect to be 
-stored in the test's BigQuery table, retrieve the actual _List_ of _Objects_ stored via a call to 
-`readAllRows()`, and then compare the two via a call to `testRows()`.
+To specify data verification, add to the test cases present in the
+`kcbq-connector/src/test/java/com/wepay/kafka/connect/bigquery/integration/BigQuerySinkConnectorIT.java`
 
 > **NOTE**: Because the order of rows is not guaranteed when reading test results from BigQuery, 
-you must include a row number as the first field of any of your test schemas, and every row of test 
-data must have a unique value for its row number (row numbers are one-indexed).
+you must include a numeric column named "row" number in all of your test schemas, and every row of
+test data must have a unique value for its row number. When data is read back from BigQuery to
+verify its accuracy, it will be returned in ascending order based on that "row" column.
 
   [Apache Avro]: https://avro.apache.org
-  [Apache Kafka Connect]: http://docs.confluent.io/3.0.0/connect/
+  [Apache Kafka Connect]: http://docs.confluent.io/current/connect/
   [Apache Kafka]: http://kafka.apache.org
   [Apache Maven]: https://maven.apache.org
   [Avro]: https://avro.apache.org
   [BigQuery]: https://cloud.google.com/bigquery/
-  [boot2docker]: http://boot2docker.io
-  [Confluent Platform]: http://docs.confluent.io/3.0.0/installation.html
+  [Confluent Platform]: http://docs.confluent.io/current/installation.html
   [Connector Configuration Wiki]: https://github.com/wepay/kafka-connect-bigquery/wiki/Connector-Configuration
-  [Docker Machine]: https://docs.docker.com/machine/
-  [Docker]: https://www.docker.com
   [Google BigQuery]: https://cloud.google.com/bigquery/
   [JUnit]: http://junit.org
-  [Kafka Connect]: http://docs.confluent.io/3.0.0/connect/
+  [Kafka Connect]: http://docs.confluent.io/current/connect/
   [Kafka]: http://kafka.apache.org
   [Maven]: https://maven.apache.org
   [Schema Registry]: https://github.com/confluentinc/schema-registry

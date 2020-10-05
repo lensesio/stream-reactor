@@ -104,7 +104,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
 
   public static final String GCS_FOLDER_NAME_CONFIG =                     "gcsFolderName";
   private static final ConfigDef.Type GCS_FOLDER_NAME_TYPE =              ConfigDef.Type.STRING;
-  private static final Object GCS_FOLDER_NAME_DEFAULT =                   "";
+  public static final String GCS_FOLDER_NAME_DEFAULT =                   "";
   private static final ConfigDef.Importance GCS_FOLDER_NAME_IMPORTANCE =  ConfigDef.Importance.MEDIUM;
   private static final String GCS_FOLDER_NAME_DOC =
           "The name of the folder under the bucket in which gcs blobs used to batch load to BigQuery "

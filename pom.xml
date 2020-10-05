@@ -225,6 +225,28 @@
                 <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-schema-registry</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-schema-registry</artifactId>
+                <version>${confluent.version}</version>
+                <classifier>tests</classifier>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-connect-avro-converter</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-avro-serializer</artifactId>
+                <version>${confluent.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -258,7 +280,6 @@
                     <version>${surefire.plugin.version}</version>
                     <configuration>
                         <excludes>
-                            <exclude>**/*IntegrationTest.java</exclude>
                             <exclude>**/*IT.java</exclude>
                         </excludes>
                         <skip>${skip.unit.tests}</skip>
@@ -269,17 +290,6 @@
                     <artifactId>maven-failsafe-plugin</artifactId>
                     <version>${surefire.plugin.version}</version>
                     <executions>
-                        <execution>
-                            <id>verify-docker-test</id>
-                            <goals>
-                                <goal>integration-test</goal>
-                            </goals>
-                            <configuration>
-                                <includes>
-                                    <include>**/*IntegrationTest.java</include>
-                                </includes>
-                            </configuration>
-                        </execution>
                         <execution>
                             <id>embedded-integration-test</id>
                             <goals>
@@ -366,6 +376,17 @@
                             <artifactId>maven-checkstyle-plugin</artifactId>
                             <configuration>
                                 <skip>true</skip>
+                            </configuration>
+                        </plugin>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-failsafe-plugin</artifactId>
+                            <configuration>
+                                <environmentVariables>
+                                    <KCBQ_TEST_PROJECT>connect-205118</KCBQ_TEST_PROJECT>
+                                    <KCBQ_TEST_DATASET>jenkinsKcbqIntegrationTesting</KCBQ_TEST_DATASET>
+                                    <KCBQ_TEST_BUCKET>jenkins-kcbq-integration-testing</KCBQ_TEST_BUCKET>
+                                </environmentVariables>
                             </configuration>
                         </plugin>
                     </plugins>

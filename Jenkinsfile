@@ -4,4 +4,7 @@ common {
   nodeLabel = 'docker-oraclejdk8'
   publish = false
   downStreamValidate = false
+  secret_file_list = [
+          ['gcp/kcbq', 'creds',   '/tmp/creds.json', 'KCBQ_TEST_KEYFILE']
+  ]
 }

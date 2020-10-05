@@ -348,7 +348,8 @@ public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
     waitForConnectorToStart(CONNECTOR_NAME, tasksMax);
 
     // wait for tasks to write to BigQuery and commit offsets for their records
-    waitForCommittedRecords(CONNECTOR_NAME, topic, numRecords, tasksMax, TimeUnit.MINUTES.toMillis(10));
+    waitForCommittedRecords(
+        CONNECTOR_NAME, Collections.singleton(topic), numRecords, tasksMax, TimeUnit.MINUTES.toMillis(10));
     long time = System.currentTimeMillis() - start;
     logger.info("All records have been read and committed by the connector; "
         + "total time from start to finish: {} seconds", time / 1000.0);

@@ -1,4 +1,4 @@
-package com.wepay.kafka.connect.bigquery.it.utils;
+package com.wepay.kafka.connect.bigquery.integration.utils;
 
 /*
  * Copyright 2016 WePay, Inc.
@@ -20,7 +20,6 @@ package com.wepay.kafka.connect.bigquery.it.utils;
 
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Bucket;
-
 import com.google.cloud.storage.Storage;
 import com.wepay.kafka.connect.bigquery.GCSBuilder;
 import org.slf4j.Logger;
@@ -29,37 +28,28 @@ import org.slf4j.LoggerFactory;
 public class BucketClearer {
 
   private static final Logger logger = LoggerFactory.getLogger(BucketClearer.class);
-  private static String keySource;
 
   /**
-   * Clears tables in the given project and dataset, using a provided JSON service account key.
+   * Clear out a GCS bucket. Useful in integration testing to provide a clean slate before creating
+   * a connector and writing to that bucket.
+   * @param key The GCP credentials to use (can be a filename or a raw JSON string).
+   * @param project The GCP project the bucket belongs to.
+   * @param bucketName The bucket to clear.
+   * @param keySource The key source. If "FILE", then the {@code key} parameter will be treated as a
+   *                  filename; if "JSON", then {@code key} will be treated as a raw JSON string.
    */
-  public static void main(String[] args) {
-    if (args.length < 3 || args.length > 4) {
-      usage();
-    } else if (args.length == 3) {
-      keySource = "FILE";
-    } else {
-      keySource = args[3];
-    }
-    Storage gcs = new GCSBuilder(args[1]).setKey(args[0]).setKeySource(keySource).build();
-
-    String bucketName = args[2];
+  public static void clearBucket(String key, String project, String bucketName, String keySource) {
+    Storage gcs = new GCSBuilder(project).setKey(key).setKeySource(keySource).build();
     Bucket bucket = gcs.get(bucketName);
     if (bucket != null) {
       logger.info("Deleting objects in the Bucket {}", bucketName);
       for (Blob blob : bucket.list().iterateAll()) {
         gcs.delete(blob.getBlobId());
       }
+      bucket.delete();
+      logger.info("Bucket {} deleted successfully", bucketName);
     } else {
       logger.info("Bucket {} does not exist", bucketName);
     }
-  }
-
-  private static void usage() {
-    System.err.println(
-        "usage: BucketClearer <key_file> <project_name> <bucket_name> [<key_source>]"
-    );
-    System.exit(1);
   }
 }
