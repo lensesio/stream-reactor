@@ -22,6 +22,8 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +79,8 @@ public abstract class BaseConnectorIT {
   private static final String PROJECT_ENV_VAR = "KCBQ_TEST_PROJECT";
   private static final String DATASET_ENV_VAR = "KCBQ_TEST_DATASET";
   private static final String KEYSOURCE_ENV_VAR = "KCBQ_TEST_KEYSOURCE";
+  private static final String GCS_BUCKET_ENV_VAR = "KCBQ_TEST_BUCKET";
+  private static final String GCS_FOLDER_ENV_VAR = "KCBQ_TEST_FOLDER";
 
   protected static final long OFFSET_COMMIT_INTERVAL_MS = TimeUnit.SECONDS.toMillis(10);
   protected static final long COMMIT_MAX_DURATION_MS = TimeUnit.MINUTES.toMillis(5);
@@ -151,14 +155,15 @@ public abstract class BaseConnectorIT {
   protected void waitForCommittedRecords(
       String connector, String topic, long numRecords, int numTasks
   ) throws InterruptedException {
-    waitForCommittedRecords(connector, topic, numRecords, numTasks, COMMIT_MAX_DURATION_MS);
+    waitForCommittedRecords(connector, Collections.singleton(topic), numRecords, numTasks, COMMIT_MAX_DURATION_MS);
   }
 
   protected void waitForCommittedRecords(
-      String connector, String topic, long numRecords, int numTasks, long timeoutMs) throws InterruptedException {
+      String connector, Collection<String> topics, long numRecords, int numTasks, long timeoutMs
+  ) throws InterruptedException {
     waitForCondition(
         () -> {
-          long totalCommittedRecords = totalCommittedRecords(connector, topic);
+          long totalCommittedRecords = totalCommittedRecords(connector, topics);
           if (totalCommittedRecords >= numRecords) {
             return true;
           } else {
@@ -170,8 +175,8 @@ public abstract class BaseConnectorIT {
             } catch (AssertionError e) {
               throw new NoRetryException(e);
             }
-            logger.debug("Connector has only committed {} records for topic {} so far; {} expected",
-                totalCommittedRecords, topic, numRecords);
+            logger.debug("Connector has only committed {} records for topics {} so far; {} expected",
+                totalCommittedRecords, topics, numRecords);
             // Sleep here so as not to spam Kafka with list-offsets requests
             Thread.sleep(OFFSET_COMMIT_INTERVAL_MS / 2);
             return false;
@@ -181,7 +186,7 @@ public abstract class BaseConnectorIT {
         "Either the connector failed, or the message commit duration expired without all expected messages committed");
   }
 
-  protected synchronized long totalCommittedRecords(String connector, String topic) throws TimeoutException, ExecutionException, InterruptedException {
+  protected synchronized long totalCommittedRecords(String connector, Collection<String> topics) throws TimeoutException, ExecutionException, InterruptedException {
     // See https://github.com/apache/kafka/blob/f7c38d83c727310f4b0678886ba410ae2fae9379/connect/runtime/src/main/java/org/apache/kafka/connect/util/SinkUtils.java
     // for how the consumer group ID is constructed for sink connectors
     Map<TopicPartition, OffsetAndMetadata> offsets = kafkaAdminClient
@@ -192,7 +197,7 @@ public abstract class BaseConnectorIT {
     logger.trace("Connector {} has so far committed offsets {}", connector, offsets);
 
     return offsets.entrySet().stream()
-        .filter(entry -> topic.equals(entry.getKey().topic()))
+        .filter(entry -> topics.contains(entry.getKey().topic()))
         .mapToLong(entry -> entry.getValue().offset())
         .sum();
   }
@@ -222,7 +227,7 @@ public abstract class BaseConnectorIT {
         .collect(Collectors.toList());
   }
 
-  private static List<Byte> boxByteArray(byte[] bytes) {
+  protected static List<Byte> boxByteArray(byte[] bytes) {
     Byte[] result = new Byte[bytes.length];
     for (int i = 0; i < bytes.length; i++) {
       result[i] = bytes[i];
@@ -320,7 +325,7 @@ public abstract class BaseConnectorIT {
                        && info.tasks().stream().allMatch(s -> s.state().equals(AbstractStatus.State.RUNNING.toString()));
       return Optional.of(result);
     } catch (Exception e) {
-      logger.error("Could not check connector state info.", e);
+      logger.debug("Could not check connector state info.", e);
       return Optional.empty();
     }
   }
@@ -353,5 +358,13 @@ public abstract class BaseConnectorIT {
 
   protected String keySource() {
     return readEnvVar(KEYSOURCE_ENV_VAR, BigQuerySinkConfig.KEY_SOURCE_DEFAULT);
+  }
+
+  protected String gcsBucket() {
+    return readEnvVar(GCS_BUCKET_ENV_VAR);
+  }
+
+  protected String gcsFolder() {
+    return readEnvVar(GCS_FOLDER_ENV_VAR, BigQuerySinkConfig.GCS_FOLDER_NAME_DEFAULT);
   }
 }
