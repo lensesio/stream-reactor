@@ -1,7 +1,7 @@
-package com.wepay.kafka.connect.bigquery.utils;
-
 /*
- * Copyright 2016 WePay, Inc.
+ * Copyright 2020 Confluent, Inc.
+ *
+ * This software contains code derived from the WePay BigQuery Kafka Connector, Copyright WePay, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package com.wepay.kafka.connect.bigquery.utils;
  * under the License.
  */
 
+package com.wepay.kafka.connect.bigquery.utils;
 
 import com.google.cloud.bigquery.TableId;
 
