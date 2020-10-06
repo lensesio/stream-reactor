@@ -1,7 +1,7 @@
-package com.wepay.kafka.connect.bigquery.retrieve;
-
 /*
- * Copyright 2016 WePay, Inc.
+ * Copyright 2020 Confluent, Inc.
+ *
+ * This software contains code derived from the WePay BigQuery Kafka Connector, Copyright WePay, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@ package com.wepay.kafka.connect.bigquery.retrieve;
  * specific language governing permissions and limitations
  * under the License.
  */
+
+package com.wepay.kafka.connect.bigquery.retrieve;
 
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import org.apache.kafka.connect.data.Schema;
