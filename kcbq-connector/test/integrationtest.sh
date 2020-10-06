@@ -1,5 +1,8 @@
 #! /usr/bin/env bash
-# Copyright 2016 WePay, Inc.
+#
+# Copyright 2020 Confluent, Inc.
+#
+# This software contains code derived from the WePay BigQuery Kafka Connector, Copyright WePay, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +16,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+#
 
 ####################################################################################################
 # Basic script setup

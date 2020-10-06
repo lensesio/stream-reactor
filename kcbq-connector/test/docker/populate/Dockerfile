@@ -1,4 +1,7 @@
-# Copyright 2016 WePay, Inc.
+#
+# Copyright 2020 Confluent, Inc.
+#
+# This software contains code derived from the WePay BigQuery Kafka Connector, Copyright WePay, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,14 +16,6 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-# Populates Kafka and Schema Registry with test data
-# Expects links to "kafka" and "schema-registry" containers.
-#
-# Usage:
-#   docker build -t kcbq/populate populate
-#   docker run --name kcbq_test_populate \
-#              --link kcbq_test_kafka:kafka --link kcbq_test_schema-registry:schema-registry \
-#              kcbq/populate
 
 FROM confluent/platform:3.0.0
 
