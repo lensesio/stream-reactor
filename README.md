@@ -153,7 +153,7 @@ used.
 
 ```bash
 # (Re)builds the project and runs the integration tests, skipping unit tests to save a bit of time
-mvn clean package failsafe:integration-test@embedded-integration-test -Dskip.unit.tests=true
+mvn clean package integration-test -Dskip.unit.tests=true
 ```
 
 ### How Integration Testing Works

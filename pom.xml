@@ -47,6 +47,7 @@
         <junit.version>4.12</junit.version>
         <mockito.version>3.2.4</mockito.version>
 
+        <buildnumber.plugin.version>1.4</buildnumber.plugin.version>
         <checkstyle.plugin.version>2.15</checkstyle.plugin.version>
         <checkstyle.version>6.18</checkstyle.version>
         <compiler.plugin.version>3.8.1</compiler.plugin.version>
@@ -329,9 +330,7 @@ under the License.
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${surefire.plugin.version}</version>
                     <configuration>
-                        <excludes>
-                            <exclude>**/*IT.java</exclude>
-                        </excludes>
+                        <excludedGroups>org.apache.kafka.test.IntegrationTest</excludedGroups>
                         <skip>${skip.unit.tests}</skip>
                     </configuration>
                 </plugin>
@@ -346,9 +345,7 @@ under the License.
                                 <goal>integration-test</goal>
                             </goals>
                             <configuration>
-                                <includes>
-                                    <include>**/*IT.java</include>
-                                </includes>
+                                <groups>org.apache.kafka.test.IntegrationTest</groups>
                             </configuration>
                         </execution>
                     </executions>
@@ -419,6 +416,22 @@ under the License.
         <profile>
             <id>jenkins</id>
             <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>buildnumber-maven-plugin</artifactId>
+                        <version>${buildnumber.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>generate-test-suffix</id>
+                                <goals>
+                                    <goal>create</goal>
+                                </goals>
+                                <phase>pre-integration-test</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
                 <pluginManagement>
                     <plugins>
                         <plugin>
@@ -436,6 +449,8 @@ under the License.
                                     <KCBQ_TEST_PROJECT>connect-205118</KCBQ_TEST_PROJECT>
                                     <KCBQ_TEST_DATASET>jenkinsKcbqIntegrationTesting</KCBQ_TEST_DATASET>
                                     <KCBQ_TEST_BUCKET>jenkins-kcbq-integration-testing</KCBQ_TEST_BUCKET>
+                                    <KCBQ_TEST_TABLE_SUFFIX>-${scmBranch}-${buildNumber}-${timestamp}</KCBQ_TEST_TABLE_SUFFIX>
+                                    <KCBQ_TEST_FOLDER>${scmBranch}-${buildNumber}-${timestamp}</KCBQ_TEST_FOLDER>
                                 </environmentVariables>
                             </configuration>
                         </plugin>
