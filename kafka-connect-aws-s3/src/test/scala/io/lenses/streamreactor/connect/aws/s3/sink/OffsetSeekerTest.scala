@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPrefix, Offset, Topic, TopicPartitionOffset}
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, Offset, Topic, TopicPartitionOffset}
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
@@ -32,43 +32,43 @@ class OffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   private implicit val storageInterface: StorageInterface = mock[StorageInterface]
 
-  private val bucketAndPrefix = BucketAndPrefix("myBucket", Some("path"))
+  private val bucketAndPath = BucketAndPath("myBucket", "path/myTopic/0")
 
   "seek" should "return empty set when path does not exist" in {
 
-    when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(false)
+    when(storageInterface.pathExists(bucketAndPath)).thenReturn(false)
 
-    offsetSeeker.seek(bucketAndPrefix) should be(Set())
+    offsetSeeker.seek(bucketAndPath) should be(Set())
   }
 
   "seek" should "return expected offsets for 1 filename" in {
 
-    when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
-    when(storageInterface.list(bucketAndPrefix)).thenReturn(List("path/myTopic/0/100.json"))
+    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
+    when(storageInterface.list(bucketAndPath)).thenReturn(List("path/myTopic/0/100.json"))
 
-    offsetSeeker.seek(bucketAndPrefix) should be(Set(TopicPartitionOffset(Topic("myTopic"), 0, Offset(100))))
+    offsetSeeker.seek(bucketAndPath) should be(Set(TopicPartitionOffset(Topic("myTopic"), 0, Offset(100))))
   }
 
   "seek" should "return highest offset for multiple offsets of the same file" in {
 
-    when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
-    when(storageInterface.list(bucketAndPrefix)).thenReturn(
+    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
+    when(storageInterface.list(bucketAndPath)).thenReturn(
       List("path/myTopic/0/100.json", "path/myTopic/0/200.json", "path/myTopic/0/300.json")
     )
 
-    offsetSeeker.seek(bucketAndPrefix) should be(Set(TopicPartitionOffset(Topic("myTopic"), 0, Offset(300))))
+    offsetSeeker.seek(bucketAndPath) should be(Set(TopicPartitionOffset(Topic("myTopic"), 0, Offset(300))))
   }
 
 
   "seek" should "return highest offset for multiple offsets of different files" in {
 
-    when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
-    when(storageInterface.list(bucketAndPrefix)).thenReturn(
+    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
+    when(storageInterface.list(bucketAndPath)).thenReturn(
       List("path/myTopic/0/100.json", "path/myTopic/0/200.json", "path/myTopic/0/300.json",
         "path/notMyTopic/0/300.json", "path/notMyTopic/0/200.json", "path/notMyTopic/0/100.json")
     )
 
-    offsetSeeker.seek(bucketAndPrefix) should be(
+    offsetSeeker.seek(bucketAndPath) should be(
       Set(
         TopicPartitionOffset(Topic("myTopic"), 0, Offset(300)),
         TopicPartitionOffset(Topic("notMyTopic"), 0, Offset(300)),
@@ -78,15 +78,15 @@ class OffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   "seek" should "ignore other file extensions" in {
 
-    when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
-    when(storageInterface.list(bucketAndPrefix)).thenReturn(
+    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
+    when(storageInterface.list(bucketAndPath)).thenReturn(
       List(
         "path/myTopic/0/100.avro", "path/myTopic/0/200.avro", "path/myTopic/0/300.avro",
         "path/myTopic/0/100.json", "path/myTopic/0/200.json"
       )
     )
 
-    offsetSeeker.seek(bucketAndPrefix) should be(
+    offsetSeeker.seek(bucketAndPath) should be(
       Set(
         TopicPartitionOffset(Topic("myTopic"), 0, Offset(200))
       )
@@ -95,15 +95,15 @@ class OffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   "seek" should "ignore unknown file extensions" in {
 
-    when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
-    when(storageInterface.list(bucketAndPrefix)).thenReturn(
+    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
+    when(storageInterface.list(bucketAndPath)).thenReturn(
       List(
         "path/myTopic/0/100.doc", "path/myTopic/0/200.xls", "path/myTopic/0/300.ppt",
         "path/myTopic/0/100.json", "path/myTopic/0/200.json"
       )
     )
 
-    offsetSeeker.seek(bucketAndPrefix) should be(
+    offsetSeeker.seek(bucketAndPath) should be(
       Set(
         TopicPartitionOffset(Topic("myTopic"), 0, Offset(200))
       )
@@ -113,38 +113,19 @@ class OffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   "seek" should "ignore files with no extensions" in {
 
-    when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
-    when(storageInterface.list(bucketAndPrefix)).thenReturn(
+    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
+    when(storageInterface.list(bucketAndPath)).thenReturn(
       List(
         "path/myTopic/0/100", "path/myTopic/0/200", "path/myTopic/0/300",
         "path/myTopic/0/100.json", "path/myTopic/0/200.json"
       )
     )
 
-    offsetSeeker.seek(bucketAndPrefix) should be(
+    offsetSeeker.seek(bucketAndPath) should be(
       Set(
         TopicPartitionOffset(Topic("myTopic"), 0, Offset(200))
       )
     )
   }
 
-  "seek" should "return offsets for multiple partitions" in {
-
-    when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
-    when(storageInterface.list(bucketAndPrefix)).thenReturn(
-      List(
-        "path/myTopic/0/100.json", "path/myTopic/0/200.json", "path/myTopic/0/300.json",
-        "path/myTopic/1/100.json", "path/myTopic/1/200.json",
-        "path/myTopic/2/100.json"
-      )
-    )
-
-    offsetSeeker.seek(bucketAndPrefix) should be(
-      Set(
-        TopicPartitionOffset(Topic("myTopic"), 0, Offset(300)),
-        TopicPartitionOffset(Topic("myTopic"), 1, Offset(200)),
-        TopicPartitionOffset(Topic("myTopic"), 2, Offset(100))
-      )
-    )
-  }
 }
