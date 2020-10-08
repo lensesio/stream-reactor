@@ -235,6 +235,7 @@
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-schema-registry</artifactId>
                 <version>${confluent.version}</version>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>io.confluent</groupId>
@@ -242,16 +243,19 @@
                 <version>${confluent.version}</version>
                 <classifier>tests</classifier>
                 <type>test-jar</type>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-avro-converter</artifactId>
                 <version>${confluent.version}</version>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-avro-serializer</artifactId>
                 <version>${confluent.version}</version>
+                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
