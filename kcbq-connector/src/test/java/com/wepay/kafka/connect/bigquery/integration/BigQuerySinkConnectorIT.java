@@ -158,10 +158,6 @@ public class BigQuerySinkConnectorIT extends BaseConnectorIT {
       .map(tc -> TEST_CASE_PREFIX + tc)
       .collect(Collectors.toList());
 
-  private static final Collection<String> TEST_TABLES = TEST_TOPICS.stream()
-      .map(FieldNameSanitizer::sanitizeName)
-      .collect(Collectors.toList());
-
   private RestApp restApp;
   private String schemaRegistryUrl;
   private Producer<byte[], byte[]> valueProducer;
@@ -169,8 +165,11 @@ public class BigQuerySinkConnectorIT extends BaseConnectorIT {
 
   @Before
   public void setup() throws Exception {
-    BucketClearer.clearBucket(keyFile(), project(), gcsBucket(), keySource());
-    TableClearer.clearTables(newBigQuery(), dataset(), TEST_TABLES);
+    Collection<String> tables = TEST_TOPICS.stream()
+        .map(this::suffixedAndSanitizedTable)
+        .collect(Collectors.toSet());
+    BucketClearer.clearBucket(keyFile(), project(), gcsBucket(), gcsFolder(), keySource());
+    TableClearer.clearTables(newBigQuery(), dataset(), tables);
 
     startConnect();
     restApp = new RestApp(
@@ -271,12 +270,20 @@ public class BigQuerySinkConnectorIT extends BaseConnectorIT {
     
     result.put(BigQuerySinkConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG, "true");
     result.put(BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG, "true");
-    result.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "true");
-    result.put(BigQuerySinkConfig.ENABLE_BATCH_CONFIG, "kcbq_test_gcs-load");
+    result.put(BigQuerySinkConfig.ENABLE_BATCH_CONFIG, suffixedAndSanitizedTable("kcbq_test_gcs-load"));
     result.put(BigQuerySinkConfig.BATCH_LOAD_INTERVAL_SEC_CONFIG, "10");
     result.put(BigQuerySinkConfig.GCS_BUCKET_NAME_CONFIG, gcsBucket());
     result.put(BigQuerySinkConfig.GCS_FOLDER_NAME_CONFIG, gcsFolder());
     result.put(BigQuerySinkConfig.SCHEMA_RETRIEVER_CONFIG, IdentitySchemaRetriever.class.getName());
+
+    String suffix = tableSuffix();
+    if (!suffix.isEmpty()) {
+      String escapedSuffix = suffix.replaceAll("\\\\", "\\\\\\\\").replaceAll("\\$", "\\\\\\$");
+      result.put("transforms", "addSuffix");
+      result.put("transforms.addSuffix.type", "org.apache.kafka.connect.transforms.RegexRouter");
+      result.put("transforms.addSuffix.regex", "(.*)");
+      result.put("transforms.addSuffix.replacement", "$1" + escapedSuffix);
+    }
 
     return result;
   }
@@ -284,7 +291,8 @@ public class BigQuerySinkConnectorIT extends BaseConnectorIT {
   private void verify(String testCase, List<List<Object>> expectedRows) {
     List<List<Object>> testRows;
     try {
-      testRows = readAllRows(newBigQuery(), TEST_CASE_PREFIX + FieldNameSanitizer.sanitizeName(testCase), "row");
+      String table = suffixedAndSanitizedTable(TEST_CASE_PREFIX + FieldNameSanitizer.sanitizeName(testCase));
+      testRows = readAllRows(newBigQuery(), table, "row");
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }

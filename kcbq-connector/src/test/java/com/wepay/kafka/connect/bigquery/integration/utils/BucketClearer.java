@@ -19,6 +19,7 @@
 
 package com.wepay.kafka.connect.bigquery.integration.utils;
 
+import com.google.api.gax.paging.Page;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
@@ -36,15 +37,18 @@ public class BucketClearer {
    * @param key The GCP credentials to use (can be a filename or a raw JSON string).
    * @param project The GCP project the bucket belongs to.
    * @param bucketName The bucket to clear.
+   * @param folderName The folder to clear (can be empty or null).
    * @param keySource The key source. If "FILE", then the {@code key} parameter will be treated as a
    *                  filename; if "JSON", then {@code key} will be treated as a raw JSON string.
    */
-  public static void clearBucket(String key, String project, String bucketName, String keySource) {
+  public static void clearBucket(
+      String key, String project, String bucketName, String folderName, String keySource) {
     Storage gcs = new GCSBuilder(project).setKey(key).setKeySource(keySource).build();
     Bucket bucket = gcs.get(bucketName);
     if (bucket != null) {
-      logger.info("Deleting objects in the Bucket {}", bucketName);
-      for (Blob blob : bucket.list().iterateAll()) {
+      logger.info("Deleting objects in the {} folder for bucket {}",
+          humanReadableFolderName(folderName), bucketName);
+      for (Blob blob : listBlobs(bucket, folderName)) {
         gcs.delete(blob.getBlobId());
       }
       bucket.delete();
@@ -52,5 +56,18 @@ public class BucketClearer {
     } else {
       logger.info("Bucket {} does not exist", bucketName);
     }
+  }
+
+  private static String humanReadableFolderName(String folderName) {
+    return folderName == null || folderName.isEmpty()
+        ? "root"
+        : "'" + folderName + "'";
+  }
+
+  private static Iterable<Blob> listBlobs(Bucket bucket, String folderName) {
+    Page<Blob> blobListing = folderName == null || folderName.isEmpty()
+        ? bucket.list()
+        : bucket.list(Storage.BlobListOption.prefix(folderName));
+    return blobListing.iterateAll();
   }
 }

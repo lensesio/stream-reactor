@@ -42,14 +42,13 @@ import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.Table;
-import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableResult;
 import com.wepay.kafka.connect.bigquery.BigQueryHelper;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
+import com.wepay.kafka.connect.bigquery.utils.FieldNameSanitizer;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.connect.connector.policy.AllConnectorClientConfigOverridePolicy;
 import org.apache.kafka.connect.runtime.AbstractStatus;
 import org.apache.kafka.connect.runtime.WorkerConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -83,6 +82,7 @@ public abstract class BaseConnectorIT {
   private static final String KEYSOURCE_ENV_VAR = "KCBQ_TEST_KEYSOURCE";
   private static final String GCS_BUCKET_ENV_VAR = "KCBQ_TEST_BUCKET";
   private static final String GCS_FOLDER_ENV_VAR = "KCBQ_TEST_FOLDER";
+  private static final String TEST_NAMESPACE_ENV_VAR = "KCBQ_TEST_TABLE_SUFFIX";
 
   protected static final long OFFSET_COMMIT_INTERVAL_MS = TimeUnit.SECONDS.toMillis(10);
   protected static final long COMMIT_MAX_DURATION_MS = TimeUnit.MINUTES.toMillis(5);
@@ -138,6 +138,8 @@ public abstract class BaseConnectorIT {
     result.put(BigQuerySinkConfig.KEYFILE_CONFIG, keyFile());
     result.put(BigQuerySinkConfig.KEY_SOURCE_CONFIG, keySource());
 
+    result.put(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG, "true");
+
     return result;
   }
 
@@ -145,13 +147,6 @@ public abstract class BaseConnectorIT {
     return new BigQueryHelper()
         .setKeySource(keySource())
         .connect(project(), keyFile());
-  }
-
-  protected void clearPriorTable(BigQuery bigQuery, String table) {
-    boolean deleted = bigQuery.delete(TableId.of(dataset(), table));
-    if (deleted) {
-      logger.info("Deleted existing test table `{}`.`{}`", dataset(), table);
-    }
   }
 
   protected void waitForCommittedRecords(
@@ -332,6 +327,18 @@ public abstract class BaseConnectorIT {
     }
   }
 
+  protected String suffixedTableOrTopic(String tableOrTopic) {
+    return tableOrTopic + tableSuffix();
+  }
+
+  protected String sanitizedTable(String table) {
+    return FieldNameSanitizer.sanitizeName(table);
+  }
+
+  protected String suffixedAndSanitizedTable(String table) {
+    return sanitizedTable(suffixedTableOrTopic(table));
+  }
+
   private String readEnvVar(String var) {
     String result = System.getenv(var);
     if (result == null) {
@@ -368,5 +375,9 @@ public abstract class BaseConnectorIT {
 
   protected String gcsFolder() {
     return readEnvVar(GCS_FOLDER_ENV_VAR, BigQuerySinkConfig.GCS_FOLDER_NAME_DEFAULT);
+  }
+
+  protected String tableSuffix() {
+    return readEnvVar(TEST_NAMESPACE_ENV_VAR, "");
   }
 }

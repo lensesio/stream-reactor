@@ -21,6 +21,7 @@ package com.wepay.kafka.connect.bigquery.integration;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
+import com.wepay.kafka.connect.bigquery.integration.utils.TableClearer;
 import com.wepay.kafka.connect.bigquery.retrieve.IdentitySchemaRetriever;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.connect.data.Schema;
@@ -111,12 +112,12 @@ public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
   @Test
   public void testUpsert() throws Throwable {
     // create topic in Kafka
-    final String topic = "test-upsert";
+    final String topic = suffixedTableOrTopic("test-upsert");
     // Make sure each task gets to read from at least one partition
     connect.kafka().createTopic(topic, TASKS_MAX);
 
-    final String table = "test_upsert";
-    clearPriorTable(bigQuery, table);
+    final String table = sanitizedTable(topic);
+    TableClearer.clearTables(bigQuery, dataset(), table);
 
     // setup props for the sink connector
     Map<String, String> props = baseConnectorProps(TASKS_MAX);
@@ -166,12 +167,12 @@ public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
   @Test
   public void testDelete() throws Throwable {
     // create topic in Kafka
-    final String topic = "test-delete";
+    final String topic = suffixedTableOrTopic("test-delete");
     // Make sure each task gets to read from at least one partition
     connect.kafka().createTopic(topic, TASKS_MAX);
 
-    final String table = "test_delete";
-    clearPriorTable(bigQuery, table);
+    final String table = sanitizedTable(topic);
+    TableClearer.clearTables(bigQuery, dataset(), table);
 
     // setup props for the sink connector
     Map<String, String> props = baseConnectorProps(TASKS_MAX);
@@ -225,12 +226,12 @@ public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
   @Test
   public void testUpsertDelete() throws Throwable {
     // create topic in Kafka
-    final String topic = "test-upsert-delete";
+    final String topic = suffixedTableOrTopic("test-upsert-delete");
     // Make sure each task gets to read from at least one partition
     connect.kafka().createTopic(topic, TASKS_MAX);
 
-    final String table = "test_upsert_delete";
-    clearPriorTable(bigQuery, table);
+    final String table = sanitizedTable(topic);
+    TableClearer.clearTables(bigQuery, dataset(), table);
 
     // setup props for the sink connector
     Map<String, String> props = baseConnectorProps(TASKS_MAX);
@@ -289,11 +290,11 @@ public class UpsertDeleteBigQuerySinkConnectorIT extends BaseConnectorIT {
     final int tasksMax = 1;
 
     // create topic in Kafka
-    final String topic = "test-upsert-delete-throughput";
+    final String topic = suffixedTableOrTopic("test-upsert-delete-throughput");
     connect.kafka().createTopic(topic, numPartitions);
 
-    final String table = "test_upsert_delete_throughput";
-    clearPriorTable(bigQuery, table);
+    final String table = sanitizedTable(topic);
+    TableClearer.clearTables(bigQuery, dataset(), table);
 
     // Instantiate the converters we'll use to send records to the connector
     Converter keyConverter = converter(true);
