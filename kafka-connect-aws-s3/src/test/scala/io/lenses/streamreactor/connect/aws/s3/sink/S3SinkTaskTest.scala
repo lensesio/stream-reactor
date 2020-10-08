@@ -110,6 +110,8 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     Thread.sleep(1200) // wait for 1000 millisecond so the next call to put will cause a flush
 
     task.put(Seq().asJava)
+    task.put(records.asJava)
+
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
