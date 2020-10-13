@@ -4,7 +4,6 @@ import cats.Show
 import cats.data.NonEmptyList
 import org.apache.hadoop.fs.Path
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
-import org.apache.kafka.connect.data.Schema
 
 case class Topic(value: String) {
   require(value != null && value.trim.nonEmpty)
@@ -38,7 +37,7 @@ case class PartitionPlan(tableName: TableName, keys: NonEmptyList[PartitionKey])
 case class PartitionKey(value: String)
 
 // defines a partition key field
-case class PartitionField(name: String, schema: Schema = Schema.STRING_SCHEMA, comment: Option[String] = None) {
+case class PartitionField(name: String, comment: Option[String] = None) {
   require(name != null && name.trim.nonEmpty)
 }
 
