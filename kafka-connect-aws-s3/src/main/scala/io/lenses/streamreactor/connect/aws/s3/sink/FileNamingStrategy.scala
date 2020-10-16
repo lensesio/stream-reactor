@@ -41,6 +41,8 @@ trait S3FileNamingStrategy {
 
   def processPartitionValues(messageDetail: MessageDetail): Map[PartitionField, String]
 
+  def topicPartitionPrefix(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath
+
   val committedFilenameRegex: Regex
 }
 
@@ -61,6 +63,9 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends
   override def processPartitionValues(messageDetail: MessageDetail): Map[PartitionField, String] = throw new UnsupportedOperationException("This should never be called for this object")
 
   override val committedFilenameRegex: Regex = s".+/(.+)/(\\d+)/(\\d+).(.+)".r
+
+  override def topicPartitionPrefix(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath = BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${topicPartition.topic.value}/${topicPartition.partition}/")
+
 }
 
 class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitionSelection: PartitionSelection) extends S3FileNamingStrategy {
@@ -135,6 +140,8 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
   override def shouldProcessPartitionValues: Boolean = true
 
   override val committedFilenameRegex: Regex = s"^[^/]+?/(?:.+/)*(.+)\\((\\d+)_(\\d+)\\).(.+)".r
+
+  override def topicPartitionPrefix(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath = BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/")
 }
 
 

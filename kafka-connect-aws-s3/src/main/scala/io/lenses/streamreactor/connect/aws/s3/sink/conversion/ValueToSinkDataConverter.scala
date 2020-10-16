@@ -23,7 +23,7 @@ import org.apache.kafka.connect.data.{Schema, Struct}
 
 import scala.collection.JavaConverters._
 
-object SinkDataValueConverter {
+object ValueToSinkDataConverter {
 
   def apply(value: Any, schema: Option[Schema]): SinkData = value match {
     case boolVal: Boolean => BooleanSinkData(boolVal, schema)
@@ -39,20 +39,21 @@ object SinkDataValueConverter {
     case bytesVal: Array[Byte] => ByteArraySinkData(bytesVal, schema)
     case arrayVal: Array[_] => ArraySinkDataConverter(arrayVal, schema)
     case listVal: util.List[_] => ArraySinkDataConverter(listVal.toArray, schema)
+    case null => NullSinkData(schema)
     case otherVal => sys.error(s"Unsupported record $otherVal:${otherVal.getClass.getCanonicalName}")
   }
 }
 
 object ArraySinkDataConverter {
   def apply(array: Array[_], schema: Option[Schema]): SinkData = {
-    ArraySinkData(array.map(e => SinkDataValueConverter(e, None)), schema)
+    ArraySinkData(array.map(e => ValueToSinkDataConverter(e, None)), schema)
   }
 }
 
 object MapSinkDataConverter {
   def apply(map: Map[_, _], schema: Option[Schema]): SinkData = {
     MapSinkData(map.map {
-      case (k: String, v) => StringSinkData(k, None) -> SinkDataValueConverter(v, None)
+      case (k: String, v) => StringSinkData(k, None) -> ValueToSinkDataConverter(v, None)
       case (k, _) => sys.error(s"Non-string map values including (${k.getClass.getCanonicalName}) are not currently supported")
     }, schema)
   }

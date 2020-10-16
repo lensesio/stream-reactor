@@ -1,6 +1,7 @@
 package com.landoop.streamreactor.connect.hive.formats
 
 import com.landoop.streamreactor.connect.hive.Serde
+import com.landoop.streamreactor.connect.hive.kerberos.UgiExecute
 import com.landoop.streamreactor.connect.hive.parquet.ParquetSinkConfig
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.fs.permission.FsPermission
@@ -57,14 +58,14 @@ object ParquetHiveFormat extends HiveFormat {
     }
   }
 
-  override def reader(path: Path, startAt: Int, schema: Schema)
+  override def reader(path: Path, startAt: Int, schema: Schema, ugi:UgiExecute)
                      (implicit fs: FileSystem): HiveReader = new HiveReader {
 
     logger.debug(s"Creating parquet reader for $path with offset $startAt")
     val reader = com.landoop.streamreactor.connect.hive.parquet.parquetReader(path)
     var offset = startAt
 
-    override def iterator: Iterator[Record] = Iterator.continually(reader.read).takeWhile(_ != null).drop(startAt).map { struct =>
+    override def iterator: Iterator[Record] = Iterator.continually(ugi.execute(reader.read)).takeWhile(_ != null).drop(startAt).map { struct =>
       val record = Record(struct, path, offset)
       offset = offset + 1
       record

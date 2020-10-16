@@ -21,7 +21,7 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class SinkDataValueLookupTest extends AnyFlatSpec with Matchers {
+class FieldValueToStringConverterTest extends AnyFlatSpec with Matchers {
 
   private val emptyStructSchema: Schema = SchemaBuilder.struct()
     .field("testField", SchemaBuilder.string().build())

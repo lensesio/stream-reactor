@@ -54,5 +54,16 @@ class HiveSourceConfigTest extends AnyWordSpec with Matchers {
       val tableConfig = config.tableOptions.head
       tableConfig.limit shouldBe 200
     }
+    "populate refresh frequency" in {
+      val config = HiveSourceConfig.fromProps(Map(
+        "connect.hive.database.name" -> "mydatabase",
+        "connect.hive.metastore" -> "thrift",
+        "connect.hive.metastore.uris" -> "thrift://localhost:9083",
+        "connect.hive.fs.defaultFS" -> "hdfs://localhost:8020",
+        "connect.hive.kcql" -> "insert into mytopic select a,b from mytable",
+        "connect.hive.refresh.frequency" -> "100",
+      ))
+      config.refreshFrequency should be (100)
+    }
   }
 }

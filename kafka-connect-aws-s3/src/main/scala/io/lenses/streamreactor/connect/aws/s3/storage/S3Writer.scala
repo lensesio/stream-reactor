@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPrefix, MessageDetail, Offset, PartitionField, TopicPartition, TopicPartitionOffset}
+import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.{CommitContext, CommitPolicy, S3FileNamingStrategy}
 import org.apache.kafka.connect.data.Schema
 
@@ -43,6 +43,7 @@ case class S3WriterState(
                           offset: Offset,
                           committedOffset: Option[Offset],
                           createdTimestamp: Long = System.currentTimeMillis(),
+                          lastFlushedTimestamp: Option[Long] = None,
                           recordCount: Long = 0,
                           lastKnownFileSize: Long = 0,
                           lastKnownSchema: Option[Schema] = None
@@ -142,7 +143,8 @@ class S3WriterImpl(
     internalState = internalState.copy(
       committedOffset = Some(topicPartitionOffset.offset),
       lastKnownFileSize = 0.toLong,
-      recordCount = 0.toLong
+      recordCount = 0.toLong,
+      lastFlushedTimestamp = Some(System.currentTimeMillis())
     )
 
     formatWriter = formatWriterFn(topicPartitionOffset.toTopicPartition, partitionValues)
@@ -160,7 +162,8 @@ class S3WriterImpl(
       TopicPartitionOffset(internalState.topicPartition.topic, internalState.topicPartition.partition, internalState.offset),
       internalState.recordCount,
       internalState.lastKnownFileSize,
-      internalState.createdTimestamp
+      internalState.createdTimestamp,
+      internalState.lastFlushedTimestamp
     )
 
     commitPolicy.shouldFlush(commitContext)

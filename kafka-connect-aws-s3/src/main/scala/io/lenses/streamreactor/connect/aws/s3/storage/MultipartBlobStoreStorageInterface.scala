@@ -17,7 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import java.io.ByteArrayInputStream
+import java.io.{ByteArrayInputStream, InputStream}
 import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
@@ -112,6 +112,33 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
   override def pathExists(bucketAndPrefix: BucketAndPrefix): Boolean =
     blobStore.list(bucketAndPrefix.bucket, ListContainerOptions.Builder.prefix(bucketAndPrefix.prefix.getOrElse(""))).size() > 0
 
+  override def pathExists(bucketAndPath: BucketAndPath): Boolean =
+    blobStore.list(bucketAndPath.bucket, ListContainerOptions.Builder.prefix(bucketAndPath.path)).size() > 0
+
+  override def list(bucketAndPath: BucketAndPath): List[String] = {
+
+    val options = ListContainerOptions.Builder.recursive().prefix(bucketAndPath.path).maxResults(awsMaxKeys)
+
+    var pageSetStrings: List[String] = List()
+    var nextMarker: Option[String] = None
+    do {
+      if (nextMarker.nonEmpty) {
+        options.afterMarker(nextMarker.get)
+      }
+      val pageSet = blobStore.list(bucketAndPath.bucket, options)
+      nextMarker = Option(pageSet.getNextMarker)
+      pageSetStrings ++= pageSet
+        .asScala
+        .filter(_.getType == StorageType.BLOB)
+        .map(
+          storageMetadata => storageMetadata.getName
+        )
+        .toList
+
+    } while (nextMarker.nonEmpty)
+    pageSetStrings
+  }
+
   override def list(bucketAndPrefix: BucketAndPrefix): List[String] = {
     val options = bucketAndPrefix
       .prefix
@@ -141,6 +168,14 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
     } while (nextMarker.nonEmpty)
     pageSetStrings
 
+  }
+
+  override def getBlob(bucketAndPath: BucketAndPath): InputStream = {
+    blobStore.getBlob(bucketAndPath.bucket, bucketAndPath.path).getPayload.openStream()
+  }
+
+  override def getBlobSize(bucketAndPath: BucketAndPath): Long = {
+    blobStore.getBlob(bucketAndPath.bucket, bucketAndPath.path).getMetadata.getSize
   }
 
 }

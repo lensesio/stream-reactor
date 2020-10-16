@@ -53,7 +53,8 @@ trait CommitPolicy {
 case class CommitContext(tpo: TopicPartitionOffset,
                          count: Long,
                          fileSize: Long,
-                         createdTimestamp: Long)
+                         createdTimestamp: Long,
+                         lastFlushedTimestamp: Option[Long])
 
 /**
   * Default implementation of [[CommitPolicy]] that will flush the
@@ -71,16 +72,18 @@ case class DefaultCommitPolicy(fileSize: Option[Long],
   require(fileSize.isDefined || interval.isDefined || recordCount.isDefined)
 
   override def shouldFlush(context: CommitContext): Boolean = {
-    val open_time = System.currentTimeMillis() - context.createdTimestamp
-    val flushDueToFilesize = fileSize.exists(_ <= context.fileSize)
-    val flushDueToInterval = interval.exists(_.toMillis <= open_time)
+    val lastWriteTimestamp: Long = context.lastFlushedTimestamp.getOrElse(context.createdTimestamp)
+
+    val timeSinceLastWrite = System.currentTimeMillis() - lastWriteTimestamp
+    val flushDueToFileSize = fileSize.exists(_ <= context.fileSize)
+    val flushDueToInterval = interval.exists(_.toMillis <= timeSinceLastWrite)
     val flushDueToCount = recordCount.exists(_ <= context.count)
 
-    val flush = flushDueToFilesize ||
+    val flush = flushDueToFileSize ||
       flushDueToInterval ||
       flushDueToCount
 
-    if (flush) logger.debug(s"Flushing: Because why? size: $flushDueToFilesize, interval: $flushDueToInterval, count: $flushDueToCount, CommitContext: $context")
+    if (flush) logger.debug(s"Flushing: Because why? size: $flushDueToFileSize, interval: $flushDueToInterval, count: $flushDueToCount, CommitContext: $context")
 
     flush
   }

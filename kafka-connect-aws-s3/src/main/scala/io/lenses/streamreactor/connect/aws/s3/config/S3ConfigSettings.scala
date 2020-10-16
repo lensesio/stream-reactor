@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.config
 
 import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst.{KCQL_PROP_SUFFIX, PROGRESS_ENABLED_CONST}
 
-object S3SinkConfigSettings {
+object S3ConfigSettings {
 
   val CONNECTOR_PREFIX = "connect.s3"
 

@@ -20,7 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import java.util
 
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
-import io.lenses.streamreactor.connect.aws.s3.config.S3SinkConfigDef
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDef
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
@@ -39,7 +39,7 @@ class S3SinkConnector extends SinkConnector {
 
   override def taskClass(): Class[_ <: Task] = classOf[S3SinkTask]
 
-  override def config(): ConfigDef = S3SinkConfigDef.config
+  override def config(): ConfigDef = S3ConfigDef.config
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Creating S3 sink connector")

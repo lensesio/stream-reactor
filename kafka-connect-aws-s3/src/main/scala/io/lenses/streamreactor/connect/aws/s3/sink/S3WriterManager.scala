@@ -17,9 +17,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix, MessageDetail, Offset, PartitionField, Topic, TopicPartition, TopicPartitionOffset}
+import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreOutputStream, S3Writer, S3WriterImpl, StorageInterface}
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.errors.ConnectException
@@ -79,9 +79,11 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
 
     partitions.collect {
       case topicPartition: TopicPartition =>
+        val fileNamingStrategy = fileNamingStrategyFn(topicPartition.topic)
         val bucketAndPrefix = bucketAndPrefixFn(topicPartition.topic)
-        val seeker = new OffsetSeeker(fileNamingStrategyFn(topicPartition.topic))
-        seeker.seek(bucketAndPrefix)(storageInterface)
+        val topicPartitionPrefix = fileNamingStrategy.topicPartitionPrefix(bucketAndPrefix, topicPartition)
+        val seeker = new OffsetSeeker(fileNamingStrategy)
+        seeker.seek(topicPartitionPrefix)(storageInterface)
           .find(_.toTopicPartition == topicPartition)
         match {
           case Some(topicPartitionOffset) => Some(topicPartition, topicPartitionOffset.offset)
@@ -179,7 +181,7 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
 
 
 object S3WriterManager {
-  def from(config: S3Config)
+  def from(config: S3SinkConfig)
           (implicit storageInterface: StorageInterface): S3WriterManager = {
 
     // TODO: make this configurable

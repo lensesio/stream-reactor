@@ -25,13 +25,13 @@ import scala.collection.JavaConverters._
 class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   val PrefixName = "streamReactorBackups"
-  val TopicName = "mytopic"
+  val TopicName = "myTopic"
   val BucketName = "myBucket"
 
   val props = Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1")
 
   "apply" should "respect defined properties" in {
-    val kcql = S3SinkConfigDefBuilder(props.asJava).getKCQL
+    val kcql = S3ConfigDefBuilder(props.asJava).getKCQL
     kcql should have size 1
 
     val element = kcql.head

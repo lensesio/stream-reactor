@@ -12,6 +12,7 @@ import org.apache.kafka.connect.data.{Schema, Struct}
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
+import scala.util.Try
 
 package object hive extends StrictLogging {
 
@@ -83,8 +84,10 @@ package object hive extends StrictLogging {
     val params = new util.HashMap[String, String]()
     params.put("CREATED_BY", getClass.getPackage.getName)
 
-    val partitionKeys = partitions.map { field =>
-      new FieldSchema(field.name, HiveSchemas.toHiveType(field.schema), field.comment.orNull)
+    val partitionKeys: Seq[FieldSchema] = partitions.map { field =>
+      val schemaFieldOption = Option(schema.field(field.name))
+      val schemaField = schemaFieldOption.getOrElse(throw new IllegalArgumentException(s"No field available in schema for defined partition '${field.name}'"))
+      new FieldSchema(field.name, HiveSchemas.toHiveType(schemaField.schema()), field.comment.orNull)
     }
 
     val partitionKeyNames = partitionKeys.map(_.getName)
@@ -169,7 +172,8 @@ package object hive extends StrictLogging {
   // each struct must supply a non null value for each partition key
   def partition(struct: Struct, plan: PartitionPlan): Partition = {
     val entries = plan.keys.map { key =>
-      Option(struct.get(key.value)) match {
+      //we need to lowercase the field names because hive works with lowercase fields
+      Try(struct.get(key.value.toLowerCase)).toOption match {
         case None => sys.error(s"Partition value for $key must be defined")
         case Some(null) => sys.error(s"Partition values cannot be null [was null for $key]")
         case Some(value) => key -> value.toString

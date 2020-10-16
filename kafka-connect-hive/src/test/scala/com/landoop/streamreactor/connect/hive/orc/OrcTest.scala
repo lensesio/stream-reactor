@@ -1,9 +1,15 @@
 package com.landoop.streamreactor.connect.hive.orc
 
-import com.landoop.streamreactor.connect.hive.{OrcSinkConfig, OrcSourceConfig, StructUtils, orc}
+import com.landoop.streamreactor.connect.hive.OrcSinkConfig
+import com.landoop.streamreactor.connect.hive.OrcSourceConfig
+import com.landoop.streamreactor.connect.hive.StructUtils
+import com.landoop.streamreactor.connect.hive.orc
+import com.landoop.streamreactor.connect.hive.kerberos.UgiExecute
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FileSystem, Path}
-import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.Path
+import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -31,7 +37,7 @@ class OrcTest extends AnyFlatSpec with Matchers {
     users.foreach(sink.write)
     sink.close()
 
-    val source = orc.source(path, OrcSourceConfig())
+    val source = orc.source(path, OrcSourceConfig(), UgiExecute.NoOp)
     val actual = source.iterator.toList
     actual.head.schema shouldBe schema
     actual.map(StructUtils.extractValues) shouldBe

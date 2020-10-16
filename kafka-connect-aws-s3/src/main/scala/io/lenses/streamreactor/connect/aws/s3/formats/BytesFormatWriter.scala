@@ -17,11 +17,9 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.BytesWriteMode
-import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, BytesOutputRow, BytesWriteMode, SinkData, Topic}
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 
-import scala.collection.mutable.ListBuffer
 import scala.util.Try
 
 class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: BytesWriteMode) extends S3FormatWriter with LazyLogging {
@@ -35,7 +33,7 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
     val writeValues = bytesWriteMode.entryName.contains("Value")
     val writeSizes = bytesWriteMode.entryName.contains("Size")
 
-    var byteOutputRow = ByteOutputRow(
+    var byteOutputRow = BytesOutputRow(
       None,
       None,
       Array.empty,
@@ -62,22 +60,6 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
 
     outputStream.write(byteOutputRow.toByteArray)
     outputStream.flush()
-  }
-
-  case class ByteOutputRow(
-                            keySize: Option[Long],
-                            valueSize: Option[Long],
-                            key: Array[Byte],
-                            value: Array[Byte]
-                          ) {
-    def toByteArray: Array[Byte] = {
-      val buffer = new ListBuffer[Byte]()
-      keySize.map(keySize => buffer += keySize.byteValue())
-      valueSize.map(valueSize => buffer += valueSize.byteValue())
-      if (key.nonEmpty) buffer ++= key
-      if (value.nonEmpty) buffer ++= value
-      buffer.toArray
-    }
   }
 
   def convertToBytes(sinkData: SinkData): Array[Byte] = {

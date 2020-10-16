@@ -17,8 +17,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.config.BytesWriteMode
-import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.formats.bytes.ByteArrayUtils
+import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, BytesWriteMode, StructSinkData}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.storage.S3ByteArrayOutputStream
 import org.apache.commons.io.IOUtils
@@ -29,7 +29,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
   val bytes: Array[Byte] = getPixelBytes
   val byteArrayValue: ByteArraySinkData = ByteArraySinkData(bytes, None)
-  val pixelLengthBytes: Byte = bytes.length.byteValue()
+  val pixelLengthBytes: Array[Byte] = ByteArrayUtils.longToByteArray(bytes.length.longValue())
 
 
   "convert" should "write a string to byte stream" in {
@@ -60,7 +60,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.KeyOnly)
-    bytesFormatWriter.write(Some(byteArrayValue), ByteArraySinkData("Notused".getBytes, None), topic)
+    bytesFormatWriter.write(Some(byteArrayValue), ByteArraySinkData("notUsed".getBytes, None), topic)
 
     outputStream.toByteArray should be(bytes)
 
@@ -75,7 +75,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.KeyAndValueWithSizes)
     bytesFormatWriter.write(Some(byteArrayValue), byteArrayValue, topic)
 
-    outputStream.toByteArray should be(Array(pixelLengthBytes, pixelLengthBytes) ++ bytes ++ bytes)
+    outputStream.toByteArray should be(pixelLengthBytes ++ pixelLengthBytes ++ bytes ++ bytes)
 
     bytesFormatWriter.close()
 
@@ -86,9 +86,9 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     val outputStream = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.KeyWithSize)
 
-    bytesFormatWriter.write(Some(byteArrayValue), ByteArraySinkData("Notused".getBytes, None), topic)
+    bytesFormatWriter.write(Some(byteArrayValue), ByteArraySinkData("notUsed".getBytes, None), topic)
 
-    outputStream.toByteArray should be(Array(pixelLengthBytes) ++ bytes)
+    outputStream.toByteArray should be(pixelLengthBytes ++ bytes)
 
     bytesFormatWriter.close()
 
@@ -99,9 +99,9 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     val outputStream = new S3ByteArrayOutputStream()
     val bytesFormatWriter = new BytesFormatWriter(() => outputStream, BytesWriteMode.ValueWithSize)
-    bytesFormatWriter.write(Some(ByteArraySinkData("Notused".getBytes, None)), byteArrayValue, topic)
+    bytesFormatWriter.write(Some(ByteArraySinkData("notUsed".getBytes, None)), byteArrayValue, topic)
 
-    outputStream.toByteArray should be(Array(pixelLengthBytes) ++ bytes)
+    outputStream.toByteArray should be(pixelLengthBytes ++ bytes)
 
     bytesFormatWriter.close()
 
@@ -134,6 +134,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
   }
 
   private def getPixelBytes = {
+    //noinspection SpellCheckingInspection
     val stream = classOf[BytesFormatWriter].getResourceAsStream("/redpixel.gif")
     val bytes: Array[Byte] = IOUtils.toByteArray(stream)
     bytes
