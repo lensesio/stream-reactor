@@ -53,7 +53,7 @@ case class KeytabLogin(ugi: UserGroupInformation, interval: Duration) extends Ke
 
   private def renewKerberosTicket(): Unit = {
     try {
-      ugi.reloginFromKeytab()
+      ugi.checkTGTAndReloginFromKeytab()
     }
     catch {
       case e: IOException =>

@@ -10,6 +10,7 @@ object Kerberos {
 
   def from(config: AbstractConfig, hiveConstants: KerberosSettings): Option[Kerberos] = {
     if (config.getBoolean(hiveConstants.KerberosKey)) {
+      System.setProperty("sun.security.krb5.debug", config.getBoolean(hiveConstants.KerberosDebugKey).toString)
 
       val authMode = Try(KerberosMode.valueOf(config.getString(hiveConstants.KerberosAuthModeKey).toUpperCase()))
         .getOrElse {
