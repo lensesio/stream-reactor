@@ -7,6 +7,7 @@ import com.landoop.streamreactor.connect.hive.formats.OrcHiveFormat
 import com.landoop.streamreactor.connect.hive.sink.config.{HiveSinkConfig, TableOptions}
 import com.landoop.streamreactor.connect.hive.sink.evolution.AddEvolutionPolicy
 import com.landoop.streamreactor.connect.hive.sink.partitioning.StrictPartitionHandler
+import com.landoop.streamreactor.connect.hive.sink.staging.DefaultCommitPolicy
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.hive.metastore.api.Database
 import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
@@ -22,6 +23,11 @@ class HiveOrcSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig {
     .field("name", SchemaBuilder.string().required().build())
     .field("title", SchemaBuilder.string().optional().build())
     .field("salary", SchemaBuilder.float64().optional().build())
+    .build()
+
+  val schemaIntKey = SchemaBuilder.struct()
+    .field("department_number", SchemaBuilder.int64().required().build())
+    .field("student_name", SchemaBuilder.string().optional().build())
     .build()
 
   val dbname = "orc_sink_test"
@@ -339,4 +345,34 @@ class HiveOrcSinkTest extends AnyFlatSpec with Matchers with HiveTestConfig {
 
     client.getTable(dbname, tableName).getSd.getCols.asScala.map(_.getName) shouldBe Seq("a", "b", "x")
   }
+
+
+  "hive sink" should "write orc with int schema keys" in {
+
+    val students = List(
+      new Struct(schemaIntKey).put("department_number", 1L).put("student_name", "Andy"),
+      new Struct(schemaIntKey).put("department_number", 1L).put("student_name", "Bob"),
+      new Struct(schemaIntKey).put("department_number", 2L).put("student_name", "Charlie")
+    )
+
+    Try {
+      client.dropTable(dbname, "students", true, true)
+    }
+
+    val config = HiveSinkConfig(DatabaseName(dbname),
+      tableOptions = Set(
+        TableOptions(TableName("students"), Topic("mytopic"), true, true, format = OrcHiveFormat, partitions = Seq(PartitionField("department_number")), commitPolicy = DefaultCommitPolicy(None, None, Some(1)))
+      ),
+      kerberos = None,
+      hadoopConfiguration = HadoopConfiguration.Empty,
+    )
+
+    val sink = HiveSink.from(TableName("students"), config)
+    students.foreach(sink.write(_, TopicPartitionOffset(Topic("mytopic"), 1, Offset(1))))
+    sink.close()
+
+    // should be files in the folder now
+    fs.listFiles(new Path("hdfs://namenode:8020/user/hive/warehouse/orc_sink_test/students"), true).hasNext shouldBe true
+  }
+
 }

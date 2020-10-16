@@ -84,8 +84,10 @@ package object hive extends StrictLogging {
     val params = new util.HashMap[String, String]()
     params.put("CREATED_BY", getClass.getPackage.getName)
 
-    val partitionKeys = partitions.map { field =>
-      new FieldSchema(field.name, HiveSchemas.toHiveType(field.schema), field.comment.orNull)
+    val partitionKeys: Seq[FieldSchema] = partitions.map { field =>
+      val schemaFieldOption = Option(schema.field(field.name))
+      val schemaField = schemaFieldOption.getOrElse(throw new IllegalArgumentException(s"No field available in schema for defined partition '${field.name}'"))
+      new FieldSchema(field.name, HiveSchemas.toHiveType(schemaField.schema()), field.comment.orNull)
     }
 
     val partitionKeyNames = partitionKeys.map(_.getName)
