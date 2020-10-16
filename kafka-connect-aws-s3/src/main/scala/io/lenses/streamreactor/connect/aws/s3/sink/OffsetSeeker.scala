@@ -17,7 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPrefix, TopicPartitionOffset}
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, TopicPartitionOffset}
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
 import scala.util.control.NonFatal
@@ -31,16 +31,16 @@ import scala.util.control.NonFatal
 class OffsetSeeker(fileNamingStrategy: S3FileNamingStrategy) {
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
-  def seek(bucketAndPrefix: BucketAndPrefix)(implicit storageInterface: StorageInterface): Set[TopicPartitionOffset] = {
+  def seek(bucketAndPath: BucketAndPath)(implicit storageInterface: StorageInterface): Set[TopicPartitionOffset] = {
     try {
 
       // the path may not have been created, in which case we have no offsets defined
-      if (storageInterface.pathExists(bucketAndPrefix)) {
+      if (storageInterface.pathExists(bucketAndPath)) {
 
-        val listOfFilesInBucket = storageInterface.list(bucketAndPrefix)
+        val listOfFilesInBucketTopicPartition = storageInterface.list(bucketAndPath)
         implicit val impFileNamingStrategy: S3FileNamingStrategy = fileNamingStrategy
 
-        listOfFilesInBucket.collect {
+        listOfFilesInBucketTopicPartition.collect {
           case CommittedFileName(topic, partition, end, format)
             if format == fileNamingStrategy.getFormat =>
             TopicPartitionOffset(topic, partition, end)
@@ -54,7 +54,7 @@ class OffsetSeeker(fileNamingStrategy: S3FileNamingStrategy) {
 
     } catch {
       case NonFatal(e) =>
-        logger.error(s"Error seeking bucket/prefix $bucketAndPrefix")
+        logger.error(s"Error seeking bucket/prefix $bucketAndPath")
         throw e
     }
 

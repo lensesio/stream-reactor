@@ -41,6 +41,10 @@ trait StorageInterface {
 
   def pathExists(bucketAndPrefix: BucketAndPrefix): Boolean
 
+  def pathExists(bucketAndPath: BucketAndPath): Boolean
+
+  def list(bucketAndPrefix: BucketAndPath): List[String]
+
   def list(bucketAndPrefix: BucketAndPrefix): List[String]
 
   def getBlob(bucketAndPath: BucketAndPath): InputStream
