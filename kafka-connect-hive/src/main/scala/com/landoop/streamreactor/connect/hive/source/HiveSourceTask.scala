@@ -7,18 +7,16 @@ import java.util
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.landoop.streamreactor.connect.hive.ConfigurationBuilder
 import com.landoop.streamreactor.connect.hive.HadoopConfigurationExtension._
-import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
-import com.landoop.streamreactor.connect.hive.kerberos.UgiExecute
+import com.landoop.streamreactor.connect.hive.kerberos.{KerberosLogin, UgiExecute}
 import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
 import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfig
 import com.landoop.streamreactor.connect.hive.source.offset.{HiveSourceInitOffsetStorageReader, HiveSourceOffsetStorageReader, HiveSourceRefreshOffsetStorageReader}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{CommonConfigurationKeys, FileSystem}
+import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
-import org.apache.parquet.hadoop.ParquetFileReader
 
 import scala.collection.JavaConverters._
 import scala.util.Try
@@ -55,8 +53,6 @@ class HiveSourceTask extends SourceTask with StrictLogging with UgiExecute {
     val conf: Configuration =
       ConfigurationBuilder.buildHdfsConfiguration(config.hadoopConfiguration)
     conf.set("fs.defaultFS", configs.get(SinkConfigSettings.FsDefaultKey))
-    conf.setInt(ParquetFileReader.PARQUET_READ_PARALLELISM, 1)
-    conf.setInt(CommonConfigurationKeys.IPC_CLIENT_CONNECT_MAX_RETRIES_ON_SASL_KEY, 10)
 
     kerberosLogin = config.kerberos.map { kerberos =>
       conf.withKerberos(kerberos)
