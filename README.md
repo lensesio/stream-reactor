@@ -48,7 +48,18 @@ save the properties file.
 
 Once you get more familiar with the connector, you might want to revisit the `connector.properties`
 file and experiment with tweaking its settings.
-   
+
+#### Migrating to 2.x.x
+In accordance with the introduction of schema unionization in version 2.0.0, the following changes
+to configs have been introduced and should be made when migrating:
+1. `autoUpdateSchemas` has been removed
+2. `allowNewBigQueryFields` and `allowBigQueryRequiredFieldRelaxation` have been introduced
+3. `allowSchemaUnionization` has been introduced
+
+Setting `allowNewBigQueryFields` and `allowBigQueryRequiredFieldRelaxation` to `true` while
+setting `allowSchemaUnionization` to false results in the same behavior that setting `autoUpdateSchemas`
+to `true` used to.
+
 ### Building and Extracting a Confluent Hub archive
 
 If you haven't already, move into the repository's top-level directory:
