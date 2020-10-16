@@ -59,6 +59,28 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
+**2.2.0**
+
+*   AWS S3 Sink Connector
+    *    Prevent null pointer exception in converters when maps are presented will null values
+    *    Offset reader optimisation to reduce S3 load
+    *    Ensuring that commit only occurs after the preconfigured time interval when using WITH_FLUSH_INTERVAL
+*   AWS S3 Source Connector (New Connector)
+*   Cassandra Source Connector
+    *    Add Bucket Timeseries Mode
+    *    Reduction of logging noise
+    *    Proper handling of uninitialized connections on task stop()
+*   Elasticsearch Sink Connector
+    *    Update default port
+*   Hive Sink
+    *    Improve Orc format handling
+    *    Fixing issues with partitioning by non-string keys
+*   Hive Source
+    *    Ensuring newly written files can be read by the hive connector by introduction of a refresh frequency configuration option.
+*   Redis Sink
+    *    Correct Redis writer initialisation
+
+
 **2.1.0**
 
 *   AWS S3 Sink Connector
