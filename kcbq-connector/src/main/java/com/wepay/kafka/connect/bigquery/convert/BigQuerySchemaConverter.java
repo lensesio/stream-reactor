@@ -29,7 +29,9 @@ import com.wepay.kafka.connect.bigquery.convert.logicaltype.LogicalTypeConverter
 import com.wepay.kafka.connect.bigquery.exception.ConversionConnectException;
 
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -103,6 +105,8 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
           ConversionConnectException("Top-level Kafka Connect schema must be of type 'struct'");
     }
 
+    throwOnCycle(kafkaConnectSchema, new ArrayList<>());
+
     List<com.google.cloud.bigquery.Field> fields = kafkaConnectSchema.fields().stream()
         .flatMap(kafkaConnectField ->
           convertField(kafkaConnectField.schema(), kafkaConnectField.name())
@@ -113,6 +117,35 @@ public class BigQuerySchemaConverter implements SchemaConverter<com.google.cloud
         .collect(Collectors.toList());
 
     return com.google.cloud.bigquery.Schema.of(fields);
+  }
+
+  private void throwOnCycle(Schema kafkaConnectSchema, List<Schema> seenSoFar) {
+    if (PRIMITIVE_TYPE_MAP.containsKey(kafkaConnectSchema.type())) {
+      return;
+    }
+
+    if (seenSoFar.contains(kafkaConnectSchema)) {
+      throw new ConversionConnectException("Kafka Connect schema contains cycle");
+    }
+
+    seenSoFar.add(kafkaConnectSchema);
+    switch(kafkaConnectSchema.type()) {
+      case ARRAY:
+        throwOnCycle(kafkaConnectSchema.valueSchema(), seenSoFar);
+        break;
+      case MAP:
+        throwOnCycle(kafkaConnectSchema.keySchema(), seenSoFar);
+        throwOnCycle(kafkaConnectSchema.valueSchema(), seenSoFar);
+        break;
+      case STRUCT:
+        kafkaConnectSchema.fields().forEach(f -> throwOnCycle(f.schema(), seenSoFar));
+        break;
+      default:
+        throw new ConversionConnectException(
+            "Unrecognized schema type: " + kafkaConnectSchema.type()
+        );
+    }
+    seenSoFar.remove(seenSoFar.size() - 1);
   }
 
   private Optional<com.google.cloud.bigquery.Field.Builder> convertField(Schema kafkaConnectSchema,

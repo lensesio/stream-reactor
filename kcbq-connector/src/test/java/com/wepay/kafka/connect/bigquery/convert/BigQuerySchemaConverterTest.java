@@ -20,10 +20,12 @@
 package com.wepay.kafka.connect.bigquery.convert;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 
+import com.google.common.collect.ImmutableList;
 import com.wepay.kafka.connect.bigquery.exception.ConversionConnectException;
 
 import org.apache.kafka.connect.data.Date;
@@ -33,6 +35,8 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Timestamp;
 
 import org.junit.Test;
+
+import io.confluent.connect.avro.AvroData;
 
 public class BigQuerySchemaConverterTest {
 
@@ -628,6 +632,46 @@ public class BigQuerySchemaConverterTest {
     com.google.cloud.bigquery.Schema bigQueryTestSchema =
         new BigQuerySchemaConverter(true).convertSchema(kafkaConnectTestSchema);
     assertEquals(bigQueryExpectedSchema, bigQueryTestSchema);
+  }
 
+  @Test
+  public void testSimpleRecursiveSchemaThrows() {
+    final String fieldName = "RecursiveField";
+
+    // Construct Avro schema with recursion since we cannot directly construct Connect schema with cycle
+    org.apache.avro.Schema recursiveAvroSchema = org.apache.avro.SchemaBuilder
+        .record("RecursiveItem")
+        .namespace("com.example")
+        .fields()
+        .name(fieldName)
+        .type().unionOf().nullType().and().type("RecursiveItem").endUnion()
+        .nullDefault()
+        .endRecord();
+
+    Schema connectSchema = new AvroData(100).toConnectSchema(recursiveAvroSchema);
+    ConversionConnectException e = assertThrows(ConversionConnectException.class, () ->
+        new BigQuerySchemaConverter(true).convertSchema(connectSchema));
+    assertEquals("Kafka Connect schema contains cycle", e.getMessage());
+  }
+
+  @Test
+  public void testComplexRecursiveSchemaThrows() {
+    final String fieldName = "RecursiveField";
+
+    // Construct Avro schema with recursion since we cannot directly construct Connect schema with cycle
+    org.apache.avro.Schema recursiveAvroSchema = org.apache.avro.SchemaBuilder
+        .record("RecursiveItem")
+        .namespace("com.example")
+        .fields()
+        .name(fieldName)
+        .type()
+            .array().items()
+                .map().values().type("RecursiveItem").noDefault()
+        .endRecord();
+
+    Schema connectSchema = new AvroData(100).toConnectSchema(recursiveAvroSchema);
+    ConversionConnectException e = assertThrows(ConversionConnectException.class, () ->
+        new BigQuerySchemaConverter(true).convertSchema(connectSchema));
+    assertEquals("Kafka Connect schema contains cycle", e.getMessage());
   }
 }
