@@ -27,7 +27,6 @@ import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
 import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
 
 import org.apache.kafka.connect.errors.ConnectException;
-import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +43,7 @@ public class TableWriter implements Runnable {
 
   private static final int BAD_REQUEST_CODE = 400;
   private static final String INVALID_REASON = "invalid";
+  private static final String PAYLOAD_TOO_LARGE_REASON = "Request payload size exceeds the limit:";
 
   private final BigQueryWriter writer;
   private final PartitionedTableId table;
@@ -137,6 +137,10 @@ public class TableWriter implements Runnable {
        * 10MB. if this actually ever happens...
        * todo distinguish this from other invalids (like invalid table schema).
        */
+      return true;
+    } else if (exception.getCode() == BAD_REQUEST_CODE
+        && exception.getMessage() != null
+        && exception.getMessage().contains(PAYLOAD_TOO_LARGE_REASON)) {
       return true;
     }
     return false;
