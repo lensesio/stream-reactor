@@ -155,15 +155,6 @@ public class BigQuerySinkTask extends SinkTask {
     topicPartitionManager.resumeAll();
   }
 
-  private void maybeEnsureExistingTable(TableId table) {
-    BigQuery bigQuery = getBigQuery();
-    if (bigQuery.getTable(table) == null && !config.getBoolean(config.TABLE_CREATE_CONFIG)) {
-      throw new BigQueryConnectException("Table '" + table + "' does not exist. " +
-          "You may want to enable auto table creation by setting " + config.TABLE_CREATE_CONFIG
-          + "=true in the properties file");
-    }
-  }
-
   @Override
   public Map<TopicPartition, OffsetAndMetadata> preCommit(Map<TopicPartition, OffsetAndMetadata> offsets) {
     if (upsertDelete) {
@@ -199,8 +190,6 @@ public class BigQuerySinkTask extends SinkTask {
       TableId intermediateTableId = mergeBatches.intermediateTableFor(baseTableId);
       // If upsert/delete is enabled, we want to stream into a non-partitioned intermediate table
       return new PartitionedTableId.Builder(intermediateTableId).build();
-    } else {
-      maybeEnsureExistingTable(baseTableId);
     }
 
     PartitionedTableId.Builder builder = new PartitionedTableId.Builder(baseTableId);
