@@ -29,13 +29,6 @@ object S3ConfigDef {
 
   val config: ConfigDef = new ConfigDef()
     .define(
-      AWS_REGION,
-      Type.STRING,
-      "",
-      Importance.HIGH,
-      "AWS region the Secrets manager is in"
-    )
-    .define(
       AWS_ACCESS_KEY,
       Type.STRING,
       "",
@@ -52,14 +45,14 @@ object S3ConfigDef {
     .define(
       AUTH_MODE,
       Type.STRING,
-      AuthMode.Credentials.toString,
+      AuthMode.Default.toString,
       Importance.HIGH,
-      "Authenticate mode, 'env', 'credentials', 'ec2' or 'eks'"
+      "Authenticate mode, 'env' or 'default'"
     )
     .define(
       CUSTOM_ENDPOINT,
       Type.STRING,
-      AuthMode.Credentials.toString,
+      "",
       Importance.LOW,
       "Custom S3-compatible endpoint (usually for testing)"
     )

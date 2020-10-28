@@ -55,7 +55,8 @@ class S3SourceTask extends SourceTask {
 
     val awsConfig = S3SinkConfig(props.asScala.toMap)
 
-    storageInterface = new MultipartBlobStoreStorageInterface(AwsContextCreator.fromConfig(awsConfig.s3Config))
+    val awsContextCreator = new AwsContextCreator(AwsContextCreator.DefaultCredentialsFn)
+    storageInterface = new MultipartBlobStoreStorageInterface(awsContextCreator.fromConfig(awsConfig.s3Config))
     sourceLister = new S3SourceLister()
 
     val configs = Option(context).flatMap(c => Option(c.configs())).filter(_.isEmpty == false).getOrElse(props)

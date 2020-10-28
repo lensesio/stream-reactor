@@ -53,7 +53,6 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
   private val TopicName = "myTopic"
 
   private val DefaultProps = Map(
-    AWS_REGION -> "eu-west-1",
     AWS_ACCESS_KEY -> Identity,
     AWS_SECRET_KEY -> Credential,
     AUTH_MODE -> AuthMode.Credentials.toString,
