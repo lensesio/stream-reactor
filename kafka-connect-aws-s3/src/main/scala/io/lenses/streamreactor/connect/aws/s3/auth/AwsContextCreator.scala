@@ -19,10 +19,11 @@ package io.lenses.streamreactor.connect.aws.s3.auth
 
 import java.util.Properties
 
-import com.amazonaws.auth.{AWSCredentialsProvider, DefaultAWSCredentialsProviderChain}
+import com.amazonaws.auth.{AWSCredentialsProvider, AWSSessionCredentials, DefaultAWSCredentialsProviderChain}
 import com.google.common.base.Supplier
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, S3Config}
 import org.jclouds.ContextBuilder
+import org.jclouds.aws.domain.SessionCredentials
 import org.jclouds.blobstore.BlobStoreContext
 import org.jclouds.domain.Credentials
 
@@ -70,7 +71,10 @@ class AwsContextCreator(credentialsProviderFn: () => AWSCredentialsProvider) {
     val credentialsProvider = credentialsProviderFn()
     val credentials = Option(credentialsProvider.getCredentials)
       .getOrElse(throw new IllegalStateException("No credentials found on default provider chain."))
-    new Credentials(credentials.getAWSAccessKeyId, credentials.getAWSSecretKey)
+    credentials match {
+      case credentials: AWSSessionCredentials => SessionCredentials.builder().accessKeyId(credentials.getAWSAccessKeyId).secretAccessKey(credentials.getAWSSecretKey).sessionToken(credentials.getSessionToken).build()
+      case _ => new Credentials(credentials.getAWSAccessKeyId, credentials.getAWSSecretKey)
+    }
   }
 
   private def createOverride() = {
