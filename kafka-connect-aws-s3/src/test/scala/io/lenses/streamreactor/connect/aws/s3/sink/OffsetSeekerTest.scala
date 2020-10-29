@@ -32,7 +32,7 @@ class OffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   private implicit val storageInterface: StorageInterface = mock[StorageInterface]
 
-  private val bucketAndPath = BucketAndPath("myBucket", "path/myTopic/0")
+  private val bucketAndPath = BucketAndPath("my-bucket", "path/myTopic/0")
 
   "seek" should "return empty set when path does not exist" in {
 

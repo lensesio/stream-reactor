@@ -30,7 +30,7 @@ class MultipartBlobStoreOutputStreamTest extends AnyFlatSpec with MockitoSugar w
 
   private val MinFileSizeBytes = 10
 
-  private val testBucketAndPath = BucketAndPath("myBucket", "myPath")
+  private val testBucketAndPath = BucketAndPath("my-bucket", "my-path")
 
   /**
     * Create a byte array consisting of a given number of a repeating characters

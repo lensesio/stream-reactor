@@ -30,7 +30,7 @@ class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
   "read" should "read through all records" in {
 
     val byteArrayInputStream: ByteArrayInputStream = writeRecordsToOutputStream
-    val avroFormatStreamReader = new AvroFormatStreamReader(() => byteArrayInputStream, BucketAndPath("", ""))
+    val avroFormatStreamReader = new AvroFormatStreamReader(() => byteArrayInputStream, BucketAndPath("test-bucket", "test-path"))
 
     avroFormatStreamReader.hasNext should be(true)
     checkRecord(avroFormatStreamReader.next().data, "sam", Some("mr"), 100.43)
