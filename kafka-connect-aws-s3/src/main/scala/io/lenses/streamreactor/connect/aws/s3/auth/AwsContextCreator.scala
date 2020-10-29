@@ -63,8 +63,8 @@ class AwsContextCreator(credentialsProviderFn: () => AWSCredentialsProvider) {
   }
 
   private def credentialsFromConfig(awsConfig: S3Config): Supplier[Credentials] = () => new Credentials(
-    awsConfig.accessKey.getOrElse(throw new IllegalArgumentException(missingCredentialsError)),
-    awsConfig.secretKey.getOrElse(throw new IllegalArgumentException(missingCredentialsError))
+    awsConfig.accessKey.filter(_.trim.nonEmpty).getOrElse(throw new IllegalArgumentException(missingCredentialsError)),
+    awsConfig.secretKey.filter(_.trim.nonEmpty).getOrElse(throw new IllegalArgumentException(missingCredentialsError))
   )
 
   private def credentialsFromDefaultChain(): Supplier[Credentials] = () => {

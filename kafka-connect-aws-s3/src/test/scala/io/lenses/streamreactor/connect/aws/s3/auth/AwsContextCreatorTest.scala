@@ -99,6 +99,20 @@ class AwsContextCreatorTest extends AnyFlatSpec with MockitoSugar with Matchers 
     verifyZeroInteractions(awsCredentials)
   }
 
+  "fromConfig" should "fail when empty string credentials are provided" in {
+
+    val blobStoreContext = target.fromConfig(
+      S3Config(Some(""), Some(""), AuthMode.Credentials)
+    )
+
+    intercept[IllegalArgumentException] {
+      getIdentityFromContext(blobStoreContext)
+    }.getMessage should be("Configured to use credentials however one or both of `AWS_ACCESS_KEY` or `AWS_SECRET_KEY` are missing.")
+
+    verifyZeroInteractions(credentialsProviderFn, credentialsProvider, awsCredentials)
+
+  }
+
   private def getIdentityFromContext(blobStoreContext: BlobStoreContext): String = {
     val apiContextImpl: ApiContextImpl[ProviderMetadata] = blobStoreContext.unwrap()
     apiContextImpl.getIdentity

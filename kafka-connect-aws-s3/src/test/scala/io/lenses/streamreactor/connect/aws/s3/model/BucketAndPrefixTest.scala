@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3
+package io.lenses.streamreactor.connect.aws.s3.model
 
-import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPrefix
+import com.amazonaws.services.s3.model.IllegalBucketNameException
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -43,4 +43,9 @@ class BucketAndPrefixTest extends AnyFlatSpec with Matchers {
     }
   }
 
+  "bucketAndPrefix" should "fail if not a valid bucket name" in {
+    assertThrows[IllegalBucketNameException] {
+      BucketAndPrefix("bucket-police-refu$e-this-name:path")
+    }
+  }
 }
