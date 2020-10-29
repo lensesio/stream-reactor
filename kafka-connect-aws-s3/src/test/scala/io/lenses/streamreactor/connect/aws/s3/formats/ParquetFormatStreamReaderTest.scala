@@ -24,7 +24,7 @@ import org.scalatest.matchers.should.Matchers
 
 class ParquetFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
-  private val bucketAndPath = BucketAndPath("myBucket", "myPath")
+  private val bucketAndPath = BucketAndPath("my-bucket", "myPath")
 
   "iteration" should "read parquet files" in {
     val inputStreamFn = () => getClass.getResourceAsStream("/parquet/1.parquet")
