@@ -23,7 +23,6 @@ object S3ConfigSettings {
 
   val CONNECTOR_PREFIX = "connect.s3"
 
-  val AWS_REGION: String = "aws.region"
   val AWS_ACCESS_KEY: String = "aws.access.key"
   val AWS_SECRET_KEY: String = "aws.secret.key"
   val AUTH_MODE: String = "aws.auth.mode"

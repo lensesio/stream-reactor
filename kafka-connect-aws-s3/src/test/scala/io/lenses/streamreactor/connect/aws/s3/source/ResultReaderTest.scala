@@ -24,7 +24,7 @@ import org.scalatest.matchers.should.Matchers
 
 class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
-  private val readerBucketAndPath = BucketAndPath("my", "bucketAndPath")
+  private val readerBucketAndPath = BucketAndPath("bucket-and-path", "prefix")
   private val prefix = "MyPrefix"
   private val targetTopic = "MyTargetTopic"
   private val limit = 10

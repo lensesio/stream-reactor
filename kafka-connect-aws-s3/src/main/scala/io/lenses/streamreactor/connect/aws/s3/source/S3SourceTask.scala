@@ -53,9 +53,10 @@ class S3SourceTask extends SourceTask {
 
     logger.debug(s"Received call to S3SinkTask.start with ${props.size()} properties")
 
-    val awsConfig = S3SinkConfig(props.asScala.toMap)
+    val awsConfig = S3SourceConfig(props.asScala.toMap)
 
-    storageInterface = new MultipartBlobStoreStorageInterface(AwsContextCreator.fromConfig(awsConfig.s3Config))
+    val awsContextCreator = new AwsContextCreator(AwsContextCreator.DefaultCredentialsFn)
+    storageInterface = new MultipartBlobStoreStorageInterface(awsContextCreator.fromConfig(awsConfig.s3Config))
     sourceLister = new S3SourceLister()
 
     val configs = Option(context).flatMap(c => Option(c.configs())).filter(_.isEmpty == false).getOrElse(props)

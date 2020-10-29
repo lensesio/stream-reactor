@@ -29,11 +29,7 @@ object AuthMode extends Enum[AuthMode] {
 
   case object Credentials extends AuthMode
 
-  case object EC2 extends AuthMode
-
-  case object ECS extends AuthMode
-
-  case object Env extends AuthMode
+  case object Default extends AuthMode
 
 }
 
@@ -120,11 +116,10 @@ object Format extends Enum[Format] {
 
 object S3Config {
   def apply(props: Map[String, String]): S3Config = S3Config(
-    props.getOrElse(AWS_REGION, throw new IllegalArgumentException("No AWS_REGION supplied")),
-    props.getOrElse(AWS_ACCESS_KEY, throw new IllegalArgumentException("No AWS_ACCESS_KEY supplied")),
-    props.getOrElse(AWS_SECRET_KEY, throw new IllegalArgumentException("No AWS_SECRET_KEY supplied")),
+    props.get(AWS_ACCESS_KEY),
+    props.get(AWS_SECRET_KEY),
     AuthMode.withNameInsensitive(
-      props.getOrElse(AUTH_MODE, throw new IllegalArgumentException("No AUTH_MODE supplied"))
+      props.getOrElse(AUTH_MODE, AuthMode.Default.toString)
     ),
     props.get(CUSTOM_ENDPOINT),
     props.getOrElse(ENABLE_VIRTUAL_HOST_BUCKETS, "false").toBoolean,
@@ -132,9 +127,8 @@ object S3Config {
 }
 
 case class S3Config(
-                     region: String,
-                     accessKey: String,
-                     secretKey: String,
+                     accessKey: Option[String],
+                     secretKey: Option[String],
                      authMode: AuthMode,
                      customEndpoint: Option[String] = None,
                      enableVirtualHostBuckets: Boolean = false,

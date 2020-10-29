@@ -41,9 +41,8 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
     val bucketAndPrefix = BucketAndPrefix(BucketName, Some(PathPrefix))
     val config = S3SinkConfig(S3Config(
-      "eu-west-1",
-      Identity,
-      Credential,
+      Some(Identity),
+      Some(Credential),
       AuthMode.Credentials),
       bucketOptions = Set(
         SinkBucketOptions(TopicName, bucketAndPrefix, commitPolicy = DefaultCommitPolicy(None, None, Some(1)),
@@ -69,9 +68,8 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
     val bucketAndPrefix = BucketAndPrefix(BucketName, Some(PathPrefix))
     val config = S3SinkConfig(S3Config(
-      "eu-west-1",
-      Identity,
-      Credential,
+      Some(Identity),
+      Some(Credential),
       AuthMode.Credentials),
       bucketOptions = Set(
         SinkBucketOptions(TopicName, bucketAndPrefix, commitPolicy = DefaultCommitPolicy(None, None, Some(3)),

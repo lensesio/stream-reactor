@@ -11,16 +11,44 @@ An example configuration is provided:
     topics=$TOPIC_NAME
     tasks.max=1
     connect.s3.kcql=insert into $BUCKET_NAME:$PREFIX_NAME select * from $TOPIC_NAME STOREAS `parquet` WITH_FLUSH_COUNT = 5000 
-    aws.region=eu-west-1
     aws.access.key=ACCESS_KEY
     aws.secret.key=SECRET_KEY
     aws.auth.mode=Credentials
 
 You should replace $BUCKET_NAME, $PREFIX_NAME and $TOPIC_NAME with the names of the bucket, desired prefix and topic.
 
+Please read below for a detailed explanation of these and other options, including the meaning of WITH_FLUSH_COUNT and its alternatives.
+
+
+### Auth Mode configuration
+
+2 Authentication modes are available:
+
+#### Credentials
+
 ACCESS_KEY and SECRET_KEY are credentials generated within AWS IAM and must be set and configured with permissions to write to the desired S3 bucket.
 
-Please read below for a detailed explanation of these and other options, including the meaning of WITH_FLUSH_COUNT and its alternatives.
+    aws.auth.mode=Credentials
+    aws.access.key=ACCESS_KEY
+    aws.secret.key=SECRET_KEY
+
+
+#### Default
+
+In this auth mode no credentials need be supplied.  If no auth mode is specified, then this default will be used.
+
+    aws.auth.mode=Default
+    
+The credentials will be discovered through the default chain, in this order:
+
+> * **Environment Variables** - AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+> * **Java System Properties** - aws.accessKeyId and aws.secretKey
+> * **Web Identity Token credentials** from the environment or container
+> * **Credential profiles file** at the default location (~/.aws/credentials)
+> * **EC2 Credentials** delivered through the Amazon EC2 container service
+> * **Instance profile credentials** delivered through the Amazon EC2 metadata service
+
+The full details of the default chain are available on [S3 Documentation](https://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/DefaultAWSCredentialsProviderChain.html)
 
 
 ### Sink Format configuration

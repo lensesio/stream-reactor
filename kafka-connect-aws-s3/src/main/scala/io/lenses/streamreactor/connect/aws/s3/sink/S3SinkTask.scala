@@ -46,18 +46,29 @@ class S3SinkTask extends SinkTask {
 
   override def version(): String = manifest.version()
 
+  def validateBuckets(storageInterface: StorageInterface, config: S3SinkConfig) = {
+    config.bucketOptions.foreach(
+      bucketOption => {
+        val bucketAndPrefix = bucketOption.bucketAndPrefix
+        storageInterface.list(bucketAndPrefix)
+      }
+    )
+  }
+
   override def start(props: util.Map[String, String]): Unit = {
 
     logger.debug(s"Received call to S3SinkTask.start with ${props.size()} properties")
 
     val awsConfig = S3SinkConfig(props.asScala.toMap)
 
-
-    storageInterface = new MultipartBlobStoreStorageInterface(AwsContextCreator.fromConfig(awsConfig.s3Config))
+    val awsContextCreator = new AwsContextCreator(AwsContextCreator.DefaultCredentialsFn)
+    storageInterface = new MultipartBlobStoreStorageInterface(awsContextCreator.fromConfig(awsConfig.s3Config))
 
     val configs = Option(context).flatMap(c => Option(c.configs())).filter(_.isEmpty == false).getOrElse(props)
 
     config = S3SinkConfig(configs.asScala.toMap)
+
+    validateBuckets(storageInterface, config)
 
     writerManager = S3WriterManager.from(config)(storageInterface)
 

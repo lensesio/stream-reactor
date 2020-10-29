@@ -16,6 +16,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.model
 
+import com.amazonaws.services.s3.internal.BucketNameUtils
+
 
 case object BucketAndPrefix {
   def apply(bucketAndPath: String): BucketAndPrefix = {
@@ -31,6 +33,9 @@ case class BucketAndPrefix(
                             bucket: String,
                             prefix: Option[String]
                           ) {
+
+  BucketNameUtils.validateBucketName(bucket)
+
   prefix
     .filter(_.contains("/"))
     .foreach(_ => throw new IllegalArgumentException("Nested prefix not currently supported"))
@@ -39,4 +44,8 @@ case class BucketAndPrefix(
 case class BucketAndPath(
                           bucket: String,
                           path: String
-                        )
+                        ) {
+
+  BucketNameUtils.validateBucketName(bucket)
+
+}

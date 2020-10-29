@@ -40,9 +40,8 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
   private val bucketAndPrefix = BucketAndPrefix(BucketName, Some(PathPrefix))
   private val avroConfig = S3SinkConfig(S3Config(
-    "eu-west-1",
-    Identity,
-    Credential,
+    Some(Identity),
+    Some(Credential),
     AuthMode.Credentials,
   ),
     bucketOptions = Set(
