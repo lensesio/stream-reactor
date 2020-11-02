@@ -59,7 +59,11 @@ A collection of components to build a real time ingestion pipeline.
 
 ## Release Notes
 
-**2.2.0**
+**2.1.3**
+
+Move to connect-common 2.0.5 that adds complex type support to KCQL
+
+**2.1.2**
 
 *   AWS S3 Sink Connector
     *    Prevent null pointer exception in converters when maps are presented will null values
