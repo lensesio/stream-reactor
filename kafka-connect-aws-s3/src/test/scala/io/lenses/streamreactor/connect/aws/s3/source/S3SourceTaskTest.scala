@@ -101,7 +101,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
           override def offsetStorageReader(): OffsetStorageReader = new OffsetStorageReader {
             override def offset[T](partition: util.Map[String, T]): util.Map[String, AnyRef] = Map(
               "path" -> s"$PrefixName/$TopicName/0/399.${format.entryName.toLowerCase}",
-              "line" -> "10".asInstanceOf[Object]
+              "line" -> "9".asInstanceOf[Object]
             ).asJava
 
             override def offsets[T](partitions: util.Collection[util.Map[String, T]]): util.Map[util.Map[String, T], util.Map[String, AnyRef]] = throw new IllegalStateException("Unexpected call to storage reader")
