@@ -31,7 +31,7 @@ Maven
 <dependency>
 	<groupId>com.datamountaineer</groupId>
 	<artifactId>kcql</artifactId>
-	<version>LATEst</version>
+	<version>LATEST</version>
 </dependency>
 ```
 
