@@ -122,7 +122,7 @@ class S3BucketReaderManager(
   private def skipLinesToStartLine(reader: S3FormatStreamReader[_ <: SourceData]) = {
     state.initLine.map(
       line =>
-        for (_ <- 1 to line) {
+        for (_ <- 0 to line) {
           if (reader.hasNext) {
             reader.next()
           } else {

@@ -94,7 +94,7 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
     // start at line 3
     val offsetReaderResultFn: (String, String) => Option[OffsetReaderResult] = (bucketAndPath, prefix) => {
       logger.error("BucketAndPath is " + bucketAndPath + "; Prefix is " + prefix)
-      Some(OffsetReaderResult("ing/topic/9/0.json", "2"))
+      Some(OffsetReaderResult("ing/topic/9/0.json", "1"))
     }
 
     val target = new S3BucketReaderManager(sourceBucketOptions, offsetReaderResultFn)
@@ -146,7 +146,7 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
     // start at file 2, line 10
     val offsetReaderResultFn: (String, String) => Option[OffsetReaderResult] = (bucketAndPath, prefix) => {
       logger.error("BucketAndPath is " + bucketAndPath + "; Prefix is " + prefix)
-      Some(OffsetReaderResult(file1Name, "10"))
+      Some(OffsetReaderResult(file1Name, "9"))
     }
 
     val target = new S3BucketReaderManager(sourceBucketOptions, offsetReaderResultFn)
@@ -189,7 +189,7 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
     // start at file 2, line 10
     val offsetReaderResultFn: (String, String) => Option[OffsetReaderResult] = (bucketAndPath, prefix) => {
       logger.error("BucketAndPath is " + bucketAndPath + "; Prefix is " + prefix)
-      Some(OffsetReaderResult(file2Name, "10"))
+      Some(OffsetReaderResult(file2Name, "9"))
     }
 
     val target = new S3BucketReaderManager(sourceBucketOptions, offsetReaderResultFn)
@@ -253,7 +253,7 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
     // start at file 2, line 10
     val offsetReaderResultFn: (String, String) => Option[OffsetReaderResult] = (bucketAndPath, prefix) => {
       logger.error("BucketAndPath is " + bucketAndPath + "; Prefix is " + prefix)
-      Some(OffsetReaderResult(file2Name, "10"))
+      Some(OffsetReaderResult(file2Name, "9"))
     }
 
     val target = new S3BucketReaderManager(sourceBucketOptions, offsetReaderResultFn)
