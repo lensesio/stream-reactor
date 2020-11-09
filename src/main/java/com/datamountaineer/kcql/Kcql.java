@@ -588,11 +588,11 @@ public class Kcql {
         } else {
           List<String> cleanedParent = null;
 
-          if (field.toString().startsWith("_key")) {
+          if (field.toString().startsWith("_key.")) {
             trimParentField(nestedFieldsBuffer);
             cleanedParent = nestedFieldsBuffer;
             kcql.addKeyField(Field.from(field.getName(), field.getAlias(), cleanedParent));
-          } else if (field.toString().startsWith("_header")) {
+          } else if (field.toString().startsWith("_header.")) {
             trimParentField(nestedFieldsBuffer);
             cleanedParent = nestedFieldsBuffer;
             kcql.addHeaderField(Field.from(field.getName(), field.getAlias(), cleanedParent));
