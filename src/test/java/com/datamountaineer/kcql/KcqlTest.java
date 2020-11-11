@@ -1187,23 +1187,24 @@ public class KcqlTest {
 
   @Test
   public void handleKeys() {
-    String syntax = "insert into target select _key.a.a, _key.a.b, value_field FROM topic";
+    String syntax = "insert into target select _key.a, _key.p.c, value_field, _header.h FROM topic";
     Kcql kcql = Kcql.parse(syntax);
     assertEquals(2, kcql.getKeyFields().size());
     assertEquals("a", kcql.getKeyFields().get(0).getName());
-    assertEquals("b", kcql.getKeyFields().get(1).getName());
-    assertEquals("a", kcql.getKeyFields().get(1).getParentFields().get(0));
+    assertEquals("c", kcql.getKeyFields().get(1).getName());
+    assertEquals("p", kcql.getKeyFields().get(1).getParentFields().get(0));
+    assertEquals("h", kcql.getHeaderFields().get(0).getName());
     assertEquals("value_field", kcql.getFields().get(0).getName());
   }
 
   @Test
   public void handleHeaders() {
-    String syntax = "insert into target select _header.a.a, _header.a.b, value_field FROM topic";
+    String syntax = "insert into target select _header.a, _header.p.c, value_field FROM topic";
     Kcql kcql = Kcql.parse(syntax);
     assertEquals(2, kcql.getHeaderFields().size());
     assertEquals("a", kcql.getHeaderFields().get(0).getName());
-    assertEquals("b", kcql.getHeaderFields().get(1).getName());
-    assertEquals("a", kcql.getHeaderFields().get(1).getParentFields().get(0));
+    assertEquals("c", kcql.getHeaderFields().get(1).getName());
+    assertEquals("p", kcql.getHeaderFields().get(1).getParentFields().get(0));
     assertEquals("value_field", kcql.getFields().get(0).getName());
   }
 

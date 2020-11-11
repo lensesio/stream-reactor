@@ -247,21 +247,17 @@ public class Kcql {
 
   public List<Field> getFields() {
     return fields;
-    //return new ArrayList<>(fields);
   }
 
   public List<Field> getKeyFields() {
     return keyFields;
-    //return new ArrayList<>(fields);
   }
 
   public List<Field> getHeaderFields() {
     return headerFields;
-    //return new ArrayList<>(fields);
   }
 
   public List<Field> getIgnoredFields() {
-    //return new HashSet<>(ignoredFields);
     return ignoredFields;
   }
 
@@ -590,11 +586,15 @@ public class Kcql {
 
           if (field.toString().startsWith("_key.")) {
             trimParentField(nestedFieldsBuffer);
-            cleanedParent = nestedFieldsBuffer;
+            if (!nestedFieldsBuffer.isEmpty()) {
+              cleanedParent = nestedFieldsBuffer;
+            }
             kcql.addKeyField(Field.from(field.getName(), field.getAlias(), cleanedParent));
           } else if (field.toString().startsWith("_header.")) {
             trimParentField(nestedFieldsBuffer);
-            cleanedParent = nestedFieldsBuffer;
+            if (!nestedFieldsBuffer.isEmpty()) {
+              cleanedParent = nestedFieldsBuffer;
+            }
             kcql.addHeaderField(Field.from(field.getName(), field.getAlias(), cleanedParent));
           } else {
             kcql.addField(field);
