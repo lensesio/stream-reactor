@@ -62,6 +62,8 @@ public class KcqlTest {
     String syntax = "SELECT firstName, lastName as surname FROM topicA";
     Kcql kcql = Kcql.parse(syntax);
     assertEquals("topicA", kcql.getSource());
+    assertEquals("lastName", kcql.getFields().get(1).getName());
+    assertEquals("surname", kcql.getFields().get(1).getAlias());
   }
 
   @Test
@@ -1183,5 +1185,27 @@ public class KcqlTest {
     assertEquals(WriteModeEnum.UPDATE, kcql.getWriteMode());
   }
 
+  @Test
+  public void handleKeys() {
+    String syntax = "insert into target select _key.a, _key.p.c, value_field, _header.h FROM topic";
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(2, kcql.getKeyFields().size());
+    assertEquals("a", kcql.getKeyFields().get(0).getName());
+    assertEquals("c", kcql.getKeyFields().get(1).getName());
+    assertEquals("p", kcql.getKeyFields().get(1).getParentFields().get(0));
+    assertEquals("h", kcql.getHeaderFields().get(0).getName());
+    assertEquals("value_field", kcql.getFields().get(0).getName());
+  }
+
+  @Test
+  public void handleHeaders() {
+    String syntax = "insert into target select _header.a, _header.p.c, value_field FROM topic";
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(2, kcql.getHeaderFields().size());
+    assertEquals("a", kcql.getHeaderFields().get(0).getName());
+    assertEquals("c", kcql.getHeaderFields().get(1).getName());
+    assertEquals("p", kcql.getHeaderFields().get(1).getParentFields().get(0));
+    assertEquals("value_field", kcql.getFields().get(0).getName());
+  }
 
 }

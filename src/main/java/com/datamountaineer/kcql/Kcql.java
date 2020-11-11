@@ -25,6 +25,8 @@ public class Kcql {
   private String indexSuffix;
   private String incrementalMode;
   private List<Field> fields = new ArrayList<>();
+  private List<Field> keyFields = new ArrayList<>();
+  private List<Field> headerFields = new ArrayList<>();
   private List<Field> ignoredFields = new ArrayList<>();
   private List<Field> primaryKeys = new ArrayList<>();
   private List<String> partitionBy = new ArrayList<>();
@@ -137,10 +139,68 @@ public class Kcql {
     fields.add(field);
   }
 
+
+  private void addKeyField(final Field field) {
+    if (field == null) {
+      throw new IllegalArgumentException("Illegal fieldAlias.");
+    }
+    if (fieldExists(field)) {
+      throw new IllegalArgumentException(String.format("Key field %s has already been defined", field.getName()));
+    }
+    keyFields.add(field);
+  }
+
+  private void addHeaderField(final Field field) {
+    if (field == null) {
+      throw new IllegalArgumentException("Illegal fieldAlias.");
+    }
+    if (fieldExists(field)) {
+      throw new IllegalArgumentException(String.format("Header field %s has already been defined", field.getName()));
+    }
+    headerFields.add(field);
+  }
+
+
   private boolean fieldExists(final Field newField) {
     for (Field field : fields) {
       if (!field.getName().equals(newField.getName()) ||
           !field.getFieldType().equals(newField.getFieldType())) {
+        continue;
+      }
+      if (!field.hasParents() && !newField.hasParents()) {
+        return true;
+      }
+      if (field.hasParents() && newField.hasParents()) {
+        if (field.getParentFields().equals(newField.hasParents())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean keyFieldExists(final Field newField) {
+    for (Field field : keyFields) {
+      if (!field.getName().equals(newField.getName()) ||
+              !field.getFieldType().equals(newField.getFieldType())) {
+        continue;
+      }
+      if (!field.hasParents() && !newField.hasParents()) {
+        return true;
+      }
+      if (field.hasParents() && newField.hasParents()) {
+        if (field.getParentFields().equals(newField.hasParents())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean headerFieldExists(final Field newField) {
+    for (Field field : headerFields) {
+      if (!field.getName().equals(newField.getName()) ||
+              !field.getFieldType().equals(newField.getFieldType())) {
         continue;
       }
       if (!field.hasParents() && !newField.hasParents()) {
@@ -187,11 +247,17 @@ public class Kcql {
 
   public List<Field> getFields() {
     return fields;
-    //return new ArrayList<>(fields);
+  }
+
+  public List<Field> getKeyFields() {
+    return keyFields;
+  }
+
+  public List<Field> getHeaderFields() {
+    return headerFields;
   }
 
   public List<Field> getIgnoredFields() {
-    //return new HashSet<>(ignoredFields);
     return ignoredFields;
   }
 
@@ -516,7 +582,29 @@ public class Kcql {
         if (isWithinIgnore[0]) {
           kcql.ignoredFields.add(field);
         } else {
-          kcql.addField(field);
+          List<String> cleanedParent = null;
+
+          if (field.toString().startsWith("_key.")) {
+            trimParentField(nestedFieldsBuffer);
+            if (!nestedFieldsBuffer.isEmpty()) {
+              cleanedParent = nestedFieldsBuffer;
+            }
+            kcql.addKeyField(Field.from(field.getName(), field.getAlias(), cleanedParent));
+          } else if (field.toString().startsWith("_header.")) {
+            trimParentField(nestedFieldsBuffer);
+            if (!nestedFieldsBuffer.isEmpty()) {
+              cleanedParent = nestedFieldsBuffer;
+            }
+            kcql.addHeaderField(Field.from(field.getName(), field.getAlias(), cleanedParent));
+          } else {
+            kcql.addField(field);
+          }
+        }
+      }
+
+      private void trimParentField(List<String> parents) {
+        if (nestedFieldsBuffer.size() > 0) {
+          nestedFieldsBuffer.remove(0);
         }
       }
 
