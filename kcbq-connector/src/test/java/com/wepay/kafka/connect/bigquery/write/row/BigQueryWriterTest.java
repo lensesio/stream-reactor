@@ -20,6 +20,7 @@
 package com.wepay.kafka.connect.bigquery.write.row;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -31,6 +32,7 @@ import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.InsertAllResponse;
+import com.google.cloud.bigquery.Table;
 import com.google.cloud.storage.Storage;
 
 import com.wepay.kafka.connect.bigquery.BigQuerySinkTask;
@@ -137,13 +139,15 @@ public class BigQueryWriterTest {
     verify(bigQuery, times(2)).insertAll(anyObject());
   }
 
-  @Test
+  @Test(expected = BigQueryConnectException.class)
   public void testNonAutoCreateTables() {
     final String topic = "test_topic";
     final String dataset = "scratch";
     final Map<String, String> properties = makeProperties("3", "2000", topic, dataset);
 
     BigQuery bigQuery = mock(BigQuery.class);
+    Table mockTable = mock(Table.class);
+    when(bigQuery.getTable(any())).thenReturn(mockTable);
 
     Map<Long, List<BigQueryError>> emptyMap = mock(Map.class);
     when(emptyMap.isEmpty()).thenReturn(true);
@@ -166,9 +170,6 @@ public class BigQueryWriterTest {
     testTask.put(
             Collections.singletonList(spoofSinkRecord(topic, 0, 0, "some_field", "some_value")));
     testTask.flush(Collections.emptyMap());
-
-    verify(schemaManager, times(0)).createTable(anyObject(), anyObject());
-    verify(bigQuery, times(2)).insertAll(anyObject());
   }
 
   @Test
