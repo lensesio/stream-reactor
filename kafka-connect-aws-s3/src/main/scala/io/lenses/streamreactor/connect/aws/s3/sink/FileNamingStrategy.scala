@@ -44,6 +44,13 @@ trait S3FileNamingStrategy {
   def topicPartitionPrefix(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath
 
   val committedFilenameRegex: Regex
+
+  val length = Long.MaxValue.toString.length
+  
+  def padOffset(value: Long) = {
+    s"%0${length}d".format(value)
+  }
+
 }
 
 class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends S3FileNamingStrategy {
@@ -54,7 +61,7 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends
     BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/.temp/${topicPartition.topic.value}/${topicPartition.partition}.${format.entryName.toLowerCase}")
 
   override def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath =
-    BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${topicPartitionOffset.topic.value}/${topicPartitionOffset.partition}/${topicPartitionOffset.offset.value}.${format.entryName.toLowerCase}")
+    BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${topicPartitionOffset.topic.value}/${topicPartitionOffset.partition}/${padOffset(topicPartitionOffset.offset.value)}.${format.entryName.toLowerCase}")
 
   override def getFormat: Format = format
 
@@ -91,7 +98,7 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
   }
 
   override def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath =
-    BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartitionOffset.topic.value}(${topicPartitionOffset.partition}_${topicPartitionOffset.offset.value}).${format.entryName.toLowerCase}")
+    BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartitionOffset.topic.value}(${topicPartitionOffset.partition}_${padOffset(topicPartitionOffset.offset.value)}).${format.entryName.toLowerCase}")
 
   override def processPartitionValues(messageDetail: MessageDetail): Map[PartitionField, String] = {
     partitionSelection

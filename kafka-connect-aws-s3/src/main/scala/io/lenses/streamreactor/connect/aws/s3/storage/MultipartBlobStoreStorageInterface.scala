@@ -21,6 +21,7 @@ import java.io.{ByteArrayInputStream, InputStream}
 import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.config.Format
 import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix}
 import org.jclouds.blobstore.BlobStoreContext
 import org.jclouds.blobstore.domain.internal.MutableBlobMetadataImpl
@@ -115,6 +116,33 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
   override def pathExists(bucketAndPath: BucketAndPath): Boolean =
     blobStore.list(bucketAndPath.bucket, ListContainerOptions.Builder.prefix(bucketAndPath.path)).size() > 0
 
+  override def fetchLatest(bucketAndPath: BucketAndPath, format: Format): Option[String] = {
+    val options = ListContainerOptions.Builder.recursive().prefix(bucketAndPath.path).maxResults(awsMaxKeys)
+    var latest : Option[String] = None
+    var nextMarker: Option[String] = None
+    val formatExtension = "." + format.entryName.toLowerCase
+    
+    do {
+      if (nextMarker.nonEmpty) {
+        options.afterMarker(nextMarker.get)
+      }
+      val pageSet = blobStore.list(bucketAndPath.bucket, options)
+
+      latest = pageSet
+        .asScala
+        .toList
+        .collect{
+          case storageMetadata if storageMetadata.getType == StorageType.BLOB && storageMetadata.getName.endsWith(formatExtension)=>
+            storageMetadata.getName
+        }
+        .lastOption
+
+      nextMarker = Option(pageSet.getNextMarker)
+
+    } while (nextMarker.nonEmpty)
+    latest
+  }
+
   override def list(bucketAndPath: BucketAndPath): List[String] = {
 
     val options = ListContainerOptions.Builder.recursive().prefix(bucketAndPath.path).maxResults(awsMaxKeys)
@@ -129,10 +157,10 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
       nextMarker = Option(pageSet.getNextMarker)
       pageSetStrings ++= pageSet
         .asScala
-        .filter(_.getType == StorageType.BLOB)
-        .map(
-          storageMetadata => storageMetadata.getName
-        )
+        .collect{
+          case storageMetadata if storageMetadata.getType == StorageType.BLOB =>
+            storageMetadata.getName
+        }
         .toList
 
     } while (nextMarker.nonEmpty)

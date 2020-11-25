@@ -70,7 +70,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
     blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(1)
 
-    val byteArray = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/2.avro", blobStoreContext)
+    val byteArray = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/0000000000000000002.avro", blobStoreContext)
     val genericRecords: List[GenericRecord] = avroFormatReader.read(byteArray)
     genericRecords.size should be(2)
 
@@ -106,7 +106,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
     // records 1 and 2
     val genericRecords1: List[GenericRecord] = avroFormatReader.read(
-      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/2.avro", blobStoreContext)
+      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/0000000000000000002.avro", blobStoreContext)
     )
     genericRecords1.size should be(2)
     genericRecords1(0).get("name").toString should be("sam")
@@ -114,14 +114,14 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
     // record 3 only - next schema is different so ending the file
     val genericRecords2: List[GenericRecord] = avroFormatReader.read(
-      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/3.avro", blobStoreContext)
+      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/0000000000000000003.avro", blobStoreContext)
     )
     genericRecords2.size should be(1)
     genericRecords2(0).get("name").toString should be("tom")
 
     // record 3 only - next schema is different so ending the file
     val genericRecords3: List[GenericRecord] = avroFormatReader.read(
-      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/5.avro", blobStoreContext)
+      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/0000000000000000005.avro", blobStoreContext)
     )
     genericRecords3.size should be(2)
     genericRecords3(0).get("name").toString should be("bobo")

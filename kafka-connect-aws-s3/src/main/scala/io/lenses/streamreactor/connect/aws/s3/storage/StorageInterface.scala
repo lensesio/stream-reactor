@@ -19,6 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 
 import java.io.InputStream
 
+import io.lenses.streamreactor.connect.aws.s3.config.Format
 import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix}
 import org.jclouds.blobstore.domain.{MultipartPart, MultipartUpload}
 
@@ -51,5 +52,6 @@ trait StorageInterface {
 
   def getBlobSize(bucketAndPath: BucketAndPath): Long
 
+  def fetchLatest(bucketAndPath: BucketAndPath, format: Format): Option[String]
 }
 

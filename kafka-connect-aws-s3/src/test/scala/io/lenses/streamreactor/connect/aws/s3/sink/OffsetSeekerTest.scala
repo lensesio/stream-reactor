@@ -27,8 +27,8 @@ import org.scalatest.matchers.should.Matchers
 
 class OffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
-  private val fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json))
-  private val offsetSeeker = new OffsetSeeker(fileNamingStrategy)
+  private implicit val fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json))
+  private val offsetSeeker = new OffsetSeeker
 
   private implicit val storageInterface: StorageInterface = mock[StorageInterface]
 
@@ -38,94 +38,15 @@ class OffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
     when(storageInterface.pathExists(bucketAndPath)).thenReturn(false)
 
-    offsetSeeker.seek(bucketAndPath) should be(Set())
+    offsetSeeker.seek(bucketAndPath) should be(None)
   }
 
   "seek" should "return expected offsets for 1 filename" in {
 
     when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
-    when(storageInterface.list(bucketAndPath)).thenReturn(List("path/myTopic/0/100.json"))
+    when(storageInterface.fetchLatest(bucketAndPath, Json)).thenReturn(Some("path/myTopic/0/100.json"))
 
-    offsetSeeker.seek(bucketAndPath) should be(Set(TopicPartitionOffset(Topic("myTopic"), 0, Offset(100))))
-  }
-
-  "seek" should "return highest offset for multiple offsets of the same file" in {
-
-    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
-    when(storageInterface.list(bucketAndPath)).thenReturn(
-      List("path/myTopic/0/100.json", "path/myTopic/0/200.json", "path/myTopic/0/300.json")
-    )
-
-    offsetSeeker.seek(bucketAndPath) should be(Set(TopicPartitionOffset(Topic("myTopic"), 0, Offset(300))))
-  }
-
-
-  "seek" should "return highest offset for multiple offsets of different files" in {
-
-    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
-    when(storageInterface.list(bucketAndPath)).thenReturn(
-      List("path/myTopic/0/100.json", "path/myTopic/0/200.json", "path/myTopic/0/300.json",
-        "path/notMyTopic/0/300.json", "path/notMyTopic/0/200.json", "path/notMyTopic/0/100.json")
-    )
-
-    offsetSeeker.seek(bucketAndPath) should be(
-      Set(
-        TopicPartitionOffset(Topic("myTopic"), 0, Offset(300)),
-        TopicPartitionOffset(Topic("notMyTopic"), 0, Offset(300)),
-      )
-    )
-  }
-
-  "seek" should "ignore other file extensions" in {
-
-    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
-    when(storageInterface.list(bucketAndPath)).thenReturn(
-      List(
-        "path/myTopic/0/100.avro", "path/myTopic/0/200.avro", "path/myTopic/0/300.avro",
-        "path/myTopic/0/100.json", "path/myTopic/0/200.json"
-      )
-    )
-
-    offsetSeeker.seek(bucketAndPath) should be(
-      Set(
-        TopicPartitionOffset(Topic("myTopic"), 0, Offset(200))
-      )
-    )
-  }
-
-  "seek" should "ignore unknown file extensions" in {
-
-    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
-    when(storageInterface.list(bucketAndPath)).thenReturn(
-      List(
-        "path/myTopic/0/100.doc", "path/myTopic/0/200.xls", "path/myTopic/0/300.ppt",
-        "path/myTopic/0/100.json", "path/myTopic/0/200.json"
-      )
-    )
-
-    offsetSeeker.seek(bucketAndPath) should be(
-      Set(
-        TopicPartitionOffset(Topic("myTopic"), 0, Offset(200))
-      )
-    )
-  }
-
-
-  "seek" should "ignore files with no extensions" in {
-
-    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
-    when(storageInterface.list(bucketAndPath)).thenReturn(
-      List(
-        "path/myTopic/0/100", "path/myTopic/0/200", "path/myTopic/0/300",
-        "path/myTopic/0/100.json", "path/myTopic/0/200.json"
-      )
-    )
-
-    offsetSeeker.seek(bucketAndPath) should be(
-      Set(
-        TopicPartitionOffset(Topic("myTopic"), 0, Offset(200))
-      )
-    )
+    offsetSeeker.seek(bucketAndPath) should be(Some(TopicPartitionOffset(Topic("myTopic"), 0, Offset(100))))
   }
 
 }

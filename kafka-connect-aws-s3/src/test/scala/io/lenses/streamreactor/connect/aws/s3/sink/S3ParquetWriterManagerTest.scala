@@ -67,7 +67,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
 
     blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(1)
 
-    val byteArray = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/2.parquet", blobStoreContext)
+    val byteArray = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/0000000000000000002.parquet", blobStoreContext)
     val genericRecords: List[GenericRecord] = parquetFormatReader.read(byteArray)
     genericRecords.size should be(2)
 
@@ -103,7 +103,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
 
     // records 1 and 2
     val genericRecords1: List[GenericRecord] = parquetFormatReader.read(
-      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/2.parquet", blobStoreContext)
+      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/0000000000000000002.parquet", blobStoreContext)
     )
     genericRecords1.size should be(2)
     genericRecords1(0).get("name").toString should be("sam")
@@ -111,14 +111,14 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
 
     // record 3 only - next schema is different so ending the file
     val genericRecords2: List[GenericRecord] = parquetFormatReader.read(
-      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/3.parquet", blobStoreContext)
+      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/0000000000000000003.parquet", blobStoreContext)
     )
     genericRecords2.size should be(1)
     genericRecords2(0).get("name").toString should be("tom")
 
     // record 3 only - next schema is different so ending the file
     val genericRecords3: List[GenericRecord] = parquetFormatReader.read(
-      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/5.parquet", blobStoreContext)
+      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/0000000000000000005.parquet", blobStoreContext)
     )
     genericRecords3.size should be(2)
     genericRecords3(0).get("name").toString should be("bobo")

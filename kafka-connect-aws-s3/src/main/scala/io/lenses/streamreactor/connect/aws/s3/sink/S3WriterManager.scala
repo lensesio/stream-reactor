@@ -79,16 +79,13 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
 
     partitions.collect {
       case topicPartition: TopicPartition =>
-        val fileNamingStrategy = fileNamingStrategyFn(topicPartition.topic)
+        implicit val fileNamingStrategy = fileNamingStrategyFn(topicPartition.topic)
         val bucketAndPrefix = bucketAndPrefixFn(topicPartition.topic)
         val topicPartitionPrefix = fileNamingStrategy.topicPartitionPrefix(bucketAndPrefix, topicPartition)
-        val seeker = new OffsetSeeker(fileNamingStrategy)
-        seeker.seek(topicPartitionPrefix)(storageInterface)
-          .find(_.toTopicPartition == topicPartition)
-        match {
-          case Some(topicPartitionOffset) => Some(topicPartition, topicPartitionOffset.offset)
-          case None => None
-        }
+        new OffsetSeeker().seek(topicPartitionPrefix)(storageInterface)
+          .fold(Option.empty[(TopicPartition,Offset)]){
+            topicPartitionOffset => Some((topicPartition, topicPartitionOffset.offset))
+          }
     }.flatten
       .toMap
   }

@@ -57,7 +57,7 @@ class S3SinkTask extends SinkTask {
 
   override def start(props: util.Map[String, String]): Unit = {
 
-    logger.debug(s"Received call to S3SinkTask.start with ${props.size()} properties")
+    logger.info(s"Received call to S3SinkTask.start with ${props.size()} properties")
 
     val awsConfig = S3SinkConfig(props.asScala.toMap)
 
@@ -125,7 +125,7 @@ class S3SinkTask extends SinkTask {
 
   override def open(partitions: util.Collection[KafkaTopicPartition]): Unit = {
 
-    logger.debug(s"Received call to S3SinkTask.open with ${partitions.size()} partitions")
+    logger.info(s"Received call to S3SinkTask.open with ${partitions.size()} partitions")
 
     try {
       val topicPartitions = partitions.asScala
@@ -135,7 +135,7 @@ class S3SinkTask extends SinkTask {
       writerManager.open(topicPartitions)
         .foreach {
           case (topicPartition, offset) =>
-            logger.debug(s"Seeking to ${topicPartition.topic.value}:${topicPartition.partition}:${offset.value}")
+            logger.info(s"Seeking to ${topicPartition.topic.value}:${topicPartition.partition}:${offset.value}")
             context.offset(topicPartition.toKafka, offset.value)
         }
 
@@ -152,13 +152,13 @@ class S3SinkTask extends SinkTask {
     * for those (topic,partitions) to ensure no records are lost.
     */
   override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = {
-    logger.debug(s"Received call to S3SinkTask.close with ${partitions.size()} partitions")
+    logger.info(s"Received call to S3SinkTask.close with ${partitions.size()} partitions")
 
     writerManager.close()
   }
 
   override def stop(): Unit = {
-    logger.debug(s"Received call to S3SinkTask.stop")
+    logger.info(s"Received call to S3SinkTask.stop")
 
     writerManager.close()
     writerManager = null

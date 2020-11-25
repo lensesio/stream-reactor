@@ -28,28 +28,25 @@ import scala.util.control.NonFatal
   *
   * @param fileNamingStrategy we need the policy so we can match on this.
   */
-class OffsetSeeker(fileNamingStrategy: S3FileNamingStrategy) {
+class OffsetSeeker(implicit fileNamingStrategy: S3FileNamingStrategy) {
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
-  def seek(bucketAndPath: BucketAndPath)(implicit storageInterface: StorageInterface): Set[TopicPartitionOffset] = {
+  def seek(bucketAndPath: BucketAndPath)(implicit storageInterface: StorageInterface): Option[TopicPartitionOffset] = {
     try {
 
       // the path may not have been created, in which case we have no offsets defined
       if (storageInterface.pathExists(bucketAndPath)) {
 
-        val listOfFilesInBucketTopicPartition = storageInterface.list(bucketAndPath)
-        implicit val impFileNamingStrategy: S3FileNamingStrategy = fileNamingStrategy
+        val latestOffsetFileInBucketTopicPartition: Option[String] = storageInterface.fetchLatest(bucketAndPath, fileNamingStrategy.getFormat)
 
-        listOfFilesInBucketTopicPartition.collect {
+        latestOffsetFileInBucketTopicPartition.collect {
           case CommittedFileName(topic, partition, end, format)
             if format == fileNamingStrategy.getFormat =>
             TopicPartitionOffset(topic, partition, end)
-        }.groupBy(_.toTopicPartition).map { case (tp, tpo) =>
-          tp.withOffset(tpo.maxBy(_.offset.value).offset)
-        }.toSet
+        }
 
       } else {
-        Set.empty
+        None
       }
 
     } catch {

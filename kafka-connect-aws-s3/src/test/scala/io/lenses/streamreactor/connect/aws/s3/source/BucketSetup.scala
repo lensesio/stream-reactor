@@ -45,13 +45,13 @@ object BucketSetup extends Matchers {
         S3TestPayloadReader.copyResourceToBucket(
           s"/${format.entryName.toLowerCase}${generateFormatString(formatOption)}/$fileNum.${format.entryName.toLowerCase}",
           bucketName,
-          s"$PrefixName/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}",
+          s"$PrefixName/$TopicName/0/0000000000000000${fileNum * 200 - 1}.${format.entryName.toLowerCase}",
           blobStoreContext
         )
 
         S3TestPayloadReader.fileExists(
           bucketName,
-          s"$PrefixName/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}",
+          s"$PrefixName/$TopicName/0/0000000000000000${fileNum * 200 - 1}.${format.entryName.toLowerCase}",
           blobStoreContext
         ) should be(true)
     }

@@ -61,7 +61,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
     blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(1)
 
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/1.json", blobStoreContext) should be("""{"name":"sam","title":"mr","salary":100.43}""")
+    readFileToString(BucketName, "streamReactorBackups/myTopic/1/0000000000000000001.json", blobStoreContext) should be("""{"name":"sam","title":"mr","salary":100.43}""")
   }
 
   "json sink" should "write schemas to json" in {
@@ -89,7 +89,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
     blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(1)
 
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/3.json", blobStoreContext) should be("""{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}{"name":"tom","title":null,"salary":395.44}""")
+    readFileToString(BucketName, "streamReactorBackups/myTopic/1/0000000000000000003.json", blobStoreContext) should be("""{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}{"name":"tom","title":null,"salary":395.44}""")
   }
 
 }
