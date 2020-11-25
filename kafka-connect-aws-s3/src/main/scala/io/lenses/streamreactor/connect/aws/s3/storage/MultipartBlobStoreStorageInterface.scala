@@ -131,7 +131,7 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
       pageSet
         .asScala
         .toList
-        .collect{
+        .foreach{
           case storageMetadata if storageMetadata.getType == StorageType.BLOB =>
             storageMetadata.getName match {
               case CommittedFileName(_, _, end, format)
@@ -147,7 +147,7 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
 
     } while (nextMarker.nonEmpty)
     
-    latest.fold(Option.empty[String])(latestOffsetValue => Some(latestOffsetValue._1))
+    latest.map(_._1)
     
   }
 
