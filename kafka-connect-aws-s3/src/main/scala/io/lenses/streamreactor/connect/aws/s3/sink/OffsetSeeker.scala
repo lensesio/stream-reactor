@@ -37,7 +37,7 @@ class OffsetSeeker(implicit fileNamingStrategy: S3FileNamingStrategy) {
       // the path may not have been created, in which case we have no offsets defined
       if (storageInterface.pathExists(bucketAndPath)) {
 
-        val latestOffsetFileInBucketTopicPartition: Option[String] = storageInterface.fetchLatest(bucketAndPath, fileNamingStrategy.getFormat)
+        val latestOffsetFileInBucketTopicPartition: Option[String] = storageInterface.fetchLatest(bucketAndPath)
 
         latestOffsetFileInBucketTopicPartition.collect {
           case CommittedFileName(topic, partition, end, format)

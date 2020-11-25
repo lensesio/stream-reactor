@@ -44,7 +44,7 @@ class OffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
   "seek" should "return expected offsets for 1 filename" in {
 
     when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
-    when(storageInterface.fetchLatest(bucketAndPath, Json)).thenReturn(Some("path/myTopic/0/100.json"))
+    when(storageInterface.fetchLatest(bucketAndPath)).thenReturn(Some("path/myTopic/0/100.json"))
 
     offsetSeeker.seek(bucketAndPath) should be(Some(TopicPartitionOffset(Topic("myTopic"), 0, Offset(100))))
   }

@@ -21,8 +21,8 @@ import java.io.{ByteArrayInputStream, InputStream}
 import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.Format
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix}
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix, Offset}
+import io.lenses.streamreactor.connect.aws.s3.sink.{CommittedFileName, S3FileNamingStrategy}
 import org.jclouds.blobstore.BlobStoreContext
 import org.jclouds.blobstore.domain.internal.MutableBlobMetadataImpl
 import org.jclouds.blobstore.domain.{BlobMetadata, StorageType}
@@ -116,31 +116,39 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
   override def pathExists(bucketAndPath: BucketAndPath): Boolean =
     blobStore.list(bucketAndPath.bucket, ListContainerOptions.Builder.prefix(bucketAndPath.path)).size() > 0
 
-  override def fetchLatest(bucketAndPath: BucketAndPath, format: Format): Option[String] = {
+  override def fetchLatest(bucketAndPath: BucketAndPath)(implicit fileNamingStrategy: S3FileNamingStrategy): Option[String] = {
     val options = ListContainerOptions.Builder.recursive().prefix(bucketAndPath.path).maxResults(awsMaxKeys)
-    var latest : Option[String] = None
+    var latest : Option[(String, Offset)] = None
     var nextMarker: Option[String] = None
-    val formatExtension = "." + format.entryName.toLowerCase
     
     do {
       if (nextMarker.nonEmpty) {
         options.afterMarker(nextMarker.get)
       }
       val pageSet = blobStore.list(bucketAndPath.bucket, options)
+      import Offset.orderingByOffsetValue
 
-      latest = pageSet
+      pageSet
         .asScala
         .toList
         .collect{
-          case storageMetadata if storageMetadata.getType == StorageType.BLOB && storageMetadata.getName.endsWith(formatExtension)=>
-            storageMetadata.getName
+          case storageMetadata if storageMetadata.getType == StorageType.BLOB =>
+            storageMetadata.getName match {
+              case CommittedFileName(_, _, end, format)
+                if format == fileNamingStrategy.getFormat =>
+                latest match {
+                  case Some((_, offset)) => if(orderingByOffsetValue.gt(end,offset)) latest = Some(storageMetadata.getName, end)
+                  case None => latest = Some(storageMetadata.getName, end)
+                }
+            }
         }
-        .lastOption
-
+        
       nextMarker = Option(pageSet.getNextMarker)
 
     } while (nextMarker.nonEmpty)
-    latest
+    
+    latest.fold(Option.empty[String])(latestOffsetValue => Some(latestOffsetValue._1))
+    
   }
 
   override def list(bucketAndPath: BucketAndPath): List[String] = {

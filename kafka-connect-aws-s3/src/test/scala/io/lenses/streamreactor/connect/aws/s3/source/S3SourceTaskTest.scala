@@ -31,7 +31,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
   "blobstore get input stream" should "reveal availability" in {
     setUpBucketData(BucketName, blobStoreContext, Format.Json, None)
 
-    val blob: Blob = blobStoreContext.getBlobStore.getBlob(BucketName, s"$PrefixName/$TopicName/0/0000000000000000399.json")
+    val blob: Blob = blobStoreContext.getBlobStore.getBlob(BucketName, s"$PrefixName/$TopicName/0/399.json")
     val inputStream = blob.getPayload.openStream()
 
     val initialAvailable = inputStream.available()
@@ -100,7 +100,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
 
           override def offsetStorageReader(): OffsetStorageReader = new OffsetStorageReader {
             override def offset[T](partition: util.Map[String, T]): util.Map[String, AnyRef] = Map(
-              "path" -> s"$PrefixName/$TopicName/0/0000000000000000399.${format.entryName.toLowerCase}",
+              "path" -> s"$PrefixName/$TopicName/0/399.${format.entryName.toLowerCase}",
               "line" -> "9".asInstanceOf[Object]
             ).asJava
 
