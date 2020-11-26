@@ -18,11 +18,11 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import java.io.{ByteArrayInputStream, InputStream}
-import java.util.UUID
+import java.util.{Date, UUID}
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix, Offset}
-import io.lenses.streamreactor.connect.aws.s3.sink.{CommittedFileName, S3FileNamingStrategy}
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix}
+import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
 import org.jclouds.blobstore.BlobStoreContext
 import org.jclouds.blobstore.domain.internal.MutableBlobMetadataImpl
 import org.jclouds.blobstore.domain.{BlobMetadata, StorageType}
@@ -118,7 +118,7 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
 
   override def fetchLatest(bucketAndPath: BucketAndPath)(implicit fileNamingStrategy: S3FileNamingStrategy): Option[String] = {
     val options = ListContainerOptions.Builder.recursive().prefix(bucketAndPath.path).maxResults(awsMaxKeys)
-    var latest : Option[(String, Offset)] = None
+    var latest : Option[(String, Date)] = None
     var nextMarker: Option[String] = None
     
     do {
@@ -126,21 +126,16 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
         options.afterMarker(nextMarker.get)
       }
       val pageSet = blobStore.list(bucketAndPath.bucket, options)
-      import Offset.orderingByOffsetValue
 
       pageSet
         .asScala
         .toList
-        .foreach{
-          case storageMetadata if storageMetadata.getType == StorageType.BLOB =>
-            storageMetadata.getName match {
-              case CommittedFileName(_, _, end, format)
-                if format == fileNamingStrategy.getFormat =>
-                latest match {
-                  case Some((_, offset)) => if(orderingByOffsetValue.gt(end,offset)) latest = Some(storageMetadata.getName, end)
-                  case None => latest = Some(storageMetadata.getName, end)
-                }
-            }
+        .foreach {
+          case storageMetadata if storageMetadata.getType == StorageType.BLOB && storageMetadata.getName.endsWith(fileNamingStrategy.getFormat.entryName.toLowerCase) =>
+          latest match {
+            case Some((_, date)) => if(date.before(storageMetadata.getLastModified)) latest = Some(storageMetadata.getName, storageMetadata.getLastModified)
+            case None => latest = Some(storageMetadata.getName, storageMetadata.getLastModified)
+          }
         }
         
       nextMarker = Option(pageSet.getNextMarker)
