@@ -29,8 +29,8 @@ class CsvFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: Buc
   override def next(): StringSourceData = {
     if(firstRun) {
       if(hasHeaders) {
-        if(scanner.hasNextLine) {
-          scanner.nextLine()
+        if(sourceLines.hasNext) {
+          sourceLines.next()
           lineNumber += 1
         } else {
           throw new IllegalStateException("No column headers are available")

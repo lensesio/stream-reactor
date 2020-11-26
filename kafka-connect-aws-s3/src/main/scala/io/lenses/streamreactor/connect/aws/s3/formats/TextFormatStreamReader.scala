@@ -16,34 +16,30 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.io.{InputStream, InputStreamReader}
-import java.util.Scanner
+import java.io.InputStream
 
 import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, StringSourceData}
 
+import scala.io.Source
 import scala.util.Try
 
 class TextFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: BucketAndPath) extends S3FormatStreamReader[StringSourceData] {
 
   private val inputStream: InputStream = inputStreamFn()
-  protected val scanner = new Scanner(new InputStreamReader(inputStream))
+  private val source = Source.fromInputStream(inputStream, "UTF-8")
+  protected val sourceLines = source.getLines()
   protected var lineNumber: Long = -1
 
-  override def close(): Unit = {
-    Try(scanner.close())
-    Try(inputStream.close())
-  }
+  override def close(): Unit = Try(source.close())
 
-  override def hasNext: Boolean = {
-    scanner.hasNextLine
-  }
+  override def hasNext: Boolean = sourceLines.hasNext
 
   override def next(): StringSourceData = {
     lineNumber += 1
-    if(!scanner.hasNextLine) {
+    if(!sourceLines.hasNext) {
       throw new IllegalStateException("Invalid state reached: invalid state reached. The file content has been consumed, no further calls to next() are possible.")
     }
-    StringSourceData(scanner.nextLine(), lineNumber)
+    StringSourceData(sourceLines.next(), lineNumber)
   }
 
   override def getBucketAndPath: BucketAndPath = bucketAndPath
