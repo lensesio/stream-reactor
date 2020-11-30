@@ -131,10 +131,13 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
         .asScala
         .toList
         .foreach {
-          case storageMetadata if storageMetadata.getType == StorageType.BLOB && storageMetadata.getName.endsWith(fileNamingStrategy.getFormat.entryName.toLowerCase) =>
+          case storageMetadata if storageMetadata.getType == StorageType.BLOB 
+            && storageMetadata.getName.endsWith(fileNamingStrategy.getFormat.entryName.toLowerCase) =>
           latest match {
-            case Some((_, date)) => if(date.before(storageMetadata.getLastModified)) latest = Some(storageMetadata.getName, storageMetadata.getLastModified)
-            case None => latest = Some(storageMetadata.getName, storageMetadata.getLastModified)
+            case Some((_, date)) => if(date.before(storageMetadata.getLastModified)) latest = 
+              Some(storageMetadata.getName, storageMetadata.getLastModified)
+            case None => latest = 
+              Some(storageMetadata.getName, storageMetadata.getLastModified)
           }
         }
         
