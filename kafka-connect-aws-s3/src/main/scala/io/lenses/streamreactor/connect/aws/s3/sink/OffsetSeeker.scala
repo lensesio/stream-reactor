@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020 Lenses.io
  *
@@ -16,46 +15,10 @@
  */
 
 package io.lenses.streamreactor.connect.aws.s3.sink
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix, TopicPartition, TopicPartitionOffset}
 
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, TopicPartitionOffset}
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+trait OffsetSeeker {
 
-import scala.util.control.NonFatal
-
-/**
-  * The [[OffsetSeeker]] is responsible for querying the [[StorageInterface]] to
-  * retrieve current offset information from a container.
-  *
-  * @param fileNamingStrategy we need the policy so we can match on this.
-  */
-class OffsetSeeker(implicit fileNamingStrategy: S3FileNamingStrategy) {
-  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
-
-  def seek(bucketAndPath: BucketAndPath)(implicit storageInterface: StorageInterface): Option[TopicPartitionOffset] = {
-    try {
-
-      // the path may not have been created, in which case we have no offsets defined
-      if (storageInterface.pathExists(bucketAndPath)) {
-
-        val latestOffsetFileInBucketTopicPartition: Option[String] = storageInterface.fetchLatest(bucketAndPath)
-
-        latestOffsetFileInBucketTopicPartition.collect {
-          case CommittedFileName(topic, partition, end, format)
-            if format == fileNamingStrategy.getFormat =>
-            TopicPartitionOffset(topic, partition, end)
-        }
-
-      } else {
-        None
-      }
-
-    } catch {
-      case NonFatal(e) =>
-        logger.error(s"Error seeking bucket/prefix $bucketAndPath")
-        throw e
-    }
-
-  }
+  def seek(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): Option[(BucketAndPath,TopicPartitionOffset)]
 
 }
-

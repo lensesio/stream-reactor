@@ -24,6 +24,8 @@ import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreOutputS
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.errors.ConnectException
 
+import scala.collection.mutable
+
 /**
   * Manages the lifecycle of [[S3Writer]] instances.
   *
@@ -42,6 +44,7 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
 
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
+  private val latestFileMap = mutable.Map[TopicPartition, (Offset, BucketAndPath)]()
   case class MapKey(topicPartition: TopicPartition, bucketAndPath: BucketAndPath)
 
   private val writers = scala.collection.mutable.Map.empty[MapKey, S3Writer]
@@ -77,17 +80,27 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
   def open(partitions: Set[TopicPartition]): Map[TopicPartition, Offset] = {
     logger.debug("Received call to S3WriterManager.open")
 
-    partitions.collect {
+    val topicPartitionsToOffsets = partitions.collect {
+          
       case topicPartition: TopicPartition =>
         implicit val fileNamingStrategy = fileNamingStrategyFn(topicPartition.topic)
         val bucketAndPrefix = bucketAndPrefixFn(topicPartition.topic)
-        val topicPartitionPrefix = fileNamingStrategy.topicPartitionPrefix(bucketAndPrefix, topicPartition)
-        new OffsetSeeker().seek(topicPartitionPrefix)(storageInterface)
-          .fold(Option.empty[(TopicPartition,Offset)]){
-            topicPartitionOffset => Some((topicPartition, topicPartitionOffset.offset))
+
+       val   seeked: Option[(BucketAndPath, TopicPartitionOffset)] = fileNamingStrategy
+         .createOffsetSeeker(storageInterface)
+         .seek(bucketAndPrefix, topicPartition)
+        
+        seeked.foreach(s => {
+          latestFileMap(topicPartition) = (s._2.offset, s._1)
+        })
+          
+          seeked.fold(Option.empty[(TopicPartition,Offset)]){
+            topicPartitionOffset => Some((topicPartition, topicPartitionOffset._2.offset))
           }
     }.flatten
       .toMap
+
+    topicPartitionsToOffsets
   }
 
   def close(): Unit = {
@@ -98,7 +111,7 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
   def write(topicPartitionOffset: TopicPartitionOffset, messageDetail: MessageDetail): Unit = {
     logger.debug(s"Received call to S3WriterManager.write")
 
-    val newWriter = writer(topicPartitionOffset.toTopicPartition, messageDetail)
+    val newWriter = writer(topicPartitionOffset, messageDetail)
 
     val schema = messageDetail.valueSinkData.schema()
     if (schema.isDefined && newWriter.shouldRollover(schema.get)) {
@@ -116,7 +129,8 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
     * Returns a writer that can write records for a particular topic and partition.
     * The writer will create a file inside the given directory if there is no open writer.
     */
-  def writer(topicPartition: TopicPartition, messageDetail: MessageDetail): S3Writer = {
+  def writer(topicPartitionOffset: TopicPartitionOffset, messageDetail: MessageDetail): S3Writer = {
+    val topicPartition = topicPartitionOffset.toTopicPartition
     val bucketAndPrefix = bucketAndPrefixFn(topicPartition.topic)
     val fileNamingStrategy: S3FileNamingStrategy = fileNamingStrategyFn(topicPartition.topic)
 
@@ -124,19 +138,20 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
 
     val tempBucketAndPath: BucketAndPath = fileNamingStrategy.stagingFilename(bucketAndPrefix, topicPartition, partitionValues)
 
-    writers.getOrElseUpdate(MapKey(topicPartition, tempBucketAndPath), createWriter(bucketAndPrefix, topicPartition, partitionValues))
+    writers.getOrElseUpdate(MapKey(topicPartition, tempBucketAndPath), createWriter(bucketAndPrefix, topicPartitionOffset, partitionValues))
   }
 
-  private def createWriter(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): S3Writer = {
+  private def createWriter(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): S3Writer = {
 
     logger.debug(s"Creating new writer for bucketAndPrefix [$bucketAndPrefix]")
 
     new S3WriterImpl(
       bucketAndPrefix,
-      commitPolicyFn(topicPartition.topic),
+      commitPolicyFn(topicPartitionOffset.topic),
       formatWriterFn,
-      fileNamingStrategyFn(topicPartition.topic),
-      partitionValues
+      fileNamingStrategyFn(topicPartitionOffset.topic),
+      partitionValues,
+      latestFileMap
     )
   }
 

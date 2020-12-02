@@ -70,7 +70,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
     blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(1)
 
-    val byteArray = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/2.avro", blobStoreContext)
+    val byteArray = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/latest_2.avro", blobStoreContext)
     val genericRecords: List[GenericRecord] = avroFormatReader.read(byteArray)
     genericRecords.size should be(2)
 
@@ -121,7 +121,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
     // record 3 only - next schema is different so ending the file
     val genericRecords3: List[GenericRecord] = avroFormatReader.read(
-      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/5.avro", blobStoreContext)
+      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/latest_5.avro", blobStoreContext)
     )
     genericRecords3.size should be(2)
     genericRecords3(0).get("name").toString should be("bobo")

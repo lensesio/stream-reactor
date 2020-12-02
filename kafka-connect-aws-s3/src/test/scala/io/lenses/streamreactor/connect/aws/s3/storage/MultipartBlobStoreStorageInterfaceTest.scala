@@ -17,10 +17,10 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix}
+import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPath
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestPayloadReader
 import org.jclouds.blobstore.domain.internal.{PageSetImpl, StorageMetadataImpl}
-import org.jclouds.blobstore.domain.{BlobMetadata, MultipartPart, MultipartUpload, StorageMetadata, StorageType}
+import org.jclouds.blobstore.domain._
 import org.jclouds.blobstore.options.{ListContainerOptions, PutOptions}
 import org.jclouds.blobstore.{BlobStore, BlobStoreContext}
 import org.jclouds.io.payloads.ByteSourcePayload
@@ -109,7 +109,7 @@ class MultipartBlobStoreStorageInterfaceTest extends AnyFlatSpec with MockitoSug
         any[ListContainerOptions]
       )
 
-    multipartBlobStoreStorageInterface.list(BucketAndPrefix(testBucketAndPath.bucket, Some("prefix"))) should
+    multipartBlobStoreStorageInterface.list(BucketAndPath(testBucketAndPath.bucket, "prefix")) should
       be(List("first", "second"))
   }
 
@@ -124,7 +124,7 @@ class MultipartBlobStoreStorageInterfaceTest extends AnyFlatSpec with MockitoSug
         any[ListContainerOptions]
       )
 
-    multipartBlobStoreStorageInterface.list(BucketAndPrefix(testBucketAndPath.bucket, Some("prefix"))) should
+    multipartBlobStoreStorageInterface.list(BucketAndPath(testBucketAndPath.bucket, "prefix")) should
       be(List("only"))
   }
 

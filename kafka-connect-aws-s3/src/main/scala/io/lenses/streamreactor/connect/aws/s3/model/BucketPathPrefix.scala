@@ -39,6 +39,8 @@ case class BucketAndPrefix(
   prefix
     .filter(_.contains("/"))
     .foreach(_ => throw new IllegalArgumentException("Nested prefix not currently supported"))
+  
+  def toPath = BucketAndPath(bucket, prefix.getOrElse(""))
 }
 
 case class BucketAndPath(

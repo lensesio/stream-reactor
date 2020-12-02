@@ -23,6 +23,8 @@ import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.{CommitContext, CommitPolicy, S3FileNamingStrategy}
 import org.apache.kafka.connect.data.Schema
 
+import scala.collection.mutable
+
 trait S3Writer {
   def shouldFlush: Boolean
 
@@ -46,7 +48,7 @@ case class S3WriterState(
                           lastFlushedTimestamp: Option[Long] = None,
                           recordCount: Long = 0,
                           lastKnownFileSize: Long = 0,
-                          lastKnownSchema: Option[Schema] = None
+                          lastKnownSchema: Option[Schema] = None,
                         )
 
 
@@ -55,7 +57,8 @@ class S3WriterImpl(
                     commitPolicy: CommitPolicy,
                     formatWriterFn: (TopicPartition, Map[PartitionField, String]) => S3FormatWriter,
                     fileNamingStrategy: S3FileNamingStrategy,
-                    partitionValues: Map[PartitionField, String]
+                    partitionValues: Map[PartitionField, String],
+                    latestFileMap: mutable.Map[TopicPartition, (Offset, BucketAndPath)],
                   )(implicit storageInterface: StorageInterface) extends S3Writer with LazyLogging {
 
   private var internalState: S3WriterState = _
@@ -114,27 +117,61 @@ class S3WriterImpl(
       internalState.offset)
 
     formatWriter.close()
-    if (formatWriter.getOutstandingRename) {
-      renameFile(topicPartitionOffset, partitionValues)
-    }
+    
+    if (formatWriter.getOutstandingRename) performRenames(topicPartitionOffset)
 
     resetState(topicPartitionOffset)
 
     topicPartitionOffset
   }
 
-  private def renameFile(topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): Unit = {
+  private def performRenames(topicPartitionOffset: TopicPartitionOffset) = {
+    val latestFileOpt = latestFileMap.get(topicPartitionOffset.toTopicPartition)
+
+    val isLatest: Boolean = latestFileOpt match {
+      case Some((latestFileOffset, _)) => Offset.orderingByOffsetValue.lt(latestFileOffset, topicPartitionOffset.offset)
+      case None => true
+    }
+
+    val newFile = renameFile(isLatest, topicPartitionOffset, partitionValues)
+    if (isLatest) {
+      latestFileOpt.foreach {
+        case (_, path) => renamePreviousLatestFile(path)
+      }
+      latestFileMap.put(topicPartitionOffset.toTopicPartition, (topicPartitionOffset.offset, newFile))
+    }
+  }
+
+  private def renamePreviousLatestFile(previousLatest: BucketAndPath): Unit = {
+      val finalFilename = fileNamingStrategy.convertLatestToFinalFilename(previousLatest)
+      try {
+        storageInterface.rename(previousLatest, finalFilename)
+      } catch {
+        case e: Exception => logger.debug("Rename failed", e)
+      }
+  }
+
+  private def renameFile(isLatest: Boolean, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath = {
     val originalFilename = fileNamingStrategy.stagingFilename(
       bucketAndPrefix,
       topicPartitionOffset.toTopicPartition,
       partitionValues
     )
-    val finalFilename = fileNamingStrategy.finalFilename(
-      bucketAndPrefix,
-      topicPartitionOffset,
-      partitionValues
-    )
+    val finalFilename = if (isLatest) {
+      fileNamingStrategy.latestFilename(
+        bucketAndPrefix,
+        topicPartitionOffset,
+        partitionValues
+      )
+    } else {
+      fileNamingStrategy.finalFilename(
+        bucketAndPrefix,
+        topicPartitionOffset,
+        partitionValues
+      )
+    }
     storageInterface.rename(originalFilename, finalFilename)
+    finalFilename
   }
 
   private def resetState(topicPartitionOffset: TopicPartitionOffset): Unit = {

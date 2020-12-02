@@ -33,6 +33,7 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
   private implicit val storageInterface: StorageInterface = mock[StorageInterface]
 
   private val bucketAndPrefix = BucketAndPrefix("my-bucket", Some("path"))
+  private val bucketAndPath = bucketAndPrefix.toPath
   private val sourceLister = new S3SourceLister
 
   // comes back in random order
@@ -41,8 +42,8 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   "next" should "return first result when no TopicPartitionOffset has been provided" in {
 
-    when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
-    when(storageInterface.list(bucketAndPrefix)).thenReturn(defaultJsonFilesTestData)
+    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
+    when(storageInterface.list(bucketAndPath)).thenReturn(defaultJsonFilesTestData)
 
     sourceLister.next(fileNamingStrategy, bucketAndPrefix, None, None) should be(
       Some(
@@ -53,8 +54,8 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   "next" should "return the second result after we've had the first result" in {
 
-    when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
-    when(storageInterface.list(bucketAndPrefix)).thenReturn(defaultJsonFilesTestData)
+    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
+    when(storageInterface.list(bucketAndPath)).thenReturn(defaultJsonFilesTestData)
 
     sourceLister.next(
       fileNamingStrategy,
@@ -72,8 +73,8 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   "next" should "return empty when we've already had the last result" in {
 
-    when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
-    when(storageInterface.list(bucketAndPrefix)).thenReturn(defaultJsonFilesTestData)
+    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
+    when(storageInterface.list(bucketAndPath)).thenReturn(defaultJsonFilesTestData)
 
     sourceLister.next(fileNamingStrategy, bucketAndPrefix, Some(S3StoredFile("path/myTopic/0/300.json", TopicPartitionOffset(Topic("myTopic"), 0, Offset(300)))), None) should be(
       None
@@ -83,15 +84,15 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   "list" should "return empty set when path does not exist" in {
 
-    when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(false)
+    when(storageInterface.pathExists(bucketAndPath)).thenReturn(false)
 
     sourceLister.list(fileNamingStrategy, bucketAndPrefix) should be(List())
   }
 
   "list" should "return expected offsets for 1 filename" in {
 
-    when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
-    when(storageInterface.list(bucketAndPrefix)).thenReturn(List("path/myTopic/0/100.json"))
+    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
+    when(storageInterface.list(bucketAndPath)).thenReturn(List("path/myTopic/0/100.json"))
 
     sourceLister.list(fileNamingStrategy, bucketAndPrefix) should be
     List(
@@ -101,9 +102,9 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   "list" should "return all offsets in order for multiple offsets of the same file" in {
 
-    when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
+    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
     // comes back in random order
-    when(storageInterface.list(bucketAndPrefix)).thenReturn(
+    when(storageInterface.list(bucketAndPath)).thenReturn(
       defaultJsonFilesTestData
     )
 
@@ -118,8 +119,8 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   "list" should "ignore other file extensions" in {
 
-    when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
-    when(storageInterface.list(bucketAndPrefix)).thenReturn(
+    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
+    when(storageInterface.list(bucketAndPath)).thenReturn(
       List(
         "path/myTopic/0/100.avro", "path/myTopic/0/200.avro", "path/myTopic/0/300.avro",
         "path/myTopic/0/100.json", "path/myTopic/0/200.json"
@@ -136,8 +137,8 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   "list" should "ignore unknown file extensions" in {
 
-    when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
-    when(storageInterface.list(bucketAndPrefix)).thenReturn(
+    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
+    when(storageInterface.list(bucketAndPath)).thenReturn(
       List(
         "path/myTopic/0/100.doc", "path/myTopic/0/200.xls", "path/myTopic/0/300.ppt",
         "path/myTopic/0/100.json", "path/myTopic/0/200.json"
@@ -155,8 +156,8 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   "list" should "ignore files with no extensions" in {
 
-    when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
-    when(storageInterface.list(bucketAndPrefix)).thenReturn(
+    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
+    when(storageInterface.list(bucketAndPath)).thenReturn(
       List(
         "path/myTopic/0/100", "path/myTopic/0/200", "path/myTopic/0/300",
         "path/myTopic/0/100.json", "path/myTopic/0/200.json"
@@ -173,8 +174,8 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   "list" should "return offsets for multiple partitions" in {
 
-    when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
-    when(storageInterface.list(bucketAndPrefix)).thenReturn(
+    when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
+    when(storageInterface.list(bucketAndPath)).thenReturn(
       List(
         "path/myTopic/1/100.json", "path/myTopic/1/200.json",
         "path/myTopic/0/100.json", "path/myTopic/0/200.json", "path/myTopic/0/300.json",

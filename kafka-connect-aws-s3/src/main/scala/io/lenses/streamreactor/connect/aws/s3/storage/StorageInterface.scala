@@ -17,11 +17,11 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import java.io.InputStream
-
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix}
-import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
+import io.lenses.streamreactor.connect.aws.s3.config.Format
+import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPath
 import org.jclouds.blobstore.domain.{MultipartPart, MultipartUpload}
+
+import java.io.InputStream
 
 case class MultiPartUploadState(
                                  upload: MultipartUpload,
@@ -40,18 +40,16 @@ trait StorageInterface {
 
   def close(): Unit
 
-  def pathExists(bucketAndPrefix: BucketAndPrefix): Boolean
-
   def pathExists(bucketAndPath: BucketAndPath): Boolean
 
   def list(bucketAndPrefix: BucketAndPath): List[String]
-
-  def list(bucketAndPrefix: BucketAndPrefix): List[String]
 
   def getBlob(bucketAndPath: BucketAndPath): InputStream
 
   def getBlobSize(bucketAndPath: BucketAndPath): Long
 
-  def fetchLatest(bucketAndPath: BucketAndPath)(implicit fileNamingStrategy: S3FileNamingStrategy): Option[String]
+  def listUsingStringMatching(bucketAndPath: BucketAndPath, format: Format): List[String]
+
+  def fetchSingleLatestUsingLastModified(bucketAndPath: BucketAndPath, format: Format): Option[String]
 }
 

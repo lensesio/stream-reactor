@@ -17,19 +17,19 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import java.io.{ByteArrayInputStream, InputStream}
-import java.util.{Date, UUID}
-
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix}
-import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
+import io.lenses.streamreactor.connect.aws.s3.config.Format
+import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPath
 import org.jclouds.blobstore.BlobStoreContext
 import org.jclouds.blobstore.domain.internal.MutableBlobMetadataImpl
 import org.jclouds.blobstore.domain.{BlobMetadata, StorageType}
 import org.jclouds.blobstore.options.{CopyOptions, ListContainerOptions, PutOptions}
 import org.jclouds.io.payloads.{BaseMutableContentMetadata, InputStreamPayload}
 
+import java.io.{ByteArrayInputStream, InputStream}
+import java.util.{Date, UUID}
 import scala.collection.JavaConverters._
+import scala.collection.mutable.ListBuffer
 import scala.util.Try
 
 class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) extends StorageInterface with LazyLogging {
@@ -110,17 +110,14 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
 
   override def close(): Unit = blobStoreContext.close()
 
-  override def pathExists(bucketAndPrefix: BucketAndPrefix): Boolean =
-    blobStore.list(bucketAndPrefix.bucket, ListContainerOptions.Builder.prefix(bucketAndPrefix.prefix.getOrElse(""))).size() > 0
-
   override def pathExists(bucketAndPath: BucketAndPath): Boolean =
     blobStore.list(bucketAndPath.bucket, ListContainerOptions.Builder.prefix(bucketAndPath.path)).size() > 0
 
-  override def fetchLatest(bucketAndPath: BucketAndPath)(implicit fileNamingStrategy: S3FileNamingStrategy): Option[String] = {
+  override def fetchSingleLatestUsingLastModified(bucketAndPath: BucketAndPath, format: Format): Option[String] = {
     val options = ListContainerOptions.Builder.recursive().prefix(bucketAndPath.path).maxResults(awsMaxKeys)
     var latest : Option[(String, Date)] = None
     var nextMarker: Option[String] = None
-    
+
     do {
       if (nextMarker.nonEmpty) {
         options.afterMarker(nextMarker.get)
@@ -131,22 +128,51 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
         .asScala
         .toList
         .foreach {
-          case storageMetadata if storageMetadata.getType == StorageType.BLOB 
-            && storageMetadata.getName.endsWith(fileNamingStrategy.getFormat.entryName.toLowerCase) =>
-          latest match {
-            case Some((_, date)) => if(date.before(storageMetadata.getLastModified)) latest = 
-              Some(storageMetadata.getName, storageMetadata.getLastModified)
-            case None => latest = 
-              Some(storageMetadata.getName, storageMetadata.getLastModified)
-          }
+          case storageMetadata if storageMetadata.getType == StorageType.BLOB
+            && storageMetadata.getName.endsWith(format.entryName.toLowerCase) =>
+            latest match {
+              case Some((_, date)) => if(date.before(storageMetadata.getLastModified)) latest =
+                Some(storageMetadata.getName, storageMetadata.getLastModified)
+              case None => latest =
+                Some(storageMetadata.getName, storageMetadata.getLastModified)
+            }
         }
-        
+
       nextMarker = Option(pageSet.getNextMarker)
 
     } while (nextMarker.nonEmpty)
-    
+
     latest.map(_._1)
-    
+
+  }
+
+  override def listUsingStringMatching(bucketAndPath: BucketAndPath, format: Format): List[String] = {
+    val options = ListContainerOptions.Builder.recursive().prefix(bucketAndPath.path).maxResults(awsMaxKeys)
+    val latest : ListBuffer[String] = ListBuffer()
+    var nextMarker: Option[String] = None
+
+    do {
+      if (nextMarker.nonEmpty) {
+        options.afterMarker(nextMarker.get)
+      }
+      val pageSet = blobStore.list(bucketAndPath.bucket, options)
+
+      pageSet
+        .asScala
+        .toList
+        .foreach {
+          case storageMetadata if storageMetadata.getType == StorageType.BLOB
+            && storageMetadata.getName.endsWith(format.entryName.toLowerCase)
+            && storageMetadata.getName.contains("_latest_") =>
+            latest += storageMetadata.getName
+        }
+
+      nextMarker = Option(pageSet.getNextMarker)
+
+    } while (nextMarker.nonEmpty)
+
+    latest.toList
+
   }
 
   override def list(bucketAndPath: BucketAndPath): List[String] = {
@@ -171,37 +197,6 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
 
     } while (nextMarker.nonEmpty)
     pageSetStrings
-  }
-
-  override def list(bucketAndPrefix: BucketAndPrefix): List[String] = {
-    val options = bucketAndPrefix
-      .prefix
-      .fold(
-        ListContainerOptions.Builder.recursive()
-      )(
-        ListContainerOptions.Builder.recursive().prefix
-      )
-      .maxResults(awsMaxKeys)
-
-    var pageSetStrings: List[String] = List()
-    var nextMarker: Option[String] = None
-    do {
-      if (nextMarker.nonEmpty) {
-        options.afterMarker(nextMarker.get)
-      }
-      val pageSet = blobStore.list(bucketAndPrefix.bucket, options)
-      nextMarker = Option(pageSet.getNextMarker)
-      pageSetStrings ++= pageSet
-        .asScala
-        .filter(_.getType == StorageType.BLOB)
-        .map(
-          storageMetadata => storageMetadata.getName
-        )
-        .toList
-
-    } while (nextMarker.nonEmpty)
-    pageSetStrings
-
   }
 
   override def getBlob(bucketAndPath: BucketAndPath): InputStream = {

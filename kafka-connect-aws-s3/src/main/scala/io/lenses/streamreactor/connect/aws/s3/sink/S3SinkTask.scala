@@ -50,7 +50,7 @@ class S3SinkTask extends SinkTask {
     config.bucketOptions.foreach(
       bucketOption => {
         val bucketAndPrefix = bucketOption.bucketAndPrefix
-        storageInterface.list(bucketAndPrefix)
+        storageInterface.list(bucketAndPrefix.toPath)
       }
     )
   }

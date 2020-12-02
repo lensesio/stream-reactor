@@ -21,19 +21,23 @@ import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection}
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionDisplay.KeysAndValues
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.FieldValueToStringConverter
+import io.lenses.streamreactor.connect.aws.s3.sink.offsets.{HierarchicalOffsetSeeker, PartitionedOffsetSeeker}
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
 import scala.util.matching.Regex
 import scala.util.{Failure, Success, Try}
 
 trait S3FileNamingStrategy {
-
   protected val DefaultPrefix = "streamreactor"
+
 
   def getFormat: Format
 
   def prefix(bucketAndPrefix: BucketAndPrefix): String = bucketAndPrefix.prefix.getOrElse(DefaultPrefix)
 
   def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): BucketAndPath
+
+  def latestFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath
 
   def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath
 
@@ -43,8 +47,22 @@ trait S3FileNamingStrategy {
 
   def topicPartitionPrefix(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath
 
-  val committedFilenameRegex: Regex
+  def topicPartitionPrefixLatest(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath
 
+  def convertLatestToFinalFilename(latestFilename: BucketAndPath): BucketAndPath = {
+    BucketAndPath(
+      latestFilename.bucket,
+      replaceLast("latest_", latestFilename.path, "")
+    )
+  }
+
+  private def replaceLast(needle: String, haystack: String, replacement: String): String = {
+    haystack.reverse.replaceFirst(needle.reverse, replacement).reverse
+  }
+
+  def createOffsetSeeker(storageInterface: StorageInterface): OffsetSeeker
+
+  val committedFilenameRegex: Regex
 }
 
 class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends S3FileNamingStrategy {
@@ -53,6 +71,9 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends
 
   override def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): BucketAndPath =
     BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/.temp/${topicPartition.topic.value}/${topicPartition.partition}.${format.entryName.toLowerCase}")
+ 
+  override def latestFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath =
+    BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${topicPartitionOffset.topic.value}/${topicPartitionOffset.partition}/latest_${topicPartitionOffset.offset.value}.${format.entryName.toLowerCase}")
 
   override def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath =
     BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${topicPartitionOffset.topic.value}/${topicPartitionOffset.partition}/${topicPartitionOffset.offset.value}.${format.entryName.toLowerCase}")
@@ -63,10 +84,14 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends
 
   override def processPartitionValues(messageDetail: MessageDetail): Map[PartitionField, String] = throw new UnsupportedOperationException("This should never be called for this object")
 
-  override val committedFilenameRegex: Regex = s".+/(.+)/(\\d+)/(\\d+).(.+)".r
+  override val committedFilenameRegex: Regex = s".+/(.+)/(\\d+)/(?:latest_)?(\\d+).(.+)".r
 
   override def topicPartitionPrefix(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath = BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${topicPartition.topic.value}/${topicPartition.partition}/")
 
+  override def topicPartitionPrefixLatest(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath = BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${topicPartition.topic.value}/${topicPartition.partition}/latest_")
+
+
+  override def createOffsetSeeker(storageInterface: StorageInterface): OffsetSeeker = new HierarchicalOffsetSeeker()(this, storageInterface)
 }
 
 class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitionSelection: PartitionSelection) extends S3FileNamingStrategy {
@@ -89,6 +114,10 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
 
   private def partitionValuePrefix(partition: PartitionField): String = {
     if (partitionSelection.partitionDisplay == KeysAndValues) s"${partition.valuePrefixDisplay()}=" else ""
+  }
+
+  override def latestFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath = {
+    BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartitionOffset.topic.value}(${topicPartitionOffset.partition}_latest_${topicPartitionOffset.offset.value}).${format.entryName.toLowerCase}")
   }
 
   override def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath =
@@ -140,9 +169,13 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
 
   override def shouldProcessPartitionValues: Boolean = true
 
-  override val committedFilenameRegex: Regex = s"^[^/]+?/(?:.+/)*(.+)\\((\\d+)_(\\d+)\\).(.+)".r
+  override val committedFilenameRegex: Regex = s"^[^/]+?/(?:.+/)*(.+)\\((\\d+)_(?:latest_)?(\\d+)\\).(.+)".r
 
-  override def topicPartitionPrefix(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath = BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/")
+  override def topicPartitionPrefix(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath = BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/(${topicPartition.partition}_")
+
+  override def topicPartitionPrefixLatest(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath = BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/(${topicPartition.partition}_latest_")
+
+  override def createOffsetSeeker(storageInterface: StorageInterface): OffsetSeeker = new PartitionedOffsetSeeker()(this, storageInterface)
 }
 
 
