@@ -18,7 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix, S3StoredFile, S3StoredFileSorter}
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPrefix, S3StoredFile, S3StoredFileSorter}
 import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
@@ -31,7 +31,7 @@ import scala.util.control.NonFatal
 class S3SourceLister(implicit storageInterface: StorageInterface) extends LazyLogging {
 
   def list(implicit fileNamingStrategy: S3FileNamingStrategy, bucketAndPrefix: BucketAndPrefix): List[S3StoredFile] = {
-    val bucketAndPath = BucketAndPath(bucketAndPrefix.bucket, bucketAndPrefix.prefix.getOrElse(""))
+    val bucketAndPath = bucketAndPrefix.toPath
 
     def bucketLocationExists: Boolean = storageInterface.pathExists(bucketAndPath)
 

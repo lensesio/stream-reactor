@@ -17,9 +17,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.offsets
 
-import io.lenses.streamreactor.connect.aws.s3.model.Offset.orderingByOffsetValue
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.sink.{CommittedFileName, OffsetSeeker, S3FileNamingStrategy}
+import io.lenses.streamreactor.connect.aws.s3.sink.{CommittedFileName, S3FileNamingStrategy}
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
 import scala.util.control.NonFatal
@@ -30,7 +29,7 @@ import scala.util.control.NonFatal
   *
   * @param fileNamingStrategy we need the policy so we can match on this.
   */
-class PartitionedOffsetSeeker(implicit fileNamingStrategy: S3FileNamingStrategy, storageInterface: StorageInterface) extends OffsetSeeker {
+class PartitionedOffsetSeeker(storageInterface: StorageInterface)(implicit fileNamingStrategy: S3FileNamingStrategy) extends OffsetSeeker {
   
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
@@ -38,11 +37,13 @@ class PartitionedOffsetSeeker(implicit fileNamingStrategy: S3FileNamingStrategy,
 
     try {
 
-      val bucketAndPath = BucketAndPath(bucketAndPrefix.bucket, bucketAndPrefix.prefix.getOrElse(""))
+      val bucketAndPath = bucketAndPrefix.toPath
       // the path may not have been created, in which case we have no offsets defined
       if (storageInterface.pathExists(bucketAndPath)) {
         extractLatestOffsets(bucketAndPrefix, topicPartition)
-          .map(e => (BucketAndPath(bucketAndPrefix.bucket, e._1), e._2))
+          .map{
+            case (path, topicPartitionOffset) => (BucketAndPath(bucketAndPrefix.bucket, path), topicPartitionOffset)
+          }
       } else {
         None
       }
@@ -60,7 +61,7 @@ class PartitionedOffsetSeeker(implicit fileNamingStrategy: S3FileNamingStrategy,
     
     val latestEligible: List[(String, TopicPartitionOffset)] = storageInterface
       .listUsingStringMatching(
-        BucketAndPath(bucketAndPrefix.bucket, bucketAndPrefix.prefix.getOrElse("")),
+        bucketAndPrefix.toPath,
         fileNamingStrategy.getFormat
       )
       .collect {
@@ -72,14 +73,16 @@ class PartitionedOffsetSeeker(implicit fileNamingStrategy: S3FileNamingStrategy,
       }
     
     if(latestEligible.isEmpty) {
-      storageInterface.list(BucketAndPath(bucketAndPrefix.bucket, bucketAndPrefix.prefix.getOrElse("")))
+      storageInterface.list(bucketAndPrefix.toPath)
         .collect {
           case value@CommittedFileName(topic, partition, end, format)
             if format == fileNamingStrategy.getFormat &&
               topic == topicPartition.topic &&
               partition == topicPartition.partition =>
             (value, TopicPartitionOffset(topic, partition, end))
-        }.sortBy(_._2.offset).headOption
+        }.sortBy{
+          case (offset, _) => offset
+        }.headOption
     } else if (latestEligible.size == 1) {
       latestEligible.headOption
     }  else {
@@ -88,18 +91,28 @@ class PartitionedOffsetSeeker(implicit fileNamingStrategy: S3FileNamingStrategy,
   }
 
   private def cleanUp(bucketAndPrefix: BucketAndPrefix, latestEligible: List[(String, TopicPartitionOffset)]): Option[(String, TopicPartitionOffset)] = {
-    if(latestEligible.size > 5) {
+    if (latestEligible.size > 5) {
       logger.warn("Large number of latest eligible marked files, could indicate an issue with the sink")
     }
-    val eligible = latestEligible.sortBy(_._2.offset)(Offset.orderingByOffsetValue).reverse
 
-    eligible.tail.foreach(file => {
-      val originalName = BucketAndPath(bucketAndPrefix.bucket, file._1)
-      storageInterface.rename(
-        originalName,
-        fileNamingStrategy.convertLatestToFinalFilename(originalName)
+    val eligible = latestEligible
+      .sortBy {
+        case (offset, _) => offset
+      }
+      .reverse
+
+    eligible
+      .tail
+      .foreach(
+        file => {
+          val originalName = BucketAndPath(bucketAndPrefix.bucket, file._1)
+          storageInterface.rename(
+            originalName,
+            fileNamingStrategy.convertLatestToFinalFilename(originalName)
+          )
+        }
       )
-    })
+    
     Some(eligible.head)
   }
 

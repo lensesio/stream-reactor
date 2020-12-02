@@ -45,62 +45,53 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
   private val latestFileMap = mutable.Map[TopicPartition, (Offset, BucketAndPath)]()
+
   case class MapKey(topicPartition: TopicPartition, bucketAndPath: BucketAndPath)
 
   private val writers = scala.collection.mutable.Map.empty[MapKey, S3Writer]
 
   def commitAllWritersIfFlushRequired() = {
     val shouldFlush = writers.values.exists(_.shouldFlush)
-    if(shouldFlush) commitAllWriters()
+    if (shouldFlush) commitAllWriters()
   }
 
-  def commitAllWriters(): Map[TopicPartition, Offset] = {
+  private def commitAllWriters(): Map[TopicPartition, Offset] = {
 
     logger.debug("Received call to S3WriterManager.commit")
-    val topicPartitions = writers.map {
-      case (key, _) => key.topicPartition
-    }.toSet
-
-    topicPartitions
+    
+    writers.keys.map(_.topicPartition)
+      .toSet
       .map(commitTopicPartitionWriters)
-      .map(tpo => (tpo.toTopicPartition, tpo.offset))
       .toMap
   }
 
-  def commitTopicPartitionWriters(topicPartition: TopicPartition): TopicPartitionOffset = {
-    import Offset.orderingByOffsetValue
+  private def commitTopicPartitionWriters(topicPartition: TopicPartition) = {
 
-    writers
-      .filterKeys(mapKey => mapKey.topicPartition == topicPartition)
+    val tpo = writers
+      .filterKeys(_.topicPartition == topicPartition)
       .mapValues(_.commit())
       .values
       .maxBy(_.offset)
+
+    (tpo.toTopicPartition, tpo.offset)
   }
 
   def open(partitions: Set[TopicPartition]): Map[TopicPartition, Offset] = {
     logger.debug("Received call to S3WriterManager.open")
 
-    val topicPartitionsToOffsets = partitions.collect {
-          
+    partitions.flatMap {
       case topicPartition: TopicPartition =>
-        implicit val fileNamingStrategy = fileNamingStrategyFn(topicPartition.topic)
-        val bucketAndPrefix = bucketAndPrefixFn(topicPartition.topic)
-
-       val   seeked: Option[(BucketAndPath, TopicPartitionOffset)] = fileNamingStrategy
-         .createOffsetSeeker(storageInterface)
-         .seek(bucketAndPrefix, topicPartition)
-        
-        seeked.foreach(s => {
-          latestFileMap(topicPartition) = (s._2.offset, s._1)
-        })
-          
-          seeked.fold(Option.empty[(TopicPartition,Offset)]){
-            topicPartitionOffset => Some((topicPartition, topicPartitionOffset._2.offset))
+        fileNamingStrategyFn(topicPartition.topic)
+          .createOffsetSeeker(storageInterface)
+          .seek(bucketAndPrefixFn(topicPartition.topic), topicPartition)
+          .map {
+            case (bucketAndPath, topicPartitionOffset) =>
+              latestFileMap(topicPartition) = (topicPartitionOffset.offset, bucketAndPath)
+              (topicPartition, topicPartitionOffset.offset)
           }
-    }.flatten
+    }
       .toMap
 
-    topicPartitionsToOffsets
   }
 
   def close(): Unit = {
@@ -129,7 +120,7 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
     * Returns a writer that can write records for a particular topic and partition.
     * The writer will create a file inside the given directory if there is no open writer.
     */
-  def writer(topicPartitionOffset: TopicPartitionOffset, messageDetail: MessageDetail): S3Writer = {
+  private def writer(topicPartitionOffset: TopicPartitionOffset, messageDetail: MessageDetail): S3Writer = {
     val topicPartition = topicPartitionOffset.toTopicPartition
     val bucketAndPrefix = bucketAndPrefixFn(topicPartition.topic)
     val fileNamingStrategy: S3FileNamingStrategy = fileNamingStrategyFn(topicPartition.topic)
@@ -138,18 +129,18 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
 
     val tempBucketAndPath: BucketAndPath = fileNamingStrategy.stagingFilename(bucketAndPrefix, topicPartition, partitionValues)
 
-    writers.getOrElseUpdate(MapKey(topicPartition, tempBucketAndPath), createWriter(bucketAndPrefix, topicPartitionOffset, partitionValues))
+    writers.getOrElseUpdate(MapKey(topicPartition, tempBucketAndPath), createWriter(bucketAndPrefix, topicPartitionOffset.toTopicPartition, partitionValues))
   }
 
-  private def createWriter(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): S3Writer = {
+  private def createWriter(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): S3Writer = {
 
     logger.debug(s"Creating new writer for bucketAndPrefix [$bucketAndPrefix]")
 
     new S3WriterImpl(
       bucketAndPrefix,
-      commitPolicyFn(topicPartitionOffset.topic),
+      commitPolicyFn(topicPartition.topic),
       formatWriterFn,
-      fileNamingStrategyFn(topicPartitionOffset.topic),
+      fileNamingStrategyFn(topicPartition.topic),
       partitionValues,
       latestFileMap
     )
@@ -160,9 +151,8 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
                ): Map[TopicPartition, OffsetAndMetadata] = {
     logger.debug("Received call to S3WriterManager.preCommit")
 
-    import Offset.orderingByOffsetValue
     currentOffsets
-      .collect {
+      .flatMap {
         case (topicPartition, offsetAndMetadata) =>
           val candidateWriters = writers
             .filter {
@@ -178,8 +168,7 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
                 .maxBy(_.getCommittedOffset))
             )
           }
-
-      }.flatten.toMap
+      }
   }
 
   private def createOffsetAndMetadata(offsetAndMetadata: OffsetAndMetadata, writer: S3Writer) = {

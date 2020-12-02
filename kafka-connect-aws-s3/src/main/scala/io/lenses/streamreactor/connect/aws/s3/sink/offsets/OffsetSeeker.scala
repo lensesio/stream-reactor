@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.sink
+package io.lenses.streamreactor.connect.aws.s3.sink.offsets
+
 import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix, TopicPartition, TopicPartitionOffset}
 
 trait OffsetSeeker {

@@ -21,15 +21,15 @@ import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection}
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionDisplay.KeysAndValues
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.FieldValueToStringConverter
-import io.lenses.streamreactor.connect.aws.s3.sink.offsets.{HierarchicalOffsetSeeker, PartitionedOffsetSeeker}
+import io.lenses.streamreactor.connect.aws.s3.sink.offsets.{HierarchicalOffsetSeeker, OffsetSeeker, PartitionedOffsetSeeker}
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
 import scala.util.matching.Regex
 import scala.util.{Failure, Success, Try}
 
 trait S3FileNamingStrategy {
-  protected val DefaultPrefix = "streamreactor"
 
+  protected val DefaultPrefix = "streamreactor"
 
   def getFormat: Format
 
@@ -89,9 +89,8 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends
   override def topicPartitionPrefix(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath = BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${topicPartition.topic.value}/${topicPartition.partition}/")
 
   override def topicPartitionPrefixLatest(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath = BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${topicPartition.topic.value}/${topicPartition.partition}/latest_")
-
-
-  override def createOffsetSeeker(storageInterface: StorageInterface): OffsetSeeker = new HierarchicalOffsetSeeker()(this, storageInterface)
+  
+  override def createOffsetSeeker(storageInterface: StorageInterface): OffsetSeeker = new HierarchicalOffsetSeeker(storageInterface)(this)
 }
 
 class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitionSelection: PartitionSelection) extends S3FileNamingStrategy {
@@ -175,7 +174,7 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
 
   override def topicPartitionPrefixLatest(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath = BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/(${topicPartition.partition}_latest_")
 
-  override def createOffsetSeeker(storageInterface: StorageInterface): OffsetSeeker = new PartitionedOffsetSeeker()(this, storageInterface)
+  override def createOffsetSeeker(storageInterface: StorageInterface): OffsetSeeker = new PartitionedOffsetSeeker(storageInterface)(this)
 }
 
 

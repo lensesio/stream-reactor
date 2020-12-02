@@ -29,9 +29,9 @@ import org.scalatest.matchers.should.Matchers
 class HierarchicalOffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   private implicit val fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json))
-  private implicit val storageInterface: StorageInterface = mock[StorageInterface]
+  private val storageInterface: StorageInterface = mock[StorageInterface]
   
-  private val offsetSeeker = new HierarchicalOffsetSeeker
+  private val offsetSeeker = new HierarchicalOffsetSeeker(storageInterface)
 
   private val bucketAndPrefix = BucketAndPrefix("my-bucket", Some("path"))
   private val bucketAndPath = BucketAndPath("my-bucket", "path")

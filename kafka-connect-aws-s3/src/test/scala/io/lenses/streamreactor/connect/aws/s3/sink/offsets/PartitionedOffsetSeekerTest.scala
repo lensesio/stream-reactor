@@ -39,9 +39,9 @@ class PartitionedOffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Mat
       PartitionDisplay.KeysAndValues
     ))
 
-  private implicit val storageInterface: StorageInterface = mock[StorageInterface]
+  private val storageInterface: StorageInterface = mock[StorageInterface]
   
-  private val offsetSeeker = new PartitionedOffsetSeeker()
+  private val offsetSeeker = new PartitionedOffsetSeeker(storageInterface)
 
   private val bucketAndPrefix = BucketAndPrefix("my-bucket", Some("path"))
   private val bucketAndPath = BucketAndPath("my-bucket", "path")
