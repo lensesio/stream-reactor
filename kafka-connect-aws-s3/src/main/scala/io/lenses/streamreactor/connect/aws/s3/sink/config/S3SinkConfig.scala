@@ -27,12 +27,10 @@ import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 
 object S3SinkConfig {
-
   def apply(props: Map[String, String]): S3SinkConfig = S3SinkConfig(
     S3Config(props),
     SinkBucketOptions(props)
   )
-
 }
 
 case class S3SinkConfig(

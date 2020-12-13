@@ -30,18 +30,18 @@ import scala.util.control.NonFatal
   */
 class S3SourceLister(implicit storageInterface: StorageInterface) extends LazyLogging {
 
-  def list(implicit fileNamingStrategy: S3FileNamingStrategy, bucketAndPrefix: BucketAndPrefix): List[S3StoredFile] = {
+  def list(implicit fileNamingStrategy: S3FileNamingStrategy, bucketAndPrefix: BucketAndPrefix): Vector[S3StoredFile] = {
 
     def bucketLocationExists: Boolean = storageInterface.pathExists(bucketAndPrefix)
 
-    def listFilesInS3: List[S3StoredFile] = storageInterface
-      .list(bucketAndPrefix)
-      .flatMap(S3StoredFile(_))
-
     try {
-
       // the path may not have been created, in which case we have no offsets defined
-      if (bucketLocationExists) S3StoredFileSorter.sort(listFilesInS3) else List.empty
+      if (bucketLocationExists) {
+        val filesInS3: Vector[S3StoredFile] = storageInterface
+          .list(bucketAndPrefix)
+          .flatMap(S3StoredFile(_))
+        filesInS3.sorted(S3StoredFileSorter.ordering)
+      } else Vector.empty
 
     } catch {
       case NonFatal(e) =>

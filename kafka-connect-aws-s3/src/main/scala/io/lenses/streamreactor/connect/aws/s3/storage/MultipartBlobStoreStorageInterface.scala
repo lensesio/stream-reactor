@@ -19,7 +19,6 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 
 import java.io.{ByteArrayInputStream, InputStream}
 import java.util.UUID
-
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix}
 import org.jclouds.blobstore.BlobStoreContext
@@ -29,6 +28,7 @@ import org.jclouds.blobstore.options.{CopyOptions, ListContainerOptions, PutOpti
 import org.jclouds.io.payloads.{BaseMutableContentMetadata, InputStreamPayload}
 
 import scala.collection.JavaConverters._
+import scala.collection.immutable.VectorBuilder
 import scala.util.Try
 
 class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) extends StorageInterface with LazyLogging {
@@ -115,59 +115,36 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
   override def pathExists(bucketAndPath: BucketAndPath): Boolean =
     blobStore.list(bucketAndPath.bucket, ListContainerOptions.Builder.prefix(bucketAndPath.path)).size() > 0
 
-  override def list(bucketAndPath: BucketAndPath): List[String] = {
-
+  override def list(bucketAndPath: BucketAndPath): Vector[String] = {
     val options = ListContainerOptions.Builder.recursive().prefix(bucketAndPath.path).maxResults(awsMaxKeys)
-
-    var pageSetStrings: List[String] = List()
-    var nextMarker: Option[String] = None
-    do {
-      if (nextMarker.nonEmpty) {
-        options.afterMarker(nextMarker.get)
-      }
-      val pageSet = blobStore.list(bucketAndPath.bucket, options)
-      nextMarker = Option(pageSet.getNextMarker)
-      pageSetStrings ++= pageSet
-        .asScala
-        .filter(_.getType == StorageType.BLOB)
-        .map(
-          storageMetadata => storageMetadata.getName
-        )
-        .toList
-
-    } while (nextMarker.nonEmpty)
-    pageSetStrings
+    internalList(bucketAndPath.bucket, options)
   }
 
-  override def list(bucketAndPrefix: BucketAndPrefix): List[String] = {
-    val options = bucketAndPrefix
+  override def list(bucketAndPrefix: BucketAndPrefix): Vector[String] = {
+    val options: ListContainerOptions = bucketAndPrefix
       .prefix
-      .fold(
-        ListContainerOptions.Builder.recursive()
-      )(
-        ListContainerOptions.Builder.recursive().prefix
-      )
+      .map(ListContainerOptions.Builder.recursive().prefix)
+      .getOrElse(ListContainerOptions.Builder.recursive())
       .maxResults(awsMaxKeys)
 
-    var pageSetStrings: List[String] = List()
+    internalList(bucketAndPrefix.bucket, options)
+  }
+
+  private def internalList(bucket:String, options: ListContainerOptions): Vector[String] = {
+    val builder = new VectorBuilder[String]
     var nextMarker: Option[String] = None
     do {
       if (nextMarker.nonEmpty) {
         options.afterMarker(nextMarker.get)
       }
-      val pageSet = blobStore.list(bucketAndPrefix.bucket, options)
+      val pageSet = blobStore.list(bucket, options)
       nextMarker = Option(pageSet.getNextMarker)
-      pageSetStrings ++= pageSet
-        .asScala
-        .filter(_.getType == StorageType.BLOB)
-        .map(
-          storageMetadata => storageMetadata.getName
-        )
-        .toList
-
+      pageSet.asScala.foreach { metadata =>
+        if (metadata.getType == StorageType.BLOB)
+          builder.+(metadata.getName)
+      }
     } while (nextMarker.nonEmpty)
-    pageSetStrings
-
+    builder.result()
   }
 
   override def getBlob(bucketAndPath: BucketAndPath): InputStream = {

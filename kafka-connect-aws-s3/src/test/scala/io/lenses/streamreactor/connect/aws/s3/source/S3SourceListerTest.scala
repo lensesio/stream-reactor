@@ -36,7 +36,7 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
   private val sourceLister = new S3SourceLister
 
   // comes back in random order
-  private val defaultJsonFilesTestData = List("path/myTopic/0/200.json", "path/myTopic/0/300.json", "path/myTopic/0/100.json")
+  private val defaultJsonFilesTestData = Vector("path/myTopic/0/200.json", "path/myTopic/0/300.json", "path/myTopic/0/100.json")
 
 
   "next" should "return first result when no TopicPartitionOffset has been provided" in {
@@ -91,7 +91,7 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
   "list" should "return expected offsets for 1 filename" in {
 
     when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
-    when(storageInterface.list(bucketAndPrefix)).thenReturn(List("path/myTopic/0/100.json"))
+    when(storageInterface.list(bucketAndPrefix)).thenReturn(Vector("path/myTopic/0/100.json"))
 
     sourceLister.list(fileNamingStrategy, bucketAndPrefix) should be
     List(
@@ -120,9 +120,12 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
     when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
     when(storageInterface.list(bucketAndPrefix)).thenReturn(
-      List(
-        "path/myTopic/0/100.avro", "path/myTopic/0/200.avro", "path/myTopic/0/300.avro",
-        "path/myTopic/0/100.json", "path/myTopic/0/200.json"
+      Vector(
+        "path/myTopic/0/100.avro",
+        "path/myTopic/0/200.avro",
+        "path/myTopic/0/300.avro",
+        "path/myTopic/0/100.json",
+        "path/myTopic/0/200.json"
       )
     )
 
@@ -138,9 +141,12 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
     when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
     when(storageInterface.list(bucketAndPrefix)).thenReturn(
-      List(
-        "path/myTopic/0/100.doc", "path/myTopic/0/200.xls", "path/myTopic/0/300.ppt",
-        "path/myTopic/0/100.json", "path/myTopic/0/200.json"
+      Vector(
+        "path/myTopic/0/100.doc",
+        "path/myTopic/0/200.xls",
+        "path/myTopic/0/300.ppt",
+        "path/myTopic/0/100.json",
+        "path/myTopic/0/200.json"
       )
     )
 
@@ -157,9 +163,12 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
     when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
     when(storageInterface.list(bucketAndPrefix)).thenReturn(
-      List(
-        "path/myTopic/0/100", "path/myTopic/0/200", "path/myTopic/0/300",
-        "path/myTopic/0/100.json", "path/myTopic/0/200.json"
+      Vector(
+        "path/myTopic/0/100",
+        "path/myTopic/0/200",
+        "path/myTopic/0/300",
+        "path/myTopic/0/100.json",
+        "path/myTopic/0/200.json"
       )
     )
 
@@ -175,9 +184,12 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
     when(storageInterface.pathExists(bucketAndPrefix)).thenReturn(true)
     when(storageInterface.list(bucketAndPrefix)).thenReturn(
-      List(
-        "path/myTopic/1/100.json", "path/myTopic/1/200.json",
-        "path/myTopic/0/100.json", "path/myTopic/0/200.json", "path/myTopic/0/300.json",
+      Vector(
+        "path/myTopic/1/100.json",
+        "path/myTopic/1/200.json",
+        "path/myTopic/0/100.json",
+        "path/myTopic/0/200.json",
+        "path/myTopic/0/300.json",
         "path/myTopic/2/100.json"
       )
     )

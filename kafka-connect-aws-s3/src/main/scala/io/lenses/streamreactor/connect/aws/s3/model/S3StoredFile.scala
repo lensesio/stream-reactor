@@ -17,7 +17,8 @@
 package io.lenses.streamreactor.connect.aws.s3.model
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.sink.{CommittedFileName, S3FileNamingStrategy}
+import io.lenses.streamreactor.connect.aws.s3.sink.CommittedFileName
+import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
 
 object S3StoredFile extends LazyLogging {
   def apply(path: String)(implicit fileNamingStrategy: S3FileNamingStrategy): Option[S3StoredFile] = {
@@ -38,18 +39,14 @@ case class S3StoredFile(
                          topicPartitionOffset: TopicPartitionOffset
                        )
 
-
 object S3StoredFileSorter {
-
-  def sort(inputFiles: List[S3StoredFile]): List[S3StoredFile] = {
-    inputFiles.sortBy {
-      storedFile: S3StoredFile =>
-        (
-          storedFile.topicPartitionOffset.topic.value,
-          storedFile.topicPartitionOffset.partition,
-          storedFile.topicPartitionOffset.offset.value
-        )
-    }
+  implicit val ordering: Ordering[S3StoredFile] = (x: S3StoredFile, y: S3StoredFile) => {
+    val topic = x.topicPartitionOffset.topic.value.compareTo(y.topicPartitionOffset.topic.value)
+    if (topic == 0) {
+      val partition = x.topicPartitionOffset.partition.compareTo(y.topicPartitionOffset.partition)
+      if (partition == 0) {
+        x.topicPartitionOffset.offset.value.compareTo(y.topicPartitionOffset.offset.value)
+      } else partition
+    } else topic
   }
-
 }

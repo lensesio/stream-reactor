@@ -46,13 +46,11 @@ class S3SinkTask extends SinkTask {
 
   override def version(): String = manifest.version()
 
-  def validateBuckets(storageInterface: StorageInterface, config: S3SinkConfig) = {
-    config.bucketOptions.foreach(
-      bucketOption => {
+  def validateBuckets(storageInterface: StorageInterface, config: S3SinkConfig): Unit = {
+    config.bucketOptions.foreach { bucketOption =>
         val bucketAndPrefix = bucketOption.bucketAndPrefix
-        storageInterface.list(bucketAndPrefix)
-      }
-    )
+        storageInterface.pathExists(bucketAndPrefix)
+    }
   }
 
   override def start(props: util.Map[String, String]): Unit = {

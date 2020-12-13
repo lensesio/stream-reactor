@@ -44,7 +44,7 @@ class OffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
   "seek" should "return expected offsets for 1 filename" in {
 
     when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
-    when(storageInterface.list(bucketAndPath)).thenReturn(List("path/myTopic/0/100.json"))
+    when(storageInterface.list(bucketAndPath)).thenReturn(Vector("path/myTopic/0/100.json"))
 
     offsetSeeker.seek(bucketAndPath) should be(Set(TopicPartitionOffset(Topic("myTopic"), 0, Offset(100))))
   }
@@ -53,7 +53,7 @@ class OffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
     when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
     when(storageInterface.list(bucketAndPath)).thenReturn(
-      List("path/myTopic/0/100.json", "path/myTopic/0/200.json", "path/myTopic/0/300.json")
+      Vector("path/myTopic/0/100.json", "path/myTopic/0/200.json", "path/myTopic/0/300.json")
     )
 
     offsetSeeker.seek(bucketAndPath) should be(Set(TopicPartitionOffset(Topic("myTopic"), 0, Offset(300))))
@@ -64,7 +64,7 @@ class OffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
     when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
     when(storageInterface.list(bucketAndPath)).thenReturn(
-      List("path/myTopic/0/100.json", "path/myTopic/0/200.json", "path/myTopic/0/300.json",
+      Vector("path/myTopic/0/100.json", "path/myTopic/0/200.json", "path/myTopic/0/300.json",
         "path/notMyTopic/0/300.json", "path/notMyTopic/0/200.json", "path/notMyTopic/0/100.json")
     )
 
@@ -80,9 +80,12 @@ class OffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
     when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
     when(storageInterface.list(bucketAndPath)).thenReturn(
-      List(
-        "path/myTopic/0/100.avro", "path/myTopic/0/200.avro", "path/myTopic/0/300.avro",
-        "path/myTopic/0/100.json", "path/myTopic/0/200.json"
+      Vector(
+        "path/myTopic/0/100.avro",
+        "path/myTopic/0/200.avro",
+        "path/myTopic/0/300.avro",
+        "path/myTopic/0/100.json",
+        "path/myTopic/0/200.json"
       )
     )
 
@@ -97,9 +100,12 @@ class OffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
     when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
     when(storageInterface.list(bucketAndPath)).thenReturn(
-      List(
-        "path/myTopic/0/100.doc", "path/myTopic/0/200.xls", "path/myTopic/0/300.ppt",
-        "path/myTopic/0/100.json", "path/myTopic/0/200.json"
+      Vector(
+        "path/myTopic/0/100.doc",
+        "path/myTopic/0/200.xls",
+        "path/myTopic/0/300.ppt",
+        "path/myTopic/0/100.json",
+        "path/myTopic/0/200.json"
       )
     )
 
@@ -115,9 +121,12 @@ class OffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
     when(storageInterface.pathExists(bucketAndPath)).thenReturn(true)
     when(storageInterface.list(bucketAndPath)).thenReturn(
-      List(
-        "path/myTopic/0/100", "path/myTopic/0/200", "path/myTopic/0/300",
-        "path/myTopic/0/100.json", "path/myTopic/0/200.json"
+      Vector(
+        "path/myTopic/0/100",
+        "path/myTopic/0/200",
+        "path/myTopic/0/300",
+        "path/myTopic/0/100.json",
+        "path/myTopic/0/200.json"
       )
     )
 

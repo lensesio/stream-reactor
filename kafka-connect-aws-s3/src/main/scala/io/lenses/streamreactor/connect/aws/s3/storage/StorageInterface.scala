@@ -28,7 +28,6 @@ case class MultiPartUploadState(
                                )
 
 trait StorageInterface {
-
   def initUpload(bucketAndPath: BucketAndPath): MultiPartUploadState
 
   def completeUpload(state: MultiPartUploadState): Unit
@@ -43,9 +42,9 @@ trait StorageInterface {
 
   def pathExists(bucketAndPath: BucketAndPath): Boolean
 
-  def list(bucketAndPrefix: BucketAndPath): List[String]
+  def list(bucketAndPrefix: BucketAndPath): Vector[String]
 
-  def list(bucketAndPrefix: BucketAndPrefix): List[String]
+  def list(bucketAndPrefix: BucketAndPrefix): Vector[String]
 
   def getBlob(bucketAndPath: BucketAndPath): InputStream
 

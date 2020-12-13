@@ -46,7 +46,7 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
 
   private val writers = scala.collection.mutable.Map.empty[MapKey, S3Writer]
 
-  def commitAllWritersIfFlushRequired() = {
+  def commitAllWritersIfFlushRequired(): Unit = {
     val shouldFlush = writers.values.exists(_.shouldFlush)
     if(shouldFlush) commitAllWriters()
   }
