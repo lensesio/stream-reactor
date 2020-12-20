@@ -19,6 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink.commit
 import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPath
 import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPrefix
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
+import io.lenses.streamreactor.connect.aws.s3.model.PartitionField
 import io.lenses.streamreactor.connect.aws.s3.model.Topic
 import io.lenses.streamreactor.connect.aws.s3.model.TopicPartition
 import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
@@ -30,9 +31,9 @@ import org.apache.kafka.connect.errors.ConnectException
 
 import scala.util.control.NonFatal
 
-class Gen1Seeker(storage: Storage,
-                 fileNamingStrategyFn: Topic => S3FileNamingStrategy,
-                 bucketAndPrefixFn: Topic => BucketAndPrefix) extends WatermarkSeeker {
+class Gen1Committer(storage: Storage,
+                    fileNamingStrategyFn: Topic => S3FileNamingStrategy,
+                    bucketAndPrefixFn: Topic => BucketAndPrefix) extends Committer {
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
   override def latest(partitions: Set[TopicPartition]): Map[TopicPartition, Offset] = {
@@ -72,10 +73,26 @@ class Gen1Seeker(storage: Storage,
         throw e
     }
   }
+  override def commit(bucketAndPrefix: BucketAndPrefix,
+                      topicPartitionOffset: TopicPartitionOffset,
+                      partitionValues: Map[PartitionField, String]): Unit = {
+    val fileNamingStrategy = fileNamingStrategyFn(topicPartitionOffset.topic)
+    val originalFilename = fileNamingStrategy.stagingFilename(
+      bucketAndPrefix,
+      topicPartitionOffset.toTopicPartition,
+      partitionValues
+    )
+    val finalFilename = fileNamingStrategy.finalFilename(
+      bucketAndPrefix,
+      topicPartitionOffset,
+      partitionValues
+    )
+    storage.rename(originalFilename, finalFilename)
+  }
 }
 
-object Gen1Seeker {
-  def from(config: S3SinkConfig, storage: Storage): Gen1Seeker = {
+object Gen1Committer {
+  def from(config: S3SinkConfig, storage: Storage): Gen1Committer = {
     val bucketAndPrefixFn: Topic => BucketAndPrefix = topic => config.bucketOptions.find(_.sourceTopic == topic.value)
       .getOrElse(throw new ConnectException(s"No bucket config for $topic")).bucketAndPrefix
 
@@ -85,6 +102,6 @@ object Gen1Seeker {
       case None => throw new IllegalArgumentException("Can't find fileNamingStrategy in config")
     }
 
-    new Gen1Seeker(storage, fileNamingStrategyFn, bucketAndPrefixFn)
+    new Gen1Committer(storage, fileNamingStrategyFn, bucketAndPrefixFn)
   }
 }

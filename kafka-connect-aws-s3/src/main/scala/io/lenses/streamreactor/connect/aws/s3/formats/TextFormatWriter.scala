@@ -29,7 +29,7 @@ class TextFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
   private val LineSeparatorBytes: Array[Byte] = System.lineSeparator.getBytes(StandardCharsets.UTF_8)
 
   private val outputStream: S3OutputStream = outputStreamFn()
-  private var outstandingRename: Boolean = false
+  private var committable: Boolean = false
 
   override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit = {
 
@@ -51,13 +51,13 @@ class TextFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
   override def rolloverFileOnSchemaChange(): Boolean = false
 
   override def close(): Unit = {
-    Try(outstandingRename = outputStream.complete)
+    Try(committable = outputStream.complete)
 
     Try(outputStream.flush())
     Try(outputStream.close())
   }
 
-  override def getOutstandingRename: Boolean = outstandingRename
+  override def isCommittable: Boolean = committable
 
   override def getPointer: Long = outputStream.getPointer
 }

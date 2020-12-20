@@ -56,7 +56,7 @@ trait S3FormatWriter extends AutoCloseable {
 
   def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit
 
-  def getOutstandingRename: Boolean
+  def isCommittable: Boolean
 
   def getPointer: Long
 }

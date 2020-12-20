@@ -29,7 +29,7 @@ import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class Gen1SeekerTest extends AnyWordSpec with MockitoSugar with Matchers {
+class Gen1CommitterTest extends AnyWordSpec with MockitoSugar with Matchers {
 
   private val fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json))
   private val bucketAndPath = BucketAndPath("my-bucket", "path/myTopic/0/")
@@ -37,7 +37,7 @@ class Gen1SeekerTest extends AnyWordSpec with MockitoSugar with Matchers {
   "Gen1Seeker" should {
     "return empty set when path does not exist" in {
       val storage: Storage = mock[Storage]
-      val offsetSeeker = new Gen1Seeker(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("my-bucket", Some("path")))
+      val offsetSeeker = new Gen1Committer(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("my-bucket", Some("path")))
 
       when(storage.pathExists(bucketAndPath)).thenReturn(false)
 
@@ -46,7 +46,7 @@ class Gen1SeekerTest extends AnyWordSpec with MockitoSugar with Matchers {
 
     "return expected offsets for 1 filename" in {
       val storage: Storage = mock[Storage]
-      val offsetSeeker = new Gen1Seeker(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("my-bucket", Some("path")))
+      val offsetSeeker = new Gen1Committer(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("my-bucket", Some("path")))
       when(storage.pathExists(bucketAndPath)).thenReturn(true)
       when(storage.list(bucketAndPath)).thenReturn(Vector("path/myTopic/0/100.json"))
 
@@ -56,7 +56,7 @@ class Gen1SeekerTest extends AnyWordSpec with MockitoSugar with Matchers {
 
     "return highest offset for multiple offsets of the same file" in {
       val storage: Storage = mock[Storage]
-      val offsetSeeker = new Gen1Seeker(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("my-bucket", Some("path")))
+      val offsetSeeker = new Gen1Committer(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("my-bucket", Some("path")))
       when(storage.pathExists(bucketAndPath)).thenReturn(true)
       when(storage.list(bucketAndPath)).thenReturn(
         Vector(
@@ -70,7 +70,7 @@ class Gen1SeekerTest extends AnyWordSpec with MockitoSugar with Matchers {
 
     "return highest offset for multiple offsets of different files" in {
       val storage: Storage = mock[Storage]
-      val offsetSeeker = new Gen1Seeker(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("my-bucket", Some("path")))
+      val offsetSeeker = new Gen1Committer(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("my-bucket", Some("path")))
       when(storage.pathExists(bucketAndPath)).thenReturn(true)
       when(storage.list(bucketAndPath)).thenReturn(
         Vector("path/myTopic/0/100.json", "path/myTopic/0/200.json", "path/myTopic/0/300.json",
@@ -91,7 +91,7 @@ class Gen1SeekerTest extends AnyWordSpec with MockitoSugar with Matchers {
 
     "ignore other file extensions" in {
       val storage: Storage = mock[Storage]
-      val offsetSeeker = new Gen1Seeker(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("my-bucket", Some("path")))
+      val offsetSeeker = new Gen1Committer(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("my-bucket", Some("path")))
       when(storage.pathExists(bucketAndPath)).thenReturn(true)
       when(storage.list(bucketAndPath)).thenReturn(
         Vector(
@@ -109,7 +109,7 @@ class Gen1SeekerTest extends AnyWordSpec with MockitoSugar with Matchers {
 
     "ignore unknown file extensions" in {
       val storage: Storage = mock[Storage]
-      val offsetSeeker = new Gen1Seeker(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("my-bucket", Some("path")))
+      val offsetSeeker = new Gen1Committer(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("my-bucket", Some("path")))
       when(storage.pathExists(bucketAndPath)).thenReturn(true)
       when(storage.list(bucketAndPath)).thenReturn(
         Vector(
@@ -127,7 +127,7 @@ class Gen1SeekerTest extends AnyWordSpec with MockitoSugar with Matchers {
 
     "ignore files with no extensions" in {
       val storage: Storage = mock[Storage]
-      val offsetSeeker = new Gen1Seeker(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("my-bucket", Some("path")))
+      val offsetSeeker = new Gen1Committer(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("my-bucket", Some("path")))
       when(storage.pathExists(bucketAndPath)).thenReturn(true)
       when(storage.list(bucketAndPath)).thenReturn(
         Vector(

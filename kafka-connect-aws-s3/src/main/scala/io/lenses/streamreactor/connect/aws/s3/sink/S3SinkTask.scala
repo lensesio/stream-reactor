@@ -20,6 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsContextCreator
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.Committer
 import io.lenses.streamreactor.connect.aws.s3.sink.commit.WatermarkSeeker
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.HeaderToStringConverter
@@ -47,7 +48,7 @@ class S3SinkTask extends SinkTask {
 
   private var config: S3SinkConfig = _
 
-  private var watermarkSeeker: WatermarkSeeker = _
+  private var committer: Committer = _
 
   override def version(): String = manifest.version()
 
@@ -73,8 +74,8 @@ class S3SinkTask extends SinkTask {
 
     validateBuckets(storage, config)
 
-    writerManager = S3WriterManager.from(config, storage)
-    watermarkSeeker = WatermarkSeeker.from(config, storage)
+    committer = Committer.from(config, storage)
+    writerManager = S3WriterManager.from(config, storage, committer)
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
@@ -135,7 +136,7 @@ class S3SinkTask extends SinkTask {
         .map(tp => TopicPartition(Topic(tp.topic), tp.partition))
         .toSet
 
-      watermarkSeeker.latest(topicPartitions).foreach {
+      committer.latest(topicPartitions).foreach {
         case (topicPartition, offset) =>
           logger.debug(s"Seeking to ${topicPartition.topic.value}:${topicPartition.partition}:${offset.value}")
           context.offset(topicPartition.toKafka, offset.value)

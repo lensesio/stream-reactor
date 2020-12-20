@@ -19,8 +19,12 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.Committer
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
-import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreOutputStream, S3Writer, S3WriterImpl, Storage}
+import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreOutputStream
+import io.lenses.streamreactor.connect.aws.s3.storage.S3Writer
+import io.lenses.streamreactor.connect.aws.s3.storage.S3WriterImpl
+import io.lenses.streamreactor.connect.aws.s3.storage.Storage
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.errors.ConnectException
 
@@ -37,21 +41,18 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
                       commitPolicyFn: Topic => CommitPolicy,
                       bucketAndPrefixFn: Topic => BucketAndPrefix,
                       fileNamingStrategyFn: Topic => S3FileNamingStrategy,
-                      storage: Storage) {
+                      storage: Storage,
+                      committer: Committer) {
 
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
-
-  case class MapKey(topicPartition: TopicPartition, bucketAndPath: BucketAndPath)
-
   private val writers = scala.collection.mutable.Map.empty[MapKey, S3Writer]
 
   def commitAllWritersIfFlushRequired(): Unit = {
     val shouldFlush = writers.values.exists(_.shouldFlush)
-    if(shouldFlush) commitAllWriters()
+    if (shouldFlush) commitAllWriters()
   }
 
   def commitAllWriters(): Map[TopicPartition, Offset] = {
-
     logger.debug("Received call to S3WriterManager.commit")
     val topicPartitions = writers.map {
       case (key, _) => key.topicPartition
@@ -101,26 +102,28 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
     */
   def writer(topicPartition: TopicPartition, messageDetail: MessageDetail): S3Writer = {
     val bucketAndPrefix = bucketAndPrefixFn(topicPartition.topic)
-    val fileNamingStrategy: S3FileNamingStrategy = fileNamingStrategyFn(topicPartition.topic)
+    val fileNamingStrategy = fileNamingStrategyFn(topicPartition.topic)
 
-    val partitionValues = if (fileNamingStrategy.shouldProcessPartitionValues) fileNamingStrategy.processPartitionValues(messageDetail) else Map.empty[PartitionField, String]
+    val partitionValues = if (fileNamingStrategy.shouldProcessPartitionValues)
+      fileNamingStrategy.processPartitionValues(messageDetail)
+    else
+      Map.empty[PartitionField, String]
 
-    val tempBucketAndPath: BucketAndPath = fileNamingStrategy.stagingFilename(bucketAndPrefix, topicPartition, partitionValues)
+    val bucketAndPath = fileNamingStrategy.stagingFilename(bucketAndPrefix, topicPartition, partitionValues)
 
-    writers.getOrElseUpdate(MapKey(topicPartition, tempBucketAndPath), createWriter(bucketAndPrefix, topicPartition, partitionValues))
+    writers.getOrElseUpdate(MapKey(topicPartition, bucketAndPath), createWriter(bucketAndPrefix, topicPartition, partitionValues))
   }
 
   private def createWriter(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): S3Writer = {
-
     logger.debug(s"Creating new writer for bucketAndPrefix [$bucketAndPrefix]")
 
     new S3WriterImpl(
       bucketAndPrefix,
       commitPolicyFn(topicPartition.topic),
       formatWriterFn,
-      fileNamingStrategyFn(topicPartition.topic),
       partitionValues,
-      storage
+      storage,
+      committer
     )
   }
 
@@ -158,11 +161,14 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
       offsetAndMetadata.metadata()
     )
   }
+
+  private case class MapKey(topicPartition: TopicPartition, bucketAndPath: BucketAndPath)
+
 }
 
-
 object S3WriterManager {
-  def from(config: S3SinkConfig, storage: Storage): S3WriterManager = {
+
+  def from(config: S3SinkConfig, storage: Storage, committer: Committer): S3WriterManager = {
 
     // TODO: make this configurable
     val MinAllowedMultipartSize: Int = 5242880
@@ -205,7 +211,8 @@ object S3WriterManager {
       commitPolicyFn,
       bucketAndPrefixFn,
       fileNamingStrategyFn,
-      storage
+      storage,
+      committer
     )
   }
 }

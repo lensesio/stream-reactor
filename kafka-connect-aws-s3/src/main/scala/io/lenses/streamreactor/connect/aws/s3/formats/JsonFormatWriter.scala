@@ -33,7 +33,7 @@ class JsonFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
   private val outputStream: S3OutputStream = outputStreamFn()
   private val jsonConverter = new JsonConverter
-  private var outstandingRename: Boolean = false
+  private var committable: Boolean = false
 
   jsonConverter.configure(
     Map("schemas.enable" -> false).asJava, false
@@ -59,13 +59,13 @@ class JsonFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
   override def rolloverFileOnSchemaChange(): Boolean = false
 
   override def close(): Unit = {
-    Try(outstandingRename = outputStream.complete)
+    Try(committable = outputStream.complete)
 
     Try(outputStream.flush())
     Try(outputStream.close())
   }
 
-  override def getOutstandingRename: Boolean = outstandingRename
+  override def isCommittable: Boolean = committable
 
   override def getPointer: Long = outputStream.getPointer
 }

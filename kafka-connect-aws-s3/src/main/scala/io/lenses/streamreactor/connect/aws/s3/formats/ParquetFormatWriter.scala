@@ -31,7 +31,7 @@ import org.apache.parquet.hadoop.ParquetWriter.{DEFAULT_BLOCK_SIZE, DEFAULT_PAGE
 import scala.util.Try
 
 class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWriter with LazyLogging {
-  private var outstandingRename: Boolean = false
+  private var committable: Boolean = false
 
   private var outputStream: S3OutputStream = _
 
@@ -69,12 +69,12 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
 
   override def close(): Unit = {
     Try(outputStream.flush())
-    Try(outstandingRename = outputStream.complete)
+    Try(committable = outputStream.complete)
     Try(outputStream.close())
     Try(writer.close())
   }
 
-  override def getOutstandingRename: Boolean = outstandingRename
+  override def isCommittable: Boolean = committable
 
   override def getPointer: Long = outputStream.getPointer
 }

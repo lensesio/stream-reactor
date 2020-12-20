@@ -31,7 +31,7 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
   private var avroWriterState: Option[AvroWriterState] = None
 
-  private var outstandingRename: Boolean = false
+  private var committable: Boolean = false
 
   override def rolloverFileOnSchemaChange() = true
 
@@ -53,7 +53,7 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
     avroWriterState.fold(logger.debug("Requesting close when there's nothing to close"))(_.close())
   }
 
-  override def getOutstandingRename: Boolean = outstandingRename
+  override def isCommittable: Boolean = committable
 
   override def getPointer: Long = avroWriterState.fold(0L)(_.pointer)
 
@@ -74,7 +74,7 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
     def close(): Unit = {
       Try(fileWriter.flush())
-      Try(outstandingRename = outputStream.complete)
+      Try(committable = outputStream.complete)
 
       Try(fileWriter.close())
       Try(outputStream.close())

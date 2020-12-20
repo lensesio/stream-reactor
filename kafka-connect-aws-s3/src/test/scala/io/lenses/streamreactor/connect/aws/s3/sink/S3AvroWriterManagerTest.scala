@@ -22,6 +22,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, FormatSelection,
 import io.lenses.streamreactor.connect.aws.s3.config.CommitMode.Gen1
 import io.lenses.streamreactor.connect.aws.s3.formats.AvroFormatReader
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.Gen1Committer
 import io.lenses.streamreactor.connect.aws.s3.sink.config.{S3SinkConfig, SinkBucketOptions}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig, S3TestPayloadReader}
@@ -60,7 +61,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
   "avro sink" should "write 2 records to avro format in s3" in {
 
-    val sink = S3WriterManager.from(avroConfig,storage)
+    val sink = S3WriterManager.from(avroConfig,storage, Gen1Committer.from(avroConfig, storage))
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
         sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(struct), Map.empty[String, String]))
@@ -95,7 +96,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
       new Struct(secondSchema).put("name", "coco").put("designation", null).put("salary", 395.44)
     )
 
-    val sink = S3WriterManager.from(avroConfig, storage)
+    val sink = S3WriterManager.from(avroConfig, storage, Gen1Committer.from(avroConfig, storage))
     firstUsers.union(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
         sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(user), Map.empty[String, String]))

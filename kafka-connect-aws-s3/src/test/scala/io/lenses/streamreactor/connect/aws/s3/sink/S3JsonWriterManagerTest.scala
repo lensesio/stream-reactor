@@ -23,6 +23,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.Gen1Committer
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContext
@@ -57,7 +58,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
       )
     )
 
-    val sink = S3WriterManager.from(config, storage)
+    val sink = S3WriterManager.from(config, storage, Gen1Committer.from(config, storage))
     sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(1)), MessageDetail(None, StructSinkData(users.head), Map.empty[String, String]))
     sink.close()
 
@@ -83,7 +84,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
       )
     )
 
-    val sink = S3WriterManager.from(config,storage)
+    val sink = S3WriterManager.from(config, storage, Gen1Committer.from(config, storage))
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) => sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(struct), Map.empty[String, String]))
     }

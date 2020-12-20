@@ -35,7 +35,7 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
   private val outputStreamWriter = new OutputStreamWriter(outputStream)
   private val csvWriter = new CSVWriter(outputStreamWriter)
 
-  private var outstandingRename: Boolean = false
+  private var canCommitt: Boolean = false
 
   private var fieldsWritten = false
 
@@ -59,7 +59,7 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
   override def rolloverFileOnSchemaChange(): Boolean = true
 
   override def close(): Unit = {
-    Try(outstandingRename = outputStream.complete)
+    Try(canCommitt = outputStream.complete)
 
     Try(csvWriter.flush())
     Try(outputStream.flush())
@@ -68,7 +68,7 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
     Try(outputStream.close())
   }
 
-  override def getOutstandingRename: Boolean = outstandingRename
+  override def isCommittable: Boolean = canCommitt
 
   override def getPointer: Long = outputStream.getPointer
 

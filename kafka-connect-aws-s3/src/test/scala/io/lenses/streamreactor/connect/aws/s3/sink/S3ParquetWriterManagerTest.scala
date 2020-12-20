@@ -24,6 +24,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.formats.ParquetFormatReader
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.Gen1Committer
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.config.SinkBucketOptions
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContext
@@ -62,7 +63,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
 
   "parquet sink" should "write 2 records to parquet format in s3" in {
 
-    val sink = S3WriterManager.from(parquetConfig, storage)
+    val sink = S3WriterManager.from(parquetConfig, storage, Gen1Committer.from(parquetConfig, storage))
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
         sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(struct), Map.empty[String, String]))
@@ -95,7 +96,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
       new Struct(secondSchema).put("name", "coco").put("designation", null).put("salary", 395.44)
     )
 
-    val sink = S3WriterManager.from(parquetConfig, storage)
+    val sink = S3WriterManager.from(parquetConfig, storage, Gen1Committer.from(parquetConfig, storage))
     firstUsers.union(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
         sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(user), Map.empty[String, String]))

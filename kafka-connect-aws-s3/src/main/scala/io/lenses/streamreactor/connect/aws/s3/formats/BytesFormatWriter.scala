@@ -25,7 +25,7 @@ import scala.util.Try
 class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: BytesWriteMode) extends S3FormatWriter with LazyLogging {
 
   private val outputStream: S3OutputStream = outputStreamFn()
-  private var outstandingRename: Boolean = false
+  private var committable: Boolean = false
 
   override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit = {
 
@@ -72,13 +72,13 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
   override def rolloverFileOnSchemaChange(): Boolean = false
 
   override def close(): Unit = {
-    Try(outstandingRename = outputStream.complete)
+    Try(committable = outputStream.complete)
 
     Try(outputStream.flush())
     Try(outputStream.close())
   }
 
-  override def getOutstandingRename: Boolean = outstandingRename
+  override def isCommittable: Boolean = committable
 
   override def getPointer: Long = outputStream.getPointer
 
