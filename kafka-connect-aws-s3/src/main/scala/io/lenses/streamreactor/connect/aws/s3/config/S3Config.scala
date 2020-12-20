@@ -16,7 +16,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.config
 
-import enumeratum.{Enum, EnumEntry}
+import enumeratum.Enum
+import enumeratum.EnumEntry
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 
 import scala.collection.immutable
@@ -31,6 +32,17 @@ object AuthMode extends Enum[AuthMode] {
 
   case object Default extends AuthMode
 
+}
+
+sealed trait CommitMode extends EnumEntry
+
+object CommitMode extends Enum[CommitMode] {
+
+  case object Gen1 extends CommitMode
+
+  case object Gen2 extends CommitMode
+
+  override def values: immutable.IndexedSeq[CommitMode] = findValues
 }
 
 sealed trait FormatOptions extends EnumEntry
@@ -54,7 +66,6 @@ object FormatOptions extends Enum[FormatOptions] {
   case object ValueOnly extends FormatOptions
 
 }
-
 
 case object FormatSelection {
 
@@ -98,7 +109,6 @@ object Format extends Enum[Format] {
 
   case object Bytes extends Format
 
-
   def apply(format: String): Format = {
     Option(format) match {
       case Some(format: String) =>
@@ -109,10 +119,6 @@ object Format extends Enum[Format] {
     }
   }
 }
-
-
-
-
 
 object S3Config {
   def apply(props: Map[String, String]): S3Config = S3Config(

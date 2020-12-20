@@ -21,15 +21,12 @@ import io.lenses.streamreactor.connect.aws.s3.sink.CommittedFileName
 import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
 
 object S3StoredFile extends LazyLogging {
-  def apply(path: String)(implicit fileNamingStrategy: S3FileNamingStrategy): Option[S3StoredFile] = {
-    path match {
-      case originalValue@CommittedFileName(topic, partition, end, format) if format == fileNamingStrategy.getFormat =>
-        Some(S3StoredFile(
-          originalValue,
-          TopicPartitionOffset(topic, partition, end),
-        ))
-      case _ => logger.debug(s"Invalid file type in S3 bucket - no match found for file $path")
-        None
+  def from(path:String, fileNamingStrategy: S3FileNamingStrategy): Option[S3StoredFile] ={
+    CommittedFileName.from(path, fileNamingStrategy).map{commitableFile=>
+      S3StoredFile(
+        path,
+        TopicPartitionOffset(commitableFile.topic,commitableFile. partition,commitableFile.offset),
+      )
     }
   }
 }

@@ -25,15 +25,15 @@ import io.lenses.streamreactor.connect.aws.s3.sink.HierarchicalS3FileNamingStrat
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData.resourceToByteArray
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.storage.Storage
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with LazyLogging {
 
-  private implicit val storageInterface: StorageInterface = mock[StorageInterface]
-  private implicit val sourceLister: S3SourceLister = mock[S3SourceLister]
+  private val storage: Storage = mock[Storage]
+  private val sourceLister: S3SourceLister = mock[S3SourceLister]
 
   private val format = FormatSelection(Format.Json)
   private val fileNamingStrategy = new HierarchicalS3FileNamingStrategy(format)
@@ -51,20 +51,20 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
     val offsetReaderResultFn: (String, String) => Option[OffsetReaderResult] =
       (_, _) => None
 
-    val target = new S3BucketReaderManager(sourceBucketOptions, offsetReaderResultFn)
+    val target = new S3BucketReaderManager(sourceBucketOptions, offsetReaderResultFn, storage, sourceLister)
 
     when(sourceLister.next(fileNamingStrategy, bucketAndPrefix, None, None)).thenReturn(None)
 
     val pollResults = target.poll()
 
-    pollResults should be(empty)
+    pollResults shouldBe Vector.empty
   }
 
   "poll" should "poll for records from the beginning" in {
 
     val offsetReaderResultFn: (String, String) => Option[OffsetReaderResult] = (_, _) => None
 
-    val target = new S3BucketReaderManager(sourceBucketOptions, offsetReaderResultFn)
+    val target = new S3BucketReaderManager(sourceBucketOptions, offsetReaderResultFn, storage,sourceLister)
 
     val nextTopicPartitionOffset = S3StoredFile("ing/topic/9/0.json", Topic("topic").withPartition(9).withOffset(0))
     when(sourceLister.next(fileNamingStrategy, bucketAndPrefix, None, None)).thenReturn(Some(nextTopicPartitionOffset))
@@ -72,7 +72,7 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
 
     val bucketAndPath = BucketAndPath(bucketAndPrefix.bucket, "ing/topic/9/0.json")
     val inputStream = new ByteArrayInputStream(TestSampleSchemaAndData.recordsAsJson(0).getBytes())
-    when(storageInterface.getBlob(bucketAndPath)).thenReturn(inputStream)
+    when(storage.getBlob(bucketAndPath)).thenReturn(inputStream)
 
     val pollResults = target.poll()
 
@@ -97,7 +97,7 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
       Some(OffsetReaderResult("ing/topic/9/0.json", "1"))
     }
 
-    val target = new S3BucketReaderManager(sourceBucketOptions, offsetReaderResultFn)
+    val target = new S3BucketReaderManager(sourceBucketOptions, offsetReaderResultFn, storage,sourceLister)
 
     val nextTopicPartitionOffset = S3StoredFile("ing/topic/9/0.json", Topic("topic").withPartition(9).withOffset(0))
     when(sourceLister.next(fileNamingStrategy, bucketAndPrefix, None, Some(nextTopicPartitionOffset))).thenReturn(Some(nextTopicPartitionOffset))
@@ -107,7 +107,7 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
     val inputStream = new ByteArrayInputStream(
       TestSampleSchemaAndData.recordsAsJson.mkString(System.lineSeparator()).getBytes
     )
-    when(storageInterface.getBlob(bucketAndPath)).thenReturn(inputStream)
+    when(storage.getBlob(bucketAndPath)).thenReturn(inputStream)
 
     val pollResults: Seq[PollResults] = target.poll()
 
@@ -149,14 +149,14 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
       Some(OffsetReaderResult(file1Name, "9"))
     }
 
-    val target = new S3BucketReaderManager(sourceBucketOptions, offsetReaderResultFn)
+    val target = new S3BucketReaderManager(sourceBucketOptions, offsetReaderResultFn, storage,sourceLister)
 
     when(sourceLister.next(fileNamingStrategy, bucketAndPrefix, None, Some(file1StoredFile))).thenReturn(Some(file1StoredFile))
     when(sourceLister.next(fileNamingStrategy, bucketAndPrefix, Some(file1StoredFile), None)).thenReturn(Some(file2StoredFile))
     when(sourceLister.next(fileNamingStrategy, bucketAndPrefix, Some(file2StoredFile), None)).thenReturn(None)
 
-    when(storageInterface.getBlob(file1BucketAndPath)).thenReturn(new ByteArrayInputStream(file1ByteArray))
-    when(storageInterface.getBlob(file2BucketAndPath)).thenReturn(new ByteArrayInputStream(file2ByteArray))
+    when(storage.getBlob(file1BucketAndPath)).thenReturn(new ByteArrayInputStream(file1ByteArray))
+    when(storage.getBlob(file2BucketAndPath)).thenReturn(new ByteArrayInputStream(file2ByteArray))
 
     val pollResults: Seq[PollResults] = target.poll()
 
@@ -192,13 +192,13 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
       Some(OffsetReaderResult(file2Name, "9"))
     }
 
-    val target = new S3BucketReaderManager(sourceBucketOptions, offsetReaderResultFn)
+    val target = new S3BucketReaderManager(sourceBucketOptions, offsetReaderResultFn, storage,sourceLister)
 
     when(sourceLister.next(fileNamingStrategy, bucketAndPrefix, None, Some(file2StoredFile))).thenReturn(Some(file2StoredFile))
     when(sourceLister.next(fileNamingStrategy, bucketAndPrefix, Some(file2StoredFile), None)).thenReturn(None)
 
-    when(storageInterface.getBlob(file1BucketAndPath)).thenReturn(new ByteArrayInputStream(file1ByteArray))
-    when(storageInterface.getBlob(file2BucketAndPath)).thenReturn(new ByteArrayInputStream(file2ByteArray))
+    when(storage.getBlob(file1BucketAndPath)).thenReturn(new ByteArrayInputStream(file1ByteArray))
+    when(storage.getBlob(file2BucketAndPath)).thenReturn(new ByteArrayInputStream(file2ByteArray))
 
     val pollResults: Seq[PollResults] = target.poll()
 
@@ -256,15 +256,15 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
       Some(OffsetReaderResult(file2Name, "9"))
     }
 
-    val target = new S3BucketReaderManager(sourceBucketOptions, offsetReaderResultFn)
+    val target = new S3BucketReaderManager(sourceBucketOptions, offsetReaderResultFn, storage,sourceLister)
 
     when(sourceLister.next(fileNamingStrategy, bucketAndPrefix, None, Some(file2StoredFile))).thenReturn(Some(file2StoredFile))
     when(sourceLister.next(fileNamingStrategy, bucketAndPrefix, Some(file2StoredFile), None)).thenReturn(Some(file3StoredFile))
     when(sourceLister.next(fileNamingStrategy, bucketAndPrefix, Some(file3StoredFile), None)).thenReturn(None)
 
-    when(storageInterface.getBlob(file1BucketAndPath)).thenReturn(new ByteArrayInputStream(file1ByteArray))
-    when(storageInterface.getBlob(file2BucketAndPath)).thenReturn(new ByteArrayInputStream(file2ByteArray))
-    when(storageInterface.getBlob(file3BucketAndPath)).thenReturn(new ByteArrayInputStream(file3ByteArray))
+    when(storage.getBlob(file1BucketAndPath)).thenReturn(new ByteArrayInputStream(file1ByteArray))
+    when(storage.getBlob(file2BucketAndPath)).thenReturn(new ByteArrayInputStream(file2ByteArray))
+    when(storage.getBlob(file3BucketAndPath)).thenReturn(new ByteArrayInputStream(file3ByteArray))
 
     val pollResults: Seq[PollResults] = target.poll()
 

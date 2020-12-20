@@ -19,6 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Avro
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, FormatSelection, S3Config}
+import io.lenses.streamreactor.connect.aws.s3.config.CommitMode.Gen1
 import io.lenses.streamreactor.connect.aws.s3.formats.AvroFormatReader
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.config.{S3SinkConfig, SinkBucketOptions}
@@ -44,6 +45,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
     Some(Credential),
     AuthMode.Credentials,
   ),
+    Gen1,
     bucketOptions = Set(
       SinkBucketOptions(
         TopicName,
@@ -58,7 +60,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
   "avro sink" should "write 2 records to avro format in s3" in {
 
-    val sink = S3WriterManager.from(avroConfig)
+    val sink = S3WriterManager.from(avroConfig,storage)
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
         sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(struct), Map.empty[String, String]))
@@ -74,7 +76,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
     val genericRecords: List[GenericRecord] = avroFormatReader.read(byteArray)
     genericRecords.size should be(2)
 
-    genericRecords(0).get("name").toString should be("sam")
+    genericRecords.head.get("name").toString should be("sam")
     genericRecords(1).get("name").toString should be("laura")
 
   }
@@ -93,7 +95,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
       new Struct(secondSchema).put("name", "coco").put("designation", null).put("salary", 395.44)
     )
 
-    val sink = S3WriterManager.from(avroConfig)
+    val sink = S3WriterManager.from(avroConfig, storage)
     firstUsers.union(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
         sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(user), Map.empty[String, String]))
@@ -109,7 +111,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
       S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/2.avro", blobStoreContext)
     )
     genericRecords1.size should be(2)
-    genericRecords1(0).get("name").toString should be("sam")
+    genericRecords1.head.get("name").toString should be("sam")
     genericRecords1(1).get("name").toString should be("laura")
 
     // record 3 only - next schema is different so ending the file
@@ -117,14 +119,14 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
       S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/3.avro", blobStoreContext)
     )
     genericRecords2.size should be(1)
-    genericRecords2(0).get("name").toString should be("tom")
+    genericRecords2.head.get("name").toString should be("tom")
 
     // record 3 only - next schema is different so ending the file
     val genericRecords3: List[GenericRecord] = avroFormatReader.read(
       S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/5.avro", blobStoreContext)
     )
     genericRecords3.size should be(2)
-    genericRecords3(0).get("name").toString should be("bobo")
+    genericRecords3.head.get("name").toString should be("bobo")
     genericRecords3(1).get("name").toString should be("momo")
 
   }

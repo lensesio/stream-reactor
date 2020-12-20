@@ -25,12 +25,11 @@ import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPath
 
 class MultipartBlobStoreOutputStream(
                                       bucketAndPath: BucketAndPath,
-                                      minAllowedMultipartSize: Int
-                                    )(
-                                      implicit storageInterface: StorageInterface
+                                      minAllowedMultipartSize: Int,
+                                      storage: Storage
                                     ) extends OutputStream with LazyLogging with S3OutputStream {
 
-  private var uploadState: MultiPartUploadState = storageInterface.initUpload(bucketAndPath)
+  private var uploadState: MultiPartUploadState = storage.initUpload(bucketAndPath)
   private val buffer: ByteBuffer = ByteBuffer.allocate(minAllowedMultipartSize)
   private var pointer = 0
   private var uploadedBytes: Long = 0
@@ -73,7 +72,7 @@ class MultipartBlobStoreOutputStream(
   }
 
   private def uploadPart(size: Long): Unit = {
-    uploadState = storageInterface.uploadPart(uploadState, getCurrentBufferContents, size)
+    uploadState = storage.uploadPart(uploadState, getCurrentBufferContents, size)
     buffer.clear
     uploadedBytes += size
   }
@@ -86,11 +85,11 @@ class MultipartBlobStoreOutputStream(
   def complete: Boolean = {
 
     if (buffer.position() > 0)
-      uploadState = storageInterface.uploadPart(uploadState, buffer.array(), buffer.position)
+      uploadState = storage.uploadPart(uploadState, buffer.array(), buffer.position)
 
     uploadState match {
       case state if state.parts.nonEmpty =>
-        storageInterface.completeUpload(state)
+        storage.completeUpload(state)
         buffer.clear()
         true
 

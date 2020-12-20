@@ -20,7 +20,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatStreamReader
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.storage.Storage
 import org.apache.kafka.common.errors.OffsetOutOfRangeException
 
 case class State(
@@ -36,10 +36,8 @@ case class State(
   */
 class S3BucketReaderManager(
                              sourceBucketOptions: SourceBucketOptions,
-                             offsetReaderResultFn: (String, String) => Option[OffsetReaderResult]
-                           )
-                           (
-                             implicit storageInterface: StorageInterface,
+                             offsetReaderResultFn: (String, String) => Option[OffsetReaderResult],
+                             storage: Storage,
                              sourceLister: S3SourceLister
                            ) extends LazyLogging {
 
@@ -86,7 +84,6 @@ class S3BucketReaderManager(
   }
 
   private def readNextFile(): Option[S3FormatStreamReader[_ <: SourceData]] = {
-
     logger.debug("Reading next file")
     sourceLister
       .next(
@@ -108,8 +105,8 @@ class S3BucketReaderManager(
 
   private def setUpReader(s3StoredFile: S3StoredFile): Option[S3FormatStreamReader[_ <: SourceData]] = {
     val bucketAndPath = BucketAndPath(sourceBucketOptions.sourceBucketAndPrefix.bucket, s3StoredFile.path)
-    val inputStreamFn = () => storageInterface.getBlob(bucketAndPath)
-    val fileSizeFn = () => storageInterface.getBlobSize(bucketAndPath)
+    val inputStreamFn = () => storage.getBlob(bucketAndPath)
+    val fileSizeFn = () => storage.getBlobSize(bucketAndPath)
     logger.info(s"Reading next file: $s3StoredFile")
 
     val reader = S3FormatStreamReader(inputStreamFn, fileSizeFn, sourceBucketOptions, bucketAndPath)
@@ -139,11 +136,10 @@ class S3BucketReaderManager(
       sourceBucketOptions.fileNamingStrategy.prefix(sourceBucketOptions.sourceBucketAndPrefix)
     )
 
-    val s3StoredFile: Option[S3StoredFile] = startingPoint.fold(Option.empty[S3StoredFile])(offsetReaderResult =>
-      S3StoredFile(offsetReaderResult.path)(sourceBucketOptions.fileNamingStrategy)
-    )
+    val s3StoredFile: Option[S3StoredFile] = startingPoint.flatMap(offsetReaderResult =>
+      S3StoredFile.from(offsetReaderResult.path, sourceBucketOptions.fileNamingStrategy))
 
-    val offsetLine: Option[Int] = startingPoint.fold(Option.empty[Int])(offsetReaderResult => Some(offsetReaderResult.line.toInt))
+    val offsetLine: Option[Int] = startingPoint.map(offsetReaderResult => offsetReaderResult.line.toInt)
 
     State(
       initFile = s3StoredFile,

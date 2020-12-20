@@ -16,17 +16,18 @@
 
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import java.util
-
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsContextCreator
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
-import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreStorageInterface, StorageInterface}
-import org.apache.kafka.connect.data.{Schema, SchemaAndValue}
-import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
+import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreStorage
+import io.lenses.streamreactor.connect.aws.s3.storage.Storage
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaAndValue
+import org.apache.kafka.connect.source.SourceRecord
+import org.apache.kafka.connect.source.SourceTask
 
+import java.util
 import scala.collection.JavaConverters._
 import scala.util.Try
 
@@ -36,7 +37,7 @@ class S3SourceTask extends SourceTask {
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
-  private implicit var storageInterface: StorageInterface = _
+  private var storage: Storage = _
 
   private implicit var sourceLister: S3SourceLister = _
 
@@ -48,7 +49,7 @@ class S3SourceTask extends SourceTask {
 
   /**
     * Start sets up readers for every configured connection in the properties
-    **/
+    * */
   override def start(props: util.Map[String, String]): Unit = {
 
     logger.debug(s"Received call to S3SinkTask.start with ${props.size()} properties")
@@ -56,30 +57,25 @@ class S3SourceTask extends SourceTask {
     val awsConfig = S3SourceConfig(props.asScala.toMap)
 
     val awsContextCreator = new AwsContextCreator(AwsContextCreator.DefaultCredentialsFn)
-    storageInterface = new MultipartBlobStoreStorageInterface(awsContextCreator.fromConfig(awsConfig.s3Config))
-    sourceLister = new S3SourceLister()
+    storage = new MultipartBlobStoreStorage(awsContextCreator.fromConfig(awsConfig.s3Config))
+    sourceLister = new S3SourceLister(storage)
 
     val configs = Option(context).flatMap(c => Option(c.configs())).filter(_.isEmpty == false).getOrElse(props)
 
     config = S3SourceConfig(configs.asScala.toMap)
 
+    val offsetFn: (String, String) => Option[OffsetReaderResult] = { (bucket, prefix) =>
+      val key = fromSourcePartition(bucket, prefix).asJava
+      Try {
+        val matchingOffset = context.offsetStorageReader().offset(key).asScala.toMap
 
-    val offsetFn: (String, String) => Option[OffsetReaderResult] =
-      (bucket, prefix) => {
-        val key = fromSourcePartition(bucket, prefix).asJava
-        Try {
-          val matchingOffset = context.offsetStorageReader().offset(key).asScala.toMap
+        val path = matchingOffset.getOrElse("path", throw new IllegalArgumentException("Could not find path value in matching offset")).asInstanceOf[String]
+        val line = matchingOffset.getOrElse("line", throw new IllegalArgumentException("Could not find line value in matching offset")).asInstanceOf[String]
+        OffsetReaderResult(path, line)
+      }.toOption
+    }
 
-          OffsetReaderResult(
-            matchingOffset.getOrElse("path", throw new IllegalArgumentException("Could not find path value in matching offset")).asInstanceOf[String],
-            matchingOffset.getOrElse("line", throw new IllegalArgumentException("Could not find line value in matching offset")).asInstanceOf[String],
-          )
-        }.toOption
-      }
-
-    readerManagers = config.bucketOptions
-      .map(new S3BucketReaderManager(_, offsetFn))
-
+    readerManagers = config.bucketOptions.map(new S3BucketReaderManager(_, offsetFn, storage, sourceLister))
   }
 
   override def stop(): Unit = {

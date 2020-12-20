@@ -29,7 +29,9 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3TestCo
   val avroFormatReader = new AvroFormatReader()
 
   "convert" should "write byte output stream with json for a single record" in {
-    val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"), 20000)(storageInterface)
+    val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"),
+      20000,
+      storage)
 
     val avroFormatWriter = new AvroFormatWriter(() => blobStream)
     avroFormatWriter.write(None, StructSinkData(users.head), topic)
@@ -44,7 +46,9 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3TestCo
   }
 
   "convert" should "write byte output stream with json for multiple records" in {
-    val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"), 100)(storageInterface)
+    val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"),
+      100,
+      storage)
 
     val avroFormatWriter = new AvroFormatWriter(() => blobStream)
     firstUsers.foreach(u => avroFormatWriter.write(None, StructSinkData(u), topic))

@@ -27,7 +27,7 @@ case class MultiPartUploadState(
                                  parts: Vector[MultipartPart]
                                )
 
-trait StorageInterface {
+trait Storage {
   def initUpload(bucketAndPath: BucketAndPath): MultiPartUploadState
 
   def completeUpload(state: MultiPartUploadState): Unit

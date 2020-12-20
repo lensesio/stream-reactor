@@ -17,11 +17,12 @@
 
 package io.lenses.streamreactor.connect.aws.s3.config
 
-import java.util
-
 import com.datamountaineer.streamreactor.connect.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
-import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
+import org.apache.kafka.common.config.ConfigDef.Importance
+import org.apache.kafka.common.config.ConfigDef.Type
+
+import java.util
 
 object S3ConfigDef {
 
@@ -63,8 +64,14 @@ object S3ConfigDef {
       Importance.LOW,
       "Enable virtual host buckets"
     )
-    .define(KcqlKey, Type.STRING, Importance.HIGH, KCQL_DOC)
+    .define(KCQL_KEY, Type.STRING, Importance.HIGH, KCQL_DOC)
 
+  val sinkConfig: ConfigDef = config
+    .define(COMMIT_STRATEGY_CONFIG,
+      Type.STRING,
+      "gen1",
+      Importance.HIGH,
+      COMMIT_STRATEGY_DOC)
 }
 
 case class S3ConfigDefBuilder(props: util.Map[String, String])

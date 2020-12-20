@@ -29,7 +29,7 @@ object S3ConfigSettings {
   val CUSTOM_ENDPOINT: String = "aws.custom.endpoint"
   val ENABLE_VIRTUAL_HOST_BUCKETS: String = "aws.vhost.bucket"
 
-  val KcqlKey = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
+  val KCQL_KEY = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
   val KCQL_CONFIG = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
   val KCQL_DOC = "Contains the Kafka Connect Query Language describing the flow from Apache Kafka topics to Apache Hive tables."
   val KCQL_DISPLAY = "KCQL commands"
@@ -39,4 +39,8 @@ object S3ConfigSettings {
   val PROGRESS_COUNTER_ENABLED_DEFAULT = false
   val PROGRESS_COUNTER_ENABLED_DISPLAY = "Enable progress counter"
 
+  val COMMIT_STRATEGY_CONFIG = s"$CONNECTOR_PREFIX.commit.strategy"
+  val COMMIT_STRATEGY_DOC = "Configures the approach to ensure exactly once semantics. Available values are: gen1/gen2. Gen1 is faster committing the files but with the initial seek depends on the amount of files written already. Gen2 involves extra steps to ensure exactly once but the initial seek is constant. Prefer Gen2 to Gen1. Gen1 is set as default for historical reasons and migration required."
+  val COMMIT_STRATEGY_DISPLAY = "Configures the exactly once strategy. Prefer Gen2 to Gen1."
+  val COMMIT_STRATEGY_DEFAULT = "gen1"
 }

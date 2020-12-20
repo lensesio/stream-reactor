@@ -20,35 +20,29 @@ package io.lenses.streamreactor.connect.aws.s3.source
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPrefix, S3StoredFile, S3StoredFileSorter}
 import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.storage.Storage
 
 import scala.util.control.NonFatal
 
 /**
-  * The [[S3SourceLister]] is responsible for querying the [[StorageInterface]] to
+  * The [[S3SourceLister]] is responsible for querying the [[Storage]] to
   * retrieve a list of S3 topics and partitions for reading
   */
-class S3SourceLister(implicit storageInterface: StorageInterface) extends LazyLogging {
-
-  def list(implicit fileNamingStrategy: S3FileNamingStrategy, bucketAndPrefix: BucketAndPrefix): Vector[S3StoredFile] = {
-
-    def bucketLocationExists: Boolean = storageInterface.pathExists(bucketAndPrefix)
-
+class S3SourceLister(storage: Storage) extends LazyLogging {
+  def list(fileNamingStrategy: S3FileNamingStrategy, bucketAndPrefix: BucketAndPrefix): Vector[S3StoredFile] = {
     try {
       // the path may not have been created, in which case we have no offsets defined
-      if (bucketLocationExists) {
-        val filesInS3: Vector[S3StoredFile] = storageInterface
+      if (storage.pathExists(bucketAndPrefix)) {
+        val filesInS3: Vector[S3StoredFile] = storage
           .list(bucketAndPrefix)
-          .flatMap(S3StoredFile(_))
+          .flatMap(S3StoredFile.from(_, fileNamingStrategy))
         filesInS3.sorted(S3StoredFileSorter.ordering)
       } else Vector.empty
-
     } catch {
       case NonFatal(e) =>
         logger.error(s"Error listing bucket/prefix $bucketAndPrefix")
         throw e
     }
-
   }
 
   def next(fileNamingStrategy: S3FileNamingStrategy, bucketAndPrefix: BucketAndPrefix, lastResult: Option[S3StoredFile], resumeFrom: Option[S3StoredFile]): Option[S3StoredFile] = {
@@ -68,8 +62,8 @@ class S3SourceLister(implicit storageInterface: StorageInterface) extends LazyLo
       }
     }
 
-    if (names.nonEmpty && position < names.size) Some(names(position)) else None
-
+    if (names.nonEmpty && position < names.size) Some(names(position))
+    else None
   }
 
 }

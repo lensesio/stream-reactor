@@ -18,10 +18,12 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestConfig
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestPayloadReader
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3TestConfig, S3TestPayloadReader}
 import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreOutputStream
-import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -30,7 +32,9 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
   val parquetFormatReader = new ParquetFormatReader()
 
   "convert" should "write byte output stream with json for a single record" in {
-    val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"), 20000)(storageInterface)
+    val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"),
+      20000,
+      storage)
 
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
     parquetFormatWriter.write(None, StructSinkData(users.head), topic)
@@ -45,7 +49,9 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
   }
 
   "convert" should "write byte output stream with json for multiple records" in {
-    val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"), 100)(storageInterface)
+    val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"),
+      100,
+      storage)
 
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
     firstUsers.foreach(e => parquetFormatWriter.write(None, StructSinkData(e), topic))
@@ -59,7 +65,9 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
 
   "convert" should "throw an error when writing array without schema" in {
 
-    val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"), 100)(storageInterface)
+    val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"),
+      100,
+      storage)
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
     intercept[IllegalArgumentException] {
       parquetFormatWriter.write(
@@ -77,7 +85,9 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
   "convert" should "throw an exception when trying to write map values" in {
     val mapSchema = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA)
 
-    val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"), 100)(storageInterface)
+    val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"),
+      100,
+      storage)
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
     intercept[IllegalArgumentException] {
       parquetFormatWriter.write(

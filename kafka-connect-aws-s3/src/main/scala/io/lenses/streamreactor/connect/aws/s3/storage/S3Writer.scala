@@ -20,7 +20,9 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.sink.{CommitContext, CommitPolicy, S3FileNamingStrategy}
+import io.lenses.streamreactor.connect.aws.s3.sink.CommitContext
+import io.lenses.streamreactor.connect.aws.s3.sink.CommitPolicy
+import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
 import org.apache.kafka.connect.data.Schema
 
 trait S3Writer {
@@ -37,7 +39,6 @@ trait S3Writer {
   def commit(): TopicPartitionOffset
 }
 
-
 case class S3WriterState(
                           topicPartition: TopicPartition,
                           offset: Offset,
@@ -49,14 +50,12 @@ case class S3WriterState(
                           lastKnownSchema: Option[Schema] = None
                         )
 
-
-class S3WriterImpl(
-                    bucketAndPrefix: BucketAndPrefix,
-                    commitPolicy: CommitPolicy,
-                    formatWriterFn: (TopicPartition, Map[PartitionField, String]) => S3FormatWriter,
-                    fileNamingStrategy: S3FileNamingStrategy,
-                    partitionValues: Map[PartitionField, String]
-                  )(implicit storageInterface: StorageInterface) extends S3Writer with LazyLogging {
+class S3WriterImpl(bucketAndPrefix: BucketAndPrefix,
+                   commitPolicy: CommitPolicy,
+                   formatWriterFn: (TopicPartition, Map[PartitionField, String]) => S3FormatWriter,
+                   fileNamingStrategy: S3FileNamingStrategy,
+                   partitionValues: Map[PartitionField, String],
+                   storage: Storage) extends S3Writer with LazyLogging {
 
   private var internalState: S3WriterState = _
 
@@ -134,7 +133,7 @@ class S3WriterImpl(
       topicPartitionOffset,
       partitionValues
     )
-    storageInterface.rename(originalFilename, finalFilename)
+    storage.rename(originalFilename, finalFilename)
   }
 
   private def resetState(topicPartitionOffset: TopicPartitionOffset): Unit = {
@@ -152,7 +151,7 @@ class S3WriterImpl(
     logger.debug(s"S3Writer.resetState: New internal state: $internalState")
   }
 
-  override def close(): Unit = storageInterface.close()
+  override def close(): Unit = storage.close()
 
   override def getCommittedOffset: Option[Offset] = internalState.committedOffset
 
@@ -168,5 +167,4 @@ class S3WriterImpl(
 
     commitPolicy.shouldFlush(commitContext)
   }
-
 }

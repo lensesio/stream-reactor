@@ -17,18 +17,21 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import java.util
-
 import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsContextCreator
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.sink.commit.WatermarkSeeker
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.{HeaderToStringConverter, ValueToSinkDataConverter}
-import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreStorageInterface, StorageInterface}
+import io.lenses.streamreactor.connect.aws.s3.sink.conversion.HeaderToStringConverter
+import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ValueToSinkDataConverter
+import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreStorage
+import io.lenses.streamreactor.connect.aws.s3.storage.Storage
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTask
 
+import java.util
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
@@ -40,16 +43,18 @@ class S3SinkTask extends SinkTask {
 
   private var writerManager: S3WriterManager = _
 
-  private var storageInterface: StorageInterface = _
+  private var storage: Storage = _
 
   private var config: S3SinkConfig = _
 
+  private var watermarkSeeker: WatermarkSeeker = _
+
   override def version(): String = manifest.version()
 
-  def validateBuckets(storageInterface: StorageInterface, config: S3SinkConfig): Unit = {
+  def validateBuckets(storageInterface: Storage, config: S3SinkConfig): Unit = {
     config.bucketOptions.foreach { bucketOption =>
-        val bucketAndPrefix = bucketOption.bucketAndPrefix
-        storageInterface.pathExists(bucketAndPrefix)
+      val bucketAndPrefix = bucketOption.bucketAndPrefix
+      storageInterface.pathExists(bucketAndPrefix)
     }
   }
 
@@ -60,16 +65,16 @@ class S3SinkTask extends SinkTask {
     val awsConfig = S3SinkConfig(props.asScala.toMap)
 
     val awsContextCreator = new AwsContextCreator(AwsContextCreator.DefaultCredentialsFn)
-    storageInterface = new MultipartBlobStoreStorageInterface(awsContextCreator.fromConfig(awsConfig.s3Config))
+    storage = new MultipartBlobStoreStorage(awsContextCreator.fromConfig(awsConfig.s3Config))
 
     val configs = Option(context).flatMap(c => Option(c.configs())).filter(_.isEmpty == false).getOrElse(props)
 
     config = S3SinkConfig(configs.asScala.toMap)
 
-    validateBuckets(storageInterface, config)
+    validateBuckets(storage, config)
 
-    writerManager = S3WriterManager.from(config)(storageInterface)
-
+    writerManager = S3WriterManager.from(config, storage)
+    watermarkSeeker = WatermarkSeeker.from(config, storage)
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
@@ -130,13 +135,11 @@ class S3SinkTask extends SinkTask {
         .map(tp => TopicPartition(Topic(tp.topic), tp.partition))
         .toSet
 
-      writerManager.open(topicPartitions)
-        .foreach {
-          case (topicPartition, offset) =>
-            logger.debug(s"Seeking to ${topicPartition.topic.value}:${topicPartition.partition}:${offset.value}")
-            context.offset(topicPartition.toKafka, offset.value)
-        }
-
+      watermarkSeeker.latest(topicPartitions).foreach {
+        case (topicPartition, offset) =>
+          logger.debug(s"Seeking to ${topicPartition.topic.value}:${topicPartition.partition}:${offset.value}")
+          context.offset(topicPartition.toKafka, offset.value)
+      }
     } catch {
       case NonFatal(e) =>
         logger.error("Error opening s3 sink writer", e)

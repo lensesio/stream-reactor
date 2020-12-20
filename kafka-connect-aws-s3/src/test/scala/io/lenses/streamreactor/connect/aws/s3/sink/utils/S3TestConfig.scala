@@ -24,7 +24,7 @@ import java.util.stream.Collectors
 
 import com.google.common.io.ByteStreams
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreStorageInterface
+import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreStorage
 import org.apache.commons.io.FileUtils
 import org.jclouds.blobstore.BlobStoreContext
 import org.jclouds.io.Payload
@@ -97,7 +97,7 @@ trait S3TestConfig extends AnyFlatSpec with BeforeAndAfter with LazyLogging {
   protected val proxyContext: S3ProxyContext = new S3ProxyContext()
 
   implicit val blobStoreContext: BlobStoreContext = proxyContext.createBlobStoreContext
-  implicit val storageInterface: MultipartBlobStoreStorageInterface = new MultipartBlobStoreStorageInterface(blobStoreContext)
+  implicit val storage: MultipartBlobStoreStorage = new MultipartBlobStoreStorage(blobStoreContext)
 
   val BucketName: String = S3ProxyContext.TestBucket
 

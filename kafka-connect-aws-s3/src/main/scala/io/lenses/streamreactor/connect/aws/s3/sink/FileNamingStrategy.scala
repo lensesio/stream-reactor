@@ -144,17 +144,15 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
   override def topicPartitionPrefix(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath = BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/")
 }
 
+case class CommittedFileName(topic:Topic, partition:Int, offset:Offset, format: Format)
 
 object CommittedFileName {
-
-  def unapply(filename: String)(implicit s3FileNamingStrategy: S3FileNamingStrategy): Option[(Topic, Int, Offset, Format)] = {
+  def from(filename: String, s3FileNamingStrategy: S3FileNamingStrategy): Option[CommittedFileName] = {
     filename match {
       case s3FileNamingStrategy.committedFilenameRegex(topic, partition, end, extension) =>
         Format.withNameInsensitiveOption(extension)
-          .fold(Option.empty[(Topic, Int, Offset, Format)]) {
-            format => Some(Topic(topic), partition.toInt, Offset(end.toLong), format)
+          .map { format => CommittedFileName(Topic(topic), partition.toInt, Offset(end.toLong), format)
           }
-
       case _ => None
     }
   }

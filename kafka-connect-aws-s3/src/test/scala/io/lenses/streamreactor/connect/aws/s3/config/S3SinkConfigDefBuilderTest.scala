@@ -16,6 +16,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.config
 
+import io.lenses.streamreactor.connect.aws.s3.config.CommitMode.Gen1
+import io.lenses.streamreactor.connect.aws.s3.config.CommitMode.Gen2
+import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -26,7 +29,7 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
 
   val PrefixName = "streamReactorBackups"
   val TopicName = "myTopic"
-  val BucketName = "myBucket"
+  val BucketName = "mybucket"
 
   val props = Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1")
 
@@ -40,7 +43,27 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     element.getWithFlushCount should be(1)
     element.getWithPartitioner should be("Values")
     element.getPartitionBy.asScala.toSet should be(Set("_key"))
-
   }
 
+  "apply" should "default commit mode" in {
+    val config = S3SinkConfig(props)
+    config.commitMode shouldBe Gen1
+  }
+
+  "apply" should "lift the commit mode for Gen2" in {
+    val config = S3SinkConfig(props + (S3ConfigSettings.COMMIT_STRATEGY_CONFIG->"gen2"))
+    config.commitMode shouldBe Gen2
+  }
+
+
+  "apply" should "lift the commit mode for Gen1" in {
+    val config = S3SinkConfig(props + (S3ConfigSettings.COMMIT_STRATEGY_CONFIG->"gEn1"))
+    config.commitMode shouldBe Gen1
+  }
+
+  "apply" should "raise an exception when the config for commit mode is incorrect" in {
+    intercept[IllegalArgumentException] {
+      S3SinkConfig(props + (S3ConfigSettings.COMMIT_STRATEGY_CONFIG -> "not_valid"))
+    }
+  }
 }

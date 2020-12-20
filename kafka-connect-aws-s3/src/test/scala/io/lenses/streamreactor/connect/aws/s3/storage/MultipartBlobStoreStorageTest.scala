@@ -32,7 +32,7 @@ import org.scalatest.matchers.should.Matchers
 
 import scala.collection.JavaConverters._
 
-class MultipartBlobStoreStorageInterfaceTest extends AnyFlatSpec with MockitoSugar with Matchers with BeforeAndAfter {
+class MultipartBlobStoreStorageTest extends AnyFlatSpec with MockitoSugar with Matchers with BeforeAndAfter {
 
   private val blobStoreContext: BlobStoreContext = mock[BlobStoreContext]
   private val blobStore: BlobStore = mock[BlobStore]
@@ -40,7 +40,7 @@ class MultipartBlobStoreStorageInterfaceTest extends AnyFlatSpec with MockitoSug
 
   when(blobStoreContext.getBlobStore).thenReturn(blobStore)
 
-  private val multipartBlobStoreStorageInterface = new MultipartBlobStoreStorageInterface(blobStoreContext)
+  private val multipartBlobStoreStorageInterface = new MultipartBlobStoreStorage(blobStoreContext)
 
   before {
     reset(blobStore)

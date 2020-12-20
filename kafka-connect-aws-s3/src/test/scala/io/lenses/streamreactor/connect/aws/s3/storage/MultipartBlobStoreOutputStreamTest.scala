@@ -45,7 +45,7 @@ class MultipartBlobStoreOutputStreamTest extends AnyFlatSpec with MockitoSugar w
 
 
   "write" should "setup the state on the construction" in new TestContext {
-    verify(mockStorageInterface, times(1)).initUpload(testBucketAndPath)
+    verify(storage, times(1)).initUpload(testBucketAndPath)
   }
 
   "write" should "append directly to the buffer for bytes smaller than remaining buffer size" in new TestContext {
@@ -53,7 +53,7 @@ class MultipartBlobStoreOutputStreamTest extends AnyFlatSpec with MockitoSugar w
 
     target.write(bytesToUpload, 0, bytesToUpload.length)
 
-    verify(mockStorageInterface, never).uploadPart(
+    verify(storage, never).uploadPart(
       any[MultiPartUploadState],
       any[Array[Byte]],
       ArgumentMatchers.eq(8)
@@ -67,7 +67,7 @@ class MultipartBlobStoreOutputStreamTest extends AnyFlatSpec with MockitoSugar w
 
     new String(target.getCurrentBufferContents).trim should be("YYY")
 
-    verify(mockStorageInterface).uploadPart(
+    verify(storage).uploadPart(
       any[MultiPartUploadState],
       any[Array[Byte]],
       ArgumentMatchers.eq(10L)
@@ -125,11 +125,11 @@ class MultipartBlobStoreOutputStreamTest extends AnyFlatSpec with MockitoSugar w
 
     target.write(nBytes(10, 'X'), 0, 10)
 
-    reset(mockStorageInterface)
+    reset(storage)
 
     target.complete
 
-    verify(mockStorageInterface, never).uploadPart(any[MultiPartUploadState], payloadCaptor.capture(), ArgumentMatchers.eq(8))
+    verify(storage, never).uploadPart(any[MultiPartUploadState], payloadCaptor.capture(), ArgumentMatchers.eq(8))
 
   }
 
@@ -146,20 +146,20 @@ class MultipartBlobStoreOutputStreamTest extends AnyFlatSpec with MockitoSugar w
 
   class TestContext {
 
-    implicit val mockStorageInterface: StorageInterface = mock[StorageInterface]
-    val target = new MultipartBlobStoreOutputStream(testBucketAndPath, MinFileSizeBytes)
+    implicit val storage: Storage = mock[Storage]
+    val target = new MultipartBlobStoreOutputStream(testBucketAndPath, MinFileSizeBytes,storage)
     private val multipartUpload: MultipartUpload = mock[MultipartUpload]
 
     private val initUploadState = MultiPartUploadState(multipartUpload, Vector())
 
-    when(mockStorageInterface.initUpload(testBucketAndPath)).thenReturn(
+    when(storage.initUpload(testBucketAndPath)).thenReturn(
       initUploadState
     )
 
     def setUpUploadPartPayloadCaptor(returnState: MultiPartUploadState): ArgumentCaptor[Array[Byte]] = {
 
       val payloadCaptor: ArgumentCaptor[Array[Byte]] = ArgumentCaptor.forClass(classOf[Array[Byte]])
-      when(mockStorageInterface.uploadPart(
+      when(storage.uploadPart(
         any[MultiPartUploadState],
         payloadCaptor.capture(),
         anyLong()

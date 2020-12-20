@@ -39,7 +39,7 @@ class S3SinkConnector extends SinkConnector {
 
   override def taskClass(): Class[_ <: Task] = classOf[S3SinkTask]
 
-  override def config(): ConfigDef = S3ConfigDef.config
+  override def config(): ConfigDef = S3ConfigDef.sinkConfig
 
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(s"Creating S3 sink connector")

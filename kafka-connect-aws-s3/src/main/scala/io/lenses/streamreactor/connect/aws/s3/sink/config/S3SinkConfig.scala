@@ -18,25 +18,39 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
 import com.datamountaineer.kcql.Kcql
+import io.lenses.streamreactor.connect.aws.s3.config.CommitMode
+import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
+import io.lenses.streamreactor.connect.aws.s3.config.S3Config
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
-import io.lenses.streamreactor.connect.aws.s3.config.{FormatSelection, S3Config, S3ConfigDefBuilder}
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPrefix, PartitionSelection}
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings
+import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPrefix
+import io.lenses.streamreactor.connect.aws.s3.model.PartitionSelection
 import io.lenses.streamreactor.connect.aws.s3.sink._
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 
 object S3SinkConfig {
-  def apply(props: Map[String, String]): S3SinkConfig = S3SinkConfig(
-    S3Config(props),
-    SinkBucketOptions(props)
-  )
+  def apply(props: Map[String, String]): S3SinkConfig = {
+    val commitMode = props.get(S3ConfigSettings.COMMIT_STRATEGY_CONFIG)
+      .map { mode =>
+        CommitMode.withNameInsensitiveOption(mode)
+          .getOrElse(throw new IllegalArgumentException(s"Configuration ${S3ConfigSettings.COMMIT_STRATEGY_CONFIG} is invalid. Expecting one of:${CommitMode.values.map(_.entryName).mkString(",")} but found ${mode}."))
+      }
+      .getOrElse(CommitMode.Gen1)
+
+    S3SinkConfig(
+      S3Config(props),
+      commitMode,
+      SinkBucketOptions(props)
+    )
+  }
 }
 
-case class S3SinkConfig(
-                         s3Config: S3Config,
-                         bucketOptions: Set[SinkBucketOptions] = Set.empty
-                       )
+case class S3SinkConfig(s3Config: S3Config,
+                        commitMode: CommitMode,
+                        bucketOptions: Set[SinkBucketOptions] = Set.empty)
 
 object SinkBucketOptions {
   def apply(props: Map[String, String]): Set[SinkBucketOptions] = {
@@ -47,7 +61,6 @@ object SinkBucketOptions {
 
       val flushInterval = Option(kcql.getWithFlushInterval).filter(_ > 0).map(_.seconds)
       val flushCount = Option(kcql.getWithFlushCount).filter(_ > 0)
-
 
       val formatSelection: FormatSelection = Option(kcql.getStoredAs) match {
         case Some(format: String) => FormatSelection(format)
