@@ -135,14 +135,14 @@
                                 A sink connector for writing to Google BigQuery, with support for automatic table creation and schema evolution.
                             </description>
                             <logo>logos/BigQuery.png</logo>
-                            <documentationUrl>https://docs.confluent.io/current/connect/kafka-connect-bigquery/</documentationUrl>
+                            <documentationUrl>https://docs.confluent.io/kafka-connect-bigquery/current/index.html</documentationUrl>
                             <sourceUrl>https://github.com/confluentinc/kafka-connect-bigquery</sourceUrl>
 
                             <supportProviderName>Confluent, Inc.</supportProviderName>
                             <supportSummary><![CDATA[
                                 Confluent</a> supports WePay's BigQuery connector version 1.1.2 and later, as part of a <a href=\"https://www.confluent.io/product/confluent-platform/\">Confluent Platform</a> subscription.
                             ]]></supportSummary>
-                            <supportUrl>https://docs.confluent.io/current/connect/kafka-connect-bigquery/</supportUrl>
+                            <supportUrl>https://docs.confluent.io/kafka-connect-bigquery/current/index.html</supportUrl>
                             <supportLogo>logos/confluent.png</supportLogo>
 
                             <ownerUsername>wepay</ownerUsername>
