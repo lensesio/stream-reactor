@@ -36,6 +36,8 @@ trait Storage {
 
   def rename(originalFilename: BucketAndPath, newFilename: BucketAndPath): Unit
 
+  def remove(filename: BucketAndPath): Unit
+
   def close(): Unit
 
   def pathExists(bucketAndPrefix: BucketAndPrefix): Boolean
@@ -46,9 +48,9 @@ trait Storage {
 
   def list(bucketAndPrefix: BucketAndPrefix): Vector[String]
 
+  def putBlob(bucketAndPath: BucketAndPath, payload: String): Unit
+
   def getBlob(bucketAndPath: BucketAndPath): InputStream
 
   def getBlobSize(bucketAndPath: BucketAndPath): Long
-
 }
-

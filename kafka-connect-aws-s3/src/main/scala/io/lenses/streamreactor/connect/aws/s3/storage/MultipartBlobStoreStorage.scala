@@ -102,9 +102,11 @@ class MultipartBlobStoreStorage(blobStoreContext: BlobStoreContext) extends Stor
     blobStore.copyBlob(
       originalFilename.bucket, originalFilename.path, newFilename.bucket, newFilename.path, CopyOptions.NONE)
 
-    blobStore.removeBlob(
-      originalFilename.bucket, originalFilename.path)
+    remove(originalFilename)
+  }
 
+  override def remove(filename: BucketAndPath): Unit = {
+    blobStore.removeBlob(filename.bucket, filename.path)
   }
 
   override def close(): Unit = blobStoreContext.close()
@@ -141,10 +143,18 @@ class MultipartBlobStoreStorage(blobStoreContext: BlobStoreContext) extends Stor
       nextMarker = Option(pageSet.getNextMarker)
       pageSet.asScala.foreach { metadata =>
         if (metadata.getType == StorageType.BLOB)
-          builder.+(metadata.getName)
+          builder.+=(metadata.getName)
       }
     } while (nextMarker.nonEmpty)
     builder.result()
+  }
+
+  override def putBlob(bucketAndPath: BucketAndPath, payload: String): Unit = {
+    val s3PutOptions = PutOptions.Builder.multipart()
+    val blob = blobStore.blobBuilder(bucketAndPath.path)
+      .payload(payload)
+      .build
+    blobStore.putBlob(bucketAndPath.bucket, blob, s3PutOptions)
   }
 
   override def getBlob(bucketAndPath: BucketAndPath): InputStream = {

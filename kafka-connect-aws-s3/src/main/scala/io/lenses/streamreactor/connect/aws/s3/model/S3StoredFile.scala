@@ -17,17 +17,19 @@
 package io.lenses.streamreactor.connect.aws.s3.model
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.sink.CommittedFileName
-import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
+import io.lenses.streamreactor.connect.aws.s3.sink.{CommittedFileName, S3FileNamingStrategy}
 
 object S3StoredFile extends LazyLogging {
-  def from(path:String, fileNamingStrategy: S3FileNamingStrategy): Option[S3StoredFile] ={
-    CommittedFileName.from(path, fileNamingStrategy).map{commitableFile=>
-      S3StoredFile(
-        path,
-        TopicPartitionOffset(commitableFile.topic,commitableFile. partition,commitableFile.offset),
-      )
-    }
+
+  def from(path: String, fileNamingStrategy: S3FileNamingStrategy): Option[S3StoredFile] = {
+    CommittedFileName.from(path, fileNamingStrategy)
+      .filter(_.format == fileNamingStrategy.getFormat)
+      .map { committableFile =>
+        S3StoredFile(
+          path,
+          TopicPartitionOffset(committableFile.topic, committableFile.partition, committableFile.offset),
+        )
+      }
   }
 }
 

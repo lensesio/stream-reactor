@@ -52,7 +52,7 @@ class CommittedFileNameTest extends AnyFlatSpecLike with Matchers {
     CommittedFileName.from("extra/long/prefix/topic/927/77.doc", impFileNamingStrategy) shouldBe None
   }
 
-  "unapply" should "recognise partitioned filenames in prefix/topic/927/77.json format" in new PartitionedAvroTestContext {
+  "unapply" should "recognise partitioned filenames in prefix/partition1=something/topic(927_77).json format" in new PartitionedAvroTestContext {
     CommittedFileName.from(
       "prefix/partition1=something/topic(927_77).json",
       impFileNamingStrategy) shouldBe Some(CommittedFileName(Topic("topic"), 927, Offset(77), Json))

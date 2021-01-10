@@ -17,9 +17,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.commit
 
 import io.lenses.streamreactor.connect.aws.s3.config.CommitMode
-import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPrefix
-import io.lenses.streamreactor.connect.aws.s3.model.PartitionField
-import io.lenses.streamreactor.connect.aws.s3.model.TopicPartitionOffset
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPrefix, PartitionField, TopicPartitionOffset}
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.Storage
 
@@ -33,13 +31,11 @@ trait Committer extends WatermarkSeeker {
 }
 
 
-object Committer{
-  def from(config:S3SinkConfig, storage:Storage):Committer={
+object Committer {
+  def from(config: S3SinkConfig, storage: Storage): Committer = {
     config.commitMode match {
       case CommitMode.Gen1 => Gen1Committer.from(config, storage)
-      case CommitMode.Gen2 =>
-        //TODO: replace with Gen2
-        Gen1Committer.from(config, storage)
+      case CommitMode.Gen2 => Gen2Committer.from(config, storage)
     }
   }
 }
