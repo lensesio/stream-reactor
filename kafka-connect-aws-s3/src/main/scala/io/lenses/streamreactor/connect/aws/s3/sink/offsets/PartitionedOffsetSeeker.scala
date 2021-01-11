@@ -97,7 +97,7 @@ class PartitionedOffsetSeeker(storageInterface: StorageInterface)(implicit fileN
 
     val eligible = latestEligible
       .sortBy {
-        case (offset, _) => offset
+        case (_, tpo) => tpo.offset
       }
       .reverse
 
