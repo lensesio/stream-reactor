@@ -1,5 +1,5 @@
 ![Actions Status](https://github.com/lensesio/stream-reactor/workflows/CI/badge.svg)
-[<img src="https://img.shields.io/badge/docs--orange.svg?"/>](https://docs.lenses.io/connectors/)
+[<img src="https://img.shields.io/badge/docs--orange.svg?"/>](https://docs.lenses.io/connectors/) [![Meercode CI Score](https://meercode.io/badge/lensesio/stream-reactor?type=ci-score&branch=master)](https://meercode.io/lensesio/stream-reactor)
 
 Join us on slack [![Alt text](images/slack.jpeg)](https://launchpass.com/lensesio)
 
