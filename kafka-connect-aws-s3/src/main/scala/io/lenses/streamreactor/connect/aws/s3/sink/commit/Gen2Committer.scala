@@ -2,7 +2,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink.commit
 
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
-import io.lenses.streamreactor.connect.aws.s3.sink.{IndexFileName, S3FileNamingStrategy, S3IndexNamingStrategy}
+import io.lenses.streamreactor.connect.aws.s3.sink.{IndexFileName, PartitionedS3IndexNamingStrategy, S3FileNamingStrategy}
 import io.lenses.streamreactor.connect.aws.s3.storage.Storage
 import org.apache.kafka.connect.errors.ConnectException
 
@@ -15,7 +15,7 @@ class Gen2Committer(storage: Storage,
 
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
-  private val indexNamingStrategy = new S3IndexNamingStrategy
+  private val indexNamingStrategy = new PartitionedS3IndexNamingStrategy
 
   /**
    * Commit records to S3 bucket.
@@ -41,7 +41,7 @@ class Gen2Committer(storage: Storage,
 
     val topicPartition = topicPartitionOffset.toTopicPartition
     val currentIndex = findIndexPath(topicPartition)
-    val newIndex = indexNamingStrategy.indexFilename(BucketAndPrefix(bucketAndPrefix.bucket), topicPartitionOffset)
+    val newIndex = indexNamingStrategy.indexFilename(bucketAndPrefix.bucket, topicPartitionOffset)
 
     // create new index
     storage.putBlob(newIndex, finalFilename.path)
@@ -72,16 +72,13 @@ class Gen2Committer(storage: Storage,
   /**
    * Find latest index path for a partition.
    *
-   * In case multiple indexes are available resolves conflict
-   * by removing the non-committed index.
-   *
    * @param topicPartition the topic partition
    * @return the bucket and path of latest index.
    */
   private def findIndexPath(topicPartition: TopicPartition): Option[BucketAndPath] = {
     try {
       val bucket = bucketAndPrefixFn(topicPartition.topic).bucket
-      val indexBucketAndPath = indexNamingStrategy.indexPath(BucketAndPrefix(bucket), topicPartition)
+      val indexBucketAndPath = indexNamingStrategy.indexPath(bucket, topicPartition)
 
       val listOfIndexes = storage.list(indexBucketAndPath)
 
@@ -92,27 +89,37 @@ class Gen2Committer(storage: Storage,
       orderedIndexes.size match {
         case 0 => None
         case 1 => Some(BucketAndPath(bucket, listOfIndexes.head))
-        case 2 =>
-          // handle conflict
-          logger.warn(s"Found multiple index files: $orderedIndexes")
-
-          val indexPrevious = indexNamingStrategy.indexFilename(BucketAndPrefix(bucket), orderedIndexes.head)
-          val indexLast = indexNamingStrategy.indexFilename(BucketAndPrefix(bucket), orderedIndexes.last)
-
-          val committedFileName = Source.fromInputStream(storage.getBlob(indexLast)).mkString
-          if (storage.pathExists(BucketAndPath(bucket, committedFileName))) {
-            storage.remove(indexPrevious)
-            Some(indexLast)
-          } else {
-            storage.remove(indexLast)
-            Some(indexPrevious)
-          }
+        case 2 => handleIndexConflict(bucket, orderedIndexes)
         case _ => throw new IllegalStateException("Corrupted index state")
       }
     } catch {
       case NonFatal(e) =>
         logger.error(s"Error finding index for $topicPartition", e)
         throw e
+    }
+  }
+
+  /**
+   * In case multiple indexes are available try to resolve conflict
+   * by removing the non-committed index.
+   *
+   * @param bucket         the bucket
+   * @param orderedIndexes the ordered list of indexes.
+   * @return the latest committed file index
+   */
+  private def handleIndexConflict(bucket: String, orderedIndexes: Vector[TopicPartitionOffset]) = {
+    logger.warn(s"Found multiple index files: $orderedIndexes")
+
+    val indexPrevious = indexNamingStrategy.indexFilename(bucket, orderedIndexes.head)
+    val indexLast = indexNamingStrategy.indexFilename(bucket, orderedIndexes.last)
+
+    val committedFileName = Source.fromInputStream(storage.getBlob(indexLast)).mkString
+    if (storage.pathExists(BucketAndPath(bucket, committedFileName))) {
+      storage.remove(indexPrevious)
+      Some(indexLast)
+    } else {
+      storage.remove(indexLast)
+      Some(indexPrevious)
     }
   }
 }

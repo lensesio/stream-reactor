@@ -6,7 +6,7 @@ import org.scalatest.matchers.should.Matchers
 
 class IndexFileNameTest extends AnyFlatSpecLike with Matchers {
 
-  val indexNamingStrategy = new S3IndexNamingStrategy
+  val indexNamingStrategy = new PartitionedS3IndexNamingStrategy
 
   "unapply" should "recognise index filenames in prefix/topic/927/latest.77 format" in {
     IndexFileName.from("index/topic/927/latest.77", indexNamingStrategy) shouldBe Some(IndexFileName(Topic("topic"), 927, Offset(77)))

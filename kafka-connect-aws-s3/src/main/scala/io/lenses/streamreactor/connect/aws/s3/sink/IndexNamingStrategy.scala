@@ -4,17 +4,24 @@ import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPre
 
 import scala.util.matching.Regex
 
-class S3IndexNamingStrategy {
+trait S3IndexNamingStrategy {
 
-  protected val DefaultPrefix = "index"
+  def indexPath(bucket: String, topicPartition: TopicPartition): BucketAndPath
 
-  def prefix(bucketAndPrefix: BucketAndPrefix): String = bucketAndPrefix.prefix.getOrElse(DefaultPrefix)
+  def indexFilename(bucket: String, topicPartitionOffset: TopicPartitionOffset): BucketAndPath
 
-  def indexPath(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath =
-    BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${topicPartition.topic.value}/${topicPartition.partition}/")
+  val indexFileNameRegex: Regex
+}
 
-  def indexFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset): BucketAndPath =
-    BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${topicPartitionOffset.topic.value}/${topicPartitionOffset.partition}/latest.${topicPartitionOffset.offset.value}")
+class PartitionedS3IndexNamingStrategy extends S3IndexNamingStrategy {
+
+  private val IndexPrefix = "index"
+
+  def indexPath(bucket: String, topicPartition: TopicPartition): BucketAndPath =
+    BucketAndPath(bucket, s"$IndexPrefix/${topicPartition.topic.value}/${topicPartition.partition}/")
+
+  def indexFilename(bucket: String, topicPartitionOffset: TopicPartitionOffset): BucketAndPath =
+    BucketAndPath(bucket, s"$IndexPrefix/${topicPartitionOffset.topic.value}/${topicPartitionOffset.partition}/latest.${topicPartitionOffset.offset.value}")
 
   val indexFileNameRegex: Regex = s".+/(.+)/(\\d+)/latest.(\\d+)".r
 }

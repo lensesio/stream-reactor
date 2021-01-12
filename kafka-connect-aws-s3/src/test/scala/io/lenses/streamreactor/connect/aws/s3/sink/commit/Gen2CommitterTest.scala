@@ -3,16 +3,17 @@ package io.lenses.streamreactor.connect.aws.s3.sink.commit
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix, Offset, Topic, TopicPartition}
-import io.lenses.streamreactor.connect.aws.s3.sink.{HierarchicalS3FileNamingStrategy, S3IndexNamingStrategy}
+import io.lenses.streamreactor.connect.aws.s3.sink.{HierarchicalS3FileNamingStrategy, PartitionedS3IndexNamingStrategy, S3IndexNamingStrategy}
 import io.lenses.streamreactor.connect.aws.s3.storage.Storage
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
 import java.io.ByteArrayInputStream
 
 class Gen2CommitterTest extends AnyWordSpec with MockitoSugar with Matchers {
 
-  private val indexNamingStrategy = new S3IndexNamingStrategy()
+  private val indexNamingStrategy = new PartitionedS3IndexNamingStrategy
   private val fileNamingStrategy = new HierarchicalS3FileNamingStrategy(FormatSelection(Json))
   private val bucketAndPath = BucketAndPath("bucket", "path/topic/0/")
 
@@ -23,7 +24,7 @@ class Gen2CommitterTest extends AnyWordSpec with MockitoSugar with Matchers {
 
       val offsetSeeker = new Gen2Committer(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("bucket", Some("path")))
       val topicPartition = TopicPartition(Topic("topic"), 1)
-      val indexBucketAndPath = indexNamingStrategy.indexPath(BucketAndPrefix("bucket"), topicPartition)
+      val indexBucketAndPath = indexNamingStrategy.indexPath("bucket", topicPartition)
 
       when(storage.pathExists(bucketAndPath)).thenReturn(false)
       when(storage.list(indexBucketAndPath)).thenReturn(Vector.empty)
@@ -37,7 +38,7 @@ class Gen2CommitterTest extends AnyWordSpec with MockitoSugar with Matchers {
       val offsetSeeker = new Gen2Committer(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("bucket", Some("path")))
 
       val topicPartition = TopicPartition(Topic("topic"), 1)
-      val indexBucketAndPath = indexNamingStrategy.indexPath(BucketAndPrefix("bucket"), topicPartition)
+      val indexBucketAndPath = indexNamingStrategy.indexPath("bucket", topicPartition)
       when(storage.list(indexBucketAndPath)).thenReturn(Vector("index/topic/0/latest.22"))
 
       offsetSeeker.latest(Set(topicPartition)) shouldBe Map(TopicPartition(Topic("topic"), 1) -> Offset(22))
@@ -49,7 +50,7 @@ class Gen2CommitterTest extends AnyWordSpec with MockitoSugar with Matchers {
       val offsetSeeker = new Gen2Committer(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("bucket", Some("path")))
 
       val topicPartition = TopicPartition(Topic("topic"), 1)
-      val indexBucketAndPath = indexNamingStrategy.indexPath(BucketAndPrefix("bucket"), topicPartition)
+      val indexBucketAndPath = indexNamingStrategy.indexPath("bucket", topicPartition)
       when(storage.list(indexBucketAndPath)).thenReturn(Vector("index/topic/0/latest.22", "index/topic/0/latest.35"))
       when(storage.getBlob(BucketAndPath("bucket", "index/topic/0/latest.35"))).thenReturn(new ByteArrayInputStream("path/topic/0/35.json".getBytes))
       when(storage.pathExists(BucketAndPath("bucket", "path/topic/0/35.json"))).thenReturn(true)
@@ -63,7 +64,7 @@ class Gen2CommitterTest extends AnyWordSpec with MockitoSugar with Matchers {
       val offsetSeeker = new Gen2Committer(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("bucket", Some("path")))
 
       val topicPartition = TopicPartition(Topic("topic"), 1)
-      val indexBucketAndPath = indexNamingStrategy.indexPath(BucketAndPrefix("bucket"), topicPartition)
+      val indexBucketAndPath = indexNamingStrategy.indexPath("bucket", topicPartition)
       when(storage.list(indexBucketAndPath)).thenReturn(Vector("index/topic/0/latest.22", "index/topic/0/latest.35"))
       when(storage.getBlob(BucketAndPath("bucket", "index/topic/0/latest.35"))).thenReturn(new ByteArrayInputStream("path/topic/0/35.json".getBytes))
       when(storage.pathExists(BucketAndPath("bucket", "path/topic/0/35.json"))).thenReturn(false)
@@ -77,7 +78,7 @@ class Gen2CommitterTest extends AnyWordSpec with MockitoSugar with Matchers {
       val offsetSeeker = new Gen2Committer(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("bucket", Some("path")))
 
       val topicPartition = TopicPartition(Topic("topic"), 1)
-      val indexBucketAndPath = indexNamingStrategy.indexPath(BucketAndPrefix("bucket"), topicPartition)
+      val indexBucketAndPath = indexNamingStrategy.indexPath("bucket", topicPartition)
       when(storage.list(indexBucketAndPath)).thenReturn(Vector("index/topic/0/latest.22", "index/topic/0/latest.35", "index/topic/0/latest.48"))
 
       assertThrows[IllegalStateException] {
@@ -91,7 +92,7 @@ class Gen2CommitterTest extends AnyWordSpec with MockitoSugar with Matchers {
       val offsetSeeker = new Gen2Committer(storage, _ => fileNamingStrategy, _ => BucketAndPrefix("bucket", Some("path")))
 
       val topicPartition = TopicPartition(Topic("topic"), 1)
-      val indexBucketAndPath = indexNamingStrategy.indexPath(BucketAndPrefix("bucket"), topicPartition)
+      val indexBucketAndPath = indexNamingStrategy.indexPath("bucket", topicPartition)
       when(storage.list(indexBucketAndPath)).thenReturn(Vector("index/topic/0/latest.22", "index/topic/0/route.66", "index/topic/0/100.json"))
 
       offsetSeeker.latest(Set(topicPartition)) shouldBe Map(TopicPartition(Topic("topic"), 1) -> Offset(22))
