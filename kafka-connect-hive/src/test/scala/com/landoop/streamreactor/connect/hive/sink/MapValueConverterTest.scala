@@ -24,6 +24,9 @@ class MapValueConverterTest extends AnyFunSuite with Matchers {
         |  "exclude": {
         |    "id": 0,
         |    "value": false
+        |  },
+        |  "cars":[ "Ford", "BMW", "Fiat" ],
+        |  "nums": [ 1, 3, 4 ]
         |  }
         |}
         |""".stripMargin
@@ -32,7 +35,7 @@ class MapValueConverterTest extends AnyFunSuite with Matchers {
 
     val struct = MapValueConverter.convert(map)
     //Jackson transforming the json to Map the fields order is not retained
-    struct.schema().fields().asScala.map(_.name()).sorted shouldBe List("idType", "colorDepth", "threshold", "evars", "exclude").sorted
+    struct.schema().fields().asScala.map(_.name()).sorted shouldBe List("idType", "colorDepth", "threshold", "evars", "exclude", "cars", "nums").sorted
 
     struct.schema().field("idType").schema() shouldBe Schema.OPTIONAL_INT64_SCHEMA
 
@@ -72,6 +75,15 @@ class MapValueConverterTest extends AnyFunSuite with Matchers {
     val excludeStruct = struct.get("exclude").asInstanceOf[Struct]
     excludeStruct.get("id") shouldBe 0L
     excludeStruct.get("value") shouldBe false
-  }
 
+    val carsSchema = struct.schema().field("cars").schema()
+    carsSchema.`type`() shouldBe Schema.Type.ARRAY
+    carsSchema.valueSchema() shouldBe Schema.STRING_SCHEMA
+    struct.get("cars").toString shouldBe "[Ford, BMW, Fiat]"
+
+    val numsSchema = struct.schema().field("nums").schema()
+    numsSchema.`type`() shouldBe Schema.Type.ARRAY
+    numsSchema.valueSchema() shouldBe Schema.INT32_SCHEMA
+    struct.get("nums").toString shouldBe "[1, 3, 4]"
+  }
 }
