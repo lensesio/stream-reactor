@@ -48,6 +48,7 @@ case class AzureServiceBusSettings(
                                     converters: Map[String, String],
                                     ttl: Map[String, Long],
                                     subscriptions: Map[String, String],
+                                    ack: Map[String, Boolean],
                                     setHeaders: Boolean
 
 )
@@ -137,6 +138,7 @@ object AzureServiceBusSettings extends StrictLogging {
 
     val subscriptions = kcqls.map(k => (k.getSource, k.getWithSubscription)).toMap
     val setHeaders = config.getBoolean(AzureServiceBusConfig.SET_HEADERS)
+    val ack = kcqls.map(k => (k.getSource, k.getWithAck)).toMap
 
     AzureServiceBusSettings(
       sapName = config.getString(AzureServiceBusConfig.AZURE_SAP_NAME),
@@ -157,7 +159,8 @@ object AzureServiceBusSettings extends StrictLogging {
       converters = converters,
       ttl = ttl,
       subscriptions = subscriptions,
-      setHeaders = setHeaders
+      setHeaders = setHeaders,
+      ack = ack
     )
   }
 }

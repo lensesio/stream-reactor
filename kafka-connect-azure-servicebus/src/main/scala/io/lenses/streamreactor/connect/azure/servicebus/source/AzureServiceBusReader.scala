@@ -20,19 +20,13 @@ package io.lenses.streamreactor.connect.azure.servicebus.source
 
 import com.azure.messaging.servicebus._
 import com.azure.messaging.servicebus.administration.models.CreateSubscriptionOptions
-import com.azure.messaging.servicebus.administration.{
-  ServiceBusAdministrationClient,
-  ServiceBusAdministrationClientBuilder
-}
+import com.azure.messaging.servicebus.administration.{ServiceBusAdministrationClient, ServiceBusAdministrationClientBuilder}
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.servicebus
-import io.lenses.streamreactor.connect.azure.servicebus.config.{
-  AzureServiceBusConfig,
-  AzureServiceBusSettings
-}
+import io.lenses.streamreactor.connect.azure.servicebus.config.{AzureServiceBusConfig, AzureServiceBusSettings}
 import org.apache.kafka.connect.errors.ConnectException
-import org.apache.kafka.connect.header.ConnectHeaders
+import org.apache.kafka.connect.header.{ConnectHeaders, Header}
 import org.apache.kafka.connect.source.SourceRecord
 
 import scala.collection.JavaConverters._
@@ -76,7 +70,9 @@ class AzureServiceBusReader(name: String = "",
   // complete the service bus message
   def complete(source: String, message: ServiceBusReceivedMessage): Unit = {
     val (_, client) = clients(source)
-    client.complete(message)
+    if (settings.ack(source)) {
+      client.complete(message)
+    }
   }
 
   // read service bus message, convert and return the lock token and converted record
@@ -149,6 +145,11 @@ class AzureServiceBusReader(name: String = "",
       headers.addString(AzureServiceBusConfig.HEADER_GIT_COMMIT, gitCommit)
       headers.addString(AzureServiceBusConfig.HEADER_CONNECTOR_VERSION, version)
     }
+
+    message
+      .getApplicationProperties
+      .asScala
+      .map{ case(k, v) => headers.addString(k, v.toString)}
 
     val sourceRecord = converter.convert(target,
                                          source,
