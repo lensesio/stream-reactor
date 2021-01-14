@@ -17,9 +17,18 @@
 package io.lenses.streamreactor.connect.azure.servicebus.sink
 
 import com.azure.messaging.servicebus._
-import com.azure.messaging.servicebus.administration.models.{CreateQueueOptions, CreateTopicOptions}
-import com.azure.messaging.servicebus.administration.{ServiceBusAdministrationClient, ServiceBusAdministrationClientBuilder}
-import com.datamountaineer.streamreactor.connect.converters.{FieldConverter, Transform}
+import com.azure.messaging.servicebus.administration.models.{
+  CreateQueueOptions,
+  CreateTopicOptions
+}
+import com.azure.messaging.servicebus.administration.{
+  ServiceBusAdministrationClient,
+  ServiceBusAdministrationClientBuilder
+}
+import com.datamountaineer.streamreactor.connect.converters.{
+  FieldConverter,
+  Transform
+}
 import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.rowkeys._
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
@@ -180,6 +189,7 @@ class AzureServiceBusWriter(settings: AzureServiceBusSettings)
 
             // set the target topic name
             senderClient.topicName(target)
+
           case q @ servicebus.TargetType.QUEUE =>
             initializeNamespaceEntities(
               managementClient,
