@@ -20,11 +20,17 @@ package io.lenses.streamreactor.connect.azure.servicebus.source
 
 import com.azure.messaging.servicebus._
 import com.azure.messaging.servicebus.administration.models.CreateSubscriptionOptions
-import com.azure.messaging.servicebus.administration.{ServiceBusAdministrationClient, ServiceBusAdministrationClientBuilder}
+import com.azure.messaging.servicebus.administration.{
+  ServiceBusAdministrationClient,
+  ServiceBusAdministrationClientBuilder
+}
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.servicebus
-import io.lenses.streamreactor.connect.azure.servicebus.config.{AzureServiceBusConfig, AzureServiceBusSettings}
+import io.lenses.streamreactor.connect.azure.servicebus.config.{
+  AzureServiceBusConfig,
+  AzureServiceBusSettings
+}
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.header.ConnectHeaders
 import org.apache.kafka.connect.source.SourceRecord
@@ -35,10 +41,16 @@ import scala.util.{Failure, Success, Try}
 object AzureServiceBusReader {
   def apply(name: String = "",
             settings: AzureServiceBusSettings,
-            convertersMap: Map[String, Converter]): AzureServiceBusReader =
+            convertersMap: Map[String, Converter],
+            version: String = "",
+            gitCommit: String = "",
+            gitRepo: String = ""): AzureServiceBusReader =
     new AzureServiceBusReader(name,
                               settings,
-                              convertersMap)
+                              convertersMap,
+                              version,
+                              gitCommit,
+                              gitRepo)
 }
 
 case class TokenAndSourceRecord(message: ServiceBusReceivedMessage,
@@ -47,7 +59,10 @@ case class TokenAndSourceRecord(message: ServiceBusReceivedMessage,
 
 class AzureServiceBusReader(name: String = "",
                             settings: AzureServiceBusSettings,
-                            convertersMap: Map[String, Converter])
+                            convertersMap: Map[String, Converter],
+                            version: String = "",
+                            gitCommit: String = "",
+                            gitRepo: String = "")
     extends StrictLogging {
 
   var clients: Map[String, (Int, ServiceBusReceiverClient)] =
@@ -61,9 +76,7 @@ class AzureServiceBusReader(name: String = "",
   // complete the service bus message
   def complete(source: String, message: ServiceBusReceivedMessage): Unit = {
     val (_, client) = clients(source)
-    if (settings.projections.acks(source)) {
-      client.complete(message)
-    }
+    client.complete(message)
   }
 
   // read service bus message, convert and return the lock token and converted record
@@ -90,7 +103,7 @@ class AzureServiceBusReader(name: String = "",
         TokenAndSourceRecord(
           m,
           source,
-          convertServiceBusMessage(source, settings.projections.targets(source), m))
+          convertServiceBusMessage(source, settings.targets(source), m))
       })
       .toList
   }
@@ -111,36 +124,38 @@ class AzureServiceBusReader(name: String = "",
 
     val headers = new ConnectHeaders()
 
+    Option(message.getSessionId)
+      .filter(s => s.nonEmpty)
+      .foreach(s => headers.addString("session", s))
+    Option(message.getContentType)
+      .filter(s => s.nonEmpty)
+      .foreach(l => headers.addString("contentType", l))
+    Option(message.getCorrelationId)
+      .filter(s => s.nonEmpty)
+      .foreach(c => headers.addString("correlationId", c))
+    Option(message.getDeliveryCount)
+      .filter(_ > 0)
+      .foreach(c => headers.addString("deliveryCount", c.toString))
+    Option(message.getSequenceNumber)
+      .filter(_ > 0)
+      .foreach(s => headers.addString("sequenceNumber", s.toString))
+
     if (settings.setHeaders) {
-      Option(message.getSessionId)
-        .filter(s => s.nonEmpty)
-        .foreach(s => headers.addString("session", s))
-      Option(message.getContentType)
-        .filter(s => s.nonEmpty)
-        .foreach(l => headers.addString("contentType", l))
-      Option(message.getCorrelationId)
-        .filter(s => s.nonEmpty)
-        .foreach(c => headers.addString("correlationId", c))
-      Option(message.getDeliveryCount)
-        .filter(_ > 0)
-        .foreach(c => headers.addString("deliveryCount", c.toString))
-      Option(message.getSequenceNumber)
-        .filter(_ > 0)
-        .foreach(s => headers.addString("sequenceNumber", s.toString))
-
-      message
-        .getApplicationProperties
-        .asScala
-        .map { case (k, v) => headers.addString(k, v.toString) }
-
+      headers.addString(
+        AzureServiceBusConfig.HEADER_PRODUCER_APPLICATION,
+        classOf[AzureServiceBusSourceConnector].getCanonicalName)
+      headers.addString(AzureServiceBusConfig.HEADER_PRODUCER_NAME, name)
+      headers.addString(AzureServiceBusConfig.HEADER_GIT_REPO, gitRepo)
+      headers.addString(AzureServiceBusConfig.HEADER_GIT_COMMIT, gitCommit)
+      headers.addString(AzureServiceBusConfig.HEADER_CONNECTOR_VERSION, version)
     }
 
     val sourceRecord = converter.convert(target,
                                          source,
                                          partitionKey.getOrElse(id.orNull),
                                          message.getBody.toBytes,
-                                         settings.projections.keys(source),
-                                         settings.projections.keyDelimiters(source))
+                                         settings.keys(source),
+                                         settings.delimiters(source))
 
     sourceRecord.newRecord(
       sourceRecord.topic(),
@@ -171,14 +186,14 @@ class AzureServiceBusReader(name: String = "",
         //check for a subscription or make one with the connector name
         if (!managementClient.getSubscriptionExists(source, subscriptionName)) {
           val options = new CreateSubscriptionOptions()
-            .setMaxDeliveryCount(settings.projections.batchSize(source))
+            .setMaxDeliveryCount(settings.batchSize(source))
 
           Try(
             managementClient
               .createSubscription(source, subscriptionName, options)) match {
             case Success(_) =>
               logger.info(
-                s"Created subscription [$subscriptionName] on topic [$source] with MaxDeliveryCount [${settings.projections
+                s"Created subscription [$subscriptionName] on topic [$source] with MaxDeliveryCount [${settings
                   .batchSize(source)}] in namespace [${settings.namespace}]")
             case Failure(e) =>
               throw new ConnectException(
@@ -197,7 +212,7 @@ class AzureServiceBusReader(name: String = "",
   }
 
   private def getSubscriptionName(source: String): String = {
-    Option(settings.projections.subscriptions.getOrElse(source, name)) match {
+    Option(settings.subscriptions.getOrElse(source, name)) match {
       case Some(sn) => sn
       case None     => name
     }
@@ -209,17 +224,17 @@ class AzureServiceBusReader(name: String = "",
     val connStr =
       s"Endpoint=sb://${settings.namespace}/;SharedAccessKeyName=${settings.sapName};SharedAccessKey=${settings.sapKey.value()}"
 
-    clients = settings.projections.targets.map {
+    clients = settings.targets.map {
       case (source, target) =>
         createEntities(connStr, source)
 
         val subscriptionName =
-          Option(settings.projections.subscriptions.getOrElse(source, name)) match {
+          Option(settings.subscriptions.getOrElse(source, name)) match {
             case Some(sn) => sn
             case None     => name
           }
 
-        val client = settings.projections.sessions.get(source) match {
+        val client = settings.sessions.get(source) match {
           case Some(session) =>
             settings.targetType(source) match {
               case servicebus.TargetType.TOPIC =>
@@ -260,7 +275,7 @@ class AzureServiceBusReader(name: String = "",
             }
         }
 
-        (source, (settings.projections.batchSize(source), client))
+        (source, (settings.batchSize(source), client))
     }
   }
 }

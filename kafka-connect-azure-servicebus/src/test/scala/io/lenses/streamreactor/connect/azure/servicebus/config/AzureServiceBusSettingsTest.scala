@@ -27,8 +27,8 @@ class AzureServiceBusSettingsTest extends TestBase {
     val config = AzureServiceBusConfig(props)
     val settings = AzureServiceBusSettings(config)
     settings.namespace shouldBe "mynamespace"
-    settings.projections.ttl.isEmpty shouldBe true
-    settings.projections.valueFields.size shouldBe 1
+    settings.ttl.isEmpty shouldBe true
+    settings.fieldsMap.size shouldBe 1
     settings.targetType(TOPIC) shouldBe TargetType.TOPIC
   }
 
@@ -36,14 +36,14 @@ class AzureServiceBusSettingsTest extends TestBase {
     val props = getProps(s"INSERT INTO sb_queue SELECT * FROM $TOPIC TTL=100")
     val config = AzureServiceBusConfig(props)
     val settings = AzureServiceBusSettings(config)
-    settings.projections.ttl(TOPIC) shouldBe 100
+    settings.ttl(TOPIC) shouldBe 100
   }
 
   "should set storedas to queue" in {
     val props = getProps(s"INSERT INTO sb_queue SELECT * FROM $TOPIC STOREAS QUEUE TTL=100")
     val config = AzureServiceBusConfig(props)
     val settings = AzureServiceBusSettings(config)
-    settings.projections.ttl(TOPIC) shouldBe 100
+    settings.ttl(TOPIC) shouldBe 100
     settings.targetType(TOPIC) shouldBe TargetType.QUEUE
   }
 
@@ -51,9 +51,9 @@ class AzureServiceBusSettingsTest extends TestBase {
     val props = getProps(s"INSERT INTO sb_queue SELECT * FROM $TOPIC PARTITIONBY int32_field, string_field STOREAS QUEUE TTL=100")
     val config = AzureServiceBusConfig(props)
     val settings = AzureServiceBusSettings(config)
-    settings.projections.valueFields(TOPIC).contains("int32_field")
-    settings.projections.valueFields(TOPIC).contains("string_field")
-    settings.projections.ttl(TOPIC) shouldBe 100
+    settings.fieldsMap(TOPIC).contains("int32_field")
+    settings.fieldsMap(TOPIC).contains("string_field")
+    settings.ttl(TOPIC) shouldBe 100
     settings.targetType(TOPIC) shouldBe TargetType.QUEUE
   }
 
@@ -61,10 +61,10 @@ class AzureServiceBusSettingsTest extends TestBase {
     val props = getProps(s"INSERT INTO sb_topic SELECT * FROM $TOPIC PARTITIONBY int32_field, string_field STOREAS TOPIC TTL=100 WITHSUBSCRIPTION = lenses")
     val config = AzureServiceBusConfig(props)
     val settings = AzureServiceBusSettings(config)
-    settings.projections.valueFields(TOPIC).contains("int32_field")
-    settings.projections.valueFields(TOPIC).contains("string_field")
-    settings.projections.ttl(TOPIC) shouldBe 100
+    settings.fieldsMap(TOPIC).contains("int32_field")
+    settings.fieldsMap(TOPIC).contains("string_field")
+    settings.ttl(TOPIC) shouldBe 100
     settings.targetType(TOPIC) shouldBe TargetType.TOPIC
-    settings.projections.subscriptions(TOPIC) shouldBe "lenses"
+    settings.subscriptions(TOPIC) shouldBe "lenses"
   }
 }

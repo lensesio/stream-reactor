@@ -33,7 +33,7 @@ class AzureServiceBusWriterTest extends TestBase {
     val writer = AzureServiceBusWriter(settings)
     val sbMessage = writer.convertToServiceBusMessage(connectRecord)
     sbMessage.getPartitionKey shouldBe s"$TOPIC-${PARTITION}-1"
-    sbMessage.getBody.toBytes.isEmpty shouldBe false
+    new String(sbMessage.getBody.toBytes) shouldBe jsonRecord.toString
     sbMessage.getContentType shouldBe "application/json"
     sbMessage.getTimeToLive shouldBe null
   }
@@ -45,7 +45,7 @@ class AzureServiceBusWriterTest extends TestBase {
     val writer = AzureServiceBusWriter(settings)
     val sbMessage = writer.convertToServiceBusMessage(connectRecord)
     sbMessage.getPartitionKey shouldBe "12|foo"
-    sbMessage.getBody.toBytes.isEmpty shouldBe false
+    new String(sbMessage.getBody.toBytes) shouldBe jsonRecord.toString
     sbMessage.getContentType shouldBe "application/json"
     sbMessage.getTimeToLive shouldBe null
   }
@@ -57,7 +57,7 @@ class AzureServiceBusWriterTest extends TestBase {
     val writer = AzureServiceBusWriter(settings)
     val sbMessage = writer.convertToServiceBusMessage(connectRecord)
     sbMessage.getPartitionKey shouldBe "12|foo"
-    sbMessage.getBody.toBytes.isEmpty shouldBe false
+    new String(sbMessage.getBody.toBytes) shouldBe jsonRecord.toString
     sbMessage.getContentType shouldBe "application/json"
     sbMessage.getTimeToLive.toMillis shouldBe 100
   }
@@ -70,7 +70,7 @@ class AzureServiceBusWriterTest extends TestBase {
     val sbMessage = writer.convertToServiceBusMessage(connectRecord)
     sbMessage.getPartitionKey shouldBe "mysession"
     sbMessage.getSessionId shouldBe "mysession"
-    sbMessage.getBody.toBytes.isEmpty shouldBe false
+    new String(sbMessage.getBody.toBytes) shouldBe jsonRecord.toString
     sbMessage.getContentType shouldBe "application/json"
     sbMessage.getTimeToLive.toMillis shouldBe 100
   }
@@ -149,4 +149,5 @@ class AzureServiceBusWriterTest extends TestBase {
     when(client.getQueueExists("sb_queue")).thenReturn(true)
     noException shouldBe thrownBy(writer.initializeNamespaceEntities(client, "sb_queue", TargetType.QUEUE, autoCreate = false))
   }
+
 }

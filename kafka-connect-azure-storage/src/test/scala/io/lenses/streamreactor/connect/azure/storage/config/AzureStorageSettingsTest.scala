@@ -85,9 +85,9 @@ class AzureStorageSettingsTest extends TestBase {
     settings.account shouldBe "myaccount"
     settings.accountKey.value() shouldBe "myaccountkey"
     settings.endpoint.get shouldBe "myendpoint"
-    settings.projections.partitionBy("mytopic").contains("f1") shouldBe true
-    settings.projections.partitionBy("mytopic").contains("f2") shouldBe true
-    settings.projections.writeMode("mytopic") shouldBe WriteModeEnum.INSERT
+    settings.partitionBy("mytopic").contains("f1") shouldBe true
+    settings.partitionBy("mytopic").contains("f2") shouldBe true
+    settings.mode("mytopic") shouldBe WriteModeEnum.INSERT
   }
 
   "should set a setting for table storage with upsert and batching" in {
@@ -101,8 +101,8 @@ class AzureStorageSettingsTest extends TestBase {
     //when(cloudQueue.retrieveMessages(AzureStorageConfig.QUEUE_SOURCE_MAX_BATCH_SIZE, AzureStorageConfig.DEFAULT_LOCK, null, null)).thenReturn(Iterable(queueMessage).asJava)
     val config = AzureStorageConfig(props.asJava)
     val settings = AzureStorageSettings(config)
-    settings.projections.writeMode("mytopic") shouldBe WriteModeEnum.UPSERT
-    settings.projections.batchSize("mytopic") shouldBe 100
-    settings.projections.formats("mytopic") shouldBe FormatType.JSON
+    settings.mode("mytopic") shouldBe WriteModeEnum.UPSERT
+    settings.batchSize("mytopic") shouldBe 100
+    settings.formatType("mytopic") shouldBe FormatType.JSON
   }
 }

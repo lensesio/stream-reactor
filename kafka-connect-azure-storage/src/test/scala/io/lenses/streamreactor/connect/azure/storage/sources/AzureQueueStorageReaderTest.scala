@@ -16,14 +16,14 @@
 
 package io.lenses.streamreactor.connect.azure.storage.sources
 
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import io.lenses.streamreactor.connect.azure.TestBase
 import io.lenses.streamreactor.connect.azure.storage._
 import io.lenses.streamreactor.connect.azure.storage.config.{AzureStorageConfig, AzureStorageSettings}
-import org.apache.kafka.connect.data.Struct
 
 import scala.collection.JavaConverters._
 
-class AzureQueueStorageReaderTest extends TestBase {
+class AzureQueueStorageReaderTest extends TestBase with ConverterUtil {
 
   "should read from a queue as json" in {
     val props = Map(
@@ -42,9 +42,8 @@ class AzureQueueStorageReaderTest extends TestBase {
       cloudQueueClient,
       getConverters(settings.converters, props.asScala.toMap))
     val result = reader.read().head
-    val struct = result.record.value().asInstanceOf[Struct]
 
-    val resultJson = jsonConverter.fromConnectData(struct.schema(), struct)
+    val resultJson = convertValueToJson(result.record)
     resultJson.toString shouldBe queueJson.toString
   }
 
@@ -68,9 +67,8 @@ class AzureQueueStorageReaderTest extends TestBase {
 
     val result = reader.read().head.record
     result.key().toString shouldBe s"${queueStruct.getString("id")}.${queueStruct.getString("string_field")}"
-    val struct = result.value().asInstanceOf[Struct]
 
-    val jsonResult = jsonConverter.fromConnectData(struct.schema(), struct)
+    val jsonResult = convertValueToJson(queueRecord)
     jsonResult.toString shouldBe queueJson.toString
   }
 
@@ -91,14 +89,15 @@ class AzureQueueStorageReaderTest extends TestBase {
       settings,
       cloudQueueClient,
       getConverters(settings.converters, props.asScala.toMap))
-    val result: MessageAndSourceRecord = reader.read().head
-    val struct = result.record.value().asInstanceOf[Struct]
+    val result = reader.read().head
 
-    val resultJson = jsonConverter.fromConnectData(struct.schema(), struct)
+    val resultJson = convertValueToJson(result.record)
     resultJson.toString shouldBe queueJson.toString
     result.ack shouldBe true
 
     val headers = result.record.headers()
+    headers.allWithName(AzureStorageConfig.HEADER_PRODUCER_NAME).asScala.toList.head.value() shouldBe "my-connector"
+    headers.allWithName(AzureStorageConfig.HEADER_PRODUCER_APPLICATION).asScala.toList.head.value() shouldBe classOf[AzureQueueStorageSourceConnector].getCanonicalName
     headers.allWithName(AzureStorageConfig.HEADER_REMOVED).asScala.toList.head.value() shouldBe true
     headers.allWithName(AzureStorageConfig.HEADER_MESSAGE_ID).asScala.toList.head.value() shouldBe "1"
   }

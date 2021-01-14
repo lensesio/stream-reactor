@@ -19,10 +19,10 @@ package io.lenses.streamreactor.connect.azure.servicebus.sink
 import com.azure.messaging.servicebus._
 import com.azure.messaging.servicebus.administration.models.{CreateQueueOptions, CreateTopicOptions}
 import com.azure.messaging.servicebus.administration.{ServiceBusAdministrationClient, ServiceBusAdministrationClientBuilder}
-import com.datamountaineer.streamreactor.common.errors.ErrorHandler
-import com.datamountaineer.streamreactor.common.rowkeys._
-import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
-import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
+import com.datamountaineer.streamreactor.connect.converters.{FieldConverter, Transform}
+import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
+import com.datamountaineer.streamreactor.connect.rowkeys._
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.servicebus
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusSettings
@@ -39,15 +39,14 @@ object AzureServiceBusWriter {
 
 class AzureServiceBusWriter(settings: AzureServiceBusSettings)
     extends ErrorHandler
-    with StrictLogging
-{
+    with ConverterUtil
+    with StrictLogging {
 
-  val jsonConverter = new SimpleJsonConverter()
   //noinspection VarCouldBeVal
   var clients: Map[String, ServiceBusSenderAsyncClient] = Map.empty
 
   //initialize error tracker
-  initialize(settings.projections.errorRetries, settings.projections.errorPolicy)
+  initialize(settings.maxRetries, settings.errorPolicy)
 
   def close(): Unit = clients.values.foreach(_.close())
 
@@ -68,7 +67,7 @@ class AzureServiceBusWriter(settings: AzureServiceBusSettings)
 
           //batch the records
           val batched =
-            groupedRecords.grouped(settings.projections.batchSize(topicPartition.topic()))
+            groupedRecords.grouped(settings.batchSize(topicPartition.topic()))
 
           batched.foreach { g =>
             val messageBatch = client.createMessageBatch().block()
@@ -83,14 +82,20 @@ class AzureServiceBusWriter(settings: AzureServiceBusSettings)
 
   //convert the sinkrecord to a azure message
   def convertToServiceBusMessage(record: SinkRecord): ServiceBusMessage = {
-    val filtered = record.newFilteredRecordAsStruct(settings.projections)
-    val json = jsonConverter.fromConnectData(filtered.schema(), filtered).toString.getBytes
-    val message = new ServiceBusMessage(json)
+
+    val jsonBytes = Transform(
+      settings.fieldsMap(record.topic()).map(FieldConverter.apply),
+      Seq.empty,
+      record.valueSchema(),
+      record.value(),
+      withStructure = false).getBytes
+
+    val message = new ServiceBusMessage(jsonBytes)
     message.setContentType("application/json")
     message.setMessageId(new StringGenericRowKeyBuilder("-").build(record))
 
     //set the session otherwise use kcql partitioning
-    settings.projections.sessions.get(record.topic()) match {
+    settings.sessions.get(record.topic()) match {
       case Some(session) =>
         // https://docs.microsoft.com/en-us/azure/service-bus-messaging/service-bus-partitioning#using-a-partition-key
         // if a session is requested set the partition key to be the same
@@ -99,11 +104,11 @@ class AzureServiceBusWriter(settings: AzureServiceBusSettings)
       case _ =>
         // if we have partition keys set them else use the message id
 
-        settings.projections.partitionBy.get(record.topic()) match {
+        settings.partitionBy.get(record.topic()) match {
           case Some(pks) =>
             val partitionKey = StringStructFieldsStringKeyBuilder(
               pks.toSeq,
-              settings.projections.keyDelimiters.getOrElse(record.topic(), "-"))
+              settings.delimiters.getOrElse(record.topic(), "-"))
               .build(record)
             message.setPartitionKey(partitionKey)
 
@@ -113,7 +118,7 @@ class AzureServiceBusWriter(settings: AzureServiceBusSettings)
     }
 
     //set ttl
-    settings.projections.ttl.get(record.topic()) match {
+    settings.ttl.get(record.topic()) match {
       case Some(ttl) =>
         message.setTimeToLive(java.time.Duration.ofMillis(ttl))
       case _ =>
@@ -153,7 +158,7 @@ class AzureServiceBusWriter(settings: AzureServiceBusSettings)
   // set the clients and set the topic or queue based on kcql
   def buildServiceBusClients(): Unit = {
 
-    clients = settings.projections.targets.map {
+    clients = settings.targets.map {
       case (source, target) =>
         val connStr =
           s"Endpoint=sb://${settings.namespace}/;SharedAccessKeyName=${settings.sapName};SharedAccessKey=${settings.sapKey.value()}"
@@ -171,17 +176,16 @@ class AzureServiceBusWriter(settings: AzureServiceBusSettings)
               managementClient,
               target,
               t,
-              settings.projections.autoCreate.getOrElse(source, false))
+              settings.autoCreate.getOrElse(source, false))
 
             // set the target topic name
             senderClient.topicName(target)
-
           case q @ servicebus.TargetType.QUEUE =>
             initializeNamespaceEntities(
               managementClient,
               target,
               q,
-              settings.projections.autoCreate.getOrElse(source, false))
+              settings.autoCreate.getOrElse(source, false))
 
             // set the target queue name
             senderClient.queueName(target)
@@ -216,7 +220,7 @@ class AzureServiceBusWriter(settings: AzureServiceBusSettings)
       .setDuplicateDetectionRequired(true)
       .setPartitioningEnabled(true)
 
-    settings.projections.sessions.get(name) match {
+    settings.sessions.get(name) match {
       case Some(_) => queueOptions.setSessionRequired(true)
       case _       =>
     }

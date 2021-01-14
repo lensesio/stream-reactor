@@ -18,15 +18,16 @@
 
 package io.lenses.streamreactor.connect.azure.storage.sinks
 
-import com.datamountaineer.streamreactor.common.config.Helpers
-import com.datamountaineer.streamreactor.common.utils.JarManifest
+import java.util
+
+import com.datamountaineer.streamreactor.connect.config.Helpers
+import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.storage.config.AzureStorageConfig
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.sink.SinkConnector
 
-import java.util
 import scala.collection.JavaConverters._
 
 class AzureStorageSinkConnector extends SinkConnector with StrictLogging {

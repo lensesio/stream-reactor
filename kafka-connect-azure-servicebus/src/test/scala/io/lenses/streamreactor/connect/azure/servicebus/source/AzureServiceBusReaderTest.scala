@@ -18,7 +18,7 @@
 
 package io.lenses.streamreactor.connect.azure.servicebus.source
 
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import io.lenses.streamreactor.connect.azure.servicebus.config.{AzureServiceBusConfig, AzureServiceBusSettings}
 import io.lenses.streamreactor.connect.azure.servicebus.{TestBase, _}
 
@@ -55,7 +55,7 @@ class AzureServiceBusReaderTest extends TestBase with ConverterUtil {
     results.head.source shouldBe TOPIC
     results.head.record.topic() shouldBe "kafka-topic"
     val headers = results.head.record.headers()
-    headers.size() shouldBe 3
+    headers.size() shouldBe 8
   }
 
   "should create a reader and read from a topic with session" in {
@@ -72,7 +72,7 @@ class AzureServiceBusReaderTest extends TestBase with ConverterUtil {
     results.head.source shouldBe TOPIC
     results.head.record.topic() shouldBe "kafka-topic"
     val headers = results.head.record.headers()
-    headers.size() shouldBe 3
+    headers.size() shouldBe 8
   }
 }
 

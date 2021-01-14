@@ -16,8 +16,11 @@
 
 package io.lenses.streamreactor.connect.azure
 
-import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
-import com.fasterxml.jackson.databind.ObjectMapper
+import java.util
+import java.util.Date
+
+import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.fasterxml.jackson.databind.JsonNode
 import com.microsoft.azure.storage.queue.{CloudQueue, CloudQueueClient, CloudQueueMessage}
 import io.lenses.streamreactor.connect.azure.storage.config.AzureStorageConfig
 import org.apache.kafka.common.TopicPartition
@@ -28,12 +31,10 @@ import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import java.util
-import java.util.Date
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-trait TestBase extends AnyWordSpec with Matchers with MockitoSugar {
+trait TestBase extends AnyWordSpec with Matchers with MockitoSugar with ConverterUtil {
 
   val TOPIC = "mytopic"
   val TABLE = "ASTable"
@@ -46,18 +47,15 @@ trait TestBase extends AnyWordSpec with Matchers with MockitoSugar {
   ASSIGNMENT.add(TOPIC_PARTITION)
 
   val DATE = new Date()
-  val jsonConverter = new SimpleJsonConverter()
 
 
-
-  val objectMapper = new ObjectMapper()
   val queue = "lenses-demo"
   val cloudQueueClient: CloudQueueClient = mock[CloudQueueClient]
   val cloudQueue: CloudQueue = mock[CloudQueue]
 
   val queueRecord: SinkRecord = getTestRecords(1).head
   val queueStruct: Struct = queueRecord.value().asInstanceOf[Struct]
-  val queueJson: String = objectMapper.writeValueAsString(jsonConverter.fromConnectData(queueStruct.schema(), queueStruct))
+  val queueJson: JsonNode = convertValueToJson(queueRecord)
   val queueMessage: CloudQueueMessage = mock[CloudQueueMessage]
   when(queueMessage.getMessageContentAsByte).thenReturn(queueJson.toString.getBytes)
   when(queueMessage.getMessageId).thenReturn("1")
@@ -65,6 +63,7 @@ trait TestBase extends AnyWordSpec with Matchers with MockitoSugar {
   when(cloudQueue.getName).thenReturn(queue)
   when(cloudQueue.retrieveMessages(AzureStorageConfig.QUEUE_SOURCE_MAX_BATCH_SIZE, AzureStorageConfig.DEFAULT_LOCK, null, null)).thenReturn(Iterable(queueMessage).asJava)
   when(cloudQueue.exists()).thenReturn(true)
+
 
   //get the assignment of topic partitions for the sinkTask
   def getAssignment: util.Set[TopicPartition] = {

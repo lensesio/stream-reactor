@@ -16,12 +16,13 @@
 
 package io.lenses.streamreactor.connect.azure.servicebus.sink
 
-import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
+import java.util
+
+import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.servicebus.config.{AzureServiceBusConfig, AzureServiceBusSettings}
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
-import java.util
 import scala.collection.JavaConverters._
 
 class AzureServiceBusSinkTask extends SinkTask with StrictLogging {

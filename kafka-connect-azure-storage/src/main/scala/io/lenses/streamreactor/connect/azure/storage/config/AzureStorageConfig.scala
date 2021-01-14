@@ -18,12 +18,12 @@
 
 package io.lenses.streamreactor.connect.azure.storage.config
 
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst._
-import com.datamountaineer.streamreactor.common.config.base.traits._
+import java.util
+
+import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
+import com.datamountaineer.streamreactor.connect.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type, Width}
-
-import java.util
 
 object AzureStorageConfig {
 
@@ -32,9 +32,14 @@ object AzureStorageConfig {
   val QUEUE_SOURCE_MAX_BATCH_SIZE = 32
   val TABLE_DEFAULT_BATCH_SIZE = 100
   val DEFAULT_LOCK = 30
+  val HEADER_PRODUCER_NAME = "producerName"
+  val HEADER_PRODUCER_APPLICATION = "producerApplication"
   val HEADER_MESSAGE_ID = "messageId"
   val HEADER_REMOVED = "removed"
   val HEADER_DEQUEUE_COUNT = "dequeueCount"
+  val HEADER_CONNECTOR_VERSION = "applicationVersion"
+  val HEADER_GIT_COMMIT = "applicationGitCommit"
+  val HEADER_GIT_REPO = "applicationGitRepo"
 
   val AZURE_ACCOUNT = s"$PREFIX.account"
   val AZURE_ACCOUNT_DOC = "Azure storage account to write to."
@@ -74,7 +79,7 @@ object AzureStorageConfig {
   val NBR_OF_RETIRES_DEFAULT = 20
 
   val SET_HEADERS = s"$PREFIX.set_headers"
-  val SET_HEADERS_DOC = "Add message id and dequeue count to message headers, source only"
+  val SET_HEADERS_DOC = "Add connector and git information to message headers"
   val SET_HEADERS_DEFAULT = false
 
 
