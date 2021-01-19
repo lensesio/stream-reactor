@@ -143,6 +143,9 @@ public class BigQuerySinkTask extends SinkTask {
 
     // Return immediately here since the executor will already be shutdown
     if (stopped) {
+      // Still have to check for errors in order to prevent offsets being committed for records that
+      // we've failed to write
+      executor.maybeThrowEncounteredErrors();
       return;
     }
 

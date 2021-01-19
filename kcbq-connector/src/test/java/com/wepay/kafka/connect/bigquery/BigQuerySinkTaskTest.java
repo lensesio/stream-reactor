@@ -21,6 +21,7 @@ package com.wepay.kafka.connect.bigquery;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.any;
@@ -463,6 +464,40 @@ public class BigQuerySinkTaskTest {
     testTask.start(properties);
 
     testTask.flush(Collections.emptyMap());
+  }
+
+  @Test
+  public void testFlushAfterStop() {
+    Map<String, String> properties = propertiesFactory.getProperties();
+    Storage storage = mock(Storage.class);
+
+    BigQuery bigQuery = mock(BigQuery.class);
+    when(bigQuery.insertAll(any()))
+        .thenThrow(
+            new BigQueryException(400, "Oops", new BigQueryError("invalid", "global", "oops")));
+
+    SchemaRetriever schemaRetriever = mock(SchemaRetriever.class);
+    SchemaManager schemaManager = mock(SchemaManager.class);
+
+    SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
+    BigQuerySinkTask testTask = new BigQuerySinkTask(bigQuery, schemaRetriever, storage, schemaManager);
+    testTask.initialize(sinkTaskContext);
+    testTask.start(properties);
+
+    testTask.put(Collections.singletonList(spoofSinkRecord("t")));
+    assertThrows(
+        "first call to flush should fail",
+        Exception.class,
+        () -> testTask.flush(Collections.emptyMap()));
+    assertThrows(
+        "second call to flush should fail",
+        Exception.class,
+        () -> testTask.flush(Collections.emptyMap()));
+    testTask.stop();
+    assertThrows(
+        "third call to flush (after task stop) should fail",
+        Exception.class,
+        () -> testTask.flush(Collections.emptyMap()));
   }
 
   @Test
