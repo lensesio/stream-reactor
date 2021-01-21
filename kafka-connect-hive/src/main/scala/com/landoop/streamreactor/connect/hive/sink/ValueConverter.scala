@@ -3,7 +3,7 @@ package com.landoop.streamreactor.connect.hive.sink
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 object ValueConverter {
   def apply(record: SinkRecord): Struct = record.value match {
@@ -44,6 +44,17 @@ object MapValueConverter extends ValueConverter[Map[_, _]] {
       case d: Double =>
         builder.field(key, Schema.OPTIONAL_FLOAT64_SCHEMA)
         d
+
+      case list: java.util.List[_] =>
+        val schema = createSchema(list.asScala)
+        builder.field(key, schema)
+        list
+
+      case list: List[_] =>
+        val schema = createSchema(list)
+        builder.field(key, schema)
+        list.asJava
+
       case innerMap: java.util.Map[_, _] =>
         val innerStruct = convert(innerMap.asScala.toMap, true)
         builder.field(key, innerStruct.schema())
@@ -56,7 +67,22 @@ object MapValueConverter extends ValueConverter[Map[_, _]] {
     }
   }
 
-  def convert(map: Map[_, _], optional: Boolean) = {
+  def createSchema(value: Any): Schema = {
+    value match {
+      case _: Boolean => Schema.BOOLEAN_SCHEMA
+      case _: Int => Schema.INT32_SCHEMA
+      case _: Long => Schema.INT64_SCHEMA
+      case _: Double => Schema.FLOAT64_SCHEMA
+      case _: Char => Schema.STRING_SCHEMA
+      case _: String => Schema.STRING_SCHEMA
+      case _: Float => Schema.FLOAT32_SCHEMA
+      case list: List[_] =>
+        val firstItemSchema = if (list.isEmpty) Schema.OPTIONAL_STRING_SCHEMA else createSchema(list.head)
+        SchemaBuilder.array(firstItemSchema).optional().build()
+    }
+  }
+
+  def convert(map: Map[_, _], optional: Boolean): Struct = {
     val builder = SchemaBuilder.struct()
     val values = map.map { case (k, v) =>
       val key = k.toString
@@ -67,7 +93,7 @@ object MapValueConverter extends ValueConverter[Map[_, _]] {
     val schema = builder.build
     val struct = new Struct(schema)
     values.foreach { case (key, value) =>
-      struct.put(key.toString, value)
+      struct.put(key, value)
     }
     struct
   }
