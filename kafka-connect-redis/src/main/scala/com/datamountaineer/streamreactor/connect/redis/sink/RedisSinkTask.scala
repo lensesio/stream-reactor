@@ -91,7 +91,7 @@ class RedisSinkTask extends SinkTask with StrictLogging {
       List(writer)
     } ++ mode_PUBSUB.kcqlSettings.headOption.map { _ =>
       logger.info("Starting " + mode_PUBSUB.kcqlSettings.size + " KCQLs with Redis PubSub mode")
-      val writer = new RedisInsertSortedSet(mode_INSERT_SS)
+      val writer = new RedisPubSub(mode_PUBSUB)
       writer.createClient(settings)
       List(writer)
     } ++ mode_PK_SS.kcqlSettings.headOption.map { _ =>
