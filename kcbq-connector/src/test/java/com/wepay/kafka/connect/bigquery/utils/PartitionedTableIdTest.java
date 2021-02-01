@@ -26,6 +26,7 @@ import org.junit.Test;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public class PartitionedTableIdTest {
 
@@ -64,6 +65,51 @@ public class PartitionedTableIdTest {
   }
 
   @Test
+  public void testWithPartitionForHour() {
+    final String dataset = "dataset";
+    final String table = "table";
+    final LocalDateTime partitionDate = LocalDateTime.of(2016, 9, 21, 13, 55);
+
+    final PartitionedTableId partitionedTableId =
+            new PartitionedTableId.Builder(dataset, table).setHourPartition(partitionDate).build();
+
+    final String expectedPartition = "2016092113";
+
+    Assert.assertEquals(dataset, partitionedTableId.getDataset());
+    Assert.assertEquals(table, partitionedTableId.getBaseTableName());
+    Assert.assertEquals(table + "$" + expectedPartition, partitionedTableId.getFullTableName());
+
+    final TableId expectedBaseTableId = TableId.of(dataset, table);
+    final TableId expectedFullTableId = TableId.of(dataset, table + "$" + expectedPartition);
+
+    Assert.assertEquals(expectedBaseTableId, partitionedTableId.getBaseTableId());
+    Assert.assertEquals(expectedFullTableId, partitionedTableId.getFullTableId());
+  }
+
+  @Test
+  public void testWithEpochTimePartitionForHour() {
+    final String dataset = "dataset";
+    final String table = "table";
+
+    final long utcTime = 1509007584334L;
+
+    final PartitionedTableId partitionedTableId =
+            new PartitionedTableId.Builder(dataset, table).setHourPartition(utcTime).build();
+
+    final String expectedPartition = "2017102608";
+
+    Assert.assertEquals(dataset, partitionedTableId.getDataset());
+    Assert.assertEquals(table, partitionedTableId.getBaseTableName());
+    Assert.assertEquals(table + "$" + expectedPartition, partitionedTableId.getFullTableName());
+
+    final TableId expectedBaseTableId = TableId.of(dataset, table);
+    final TableId expectedFullTableId = TableId.of(dataset, table + "$" + expectedPartition);
+
+    Assert.assertEquals(expectedBaseTableId, partitionedTableId.getBaseTableId());
+    Assert.assertEquals(expectedFullTableId, partitionedTableId.getFullTableId());
+  }
+
+  @Test
   public void testWithPartition() {
     final String dataset = "dataset";
     final String table = "table";
@@ -96,6 +142,98 @@ public class PartitionedTableIdTest {
             new PartitionedTableId.Builder(dataset, table).setDayPartition(utcTime).build();
 
     final String expectedPartition = "20171026";
+
+    Assert.assertEquals(dataset, partitionedTableId.getDataset());
+    Assert.assertEquals(table, partitionedTableId.getBaseTableName());
+    Assert.assertEquals(table + "$" + expectedPartition, partitionedTableId.getFullTableName());
+
+    final TableId expectedBaseTableId = TableId.of(dataset, table);
+    final TableId expectedFullTableId = TableId.of(dataset, table + "$" + expectedPartition);
+
+    Assert.assertEquals(expectedBaseTableId, partitionedTableId.getBaseTableId());
+    Assert.assertEquals(expectedFullTableId, partitionedTableId.getFullTableId());
+  }
+
+  @Test
+  public void testWithPartitionForMonth() {
+    final String dataset = "dataset";
+    final String table = "table";
+    final LocalDate partitionDate = LocalDate.of(2016, 9, 21);
+
+    final PartitionedTableId partitionedTableId =
+            new PartitionedTableId.Builder(dataset, table).
+                    setMonthPartition(partitionDate).build();
+
+    final String expectedPartition = "201609";
+
+    Assert.assertEquals(dataset, partitionedTableId.getDataset());
+    Assert.assertEquals(table, partitionedTableId.getBaseTableName());
+    Assert.assertEquals(table + "$" + expectedPartition, partitionedTableId.getFullTableName());
+
+    final TableId expectedBaseTableId = TableId.of(dataset, table);
+    final TableId expectedFullTableId = TableId.of(dataset, table + "$" + expectedPartition);
+
+    Assert.assertEquals(expectedBaseTableId, partitionedTableId.getBaseTableId());
+    Assert.assertEquals(expectedFullTableId, partitionedTableId.getFullTableId());
+  }
+
+  @Test
+  public void testWithEpochTimePartitionForMonth() {
+    final String dataset = "dataset";
+    final String table = "table";
+
+    final long utcTime = 1509007584334L;
+
+    final PartitionedTableId partitionedTableId =
+            new PartitionedTableId.Builder(dataset, table).setMonthPartition(utcTime).build();
+
+    final String expectedPartition = "201710";
+
+    Assert.assertEquals(dataset, partitionedTableId.getDataset());
+    Assert.assertEquals(table, partitionedTableId.getBaseTableName());
+    Assert.assertEquals(table + "$" + expectedPartition, partitionedTableId.getFullTableName());
+
+    final TableId expectedBaseTableId = TableId.of(dataset, table);
+    final TableId expectedFullTableId = TableId.of(dataset, table + "$" + expectedPartition);
+
+    Assert.assertEquals(expectedBaseTableId, partitionedTableId.getBaseTableId());
+    Assert.assertEquals(expectedFullTableId, partitionedTableId.getFullTableId());
+  }
+
+  @Test
+  public void testWithPartitionForYear() {
+    final String dataset = "dataset";
+    final String table = "table";
+    final LocalDate partitionDate = LocalDate.of(2016, 9, 21);
+
+    final PartitionedTableId partitionedTableId =
+            new PartitionedTableId.Builder(dataset, table).
+                    setYearPartition(partitionDate).build();
+
+    final String expectedPartition = "2016";
+
+    Assert.assertEquals(dataset, partitionedTableId.getDataset());
+    Assert.assertEquals(table, partitionedTableId.getBaseTableName());
+    Assert.assertEquals(table + "$" + expectedPartition, partitionedTableId.getFullTableName());
+
+    final TableId expectedBaseTableId = TableId.of(dataset, table);
+    final TableId expectedFullTableId = TableId.of(dataset, table + "$" + expectedPartition);
+
+    Assert.assertEquals(expectedBaseTableId, partitionedTableId.getBaseTableId());
+    Assert.assertEquals(expectedFullTableId, partitionedTableId.getFullTableId());
+  }
+
+  @Test
+  public void testWithEpochTimePartitionForYear() {
+    final String dataset = "dataset";
+    final String table = "table";
+
+    final long utcTime = 1509007584334L;
+
+    final PartitionedTableId partitionedTableId =
+            new PartitionedTableId.Builder(dataset, table).setYearPartition(utcTime).build();
+
+    final String expectedPartition = "2017";
 
     Assert.assertEquals(dataset, partitionedTableId.getDataset());
     Assert.assertEquals(table, partitionedTableId.getBaseTableName());

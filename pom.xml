@@ -37,12 +37,14 @@
 
         <confluent.version>5.5.1</confluent.version>
         <debezium.version>0.6.1</debezium.version>
-        <google.auth.version>0.16.1</google.auth.version>
-        <google.cloud.version>1.79.0</google.cloud.version>
+        <google.auth.version>0.21.1</google.auth.version>
+        <google.cloud.version>1.119.0</google.cloud.version>
+        <google.cloud.storage.version>1.113.4</google.cloud.storage.version>
         <jackson.version>2.10.2</jackson.version>
         <kafka.version>2.5.0</kafka.version>
         <kafka.scala.version>2.12</kafka.scala.version>
         <slf4j.version>1.7.26</slf4j.version>
+        <caffeine.version>2.8.6</caffeine.version>
 
         <junit.version>4.13</junit.version>
         <mockito.version>3.2.4</mockito.version>
@@ -150,7 +152,7 @@
             <dependency>
                 <groupId>com.google.cloud</groupId>
                 <artifactId>google-cloud-storage</artifactId>
-                <version>${google.cloud.version}</version>
+                <version>${google.cloud.storage.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.auth</groupId>

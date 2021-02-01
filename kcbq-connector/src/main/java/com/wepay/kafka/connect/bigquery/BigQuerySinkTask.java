@@ -21,7 +21,11 @@ package com.wepay.kafka.connect.bigquery;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.InsertAllRequest.RowToInsert;
+import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.Table;
+import com.google.cloud.bigquery.TimePartitioning;
+import com.google.cloud.bigquery.TimePartitioning.Type;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.Storage;
@@ -31,7 +35,6 @@ import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 import com.wepay.kafka.connect.bigquery.utils.SinkRecordConverter;
-import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
 import com.wepay.kafka.connect.bigquery.utils.FieldNameSanitizer;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
@@ -108,6 +111,8 @@ public class BigQuerySinkTask extends SinkTask {
   private final UUID uuid = UUID.randomUUID();
   private ScheduledExecutorService loadExecutor;
 
+  private Map<TableId, Table> cache;
+
   /**
    * Create a new BigquerySinkTask.
    */
@@ -127,11 +132,13 @@ public class BigQuerySinkTask extends SinkTask {
    * @param testSchemaManager {@link SchemaManager} to use for testing (likely a mock)
    * @see BigQuerySinkTask#BigQuerySinkTask()
    */
-  public BigQuerySinkTask(BigQuery testBigQuery, SchemaRetriever schemaRetriever, Storage testGcs, SchemaManager testSchemaManager) {
+  public BigQuerySinkTask(BigQuery testBigQuery, SchemaRetriever schemaRetriever, Storage testGcs,
+                          SchemaManager testSchemaManager, Map testCache) {
     this.testBigQuery = testBigQuery;
     this.schemaRetriever = schemaRetriever;
     this.testGcs = testGcs;
     this.testSchemaManager = testSchemaManager;
+    this.cache = testCache;
   }
 
   @Override
@@ -197,14 +204,23 @@ public class BigQuerySinkTask extends SinkTask {
 
     PartitionedTableId.Builder builder = new PartitionedTableId.Builder(baseTableId);
     if (usePartitionDecorator) {
+      Table bigQueryTable = retrieveCachedTable(baseTableId);
+      TimePartitioning timePartitioning = TimePartitioning.of(Type.DAY);
+      if (bigQueryTable != null) {
+        StandardTableDefinition standardTableDefinition = bigQueryTable.getDefinition();
+        if (standardTableDefinition != null && standardTableDefinition.getTimePartitioning() != null) {
+          timePartitioning = standardTableDefinition.getTimePartitioning();
+        }
+      }
+
       if (useMessageTimeDatePartitioning) {
         if (record.timestampType() == TimestampType.NO_TIMESTAMP_TYPE) {
           throw new ConnectException(
               "Message has no timestamp type, cannot use message timestamp to partition.");
         }
-        builder.setDayPartition(record.timestamp());
+        setTimePartitioningForTimestamp(builder, timePartitioning, record.timestamp());
       } else {
-        builder.setDayPartitionForNow();
+        setTimePartitioning(builder, timePartitioning);
       }
     }
 
@@ -289,6 +305,43 @@ public class BigQuerySinkTask extends SinkTask {
       return testBigQuery;
     }
     return bigQuery.updateAndGet(bq -> bq != null ? bq : newBigQuery());
+  }
+
+  private void setTimePartitioningForTimestamp(PartitionedTableId.Builder builder, TimePartitioning timePartitioning,
+                                               Long timestamp) {
+    switch (timePartitioning.getType()) {
+      case HOUR:
+        builder.setHourPartition(timestamp);
+        break;
+      case MONTH:
+        builder.setMonthPartition(timestamp);
+        break;
+      case YEAR:
+        builder.setYearPartition(timestamp);
+        break;
+      default:
+        builder.setDayPartition(timestamp);
+    }
+  }
+
+  private void setTimePartitioning(PartitionedTableId.Builder builder, TimePartitioning timePartitioning) {
+    switch (timePartitioning.getType()) {
+      case HOUR:
+        builder.setHourPartitionNow();
+        break;
+      case MONTH:
+        builder.setMonthPartitionForNow();
+        break;
+      case YEAR:
+        builder.setYearPartitionForNow();
+        break;
+      default:
+        builder.setDayPartitionForNow();
+    }
+  }
+
+  private Table retrieveCachedTable(TableId tableId) {
+    return getCache().computeIfAbsent(tableId, k -> getBigQuery().getTable(tableId));
   }
 
   private BigQuery newBigQuery() {
@@ -378,6 +431,14 @@ public class BigQuerySinkTask extends SinkTask {
     return new SinkRecordConverter(config, mergeBatches, mergeQueries);
   }
 
+  private synchronized Map<TableId, Table> getCache() {
+    if (cache == null) {
+      cache = new HashMap<>();
+    }
+
+    return cache;
+  }
+
   @Override
   public void start(Map<String, String> properties) {
     logger.trace("task.start()");
@@ -409,6 +470,7 @@ public class BigQuerySinkTask extends SinkTask {
       mergeBatches = new MergeBatches(intermediateTableSuffix);
     }
 
+    cache = getCache();
     bigQueryWriter = getBigQueryWriter();
     gcsToBQWriter = getGcsWriter();
     executor = new KCBQThreadPoolExecutor(config, new LinkedBlockingQueue<>());

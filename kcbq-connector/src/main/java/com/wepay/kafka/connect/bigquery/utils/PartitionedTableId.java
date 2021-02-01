@@ -22,7 +22,10 @@ package com.wepay.kafka.connect.bigquery.utils;
 import com.google.cloud.bigquery.TableId;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 /**
@@ -200,6 +203,19 @@ public class PartitionedTableId {
       return this;
     }
 
+    public Builder setHourPartition(long utcTime) {
+      Instant instant = Instant.ofEpochMilli(utcTime);
+      return setHourPartition(LocalDateTime.ofInstant(instant, ZoneId.of("UTC")));
+    }
+
+    public Builder setHourPartition(LocalDateTime localDate) {
+      return setPartition(dateToHourPartition(localDate));
+    }
+
+    public Builder setHourPartitionNow() {
+      return setHourPartition(LocalDateTime.now(UTC_CLOCK));
+    }
+
     public Builder setDayPartition(long utcTime) {
       return setDayPartition(LocalDate.ofEpochDay(utcTime / MILLIS_IN_DAY));
     }
@@ -212,12 +228,48 @@ public class PartitionedTableId {
       return setDayPartition(LocalDate.now(UTC_CLOCK));
     }
 
+    public Builder setMonthPartition(long utcTime) {
+      return setMonthPartition(LocalDate.ofEpochDay(utcTime / MILLIS_IN_DAY));
+    }
+
+    public Builder setMonthPartition(LocalDate localDate) {
+      return setPartition(dateToMonthPartition(localDate));
+    }
+
+    public Builder setMonthPartitionForNow() {
+      return setMonthPartition(LocalDate.now(UTC_CLOCK));
+    }
+
+    public Builder setYearPartition(long utcTime) {
+      return setYearPartition(LocalDate.ofEpochDay(utcTime / MILLIS_IN_DAY));
+    }
+
+    public Builder setYearPartition(LocalDate localDate) {
+      return setPartition(dateToYearPartition(localDate));
+    }
+
+    public Builder setYearPartitionForNow() {
+      return setYearPartition(LocalDate.now(UTC_CLOCK));
+    }
+
+    private String dateToHourPartition(LocalDateTime localDate) {
+      return localDate.format(DateTimeFormatter.ofPattern("yyyyMMddHH"));
+    }
+
     /**
      * @param localDate the localDate of the partition.
      * @return The String representation of the partition.
      */
     private static String dateToDayPartition(LocalDate localDate) {
       return localDate.format(DateTimeFormatter.BASIC_ISO_DATE);
+    }
+
+    private String dateToMonthPartition(LocalDate localDate) {
+      return localDate.format(DateTimeFormatter.ofPattern("yyyyMM"));
+    }
+
+    private String dateToYearPartition(LocalDate localDate) {
+      return localDate.format(DateTimeFormatter.ofPattern("yyyy"));
     }
 
     /**
