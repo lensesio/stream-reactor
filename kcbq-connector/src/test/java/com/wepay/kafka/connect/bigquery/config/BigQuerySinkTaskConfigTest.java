@@ -163,14 +163,4 @@ public class BigQuerySinkTaskConfigTest {
     assertTrue(testClusteringPartitionFieldName.isPresent());
     assertEquals(expectedClusteringPartitionFieldName, testClusteringPartitionFieldName.get());
   }
-
-  @Test(expected = ConfigException.class)
-  public void testSchemaUpdatesWithoutRetriever() {
-    Map<String, String> badConfigProperties = propertiesFactory.getProperties();
-    badConfigProperties.remove(BigQuerySinkTaskConfig.SCHEMA_RETRIEVER_CONFIG);
-    badConfigProperties.put(BigQuerySinkTaskConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG, "true");
-    badConfigProperties.put(BigQuerySinkTaskConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG, "true");
-
-    new BigQuerySinkTaskConfig(badConfigProperties);
-  }
 }

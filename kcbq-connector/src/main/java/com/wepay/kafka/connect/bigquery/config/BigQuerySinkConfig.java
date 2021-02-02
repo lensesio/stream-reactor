@@ -28,6 +28,7 @@ import com.wepay.kafka.connect.bigquery.convert.BigQuerySchemaConverter;
 import com.wepay.kafka.connect.bigquery.convert.RecordConverter;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 
+import com.wepay.kafka.connect.bigquery.retrieve.IdentitySchemaRetriever;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.common.config.ConfigDef;
@@ -125,7 +126,7 @@ public class BigQuerySinkConfig extends AbstractConfig {
 
   public static final String SCHEMA_RETRIEVER_CONFIG =         "schemaRetriever";
   private static final ConfigDef.Type SCHEMA_RETRIEVER_TYPE =  ConfigDef.Type.CLASS;
-  private static final Class<?> SCHEMA_RETRIEVER_DEFAULT =     null;
+  private static final Class<?> SCHEMA_RETRIEVER_DEFAULT = IdentitySchemaRetriever.class;
   private static final ConfigDef.Importance SCHEMA_RETRIEVER_IMPORTANCE =
       ConfigDef.Importance.MEDIUM;
   private static final String SCHEMA_RETRIEVER_DOC =
