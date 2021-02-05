@@ -1,0 +1,10 @@
+{
+  "id": 3,
+  "name": "VW",
+  "vehicle": {
+    "fullVIN": "vin234"
+  },
+  "header": {
+    "applicationId": "3"
+  }
+}

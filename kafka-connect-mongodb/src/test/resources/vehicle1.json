@@ -1,0 +1,10 @@
+{
+  "id": 1,
+  "name": "Fiat",
+  "vehicle": {
+    "fullVIN": "vin123"
+  },
+  "header": {
+    "applicationId": "1"
+  }
+}
