@@ -38,6 +38,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.util.UUID
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{ListMap, ListSet}
 
@@ -423,11 +424,11 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     }
 
     "MongoClientProvider should select nested fields on INSERT in schemaless JSON" in {
-
+      val collectionName = UUID.randomUUID().toString
       val map = Map(
         MongoConfigConstants.DATABASE_CONFIG -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017/?ssl=true",
-        MongoConfigConstants.KCQL_CONFIG -> "INSERT INTO collection1 SELECT vehicle, vehicle.fullVIN, header.applicationId FROM topicA",
+        MongoConfigConstants.KCQL_CONFIG -> s"INSERT INTO $collectionName SELECT vehicle, vehicle.fullVIN, header.applicationId FROM topicA",
       ).asJava
 
       val config = MongoConfig(map)
@@ -443,20 +444,19 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
 
       val actualCollection = mongoClient.get
         .getDatabase(settings.database)
-        .getCollection("collection1")
+        .getCollection(collectionName)
 
-      actualCollection.count() shouldBe 4
+      actualCollection.countDocuments() shouldBe 4
       actualCollection.find().iterator().forEachRemaining(r => System.out.println(r))
     }
 
     "MongoClientProvider should select nested fields on UPSERT in AVRO" in {
 
+      val collectionName = UUID.randomUUID().toString
       val map = Map(
         MongoConfigConstants.DATABASE_CONFIG -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017/?ssl=true",
-        MongoConfigConstants.KCQL_CONFIG -> "UPSERT INTO collection1 SELECT location, location.lon as lon, location.lat as lat FROM topicA pk location.lon",
-        // FIXME: Not working
-        // MongoConfigConstants.KCQL_CONFIG -> "UPSERT INTO collection1 SELECT location.lon as lon, location.lat as lat FROM topicA pk location.lon",
+        MongoConfigConstants.KCQL_CONFIG -> s"UPSERT INTO $collectionName SELECT location.lon as lon, location.lat as lat FROM topicA pk location.lon",
       ).asJava
 
       val config = MongoConfig(map)
@@ -493,9 +493,9 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
 
       val actualCollection = mongoClient.get
         .getDatabase(settings.database)
-        .getCollection("collection1")
+        .getCollection(collectionName)
 
-      actualCollection.count() shouldBe 1
+      actualCollection.countDocuments() shouldBe 1
       actualCollection.find().iterator().forEachRemaining(r => System.out.println(r))
     }
   }

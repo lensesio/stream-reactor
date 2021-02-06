@@ -19,7 +19,8 @@ package com.datamountaineer.streamreactor.connect.mongodb.sink
 import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
 import com.datamountaineer.streamreactor.connect.mongodb.converters.SinkRecordConverter
 import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import org.bson.Document
 
@@ -64,7 +65,7 @@ object SinkRecordToDocument extends ConverterUtil {
             settings.ignoredField.getOrElse(record.topic(), Set.empty)
           )
           SinkRecordConverter.fromStruct(extracted) ->
-            keys.headOption.map(_ => KeysExtractor.fromStruct(extracted.value().asInstanceOf[Struct], keys)).getOrElse(Iterable.empty)
+            keys.headOption.map(_ => KeysExtractor.fromStruct(record.value().asInstanceOf[Struct], keys)).getOrElse(Iterable.empty)
 
         case other => sys.error(s"$other schema is not supported")
       }

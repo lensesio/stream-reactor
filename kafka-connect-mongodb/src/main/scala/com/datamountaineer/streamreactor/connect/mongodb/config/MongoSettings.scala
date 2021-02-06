@@ -15,7 +15,7 @@
  */
 
 package com.datamountaineer.streamreactor.connect.mongodb.config
-
+import scala.collection.JavaConverters._
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
 import com.mongodb.AuthenticationMechanism
@@ -60,7 +60,7 @@ object MongoSettings extends StrictLogging {
     val errorPolicy= config.getErrorPolicy
     val retries = config.getNumberRetries
     val rowKeyBuilderMap = config.getUpsertKeys(preserveFullKeys=true)
-    val fieldsMap = config.getFieldsMap(kcql)
+    val fieldsMap = getFieldsMap(kcql)
     val ignoreFields = config.getIgnoreFieldsMap()
 
     val username = config.getUsername
@@ -122,5 +122,11 @@ object MongoSettings extends StrictLogging {
         }.toSet
     logger.info(s"MongoConfigConstants.JSON_DATETIME_FIELDS_CONFIG is $set")
     set
+  }
+
+  def getFieldsMap(kcql: Set[Kcql]): Map[String, Map[String, String]] = {
+    kcql.toList.map(rm =>
+      (rm.getSource, rm.getFields.asScala.map(fa => (fa.toString, fa.getAlias)).toMap)
+    ).toMap
   }
 }
