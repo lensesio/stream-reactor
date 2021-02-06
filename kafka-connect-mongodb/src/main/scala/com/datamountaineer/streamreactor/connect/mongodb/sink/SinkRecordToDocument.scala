@@ -23,6 +23,19 @@ import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 import org.bson.Document
+import org.json4s.jackson.JsonMethods.parse
+import org.json4s.JField
+import org.json4s.JsonAST.JDecimal
+import org.json4s.JsonAST.JDouble
+import org.json4s.JsonAST.JInt
+import org.json4s.JsonAST.JLong
+import org.json4s.JsonAST.JString
+import org.json4s.JValue
+
+import scala.collection.mutable
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 object SinkRecordToDocument extends ConverterUtil {
   def apply(record: SinkRecord, keys: Set[String] = Set.empty)(implicit settings: MongoSettings): (Document, Iterable[(String, Any)]) = {
@@ -50,14 +63,19 @@ object SinkRecordToDocument extends ConverterUtil {
     } else {
       schema.`type`() match {
         case Schema.Type.STRING =>
-          val extracted = convertStringSchemaAndJson(
+          convertFromStringAsJson(
             record,
             fields,
             settings.ignoredField.getOrElse(record.topic(), Set.empty),
-            includeAllFields = allFields)
-          SinkRecordConverter.fromJson(extracted) ->
-            keys.headOption.map(_ => KeysExtractor.fromJson(extracted, keys)).getOrElse(Iterable.empty)
+            includeAllFields = allFields) match {
+            case Right(ConversionResult(original, extracted)) =>
+              val extractedKeys = keys.headOption.map(_ => KeysExtractor.fromJson(original, keys)).getOrElse(Iterable.empty)
+              SinkRecordConverter.fromJson(extracted) -> extractedKeys
 
+            case Left(value) =>
+              //This needs full refactor to cleanup and write FP style scala
+              sys.error(value)
+          }
         case Schema.Type.STRUCT =>
           val extracted = convert(
             record,
@@ -71,4 +89,56 @@ object SinkRecordToDocument extends ConverterUtil {
       }
     }
   }
+
+  def convertFromStringAsJson(record: SinkRecord,
+                              fields: Map[String, String],
+                              ignoreFields: Set[String] = Set.empty[String],
+                              key: Boolean = false,
+                              includeAllFields: Boolean = true,
+                              ignoredFieldsValues: Option[mutable.Map[String, Any]] = None): Either[String, ConversionResult] = {
+
+    val schema = if (key) record.keySchema() else record.valueSchema()
+    val expectedInput = schema != null && schema.`type`() == Schema.STRING_SCHEMA.`type`()
+    if (!expectedInput) Left(s"$schema is not handled. Expecting Schema.String")
+    else {
+      (if (key) record.key() else record.value()) match {
+        case s: String =>
+          Try(parse(s)) match {
+            case Success(json) =>
+              val withFieldsRemoved = ignoreFields.foldLeft(json) { case (j, ignored) =>
+                j.removeField {
+                  case (`ignored`, v) =>
+                    ignoredFieldsValues.foreach { map =>
+                      val value = v match {
+                        case JString(s) => s
+                        case JDouble(d) => d
+                        case JInt(i) => i
+                        case JLong(l) => l
+                        case JDecimal(d) => d
+                        case _ => null
+                      }
+                      map += ignored -> value
+                    }
+                    true
+                  case _ => false
+                }
+              }
+
+              val converted = fields.filter { case (field, alias) => field != alias }
+                .foldLeft(withFieldsRemoved) { case (j, (field, alias)) =>
+                  j.transformField {
+                    case JField(`field`, v) => (alias, v)
+                    case other: JField => other
+                  }
+                }
+              Right(ConversionResult(json, converted))
+            case Failure(_) => Left(s"Invalid json with the record on topic ${record.topic} and offset ${record.kafkaOffset()}")
+          }
+        case other => Left(s"${other.getClass} is not valid. Expecting a Struct")
+      }
+    }
+  }
+
+  case class ConversionResult(original: JValue, converted: JValue)
+
 }

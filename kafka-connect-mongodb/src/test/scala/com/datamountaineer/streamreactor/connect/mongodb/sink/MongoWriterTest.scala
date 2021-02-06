@@ -450,6 +450,33 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
       actualCollection.find().iterator().forEachRemaining(r => System.out.println(r))
     }
 
+    "MongoClientProvider should select nested fields on UPSERT in schemaless JSON and PK" in {
+      val collectionName = UUID.randomUUID().toString
+      val map = Map(
+        MongoConfigConstants.DATABASE_CONFIG -> "database1",
+        MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017/?ssl=true",
+        MongoConfigConstants.KCQL_CONFIG -> s"UPSERT INTO $collectionName SELECT vehicle.fullVIN, header.applicationId FROM topicA pk vehicle.fullVIN",
+      ).asJava
+
+      val config = MongoConfig(map)
+      val settings = MongoSettings(config)
+      val mongoWriter = new MongoWriter(settings, mongoClient.get)
+
+      val records = for (i <- 1 to 4) yield {
+        val json = scala.io.Source.fromFile(getClass.getResource(s"/vehicle$i.json").toURI.getPath).mkString
+        new SinkRecord("topicA", 0, null, null, Schema.STRING_SCHEMA, json, i)
+      }
+
+      mongoWriter.write(records)
+
+      val actualCollection = mongoClient.get
+        .getDatabase(settings.database)
+        .getCollection(collectionName)
+
+      actualCollection.countDocuments() shouldBe 3
+      actualCollection.find().iterator().forEachRemaining(r => System.out.println(r))
+    }
+
     "MongoClientProvider should select nested fields on UPSERT in AVRO" in {
 
       val collectionName = UUID.randomUUID().toString

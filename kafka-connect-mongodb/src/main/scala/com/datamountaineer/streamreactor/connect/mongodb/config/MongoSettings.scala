@@ -59,7 +59,7 @@ object MongoSettings extends StrictLogging {
     val kcql = config.getKCQL
     val errorPolicy= config.getErrorPolicy
     val retries = config.getNumberRetries
-    val rowKeyBuilderMap = config.getUpsertKeys(preserveFullKeys=true)
+    val rowKeyBuilderMap = config.getUpsertKeys(kcql= kcql, preserveFullKeys=true)
     val fieldsMap = getFieldsMap(kcql)
     val ignoreFields = config.getIgnoreFieldsMap()
 
