@@ -450,6 +450,7 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
       actualCollection.find().iterator().forEachRemaining(r => System.out.println(r))
     }
 
+    // FIXME:
     "MongoClientProvider should select nested fields on UPSERT in schemaless JSON and PK" in {
       val collectionName = UUID.randomUUID().toString
       val map = Map(
@@ -483,7 +484,7 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
       val map = Map(
         MongoConfigConstants.DATABASE_CONFIG -> "database1",
         MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017/?ssl=true",
-        MongoConfigConstants.KCQL_CONFIG -> s"UPSERT INTO $collectionName SELECT location.lon as lon, location.lat as lat FROM topicA pk location.lon",
+        MongoConfigConstants.KCQL_CONFIG -> s"UPSERT INTO $collectionName SELECT sensorID, location.lon as lon, location.lat as lat FROM topicA pk location.lon",
       ).asJava
 
       val config = MongoConfig(map)
@@ -500,7 +501,7 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
         .field("temperature", Schema.FLOAT64_SCHEMA)
         .field("humidity", Schema.FLOAT64_SCHEMA)
         .field("ts", Schema.INT64_SCHEMA)
-        .field("location",locationSchema)
+        .field("location", locationSchema)
         .build()
 
       val locStruct = new Struct(locationSchema)
@@ -522,8 +523,15 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
         .getDatabase(settings.database)
         .getCollection(collectionName)
 
-      actualCollection.countDocuments() shouldBe 1
       actualCollection.find().iterator().forEachRemaining(r => System.out.println(r))
+
+      actualCollection.countDocuments() shouldBe 1
+      val doc = actualCollection.find().iterator().next()
+      doc.values().size() shouldBe 4
+      doc.getString("_id") shouldBe "23.72"
+      doc.getString("sensorID") shouldBe "sensor-789"
+      doc.getString("lon") shouldBe "23.72"
+      doc.getString("lat") shouldBe "37.98"
     }
   }
 
