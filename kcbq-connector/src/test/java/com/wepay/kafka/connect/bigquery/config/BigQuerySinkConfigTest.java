@@ -19,8 +19,10 @@
 
 package com.wepay.kafka.connect.bigquery.config;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.google.cloud.bigquery.TimePartitioning;
 import com.wepay.kafka.connect.bigquery.SinkPropertiesFactory;
 
 import com.wepay.kafka.connect.bigquery.convert.BigQueryRecordConverter;
@@ -78,5 +80,23 @@ public class BigQuerySinkConfigTest {
     );
 
     new BigQuerySinkConfig(badConfigProperties);
+  }
+
+  @Test
+  public void testValidTimePartitioningTypes() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+
+    for (TimePartitioning.Type type : TimePartitioning.Type.values()) {
+      configProperties.put(BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG, type.name());
+      assertEquals(type, new BigQuerySinkConfig(configProperties).getTimePartitioningType());
+    }
+  }
+
+  @Test(expected = ConfigException.class)
+  public void testInvalidTimePartitioningType() {
+    Map<String, String> configProperties = propertiesFactory.getProperties();
+
+    configProperties.put(BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG, "fortnight");
+    new BigQuerySinkConfig(configProperties);
   }
 }

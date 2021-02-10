@@ -21,6 +21,7 @@ package com.wepay.kafka.connect.bigquery.config;
 
 import com.google.cloud.bigquery.Schema;
 
+import com.google.cloud.bigquery.TimePartitioning;
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 
 import com.wepay.kafka.connect.bigquery.convert.BigQueryRecordConverter;
@@ -51,6 +52,8 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Base class for connector and task configs; contains properties shared between the two of them.
@@ -297,6 +300,17 @@ public class BigQuerySinkConfig extends AbstractConfig {
       "How many records to write to an intermediate table before performing a merge flush, if " 
       + "upsert/delete is enabled. Can be set to -1 to disable record count-based flushing.";
 
+  public static final String TIME_PARTITIONING_TYPE_CONFIG = "timePartitioningType";
+  private static final ConfigDef.Type TIME_PARTITIONING_TYPE_TYPE = ConfigDef.Type.STRING;
+  public static final String TIME_PARTITIONING_TYPE_DEFAULT = TimePartitioning.Type.DAY.name().toUpperCase();
+  private static final ConfigDef.Importance TIME_PARTITIONING_TYPE_IMPORTANCE = ConfigDef.Importance.LOW;
+  private static final List<String> TIME_PARTITIONING_TYPES = Stream.of(TimePartitioning.Type.values())
+      .map(TimePartitioning.Type::name)
+      .collect(Collectors.toList());
+  private static final String TIME_PARTITIONING_TYPE_DOC =
+      "The time partitioning type to use when creating tables. "
+          + "Existing tables will not be altered to use this partitioning type."; 
+
   /**
    * Return a ConfigDef object used to define this config's fields.
    *
@@ -484,6 +498,29 @@ public class BigQuerySinkConfig extends AbstractConfig {
             MERGE_RECORDS_THRESHOLD_VALIDATOR,
             MERGE_RECORDS_THRESHOLD_IMPORTANCE,
             MERGE_RECORDS_THRESHOLD_DOC
+        ).define(
+            TIME_PARTITIONING_TYPE_CONFIG,
+            TIME_PARTITIONING_TYPE_TYPE,
+            TIME_PARTITIONING_TYPE_DEFAULT,
+            ConfigDef.CaseInsensitiveValidString.in(TIME_PARTITIONING_TYPES.toArray(new String[0])),
+            TIME_PARTITIONING_TYPE_IMPORTANCE,
+            TIME_PARTITIONING_TYPE_DOC,
+            "",
+            -1,
+            ConfigDef.Width.NONE,
+            TIME_PARTITIONING_TYPE_CONFIG,
+            new ConfigDef.Recommender() {
+              @Override
+              public List<Object> validValues(String s, Map<String, Object> map) {
+                // Construct a new list to transform from List<String> to List<Object>
+                return new ArrayList<>(TIME_PARTITIONING_TYPES);
+              }
+
+              @Override
+              public boolean visible(String s, Map<String, Object> map) {
+                return true;
+              }
+            }
         );
   }
 
@@ -663,6 +700,27 @@ public class BigQuerySinkConfig extends AbstractConfig {
 
   public boolean isUpsertDeleteEnabled() {
     return getBoolean(UPSERT_ENABLED_CONFIG) || getBoolean(DELETE_ENABLED_CONFIG);
+  }
+
+  public TimePartitioning.Type getTimePartitioningType() {
+    return parseTimePartitioningType(getString(TIME_PARTITIONING_TYPE_CONFIG));
+  }
+
+  private TimePartitioning.Type parseTimePartitioningType(String rawPartitioningType) {
+    if (rawPartitioningType == null) {
+      throw new ConfigException(TIME_PARTITIONING_TYPE_CONFIG,
+          rawPartitioningType,
+          "Must be one of " + String.join(", ", TIME_PARTITIONING_TYPES));
+    }
+
+    try {
+      return TimePartitioning.Type.valueOf(rawPartitioningType);
+    } catch (IllegalArgumentException e) {
+      throw new ConfigException(
+          TIME_PARTITIONING_TYPE_CONFIG,
+          rawPartitioningType,
+          "Must be one of " + String.join(", ", TIME_PARTITIONING_TYPES));
+    }
   }
 
   /**

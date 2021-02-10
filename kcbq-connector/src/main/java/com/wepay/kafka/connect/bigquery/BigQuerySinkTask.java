@@ -366,13 +366,14 @@ public class BigQuerySinkTask extends SinkTask {
     Optional<String> kafkaDataFieldName = config.getKafkaDataFieldName();
     Optional<String> timestampPartitionFieldName = config.getTimestampPartitionFieldName();
     Optional<List<String>> clusteringFieldName = config.getClusteringPartitionFieldName();
+    TimePartitioning.Type timePartitioningType = config.getTimePartitioningType();
     boolean allowNewBQFields = config.getBoolean(config.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG);
     boolean allowReqFieldRelaxation = config.getBoolean(config.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG);
     boolean allowSchemaUnionization = config.getBoolean(config.ALLOW_SCHEMA_UNIONIZATION_CONFIG);
     return new SchemaManager(schemaRetriever, schemaConverter, getBigQuery(),
                              allowNewBQFields, allowReqFieldRelaxation, allowSchemaUnionization,
                              kafkaKeyFieldName, kafkaDataFieldName,
-                             timestampPartitionFieldName, clusteringFieldName);
+                             timestampPartitionFieldName, clusteringFieldName, timePartitioningType);
   }
 
   private BigQueryWriter getBigQueryWriter() {
