@@ -56,7 +56,15 @@ object BucketSetup extends Matchers {
         ) should be(true)
     }
   }
-
+  
+  def totalFileLengthBytes(format: Format, formatOption: Option[FormatOptions]): Int = {
+    1 to 5 map {
+      fileNum: Int =>
+        S3TestPayloadReader.fileLengthBytes(
+          s"/${format.entryName.toLowerCase}${generateFormatString(formatOption)}/$fileNum.${format.entryName.toLowerCase}",
+        )
+    }
+  }.seq.sum
 
   def generateFormatString(formatOptions: Option[FormatOptions]): String = {
     formatOptions.fold("")(option => s"_${option.entryName.toLowerCase}")

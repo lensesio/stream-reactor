@@ -1,7 +1,5 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import java.util
-
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatOptions}
@@ -13,6 +11,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
+import java.util
 import scala.collection.JavaConverters._
 
 class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with LazyLogging {
@@ -141,6 +140,36 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
           .union(sourceRecords6.asScala)
           .toSet should have size 790
     }
+  }
+
+  "task" should "read stored bytes files continuously" in {
+    val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.ValueOnly));
+
+    setUpBucketData(BucketName, blobStoreContext, format, formatOptions)
+
+    val task = new S3SourceTask()
+
+    val formatExtensionString = generateFormatString(formatOptions)
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $TopicName select * from $BucketName:$PrefixName STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
+      ).asJava
+
+    task.start(props)
+    val sourceRecords1 = task.poll()
+    val sourceRecords2 = task.poll()
+
+    task.stop()
+
+    sourceRecords1 should have size 5
+    sourceRecords2 should have size 0
+
+    val expectedLength = totalFileLengthBytes(format, formatOptions)
+    val allLength = sourceRecords1.asScala.map(_.value().asInstanceOf[Array[Byte]].length).sum
+
+    allLength should be(expectedLength)
+
   }
 
 
