@@ -29,7 +29,7 @@ import de.flapdoodle.embed.mongo.{MongodExecutable, MongodProcess, MongodStarter
 import de.flapdoodle.embed.process.runtime.Network
 import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.common.config.types.Password
-import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.bson.Document
 import org.json4s.jackson.JsonMethods._
@@ -38,6 +38,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.util.UUID
 import scala.collection.JavaConverters._
 import scala.collection.immutable.{ListMap, ListSet}
 
@@ -420,6 +421,117 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
       props.get("javax.net.ssl.trustStore") shouldBe truststoreFilePath
       props.containsKey("javax.net.ssl.trustStoreType") shouldBe true
       props.get("javax.net.ssl.trustStoreType") shouldBe "JKS"
+    }
+
+    "MongoClientProvider should select nested fields on INSERT in schemaless JSON" in {
+      val collectionName = UUID.randomUUID().toString
+      val map = Map(
+        MongoConfigConstants.DATABASE_CONFIG -> "database1",
+        MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017/?ssl=true",
+        MongoConfigConstants.KCQL_CONFIG -> s"INSERT INTO $collectionName SELECT vehicle, vehicle.fullVIN, header.applicationId FROM topicA",
+      ).asJava
+
+      val config = MongoConfig(map)
+      val settings = MongoSettings(config)
+      val mongoWriter = new MongoWriter(settings, mongoClient.get)
+
+      val records = for (i <- 1 to 4) yield {
+        val json = scala.io.Source.fromFile(getClass.getResource(s"/vehicle$i.json").toURI.getPath).mkString
+        new SinkRecord("topicA", 0, null, null, Schema.STRING_SCHEMA, json, i)
+      }
+
+      mongoWriter.write(records)
+
+      val actualCollection = mongoClient.get
+        .getDatabase(settings.database)
+        .getCollection(collectionName)
+
+      actualCollection.countDocuments() shouldBe 4
+      actualCollection.find().iterator().forEachRemaining(r => System.out.println(r))
+    }
+
+    // FIXME:
+    "MongoClientProvider should select nested fields on UPSERT in schemaless JSON and PK" in {
+      val collectionName = UUID.randomUUID().toString
+      val map = Map(
+        MongoConfigConstants.DATABASE_CONFIG -> "database1",
+        MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017/?ssl=true",
+        MongoConfigConstants.KCQL_CONFIG -> s"UPSERT INTO $collectionName SELECT vehicle.fullVIN, header.applicationId FROM topicA pk vehicle.fullVIN",
+      ).asJava
+
+      val config = MongoConfig(map)
+      val settings = MongoSettings(config)
+      val mongoWriter = new MongoWriter(settings, mongoClient.get)
+
+      val records = for (i <- 1 to 4) yield {
+        val json = scala.io.Source.fromFile(getClass.getResource(s"/vehicle$i.json").toURI.getPath).mkString
+        new SinkRecord("topicA", 0, null, null, Schema.STRING_SCHEMA, json, i)
+      }
+
+      mongoWriter.write(records)
+
+      val actualCollection = mongoClient.get
+        .getDatabase(settings.database)
+        .getCollection(collectionName)
+
+      actualCollection.countDocuments() shouldBe 3
+      actualCollection.find().iterator().forEachRemaining(r => System.out.println(r))
+    }
+
+    "MongoClientProvider should select nested fields on UPSERT in AVRO" in {
+
+      val collectionName = UUID.randomUUID().toString
+      val map = Map(
+        MongoConfigConstants.DATABASE_CONFIG -> "database1",
+        MongoConfigConstants.CONNECTION_CONFIG -> "mongodb://localhost:27017/?ssl=true",
+        MongoConfigConstants.KCQL_CONFIG -> s"UPSERT INTO $collectionName SELECT sensorID, location.lon as lon, location.lat as lat FROM topicA pk location.lon",
+      ).asJava
+
+      val config = MongoConfig(map)
+      val settings = MongoSettings(config)
+      val mongoWriter = new MongoWriter(settings, mongoClient.get)
+
+      val locationSchema = SchemaBuilder.struct().name("location")
+        .field("lat", Schema.STRING_SCHEMA)
+        .field("lon", Schema.STRING_SCHEMA)
+        .build();
+
+      val schema = SchemaBuilder.struct().name("com.example.device")
+        .field("sensorID", Schema.STRING_SCHEMA)
+        .field("temperature", Schema.FLOAT64_SCHEMA)
+        .field("humidity", Schema.FLOAT64_SCHEMA)
+        .field("ts", Schema.INT64_SCHEMA)
+        .field("location", locationSchema)
+        .build()
+
+      val locStruct = new Struct(locationSchema)
+        .put("lat", "37.98")
+        .put("lon", "23.72")
+
+      val struct1 = new Struct(schema).put("sensorID", "sensor-123").put("temperature", 60.4).put("humidity", 90.1).put("ts", 1482180657010L).put("location", locStruct)
+      val struct2 = new Struct(schema).put("sensorID", "sensor-123").put("temperature", 62.1).put("humidity", 103.3).put("ts", 1482180657020L).put("location", locStruct)
+      val struct3 = new Struct(schema).put("sensorID", "sensor-789").put("temperature", 64.5).put("humidity", 101.1).put("ts", 1482180657030L).put("location", locStruct)
+
+      val sinkRecord1 = new SinkRecord("topicA", 0, null, null, schema, struct1, 1)
+      val sinkRecord2 = new SinkRecord("topicA", 0, null, null, schema, struct2, 2)
+      val sinkRecord3 = new SinkRecord("topicA", 0, null, null, schema, struct3, 3)
+
+
+      mongoWriter.write(Seq(sinkRecord1, sinkRecord2, sinkRecord3))
+
+      val actualCollection = mongoClient.get
+        .getDatabase(settings.database)
+        .getCollection(collectionName)
+
+      actualCollection.find().iterator().forEachRemaining(r => System.out.println(r))
+
+      actualCollection.countDocuments() shouldBe 1
+      val doc = actualCollection.find().iterator().next()
+      doc.values().size() shouldBe 4
+      doc.getString("_id") shouldBe "23.72"
+      doc.getString("sensorID") shouldBe "sensor-789"
+      doc.getString("lon") shouldBe "23.72"
+      doc.getString("lat") shouldBe "37.98"
     }
   }
 
