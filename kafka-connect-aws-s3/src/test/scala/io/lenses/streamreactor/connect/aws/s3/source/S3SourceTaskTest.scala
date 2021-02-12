@@ -172,5 +172,49 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
 
   }
 
+  "task" should "read stored bytes key/value files continuously" in {
+    val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.KeyAndValueWithSizes));
+
+    setUpBucketData(BucketName, blobStoreContext, format, formatOptions)
+
+    val task = new S3SourceTask()
+
+    val formatExtensionString = generateFormatString(formatOptions)
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $TopicName select * from $BucketName:$PrefixName STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
+      ).asJava
+
+    task.start(props)
+    val sourceRecords1 = task.poll()
+    val sourceRecords2 = task.poll()
+    val sourceRecords3 = task.poll()
+    val sourceRecords4 = task.poll()
+    val sourceRecords5 = task.poll()
+    val sourceRecords6 = task.poll()
+    val sourceRecords7 = task.poll()
+
+    task.stop()
+    
+    sourceRecords1 should have size 190
+    sourceRecords2 should have size 190
+    sourceRecords3 should have size 190
+    sourceRecords4 should have size 190
+    sourceRecords5 should have size 190
+    sourceRecords6 should have size 50
+    sourceRecords7 should have size 0
+
+    sourceRecords1.asScala
+      .union(sourceRecords2.asScala)
+      .union(sourceRecords3.asScala)
+      .union(sourceRecords4.asScala)
+      .union(sourceRecords5.asScala)
+      .union(sourceRecords6.asScala)
+      .toSet should have size 1000
+    
+    sourceRecords1.get(0).key should be ("myKey".getBytes)
+    sourceRecords1.get(0).value() should be ("somestring".getBytes)
+  }
 
 }

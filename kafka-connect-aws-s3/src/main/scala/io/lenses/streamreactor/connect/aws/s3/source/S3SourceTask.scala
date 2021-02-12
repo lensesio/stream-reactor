@@ -124,7 +124,7 @@ class S3SourceTask extends SourceTask {
         fromSourceOffset(pollResults.bucketAndPath, sourceData.getLineNumber).asJava,
         pollResults.targetTopic,
         null,
-        key,
+        key.orNull,
         schema.orNull,
         value
       )
