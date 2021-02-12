@@ -66,6 +66,7 @@ public class SchemaManager {
   private final Optional<String> kafkaKeyFieldName;
   private final Optional<String> kafkaDataFieldName;
   private final Optional<String> timestampPartitionFieldName;
+  private final Optional<Long> partitionExpiration;
   private final Optional<List<String>> clusteringFieldName;
   private final TimePartitioning.Type timePartitioningType;
   private final boolean intermediateTables;
@@ -102,6 +103,7 @@ public class SchemaManager {
       Optional<String> kafkaKeyFieldName,
       Optional<String> kafkaDataFieldName,
       Optional<String> timestampPartitionFieldName,
+      Optional<Long> partitionExpiration,
       Optional<List<String>> clusteringFieldName,
       TimePartitioning.Type timePartitioningType) {
     this(
@@ -114,6 +116,7 @@ public class SchemaManager {
         kafkaKeyFieldName,
         kafkaDataFieldName,
         timestampPartitionFieldName,
+        partitionExpiration,
         clusteringFieldName,
         timePartitioningType,
         false,
@@ -132,6 +135,7 @@ public class SchemaManager {
       Optional<String> kafkaKeyFieldName,
       Optional<String> kafkaDataFieldName,
       Optional<String> timestampPartitionFieldName,
+      Optional<Long> partitionExpiration,
       Optional<List<String>> clusteringFieldName,
       TimePartitioning.Type timePartitioningType,
       boolean intermediateTables,
@@ -147,6 +151,7 @@ public class SchemaManager {
     this.kafkaKeyFieldName = kafkaKeyFieldName;
     this.kafkaDataFieldName = kafkaDataFieldName;
     this.timestampPartitionFieldName = timestampPartitionFieldName;
+    this.partitionExpiration = partitionExpiration;
     this.clusteringFieldName = clusteringFieldName;
     this.timePartitioningType = timePartitioningType;
     this.intermediateTables = intermediateTables;
@@ -166,6 +171,7 @@ public class SchemaManager {
         kafkaKeyFieldName,
         kafkaDataFieldName,
         timestampPartitionFieldName,
+        partitionExpiration,
         clusteringFieldName,
         timePartitioningType,
         true,
@@ -457,12 +463,11 @@ public class SchemaManager {
       // pseudocolumn can be queried to filter out rows that are still in the streaming buffer
       builder.setTimePartitioning(TimePartitioning.of(Type.DAY));
     } else if (createSchema) {
-      TimePartitioning timePartitioning = TimePartitioning.of(timePartitioningType);
-      if (timestampPartitionFieldName.isPresent()) {
-        timePartitioning = timePartitioning.toBuilder().setField(timestampPartitionFieldName.get()).build();
-      }
+      TimePartitioning.Builder timePartitioningBuilder = TimePartitioning.of(timePartitioningType).toBuilder();
+      timestampPartitionFieldName.ifPresent(timePartitioningBuilder::setField);
+      partitionExpiration.ifPresent(timePartitioningBuilder::setExpirationMs);
 
-      builder.setTimePartitioning(timePartitioning);
+      builder.setTimePartitioning(timePartitioningBuilder.build());
 
       if (timestampPartitionFieldName.isPresent() && clusteringFieldName.isPresent()) {
         Clustering clustering = Clustering.newBuilder()
