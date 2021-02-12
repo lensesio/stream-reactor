@@ -59,38 +59,20 @@ allprojects {
         slf4jVersion = "1.7.7"
         json4sVersion = "3.6.7"
         gsonVersion = "2.6.2"
-        KCQLVersion = "2.8.5"
+        kcqlVersion = "2.8.8"
         connectCLIVersion = "1.0.6"
         avro4sVersion = "1.6.4"
+        smt = "2.0.0"
 
         // The following 4 need to align to compileagainst a particular version
         confluentVersion = '5.5.0'
         kafkaVersion = '2.5.0'
-        dataMountaineerCommonVersion = "2.0.5"
         link4jVersion = "1.8.0"
 
         gitCommitHash = ("git rev-parse HEAD").execute().text.trim()
         gitTag = ("git describe --abbrev=0 --tags").execute().text.trim()
         gitRepo = ("git remote get-url origin").execute().text.trim()
 
-
-//        // The following 4 need to align to compileagainst a particular version
-//        confluentVersion = '3.3.0'
-//        kafkaVersion = '0.11.0.0'
-//        dataMountaineerCommonVersion = "0.9.7"
-//        dataMountaineerTestKitVersion = "0.6"
-
-//        // Confluent 3.2
-//        confluentVersion = '3.2.2'
-//        kafkaVersion = '0.10.2.0'
-//        dataMountaineerCommonVersion = "0.8.1.1"
-//        dataMountaineerTestKitVersion = "0.5"
-
-        // For 3.1.x versions use
-        // confluentVersion = '3.1.2'
-        // kafkaVersion = '0.10.1.1'
-        // dataMountaineerCommonVersion = "0.7.0"
-        // dataMountaineerTestKitVersion = "0.4"
 
         //release
         rootRelease = "${project.rootDir}/release/"
@@ -119,7 +101,7 @@ allprojects {
     jar {
         manifest {
             attributes( "StreamReactor-Version": project.version,
-                    "KCQL-Version" : "${KCQLVersion}",
+                    "KCQL-Version" : "${kcqlVersion}",
                     "Kafka-Version": "${kafkaVersion}",
                     "Created-By" : "Lenses",
                     "Created-At" :  new Date().format("YYYYMMDDHHmm"),
@@ -141,7 +123,7 @@ allprojects {
 
         manifest {
             attributes( "StreamReactor-Version": project.version,
-                    "KCQL-Version" : "${KCQLVersion}",
+                    "KCQL-Version" : "${kcqlVersion}",
                     "Kafka-Version": "${kafkaVersion}",
                     "Created-By" : "Lenses",
                     "Created-At" : new Date().format("YYYYMMDDHHmm"),
@@ -158,9 +140,7 @@ allprojects {
             exclude "META-INF/*.RSA"
         }
 
-        transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer) {
-            resource = 'reference.conf'
-        }
+
         dependencies {
             exclude(dependency("org.apache.avro:.*"))
             exclude(dependency("org.apache.kafka:.*"))
@@ -181,8 +161,17 @@ allprojects {
         compile ("io.confluent:kafka-schema-registry:$confluentVersion") {
             exclude group: 'com.google.guava', module: 'guava'
         }
-        compile "com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion"
+
         compile "org.apache.calcite:calcite-linq4j:$link4jVersion"
+        compile ("com.datamountaineer:kcql:$kcqlVersion") {
+            exclude group: "com.google.guava", module: "guava"
+        }
+
+        implementation("com.landoop:kafka-connect-smt_$scalaMajorVersion:$smt") {
+            exclude group: "com.google.protobuf"
+            exclude group: "org.apache.calcite", module: "calcite-linq4j"
+            exclude group: "org.apache.httpcomponents"
+        }
 
         testCompile "org.mockito:mockito-scala_$scalaMajorVersion:$mockitoVersion"
         testCompile "org.scalacheck:scalacheck_$scalaMajorVersion:$scalaCheck"
@@ -191,6 +180,11 @@ allprojects {
 
         testCompile 'org.pegdown:pegdown:1.1.0'
         testCompile "com.vladsch.flexmark:flexmark-all:0.35.10"
+    }
+
+    configurations {
+        provided
+        compile.extendsFrom provided
     }
 
     test {

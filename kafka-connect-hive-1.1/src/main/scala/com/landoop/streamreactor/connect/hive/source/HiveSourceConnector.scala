@@ -2,7 +2,7 @@ package com.landoop.streamreactor.connect.hive.source
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfigDef
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef

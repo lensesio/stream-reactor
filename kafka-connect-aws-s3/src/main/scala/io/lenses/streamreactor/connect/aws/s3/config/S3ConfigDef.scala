@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.config
 
 import java.util
 
-import com.datamountaineer.streamreactor.connect.config.base.traits._
+import com.datamountaineer.streamreactor.common.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 

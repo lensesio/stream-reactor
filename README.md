@@ -22,6 +22,14 @@ A collection of components to build a real time ingestion pipeline.
 *    Kafka 2.5+ (Confluent 5.5) - Stream reactor 2.0.0+
 *    Kafka 2.0 -> 2.4 (Confluent 5.4) - Stream reactor 1.2.7
 
+## DEPRECATION NOTICE
+
+The following connectors will be deprecated and no longer include in any release from 3.0
+
+* Rethink
+* VoltDB
+* Blockchain
+
 
 ### Connectors
 

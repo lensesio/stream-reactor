@@ -4,7 +4,7 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util
 
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.landoop.streamreactor.connect.hive.ConfigurationBuilder
 import com.landoop.streamreactor.connect.hive.HadoopConfigurationExtension._
 import com.landoop.streamreactor.connect.hive.kerberos.{KerberosLogin, UgiExecute}

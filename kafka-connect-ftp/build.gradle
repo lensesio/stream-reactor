@@ -29,6 +29,7 @@ project(":kafka-connect-ftp") {
   }
 
   dependencies {
+    compile project(':kafka-connect-common')
     compile "commons-net:commons-net:${commonsnetVersion}"
     compile "commons-codec:commons-codec:${commonsCodecVersion}"
     testCompile "com.github.pathikrit:better-files_2.12:${pathikritVersion}"

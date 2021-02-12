@@ -32,6 +32,7 @@ project(":kafka-connect-blockchain") {
 
 
     dependencies {
+        compile project(':kafka-connect-common')
         compile "com.typesafe.akka:akka-actor_$scalaMajorVersion:$akkaVersion"
         compile "com.typesafe.akka:akka-stream_$scalaMajorVersion:$akkaVersion"
         compile "com.typesafe.akka:akka-http_$scalaMajorVersion:10.0.0"
