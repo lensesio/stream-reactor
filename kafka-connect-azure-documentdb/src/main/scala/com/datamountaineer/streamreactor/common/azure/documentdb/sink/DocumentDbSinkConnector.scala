@@ -95,12 +95,11 @@ class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => D
 
     val settings = DocumentDbSinkSettings(config)
 
-    implicit var documentClient: DocumentClient = null
-
+    var documentClient: DocumentClient = null
     try {
       documentClient = builder(settings)
-      val database = readOrCreateDatabase(settings)
-      readOrCreateCollections(database, settings)
+      val database = readOrCreateDatabase(settings)(documentClient)
+      readOrCreateCollections(database, settings)(documentClient)
     }
     finally {
       if (null != documentClient) {
@@ -115,7 +114,7 @@ class DocumentDbSinkConnector private[sink](builder: DocumentDbSinkSettings => D
 
   override def config(): ConfigDef = DocumentDbConfig.config
 
-  private def readOrCreateCollections(database: Database, settings: DocumentDbSinkSettings)(implicit documentClient: DocumentClient) = {
+  private def readOrCreateCollections(database: Database, settings: DocumentDbSinkSettings)(implicit documentClient: DocumentClient): Unit = {
     //check all collection exists and if not create them
     val requestOptions = new RequestOptions()
     requestOptions.setOfferThroughput(400)

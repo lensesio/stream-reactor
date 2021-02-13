@@ -8,10 +8,11 @@ import scala.collection.JavaConverters._
 import scala.annotation.tailrec
 
 object KeyExtractor {
+  //TODO would be nice to return an Either rather than throw exception
   def extract(node: JsonNode, path: Vector[String]): Any = {
     @tailrec
     def innerExtract(n: JsonNode, p: Vector[String]): Any = {
-      def checkValidPath() = {
+      def checkValidPath(): Unit = {
         if (p.nonEmpty) {
           throw new IllegalArgumentException(s"Invalid field selection for [${path.mkString(".")}]. It doesn't resolve to a primitive field")
         }
@@ -67,7 +68,7 @@ object KeyExtractor {
           }
 
           innerExtract(childNode, p.tail)
-        case array: ArrayNode =>
+        case _: ArrayNode =>
           throw new IllegalArgumentException(s"Invalid field selection for [${path.mkString(".")}]. The path is involving an array structure")
 
         case other =>
@@ -81,16 +82,15 @@ object KeyExtractor {
     innerExtract(node, path)
   }
 
-
+  //TODO would be nice to return an Either rather than throw exception
   def extract(struct: Struct, path: Vector[String]): Any = {
     // @tailrec
     def innerExtract(field: Field, value: AnyRef, p: Vector[String]): Any = {
-      def checkValidPath() = {
+      def checkValidPath(): Unit = {
         if (p.nonEmpty) {
           throw new IllegalArgumentException(s"Invalid field selection for [${path.mkString(".")}]. It doesn't resolve to a primitive field")
         }
       }
-
 
       if (value == null) {
         throw new IllegalArgumentException(s"Invalid field selection for [${path.mkString(".")}]. Field [${field.name()}] is null")

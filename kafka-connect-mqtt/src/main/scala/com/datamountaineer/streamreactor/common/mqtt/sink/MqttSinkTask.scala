@@ -16,21 +16,25 @@
 
 package com.datamountaineer.streamreactor.common.mqtt.sink
 
-import java.util
-
 import com.datamountaineer.streamreactor.common.converters.sink.Converter
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.common.mqtt.config.{MqttConfigConstants, MqttSinkConfig, MqttSinkSettings}
-import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
+import com.datamountaineer.streamreactor.common.mqtt.config.MqttConfigConstants
+import com.datamountaineer.streamreactor.common.mqtt.config.MqttSinkConfig
+import com.datamountaineer.streamreactor.common.mqtt.config.MqttSinkSettings
+import com.datamountaineer.streamreactor.common.utils.JarManifest
+import com.datamountaineer.streamreactor.common.utils.ProgressCounter
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.config.ConfigException
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTask
 
+import java.util
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Success, Try}
-
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 /**
   * Created by andrew@datamountaineer.com on 27/08/2017.
@@ -54,11 +58,12 @@ class MqttSinkTask extends SinkTask with StrictLogging {
     val settings = MqttSinkSettings(sinkConfig)
 
     //if error policy is retry set retry interval
-    if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getInt(MqttConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+    settings.errorPolicy match {
+      case RetryErrorPolicy() => context.timeout(sinkConfig.getInt(MqttConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+      case _ =>
     }
 
-  val convertersMap = settings.sinksToConverters.map { case (topic, clazz) =>
+    val convertersMap = settings.sinksToConverters.map { case (topic, clazz) =>
       logger.info(s"Creating converter instance for $clazz and topic $topic")
 
       if (clazz == null) {
@@ -90,11 +95,11 @@ class MqttSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Clean up writer
-    **/
+    * */
   override def stop(): Unit = {
     logger.info("Stopping Mqtt sink.")
     writer.foreach(w => w.close)
-    progressCounter.empty
+    progressCounter.empty()
   }
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {

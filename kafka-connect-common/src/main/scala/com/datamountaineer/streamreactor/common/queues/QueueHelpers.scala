@@ -34,7 +34,10 @@ object QueueHelpers extends StrictLogging {
     }
   }
 
-  def drainWithTimeoutNoGauva(records: util.ArrayList[SourceRecord], batchSize: Int, lingerTimeout: Long, queue: LinkedBlockingQueue[SourceRecord]) = {
+  def drainWithTimeoutNoGauva(records: util.ArrayList[SourceRecord],
+                              batchSize: Int,
+                              lingerTimeout: Long,
+                              queue: LinkedBlockingQueue[SourceRecord]): Unit = {
     var added = 0
     val deadline = System.nanoTime() + TimeUnit.NANOSECONDS.toNanos(lingerTimeout)
 
@@ -57,14 +60,14 @@ object QueueHelpers extends StrictLogging {
   /**
     * Drain the queue with timeout
     *
-    * @param queue The queue to drain
+    * @param queue     The queue to drain
     * @param batchSize Batch size to take
-    * @param timeOut Timeout to take the batch
+    * @param timeOut   Timeout to take the batch
     * @return ArrayList of T
     * */
-  def drainQueueWithTimeOut[T](queue: LinkedBlockingQueue[T], batchSize: Int, timeOut: Long) = {
+  def drainQueueWithTimeOut[T](queue: LinkedBlockingQueue[T], batchSize: Int, timeOut: Long): util.ArrayList[T] = {
     val l = new util.ArrayList[T]()
-    logger.debug(s"Found [${queue.size()}]. Draining entries to batchSize [${batchSize}].")
+    logger.debug(s"Found [{}]. Draining entries to batchSize [{}].", queue.size(), batchSize)
     queue.drainWithTimeoutTo(l, batchSize, timeOut, TimeUnit.MILLISECONDS)
     l
   }
@@ -72,13 +75,13 @@ object QueueHelpers extends StrictLogging {
   /**
     * Drain the queue
     *
-    * @param queue The queue to drain
+    * @param queue     The queue to drain
     * @param batchSize Batch size to take
     * @return ArrayList of T
     * */
-  def drainQueue[T](queue: LinkedBlockingQueue[T], batchSize: Int) = {
+  def drainQueue[T](queue: LinkedBlockingQueue[T], batchSize: Int): util.ArrayList[T] = {
     val l = new util.ArrayList[T]()
-    logger.debug(s"Found ${queue.size()}. Draining entries to batchSize [${batchSize}].")
+    logger.debug(s"Found {}. Draining entries to batchSize [{}].", queue.size(), batchSize)
     queue.drainTo(l, batchSize)
     l
   }

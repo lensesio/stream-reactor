@@ -108,7 +108,7 @@ object AvroConverter {
             throw new ConfigException(s"Invalid [$SCHEMA_CONFIG]. The topic is not valid for entry containing [$path]")
           }
           s -> new AvroSchema.Parser().parse(file)
-        case other => throw new ConfigException(s"[$SCHEMA_CONFIG] is not properly set. The format is Mqtt_Source->AVRO_FILE")
+        case _ => throw new ConfigException(s"[$SCHEMA_CONFIG] is not properly set. The format is Mqtt_Source->AVRO_FILE")
       }.toMap
   }
 }

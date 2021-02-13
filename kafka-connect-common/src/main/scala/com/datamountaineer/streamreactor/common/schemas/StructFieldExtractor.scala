@@ -23,8 +23,8 @@ package com.datamountaineer.streamreactor.common.schemas
 
 import java.text.SimpleDateFormat
 import java.util.TimeZone
-
 import org.apache.kafka.connect.data._
+import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConverters._
 
@@ -45,15 +45,14 @@ case class StructFieldsExtractor(includeAllFields: Boolean, fieldsAliasMap: Map[
     *
     * @param struct A SinkRecord struct
     * @return a Sequence of column names and values
-    **/
+    * */
   def get(struct: Struct): Seq[(String, AnyRef)] = {
     val schema = struct.schema()
     val fields: Seq[Field] = if (includeAllFields) schema.fields().asScala
     else schema.fields().asScala.filter(f => fieldsAliasMap.contains(f.name()))
 
-    val fieldsAndValues = fields.flatMap { case field =>
-      getFieldValue(field, struct).map(value => fieldsAliasMap.getOrElse(field.name(), field.name()) -> value)
-    }
+    val fieldsAndValues = fields.flatMap(field =>
+      getFieldValue(field, struct).map(value => fieldsAliasMap.getOrElse(field.name(), field.name()) -> value))
     fieldsAndValues
   }
 
@@ -63,7 +62,7 @@ case class StructFieldsExtractor(includeAllFields: Boolean, fieldsAliasMap: Map[
     * @param field  A field to return the value for
     * @param struct A struct to extract the field from
     * @return an optional value for the field
-    **/
+    * */
   private def getFieldValue(field: Field, struct: Struct): Option[AnyRef] = {
     Option(struct.get(field)) match {
       case None => None
@@ -73,7 +72,9 @@ case class StructFieldsExtractor(includeAllFields: Boolean, fieldsAliasMap: Map[
           case Decimal.LOGICAL_NAME =>
             value match {
               case bd: BigDecimal => bd
-              case array: Array[Byte] => Decimal.toLogical(field.schema, value.asInstanceOf[Array[Byte]])
+              case array: Array[Byte] => Decimal.toLogical(field.schema, array)
+              case _ => throw new IllegalArgumentException(s"Can't convert $value to Decimal for schema:${field.schema().`type`()}")
+
             }
           case Date.LOGICAL_NAME =>
             value.asInstanceOf[Any] match {
@@ -83,7 +84,7 @@ case class StructFieldsExtractor(includeAllFields: Boolean, fieldsAliasMap: Map[
             }
           case Time.LOGICAL_NAME =>
             value.asInstanceOf[Any] match {
-              case i: Int => Time.toLogical(field.schema, value.asInstanceOf[Int])
+              case i: Int => Time.toLogical(field.schema, i)
               case d: java.util.Date => d
               case _ => throw new IllegalArgumentException(s"Can't convert $value to Date for schema:${field.schema().`type`()}")
             }
@@ -104,7 +105,7 @@ case class StructFieldsExtractor(includeAllFields: Boolean, fieldsAliasMap: Map[
             case Schema.Type.INT32 => struct.getInt32(fieldName)
             case Schema.Type.INT64 => struct.getInt64(fieldName)
             case Schema.Type.STRING => struct.getString(fieldName)
-            case other => sys.error(s"$other is not a recognized schema")
+            case other => throw new ConnectException(s"$other is not a recognized schema")
           }
           Some(v)
         }

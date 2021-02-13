@@ -19,13 +19,14 @@ package com.datamountaineer.streamreactor.common.config
 import java.io.FileInputStream
 import java.security.{KeyStore, SecureRandom}
 import javax.net.ssl.{KeyManager, KeyManagerFactory, SSLContext, TrustManagerFactory}
+import javax.net.ssl.TrustManager
 
 /**
   * Created by andrew@datamountaineer.com on 14/04/16. 
   * stream-reactor
   */
 object SSLConfigContext {
-  def apply(config: SSLConfig) = {
+  def apply(config: SSLConfig): SSLContext = {
     getSSLContext(config)
   }
 
@@ -35,13 +36,14 @@ object SSLConfigContext {
     * @param config An SSLConfig containing key and truststore credentials
     * @return a SSLContext
     **/
-  def getSSLContext(config: SSLConfig) = {
+  def getSSLContext(config: SSLConfig): SSLContext = {
     val useClientCertAuth = config.useClientCert
 
     //is client certification authentication set
-    val keyManagers: Array[KeyManager] = useClientCertAuth match {
-      case true => getKeyManagers(config)
-      case false => Array[KeyManager]()
+    val keyManagers: Array[KeyManager] = if (useClientCertAuth) {
+      getKeyManagers(config)
+    } else {
+      Array[KeyManager]()
     }
 
     val ctx: SSLContext = SSLContext.getInstance("SSL")
@@ -56,7 +58,7 @@ object SSLConfigContext {
     * @param config An SSLConfig containing key and truststore credentials
     * @return An Array of TrustManagers
     **/
-  def getTrustManagers(config: SSLConfig) = {
+  def getTrustManagers(config: SSLConfig): Array[TrustManager] = {
     val tsf = new FileInputStream(config.trustStorePath)
     val ts = KeyStore.getInstance(config.trustStoreType)
     ts.load(tsf, config.trustStorePass.toCharArray)

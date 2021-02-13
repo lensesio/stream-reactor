@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.common.azure.documentdb
 
 import com.datamountaineer.streamreactor.common.azure.documentdb.config.DocumentDbSinkSettings
-import com.microsoft.azure.documentdb.{ConnectionPolicy, DocumentClient}
+import com.microsoft.azure.documentdb.ConnectionPolicy
+import com.microsoft.azure.documentdb.DocumentClient
 import org.apache.http.HttpHost
 
 /**
@@ -26,7 +27,7 @@ import org.apache.http.HttpHost
 object DocumentClientProvider {
   def get(settings: DocumentDbSinkSettings): DocumentClient = {
     val policy = ConnectionPolicy.GetDefault()
-    settings.proxy.map(HttpHost.create).foreach(policy.setProxy)
+    settings.proxy.foreach(proxy => policy.setProxy(HttpHost.create(proxy)))
 
     new DocumentClient(settings.endpoint,
       settings.masterKey,

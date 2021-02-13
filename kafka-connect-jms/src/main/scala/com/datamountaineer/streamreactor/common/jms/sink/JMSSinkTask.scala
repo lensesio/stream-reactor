@@ -17,8 +17,7 @@
 package com.datamountaineer.streamreactor.common.jms.sink
 
 import java.util
-
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
+import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
 import com.datamountaineer.streamreactor.common.jms.config.{JMSConfig, JMSConfigConstants, JMSSettings}
 import com.datamountaineer.streamreactor.common.jms.sink.writer.JMSWriter
 import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
@@ -55,8 +54,9 @@ class JMSSinkTask extends SinkTask with StrictLogging {
     enableProgress = sinkConfig.getBoolean(JMSConfigConstants.PROGRESS_COUNTER_ENABLED)
 
     //if error policy is retry set retry interval
-    if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getInt(JMSConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+    settings.errorPolicy match {
+      case RetryErrorPolicy() => context.timeout(sinkConfig.getInt(JMSConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+      case _ =>
     }
 
     writer = Some(JMSWriter(settings))
@@ -88,6 +88,5 @@ class JMSSinkTask extends SinkTask with StrictLogging {
     //TODO
     //have the writer expose a is busy; can expose an await using a countdownlatch internally
   }
-
   override def version: String = manifest.version()
 }

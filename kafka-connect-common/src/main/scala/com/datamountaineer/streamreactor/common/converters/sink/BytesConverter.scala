@@ -38,7 +38,7 @@ class BytesConverter extends Converter {
           data.topic(),
           data.kafkaPartition(),
           MsgKey.schema,
-          MsgKey.getStruct(sinkTopic, data.key().toString()),
+          MsgKey.getStruct(sinkTopic, data.key().toString),
           Schema.BYTES_SCHEMA,
           data.value(),
           0

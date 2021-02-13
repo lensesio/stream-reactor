@@ -19,10 +19,11 @@ package com.datamountaineer.streamreactor.common.converters.source
 import java.nio.charset.Charset
 import java.util
 import java.util.Collections
-
 import com.datamountaineer.streamreactor.common.converters.MsgKey
 import org.apache.kafka.connect.data._
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceRecord
+import org.json4s
 
 
 class JsonSimpleConverter extends Converter {
@@ -33,7 +34,7 @@ class JsonSimpleConverter extends Converter {
                        keys:Seq[String] = Seq.empty,
                        keyDelimiter:String = ".",
                        properties: Map[String, String] = Map.empty): SourceRecord = {
-    require(bytes != null, s"Invalid [$bytes] parameter")
+    if(bytes == null) throw new ConnectException("Invalid input. Input cannot be null.")
     val json = new String(bytes, Charset.defaultCharset)
     val schemaAndValue = JsonSimpleConverter.convert(sourceTopic, json)
     val value = schemaAndValue.value()
@@ -72,14 +73,7 @@ object JsonSimpleConverter {
 
   def convert(name: String, value: JValue): SchemaAndValue = {
     value match {
-      case JArray(arr) =>
-        val values = new util.ArrayList[AnyRef]()
-        val sv = convert(name, arr.head)
-        values.add(sv.value())
-        arr.tail.foreach { v => values.add(convert(name, v).value()) }
-
-        val schema = SchemaBuilder.array(sv.schema()).optional().build()
-        new SchemaAndValue(schema, values)
+      case JArray(arr) => handleArray(name, arr)
       case JBool(b) => new SchemaAndValue(Schema.OPTIONAL_BOOLEAN_SCHEMA, b)
       case JDecimal(d) =>
         val schema = Decimal.builder(d.scale).optional().build()
@@ -89,20 +83,30 @@ object JsonSimpleConverter {
       case JLong(l) => new SchemaAndValue(Schema.OPTIONAL_INT64_SCHEMA, l)
       case JNull | JNothing => new SchemaAndValue(Schema.OPTIONAL_STRING_SCHEMA, null)
       case JString(s) => new SchemaAndValue(Schema.OPTIONAL_STRING_SCHEMA, s)
-      case JObject(values) =>
-        val builder = SchemaBuilder.struct().name(name.replace("/", "_"))
-
-        val fields = values.map { case (n, v) =>
-          val schemaAndValue = convert(n, v)
-          builder.field(n, schemaAndValue.schema())
-          n -> schemaAndValue.value()
-        }.toMap
-        val schema = builder.build()
-
-        val struct = new Struct(schema)
-        fields.foreach { case (field, v) => struct.put(field, v) }
-
-        new SchemaAndValue(schema, struct)
+      case JObject(values) => handleObject(name, values)
     }
+  }
+  private def handleArray(name: String, arr: List[_root_.org.json4s.JsonAST.JValue]) = {
+    val values = new util.ArrayList[AnyRef]()
+    val sv = convert(name, arr.head)
+    values.add(sv.value())
+    arr.tail.foreach { v => values.add(convert(name, v).value()) }
+
+    val schema = SchemaBuilder.array(sv.schema()).optional().build()
+    new SchemaAndValue(schema, values)
+  }
+  private def handleObject(name: String, values: List[(String, json4s.JValue)]) = {
+    val builder = SchemaBuilder.struct().name(name.replace("/", "_"))
+    val fields = values.map { case (n, v) =>
+      val schemaAndValue = convert(n, v)
+      builder.field(n, schemaAndValue.schema())
+      n -> schemaAndValue.value()
+    }.toMap
+    val schema = builder.build()
+
+    val struct = new Struct(schema)
+    fields.foreach { case (field, v) => struct.put(field, v) }
+
+    new SchemaAndValue(schema, struct)
   }
 }

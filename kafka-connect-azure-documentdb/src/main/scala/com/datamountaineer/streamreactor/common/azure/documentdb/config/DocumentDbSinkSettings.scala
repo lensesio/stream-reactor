@@ -48,7 +48,8 @@ object DocumentDbSinkSettings extends StrictLogging {
     val masterKey = Option(config.getPassword(DocumentDbConfigConstants.MASTER_KEY_CONFIG))
       .map(_.value())
       .getOrElse(throw new ConfigException(s"Missing ${DocumentDbConfigConstants.MASTER_KEY_CONFIG}"))
-    require(masterKey.trim.nonEmpty, s"Invalid ${DocumentDbConfigConstants.MASTER_KEY_CONFIG}")
+    if(masterKey.trim.isEmpty)
+      throw new ConfigException(s"Invalid ${DocumentDbConfigConstants.MASTER_KEY_CONFIG}")
 
     val database = config.getDatabase
 

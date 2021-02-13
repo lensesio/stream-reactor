@@ -16,16 +16,19 @@
 
 package com.datamountaineer.streamreactor.common.elastic7
 
-import java.util
-
-import com.datamountaineer.streamreactor.common.elastic7.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
-import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.common.elastic7.config.ElasticConfig
+import com.datamountaineer.streamreactor.common.elastic7.config.ElasticConfigConstants
+import com.datamountaineer.streamreactor.common.elastic7.config.ElasticSettings
+import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
+import com.datamountaineer.streamreactor.common.utils.JarManifest
+import com.datamountaineer.streamreactor.common.utils.ProgressCounter
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTask
 
+import java.util
 import scala.collection.JavaConverters._
 
 class ElasticSinkTask extends SinkTask with StrictLogging {
@@ -36,7 +39,7 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Parse the configurations and setup the writer
-    **/
+    * */
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/elastic-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
@@ -49,8 +52,9 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
 
     //if error policy is retry set retry interval
     val settings = ElasticSettings(sinkConfig)
-    if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getString(ElasticConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+    settings.errorPolicy match {
+      case RetryErrorPolicy() => context.timeout(sinkConfig.getInt(ElasticConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+      case _ =>
     }
 
     writer = Some(ElasticWriter(sinkConfig))
@@ -58,7 +62,7 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Pass the SinkRecords to the writer for Writing
-    **/
+    * */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     val seq = records.asScala.toVector
@@ -71,11 +75,11 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Clean up writer
-    **/
+    * */
   override def stop(): Unit = {
     logger.info("Stopping Elastic sink.")
     writer.foreach(w => w.close())
-    progressCounter.empty
+    progressCounter.empty()
   }
 
   override def flush(map: util.Map[TopicPartition, OffsetAndMetadata]): Unit = {

@@ -20,6 +20,7 @@ import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.landoop.json.sql.JacksonJson
 import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.json4s.jackson.JsonMethods._
 
@@ -42,12 +43,12 @@ object SinkRecordToJson extends ConverterUtil {
     val value = record.value()
 
     if (schema == null) {
-      if(value == null){
+      if (value == null) {
         throw new IllegalArgumentException(s"The sink record value is null.(topic=${record.topic()} partition=${record.kafkaPartition()} offset=${record.kafkaOffset()})".stripMargin)
       }
       //try to take it as string
       value match {
-        case map: java.util.Map[_, _] =>
+        case _: java.util.Map[_, _] =>
           val extracted = convertSchemalessJson(record,
             fields.getOrElse(record.topic(), Map.empty),
             ignoreFields.getOrElse(record.topic(), Set.empty))
@@ -55,7 +56,7 @@ object SinkRecordToJson extends ConverterUtil {
           //not ideal; but the implementation is hashmap anyway
           mapper.writeValueAsString(extracted)
 
-        case other => sys.error(
+        case other => throw new ConnectException(
           s"""
              |For schemaless record only String and Map types are supported. Class =${Option(other).map(_.getClass.getCanonicalName).getOrElse("unknown(null value)}")}
              |Record info:
@@ -76,7 +77,7 @@ object SinkRecordToJson extends ConverterUtil {
 
           simpleJsonConverter.fromConnectData(extracted.valueSchema(), extracted.value()).toString
 
-        case other => sys.error(s"$other schema is not supported")
+        case other => throw new ConnectException(s"$other schema is not supported")
       }
     }
   }

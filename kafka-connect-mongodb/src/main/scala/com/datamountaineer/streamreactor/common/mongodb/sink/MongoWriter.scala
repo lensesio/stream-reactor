@@ -17,9 +17,9 @@
 package com.datamountaineer.streamreactor.common.mongodb.sink
 
 import java.io.{File, FileNotFoundException}
-
 import com.datamountaineer.kcql.WriteModeEnum
 import com.datamountaineer.streamreactor.common.errors.{ErrorHandler, ErrorPolicyEnum}
+import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
 import com.datamountaineer.streamreactor.common.mongodb.config.{MongoConfig, MongoConfigConstants, MongoSettings}
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.mongodb._
@@ -150,8 +150,9 @@ object MongoWriter {
 
     val settings = MongoSettings(connectorConfig)
     //if error policy is retry set retry interval
-    if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(connectorConfig.getLong(MongoConfigConstants.ERROR_RETRY_INTERVAL_CONFIG))
+    settings.errorPolicy match {
+      case RetryErrorPolicy() => context.timeout(connectorConfig.getInt(MongoConfigConstants.ERROR_RETRY_INTERVAL_CONFIG).toLong)
+      case _ =>
     }
 
     val mongoClient = MongoClientProvider(settings)

@@ -97,7 +97,7 @@ object ToJsonWithProjections extends StrictLogging {
               case Failure(e) => raiseException(s"A KCQL exception occurred. ${e.getMessage}", e)
             }
           case s: String =>
-            Try(JacksonJson.asJson(value.asInstanceOf[String])) match {
+            Try(JacksonJson.asJson(s)) match {
               case Failure(e) => raiseException("Invalid json.", e)
               case Success(json) =>
                 Try(json.sql(fields, !withStructure)) match {
