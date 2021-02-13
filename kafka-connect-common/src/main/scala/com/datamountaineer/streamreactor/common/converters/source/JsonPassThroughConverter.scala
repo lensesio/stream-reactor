@@ -17,8 +17,8 @@
 package com.datamountaineer.streamreactor.common.converters.source
 
 import java.util.Collections
-
 import com.landoop.json.sql.JacksonJson
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceRecord
 
 
@@ -30,7 +30,7 @@ class JsonPassThroughConverter extends Converter {
                        keys: Seq[String] = Seq.empty,
                        keyDelimiter: String = ".",
                        properties: Map[String, String] = Map.empty): SourceRecord = {
-    require(bytes != null, s"Invalid [$bytes] parameter")
+    if (bytes == null) throw new ConnectException("Invalid input. Input cannot be null.")
 
     val json = new String(bytes, "utf-8")
     val jsonNode = JacksonJson.asJson(json)

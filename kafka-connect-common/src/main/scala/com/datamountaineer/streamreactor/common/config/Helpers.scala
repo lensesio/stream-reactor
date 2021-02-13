@@ -39,7 +39,6 @@ object Helpers extends StrictLogging {
     tableTopicParser(input).filter({ case (k, v) => filterTable.contains(k)})
   }
 
-
   //{table:f1,f2}
   def pKParser(input : String) : Map[String, List[String]] = {
     val mappings = input.split("\\}")
@@ -92,9 +91,9 @@ object Helpers extends StrictLogging {
   }
 
 
-  def checkInputTopics(kcqlConstant: String, props: Map[String, String]) = {
-    val topics = props.get("topics").get.split(",").map(t => t.trim).toSet
-    val raw = props.get(kcqlConstant).get
+  def checkInputTopics(kcqlConstant: String, props: Map[String, String]): Boolean = {
+    val topics = props("topics").split(",").map(t => t.trim).toSet
+    val raw = props(kcqlConstant)
     if (raw.isEmpty) {
       throw new ConfigException(s"Missing $kcqlConstant")
     }

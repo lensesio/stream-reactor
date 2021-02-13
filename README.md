@@ -24,7 +24,7 @@ A collection of components to build a real time ingestion pipeline.
 
 ## DEPRECATION NOTICE
 
-The following connectors will be deprecated and no longer include in any release from 3.0
+The following connectors will be deprecated and no longer included in any release from 3.0
 
 * Rethink
 * VoltDB

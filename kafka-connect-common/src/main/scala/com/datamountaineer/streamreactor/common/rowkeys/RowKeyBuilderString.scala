@@ -92,7 +92,7 @@ case class StringStructFieldsStringKeyBuilder(keys: Seq[String],
     val missingKeys = keys.filterNot(availableFields.contains)
     require(missingKeys.isEmpty, s"[${missingKeys.mkString(",")}] keys are not present in the SinkRecord payload: [${availableFields.mkString(",")}]")
 
-    keys.flatMap { case key =>
+    keys.flatMap { key =>
       val field = schema.field(key)
       val value = struct.get(field)
 

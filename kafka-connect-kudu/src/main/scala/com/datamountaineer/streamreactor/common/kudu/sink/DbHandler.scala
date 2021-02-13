@@ -46,7 +46,7 @@ object DbHandler extends StrictLogging with KuduConverter {
   type avroField = org.apache.avro.Schema.Field
   type connectSchema = org.apache.kafka.connect.data.Schema
 
-  def checkTables(client: KuduClient, settings: KuduSettings) = {
+  def checkTables(client: KuduClient, settings: KuduSettings): Unit = {
     val kuduTables = client.getTablesList.getTablesList
     logger.info(s"Found the following tables in Kudu, ${kuduTables.asScala.mkString(",")}")
     val tables = settings.kcql.map(s => s.getTarget.trim).toSet
@@ -98,8 +98,8 @@ object DbHandler extends StrictLogging with KuduConverter {
 
     setting
       .kcql
-      .filter(r => r.isAutoCreate && !client.tableExists(r.getTarget)) //don't try to create existing tables
-      .map(m => {
+      .filter(r => r.isAutoCreate && !client.tableExists(r.getTarget))
+      .flatMap { m =>
         var lkTopic = m.getSource
 
         if (!subjects.contains(lkTopic)) {
@@ -109,8 +109,7 @@ object DbHandler extends StrictLogging with KuduConverter {
         }
 
         createTableProps(SchemaRegistry.getSchema(url, lkTopic), m, url, client)
-      })
-      .flatten
+      }
       .map(ctp => executeCreateTable(ctp, client))
       .toSet
   }

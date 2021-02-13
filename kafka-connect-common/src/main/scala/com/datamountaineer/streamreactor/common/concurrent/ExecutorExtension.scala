@@ -24,14 +24,12 @@ object ExecutorExtension {
   implicit class RunnableWrapper(val executor: Executor) extends AnyVal {
     def submit[T](thunk: => T): Future[T] = {
       val promise = Promise[T]()
-      executor.execute(new Runnable {
-        override def run(): Unit = {
-          try {
-            val t = thunk
-            promise.success(t)
-          } catch {
-            case t: Throwable => promise.failure(t)
-          }
+      executor.execute(() => {
+        try {
+          val t = thunk
+          promise.success(t)
+        } catch {
+          case t: Throwable => promise.failure(t)
         }
       })
       promise.future

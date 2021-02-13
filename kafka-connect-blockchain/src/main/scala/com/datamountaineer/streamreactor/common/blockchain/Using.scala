@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.common.blockchain
 
 trait Using {
-  def using[AC<:AutoCloseable, R](autoCloseable: AC)(thunk: AC => R): R = {
+  def using[AC <: AutoCloseable, R](autoCloseable: AC)(thunk: AC => R): R = {
     try {
       thunk(autoCloseable)
     }
@@ -25,13 +25,4 @@ trait Using {
       if (autoCloseable != null) autoCloseable.close()
     }
   }
-
-  /*
-  def using[T <: {def close() : Unit}, R](t: T)(thunk: T => R): R = {
-    try {
-      thunk(t)
-    } finally {
-      if (t != null) t.close()
-    }
-  }*/
 }

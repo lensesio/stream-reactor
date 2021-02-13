@@ -36,7 +36,9 @@ object OffsetHandler {
     * @param context The Source task context to get the offsets from
     * @return a List of partition offsets for the datasets
     * */
-  def recoverOffsets(lookupPartitionKey: String, sourcePartition: util.List[String], context: SourceTaskContext) = {
+  def recoverOffsets(lookupPartitionKey: String,
+                     sourcePartition: util.List[String],
+                     context: SourceTaskContext): util.Map[util.Map[String, String], util.Map[String, AnyRef]] = {
     val partitions = sourcePartition.asScala.map(t => Collections.singletonMap(lookupPartitionKey, t)).asJava
     context.offsetStorageReader().offsets(partitions)
   }

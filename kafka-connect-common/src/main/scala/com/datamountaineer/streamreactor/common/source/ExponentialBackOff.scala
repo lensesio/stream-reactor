@@ -21,10 +21,12 @@ package com.datamountaineer.streamreactor.common.source
   * kafka-connect-common
   */
 
-import java.time.{Clock, Duration, Instant}
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
 
 class ExponentialBackOff(step: Duration, cap: Duration, iteration: Int = 0, clock: Clock = Clock.systemUTC(), first: Boolean = true) {
-  def now = Instant.now(clock)
+  def now: Instant = Instant.now(clock)
   val endTime: Instant = now.plus(exponentialInterval(iteration))
 
   def remaining: Duration = Duration.between(now, endTime)
@@ -39,7 +41,7 @@ class ExponentialBackOff(step: Duration, cap: Duration, iteration: Int = 0, cloc
     new ExponentialBackOff(step, cap, iteration + 1, clock, false)
   }
 
-  private def exponentialInterval(i: Int) = {
+  private def exponentialInterval(i: Int): Duration = {
     if (first) Duration.ofMillis(-1) else Duration.ofMillis(Math.min(cap.toMillis, step.toMillis * Math.pow(2, i).toLong))
   }
 }

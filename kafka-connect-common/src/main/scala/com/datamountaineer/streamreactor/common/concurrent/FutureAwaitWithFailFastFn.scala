@@ -27,7 +27,9 @@ import scala.util.Failure
 
 object FutureAwaitWithFailFastFn extends StrictLogging {
 
-  def apply(executorService: ExecutorService, futures: Seq[Future[Unit]], duration: Duration): Unit = {
+  def apply(executorService: ExecutorService,
+            futures: Seq[Future[Unit]],
+            duration: Duration): Unit = {
     //make sure we ask the executor to shutdown to ensure the process exits
     executorService.shutdown()
 
@@ -35,7 +37,7 @@ object FutureAwaitWithFailFastFn extends StrictLogging {
 
     //stop on the first failure
     futures.foreach { f =>
-      f.failed.foreach { case t =>
+      f.failed.foreach { t =>
         if (promise.tryFailure(t)) {
           executorService.shutdownNow()
         }
@@ -43,7 +45,7 @@ object FutureAwaitWithFailFastFn extends StrictLogging {
     }
 
     val fut = Future.sequence(futures)
-    fut.foreach { case t =>
+    fut.foreach { _ =>
       if (promise.trySuccess(true)) {
         val failed = executorService.shutdownNow()
         if (failed.size() > 0) {
@@ -63,7 +65,9 @@ object FutureAwaitWithFailFastFn extends StrictLogging {
     }
   }
 
-  def apply[T](executorService: ExecutorService, futures: Seq[Future[T]], duration: Duration = 1.hours): Seq[T] = {
+  def apply[T](executorService: ExecutorService,
+               futures: Seq[Future[T]],
+               duration: Duration = 1.hours): Seq[T] = {
     //make sure we ask the executor to shutdown to ensure the process exits
     executorService.shutdown()
 
@@ -71,7 +75,7 @@ object FutureAwaitWithFailFastFn extends StrictLogging {
 
     //stop on the first failure
     futures.foreach { f =>
-      f.failed.foreach { case t =>
+      f.failed.foreach { t =>
         if (promise.tryFailure(t)) {
           executorService.shutdownNow()
         }
@@ -79,7 +83,7 @@ object FutureAwaitWithFailFastFn extends StrictLogging {
     }
 
     val fut = Future.sequence(futures)
-    fut.foreach { case t =>
+    fut.foreach { _ =>
       if (promise.trySuccess(true)) {
         val failed = executorService.shutdownNow()
         if (failed.size() > 0) {

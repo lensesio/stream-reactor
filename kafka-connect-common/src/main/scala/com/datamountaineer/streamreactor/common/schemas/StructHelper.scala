@@ -2,16 +2,16 @@ package com.datamountaineer.streamreactor.common.schemas
 
 import com.datamountaineer.streamreactor.common.schemas.SchemaHelper.SchemaExtensions
 import com.typesafe.scalalogging.Logger
+import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
 
 object StructHelper {
+  private val logger = Logger(LoggerFactory.getLogger(getClass.getName))
 
-  implicit final class StructExtension(val struct: Struct) extends {
-
-    val logger = Logger(LoggerFactory.getLogger(getClass.getName))
+  implicit final class StructExtension(val struct: Struct) extends AnyVal{
 
     def extractValueFromPath(
         path: String): Either[FieldValueExtractionError, Option[AnyRef]] = {
@@ -121,6 +121,7 @@ object StructHelper {
         }
     }
 
+    //TODO: this should return an Either with the Schema as opposed to log the error
     private def newSchemaWithFields(fields: Map[String, String],
                                     schema: Schema): Schema = {
       val builder = SchemaBuilder.struct

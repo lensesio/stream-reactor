@@ -17,8 +17,8 @@
 package com.datamountaineer.streamreactor.common.influx
 
 import java.util
-
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
+import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
 import com.datamountaineer.streamreactor.common.influx.config.{InfluxConfig, InfluxConfigConstants, InfluxSettings}
 import com.datamountaineer.streamreactor.common.influx.writers.{InfluxDbWriter, WriterFactoryFn}
 import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
@@ -56,12 +56,11 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
     val influxSettings = InfluxSettings(sinkConfig)
 
     //if error policy is retry set retry interval
-    if (influxSettings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getInt(InfluxConfigConstants.ERROR_RETRY_INTERVAL_CONFIG).toLong)
+    influxSettings.errorPolicy match {
+      case RetryErrorPolicy() => context.timeout(sinkConfig.getInt(InfluxConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+      case _ =>
     }
-
     writer = Some(WriterFactoryFn(influxSettings))
-
   }
 
   /**

@@ -61,7 +61,7 @@ case class ThrowErrorPolicy() extends ErrorPolicy {
 
 case class RetryErrorPolicy() extends ErrorPolicy {
 
-  override def handle(error: Throwable, sink: Boolean = true, retryCount: Int) = {
+  override def handle(error: Throwable, sink: Boolean = true, retryCount: Int): Unit = {
     if (retryCount == 0) {
       throw new RuntimeException(error)
     }

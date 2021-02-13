@@ -39,7 +39,7 @@ object PayloadFields {
       case None => PayloadFields(includeAllFields = true, Map.empty[String, String])
       case Some(c) =>
 
-        val mappings = c.split(",").map { case f =>
+        val mappings = c.split(',').map { f =>
           f.trim.split("=").toSeq match {
             case Seq(field) =>
               field -> field

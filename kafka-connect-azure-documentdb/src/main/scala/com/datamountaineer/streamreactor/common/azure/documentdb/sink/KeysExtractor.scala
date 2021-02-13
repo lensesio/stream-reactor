@@ -50,13 +50,7 @@ object KeysExtractor {
         case Schema.Type.BYTES =>
           if (Decimal.LOGICAL_NAME == schema.name) value.asInstanceOf[BigDecimal].toDouble
           else throw new ConfigException(s"Schema.Type.BYTES is not supported for $key.")
-
-        case Schema.Type.ARRAY =>
-          throw new ConfigException(s"Schema.Type.ARRAY is not supported for $key.")
-
-        case Schema.Type.MAP => throw new ConfigException(s"Schema.Type.MAP is not supported for $key.")
-        case Schema.Type.STRUCT => throw new ConfigException(s"Schema.Type.STRUCT is not supported for $key.")
-        case other => throw new ConfigException(s"$other is not supported for $key.")
+        case other => throw new ConfigException(s"${other.getName} is not supported for $key.")
       }
       key -> v
     }

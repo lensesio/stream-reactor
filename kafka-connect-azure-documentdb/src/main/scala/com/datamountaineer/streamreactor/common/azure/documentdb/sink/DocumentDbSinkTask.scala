@@ -17,10 +17,12 @@
 package com.datamountaineer.streamreactor.common.azure.documentdb.sink
 
 import java.util
-
 import com.datamountaineer.streamreactor.common.azure.documentdb.DocumentClientProvider
 import com.datamountaineer.streamreactor.common.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
 import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
+import com.datamountaineer.streamreactor.common.errors.NoopErrorPolicy
+import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
+import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
 import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
 import com.microsoft.azure.documentdb.DocumentClient
 import com.typesafe.scalalogging.StrictLogging
@@ -61,10 +63,11 @@ class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => Do
     logger.info(scala.io.Source.fromInputStream(this.getClass.getResourceAsStream("/documentdb-sink-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
 
-    implicit val settings = DocumentDbSinkSettings(taskConfig)
+    implicit val settings: DocumentDbSinkSettings = DocumentDbSinkSettings(taskConfig)
     //if error policy is retry set retry interval
-    if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(taskConfig.getLong(DocumentDbConfigConstants.ERROR_RETRY_INTERVAL_CONFIG))
+    settings.errorPolicy match {
+      case RetryErrorPolicy() => context.timeout(taskConfig.getLong(DocumentDbConfigConstants.ERROR_RETRY_INTERVAL_CONFIG))
+      case _ =>
     }
 
     logger.info(s"Initialising Document Db writer.")

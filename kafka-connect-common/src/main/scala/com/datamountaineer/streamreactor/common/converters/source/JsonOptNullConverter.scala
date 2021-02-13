@@ -19,9 +19,9 @@ package com.datamountaineer.streamreactor.common.converters.source
 import java.nio.charset.Charset
 import java.util
 import java.util.Collections
-
 import com.datamountaineer.streamreactor.common.converters.MsgKey
 import org.apache.kafka.connect.data._
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceRecord
 
 
@@ -33,7 +33,7 @@ class JsonOptNullConverter extends Converter {
                        keys:Seq[String] = Seq.empty,
                        keyDelimiter:String = ".",
                        properties: Map[String, String] = Map.empty): SourceRecord = {
-    require(bytes != null, s"Invalid [$bytes] parameter")
+    if(bytes == null) throw new ConnectException("Invalid input. Input cannot be null.")
     val json = new String(bytes, Charset.defaultCharset)
     val schemaAndValue = JsonOptNullConverter.convert(sourceTopic, json)
     val value = schemaAndValue.value()

@@ -39,15 +39,12 @@ object SchemaRegistry extends StrictLogging {
     val registry = new RestService(url)
 
     Try(registry.getLatestVersion(subject).getSchema) match {
-      case Success(s) => {
+      case Success(s) =>
         logger.info(s"Found schema for $subject")
         s
-      }
-      case Failure(f) => {
-        logger.warn("Unable to connect to the Schema registry. An attempt will be made to create the table" +
-          " on receipt of the first records.")
+      case Failure(throwable) =>
+        logger.warn("Unable to connect to the Schema registry. An attempt will be made to create the table on receipt of the first records.",  throwable)
         ""
-      }
     }
   }
 
