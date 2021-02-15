@@ -50,7 +50,7 @@ object KeysExtractor {
         case Schema.Type.BYTES =>
           if (Decimal.LOGICAL_NAME == schema.name) value.asInstanceOf[BigDecimal].toDouble
           else throw new ConfigException(s"Schema.Type.BYTES is not supported for $key.")
-        case other => throw new ConfigException(s"${other.getName} is not supported for $key.")
+        case other => throw new ConfigException(s"[${other.getName}] is not supported for $key.")
       }
       key -> v
     }
@@ -58,7 +58,7 @@ object KeysExtractor {
 
   def fromMap(map: java.util.Map[String, Any], keys: Set[String]): Set[(String, Any)] = {
     keys.map { key =>
-      if (!map.containsKey(key)) throw new ConfigException(s"The key $key can't be found")
+      if (!map.containsKey(key)) throw new ConfigException(s"The key [$key] can't be found")
       val value = map.get(key) match {
         case t: String => t
         case t: Boolean => t
@@ -67,7 +67,7 @@ object KeysExtractor {
         case t: Double => t
         case t: BigInt => t.toLong
         case t: BigDecimal => t.toDouble
-        case other => throw new ConfigException(s"The key $key is not supported for type ${Option(other).map(_.getClass.getName).getOrElse("NULL")}")
+        case other => throw new ConfigException(s"The key [$key] is not supported for type ${Option(other).map(_.getClass.getName).getOrElse("NULL")}")
       }
       key -> value
     }
@@ -85,11 +85,11 @@ object KeysExtractor {
               case JInt(i) => i.toLong
               case JLong(l) => l
               case JString(s) => s
-              case other => throw new ConfigException(s"Field $name is not handled as a key (${other.getClass}). it needs to be a int, long, string, double or decimal")
+              case other => throw new ConfigException(s"Field [$name] is not handled as a key [${other.getClass}]. it needs to be a int, long, string, double or decimal")
             }
             name -> v
         }
-      case other => throw new ConfigException(s"${other.getClass} is not supported")
+      case other => throw new ConfigException(s"[${other.getClass}] is not supported")
     }
   }
 }

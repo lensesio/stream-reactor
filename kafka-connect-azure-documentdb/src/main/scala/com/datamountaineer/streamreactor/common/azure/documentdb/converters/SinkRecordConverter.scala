@@ -73,7 +73,7 @@ object SinkRecordConverter {
         try {
           val schemaType = Option(schema).map(_.`type`())
             .orElse(Option(ConnectSchema.schemaType(value.getClass)))
-            .getOrElse(throw new DataException("Class " + value.getClass + " does not have corresponding schema type."))
+            .getOrElse(throw new DataException(s"Class [${value.getClass}] does not have corresponding schema type."))
 
           schemaType match {
             case Schema.Type.INT32 =>
@@ -95,7 +95,7 @@ object SinkRecordConverter {
           }
         }
         catch {
-          case _: ClassCastException => throw new DataException("Invalid type for " + schema.`type` + ": " + value.getClass)
+          case _: ClassCastException => throw new DataException(s"Invalid type for [${schema.`type`}], type [${value.getClass}]")
         }
     }
   }
@@ -105,7 +105,7 @@ object SinkRecordConverter {
     else value match {
       case arrayByte: Array[Byte] => arrayByte
       case buffer: ByteBuffer => buffer.array
-      case _ => throw new DataException("Invalid type for bytes type: " + value.getClass)
+      case _ => throw new DataException(s"Invalid type for bytes type [${value.getClass}]")
     }
   }
   private def handleArray(schema: Schema, value: Any) = {

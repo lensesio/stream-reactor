@@ -43,18 +43,18 @@ object DocumentDbSinkSettings extends StrictLogging {
 
   def apply(config: DocumentDbConfig): DocumentDbSinkSettings = {
     val endpoint = config.getString(DocumentDbConfigConstants.CONNECTION_CONFIG)
-    require(endpoint.nonEmpty, s"Invalid endpoint provided.${DocumentDbConfigConstants.CONNECTION_CONFIG_DOC}")
+    require(endpoint.nonEmpty, s"Invalid endpoint provided. [${DocumentDbConfigConstants.CONNECTION_CONFIG_DOC}]")
 
     val masterKey = Option(config.getPassword(DocumentDbConfigConstants.MASTER_KEY_CONFIG))
       .map(_.value())
-      .getOrElse(throw new ConfigException(s"Missing ${DocumentDbConfigConstants.MASTER_KEY_CONFIG}"))
+      .getOrElse(throw new ConfigException(s"Missing [${DocumentDbConfigConstants.MASTER_KEY_CONFIG}]"))
     if(masterKey.trim.isEmpty)
-      throw new ConfigException(s"Invalid ${DocumentDbConfigConstants.MASTER_KEY_CONFIG}")
+      throw new ConfigException(s"Invalid [${DocumentDbConfigConstants.MASTER_KEY_CONFIG}]")
 
     val database = config.getDatabase
 
     if (database.isEmpty) {
-      throw new ConfigException(s"Missing ${DocumentDbConfigConstants.DATABASE_CONFIG}.")
+      throw new ConfigException(s"Missing [${DocumentDbConfigConstants.DATABASE_CONFIG}]")
     }
 
     val kcql = config.getKCQL

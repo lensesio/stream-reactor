@@ -64,7 +64,7 @@ object SinkRecordToDocument extends ConverterUtil {
           SinkRecordConverter.fromStruct(extracted) ->
             keys.headOption.map(_ => KeysExtractor.fromStruct(extracted.value().asInstanceOf[Struct], keys)).getOrElse(Iterable.empty)
 
-        case other => throw new ConnectException(s"$other schema is not supported")
+        case other => throw new ConnectException(s"[$other] schema is not supported")
       }
     }
   }

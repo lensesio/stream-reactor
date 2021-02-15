@@ -38,7 +38,7 @@ import scala.util.Failure
   * Azure DocumentDb Json writer for Kafka connect
   * Writes a list of Kafka connect sink records to Azure DocumentDb using the JSON support.
   */
-class DocumentDbWriter private(configMap: Map[String, Kcql], settings: DocumentDbSinkSettings, documentClient: DocumentClient) extends StrictLogging with ConverterUtil with ErrorHandler {
+class DocumentDbWriter(configMap: Map[String, Kcql], settings: DocumentDbSinkSettings, documentClient: DocumentClient) extends StrictLogging with ConverterUtil with ErrorHandler {
   //initialize error tracker
   initialize(settings.taskRetries, settings.errorPolicy)
 
@@ -71,7 +71,7 @@ class DocumentDbWriter private(configMap: Map[String, Kcql], settings: DocumentD
           if (key.nonEmpty) {
             document.setId(key)
           }
-          val config = configMap.getOrElse(record.topic(), throw new ConnectException(s"${record.topic()} is not handled by the configuration."))
+          val config = configMap.getOrElse(record.topic(), throw new ConnectException(s"[${record.topic()}] is not handled by the configuration."))
           config.getWriteMode match {
             case WriteModeEnum.INSERT =>
               documentClient.createDocument(s"dbs/${settings.database}/colls/${config.getTarget}", document, requestOptionsInsert, key.nonEmpty).getResource
@@ -83,7 +83,7 @@ class DocumentDbWriter private(configMap: Map[String, Kcql], settings: DocumentD
     }
     catch {
       case t: Throwable =>
-        logger.error(s"There was an error inserting the records ${t.getMessage}", t)
+        logger.error(s"There was an error inserting the records [${t.getMessage}]", t)
         handleTry(Failure(t))
     }
   }
@@ -109,7 +109,7 @@ object DocumentDbWriter extends StrictLogging {
     val configMap: Map[String, Kcql] = settings.kcql
       .map { c =>
         Option(client.readCollection(s"dbs/${settings.database}/colls/${c.getTarget}", new RequestOptions).getResource).getOrElse {
-          throw new ConnectException(s"Collection '${c.getTarget}' not found!")
+          throw new ConnectException(s"Collection [${c.getTarget}] not found!")
         }
         c.getSource -> c
       }.toMap

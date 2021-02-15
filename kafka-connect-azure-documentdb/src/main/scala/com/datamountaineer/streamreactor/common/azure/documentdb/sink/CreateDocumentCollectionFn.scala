@@ -26,7 +26,7 @@ object CreateDocumentCollectionFn {
 
     val requestOptions = new RequestOptions()
     Try(documentClient.createCollection(databaseName, coll, requestOptions).getResource) match {
-      case Failure(ex) => throw new RuntimeException(s"Could not create collection with id:$collection in database:$databaseName. ${ex.getMessage}", ex)
+      case Failure(ex) => throw new RuntimeException(s"Could not create collection with id [$collection] in database [$databaseName]. ${ex.getMessage}", ex)
       case Success(c) => c
     }
   }

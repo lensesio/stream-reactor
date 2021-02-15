@@ -40,14 +40,12 @@ import scala.util.{Failure, Success, Try}
   * Kafka Connect Azure Document DB sink task. Called by
   * framework to put records to the target sink
   **/
-class DocumentDbSinkTask private[sink](val builder: DocumentDbSinkSettings => DocumentClient) extends SinkTask with StrictLogging {
+class DocumentDbSinkTask extends SinkTask with StrictLogging {
   private var writer: Option[DocumentDbWriter] = None
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   private val progressCounter = new ProgressCounter
   private var enableProgress: Boolean = false
-
-  def this() = this(DocumentClientProvider.get)
 
   /**
     * Parse the configurations and setup the writer

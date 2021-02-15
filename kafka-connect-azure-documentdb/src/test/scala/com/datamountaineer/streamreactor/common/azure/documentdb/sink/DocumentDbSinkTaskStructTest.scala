@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.common.azure.documentdb.sink
 
 import com.datamountaineer.streamreactor.common.azure.documentdb.Json
-import com.datamountaineer.streamreactor.common.azure.documentdb.config.DocumentDbConfigConstants
+import com.datamountaineer.streamreactor.common.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
 import com.microsoft.azure.documentdb._
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
@@ -60,11 +60,11 @@ class DocumentDbSinkTaskStructTest extends AnyWordSpec with Matchers with Mockit
       when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
-      val task = new DocumentDbSinkTask(_ => documentClient)
-      val context = mock[SinkTaskContext]
-      when(context.configs()).thenReturn(map)
-      task.initialize(context)
-      task.start(map)
+//      val task = new DocumentDbSinkTask(_ => documentClient)
+//      val context = mock[SinkTaskContext]
+//      when(context.configs()).thenReturn(map)
+//      task.initialize(context)
+//      task.start(map)
 
       val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
       val tx1 = Json.fromJson[Transaction](json1)
@@ -99,7 +99,12 @@ class DocumentDbSinkTaskStructTest extends AnyWordSpec with Matchers with Mockit
         }, mockEq(false)))
         .thenReturn(r2)
 
-      task.put(Seq(sinkRecord1, sinkRecord2).asJava)
+      val config = DocumentDbConfig(map)
+      val settings = DocumentDbSinkSettings(config)
+      val kcqlMap = settings.kcql.map(c => c.getSource -> c).toMap
+
+      val writer = new DocumentDbWriter(kcqlMap, settings, documentClient)
+      writer.write(Seq(sinkRecord1, sinkRecord2))
 
       verify(documentClient).createDocument(mockEq("dbs/database1/colls/coll1"),
         argThat { argument: Document => argument.toString == doc1.toString
@@ -144,11 +149,11 @@ class DocumentDbSinkTaskStructTest extends AnyWordSpec with Matchers with Mockit
       when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
-      val task = new DocumentDbSinkTask(s => documentClient)
-      val context = mock[SinkTaskContext]
-      when(context.configs()).thenReturn(map)
-      task.initialize(context)
-      task.start(map)
+//      val task = new DocumentDbSinkTask(s => documentClient)
+//      val context = mock[SinkTaskContext]
+//      when(context.configs()).thenReturn(map)
+//      task.initialize(context)
+//      task.start(map)
 
       val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
       val tx1 = Json.fromJson[Transaction](json1)
@@ -187,7 +192,12 @@ class DocumentDbSinkTaskStructTest extends AnyWordSpec with Matchers with Mockit
           }, mockEq(false)))
         .thenReturn(r2)
 
-      task.put(Seq(sinkRecord1, sinkRecord2).asJava)
+      val config = DocumentDbConfig(map)
+      val settings = DocumentDbSinkSettings(config)
+      val kcqlMap = settings.kcql.map(c => c.getSource -> c).toMap
+
+      val writer = new DocumentDbWriter(kcqlMap, settings, documentClient)
+      writer.write(Seq(sinkRecord1, sinkRecord2))
 
       verify(documentClient)
         .createDocument(mockEq("dbs/database1/colls/coll1"),
@@ -236,11 +246,6 @@ class DocumentDbSinkTaskStructTest extends AnyWordSpec with Matchers with Mockit
       when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
-      val task = new DocumentDbSinkTask(_ => documentClient)
-      val context = mock[SinkTaskContext]
-      when(context.configs()).thenReturn(map)
-      task.initialize(context)
-      task.start(map)
 
       val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
       val tx1 = Json.fromJson[Transaction](json1)
@@ -284,7 +289,12 @@ class DocumentDbSinkTaskStructTest extends AnyWordSpec with Matchers with Mockit
             }, mockEq(true)))
         .thenReturn(r2)
 
-      task.put(Seq(sinkRecord1, sinkRecord2).asJava)
+      val config = DocumentDbConfig(map)
+      val settings = DocumentDbSinkSettings(config)
+      val kcqlMap = settings.kcql.map(c => c.getSource -> c).toMap
+
+      val writer = new DocumentDbWriter(kcqlMap, settings, documentClient)
+      writer.write(Seq(sinkRecord1, sinkRecord2))
 
       verify(documentClient)
         .upsertDocument(
