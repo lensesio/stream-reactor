@@ -17,12 +17,12 @@
 package com.datamountaineer.streamreactor.common.converters.source
 
 import java.util.Collections
-
 import com.datamountaineer.streamreactor.common.converters.MsgKey
 import com.sksamuel.avro4s.{RecordFormat, SchemaFor}
 import io.confluent.connect.avro.AvroData
 import org.apache.avro.Schema
 import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.errors.ConnectException
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -33,7 +33,7 @@ class JsonConverterWithSchemaEvolutionTest extends AnyWordSpec with Matchers {
 
   "JsonConverter" should {
     "throw IllegalArgumentException if payload is null" in {
-      intercept[IllegalArgumentException] {
+      intercept[ConnectException] {
         val converter = new JsonConverterWithSchemaEvolution
         val record = converter.convert("topic", "somesource", "1000", null)
       }
