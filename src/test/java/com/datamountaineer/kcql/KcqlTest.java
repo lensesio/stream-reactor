@@ -1201,7 +1201,7 @@ public class KcqlTest {
   public void handleKeysAll() {
     String syntax = "insert into target select _key.* FROM topic";
     Kcql kcql = Kcql.parse(syntax);
-    assertEquals(99, kcql.getKeyFields().size());
+    assertEquals(1, kcql.getKeyFields().size());
   }
 
   @Test
