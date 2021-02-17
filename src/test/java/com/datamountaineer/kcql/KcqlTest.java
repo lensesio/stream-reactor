@@ -1198,6 +1198,13 @@ public class KcqlTest {
   }
 
   @Test
+  public void handleKeysAll() {
+    String syntax = "insert into target select _key.* FROM topic";
+    Kcql kcql = Kcql.parse(syntax);
+    assertEquals(99, kcql.getKeyFields().size());
+  }
+
+  @Test
   public void handleHeaders() {
     String syntax = "insert into target select _header.a, _header.p.c, value_field FROM topic";
     Kcql kcql = Kcql.parse(syntax);
