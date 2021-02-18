@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.connect.voltdb.writers
 
 import io.confluent.common.config.ConfigException
+import org.apache.kafka.connect.errors.ConnectException
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

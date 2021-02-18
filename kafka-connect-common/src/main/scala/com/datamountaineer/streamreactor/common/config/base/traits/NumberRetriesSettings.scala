@@ -18,7 +18,7 @@
 
 package com.datamountaineer.streamreactor.common.config.base.traits
 
-import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst.MAX_RETRIES_PROP_SUFFIX
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.MAX_RETRIES_PROP_SUFFIX
 
 trait NumberRetriesSettings extends BaseSettings {
   def numberRetriesConstant: String = s"$connectorPrefix.$MAX_RETRIES_PROP_SUFFIX"

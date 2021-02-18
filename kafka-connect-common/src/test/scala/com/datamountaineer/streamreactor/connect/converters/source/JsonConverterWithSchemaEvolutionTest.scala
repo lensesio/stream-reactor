@@ -17,9 +17,6 @@
 package com.datamountaineer.streamreactor.connect.converters.source
 
 import com.datamountaineer.streamreactor.common.converters.MsgKey
-import com.datamountaineer.streamreactor.connect.converters.source.JsonConverterWithSchemaEvolution
-
-import java.util.Collections
 import com.sksamuel.avro4s.{RecordFormat, SchemaFor}
 import io.confluent.connect.avro.AvroData
 import org.apache.avro.Schema
@@ -27,6 +24,8 @@ import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.errors.ConnectException
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
+import java.util.Collections
 
 class JsonConverterWithSchemaEvolutionTest extends AnyWordSpec with Matchers {
   val topic = "the_real_topic"

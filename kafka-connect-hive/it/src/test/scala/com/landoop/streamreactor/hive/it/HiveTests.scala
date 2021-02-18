@@ -10,8 +10,9 @@ import org.apache.kafka.clients.admin.{AdminClient, NewTopic}
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord, KafkaConsumer}
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
 import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
+import org.apache.kafka.connect.errors.ConnectException
 import org.asynchttpclient.Dsl
-import org.scalatest.Matchers
+import org.scalatest.matchers.should.Matchers
 
 import java.sql.{Connection, DriverManager}
 import java.time.Duration

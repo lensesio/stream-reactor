@@ -19,7 +19,7 @@
 //
 //import com.datamountaineer.streamreactor.connect.rethink.TestBase
 //import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkSinkConfig, ReThinkSinkSettings}
-//import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+//import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 //import com.rethinkdb.RethinkDB
 //import com.rethinkdb.gen.ast._
 //import com.rethinkdb.model.MapObject

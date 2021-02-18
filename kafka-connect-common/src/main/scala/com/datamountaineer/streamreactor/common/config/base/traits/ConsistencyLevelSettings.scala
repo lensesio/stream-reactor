@@ -18,7 +18,7 @@
 
 package com.datamountaineer.streamreactor.common.config.base.traits
 
-import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst._
 import org.apache.kafka.common.config.ConfigException
 
 import scala.reflect.ClassTag

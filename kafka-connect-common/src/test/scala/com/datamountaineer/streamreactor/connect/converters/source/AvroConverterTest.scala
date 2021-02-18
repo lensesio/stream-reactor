@@ -17,12 +17,6 @@
 package com.datamountaineer.streamreactor.connect.converters.source
 
 import com.datamountaineer.streamreactor.common.converters.MsgKey
-import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
-
-import java.io.{BufferedWriter, File, FileWriter}
-import java.nio.ByteBuffer
-import java.nio.file.Paths
-import java.util.UUID
 import com.sksamuel.avro4s._
 import io.confluent.connect.avro.AvroData
 import org.apache.avro.generic.GenericRecord
@@ -34,6 +28,10 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.io.{BufferedWriter, File, FileWriter}
+import java.nio.ByteBuffer
+import java.nio.file.Paths
+import java.util.UUID
 import scala.reflect.io.Path
 
 class AvroConverterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {

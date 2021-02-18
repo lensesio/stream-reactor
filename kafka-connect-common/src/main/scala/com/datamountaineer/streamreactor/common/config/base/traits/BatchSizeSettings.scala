@@ -18,7 +18,7 @@
 
 package com.datamountaineer.streamreactor.common.config.base.traits
 
-import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst.BATCH_SIZE_PROP_SUFFIX
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.BATCH_SIZE_PROP_SUFFIX
 
 trait BatchSizeSettings extends BaseSettings {
   val batchSizeConstant: String = s"$connectorPrefix.$BATCH_SIZE_PROP_SUFFIX"

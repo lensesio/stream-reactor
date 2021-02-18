@@ -18,7 +18,7 @@
 
 package com.datamountaineer.streamreactor.common.config.base.traits
 
-import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst.ALLOW_PARALLEL_WRITE_PROP_SUFFIX
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.ALLOW_PARALLEL_WRITE_PROP_SUFFIX
 
 trait AllowParallelizationSettings extends BaseSettings {
   val allowParallelConstant: String = s"$connectorPrefix.$ALLOW_PARALLEL_WRITE_PROP_SUFFIX"

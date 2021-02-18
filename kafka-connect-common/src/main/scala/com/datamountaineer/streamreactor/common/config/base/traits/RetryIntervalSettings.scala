@@ -18,7 +18,7 @@
 
 package com.datamountaineer.streamreactor.common.config.base.traits
 
-import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst.RETRY_INTERVAL_PROP_SUFFIX
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.RETRY_INTERVAL_PROP_SUFFIX
 
 trait RetryIntervalSettings extends BaseSettings {
   val retryIntervalConstant: String = s"$connectorPrefix.$RETRY_INTERVAL_PROP_SUFFIX"

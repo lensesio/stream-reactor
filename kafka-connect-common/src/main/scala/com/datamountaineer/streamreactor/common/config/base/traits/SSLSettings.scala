@@ -18,7 +18,7 @@
 
 package com.datamountaineer.streamreactor.common.config.base.traits
 
-import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst._
 
 /**
   * Created by andrew@datamountaineer.com on 31/07/2017. 

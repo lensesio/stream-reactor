@@ -21,6 +21,7 @@ import com.datamountaineer.streamreactor.connect.hbase.avro.AvroRecordFieldExtra
 import org.apache.avro.Schema
 import org.apache.avro.generic.GenericRecord
 import org.apache.hadoop.hbase.util.Bytes
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers

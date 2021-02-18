@@ -17,7 +17,6 @@
 package com.datamountaineer.streamreactor.connect.converters.source
 
 import com.datamountaineer.streamreactor.common.converters.MsgKey
-import com.datamountaineer.streamreactor.connect.converters.source.BytesConverter
 import org.apache.kafka.connect.data.Schema
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

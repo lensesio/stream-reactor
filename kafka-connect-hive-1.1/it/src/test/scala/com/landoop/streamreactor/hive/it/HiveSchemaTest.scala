@@ -1,7 +1,6 @@
 package com.landoop.streamreactor.hive.it
 
 import java.util.concurrent.TimeUnit
-
 import com.landoop.streamreactor.connect.hive.{DatabaseName, TableName}
 import org.apache.kafka.connect.data.Schema
 import org.scalatest.concurrent.Eventually
@@ -9,6 +8,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{Millis, Span}
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.time.Duration
 import scala.collection.JavaConverters._
 import scala.io.Source
 import scala.util.Random
@@ -32,7 +32,7 @@ class HiveSchemaTest extends AnyWordSpec with Matchers with PersonTestData with 
 
       val producer = stringStringProducer()
       writeRecords(producer, topic, JacksonSupport.mapper.writeValueAsString(foo), 2000)
-      producer.close(30, TimeUnit.SECONDS)
+      producer.close(Duration.ofMillis(TimeUnit.SECONDS.toMillis(30)))
 
       // wait for some data to have been flushed
       eventually {

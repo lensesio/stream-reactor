@@ -16,11 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.converters.source
 
-import com.datamountaineer.streamreactor.connect.converters.source.{Converter, JsonPassThroughConverter}
-
-import java.util.Collections
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
+import java.util.Collections
 
 class JsonPassThroughConverterTest extends AnyWordSpec with Matchers {
   val topic = "the_real_topic"

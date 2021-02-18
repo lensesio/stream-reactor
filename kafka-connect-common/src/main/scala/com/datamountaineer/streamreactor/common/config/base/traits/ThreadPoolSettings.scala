@@ -18,7 +18,7 @@
 
 package com.datamountaineer.streamreactor.common.config.base.traits
 
-import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst.THREAD_POLL_PROP_SUFFIX
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.THREAD_POLL_PROP_SUFFIX
 
 trait ThreadPoolSettings extends BaseSettings {
   def threadPoolConstant: String = s"$connectorPrefix.$THREAD_POLL_PROP_SUFFIX"

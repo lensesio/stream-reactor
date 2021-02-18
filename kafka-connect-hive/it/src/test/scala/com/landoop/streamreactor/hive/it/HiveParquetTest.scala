@@ -5,6 +5,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{Millis, Span}
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.time.Duration
 import java.util.concurrent.TimeUnit
 import scala.io.Source
 
@@ -26,7 +27,8 @@ class HiveParquetTest extends AnyWordSpec with Matchers with PersonTestData with
 
       val producer = stringStringProducer()
       writeRecords(producer, topic, JacksonSupport.mapper.writeValueAsString(person), count)
-      producer.close(30, TimeUnit.SECONDS)
+
+      producer.close(Duration.ofMillis(TimeUnit.SECONDS.toMillis(30)))
 
       // we now should have 1000 records in hive which we can test via jdbc
       eventually {

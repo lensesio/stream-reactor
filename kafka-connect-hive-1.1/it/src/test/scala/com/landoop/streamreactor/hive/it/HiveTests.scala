@@ -4,7 +4,6 @@ import java.sql.{Connection, DriverManager}
 import java.time.Duration
 import java.util.Properties
 import java.util.concurrent.TimeUnit
-
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hive.conf.HiveConf
@@ -15,6 +14,7 @@ import org.apache.kafka.clients.admin.{AdminClient, NewTopic}
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord, KafkaConsumer}
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
 import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
+import org.apache.kafka.connect.errors.ConnectException
 import org.asynchttpclient.Dsl
 import org.scalatest.matchers.should.Matchers
 

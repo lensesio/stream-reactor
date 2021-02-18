@@ -18,7 +18,7 @@
 
 package com.datamountaineer.streamreactor.common.config.base.traits
 
-import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst.DATABASE_PROP_SUFFIX
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.DATABASE_PROP_SUFFIX
 
 trait DatabaseSettings extends BaseSettings {
   val databaseConstant: String = s"$connectorPrefix.$DATABASE_PROP_SUFFIX"

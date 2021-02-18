@@ -20,7 +20,7 @@ package com.datamountaineer.streamreactor.common.config.base.traits
 
 import com.datamountaineer.kcql.{Field, FormatType, Kcql, WriteModeEnum}
 import com.datamountaineer.streamreactor.common.rowkeys.{StringGenericRowKeyBuilder, StringKeyBuilder, StringStructFieldsStringKeyBuilder}
-import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst.KCQL_PROP_SUFFIX
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.KCQL_PROP_SUFFIX
 import org.apache.kafka.common.config.ConfigException
 
 import scala.collection.JavaConverters._
