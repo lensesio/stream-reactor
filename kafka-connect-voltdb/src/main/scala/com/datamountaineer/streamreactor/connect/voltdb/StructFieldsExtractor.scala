@@ -18,9 +18,9 @@ package com.datamountaineer.streamreactor.connect.voltdb
 
 import java.text.SimpleDateFormat
 import java.util.TimeZone
-
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.{Field, Struct, _}
+import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConverters._
 
@@ -45,7 +45,7 @@ case class StructFieldsExtractor(targetTable: String,
         if (diffSet.nonEmpty) {
           val errMsg = s"Following columns ${diffSet.mkString(",")} have not been found. Available columns:${fieldsAliasMap.keys.mkString(",")}"
           logger.error(errMsg)
-          sys.error(errMsg)
+          throw new ConnectException(errMsg)
         }
         selectedFields
       }

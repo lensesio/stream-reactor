@@ -24,6 +24,7 @@ import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, Mo
 import com.mongodb._
 import com.mongodb.client.model._
 import com.typesafe.scalalogging.StrictLogging
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.bson.Document
 
@@ -75,7 +76,7 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient) extends Str
     try {
       records.groupBy(_.topic()).foreach { case (topic, groupedRecords) =>
         val collection = collectionMap(topic)
-        val config = configMap.getOrElse(topic, sys.error(s"$topic is not handled by the configuration."))
+        val config = configMap.getOrElse(topic, throw new ConnectException(s"$topic is not handled by the configuration."))
         val batchSize = if (config.getBatchSize == 0) MongoConfigConstants.BATCH_SIZE_CONFIG_DEFAULT else config.getBatchSize
         groupedRecords.map { record =>
           val (document, keysAndValues) = SinkRecordToDocument(

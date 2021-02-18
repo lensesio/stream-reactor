@@ -116,7 +116,7 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
               val converted = convert(record, setting.fieldsMap(record.topic), setting.ignoreFields(record.topic))
               val withDDLs = applyDDLs(converted)
               convertToKuduUpsert(withDDLs, kuduTablesCache(withDDLs.topic))
-            case _ => sys.error("For schemaless record only String and Map types are supported")
+            case _ => throw new ConnectException("For schemaless record only String and Map types are supported")
           }
         case Some(schema: Schema) =>
           schema.`type`() match {
@@ -135,7 +135,7 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
               val converted = convert(record, setting.fieldsMap(record.topic), setting.ignoreFields(record.topic))
               val withDDLs = applyDDLs(converted)
               convertToKuduUpsert(withDDLs, kuduTablesCache(withDDLs.topic))
-            case other => sys.error(s"$other schema is not supported")
+            case other => throw new ConnectException(s"$other schema is not supported")
           }
       }
     }

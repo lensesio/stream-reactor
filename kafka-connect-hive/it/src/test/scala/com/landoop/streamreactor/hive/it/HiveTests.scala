@@ -50,7 +50,7 @@ trait HiveTests extends Matchers {
     Try {
       admin.createTopics(List(new NewTopic(name, 1, 1.toShort)).asJavaCollection).all().get(30, TimeUnit.SECONDS)
       name
-    }.getOrElse(sys.error(s"Could not create topic $name"))
+    }.getOrElse(throw new ConnectException(s"Could not create topic $name"))
   }
 
   protected def postTask(taskDef: String): Unit = {

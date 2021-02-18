@@ -45,15 +45,15 @@ class AvroRecordRowKeyBuilderTest extends AnyWordSpec with Matchers with Mockito
 
         override def get(key: String): AnyRef = values(key)
 
-        override def put(key: String, v: scala.Any): Unit = sys.error("not supported")
+        override def put(key: String, v: scala.Any): Unit = throw new ConnectException("not supported")
 
-        override def get(i: Int): AnyRef = sys.error("not supported")
-
-
-        override def put(i: Int, v: scala.Any): Unit = sys.error("not supported")
+        override def get(i: Int): AnyRef = throw new ConnectException("not supported")
 
 
-        override def getSchema: Schema = sys.error("not supported")
+        override def put(i: Int, v: scala.Any): Unit = throw new ConnectException("not supported")
+
+
+        override def getSchema: Schema = throw new ConnectException("not supported")
       }
 
       val expectedValue = Bytes.add(

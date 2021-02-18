@@ -21,6 +21,7 @@ import com.datamountaineer.streamreactor.connect.bloomberg.avro.AvroSchemaGenera
 import com.fasterxml.jackson.databind.node.TextNode
 import org.apache.avro.Schema
 import org.apache.avro.Schema.Field
+import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConverters._
 
@@ -64,7 +65,7 @@ private[bloomberg] class AvroSchemaGenerator(namespace: String) {
         }
         record.setFields(fields)
         getSchema(record, allowOptional)
-      case v => sys.error(s"${v.getClass} is not handled.")
+      case v => throw new ConnectException(s"${v.getClass} is not handled.")
     }
   }
 

@@ -21,6 +21,7 @@ import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
 import com.datamountaineer.streamreactor.connect.mongodb.converters.SinkRecordConverter
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.bson.Document
 
@@ -46,7 +47,7 @@ object SinkRecordToDocument extends ConverterUtil {
 
           SinkRecordConverter.fromMap(extracted.asInstanceOf[java.util.Map[String, AnyRef]]) ->
             keys.headOption.map(_ => KeysExtractor.fromMap(extracted, keys)).getOrElse(Iterable.empty)
-        case _ => sys.error("For schemaless record only String and Map types are supported")
+        case _ => throw new ConnectException("For schemaless record only String and Map types are supported")
       }
     } else {
       schema.`type`() match {
@@ -62,7 +63,7 @@ object SinkRecordToDocument extends ConverterUtil {
 
             case Left(value) =>
               //This needs full refactor to cleanup and write FP style scala
-              sys.error(value)
+              throw new ConnectException(value)
           }
         case Schema.Type.STRUCT =>
           val extracted = convert(
@@ -73,7 +74,7 @@ object SinkRecordToDocument extends ConverterUtil {
           SinkRecordConverter.fromStruct(extracted) ->
             keys.headOption.map(_ => KeysExtractor.fromStruct(record.value().asInstanceOf[Struct], keys)).getOrElse(Iterable.empty)
 
-        case other => sys.error(s"$other schema is not supported")
+        case other => throw new ConnectException(s"$other schema is not supported")
       }
     }
   }

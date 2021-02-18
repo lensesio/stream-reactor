@@ -49,7 +49,7 @@ class RetriesTest extends AnyWordSpec with Matchers with Retries {
       intercept[ConfigException] {
         withRetries(4, 10, Some("abcd")) {
           count -= 1
-          if (count > 0) sys.error("Not yet")
+          if (count > 0) throw new ConnectException("Not yet")
           else throw new ConfigException("this one")
         }
       }

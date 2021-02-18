@@ -1,6 +1,7 @@
 package com.landoop.streamreactor.connect.hive.sink
 
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.jdk.CollectionConverters._
@@ -11,7 +12,7 @@ object ValueConverter {
     case map: Map[_, _] => MapValueConverter.convert(map)
     case map: java.util.Map[_, _] => MapValueConverter.convert(map.asScala.toMap)
     case string: String => StringValueConverter.convert(string)
-    case other => sys.error(s"Unsupported record $other:${other.getClass.getCanonicalName}")
+    case other => throw new ConnectException(s"Unsupported record $other:${other.getClass.getCanonicalName}")
   }
 }
 

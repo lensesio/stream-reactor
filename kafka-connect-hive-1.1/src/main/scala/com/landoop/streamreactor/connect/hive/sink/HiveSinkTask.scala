@@ -179,7 +179,7 @@ class HiveSinkTask extends SinkTask {
   // returns the KCQL table name for the given topic
   private def table(topic: Topic): TableName = config.tableOptions.find(_.topic == topic) match {
     case Some(options) => options.tableName
-    case _ => sys.error(s"Cannot find KCQL for topic $topic")
+    case _ => throw new ConnectException(s"Cannot find KCQL for topic $topic")
   }
 
   private def execute[T](thunk: => T): T = {

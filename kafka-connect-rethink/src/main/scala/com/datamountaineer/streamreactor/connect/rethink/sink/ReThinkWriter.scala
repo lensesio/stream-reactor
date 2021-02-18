@@ -111,7 +111,7 @@ class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSinkSe
           val extracted = convertSchemalessJson(record, setting.fieldMap(record.topic()), setting.ignoreFields(record.topic()))
           //not ideal; but the compile is hashmap anyway
           SinkRecordConversion.fromMap(record, extracted.asInstanceOf[java.util.Map[String, Any]], pks)
-        case _ => sys.error("For schemaless record only String and Map types are supported")
+        case _ => throw new ConnectException("For schemaless record only String and Map types are supported")
       }
     } else {
       schema.`type`() match {
@@ -126,7 +126,7 @@ class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSinkSe
         case Schema.Type.STRUCT =>
           val extracted = convert(record, setting.fieldMap(record.topic()), setting.ignoreFields(record.topic()))
           SinkRecordConversion.fromStruct(extracted, pks)
-        case other => sys.error(s"$other schema is not supported")
+        case other => throw new ConnectException(s"$other schema is not supported")
       }
     }
   }

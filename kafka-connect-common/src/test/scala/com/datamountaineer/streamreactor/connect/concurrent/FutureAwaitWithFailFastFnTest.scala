@@ -53,7 +53,7 @@ class FutureAwaitWithFailFastFnTest extends AnyWordSpec with Matchers with Event
         exec.submit {
           if (i == 4) {
             Thread.sleep(1000)
-            sys.error("this task failed.")
+            throw new ConnectException("this task failed.")
           } else {
             Thread.sleep(50000)
           }

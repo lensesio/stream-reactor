@@ -21,11 +21,10 @@ import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
 import java.util
 import java.util.TimeZone
-
 import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data._
-import org.apache.kafka.connect.errors.DataException
+import org.apache.kafka.connect.errors.{ConnectException, DataException}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.bson.Document
 import org.json4s.JValue
@@ -217,7 +216,7 @@ object SinkRecordConverter extends StrictLogging {
                       case _ => ISO_DATE_FORMAT.format(Timestamp.toLogical(schema, value.asInstanceOf[Long]))
                     }
 
-                  case _ => sys.error(s"$other is not a recognized schema")
+                  case _ => throw new ConnectException(s"$other is not a recognized schema")
                 }
             }
           }

@@ -21,8 +21,9 @@ package com.datamountaineer.streamreactor.connect.converters.source
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node._
 import org.apache.kafka.connect.data._
-import scala.collection.JavaConverters._
+import org.apache.kafka.connect.errors.ConnectException
 
+import scala.collection.JavaConverters._
 import scala.annotation.tailrec
 
 object KeyExtractor {
@@ -203,7 +204,7 @@ object KeyExtractor {
               }
 
             innerExtract(childField, s.get(childField), p.tail)
-          case other => sys.error(s"$other is not a recognized schema")
+          case other => throw new ConnectException(s"$other is not a recognized schema")
         }
         v
       }
