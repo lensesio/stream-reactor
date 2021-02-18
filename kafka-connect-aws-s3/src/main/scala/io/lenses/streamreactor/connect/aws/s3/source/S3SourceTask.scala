@@ -16,12 +16,11 @@
 
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import java.util
-
 import com.datamountaineer.streamreactor.common.utils.JarManifest
+
+import java.util
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsContextCreator
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreStorageInterface, StorageInterface}
 import org.apache.kafka.connect.data.{Schema, SchemaAndValue}

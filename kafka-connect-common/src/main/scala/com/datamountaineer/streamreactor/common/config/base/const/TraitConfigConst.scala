@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.common.config.base.const
+package com.datamountaineer.streamreactor.connect.config.base.const
 
 object TraitConfigConst {
   val KCQL_PROP_SUFFIX = "kcql"

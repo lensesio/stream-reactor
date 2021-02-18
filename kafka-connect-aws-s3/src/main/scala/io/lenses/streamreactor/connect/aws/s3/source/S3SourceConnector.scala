@@ -16,9 +16,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import java.util
-
 import com.datamountaineer.streamreactor.common.utils.JarManifest
+
+import java.util
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDef
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task

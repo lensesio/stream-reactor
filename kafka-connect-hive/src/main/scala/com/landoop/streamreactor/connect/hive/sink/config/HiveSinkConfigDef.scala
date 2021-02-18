@@ -1,8 +1,9 @@
 package com.landoop.streamreactor.connect.hive.sink.config
 
+import com.datamountaineer.streamreactor.common.config.base.traits.{BaseConfig, ConnectionSettings, ErrorPolicySettings, KcqlSettings, NumberRetriesSettings, UserSettings}
+
 import java.util
 
-import com.datamountaineer.streamreactor.common.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 

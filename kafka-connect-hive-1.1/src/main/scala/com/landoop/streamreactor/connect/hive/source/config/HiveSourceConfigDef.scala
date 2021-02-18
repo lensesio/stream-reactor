@@ -1,8 +1,8 @@
 package com.landoop.streamreactor.connect.hive.source.config
 
-import java.util
+import com.datamountaineer.streamreactor.common.config.base.traits.{BaseConfig, ConnectionSettings, ErrorPolicySettings, KcqlSettings, NumberRetriesSettings, UserSettings}
 
-import com.datamountaineer.streamreactor.common.config.base.traits._
+import java.util
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 

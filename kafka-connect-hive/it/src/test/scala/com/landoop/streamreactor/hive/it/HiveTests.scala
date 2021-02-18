@@ -1,10 +1,5 @@
 package com.landoop.streamreactor.hive.it
 
-import java.sql.{Connection, DriverManager}
-import java.time.Duration
-import java.util.Properties
-import java.util.concurrent.TimeUnit
-
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hive.conf.HiveConf
@@ -18,6 +13,10 @@ import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializ
 import org.asynchttpclient.Dsl
 import org.scalatest.Matchers
 
+import java.sql.{Connection, DriverManager}
+import java.time.Duration
+import java.util.Properties
+import java.util.concurrent.TimeUnit
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 import scala.util.{Random, Try}

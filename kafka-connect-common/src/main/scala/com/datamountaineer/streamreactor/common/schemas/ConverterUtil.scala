@@ -1,22 +1,24 @@
 /*
- *  Copyright 2017 Datamountaineer.
  *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ *  * Copyright 2020 Lenses.io.
+ *  *
+ *  * Licensed under the Apache License, Version 2.0 (the "License");
+ *  * you may not use this file except in compliance with the License.
+ *  * You may obtain a copy of the License at
+ *  *
+ *  * http://www.apache.org/licenses/LICENSE-2.0
+ *  *
+ *  * Unless required by applicable law or agreed to in writing, software
+ *  * distributed under the License is distributed on an "AS IS" BASIS,
+ *  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  * See the License for the specific language governing permissions and
+ *  * limitations under the License.
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.common.schemas
 
-import com.datamountaineer.streamreactor.common.json.SimpleJsonConverter
+import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
 import com.fasterxml.jackson.databind.JsonNode
 import io.confluent.connect.avro.AvroConverter
 import io.confluent.connect.avro.AvroData
@@ -168,8 +170,12 @@ trait ConverterUtil {
                 }
               }
 
+              val jvalue = if (!includeAllFields) {
+                withFieldsRemoved.removeField { case (field, _) => !fields.contains(field) }
+              } else withFieldsRemoved
+
               val converted = fields.filter { case (field, alias) => field != alias }
-                .foldLeft(withFieldsRemoved) { case (j, (field, alias)) =>
+                .foldLeft(jvalue) { case (j, (field, alias)) =>
                   j.transformField {
                     case JField(`field`, v) => (alias, v)
                     case other: JField => other

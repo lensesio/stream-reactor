@@ -1,6 +1,6 @@
 package com.landoop.streamreactor.connect.hive.source.config
 
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.{KCQL_PROP_SUFFIX, PROGRESS_ENABLED_CONST}
+import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst.{KCQL_PROP_SUFFIX, PROGRESS_ENABLED_CONST}
 import com.landoop.streamreactor.connect.hive.HadoopConfigurationConstants
 import com.landoop.streamreactor.connect.hive.kerberos.KerberosSettings
 
