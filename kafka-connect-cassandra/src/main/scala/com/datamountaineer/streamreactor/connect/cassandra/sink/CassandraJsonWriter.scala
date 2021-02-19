@@ -200,7 +200,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
     }
   }
 
-  private def delete(record: SinkRecord) = {
+  private def delete(record: SinkRecord): Unit = {
     try {
       deleteCache match {
         case Some(d) =>

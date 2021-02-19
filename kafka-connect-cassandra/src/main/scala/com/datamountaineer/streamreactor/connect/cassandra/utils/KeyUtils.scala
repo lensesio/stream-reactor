@@ -3,6 +3,8 @@ package com.datamountaineer.streamreactor.connect.cassandra.utils
 import com.jayway.jsonpath.{Configuration, JsonPath}
 import org.apache.kafka.connect.data.{Schema, Struct}
 
+import scala.annotation.tailrec
+
 object KeyUtils {
 
   /**
@@ -29,6 +31,7 @@ object KeyUtils {
   def keysFromStruct(struct: Struct, schema: Schema, fieldNames: Seq[String]): Seq[Object] =
     fieldNames.map(getKeyFromStruct(struct, _))
 
+  @tailrec
   private def getKeyFromStruct(struct: Struct, fieldName: String): Object = {
     if (fieldName.contains(".")) {
       val Array(nestedObject, nestedField) = fieldName.split("\\.", 2)

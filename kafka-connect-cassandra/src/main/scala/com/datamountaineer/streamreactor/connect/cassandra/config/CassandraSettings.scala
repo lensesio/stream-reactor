@@ -94,7 +94,7 @@ object CassandraSettings extends StrictLogging {
   def configureSource(config: CassandraConfigSource): Seq[CassandraSourceSetting] = {
     //get keyspace
     val keySpace = config.getString(CassandraConfigConstants.KEY_SPACE)
-    require(!keySpace.isEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
+    require(keySpace.nonEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
     val pollInterval = config.getLong(CassandraConfigConstants.POLL_INTERVAL)
 
     val bucketFormat = config.getString(CassandraConfigConstants.BUCKET_TIME_SERIES_FORMAT)
@@ -161,7 +161,7 @@ object CassandraSettings extends StrictLogging {
   def configureSink(config: CassandraConfigSink): CassandraSinkSetting = {
     //get keyspace
     val keySpace = config.getString(CassandraConfigConstants.KEY_SPACE)
-    require(!keySpace.isEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
+    require(keySpace.nonEmpty, CassandraConfigConstants.MISSING_KEY_SPACE_MESSAGE)
     val errorPolicy = config.getErrorPolicy
     val retries = config.getNumberRetries
     val kcqls = config.getKCQL.toSeq
