@@ -8,6 +8,6 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - name: Test
-        run: ./gradlew compile compileTestScala --parallel && ./gradlew test
+        run: ./gradlew compile --parallel && ./gradlew test
         env:
           JVM_OPTS: -Xmx3200m
