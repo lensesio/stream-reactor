@@ -29,7 +29,7 @@ import scala.collection.JavaConverters._
 object StructHelper {
   private val logger = Logger(LoggerFactory.getLogger(getClass.getName))
 
-  implicit final class StructExtension(val struct: Struct) extends AnyVal{
+  implicit final class StructExtension(val struct: Struct) extends AnyVal {
 
     def extractValueFromPath(
         path: String): Either[FieldValueExtractionError, Option[AnyRef]] = {
@@ -75,27 +75,32 @@ object StructHelper {
 
     def ++(input: Struct): Struct = {
       val builder = SchemaBuilder.struct()
-      struct
+
+      //get the original records fields and values and add to new schema
+      val originalFieldsAndValues = struct
         .schema()
         .fields()
         .asScala
-        .toList
-        .foreach(f => builder.field(f.name(), f.schema()))
-      input
+        .map(f => {
+          builder.field(f.name(), f.schema())
+          f.name() -> struct.get(f.name())
+        })
+
+      //get the input records fields and values and add to new schema
+      val inputFieldsAndValues = input
         .schema()
         .fields()
         .asScala
-        .toList
-        .foreach(f => builder.field(f.name(), f.schema()))
+        .map(f => {
+          builder.field(f.name(), f.schema())
+          f.name() -> input.get(f.name())
+        })
+
+      //make new struct with the new schema
       val output = new Struct(builder.build())
-      addFieldValuesToStruct(
-        struct,
-        output,
-        struct.schema().fields().asScala.map(f => (f.name(), f.name())).toMap)
-      addFieldValuesToStruct(
-        input,
-        output,
-        input.schema().fields().asScala.map(f => (f.name(), f.name())).toMap)
+      //add the values
+      originalFieldsAndValues.foreach{ case (name, value) => output.put(name, value)}
+      inputFieldsAndValues.foreach{ case (name, value) => output.put(name, value)}
       output
     }
 
@@ -121,26 +126,6 @@ object StructHelper {
       val newStruct = new Struct(newSchemaWithFields(extractFields, schema))
       addFieldValuesToStruct(struct, newStruct, extractFields)
       newStruct
-
-//      if (allFields && ignoreFields.isEmpty) {
-//        struct
-//      } else {
-//        // filter the schema fields is in ignore list
-//        val extractFields = if (allFields) {
-//          schema
-//            .fields()
-//            .asScala
-//            .filterNot(f => ignoreFields.contains(f.name()))
-//            .map(f => (f.name, f.name()))
-//            .toMap
-//        } else {
-//          // not all fields but filter from ignore
-//          fields.filterKeys(ignoreFields.contains)
-//        }
-//        val newStruct = new Struct(newSchemaWithFields(extractFields, schema))
-//        addFieldValuesToStruct(struct, newStruct, extractFields)
-//        newStruct
-//      }
     }
 
     private def addFieldValuesToStruct(oldStruct: Struct,

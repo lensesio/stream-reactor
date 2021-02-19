@@ -348,17 +348,15 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         headerFields = Map("header_field_3" -> "header_alias_field_3")
       )
 
-      combinedRecord
+      val recordFields = combinedRecord
         .schema()
         .fields()
         .asScala
-        .count(_.name().equals("key_int_field")) shouldBe 1
-      combinedRecord
-        .schema()
-        .fields()
-        .asScala
-        .count(_.name().equals("header_alias_field_3")) shouldBe 1
-      combinedRecord.schema().fields().asScala.size shouldBe 3
+        .map(_.name())
+
+      recordFields.contains("key_int_field") shouldBe true
+      recordFields.contains("header_alias_field_3") shouldBe true
+      recordFields.size shouldBe 3
 
       simpleJsonConverter
         .fromConnectData(combinedRecord.schema(), combinedRecord)
@@ -377,17 +375,17 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         headerFields = Map.empty
       )
 
-      combinedRecord
+
+      val recordFields = combinedRecord
         .schema()
         .fields()
         .asScala
-        .count(_.name().equals("key_int_field")) shouldBe 0
-      combinedRecord
-        .schema()
-        .fields()
-        .asScala
-        .count(_.name().equals("header_alias_field_3")) shouldBe 0
-      combinedRecord.schema().fields().asScala.size shouldBe originalRecord
+        .map(_.name())
+
+      recordFields.contains("key_int_field") shouldBe false
+      recordFields.contains("header_alias_field_3") shouldBe false
+
+      recordFields.size shouldBe originalRecord
         .valueSchema()
         .fields()
         .size
@@ -641,7 +639,7 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
           |}
         """.stripMargin
       val record =
-        new SinkRecord("t", 0, Schema.STRING_SCHEMA, keyJson, null, null, 0)
+        new SinkRecord("t",0, Schema.STRING_SCHEMA, keyJson,null,null,0)
 
       val combinedRecord = record.newFilteredRecordAsStruct(
         fields = Map.empty,
@@ -651,6 +649,47 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       )
 
       val expected = "{\"key_field1_alias\":\"value1\"}"
+      simpleJsonConverter
+        .fromConnectData(combinedRecord.schema(), combinedRecord)
+        .toString shouldBe expected
+    }
+
+    "should handle complex type projections" in {
+      val json =
+        """
+          |{
+          |   "field1":"value1",
+          |   "field2":3,
+          |   "fieldMap": {
+          |     "f1": "v1",
+          |     "f2": "v2"
+          |   },
+          |   "moreComplex": {
+          |     "nested1": {
+          |       "n1": "nv1",
+          |       "arr": [1, 2, 3]
+          |     }
+          |   }
+          |
+          |}
+        """.stripMargin
+
+      val record =
+        new SinkRecord("t",0,null,null, Schema.STRING_SCHEMA, json,0)
+
+      val combinedRecord = record.newFilteredRecordAsStruct(
+        fields = Map(
+            "fieldMap.f1" -> "fieldMap.f1",
+            "fieldMap.f1" -> "fm1_alias",
+            "moreComplex.nested1.n1" -> "moreComplex.nested1.n1",
+            "moreComplex.nested1.arr" -> "moreComplex.nested1.arr"
+        ),
+        ignoreFields = Set.empty,
+        keyFields = Map.empty,
+        headerFields = Map.empty
+      )
+
+      val expected = "{\"fm1_alias\":\"v1\",\"moreComplex.nested1.n1\":\"nv1\",\"moreComplex.nested1.arr\":[1,2,3]}"
       simpleJsonConverter
         .fromConnectData(combinedRecord.schema(), combinedRecord)
         .toString shouldBe expected
