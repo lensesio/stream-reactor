@@ -541,7 +541,7 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       )
 
       val expected =
-        "{\"key_field1_alias\":\"key_value1\",\"field5\":1.1,\"field4\":true,\"field3\":null,\"field2_alias\":3,\"field6\":[1,2,3],\"header_boolean\":true,\"header_int\":1,\"header_string\":\"header_string_value\",\"header_float\":1.1,\"header_decimal\":2.1}"
+        "{\"key_field1_alias\":\"key_value1\",\"field5\":1.1,\"field4\":true,\"field3\":null,\"field2_alias\":3,\"field6\":[1,2,3],\"header_float\":1.1,\"header_decimal\":2.1,\"header_string\":\"header_string_value\",\"header_int\":1,\"header_boolean\":true}"
       simpleJsonConverter
         .fromConnectData(combinedRecord.schema(), combinedRecord)
         .toString shouldBe expected

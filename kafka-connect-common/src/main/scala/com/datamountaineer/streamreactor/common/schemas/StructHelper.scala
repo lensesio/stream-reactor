@@ -104,26 +104,43 @@ object StructHelper {
                      fields: Map[String, String] = Map.empty,
                      ignoreFields: Set[String] = Set.empty): Struct = {
 
-      val allFields = if (fields.contains("*") || fields.isEmpty) true else false
-
-      if (allFields && ignoreFields.isEmpty) {
-        struct
+      val extractFields = if (fields.contains("*") || fields.isEmpty) {
+        //all fields excluding ignored
+        schema
+          .fields()
+          .asScala
+          .filterNot(f => ignoreFields.contains(f.name()))
+          .map(f => (f.name, f.name()))
+          .toMap
       } else {
-        // filter the fields if for the value
-        val extractFields = if (allFields) {
-          schema
-            .fields()
-            .asScala
-            .filterNot(f => ignoreFields.contains(f.name()))
-            .map(f => (f.name, f.name()))
-            .toMap
-        } else {
-          fields.filterNot { case (k, _) => ignoreFields.contains(k) }
-        }
-        val newStruct = new Struct(newSchemaWithFields(extractFields, schema))
-        addFieldValuesToStruct(struct, newStruct, extractFields)
-        newStruct
+        //selected fields excluding ignored
+        fields.filterKeys(k => !ignoreFields.contains(k))
       }
+
+      //find the field
+      val newStruct = new Struct(newSchemaWithFields(extractFields, schema))
+      addFieldValuesToStruct(struct, newStruct, extractFields)
+      newStruct
+
+//      if (allFields && ignoreFields.isEmpty) {
+//        struct
+//      } else {
+//        // filter the schema fields is in ignore list
+//        val extractFields = if (allFields) {
+//          schema
+//            .fields()
+//            .asScala
+//            .filterNot(f => ignoreFields.contains(f.name()))
+//            .map(f => (f.name, f.name()))
+//            .toMap
+//        } else {
+//          // not all fields but filter from ignore
+//          fields.filterKeys(ignoreFields.contains)
+//        }
+//        val newStruct = new Struct(newSchemaWithFields(extractFields, schema))
+//        addFieldValuesToStruct(struct, newStruct, extractFields)
+//        newStruct
+//      }
     }
 
     private def addFieldValuesToStruct(oldStruct: Struct,
