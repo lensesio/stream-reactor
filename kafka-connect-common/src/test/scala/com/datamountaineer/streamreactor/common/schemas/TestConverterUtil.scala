@@ -19,7 +19,7 @@ package com.datamountaineer.streamreactor.common.schemas
 import com.datamountaineer.streamreactor.common.TestUtilsBase
 import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
 import io.confluent.connect.avro.AvroData
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.header.ConnectHeaders
 import org.apache.kafka.connect.json.JsonConverter
 import org.apache.kafka.connect.sink.SinkRecord
@@ -654,7 +654,7 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         .toString shouldBe expected
     }
 
-    "should handle complex type projections" in {
+    "should handle complex type projections in json with schema" in {
       val json =
         """
           |{
@@ -667,10 +667,12 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
           |   "moreComplex": {
           |     "nested1": {
           |       "n1": "nv1",
-          |       "arr": [1, 2, 3]
+          |       "arr": [1, 2, 3],
+          |       "nested2": {
+          |         "n2": "nv2"
+          |       }
           |     }
           |   }
-          |
           |}
         """.stripMargin
 
@@ -679,10 +681,54 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
 
       val combinedRecord = record.newFilteredRecordAsStruct(
         fields = Map(
-            "fieldMap.f1" -> "fieldMap.f1",
             "fieldMap.f1" -> "fm1_alias",
             "moreComplex.nested1.n1" -> "moreComplex.nested1.n1",
-            "moreComplex.nested1.arr" -> "moreComplex.nested1.arr"
+            "moreComplex.nested1.arr" -> "moreComplex.nested1.arr",
+            "moreComplex.nested1.nested2.n2" -> "moreComplex.nested1.nested2.n2"
+        ),
+        ignoreFields = Set.empty,
+        keyFields = Map.empty,
+        headerFields = Map.empty
+      )
+
+      val expected = "{\"fm1_alias\":\"v1\",\"moreComplex.nested1.n1\":\"nv1\",\"moreComplex.nested1.arr\":[1,2,3],\"moreComplex.nested1.nested2.n2\":\"nv2\"}"
+      simpleJsonConverter
+        .fromConnectData(combinedRecord.schema(), combinedRecord)
+        .toString shouldBe expected
+    }
+
+    "should handle complex type projections in json without schema" in {
+
+      val fields = new util.HashMap[String, Any]()
+      fields.put("field1", "value1")
+      fields.put("field2", 3)
+
+      val map = new util.HashMap[String, Any]()
+      map.put("f1", "v1")
+      map.put("f2", "v2")
+
+      fields.put("fieldMap", map)
+
+      val nested = new util.HashMap[String, Any]()
+      nested.put("n1", "nv1")
+      val arr = new util.ArrayList[Integer]()
+      arr.add(1)
+      arr.add(2)
+      arr.add(3)
+      nested.put("arr", arr)
+
+      val moreComplex = new util.HashMap[String, Any]()
+      moreComplex.put("nested1", nested)
+      fields.put("moreComplex", moreComplex)
+
+      val record =
+        new SinkRecord("t",0,null,null, null, fields, 0)
+
+      val combinedRecord = record.newFilteredRecordAsStruct(
+        fields = Map(
+          "fieldMap.f1" -> "fm1_alias",
+          "moreComplex.nested1.n1" -> "moreComplex.nested1.n1",
+          "moreComplex.nested1.arr" -> "moreComplex.nested1.arr"
         ),
         ignoreFields = Set.empty,
         keyFields = Map.empty,
@@ -690,6 +736,92 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       )
 
       val expected = "{\"fm1_alias\":\"v1\",\"moreComplex.nested1.n1\":\"nv1\",\"moreComplex.nested1.arr\":[1,2,3]}"
+      simpleJsonConverter
+        .fromConnectData(combinedRecord.schema(), combinedRecord)
+        .toString shouldBe expected
+    }
+
+    "should handle complex type for struct" in {
+
+      val inner = SchemaBuilder.struct().name("inner")
+        .version(1)
+        .field("long_field", Schema.INT64_SCHEMA)
+        .field("string_field", Schema.STRING_SCHEMA)
+        .build()
+
+      val innerV = new Struct(inner)
+      innerV.put("long_field", 10L)
+      innerV.put("string_field", "inner_string")
+
+      val root = SchemaBuilder.struct.name("record")
+        .version(1)
+        .field("id", Schema.STRING_SCHEMA)
+        .field("int_field", Schema.INT32_SCHEMA)
+        .field("inner", inner)
+        .build
+
+
+      val rootV = new Struct(root)
+      rootV.put("id", "my-id")
+      rootV.put("int_field", 20)
+      rootV.put("inner", innerV)
+
+      val record = new SinkRecord("t",0,null,null, root, rootV, 0)
+      val combinedRecord = record.newFilteredRecordAsStruct(
+        fields = Map(
+          "id" -> "id_alias",
+          "inner.long_field" -> "inner_long",
+          "inner.string_field" -> "inner.string_field"
+        ),
+        ignoreFields = Set.empty,
+        keyFields = Map.empty,
+        headerFields = Map.empty
+      )
+
+      val expected = "{\"id_alias\":\"my-id\",\"inner_long\":10,\"inner.string_field\":\"inner_string\"}"
+      simpleJsonConverter
+        .fromConnectData(combinedRecord.schema(), combinedRecord)
+        .toString shouldBe expected
+    }
+
+    "should handle field not found struct" in {
+
+      val inner = SchemaBuilder.struct().name("inner")
+        .version(1)
+        .field("long_field", Schema.INT64_SCHEMA)
+        .field("string_field", Schema.STRING_SCHEMA)
+        .build()
+
+      val innerV = new Struct(inner)
+      innerV.put("long_field", 10L)
+      innerV.put("string_field", "inner_string")
+
+      val root = SchemaBuilder.struct.name("record")
+        .version(1)
+        .field("id", Schema.STRING_SCHEMA)
+        .field("int_field", Schema.INT32_SCHEMA)
+        .field("inner", inner)
+        .build
+
+
+      val rootV = new Struct(root)
+      rootV.put("id", "my-id")
+      rootV.put("int_field", 20)
+      rootV.put("inner", innerV)
+
+      val record = new SinkRecord("t",0,null,null, root, rootV, 0)
+      val combinedRecord = record.newFilteredRecordAsStruct(
+        fields = Map(
+          "id" -> "id_alias",
+          "inner.long_field" -> "inner_long",
+          "inner.string_field" -> "inner.string_field"
+        ),
+        ignoreFields = Set.empty,
+        keyFields = Map.empty,
+        headerFields = Map.empty
+      )
+
+      val expected = "{\"id_alias\":\"my-id\",\"inner_long\":10,\"inner.string_field\":\"inner_string\"}"
       simpleJsonConverter
         .fromConnectData(combinedRecord.schema(), combinedRecord)
         .toString shouldBe expected

@@ -19,6 +19,7 @@
 package com.datamountaineer.streamreactor.connect.converters.source
 
 import com.datamountaineer.streamreactor.common.converters.MsgKey
+import com.typesafe.scalalogging.StrictLogging
 
 import java.nio.charset.Charset
 import java.util
@@ -27,83 +28,115 @@ import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceRecord
 import org.json4s
+import org.json4s.native.JsonParser
 
+import scala.annotation.tailrec
+import scala.util.{Failure, Success, Try}
 
 class JsonSimpleConverter extends Converter {
-  override def convert(kafkaTopic: String,
-                       sourceTopic: String,
-                       messageId: String,
-                       bytes: Array[Byte],
-                       keys:Seq[String] = Seq.empty,
-                       keyDelimiter:String = ".",
-                       properties: Map[String, String] = Map.empty): SourceRecord = {
-    if(bytes == null) throw new ConnectException("Invalid input. Input cannot be null.")
+  override def convert(
+      kafkaTopic: String,
+      sourceTopic: String,
+      messageId: String,
+      bytes: Array[Byte],
+      keys: Seq[String] = Seq.empty,
+      keyDelimiter: String = ".",
+      properties: Map[String, String] = Map.empty): SourceRecord = {
+    if (bytes == null)
+      throw new ConnectException("Invalid input. Input cannot be null.")
     val json = new String(bytes, Charset.defaultCharset)
     val schemaAndValue = JsonSimpleConverter.convert(sourceTopic, json)
     val value = schemaAndValue.value()
     value match {
-      case s:Struct if keys.nonEmpty =>
-        val keysValue = keys.flatMap { key =>
-          Option(KeyExtractor.extract(s, key.split('.').toVector)).map(_.toString)
-        }.mkString(keyDelimiter)
+      case s: Struct if keys.nonEmpty =>
+        val keysValue = keys
+          .flatMap { key =>
+            Option(KeyExtractor.extract(s, key.split('.').toVector))
+              .map(_.toString)
+          }
+          .mkString(keyDelimiter)
 
-        new SourceRecord(Collections.singletonMap(Converter.TopicKey, sourceTopic),
+        new SourceRecord(
+          Collections.singletonMap(Converter.TopicKey, sourceTopic),
           null,
           kafkaTopic,
           Schema.STRING_SCHEMA,
           keysValue,
           schemaAndValue.schema(),
-          schemaAndValue.value())
-      case _=>
-        new SourceRecord(Collections.singletonMap(Converter.TopicKey, sourceTopic),
+          schemaAndValue.value()
+        )
+      case _ =>
+        new SourceRecord(
+          Collections.singletonMap(Converter.TopicKey, sourceTopic),
           null,
           kafkaTopic,
           MsgKey.schema,
           MsgKey.getStruct(sourceTopic, messageId),
           schemaAndValue.schema(),
-          schemaAndValue.value())
+          schemaAndValue.value()
+        )
     }
 
   }
 }
 
-object JsonSimpleConverter {
+object JsonSimpleConverter extends StrictLogging {
 
   import org.json4s._
-  import org.json4s.native.JsonMethods._
 
-  def convert(name: String, str: String): SchemaAndValue = convert(name, parse(str))
+  def convert(name: String, str: String): SchemaAndValue = {
+    val json = Try(JsonParser.parse(str)) match {
+      case Success(s) => s
+      case Failure(f) =>
+        throw new ConnectException(s"Failed to parse json message [$str]", f)
+    }
+
+    json match {
+      case JNothing =>
+        logger.error(s"Possible failure to parse json message, potential invalid json [$str]")
+      case _ =>
+    }
+
+    convert(name, json)
+  }
 
   def convert(name: String, value: JValue): SchemaAndValue = {
     value match {
       case JArray(arr) => handleArray(name, arr)
-      case JBool(b) => new SchemaAndValue(Schema.OPTIONAL_BOOLEAN_SCHEMA, b)
+      case JBool(b)    => new SchemaAndValue(Schema.OPTIONAL_BOOLEAN_SCHEMA, b)
       case JDecimal(d) =>
         val schema = Decimal.builder(d.scale).optional().build()
         new SchemaAndValue(schema, Decimal.fromLogical(schema, d.bigDecimal))
       case JDouble(d) => new SchemaAndValue(Schema.OPTIONAL_FLOAT64_SCHEMA, d)
-      case JInt(i) => new SchemaAndValue(Schema.OPTIONAL_INT64_SCHEMA, i.toLong) //on purpose! LONG (we might get later records with long entries)
+      case JInt(i) =>
+        new SchemaAndValue(Schema.OPTIONAL_INT64_SCHEMA, i.toLong) //on purpose! LONG (we might get later records with long entries)
       case JLong(l) => new SchemaAndValue(Schema.OPTIONAL_INT64_SCHEMA, l)
-      case JNull | JNothing => new SchemaAndValue(Schema.OPTIONAL_STRING_SCHEMA, null)
-      case JString(s) => new SchemaAndValue(Schema.OPTIONAL_STRING_SCHEMA, s)
+      case JNull | JNothing =>
+        new SchemaAndValue(Schema.OPTIONAL_STRING_SCHEMA, null)
+      case JString(s)      => new SchemaAndValue(Schema.OPTIONAL_STRING_SCHEMA, s)
       case JObject(values) => handleObject(name, values)
     }
   }
-  private def handleArray(name: String, arr: List[_root_.org.json4s.JsonAST.JValue]) = {
+  private def handleArray(name: String,
+                          arr: List[_root_.org.json4s.JsonAST.JValue]) = {
     val values = new util.ArrayList[AnyRef]()
     val sv = convert(name, arr.head)
     values.add(sv.value())
-    arr.tail.foreach { v => values.add(convert(name, v).value()) }
+    arr.tail.foreach { v =>
+      values.add(convert(name, v).value())
+    }
 
     val schema = SchemaBuilder.array(sv.schema()).optional().build()
     new SchemaAndValue(schema, values)
   }
-  private def handleObject(name: String, values: List[(String, json4s.JValue)]) = {
+  private def handleObject(name: String,
+                           values: List[(String, json4s.JValue)]) = {
     val builder = SchemaBuilder.struct().name(name.replace("/", "_"))
-    val fields = values.map { case (n, v) =>
-      val schemaAndValue = convert(n, v)
-      builder.field(n, schemaAndValue.schema())
-      n -> schemaAndValue.value()
+    val fields = values.map {
+      case (n, v) =>
+        val schemaAndValue = convert(n, v)
+        builder.field(n, schemaAndValue.schema())
+        n -> schemaAndValue.value()
     }.toMap
     val schema = builder.build()
 

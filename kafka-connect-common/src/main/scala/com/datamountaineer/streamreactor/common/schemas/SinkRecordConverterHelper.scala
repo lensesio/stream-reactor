@@ -95,14 +95,12 @@ object SinkRecordConverterHelper extends StrictLogging {
       val schemaBuilder = SchemaBuilder.struct()
       val asScala = record.headers().asScala
       asScala
-        .filterNot(h => h.schema() == null)
         .foreach(h => schemaBuilder.field(h.key(), h.schema()))
 
       val schema = schemaBuilder.build()
       val newStruct = new Struct(schema)
 
       asScala
-        .filterNot(h => h.schema() == null)
         .foreach(h => newStruct.put(h.key(), h.value()))
 
       new SinkRecord("header", 0, null, null, newStruct.schema(), newStruct, 0)
