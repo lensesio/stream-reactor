@@ -56,12 +56,6 @@ class InfluxBatchPointsBuilder(settings: InfluxSettings, nanoClock: NanoClock) e
           Path(Option(field.getParentFields).map(_.asScala.toList).getOrElse(List.empty[String]) ::: field.getName :: Nil),
           Option(field.getAlias).filter(_ != field.getName).map(Alias)
         )
-      } ++ kcql.getKeyFields.asScala.toList.map { field =>
-        (
-          FieldName(Option(field.getAlias).getOrElse(field.getName)),
-          Path(List("_key", field.getName)),
-          Option(field.getAlias).filter(_ != field.getName).map(Alias)
-        )
       }
 
       val ignores = kcql.getIgnoredFields.asScala.toList.map(field =>

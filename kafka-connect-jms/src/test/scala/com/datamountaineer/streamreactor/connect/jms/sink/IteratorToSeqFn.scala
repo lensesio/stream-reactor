@@ -16,19 +16,14 @@
  *
  */
 
-package com.datamountaineer.streamreactor.connect.jms.sink.converters
+package com.datamountaineer.streamreactor.connect.jms.sink
 
-import com.datamountaineer.kcql.FormatType
+object IteratorToSeqFn {
+  def apply[T](iter: java.util.Iterator[T]): Seq[T] = {
+    new Iterator[T]() {
+      override def hasNext: Boolean = iter.hasNext
 
-object JMSMessageConverterFn {
-  def apply(storedAs: FormatType): JMSMessageConverter = {
-    storedAs match {
-      case FormatType.AVRO => new AvroMessageConverter
-      case FormatType.JSON => new JsonMessageConverter
-      case FormatType.OBJECT => new ObjectMessageConverter
-      case FormatType.BINARY => new ObjectMessageConverter
-      case FormatType.TEXT => new TextMessageConverter
-      case FormatType.MAP => new MapMessageConverter
-    }
+      override def next(): T = iter.next()
+    }.toSeq
   }
 }

@@ -18,10 +18,10 @@ package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
 import com.datamountaineer.streamreactor.common.config.Helpers
 import com.datamountaineer.streamreactor.common.utils.JarManifest
-
-import java.util
 import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
+
+import java.util
 import com.microsoft.azure.documentdb._
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.{ConfigDef, ConfigException}

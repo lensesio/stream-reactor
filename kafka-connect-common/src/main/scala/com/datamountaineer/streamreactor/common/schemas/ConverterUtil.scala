@@ -18,7 +18,6 @@
 
 package com.datamountaineer.streamreactor.common.schemas
 
-import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
 import com.fasterxml.jackson.databind.JsonNode
 import io.confluent.connect.avro.AvroConverter
 import io.confluent.connect.avro.AvroData
@@ -31,6 +30,7 @@ import org.apache.kafka.connect.storage.Converter
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import StructHelper._
+import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
 import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConverters._

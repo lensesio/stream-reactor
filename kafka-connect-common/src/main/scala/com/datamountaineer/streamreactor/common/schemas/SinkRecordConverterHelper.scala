@@ -18,8 +18,8 @@
 
 package com.datamountaineer.streamreactor.common.schemas
 
-import com.datamountaineer.streamreactor.connect.converters.source.JsonSimpleConverter
 import StructHelper.StructExtension
+import com.datamountaineer.streamreactor.connect.converters.source.JsonSimpleConverter
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}

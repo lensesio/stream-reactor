@@ -18,9 +18,9 @@
 
 package com.datamountaineer.streamreactor.common.converters
 
-import java.nio.ByteBuffer
-
 import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
+
+import java.nio.ByteBuffer
 import com.fasterxml.jackson.databind.JsonNode
 import com.landoop.connect.sql.StructSql._
 import com.landoop.json.sql.JsonSql._

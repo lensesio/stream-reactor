@@ -21,9 +21,7 @@ import com.datamountaineer.kcql.WriteModeEnum
 import com.datamountaineer.streamreactor.common.errors.{ErrorHandler, RetryErrorPolicy}
 import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbConfig
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbConfigConstants
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbSinkSettings
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
 import com.microsoft.azure.documentdb._
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException

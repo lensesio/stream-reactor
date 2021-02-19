@@ -17,9 +17,9 @@
 package com.datamountaineer.streamreactor.connect.blockchain.source
 
 import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.connect.blockchain.config.{BlockchainConfig, BlockchainConfigConstants, BlockchainSettings}
 
 import java.util
-import com.datamountaineer.streamreactor.connect.blockchain.config.{BlockchainConfig, BlockchainConfigConstants, BlockchainSettings}
 import com.typesafe.scalalogging.StrictLogging
 import io.confluent.common.config.ConfigException
 import org.apache.kafka.common.config.AbstractConfig

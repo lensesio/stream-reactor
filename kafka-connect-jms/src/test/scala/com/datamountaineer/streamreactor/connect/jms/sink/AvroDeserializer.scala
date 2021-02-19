@@ -16,19 +16,17 @@
  *
  */
 
-package com.datamountaineer.streamreactor.connect.jms.sink.converters
+package com.datamountaineer.streamreactor.connect.jms.sink
 
-import com.datamountaineer.kcql.FormatType
+import org.apache.avro.Schema
+import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
+import org.apache.avro.io.DecoderFactory
 
-object JMSMessageConverterFn {
-  def apply(storedAs: FormatType): JMSMessageConverter = {
-    storedAs match {
-      case FormatType.AVRO => new AvroMessageConverter
-      case FormatType.JSON => new JsonMessageConverter
-      case FormatType.OBJECT => new ObjectMessageConverter
-      case FormatType.BINARY => new ObjectMessageConverter
-      case FormatType.TEXT => new TextMessageConverter
-      case FormatType.MAP => new MapMessageConverter
-    }
+object AvroDeserializer {
+  def apply(data: Array[Byte], schema: Schema): GenericRecord = {
+    val reader = new GenericDatumReader[GenericRecord](schema)
+    val decoder = DecoderFactory.get().binaryDecoder(data, null)
+    reader.read(null, decoder)
   }
 }
+

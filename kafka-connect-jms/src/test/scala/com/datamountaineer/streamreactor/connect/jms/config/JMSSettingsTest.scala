@@ -1,25 +1,26 @@
 /*
- * Copyright 2017 Datamountaineer.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  * Copyright 2020 Lenses.io.
+ *  *
+ *  * Licensed under the Apache License, Version 2.0 (the "License");
+ *  * you may not use this file except in compliance with the License.
+ *  * You may obtain a copy of the License at
+ *  *
+ *  * http://www.apache.org/licenses/LICENSE-2.0
+ *  *
+ *  * Unless required by applicable law or agreed to in writing, software
+ *  * distributed under the License is distributed on an "AS IS" BASIS,
+ *  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  * See the License for the specific language governing permissions and
+ *  * limitations under the License.
  *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
-package com.datamountaineer.streamreactor.common.config
+package com.datamountaineer.streamreactor.connect.jms.config
 
 import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
-import com.datamountaineer.streamreactor.connect.TestBase
-import com.datamountaineer.streamreactor.connect.jms.JMSSessionProvider
-import com.datamountaineer.streamreactor.connect.jms.config._
+import com.datamountaineer.streamreactor.connect.jms
+import com.datamountaineer.streamreactor.connect.jms.{JMSSessionProvider, TestBase}
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.BeforeAndAfterAll
 
@@ -198,7 +199,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
       JMSConfigConstants.JMS_URL -> JMS_URL,
       JMSConfigConstants.DESTINATION_SELECTOR -> DestinationSelector.JNDI.toString
     ).asJava
-    val config = JMSConfig(props)
+    val config = jms.config.JMSConfig(props)
     intercept[ConfigException] {
       JMSSettings(config, false)
     }
@@ -214,7 +215,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
       JMSConfigConstants.CONNECTION_FACTORY -> "plop",
       JMSConfigConstants.JMS_URL -> JMS_URL
     ).asJava
-    val config = JMSConfig(props)
+    val config = jms.config.JMSConfig(props)
     val settings = JMSSettings(config, true)
     intercept[javax.naming.NameNotFoundException] {
       JMSSessionProvider(settings, true)
