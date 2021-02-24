@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.common.schemas
 
 import com.datamountaineer.streamreactor.common.TestUtilsBase
+import com.datamountaineer.streamreactor.common.config.base.settings.Projections
 import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
 import io.confluent.connect.avro.AvroData
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
@@ -108,12 +109,13 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       intercept[RuntimeException] {
         val record =
           new SinkRecord("t", 0, null, null, null, "Should not be here", 0)
-        record.newFilteredRecordAsStruct(
-          fields = Map("*" -> "*"),
-          ignoreFields = Set.empty,
-          keyFields = Map.empty,
-          headerFields = Map.empty
-        )
+        val projections = new Projections(targets = Map.empty,
+                                          headerFields = Map.empty,
+                                          keyFields = Map.empty,
+                                          valueFields =
+                                            Map("t" -> Map("*" -> "*")),
+                                          ignoreFields = Map.empty)
+        record.newFilteredRecordAsStruct(projections)
       }
     }
 
@@ -124,12 +126,14 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       map.put("toremove", null)
 
       val record = new SinkRecord("t", 0, null, null, null, map, 0)
-      val combinedRecord = record.newFilteredRecordAsStruct(
-        fields = Map("*" -> "*"),
-        ignoreFields = Set("toremove"),
-        keyFields = Map.empty,
-        headerFields = Map.empty
-      )
+
+      val projections =
+        new Projections(targets = Map.empty,
+                        headerFields = Map.empty,
+                        keyFields = Map.empty,
+                        valueFields = Map("t" -> Map("*" -> "*")),
+                        ignoreFields = Map("t" -> Set("toremove")))
+      val combinedRecord = record.newFilteredRecordAsStruct(projections)
 
       val expected = "{\"field1\":\"value1\",\"field2\":3}"
       simpleJsonConverter
@@ -142,14 +146,19 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       map.put("field1", "value1")
       map.put("field2", 3)
       map.put("field3", null)
+
       val record = new SinkRecord("t", 0, null, null, null, map, 0)
 
-      val combinedRecord = record.newFilteredRecordAsStruct(
-        fields = Map("field1" -> "field1", "field2" -> "fieldRenamed"),
-        ignoreFields = Set.empty,
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map.empty,
         keyFields = Map.empty,
-        headerFields = Map.empty
+        valueFields =
+          Map("t" -> Map("field1" -> "field1", "field2" -> "fieldRenamed")),
+        ignoreFields = Map.empty
       )
+
+      val combinedRecord = record.newFilteredRecordAsStruct(projections)
 
       val expected = "{\"field1\":\"value1\",\"fieldRenamed\":3}"
       simpleJsonConverter
@@ -162,16 +171,21 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       map.put("field1", "value1")
       map.put("field2", 3)
       map.put("field3", null)
+
       val record = new SinkRecord("t", 0, null, null, null, map, 0)
 
-      val combinedRecord = record.newFilteredRecordAsStruct(
-        fields = Map("field1" -> "field1",
-                     "field2" -> "fieldRenamed",
-                     "field3" -> "field3"),
-        ignoreFields = Set("toremove"),
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map.empty,
         keyFields = Map.empty,
-        headerFields = Map.empty
+        valueFields =
+          Map("t" -> Map("field1" -> "field1",
+            "field2" -> "fieldRenamed",
+            "field3" -> "field3")),
+        ignoreFields = Map.empty
       )
+
+      val combinedRecord = record.newFilteredRecordAsStruct(projections)
 
       val expected =
         "{\"field1\":\"value1\",\"fieldRenamed\":3,\"field3\":null}"
@@ -204,13 +218,18 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
                        "tags" -> List("home", "green").asJava)
 
       val record =
-        new SinkRecord("topicA", 0, null, null, null, schemaAndValue.value, 0)
-      val combinedRecord = record.newFilteredRecordAsStruct(
-        fields = Map("id" -> "id", "tags" -> "tagsRenamed"),
-        ignoreFields = Set("price"),
+        new SinkRecord("t", 0, null, null, null, schemaAndValue.value, 0)
+
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map.empty,
         keyFields = Map.empty,
-        headerFields = Map.empty
+        valueFields =
+          Map("t" -> Map("id" -> "id", "tags" -> "tagsRenamed")),
+        ignoreFields = Map("t" -> Set("price"))
       )
+
+      val combinedRecord = record.newFilteredRecordAsStruct(projections)
 
       val expected = "{\"id\":1,\"tagsRenamed\":[\"home\",\"green\"]}"
       simpleJsonConverter
@@ -222,13 +241,17 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       intercept[RuntimeException] {
         val record =
           new SinkRecord("t", 0, null, null, null, Map.empty[String, String], 0)
-        record.newFilteredRecordAsStruct(
-          fields = Map("id" -> "id", "tags" -> "tagsRenamed"),
-          ignoreFields = Set("price"),
+
+        val projections = new Projections(
+          targets = Map.empty,
+          headerFields = Map.empty,
           keyFields = Map.empty,
-          headerFields = Map.empty
+          valueFields =
+            Map("t" -> Map("id" -> "id", "tags" -> "tagsRenamed")),
+          ignoreFields = Map("t" -> Set("price"))
         )
 
+        record.newFilteredRecordAsStruct(projections)
       }
     }
 
@@ -245,12 +268,16 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       val record =
         new SinkRecord("t", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
-      val combinedRecord = record.newFilteredRecordAsStruct(
-        fields = Map("*" -> "*"),
-        ignoreFields = Set("toremove"),
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map.empty,
         keyFields = Map.empty,
-        headerFields = Map.empty
+        valueFields =
+          Map("t" -> Map("*" -> "*")),
+        ignoreFields = Map("t" -> Set("toremove"))
       )
+
+      val combinedRecord = record.newFilteredRecordAsStruct(projections)
 
       val expected = "{\"field1\":\"value1\",\"field2\":3}"
       simpleJsonConverter
@@ -271,12 +298,16 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       val record =
         new SinkRecord("t", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
-      val combinedRecord = record.newFilteredRecordAsStruct(
-        fields = Map("field1" -> "field1", "field2" -> "fieldRenamed"),
-        ignoreFields = Set.empty,
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map.empty,
         keyFields = Map.empty,
-        headerFields = Map.empty
+        valueFields =
+          Map("t" -> Map("field1" -> "field1", "field2" -> "fieldRenamed")),
+        ignoreFields = Map.empty
       )
+
+      val combinedRecord = record.newFilteredRecordAsStruct(projections)
 
       val expected = "{\"field1\":\"value1\",\"fieldRenamed\":3}"
       simpleJsonConverter
@@ -297,12 +328,16 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       val record =
         new SinkRecord("t", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
-      val combinedRecord = record.newFilteredRecordAsStruct(
-        fields = Map("field1" -> "field1", "field2" -> "fieldRenamed"),
-        ignoreFields = Set("toremove"),
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map.empty,
         keyFields = Map.empty,
-        headerFields = Map.empty
+        valueFields =
+          Map("t" -> Map("field1" -> "field1", "field2" -> "fieldRenamed")),
+        ignoreFields = Map("t" ->  Set("toremove"))
       )
+
+      val combinedRecord = record.newFilteredRecordAsStruct(projections)
 
       val expected = "{\"field1\":\"value1\",\"fieldRenamed\":3}"
       simpleJsonConverter
@@ -322,13 +357,18 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         """.stripMargin
 
       val record =
-        new SinkRecord("topicA", 0, null, null, Schema.STRING_SCHEMA, json, 0)
-      val combinedRecord = record.newFilteredRecordAsStruct(
-        fields = Map("id" -> "id", "tags" -> "tagsRenamed"),
-        ignoreFields = Set("price"),
+        new SinkRecord("t", 0, null, null, Schema.STRING_SCHEMA, json, 0)
+
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map.empty,
         keyFields = Map.empty,
-        headerFields = Map.empty
+        valueFields =
+          Map("t" -> Map("id" -> "id", "tags" -> "tagsRenamed")),
+        ignoreFields = Map("t" ->  Set("price"))
       )
+
+      val combinedRecord = record.newFilteredRecordAsStruct(projections)
 
       val expected = "{\"id\":1,\"tagsRenamed\":[\"home\",\"green\"]}"
       simpleJsonConverter
@@ -341,12 +381,16 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       val expected =
         "{\"key_int_field\":1,\"int_field\":1,\"header_alias_field_3\":\"boo\"}"
 
-      val combinedRecord = originalRecord.newFilteredRecordAsStruct(
-        fields = Map("int_field" -> "int_field"),
-        ignoreFields = Set.empty[String],
-        keyFields = Map("key_int_field" -> "key_int_field"),
-        headerFields = Map("header_field_3" -> "header_alias_field_3")
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map(originalRecord.topic() -> Map("header_field_3" -> "header_alias_field_3")),
+        keyFields = Map(originalRecord.topic() -> Map("key_int_field" -> "key_int_field")),
+        valueFields =
+          Map(originalRecord.topic() -> Map("int_field" -> "int_field")),
+        ignoreFields = Map.empty
       )
+
+      val combinedRecord = originalRecord.newFilteredRecordAsStruct(projections)
 
       val recordFields = combinedRecord
         .schema()
@@ -367,14 +411,16 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
 
       val originalRecord = sinkRecordWithKeyHeaders()
 
-      val combinedRecord = originalRecord.newFilteredRecordAsStruct(
-        fields =
-          createSchema.fields().asScala.map(f => (f.name(), f.name())).toMap,
-        ignoreFields = Set.empty[String],
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map.empty,
         keyFields = Map.empty,
-        headerFields = Map.empty
+        valueFields =
+          Map(originalRecord.topic() -> createSchema.fields().asScala.map(f => (f.name(), f.name())).toMap),
+        ignoreFields = Map.empty
       )
 
+      val combinedRecord = originalRecord.newFilteredRecordAsStruct(projections)
 
       val recordFields = combinedRecord
         .schema()
@@ -394,12 +440,16 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
     "select * from value fields for struct" in {
 
       val originalRecord = getTestRecord
-      val combinedRecord = originalRecord.newFilteredRecordAsStruct(
-        fields = Map("*" -> "*"),
-        ignoreFields = Set.empty[String],
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map.empty,
         keyFields = Map.empty,
-        headerFields = Map.empty
+        valueFields =
+          Map(originalRecord.topic() -> Map("*" -> "*")),
+        ignoreFields = Map.empty
       )
+
+      val combinedRecord = originalRecord.newFilteredRecordAsStruct(projections)
 
       combinedRecord.schema().fields().asScala.size shouldBe originalRecord
         .valueSchema()
@@ -417,12 +467,16 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
     "select * from key fields for struct" in {
 
       val originalRecord = sinkRecordWithKeyHeaders()
-      val combinedRecord = originalRecord.newFilteredRecordAsStruct(
-        fields = Map.empty,
-        ignoreFields = Set.empty[String],
-        keyFields = Map("*" -> "*"),
-        headerFields = Map.empty
+
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map.empty,
+        keyFields =  Map(originalRecord.topic() -> Map("*" -> "*")),
+        valueFields = Map.empty,
+        ignoreFields = Map.empty
       )
+
+      val combinedRecord = originalRecord.newFilteredRecordAsStruct(projections)
 
       combinedRecord.schema().fields().asScala.size shouldBe originalRecord
         .valueSchema()
@@ -440,12 +494,16 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
     "select * from headers fields for struct" in {
 
       val originalRecord = sinkRecordWithKeyHeaders()
-      val combinedRecord = originalRecord.newFilteredRecordAsStruct(
-        fields = Map.empty,
-        ignoreFields = Set.empty[String],
+
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map(originalRecord.topic() -> Map("*" -> "*")),
         keyFields = Map.empty,
-        headerFields = Map("*" -> "*")
+        valueFields = Map.empty,
+        ignoreFields = Map.empty
       )
+
+      val combinedRecord = originalRecord.newFilteredRecordAsStruct(projections)
 
       val expected =
         "{\"header_field_1\":\"foo\",\"header_field_2\":\"bar\",\"header_field_3\":\"boo\"}"
@@ -460,12 +518,17 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
     "select some fields from headers for struct" in {
 
       val originalRecord = sinkRecordWithKeyHeaders()
-      val combinedRecord = originalRecord.newFilteredRecordAsStruct(
-        fields = Map.empty,
-        ignoreFields = Set.empty[String],
+
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map(originalRecord.topic() -> Map("header_field_1" -> "my_header_alias")),
         keyFields = Map.empty,
-        headerFields = Map("header_field_1" -> "my_header_alias")
+        valueFields = Map.empty,
+        ignoreFields = Map.empty
       )
+
+
+      val combinedRecord = originalRecord.newFilteredRecordAsStruct(projections)
 
       val expected = "{\"my_header_alias\":\"foo\"}"
       combinedRecord.schema().fields().asScala.size shouldBe 1
@@ -477,24 +540,31 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
     "should return empty record for struct" in {
 
       val originalRecord = sinkRecordWithKeyHeaders()
-      val combinedRecord = originalRecord.newFilteredRecordAsStruct(
-        fields = Map.empty,
-        ignoreFields = Set.empty[String],
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map.empty,
         keyFields = Map.empty,
-        headerFields = Map.empty
+        valueFields = Map.empty,
+        ignoreFields = Map.empty
       )
+
+      val combinedRecord = originalRecord.newFilteredRecordAsStruct(projections)
 
       combinedRecord.schema().fields().asScala.size shouldBe 0
     }
 
     "should ignore fields for struct" in {
       val originalRecord = getTestRecord
-      val combinedRecord = originalRecord.newFilteredRecordAsStruct(
-        fields = Map("*" -> "*"),
-        ignoreFields = Set("int_field"),
+
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map.empty,
         keyFields = Map.empty,
-        headerFields = Map.empty
+        valueFields = Map(originalRecord.topic() -> Map("*" -> "*")),
+        ignoreFields = Map(originalRecord.topic() -> Set("int_field"))
       )
+
+      val combinedRecord = originalRecord.newFilteredRecordAsStruct(projections)
 
       val expected =
         "{\"id\":\"sink_test-1-1\",\"long_field\":1,\"string_field\":\"foo\"}"
@@ -527,16 +597,19 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       val record =
         new SinkRecord("t", 0, null, keys, null, fields, 0, null, null, headers)
 
-      val combinedRecord = record.newFilteredRecordAsStruct(
-        fields = Map("field2" -> "field2_alias",
-                     "field3" -> "field3",
-                     "field4" -> "field4",
-                     "field5" -> "field5",
-                     "field6" -> "field6"),
-        ignoreFields = Set.empty,
-        keyFields = Map("key_field1" -> "key_field1_alias"),
-        headerFields = Map("*" -> "*")
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map("t" ->  Map("*" -> "*")),
+        keyFields = Map("t" -> Map("key_field1" -> "key_field1_alias")),
+        valueFields = Map("t" -> Map("field2" -> "field2_alias",
+          "field3" -> "field3",
+          "field4" -> "field4",
+          "field5" -> "field5",
+          "field6" -> "field6")),
+        ignoreFields = Map.empty
       )
+
+      val combinedRecord = record.newFilteredRecordAsStruct(projections)
 
       val expected =
         "{\"key_field1_alias\":\"key_value1\",\"field5\":1.1,\"field4\":true,\"field3\":null,\"field2_alias\":3,\"field6\":[1,2,3],\"header_float\":1.1,\"header_decimal\":2.1,\"header_string\":\"header_string_value\",\"header_int\":1,\"header_boolean\":true}"
@@ -573,12 +646,15 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
                                   json,
                                   0)
 
-      val combinedRecord = record.newFilteredRecordAsStruct(
-        fields = Map("field1" -> "field1_alias"),
-        ignoreFields = Set.empty,
-        keyFields = Map("key_field1" -> "key_field1_alias"),
-        headerFields = Map.empty
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map.empty,
+        keyFields = Map("t" ->  Map("key_field1" -> "key_field1_alias")),
+        valueFields = Map("t" -> Map("field1" -> "field1_alias")),
+        ignoreFields = Map.empty
       )
+
+      val combinedRecord = record.newFilteredRecordAsStruct(projections)
 
       val expected =
         "{\"key_field1_alias\":\"value1\",\"field1_alias\":\"value1\"}"
@@ -615,12 +691,15 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
                                   json,
                                   0)
 
-      val combinedRecord = record.newFilteredRecordAsStruct(
-        fields = Map.empty,
-        ignoreFields = Set.empty,
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map.empty,
         keyFields = Map.empty,
-        headerFields = Map.empty
+        valueFields = Map.empty,
+        ignoreFields = Map.empty
       )
+
+      val combinedRecord = record.newFilteredRecordAsStruct(projections)
 
       val expected = "{}"
       simpleJsonConverter
@@ -639,14 +718,17 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
           |}
         """.stripMargin
       val record =
-        new SinkRecord("t",0, Schema.STRING_SCHEMA, keyJson,null,null,0)
+        new SinkRecord("t", 0, Schema.STRING_SCHEMA, keyJson, null, null, 0)
 
-      val combinedRecord = record.newFilteredRecordAsStruct(
-        fields = Map.empty,
-        ignoreFields = Set.empty,
-        keyFields = Map("key_field1" -> "key_field1_alias"),
-        headerFields = Map("header1" -> "header_alias")
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map("t" -> Map("header1" -> "header_alias")),
+        keyFields = Map("t" -> Map("key_field1" -> "key_field1_alias")),
+        valueFields = Map.empty,
+        ignoreFields = Map.empty
       )
+
+      val combinedRecord = record.newFilteredRecordAsStruct(projections)
 
       val expected = "{\"key_field1_alias\":\"value1\"}"
       simpleJsonConverter
@@ -677,21 +759,25 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         """.stripMargin
 
       val record =
-        new SinkRecord("t",0,null,null, Schema.STRING_SCHEMA, json,0)
+        new SinkRecord("t", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
-      val combinedRecord = record.newFilteredRecordAsStruct(
-        fields = Map(
-            "fieldMap.f1" -> "fm1_alias",
-            "moreComplex.nested1.n1" -> "moreComplex.nested1.n1",
-            "moreComplex.nested1.arr" -> "moreComplex.nested1.arr",
-            "moreComplex.nested1.nested2.n2" -> "moreComplex.nested1.nested2.n2"
-        ),
-        ignoreFields = Set.empty,
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map.empty,
         keyFields = Map.empty,
-        headerFields = Map.empty
+        valueFields = Map("t" -> Map(
+          "fieldMap.f1" -> "fm1_alias",
+          "moreComplex.nested1.n1" -> "moreComplex.nested1.n1",
+          "moreComplex.nested1.arr" -> "moreComplex.nested1.arr",
+          "moreComplex.nested1.nested2.n2" -> "moreComplex.nested1.nested2.n2"
+        )),
+        ignoreFields = Map.empty
       )
 
-      val expected = "{\"fm1_alias\":\"v1\",\"moreComplex.nested1.n1\":\"nv1\",\"moreComplex.nested1.arr\":[1,2,3],\"moreComplex.nested1.nested2.n2\":\"nv2\"}"
+      val combinedRecord = record.newFilteredRecordAsStruct(projections)
+
+      val expected =
+        "{\"fm1_alias\":\"v1\",\"moreComplex.nested1.n1\":\"nv1\",\"moreComplex.nested1.arr\":[1,2,3],\"moreComplex.nested1.nested2.n2\":\"nv2\"}"
       simpleJsonConverter
         .fromConnectData(combinedRecord.schema(), combinedRecord)
         .toString shouldBe expected
@@ -722,20 +808,24 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       fields.put("moreComplex", moreComplex)
 
       val record =
-        new SinkRecord("t",0,null,null, null, fields, 0)
+        new SinkRecord("t", 0, null, null, null, fields, 0)
 
-      val combinedRecord = record.newFilteredRecordAsStruct(
-        fields = Map(
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map.empty,
+        keyFields = Map.empty,
+        valueFields = Map("t" -> Map(
           "fieldMap.f1" -> "fm1_alias",
           "moreComplex.nested1.n1" -> "moreComplex.nested1.n1",
           "moreComplex.nested1.arr" -> "moreComplex.nested1.arr"
-        ),
-        ignoreFields = Set.empty,
-        keyFields = Map.empty,
-        headerFields = Map.empty
+        )),
+        ignoreFields = Map.empty
       )
 
-      val expected = "{\"fm1_alias\":\"v1\",\"moreComplex.nested1.n1\":\"nv1\",\"moreComplex.nested1.arr\":[1,2,3]}"
+      val combinedRecord = record.newFilteredRecordAsStruct(projections)
+
+      val expected =
+        "{\"fm1_alias\":\"v1\",\"moreComplex.nested1.n1\":\"nv1\",\"moreComplex.nested1.arr\":[1,2,3]}"
       simpleJsonConverter
         .fromConnectData(combinedRecord.schema(), combinedRecord)
         .toString shouldBe expected
@@ -743,7 +833,9 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
 
     "should handle complex type for struct" in {
 
-      val inner = SchemaBuilder.struct().name("inner")
+      val inner = SchemaBuilder
+        .struct()
+        .name("inner")
         .version(1)
         .field("long_field", Schema.INT64_SCHEMA)
         .field("string_field", Schema.STRING_SCHEMA)
@@ -753,32 +845,37 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       innerV.put("long_field", 10L)
       innerV.put("string_field", "inner_string")
 
-      val root = SchemaBuilder.struct.name("record")
+      val root = SchemaBuilder.struct
+        .name("record")
         .version(1)
         .field("id", Schema.STRING_SCHEMA)
         .field("int_field", Schema.INT32_SCHEMA)
         .field("inner", inner)
         .build
 
-
       val rootV = new Struct(root)
       rootV.put("id", "my-id")
       rootV.put("int_field", 20)
       rootV.put("inner", innerV)
 
-      val record = new SinkRecord("t",0,null,null, root, rootV, 0)
-      val combinedRecord = record.newFilteredRecordAsStruct(
-        fields = Map(
+      val record = new SinkRecord("t", 0, null, null, root, rootV, 0)
+
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map.empty,
+        keyFields = Map.empty,
+        valueFields = Map("t" -> Map(
           "id" -> "id_alias",
           "inner.long_field" -> "inner_long",
           "inner.string_field" -> "inner.string_field"
-        ),
-        ignoreFields = Set.empty,
-        keyFields = Map.empty,
-        headerFields = Map.empty
+        )),
+        ignoreFields = Map.empty
       )
 
-      val expected = "{\"id_alias\":\"my-id\",\"inner_long\":10,\"inner.string_field\":\"inner_string\"}"
+      val combinedRecord = record.newFilteredRecordAsStruct(projections)
+
+      val expected =
+        "{\"id_alias\":\"my-id\",\"inner_long\":10,\"inner.string_field\":\"inner_string\"}"
       simpleJsonConverter
         .fromConnectData(combinedRecord.schema(), combinedRecord)
         .toString shouldBe expected
@@ -786,7 +883,9 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
 
     "should handle field not found struct" in {
 
-      val inner = SchemaBuilder.struct().name("inner")
+      val inner = SchemaBuilder
+        .struct()
+        .name("inner")
         .version(1)
         .field("long_field", Schema.INT64_SCHEMA)
         .field("string_field", Schema.STRING_SCHEMA)
@@ -796,13 +895,13 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       innerV.put("long_field", 10L)
       innerV.put("string_field", "inner_string")
 
-      val root = SchemaBuilder.struct.name("record")
+      val root = SchemaBuilder.struct
+        .name("record")
         .version(1)
         .field("id", Schema.STRING_SCHEMA)
         .field("int_field", Schema.INT32_SCHEMA)
         .field("inner", inner)
         .build
-
 
       val rootV = new Struct(root)
       rootV.put("id", "my-id")
@@ -810,18 +909,23 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       rootV.put("inner", innerV)
 
       val record = new SinkRecord("t",0,null,null, root, rootV, 0)
-      val combinedRecord = record.newFilteredRecordAsStruct(
-        fields = Map(
+
+      val projections = new Projections(
+        targets = Map.empty,
+        headerFields = Map.empty,
+        keyFields = Map.empty,
+        valueFields = Map("t" -> Map(
           "id" -> "id_alias",
           "inner.long_field" -> "inner_long",
           "inner.string_field" -> "inner.string_field"
-        ),
-        ignoreFields = Set.empty,
-        keyFields = Map.empty,
-        headerFields = Map.empty
+        )),
+        ignoreFields = Map.empty
       )
 
-      val expected = "{\"id_alias\":\"my-id\",\"inner_long\":10,\"inner.string_field\":\"inner_string\"}"
+      val combinedRecord = record.newFilteredRecordAsStruct(projections)
+
+      val expected =
+        "{\"id_alias\":\"my-id\",\"inner_long\":10,\"inner.string_field\":\"inner_string\"}"
       simpleJsonConverter
         .fromConnectData(combinedRecord.schema(), combinedRecord)
         .toString shouldBe expected

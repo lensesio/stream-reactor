@@ -19,10 +19,9 @@
 package com.datamountaineer.streamreactor.common.errors
 
 import java.util.Date
-
 import ErrorPolicyEnum.ErrorPolicyEnum
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.kafka.connect.errors.RetriableException
+import org.apache.kafka.connect.errors.{ConnectException, RetriableException}
 
 /**
   * Created by andrew@datamountaineer.com on 19/05/16. 
@@ -57,7 +56,7 @@ case class NoopErrorPolicy() extends ErrorPolicy {
 
 case class ThrowErrorPolicy() extends ErrorPolicy {
   override def handle(error: Throwable, sink: Boolean = true, retryCount: Int = 0){
-    throw new RuntimeException(error)
+    throw new ConnectException(error)
   }
 }
 
@@ -65,7 +64,7 @@ case class RetryErrorPolicy() extends ErrorPolicy {
 
   override def handle(error: Throwable, sink: Boolean = true, retryCount: Int): Unit = {
     if (retryCount == 0) {
-      throw new RuntimeException(error)
+      throw new ConnectException(error)
     }
     else {
       logger.warn(s"Error policy set to RETRY. Remaining attempts [$retryCount]")

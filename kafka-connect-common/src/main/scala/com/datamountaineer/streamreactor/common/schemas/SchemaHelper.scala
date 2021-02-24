@@ -37,8 +37,14 @@ object SchemaHelper {
                 case Some(value) => Right(state.copy(schema = value.schema(), path = state.path :+ field))
                 case None =>
                   val path = (state.path :+ field).mkString(".")
-                  val msg = s"Field [$path] does not exist. Schema is ${schema.`type`()}. Available Fields are [${schema.fields().asScala.map(_.name()).mkString(",")}]"
-                  Left(FieldSchemaExtractionError(path, msg))
+                  val msg = s"Field [$path] does not exist. Schema is [${schema.`type`()}]. Available Fields are [${schema.fields().asScala.map(_.name()).mkString(",")}]"
+                  val finalMsg = if (path.endsWith("*")) {
+                    s"$msg. Nested fields must be specified explicitly in the selected clause"
+                  } else {
+                    msg
+                  }
+
+                  Left(FieldSchemaExtractionError(path, finalMsg))
               }
             case other=>
               val path = state.path.mkString(".")

@@ -19,6 +19,7 @@
 package com.datamountaineer.streamreactor.common.schemas
 
 import StructHelper.StructExtension
+import com.datamountaineer.streamreactor.common.config.base.settings.Projections
 import com.datamountaineer.streamreactor.connect.converters.source.JsonSimpleConverter
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.typesafe.scalalogging.StrictLogging
@@ -39,46 +40,58 @@ object SinkRecordConverterHelper extends StrictLogging {
       * make new sink record, taking fields
       * from the key, value and headers
       * */
-    def newFilteredRecordAsStruct(
-        fields: Map[String, String],
-        ignoreFields: Set[String] = Set.empty[String],
-        keyFields: Map[String, String] = Map.empty[String, String],
-        headerFields: Map[String, String] = Map.empty[String, String]): Struct = {
+    def newFilteredRecordAsStruct(projections: Projections): Struct = {
+
+      val ignoredFields = projections.ignoreFields.getOrElse(record.topic(), Set.empty)
 
       //if we have keys fields and a key value extract
-      val keyStruct = if (keyFields.nonEmpty && record.key() != null) {
-        extract(payload = record.key(),
-                payloadSchema = record.keySchema(),
-                fields = keyFields,
-                ignoreFields = Set.empty)
-      } else {
-        logger.debug(
-          s"Key is null for topic [${record.topic()}], partition [${record
-            .kafkaPartition()}], offset [${record.kafkaOffset()}])")
-        new Struct(SchemaBuilder.struct().build())
-      }
+      val keyStruct =
+        if (projections.keyFields.nonEmpty && projections
+              .keyFields(record.topic())
+              .nonEmpty && record.key() != null) {
+          extract(
+            payload = record.key(),
+            payloadSchema = record.keySchema(),
+            fields = projections.keyFields(record.topic()),
+            ignoreFields = ignoredFields
+          )
+        } else {
+          logger.debug(
+            s"Key is null for topic [${record.topic()}], partition [${record
+              .kafkaPartition()}], offset [${record.kafkaOffset()}])")
+          new Struct(SchemaBuilder.struct().build())
+        }
 
       //if we have value fields and a value extract
-      val valueStruct = if (fields.nonEmpty && record.value() != null) {
-        extract(payload = record.value(),
-                payloadSchema = record.valueSchema(),
-                fields = fields,
-                ignoreFields = ignoreFields)
-      } else {
-        logger.debug(
-          s"Value is null for topic [${record.topic()}], partition [${record
-            .kafkaPartition()}], offset [${record.kafkaOffset()}])")
-        new Struct(SchemaBuilder.struct().build())
-      }
+      val valueStruct =
+        if (projections.valueFields.nonEmpty && projections
+              .valueFields(record.topic())
+              .nonEmpty && record.value() != null) {
+          extract(
+            payload = record.value(),
+            payloadSchema = record.valueSchema(),
+            fields = projections.valueFields(record.topic()),
+            ignoreFields = ignoredFields
+          )
+        } else {
+          logger.debug(
+            s"Value is null for topic [${record.topic()}], partition [${record
+              .kafkaPartition()}], offset [${record.kafkaOffset()}])")
+          new Struct(SchemaBuilder.struct().build())
+        }
 
       //if we have headers fields and values extract
       val headerStruct =
-        if (headerFields.nonEmpty && !record.headers().isEmpty) {
+        if (projections.headerFields.nonEmpty && projections
+              .headerFields(record.topic())
+              .nonEmpty && !record.headers().isEmpty) {
           val headerAsSinkRecord = headerToSinkRecord(record)
-          extract(payload = headerAsSinkRecord.value(),
-                  payloadSchema = headerAsSinkRecord.valueSchema(),
-                  fields = headerFields,
-                  ignoreFields = Set.empty)
+          extract(
+            payload = headerAsSinkRecord.value(),
+            payloadSchema = headerAsSinkRecord.valueSchema(),
+            fields = projections.headerFields(record.topic()),
+            ignoreFields = ignoredFields
+          )
         } else {
           logger.debug(
             s"Headers are empty for topic [${record.topic()}], partition [${record

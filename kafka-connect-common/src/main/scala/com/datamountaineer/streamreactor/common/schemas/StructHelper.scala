@@ -22,6 +22,7 @@ import SchemaHelper.SchemaExtensions
 import com.typesafe.scalalogging.Logger
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.errors.ConnectException
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
@@ -135,7 +136,7 @@ object StructHelper {
         .foreach {
           case (name, alias) =>
             oldStruct.extractValueFromPath(name) match {
-              case Left(value)  => logger.error(value.msg)
+              case Left(value)  => throw new ConnectException(value.msg)
               case Right(value) => newStruct.put(alias, value.orNull)
             }
         }
@@ -149,7 +150,7 @@ object StructHelper {
         .foreach {
           case (name, alias) =>
             schema.extractSchema(name) match {
-              case Left(value)  => logger.error(value.msg)
+              case Left(value)  => throw new ConnectException(value.msg)
               case Right(value) => builder.field(alias, value)
             }
         }

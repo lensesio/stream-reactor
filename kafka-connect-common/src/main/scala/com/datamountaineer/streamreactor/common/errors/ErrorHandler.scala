@@ -37,7 +37,7 @@ trait ErrorHandler extends StrictLogging {
     errorTracker = Some(ErrorTracker(maxRetries, maxRetries, "", new Date(), errorPolicy))
   }
 
-  def getErrorTrackerRetries() : Int = {
+  def getErrorTrackerRetries: Int = {
     errorTracker.get.retries
   }
 
@@ -68,7 +68,7 @@ trait ErrorHandler extends StrictLogging {
     }
   }
 
-  def resetErrorTracker() = {
+  def resetErrorTracker(): Unit = {
     errorTracker = Some(ErrorTracker(errorTracker.get.maxRetries, errorTracker.get.maxRetries, "", new Date(),
       errorTracker.get.policy))
   }
