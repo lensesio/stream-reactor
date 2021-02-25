@@ -18,14 +18,29 @@
 
 package com.datamountaineer.streamreactor.common.config.base.settings
 
-import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.kcql.{FormatType, Kcql, WriteModeEnum}
+import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ErrorPolicyEnum}
+import org.apache.kafka.common.config.ConfigException
+
 import scala.collection.JavaConverters._
+import scala.collection.immutable.ListSet
 
 case class Projections(targets: Map[String, String], // source -> target
+                       writeMode: Map[String, WriteModeEnum],
                        headerFields: Map[String, Map[String, String]],
                        keyFields: Map[String, Map[String, String]],
                        valueFields: Map[String, Map[String, String]],
-                       ignoreFields: Map[String, Set[String]]
+                       ignoreFields: Map[String, Set[String]],
+                       primaryKeys: Map[String, Set[String]],
+                       storedAs: Map[String, String] = Map.empty,
+                       format: Map[String, FormatType] = Map.empty,
+                       ttl: Map[String, Long] = Map.empty,
+                       batchSize: Map[String, Int] = Map.empty,
+                       autoCreate: Map[String, Boolean] = Map.empty,
+                       autoEvolve: Map[String, Boolean] = Map.empty,
+                       converters: Map[String, String] = Map.empty,
+                       errorPolicy: ErrorPolicy = ErrorPolicy(ErrorPolicyEnum.THROW),
+                       errorRetries: Int = 0,
                       )
 
 
@@ -34,11 +49,39 @@ object Projections {
   def apply(kcqls: Set[Kcql]): Projections = {
     Projections(
       targets = getTargetMapping(kcqls),
+      writeMode = getWriteMode(kcqls),
       headerFields = getHeaderFields(kcqls),
       keyFields = getKeyFields(kcqls),
       valueFields = getValueFields(kcqls),
-      ignoreFields = kcqls.map(rm => (rm.getSource, rm.getIgnoredFields.asScala.map(f => f.getName).toSet)).toMap
+      ignoreFields = kcqls.map(rm => (rm.getSource, rm.getIgnoredFields.asScala.map(f => f.getName).toSet)).toMap,
+      primaryKeys = getUpsertKeys(kcqls)
     )
+  }
+
+  def getUpsertKeys(kcqls: Set[Kcql], preserveFullKeys: Boolean = false): Map[String, Set[String]] = {
+
+    kcqls
+      .filter(c => c.getWriteMode == WriteModeEnum.UPSERT)
+      .map { r =>
+        val keys: Set[String] = ListSet(
+          r.getPrimaryKeys.asScala
+            .map(key =>
+              if (preserveFullKeys) {
+                key.toString
+              } else {
+                key.getName
+              })
+            .reverse: _*)
+        if (keys.isEmpty)
+          throw new ConfigException(
+            s"[${r.getTarget}] is set up with upsert, you need to set primary keys")
+        (r.getSource, keys)
+      }
+      .toMap
+  }
+
+  def getWriteMode(kcql: Set[Kcql]): Map[String, WriteModeEnum] = {
+    kcql.toList.map(r => (r.getSource, r.getWriteMode)).toMap
   }
 
   def getTargetMapping(kcql: Set[Kcql]) : Map[String, String] = {
