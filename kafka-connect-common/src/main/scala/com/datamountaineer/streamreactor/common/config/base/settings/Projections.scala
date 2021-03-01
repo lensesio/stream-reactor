@@ -46,7 +46,7 @@ case class Projections(targets: Map[String, String], // source -> target
 
 
 object Projections {
-  def apply(kcqls: Set[Kcql]): Projections = {
+  def apply(kcqls: Set[Kcql], errorPolicy: ErrorPolicy, errorRetries: Int): Projections = {
     Projections(
       targets = getTargetMapping(kcqls),
       writeMode = getWriteMode(kcqls),
@@ -54,7 +54,9 @@ object Projections {
       keyFields = getKeyFields(kcqls),
       valueFields = getValueFields(kcqls),
       ignoreFields = kcqls.map(rm => (rm.getSource, rm.getIgnoredFields.asScala.map(f => f.getName).toSet)).toMap,
-      primaryKeys = getUpsertKeys(kcqls)
+      primaryKeys = getUpsertKeys(kcqls),
+      errorPolicy = errorPolicy,
+      errorRetries = errorRetries
     )
   }
 
