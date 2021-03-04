@@ -75,33 +75,19 @@ object StructHelper {
     }
 
     def ++(input: Struct): Struct = {
-      val builder = SchemaBuilder.struct()
 
-      //get the original records fields and values and add to new schema
-      val originalFieldsAndValues = struct
-        .schema()
-        .fields()
-        .asScala
-        .map(f => {
-          builder.field(f.name(), f.schema())
-          f.name() -> struct.get(f.name())
-        })
+      val newFields = struct.schema().fields().asScala ++ input.schema().fields().asScala
 
-      //get the input records fields and values and add to new schema
-      val inputFieldsAndValues = input
-        .schema()
-        .fields()
-        .asScala
-        .map(f => {
-          builder.field(f.name(), f.schema())
-          f.name() -> input.get(f.name())
-        })
+      val builder = newFields.foldLeft(SchemaBuilder.struct()) { (builder, field) =>
+        builder.field(field.name(), field.schema())
+      }
 
       //make new struct with the new schema
       val output = new Struct(builder.build())
+
       //add the values
-      originalFieldsAndValues.foreach{ case (name, value) => output.put(name, value)}
-      inputFieldsAndValues.foreach{ case (name, value) => output.put(name, value)}
+      struct.schema().fields().asScala.foreach{ f => output.put(f.name(), struct.get(f.name()))}
+      input.schema().fields().asScala.foreach{ f => output.put(f.name(), input.get(f.name()))}
       output
     }
 

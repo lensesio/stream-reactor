@@ -31,6 +31,7 @@ import org.apache.kafka.connect.data.{Schema, Struct}
 
 import scala.util.{Failure, Success, Try}
 
+@deprecated
 object ToJsonWithProjections extends StrictLogging {
   lazy val simpleJsonConverter = new SimpleJsonConverter()
 

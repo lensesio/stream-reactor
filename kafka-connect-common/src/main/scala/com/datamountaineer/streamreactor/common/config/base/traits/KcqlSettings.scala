@@ -19,18 +19,12 @@
 package com.datamountaineer.streamreactor.common.config.base.traits
 
 import com.datamountaineer.kcql.{Field, FormatType, Kcql, WriteModeEnum}
-import com.datamountaineer.streamreactor.common.rowkeys.{
-  StringGenericRowKeyBuilder,
-  StringKeyBuilder,
-  StringStructFieldsStringKeyBuilder
-}
 import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.KCQL_PROP_SUFFIX
+import com.datamountaineer.streamreactor.common.rowkeys.{StringGenericRowKeyBuilder, StringKeyBuilder, StringStructFieldsStringKeyBuilder}
 import org.apache.kafka.common.config.ConfigException
 
-import java.util
 import scala.collection.JavaConverters._
 import scala.collection.immutable.ListSet
-import scala.collection.mutable
 
 trait KcqlSettings extends BaseSettings {
   val kcqlConstant: String = s"$connectorPrefix.$KCQL_PROP_SUFFIX"

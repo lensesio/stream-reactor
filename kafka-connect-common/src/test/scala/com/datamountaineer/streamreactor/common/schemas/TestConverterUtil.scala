@@ -110,14 +110,15 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       intercept[RuntimeException] {
         val record =
           new SinkRecord("t", 0, null, null, null, "Should not be here", 0)
-        val projections = new Projections(targets = Map.empty,
-                                          headerFields = Map.empty,
-                                          keyFields = Map.empty,
-                                          valueFields =
-                                            Map("t" -> Map("*" -> "*")),
-                                          ignoreFields = Map.empty,
+        val projections = new Projections(
+          targets = Map.empty,
+          headerFields = Map.empty,
+          keyFields = Map.empty,
+          valueFields = Map("t" -> Map("*" -> "*")),
+          ignoreFields = Map.empty,
           primaryKeys = Map.empty,
-          writeMode = Map.empty)
+          writeMode = Map.empty
+        )
         record.newFilteredRecordAsStruct(projections)
       }
     }
@@ -131,13 +132,15 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       val record = new SinkRecord("t", 0, null, null, null, map, 0)
 
       val projections =
-        new Projections(targets = Map.empty,
-                        headerFields = Map.empty,
-                        keyFields = Map.empty,
-                        valueFields = Map("t" -> Map("*" -> "*")),
-                        ignoreFields = Map("t" -> Set("toremove")),
+        new Projections(
+          targets = Map.empty,
+          headerFields = Map.empty,
+          keyFields = Map.empty,
+          valueFields = Map("t" -> Map("*" -> "*")),
+          ignoreFields = Map("t" -> Set("toremove")),
           primaryKeys = Map.empty,
-          writeMode = Map.empty)
+          writeMode = Map.empty
+        )
       val combinedRecord = record.newFilteredRecordAsStruct(projections)
 
       val expected = "{\"field1\":\"value1\",\"field2\":3}"
@@ -185,10 +188,10 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         targets = Map.empty,
         headerFields = Map.empty,
         keyFields = Map.empty,
-        valueFields =
-          Map("t" -> Map("field1" -> "field1",
-            "field2" -> "fieldRenamed",
-            "field3" -> "field3")),
+        valueFields = Map(
+          "t" -> Map("field1" -> "field1",
+                     "field2" -> "fieldRenamed",
+                     "field3" -> "field3")),
         ignoreFields = Map.empty,
         primaryKeys = Map.empty,
         writeMode = Map.empty
@@ -233,8 +236,7 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         targets = Map.empty,
         headerFields = Map.empty,
         keyFields = Map.empty,
-        valueFields =
-          Map("t" -> Map("id" -> "id", "tags" -> "tagsRenamed")),
+        valueFields = Map("t" -> Map("id" -> "id", "tags" -> "tagsRenamed")),
         ignoreFields = Map("t" -> Set("price")),
         primaryKeys = Map.empty,
         writeMode = Map.empty
@@ -257,8 +259,7 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
           targets = Map.empty,
           headerFields = Map.empty,
           keyFields = Map.empty,
-          valueFields =
-            Map("t" -> Map("id" -> "id", "tags" -> "tagsRenamed")),
+          valueFields = Map("t" -> Map("id" -> "id", "tags" -> "tagsRenamed")),
           ignoreFields = Map("t" -> Set("price")),
           primaryKeys = Map.empty,
           writeMode = Map.empty
@@ -285,8 +286,7 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         targets = Map.empty,
         headerFields = Map.empty,
         keyFields = Map.empty,
-        valueFields =
-          Map("t" -> Map("*" -> "*")),
+        valueFields = Map("t" -> Map("*" -> "*")),
         ignoreFields = Map("t" -> Set("toremove")),
         primaryKeys = Map.empty,
         writeMode = Map.empty
@@ -351,7 +351,7 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         keyFields = Map.empty,
         valueFields =
           Map("t" -> Map("field1" -> "field1", "field2" -> "fieldRenamed")),
-        ignoreFields = Map("t" ->  Set("toremove")),
+        ignoreFields = Map("t" -> Set("toremove")),
         primaryKeys = Map.empty,
         writeMode = Map.empty
       )
@@ -382,9 +382,8 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         targets = Map.empty,
         headerFields = Map.empty,
         keyFields = Map.empty,
-        valueFields =
-          Map("t" -> Map("id" -> "id", "tags" -> "tagsRenamed")),
-        ignoreFields = Map("t" ->  Set("price")),
+        valueFields = Map("t" -> Map("id" -> "id", "tags" -> "tagsRenamed")),
+        ignoreFields = Map("t" -> Set("price")),
         primaryKeys = Map.empty,
         writeMode = Map.empty
       )
@@ -404,8 +403,11 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
 
       val projections = new Projections(
         targets = Map.empty,
-        headerFields = Map(originalRecord.topic() -> Map("header_field_3" -> "header_alias_field_3")),
-        keyFields = Map(originalRecord.topic() -> Map("key_int_field" -> "key_int_field")),
+        headerFields = Map(
+          originalRecord.topic() -> Map(
+            "header_field_3" -> "header_alias_field_3")),
+        keyFields = Map(
+          originalRecord.topic() -> Map("key_int_field" -> "key_int_field")),
         valueFields =
           Map(originalRecord.topic() -> Map("int_field" -> "int_field")),
         ignoreFields = Map.empty,
@@ -438,8 +440,12 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         targets = Map.empty,
         headerFields = Map.empty,
         keyFields = Map.empty,
-        valueFields =
-          Map(originalRecord.topic() -> createSchema.fields().asScala.map(f => (f.name(), f.name())).toMap),
+        valueFields = Map(
+          originalRecord.topic() -> createSchema
+            .fields()
+            .asScala
+            .map(f => (f.name(), f.name()))
+            .toMap),
         ignoreFields = Map.empty,
         primaryKeys = Map.empty,
         writeMode = Map.empty
@@ -469,8 +475,7 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         targets = Map.empty,
         headerFields = Map.empty,
         keyFields = Map.empty,
-        valueFields =
-          Map(originalRecord.topic() -> Map("*" -> "*")),
+        valueFields = Map(originalRecord.topic() -> Map("*" -> "*")),
         ignoreFields = Map.empty,
         primaryKeys = Map.empty,
         writeMode = Map.empty
@@ -498,7 +503,7 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       val projections = new Projections(
         targets = Map.empty,
         headerFields = Map.empty,
-        keyFields =  Map(originalRecord.topic() -> Map("*" -> "*")),
+        keyFields = Map(originalRecord.topic() -> Map("*" -> "*")),
         valueFields = Map.empty,
         ignoreFields = Map.empty,
         primaryKeys = Map.empty,
@@ -552,14 +557,14 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
 
       val projections = new Projections(
         targets = Map.empty,
-        headerFields = Map(originalRecord.topic() -> Map("header_field_1" -> "my_header_alias")),
+        headerFields = Map(
+          originalRecord.topic() -> Map("header_field_1" -> "my_header_alias")),
         keyFields = Map.empty,
         valueFields = Map.empty,
         ignoreFields = Map.empty,
         primaryKeys = Map.empty,
         writeMode = Map.empty
       )
-
 
       val combinedRecord = originalRecord.newFilteredRecordAsStruct(projections)
 
@@ -636,13 +641,14 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
 
       val projections = new Projections(
         targets = Map.empty,
-        headerFields = Map("t" ->  Map("*" -> "*")),
+        headerFields = Map("t" -> Map("*" -> "*")),
         keyFields = Map("t" -> Map("key_field1" -> "key_field1_alias")),
-        valueFields = Map("t" -> Map("field2" -> "field2_alias",
-          "field3" -> "field3",
-          "field4" -> "field4",
-          "field5" -> "field5",
-          "field6" -> "field6")),
+        valueFields = Map(
+          "t" -> Map("field2" -> "field2_alias",
+                     "field3" -> "field3",
+                     "field4" -> "field4",
+                     "field5" -> "field5",
+                     "field6" -> "field6")),
         ignoreFields = Map.empty,
         primaryKeys = Map.empty,
         writeMode = Map.empty
@@ -688,7 +694,7 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       val projections = new Projections(
         targets = Map.empty,
         headerFields = Map.empty,
-        keyFields = Map("t" ->  Map("key_field1" -> "key_field1_alias")),
+        keyFields = Map("t" -> Map("key_field1" -> "key_field1_alias")),
         valueFields = Map("t" -> Map("field1" -> "field1_alias")),
         ignoreFields = Map.empty,
         primaryKeys = Map.empty,
@@ -810,12 +816,13 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         targets = Map.empty,
         headerFields = Map.empty,
         keyFields = Map.empty,
-        valueFields = Map("t" -> Map(
-          "fieldMap.f1" -> "fm1_alias",
-          "moreComplex.nested1.n1" -> "moreComplex.nested1.n1",
-          "moreComplex.nested1.arr" -> "moreComplex.nested1.arr",
-          "moreComplex.nested1.nested2.n2" -> "moreComplex.nested1.nested2.n2"
-        )),
+        valueFields = Map(
+          "t" -> Map(
+            "fieldMap.f1" -> "fm1_alias",
+            "moreComplex.nested1.n1" -> "moreComplex.nested1.n1",
+            "moreComplex.nested1.arr" -> "moreComplex.nested1.arr",
+            "moreComplex.nested1.nested2.n2" -> "moreComplex.nested1.nested2.n2"
+          )),
         ignoreFields = Map.empty,
         primaryKeys = Map.empty,
         writeMode = Map.empty
@@ -861,11 +868,12 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         targets = Map.empty,
         headerFields = Map.empty,
         keyFields = Map.empty,
-        valueFields = Map("t" -> Map(
-          "fieldMap.f1" -> "fm1_alias",
-          "moreComplex.nested1.n1" -> "moreComplex.nested1.n1",
-          "moreComplex.nested1.arr" -> "moreComplex.nested1.arr"
-        )),
+        valueFields = Map(
+          "t" -> Map(
+            "fieldMap.f1" -> "fm1_alias",
+            "moreComplex.nested1.n1" -> "moreComplex.nested1.n1",
+            "moreComplex.nested1.arr" -> "moreComplex.nested1.arr"
+          )),
         ignoreFields = Map.empty,
         primaryKeys = Map.empty,
         writeMode = Map.empty
@@ -913,11 +921,12 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
         targets = Map.empty,
         headerFields = Map.empty,
         keyFields = Map.empty,
-        valueFields = Map("t" -> Map(
-          "id" -> "id_alias",
-          "inner.long_field" -> "inner_long",
-          "inner.string_field" -> "inner.string_field"
-        )),
+        valueFields = Map(
+          "t" -> Map(
+            "id" -> "id_alias",
+            "inner.long_field" -> "inner_long",
+            "inner.string_field" -> "inner.string_field"
+          )),
         ignoreFields = Map.empty,
         primaryKeys = Map.empty,
         writeMode = Map.empty
@@ -959,17 +968,18 @@ class TestConverterUtil extends TestUtilsBase with ConverterUtil {
       rootV.put("int_field", 20)
       rootV.put("inner", innerV)
 
-      val record = new SinkRecord("t",0,null,null, root, rootV, 0)
+      val record = new SinkRecord("t", 0, null, null, root, rootV, 0)
 
       val projections = new Projections(
         targets = Map.empty,
         headerFields = Map.empty,
         keyFields = Map.empty,
-        valueFields = Map("t" -> Map(
-          "id" -> "id_alias",
-          "inner.long_field" -> "inner_long",
-          "inner.string_field" -> "inner.string_field"
-        )),
+        valueFields = Map(
+          "t" -> Map(
+            "id" -> "id_alias",
+            "inner.long_field" -> "inner_long",
+            "inner.string_field" -> "inner.string_field"
+          )),
         ignoreFields = Map.empty,
         primaryKeys = Map.empty,
         writeMode = Map.empty

@@ -20,8 +20,9 @@ package com.datamountaineer.streamreactor.common.schemas
 
 import StructHelper.StructExtension
 import com.datamountaineer.streamreactor.common.config.base.settings.Projections
+import com.datamountaineer.streamreactor.common.converters.ToJsonWithProjections.simpleJsonConverter
 import com.datamountaineer.streamreactor.connect.converters.source.JsonSimpleConverter
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.ConnectException
@@ -35,6 +36,14 @@ object SinkRecordConverterHelper extends StrictLogging {
 
   implicit final class SinkRecordExtension(val record: SinkRecord)
       extends AnyVal {
+
+    def valueToJson(): JsonNode = {
+      simpleJsonConverter.fromConnectData(record.valueSchema(), record.value())
+    }
+
+    def keyToJson(): JsonNode = {
+      simpleJsonConverter.fromConnectData(record.valueSchema(), record.value())
+    }
 
     /**
       * make new sink record, taking fields

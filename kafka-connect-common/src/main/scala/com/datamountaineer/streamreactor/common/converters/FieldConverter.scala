@@ -22,6 +22,7 @@ import com.datamountaineer.kcql.Field
 
 import scala.collection.JavaConverters._
 
+@deprecated
 object FieldConverter {
   def apply(field: Field): com.landoop.sql.Field = {
     com.landoop.sql.Field(
