@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.voltdb.config
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.errors.ThrowErrorPolicy
+import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

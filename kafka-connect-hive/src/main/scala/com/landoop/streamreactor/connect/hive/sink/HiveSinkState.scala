@@ -8,6 +8,7 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 import org.apache.hadoop.hive.metastore.api.Table
 import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.errors.ConnectException
 
 case class HiveSinkState(offsets: Map[TopicPartition, Offset],
                          committedOffsets: Map[TopicPartition, Offset],
@@ -49,7 +50,7 @@ object HiveSinkState {
     val plan = hive.partitionPlan(hiveTable)
     val metastoreSchema = table.evolutionPolicy
       .evolve(dbName, table.tableName, HiveSchemas.toKafka(hiveTable), schema)
-      .getOrElse(sys.error(s"Unable to retrieve or evolve schema for $schema"))
+      .getOrElse(throw new ConnectException(s"Unable to retrieve or evolve schema for $schema"))
 
     val mapperFns: Seq[Struct => Struct] = Seq(
       table.projection.map(new ProjectionMapper(_)),

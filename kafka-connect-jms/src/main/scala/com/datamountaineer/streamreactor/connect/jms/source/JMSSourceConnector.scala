@@ -1,31 +1,32 @@
 /*
- * Copyright 2017 Datamountaineer.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  * Copyright 2020 Lenses.io.
+ *  *
+ *  * Licensed under the Apache License, Version 2.0 (the "License");
+ *  * you may not use this file except in compliance with the License.
+ *  * You may obtain a copy of the License at
+ *  *
+ *  * http://www.apache.org/licenses/LICENSE-2.0
+ *  *
+ *  * Unless required by applicable law or agreed to in writing, software
+ *  * distributed under the License is distributed on an "AS IS" BASIS,
+ *  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  * See the License for the specific language governing permissions and
+ *  * limitations under the License.
  *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 package com.datamountaineer.streamreactor.connect.jms.source
 
-import java.util
-
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.datamountaineer.streamreactor.connect.jms.config.{JMSConfig, JMSConfigConstants}
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 
+import java.util
 import scala.collection.JavaConverters._
 
 /**
@@ -41,7 +42,7 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
 
   def kcqlTaskScaling(maxTasks: Int): util.List[util.Map[String, String]] = {
     val raw = configProps.get(JMSConfigConstants.KCQL)
-    require(raw != null && !raw.isEmpty, s"No ${JMSConfigConstants.KCQL} provided!")
+    require(raw != null && raw.nonEmpty, s"No ${JMSConfigConstants.KCQL} provided!")
 
     //sql1, sql2
     val kcqls = raw.split(";")
@@ -60,7 +61,7 @@ class JMSSourceConnector extends SourceConnector with StrictLogging {
 
   def defaultTaskScaling(maxTasks: Int): util.List[util.Map[String, String]] = {
     val raw = configProps.get(JMSConfigConstants.KCQL)
-    require(raw != null && !raw.isEmpty, s"No ${JMSConfigConstants.KCQL} provided!")
+    require(raw != null && raw.nonEmpty, s"No ${JMSConfigConstants.KCQL} provided!")
     (1 to maxTasks).map { _ =>
       val taskConfigs: util.Map[String, String] = new java.util.HashMap[String, String]
       taskConfigs.putAll(configProps)

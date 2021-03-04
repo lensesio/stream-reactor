@@ -17,16 +17,15 @@
 package com.datamountaineer.streamreactor.connect.elastic7
 
 import java.util
-
 import com.datamountaineer.kcql.{Kcql, WriteModeEnum}
-import com.datamountaineer.streamreactor.connect.converters.FieldConverter
+import com.datamountaineer.streamreactor.common.converters.FieldConverter
+import com.datamountaineer.streamreactor.common.errors.ErrorHandler
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.elastic7.config.ElasticSettings
 import com.datamountaineer.streamreactor.connect.elastic7.indexname.CreateIndex
-import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.fasterxml.jackson.databind.JsonNode
 import com.landoop.sql.Field
-import com.sksamuel.elastic4s.{Index,Indexable}
+import com.sksamuel.elastic4s.{Index, Indexable}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord

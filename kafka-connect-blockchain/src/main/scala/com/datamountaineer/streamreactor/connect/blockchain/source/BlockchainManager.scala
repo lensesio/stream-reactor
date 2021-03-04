@@ -17,7 +17,6 @@
 package com.datamountaineer.streamreactor.connect.blockchain.source
 
 import java.util
-
 import akka.Done
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props, Terminated}
 import akka.http.scaladsl.Http
@@ -30,6 +29,7 @@ import com.datamountaineer.streamreactor.connect.blockchain.config.BlockchainSet
 import com.datamountaineer.streamreactor.connect.blockchain.data.BlockchainMessage
 import com.datamountaineer.streamreactor.connect.blockchain.json.JacksonJson
 import com.typesafe.scalalogging.StrictLogging
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceRecord
 
 import scala.concurrent.duration._
@@ -117,7 +117,7 @@ class BlockchainManager(settings: BlockchainSettings) extends AutoCloseable with
 
     val response = Await.result(upgradeResponse, settings.openConnectionTimeout).response
     if (response.status != StatusCodes.SwitchingProtocols) {
-      sys.error(s"Connection to ${settings.url} failed with ${response.status}")
+      throw new ConnectException(s"Connection to ${settings.url} failed with ${response.status}")
     }
     cancelFlow = Some(cancellable)
     closed

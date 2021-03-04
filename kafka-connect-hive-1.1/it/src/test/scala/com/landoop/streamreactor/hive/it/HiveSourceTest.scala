@@ -2,12 +2,12 @@ package com.landoop.streamreactor.hive.it
 
 import java.util.Collections
 import java.util.concurrent.TimeUnit
-
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{Millis, Span}
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.time.Duration
 import scala.io.Source
 
 class HiveSourceTest extends AnyWordSpec with Matchers with PersonTestData with Eventually with HiveTests {
@@ -27,7 +27,7 @@ class HiveSourceTest extends AnyWordSpec with Matchers with PersonTestData with 
 
       val producer = stringStringProducer()
       writeRecords(producer, inputTopic, JacksonSupport.mapper.writeValueAsString(person), count)
-      producer.close(30, TimeUnit.SECONDS)
+      producer.close(Duration.ofMillis(TimeUnit.SECONDS.toMillis(30)))
 
       // we now should have 1000 records in hive which we can test via jdbc
       eventually {

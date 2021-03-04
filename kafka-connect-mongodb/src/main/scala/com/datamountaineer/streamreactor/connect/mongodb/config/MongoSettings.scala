@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.mongodb.config
 import scala.collection.JavaConverters._
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
+import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
 import com.mongodb.AuthenticationMechanism
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.SslConfigs

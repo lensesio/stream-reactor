@@ -16,12 +16,13 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink
 
-import java.util
+import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
+import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
 
-import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
+import java.util
 import com.datamountaineer.streamreactor.connect.redis.sink.config.{RedisConfig, RedisConfigConstants, RedisSinkSettings}
 import com.datamountaineer.streamreactor.connect.redis.sink.writer._
-import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition

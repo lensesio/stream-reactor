@@ -16,9 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.kudu.config
 
-import java.util
+import com.datamountaineer.streamreactor.common.config.base.traits.{BaseConfig, ConnectionSettings, DatabaseSettings, ErrorPolicySettings, KcqlSettings, NumberRetriesSettings}
 
-import com.datamountaineer.streamreactor.connect.config.base.traits._
+import java.util
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
@@ -80,7 +80,7 @@ class KuduConfig(props: util.Map[String, String])
     with NumberRetriesSettings
     with ConnectionSettings {
 
-  def getWriteFlushMode() = WriteFlushMode.withName(
+  def getWriteFlushMode: WriteFlushMode.Value = WriteFlushMode.withName(
     props.getOrDefault(
       KuduConfigConstants.WRITE_FLUSH_MODE,
       KuduConfigConstants.WRITE_FLUSH_MODE_DEFAULT).toUpperCase)

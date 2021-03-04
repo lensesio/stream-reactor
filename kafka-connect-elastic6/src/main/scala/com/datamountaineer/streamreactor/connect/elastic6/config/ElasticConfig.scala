@@ -17,9 +17,8 @@
 package com.datamountaineer.streamreactor.connect.elastic6.config
 
 import java.util
-
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.config.base.traits._
+import com.datamountaineer.streamreactor.common.config.base.traits.{BaseConfig, ErrorPolicySettings, NumberRetriesSettings, WriteTimeoutSettings}
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 

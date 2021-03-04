@@ -16,11 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.elastic6
 
-import java.util
+import com.datamountaineer.streamreactor.common.errors.{ErrorPolicyEnum, RetryErrorPolicy}
+import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
 
+import java.util
 import com.datamountaineer.streamreactor.connect.elastic6.config.{ElasticConfig, ElasticConfigConstants, ElasticSettings}
-import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -49,8 +50,9 @@ class ElasticSinkTask extends SinkTask with StrictLogging {
 
     //if error policy is retry set retry interval
     val settings = ElasticSettings(sinkConfig)
-    if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getString(ElasticConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+    settings.errorPolicy match {
+      case RetryErrorPolicy() => context.timeout(sinkConfig.getInt(ElasticConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+      case _ =>
     }
 
     writer = Some(ElasticWriter(sinkConfig))

@@ -16,10 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.coap
 
-import java.nio.ByteBuffer
-import java.util
-import java.util.concurrent.CountDownLatch
-
 import com.datamountaineer.streamreactor.connect.coap.configs.CoapConstants
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.record.TimestampType
@@ -32,6 +28,9 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.nio.ByteBuffer
+import java.util
+import java.util.concurrent.CountDownLatch
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 

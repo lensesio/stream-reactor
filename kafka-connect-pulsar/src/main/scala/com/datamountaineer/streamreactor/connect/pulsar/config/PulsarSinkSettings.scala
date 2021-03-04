@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.connect.pulsar.config
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ThrowErrorPolicy}
+
 
 /**
   * Created by andrew@datamountaineer.com on 27/08/2017. 

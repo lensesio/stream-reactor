@@ -16,13 +16,13 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.writers
 
-import java.util.concurrent.Executors
+import com.datamountaineer.streamreactor.common.concurrent.FutureAwaitWithFailFastFn
 
-import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
-import com.datamountaineer.streamreactor.connect.concurrent.FutureAwaitWithFailFastFn
-import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
+import java.util.concurrent.Executors
+import com.datamountaineer.streamreactor.common.concurrent.ExecutorExtension._
+import com.datamountaineer.streamreactor.common.errors.ErrorHandler
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.hazelcast.config.{HazelCastSinkSettings, HazelCastStoreAsType, TargetType}
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.sink.SinkRecord
 

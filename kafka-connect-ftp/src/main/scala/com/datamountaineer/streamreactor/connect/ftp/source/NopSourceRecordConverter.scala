@@ -16,10 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.ftp.source
 
-import java.util
-
 import org.apache.kafka.connect.source.SourceRecord
 
+import java.util
 import scala.collection.JavaConverters._
 
 /**

@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.azure.documentdb.config
 
-import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.{CONSISTENCY_LEVEL_PROP_SUFFIX, DATABASE_PROP_SUFFIX, ERROR_POLICY_PROP_SUFFIX, KCQL_PROP_SUFFIX, MAX_RETRIES_PROP_SUFFIX, PROGRESS_ENABLED_CONST, RETRY_INTERVAL_PROP_SUFFIX}
 
 /**
   * Holds the constants used in the config.

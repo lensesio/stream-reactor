@@ -18,12 +18,11 @@ package com.datamountaineer.streamreactor.connect.pulsar.source
 
 import java.util
 import java.util.concurrent.{Executors, LinkedBlockingQueue, TimeUnit}
-
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
 import com.datamountaineer.streamreactor.connect.converters.source.Converter
+import com.datamountaineer.streamreactor.common.concurrent.ExecutorExtension._
+import com.datamountaineer.streamreactor.common.queues.QueueHelpers
 import com.datamountaineer.streamreactor.connect.pulsar.ConsumerConfigFactory
-import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.data.Schema

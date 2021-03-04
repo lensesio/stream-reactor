@@ -16,8 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datastax.driver.core.Session
 import com.fasterxml.jackson.databind.JsonNode
 import org.apache.kafka.common.config.ConfigException

@@ -17,8 +17,8 @@
 package com.datamountaineer.streamreactor.connect.mqtt.config
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.converters.sink.Converter
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.common.converters.sink.Converter
+import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ThrowErrorPolicy}
 import org.apache.kafka.common.config.ConfigException
 import org.eclipse.paho.client.mqttv3.MqttClient
 

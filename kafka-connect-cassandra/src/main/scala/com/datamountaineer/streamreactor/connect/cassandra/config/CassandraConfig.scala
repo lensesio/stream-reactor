@@ -16,9 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.config
 
-import java.util
+import com.datamountaineer.streamreactor.common.config.base.traits.{BaseConfig, ConsistencyLevelSettings, ErrorPolicySettings, KcqlSettings, NumberRetriesSettings, ThreadPoolSettings}
 
-import com.datamountaineer.streamreactor.connect.config.base.traits._
+import java.util
 import com.datastax.driver.core.ConsistencyLevel
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}

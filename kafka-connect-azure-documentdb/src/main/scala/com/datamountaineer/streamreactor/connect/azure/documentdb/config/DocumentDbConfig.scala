@@ -16,9 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.azure.documentdb.config
 
-import java.util
+import com.datamountaineer.streamreactor.common.config.base.traits.{BaseConfig, ConsistencyLevelSettings, DatabaseSettings, ErrorPolicySettings, KcqlSettings, NumberRetriesSettings}
 
-import com.datamountaineer.streamreactor.connect.config.base.traits._
+import java.util
 import com.microsoft.azure.documentdb.ConsistencyLevel
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}

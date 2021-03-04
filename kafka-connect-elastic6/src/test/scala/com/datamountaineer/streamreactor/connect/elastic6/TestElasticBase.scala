@@ -162,27 +162,27 @@ trait TestElasticBase extends AnyWordSpec with Matchers with BeforeAndAfter {
     }).toVector
   }
 
-  def getElasticSinkConfigProps(clusterName : String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
+  def getElasticSinkConfigProps(clusterName : String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT): util.Map[String, String] = {
     getBaseElasticSinkConfigProps(QUERY, clusterName)
   }
 
-  def getElasticSinkConfigPropsSelection(clusterName : String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
+  def getElasticSinkConfigPropsSelection(clusterName : String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT): util.Map[String, String] = {
     getBaseElasticSinkConfigProps(QUERY_SELECTION, clusterName)
   }
 
-  def getElasticSinkConfigPropsPk(clusterName : String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
+  def getElasticSinkConfigPropsPk(clusterName : String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT): util.Map[String, String] = {
     getBaseElasticSinkConfigProps(QUERY_PK, clusterName)
   }
 
-  def getElasticSinkUpdateConfigProps(clusterName : String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
+  def getElasticSinkUpdateConfigProps(clusterName : String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT): util.Map[String, String] = {
     getBaseElasticSinkConfigProps(UPDATE_QUERY, clusterName)
   }
 
-  def getElasticSinkUpdateConfigPropsSelection(clusterName : String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
+  def getElasticSinkUpdateConfigPropsSelection(clusterName : String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT): util.Map[String, String] = {
     getBaseElasticSinkConfigProps(UPDATE_QUERY_SELECTION, clusterName)
   }
 
-  def getBaseElasticSinkConfigProps(query: String, clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
+  def getBaseElasticSinkConfigProps(query: String, clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT): util.Map[String, String] = {
     Map(
       "topics" -> TOPIC,
       ElasticConfigConstants.HOSTS -> ELASTIC_SEARCH_HOSTNAMES,
@@ -192,7 +192,7 @@ trait TestElasticBase extends AnyWordSpec with Matchers with BeforeAndAfter {
     ).asJava
   }
 
-  def getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate: Boolean, clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
+  def getElasticSinkConfigPropsWithDateSuffixAndIndexAutoCreation(autoCreate: Boolean, clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT): util.Map[String, String] = {
     Map(
       ElasticConfigConstants.HOSTS -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> clusterName,
@@ -201,13 +201,13 @@ trait TestElasticBase extends AnyWordSpec with Matchers with BeforeAndAfter {
     ).asJava
   }
 
-  def getElasticSinkConfigPropsDefaults(clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
+  def getElasticSinkConfigPropsDefaults(clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT): util.Map[String, String] = {
     Map(
       ElasticConfigConstants.HOSTS -> ELASTIC_SEARCH_HOSTNAMES
     ).asJava
   }
 
-  def getElasticSinkConfigPropsHTTPClient(autoCreate: Boolean, auth: Boolean = false, clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT) = {
+  def getElasticSinkConfigPropsHTTPClient(autoCreate: Boolean, auth: Boolean = false, clusterName: String = ElasticConfigConstants.ES_CLUSTER_NAME_DEFAULT): util.Map[String, String] = {
     Map(
       ElasticConfigConstants.HOSTS -> ELASTIC_SEARCH_HOSTNAMES,
       ElasticConfigConstants.ES_CLUSTER_NAME -> clusterName,

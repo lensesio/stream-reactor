@@ -1,13 +1,13 @@
 package com.landoop.streamreactor.hive.it
 
 import java.util.concurrent.TimeUnit
-
 import org.apache.hadoop.fs.Path
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{Millis, Span}
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.time.Duration
 import scala.io.Source
 
 class HiveParquetWithPartitionTest extends AnyWordSpec with Matchers with PersonTestData with Eventually with HiveTests {
@@ -28,7 +28,7 @@ class HiveParquetWithPartitionTest extends AnyWordSpec with Matchers with Person
 
       val producer = stringStringProducer()
       writeRecords(producer, topic, JacksonSupport.mapper.writeValueAsString(person), count)
-      producer.close(30, TimeUnit.SECONDS)
+      producer.close(Duration.ofMillis(TimeUnit.SECONDS.toMillis(30)))
 
       // wait for some data to have been flushed
       eventually {

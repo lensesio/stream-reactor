@@ -20,8 +20,10 @@ project(":kafka-connect-mongodb") {
     }
 
     dependencies {
+        compile project(':kafka-connect-common')
         compile "org.mongodb:mongo-java-driver:$mongoVersion"
-        testCompile "org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion"
+        compile "org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion"
+        compile "org.json4s:json4s-jackson_$scalaMajorVersion:$json4sVersion"
         testCompile "de.flapdoodle.embed:de.flapdoodle.embed.mongo:1.50.5"
         testCompile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
     }

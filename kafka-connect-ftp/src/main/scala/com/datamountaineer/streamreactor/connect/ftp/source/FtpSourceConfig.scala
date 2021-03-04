@@ -16,12 +16,11 @@
 
 package com.datamountaineer.streamreactor.connect.ftp.source
 
-import java.util
-
 import com.datamountaineer.streamreactor.connect.ftp.source.MonitorMode.MonitorMode
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 import org.apache.kafka.common.config.{AbstractConfig, ConfigDef}
 
+import java.util
 import scala.collection.JavaConverters._
 
 object MonitorMode extends Enumeration {

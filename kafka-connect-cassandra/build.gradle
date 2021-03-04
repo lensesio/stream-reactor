@@ -36,10 +36,11 @@ project(":kafka-connect-cassandra") {
     }
 
     dependencies {
-
+        compile project(':kafka-connect-common')
         compile "com.datastax.cassandra:cassandra-driver-core:$cassandraDriverVersion"
         compile "com.jayway.jsonpath:json-path:$jsonPathVersion"
         compile group: 'io.netty', name: 'netty-transport-native-epoll', version: '4.0.47.Final', classifier: 'linux-x86_64'
+        compile "org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion"
 
         testCompile("org.apache.cassandra:cassandra-all:$cassandraVersion") {
             exclude group: "org.slf4j", module: "log4j-over-slf4j"

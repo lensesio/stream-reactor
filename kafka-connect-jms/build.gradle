@@ -22,6 +22,7 @@ project(":kafka-connect-jms") {
     }
 
     dependencies {
+        compile project(':kafka-connect-common')
         compile("javax.jms:javax.jms-api:$jmsVersion")
         testCompile("org.apache.activemq:activemq-all:5.14.5")
         testCompile("org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion")

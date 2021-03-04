@@ -1,6 +1,6 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.writer
 
-import com.datamountaineer.streamreactor.connect.rowkeys.StringKeyBuilder
+import com.datamountaineer.streamreactor.common.rowkeys.StringKeyBuilder
 import org.apache.kafka.connect.data.{Field, Schema, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 

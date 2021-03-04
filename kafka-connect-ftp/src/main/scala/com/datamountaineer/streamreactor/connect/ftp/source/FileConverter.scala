@@ -16,11 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.ftp.source
 
-import java.util
-
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.kafka.connect.storage.OffsetStorageReader
 
+import java.util
 import scala.util.{Failure, Success, Try}
 
 /**

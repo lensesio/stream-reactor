@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.connect.mongodb.sink
 
 import com.datamountaineer.kcql.{Kcql, WriteModeEnum}
-import com.datamountaineer.streamreactor.connect.errors.{NoopErrorPolicy, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.common.errors.{NoopErrorPolicy, ThrowErrorPolicy}
+
 import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants, MongoSettings}
 import com.datamountaineer.streamreactor.connect.mongodb.{Json, Transaction}
 import com.mongodb.client.MongoCursor
@@ -55,13 +56,13 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
   var mongod: Option[MongodProcess] = None
   var mongoClient: Option[MongoClient] = None
 
-  override def beforeAll() = {
+  override def beforeAll(): Unit = {
     mongodExecutable = Some(starter.prepare(mongodConfig))
     mongod = mongodExecutable.map(_.start())
     mongoClient = Some(new MongoClient("localhost", port))
   }
 
-  override def afterAll() = {
+  override def afterAll(): Unit = {
     mongod.foreach(_.stop())
     mongodExecutable.foreach(_.stop())
   }
@@ -330,28 +331,11 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
       auth.getAuthenticationMechanism shouldBe (AuthenticationMechanism.SCRAM_SHA_1)
     }
 
-    "MongoClientProvider should set authentication mechanism to MONGODB_CR" in {
-      val settings = MongoSettings("mongodb://localhost",
-        "test",
-        new Password("test"),
-        AuthenticationMechanism.MONGODB_CR,
-        "local",
-        Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
-        Map.empty,
-        Map("topicA" -> Map("*" -> "*")),
-        Map("topicA" -> Set.empty),
-        NoopErrorPolicy())
-
-      val client = MongoClientProvider(settings = settings)
-      val auth = client.getCredential
-      auth.getAuthenticationMechanism shouldBe (AuthenticationMechanism.MONGODB_CR)
-    }
-
     "MongoClientProvider should set have ssl enabled" in {
       val settings = MongoSettings("mongodb://localhost/?ssl=true",
         "test",
         new Password("test"),
-        AuthenticationMechanism.MONGODB_CR,
+        AuthenticationMechanism.SCRAM_SHA_256,
         "local",
         Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
         Map.empty,
@@ -361,7 +345,7 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
 
       val client = MongoClientProvider(settings = settings)
       val auth = client.getCredential
-      auth.getAuthenticationMechanism shouldBe (AuthenticationMechanism.MONGODB_CR)
+      auth.getAuthenticationMechanism shouldBe (AuthenticationMechanism.SCRAM_SHA_256)
       client.getMongoClientOptions.isSslEnabled shouldBe true
     }
 
@@ -369,7 +353,7 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
       val settings = MongoSettings("mongodb://localhost",
         "",
         new Password(""),
-        AuthenticationMechanism.MONGODB_CR,
+        AuthenticationMechanism.SCRAM_SHA_256,
         "local",
         Set(Kcql.parse("INSERT INTO insert_string_json SELECT * FROM topicA")),
         Map.empty,
@@ -378,7 +362,6 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
         NoopErrorPolicy())
 
       val client = MongoClientProvider(settings = settings)
-      client.getCredentialsList.size shouldBe 0
       client.getMongoClientOptions.isSslEnabled shouldBe false
     }
 
@@ -552,16 +535,16 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
       .getDatabase(settings.database)
       .getCollection(collectionName)
 
-    actualCollection.count() shouldBe 4
+    actualCollection.countDocuments() shouldBe 4
 
-    actualCollection.count(Filters.eq("lock_time", 9223372036854775807L)) shouldBe 1
-    actualCollection.count(Filters.eq("lock_time", 427856)) shouldBe 1
-    actualCollection.count(Filters.eq("lock_time", 7856)) shouldBe 1
-    actualCollection.count(Filters.eq("lock_time", 0)) shouldBe 1
+    actualCollection.countDocuments(Filters.eq("lock_time", 9223372036854775807L)) shouldBe 1
+    actualCollection.countDocuments(Filters.eq("lock_time", 427856)) shouldBe 1
+    actualCollection.countDocuments(Filters.eq("lock_time", 7856)) shouldBe 1
+    actualCollection.countDocuments(Filters.eq("lock_time", 0)) shouldBe 1
   }
 
 
-  private def runUpserts(records: Seq[SinkRecord], settings: MongoSettings) = {
+  private def runUpserts(records: Seq[SinkRecord], settings: MongoSettings): Unit = {
     require(settings.kcql.size == 1)
     require(settings.kcql.head.getWriteMode == WriteModeEnum.UPSERT)
     val db = mongoClient.get.getDatabase(settings.database)
@@ -592,7 +575,7 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
       .getDatabase(settings.database)
       .getCollection(collectionName)
 
-    actualCollection.count() shouldBe 4
+    actualCollection.countDocuments() shouldBe 4
 
     val keys = Seq(9223372036854775807L, 427856L, 0L, 7856L)
     keys.zipWithIndex.foreach { case (k, index) =>
@@ -660,20 +643,6 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
       .getDatabase(settings.database)
       .getCollection(collectionName)
 
-    // Print out the results to aid debugging.
-    {
-      println("((((((((((((((((((((((((((((((((((((((((((((((((((")
-      val cursor: MongoCursor[Document] = collection.find().iterator()
-      try {
-        while (cursor.hasNext()) {
-          println("DDDDDDDDDDDDDDDDDDDDDDDD doc is "+cursor.next().toJson())
-        }
-      } finally {
-        cursor.close()
-      }
-      println("))))))))))))))))))))))))))))))))))))))))))))))))))))))))))")
-    }
-
     // check the keys NEW
     expectedKeys.foreach{ case (index, keys) =>  
       //(field, k)
@@ -701,7 +670,7 @@ class MongoWriterTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
       }
     }
 
-    actualCollection.count() shouldBe records.size
+    actualCollection.countDocuments() shouldBe records.size
   }
 
 }

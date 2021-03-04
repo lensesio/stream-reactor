@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.hazelcast.config
 
 import com.datamountaineer.kcql.{FormatType, Kcql}
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.hazelcast.HazelCastConnection
 import com.datamountaineer.streamreactor.connect.hazelcast.config.TargetType.TargetType
 import com.hazelcast.core.HazelcastInstance

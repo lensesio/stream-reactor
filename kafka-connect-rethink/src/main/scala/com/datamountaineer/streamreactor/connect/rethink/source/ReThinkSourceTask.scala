@@ -16,11 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.source
 
-import java.util
+import com.datamountaineer.streamreactor.common.queues.QueueHelpers
+import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
 
-import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
+import java.util
 import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkConfigConstants, ReThinkSourceConfig}
-import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.rethinkdb.RethinkDB
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}

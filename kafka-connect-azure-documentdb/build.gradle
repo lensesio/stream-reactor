@@ -20,7 +20,9 @@ project(":kafka-connect-azure-documentdb") {
     }
 
     dependencies {
+        compile project(':kafka-connect-common')
         compile "com.microsoft.azure:azure-documentdb:$documentDbVersion"
+        compile "org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion"
         testCompile "org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion"
         testCompile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
         testCompile "org.scalatest:scalatest_$scalaMajorVersion:3.0.1"

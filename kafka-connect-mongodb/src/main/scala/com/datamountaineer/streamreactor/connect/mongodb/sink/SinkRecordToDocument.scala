@@ -16,26 +16,15 @@
 
 package com.datamountaineer.streamreactor.connect.mongodb.sink
 
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
 import com.datamountaineer.streamreactor.connect.mongodb.converters.SinkRecordConverter
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.bson.Document
-import org.json4s.jackson.JsonMethods.parse
-import org.json4s.JField
-import org.json4s.JsonAST.JDecimal
-import org.json4s.JsonAST.JDouble
-import org.json4s.JsonAST.JInt
-import org.json4s.JsonAST.JLong
-import org.json4s.JsonAST.JString
-import org.json4s.JValue
 
-import scala.collection.mutable
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
 
 object SinkRecordToDocument extends ConverterUtil {
   def apply(record: SinkRecord, keys: Set[String] = Set.empty)(implicit settings: MongoSettings): (Document, Iterable[(String, Any)]) = {
@@ -58,7 +47,7 @@ object SinkRecordToDocument extends ConverterUtil {
 
           SinkRecordConverter.fromMap(extracted.asInstanceOf[java.util.Map[String, AnyRef]]) ->
             keys.headOption.map(_ => KeysExtractor.fromMap(extracted, keys)).getOrElse(Iterable.empty)
-        case _ => sys.error("For schemaless record only String and Map types are supported")
+        case _ => throw new ConnectException("For schemaless record only String and Map types are supported")
       }
     } else {
       schema.`type`() match {
@@ -74,7 +63,7 @@ object SinkRecordToDocument extends ConverterUtil {
 
             case Left(value) =>
               //This needs full refactor to cleanup and write FP style scala
-              sys.error(value)
+              throw new ConnectException(value)
           }
         case Schema.Type.STRUCT =>
           val extracted = convert(
@@ -85,60 +74,8 @@ object SinkRecordToDocument extends ConverterUtil {
           SinkRecordConverter.fromStruct(extracted) ->
             keys.headOption.map(_ => KeysExtractor.fromStruct(record.value().asInstanceOf[Struct], keys)).getOrElse(Iterable.empty)
 
-        case other => sys.error(s"$other schema is not supported")
+        case other => throw new ConnectException(s"$other schema is not supported")
       }
     }
   }
-
-  def convertFromStringAsJson(record: SinkRecord,
-                              fields: Map[String, String],
-                              ignoreFields: Set[String] = Set.empty[String],
-                              key: Boolean = false,
-                              includeAllFields: Boolean = true,
-                              ignoredFieldsValues: Option[mutable.Map[String, Any]] = None): Either[String, ConversionResult] = {
-
-    val schema = if (key) record.keySchema() else record.valueSchema()
-    val expectedInput = schema != null && schema.`type`() == Schema.STRING_SCHEMA.`type`()
-    if (!expectedInput) Left(s"$schema is not handled. Expecting Schema.String")
-    else {
-      (if (key) record.key() else record.value()) match {
-        case s: String =>
-          Try(parse(s)) match {
-            case Success(json) =>
-              val withFieldsRemoved = ignoreFields.foldLeft(json) { case (j, ignored) =>
-                j.removeField {
-                  case (`ignored`, v) =>
-                    ignoredFieldsValues.foreach { map =>
-                      val value = v match {
-                        case JString(s) => s
-                        case JDouble(d) => d
-                        case JInt(i) => i
-                        case JLong(l) => l
-                        case JDecimal(d) => d
-                        case _ => null
-                      }
-                      map += ignored -> value
-                    }
-                    true
-                  case _ => false
-                }
-              }
-
-              val converted = fields.filter { case (field, alias) => field != alias }
-                .foldLeft(withFieldsRemoved) { case (j, (field, alias)) =>
-                  j.transformField {
-                    case JField(`field`, v) => (alias, v)
-                    case other: JField => other
-                  }
-                }
-              Right(ConversionResult(json, converted))
-            case Failure(_) => Left(s"Invalid json with the record on topic ${record.topic} and offset ${record.kafkaOffset()}")
-          }
-        case other => Left(s"${other.getClass} is not valid. Expecting a Struct")
-      }
-    }
-  }
-
-  case class ConversionResult(original: JValue, converted: JValue)
-
 }

@@ -35,6 +35,8 @@ project(":kafka-connect-aws-s3") {
         }
     }
     dependencies {
+
+        compile project(':kafka-connect-common')
         compile("io.netty:netty-all:4.1.52.Final")
 
         compile("com.google.guava:guava:$guavaVersion")

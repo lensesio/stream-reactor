@@ -16,10 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
+import com.datamountaineer.streamreactor.common.errors.NoopErrorPolicy
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.azure.documentdb.Json
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbSinkSettings
-import com.datamountaineer.streamreactor.connect.errors.NoopErrorPolicy
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.microsoft.azure.documentdb.{ConsistencyLevel, Document}
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord

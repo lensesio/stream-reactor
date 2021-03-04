@@ -16,11 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.ftp.source
 
-import java.io.ByteArrayOutputStream
-import java.nio.file.Paths
-import java.time.{Duration, Instant}
-import java.util
-
 import com.datamountaineer.streamreactor.connect.ftp.source.FtpProtocol.FtpProtocol
 import com.datamountaineer.streamreactor.connect.ftp.source.MonitorMode.MonitorMode
 import com.typesafe.scalalogging.StrictLogging
@@ -28,6 +23,10 @@ import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.net.ftp.{FTP, FTPClient, FTPReply, FTPSClient}
 import org.apache.commons.net.{ProtocolCommandEvent, ProtocolCommandListener}
 
+import java.io.ByteArrayOutputStream
+import java.nio.file.Paths
+import java.time.{Duration, Instant}
+import java.util
 import scala.util.{Failure, Success, Try}
 
 // a full downloaded file

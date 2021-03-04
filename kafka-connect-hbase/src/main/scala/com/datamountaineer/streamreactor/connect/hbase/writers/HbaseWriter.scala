@@ -16,11 +16,11 @@
 
 package com.datamountaineer.streamreactor.connect.hbase.writers
 
-import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
+import com.datamountaineer.streamreactor.common.errors.ErrorHandler
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
+import com.datamountaineer.streamreactor.common.sink.DbWriter
 import com.datamountaineer.streamreactor.connect.hbase._
 import com.datamountaineer.streamreactor.connect.hbase.config.HBaseSettings
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.sink.DbWriter
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.TableName

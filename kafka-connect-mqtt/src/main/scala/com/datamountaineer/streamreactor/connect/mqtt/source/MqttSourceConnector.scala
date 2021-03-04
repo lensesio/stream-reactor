@@ -16,11 +16,11 @@
 
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
+import com.datamountaineer.streamreactor.common.utils.JarManifest
+
 import java.util
 import java.util.Collections
-
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttSourceConfig, MqttSourceSettings}
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task

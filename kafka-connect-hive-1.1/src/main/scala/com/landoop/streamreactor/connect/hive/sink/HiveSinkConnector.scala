@@ -1,8 +1,8 @@
 package com.landoop.streamreactor.connect.hive.sink
 
-import java.util
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
+import java.util
 import com.landoop.streamreactor.connect.hive.sink.config.HiveSinkConfigDef
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task

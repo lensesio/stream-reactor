@@ -16,11 +16,11 @@
 
 package com.datamountaineer.streamreactor.connect.ftp.source
 
-import java.nio.file.{FileSystems, Paths}
-import java.time.{Duration, Instant}
-
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.commons.net.ftp.{FTPClient, FTPFile}
+
+import java.nio.file.{FileSystems, Paths}
+import java.time.{Duration, Instant}
 
 // org.apache.commons.net.ftp.FTPFile only contains the relative path
 case class AbsoluteFtpFile(ftpFile:FTPFile, parentDir:String) {

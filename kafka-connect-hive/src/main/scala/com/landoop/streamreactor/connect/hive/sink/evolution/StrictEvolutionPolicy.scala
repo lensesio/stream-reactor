@@ -3,6 +3,7 @@ package com.landoop.streamreactor.connect.hive.sink.evolution
 import com.landoop.streamreactor.connect.hive.{DatabaseName, HiveSchemas, TableName}
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConverters._
 import scala.util.Try
@@ -35,7 +36,7 @@ object StrictEvolutionPolicy extends EvolutionPolicy {
       val default = field.schema().defaultValue()
       val compatible = exists || optional || default != null
       if (!compatible) {
-        sys.error(s"Input Schema is not compatible with the metastore for field [${field.name()}]")
+        throw new ConnectException(s"Input Schema is not compatible with the metastore for field [${field.name()}]")
       }
     }
     schema

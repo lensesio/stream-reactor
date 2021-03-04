@@ -16,8 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.coap.source
 
-import java.util.logging.Level
-
 import com.datamountaineer.streamreactor.connect.coap.{Server, TestBase}
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.source.SourceTaskContext
@@ -27,6 +25,7 @@ import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.util.logging.Level
 import scala.collection.JavaConverters._
 
 /**

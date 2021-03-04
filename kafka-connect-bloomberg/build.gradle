@@ -16,10 +16,11 @@
 
 project(":kafka-connect-bloomberg") {
     dependencies {
-        compile("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion") {
-            exclude group: "org.mortbay.jetty", module: "jetty-util"
-            exclude group: "org.mortbay.jetty", module: "jetty"
-        }
+//        compile("com.datamountaineer:kafka-connect-common:$dataMountaineerCommonVersion") {
+//            exclude group: "org.mortbay.jetty", module: "jetty-util"
+//            exclude group: "org.mortbay.jetty", module: "jetty"
+//        }
+        compile project(':kafka-connect-common')
         compile files('lib/blpapi-3.8.8-2.jar')
     }
 }

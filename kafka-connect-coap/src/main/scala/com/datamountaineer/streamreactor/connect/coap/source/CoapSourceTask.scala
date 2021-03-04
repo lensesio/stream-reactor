@@ -16,15 +16,14 @@
 
 package com.datamountaineer.streamreactor.connect.coap.source
 
-import java.util
-import java.util.concurrent.LinkedBlockingQueue
-
+import com.datamountaineer.streamreactor.common.queues.QueueHelpers
+import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSettings, CoapSourceConfig}
-import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
-import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
+import java.util
+import java.util.concurrent.LinkedBlockingQueue
 import scala.collection.JavaConverters._
 
 /**

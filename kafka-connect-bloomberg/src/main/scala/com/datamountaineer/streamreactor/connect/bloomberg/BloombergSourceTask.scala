@@ -17,10 +17,9 @@
 package com.datamountaineer.streamreactor.connect.bloomberg
 
 import java.util
-
 import com.bloomberglp.blpapi._
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.datamountaineer.streamreactor.connect.bloomberg.config.BloombergSourceConfig
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
@@ -169,13 +168,13 @@ object BloombergSessionCreateFn extends StrictLogging {
     val session = new Session(options, handler)
 
     if (!session.start()) {
-      sys.error(s"Could not start the session for ${settings.serverHost}:${settings.serverPort}")
+      throw new ConnectException(s"Could not start the session for ${settings.serverHost}:${settings.serverPort}")
     }
 
     // For subscription, don't need open service.  Service is indicated as prefix in Subscription.
     /*
     if (!session.openService(settings.serviceUri)) {
-      sys.error(s"Could not open service ${settings.serviceUri}")
+      throw new ConnectException(s"Could not open service ${settings.serviceUri}")
     }
     */
     session
@@ -210,7 +209,7 @@ object BloombergSessionAuthorizationFn extends StrictLogging {
       }
     }
     if (token == null) {
-	    sys.error("Failed to get token");
+	    throw new ConnectException("Failed to get token");
     }
 
     val apiIdentity = session.createIdentity();
@@ -236,7 +235,7 @@ object BloombergSessionAuthorizationFn extends StrictLogging {
                 logger.info("---- Authorization successful ----");
                 break;
               } else {
-                sys.error(s"---- Authorization failed msg [$msg] ----");
+                throw new ConnectException(s"---- Authorization failed msg [$msg] ----");
                 break;
               }
             } // while (msgIter.hasNext())

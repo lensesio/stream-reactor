@@ -16,12 +16,13 @@
 
 package com.datamountaineer.streamreactor.connect.pulsar.sink
 
+import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
+import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
+
 import java.util
 import java.util.UUID
-
-import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSinkConfig, PulsarSinkSettings}
-import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition

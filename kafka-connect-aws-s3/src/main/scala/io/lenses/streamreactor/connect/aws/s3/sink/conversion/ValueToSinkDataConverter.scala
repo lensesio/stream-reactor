@@ -17,9 +17,9 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
 import java.util
-
 import io.lenses.streamreactor.connect.aws.s3.model._
 import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConverters._
 
@@ -40,7 +40,7 @@ object ValueToSinkDataConverter {
     case arrayVal: Array[_] => ArraySinkDataConverter(arrayVal, schema)
     case listVal: util.List[_] => ArraySinkDataConverter(listVal.toArray, schema)
     case null => NullSinkData(schema)
-    case otherVal => sys.error(s"Unsupported record $otherVal:${otherVal.getClass.getCanonicalName}")
+    case otherVal => throw new ConnectException(s"Unsupported record $otherVal:${otherVal.getClass.getCanonicalName}")
   }
 }
 
@@ -54,7 +54,7 @@ object MapSinkDataConverter {
   def apply(map: Map[_, _], schema: Option[Schema]): SinkData = {
     MapSinkData(map.map {
       case (k: String, v) => StringSinkData(k, None) -> ValueToSinkDataConverter(v, None)
-      case (k, _) => sys.error(s"Non-string map values including (${k.getClass.getCanonicalName}) are not currently supported")
+      case (k, _) => throw new ConnectException(s"Non-string map values including (${k.getClass.getCanonicalName}) are not currently supported")
     }, schema)
   }
 }

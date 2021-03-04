@@ -1,8 +1,8 @@
 package com.landoop.streamreactor.connect.hive.sink
 
-import java.util
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
+import java.util
 import com.landoop.streamreactor.connect.hive.HadoopConfigurationExtension._
 import com.landoop.streamreactor.connect.hive._
 import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
@@ -179,7 +179,7 @@ class HiveSinkTask extends SinkTask {
   // returns the KCQL table name for the given topic
   private def table(topic: Topic): TableName = config.tableOptions.find(_.topic == topic) match {
     case Some(options) => options.tableName
-    case _ => sys.error(s"Cannot find KCQL for topic $topic")
+    case _ => throw new ConnectException(s"Cannot find KCQL for topic $topic")
   }
 
   private def execute[T](thunk: => T): T = {

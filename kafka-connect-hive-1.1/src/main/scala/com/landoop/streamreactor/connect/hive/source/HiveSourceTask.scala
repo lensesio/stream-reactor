@@ -1,8 +1,8 @@
 package com.landoop.streamreactor.connect.hive.source
 
-import java.util
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
+import java.util
 import com.landoop.streamreactor.connect.hive.ConfigurationBuilder
 import com.landoop.streamreactor.connect.hive.HadoopConfigurationExtension._
 import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin

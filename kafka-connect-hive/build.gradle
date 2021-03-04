@@ -25,6 +25,7 @@ project(":kafka-connect-hive") {
     }
 
     dependencies {
+        compile project(':kafka-connect-common')
         compile("io.netty:netty-all:4.1.52.Final")
 
         compile("org.apache.parquet:parquet-column:$parquetVersion")

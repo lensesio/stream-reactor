@@ -16,8 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.coap.sink
 
+import com.datamountaineer.streamreactor.common.converters.sink.SinkRecordToJson
 import com.datamountaineer.streamreactor.connect.coap.{Server, TestBase}
-import com.datamountaineer.streamreactor.connect.converters.source.SinkRecordToJson
 import org.apache.kafka.connect.sink.SinkTaskContext
 import org.eclipse.californium.core.CoapClient
 import org.mockito.MockitoSugar

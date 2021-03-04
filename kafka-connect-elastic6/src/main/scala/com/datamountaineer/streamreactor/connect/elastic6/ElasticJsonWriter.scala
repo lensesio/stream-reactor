@@ -17,13 +17,12 @@
 package com.datamountaineer.streamreactor.connect.elastic6
 
 import java.util
-
 import com.datamountaineer.kcql.{Kcql, WriteModeEnum}
-import com.datamountaineer.streamreactor.connect.converters.FieldConverter
+import com.datamountaineer.streamreactor.common.converters.FieldConverter
+import com.datamountaineer.streamreactor.common.errors.ErrorHandler
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.elastic6.config.ElasticSettings
 import com.datamountaineer.streamreactor.connect.elastic6.indexname.CreateIndex
-import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.fasterxml.jackson.databind.JsonNode
 import com.landoop.sql.Field
 import com.sksamuel.elastic4s.Indexable
@@ -62,11 +61,6 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
         }
       ))
 
-  }
-
-
-  implicit object SinkRecordIndexable extends Indexable[SinkRecord] {
-    override def json(t: SinkRecord): String = convertValueToJson(t).toString
   }
 
   /**
@@ -108,6 +102,7 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
           sinkRecords.grouped(settings.batchSize)
             .map { batch =>
               val indexes = batch.map { r =>
+
                 val (json, pks) = if (kcqlValue.primaryKeysPath.isEmpty) {
                   (Transform(
                     kcqlValue.fields,

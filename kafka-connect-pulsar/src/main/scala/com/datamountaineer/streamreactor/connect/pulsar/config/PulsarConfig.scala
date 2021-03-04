@@ -16,9 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.pulsar.config
 
+import com.datamountaineer.streamreactor.common.config.base.traits.{BaseConfig, ConnectionSettings, ErrorPolicySettings, KcqlSettings, NumberRetriesSettings, SSLSettings, UserSettings}
+
 import java.util
 
-import com.datamountaineer.streamreactor.connect.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 

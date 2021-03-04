@@ -16,8 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.redis.sink.config
 
+import com.datamountaineer.streamreactor.common.rowkeys.StringStructFieldsStringKeyBuilder
 import com.datamountaineer.streamreactor.connect.redis.sink.support.RedisMockSupport
-import com.datamountaineer.streamreactor.connect.rowkeys.StringStructFieldsStringKeyBuilder
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

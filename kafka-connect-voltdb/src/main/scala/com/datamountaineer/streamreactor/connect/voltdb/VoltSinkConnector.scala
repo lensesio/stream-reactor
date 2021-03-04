@@ -16,10 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.voltdb
 
-import java.util
+import com.datamountaineer.streamreactor.common.config.Helpers
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 
-import com.datamountaineer.streamreactor.connect.config.Helpers
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
+import java.util
 import com.datamountaineer.streamreactor.connect.voltdb.config.{VoltSinkConfig, VoltSinkConfigConstants}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef

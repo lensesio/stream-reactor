@@ -23,6 +23,7 @@ project(":kafka-connect-hbase") {
     }
 
     dependencies {
+        compile project(':kafka-connect-common')
         compile("com.google.guava:guava:$guavaVersion") {
             version {
                 strictly "$guavaVersion"

@@ -1,13 +1,12 @@
 package com.landoop.streamreactor.hive.it
 
-import java.time.Duration
-import java.time.temporal.ChronoUnit
-
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{Seconds, Span}
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.time.Duration
+import java.time.temporal.ChronoUnit
 import scala.io.Source
 
 class HiveOrcTest extends AnyWordSpec with Matchers with PersonTestData with Eventually with HiveTests {

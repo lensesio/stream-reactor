@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.influx.config
 
-import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst._
 
 object InfluxConfigConstants {
 

@@ -16,15 +16,15 @@
 
 package com.datamountaineer.streamreactor.connect.coap.source
 
-import java.util
-import java.util.concurrent.LinkedBlockingQueue
-
 import com.datamountaineer.streamreactor.connect.coap.configs.CoapSetting
 import com.datamountaineer.streamreactor.connect.coap.connection.CoapManager
 import com.datamountaineer.streamreactor.connect.coap.domain.CoapMessageConverter
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord
 import org.eclipse.californium.core.{CoapHandler, CoapObserveRelation, CoapResponse, WebLink}
+
+import java.util
+import java.util.concurrent.LinkedBlockingQueue
 
 /**
   * Created by andrew@datamountaineer.com on 27/12/2016. 
