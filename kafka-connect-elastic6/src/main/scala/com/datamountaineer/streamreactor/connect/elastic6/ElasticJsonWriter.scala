@@ -63,11 +63,6 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
 
   }
 
-
-  implicit object SinkRecordIndexable extends Indexable[SinkRecord] {
-    override def json(t: SinkRecord): String = convertValueToJson(t).toString
-  }
-
   /**
     * Close elastic4s client
     **/
@@ -107,6 +102,7 @@ class ElasticJsonWriter(client: KElasticClient, settings: ElasticSettings)
           sinkRecords.grouped(settings.batchSize)
             .map { batch =>
               val indexes = batch.map { r =>
+
                 val (json, pks) = if (kcqlValue.primaryKeysPath.isEmpty) {
                   (Transform(
                     kcqlValue.fields,

@@ -61,19 +61,18 @@ case class PulsarWriter(client: PulsarClient, name: String, settings: PulsarSink
 
     val t = Try{
       messages.foreach{
-        case (topic, message) => {
+        case (topic, message) =>
           val producer = producersMap.getOrElseUpdate(topic, client.createProducer(topic, configs(topic)))
           producer.send(message)
-        }
       }
     }
 
     handleTry(t)
   }
 
-  def flush = {}
+  def flush(): Unit = {}
 
-  def close = {
+  def close(): Unit = {
     logger.info("Closing client")
     producersMap.foreach({ case (_, producer) => producer.close()})
     client.close()

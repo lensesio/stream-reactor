@@ -52,7 +52,7 @@ object KuduSettings {
     val ignoreFields = config.getIgnoreFieldsMap()
     val writeModeMap = config.getWriteMode()
     val topicTables = config.getTableTopic()
-    val writeFlushMode = config.getWriteFlushMode()
+    val writeFlushMode = config.getWriteFlushMode
     val mutationBufferSpace = config.getInt(KuduConfigConstants.MUTATION_BUFFER_SPACE)
 
     new KuduSettings(kcql = kcql.toList,
