@@ -41,7 +41,11 @@ allprojects {
     apply plugin: 'de.undercouch.download'
     apply plugin: 'maven-publish'
     apply plugin: 'signing'
-    apply plugin: 'com.github.maiflai.scalatest'
+
+    // kafka-connect-testcontainers uses junit
+    if (!project.name.equals("kafka-connect-testcontainers")) {
+        apply plugin: 'com.github.maiflai.scalatest'
+    }
 
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
