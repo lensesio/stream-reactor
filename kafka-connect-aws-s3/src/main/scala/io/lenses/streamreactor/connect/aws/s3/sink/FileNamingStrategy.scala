@@ -39,7 +39,7 @@ trait S3FileNamingStrategy {
 
   def shouldProcessPartitionValues: Boolean
 
-  def processPartitionValues(messageDetail: MessageDetail): Map[PartitionField, String]
+  def processPartitionValues(messageDetail: MessageDetail, topicPartition: TopicPartition): Map[PartitionField, String]
 
   def topicPartitionPrefix(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath
 
@@ -60,7 +60,7 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends
 
   override def shouldProcessPartitionValues: Boolean = false
 
-  override def processPartitionValues(messageDetail: MessageDetail): Map[PartitionField, String] = throw new UnsupportedOperationException("This should never be called for this object")
+  override def processPartitionValues(messageDetail: MessageDetail, topicPartition: TopicPartition): Map[PartitionField, String] = throw new UnsupportedOperationException("This should never be called for this object")
 
   override val committedFilenameRegex: Regex = s".+/(.+)/(\\d+)/(\\d+).(.+)".r
 
@@ -93,7 +93,7 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
   override def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath =
     BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartitionOffset.topic.value}(${topicPartitionOffset.partition}_${topicPartitionOffset.offset.value}).${format.entryName.toLowerCase}")
 
-  override def processPartitionValues(messageDetail: MessageDetail): Map[PartitionField, String] = {
+  override def processPartitionValues(messageDetail: MessageDetail, topicPartition: TopicPartition): Map[PartitionField, String] = {
     partitionSelection
       .partitions
       .map {
@@ -104,6 +104,8 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
         }
         case partition@ValuePartitionField(name) => partition -> getPartitionValueFromSinkData(messageDetail.valueSinkData, name)
         case partition@WholeKeyPartitionField() => partition -> getPartitionByWholeKeyValue(messageDetail.keySinkData)
+        case partition@TopicPartitionField() => partition -> topicPartition.topic.value
+        case partition@PartitionPartitionField() => partition -> topicPartition.partition.toString
       }
       .toMap
   }

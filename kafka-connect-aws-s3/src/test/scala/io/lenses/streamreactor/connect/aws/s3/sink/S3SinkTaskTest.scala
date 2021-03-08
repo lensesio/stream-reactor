@@ -718,6 +718,38 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     )
   }
 
+  "S3SinkTask" should "partition by custom partitioning with topic/partition/offset" in {
+
+    val keyPartitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
+      new SinkRecord(TopicName, 1, null, (k % 2).toString, schema, user, k, null, null)
+    }
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _topic, _partition STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(keyPartitionedRecords.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
+    fileList.size() should be(6)
+
+    fileList.asScala.map(file => file.getName) should contain allOf(
+      "streamReactorBackups/myTopic/1/myTopic(1_0).csv",
+      "streamReactorBackups/myTopic/1/myTopic(1_1).csv",
+      "streamReactorBackups/myTopic/1/myTopic(1_2).csv",
+      "streamReactorBackups/myTopic/1/myTopic(1_3).csv",
+      "streamReactorBackups/myTopic/1/myTopic(1_4).csv",
+      "streamReactorBackups/myTopic/1/myTopic(1_5).csv"
+    )
+  }
+
   "S3SinkTask" should "fail if the key is non-primitive but requests _key partitioning" in {
 
     val keyPartitionedRecords = partitionedData.zipWithIndex.map { case (user, k) =>
