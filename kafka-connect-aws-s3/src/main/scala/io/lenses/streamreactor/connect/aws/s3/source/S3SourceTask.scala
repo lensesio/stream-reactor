@@ -16,7 +16,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsContextCreator
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
