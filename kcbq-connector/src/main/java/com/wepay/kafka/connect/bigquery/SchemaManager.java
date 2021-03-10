@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
@@ -365,8 +366,11 @@ public class SchemaManager {
 
   private void validateSchemaChange(
       com.google.cloud.bigquery.Schema existingSchema, com.google.cloud.bigquery.Schema proposedSchema) {
+    logger.trace("Validating schema change. Existing schema: {}; proposed Schema: {}",
+        existingSchema.toString(), proposedSchema.toString());
     Map<String, Field> earliestSchemaFields = schemaFields(existingSchema);
     Map<String, Field> proposedSchemaFields = schemaFields(proposedSchema);
+
     for (Map.Entry<String, Field> entry : proposedSchemaFields.entrySet()) {
       if (!earliestSchemaFields.containsKey(entry.getKey())) {
         if (!isValidFieldAddition(entry.getValue())) {
@@ -434,7 +438,12 @@ public class SchemaManager {
    */
   private Map<String, Field> schemaFields(com.google.cloud.bigquery.Schema schema) {
     Map<String, Field> result = new LinkedHashMap<>();
-    schema.getFields().forEach(field -> result.put(field.getName(), field));
+    schema.getFields().forEach(field -> {
+      if (field.getMode() == null) {
+        field = field.toBuilder().setMode(Field.Mode.NULLABLE).build();
+      }
+      result.put(field.getName(), field);
+    });
     return result;
   }
 
