@@ -123,7 +123,7 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
     val bucketAndPrefix = bucketAndPrefixFn(topicPartition.topic)
     val fileNamingStrategy: S3FileNamingStrategy = fileNamingStrategyFn(topicPartition.topic)
 
-    val partitionValues = if (fileNamingStrategy.shouldProcessPartitionValues) fileNamingStrategy.processPartitionValues(messageDetail) else Map.empty[PartitionField, String]
+    val partitionValues = if (fileNamingStrategy.shouldProcessPartitionValues) fileNamingStrategy.processPartitionValues(messageDetail, topicPartition) else Map.empty[PartitionField, String]
 
     val tempBucketAndPath: BucketAndPath = fileNamingStrategy.stagingFilename(bucketAndPrefix, topicPartition, partitionValues)
 

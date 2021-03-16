@@ -74,8 +74,6 @@ object S3TestPayloadReader extends Matchers {
                             blobStoreContext: BlobStoreContext
                           ): String = {
 
-
-    // somehow having this assert here fixes a test failure.  Go figure.
     require(blobStoreContext.getBlobStore.containerExists(blobStoreContainerName))
     val inputStream = classOf[S3TestConfig].getResourceAsStream(resourceSourceFilename)
     require(inputStream != null)
@@ -89,6 +87,16 @@ object S3TestPayloadReader extends Matchers {
         .contentLength(contentLength)
         .build()
     )
+  }
+
+
+  def fileLengthBytes(
+                            resourceSourceFilename: String
+                          ): Int = {
+
+    val inputStream = classOf[S3TestConfig].getResourceAsStream(resourceSourceFilename)
+    require(inputStream != null)
+    inputStream.available()
   }
 }
 
