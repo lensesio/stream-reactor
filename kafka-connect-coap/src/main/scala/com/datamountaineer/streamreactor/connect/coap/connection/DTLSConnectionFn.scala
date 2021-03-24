@@ -16,11 +16,6 @@
 
 package com.datamountaineer.streamreactor.connect.coap.connection
 
-import java.io.FileInputStream
-import java.net.{ConnectException, InetAddress, InetSocketAddress, URI}
-import java.security.cert.Certificate
-import java.security.{KeyStore, PrivateKey}
-
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSetting}
 import com.typesafe.scalalogging.StrictLogging
 import org.eclipse.californium.core.CoapClient
@@ -31,6 +26,11 @@ import org.eclipse.californium.scandium.DTLSConnector
 import org.eclipse.californium.scandium.config.DtlsConnectorConfig
 import org.eclipse.californium.scandium.dtls.cipher.CipherSuite
 import org.eclipse.californium.scandium.dtls.pskstore.InMemoryPskStore
+
+import java.io.FileInputStream
+import java.net.{ConnectException, InetAddress, InetSocketAddress, URI}
+import java.security.cert.Certificate
+import java.security.{KeyStore, PrivateKey}
 
 /**
   * Created by andrew@datamountaineer.com on 27/12/2016. 

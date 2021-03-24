@@ -14,7 +14,9 @@ case class HiveSourceConfig(dbName: DatabaseName,
                             kerberos: Option[Kerberos],
                             hadoopConfiguration: HadoopConfiguration,
                             tableOptions: Set[SourceTableOptions] = Set.empty,
-                            pollSize: Int = 1024)
+                            pollSize: Int = 1024,
+                            refreshFrequency: Int = 0,
+                           )
 
 case class SourceTableOptions(
   tableName: TableName,
@@ -60,7 +62,8 @@ object HiveSourceConfig {
       pollSize = props
         .getOrElse(HiveSourceConfigConstants.PollSizeKey, 1024)
         .toString
-        .toInt
+        .toInt,
+      refreshFrequency = props.getOrElse(HiveSourceConfigConstants.RefreshFrequencyKey, 0).toString.toInt
     )
   }
 }

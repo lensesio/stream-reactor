@@ -16,10 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.coap.sink
 
+import com.datamountaineer.streamreactor.common.converters.sink.SinkRecordToJson
+import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.coap.configs.CoapSetting
 import com.datamountaineer.streamreactor.connect.coap.connection.CoapManager
-import com.datamountaineer.streamreactor.connect.converters.source.SinkRecordToJson
-import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.eclipse.californium.core.CoapResponse
@@ -36,7 +36,7 @@ class CoapWriter(setting: CoapSetting) extends CoapManager(setting) with ErrorHa
   logger.info(s"Initialising CoapWriter for resource ${setting.kcql.getTarget}")
 
   //initialize error tracker
-  initialize(setting.retries.get, setting.errorPolicy.get)
+  initialize(setting.retries.get, setting.errorPolicy)
 
   val fields = Map(setting.kcql.getSource -> setting.kcql.getFields.asScala.map(fa => (fa.getName, fa.getAlias)).toMap)
   val ignoredFields = Map(setting.kcql.getSource -> setting.kcql.getIgnoredFields.asScala.map(f => f.getName).toSet)

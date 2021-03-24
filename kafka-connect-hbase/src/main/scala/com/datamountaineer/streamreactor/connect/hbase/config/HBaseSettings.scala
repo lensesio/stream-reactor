@@ -17,9 +17,8 @@
 package com.datamountaineer.streamreactor.connect.hbase.config
 
 import java.io.File
-
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ThrowErrorPolicy}
 import com.datamountaineer.streamreactor.connect.hbase.config.HBaseConfigConstants._
 import com.datamountaineer.streamreactor.connect.hbase.kerberos.Kerberos
 import com.datamountaineer.streamreactor.connect.hbase.{GenericRowKeyBuilderBytes, RowKeyBuilderBytes, StructFieldsExtractorBytes, StructFieldsRowKeyBuilderBytes}
@@ -48,7 +47,7 @@ object HBaseSettings {
   def apply(config: HBaseConfig): HBaseSettings = {
     val columnFamily = config.getString(COLUMN_FAMILY)
 
-    if (columnFamily.trim.length == 0) throw new ConfigException(s"$COLUMN_FAMILY is not set correctly")
+    if (columnFamily.trim.isEmpty) throw new ConfigException(s"$COLUMN_FAMILY is not set correctly")
 
     val kcql = config.getKCQL
     val fields = config.getFieldsMap()

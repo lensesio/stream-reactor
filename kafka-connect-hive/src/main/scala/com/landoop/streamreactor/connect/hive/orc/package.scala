@@ -1,5 +1,6 @@
 package com.landoop.streamreactor.connect.hive
 
+import com.landoop.streamreactor.connect.hive.kerberos.UgiExecute
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.kafka.connect.data.Schema
 import org.apache.orc.OrcFile.EncodingStrategy
@@ -28,8 +29,8 @@ package object orc {
     OrcFile.createWriter(path, options)
   }
 
-  def source(path: Path, config: OrcSourceConfig)
-            (implicit fs: FileSystem) = new OrcSource(path, config)
+  def source(path: Path, config: OrcSourceConfig, ugi:UgiExecute)
+            (implicit fs: FileSystem) = new OrcSource(path, config, ugi)
 
   def sink(path: Path, schema: Schema, config: OrcSinkConfig)
           (implicit fs: FileSystem) = new OrcSink(path, schema, config)

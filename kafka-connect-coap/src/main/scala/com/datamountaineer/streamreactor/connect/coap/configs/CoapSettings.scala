@@ -16,17 +16,16 @@
 
 package com.datamountaineer.streamreactor.connect.coap.configs
 
-import java.io.{File, FileInputStream, InputStreamReader}
-import java.security._
-import java.security.spec.{PKCS8EncodedKeySpec, X509EncodedKeySpec}
-
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
+import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.io.pem.PemReader
 
+import java.io.{File, FileInputStream, InputStreamReader}
+import java.security._
+import java.security.spec.{PKCS8EncodedKeySpec, X509EncodedKeySpec}
 import scala.collection.JavaConverters._
 
 /**
@@ -42,7 +41,7 @@ case class CoapSetting(uri: String,
                        chainKey: String,
                        kcql: Kcql,
                        retries: Option[Int],
-                       errorPolicy: Option[ErrorPolicy],
+                       errorPolicy: ErrorPolicy,
                        target: String,
                        bindHost: String,
                        bindPort: Int,
@@ -75,7 +74,7 @@ object CoapSettings {
 
     val kcql = config.getKCQL
     val sink = if (config.isInstanceOf[CoapSinkConfig]) true else false
-    val errorPolicy = if (sink) Some(config.getErrorPolicy) else None
+    val errorPolicy = config.getErrorPolicy
     val retries = if (sink) Some(config.getNumberRetries) else None
 
     val bindPort = config.getPort

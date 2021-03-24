@@ -16,15 +16,14 @@
 
 package com.datamountaineer.streamreactor.connect.coap.source
 
-import java.util
-
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSourceConfig}
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 
+import java.util
 import scala.collection.JavaConverters._
 
 /**

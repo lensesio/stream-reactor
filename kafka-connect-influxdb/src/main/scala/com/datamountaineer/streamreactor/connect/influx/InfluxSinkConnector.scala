@@ -16,11 +16,11 @@
 
 package com.datamountaineer.streamreactor.connect.influx
 
-import java.util
+import com.datamountaineer.streamreactor.common.config.Helpers
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 
-import com.datamountaineer.streamreactor.connect.config.Helpers
+import java.util
 import com.datamountaineer.streamreactor.connect.influx.config.{InfluxConfig, InfluxConfigConstants}
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task

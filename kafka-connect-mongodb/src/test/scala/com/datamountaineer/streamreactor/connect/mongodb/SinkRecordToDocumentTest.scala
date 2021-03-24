@@ -17,11 +17,11 @@
 package com.datamountaineer.streamreactor.connect.mongodb
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.errors.NoopErrorPolicy
+import com.datamountaineer.streamreactor.common.errors.NoopErrorPolicy
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.mongodb.Transaction._
 import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
 import com.datamountaineer.streamreactor.connect.mongodb.sink.SinkRecordToDocument
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.mongodb.AuthenticationMechanism
 import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.data.Schema

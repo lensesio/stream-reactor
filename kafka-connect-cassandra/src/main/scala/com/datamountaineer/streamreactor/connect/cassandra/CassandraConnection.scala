@@ -16,11 +16,11 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra
 
+import com.datamountaineer.streamreactor.common.config.{SSLConfig, SSLConfigContext}
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, LoadBalancingPolicy}
-import com.datamountaineer.streamreactor.connect.config.{SSLConfig, SSLConfigContext}
 import com.datastax.driver.core.Cluster.Builder
 import com.datastax.driver.core.policies.{DCAwareRoundRobinPolicy, LatencyAwarePolicy, RoundRobinPolicy, TokenAwarePolicy}
-import com.datastax.driver.core.{Cluster, JdkSSLOptions, QueryOptions, Session}
+import com.datastax.driver.core.{Cluster, JdkSSLOptions, QueryOptions, RemoteEndpointAwareJdkSSLOptions, Session}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.AbstractConfig
 
@@ -122,7 +122,7 @@ object CassandraConnection extends StrictLogging {
 
       val context = SSLConfigContext(sslConfig)
       //val cipherSuites: Array[String] = Array("TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA")
-      val sSLOptions = new JdkSSLOptions.Builder
+      val sSLOptions = new RemoteEndpointAwareJdkSSLOptions.Builder
       //sSLOptions.withCipherSuites(cipherSuites)
       sSLOptions.withSSLContext(context)
       builder.withSSL(sSLOptions.build())

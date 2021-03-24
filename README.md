@@ -22,6 +22,14 @@ A collection of components to build a real time ingestion pipeline.
 *    Kafka 2.5+ (Confluent 5.5) - Stream reactor 2.0.0+
 *    Kafka 2.0 -> 2.4 (Confluent 5.4) - Stream reactor 1.2.7
 
+## DEPRECATION NOTICE
+
+The following connectors will be deprecated and no longer included in any release from 3.0
+
+* Rethink
+* VoltDB
+* Blockchain
+
 
 ### Connectors
 
@@ -58,6 +66,32 @@ A collection of components to build a real time ingestion pipeline.
 
 
 ## Release Notes
+
+**2.1.3**
+
+Move to connect-common 2.0.5 that adds complex type support to KCQL
+
+**2.1.2**
+
+*   AWS S3 Sink Connector
+    *    Prevent null pointer exception in converters when maps are presented will null values
+    *    Offset reader optimisation to reduce S3 load
+    *    Ensuring that commit only occurs after the preconfigured time interval when using WITH_FLUSH_INTERVAL
+*   AWS S3 Source Connector (New Connector)
+*   Cassandra Source Connector
+    *    Add Bucket Timeseries Mode
+    *    Reduction of logging noise
+    *    Proper handling of uninitialized connections on task stop()
+*   Elasticsearch Sink Connector
+    *    Update default port
+*   Hive Sink
+    *    Improve Orc format handling
+    *    Fixing issues with partitioning by non-string keys
+*   Hive Source
+    *    Ensuring newly written files can be read by the hive connector by introduction of a refresh frequency configuration option.
+*   Redis Sink
+    *    Correct Redis writer initialisation
+
 
 **2.1.0**
 

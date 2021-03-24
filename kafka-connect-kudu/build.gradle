@@ -20,6 +20,8 @@ project(":kafka-connect-kudu") {
     }
 
     dependencies {
+        compile project(':kafka-connect-common')
         compile "org.apache.kudu:kudu-client:$kuduVersion"
+        compile "org.json4s:json4s-native_$scalaMajorVersion:$json4sVersion"
     }
 }

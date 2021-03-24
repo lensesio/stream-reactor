@@ -16,9 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.config
 
+import com.datamountaineer.streamreactor.common.config.base.traits.{BaseConfig, DatabaseSettings, ErrorPolicySettings, KcqlSettings, NumberRetriesSettings, RetryIntervalSettings}
+
 import java.util
 
-import com.datamountaineer.streamreactor.connect.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 

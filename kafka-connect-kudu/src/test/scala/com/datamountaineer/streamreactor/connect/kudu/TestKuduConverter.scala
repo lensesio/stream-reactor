@@ -17,9 +17,8 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
 import java.util.Collections
-
 import com.datamountaineer.kcql.{Bucketing, Kcql}
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import org.apache.avro.{Schema, SchemaBuilder}
 import org.apache.kudu.client.{KuduTable, Upsert}
 import org.mockito.MockitoSugar

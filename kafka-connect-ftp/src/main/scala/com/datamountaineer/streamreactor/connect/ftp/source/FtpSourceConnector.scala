@@ -16,14 +16,13 @@
 
 package com.datamountaineer.streamreactor.connect.ftp.source
 
-import java.util
-
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceConnector
 
+import java.util
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Try}
 

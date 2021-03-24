@@ -19,6 +19,7 @@ package com.datamountaineer.streamreactor.connect.elastic7
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node._
 import org.apache.kafka.connect.data._
+import org.apache.kafka.connect.errors.ConnectException
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
@@ -27,7 +28,7 @@ object PrimaryKeyExtractor {
   def extract(node: JsonNode, path: Vector[String]): Any = {
     @tailrec
     def innerExtract(n: JsonNode, p: Vector[String]): Any = {
-      def checkValidPath() = {
+      def checkValidPath(): Unit = {
         if (p.nonEmpty) {
           throw new IllegalArgumentException(s"Invalid field selection for '${path.mkString(".")}'. It doesn't resolve to a primitive field")
         }
@@ -201,7 +202,7 @@ object PrimaryKeyExtractor {
               }
 
             innerExtract(childField, s.get(childField), p.tail)
-          case other => sys.error(s"$other is not a recognized schema")
+          case other => throw new ConnectException(s"$other is not a recognized schema")
         }
         v
       }

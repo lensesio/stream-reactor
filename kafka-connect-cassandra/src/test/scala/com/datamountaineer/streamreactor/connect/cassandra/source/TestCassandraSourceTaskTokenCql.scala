@@ -34,7 +34,7 @@
 //
 //import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 //import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraConfigConstants
-//import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+//import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 //import com.fasterxml.jackson.databind.JsonNode
 //import org.mockito.MockitoSugar
 //import org.scalatest.{DoNotDiscover, Matchers, WordSpec}

@@ -1,6 +1,6 @@
 package com.landoop.streamreactor.connect.hive.source.config
 
-import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst.{KCQL_PROP_SUFFIX, PROGRESS_ENABLED_CONST}
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.{KCQL_PROP_SUFFIX, PROGRESS_ENABLED_CONST}
 import com.landoop.streamreactor.connect.hive.HadoopConfigurationConstants
 import com.landoop.streamreactor.connect.hive.kerberos.KerberosSettings
 
@@ -36,4 +36,8 @@ object HiveSourceConfigConstants
 
   val PollSizeKey = s"$CONNECTOR_PREFIX.poll.size"
   val PollSizeDoc = "Max number of records to read each time poll is called"
+
+  val RefreshFrequencyKey = s"$CONNECTOR_PREFIX.refresh.frequency"
+  val RefreshFrequencyDoc = "Minimum duration before refreshing the hive partitions on the next poll. 0 is disabled.s"
+
 }

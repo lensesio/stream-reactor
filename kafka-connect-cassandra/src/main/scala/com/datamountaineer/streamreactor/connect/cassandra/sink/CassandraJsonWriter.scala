@@ -22,11 +22,11 @@ import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraSinkSetting, DefaultValueServeStrategy}
 import com.datamountaineer.streamreactor.connect.cassandra.utils.{CassandraUtils, KeyUtils}
-import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
-import com.datamountaineer.streamreactor.connect.concurrent.FutureAwaitWithFailFastFn
-import com.datamountaineer.streamreactor.connect.converters.{FieldConverter, Transform}
-import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.datamountaineer.streamreactor.common.concurrent.ExecutorExtension._
+import com.datamountaineer.streamreactor.common.concurrent.FutureAwaitWithFailFastFn
+import com.datamountaineer.streamreactor.common.converters.{FieldConverter, ToJsonWithProjections}
+import com.datamountaineer.streamreactor.common.errors.ErrorHandler
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datastax.driver.core.exceptions.SyntaxError
 import com.datastax.driver.core.{PreparedStatement, Session}
 import com.typesafe.scalalogging.StrictLogging
@@ -179,12 +179,12 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
   private def insert(record: SinkRecord) = {
     val tables = preparedCache.getOrElse(record.topic(), throw new IllegalArgumentException(s"Topic ${record.topic()} doesn't have a KCQL setup"))
     tables.foreach { case (table, (statement, kcql)) =>
-      val json = Transform(
+      val json = ToJsonWithProjections(
         kcql.getFields.asScala.map(FieldConverter.apply),
         kcql.getIgnoredFields.asScala.map(FieldConverter.apply),
         record.valueSchema(),
         record.value(),
-        kcql.hasRetainStructure())
+        kcql.hasRetainStructure()).toString
 
       try {
         val bound = statement.bind(json)
@@ -200,7 +200,7 @@ class CassandraJsonWriter(connection: CassandraConnection, settings: CassandraSi
     }
   }
 
-  private def delete(record: SinkRecord) = {
+  private def delete(record: SinkRecord): Unit = {
     try {
       deleteCache match {
         case Some(d) =>

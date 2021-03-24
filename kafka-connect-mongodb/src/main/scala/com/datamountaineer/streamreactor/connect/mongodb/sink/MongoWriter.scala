@@ -17,14 +17,14 @@
 package com.datamountaineer.streamreactor.connect.mongodb.sink
 
 import java.io.{File, FileNotFoundException}
-
 import com.datamountaineer.kcql.WriteModeEnum
-import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
+import com.datamountaineer.streamreactor.common.errors.{ErrorHandler, RetryErrorPolicy}
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.mongodb.config.{MongoConfig, MongoConfigConstants, MongoSettings}
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.mongodb._
 import com.mongodb.client.model._
 import com.typesafe.scalalogging.StrictLogging
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.bson.Document
 
@@ -76,7 +76,7 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient) extends Str
     try {
       records.groupBy(_.topic()).foreach { case (topic, groupedRecords) =>
         val collection = collectionMap(topic)
-        val config = configMap.getOrElse(topic, sys.error(s"$topic is not handled by the configuration."))
+        val config = configMap.getOrElse(topic, throw new ConnectException(s"$topic is not handled by the configuration."))
         val batchSize = if (config.getBatchSize == 0) MongoConfigConstants.BATCH_SIZE_CONFIG_DEFAULT else config.getBatchSize
         groupedRecords.map { record =>
           val (document, keysAndValues) = SinkRecordToDocument(
@@ -120,7 +120,7 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient) extends Str
               new ReplaceOneModel[Document](
                 filter,
                 document,
-                MongoWriter.UpdateOptions.upsert(true))
+                MongoWriter.ReplaceOptions.upsert(true))
           }
         }.grouped(batchSize)
           .foreach { batch =>
@@ -144,14 +144,15 @@ class MongoWriter(settings: MongoSettings, mongoClient: MongoClient) extends Str
 
 //Factory to build
 object MongoWriter {
-  private val UpdateOptions = new UpdateOptions().upsert(true)
+  private val ReplaceOptions = new ReplaceOptions().upsert(true)
 
   def apply(connectorConfig: MongoConfig, context: SinkTaskContext): MongoWriter = {
 
     val settings = MongoSettings(connectorConfig)
     //if error policy is retry set retry interval
-    if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(connectorConfig.getLong(MongoConfigConstants.ERROR_RETRY_INTERVAL_CONFIG))
+    settings.errorPolicy match {
+      case RetryErrorPolicy() => context.timeout(connectorConfig.getInt(MongoConfigConstants.ERROR_RETRY_INTERVAL_CONFIG).toLong)
+      case _ =>
     }
 
     val mongoClient = MongoClientProvider(settings)

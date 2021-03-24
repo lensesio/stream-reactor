@@ -49,6 +49,10 @@ object PartitionField {
   def apply(keyOrName: String): PartitionField = {
     if (keyOrName.equalsIgnoreCase("_key")) {
       WholeKeyPartitionField()
+    } else if (keyOrName.equalsIgnoreCase("_topic")) {
+      TopicPartitionField()
+    } else if (keyOrName.equalsIgnoreCase("_partition")) {
+      PartitionPartitionField()
     } else {
       ValuePartitionField(keyOrName)
     }
@@ -59,6 +63,8 @@ object PartitionField {
       case "_header" => HeaderPartitionField(name)
       case "_key" => KeyPartitionField(name)
       case "_value" => ValuePartitionField(name)
+      case "_topic" => TopicPartitionField()
+      case "_partition" => PartitionPartitionField()
       case _ => throw new IllegalArgumentException(s"Invalid input PartitionSource '$sourceName', should be either '_key', '_value' or '_header'")
     }
   }
@@ -86,4 +92,11 @@ case class WholeKeyPartitionField() extends PartitionField {
   override def valuePrefixDisplay(): String = "key"
 }
 
+case class TopicPartitionField() extends PartitionField {
+  override def valuePrefixDisplay(): String = "topic"
+}
+
+case class PartitionPartitionField() extends PartitionField {
+  override def valuePrefixDisplay(): String = "partition"
+}
 

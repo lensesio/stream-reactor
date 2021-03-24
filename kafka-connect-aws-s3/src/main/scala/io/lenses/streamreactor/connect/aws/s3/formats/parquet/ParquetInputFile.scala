@@ -33,7 +33,7 @@ class ParquetInputFile(inputStream: SeekableByteArrayInputStream) extends InputF
   override def getLength: Long = inputStream.available()
 
   override def newStream(): SeekableInputStream = new DelegatingSeekableInputStream(inputStream) {
-    override def getPos: Long = this.getStream.asInstanceOf[SeekableByteArrayInputStream].getPos.longValue
+    override def getPos: Long = getStream.asInstanceOf[SeekableByteArrayInputStream].getPos.longValue
 
     override def seek(newPos: Long): Unit = getStream.asInstanceOf[SeekableByteArrayInputStream].setPos(newPos.intValue)
   }

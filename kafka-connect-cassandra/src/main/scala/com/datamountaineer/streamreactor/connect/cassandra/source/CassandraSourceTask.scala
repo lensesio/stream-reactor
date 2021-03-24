@@ -16,13 +16,13 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
+import com.datamountaineer.streamreactor.common.queues.QueueHelpers
+import com.datamountaineer.streamreactor.common.utils.JarManifest
+
 import java.util
 import java.util.concurrent.LinkedBlockingQueue
-
 import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource, CassandraSettings, CassandraSourceSetting}
-import com.datamountaineer.streamreactor.connect.queues.QueueHelpers
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}

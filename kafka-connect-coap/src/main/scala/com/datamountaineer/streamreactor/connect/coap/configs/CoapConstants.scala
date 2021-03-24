@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.coap.configs
 
-import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst._
 
 /**
   * Created by andrew@datamountaineer.com on 04/01/2017. 

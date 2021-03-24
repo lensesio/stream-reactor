@@ -19,20 +19,31 @@ package io.lenses.streamreactor.connect.aws.s3.auth
 
 import java.util.Properties
 
+import com.amazonaws.auth.{AWSCredentialsProvider, AWSSessionCredentials, DefaultAWSCredentialsProviderChain}
+import com.google.common.base.Supplier
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, S3Config}
 import org.jclouds.ContextBuilder
+import org.jclouds.aws.domain.SessionCredentials
 import org.jclouds.blobstore.BlobStoreContext
-
+import org.jclouds.domain.Credentials
 
 object AwsContextCreator {
 
-  def fromConfig(awsConfig: S3Config): BlobStoreContext = {
+  def DefaultCredentialsFn : () => AWSCredentialsProvider = {
+    () => new DefaultAWSCredentialsProviderChain()
+  }
 
-    val (access, secret) = getAuthModeFn(awsConfig)
+}
+
+class AwsContextCreator(credentialsProviderFn: () => AWSCredentialsProvider) {
+
+  private val missingCredentialsError = "Configured to use credentials however one or both of `AWS_ACCESS_KEY` or `AWS_SECRET_KEY` are missing."
+
+  def fromConfig(awsConfig: S3Config): BlobStoreContext = {
 
     val contextBuilder = ContextBuilder
       .newBuilder("aws-s3")
-      .credentials(access, secret)
+      .credentialsSupplier(credentialsSupplier(awsConfig))
 
     awsConfig.customEndpoint.foreach(contextBuilder.endpoint)
 
@@ -44,19 +55,27 @@ object AwsContextCreator {
 
   }
 
-  private def getAuthModeFn(awsConfig: S3Config): (String, String) =
-
+  private def credentialsSupplier(awsConfig: S3Config): Supplier[Credentials] = {
     awsConfig.authMode match {
-      case AuthMode.Credentials => credentialsConfigFn(awsConfig: S3Config)
-      case _ => throwErrorConfigFn(awsConfig.authMode)
+      case AuthMode.Credentials => credentialsFromConfig(awsConfig: S3Config)
+      case _ => credentialsFromDefaultChain()
     }
+  }
 
-  private def credentialsConfigFn = (awsConfig: S3Config) => (
-    awsConfig.accessKey,
-    awsConfig.secretKey
+  private def credentialsFromConfig(awsConfig: S3Config): Supplier[Credentials] = () => new Credentials(
+    awsConfig.accessKey.filter(_.trim.nonEmpty).getOrElse(throw new IllegalArgumentException(missingCredentialsError)),
+    awsConfig.secretKey.filter(_.trim.nonEmpty).getOrElse(throw new IllegalArgumentException(missingCredentialsError))
   )
 
-  private def throwErrorConfigFn(authMode: AuthMode) = throw new NotImplementedError(s"The auth mode $authMode is not currently supported")
+  private def credentialsFromDefaultChain(): Supplier[Credentials] = () => {
+    val credentialsProvider = credentialsProviderFn()
+    val credentials = Option(credentialsProvider.getCredentials)
+      .getOrElse(throw new IllegalStateException("No credentials found on default provider chain."))
+    credentials match {
+      case credentials: AWSSessionCredentials => SessionCredentials.builder().accessKeyId(credentials.getAWSAccessKeyId).secretAccessKey(credentials.getAWSSecretKey).sessionToken(credentials.getSessionToken).build()
+      case _ => new Credentials(credentials.getAWSAccessKeyId, credentials.getAWSSecretKey)
+    }
+  }
 
   private def createOverride() = {
     val overrides = new Properties()
@@ -67,6 +86,5 @@ object AwsContextCreator {
   def close(blobStoreContext: BlobStoreContext): Unit = {
     blobStoreContext.close()
   }
-
 
 }

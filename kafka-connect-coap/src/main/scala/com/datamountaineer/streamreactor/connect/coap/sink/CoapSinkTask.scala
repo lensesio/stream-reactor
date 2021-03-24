@@ -16,16 +16,15 @@
 
 package com.datamountaineer.streamreactor.connect.coap.sink
 
-import java.util
-
+import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
+import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
 import com.datamountaineer.streamreactor.connect.coap.configs.{CoapConstants, CoapSettings, CoapSinkConfig}
-import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
+import java.util
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
@@ -50,9 +49,11 @@ class CoapSinkTask extends SinkTask with StrictLogging {
     val settings = CoapSettings(sinkConfig)
 
     //if error policy is retry set retry interval
-    if (settings.head.errorPolicy.getOrElse(ErrorPolicyEnum.THROW).equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getString(CoapConstants.ERROR_RETRY_INTERVAL).toLong)
+    settings.head.errorPolicy match {
+      case RetryErrorPolicy() => context.timeout(sinkConfig.getString(CoapConstants.ERROR_RETRY_INTERVAL).toLong)
+      case _ =>
     }
+
     settings.map(s => (s.kcql.getSource, CoapWriter(s))).map({ case (k, v) => writers.put(k, v) })
   }
 

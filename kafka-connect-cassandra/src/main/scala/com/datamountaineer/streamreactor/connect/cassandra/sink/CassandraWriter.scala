@@ -16,9 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 
+import com.datamountaineer.streamreactor.common.errors.{ErrorPolicyEnum, RetryErrorPolicy}
 import com.datamountaineer.streamreactor.connect.cassandra.CassandraConnection
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSink, CassandraSettings}
-import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkTaskContext
@@ -36,8 +36,9 @@ object CassandraWriter extends StrictLogging {
 
     val settings = CassandraSettings.configureSink(connectorConfig)
     //if error policy is retry set retry interval
-    if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(connectorConfig.getString(CassandraConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+    settings.errorPolicy match {
+      case RetryErrorPolicy() => context.timeout(connectorConfig.getInt(CassandraConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+      case _ =>
     }
 
     new CassandraJsonWriter(connection, settings)

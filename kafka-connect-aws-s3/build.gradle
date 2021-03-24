@@ -18,12 +18,12 @@ project(":kafka-connect-aws-s3") {
 
     ext {
         awsSdkVersion = "1.11.762"
-        jCloudsSdkVersion = "2.2.0"
+        jCloudsSdkVersion = "2.2.1"
         enumeratumVersion = "1.5.15"
         catsVersion = "1.2.0"
         parquetVersion = "1.11.0"
         hadoopVersion = "2.10.0"
-        s3ProxyVersion = "1.6.1"
+        s3ProxyVersion = "1.7.1"
         guavaVersion = "18.0"
         guiceVersion = "3.0"
     }
@@ -35,6 +35,10 @@ project(":kafka-connect-aws-s3") {
         }
     }
     dependencies {
+
+        compile project(':kafka-connect-common')
+        compile("io.netty:netty-all:4.1.52.Final")
+
         compile("com.google.guava:guava:$guavaVersion")
 
         compile("com.google.inject:guice:$guiceVersion")

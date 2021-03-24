@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.connect.rethink.config
 
 import com.datamountaineer.kcql.{Kcql, WriteModeEnum}
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ThrowErrorPolicy}
+
 import org.apache.kafka.connect.errors.ConnectException
 
 /**

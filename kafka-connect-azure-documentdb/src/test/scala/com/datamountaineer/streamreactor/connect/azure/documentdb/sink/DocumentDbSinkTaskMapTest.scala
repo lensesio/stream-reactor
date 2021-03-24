@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
-import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbConfigConstants
+import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.microsoft.azure.documentdb._
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
@@ -61,11 +61,11 @@ class DocumentDbSinkTaskMapTest extends AnyWordSpec with Matchers with MockitoSu
       when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
-      val task = new DocumentDbSinkTask(_ => documentClient)
-      val context = mock[SinkTaskContext]
-      when(context.configs()).thenReturn(map)
-      task.initialize(context)
-      task.start(map)
+//      val task = new DocumentDbSinkTask(_ => documentClient)
+//      val context = mock[SinkTaskContext]
+//      when(context.configs()).thenReturn(map)
+//      task.initialize(context)
+//      task.start(map)
 
       val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
       val map1: java.util.Map[String, Any] = mapper.readValue(json1, `type`)
@@ -106,7 +106,12 @@ class DocumentDbSinkTaskMapTest extends AnyWordSpec with Matchers with MockitoSu
             }, mockEq(false)))
         .thenReturn(r2)
 
-      task.put(Seq(sinkRecord1, sinkRecord2).asJava)
+      val config = DocumentDbConfig(map)
+      val settings = DocumentDbSinkSettings(config)
+      val kcqlMap = settings.kcql.map(c => c.getSource -> c).toMap
+
+      val writer = new DocumentDbWriter(kcqlMap, settings, documentClient)
+      writer.write(Seq(sinkRecord1, sinkRecord2))
 
       verify(documentClient)
         .createDocument(
@@ -158,11 +163,11 @@ class DocumentDbSinkTaskMapTest extends AnyWordSpec with Matchers with MockitoSu
       when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
-      val task = new DocumentDbSinkTask(_ => documentClient)
-      val context = mock[SinkTaskContext]
-      when(context.configs()).thenReturn(map)
-      task.initialize(context)
-      task.start(map)
+//      val task = new DocumentDbSinkTask(_ => documentClient)
+//      val context = mock[SinkTaskContext]
+//      when(context.configs()).thenReturn(map)
+//      task.initialize(context)
+//      task.start(map)
 
       val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
       val map1: java.util.Map[String, Any] = mapper.readValue(json1, `type`)
@@ -207,7 +212,12 @@ class DocumentDbSinkTaskMapTest extends AnyWordSpec with Matchers with MockitoSu
             mockEq(false)))
         .thenReturn(r2)
 
-      task.put(Seq(sinkRecord1, sinkRecord2).asJava)
+      val config = DocumentDbConfig(map)
+      val settings = DocumentDbSinkSettings(config)
+      val kcqlMap = settings.kcql.map(c => c.getSource -> c).toMap
+
+      val writer = new DocumentDbWriter(kcqlMap, settings, documentClient)
+      writer.write(Seq(sinkRecord1, sinkRecord2))
 
       verify(documentClient)
         .createDocument(
@@ -256,11 +266,11 @@ class DocumentDbSinkTaskMapTest extends AnyWordSpec with Matchers with MockitoSu
       when(documentClient.readDatabase(mockEq("dbs/database1"), mockEq(null)))
         .thenReturn(dbResource)
 
-      val task = new DocumentDbSinkTask(_ => documentClient)
-      val context = mock[SinkTaskContext]
-      when(context.configs()).thenReturn(map)
-      task.initialize(context)
-      task.start(map)
+//      val task = new DocumentDbSinkTask(_ => documentClient)
+//      val context = mock[SinkTaskContext]
+//      when(context.configs()).thenReturn(map)
+//      task.initialize(context)
+//      task.start(map)
 
       val json1 = scala.io.Source.fromFile(getClass.getResource(s"/transaction1.json").toURI.getPath).mkString
       val map1: java.util.Map[String, Any] = mapper.readValue(json1, `type`)
@@ -304,7 +314,12 @@ class DocumentDbSinkTaskMapTest extends AnyWordSpec with Matchers with MockitoSu
             }, mockEq(true)))
         .thenReturn(r2)
 
-      task.put(Seq(sinkRecord1, sinkRecord2).asJava)
+      val config = DocumentDbConfig(map)
+      val settings = DocumentDbSinkSettings(config)
+      val kcqlMap = settings.kcql.map(c => c.getSource -> c).toMap
+
+      val writer = new DocumentDbWriter(kcqlMap, settings, documentClient)
+      writer.write(Seq(sinkRecord1, sinkRecord2))
 
       verify(documentClient)
         .upsertDocument(

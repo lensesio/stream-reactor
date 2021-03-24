@@ -17,13 +17,13 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import java.util
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
+import java.util
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsContextCreator
-import io.lenses.streamreactor.connect.aws.s3.config.S3Config
-import io.lenses.streamreactor.connect.aws.s3.model.{MessageDetail, Offset, SinkData, Topic, TopicPartition, TopicPartitionOffset}
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.{HeaderToStringConverter, SinkDataValueConverter}
+import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
+import io.lenses.streamreactor.connect.aws.s3.sink.conversion.{HeaderToStringConverter, ValueToSinkDataConverter}
 import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreStorageInterface, StorageInterface}
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
@@ -42,22 +42,33 @@ class S3SinkTask extends SinkTask {
 
   private var storageInterface: StorageInterface = _
 
-  private var config: S3Config = _
+  private var config: S3SinkConfig = _
 
   override def version(): String = manifest.version()
+
+  def validateBuckets(storageInterface: StorageInterface, config: S3SinkConfig) = {
+    config.bucketOptions.foreach(
+      bucketOption => {
+        val bucketAndPrefix = bucketOption.bucketAndPrefix
+        storageInterface.list(bucketAndPrefix)
+      }
+    )
+  }
 
   override def start(props: util.Map[String, String]): Unit = {
 
     logger.debug(s"Received call to S3SinkTask.start with ${props.size()} properties")
 
-    val awsConfig = S3Config(props.asScala.toMap)
+    val awsConfig = S3SinkConfig(props.asScala.toMap)
 
-
-    storageInterface = new MultipartBlobStoreStorageInterface(AwsContextCreator.fromConfig(awsConfig))
+    val awsContextCreator = new AwsContextCreator(AwsContextCreator.DefaultCredentialsFn)
+    storageInterface = new MultipartBlobStoreStorageInterface(awsContextCreator.fromConfig(awsConfig.s3Config))
 
     val configs = Option(context).flatMap(c => Option(c.configs())).filter(_.isEmpty == false).getOrElse(props)
 
-    config = S3Config(configs.asScala.toMap)
+    config = S3SinkConfig(configs.asScala.toMap)
+
+    validateBuckets(storageInterface, config)
 
     writerManager = S3WriterManager.from(config)(storageInterface)
 
@@ -77,8 +88,8 @@ class S3SinkTask extends SinkTask {
         writerManager.write(
           tpo,
           MessageDetail(
-            keySinkData = Option(record.key()).fold(Option.empty[SinkData])(key => Option(SinkDataValueConverter(key, Option(record.keySchema())))),
-            valueSinkData = SinkDataValueConverter(record.value(), Option(record.valueSchema())),
+            keySinkData = Option(record.key()).fold(Option.empty[SinkData])(key => Option(ValueToSinkDataConverter(key, Option(record.keySchema())))),
+            valueSinkData = ValueToSinkDataConverter(record.value(), Option(record.valueSchema())),
             headers = HeaderToStringConverter(record)
           )
         )
@@ -137,7 +148,7 @@ class S3SinkTask extends SinkTask {
 
   /**
     * Whenever close is called, the topics and partitions assigned to this task
-    * may be changing, eg, in a rebalance. Therefore, we must commit our open files
+    * may be changing, eg, in a re-balance. Therefore, we must commit our open files
     * for those (topic,partitions) to ensure no records are lost.
     */
   override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = {

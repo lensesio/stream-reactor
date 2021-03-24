@@ -1,14 +1,16 @@
 package com.landoop.streamreactor.connect.hive.source
 
-import java.util
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
+import java.time.Instant
+import java.time.temporal.ChronoUnit
+import java.util
 import com.landoop.streamreactor.connect.hive.ConfigurationBuilder
 import com.landoop.streamreactor.connect.hive.HadoopConfigurationExtension._
-import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
+import com.landoop.streamreactor.connect.hive.kerberos.{KerberosLogin, UgiExecute}
 import com.landoop.streamreactor.connect.hive.sink.config.SinkConfigSettings
 import com.landoop.streamreactor.connect.hive.source.config.HiveSourceConfig
-import com.landoop.streamreactor.connect.hive.source.offset.HiveSourceOffsetStorageReader
+import com.landoop.streamreactor.connect.hive.source.offset.{HiveSourceInitOffsetStorageReader, HiveSourceOffsetStorageReader, HiveSourceRefreshOffsetStorageReader}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
@@ -19,7 +21,7 @@ import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-class HiveSourceTask extends SourceTask with StrictLogging {
+class HiveSourceTask extends SourceTask with StrictLogging with UgiExecute {
 
   private val manifest = JarManifest(
     getClass.getProtectionDomain.getCodeSource.getLocation
@@ -31,6 +33,8 @@ class HiveSourceTask extends SourceTask with StrictLogging {
   private var sources: Set[HiveSource] = Set.empty
   private var iterator: Iterator[SourceRecord] = Iterator.empty
   private var kerberosLogin = Option.empty[KerberosLogin]
+  private var lastRefresh: Instant = Instant.now()
+  private var lastOffsets: Option[Map[SourcePartition, SourceOffset]] = None
 
   def this(fs: FileSystem, client: HiveMetaStoreClient) {
     this()
@@ -78,25 +82,35 @@ class HiveSourceTask extends SourceTask with StrictLogging {
       hiveConf.set("hive.metastore.kerberos.principal", principal)
     }
 
-    def initialize(): Unit = {
+    execute{
       fs = FileSystem.get(conf)
       client = new HiveMetaStoreClient(hiveConf)
     }
-    kerberosLogin.fold(initialize())(_.run(initialize()))
-
     val databases = execute(client.getAllDatabases)
     if (!databases.contains(config.dbName.value)) {
       throw new ConnectException(
         s"Cannot find database [${config.dbName.value}]. Current database(-s): ${databases.asScala.mkString(",")}. Please make sure the database is created before sinking to it."
       )
     }
+
+    initSources(contextReader)
+  }
+
+  private def contextReader = {
+    new HiveSourceInitOffsetStorageReader(context.offsetStorageReader)
+  }
+
+  private def initSources(reader: HiveSourceOffsetStorageReader): Unit = execute {
+    lastRefresh = Instant.now()
+
     sources = config.tableOptions.map { options =>
       new HiveSource(
         config.dbName,
         options.tableName,
         options.topic,
-        new HiveSourceOffsetStorageReader(context.offsetStorageReader),
-        config
+        reader,
+        config,
+        this
       )(client, fs)
     }
 
@@ -105,22 +119,44 @@ class HiveSourceTask extends SourceTask with StrictLogging {
     )
   }
 
-  override def poll(): util.List[SourceRecord] = {
+  private def originalSourceOffsets = execute{
+    sources.map(_.getOffsets).reduce(_ ++ _)
+  }
+
+  override def poll(): util.List[SourceRecord] = execute {
+    refreshIfNecessary()
+
     iterator.take(config.pollSize).toList.asJava
   }
 
+  private def refreshIfNecessary(): Unit = {
+    if (config.refreshFrequency > 0) {
+      val nextRefresh = lastRefresh.plus(config.refreshFrequency, ChronoUnit.SECONDS)
+      if (Instant.now().isAfter(nextRefresh)) {
+
+        val currentOffsets = originalSourceOffsets
+        val allOffsets = lastOffsets
+          .fold(currentOffsets) {
+            previousOffsets: Map[SourcePartition, SourceOffset] =>
+              Map() ++ previousOffsets ++ currentOffsets
+          }
+
+        lastOffsets = Some(allOffsets)
+
+        initSources(new HiveSourceRefreshOffsetStorageReader(allOffsets, contextReader))
+      }
+    }
+  }
+
   override def stop(): Unit = {
-    sources.foreach(_.close())
+    execute{
+      sources.foreach(_.close())
+    }
     kerberosLogin.foreach(_.close())
     kerberosLogin = None
   }
 
   override def version(): String = manifest.version()
 
-  private def execute[T](thunk: => T): T = {
-    kerberosLogin match {
-      case None        => thunk
-      case Some(login) => login.run(thunk)
-    }
-  }
+  def execute[T](thunk: => T): T = kerberosLogin.fold(thunk)(_.run(thunk))
 }

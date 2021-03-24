@@ -24,7 +24,7 @@ object CreateDatabaseFn {
     val db = new Database()
     db.setId(databaseName)
     Try(documentClient.createDatabase(db, null).getResource) match {
-      case Failure(ex) => throw new RuntimeException(s"Could not create database with id:$databaseName. ${ex.getMessage}", ex)
+      case Failure(ex) => throw new RuntimeException(s"Could not create database [$databaseName]. ${ex.getMessage}", ex)
       case Success(d) => d
     }
   }

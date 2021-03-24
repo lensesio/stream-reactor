@@ -1,7 +1,5 @@
 package com.landoop.streamreactor.hive.it
 
-import java.util.concurrent.TimeUnit
-
 import com.landoop.streamreactor.connect.hive.{DatabaseName, TableName}
 import org.apache.kafka.connect.data.Schema
 import org.scalatest.concurrent.Eventually
@@ -9,6 +7,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{Millis, Span}
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.util.concurrent.TimeUnit
 import scala.collection.JavaConverters._
 import scala.io.Source
 import scala.util.Random

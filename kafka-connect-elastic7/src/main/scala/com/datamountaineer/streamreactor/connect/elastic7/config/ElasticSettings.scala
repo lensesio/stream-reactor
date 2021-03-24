@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.elastic7.config
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
+import com.datamountaineer.streamreactor.common.errors.ErrorPolicy
 
 /**
   * Created by andrew@datamountaineer.com on 13/05/16.

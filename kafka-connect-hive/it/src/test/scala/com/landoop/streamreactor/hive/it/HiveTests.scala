@@ -1,10 +1,5 @@
 package com.landoop.streamreactor.hive.it
 
-import java.sql.{Connection, DriverManager}
-import java.time.Duration
-import java.util.Properties
-import java.util.concurrent.TimeUnit
-
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hive.conf.HiveConf
@@ -15,9 +10,14 @@ import org.apache.kafka.clients.admin.{AdminClient, NewTopic}
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord, KafkaConsumer}
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
 import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
+import org.apache.kafka.connect.errors.ConnectException
 import org.asynchttpclient.Dsl
-import org.scalatest.Matchers
+import org.scalatest.matchers.should.Matchers
 
+import java.sql.{Connection, DriverManager}
+import java.time.Duration
+import java.util.Properties
+import java.util.concurrent.TimeUnit
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 import scala.util.{Random, Try}
@@ -51,7 +51,7 @@ trait HiveTests extends Matchers {
     Try {
       admin.createTopics(List(new NewTopic(name, 1, 1.toShort)).asJavaCollection).all().get(30, TimeUnit.SECONDS)
       name
-    }.getOrElse(sys.error(s"Could not create topic $name"))
+    }.getOrElse(throw new ConnectException(s"Could not create topic $name"))
   }
 
   protected def postTask(taskDef: String): Unit = {

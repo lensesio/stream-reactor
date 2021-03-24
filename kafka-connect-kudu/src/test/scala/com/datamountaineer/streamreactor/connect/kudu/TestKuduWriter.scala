@@ -17,11 +17,10 @@
 package com.datamountaineer.streamreactor.connect.kudu
 
 import java.util.Collections
-
 import com.datamountaineer.kcql.{Bucketing, Kcql}
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduSettings}
 import com.datamountaineer.streamreactor.connect.kudu.sink.KuduWriter
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.errors.RetriableException
 import org.apache.kafka.connect.sink.SinkRecord
@@ -96,9 +95,9 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
     val topic = "sink_test"
     val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
-    val payload = convertStringSchemaAndJson(record, Map.empty, Set.empty)
+    val payload = convertFromStringAsJson(record, Map.empty, Set.empty)
 
-    val kuduSchema = convertToKuduSchemaFromJson(payload, topic)
+    val kuduSchema = convertToKuduSchemaFromJson(payload.right.get.converted, topic)
     val kuduRow = kuduSchema.newPartialRow()
 
     //mock out kudu client
@@ -186,9 +185,9 @@ class TestKuduWriter extends TestBase with KuduConverter with MockitoSugar with 
     val topic = "sink_test"
     val record = new SinkRecord(topic, 0, null, null, Schema.STRING_SCHEMA, jsonPayload, 0)
 
-    val payload = convertStringSchemaAndJson(record, Map.empty, Set.empty)
+    val payload = convertFromStringAsJson(record, Map.empty, Set.empty)
 
-    val kuduSchema = convertToKuduSchemaFromJson(payload, topic)
+    val kuduSchema = convertToKuduSchemaFromJson(payload.right.get.converted, topic)
     val kuduRow = kuduSchema.newPartialRow()
 
     //mock out kudu client

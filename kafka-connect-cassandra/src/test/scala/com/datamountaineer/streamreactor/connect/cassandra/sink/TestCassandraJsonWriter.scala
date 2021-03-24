@@ -16,12 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 
-import java.util.UUID
+import com.datamountaineer.streamreactor.common.errors.ErrorPolicyEnum
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 
+import java.util.UUID
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSink}
-import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.datastax.driver.core.utils.UUIDs
 import com.datastax.driver.core.{ConsistencyLevel, Session}
 import org.apache.kafka.common.record.TimestampType

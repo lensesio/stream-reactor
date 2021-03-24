@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.connect.bloomberg
 
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
+import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConverters._
 
@@ -52,7 +53,7 @@ private[bloomberg] class ConnectSchema(namespace: String) {
         map.entrySet().asScala.foreach(kvp =>
           recordBuilder.field(kvp.getKey, createSchema(kvp.getKey, kvp.getValue)))
         recordBuilder.build()
-      case v => sys.error(s"${v.getClass} is not handled.")
+      case v => throw new ConnectException(s"${v.getClass} is not handled.")
     }
   }
 }

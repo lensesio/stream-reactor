@@ -29,24 +29,34 @@ class DefaultCommitPolicyTest extends AnyWordSpec with Matchers {
                            policy: CommitPolicy,
                            count: Long,
                            fileSize: Long,
-                           timestampAdjuster: Long => Long = nowTime => nowTime
+                           creationTimestampAdjuster: Long => Long = nowTime => nowTime,
+                           lastFlushTimestampAdjust: Option[Long] = None
                          ) = {
 
     val nowTime = System.currentTimeMillis()
-    val timeAdjusted = timestampAdjuster(nowTime)
-    val tpo = TopicPartitionOffset(Topic("mytopic"), 1, Offset(100))
+    val creationTimeAdjusted = creationTimestampAdjuster(nowTime)
+    val lastFlushTimeAdjusted: Option[Long] = lastFlushTimestampAdjust.fold(Option.empty[Long])(e => Some(nowTime + e))
+    val tpo = TopicPartitionOffset(Topic("myTopic"), 1, Offset(100))
 
-    policy.shouldFlush(CommitContext(tpo, count, fileSize, timeAdjusted))
+    policy.shouldFlush(CommitContext(tpo, count, fileSize, creationTimeAdjusted, lastFlushTimeAdjusted))
   }
 
   "DefaultCommitPolicy" should {
 
-    "roll over after interval" in {
+    "roll over after interval from file creation" in {
 
       val policy = DefaultCommitPolicy(None, Option(2.seconds), None)
 
       shouldFlush(policy, 10, 0) shouldBe false
       shouldFlush(policy, 10, 0, _ - 2000) shouldBe true
+    }
+
+    "roll over after interval from last flush" in {
+
+      val policy = DefaultCommitPolicy(None, Option(2.seconds), None)
+
+      shouldFlush(policy, 10, 0) shouldBe false
+      shouldFlush(policy, 10, 0, lastFlushTimestampAdjust = Some(-2000)) shouldBe true
     }
 
     "roll over after file count" in {

@@ -16,14 +16,17 @@
 
 package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
+import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.kcql.WriteModeEnum
+import com.datamountaineer.streamreactor.common.errors.{ErrorHandler, RetryErrorPolicy}
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.azure.documentdb.DocumentClientProvider
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.{DocumentDbConfig, DocumentDbConfigConstants, DocumentDbSinkSettings}
-import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.microsoft.azure.documentdb._
 import com.typesafe.scalalogging.StrictLogging
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
+import org.apache.kafka.connect.errors.ConnectException
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTaskContext
 
 import scala.util.Failure
 
@@ -32,16 +35,7 @@ import scala.util.Failure
   * Azure DocumentDb Json writer for Kafka connect
   * Writes a list of Kafka connect sink records to Azure DocumentDb using the JSON support.
   */
-class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: DocumentClient) extends StrictLogging with ConverterUtil with ErrorHandler {
-
-  private val configMap = settings.kcql
-    .map { c =>
-      Option(documentClient.readCollection(s"dbs/${settings.database}/colls/${c.getTarget}", new RequestOptions).getResource).getOrElse {
-        throw new IllegalArgumentException(s"Collection '${c.getTarget}' not found!")
-      }
-      c.getSource -> c
-    }.toMap
-
+class DocumentDbWriter(configMap: Map[String, Kcql], settings: DocumentDbSinkSettings, documentClient: DocumentClient) extends StrictLogging with ConverterUtil with ErrorHandler {
   //initialize error tracker
   initialize(settings.taskRetries, settings.errorPolicy)
 
@@ -52,7 +46,7 @@ class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: Documen
     * Write SinkRecords to Azure Document Db.
     *
     * @param records A list of SinkRecords from Kafka Connect to write.
-    **/
+    * */
   def write(records: Seq[SinkRecord]): Unit = {
     if (records.nonEmpty) {
       insert(records)
@@ -64,18 +58,17 @@ class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: Documen
     *
     * @param records A list of SinkRecords from Kafka Connect to write.
     * @return boolean indication successful write.
-    **/
+    * */
   private def insert(records: Seq[SinkRecord]) = {
     try {
-      records.groupBy(_.topic()).foreach { case (_, groupedRecords) =>
-        groupedRecords.foreach { record =>
+      records.foreach { record =>
           val (document, keysAndValues) = SinkRecordToDocument(record, settings.keyBuilderMap.getOrElse(record.topic(), Set.empty))(settings)
 
           val key = keysAndValues.flatMap { case (_, v) => Option(v) }.mkString(".")
           if (key.nonEmpty) {
             document.setId(key)
           }
-          val config = configMap.getOrElse(record.topic(), sys.error(s"${record.topic()} is not handled by the configuration."))
+          val config = configMap.getOrElse(record.topic(), throw new ConnectException(s"[${record.topic()}] is not handled by the configuration."))
           config.getWriteMode match {
             case WriteModeEnum.INSERT =>
               documentClient.createDocument(s"dbs/${settings.database}/colls/${config.getTarget}", document, requestOptionsInsert, key.nonEmpty).getResource
@@ -84,11 +77,10 @@ class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: Documen
               documentClient.upsertDocument(s"dbs/${settings.database}/colls/${config.getTarget}", document, requestOptionsInsert, key.nonEmpty).getResource
           }
         }
-      }
     }
     catch {
       case t: Throwable =>
-        logger.error(s"There was an error inserting the records ${t.getMessage}", t)
+        logger.error(s"There was an error inserting the records [${t.getMessage}]", t)
         handleTry(Failure(t))
     }
   }
@@ -99,19 +91,25 @@ class DocumentDbWriter(settings: DocumentDbSinkSettings, documentClient: Documen
   }
 }
 
-
 //Factory to build
 object DocumentDbWriter extends StrictLogging {
   def apply(connectorConfig: DocumentDbConfig, context: SinkTaskContext): DocumentDbWriter = {
 
-    implicit val settings = DocumentDbSinkSettings(connectorConfig)
+    implicit val settings: DocumentDbSinkSettings = DocumentDbSinkSettings(connectorConfig)
     //if error policy is retry set retry interval
-    if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(connectorConfig.getLong(DocumentDbConfigConstants.ERROR_RETRY_INTERVAL_CONFIG))
+    settings.errorPolicy match {
+      case RetryErrorPolicy() => context.timeout(connectorConfig.getLong(DocumentDbConfigConstants.ERROR_RETRY_INTERVAL_CONFIG))
+      case _ =>
     }
-
     logger.info(s"Initialising Document Db writer.")
-    val provider = DocumentClientProvider.get(settings)
-    new DocumentDbWriter(settings, provider)
+    val client = DocumentClientProvider.get(settings)
+    val configMap: Map[String, Kcql] = settings.kcql
+      .map { c =>
+        Option(client.readCollection(s"dbs/${settings.database}/colls/${c.getTarget}", new RequestOptions).getResource).getOrElse {
+          throw new ConnectException(s"Collection [${c.getTarget}] not found!")
+        }
+        c.getSource -> c
+      }.toMap
+    new DocumentDbWriter(configMap, settings, client)
   }
 }

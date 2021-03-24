@@ -17,9 +17,9 @@
 package com.datamountaineer.streamreactor.connect.mqtt.sink
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.converters.sink.Converter
-import com.datamountaineer.streamreactor.connect.converters.{FieldConverter, Transform}
-import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
+import com.datamountaineer.streamreactor.common.converters.{FieldConverter, ToJsonWithProjections}
+import com.datamountaineer.streamreactor.common.converters.sink.Converter
+import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSinkSettings
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
 import com.typesafe.scalalogging.StrictLogging
@@ -66,7 +66,7 @@ class MqttWriter(client: MqttClient, settings: MqttSinkSettings,
         kcqls.map(k => {
           //for all the records in the group transform
           records.map(r => {
-            val transformed = Transform(
+            val transformed = ToJsonWithProjections(
               k.getFields.asScala.map(FieldConverter.apply),
               k.getIgnoredFields.asScala.map(FieldConverter.apply),
               r.valueSchema(),
@@ -75,8 +75,8 @@ class MqttWriter(client: MqttClient, settings: MqttSinkSettings,
             )
 
             //get kafka message key if asked for
-            if (!Option(k.getDynamicTarget).getOrElse("").isEmpty) {
-              var mqtttopic = (parse(transformed) \ k.getDynamicTarget).extractOrElse[String](null)
+            if (Option(k.getDynamicTarget).getOrElse("").nonEmpty) {
+              var mqtttopic = (parse(transformed.toString) \ k.getDynamicTarget).extractOrElse[String](null)
               if (mqtttopic.nonEmpty) {
                 mqttTarget = mqtttopic
               }
@@ -88,7 +88,7 @@ class MqttWriter(client: MqttClient, settings: MqttSinkSettings,
 
             val converter = convertersMap.getOrElse(k.getSource, null)
             val value = if (converter == null) {
-              transformed.getBytes()
+              transformed.toString.getBytes()
             } else {
               val converted_record = converter.convert(mqttTarget, r)
               converted_record.value().asInstanceOf[Array[Byte]]

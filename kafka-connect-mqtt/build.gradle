@@ -24,6 +24,8 @@ project(":kafka-connect-mqtt") {
     }
 
     dependencies {
+        compile project(':kafka-connect-common')
+
         compile "org.eclipse.paho:org.eclipse.paho.client.mqttv3:$mqttVersion"
         compile "com.sksamuel.avro4s:avro4s-core_$scalaMajorVersion:$avro4sVersion"
         compile "com.sksamuel.avro4s:avro4s-json_$scalaMajorVersion:$avro4sVersion"

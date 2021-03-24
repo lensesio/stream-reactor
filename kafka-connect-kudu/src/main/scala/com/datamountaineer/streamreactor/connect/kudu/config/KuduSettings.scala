@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.connect.kudu.config
 
 import com.datamountaineer.kcql.{Kcql, WriteModeEnum}
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ThrowErrorPolicy}
+
 
 /**
   * Created by andrew@datamountaineer.com on 13/05/16. 
@@ -51,7 +52,7 @@ object KuduSettings {
     val ignoreFields = config.getIgnoreFieldsMap()
     val writeModeMap = config.getWriteMode()
     val topicTables = config.getTableTopic()
-    val writeFlushMode = config.getWriteFlushMode()
+    val writeFlushMode = config.getWriteFlushMode
     val mutationBufferSpace = config.getInt(KuduConfigConstants.MUTATION_BUFFER_SPACE)
 
     new KuduSettings(kcql = kcql.toList,

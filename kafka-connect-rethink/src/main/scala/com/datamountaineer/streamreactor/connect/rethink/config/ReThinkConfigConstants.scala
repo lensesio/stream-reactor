@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.config
 
-import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst._
 
 object ReThinkConfigConstants {
   val RETHINK_CONNECTOR_PREFIX = "connect.rethink"

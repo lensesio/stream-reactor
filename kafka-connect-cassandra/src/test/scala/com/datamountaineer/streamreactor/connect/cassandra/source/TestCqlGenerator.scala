@@ -16,8 +16,8 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.source
 
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, CassandraConfigSource, CassandraSettings, CassandraSourceSetting}
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

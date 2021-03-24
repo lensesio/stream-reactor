@@ -17,7 +17,8 @@
 package com.datamountaineer.streamreactor.connect.voltdb.config
 
 import com.datamountaineer.kcql.WriteModeEnum
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ThrowErrorPolicy}
+
 import com.datamountaineer.streamreactor.connect.voltdb.StructFieldsExtractor
 import org.apache.kafka.common.config.ConfigException
 

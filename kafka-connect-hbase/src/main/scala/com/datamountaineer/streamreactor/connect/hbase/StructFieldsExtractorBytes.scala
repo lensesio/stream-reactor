@@ -18,10 +18,10 @@ package com.datamountaineer.streamreactor.connect.hbase
 
 import java.text.SimpleDateFormat
 import java.util.TimeZone
-
 import com.datamountaineer.streamreactor.connect.hbase.BytesHelper._
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data._
+import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConverters._
 
@@ -42,7 +42,7 @@ case class StructFieldsExtractorBytes(includeAllFields: Boolean, fieldsAliasMap:
       if (diffSet.nonEmpty) {
         val errMsg = s"Following columns ${diffSet.mkString(",")} have not been found. Available columns:${fieldsAliasMap.keys.mkString(",")}"
         logger.error(errMsg)
-        sys.error(errMsg)
+        throw new ConnectException(errMsg)
       }
       selectedFields
     }
@@ -88,7 +88,7 @@ case class StructFieldsExtractorBytes(includeAllFields: Boolean, fieldsAliasMap:
             case Schema.Type.INT32 => value.fromInt()
             case Schema.Type.INT64 => value.fromLong()
             case Schema.Type.STRING => value.fromString()
-            case other => sys.error(s"$other is not a recognized schema!")
+            case other => throw new ConnectException(s"$other is not a recognized schema!")
           }
         }
       }

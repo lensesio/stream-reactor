@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.hazelcast.config
 
-import com.datamountaineer.streamreactor.connect.errors.ThrowErrorPolicy
+import com.datamountaineer.streamreactor.common.errors.ThrowErrorPolicy
 import com.datamountaineer.streamreactor.connect.hazelcast.TestBase
 import com.hazelcast.config.{Config, GroupConfig}
 import com.hazelcast.core.{Hazelcast, HazelcastInstance}

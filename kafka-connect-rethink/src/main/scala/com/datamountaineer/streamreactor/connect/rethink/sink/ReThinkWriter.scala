@@ -16,14 +16,15 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
-import com.datamountaineer.streamreactor.connect.errors.{ErrorHandler, ErrorPolicyEnum}
+import com.datamountaineer.streamreactor.common.errors.{ErrorHandler, ErrorPolicyEnum}
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.rethink.ReThinkConnection
 import com.datamountaineer.streamreactor.connect.rethink.config._
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.rethinkdb.RethinkDB
 import com.rethinkdb.net.Connection
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 
 import scala.util.{Failure, Try}
@@ -110,18 +111,22 @@ class ReThinkWriter(rethink: RethinkDB, conn: Connection, setting: ReThinkSinkSe
           val extracted = convertSchemalessJson(record, setting.fieldMap(record.topic()), setting.ignoreFields(record.topic()))
           //not ideal; but the compile is hashmap anyway
           SinkRecordConversion.fromMap(record, extracted.asInstanceOf[java.util.Map[String, Any]], pks)
-        case _ => sys.error("For schemaless record only String and Map types are supported")
+        case _ => throw new ConnectException("For schemaless record only String and Map types are supported")
       }
     } else {
       schema.`type`() match {
         case Schema.Type.STRING =>
-          val extracted = convertStringSchemaAndJson(record, setting.fieldMap(record.topic()), setting.ignoreFields(record.topic()))
-          SinkRecordConversion.fromJson(record, extracted, pks)
+          val extracted = convertFromStringAsJson(record, setting.fieldMap(record.topic()), setting.ignoreFields(record.topic()))
+          extracted match {
+            case Right(r) => SinkRecordConversion.fromJson(record, r.converted, pks)
+            case Left(l) => throw new ConnectException(l)
+          }
+
 
         case Schema.Type.STRUCT =>
           val extracted = convert(record, setting.fieldMap(record.topic()), setting.ignoreFields(record.topic()))
           SinkRecordConversion.fromStruct(extracted, pks)
-        case other => sys.error(s"$other schema is not supported")
+        case other => throw new ConnectException(s"$other schema is not supported")
       }
     }
   }

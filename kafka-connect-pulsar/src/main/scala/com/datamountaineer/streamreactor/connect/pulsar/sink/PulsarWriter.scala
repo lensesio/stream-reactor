@@ -17,8 +17,8 @@
 package com.datamountaineer.streamreactor.connect.pulsar.sink
 
 import com.datamountaineer.kcql.{Field, Kcql}
-import com.datamountaineer.streamreactor.connect.converters.{FieldConverter, Transform}
-import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
+import com.datamountaineer.streamreactor.common.converters.{FieldConverter, ToJsonWithProjections}
+import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.datamountaineer.streamreactor.connect.pulsar.ProducerConfigFactory
 import com.datamountaineer.streamreactor.connect.pulsar.config.PulsarSinkSettings
 import com.typesafe.scalalogging.StrictLogging
@@ -61,19 +61,18 @@ case class PulsarWriter(client: PulsarClient, name: String, settings: PulsarSink
 
     val t = Try{
       messages.foreach{
-        case (topic, message) => {
+        case (topic, message) =>
           val producer = producersMap.getOrElseUpdate(topic, client.createProducer(topic, configs(topic)))
           producer.send(message)
-        }
       }
     }
 
     handleTry(t)
   }
 
-  def flush = {}
+  def flush(): Unit = {}
 
-  def close = {
+  def close(): Unit = {
     logger.info("Closing client")
     producersMap.foreach({ case (_, producer) => producer.close()})
     client.close()
@@ -97,7 +96,7 @@ case class PulsarMessageBuilder(settings: PulsarSinkSettings) extends StrictLogg
         val ignoredFields = k.getIgnoredFields.asScala.map(FieldConverter.apply)
         //for all the records in the group transform
 
-        val json = Transform(
+        val json = ToJsonWithProjections(
           fields,
           ignoredFields,
           record.valueSchema(),
@@ -109,7 +108,7 @@ case class PulsarMessageBuilder(settings: PulsarSinkSettings) extends StrictLogg
 
         val msg = MessageBuilder
                     .create
-                    .setContent(json.getBytes)
+                    .setContent(json.toString.getBytes)
                     .setEventTime(recordTime)
 
 
@@ -131,14 +130,14 @@ case class PulsarMessageBuilder(settings: PulsarSinkSettings) extends StrictLogg
 
           val keyFields = partitionBy.map(FieldConverter.apply)
 
-          val jsonKey = Transform(
+          val jsonKey = ToJsonWithProjections(
             keyFields,
             List.empty[Field].map(FieldConverter.apply),
             schema,
             value,
             k.hasRetainStructure
           )
-          msg.setKey(jsonKey)
+          msg.setKey(jsonKey.toString)
         }
 
         val built = msg.build()

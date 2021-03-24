@@ -16,9 +16,9 @@
 
 package com.datamountaineer.streamreactor.connect.voltdb.writers
 
-import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import com.datamountaineer.streamreactor.connect.sink.DbWriter
+import com.datamountaineer.streamreactor.common.errors.ErrorHandler
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
+import com.datamountaineer.streamreactor.common.sink.DbWriter
 import com.datamountaineer.streamreactor.connect.voltdb.config.VoltSettings
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.Struct

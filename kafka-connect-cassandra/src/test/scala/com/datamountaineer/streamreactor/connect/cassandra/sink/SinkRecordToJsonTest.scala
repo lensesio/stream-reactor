@@ -16,10 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.cassandra.sink
 import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.streamreactor.common.converters.{FieldConverter, ToJsonWithProjections}
+import com.datamountaineer.streamreactor.common.errors.NoopErrorPolicy
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.cassandra.config.CassandraSinkSetting
-import com.datamountaineer.streamreactor.connect.converters.{FieldConverter, Transform}
-import com.datamountaineer.streamreactor.connect.errors.NoopErrorPolicy
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.landoop.json.sql.JacksonJson
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
@@ -49,12 +49,12 @@ class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil 
         val record = new SinkRecord("topic1", 0, null, null, Output.ConnectSchema, output.toStruct(), 0)
 
         val kcql= kcqlMap(record.topic())
-        val actual = Transform(
+        val actual = ToJsonWithProjections(
           kcql.getFields.asScala.map(FieldConverter.apply),
           kcql.getIgnoredFields.asScala.map(FieldConverter.apply),
           record.valueSchema(),
           record.value(),
-          kcql.hasRetainStructure())
+          kcql.hasRetainStructure()).toString
 
         //comparing string representation; we have more specific types given the schema
         actual shouldBe JacksonJson.asJson(json).toString
@@ -79,12 +79,12 @@ class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil 
         val record = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
         val kcql= kcqlMap(record.topic())
-        val actual = Transform(
+        val actual = ToJsonWithProjections(
           kcql.getFields.asScala.map(FieldConverter.apply),
           kcql.getIgnoredFields.asScala.map(FieldConverter.apply),
           record.valueSchema(),
           record.value(),
-          kcql.hasRetainStructure())
+          kcql.hasRetainStructure()).toString
 
         //comparing string representation; we have more specific types given the schema
         actual shouldBe JacksonJson.asJson(json).toString
@@ -110,12 +110,12 @@ class SinkRecordToJsonTest extends AnyWordSpec with Matchers with ConverterUtil 
         val record = new SinkRecord("topic1", 0, null, null, Schema.STRING_SCHEMA, json, 0)
 
         val kcql= kcqlMap(record.topic())
-        val actual = Transform(
+        val actual = ToJsonWithProjections(
           kcql.getFields.asScala.map(FieldConverter.apply),
           kcql.getIgnoredFields.asScala.map(FieldConverter.apply),
           record.valueSchema(),
           record.value(),
-          kcql.hasRetainStructure())
+          kcql.hasRetainStructure()).toString
 
         //comparing string representation; we have more specific types given the schema
         actual shouldBe JacksonJson.asJson(json).toString

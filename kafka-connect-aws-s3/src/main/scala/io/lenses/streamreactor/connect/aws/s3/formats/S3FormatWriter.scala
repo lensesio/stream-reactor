@@ -19,9 +19,10 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format._
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
-import io.lenses.streamreactor.connect.aws.s3.config.{BytesWriteMode, FormatOptions, FormatSelection}
-import io.lenses.streamreactor.connect.aws.s3.model.{SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.config.{FormatOptions, FormatSelection}
+import io.lenses.streamreactor.connect.aws.s3.model.{BytesWriteMode, SinkData, Topic}
 import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreOutputStream
+import org.apache.kafka.connect.errors.ConnectException
 
 object S3FormatWriter {
 
@@ -44,7 +45,7 @@ object S3FormatWriter {
       case Text => new TextFormatWriter(outputStreamFn)
       case Csv => new CsvFormatWriter(outputStreamFn, formatInfo.formatOptions.contains(WithHeaders))
       case Bytes => new BytesFormatWriter(outputStreamFn, convertToBytesWriteMode(formatInfo.formatOptions))
-      case _ => sys.error(s"Unsupported S3 format $formatInfo.format")
+      case _ => throw new ConnectException(s"Unsupported S3 format $formatInfo.format")
     }
   }
 

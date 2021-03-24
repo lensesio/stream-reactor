@@ -16,12 +16,11 @@
 
 package com.datamountaineer.streamreactor.connect.coap.configs
 
-import java.util
-
-import com.datamountaineer.streamreactor.connect.config.base.traits._
+import com.datamountaineer.streamreactor.common.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
+import java.util
 import scala.collection.JavaConverters._
 
 /**

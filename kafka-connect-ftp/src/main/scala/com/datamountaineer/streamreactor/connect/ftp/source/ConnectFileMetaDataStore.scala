@@ -16,12 +16,11 @@
 
 package com.datamountaineer.streamreactor.connect.ftp.source
 
-import java.time.Instant
-import java.util
-
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.storage.OffsetStorageReader
 
+import java.time.Instant
+import java.util
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 

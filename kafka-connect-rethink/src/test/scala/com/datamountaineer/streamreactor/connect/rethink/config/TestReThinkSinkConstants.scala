@@ -16,12 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.config
 
-import org.scalatest.WordSpec
+import org.scalatest.wordspec.AnyWordSpec
 
 /**
   * The point of this test is to check that constants keys are not changed after the refactor of the code.
   */
-class TestReThinkSinkConstants extends WordSpec {
+class TestReThinkSinkConstants extends AnyWordSpec {
 
   // Constants
   val RETHINK_HOST = "connect.rethink.host"

@@ -16,7 +16,7 @@
 
 package com.datamountaineer.streamreactor.connect.mqtt.config
 
-import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst._
 
 /**
   * Created by tomasfartaria on 10/04/2017.

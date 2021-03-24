@@ -1,9 +1,9 @@
 package com.datamountaineer.streamreactor.connect.pulsar.source
 
-import java.util
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 
+import java.util
 import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarConfigConstants, PulsarSourceConfig, PulsarSourceSettings}
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import org.apache.kafka.connect.source.SourceRecord
 import org.apache.pulsar.client.api.MessageBuilder
 import org.scalatest.matchers.should.Matchers

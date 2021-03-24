@@ -17,10 +17,9 @@
 package com.datamountaineer.streamreactor.connect.cassandra.config
 
 import java.util
-
 import com.datamountaineer.kcql.Kcql
+import com.datamountaineer.streamreactor.common.errors.{ErrorPolicyEnum, RetryErrorPolicy}
 import com.datamountaineer.streamreactor.connect.cassandra.TestConfig
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicyEnum, RetryErrorPolicy}
 import com.datastax.driver.core.ConsistencyLevel
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.sink.SinkTaskContext

@@ -16,9 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.voltdb.config
 
+import com.datamountaineer.streamreactor.common.config.base.traits.{BaseConfig, ErrorPolicySettings, KcqlSettings, NumberRetriesSettings, UserSettings}
+
 import java.util
 
-import com.datamountaineer.streamreactor.connect.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 

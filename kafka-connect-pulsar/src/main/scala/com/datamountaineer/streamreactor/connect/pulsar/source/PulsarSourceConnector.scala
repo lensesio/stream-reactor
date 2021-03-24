@@ -16,10 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.pulsar.source
 
-import java.util
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 
+import java.util
 import com.datamountaineer.streamreactor.connect.pulsar.config.{PulsarSourceConfig, PulsarSourceSettings}
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task

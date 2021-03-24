@@ -16,12 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.mqtt.sink
 
+import com.datamountaineer.streamreactor.common.converters.sink.Converter
+
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.ByteBuffer
 import java.util
 import java.util.concurrent.LinkedBlockingQueue
-
-import com.datamountaineer.streamreactor.connect.converters.sink.Converter
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSinkConfig, MqttSinkSettings}
 import com.typesafe.scalalogging.StrictLogging
 import io.moquette.server.Server
@@ -236,7 +236,7 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
 
     val props = Map(
       MqttConfigConstants.HOSTS_CONFIG -> connection,
-      MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $TARGET SELECT * FROM $TOPIC WITHCONVERTER=`com.datamountaineer.streamreactor.connect.converters.sink.AvroConverter` WITHTARGET=string_field;INSERT INTO $TARGET SELECT * FROM $TOPIC2 WITHCONVERTER=`com.datamountaineer.streamreactor.connect.converters.sink.AvroConverter` WITHTARGET=string_field",
+      MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $TARGET SELECT * FROM $TOPIC WITHCONVERTER=`com.datamountaineer.streamreactor.common.converters.sink.AvroConverter` WITHTARGET=string_field;INSERT INTO $TARGET SELECT * FROM $TOPIC2 WITHCONVERTER=`com.datamountaineer.streamreactor.common.converters.sink.AvroConverter` WITHTARGET=string_field",
       MqttConfigConstants.QS_CONFIG -> "1",
       MqttConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES -> sinkAvroSchemas,
       MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",

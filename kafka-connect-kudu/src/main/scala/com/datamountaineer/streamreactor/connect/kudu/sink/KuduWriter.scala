@@ -16,12 +16,13 @@
 
 package com.datamountaineer.streamreactor.connect.kudu.sink
 
-import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
+import com.datamountaineer.streamreactor.common.errors.ErrorHandler
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.kudu.KuduConverter
 import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduConfigConstants, KuduSettings, WriteFlushMode}
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.apache.kudu.client.SessionConfiguration.FlushMode
 import org.apache.kudu.client._
@@ -115,20 +116,26 @@ class KuduWriter(client: KuduClient, setting: KuduSettings) extends StrictLoggin
               val converted = convert(record, setting.fieldsMap(record.topic), setting.ignoreFields(record.topic))
               val withDDLs = applyDDLs(converted)
               convertToKuduUpsert(withDDLs, kuduTablesCache(withDDLs.topic))
-            case _ => sys.error("For schemaless record only String and Map types are supported")
+            case _ => throw new ConnectException("For schemaless record only String and Map types are supported")
           }
         case Some(schema: Schema) =>
           schema.`type`() match {
             case Schema.Type.STRING =>
-              val converted = convertStringSchemaAndJson(record, setting.fieldsMap.getOrElse(record.topic, Map.empty[String, String]), setting.ignoreFields.getOrElse(record.topic, Set.empty))
-              val withDDLs = applyDDLsFromJson(converted, record.topic)
-              convertJsonToKuduUpsert(withDDLs, kuduTablesCache(record.topic))
+              val converted = convertFromStringAsJson(record, setting.fieldsMap.getOrElse(record.topic, Map.empty[String, String]), setting.ignoreFields.getOrElse(record.topic, Set.empty))
+              converted match {
+                case Right(r) =>
+                  val withDDLs = applyDDLsFromJson(r.converted, record.topic)
+                  convertJsonToKuduUpsert(withDDLs, kuduTablesCache(record.topic))
+                case Left(l) => throw new ConnectException(l)
+              }
+
+
 
             case Schema.Type.STRUCT =>
               val converted = convert(record, setting.fieldsMap(record.topic), setting.ignoreFields(record.topic))
               val withDDLs = applyDDLs(converted)
               convertToKuduUpsert(withDDLs, kuduTablesCache(withDDLs.topic))
-            case other => sys.error(s"$other schema is not supported")
+            case other => throw new ConnectException(s"$other schema is not supported")
           }
       }
     }

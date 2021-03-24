@@ -1,7 +1,6 @@
 package com.landoop.streamreactor.connect
 
 import java.util
-
 import cats.data.NonEmptyList
 import com.landoop.streamreactor.connect.hive.formats.HiveFormat
 import com.typesafe.scalalogging.StrictLogging
@@ -9,6 +8,7 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.hive.metastore.api.{FieldSchema, SerDeInfo, StorageDescriptor, Table}
 import org.apache.hadoop.hive.metastore.{IMetaStoreClient, TableType}
 import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.errors.ConnectException
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
@@ -170,8 +170,8 @@ package object hive extends StrictLogging {
   def partition(struct: Struct, plan: PartitionPlan): Partition = {
     val entries = plan.keys.map { key =>
       Option(struct.get(key.value)) match {
-        case None => sys.error(s"Partition value for $key must be defined")
-        case Some(null) => sys.error(s"Partition values cannot be null [was null for $key]")
+        case None => throw new ConnectException(s"Partition value for $key must be defined")
+        case Some(null) => throw new ConnectException(s"Partition values cannot be null [was null for $key]")
         case Some(value) => key -> value.toString
       }
     }

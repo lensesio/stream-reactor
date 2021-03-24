@@ -4,11 +4,12 @@ import java.io.File
 
 import com.datamountaineer.streamreactor.connect.hbase.config.{HBaseConfig, HBaseConfigConstants}
 import org.apache.kafka.common.config.ConfigException
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.JavaConverters._
 
-class UserPasswordSettingsTest extends FunSuite with Matchers with FileCreation {
+class UserPasswordSettingsTest extends AnyFunSuite with Matchers with FileCreation {
   test("validate a user-password setting") {
     val fileKrb5 = createFile(s"krb1.krb5")
     val fileJaas = createFile(s"jaas1.jaas")

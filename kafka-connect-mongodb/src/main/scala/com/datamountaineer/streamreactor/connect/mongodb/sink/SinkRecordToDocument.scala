@@ -16,12 +16,15 @@
 
 package com.datamountaineer.streamreactor.connect.mongodb.sink
 
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
 import com.datamountaineer.streamreactor.connect.mongodb.converters.SinkRecordConverter
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 import org.bson.Document
+
 
 object SinkRecordToDocument extends ConverterUtil {
   def apply(record: SinkRecord, keys: Set[String] = Set.empty)(implicit settings: MongoSettings): (Document, Iterable[(String, Any)]) = {
@@ -44,19 +47,24 @@ object SinkRecordToDocument extends ConverterUtil {
 
           SinkRecordConverter.fromMap(extracted.asInstanceOf[java.util.Map[String, AnyRef]]) ->
             keys.headOption.map(_ => KeysExtractor.fromMap(extracted, keys)).getOrElse(Iterable.empty)
-        case _ => sys.error("For schemaless record only String and Map types are supported")
+        case _ => throw new ConnectException("For schemaless record only String and Map types are supported")
       }
     } else {
       schema.`type`() match {
         case Schema.Type.STRING =>
-          val extracted = convertStringSchemaAndJson(
+          convertFromStringAsJson(
             record,
             fields,
             settings.ignoredField.getOrElse(record.topic(), Set.empty),
-            includeAllFields = allFields)
-          SinkRecordConverter.fromJson(extracted) ->
-            keys.headOption.map(_ => KeysExtractor.fromJson(extracted, keys)).getOrElse(Iterable.empty)
+            includeAllFields = allFields) match {
+            case Right(ConversionResult(original, extracted)) =>
+              val extractedKeys = keys.headOption.map(_ => KeysExtractor.fromJson(original, keys)).getOrElse(Iterable.empty)
+              SinkRecordConverter.fromJson(extracted) -> extractedKeys
 
+            case Left(value) =>
+              //This needs full refactor to cleanup and write FP style scala
+              throw new ConnectException(value)
+          }
         case Schema.Type.STRUCT =>
           val extracted = convert(
             record,
@@ -64,9 +72,9 @@ object SinkRecordToDocument extends ConverterUtil {
             settings.ignoredField.getOrElse(record.topic(), Set.empty)
           )
           SinkRecordConverter.fromStruct(extracted) ->
-            keys.headOption.map(_ => KeysExtractor.fromStruct(extracted.value().asInstanceOf[Struct], keys)).getOrElse(Iterable.empty)
+            keys.headOption.map(_ => KeysExtractor.fromStruct(record.value().asInstanceOf[Struct], keys)).getOrElse(Iterable.empty)
 
-        case other => sys.error(s"$other schema is not supported")
+        case other => throw new ConnectException(s"$other schema is not supported")
       }
     }
   }

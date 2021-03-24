@@ -9,6 +9,7 @@ import com.landoop.streamreactor.connect.hive.source.offset.HiveSourceOffsetStor
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.hive.metastore.IMetaStoreClient
 import org.apache.kafka.connect.data.Struct
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.source.SourceRecord
 
 import scala.collection.JavaConverters._
@@ -30,7 +31,7 @@ class HiveSource(db: DatabaseName,
                 (implicit client: IMetaStoreClient, fs: FileSystem) extends Iterator[SourceRecord] {
 
   val tableConfig = config.tableOptions.filter(_.tableName == tableName).find(_.topic == topic)
-    .getOrElse(sys.error(s"Cannot find table configuration for ${db.value}.${tableName.value} => ${topic.value}"))
+    .getOrElse(throw new ConnectException(s"Cannot find table configuration for ${db.value}.${tableName.value} => ${topic.value}"))
 
   private val table = client.getTable(db.value, tableName.value)
   private val format = HiveFormat(hive.serde(table))

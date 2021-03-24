@@ -16,13 +16,14 @@
 
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
+import com.datamountaineer.streamreactor.connect.converters.source.Converter
+import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
+
 import java.io.File
 import java.util
-
-import com.datamountaineer.streamreactor.connect.converters.source.Converter
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
-import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}

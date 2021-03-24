@@ -17,8 +17,9 @@
 package com.datamountaineer.streamreactor.connect.redis.sink.config
 
 import com.datamountaineer.kcql.Kcql
-import com.datamountaineer.streamreactor.connect.errors.{ErrorPolicy, ThrowErrorPolicy}
-import com.datamountaineer.streamreactor.connect.rowkeys._
+import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ThrowErrorPolicy}
+import com.datamountaineer.streamreactor.common.rowkeys.StringKeyBuilder
+
 import org.apache.kafka.common.config.{ConfigException, SslConfigs}
 
 import scala.collection.JavaConverters._

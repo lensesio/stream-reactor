@@ -21,11 +21,10 @@ import java.text.SimpleDateFormat
 import java.time.OffsetDateTime
 import java.util
 import java.util.TimeZone
-
 import com.datamountaineer.streamreactor.connect.mongodb.config.MongoSettings
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.data._
-import org.apache.kafka.connect.errors.DataException
+import org.apache.kafka.connect.errors.{ConnectException, DataException}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.bson.Document
 import org.json4s.JValue
@@ -217,7 +216,7 @@ object SinkRecordConverter extends StrictLogging {
                       case _ => ISO_DATE_FORMAT.format(Timestamp.toLogical(schema, value.asInstanceOf[Long]))
                     }
 
-                  case _ => sys.error(s"$other is not a recognized schema")
+                  case _ => throw new ConnectException(s"$other is not a recognized schema")
                 }
             }
           }
@@ -330,15 +329,12 @@ object SinkRecordConverter extends StrictLogging {
             testVal match {
               case subDoc: java.util.Map[String, Object] => // Document implements Map, HashMap is used sometimes too for subdocs
                 convertValue(remainingParts.tail, subDoc)
-              case subList: java.util.List[_] => {
-                subList.asScala.foreach { listDoc =>
-                  listDoc match {
-                    case d: java.util.Map[String, Object] =>
-                      convertValue(remainingParts.tail, d)
-                    case _ => // not a document, can't determine the name, do nothing
-                  }
+              case subList: java.util.List[_] =>
+                subList.asScala.foreach {
+                  case d: java.util.Map[String, Object] =>
+                    convertValue(remainingParts.tail, d)
+                  case _ => // not a document, can't determine the name, do nothing
                 }
-              }
               case _ => // not a list or doc, can't do anything
             }
           }

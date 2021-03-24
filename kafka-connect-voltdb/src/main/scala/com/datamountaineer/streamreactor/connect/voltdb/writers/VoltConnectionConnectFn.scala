@@ -16,10 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.voltdb.writers
 
-import java.util.concurrent.Executors
+import com.datamountaineer.streamreactor.common.concurrent.FutureAwaitWithFailFastFn
 
-import com.datamountaineer.streamreactor.connect.concurrent.ExecutorExtension._
-import com.datamountaineer.streamreactor.connect.concurrent.FutureAwaitWithFailFastFn
+import java.util.concurrent.Executors
+import com.datamountaineer.streamreactor.common.concurrent.ExecutorExtension._
 import com.datamountaineer.streamreactor.connect.voltdb.config.VoltSettings
 import org.voltdb.client.Client
 

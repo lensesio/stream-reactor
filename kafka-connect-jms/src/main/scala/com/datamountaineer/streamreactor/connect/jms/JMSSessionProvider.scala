@@ -16,16 +16,16 @@
 
 package com.datamountaineer.streamreactor.connect.jms
 
-import java.util.Properties
-
 import com.datamountaineer.streamreactor.connect.jms.config.DestinationSelector.DestinationSelector
-import com.datamountaineer.streamreactor.connect.jms.config._
+
+import com.datamountaineer.streamreactor.connect.jms.config.{DestinationSelector, DestinationType, JMSSettings, QueueDestination, TopicDestination}
 import com.typesafe.scalalogging.StrictLogging
-import javax.jms._
-import javax.naming.InitialContext
 import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.errors.ConnectException
 
+import java.util.Properties
+import javax.jms._
+import javax.naming.InitialContext
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
@@ -90,7 +90,7 @@ object JMSSessionProvider extends StrictLogging {
   def createProducers(source: String, session: Session, destination: Destination) = Map(source -> session.createProducer(destination))
 
   def createConsumers(source: String, session: Session, destination: Destination, subscriptionName: Option[String], messageSelector: Option[String]) = Map(source -> {
-    val selector = messageSelector.getOrElse(null)
+    val selector = messageSelector.orNull
     subscriptionName match {
       case None => session.createConsumer(destination, selector)
       case Some(name) => 

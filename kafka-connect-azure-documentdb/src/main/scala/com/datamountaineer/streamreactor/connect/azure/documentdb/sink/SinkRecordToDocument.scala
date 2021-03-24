@@ -15,11 +15,12 @@
  */
 package com.datamountaineer.streamreactor.connect.azure.documentdb.sink
 
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.azure.documentdb.config.DocumentDbSinkSettings
 import com.datamountaineer.streamreactor.connect.azure.documentdb.converters.SinkRecordConverter
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
 import com.microsoft.azure.documentdb.Document
 import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
 object SinkRecordToDocument extends ConverterUtil {
@@ -32,33 +33,38 @@ object SinkRecordToDocument extends ConverterUtil {
       value match {
         case _: java.util.Map[_, _] =>
 
-          val fields = settings.fields(record.topic())
           val extracted = convertSchemalessJson(record, settings.fields(record.topic()), settings.ignoredField(record.topic()))
-          //not ideal; but the compile is hashmap anyway
-
           SinkRecordConverter.fromMap(extracted.asInstanceOf[java.util.Map[String, AnyRef]]) ->
             keys.headOption.map(_ => KeysExtractor.fromMap(extracted, keys)).getOrElse(Iterable.empty)
 
         case _: String =>
-          val extracted = convertStringSchemaAndJson(record, settings.fields(record.topic()), settings.ignoredField(record.topic()))
-          SinkRecordConverter.fromJson(extracted) ->
-            keys.headOption.map(_ => KeysExtractor.fromJson(extracted, keys)).getOrElse(Iterable.empty)
+          val extracted = convertFromStringAsJson(record, settings.fields(record.topic()), settings.ignoredField(record.topic()))
+          extracted match {
+            case Right(r) =>
+              SinkRecordConverter.fromJson(r.converted) ->
+                keys.headOption.map(_ => KeysExtractor.fromJson(r.converted, keys)).getOrElse(Iterable.empty)
+            case Left(l) => throw new ConnectException(l)
+          }
 
-        case _ => sys.error("For schemaless record only String and Map types are supported")
+        case _ => throw new ConnectException("For schemaless record only String and Map types are supported")
       }
     } else {
       schema.`type`() match {
         case Schema.Type.STRING =>
-          val extracted = convertStringSchemaAndJson(record, settings.fields(record.topic()), settings.ignoredField(record.topic()))
-          SinkRecordConverter.fromJson(extracted) ->
-            keys.headOption.map(_ => KeysExtractor.fromJson(extracted, keys)).getOrElse(Iterable.empty)
+          val extracted = convertFromStringAsJson(record, settings.fields(record.topic()), settings.ignoredField(record.topic()))
+          extracted match {
+            case Right(r) =>
+              SinkRecordConverter.fromJson(r.converted) ->
+                keys.headOption.map(_ => KeysExtractor.fromJson(r.converted, keys)).getOrElse(Iterable.empty)
+            case Left(l) => throw new ConnectException(l)
+          }
 
         case Schema.Type.STRUCT =>
           val extracted = convert(record, settings.fields(record.topic()), settings.ignoredField(record.topic()))
           SinkRecordConverter.fromStruct(extracted) ->
             keys.headOption.map(_ => KeysExtractor.fromStruct(extracted.value().asInstanceOf[Struct], keys)).getOrElse(Iterable.empty)
 
-        case other => sys.error(s"$other schema is not supported")
+        case other => throw new ConnectException(s"[$other] schema is not supported")
       }
     }
   }

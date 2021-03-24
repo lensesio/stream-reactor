@@ -22,7 +22,6 @@ object OrcSchemas {
     case Category.CHAR => Schema.OPTIONAL_STRING_SCHEMA
     case Category.DATE => Schema.OPTIONAL_STRING_SCHEMA
     case Category.TIMESTAMP => Schema.OPTIONAL_STRING_SCHEMA
-    case Category.BYTE => Schema.OPTIONAL_BYTES_SCHEMA
     case Category.STRUCT => toKafkaStruct(schema)
   }
 

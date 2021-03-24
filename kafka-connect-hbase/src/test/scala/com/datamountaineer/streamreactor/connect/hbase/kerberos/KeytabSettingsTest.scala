@@ -2,11 +2,12 @@ package com.datamountaineer.streamreactor.connect.hbase.kerberos
 
 import com.datamountaineer.streamreactor.connect.hbase.config.{HBaseConfig, HBaseConfigConstants}
 import org.apache.kafka.common.config.ConfigException
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.JavaConverters._
 
-class KeytabSettingsTest extends FunSuite with Matchers with FileCreation {
+class KeytabSettingsTest extends AnyFunSuite with Matchers with FileCreation {
   test("validate a keytab setting") {
     val file = createFile("keytab1.keytab")
     try {

@@ -16,12 +16,12 @@
 
 package com.datamountaineer.streamreactor.connect.rethink.sink
 
-import java.util
+import com.datamountaineer.streamreactor.common.config.Helpers
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 
-import com.datamountaineer.streamreactor.connect.config.Helpers
+import java.util
 import com.datamountaineer.streamreactor.connect.rethink.ReThinkConnection
 import com.datamountaineer.streamreactor.connect.rethink.config.{ReThinkConfigConstants, ReThinkSinkConfig, ReThinkSinkSettings}
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
 import com.rethinkdb.RethinkDB
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef

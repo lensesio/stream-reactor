@@ -16,17 +16,17 @@
 
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
+import com.datamountaineer.streamreactor.common.converters.MsgKey
+import com.datamountaineer.streamreactor.connect.converters.source.{AvroConverter, BytesConverter, Converter, JsonSimpleConverter}
+import com.datamountaineer.streamreactor.common.serialization.AvroSerializer
+
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.ByteBuffer
 import java.nio.file.Paths
 import java.util
 import java.util.UUID
-
-import com.datamountaineer.streamreactor.connect.converters.MsgKey
-import com.datamountaineer.streamreactor.connect.converters.source._
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
-import com.datamountaineer.streamreactor.connect.serialization.AvroSerializer
 import com.sksamuel.avro4s.{RecordFormat, SchemaFor}
 import io.confluent.connect.avro.AvroData
 import io.moquette.proto.messages.{AbstractMessage, PublishMessage}
@@ -435,11 +435,11 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
             case `target2` =>
               source shouldBe source2
 
-              record.valueSchema().field("name").schema() shouldBe Schema.STRING_SCHEMA
+              record.valueSchema().field("name").schema().`type`() shouldBe Schema.STRING_SCHEMA.`type`()
               record.valueSchema().field("name").index() shouldBe 0
-              record.valueSchema().field("age").schema() shouldBe Schema.INT64_SCHEMA
+              record.valueSchema().field("age").schema().`type`() shouldBe Schema.INT64_SCHEMA.`type`()
               record.valueSchema().field("age").index() shouldBe 1
-              record.valueSchema().field("note").schema() shouldBe Schema.FLOAT64_SCHEMA
+              record.valueSchema().field("note").schema().`type`() shouldBe Schema.FLOAT64_SCHEMA.`type`()
               record.valueSchema().field("note").index() shouldBe 2
 
               val struct = record.value().asInstanceOf[Struct]
@@ -450,11 +450,11 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
             case `target3` =>
               source shouldBe source3
 
-              record.valueSchema().field("name").schema() shouldBe Schema.STRING_SCHEMA
+              record.valueSchema().field("name").schema().`type`() shouldBe Schema.STRING_SCHEMA.`type`()
               record.valueSchema().field("name").index() shouldBe 0
-              record.valueSchema().field("age").schema() shouldBe Schema.INT32_SCHEMA
+              record.valueSchema().field("age").schema().`type`() shouldBe Schema.INT32_SCHEMA.`type`()
               record.valueSchema().field("age").index() shouldBe 1
-              record.valueSchema().field("note").schema() shouldBe Schema.FLOAT64_SCHEMA
+              record.valueSchema().field("note").schema().`type`() shouldBe Schema.FLOAT64_SCHEMA.`type`()
               record.valueSchema().field("note").index() shouldBe 2
 
               val struct = record.value().asInstanceOf[Struct]

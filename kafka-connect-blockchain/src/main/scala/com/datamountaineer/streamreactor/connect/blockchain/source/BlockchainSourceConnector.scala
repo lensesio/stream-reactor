@@ -16,10 +16,10 @@
 
 package com.datamountaineer.streamreactor.connect.blockchain.source
 
-import java.util
-
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.datamountaineer.streamreactor.connect.blockchain.config.BlockchainConfig
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
+
+import java.util
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task

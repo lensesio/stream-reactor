@@ -1,8 +1,9 @@
 package com.landoop.streamreactor.connect.hive.source.config
 
+import com.datamountaineer.streamreactor.common.config.base.traits.{BaseConfig, ConnectionSettings, ErrorPolicySettings, KcqlSettings, NumberRetriesSettings, UserSettings}
+
 import java.util
 
-import com.datamountaineer.streamreactor.connect.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
@@ -20,6 +21,7 @@ object HiveSourceConfigDef {
     .define(MetastoreUrisKey, Type.STRING, Importance.HIGH, MetastoreUrisDoc)
     .define(FsDefaultKey, Type.STRING, Importance.HIGH, FsDefaultDoc)
     .define(PollSizeKey, Type.INT, 1024, Importance.HIGH, PollSizeDoc)
+    .define(RefreshFrequencyKey, Type.INT, 0, Importance.HIGH, RefreshFrequencyDoc)
 
     //config folders
     .define(HdfsConfigDirKey, Type.STRING, HdfsConfigDirDefault, Importance.MEDIUM, HdfsConfigDirDoc, "Configs", 1, ConfigDef.Width.MEDIUM, HdfsConfigDirDisplay)
@@ -28,7 +30,7 @@ object HiveSourceConfigDef {
     //security
     .define(KerberosKey, Type.BOOLEAN, KerberosDefault, Importance.MEDIUM, KerberosDoc, "Security", 1, ConfigDef.Width.MEDIUM, KerberosDisplay)
     .define(KerberosAuthModeKey, Type.STRING, KerberosAuthModeDefault, Importance.MEDIUM, KerberosAuthModeDoc, "Security", 2, ConfigDef.Width.MEDIUM, KerberosAuthModeDisplay)
-
+    .define(KerberosDebugKey, Type.BOOLEAN, KerberosDebugDefault, Importance.MEDIUM, KerberosDebugDoc, "Security", 3, ConfigDef.Width.MEDIUM, KerberosDebugDisplay)
 
     //keytab
     .define(PrincipalKey, Type.STRING, PrincipalDefault, Importance.MEDIUM, PrincipalDoc, "Kerberos Keytab", 1, ConfigDef.Width.MEDIUM, PrincipalDisplay)

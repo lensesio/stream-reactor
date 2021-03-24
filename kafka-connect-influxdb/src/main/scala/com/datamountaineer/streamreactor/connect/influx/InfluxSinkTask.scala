@@ -16,12 +16,13 @@
 
 package com.datamountaineer.streamreactor.connect.influx
 
-import java.util
+import com.datamountaineer.streamreactor.common.errors.{ErrorPolicyEnum, RetryErrorPolicy}
+import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
 
-import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
+import java.util
 import com.datamountaineer.streamreactor.connect.influx.config.{InfluxConfig, InfluxConfigConstants, InfluxSettings}
 import com.datamountaineer.streamreactor.connect.influx.writers.{InfluxDbWriter, WriterFactoryFn}
-import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
@@ -56,12 +57,11 @@ class InfluxSinkTask extends SinkTask with StrictLogging {
     val influxSettings = InfluxSettings(sinkConfig)
 
     //if error policy is retry set retry interval
-    if (influxSettings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getInt(InfluxConfigConstants.ERROR_RETRY_INTERVAL_CONFIG).toLong)
+    influxSettings.errorPolicy match {
+      case RetryErrorPolicy() => context.timeout(sinkConfig.getInt(InfluxConfigConstants.ERROR_RETRY_INTERVAL_CONFIG).toLong)
+      case _ =>
     }
-
     writer = Some(WriterFactoryFn(influxSettings))
-
   }
 
   /**

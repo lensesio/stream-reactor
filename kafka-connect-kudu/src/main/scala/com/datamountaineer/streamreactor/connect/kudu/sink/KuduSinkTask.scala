@@ -16,16 +16,18 @@
 
 package com.datamountaineer.streamreactor.connect.kudu.sink
 
-import java.util
-
-import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.kudu.config.{KuduConfig, KuduConfigConstants, KuduSettings}
-import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
+import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfig
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduConfigConstants
+import com.datamountaineer.streamreactor.connect.kudu.config.KuduSettings
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
+import org.apache.kafka.connect.sink.SinkRecord
+import org.apache.kafka.connect.sink.SinkTask
 
+import java.util
 import scala.collection.JavaConverters._
 
 /**
@@ -40,7 +42,7 @@ class KuduSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Parse the configurations and setup the writer
-    **/
+    * */
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(scala.io.Source.fromInputStream(getClass.getResourceAsStream("/kudu-ascii.txt")).mkString + s" $version")
     logger.info(manifest.printManifest())
@@ -52,8 +54,9 @@ class KuduSinkTask extends SinkTask with StrictLogging {
     val settings = KuduSettings(sinkConfig)
 
     //if error policy is retry set retry interval
-    if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(sinkConfig.getInt(KuduConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+    settings.errorPolicy match {
+      case RetryErrorPolicy() => context.timeout(sinkConfig.getInt(KuduConfigConstants.ERROR_RETRY_INTERVAL).toLong)
+      case _ =>
     }
 
     writer = Some(KuduWriter(sinkConfig, settings))
@@ -61,7 +64,7 @@ class KuduSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Pass the SinkRecords to the writer for Writing
-    **/
+    * */
   override def put(records: util.Collection[SinkRecord]): Unit = {
     require(writer.nonEmpty, "Writer is not set!")
     val seq = records.asScala.toVector
@@ -74,7 +77,7 @@ class KuduSinkTask extends SinkTask with StrictLogging {
 
   /**
     * Clean up writer
-    **/
+    * */
   override def stop(): Unit = {
     logger.info("Stopping Kudu sink.")
     writer.foreach(w => w.close())

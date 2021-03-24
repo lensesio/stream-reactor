@@ -129,7 +129,7 @@ object KeysExtractor {
       def getValue(remainingSegments: Seq[String], jv: JValue): Any = {
         remainingSegments.size match {
           case 0 => throw new Exception("shouldn't get here")
-          case 1 => {
+          case 1 =>
             val seg = remainingSegments.head
             jv \ seg match {
               case JBool(b) => b
@@ -138,9 +138,10 @@ object KeysExtractor {
               case JInt(i) => i.toLong //need to do this because of mongo
               case JLong(l) => l
               case JString(s) => s
-              case other => throw new ConfigException(s"Field $longKey is not handled as a key (${other.getClass}). it needs to be a int, long, string, double or decimal")
+              case other =>
+                println(other)
+                throw new ConfigException(s"Field $longKey is not handled as a key (${other.getClass}). it needs to be a int, long, string, double or decimal")
             }
-          }
           case _ => getValue(remainingSegments.tail, jv \ remainingSegments.head)
         }
       }

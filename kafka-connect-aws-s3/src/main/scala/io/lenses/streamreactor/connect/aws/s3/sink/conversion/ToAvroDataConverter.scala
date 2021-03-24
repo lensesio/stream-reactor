@@ -35,25 +35,26 @@ object ToAvroDataConverter {
   def convertToGenericRecord[Any](sinkData: SinkData): AnyRef = {
     sinkData match {
       case StructSinkData(structVal) => avroDataConverter.fromConnectData(structVal.schema(), structVal)
-      case MapSinkData(map, _) => convertMap(map).asJava
-      case ArraySinkData(array, _) => convertArray(array).asJava
+      case MapSinkData(map, _) => convertMap(map)
+      case ArraySinkData(array, _) => convertArray(array)
       case ByteArraySinkData(array, _) => ByteBuffer.wrap(array)
       case primitive: PrimitiveSinkData => primitive.primVal().asInstanceOf[AnyRef]
+      case _: NullSinkData => null
       case other => throw new IllegalArgumentException(s"Unknown SinkData type, ${other.getClass.getSimpleName}")
     }
   }
 
-  def convertArray(array: Seq[SinkData]): Seq[Any] = array.map {
+  def convertArray(array: Seq[SinkData]): java.util.List[Any] = array.map {
     case data: PrimitiveSinkData => data.primVal()
     case StructSinkData(structVal) => structVal
     case MapSinkData(map, _) => convertMap(map)
     case ArraySinkData(iArray, _) => convertArray(iArray)
     case ByteArraySinkData(bArray, _) => ByteBuffer.wrap(bArray)
     case _ => throw new IllegalArgumentException("Complex array writing not currently supported")
-  }
+  }.asJava
 
-  def convertMap(map: Map[SinkData, SinkData]): Map[Any, Any] = map.map {
+  def convertMap(map: Map[SinkData, SinkData]): java.util.Map[AnyRef, AnyRef] = map.map {
     case (data, data1) => convertToGenericRecord(data) -> convertToGenericRecord(data1)
-  }
+  }.asJava
 
 }

@@ -25,6 +25,7 @@ project(":kafka-connect-hive-1.1") {
     }
 
     dependencies {
+        compile project(':kafka-connect-common')
         compile("org.apache.parquet:parquet-column:$parquetVersion")
         compile("org.apache.parquet:parquet-encoding:$parquetVersion")
         compile("org.apache.parquet:parquet-hadoop:$parquetVersion")

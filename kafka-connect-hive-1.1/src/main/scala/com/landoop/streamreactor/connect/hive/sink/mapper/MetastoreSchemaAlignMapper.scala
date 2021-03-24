@@ -2,6 +2,7 @@ package com.landoop.streamreactor.connect.hive.sink.mapper
 
 import com.landoop.streamreactor.connect.hive.StructMapper
 import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.errors.ConnectException
 
 import scala.util.Try
 
@@ -32,7 +33,7 @@ class MetastoreSchemaAlignMapper(schema: Schema) extends StructMapper {
       Try(input.get(inputFieldsMapping(field.name))).toOption match {
         case Some(value) => struct.put(field.name, value)
         case None if field.schema.isOptional => struct.put(field.name, null)
-        case None => sys.error(s"Cannot map struct to required schema; ${field.name} is missing, no default value has been supplied and null is not permitted")
+        case None => throw new ConnectException(s"Cannot map struct to required schema; ${field.name} is missing, no default value has been supplied and null is not permitted")
       }
     }
     struct

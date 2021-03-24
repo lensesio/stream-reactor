@@ -1,8 +1,11 @@
 package com.landoop.streamreactor.connect.hive.formats
 
 import com.landoop.streamreactor.connect.hive.Serde
+import com.landoop.streamreactor.connect.hive.kerberos.KerberosLogin
+import com.landoop.streamreactor.connect.hive.kerberos.UgiExecute
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.errors.ConnectException
 
 /**
   * [[HiveFormat]] encapsulates the ability to read and write files
@@ -23,7 +26,7 @@ trait HiveFormat {
   def serde: Serde
 
   // opens a reader for the given path, starting at the row number in the file
-  def reader(path: Path, startAt: Int, schema: Schema)(implicit fs: FileSystem): HiveReader
+  def reader(path: Path, startAt: Int, schema: Schema, ugi: UgiExecute)(implicit fs: FileSystem): HiveReader
 
   def writer(path: Path, schema: Schema)(implicit fs: FileSystem): HiveWriter
 }
@@ -33,12 +36,12 @@ object HiveFormat {
   def apply(name: String): HiveFormat = name match {
     case "parquet" => ParquetHiveFormat
     case "orc" => OrcHiveFormat
-    case _ => sys.error(s"Unsupported hive format $name")
+    case _ => throw new ConnectException(s"Unsupported hive format $name")
   }
 
   def apply(serde: Serde): HiveFormat = serde match {
     case s if s == ParquetHiveFormat.serde => ParquetHiveFormat
-    case _ => sys.error(s"Unsupported hive format $serde")
+    case _ => throw new ConnectException(s"Unsupported hive format $serde")
   }
 }
 
