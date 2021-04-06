@@ -50,8 +50,8 @@ public class AdaptiveBigQueryWriter extends BigQueryWriter {
   private static final Logger logger = LoggerFactory.getLogger(AdaptiveBigQueryWriter.class);
 
   // The maximum number of retries we will attempt to write rows after creating a table or updating a BQ table schema.
-  private static final int RETRY_LIMIT = 10;
-  // Wait for about 30s between each retry since both creating table and updating schema take up to 2~3 minutes to take effect.
+  private static final int RETRY_LIMIT = 30;
+  // Wait for about 30s between each retry to avoid hammering BigQuery with requests
   private static final int RETRY_WAIT_TIME = 30000;
 
   private final BigQuery bigQuery;
