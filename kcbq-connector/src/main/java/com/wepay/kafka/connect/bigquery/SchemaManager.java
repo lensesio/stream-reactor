@@ -24,7 +24,6 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Field;
-import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
@@ -348,7 +347,10 @@ public class SchemaManager {
     firstSchemaFields.forEach((name, firstField) -> {
       Field secondField = secondSchemaFields.get(name);
       if (secondField == null) {
-        unionizedSchemaFields.put(name, firstField.toBuilder().setMode(Field.Mode.NULLABLE).build());
+        // Repeated fields are implicitly nullable; no need to set a new mode for them
+        if (!Field.Mode.REPEATED.equals(firstField.getMode())) {
+          unionizedSchemaFields.put(name, firstField.toBuilder().setMode(Field.Mode.NULLABLE).build());
+        }
       } else if (isFieldRelaxation(firstField, secondField)) {
         unionizedSchemaFields.put(name, secondField);
       } else {
@@ -358,7 +360,12 @@ public class SchemaManager {
 
     secondSchemaFields.forEach((name, secondField) -> {
       if (!unionizedSchemaFields.containsKey(name)) {
-        unionizedSchemaFields.put(name, secondField.toBuilder().setMode(Field.Mode.NULLABLE).build());
+        if (Field.Mode.REPEATED.equals(secondField.getMode())) {
+        // Repeated fields are implicitly nullable; no need to set a new mode for them
+          unionizedSchemaFields.put(name, secondField);
+        } else {
+          unionizedSchemaFields.put(name, secondField.toBuilder().setMode(Field.Mode.NULLABLE).build());
+        }
       }
     });
     return com.google.cloud.bigquery.Schema.of(unionizedSchemaFields.values());
@@ -397,6 +404,7 @@ public class SchemaManager {
   private boolean isValidFieldAddition(Field newField) {
     return allowNewBQFields && (
         newField.getMode().equals(Field.Mode.NULLABLE) ||
+        newField.getMode().equals(Field.Mode.REPEATED) ||
         (newField.getMode().equals(Field.Mode.REQUIRED) && allowBQRequiredFieldRelaxation));
   }
 
@@ -407,7 +415,7 @@ public class SchemaManager {
     Map<String, Field> proposedSchemaFields = schemaFields(proposedSchema);
     List<Field> newSchemaFields = new ArrayList<>();
     for (Map.Entry<String, Field> entry : proposedSchemaFields.entrySet()) {
-      if (!existingSchemaFields.containsKey(entry.getKey())) {
+      if (!existingSchemaFields.containsKey(entry.getKey()) && !Field.Mode.REPEATED.equals(entry.getValue().getMode())) {
         newSchemaFields.add(entry.getValue().toBuilder().setMode(Field.Mode.NULLABLE).build());
       } else {
         newSchemaFields.add(entry.getValue());
