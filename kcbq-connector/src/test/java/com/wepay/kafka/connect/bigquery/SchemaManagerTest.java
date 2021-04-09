@@ -261,7 +261,7 @@ public class SchemaManagerTest {
 
   @Test
   public void testSuccessfulUnionizedUpdateWithNewRepeatedField() {
-    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
+    com.google.cloud.bigquery.Schema reducedSchema = com.google.cloud.bigquery.Schema.of(
         Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
     );
 
@@ -277,7 +277,9 @@ public class SchemaManagerTest {
 
     SchemaManager schemaManager = createSchemaManager(true, true, true);
 
-    testGetAndValidateProposedSchema(schemaManager, existingSchema, expandedSchema, expectedSchema);
+    // Unionization should work symmetrically, so test both cases of reduced/expanded as the current/new schemas
+    testGetAndValidateProposedSchema(schemaManager, reducedSchema, expandedSchema, expectedSchema);
+    testGetAndValidateProposedSchema(schemaManager, expandedSchema, reducedSchema, expectedSchema);
   }
 
   @Test
@@ -300,6 +302,7 @@ public class SchemaManagerTest {
 
     testGetAndValidateProposedSchema(schemaManager, existingSchema, expandedSchema, expectedSchema);
   }
+
   @Test(expected = BigQueryConnectException.class)
   public void testDisallowedUnionizedUpdateWithNewField() {
     com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(

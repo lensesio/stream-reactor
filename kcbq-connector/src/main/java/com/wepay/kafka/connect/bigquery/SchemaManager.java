@@ -350,6 +350,8 @@ public class SchemaManager {
         // Repeated fields are implicitly nullable; no need to set a new mode for them
         if (!Field.Mode.REPEATED.equals(firstField.getMode())) {
           unionizedSchemaFields.put(name, firstField.toBuilder().setMode(Field.Mode.NULLABLE).build());
+        } else {
+          unionizedSchemaFields.put(name, firstField);
         }
       } else if (isFieldRelaxation(firstField, secondField)) {
         unionizedSchemaFields.put(name, secondField);
