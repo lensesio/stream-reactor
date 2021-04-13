@@ -41,6 +41,8 @@ allprojects {
     apply plugin: 'de.undercouch.download'
     apply plugin: 'maven-publish'
     apply plugin: 'signing'
+    apply plugin: 'com.github.maiflai.scalatest'
+    apply plugin: 'project-report'
 
     // kafka-connect-testcontainers uses junit
     if (!project.name.equals("kafka-connect-testcontainers")) {
@@ -64,7 +66,7 @@ allprojects {
         json4sVersion = "3.6.7"
         gsonVersion = "2.6.2"
         kcqlVersion = "2.8.7"
-        connectCLIVersion = "1.0.6"
+        connectCLIVersion = "1.0.9"
         avro4sVersion = "1.6.4"
         smt = "2.0.0"
 
