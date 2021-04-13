@@ -31,14 +31,13 @@ import org.jclouds.io.payloads.{BaseMutableContentMetadata, InputStreamPayload}
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) extends StorageInterface with LazyLogging {
+class MultipartBlobStoreStorageInterface(sinkName:String, blobStoreContext: BlobStoreContext) extends StorageInterface with LazyLogging {
 
   private val blobStore = blobStoreContext.getBlobStore
   private val awsMaxKeys = 1000
 
   override def initUpload(bucketAndPath: BucketAndPath): MultiPartUploadState = {
-
-    logger.debug(s"StorageInterface - initialising upload for bucketAndPath: $bucketAndPath")
+    logger.debug(s"StorageInterface $sinkName - initialising upload for bucketAndPath: $bucketAndPath")
     val s3PutOptions = PutOptions.Builder.multipart()
 
     MultiPartUploadState(
@@ -59,8 +58,7 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
   }
 
   override def uploadPart(state: MultiPartUploadState, bytes: Array[Byte], size: Long): MultiPartUploadState = {
-
-    logger.debug(s"StorageInterface - uploading part #${state.parts.size} for ${state.upload.containerName()}/ ${state.upload.blobName()}")
+    logger.debug(s"StorageInterface $sinkName- uploading part #${state.parts.size} for ${state.upload.containerName()}/ ${state.upload.blobName()}")
 
     val byteArrayInputStream = new ByteArrayInputStream(bytes.slice(0, size.toInt))
 
@@ -88,7 +86,7 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
 
   override def completeUpload(state: MultiPartUploadState): Unit = {
 
-    logger.debug(s"StorageInterface - Completing upload of ${state.upload.blobName()} with ${state.parts.size} parts")
+    logger.debug(s"StorageInterface $sinkName - Completing upload of ${state.upload.blobName()} with ${state.parts.size} parts")
 
     blobStore.completeMultipartUpload(
       state.upload,
@@ -97,14 +95,14 @@ class MultipartBlobStoreStorageInterface(blobStoreContext: BlobStoreContext) ext
   }
 
   override def rename(originalFilename: BucketAndPath, newFilename: BucketAndPath): Unit = {
-    logger.info(s"StorageInterface - renaming upload from $originalFilename to $newFilename")
+    logger.info(s"StorageInterface $sinkName - renaming upload from $originalFilename to $newFilename")
 
     blobStore.copyBlob(
       originalFilename.bucket, originalFilename.path, newFilename.bucket, newFilename.path, CopyOptions.NONE)
 
     blobStore.removeBlob(
       originalFilename.bucket, originalFilename.path)
-
+    logger.debug(s"StorageInterface $sinkName - deleted ${originalFilename.path} = ${blobStore.blobExists(originalFilename.bucket, originalFilename.path)}")
   }
 
   override def close(): Unit = blobStoreContext.close()

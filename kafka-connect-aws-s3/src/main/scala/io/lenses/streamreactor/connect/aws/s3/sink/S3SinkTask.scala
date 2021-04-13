@@ -44,6 +44,8 @@ class S3SinkTask extends SinkTask {
 
   private var config: S3SinkConfig = _
 
+  private var sinkName: String =  _
+
   override def version(): String = manifest.version()
 
   def validateBuckets(storageInterface: StorageInterface, config: S3SinkConfig) = {
@@ -56,13 +58,14 @@ class S3SinkTask extends SinkTask {
   }
 
   override def start(props: util.Map[String, String]): Unit = {
+    sinkName = props.get("name")
 
-    logger.debug(s"Received call to S3SinkTask.start with ${props.size()} properties")
+    logger.debug(s"Received call to [$sinkName] S3SinkTask.start with ${props.size()} properties")
 
     val awsConfig = S3SinkConfig(props.asScala.toMap)
 
     val awsContextCreator = new AwsContextCreator(AwsContextCreator.DefaultCredentialsFn)
-    storageInterface = new MultipartBlobStoreStorageInterface(awsContextCreator.fromConfig(awsConfig.s3Config))
+    storageInterface = new MultipartBlobStoreStorageInterface(sinkName, awsContextCreator.fromConfig(awsConfig.s3Config))
 
     val configs = Option(context).flatMap(c => Option(c.configs())).filter(_.isEmpty == false).getOrElse(props)
 
@@ -70,13 +73,14 @@ class S3SinkTask extends SinkTask {
 
     validateBuckets(storageInterface, config)
 
+
+
     writerManager = S3WriterManager.from(config)(storageInterface)
 
   }
 
   override def put(records: util.Collection[SinkRecord]): Unit = {
-
-    logger.debug(s"Received call to S3SinkTask.put with ${records.size()} records")
+    logger.debug(s"Received call to [$sinkName] S3SinkTask.put with ${records.size()} records")
 
     records.asScala.foreach {
       record =>
@@ -99,8 +103,10 @@ class S3SinkTask extends SinkTask {
   }
 
   override def preCommit(currentOffsets: util.Map[KafkaTopicPartition, OffsetAndMetadata]): util.Map[KafkaTopicPartition, OffsetAndMetadata] = {
-
-    logger.debug(s"Received call to S3SinkTask.preCommit with current offsets ${currentOffsets.values()}")
+    def getDebugInfo(in: Map[KafkaTopicPartition, OffsetAndMetadata]): String = {
+      in.map { case (tp, offset) => tp.partition() + "-" + tp.partition() + ":" + offset.offset() }.mkString(";")
+    }
+    logger.debug(s"Received call to [$sinkName] S3SinkTask.preCommit with current offsets ${getDebugInfo(currentOffsets.asScala.toMap)}")
 
     val topicPartitionOffsetTransformed: Map[TopicPartition, OffsetAndMetadata] = currentOffsets
       .asScala
@@ -113,19 +119,21 @@ class S3SinkTask extends SinkTask {
       }
       .toMap
 
-    writerManager
+    val actualOffsets = writerManager
       .preCommit(topicPartitionOffsetTransformed)
       .map {
         case (topicPartition, offsetAndMetadata) =>
           (topicPartition.toKafka, offsetAndMetadata)
       }
-      .asJava
 
+    logger.debug(s"Returning the latest written offsets [$sinkName] ${getDebugInfo(actualOffsets)}")
+
+    actualOffsets.asJava
   }
 
   override def open(partitions: util.Collection[KafkaTopicPartition]): Unit = {
 
-    logger.debug(s"Received call to S3SinkTask.open with ${partitions.size()} partitions")
+    logger.debug(s"Received call to [$sinkName] S3SinkTask.open with ${partitions.size()} partitions")
 
     try {
       val topicPartitions = partitions.asScala
@@ -158,7 +166,7 @@ class S3SinkTask extends SinkTask {
   }
 
   override def stop(): Unit = {
-    logger.debug(s"Received call to S3SinkTask.stop")
+    logger.debug(s"Received call to [$sinkName] S3SinkTask.stop")
 
     writerManager.close()
     writerManager = null
