@@ -17,9 +17,6 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import java.io.StringReader
-import java.{lang, util}
-
 import au.com.bytecode.opencsv.CSVReader
 import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.config.AuthMode
@@ -40,6 +37,8 @@ import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.io.StringReader
+import java.{lang, util}
 import scala.collection.JavaConverters._
 
 class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with MockitoSugar {
@@ -1216,6 +1215,90 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     checkArray(recordsMap.getOrElse(new Utf8("cylons"), fail("can't find in map")), "merv", "marv")
 
   }
+
+
+  /**
+    * This should write partition 1 but not partition 0
+    */
+  "S3SinkTask" should "partition by nested fields" in {
+
+    val addressSchema: Schema = SchemaBuilder.struct()
+      .field("number", SchemaBuilder.int32().required().build())
+      .field("city", SchemaBuilder.string().optional().build())
+    
+    val nestedSchema: Schema = SchemaBuilder.struct()
+      .field("user", schema)
+      .field("address", addressSchema)
+      .build()
+
+    val nested: List[Struct] = List(
+      new Struct(nestedSchema)
+        .put("user", new Struct(schema)
+            .put("name", "sam")
+            .put("title", "mr")
+            .put("salary", 100.43),
+        )
+        .put("address", new Struct(addressSchema)
+            .put("number", 1)
+            .put("city", "bristol")
+        ),
+      new Struct(nestedSchema)
+        .put("user", new Struct(schema)
+            .put("name", "laura")
+            .put("title", "ms")
+            .put("salary", 429.06),
+        )
+        .put("address", new Struct(addressSchema)
+            .put("number", 1)
+            .put("city", "bristol")
+        ),
+      new Struct(nestedSchema)
+        .put("user", new Struct(schema)
+            .put("name", "tom")
+            .put("title", null)
+            .put("salary", 395.44),
+        )
+        .put("address", new Struct(addressSchema)
+            .put("number", 1)
+            .put("city", "bristol")
+        )
+    )
+        
+    val kafkaPartitionedRecords = List(
+      new SinkRecord(TopicName, 0, null, null, schema, nested(0), 0),
+      new SinkRecord(TopicName, 1, null, null, schema, nested(1), 0),
+      new SinkRecord(TopicName, 1, null, null, schema, nested(2), 1)
+    )
+
+    val topicPartitionsToManage = Seq(
+      new TopicPartition(TopicName, 0),
+      new TopicPartition(TopicName, 1)
+    ).asJava
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _value.user.name WITH_FLUSH_COUNT = 1")
+      ).asJava
+
+    task.start(props)
+
+    task.open(topicPartitionsToManage)
+    task.put(kafkaPartitionedRecords.asJava)
+    task.close(topicPartitionsToManage)
+    task.stop()
+
+    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
+    fileList.size() should be(3)
+
+    fileList.asScala.map(file => file.getName) should contain allOf(
+      "streamReactorBackups/user.name=laura/myTopic(1_0).json",
+      "streamReactorBackups/user.name=sam/myTopic(0_0).json",
+      "streamReactorBackups/user.name=tom/myTopic(1_1).json",
+    )
+  }
+
 
   private def createSinkRecord(partition: Int, valueStruct: Struct, offset: Int, headers: lang.Iterable[Header]) = {
     new SinkRecord(TopicName, partition, null, null, null, valueStruct, offset, null, null, headers)

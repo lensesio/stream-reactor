@@ -18,11 +18,10 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import java.io.OutputStreamWriter
-
 import au.com.bytecode.opencsv.CSVWriter
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{SinkData, Topic}
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.FieldValueToStringConverter
+import io.lenses.streamreactor.connect.aws.s3.model.{PartitionNamePath, SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.sink.extractors.SinkDataExtractor
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 import org.apache.kafka.connect.data.Schema
 
@@ -46,8 +45,8 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
     if (!fieldsWritten) {
       writeFields(valueSinkData.schema().orNull)
     }
-    val structValueLookupFn: Option[String] => Option[String] = FieldValueToStringConverter.lookupFieldValueFromSinkData(valueSinkData)
-    val nextRow = fields.map(f => structValueLookupFn(Some(f)) match {
+    val structValueLookupFn: Option[PartitionNamePath] => Option[String] = SinkDataExtractor.extractPathFromSinkData(valueSinkData)
+    val nextRow = fields.map(f => structValueLookupFn(Some(PartitionNamePath(f))) match {
       case Some(something) => something
       case None => null
     })

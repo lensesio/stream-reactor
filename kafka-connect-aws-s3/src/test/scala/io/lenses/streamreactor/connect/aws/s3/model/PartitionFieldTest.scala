@@ -15,9 +15,9 @@
  */
 
 package io.lenses.streamreactor.connect.aws.s3.model
+import org.scalatest.prop.TableDrivenPropertyChecks._
 
 import java.util.Collections
-
 import com.datamountaineer.kcql.Kcql
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
@@ -29,57 +29,55 @@ class PartitionFieldTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   val kcql: Kcql = mock[Kcql]
 
-  "partitionField.apply" should "return empty list if null kcql partitionBy supplied" in {
+
+      "partitionField.apply" should "return empty Seq if dddnull kcql partitionBy supplied" in {
+        val testCases = Table(
+          ("kcql return", "expected"),
+          (  null.asInstanceOf[java.util.Iterator[String]],   Seq.empty[PartitionField]),
+          ( Collections.emptyIterator().asInstanceOf[java.util.Iterator[String]],   Seq.empty[PartitionField]),
+        )
+
+        forAll (testCases) {
+          (kcqlReturn, expected) =>
+            when(kcql.getPartitionBy).thenReturn(kcqlReturn)
+            PartitionField(kcql) should be(expected)
+
+      }
+  }
+
+  "partitionField.apply" should "return empty Seq if null kcql partitionBy supplied" in {
     when(kcql.getPartitionBy).thenReturn(null)
     PartitionField(kcql) should be(Seq.empty[PartitionField])
   }
 
-  "partitionField.apply" should "return empty list if no kcql partitionBy supplied" in {
+  "partitionField.apply" should "return empty Seq if no kcql partitionBy supplied" in {
     when(kcql.getPartitionBy).thenReturn(Collections.emptyIterator())
     PartitionField(kcql) should be(Seq.empty[PartitionField])
   }
 
   "partitionField.apply" should "parse partitions by whole key" in {
-    when(kcql.getPartitionBy).thenReturn(List("_key").toIterator.asJava)
+    when(kcql.getPartitionBy).thenReturn(Seq("_key").toIterator.asJava)
     PartitionField(kcql) should be(Seq(WholeKeyPartitionField()))
   }
 
   "partitionField.apply" should "parse partitions by keys" in {
-    when(kcql.getPartitionBy).thenReturn(List("_key.fieldA", "_key.fieldB", "_key.field_c").toIterator.asJava)
-    PartitionField(kcql) should be(Seq(KeyPartitionField("fieldA"), KeyPartitionField("fieldB"), KeyPartitionField("field_c")))
+    when(kcql.getPartitionBy).thenReturn(Seq("_key.fieldA", "_key.fieldB", "_key.field_c").toIterator.asJava)
+    PartitionField(kcql) should be(Seq(KeyPartitionField(PartitionNamePath("fieldA")), KeyPartitionField(PartitionNamePath("fieldB")), KeyPartitionField(PartitionNamePath("field_c"))))
   }
 
   "partitionField.apply" should "parse partitions by values by default" in {
-    when(kcql.getPartitionBy).thenReturn(List("fieldA", "fieldB", "field_c").toIterator.asJava)
-    PartitionField(kcql) should be(Seq(ValuePartitionField("fieldA"), ValuePartitionField("fieldB"), ValuePartitionField("field_c")))
+    when(kcql.getPartitionBy).thenReturn(Seq("fieldA", "fieldB", "field_c").toIterator.asJava)
+    PartitionField(kcql) should be(Seq(ValuePartitionField(PartitionNamePath("fieldA")), ValuePartitionField(PartitionNamePath("fieldB")), ValuePartitionField(PartitionNamePath("field_c"))))
   }
 
   "partitionField.apply" should "parse partitions by values" in {
-    when(kcql.getPartitionBy).thenReturn(List("_value.fieldA", "_value.fieldB").toIterator.asJava)
-    PartitionField(kcql) should be(Seq(ValuePartitionField("fieldA"), ValuePartitionField("fieldB")))
+    when(kcql.getPartitionBy).thenReturn(Seq("_value.fieldA", "_value.fieldB").toIterator.asJava)
+    PartitionField(kcql) should be(Seq(ValuePartitionField(PartitionNamePath("fieldA")), ValuePartitionField(PartitionNamePath("fieldB"))))
   }
 
-  "partitionField.apply" should "throw exception when partition source specified without an underscore" in {
-    when(kcql.getPartitionBy).thenReturn(List("value.fieldA", "value.fieldB").toIterator.asJava)
-    val caught = intercept[IllegalArgumentException] {
-      PartitionField(kcql)
-    }
-    caught.getMessage should be("Invalid input PartitionSource 'value', should be either '_key', '_value' or '_header'")
+  "partitionField.apply" should "parse nested partitions" in {
+    when(kcql.getPartitionBy).thenReturn(Seq("_value.userDetails.address.houseNumber", "_value.fieldB").toIterator.asJava)
+    PartitionField(kcql) should be(Seq(ValuePartitionField(PartitionNamePath("userDetails","address","houseNumber")), ValuePartitionField(PartitionNamePath("fieldB"))))
   }
 
-  "partitionField.apply" should "throw exception when partition supplied with too many parts" in {
-    when(kcql.getPartitionBy).thenReturn(List("_value.extraPart.fieldA").toIterator.asJava)
-    val caught = intercept[IllegalArgumentException] {
-      PartitionField(kcql)
-    }
-    caught.getMessage should be("requirement failed: Invalid partition specification, should contain at most 2 parts")
-  }
-
-  "partitionField.apply" should "throw exception when invalid partition sources specified" in {
-    when(kcql.getPartitionBy).thenReturn(List("_vlalue.fieldA").toIterator.asJava)
-    val caught = intercept[IllegalArgumentException] {
-      PartitionField(kcql)
-    }
-    caught.getMessage should be("Invalid input PartitionSource '_vlalue', should be either '_key', '_value' or '_header'")
-  }
 }

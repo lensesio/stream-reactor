@@ -1,0 +1,68 @@
+/*
+ * Copyright 2021 Lenses.io
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.lenses.streamreactor.connect.aws.s3.sink.extractors
+
+import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.model.PartitionNamePath
+import org.apache.kafka.connect.data.Schema.Type._
+import org.apache.kafka.connect.data.{Schema, Struct}
+
+import java.util
+import io.lenses.streamreactor.connect.aws.s3.sink.conversion.OptionConvert.convertToOption
+
+object MapExtractor extends LazyLogging {
+
+  def extractPathFromMap(map: util.Map[_, _], fieldName: PartitionNamePath, schema: Schema): Option[String] = {
+    if (fieldName.hasTail) extractComplexType(map, fieldName, schema) else extractPrimitive(map, fieldName.head, schema)
+  }
+
+  private def extractComplexType(map: util.Map[_, _], fieldName: PartitionNamePath, schema: Schema): Option[String] = {
+    val mapKey = fieldName.head
+    Option(map.get(mapKey))
+      .fold(Option.empty[String]) {
+        _ match {
+          case s: Struct => StructExtractor.extractPathFromStruct(s, fieldName.tail)
+          case m: util.Map[Any, Any] => extractPathFromMap(m, fieldName.tail, schema.valueSchema())
+          case other => logger.error("Unexpected type in Map Extractor: " + other)
+            throw new IllegalArgumentException("Unexpected type in Map Extractor: " + other)
+        }
+      }
+  }
+
+  private def extractPrimitive(map: util.Map[_, _], fieldName: String, mapSchema: Schema): Option[String] = {
+    Option(mapSchema.valueSchema())
+      .fold(Option.empty[String]) {
+        _.schema().`type`() match {
+          case INT8 => convertToOption(map.get(fieldName))
+          case INT16 => convertToOption(map.get(fieldName))
+          case INT32 => convertToOption(map.get(fieldName))
+          case INT64 => convertToOption(map.get(fieldName))
+          case FLOAT32 => convertToOption(map.get(fieldName))
+          case FLOAT64 => convertToOption(map.get(fieldName))
+          case BOOLEAN => convertToOption(map.get(fieldName))
+          case STRING => convertToOption(map.get(fieldName))
+          case BYTES => Option(map.get(fieldName)).fold(Option.empty[String]) {
+            case byteVal: Array[Byte] => Some(new String(byteVal))
+          }
+          case other => logger.error("Non-primitive values not supported: " + other)
+            throw new IllegalArgumentException("Non-primitive values not supported: " + other)
+        }
+
+      }
+  }
+
+}
