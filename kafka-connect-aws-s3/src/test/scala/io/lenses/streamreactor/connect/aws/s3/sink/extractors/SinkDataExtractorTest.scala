@@ -17,7 +17,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
 import io.lenses.streamreactor.connect.aws.s3.model.{PartitionNamePath, StructSinkData}
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.MapSinkDataConverter
+import io.lenses.streamreactor.connect.aws.s3.sink.conversion.{ArraySinkDataConverter, MapSinkDataConverter}
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -34,6 +34,12 @@ class SinkDataExtractorTest extends AnyFlatSpec with Matchers {
     .field("mynestedstring", SchemaBuilder.string().build())
     .build()
 
+  private val structWithArrayPrimitiveSchema = SchemaBuilder.struct()
+    .field("myarray", SchemaBuilder.array(SchemaBuilder.string().build())).build()
+
+  private val structWithArrayStructPrimitiveSchema = SchemaBuilder.struct()
+    .field("myarray", SchemaBuilder.array(nestedStringSchema)).build()
+
   private val stringSchema = SchemaBuilder.string().build()
 
   private val mapSchema = SchemaBuilder.map(stringSchema, nestedStringSchema)
@@ -41,6 +47,8 @@ class SinkDataExtractorTest extends AnyFlatSpec with Matchers {
 
   private val mapOfMapsSchema = SchemaBuilder.map(SchemaBuilder.string().build(), SchemaBuilder.map(SchemaBuilder.string().build(), SchemaBuilder.string().build())
     .build())
+
+  private val arrayOfStructsSchema = SchemaBuilder.array(nestedStringSchema).build()
 
   private val schema: Schema = SchemaBuilder.struct()
     .field("mystring", SchemaBuilder.string().build())
@@ -56,6 +64,9 @@ class SinkDataExtractorTest extends AnyFlatSpec with Matchers {
     .field("mycomplexmap", mapSchema)
     .field("mymapofmaps", mapOfMapsSchema)
     .field("mynestedschema",nestedStringSchema)
+    .field("myarrayofstructs", arrayOfStructsSchema)
+    .field("mystructswitharrayofprimitives", structWithArrayPrimitiveSchema)
+    .field("mystructswitharrayofstructprimitives", structWithArrayStructPrimitiveSchema)
     .build()
 
   private val struct = new Struct(schema)
@@ -79,6 +90,25 @@ class SinkDataExtractorTest extends AnyFlatSpec with Matchers {
       ).asJava
     )
     .put("mynestedschema", new Struct(nestedStringSchema).put("mynestedstring", "zip"))
+    .put("myarrayofstructs",
+      List(
+        new Struct(nestedStringSchema).put("mynestedstring", "wiz1"),
+        new Struct(nestedStringSchema).put("mynestedstring", "wiz2"),
+        new Struct(nestedStringSchema).put("mynestedstring", "wiz3"),
+      ).asJava
+    )
+    .put("mystructswitharrayofprimitives",
+      new Struct(structWithArrayPrimitiveSchema).put("myarray", List("sausages", "mash", "peas", "gravy").asJava)
+    )
+    .put("mystructswitharrayofstructprimitives",
+      new Struct(structWithArrayStructPrimitiveSchema)
+        .put("myarray", List(
+          new Struct(nestedStringSchema).put("mynestedstring", "wiz1"),
+          new Struct(nestedStringSchema).put("mynestedstring", "wiz2"),
+          new Struct(nestedStringSchema).put("mynestedstring", "wiz3")
+        ).asJava)
+    )
+
 
   "lookupFieldValueFromSinkData" should "convert boolean to string" in {
     SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mybool"))) should be(Some("true"))
@@ -126,6 +156,27 @@ class SinkDataExtractorTest extends AnyFlatSpec with Matchers {
 
   "lookupFieldValueFromSinkData" should "handle struct containing map of maps" in {
     SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mymapofmaps","c","d")))  should be(Some("2"))
+  }
+
+  "lookupFieldValueFromSinkData" should "handle array of structs" in {
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("myarrayofstructs","0","mynestedstring")))  should be(Some("wiz1"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("myarrayofstructs","1","mynestedstring")))  should be(Some("wiz2"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("myarrayofstructs","2","mynestedstring")))  should be(Some("wiz3"))
+  }
+
+  "lookupFieldValueFromSinkData" should "handle structs containing array of primitives" in {
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofprimitives","myarray","0"))) should be(Some("sausages"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofprimitives","myarray","1"))) should be(Some("mash"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofprimitives","myarray","2"))) should be(Some("peas"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofprimitives","myarray","3"))) should be(Some("gravy"))
+  }
+
+
+  "lookupFieldValueFromSinkData" should "handle structs containing array of structs containing primitives" in {
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofstructprimitives","myarray","0", "mynestedstring")))  should be(Some("wiz1"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofstructprimitives","myarray","1", "mynestedstring")))  should be(Some("wiz2"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofstructprimitives","myarray","2", "mynestedstring")))  should be(Some("wiz3"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofstructprimitives","myarray","3", "mynestedstring")))  should be(None)
   }
 
   "lookupFieldValueFromSinkData" should "handle flat map sink data without schema" in {

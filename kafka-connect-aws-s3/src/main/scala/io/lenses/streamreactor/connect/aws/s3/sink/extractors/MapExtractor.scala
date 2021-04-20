@@ -18,12 +18,13 @@ package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionNamePath
-import org.apache.kafka.connect.data.Schema.Type._
 import org.apache.kafka.connect.data.{Schema, Struct}
 
 import java.util
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.OptionConvert.convertToOption
 
+/**
+  * Extracts values from a Java map type
+  */
 object MapExtractor extends LazyLogging {
 
   def extractPathFromMap(map: util.Map[_, _], fieldName: PartitionNamePath, schema: Schema): Option[String] = {
@@ -34,35 +35,21 @@ object MapExtractor extends LazyLogging {
     val mapKey = fieldName.head
     Option(map.get(mapKey))
       .fold(Option.empty[String]) {
-        _ match {
-          case s: Struct => StructExtractor.extractPathFromStruct(s, fieldName.tail)
-          case m: util.Map[Any, Any] => extractPathFromMap(m, fieldName.tail, schema.valueSchema())
-          case other => logger.error("Unexpected type in Map Extractor: " + other)
-            throw new IllegalArgumentException("Unexpected type in Map Extractor: " + other)
-        }
+        case s: Struct => StructExtractor.extractPathFromStruct(s, fieldName.tail)
+        case m: util.Map[Any, Any] => extractPathFromMap(m, fieldName.tail, schema.valueSchema())
+        case other => logger.error("Unexpected type in Map Extractor: " + other)
+          throw new IllegalArgumentException("Unexpected type in Map Extractor: " + other)
       }
   }
 
   private def extractPrimitive(map: util.Map[_, _], fieldName: String, mapSchema: Schema): Option[String] = {
     Option(mapSchema.valueSchema())
       .fold(Option.empty[String]) {
-        _.schema().`type`() match {
-          case INT8 => convertToOption(map.get(fieldName))
-          case INT16 => convertToOption(map.get(fieldName))
-          case INT32 => convertToOption(map.get(fieldName))
-          case INT64 => convertToOption(map.get(fieldName))
-          case FLOAT32 => convertToOption(map.get(fieldName))
-          case FLOAT64 => convertToOption(map.get(fieldName))
-          case BOOLEAN => convertToOption(map.get(fieldName))
-          case STRING => convertToOption(map.get(fieldName))
-          case BYTES => Option(map.get(fieldName)).fold(Option.empty[String]) {
-            case byteVal: Array[Byte] => Some(new String(byteVal))
-          }
-          case other => logger.error("Non-primitive values not supported: " + other)
-            throw new IllegalArgumentException("Non-primitive values not supported: " + other)
-        }
-
+        valueSchema =>
+          val value = map.get(fieldName)
+          PrimitiveExtractor.extractPrimitiveValue(value, valueSchema)
       }
   }
+
 
 }

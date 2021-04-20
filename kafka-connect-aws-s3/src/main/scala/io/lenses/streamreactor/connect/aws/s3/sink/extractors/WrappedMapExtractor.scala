@@ -18,6 +18,9 @@ package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
 import io.lenses.streamreactor.connect.aws.s3.model._
 
+/**
+  * Extracts values from a SinkData Map.
+  */
 object WrappedMapExtractor {
 
   def extractPathFromMap(map: Map[SinkData, SinkData], fieldName: PartitionNamePath): Option[String] = {

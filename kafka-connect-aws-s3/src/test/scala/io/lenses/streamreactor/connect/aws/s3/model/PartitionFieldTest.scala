@@ -15,35 +15,17 @@
  */
 
 package io.lenses.streamreactor.connect.aws.s3.model
-import org.scalatest.prop.TableDrivenPropertyChecks._
-
-import java.util.Collections
 import com.datamountaineer.kcql.Kcql
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.util.Collections
 import scala.collection.JavaConverters._
 
 class PartitionFieldTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   val kcql: Kcql = mock[Kcql]
-
-
-      "partitionField.apply" should "return empty Seq if dddnull kcql partitionBy supplied" in {
-        val testCases = Table(
-          ("kcql return", "expected"),
-          (  null.asInstanceOf[java.util.Iterator[String]],   Seq.empty[PartitionField]),
-          ( Collections.emptyIterator().asInstanceOf[java.util.Iterator[String]],   Seq.empty[PartitionField]),
-        )
-
-        forAll (testCases) {
-          (kcqlReturn, expected) =>
-            when(kcql.getPartitionBy).thenReturn(kcqlReturn)
-            PartitionField(kcql) should be(expected)
-
-      }
-  }
 
   "partitionField.apply" should "return empty Seq if null kcql partitionBy supplied" in {
     when(kcql.getPartitionBy).thenReturn(null)

@@ -22,6 +22,9 @@ import org.apache.kafka.connect.data.Schema.Type._
 import org.apache.kafka.connect.data.Struct
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.OptionConvert.convertToOption
 
+/**
+  * Extracts value from a Struct type
+  */
 object StructExtractor extends LazyLogging {
 
   def extractPathFromStruct(struct: Struct, fieldName: PartitionNamePath): Option[String] = {
@@ -56,7 +59,9 @@ object StructExtractor extends LazyLogging {
           case MAP => MapExtractor.extractPathFromMap(
             struct.getMap(fieldName.head), fieldName.tail, struct.schema().field(fieldName.head).schema()
           )
-          case ARRAY => convertToOption(struct.getString(fieldName.toString))
+          case ARRAY => ArrayExtractor.extractPathFromArray(
+            struct.getArray(fieldName.head), fieldName.tail, struct.schema().field(fieldName.head).schema()
+          )
         }
       }
   }

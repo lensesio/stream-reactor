@@ -19,6 +19,9 @@ package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model._
 
+/**
+  * Extracts values from a SinkData wrapper type
+  */
 object SinkDataExtractor extends LazyLogging {
 
   /**
