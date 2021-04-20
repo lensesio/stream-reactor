@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Lenses.io
+ * Copyright 2021 Lenses.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.sink.conversion
+package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
 import io.lenses.streamreactor.connect.aws.s3.model.{PartitionNamePath, StructSinkData}
-import io.lenses.streamreactor.connect.aws.s3.sink.extractors.SinkDataExtractor
+import io.lenses.streamreactor.connect.aws.s3.sink.conversion.MapSinkDataConverter
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

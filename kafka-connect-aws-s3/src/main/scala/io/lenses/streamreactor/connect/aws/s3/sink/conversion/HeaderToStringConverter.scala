@@ -17,26 +17,18 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
+import io.lenses.streamreactor.connect.aws.s3.model.SinkData
+import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.sink.SinkRecord
 
 import scala.collection.JavaConverters._
 
 object HeaderToStringConverter {
 
-  def apply(record: SinkRecord): Map[String, String] = record.headers().asScala.map(header => header.key() -> headerValueToString(header.value())).toMap
+  def apply(record: SinkRecord): Map[String, SinkData] = record.headers().asScala.map(header => header.key() -> headerValueToString(header.value(), Option(header.schema()))).toMap
 
-  def headerValueToString(value: Any): String = {
-    value match {
-      case stringVal: String => stringVal
-      case intVal: Int => String.valueOf(intVal)
-      case shortVal: Short => String.valueOf(shortVal)
-      case floatVal: Float => String.valueOf(floatVal)
-      case doubleVal: Double => String.valueOf(doubleVal)
-      case byteVal: Byte => String.valueOf(byteVal)
-      case boolVal: Boolean => String.valueOf(boolVal)
-      case longVal: Long => String.valueOf(longVal)
-      case otherVal => throw new IllegalArgumentException(s"Unsupported header value type $otherVal:${otherVal.getClass.getCanonicalName}. Consider if you need to set the header.converter property in your connector configuration.")
-    }
+  def headerValueToString(value: Any, schema: Option[Schema]): SinkData = {
+    ValueToSinkDataConverter(value, schema)
   }
 
 }

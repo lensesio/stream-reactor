@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.sink.conversion
+package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
-import io.lenses.streamreactor.connect.aws.s3.model.{PartitionNamePath, StructSinkData}
-import io.lenses.streamreactor.connect.aws.s3.sink.extractors.MapExtractor
-import org.apache.kafka.connect.data.{SchemaBuilder, Struct}
+import io.lenses.streamreactor.connect.aws.s3.model.PartitionNamePath
+import org.apache.kafka.connect.data.SchemaBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

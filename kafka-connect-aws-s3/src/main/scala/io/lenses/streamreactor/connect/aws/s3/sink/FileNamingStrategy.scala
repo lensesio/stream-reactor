@@ -97,8 +97,10 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
     partitionSelection
       .partitions
       .map {
-            // TODO: Fix DS `name`
-        case partition@HeaderPartitionField(name) => partition -> messageDetail.headers.getOrElse(name.toString, throw new IllegalArgumentException(s"Header '$name' not found in message"))
+        case partition@HeaderPartitionField(name) => partition -> {
+          val sinkData = messageDetail.headers.getOrElse(name.head, throw new IllegalArgumentException(s"Header '$name' not found in message"))
+          getPartitionValueFromSinkData(sinkData, name.tail)
+        }
         case partition@KeyPartitionField(name) => partition -> {
           val sinkData = messageDetail.keySinkData.getOrElse(throw new IllegalArgumentException(s"No key data found"))
           getPartitionValueFromSinkData(sinkData, name)
