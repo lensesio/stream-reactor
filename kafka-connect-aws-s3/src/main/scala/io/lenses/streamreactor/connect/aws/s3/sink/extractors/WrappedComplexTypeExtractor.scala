@@ -16,16 +16,21 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
-import io.lenses.streamreactor.connect.aws.s3.model.{ArraySinkData, MapSinkData, PartitionNamePath, SinkData, StructSinkData}
+import cats.implicits._
+import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.WrappedMapExtractor.extractPathFromMap
 
-object WrappedComplexTypeExtractor {
-  private[extractors] def extractFromComplexType(wrappedComplexType: SinkData, fieldName: PartitionNamePath): Option[String] =
+object WrappedComplexTypeExtractor extends LazyLogging {
+
+  private[extractors] def extractFromComplexType(wrappedComplexType: SinkData, fieldName: PartitionNamePath): Either[ExtractorError, String] =
     wrappedComplexType match {
       case StructSinkData(struct) => StructExtractor.extractPathFromStruct(struct, fieldName)
       case MapSinkData(wrappedMap, _) => extractPathFromMap(wrappedMap, fieldName)
       case ArraySinkData(wrappedArr, _) => WrappedArrayExtractor.extractPathFromArray(wrappedArr, fieldName)
-      case other => throw new IllegalArgumentException(s"Unable to represent a complex object as a string value ${other.getClass.getCanonicalName}")
+      case other =>
+        logger.error(s"Unable to represent a complex object as a string value ${other.getClass.getCanonicalName}")
+        ExtractorError(ExtractorErrorType.UnexpectedType).asLeft[String]
     }
 
 }

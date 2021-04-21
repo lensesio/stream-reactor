@@ -16,17 +16,19 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
+import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType.IncorrectIndexType
 
 object ArrayIndexUtil extends LazyLogging {
 
-  private[extractors] def getArrayIndex(fieldName: String): Int = {
+  private[extractors] def getArrayIndex(fieldName: String): Either[ExtractorError, Int] = {
     try {
-      fieldName.toInt
+      fieldName.toInt.asRight[ExtractorError]
     } catch {
       case _: NumberFormatException =>
         logger.error("Incorrect index type for Array type, expected only numeric characters")
-        throw new IllegalArgumentException("Incorrect index type for Array type, expected only numeric characters")
+        ExtractorError(IncorrectIndexType).asLeft
     }
   }
 }

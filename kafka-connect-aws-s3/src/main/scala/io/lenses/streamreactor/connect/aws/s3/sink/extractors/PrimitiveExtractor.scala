@@ -16,28 +16,32 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
+import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.OptionConvert.convertToOption
 import org.apache.kafka.connect.data.Schema
 import org.apache.kafka.connect.data.Schema.Type._
 
 object PrimitiveExtractor extends LazyLogging {
 
-  private[extractors] def extractPrimitiveValue(value: Any, schema : Schema): Option[String] = {
-    schema.schema().`type`() match {
-      case INT8 => convertToOption(value)
-      case INT16 => convertToOption(value)
-      case INT32 => convertToOption(value)
-      case INT64 => convertToOption(value)
-      case FLOAT32 => convertToOption(value)
-      case FLOAT64 => convertToOption(value)
-      case BOOLEAN => convertToOption(value)
-      case STRING => convertToOption(value)
-      case BYTES => Option(value).fold(Option.empty[String]) {
-        case byteVal: Array[Byte] => Some(new String(byteVal))
+  private[extractors] def extractPrimitiveValue(value: Any, schema: Schema): Either[ExtractorError, String] = {
+    schema.`type`() match {
+      case INT8 => anyToEither(value)
+      case INT16 => anyToEither(value)
+      case INT32 => anyToEither(value)
+      case INT64 => anyToEither(value)
+      case FLOAT32 => anyToEither(value)
+      case FLOAT64 => anyToEither(value)
+      case BOOLEAN => anyToEither(value)
+      case STRING => anyToEither(value)
+      case BYTES => Option(value).fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
+        case byteVal: Array[Byte] => new String(byteVal).asRight[ExtractorError]
       }
       case other => logger.error("Non-primitive values not supported: " + other)
-        throw new IllegalArgumentException("Non-primitive values not supported: " + other)
+        ExtractorError(ExtractorErrorType.UnexpectedType).asLeft[String]
     }
   }
+
+  private[extractors] def anyToEither(any: Any): Either[ExtractorError, String] =
+    Option(any).fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String])(_.toString.asRight[ExtractorError])
+
 }

@@ -37,6 +37,6 @@ class MapExtractorTest extends AnyFlatSpec with Matchers  {
   ).asJava
 
   "lookupFieldValueFromStruct" should "handle map of maps" in {
-    MapExtractor.extractPathFromMap(mapOfMapsOfStrings, PartitionNamePath("c","d"), mapOfMapsOfStringsSchema) should be(Some("2"))
+    MapExtractor.extractPathFromMap(mapOfMapsOfStrings, PartitionNamePath("c","d"), mapOfMapsOfStringsSchema) should be(Right("2"))
   }
 }

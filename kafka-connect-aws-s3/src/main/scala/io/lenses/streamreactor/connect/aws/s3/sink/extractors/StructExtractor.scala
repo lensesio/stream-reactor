@@ -16,44 +16,48 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
+import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionNamePath
+import io.lenses.streamreactor.connect.aws.s3.sink.extractors.PrimitiveExtractor.anyToEither
 import org.apache.kafka.connect.data.Schema.Type._
 import org.apache.kafka.connect.data.Struct
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.OptionConvert.convertToOption
 
 /**
   * Extracts value from a Struct type
   */
 object StructExtractor extends LazyLogging {
 
-  private[extractors] def extractPathFromStruct(struct: Struct, fieldName: PartitionNamePath): Option[String] = {
+  private[extractors] def extractPathFromStruct(struct: Struct, fieldName: PartitionNamePath): Either[ExtractorError, String] = {
     if (fieldName.hasTail) extractComplexType(struct, fieldName) else extractPrimitive(struct, fieldName.head)
   }
 
-  private def extractPrimitive(struct: Struct, fieldName: String) = {
+  private def extractPrimitive(struct: Struct, fieldName: String): Either[ExtractorError, String] = {
     Option(struct.schema().field(fieldName))
-      .fold(Option.empty[String]) {
+      .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
         _.schema().`type`() match {
-          case INT8 => convertToOption(struct.getInt8(fieldName))
-          case INT16 => convertToOption(struct.getInt16(fieldName))
-          case INT32 => convertToOption(struct.getInt32(fieldName))
-          case INT64 => convertToOption(struct.getInt64(fieldName))
-          case FLOAT32 => convertToOption(struct.getFloat32(fieldName))
-          case FLOAT64 => convertToOption(struct.getFloat64(fieldName))
-          case BOOLEAN => convertToOption(struct.getBoolean(fieldName))
-          case STRING => convertToOption(struct.getString(fieldName))
-          case BYTES => Option(struct.getBytes(fieldName)).fold(Option.empty[String])(byteVal => Some(new String(byteVal)))
+          case INT8 => anyToEither(struct.getInt8(fieldName))
+          case INT16 => anyToEither(struct.getInt16(fieldName))
+          case INT32 => anyToEither(struct.getInt32(fieldName))
+          case INT64 => anyToEither(struct.getInt64(fieldName))
+          case FLOAT32 => anyToEither(struct.getFloat32(fieldName))
+          case FLOAT64 => anyToEither(struct.getFloat64(fieldName))
+          case BOOLEAN => anyToEither(struct.getBoolean(fieldName))
+          case STRING => anyToEither(struct.getString(fieldName))
+          case BYTES => Option(struct.getBytes(fieldName))
+            .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String])(
+              byteVal => new String(byteVal).asRight[ExtractorError]
+            )
           case other => logger.error("Non-primitive values not supported: " + other)
-            throw new IllegalArgumentException("Non-primitive values not supported: " + other)
+            ExtractorError(ExtractorErrorType.UnexpectedType).asLeft[String]
         }
 
       }
   }
 
-  private def extractComplexType(struct: Struct, fieldName: PartitionNamePath) = {
+  private def extractComplexType(struct: Struct, fieldName: PartitionNamePath): Either[ExtractorError, String] = {
     Option(struct.schema().field(fieldName.head))
-      .fold(Option.empty[String]) {
+      .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
         _.schema().`type`() match {
           case STRUCT => extractPathFromStruct(struct.getStruct(fieldName.head), fieldName.tail)
           case MAP => MapExtractor.extractPathFromMap(

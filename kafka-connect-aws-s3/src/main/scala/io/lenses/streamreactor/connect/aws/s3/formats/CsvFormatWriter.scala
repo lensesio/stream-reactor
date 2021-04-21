@@ -17,14 +17,15 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.io.OutputStreamWriter
 import au.com.bytecode.opencsv.CSVWriter
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.{PartitionNamePath, SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorAdaptor.adaptErrorResponse
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.SinkDataExtractor
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 import org.apache.kafka.connect.data.Schema
 
+import java.io.OutputStreamWriter
 import scala.collection.JavaConverters._
 import scala.util.Try
 
@@ -45,7 +46,7 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
       writeFields(valueSinkData.schema().orNull)
     }
     val nextRow = fields.map(PartitionNamePath(_))
-      .map(path => SinkDataExtractor.extractPathFromSinkData(valueSinkData)(Some(path)).orNull)
+      .map(path => adaptErrorResponse(SinkDataExtractor.extractPathFromSinkData(valueSinkData)(Some(path))).orNull )
     csvWriter.writeNext(nextRow: _*)
     csvWriter.flush()
   }

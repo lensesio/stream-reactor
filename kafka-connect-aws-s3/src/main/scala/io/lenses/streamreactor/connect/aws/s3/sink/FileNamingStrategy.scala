@@ -20,6 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection}
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionDisplay.KeysAndValues
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorAdaptor.adaptErrorResponse
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.SinkDataExtractor
 
 import scala.util.matching.Regex
@@ -130,12 +131,10 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
 
   private def getFieldStringValue(struct: SinkData, partitionName: Option[PartitionNamePath]) = {
 
-    SinkDataExtractor.extractPathFromSinkData(struct)(partitionName)
-      .fold(Option.empty[String])(fieldVal => Option(fieldVal
-        .replace("/", "-")
-        .replace("\\", "-"))
-
-      )
+    adaptErrorResponse(SinkDataExtractor.extractPathFromSinkData(struct)(partitionName)).fold(Option.empty[String])(fieldVal => Option(fieldVal
+      .replace("/", "-")
+      .replace("\\", "-"))
+    )
   }
 
   def getPartitionValueFromSinkData(sinkData: SinkData, partitionName: PartitionNamePath): String = {

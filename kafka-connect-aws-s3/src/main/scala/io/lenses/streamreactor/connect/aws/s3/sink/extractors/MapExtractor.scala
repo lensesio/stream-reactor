@@ -16,9 +16,10 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
+import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionNamePath
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
 
 import java.util
 
@@ -27,23 +28,23 @@ import java.util
   */
 object MapExtractor extends LazyLogging {
 
-  private[extractors] def extractPathFromMap(map: util.Map[_, _], fieldName: PartitionNamePath, schema: Schema): Option[String] = {
+  private[extractors] def extractPathFromMap(map: util.Map[_, _], fieldName: PartitionNamePath, schema: Schema): Either[ExtractorError, String] = {
     if (fieldName.hasTail) extractComplexType(map, fieldName, schema) else extractPrimitive(map, fieldName.head, schema)
   }
 
-  private def extractComplexType(map: util.Map[_, _], fieldName: PartitionNamePath, schema: Schema): Option[String] = {
+  private def extractComplexType(map: util.Map[_, _], fieldName: PartitionNamePath, schema: Schema): Either[ExtractorError, String] = {
     val mapKey = fieldName.head
     Option(map.get(mapKey))
-      .fold(Option.empty[String]) {
+      .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
         ComplexTypeExtractor.extractComplexType(_, fieldName.tail, schema.valueSchema())
       }
   }
 
-  private def extractPrimitive(map: util.Map[_, _], fieldName: String, mapSchema: Schema): Option[String] =
+  private def extractPrimitive(map: util.Map[_, _], fieldName: String, mapSchema: Schema): Either[ExtractorError, String] =
     Option(mapSchema.valueSchema())
-      .fold(Option.empty[String]) {
+      .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
         PrimitiveExtractor.extractPrimitiveValue(map.get(fieldName), _)
-    }
+      }
 
 
 }

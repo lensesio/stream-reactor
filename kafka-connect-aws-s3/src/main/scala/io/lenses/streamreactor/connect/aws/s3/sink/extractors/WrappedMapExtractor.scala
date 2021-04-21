@@ -16,6 +16,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 
+import cats.implicits._
 import io.lenses.streamreactor.connect.aws.s3.model._
 
 /**
@@ -23,17 +24,17 @@ import io.lenses.streamreactor.connect.aws.s3.model._
   */
 object WrappedMapExtractor {
 
-  private[extractors] def extractPathFromMap(map: Map[SinkData, SinkData], fieldName: PartitionNamePath): Option[String] = {
-    if(fieldName.hasTail) extractComplexType(map, fieldName) else extractPrimitive(map, fieldName.head)
+  private[extractors] def extractPathFromMap(map: Map[SinkData, SinkData], fieldName: PartitionNamePath): Either[ExtractorError, String] = {
+    if (fieldName.hasTail) extractComplexType(map, fieldName) else extractPrimitive(map, fieldName.head)
   }
 
-  private def extractComplexType(map: Map[SinkData, SinkData], fieldName: PartitionNamePath): Option[String] =
+  private def extractComplexType(map: Map[SinkData, SinkData], fieldName: PartitionNamePath): Either[ExtractorError, String] =
     map
       .get(StringSinkData(fieldName.head, None))
-      .fold(Option.empty[String])(WrappedComplexTypeExtractor.extractFromComplexType(_, fieldName.tail))
+      .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String])(WrappedComplexTypeExtractor.extractFromComplexType(_, fieldName.tail))
 
-  private def extractPrimitive(map: Map[SinkData, SinkData], head: String): Option[String] =
-    map.get(StringSinkData(head, None)).fold(throw new IllegalArgumentException("Cannot field from specified map")) {
+  private def extractPrimitive(map: Map[SinkData, SinkData], head: String): Either[ExtractorError, String] =
+    map.get(StringSinkData(head, None)).fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
       wrappedPrimitive => WrappedPrimitiveExtractor.extractFromPrimitive(wrappedPrimitive)
     }
 

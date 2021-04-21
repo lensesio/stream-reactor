@@ -15,34 +15,41 @@
  */
 
 package io.lenses.streamreactor.connect.aws.s3.sink.extractors
+
+import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionNamePath
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ArrayIndexUtil.getArrayIndex
-import io.lenses.streamreactor.connect.aws.s3.sink.extractors.MapExtractor.extractPathFromMap
-import org.apache.kafka.connect.data.{Schema, Struct}
+import org.apache.kafka.connect.data.Schema
 
 import java.util
 import scala.collection.JavaConverters._
 
 object ArrayExtractor extends LazyLogging {
 
-  private[extractors] def extractPathFromArray(list: util.List[_], fieldName: PartitionNamePath, schema: Schema): Option[String] = {
+  private[extractors] def extractPathFromArray(list: util.List[_], fieldName: PartitionNamePath, schema: Schema): Either[ExtractorError, String] = {
     if (fieldName.hasTail) extractComplexType(list, fieldName, schema) else extractPrimitive(list, fieldName.head, schema)
   }
 
-  private def extractComplexType(list: util.List[_], fieldName: PartitionNamePath, schema: Schema): Option[String] = {
-    list.asScala.lift(getArrayIndex(fieldName.head))
-      .fold(Option.empty[String]) {
-        ComplexTypeExtractor.extractComplexType(_, fieldName.tail, schema.valueSchema())
-      }
+  private def extractComplexType(list: util.List[_], fieldName: PartitionNamePath, schema: Schema): Either[ExtractorError, String] = {
+    getArrayIndex(fieldName.head) match {
+      case Left(error) => error.asLeft[String]
+      case Right(index) => list.asScala.lift(index)
+        .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
+          ComplexTypeExtractor.extractComplexType(_, fieldName.tail, schema.valueSchema())
+        }
+    }
   }
 
-  private def extractPrimitive(list: util.List[_], fieldName: String, listSchema: Schema): Option[String] = {
+  private def extractPrimitive(list: util.List[_], fieldName: String, listSchema: Schema): Either[ExtractorError, String] = {
     Option(listSchema.valueSchema())
-      .fold(Option.empty[String]) {
+      .fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
         valueSchema =>
-          list.asScala.lift(getArrayIndex(fieldName)).fold(Option.empty[String]){
-            PrimitiveExtractor.extractPrimitiveValue(_, valueSchema)
+          getArrayIndex(fieldName) match {
+            case Left(error) => error.asLeft[String]
+            case Right(index) => list.asScala.lift(index).fold(ExtractorError(ExtractorErrorType.MissingValue).asLeft[String]) {
+              PrimitiveExtractor.extractPrimitiveValue(_, valueSchema)
+            }
           }
       }
   }
