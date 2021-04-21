@@ -27,7 +27,7 @@ import java.util
   */
 object MapExtractor extends LazyLogging {
 
-  def extractPathFromMap(map: util.Map[_, _], fieldName: PartitionNamePath, schema: Schema): Option[String] = {
+  private[extractors] def extractPathFromMap(map: util.Map[_, _], fieldName: PartitionNamePath, schema: Schema): Option[String] = {
     if (fieldName.hasTail) extractComplexType(map, fieldName, schema) else extractPrimitive(map, fieldName.head, schema)
   }
 
@@ -35,21 +35,15 @@ object MapExtractor extends LazyLogging {
     val mapKey = fieldName.head
     Option(map.get(mapKey))
       .fold(Option.empty[String]) {
-        case s: Struct => StructExtractor.extractPathFromStruct(s, fieldName.tail)
-        case m: util.Map[Any, Any] => extractPathFromMap(m, fieldName.tail, schema.valueSchema())
-        case other => logger.error("Unexpected type in Map Extractor: " + other)
-          throw new IllegalArgumentException("Unexpected type in Map Extractor: " + other)
+        ComplexTypeExtractor.extractComplexType(_, fieldName.tail, schema.valueSchema())
       }
   }
 
-  private def extractPrimitive(map: util.Map[_, _], fieldName: String, mapSchema: Schema): Option[String] = {
+  private def extractPrimitive(map: util.Map[_, _], fieldName: String, mapSchema: Schema): Option[String] =
     Option(mapSchema.valueSchema())
       .fold(Option.empty[String]) {
-        valueSchema =>
-          val value = map.get(fieldName)
-          PrimitiveExtractor.extractPrimitiveValue(value, valueSchema)
-      }
-  }
+        PrimitiveExtractor.extractPrimitiveValue(map.get(fieldName), _)
+    }
 
 
 }

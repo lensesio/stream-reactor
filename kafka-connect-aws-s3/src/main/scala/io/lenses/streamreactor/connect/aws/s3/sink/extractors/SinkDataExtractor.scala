@@ -35,7 +35,7 @@ object SinkDataExtractor extends LazyLogging {
         other match {
           case StructSinkData(structVal) => StructExtractor.extractPathFromStruct(structVal, fieldName)
           case MapSinkData(map, _) => WrappedMapExtractor.extractPathFromMap(map, fieldName)
-          case ArraySinkData(_, _) => throw new IllegalArgumentException("Cannot retrieve a named field from an Array")
+          case ArraySinkData(arrs, _) => WrappedArrayExtractor.extractPathFromArray(arrs, fieldName)
           case _ => throw new IllegalArgumentException("Unknown type")
         }
       )

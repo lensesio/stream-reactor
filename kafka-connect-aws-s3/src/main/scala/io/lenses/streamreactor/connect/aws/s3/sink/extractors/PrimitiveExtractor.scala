@@ -23,7 +23,7 @@ import org.apache.kafka.connect.data.Schema.Type._
 
 object PrimitiveExtractor extends LazyLogging {
 
-  def extractPrimitiveValue(value: Any, schema : Schema): Option[String] = {
+  private[extractors] def extractPrimitiveValue(value: Any, schema : Schema): Option[String] = {
     schema.schema().`type`() match {
       case INT8 => convertToOption(value)
       case INT16 => convertToOption(value)

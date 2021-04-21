@@ -203,4 +203,19 @@ class SinkDataExtractorTest extends AnyFlatSpec with Matchers {
     )
     SinkDataExtractor.extractPathFromSinkData(mapSinkData)(Some(PartitionNamePath("key2", "key3"))) should be (Some("val2"))
   }
+
+  "lookupFieldValueFromSinkData" should "handle 3d list sink data without schema" in {
+    val arraySinkData = ArraySinkDataConverter(
+      Array(
+        "val1",
+        Map(
+          "key3" -> "val2",
+          "key4" -> null
+        )
+      ),
+      None
+    )
+    SinkDataExtractor.extractPathFromSinkData(arraySinkData)(Some(PartitionNamePath("0"))) should be (Some("val1"))
+    SinkDataExtractor.extractPathFromSinkData(arraySinkData)(Some(PartitionNamePath("1", "key3"))) should be (Some("val2"))
+  }
 }

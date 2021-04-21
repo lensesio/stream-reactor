@@ -27,7 +27,7 @@ import io.lenses.streamreactor.connect.aws.s3.sink.conversion.OptionConvert.conv
   */
 object StructExtractor extends LazyLogging {
 
-  def extractPathFromStruct(struct: Struct, fieldName: PartitionNamePath): Option[String] = {
+  private[extractors] def extractPathFromStruct(struct: Struct, fieldName: PartitionNamePath): Option[String] = {
     if (fieldName.hasTail) extractComplexType(struct, fieldName) else extractPrimitive(struct, fieldName.head)
   }
 

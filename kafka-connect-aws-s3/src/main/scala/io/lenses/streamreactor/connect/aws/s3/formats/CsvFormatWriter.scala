@@ -41,18 +41,13 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
   private var fields: Array[String] = _
 
   override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit = {
-
     if (!fieldsWritten) {
       writeFields(valueSinkData.schema().orNull)
     }
-    val structValueLookupFn: Option[PartitionNamePath] => Option[String] = SinkDataExtractor.extractPathFromSinkData(valueSinkData)
-    val nextRow = fields.map(f => structValueLookupFn(Some(PartitionNamePath(f))) match {
-      case Some(something) => something
-      case None => null
-    })
+    val nextRow = fields.map(PartitionNamePath(_))
+      .map(path => SinkDataExtractor.extractPathFromSinkData(valueSinkData)(Some(path)).orNull)
     csvWriter.writeNext(nextRow: _*)
     csvWriter.flush()
-
   }
 
   override def rolloverFileOnSchemaChange(): Boolean = true

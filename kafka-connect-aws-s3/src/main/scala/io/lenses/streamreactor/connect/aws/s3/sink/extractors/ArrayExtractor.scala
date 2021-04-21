@@ -17,6 +17,7 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.extractors
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionNamePath
+import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ArrayIndexUtil.getArrayIndex
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.MapExtractor.extractPathFromMap
 import org.apache.kafka.connect.data.{Schema, Struct}
 
@@ -25,42 +26,26 @@ import scala.collection.JavaConverters._
 
 object ArrayExtractor extends LazyLogging {
 
-  def extractPathFromArray(list: util.List[_], fieldName: PartitionNamePath, schema: Schema): Option[String] = {
+  private[extractors] def extractPathFromArray(list: util.List[_], fieldName: PartitionNamePath, schema: Schema): Option[String] = {
     if (fieldName.hasTail) extractComplexType(list, fieldName, schema) else extractPrimitive(list, fieldName.head, schema)
   }
 
   private def extractComplexType(list: util.List[_], fieldName: PartitionNamePath, schema: Schema): Option[String] = {
-
-    val arrayIndex = getArrayIndex(fieldName.head)
-    list.asScala.lift(arrayIndex)
+    list.asScala.lift(getArrayIndex(fieldName.head))
       .fold(Option.empty[String]) {
-        case s: Struct => StructExtractor.extractPathFromStruct(s, fieldName.tail)
-        case m: util.Map[Any, Any] => extractPathFromMap(m, fieldName.tail, schema.valueSchema())
-        case a: util.List[Any] => extractPathFromArray(a, fieldName.tail, schema.valueSchema())
-        case other => logger.error("Unexpected type in Map Extractor: " + other)
-          throw new IllegalArgumentException("Unexpected type in Map Extractor: " + other)
+        ComplexTypeExtractor.extractComplexType(_, fieldName.tail, schema.valueSchema())
       }
   }
 
-  private def extractPrimitive(list: util.List[_], fieldName: String, mapSchema: Schema): Option[String] = {
-    Option(mapSchema.valueSchema())
+  private def extractPrimitive(list: util.List[_], fieldName: String, listSchema: Schema): Option[String] = {
+    Option(listSchema.valueSchema())
       .fold(Option.empty[String]) {
         valueSchema =>
-          val arrayIndex = getArrayIndex(fieldName)
-          list.asScala.lift(arrayIndex).fold(Option.empty[String]){
+          list.asScala.lift(getArrayIndex(fieldName)).fold(Option.empty[String]){
             PrimitiveExtractor.extractPrimitiveValue(_, valueSchema)
           }
       }
   }
 
-  def getArrayIndex(fieldName: String): Int = {
-    try {
-      fieldName.toInt
-    } catch {
-      case _: NumberFormatException =>
-        logger.error("Incorrect index type for Array type, expected only numeric characters")
-        throw new IllegalArgumentException("Incorrect index type for Array type, expected only numeric characters")
-    }
-  }
 
 }
