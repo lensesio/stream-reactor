@@ -41,8 +41,8 @@ object CassandraConnection extends StrictLogging {
     val port = connectorConfig.getInt(CassandraConfigConstants.PORT)
     val fetchSize = connectorConfig.getInt(CassandraConfigConstants.FETCH_SIZE)
 
-    val connectTimeout = connectorConfig.getLong(CassandraConfigConstants.CONNECT_TIMEOUT)
-    val readTimeout = connectorConfig.getLong(CassandraConfigConstants.READ_TIMEOUT)
+    val connectTimeout = connectorConfig.getInt(CassandraConfigConstants.CONNECT_TIMEOUT)
+    val readTimeout = connectorConfig.getInt(CassandraConfigConstants.READ_TIMEOUT)
 
     val loadBalancer = LoadBalancingPolicy.withName(connectorConfig.getString(CassandraConfigConstants.LOAD_BALANCING_POLICY).toUpperCase) match {
       case LoadBalancingPolicy.TOKEN_AWARE =>

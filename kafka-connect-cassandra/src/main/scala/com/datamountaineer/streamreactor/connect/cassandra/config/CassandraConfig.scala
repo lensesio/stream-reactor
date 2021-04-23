@@ -373,7 +373,7 @@ object CassandraConfigSource {
       CassandraConfigConstants.BUCKET_TIME_SERIES_FIELD_NAME)
 
     .define(CassandraConfigConstants.CONNECT_TIMEOUT,
-      Type.LONG,
+      Type.INT,
       CassandraConfigConstants.DEFAULT_CONNECT_TIMEOUT,
       Importance.MEDIUM,
       CassandraConfigConstants.CONNECT_TIMEOUT_DOC,
@@ -383,7 +383,7 @@ object CassandraConfigSource {
       CassandraConfigConstants.CONNECT_TIMEOUT)
 
     .define(CassandraConfigConstants.READ_TIMEOUT,
-      Type.LONG,
+      Type.INT,
       CassandraConfigConstants.DEFAULT_READ_TIMEOUT,
       Importance.MEDIUM,
       CassandraConfigConstants.READ_TIMEOUT_DOC,
