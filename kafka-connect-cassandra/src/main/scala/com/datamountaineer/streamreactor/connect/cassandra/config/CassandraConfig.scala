@@ -372,6 +372,26 @@ object CassandraConfigSource {
       ConfigDef.Width.LONG,
       CassandraConfigConstants.BUCKET_TIME_SERIES_FIELD_NAME)
 
+    .define(CassandraConfigConstants.CONNECT_TIMEOUT,
+      Type.LONG,
+      CassandraConfigConstants.DEFAULT_CONNECT_TIMEOUT,
+      Importance.MEDIUM,
+      CassandraConfigConstants.CONNECT_TIMEOUT_DOC,
+      "Connection",
+      14,
+      ConfigDef.Width.LONG,
+      CassandraConfigConstants.CONNECT_TIMEOUT)
+
+    .define(CassandraConfigConstants.READ_TIMEOUT,
+      Type.LONG,
+      CassandraConfigConstants.DEFAULT_READ_TIMEOUT,
+      Importance.MEDIUM,
+      CassandraConfigConstants.READ_TIMEOUT_DOC,
+      "Connection",
+      14,
+      ConfigDef.Width.LONG,
+      CassandraConfigConstants.READ_TIMEOUT)
+
 }
 
 case class CassandraConfigSource(props: util.Map[String, String])

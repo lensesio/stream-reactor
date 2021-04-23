@@ -215,4 +215,13 @@ object CassandraConfigConstants {
 
   val LOAD_BALANCING_POLICY = s"$CONNECTOR_PREFIX.load.balancing.policy"
   val LOAD_BALANCING_POLICY_DOC = "Cassandra Load balancing policy. ROUND_ROBIN, TOKEN_AWARE, LATENCY_AWARE or DC_AWARE_ROUND_ROBIN. TOKEN_AWARE and LATENCY_AWARE use DC_AWARE_ROUND_ROBIN"
+
+  val CONNECT_TIMEOUT = s"$CONNECTOR_PREFIX.connect.timeout.ms"
+  val CONNECT_TIMEOUT_DOC = "The Cassandra driver connection timeout in milliseconds."
+  val DEFAULT_CONNECT_TIMEOUT = 5000
+
+  val READ_TIMEOUT = s"$CONNECTOR_PREFIX.read.timeout.ms"
+  val READ_TIMEOUT_DOC = "The Cassandra driver read timeout in milliseconds."
+  val DEFAULT_READ_TIMEOUT = 12000
+
 }
