@@ -18,9 +18,12 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
 import com.datamountaineer.kcql.Kcql
+import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
+import io.lenses.streamreactor.connect.aws.s3.config.S3Config
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
-import io.lenses.streamreactor.connect.aws.s3.config.{FormatSelection, S3Config, S3ConfigDefBuilder}
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPrefix, PartitionSelection}
+import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPrefix
+import io.lenses.streamreactor.connect.aws.s3.model.PartitionSelection
 import io.lenses.streamreactor.connect.aws.s3.sink._
 
 import scala.collection.JavaConverters._
@@ -47,9 +50,8 @@ object SinkBucketOptions {
 
     config.getKCQL.map { kcql: Kcql =>
 
-      val flushInterval = Option(kcql.getWithFlushInterval).filter(_ > 0).map(_.seconds)
+      val flushInterval = Option(kcql.getWithFlushInterval).filter(_ > 0).map(_.seconds).orElse(Option(300.seconds))
       val flushCount = Option(kcql.getWithFlushCount).filter(_ > 0)
-
 
       val formatSelection: FormatSelection = Option(kcql.getStoredAs) match {
         case Some(format: String) => FormatSelection(format)

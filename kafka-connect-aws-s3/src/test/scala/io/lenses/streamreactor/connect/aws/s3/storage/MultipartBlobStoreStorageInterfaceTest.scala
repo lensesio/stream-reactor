@@ -40,7 +40,7 @@ class MultipartBlobStoreStorageInterfaceTest extends AnyFlatSpec with MockitoSug
 
   when(blobStoreContext.getBlobStore).thenReturn(blobStore)
 
-  private val multipartBlobStoreStorageInterface = new MultipartBlobStoreStorageInterface(blobStoreContext)
+  private val multipartBlobStoreStorageInterface = new MultipartBlobStoreStorageInterface("test", blobStoreContext)
 
   before {
     reset(blobStore)

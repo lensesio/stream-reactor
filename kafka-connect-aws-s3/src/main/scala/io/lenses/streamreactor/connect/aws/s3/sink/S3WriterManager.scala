@@ -20,7 +20,10 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
-import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreOutputStream, S3Writer, S3WriterImpl, StorageInterface}
+import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreOutputStream
+import io.lenses.streamreactor.connect.aws.s3.storage.S3Writer
+import io.lenses.streamreactor.connect.aws.s3.storage.S3WriterImpl
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.errors.ConnectException
 
@@ -33,7 +36,8 @@ import org.apache.kafka.connect.errors.ConnectException
   * This class is not thread safe as it is not designed to be shared between concurrent
   * sinks, since file handles cannot be safely shared without considerable overhead.
   */
-class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, String]) => S3FormatWriter,
+class S3WriterManager(sinkName: String,
+                      formatWriterFn: (TopicPartition, Map[PartitionField, String]) => S3FormatWriter,
                       commitPolicyFn: Topic => CommitPolicy,
                       bucketAndPrefixFn: Topic => BucketAndPrefix,
                       fileNamingStrategyFn: Topic => S3FileNamingStrategy
@@ -48,12 +52,11 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
 
   def commitAllWritersIfFlushRequired() = {
     val shouldFlush = writers.values.exists(_.shouldFlush)
-    if(shouldFlush) commitAllWriters()
+    if (shouldFlush) commitAllWriters()
   }
 
   def commitAllWriters(): Map[TopicPartition, Offset] = {
-
-    logger.debug("Received call to S3WriterManager.commit")
+    logger.debug(s"[{}] Received call to S3WriterManager.commit", sinkName)
     val topicPartitions = writers.map {
       case (key, _) => key.topicPartition
     }.toSet
@@ -75,7 +78,7 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
   }
 
   def open(partitions: Set[TopicPartition]): Map[TopicPartition, Offset] = {
-    logger.debug("Received call to S3WriterManager.open")
+    logger.debug(s"[{}] Received call to S3WriterManager.open", sinkName)
 
     partitions.collect {
       case topicPartition: TopicPartition =>
@@ -94,12 +97,12 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
   }
 
   def close(): Unit = {
-    logger.debug("Received call to S3WriterManager.close")
+    logger.debug(s"[{}] Received call to S3WriterManager.close",sinkName)
     writers.values.foreach(_.close())
   }
 
   def write(topicPartitionOffset: TopicPartitionOffset, messageDetail: MessageDetail): Unit = {
-    logger.debug(s"Received call to S3WriterManager.write")
+    logger.debug(s"[$sinkName] Received call to S3WriterManager.write for ${topicPartitionOffset.topic}-${topicPartitionOffset.partition}:${topicPartitionOffset.offset}")
 
     val newWriter = writer(topicPartitionOffset.toTopicPartition, messageDetail)
 
@@ -112,7 +115,6 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
 
     if (newWriter.shouldFlush)
       commitTopicPartitionWriters(topicPartitionOffset.toTopicPartition)
-
   }
 
   /**
@@ -131,10 +133,10 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
   }
 
   private def createWriter(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): S3Writer = {
-
-    logger.debug(s"Creating new writer for bucketAndPrefix [$bucketAndPrefix]")
+    logger.debug(s"[$sinkName] Creating new writer for bucketAndPrefix:$bucketAndPrefix")
 
     new S3WriterImpl(
+      sinkName,
       bucketAndPrefix,
       commitPolicyFn(topicPartition.topic),
       formatWriterFn,
@@ -143,11 +145,7 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
     )
   }
 
-  def preCommit(
-                 currentOffsets: Map[TopicPartition, OffsetAndMetadata]
-               ): Map[TopicPartition, OffsetAndMetadata] = {
-    logger.debug("Received call to S3WriterManager.preCommit")
-
+  def preCommit(currentOffsets: Map[TopicPartition, OffsetAndMetadata]): Map[TopicPartition, OffsetAndMetadata] = {
     import Offset.orderingByOffsetValue
     currentOffsets
       .collect {
@@ -179,9 +177,8 @@ class S3WriterManager(formatWriterFn: (TopicPartition, Map[PartitionField, Strin
   }
 }
 
-
 object S3WriterManager {
-  def from(config: S3SinkConfig)
+  def from(config: S3SinkConfig, sinkName: String)
           (implicit storageInterface: StorageInterface): S3WriterManager = {
 
     // TODO: make this configurable
@@ -221,6 +218,7 @@ object S3WriterManager {
       }
 
     new S3WriterManager(
+      sinkName,
       formatWriterFn,
       commitPolicyFn,
       bucketAndPrefixFn,

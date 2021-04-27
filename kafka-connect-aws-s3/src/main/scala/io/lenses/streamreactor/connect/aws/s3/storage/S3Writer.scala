@@ -20,7 +20,9 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.sink.{CommitContext, CommitPolicy, S3FileNamingStrategy}
+import io.lenses.streamreactor.connect.aws.s3.sink.CommitContext
+import io.lenses.streamreactor.connect.aws.s3.sink.CommitPolicy
+import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
 import org.apache.kafka.connect.data.Schema
 
 trait S3Writer {
@@ -37,25 +39,26 @@ trait S3Writer {
   def commit(): TopicPartitionOffset
 }
 
+case class S3WriterState(topicPartition: TopicPartition,
+                         offset: Offset,
+                         committedOffset: Option[Offset],
+                         createdTimestamp: Long = System.currentTimeMillis(),
+                         lastFlushedTimestamp: Option[Long] = None,
+                         recordCount: Long = 0,
+                         lastKnownFileSize: Long = 0,
+                         lastKnownSchema: Option[Schema] = None
+                        ) {
+  def show(): String = {
+    s"${topicPartition.topic}-${topicPartition.partition}:${offset.value} ${committedOffset.map(_.value.toString).getOrElse("-")} $recordCount $lastKnownFileSize ${lastFlushedTimestamp.map(_.toString).getOrElse("-")}"
+  }
+}
 
-case class S3WriterState(
-                          topicPartition: TopicPartition,
-                          offset: Offset,
-                          committedOffset: Option[Offset],
-                          createdTimestamp: Long = System.currentTimeMillis(),
-                          lastFlushedTimestamp: Option[Long] = None,
-                          recordCount: Long = 0,
-                          lastKnownFileSize: Long = 0,
-                          lastKnownSchema: Option[Schema] = None
-                        )
-
-
-class S3WriterImpl(
-                    bucketAndPrefix: BucketAndPrefix,
-                    commitPolicy: CommitPolicy,
-                    formatWriterFn: (TopicPartition, Map[PartitionField, String]) => S3FormatWriter,
-                    fileNamingStrategy: S3FileNamingStrategy,
-                    partitionValues: Map[PartitionField, String]
+class S3WriterImpl(sinkName: String,
+                   bucketAndPrefix: BucketAndPrefix,
+                   commitPolicy: CommitPolicy,
+                   formatWriterFn: (TopicPartition, Map[PartitionField, String]) => S3FormatWriter,
+                   fileNamingStrategy: S3FileNamingStrategy,
+                   partitionValues: Map[PartitionField, String]
                   )(implicit storageInterface: StorageInterface) extends S3Writer with LazyLogging {
 
   private var internalState: S3WriterState = _
@@ -63,12 +66,9 @@ class S3WriterImpl(
   private var formatWriter: S3FormatWriter = _
 
   override def write(messageDetail: MessageDetail, tpo: TopicPartitionOffset): Unit = {
-
     if (formatWriter == null) {
       formatWriter = formatWriterFn(tpo.toTopicPartition, partitionValues)
     }
-
-    logger.debug(s"S3Writer.write: Internal state: $internalState")
 
     if (internalState == null) {
       internalState = S3WriterState(
@@ -78,6 +78,8 @@ class S3WriterImpl(
         createdTimestamp = System.currentTimeMillis(),
       )
     }
+
+    logger.debug(s"[{}] S3Writer.write: Internal state: {}", sinkName, internalState.show())
 
     // appends to output stream
     formatWriter.write(messageDetail.keySinkData, messageDetail.valueSinkData, tpo.topic)
@@ -96,18 +98,17 @@ class S3WriterImpl(
       schemaHasChanged(schema)
   }
 
-  private def schemaHasChanged(schema: Schema) = {
+  private def schemaHasChanged(schema: Schema): Boolean = {
     internalState.lastKnownSchema.isEmpty ||
       internalState.lastKnownSchema.get != schema
   }
 
-  private def rolloverOnSchemaChange = {
+  private def rolloverOnSchemaChange: Boolean = {
     formatWriter != null &&
       formatWriter.rolloverFileOnSchemaChange()
   }
 
   override def commit(): TopicPartitionOffset = {
-    logger.debug(s"S3Writer - Commit")
     val topicPartitionOffset = TopicPartitionOffset(
       internalState.topicPartition.topic,
       internalState.topicPartition.partition,
@@ -138,7 +139,7 @@ class S3WriterImpl(
   }
 
   private def resetState(topicPartitionOffset: TopicPartitionOffset): Unit = {
-    logger.debug(s"S3Writer.resetState: Resetting state: $internalState")
+    logger.debug(s"[{}] S3Writer.resetState: Resetting state $internalState", sinkName)
 
     internalState = internalState.copy(
       committedOffset = Some(topicPartitionOffset.offset),
@@ -149,7 +150,7 @@ class S3WriterImpl(
 
     formatWriter = formatWriterFn(topicPartitionOffset.toTopicPartition, partitionValues)
 
-    logger.debug(s"S3Writer.resetState: New internal state: $internalState")
+    logger.debug(s"[{}] S3Writer.resetState: New internal state: $internalState", sinkName)
   }
 
   override def close(): Unit = storageInterface.close()
@@ -157,7 +158,6 @@ class S3WriterImpl(
   override def getCommittedOffset: Option[Offset] = internalState.committedOffset
 
   override def shouldFlush: Boolean = {
-
     val commitContext = CommitContext(
       TopicPartitionOffset(internalState.topicPartition.topic, internalState.topicPartition.partition, internalState.offset),
       internalState.recordCount,
@@ -168,5 +168,4 @@ class S3WriterImpl(
 
     commitPolicy.shouldFlush(commitContext)
   }
-
 }

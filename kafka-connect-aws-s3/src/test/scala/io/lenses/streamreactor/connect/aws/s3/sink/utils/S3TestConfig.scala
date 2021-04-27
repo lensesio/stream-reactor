@@ -105,7 +105,7 @@ trait S3TestConfig extends AnyFlatSpec with BeforeAndAfter with LazyLogging {
   protected val proxyContext: S3ProxyContext = new S3ProxyContext()
 
   implicit val blobStoreContext: BlobStoreContext = proxyContext.createBlobStoreContext
-  implicit val storageInterface: MultipartBlobStoreStorageInterface = new MultipartBlobStoreStorageInterface(blobStoreContext)
+  implicit val storageInterface: MultipartBlobStoreStorageInterface = new MultipartBlobStoreStorageInterface("test", blobStoreContext)
 
   val BucketName: String = S3ProxyContext.TestBucket
 
