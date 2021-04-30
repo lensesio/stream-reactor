@@ -20,7 +20,8 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection}
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionDisplay.KeysAndValues
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.FieldValueToStringConverter
+import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorAdaptor.adaptErrorResponse
+import io.lenses.streamreactor.connect.aws.s3.sink.extractors.SinkDataExtractor
 
 import scala.util.matching.Regex
 import scala.util.{Failure, Success, Try}
@@ -97,7 +98,10 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
     partitionSelection
       .partitions
       .map {
-        case partition@HeaderPartitionField(name) => partition -> messageDetail.headers.getOrElse(name, throw new IllegalArgumentException(s"Header '$name' not found in message"))
+        case partition@HeaderPartitionField(name) => partition -> {
+          val sinkData = messageDetail.headers.getOrElse(name.head, throw new IllegalArgumentException(s"Header '$name' not found in message"))
+          getPartitionValueFromSinkData(sinkData, name.tail)
+        }
         case partition@KeyPartitionField(name) => partition -> {
           val sinkData = messageDetail.keySinkData.getOrElse(throw new IllegalArgumentException(s"No key data found"))
           getPartitionValueFromSinkData(sinkData, name)
@@ -125,17 +129,15 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
 
   val reservedCharacters = Set("/", "\\")
 
-  private def getFieldStringValue(struct: SinkData, partitionName: Option[String]) = {
+  private def getFieldStringValue(struct: SinkData, partitionName: Option[PartitionNamePath]) = {
 
-    FieldValueToStringConverter.lookupFieldValueFromSinkData(struct)(partitionName)
-      .fold(Option.empty[String])(fieldVal => Option(fieldVal
-        .replace("/", "-")
-        .replace("\\", "-"))
-
-      )
+    adaptErrorResponse(SinkDataExtractor.extractPathFromSinkData(struct)(partitionName)).fold(Option.empty[String])(fieldVal => Option(fieldVal
+      .replace("/", "-")
+      .replace("\\", "-"))
+    )
   }
 
-  def getPartitionValueFromSinkData(sinkData: SinkData, partitionName: String): String = {
+  def getPartitionValueFromSinkData(sinkData: SinkData, partitionName: PartitionNamePath): String = {
     getFieldStringValue(sinkData, Option(partitionName)).getOrElse("[missing]")
   }
 

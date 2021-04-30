@@ -217,12 +217,17 @@ Where the Kafka message key is not a primitive but a complex Avro object, it is 
 
     PARTITIONBY _key.fieldA[, _key.fieldB]
 
+Nested fields are supported, for example
+
+    PARTITIONBY _key.user.profile.subscriptionType
+
 ##### Partitions from Message Headers
 
 Kafka message headers may be used for partitioning.  In this case the header must contain a primitive type easily coercible to a String type.
 
     PARTITIONBY _header.<header_key1>[,_header.<header_key2>]
 
+Where a message header is a Struct or complex type then nested fields are supported.
 
 ##### Mixing Partition Types
 

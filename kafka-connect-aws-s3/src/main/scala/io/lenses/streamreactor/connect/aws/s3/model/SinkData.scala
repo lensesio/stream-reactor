@@ -21,7 +21,7 @@ import org.apache.kafka.connect.data.{Schema, Struct}
 case class MessageDetail(
                           keySinkData: Option[SinkData],
                           valueSinkData: SinkData,
-                          headers: Map[String, String]
+                          headers: Map[String, SinkData]
                         )
 
 sealed trait SinkData {

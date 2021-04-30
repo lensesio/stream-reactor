@@ -17,15 +17,15 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.io.OutputStreamWriter
-
 import au.com.bytecode.opencsv.CSVWriter
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{SinkData, Topic}
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.FieldValueToStringConverter
+import io.lenses.streamreactor.connect.aws.s3.model.{PartitionNamePath, SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorAdaptor.adaptErrorResponse
+import io.lenses.streamreactor.connect.aws.s3.sink.extractors.SinkDataExtractor
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 import org.apache.kafka.connect.data.Schema
 
+import java.io.OutputStreamWriter
 import scala.collection.JavaConverters._
 import scala.util.Try
 
@@ -42,18 +42,13 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
   private var fields: Array[String] = _
 
   override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit = {
-
     if (!fieldsWritten) {
       writeFields(valueSinkData.schema().orNull)
     }
-    val structValueLookupFn: Option[String] => Option[String] = FieldValueToStringConverter.lookupFieldValueFromSinkData(valueSinkData)
-    val nextRow = fields.map(f => structValueLookupFn(Some(f)) match {
-      case Some(something) => something
-      case None => null
-    })
+    val nextRow = fields.map(PartitionNamePath(_))
+      .map(path => adaptErrorResponse(SinkDataExtractor.extractPathFromSinkData(valueSinkData)(Some(path))).orNull )
     csvWriter.writeNext(nextRow: _*)
     csvWriter.flush()
-
   }
 
   override def rolloverFileOnSchemaChange(): Boolean = true

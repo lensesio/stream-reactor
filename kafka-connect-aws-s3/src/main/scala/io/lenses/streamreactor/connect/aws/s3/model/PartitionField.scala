@@ -22,12 +22,6 @@ import scala.collection.JavaConverters._
 
 sealed trait PartitionField {
   def valuePrefixDisplay(): String
-
-  val reservedCharacters = Set("/", "\\")
-
-  def validateProtectedCharacters(name: String): Unit =
-    require(name != null && name.trim.nonEmpty && reservedCharacters.forall(!name.contains(_)), "Name must not be empty and must not contain a slash character")
-
 }
 
 object PartitionField {
@@ -37,55 +31,53 @@ object PartitionField {
       .map(_.asScala)
       .getOrElse(Nil)
       .map(name => {
-        val split = name.split("\\.")
-        require(split.size == 1 || split.size == 2, "Invalid partition specification, should contain at most 2 parts")
-        if (split.size == 2) {
-          PartitionField(split(0), split(1))
-        } else {
-          PartitionField(split(0))
-        }
+        val split = name.split("\\.").seq
+        PartitionSpecifier.withNameOption(split.head).fold(PartitionField(split))(hd =>
+          if (split.tail.isEmpty) PartitionField(hd) else PartitionField(hd, split.tail))
       }).toSeq
 
-  def apply(keyOrName: String): PartitionField = {
-    if (keyOrName.equalsIgnoreCase("_key")) {
-      WholeKeyPartitionField()
-    } else if (keyOrName.equalsIgnoreCase("_topic")) {
-      TopicPartitionField()
-    } else if (keyOrName.equalsIgnoreCase("_partition")) {
-      PartitionPartitionField()
-    } else {
-      ValuePartitionField(keyOrName)
+  def apply(valuePartitionPath: Seq[String]): PartitionField = {
+    ValuePartitionField(PartitionNamePath(valuePartitionPath:_*))
+  }
+
+  def apply(partitionSpecifier: PartitionSpecifier): PartitionField = {
+    partitionSpecifier match {
+      case PartitionSpecifier.Key => WholeKeyPartitionField()
+      case PartitionSpecifier.Topic => TopicPartitionField()
+      case PartitionSpecifier.Partition => PartitionPartitionField()
+      case PartitionSpecifier.Header => throw new IllegalArgumentException("cannot partition by Header partition field without path")
+      case PartitionSpecifier.Value => throw new IllegalArgumentException("cannot partition by Value partition field without path")
     }
   }
 
-  def apply(sourceName: String, name: String): PartitionField = {
-    sourceName.toLowerCase match {
-      case "_header" => HeaderPartitionField(name)
-      case "_key" => KeyPartitionField(name)
-      case "_value" => ValuePartitionField(name)
-      case "_topic" => TopicPartitionField()
-      case "_partition" => PartitionPartitionField()
-      case _ => throw new IllegalArgumentException(s"Invalid input PartitionSource '$sourceName', should be either '_key', '_value' or '_header'")
+  def apply(partitionSpecifier: PartitionSpecifier, path: Seq[String]): PartitionField = {
+    partitionSpecifier match {
+      case PartitionSpecifier.Key => KeyPartitionField(PartitionNamePath(path:_*))
+      case PartitionSpecifier.Value => ValuePartitionField(PartitionNamePath(path:_*))
+      case PartitionSpecifier.Header => HeaderPartitionField(PartitionNamePath(path:_*))
+      case PartitionSpecifier.Topic => throw new IllegalArgumentException("partitioning by topic requires no path")
+      case PartitionSpecifier.Partition => throw new IllegalArgumentException("partitioning by partition requires no path")
     }
   }
+
 }
 
-case class HeaderPartitionField(name: String) extends PartitionField {
-  override def valuePrefixDisplay(): String = name
+case class HeaderPartitionField(path: PartitionNamePath) extends PartitionField {
+  override def valuePrefixDisplay(): String = path.toString
 
-  validateProtectedCharacters(name)
+  path.validateProtectedCharacters
 }
 
-case class KeyPartitionField(name: String) extends PartitionField {
-  override def valuePrefixDisplay(): String = name
+case class KeyPartitionField(path: PartitionNamePath) extends PartitionField {
+  override def valuePrefixDisplay(): String = path.toString
 
-  validateProtectedCharacters(name)
+  path.validateProtectedCharacters
 }
 
-case class ValuePartitionField(name: String) extends PartitionField {
-  override def valuePrefixDisplay(): String = name
+case class ValuePartitionField(path: PartitionNamePath) extends PartitionField {
+  override def valuePrefixDisplay(): String = path.toString
 
-  validateProtectedCharacters(name)
+  path.validateProtectedCharacters
 }
 
 case class WholeKeyPartitionField() extends PartitionField {
