@@ -64,6 +64,8 @@ case class CassandraSourceSetting(kcql: Kcql,
                                   initialOffset: String = CassandraConfigConstants.INITIAL_OFFSET_DEFAULT,
                                   timeSliceMillis: Long = CassandraConfigConstants.TIME_SLICE_MILLIS_DEFAULT,
                                   mappingCollectionToJson: Boolean = CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON_DEFAULT,
+                                  connectTimeout: Int = CassandraConfigConstants.DEFAULT_CONNECT_TIMEOUT,
+                                  readTimeout: Int = CassandraConfigConstants.DEFAULT_READ_TIMEOUT,
                                   bucketMode: BucketMode,
                                   bucketFormat: String,
                                   bucketFieldName: String
@@ -112,6 +114,9 @@ object CassandraSettings extends StrictLogging {
     val timeSliceMillis = config.getLong(CassandraConfigConstants.TIME_SLICE_MILLIS)
     val mappingCollectionToJson = config.getBoolean(CassandraConfigConstants.MAPPING_COLLECTION_TO_JSON)
 
+    val connectTimeout = config.getInt(CassandraConfigConstants.CONNECT_TIMEOUT)
+    val readTimeout = config.getInt(CassandraConfigConstants.READ_TIMEOUT)
+
     kcqls.map { r =>
       val tCols = primaryKeyCols(r.getSource)
       val timestampType = Try(TimestampType.withName(incrementalModes(r.getSource).toUpperCase)) match {
@@ -152,6 +157,8 @@ object CassandraSettings extends StrictLogging {
         timeSliceMillis = timeSliceMillis,
         mappingCollectionToJson = mappingCollectionToJson,
         bucketMode = bucketMode,
+        connectTimeout = connectTimeout,
+        readTimeout = readTimeout,
         bucketFormat = bucketFormat,
         bucketFieldName = bucketFieldName
       )

@@ -20,7 +20,7 @@ import com.datamountaineer.streamreactor.common.config.{SSLConfig, SSLConfigCont
 import com.datamountaineer.streamreactor.connect.cassandra.config.{CassandraConfigConstants, LoadBalancingPolicy}
 import com.datastax.driver.core.Cluster.Builder
 import com.datastax.driver.core.policies.{DCAwareRoundRobinPolicy, LatencyAwarePolicy, RoundRobinPolicy, TokenAwarePolicy}
-import com.datastax.driver.core.{Cluster, JdkSSLOptions, QueryOptions, RemoteEndpointAwareJdkSSLOptions, Session}
+import com.datastax.driver.core.{Cluster, JdkSSLOptions, QueryOptions, SocketOptions, RemoteEndpointAwareJdkSSLOptions, Session}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.common.config.AbstractConfig
 
@@ -41,6 +41,9 @@ object CassandraConnection extends StrictLogging {
     val port = connectorConfig.getInt(CassandraConfigConstants.PORT)
     val fetchSize = connectorConfig.getInt(CassandraConfigConstants.FETCH_SIZE)
 
+    val connectTimeout = connectorConfig.getInt(CassandraConfigConstants.CONNECT_TIMEOUT)
+    val readTimeout = connectorConfig.getInt(CassandraConfigConstants.READ_TIMEOUT)
+
     val loadBalancer = LoadBalancingPolicy.withName(connectorConfig.getString(CassandraConfigConstants.LOAD_BALANCING_POLICY).toUpperCase) match {
       case LoadBalancingPolicy.TOKEN_AWARE =>
         new TokenAwarePolicy(DCAwareRoundRobinPolicy.builder().build())
@@ -59,6 +62,9 @@ object CassandraConnection extends StrictLogging {
       .builder()
       .addContactPoints(contactPoints.split(","): _*)
       .withPort(port)
+      .withSocketOptions(new SocketOptions()
+      .setConnectTimeoutMillis(connectTimeout)
+      .setReadTimeoutMillis(readTimeout))
       .withLoadBalancingPolicy(loadBalancer)
       .withQueryOptions(new QueryOptions().setFetchSize(fetchSize))
 
