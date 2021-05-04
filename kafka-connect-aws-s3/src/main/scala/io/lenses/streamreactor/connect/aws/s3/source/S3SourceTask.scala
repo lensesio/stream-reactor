@@ -109,12 +109,12 @@ class S3SourceTask extends SourceTask {
   private def convertToSourceRecord(sourceData: SourceData, pollResults: PollResults): SourceRecord = {
 
     val (schema: Option[Schema], value: AnyRef, key: Option[AnyRef]) = sourceData match {
+      case ByteArraySourceData(resultBytes, _) =>
+        (None, resultBytes.value, Some(resultBytes.key))
       case SchemaAndValueSourceData(result: SchemaAndValue, _) =>
         (Some(result.schema()), result.value(), None)
       case StringSourceData(result: String, _) =>
         (None, result, None)
-      case ByteArraySourceData(resultBytes, _) =>
-        (None, resultBytes.value, Some(resultBytes.key))
       case _ =>
         throw new IllegalArgumentException(s"Unexpected type in convertToSourceRecord, ${sourceData.getClass}")
     }
