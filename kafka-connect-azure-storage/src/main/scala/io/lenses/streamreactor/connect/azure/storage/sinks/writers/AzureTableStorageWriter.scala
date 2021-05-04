@@ -18,13 +18,10 @@
 
 package io.lenses.streamreactor.connect.azure.storage.sinks.writers
 
-import java.text.SimpleDateFormat
-import java.util
-
 import com.datamountaineer.kcql.WriteModeEnum
-import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
-import com.datamountaineer.streamreactor.connect.rowkeys.{StringGenericRowKeyBuilder, StringStructFieldsStringKeyBuilder}
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.datamountaineer.streamreactor.common.errors.ErrorHandler
+import com.datamountaineer.streamreactor.common.rowkeys.{StringGenericRowKeyBuilder, StringStructFieldsStringKeyBuilder}
+import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
 import com.microsoft.azure.storage.table.{CloudTableClient, DynamicTableEntity, EntityProperty, TableBatchOperation}
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.storage.config.{AzureStorageConfig, AzureStorageSettings}
@@ -34,6 +31,8 @@ import org.apache.kafka.connect.data._
 import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.sink.SinkRecord
 
+import java.text.SimpleDateFormat
+import java.util
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -47,20 +46,19 @@ class AzureTableStorageWriter(settings: AzureStorageSettings,
                               client: CloudTableClient)
     extends Writer
     with StrictLogging
-    with ConverterUtil
     with ErrorHandler {
 
   //initialize error tracker
-  initialize(settings.maxRetries, settings.errorPolicy)
+  initialize(settings.projections.errorRetries, settings.projections.errorPolicy)
 
-  private val cloudTableMap = settings.targets.map {
+  private val cloudTableMap = settings.projections.targets.map {
     case (_, table) =>
       val tableRef = client.getTableReference(table)
 
       if (tableRef.exists()) {
         table -> tableRef
       } else {
-        if (settings.autocreate(table)) {
+        if (settings.projections.autoCreate(table)) {
 
           if (!table.matches("^[a-zA-Z0-9]*$")) {
             throw new ConnectException(
@@ -108,7 +106,7 @@ class AzureTableStorageWriter(settings: AzureStorageSettings,
 
     records.map { record =>
       val batchOperation = new TableBatchOperation()
-      settings.mode(record.topic()) match {
+      settings.projections.writeMode(record.topic()) match {
         case WriteModeEnum.INSERT =>
           batchOperation.insert(processRecords(record))
         case WriteModeEnum.UPSERT =>
@@ -132,28 +130,30 @@ class AzureTableStorageWriter(settings: AzureStorageSettings,
     Option(record.value()) match {
       case Some(_) =>
         // select the required fields
-        val converted =
-          convert(record,
-                  settings
-                    .fieldsMap(record.topic())
-                    .map(f => f.getName -> f.getAlias)
-                    .toMap)
-            .value()
-            .asInstanceOf[Struct]
+//        val converted =
+//          convert(record,
+//                  settings
+//                    .fieldsMap(record.topic())
+//                    .map(f => f.getName -> f.getAlias)
+//                    .toMap)
+//            .value()
+//            .asInstanceOf[Struct]
+
+
 
         // set the payload
         // build the table entities from the record
-        val entities = getEntityProperties(converted)
+        val entities = getEntityProperties(record.newFilteredRecordAsStruct(settings.projections))
         dynamic.setProperties(entities)
 
         // set partition by fields set in the KCQL statement if PARTITIONBY set
-        if (settings.partitionBy
+        if (settings.projections.partitionBy
               .getOrElse(record.topic(), Set.empty)
               .nonEmpty) {
           dynamic.setPartitionKey(
             StringStructFieldsStringKeyBuilder(
-              settings.partitionBy(record.topic()).toSeq,
-              settings.delimiters.getOrElse(record.topic(), "-")).build(record))
+              settings.projections.partitionBy(record.topic()).toSeq,
+              settings.projections.keyDelimiters.getOrElse(record.topic(), "-")).build(record))
         } else {
           // set the partition to be the record timestamp, formatted by default to YYY-MM-DD
           dynamic.setPartitionKey(

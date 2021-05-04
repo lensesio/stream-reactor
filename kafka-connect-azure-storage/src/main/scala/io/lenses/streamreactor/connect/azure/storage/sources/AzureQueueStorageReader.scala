@@ -46,15 +46,12 @@ case class MessageAndSourceRecord(ack: Boolean,
 class AzureQueueStorageReader(name: String,
                               settings: AzureStorageSettings,
                               queueClient: CloudQueueClient,
-                              convertersMap: Map[String, Converter],
-                              version: String = "",
-                              gitCommit: String = "",
-                              gitRepo: String = "")
+                              convertersMap: Map[String, Converter])
     extends StrictLogging {
 
   private val cloudQueueMap = {
-    val queueConfigs = settings.targets.map {
-      case (queue, topic) => queue -> (settings.autocreate(topic), false)
+    val queueConfigs = settings.projections.targets.map {
+      case (queue, topic) => queue -> (settings.projections.autoCreate(queue), false)
     }
     getQueueReferences(queueClient, queueConfigs).values.toList
   }
@@ -80,9 +77,9 @@ class AzureQueueStorageReader(name: String,
           s"Converter for [$queueName] defined in [${AzureStorageConfig.KCQL}]"))
 
       val batchSize =
-        if (settings.batchSize(queueName) > AzureStorageConfig.QUEUE_SOURCE_MAX_BATCH_SIZE)
+        if (settings.projections.batchSize(queueName) > AzureStorageConfig.QUEUE_SOURCE_MAX_BATCH_SIZE)
           AzureStorageConfig.QUEUE_SOURCE_MAX_BATCH_SIZE
-        else settings.batchSize(queueName)
+        else settings.projections.batchSize(queueName)
 
       client
         .retrieveMessages(batchSize, settings.lock(queueName), null, null)
@@ -107,24 +104,16 @@ class AzureQueueStorageReader(name: String,
             Option(m.getDequeueCount).foreach(m =>
               headers.addInt(AzureStorageConfig.HEADER_DEQUEUE_COUNT, m))
             headers.addBoolean(AzureStorageConfig.HEADER_REMOVED,
-                               settings.ack(queueName))
-            headers.addString(
-              AzureStorageConfig.HEADER_PRODUCER_APPLICATION,
-              classOf[AzureQueueStorageSourceConnector].getCanonicalName)
-            headers.addString(AzureStorageConfig.HEADER_PRODUCER_NAME, name)
-            headers.addString(AzureStorageConfig.HEADER_GIT_REPO, gitRepo)
-            headers.addString(AzureStorageConfig.HEADER_GIT_COMMIT, gitCommit)
-            headers.addString(AzureStorageConfig.HEADER_CONNECTOR_VERSION,
-                              version)
+                               settings.projections.acks(queueName))
           }
 
           val convertedRecord = converter.convert(
-            settings.targets(queueName),
+            settings.projections.targets(queueName),
             queueName.replaceAll("-", "_"),
             Option(m.getMessageId).getOrElse(""),
             payload,
-            settings.keys(queueName),
-            settings.delimiters(queueName)
+            settings.projections.keys(queueName),
+            settings.projections.keyDelimiters(queueName)
           )
 
           val sourceRecord = convertedRecord.newRecord(
@@ -139,7 +128,7 @@ class AzureQueueStorageReader(name: String,
           )
 
           MessageAndSourceRecord(
-            ack = settings.ack(queueName),
+            ack = settings.projections.acks(queueName),
             message = m,
             source = queueName,
             record = sourceRecord.newRecord(

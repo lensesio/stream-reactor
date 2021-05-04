@@ -18,7 +18,7 @@
 
 package io.lenses.streamreactor.connect.azure.servicebus.source
 
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import io.lenses.streamreactor.connect.azure.servicebus.config.{AzureServiceBusConfig, AzureServiceBusSettings}
 import io.lenses.streamreactor.connect.azure.servicebus.{TestBase, _}
 

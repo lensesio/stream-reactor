@@ -16,15 +16,14 @@
 
 package io.lenses.streamreactor.connect.azure.storage.sinks.writers
 
-import java.text.SimpleDateFormat
-import java.util.Date
-
 import com.microsoft.azure.storage.table._
 import io.lenses.streamreactor.connect.azure.TestBase
 import io.lenses.streamreactor.connect.azure.storage.config.{AzureStorageConfig, AzureStorageSettings}
 import org.apache.kafka.connect.data.Struct
 import org.apache.kafka.connect.sink.SinkRecord
 
+import java.text.SimpleDateFormat
+import java.util.Date
 import scala.collection.JavaConverters._
 
 class AzureTableStorageWriterTest extends TestBase {

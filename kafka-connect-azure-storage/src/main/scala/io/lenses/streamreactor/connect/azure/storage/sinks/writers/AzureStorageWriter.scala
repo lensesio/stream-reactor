@@ -18,7 +18,7 @@
 
 package io.lenses.streamreactor.connect.azure.storage.sinks.writers
 
-import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
+import com.datamountaineer.streamreactor.common.errors.ErrorHandler
 import com.microsoft.azure.storage.queue.CloudQueueClient
 import com.microsoft.azure.storage.table.CloudTableClient
 import com.typesafe.scalalogging.StrictLogging
@@ -43,7 +43,7 @@ class AzureStorageWriter(settings: AzureStorageSettings)
   private val COSMOS_TABLE_ENDPOINT_TYPE = "TableEndpoint"
 
   //initialize error tracker
-  initialize(settings.maxRetries, settings.errorPolicy)
+  initialize(settings.projections.errorRetries, settings.projections.errorPolicy)
 
   // group by topic and batch to send to the writer
   def write(records: Seq[SinkRecord]): Unit = {
@@ -57,8 +57,8 @@ class AzureStorageWriter(settings: AzureStorageSettings)
     grouped.foreach({
       case (topicPartition, group) =>
         val writer = writers(topicPartition.topic())
-        val targetName = settings.targets(topicPartition.topic())
-        val batchSize = settings.batchSize(topicPartition.topic())
+        val targetName = settings.projections.targets(topicPartition.topic())
+        val batchSize = settings.projections.batchSize(topicPartition.topic())
         writer.write(targetName, group, batchSize)
     })
   }

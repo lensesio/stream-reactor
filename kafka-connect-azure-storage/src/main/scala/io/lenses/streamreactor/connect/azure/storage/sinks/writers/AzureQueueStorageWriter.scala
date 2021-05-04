@@ -19,9 +19,10 @@
 package io.lenses.streamreactor.connect.azure.storage.sinks.writers
 
 import com.datamountaineer.kcql.FormatType
-import com.datamountaineer.streamreactor.connect.converters.{FieldConverter, Transform}
-import com.datamountaineer.streamreactor.connect.errors.ErrorHandler
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.datamountaineer.streamreactor.common.errors.ErrorHandler
+import com.datamountaineer.streamreactor.common.schemas.SinkRecordConverterHelper.SinkRecordExtension
+import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.microsoft.azure.storage.queue.{CloudQueue, CloudQueueClient, CloudQueueMessage}
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.storage.config.AzureStorageSettings
@@ -41,16 +42,16 @@ class AzureQueueStorageWriter(settings: AzureStorageSettings,
                               client: CloudQueueClient)
     extends Writer
     with StrictLogging
-    with ErrorHandler
-    with ConverterUtil {
+    with ErrorHandler {
 
   //initialize error tracker
-  initialize(settings.maxRetries, settings.errorPolicy)
+  initialize(settings.projections.errorRetries, settings.projections.errorPolicy)
+  val objectMapper = new ObjectMapper()
+  val jsonConverter = new SimpleJsonConverter()
 
   private val cloudQueueMap: Map[String, CloudQueue] = {
-    val queueConfigs = settings.targets.values
-      .map(q => q -> (settings.autocreate(q), settings.encode(q)))
-      .toMap
+    val queueConfigs = settings.projections.targets
+      .map{ case (topic, queue) => queue -> (settings.projections.autoCreate(topic), settings.encode(queue)) }
     getQueueReferences(client, queueConfigs)
   }
 
@@ -67,21 +68,18 @@ class AzureQueueStorageWriter(settings: AzureStorageSettings,
   }
 
   def convert(record: SinkRecord): CloudQueueMessage = {
-    settings.formatType(record.topic()) match {
-      case FormatType.JSON => new CloudQueueMessage(toJsonString(record))
+    settings.projections.formats(record.topic()) match {
+      case FormatType.JSON => new CloudQueueMessage(toJson(record))
       case FormatType.BINARY =>
-        new CloudQueueMessage(toJsonString(record).getBytes())
+        new CloudQueueMessage(toJson(record).getBytes())
       case _ =>
         throw new ConnectException(
-          s"Unknown WITHFORMAT type [${settings.formatType(record.topic()).toString}]")
+          s"Unknown WITHFORMAT type [${settings.projections.formats(record.topic()).toString}]")
     }
   }
 
-  def toJsonString(record: SinkRecord): String = {
-    Transform(settings.fieldsMap(record.topic()).map(FieldConverter.apply),
-              Seq.empty,
-              record.valueSchema(),
-              record.value(),
-              withStructure = false)
+  def toJson(record: SinkRecord): String = {
+    val filtered = record.newFilteredRecordAsStruct(settings.projections)
+    jsonConverter.fromConnectData(filtered.schema(), filtered).toString
   }
 }

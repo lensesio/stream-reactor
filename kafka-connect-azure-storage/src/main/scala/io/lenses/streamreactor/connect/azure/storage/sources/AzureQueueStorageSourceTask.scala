@@ -16,17 +16,16 @@
 
 package io.lenses.streamreactor.connect.azure.storage.sources
 
-import java.util
-import java.util.concurrent.ConcurrentHashMap
-import java.util.function.BiConsumer
-
-import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
 import com.microsoft.azure.storage.queue.CloudQueueMessage
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.storage._
 import io.lenses.streamreactor.connect.azure.storage.config.{AzureStorageConfig, AzureStorageSettings}
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
+import java.util
+import java.util.concurrent.ConcurrentHashMap
+import java.util.function.BiConsumer
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
 

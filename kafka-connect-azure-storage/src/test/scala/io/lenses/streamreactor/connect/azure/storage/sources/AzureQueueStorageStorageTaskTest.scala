@@ -21,10 +21,11 @@ package io.lenses.streamreactor.connect.azure.storage.sources
 import io.lenses.streamreactor.connect.azure.TestBase
 import io.lenses.streamreactor.connect.azure.storage.config.{AzureStorageConfig, AzureStorageSettings}
 import io.lenses.streamreactor.connect.azure.storage.getConverters
+import org.apache.kafka.connect.data.Struct
 
 import scala.collection.JavaConverters._
 
-class AzureQueueStorageSinkTaskTest extends TestBase {
+class AzureQueueStorageStorageTaskTest extends TestBase {
   "should read from a queue as json with ack" in {
     val props = Map(
       AzureStorageConfig.AZURE_ACCOUNT -> "myaccount",
@@ -42,12 +43,12 @@ class AzureQueueStorageSinkTaskTest extends TestBase {
       cloudQueueClient,
       getConverters(settings.converters, props.asScala.toMap))
 
-
     val task = new AzureQueueStorageSourceTask()
     task.reader = reader
     val result = task.poll().asScala.head
+    val struct = result.value().asInstanceOf[Struct]
 
-    val resultJson = convertValueToJson(result)
+    val resultJson = jsonConverter.fromConnectData(struct.schema(), struct)
     resultJson.toString shouldBe queueJson.toString
 
     task.getRecordsToCommit.size() shouldBe 1
@@ -76,14 +77,13 @@ class AzureQueueStorageSinkTaskTest extends TestBase {
     val task = new AzureQueueStorageSourceTask()
     task.reader = reader
     val result = task.poll().asScala.head
+    val struct = result.value.asInstanceOf[Struct]
 
-    val resultJson = convertValueToJson(result)
+    val resultJson = jsonConverter.fromConnectData(struct.schema(), struct)
     resultJson.toString shouldBe queueJson.toString
 
     task.getRecordsToCommit.size() shouldBe 0
     task.commitRecord(result)
     task.getRecordsToCommit.size() shouldBe 0
   }
-
-
 }

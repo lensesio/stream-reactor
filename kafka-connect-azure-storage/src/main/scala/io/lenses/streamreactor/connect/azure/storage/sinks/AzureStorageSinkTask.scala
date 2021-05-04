@@ -18,15 +18,24 @@
 
 package io.lenses.streamreactor.connect.azure.storage.sinks
 
-import java.util
-
-import com.datamountaineer.streamreactor.connect.errors.ErrorPolicyEnum
-import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.common.errors.{
+  ErrorPolicy,
+  ErrorPolicyEnum,
+  RetryErrorPolicy
+}
+import com.datamountaineer.streamreactor.common.utils.{
+  JarManifest,
+  ProgressCounter
+}
 import com.typesafe.scalalogging.StrictLogging
-import io.lenses.streamreactor.connect.azure.storage.config.{AzureStorageConfig, AzureStorageSettings}
+import io.lenses.streamreactor.connect.azure.storage.config.{
+  AzureStorageConfig,
+  AzureStorageSettings
+}
 import io.lenses.streamreactor.connect.azure.storage.sinks.writers.AzureStorageWriter
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
+import java.util
 import scala.collection.JavaConverters._
 
 class AzureStorageSinkTask extends SinkTask with StrictLogging {
@@ -40,8 +49,7 @@ class AzureStorageSinkTask extends SinkTask with StrictLogging {
   override def start(props: util.Map[String, String]): Unit = {
     logger.info(
       scala.io.Source
-        .fromInputStream(
-          getClass.getResourceAsStream("/storage-ascii.txt"))
+        .fromInputStream(getClass.getResourceAsStream("/storage-ascii.txt"))
         .mkString + s" ${version()}")
     logger.info(manifest.printManifest())
 
@@ -54,9 +62,12 @@ class AzureStorageSinkTask extends SinkTask with StrictLogging {
     val settings = AzureStorageSettings(configBase)
 
     //if error policy is retry set retry interval
-    if (settings.errorPolicy.equals(ErrorPolicyEnum.RETRY)) {
-      context.timeout(
-        configBase.getInt(AzureStorageConfig.ERROR_RETRY_INTERVAL).toLong)
+    settings.projections.errorPolicy match {
+      case RetryErrorPolicy() =>
+        context.timeout(
+          configBase.getInt(AzureStorageConfig.ERROR_RETRY_INTERVAL).toLong)
+
+      case _ =>
     }
 
     writer = Some(AzureStorageWriter(settings))
