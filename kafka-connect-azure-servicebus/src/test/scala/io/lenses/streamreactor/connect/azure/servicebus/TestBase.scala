@@ -16,13 +16,12 @@
 
 package io.lenses.streamreactor.connect.azure.servicebus
 
-import java.util
-import java.util.Date
 import com.azure.core.util.{BinaryData, IterableStream}
 import com.azure.messaging.servicebus.administration.ServiceBusAdministrationClient
 import com.azure.messaging.servicebus.administration.models.{QueueRuntimeProperties, SubscriptionRuntimeProperties}
 import com.azure.messaging.servicebus.{ServiceBusReceivedMessage, ServiceBusReceiverClient}
-import com.datamountaineer.streamreactor.connect.schemas.ConverterUtil
+import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
+import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
 import com.fasterxml.jackson.databind.JsonNode
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfig
 import org.apache.kafka.common.TopicPartition
@@ -33,10 +32,12 @@ import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.util
+import java.util.Date
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-trait TestBase extends AnyWordSpec with Matchers with MockitoSugar with ConverterUtil {
+trait TestBase extends AnyWordSpec with Matchers with MockitoSugar {
 
   val TOPIC = "servicebus-topic"
   val QUEUE = "servicebus-queue"
@@ -50,6 +51,7 @@ trait TestBase extends AnyWordSpec with Matchers with MockitoSugar with Converte
   ASSIGNMENT.add(TOPIC_PARTITION)
 
   val DATE = new Date()
+  val jsonConverter = new SimpleJsonConverter()
 
   val mockManagementClient: ServiceBusAdministrationClient = mock[ServiceBusAdministrationClient]
   when(mockManagementClient.getTopicExists(TOPIC)).thenReturn(true)
@@ -67,7 +69,8 @@ trait TestBase extends AnyWordSpec with Matchers with MockitoSugar with Converte
   val mockClient: ServiceBusReceiverClient = mock[ServiceBusReceiverClient]
   val serviceBusMessage: ServiceBusReceivedMessage = mock[ServiceBusReceivedMessage]
   val connectRecord: SinkRecord = getTestRecords(1).head
-  val jsonRecord: JsonNode = convertValueToJson(connectRecord)
+  val struct: Struct = connectRecord.value().asInstanceOf[Struct]
+  val jsonRecord: JsonNode = jsonConverter.fromConnectData(struct.schema(), struct)
   val binaryData: BinaryData = BinaryData.fromBytes(jsonRecord.toString.getBytes)
 
   when(serviceBusMessage.getPartitionKey).thenReturn("my-partition-value")
@@ -77,7 +80,7 @@ trait TestBase extends AnyWordSpec with Matchers with MockitoSugar with Converte
   when(serviceBusMessage.getDeliveryCount).thenReturn(1)
   when(serviceBusMessage.getSequenceNumber).thenReturn(2)
   when(serviceBusMessage.getCorrelationId).thenReturn("mycorrelationid")
-  val is: IterableStream[ServiceBusReceivedMessage] = IterableStream.of(List(serviceBusMessage).toIterable.asJava)
+  val is: IterableStream[ServiceBusReceivedMessage] = IterableStream.of(List(serviceBusMessage).asJava)
 
   when(mockClient.peekMessages(500)).thenReturn(is)
 

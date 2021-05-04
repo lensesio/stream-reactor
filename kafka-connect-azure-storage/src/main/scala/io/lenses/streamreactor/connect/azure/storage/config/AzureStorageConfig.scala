@@ -18,12 +18,12 @@
 
 package io.lenses.streamreactor.connect.azure.storage.config
 
-import java.util
-
-import com.datamountaineer.streamreactor.connect.config.base.const.TraitConfigConst._
-import com.datamountaineer.streamreactor.connect.config.base.traits._
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst._
+import com.datamountaineer.streamreactor.common.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type, Width}
+
+import java.util
 
 object AzureStorageConfig {
 
@@ -79,7 +79,7 @@ object AzureStorageConfig {
   val NBR_OF_RETIRES_DEFAULT = 20
 
   val SET_HEADERS = s"$PREFIX.set_headers"
-  val SET_HEADERS_DOC = "Add connector and git information to message headers"
+  val SET_HEADERS_DOC = "Add message id to headers, dequeued count an ack status"
   val SET_HEADERS_DEFAULT = false
 
 

@@ -16,9 +16,7 @@
 
 package io.lenses.streamreactor.connect.azure.storage.sources
 
-import java.util
-
-import com.datamountaineer.streamreactor.connect.utils.JarManifest
+import com.datamountaineer.streamreactor.common.utils.JarManifest
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.storage.config.AzureStorageConfig
 import org.apache.kafka.common.config.ConfigDef
@@ -26,6 +24,7 @@ import org.apache.kafka.connect.connector.Task
 import org.apache.kafka.connect.source.SourceConnector
 import org.apache.kafka.connect.util.ConnectorUtils
 
+import java.util
 import scala.collection.JavaConverters._
 
 class AzureQueueStorageSourceConnector
@@ -44,7 +43,7 @@ class AzureQueueStorageSourceConnector
   override def taskConfigs(maxTasks: Int): util.List[util.Map[String, String]] = {
     val raw = configProps.get(AzureStorageConfig.KCQL)
 
-    require(raw != null && !raw.isEmpty,
+    require(raw != null && raw.nonEmpty,
             s"No [${AzureStorageConfig.KCQL}] provided!")
 
     //sql1, sql2

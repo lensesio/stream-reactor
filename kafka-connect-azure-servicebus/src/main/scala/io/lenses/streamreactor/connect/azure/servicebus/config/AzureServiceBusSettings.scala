@@ -16,9 +16,8 @@
 
 package io.lenses.streamreactor.connect.azure.servicebus.config
 
-import com.datamountaineer.kcql.Field
+import com.datamountaineer.streamreactor.common.config.base.settings.Projections
 import com.datamountaineer.streamreactor.connect.converters.source.{BytesConverter, Converter}
-import com.datamountaineer.streamreactor.connect.errors.ErrorPolicy
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.servicebus.TargetType
 import io.lenses.streamreactor.connect.azure.servicebus.config.AbstractConfigExtensions._
@@ -26,7 +25,6 @@ import org.apache.kafka.common.config.ConfigException
 import org.apache.kafka.common.config.types.Password
 import org.apache.kafka.connect.errors.ConnectException
 
-import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 case class AzureServiceBusSettings(
@@ -34,28 +32,15 @@ case class AzureServiceBusSettings(
                                     sapKey: Password,
                                     namespace: String,
                                     pollInterval: Long,
-                                    sessions: Map[String, String],
-                                    targets: Map[String, String],
-                                    fieldsMap: Map[String, Seq[Field]],
-                                    partitionBy: Map[String, Set[String]],
-                                    keys: Map[String, Seq[String]],
-                                    delimiters: Map[String, String],
-                                    batchSize: Map[String, Int],
                                     targetType: Map[String, TargetType.Value],
-                                    autoCreate: Map[String, Boolean],
-                                    errorPolicy: ErrorPolicy,
-                                    maxRetries: Int = AzureServiceBusConfig.NBR_OF_RETIRES_DEFAULT,
                                     converters: Map[String, String],
-                                    ttl: Map[String, Long],
-                                    subscriptions: Map[String, String],
-                                    ack: Map[String, Boolean],
+                                    projections: Projections,
                                     setHeaders: Boolean
 
 )
 
 object AzureServiceBusSettings extends StrictLogging {
   def apply(config: AzureServiceBusConfig): AzureServiceBusSettings = {
-
 
     config.getRequiredString(AzureServiceBusConfig.AZURE_SAP_NAME)
     config.getRequiredPassword(AzureServiceBusConfig.AZURE_SAP_KEY)
@@ -69,22 +54,8 @@ object AzureServiceBusSettings extends StrictLogging {
     }
 
     val kcqls = config.getKCQL
-    val fields = config.getFields(kcqls)
-    val targets = config.getTableTopic(kcqls)
-
-    val partitionBy =
-      kcqls
-        .filterNot(k => k.getPartitionBy.asScala.isEmpty)
-        .map(k => (k.getSource, k.getPartitionBy.asScala.toSet))
-        .toMap
-
     val errorPolicy = config.getErrorPolicy
     val maxRetries = config.getNumberRetries
-
-    val batchSize = kcqls.toList
-      .map(r =>
-        (r.getSource, if (r.getBatchSize.equals(0)) AzureServiceBusConfig.DEFAULT_BATCH_SIZE else r.getBatchSize))
-      .toMap
 
     val targetType =
       kcqls.toList
@@ -120,47 +91,18 @@ object AzureServiceBusSettings extends StrictLogging {
           }
     })
 
-    val keys = kcqls
-      .map(
-        k =>
-          k.getSource -> Option(k.getWithKeys)
-            .map(l => l.asScala)
-            .getOrElse(Seq.empty))
-      .toMap
-
-    val delimiters = kcqls.map(k => (k.getSource, k.getKeyDelimeter)).toMap
-    val ttl = config.getTTL().filter({ case (_, ttl) => ttl > 0 })
-    val autoCreate = config.getAutoCreate()
-    val sessions = kcqls
-      .filterNot(k => Option(k.getWithSession).isEmpty)
-      .map(k => (k.getSource, k.getWithSession))
-      .toMap
-
-    val subscriptions = kcqls.map(k => (k.getSource, k.getWithSubscription)).toMap
     val setHeaders = config.getBoolean(AzureServiceBusConfig.SET_HEADERS)
-    val ack = kcqls.map(k => (k.getSource, k.getWithAck)).toMap
+    val projections = Projections(kcqls = kcqls, errorPolicy = errorPolicy, errorRetries = maxRetries, defaultBatchSize = AzureServiceBusConfig.DEFAULT_BATCH_SIZE)
 
     AzureServiceBusSettings(
       sapName = config.getString(AzureServiceBusConfig.AZURE_SAP_NAME),
       sapKey = config.getPassword(AzureServiceBusConfig.AZURE_SAP_KEY),
       namespace = namespace,
       pollInterval = config.getLong(AzureServiceBusConfig.AZURE_POLL_INTERVAL),
-      sessions = sessions,
-      targets = targets,
-      fieldsMap = fields,
-      partitionBy = partitionBy,
-      keys = keys,
-      delimiters = delimiters,
-      batchSize = batchSize,
       targetType = targetType,
-      autoCreate = autoCreate,
-      errorPolicy = errorPolicy,
-      maxRetries = maxRetries,
       converters = converters,
-      ttl = ttl,
-      subscriptions = subscriptions,
       setHeaders = setHeaders,
-      ack = ack
+      projections = projections
     )
   }
 }

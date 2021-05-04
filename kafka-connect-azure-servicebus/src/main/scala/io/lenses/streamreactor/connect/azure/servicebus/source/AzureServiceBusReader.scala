@@ -26,7 +26,7 @@ import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.servicebus
 import io.lenses.streamreactor.connect.azure.servicebus.config.{AzureServiceBusConfig, AzureServiceBusSettings}
 import org.apache.kafka.connect.errors.ConnectException
-import org.apache.kafka.connect.header.{ConnectHeaders, Header}
+import org.apache.kafka.connect.header.ConnectHeaders
 import org.apache.kafka.connect.source.SourceRecord
 
 import scala.collection.JavaConverters._
@@ -70,7 +70,7 @@ class AzureServiceBusReader(name: String = "",
   // complete the service bus message
   def complete(source: String, message: ServiceBusReceivedMessage): Unit = {
     val (_, client) = clients(source)
-    if (settings.ack(source)) {
+    if (settings.projections.acks(source)) {
       client.complete(message)
     }
   }
@@ -99,7 +99,7 @@ class AzureServiceBusReader(name: String = "",
         TokenAndSourceRecord(
           m,
           source,
-          convertServiceBusMessage(source, settings.targets(source), m))
+          convertServiceBusMessage(source, settings.projections.targets(source), m))
       })
       .toList
   }
@@ -155,8 +155,8 @@ class AzureServiceBusReader(name: String = "",
                                          source,
                                          partitionKey.getOrElse(id.orNull),
                                          message.getBody.toBytes,
-                                         settings.keys(source),
-                                         settings.delimiters(source))
+                                         settings.projections.keys(source),
+                                         settings.projections.keyDelimiters(source))
 
     sourceRecord.newRecord(
       sourceRecord.topic(),
@@ -187,14 +187,14 @@ class AzureServiceBusReader(name: String = "",
         //check for a subscription or make one with the connector name
         if (!managementClient.getSubscriptionExists(source, subscriptionName)) {
           val options = new CreateSubscriptionOptions()
-            .setMaxDeliveryCount(settings.batchSize(source))
+            .setMaxDeliveryCount(settings.projections.batchSize(source))
 
           Try(
             managementClient
               .createSubscription(source, subscriptionName, options)) match {
             case Success(_) =>
               logger.info(
-                s"Created subscription [$subscriptionName] on topic [$source] with MaxDeliveryCount [${settings
+                s"Created subscription [$subscriptionName] on topic [$source] with MaxDeliveryCount [${settings.projections
                   .batchSize(source)}] in namespace [${settings.namespace}]")
             case Failure(e) =>
               throw new ConnectException(
@@ -213,7 +213,7 @@ class AzureServiceBusReader(name: String = "",
   }
 
   private def getSubscriptionName(source: String): String = {
-    Option(settings.subscriptions.getOrElse(source, name)) match {
+    Option(settings.projections.subscriptions.getOrElse(source, name)) match {
       case Some(sn) => sn
       case None     => name
     }
@@ -225,17 +225,17 @@ class AzureServiceBusReader(name: String = "",
     val connStr =
       s"Endpoint=sb://${settings.namespace}/;SharedAccessKeyName=${settings.sapName};SharedAccessKey=${settings.sapKey.value()}"
 
-    clients = settings.targets.map {
+    clients = settings.projections.targets.map {
       case (source, target) =>
         createEntities(connStr, source)
 
         val subscriptionName =
-          Option(settings.subscriptions.getOrElse(source, name)) match {
+          Option(settings.projections.subscriptions.getOrElse(source, name)) match {
             case Some(sn) => sn
             case None     => name
           }
 
-        val client = settings.sessions.get(source) match {
+        val client = settings.projections.sessions.get(source) match {
           case Some(session) =>
             settings.targetType(source) match {
               case servicebus.TargetType.TOPIC =>
@@ -276,7 +276,7 @@ class AzureServiceBusReader(name: String = "",
             }
         }
 
-        (source, (settings.batchSize(source), client))
+        (source, (settings.projections.batchSize(source), client))
     }
   }
 }

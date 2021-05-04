@@ -22,10 +22,8 @@ project(":kafka-connect-azure-storage") {
     }
 
     dependencies {
-
+        compile project(":kafka-connect-common")
         compile  "com.microsoft.azure:azure-storage:$azureStorageVersion"
-
-
         testCompile "org.scalatest:scalatest_$scalaMajorVersion:3.0.1"
         testCompile "org.mockito:mockito-core:2.7.7"
     }

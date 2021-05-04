@@ -18,17 +18,16 @@
 
 package io.lenses.streamreactor.connect.azure.servicebus.source
 
-import java.util
-import java.util.concurrent.ConcurrentHashMap
-import java.util.function.BiConsumer
-
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage
-import com.datamountaineer.streamreactor.connect.utils.{JarManifest, ProgressCounter}
+import com.datamountaineer.streamreactor.common.utils.{JarManifest, ProgressCounter}
 import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.azure.servicebus
 import io.lenses.streamreactor.connect.azure.servicebus.config.{AzureServiceBusConfig, AzureServiceBusSettings}
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
+import java.util
+import java.util.concurrent.ConcurrentHashMap
+import java.util.function.BiConsumer
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.{FiniteDuration, MILLISECONDS}
 
