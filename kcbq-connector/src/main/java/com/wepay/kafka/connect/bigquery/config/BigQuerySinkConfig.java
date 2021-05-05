@@ -36,21 +36,14 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 
 import org.apache.kafka.connect.sink.SinkConnector;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -303,12 +296,15 @@ public class BigQuerySinkConfig extends AbstractConfig {
   public static final String TIME_PARTITIONING_TYPE_CONFIG = "timePartitioningType";
   private static final ConfigDef.Type TIME_PARTITIONING_TYPE_TYPE = ConfigDef.Type.STRING;
   public static final String TIME_PARTITIONING_TYPE_DEFAULT = TimePartitioning.Type.DAY.name().toUpperCase();
+  public static final String TIME_PARTITIONING_TYPE_NONE = "NONE";
   private static final ConfigDef.Importance TIME_PARTITIONING_TYPE_IMPORTANCE = ConfigDef.Importance.LOW;
-  private static final List<String> TIME_PARTITIONING_TYPES = Stream.of(TimePartitioning.Type.values())
-      .map(TimePartitioning.Type::name)
+  private static final List<String> TIME_PARTITIONING_TYPES = Stream.concat(
+        Stream.of(TimePartitioning.Type.values()).map(TimePartitioning.Type::name),
+        Stream.of(TIME_PARTITIONING_TYPE_NONE))
       .collect(Collectors.toList());
   private static final String TIME_PARTITIONING_TYPE_DOC =
-      "The time partitioning type to use when creating tables. "
+      "The time partitioning type to use when creating tables, or '"
+          + TIME_PARTITIONING_TYPE_NONE + "' to create non-partitioned tables. "
           + "Existing tables will not be altered to use this partitioning type."; 
 
   /**
@@ -702,19 +698,23 @@ public class BigQuerySinkConfig extends AbstractConfig {
     return getBoolean(UPSERT_ENABLED_CONFIG) || getBoolean(DELETE_ENABLED_CONFIG);
   }
 
-  public TimePartitioning.Type getTimePartitioningType() {
+  public Optional<TimePartitioning.Type> getTimePartitioningType() {
     return parseTimePartitioningType(getString(TIME_PARTITIONING_TYPE_CONFIG));
   }
 
-  private TimePartitioning.Type parseTimePartitioningType(String rawPartitioningType) {
+  private Optional<TimePartitioning.Type> parseTimePartitioningType(String rawPartitioningType) {
     if (rawPartitioningType == null) {
       throw new ConfigException(TIME_PARTITIONING_TYPE_CONFIG,
           rawPartitioningType,
           "Must be one of " + String.join(", ", TIME_PARTITIONING_TYPES));
     }
 
+    if (TIME_PARTITIONING_TYPE_NONE.equals(rawPartitioningType)) {
+      return Optional.empty();
+    }
+
     try {
-      return TimePartitioning.Type.valueOf(rawPartitioningType);
+      return Optional.of(TimePartitioning.Type.valueOf(rawPartitioningType));
     } catch (IllegalArgumentException e) {
       throw new ConfigException(
           TIME_PARTITIONING_TYPE_CONFIG,
