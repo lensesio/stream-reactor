@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-
 package io.lenses.streamreactor.connect.azure.servicebus.config
 
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.{ERROR_POLICY_PROP_SUFFIX, MAX_RETRIES_PROP_SUFFIX}
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.{
+  ERROR_POLICY_PROP_SUFFIX,
+  MAX_RETRIES_PROP_SUFFIX
+}
 import com.datamountaineer.streamreactor.common.config.base.traits._
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type, Width}
@@ -28,15 +30,6 @@ object AzureServiceBusConfig {
 
   val PREFIX = "azure"
 
-  val HEADER_PRODUCER_NAME = "producerName"
-  val HEADER_PRODUCER_APPLICATION = "producerApplication"
-  val HEADER_MESSAGE_ID = "messageId"
-  val HEADER_REMOVED = "removed"
-  val HEADER_DEQUEUE_COUNT = "dequeueCount"
-  val HEADER_CONNECTOR_VERSION = "applicationVersion"
-  val HEADER_GIT_COMMIT = "applicationGitCommit"
-  val HEADER_GIT_REPO = "applicationGitRepo"
-
   val DEFAULT_BATCH_SIZE = 500
 
   val AZURE_SAP_KEY = s"$PREFIX.policy.key"
@@ -46,7 +39,8 @@ object AzureServiceBusConfig {
 
   val AZURE_POLL_INTERVAL = s"poll.interval"
   val AZURE_POLL_INTERVAL_DEFAULT: Long = 0L
-  val AZURE_POLL_INTERVAL_DOC = "The interval in milliseconds wait before calling Azure Service Bus for records on each poll"
+  val AZURE_POLL_INTERVAL_DOC =
+    "The interval in milliseconds wait before calling Azure Service Bus for records on each poll"
 
   val AZURE_SB_NAMESPACE = s"$PREFIX.namespace"
   val AZURE_SB_NAMESPACE_DOC = "Fully qualified ServiceBus namespace"
@@ -77,7 +71,11 @@ object AzureServiceBusConfig {
   val NBR_OF_RETIRES_DEFAULT = 20
 
   val SET_HEADERS = s"$PREFIX.set_headers"
-  val SET_HEADERS_DOC = "Add connector and git information to message headers"
+  val SET_HEADERS_DOC =
+    """
+      |Add session, content type, correlation id, delivery count, sequence number and any application properties on the
+      |service bus message to the kafka message headers, source only"
+      |""".stripMargin
   val SET_HEADERS_DEFAULT = false
 
   val config: ConfigDef = new ConfigDef()

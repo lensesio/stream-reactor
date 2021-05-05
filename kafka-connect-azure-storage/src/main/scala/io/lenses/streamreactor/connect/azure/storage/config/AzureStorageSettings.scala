@@ -35,23 +35,11 @@ case class AzureStorageSettings(
     accountKey: Password,
     endpoint: Option[String],
     projections: Projections,
-//    targets: Map[String, String],
-//    fieldsMap: Map[String, Seq[Field]],
-//    partitionBy: Map[String, Set[String]],
-//    keys: Map[String, Seq[String]],
-//    delimiters: Map[String, String],
-//    batchSize: Map[String, Int],
-    //formatType: Map[String, FormatType],
-//    mode: Map[String, WriteModeEnum],
     targetType: Map[String, TargetType.Value],
     datePartitionFormat: String,
-    //errorPolicy: ErrorPolicy,
-    //maxRetries: Int = AzureStorageConfig.NBR_OF_RETIRES_DEFAULT,
     converters: Map[String, String],
-    //ack: Map[String, Boolean],
     encode: Map[String, Boolean],
     lock: Map[String, Int],
-    //autocreate: Map[String, Boolean],
     setHeaders: Boolean
 )
 
@@ -64,19 +52,11 @@ object AzureStorageSettings extends StrictLogging {
       config.getPasswordOrThrowOnNull(AzureStorageConfig.AZURE_ACCOUNT_KEY)
     val endpoint =
       Option(config.getString(AzureStorageConfig.AZURE_ENDPOINT))
-
     val kcqls = config.getKCQL
-//    val fields = config.getFields(kcqls)
-//    val targets = config.getTableTopic(kcqls)
-//    val partitionBy =
-//      kcqls.map(k => (k.getSource, k.getPartitionBy.asScala.toSet)).toMap
     val defaultPartitionFormat =
       config.getString(AzureStorageConfig.PARTITION_DATE_FORMAT)
     val errorPolicy = config.getErrorPolicy
     val maxRetries = config.getNumberRetries
-    //val batchSize = kcqls.toList.map(r => (r.getSource, r.getBatchSize)).toMap
-    //val format = config.getFormat(this.getFormatType, kcqls)
-    //val mode = config.getWriteMode()
     val targetType =
       kcqls.toList
         .map(k => {
@@ -111,21 +91,7 @@ object AzureStorageSettings extends StrictLogging {
           }
     })
 
-//    val keys = kcqls
-//      .map(
-//        k =>
-//          k.getSource -> Option(k.getWithKeys)
-//            .map(l => l.asScala)
-//            .getOrElse(Seq.empty))
-//      .toMap
-//
-//    val delimiters = kcqls.map(k => (k.getSource, k.getKeyDelimeter)).toMap
-//
-//    val ack = kcqls.map(k => (k.getSource, k.getWithAck)).toMap
-
     val encode = kcqls.map(k => (k.getTarget, k.getWithEncodeBase64)).toMap
-
-   // val autocreate = kcqls.map(k => (k.getTarget, k.isAutoCreate)).toMap
 
     val lock = kcqls
       .map(
@@ -136,24 +102,18 @@ object AzureStorageSettings extends StrictLogging {
       .toMap
 
     val setHeaders = config.getBoolean(AzureStorageConfig.SET_HEADERS)
-
     val projections = Projections(kcqls = kcqls, errorPolicy = errorPolicy, errorRetries = maxRetries, defaultBatchSize = 100)
 
     AzureStorageSettings(
       account = account,
       accountKey = accountKey,
       endpoint = endpoint,
-
       targetType =  targetType,
       datePartitionFormat = defaultPartitionFormat,
-//      errorPolicy,
-//      maxRetries,
       converters = converters,
-//      ack,
       projections = projections,
       encode = encode,
       lock = lock,
-      //autocreate,
       setHeaders = setHeaders
     )
   }

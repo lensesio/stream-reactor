@@ -20,7 +20,6 @@ import com.azure.core.util.{BinaryData, IterableStream}
 import com.azure.messaging.servicebus.administration.ServiceBusAdministrationClient
 import com.azure.messaging.servicebus.administration.models.{QueueRuntimeProperties, SubscriptionRuntimeProperties}
 import com.azure.messaging.servicebus.{ServiceBusReceivedMessage, ServiceBusReceiverClient}
-import com.datamountaineer.streamreactor.common.schemas.ConverterUtil
 import com.datamountaineer.streamreactor.connect.json.SimpleJsonConverter
 import com.fasterxml.jackson.databind.JsonNode
 import io.lenses.streamreactor.connect.azure.servicebus.config.AzureServiceBusConfig
@@ -64,7 +63,6 @@ trait TestBase extends AnyWordSpec with Matchers with MockitoSugar {
 
   when(mockManagementClient.getSubscriptionRuntimeProperties(TOPIC, CONNECTOR_NAME)).thenReturn(mockSubscriptionResponse)
   when(mockManagementClient.getQueueRuntimeProperties(QUEUE)).thenReturn(mockQueueResponse)
-
 
   val mockClient: ServiceBusReceiverClient = mock[ServiceBusReceiverClient]
   val serviceBusMessage: ServiceBusReceivedMessage = mock[ServiceBusReceivedMessage]
