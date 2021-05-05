@@ -35,9 +35,7 @@ case class AzureServiceBusSettings(
                                     targetType: Map[String, TargetType.Value],
                                     converters: Map[String, String],
                                     projections: Projections,
-                                    setHeaders: Boolean
-
-)
+                                    setHeaders: Boolean)
 
 object AzureServiceBusSettings extends StrictLogging {
   def apply(config: AzureServiceBusConfig): AzureServiceBusSettings = {

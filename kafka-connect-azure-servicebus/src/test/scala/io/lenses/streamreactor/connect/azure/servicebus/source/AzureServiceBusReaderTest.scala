@@ -55,7 +55,7 @@ class AzureServiceBusReaderTest extends TestBase with ConverterUtil {
     results.head.source shouldBe TOPIC
     results.head.record.topic() shouldBe "kafka-topic"
     val headers = results.head.record.headers()
-    headers.size() shouldBe 8
+    headers.size() shouldBe 3
   }
 
   "should create a reader and read from a topic with session" in {
@@ -72,7 +72,7 @@ class AzureServiceBusReaderTest extends TestBase with ConverterUtil {
     results.head.source shouldBe TOPIC
     results.head.record.topic() shouldBe "kafka-topic"
     val headers = results.head.record.headers()
-    headers.size() shouldBe 8
+    headers.size() shouldBe 3
   }
 }
 

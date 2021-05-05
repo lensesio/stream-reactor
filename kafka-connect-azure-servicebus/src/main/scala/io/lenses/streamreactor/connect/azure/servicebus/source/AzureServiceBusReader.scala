@@ -35,16 +35,10 @@ import scala.util.{Failure, Success, Try}
 object AzureServiceBusReader {
   def apply(name: String = "",
             settings: AzureServiceBusSettings,
-            convertersMap: Map[String, Converter],
-            version: String = "",
-            gitCommit: String = "",
-            gitRepo: String = ""): AzureServiceBusReader =
+            convertersMap: Map[String, Converter]): AzureServiceBusReader =
     new AzureServiceBusReader(name,
                               settings,
-                              convertersMap,
-                              version,
-                              gitCommit,
-                              gitRepo)
+                              convertersMap)
 }
 
 case class TokenAndSourceRecord(message: ServiceBusReceivedMessage,
@@ -53,10 +47,7 @@ case class TokenAndSourceRecord(message: ServiceBusReceivedMessage,
 
 class AzureServiceBusReader(name: String = "",
                             settings: AzureServiceBusSettings,
-                            convertersMap: Map[String, Converter],
-                            version: String = "",
-                            gitCommit: String = "",
-                            gitRepo: String = "")
+                            convertersMap: Map[String, Converter])
     extends StrictLogging {
 
   var clients: Map[String, (Int, ServiceBusReceiverClient)] =
@@ -120,36 +111,29 @@ class AzureServiceBusReader(name: String = "",
 
     val headers = new ConnectHeaders()
 
-    Option(message.getSessionId)
-      .filter(s => s.nonEmpty)
-      .foreach(s => headers.addString("session", s))
-    Option(message.getContentType)
-      .filter(s => s.nonEmpty)
-      .foreach(l => headers.addString("contentType", l))
-    Option(message.getCorrelationId)
-      .filter(s => s.nonEmpty)
-      .foreach(c => headers.addString("correlationId", c))
-    Option(message.getDeliveryCount)
-      .filter(_ > 0)
-      .foreach(c => headers.addString("deliveryCount", c.toString))
-    Option(message.getSequenceNumber)
-      .filter(_ > 0)
-      .foreach(s => headers.addString("sequenceNumber", s.toString))
-
     if (settings.setHeaders) {
-      headers.addString(
-        AzureServiceBusConfig.HEADER_PRODUCER_APPLICATION,
-        classOf[AzureServiceBusSourceConnector].getCanonicalName)
-      headers.addString(AzureServiceBusConfig.HEADER_PRODUCER_NAME, name)
-      headers.addString(AzureServiceBusConfig.HEADER_GIT_REPO, gitRepo)
-      headers.addString(AzureServiceBusConfig.HEADER_GIT_COMMIT, gitCommit)
-      headers.addString(AzureServiceBusConfig.HEADER_CONNECTOR_VERSION, version)
-    }
+      Option(message.getSessionId)
+        .filter(s => s.nonEmpty)
+        .foreach(s => headers.addString("session", s))
+      Option(message.getContentType)
+        .filter(s => s.nonEmpty)
+        .foreach(l => headers.addString("contentType", l))
+      Option(message.getCorrelationId)
+        .filter(s => s.nonEmpty)
+        .foreach(c => headers.addString("correlationId", c))
+      Option(message.getDeliveryCount)
+        .filter(_ > 0)
+        .foreach(c => headers.addString("deliveryCount", c.toString))
+      Option(message.getSequenceNumber)
+        .filter(_ > 0)
+        .foreach(s => headers.addString("sequenceNumber", s.toString))
 
-    message
-      .getApplicationProperties
-      .asScala
-      .map{ case(k, v) => headers.addString(k, v.toString)}
+      message
+        .getApplicationProperties
+        .asScala
+        .map { case (k, v) => headers.addString(k, v.toString) }
+
+    }
 
     val sourceRecord = converter.convert(target,
                                          source,

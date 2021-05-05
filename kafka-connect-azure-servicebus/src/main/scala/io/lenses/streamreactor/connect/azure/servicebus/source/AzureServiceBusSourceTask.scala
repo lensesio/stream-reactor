@@ -67,10 +67,7 @@ class AzureServiceBusSourceTask extends SourceTask with StrictLogging {
     reader = AzureServiceBusReader(
       props.getOrDefault("name", ""),
       settings,
-      servicebus.getConverters(settings.converters, conf.asScala.toMap),
-      version(),
-      manifest.gitCommit(),
-      manifest.gitRepo()
+      servicebus.getConverters(settings.converters, conf.asScala.toMap)
     )
     enableProgress =
       configBase.getBoolean(AzureServiceBusConfig.PROGRESS_COUNTER_ENABLED)
