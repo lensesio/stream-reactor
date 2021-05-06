@@ -23,18 +23,19 @@ import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.testcontainers.containers.GenericContainer
 import redis.clients.jedis.Jedis
-import redis.embedded.RedisServer
 
 import scala.collection.JavaConverters._
 
 class RedisInsertSortedSetTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
 
-  val redisServer = new RedisServer(6379)
+  val redisContainer: GenericContainer[_] = new GenericContainer("redis:6-alpine")
+    .withExposedPorts(6379)
 
-  override def beforeAll() = redisServer.start()
+  override def beforeAll() = redisContainer.start()
 
-  override def afterAll() = redisServer.stop()
+  override def afterAll() = redisContainer.stop()
 
   "Redis INSERT into Sorted Set (SS) writer" should {
 
@@ -44,13 +45,13 @@ class RedisInsertSortedSetTest extends AnyWordSpec with Matchers with BeforeAndA
       val KCQL = s"INSERT INTO cpu_stats SELECT * from $TOPIC STOREAS SortedSet(score=ts)"
       println("Testing KCQL : " + KCQL)
       val props = Map(
-        RedisConfigConstants.REDIS_HOST->"localhost",
-        RedisConfigConstants.REDIS_PORT->"6379",
-        RedisConfigConstants.KCQL_CONFIG->KCQL
+        RedisConfigConstants.REDIS_HOST-> "localhost",
+        RedisConfigConstants.REDIS_PORT-> redisContainer.getMappedPort(6379).toString,
+        RedisConfigConstants.KCQL_CONFIG-> KCQL
       ).asJava
 
       val config = RedisConfig(props)
-      val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
+      val connectionInfo = new RedisConnectionInfo("localhost", redisContainer.getMappedPort(6379), None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisInsertSortedSet(settings)
       writer.createClient(settings)

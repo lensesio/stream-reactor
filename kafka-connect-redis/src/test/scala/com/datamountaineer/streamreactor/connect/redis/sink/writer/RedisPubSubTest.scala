@@ -25,19 +25,20 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.testcontainers.containers.GenericContainer
 import redis.clients.jedis.{Jedis, JedisPubSub}
-import redis.embedded.RedisServer
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
 class RedisPubSubTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar with LazyLogging {
 
-  val redisServer = new RedisServer(6379)
+  val redisContainer: GenericContainer[_] = new GenericContainer("redis:6-alpine")
+    .withExposedPorts(6379)
 
-  override def beforeAll() = redisServer.start()
+  override def beforeAll() = redisContainer.start()
 
-  override def afterAll() = redisServer.stop()
+  override def afterAll() = redisContainer.stop()
 
   "Redis PUBSUB writer" should {
 
@@ -48,12 +49,12 @@ class RedisPubSubTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
       println("Testing KCQL : " + KCQL)
       val props = Map(
         RedisConfigConstants.REDIS_HOST -> "localhost",
-        RedisConfigConstants.REDIS_PORT -> "6379",
+        RedisConfigConstants.REDIS_PORT -> redisContainer.getMappedPort(6379).toString,
         RedisConfigConstants.KCQL_CONFIG -> KCQL
       ).asJava
 
       val config = RedisConfig(props)
-      val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
+      val connectionInfo = new RedisConnectionInfo("localhost", redisContainer.getMappedPort(6379), None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisPubSub(settings)
       writer.createClient(settings)

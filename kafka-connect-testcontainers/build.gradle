@@ -21,7 +21,6 @@ project(":kafka-connect-testcontainers") {
     tasks.test.dependsOn(':kafka-connect-redis:shadowJar')
 
     ext {
-        testcontainersVersion = '1.15.2'
         confluentSerializerVersion = '5.3.0'
     }
 
@@ -30,7 +29,6 @@ project(":kafka-connect-testcontainers") {
     }
 
     dependencies {
-        testImplementation group: 'org.testcontainers', name: 'testcontainers', version: "$testcontainersVersion"
         testImplementation group: 'org.testcontainers', name: 'kafka', version: "$testcontainersVersion"
         testImplementation group: 'org.testcontainers', name: 'mongodb', version: "$testcontainersVersion"
         testImplementation group: 'org.testcontainers', name: 'elasticsearch', version: "$testcontainersVersion"
