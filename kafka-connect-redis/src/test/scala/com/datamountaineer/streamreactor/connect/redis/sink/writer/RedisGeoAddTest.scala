@@ -7,18 +7,19 @@ import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.testcontainers.containers.GenericContainer
 import redis.clients.jedis.{GeoUnit, Jedis}
-import redis.embedded.RedisServer
 
 import scala.collection.JavaConverters._
 
 class RedisGeoAddTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
 
-  val redisServer = new RedisServer(6379)
+  val redisContainer: GenericContainer[_] = new GenericContainer("redis:6-alpine")
+    .withExposedPorts(6379)
 
-  override def beforeAll() = redisServer.start()
+  override def beforeAll() = redisContainer.start()
 
-  override def afterAll() = redisServer.stop()
+  override def afterAll() = redisContainer.stop()
 
   "Redis Geo Add (GA) writer" should {
 
@@ -29,12 +30,12 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
       println("Testing KCQL : " + KCQL)
       val props = Map(
         RedisConfigConstants.REDIS_HOST -> "localhost",
-        RedisConfigConstants.REDIS_PORT -> "6379",
+        RedisConfigConstants.REDIS_PORT -> redisContainer.getMappedPort(6379).toString,
         RedisConfigConstants.KCQL_CONFIG -> KCQL
       ).asJava
 
       val config = RedisConfig(props)
-      val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
+      val connectionInfo = new RedisConnectionInfo("localhost", redisContainer.getMappedPort(6379), None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisGeoAdd(settings)
       writer.createClient(settings)
@@ -76,12 +77,12 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
       println("Testing KCQL : " + KCQL)
       val props = Map(
         RedisConfigConstants.REDIS_HOST -> "localhost",
-        RedisConfigConstants.REDIS_PORT -> "6379",
+        RedisConfigConstants.REDIS_PORT -> redisContainer.getMappedPort(6379).toString,
         RedisConfigConstants.KCQL_CONFIG -> KCQL
       ).asJava
 
       val config = RedisConfig(props)
-      val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
+      val connectionInfo = new RedisConnectionInfo("localhost", redisContainer.getMappedPort(6379), None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisGeoAdd(settings)
       writer.createClient(settings)
@@ -123,12 +124,12 @@ class RedisGeoAddTest extends AnyWordSpec with Matchers with BeforeAndAfterAll w
       println("Testing KCQL : " + KCQL)
       val props = Map(
         RedisConfigConstants.REDIS_HOST -> "localhost",
-        RedisConfigConstants.REDIS_PORT -> "6379",
+        RedisConfigConstants.REDIS_PORT -> redisContainer.getMappedPort(6379).toString,
         RedisConfigConstants.KCQL_CONFIG -> KCQL
       ).asJava
 
       val config = RedisConfig(props)
-      val connectionInfo = new RedisConnectionInfo("localhost", 6379, None)
+      val connectionInfo = new RedisConnectionInfo("localhost", redisContainer.getMappedPort(6379), None)
       val settings = RedisSinkSettings(config)
       val writer = new RedisGeoAdd(settings)
       writer.createClient(settings)

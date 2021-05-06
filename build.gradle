@@ -57,6 +57,7 @@ allprojects {
         scalaCheck = '1.14.3'
         scalaTest = '3.1.1'
         junit = '4.11'
+        testcontainersVersion = '1.15.3'
         //avroVersion="1.8.1"
         scalaLoggingVersion = '3.9.2'
         mockitoVersion = '1.13.9'
@@ -97,8 +98,6 @@ allprojects {
         maven { url "https://repo.typesafe.com/typesafe/releases/" }
         maven { url "https://repository.cloudera.com/artifactory/cloudera-repos/" }
         maven { url "https://conjars.org/repo" }
-        maven { url 'https://dl.bintray.com/andsel/maven/'}
-        maven { url "https://dl.bintray.com/spinnaker/spinnaker/" }
         maven { url "https://jitpack.io"}
     }
 
@@ -184,6 +183,7 @@ allprojects {
 
         testCompile 'org.pegdown:pegdown:1.1.0'
         testCompile "com.vladsch.flexmark:flexmark-all:0.35.10"
+        testImplementation "org.testcontainers:testcontainers:$testcontainersVersion"
     }
 
     configurations {

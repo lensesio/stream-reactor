@@ -24,25 +24,27 @@ import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.testcontainers.containers.{FixedHostPortGenericContainer, GenericContainer}
 import redis.clients.jedis.Jedis
-import redis.embedded.RedisServer
 
 import scala.collection.JavaConverters._
 
 class RedisCacheTest extends AnyWordSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
 
-  val redisServer = new RedisServer(6379)
+  val redisContainer: GenericContainer[_] = new FixedHostPortGenericContainer("redis:6-alpine")
+    .withFixedExposedPort(6379, 6379)
+
   val gson = new Gson()
-  val jedis = new Jedis("localhost", redisServer.ports().get(0))
+  val jedis = new Jedis("localhost", 6379)
   val TOPIC = "topic"
   val baseProps = Map(
     RedisConfigConstants.REDIS_HOST -> "localhost",
-    RedisConfigConstants.REDIS_PORT -> redisServer.ports().get(0).toString
+    RedisConfigConstants.REDIS_PORT -> "6379"
   )
 
-  override def beforeAll() = redisServer.start()
+  override def beforeAll(): Unit = redisContainer.start()
 
-  override def afterAll() = redisServer.stop()
+  override def afterAll(): Unit = redisContainer.stop()
 
   "RedisDbWriter" should {
 

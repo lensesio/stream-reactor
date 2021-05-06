@@ -17,30 +17,28 @@
 package com.datamountaineer.streamreactor.connect.mqtt.source
 
 import com.datamountaineer.streamreactor.common.converters.MsgKey
-import com.datamountaineer.streamreactor.connect.converters.source.{AvroConverter, BytesConverter, JsonSimpleConverter}
 import com.datamountaineer.streamreactor.common.serialization.AvroSerializer
-
-import java.io.{BufferedWriter, File, FileWriter}
-import java.nio.ByteBuffer
-import java.nio.file.Paths
-import java.util.UUID
+import com.datamountaineer.streamreactor.connect.converters.source.{AvroConverter, BytesConverter, JsonSimpleConverter}
 import com.datamountaineer.streamreactor.connect.mqtt.config.MqttConfigConstants
 import com.sksamuel.avro4s.SchemaFor
-import io.moquette.proto.messages.{AbstractMessage, PublishMessage}
-import io.moquette.server.Server
-import io.moquette.server.config.ClasspathConfig
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.source.SourceTaskContext
+import org.eclipse.paho.client.mqttv3.{MqttClient, MqttMessage}
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.testcontainers.containers.{FixedHostPortGenericContainer, GenericContainer}
 
+import java.io.{BufferedWriter, File, FileWriter}
+import java.nio.file.Paths
+import java.util.UUID
 import scala.collection.JavaConverters._
-import scala.util.Try
 
 class MqttSourceTaskTest extends AnyWordSpec with Matchers with BeforeAndAfter with MockitoSugar {
-  val classPathConfig = new ClasspathConfig()
+
+  val mqttContainer : GenericContainer[_] = new FixedHostPortGenericContainer("eclipse-mosquitto")
+    .withFixedExposedPort(1883, 1883)
 
   val connection = "tcp://0.0.0.0:1883"
   val clientId = "MqttSourceTaskTest"
@@ -48,22 +46,15 @@ class MqttSourceTaskTest extends AnyWordSpec with Matchers with BeforeAndAfter w
   val connectionTimeout = 1000
   val keepAlive = 1000
 
-  var mqttBroker: Option[Server] = None
   before {
-    mqttBroker = Some(new Server())
-    mqttBroker.foreach(_.startServer(classPathConfig))
+    mqttContainer.start()
   }
 
   after {
-    mqttBroker.foreach {
-      _.stopServer()
-    }
-
-    val files = Seq("moquette_store.mapdb", "moquette_store.mapdb.p", "moquette_store.mapdb.t")
-    files.map(f => new File(f)).withFilter(_.exists()).foreach { f => Try(f.delete()) }
+    mqttContainer.stop()
   }
 
-  private def getSchemaFile(mqttSource: String, schema: org.apache.avro.Schema) = {
+  private def getSchemaFile(schema: org.apache.avro.Schema) = {
     val schemaFile = Paths.get(UUID.randomUUID().toString)
 
     def writeSchema(schema: org.apache.avro.Schema): File = {
@@ -99,7 +90,7 @@ class MqttSourceTaskTest extends AnyWordSpec with Matchers with BeforeAndAfter w
       MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> connectionTimeout.toString,
       MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $target1 SELECT * FROM $source1 WITHCONVERTER=`${classOf[BytesConverter].getCanonicalName}`;INSERT INTO $target2 SELECT * FROM $source2 WITHCONVERTER=`${classOf[JsonSimpleConverter].getCanonicalName}`;INSERT INTO $target3 SELECT * FROM $source3 WITHCONVERTER=`${classOf[AvroConverter].getCanonicalName}`",
       MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> keepAlive.toString,
-      AvroConverter.SCHEMA_CONFIG -> s"$source3=${getSchemaFile(source3, studentSchema)}",
+      AvroConverter.SCHEMA_CONFIG -> s"$source3=${getSchemaFile(studentSchema)}",
       MqttConfigConstants.CLIENT_ID_CONFIG -> clientId,
       MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
       MqttConfigConstants.HOSTS_CONFIG -> connection,
@@ -174,12 +165,15 @@ class MqttSourceTaskTest extends AnyWordSpec with Matchers with BeforeAndAfter w
     task.stop()
   }
 
-  private def publishMessage(topic: String, payload: Array[Byte]) = {
-    val message = new PublishMessage()
-    message.setTopicName(s"$topic")
-    message.setRetainFlag(false)
-    message.setQos(AbstractMessage.QOSType.EXACTLY_ONCE)
-    message.setPayload(ByteBuffer.wrap(payload))
-    mqttBroker.foreach(_.internalPublish(message))
+  private def publishMessage(topic: String, payload: Array[Byte]): Unit = {
+    val msg = new MqttMessage(payload)
+    msg.setQos(2)
+    msg.setRetained(false)
+
+    val client = new MqttClient(connection, UUID.randomUUID.toString)
+    client.connect()
+    client.publish(topic, msg)
+    client.disconnect()
+    client.close()
   }
 }

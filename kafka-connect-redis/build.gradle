@@ -18,7 +18,6 @@ project(':kafka-connect-redis') {
 
     ext {
         jedisVersion = "3.2.0"
-        embeddedRedisVersion = "0.8.0"
     }
 
     test {
@@ -29,6 +28,5 @@ project(':kafka-connect-redis') {
         compile project(':kafka-connect-common')
         compile "redis.clients:jedis:$jedisVersion"
         testCompile "com.google.code.gson:gson:$gsonVersion"
-        testCompile "com.netflix.spinnaker.embedded-redis:embedded-redis:$embeddedRedisVersion"
     }
 }

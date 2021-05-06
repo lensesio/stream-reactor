@@ -17,15 +17,8 @@
 package com.datamountaineer.streamreactor.connect.mqtt.sink
 
 import com.datamountaineer.streamreactor.common.converters.sink.Converter
-
-import java.io.{ByteArrayOutputStream, File}
-import java.nio.ByteBuffer
-import java.util
-import java.util.concurrent.LinkedBlockingQueue
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSinkConfig, MqttSinkSettings}
 import com.typesafe.scalalogging.StrictLogging
-import io.moquette.server.Server
-import io.moquette.server.config.ClasspathConfig
 import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericRecord}
 import org.apache.avro.io.EncoderFactory
 import org.apache.kafka.common.TopicPartition
@@ -38,7 +31,13 @@ import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttCli
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.testcontainers.containers.{FixedHostPortGenericContainer, GenericContainer}
 
+import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
+import java.nio.file.Paths
+import java.util
+import java.util.concurrent.LinkedBlockingQueue
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
@@ -49,7 +48,9 @@ import scala.util.{Failure, Success, Try}
   */
 class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll with MqttCallback with StrictLogging {
 
-  val classPathConfig = new ClasspathConfig()
+  val mqttContainer : GenericContainer[_] = new FixedHostPortGenericContainer("eclipse-mosquitto")
+    .withFixedExposedPort(1883, 1883)
+
   val connection = "tcp://0.0.0.0:1883"
   val clientId = "MqttManagerTest"
   val qs = 1
@@ -57,7 +58,6 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
   val keepAlive = 1000
   val queue1 = new LinkedBlockingQueue[MqttMessage](10)
   val queue2 = new LinkedBlockingQueue[MqttMessage](10)
-  var mqttBroker: Option[Server] = None
   val conOpt = new MqttConnectOptions
   conOpt.setCleanSession(true)
   conOpt.setUserName("somepassw")
@@ -70,19 +70,13 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
   client.setCallback(this)
 
 
-  override def beforeAll() = {
-    mqttBroker = Some(new Server())
-    mqttBroker.foreach(_.startServer(classPathConfig))
+  override def beforeAll(): Unit = {
+    mqttContainer.start()
     client.connect(conOpt)
   }
 
-  override def afterAll() = {
-    mqttBroker.foreach {
-      _.stopServer()
-    }
-
-    val files = Seq("moquette_store.mapdb", "moquette_store.mapdb.p", "moquette_store.mapdb.t")
-    files.map(f => new File(f)).withFilter(_.exists()).foreach { f => Try(f.delete()) }
+  override def afterAll(): Unit = {
+    mqttContainer.stop()
   }
 
   val JSON = "{\"id\":\"kafka_topic2-12-1\",\"int_field\":12,\"long_field\":12,\"string_field\":\"foo\",\"float_field\":0.1,\"float64_field\":0.199999,\"boolean_field\":true,\"byte_field\":\"Ynl0ZXM=\"}"
@@ -102,7 +96,7 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
   ASSIGNMENT.add(TOPIC_PARTITION2)
   ASSIGNMENT.add(TOPIC_PARTITION3)
 
-  def createSinkRecord(record: Struct, topic: String, offset: Long) = {
+  def createSinkRecord(record: Struct, topic: String, offset: Long): SinkRecord = {
     new SinkRecord(topic, 1, Schema.STRING_SCHEMA, "key", record.schema(), record, offset, System.currentTimeMillis(), TimestampType.CREATE_TIME)
   }
 
@@ -231,8 +225,10 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
 
   "writer should writer all fields in avro" in {
 
-    val userDir = System.getProperty("user.dir")
-    val sinkAvroSchemas = s"kafka_topic=$userDir/src/test/resources/test.avsc;kafka_topic2=$userDir/src/test/resources/test.avsc"
+    val res = getClass.getClassLoader.getResource("test.avsc")
+    val schemaPath = Paths.get(res.toURI).toFile.getAbsolutePath
+
+    val sinkAvroSchemas = s"kafka_topic=$schemaPath;kafka_topic2=$schemaPath"
 
     val props = Map(
       MqttConfigConstants.HOSTS_CONFIG -> connection,
@@ -271,7 +267,7 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
 
     queue1.size() shouldBe 3
 
-    val message = createAvroRecord(s"$userDir/src/test/resources/test.avsc")
+    val message = createAvroRecord(s"$schemaPath")
 
     queue1.asScala.take(1).head.getPayload shouldBe message
     queue1.clear()
