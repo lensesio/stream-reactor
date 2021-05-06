@@ -17,6 +17,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+import com.datamountaineer.streamreactor.common.errors.{ErrorHandler, ErrorPolicy}
+import com.typesafe.scalalogging.{LazyLogging, StrictLogging}
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
@@ -26,6 +28,8 @@ import io.lenses.streamreactor.connect.aws.s3.storage.S3WriterImpl
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.errors.ConnectException
+
+import scala.util.{Failure, Success}
 
 /**
   * Manages the lifecycle of [[S3Writer]] instances.
@@ -40,11 +44,13 @@ class S3WriterManager(sinkName: String,
                       formatWriterFn: (TopicPartition, Map[PartitionField, String]) => S3FormatWriter,
                       commitPolicyFn: Topic => CommitPolicy,
                       bucketAndPrefixFn: Topic => BucketAndPrefix,
-                      fileNamingStrategyFn: Topic => S3FileNamingStrategy
+                      fileNamingStrategyFn: Topic => S3FileNamingStrategy,
+                      errorPolicy: ErrorPolicy,
+                      numberOfRetries: Int,
                      )
-                     (implicit storageInterface: StorageInterface) {
+                     (implicit storageInterface: StorageInterface) extends ErrorHandler with StrictLogging {
 
-  private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
+  initialize(numberOfRetries, errorPolicy)
 
   case class MapKey(topicPartition: TopicPartition, bucketAndPath: BucketAndPath)
 
@@ -102,19 +108,28 @@ class S3WriterManager(sinkName: String,
   }
 
   def write(topicPartitionOffset: TopicPartitionOffset, messageDetail: MessageDetail): Unit = {
-    logger.debug(s"[$sinkName] Received call to S3WriterManager.write for ${topicPartitionOffset.topic}-${topicPartitionOffset.partition}:${topicPartitionOffset.offset}")
+    try {
+      logger.debug(s"[$sinkName] Received call to S3WriterManager.write for ${topicPartitionOffset.topic}-${topicPartitionOffset.partition}:${topicPartitionOffset.offset}")
 
-    val newWriter = writer(topicPartitionOffset.toTopicPartition, messageDetail)
+      val newWriter = writer(topicPartitionOffset.toTopicPartition, messageDetail)
 
-    val schema = messageDetail.valueSinkData.schema()
-    if (schema.isDefined && newWriter.shouldRollover(schema.get)) {
-      commitTopicPartitionWriters(topicPartitionOffset.toTopicPartition)
+      val schema = messageDetail.valueSinkData.schema()
+      if (schema.isDefined && newWriter.shouldRollover(schema.get)) {
+        commitTopicPartitionWriters(topicPartitionOffset.toTopicPartition)
+      }
+
+      newWriter.write(messageDetail, topicPartitionOffset)
+
+      if (newWriter.shouldFlush)
+        commitTopicPartitionWriters(topicPartitionOffset.toTopicPartition)
+
+      handleTry(Success(())).nonEmpty
+
+    } catch {
+      case t: Throwable =>
+        logger.error(s"There was an error writing the records ${t.getMessage}", t)
+        handleTry(Failure(t)).nonEmpty
     }
-
-    newWriter.write(messageDetail, topicPartitionOffset)
-
-    if (newWriter.shouldFlush)
-      commitTopicPartitionWriters(topicPartitionOffset.toTopicPartition)
   }
 
   /**
@@ -222,7 +237,9 @@ object S3WriterManager {
       formatWriterFn,
       commitPolicyFn,
       bucketAndPrefixFn,
-      fileNamingStrategyFn
+      fileNamingStrategyFn,
+      config.s3Config.errorPolicy,
+      config.s3Config.connectorRetryConfig.numberOfRetries,
     )
   }
 }

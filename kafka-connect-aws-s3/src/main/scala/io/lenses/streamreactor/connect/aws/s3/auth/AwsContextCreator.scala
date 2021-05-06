@@ -47,9 +47,7 @@ class AwsContextCreator(credentialsProviderFn: () => AWSCredentialsProvider) {
 
     awsConfig.customEndpoint.foreach(contextBuilder.endpoint)
 
-    if (awsConfig.enableVirtualHostBuckets) {
-      contextBuilder.overrides(createOverride())
-    }
+      contextBuilder.overrides(createOverride(awsConfig))
 
     contextBuilder.buildView(classOf[BlobStoreContext])
 
@@ -77,9 +75,13 @@ class AwsContextCreator(credentialsProviderFn: () => AWSCredentialsProvider) {
     }
   }
 
-  private def createOverride() = {
+  private def createOverride(awsConfig: S3Config) = {
     val overrides = new Properties()
-    overrides.put(org.jclouds.s3.reference.S3Constants.PROPERTY_S3_VIRTUAL_HOST_BUCKETS, "false")
+    if (awsConfig.enableVirtualHostBuckets) {
+      overrides.put(org.jclouds.s3.reference.S3Constants.PROPERTY_S3_VIRTUAL_HOST_BUCKETS, "false")
+    }
+    overrides.put(org.jclouds.Constants.PROPERTY_MAX_RETRIES, awsConfig.httpRetryConfig.numberOfRetries.toString)
+    overrides.put(org.jclouds.Constants.PROPERTY_RETRY_DELAY_START, awsConfig.httpRetryConfig.errorRetryInterval.toString)
     overrides
   }
 

@@ -17,6 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsContextCreator
 import io.lenses.streamreactor.connect.aws.s3.model._
@@ -75,7 +76,17 @@ class S3SinkTask extends SinkTask {
 
     validateBuckets(storageInterface, config)
 
+    setErrorRetryInterval
+
     writerManager = S3WriterManager.from(config, sinkName)(storageInterface)
+  }
+
+  private def setErrorRetryInterval = {
+    //if error policy is retry set retry interval
+    config.s3Config.errorPolicy match {
+      case RetryErrorPolicy() => context.timeout(config.s3Config.connectorRetryConfig.errorRetryInterval)
+      case _ =>
+    }
   }
 
   case class TopicAndPartition(topic: String, partition: Int) {

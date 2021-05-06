@@ -16,6 +16,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.config
 
+import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
 import enumeratum.{Enum, EnumEntry}
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 
@@ -115,6 +116,7 @@ object Format extends Enum[Format] {
 
 
 object S3Config {
+
   def apply(props: Map[String, String]): S3Config = S3Config(
     props.get(AWS_ACCESS_KEY),
     props.get(AWS_SECRET_KEY),
@@ -123,8 +125,19 @@ object S3Config {
     ),
     props.get(CUSTOM_ENDPOINT),
     props.getOrElse(ENABLE_VIRTUAL_HOST_BUCKETS, "false").toBoolean,
+    ErrorPolicy(ErrorPolicyEnum.withName(props.getOrElse(ERROR_POLICY, ERROR_POLICY_DEFAULT).toUpperCase())),
+    RetryConfig(
+      props.getOrElse(NBR_OF_RETRIES, NBR_OF_RETIRES_DEFAULT).toString.toInt,
+      props.getOrElse(ERROR_RETRY_INTERVAL, ERROR_RETRY_INTERVAL_DEFAULT).toString.toLong
+    ),
+    RetryConfig(
+      props.getOrElse(HTTP_NBR_OF_RETRIES, HTTP_NBR_OF_RETIRES_DEFAULT).toString.toInt,
+      props.getOrElse(HTTP_ERROR_RETRY_INTERVAL, HTTP_ERROR_RETRY_INTERVAL_DEFAULT).toString.toLong
+    )
   )
 }
+
+case class RetryConfig( numberOfRetries: Int, errorRetryInterval: Long)
 
 case class S3Config(
                      accessKey: Option[String],
@@ -132,4 +145,7 @@ case class S3Config(
                      authMode: AuthMode,
                      customEndpoint: Option[String] = None,
                      enableVirtualHostBuckets: Boolean = false,
+                     errorPolicy: ErrorPolicy = new ThrowErrorPolicy,
+                     connectorRetryConfig: RetryConfig = RetryConfig(NBR_OF_RETIRES_DEFAULT, ERROR_RETRY_INTERVAL_DEFAULT),
+                     httpRetryConfig: RetryConfig = RetryConfig(HTTP_NBR_OF_RETIRES_DEFAULT, HTTP_ERROR_RETRY_INTERVAL_DEFAULT),
                    )

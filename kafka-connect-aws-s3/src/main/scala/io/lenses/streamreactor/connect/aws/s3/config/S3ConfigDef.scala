@@ -64,6 +64,55 @@ object S3ConfigDef {
       "Enable virtual host buckets"
     )
     .define(KcqlKey, Type.STRING, Importance.HIGH, KCQL_DOC)
+    .define(ERROR_POLICY,
+      Type.STRING,
+      ERROR_POLICY_DEFAULT,
+      Importance.HIGH,
+      ERROR_POLICY_DOC,
+      "Error",
+      1,
+      ConfigDef.Width.LONG,
+      ERROR_POLICY)
+
+    .define(NBR_OF_RETRIES,
+      Type.INT,
+      NBR_OF_RETIRES_DEFAULT,
+      Importance.MEDIUM,
+      NBR_OF_RETRIES_DOC,
+      "Error",
+      2,
+      ConfigDef.Width.LONG,
+      NBR_OF_RETRIES)
+
+    .define(ERROR_RETRY_INTERVAL,
+      Type.LONG,
+      ERROR_RETRY_INTERVAL_DEFAULT,
+      Importance.MEDIUM,
+      ERROR_RETRY_INTERVAL_DOC,
+      "Error",
+      3,
+      ConfigDef.Width.LONG,
+      ERROR_RETRY_INTERVAL)
+
+    .define(HTTP_NBR_OF_RETRIES,
+      Type.INT,
+      HTTP_NBR_OF_RETIRES_DEFAULT,
+      Importance.MEDIUM,
+      HTTP_NBR_OF_RETRIES_DOC,
+      "Error",
+      2,
+      ConfigDef.Width.LONG,
+      HTTP_NBR_OF_RETRIES)
+
+    .define(HTTP_ERROR_RETRY_INTERVAL,
+      Type.LONG,
+      HTTP_ERROR_RETRY_INTERVAL_DEFAULT,
+      Importance.MEDIUM,
+      HTTP_ERROR_RETRY_INTERVAL_DOC,
+      "Error",
+      3,
+      ConfigDef.Width.LONG,
+      HTTP_ERROR_RETRY_INTERVAL)
 
 }
 
