@@ -172,9 +172,7 @@
                             <sourceUrl>https://github.com/confluentinc/kafka-connect-bigquery</sourceUrl>
 
                             <supportProviderName>Confluent, Inc.</supportProviderName>
-                            <supportSummary><![CDATA[
-                                Confluent</a> supports WePay's BigQuery connector version 1.1.2 and later, as part of a <a href=\"https://www.confluent.io/product/confluent-platform/\">Confluent Platform</a> subscription.
-                            ]]></supportSummary>
+                            <supportSummary><![CDATA[Confluent supports WePay's BigQuery connector version 1.1.2 and later. This connector is <a href="https://www.confluent.io/subscription/">supported by Confluent</a> as part of a <a href="https://www.confluent.io/product/confluent-platform/">Confluent Platform</a> subscription.]]></supportSummary>
                             <supportUrl>https://docs.confluent.io/kafka-connect-bigquery/current/index.html</supportUrl>
                             <supportLogo>logos/confluent.png</supportLogo>
 
