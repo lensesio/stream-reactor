@@ -18,18 +18,15 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import com.datamountaineer.streamreactor.common.errors.{ErrorHandler, ErrorPolicy}
-import com.typesafe.scalalogging.{LazyLogging, StrictLogging}
+import com.typesafe.scalalogging.StrictLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
-import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreOutputStream
-import io.lenses.streamreactor.connect.aws.s3.storage.S3Writer
-import io.lenses.streamreactor.connect.aws.s3.storage.S3WriterImpl
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreOutputStream, S3Writer, S3WriterImpl, StorageInterface}
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.errors.ConnectException
 
-import scala.util.{Failure, Success}
+import scala.util.Try
 
 /**
   * Manages the lifecycle of [[S3Writer]] instances.
@@ -108,27 +105,23 @@ class S3WriterManager(sinkName: String,
   }
 
   def write(topicPartitionOffset: TopicPartitionOffset, messageDetail: MessageDetail): Unit = {
-    try {
-      logger.debug(s"[$sinkName] Received call to S3WriterManager.write for ${topicPartitionOffset.topic}-${topicPartitionOffset.partition}:${topicPartitionOffset.offset}")
+    handleTry {
+      Try {
+        logger.debug(s"[$sinkName] Received call to S3WriterManager.write for ${topicPartitionOffset.topic}-${topicPartitionOffset.partition}:${topicPartitionOffset.offset}")
 
-      val newWriter = writer(topicPartitionOffset.toTopicPartition, messageDetail)
+        val newWriter = writer(topicPartitionOffset.toTopicPartition, messageDetail)
 
-      val schema = messageDetail.valueSinkData.schema()
-      if (schema.isDefined && newWriter.shouldRollover(schema.get)) {
-        commitTopicPartitionWriters(topicPartitionOffset.toTopicPartition)
+        val schema = messageDetail.valueSinkData.schema()
+        if (schema.isDefined && newWriter.shouldRollover(schema.get)) {
+          commitTopicPartitionWriters(topicPartitionOffset.toTopicPartition)
+        }
+
+        newWriter.write(messageDetail, topicPartitionOffset)
+
+        if (newWriter.shouldFlush)
+          commitTopicPartitionWriters(topicPartitionOffset.toTopicPartition)
+
       }
-
-      newWriter.write(messageDetail, topicPartitionOffset)
-
-      if (newWriter.shouldFlush)
-        commitTopicPartitionWriters(topicPartitionOffset.toTopicPartition)
-
-      handleTry(Success(())).nonEmpty
-
-    } catch {
-      case t: Throwable =>
-        logger.error(s"There was an error writing the records ${t.getMessage}", t)
-        handleTry(Failure(t)).nonEmpty
     }
   }
 
@@ -161,7 +154,6 @@ class S3WriterManager(sinkName: String,
   }
 
   def preCommit(currentOffsets: Map[TopicPartition, OffsetAndMetadata]): Map[TopicPartition, OffsetAndMetadata] = {
-    import Offset.orderingByOffsetValue
     currentOffsets
       .collect {
         case (topicPartition, offsetAndMetadata) =>
