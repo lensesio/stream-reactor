@@ -13,6 +13,6 @@ jobs:
           java-version: '8'
           distribution: 'adopt'
       - name: Test
-        run: ./gradlew compile --parallel && ./gradlew test
+        run: ./smart-build.sh
         env:
           JVM_OPTS: -Xmx3200m
