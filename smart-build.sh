@@ -2,7 +2,12 @@
 
 set -x
 
-MODIFIED_MODULES=$(git show --name-only --oneline HEAD | tail -n +2 | cut -d/ -f1 | sort | uniq )
+if [[ -z "${GITHUB_HEAD_REF}" ]]; then
+  MODIFIED_MODULES=$(git show --name-only --oneline HEAD | tail -n +2 | cut -d/ -f1 | sort | uniq)
+else
+  git fetch
+  MODIFIED_MODULES=$(git diff --name-only "remotes/origin/${GITHUB_BASE_REF}" "remotes/origin/${GITHUB_HEAD_REF}" | cut -d/ -f1 | sort | uniq)
+fi
 
 BUILD_ALL=false
 
@@ -14,12 +19,12 @@ for module in ${MODIFIED_MODULES}; do
 done
 
 if $BUILD_ALL; then
-    ./gradlew clean test --parallel
+    ./gradlew clean test
 else
     GRADLE_TASKS=""
     for module in ${MODIFIED_MODULES}; do
         GRADLE_TASKS="${GRADLE_TASKS} :${module}:test"
     done
 
-    ./gradlew clean ${GRADLE_TASKS} --parallel
+    ./gradlew clean ${GRADLE_TASKS}
 fi
