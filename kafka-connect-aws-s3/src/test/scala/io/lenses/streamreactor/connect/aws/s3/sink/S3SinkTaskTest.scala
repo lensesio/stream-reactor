@@ -30,6 +30,7 @@ import org.apache.avro.util.Utf8
 import org.apache.commons.io.IOUtils
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
+import org.apache.kafka.connect.errors.ConnectException
 import org.apache.kafka.connect.header.{ConnectHeaders, Header}
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.jclouds.blobstore.options.ListContainerOptions
@@ -284,7 +285,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
 
-    assertThrows[IllegalStateException] {
+    assertThrows[ConnectException] {
       task.put(records.asJava)
     }
 
@@ -610,11 +611,11 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
-    val caught = intercept[IllegalArgumentException] {
+    val caught = intercept[ConnectException] {
       task.put(textRecords.asJava)
     }
 
-    assert(caught.getMessage.equalsIgnoreCase("Header 'hair' not found in message"))
+    assert(caught.getMessage.endsWith("Header 'hair' not found in message"))
 
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
@@ -764,10 +765,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     task.start(props)
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
-    val intercepted = intercept[IllegalStateException] {
+    val intercepted = intercept[ConnectException] {
       task.put(keyPartitionedRecords.asJava)
     }
-    intercepted.getMessage should be("Non primitive struct provided, PARTITIONBY _key requested in KCQL")
+    intercepted.getMessage should endWith("Non primitive struct provided, PARTITIONBY _key requested in KCQL")
 
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
