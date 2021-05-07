@@ -20,8 +20,6 @@ for module in ${MODIFIED_MODULES}; do
   fi
 done
 
-sleep 3m
-
 if $BUILD_ALL; then
     ./gradlew clean test
 else
