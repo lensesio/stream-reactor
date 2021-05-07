@@ -14,12 +14,12 @@ for module in ${MODIFIED_MODULES}; do
 done
 
 if $BUILD_ALL; then
-    ./gradlew clean test
+    ./gradlew clean test --parallel
 else
     GRADLE_TASKS=""
     for module in ${MODIFIED_MODULES}; do
         GRADLE_TASKS="${GRADLE_TASKS} :${module}:test"
     done
 
-    ./gradlew clean ${GRADLE_TASKS}
+    ./gradlew clean ${GRADLE_TASKS} --parallel
 fi
