@@ -482,11 +482,10 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
 
       // The broker "crashes" and loses all state. The mqttManager should reconnect and resubscribe.
       stopMockMqttBroker()
-      Thread.sleep(5000)
 
       // A new broker starts up. The MqttManager should now reconnect and resubscribe.
       startNewMockMqttBroker()
-      Thread.sleep(5000)
+      Thread.sleep(8000)
 
       // Publish a message to the topic the manager should have resubscribed to.
       val message = "message1"
