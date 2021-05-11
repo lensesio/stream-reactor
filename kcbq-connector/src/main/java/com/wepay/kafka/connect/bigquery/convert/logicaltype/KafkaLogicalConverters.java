@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.LegacySQLTypeName;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 
 import java.math.BigDecimal;
@@ -37,6 +38,7 @@ public class KafkaLogicalConverters {
     LogicalConverterRegistry.register(Date.LOGICAL_NAME, new DateConverter());
     LogicalConverterRegistry.register(Decimal.LOGICAL_NAME, new DecimalConverter());
     LogicalConverterRegistry.register(Timestamp.LOGICAL_NAME, new TimestampConverter());
+    LogicalConverterRegistry.register(Time.LOGICAL_NAME, new TimeConverter());
   }
 
   /**
@@ -94,6 +96,26 @@ public class KafkaLogicalConverters {
     @Override
     public String convert(Object kafkaConnectObject) {
       return getBqTimestampFormat().format((java.util.Date) kafkaConnectObject);
+    }
+  }
+
+
+  /**
+   * Class for converting Kafka time logical types to BigQuery time types.
+   */
+  public static class TimeConverter extends LogicalTypeConverter {
+    /**
+     * Create a new TimestampConverter.
+     */
+    public TimeConverter() {
+      super(Time.LOGICAL_NAME,
+          Schema.Type.INT32,
+          LegacySQLTypeName.TIME);
+    }
+
+    @Override
+    public String convert(Object kafkaConnectObject) {
+      return getBqTimeFormat().format((java.util.Date) kafkaConnectObject);
     }
   }
 }
