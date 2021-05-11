@@ -27,6 +27,7 @@ import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.KafkaLogicalConverters.DateConverter;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.KafkaLogicalConverters.DecimalConverter;
 import com.wepay.kafka.connect.bigquery.convert.logicaltype.KafkaLogicalConverters.TimestampConverter;
+import com.wepay.kafka.connect.bigquery.convert.logicaltype.KafkaLogicalConverters.TimeConverter;
 
 import org.apache.kafka.connect.data.Schema;
 
@@ -100,5 +101,33 @@ public class KafkaLogicalConvertersTest {
     String formattedTimestamp = converter.convert(date);
 
     assertEquals("2017-03-01 22:20:38.808", formattedTimestamp);
+  }
+
+
+  @Test
+  public void testTimeConversion() {
+    TimeConverter converter = new KafkaLogicalConverters.TimeConverter();
+
+    assertEquals(LegacySQLTypeName.TIME, converter.getBQSchemaType());
+
+    try {
+      converter.checkEncodingType(Schema.Type.INT32);
+    } catch (Exception ex) {
+      fail("Expected encoding type check to succeed.");
+    }
+
+    try {
+      converter.checkEncodingType(Schema.Type.INT64);
+      fail("Expected encoding type check to fail");
+    } catch (Exception ex) {
+      // continue
+    }
+
+    // Can't use the same timestamp here as the one in other tests as the Time type
+    // should only fall on January 1st, 1970
+    Date date = new Date(166838808);
+    String formattedTimestamp = converter.convert(date);
+
+    assertEquals("22:20:38.808", formattedTimestamp);
   }
 }
