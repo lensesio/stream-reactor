@@ -51,15 +51,6 @@ class S3SinkTask extends SinkTask {
 
   override def version(): String = manifest.version()
 
-  def validateBuckets(storageInterface: StorageInterface, config: S3SinkConfig) = {
-    config.bucketOptions.foreach(
-      bucketOption => {
-        val bucketAndPrefix = bucketOption.bucketAndPrefix
-        storageInterface.list(bucketAndPrefix)
-      }
-    )
-  }
-
   override def start(props: util.Map[String, String]): Unit = {
     sinkName = Option(props.get("name")).getOrElse("MissingSinkName")
 
@@ -73,8 +64,6 @@ class S3SinkTask extends SinkTask {
     val configs = Option(context).flatMap(c => Option(c.configs())).filter(_.isEmpty == false).getOrElse(props)
 
     config = S3SinkConfig(configs.asScala.toMap)
-
-    validateBuckets(storageInterface, config)
 
     setErrorRetryInterval
 
