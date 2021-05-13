@@ -82,7 +82,7 @@ class MqttSourceTaskTest extends AnyWordSpec with Matchers with BeforeAndAfter w
     val connection = s"tcp://localhost:${mqttContainer.getMappedPort(1883)}"
     val props = Map(
       MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
-      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "0",
       MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $target1 SELECT * FROM $source1 WITHCONVERTER=`${classOf[BytesConverter].getCanonicalName}`;INSERT INTO $target2 SELECT * FROM $source2 WITHCONVERTER=`${classOf[JsonSimpleConverter].getCanonicalName}`;INSERT INTO $target3 SELECT * FROM $source3 WITHCONVERTER=`${classOf[AvroConverter].getCanonicalName}`",
       MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
       AvroConverter.SCHEMA_CONFIG -> s"$source3=${getSchemaFile(studentSchema)}",

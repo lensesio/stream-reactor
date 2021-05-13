@@ -58,6 +58,7 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
   conOpt.setCleanSession(true)
   conOpt.setUserName("somepassw")
   conOpt.setPassword("user".toCharArray)
+  conOpt.setConnectionTimeout(0)
 
   val dataStore = new MqttDefaultFilePersistence(System.getProperty("java.io.tmpdir"))
 
@@ -176,7 +177,7 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
       MqttConfigConstants.QS_CONFIG -> "1",
       MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
       MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
-      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "0",
       MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
       MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
       MqttConfigConstants.USER_CONFIG -> "user"
@@ -237,7 +238,7 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
       MqttConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES -> sinkAvroSchemas,
       MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
       MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
-      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
+      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "0",
       MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
       MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
       MqttConfigConstants.USER_CONFIG -> "user"
