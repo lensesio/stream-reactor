@@ -79,7 +79,7 @@ class MqttSourceTaskTest extends AnyWordSpec with Matchers with BeforeAndAfter w
     val studentSchema = SchemaFor[Student]()
     val task = new MqttSourceTask
 
-    val connection = s"tcp://0.0.0.0:${mqttContainer.getMappedPort(1883)}"
+    val connection = s"tcp://localhost:${mqttContainer.getMappedPort(1883)}"
     val props = Map(
       MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
       MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
@@ -165,7 +165,7 @@ class MqttSourceTaskTest extends AnyWordSpec with Matchers with BeforeAndAfter w
     msg.setQos(2)
     msg.setRetained(false)
 
-    val connection = s"tcp://0.0.0.0:${mqttContainer.getMappedPort(1883)}"
+    val connection = s"tcp://localhost:${mqttContainer.getMappedPort(1883)}"
     val client = new MqttClient(connection, UUID.randomUUID.toString)
     client.connect()
     client.publish(topic, msg)

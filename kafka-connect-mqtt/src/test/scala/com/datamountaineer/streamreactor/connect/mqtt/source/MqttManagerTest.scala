@@ -91,7 +91,7 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
 
     "dynamically set the target kafka topic to the topic from the mqtt topic on wildcards" in {
 
-      val connection = s"tcp://0.0.0.0:${mqttContainer.getMappedPort(1883)}"
+      val connection = s"tcp://localhost:${mqttContainer.getMappedPort(1883)}"
       val source = "/mqttSourceTopic/+/test"
       val target = "`$`"
       val sourcesToConvMap = Map(source -> new BytesConverter)
@@ -160,7 +160,7 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
 
     "process the messages on topic A and create source records with Bytes schema with Wildcards" in {
 
-      val connection = s"tcp://0.0.0.0:${mqttContainer.getMappedPort(1883)}"
+      val connection = s"tcp://localhost:${mqttContainer.getMappedPort(1883)}"
       val source = "/mqttSourceTopic/+/test"
       val target = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)
@@ -229,7 +229,7 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
 
     "process the messages on topic A and create source records with Bytes schema" in {
 
-      val connection = s"tcp://0.0.0.0:${mqttContainer.getMappedPort(1883)}"
+      val connection = s"tcp://localhost:${mqttContainer.getMappedPort(1883)}"
       val source = "/mqttSourceTopic"
       val target = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)
@@ -297,7 +297,7 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
 
     "process the messages published before subscribing" in {
 
-      val connection = s"tcp://0.0.0.0:${mqttContainer.getMappedPort(1883)}"
+      val connection = s"tcp://localhost:${mqttContainer.getMappedPort(1883)}"
       val source = "/mqttSourceTopic"
       val target = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)
@@ -369,7 +369,7 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
         source2 -> new JsonSimpleConverter,
         source3 -> avroConverter)
 
-      val connection = s"tcp://0.0.0.0:${mqttContainer.getMappedPort(1883)}"
+      val connection = s"tcp://localhost:${mqttContainer.getMappedPort(1883)}"
       val settings = MqttSourceSettings(
         connection,
         None,
@@ -464,7 +464,7 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
 // FIXME: Cannot replicate since testcontainers will map a random port upon container restart
 //    "resubscribe after losing the connection with the broker" in {
 //
-//      val connection = s"tcp://0.0.0.0:${mqttContainer.getMappedPort(1883)}"
+//      val connection = s"tcp://localhost:${mqttContainer.getMappedPort(1883)}"
 //      val source = "mqttSourceTopic"
 //      val target = "kafkaTopic"
 //      val sourcesToConvMap = Map(source -> new BytesConverter)
@@ -569,7 +569,7 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
     msg.setQos(2)
     msg.setRetained(false)
 
-    val connection = s"tcp://0.0.0.0:${mqttContainer.getMappedPort(1883)}"
+    val connection = s"tcp://localhost:${mqttContainer.getMappedPort(1883)}"
     val client = new MqttClient(connection, UUID.randomUUID.toString)
     client.connect()
     client.publish(topic, msg)

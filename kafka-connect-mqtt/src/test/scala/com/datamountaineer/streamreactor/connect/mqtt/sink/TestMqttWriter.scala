@@ -168,7 +168,7 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
 
   "writer should writer all fields" in {
 
-    val connection = s"tcp://0.0.0.0:${mqttContainer.getMappedPort(1883)}"
+    val connection = s"tcp://localhost:${mqttContainer.getMappedPort(1883)}"
 
     val props = Map(
       MqttConfigConstants.HOSTS_CONFIG -> connection,
@@ -228,7 +228,7 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
     val schemaPath = Paths.get(res.toURI).toFile.getAbsolutePath
 
     val sinkAvroSchemas = s"kafka_topic=$schemaPath;kafka_topic2=$schemaPath"
-    val connection = s"tcp://0.0.0.0:${mqttContainer.getMappedPort(1883)}"
+    val connection = s"tcp://localhost:${mqttContainer.getMappedPort(1883)}"
 
     val props = Map(
       MqttConfigConstants.HOSTS_CONFIG -> connection,
