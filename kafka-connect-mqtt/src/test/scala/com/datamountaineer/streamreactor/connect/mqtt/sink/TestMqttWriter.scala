@@ -31,7 +31,7 @@ import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttCli
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.testcontainers.containers.{FixedHostPortGenericContainer, GenericContainer}
+import org.testcontainers.containers.GenericContainer
 
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
@@ -48,31 +48,21 @@ import scala.util.{Failure, Success, Try}
   */
 class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll with MqttCallback with StrictLogging {
 
-  val mqttContainer : GenericContainer[_] = new FixedHostPortGenericContainer("eclipse-mosquitto")
-    .withFixedExposedPort(1883, 1883)
+  val mqttContainer : GenericContainer[_] = new GenericContainer("eclipse-mosquitto")
+    .withExposedPorts(1883)
 
-  val connection = "tcp://0.0.0.0:1883"
-  val clientId = "MqttManagerTest"
-  val qs = 1
-  val connectionTimeout = 1000
-  val keepAlive = 1000
   val queue1 = new LinkedBlockingQueue[MqttMessage](10)
   val queue2 = new LinkedBlockingQueue[MqttMessage](10)
+
   val conOpt = new MqttConnectOptions
   conOpt.setCleanSession(true)
   conOpt.setUserName("somepassw")
   conOpt.setPassword("user".toCharArray)
 
-  // Construct an MQTT blocking mode client
-  val tmpDir = System.getProperty("java.io.tmpdir")
-  val dataStore = new MqttDefaultFilePersistence(tmpDir)
-  val client = new MqttClient(connection, "test", dataStore)
-  client.setCallback(this)
-
+  val dataStore = new MqttDefaultFilePersistence(System.getProperty("java.io.tmpdir"))
 
   override def beforeAll(): Unit = {
     mqttContainer.start()
-    client.connect(conOpt)
   }
 
   override def afterAll(): Unit = {
@@ -177,13 +167,16 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
   }
 
   "writer should writer all fields" in {
+
+    val connection = s"tcp://0.0.0.0:${mqttContainer.getMappedPort(1883)}"
+
     val props = Map(
       MqttConfigConstants.HOSTS_CONFIG -> connection,
       MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $TARGET SELECT * FROM $TOPIC;INSERT INTO $TARGET SELECT * FROM $TOPIC2",
       MqttConfigConstants.QS_CONFIG -> "1",
       MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
       MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
-      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> connectionTimeout.toString,
+      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
       MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
       MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
       MqttConfigConstants.USER_CONFIG -> "user"
@@ -210,6 +203,10 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
     val writer = MqttWriter(settings, convertersMap)
     val records = getTestRecords
 
+    // Construct an MQTT blocking mode client
+    val client = new MqttClient(connection, "test", dataStore)
+    client.setCallback(this)
+    client.connect(conOpt)
     client.subscribe(TARGET)
 
     writer.write(records)
@@ -220,6 +217,8 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
     message shouldBe JSON
     queue1.clear()
     writer.close
+    client.disconnect()
+    client.close()
   }
 
 
@@ -229,6 +228,7 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
     val schemaPath = Paths.get(res.toURI).toFile.getAbsolutePath
 
     val sinkAvroSchemas = s"kafka_topic=$schemaPath;kafka_topic2=$schemaPath"
+    val connection = s"tcp://0.0.0.0:${mqttContainer.getMappedPort(1883)}"
 
     val props = Map(
       MqttConfigConstants.HOSTS_CONFIG -> connection,
@@ -237,7 +237,7 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
       MqttConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES -> sinkAvroSchemas,
       MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
       MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
-      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> connectionTimeout.toString,
+      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
       MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
       MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
       MqttConfigConstants.USER_CONFIG -> "user"
@@ -260,7 +260,11 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
     val writer = MqttWriter(settings, convertersMap)
     val records = getTestRecords
 
-    client.subscribe("foo")
+    // Construct an MQTT blocking mode client
+    val client = new MqttClient(connection, "test", dataStore)
+    client.setCallback(this)
+    client.connect(conOpt)
+    client.subscribe(TARGET)
 
     writer.write(records)
     Thread.sleep(2000)
@@ -272,6 +276,8 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
     queue1.asScala.take(1).head.getPayload shouldBe message
     queue1.clear()
     writer.close
+    client.disconnect()
+    client.close()
   }
 
 //  "writer should ignore fields if ignore set and select only id" in {
@@ -303,7 +309,7 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
 //  }
 
   override def messageArrived(topic: String, message: MqttMessage): Unit = {
-    logger.info(s"Received message ${new String(message.getPayload)} on topic $topic")
+    logger.info(s"Received message on topic $topic")
     if (topic.equals(TARGET)) queue1.put(message) else queue2.put(message)
   }
 

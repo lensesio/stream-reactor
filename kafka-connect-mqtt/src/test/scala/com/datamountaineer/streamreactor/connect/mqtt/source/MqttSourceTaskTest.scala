@@ -28,7 +28,7 @@ import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.testcontainers.containers.{FixedHostPortGenericContainer, GenericContainer}
+import org.testcontainers.containers.GenericContainer
 
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.Paths
@@ -37,14 +37,8 @@ import scala.collection.JavaConverters._
 
 class MqttSourceTaskTest extends AnyWordSpec with Matchers with BeforeAndAfter with MockitoSugar {
 
-  val mqttContainer : GenericContainer[_] = new FixedHostPortGenericContainer("eclipse-mosquitto")
-    .withFixedExposedPort(1883, 1883)
-
-  val connection = "tcp://0.0.0.0:1883"
-  val clientId = "MqttSourceTaskTest"
-  val qs = 1
-  val connectionTimeout = 1000
-  val keepAlive = 1000
+  val mqttContainer : GenericContainer[_] = new GenericContainer("eclipse-mosquitto")
+    .withExposedPorts(1883)
 
   before {
     mqttContainer.start()
@@ -85,16 +79,17 @@ class MqttSourceTaskTest extends AnyWordSpec with Matchers with BeforeAndAfter w
     val studentSchema = SchemaFor[Student]()
     val task = new MqttSourceTask
 
+    val connection = s"tcp://0.0.0.0:${mqttContainer.getMappedPort(1883)}"
     val props = Map(
       MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
-      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> connectionTimeout.toString,
+      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
       MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $target1 SELECT * FROM $source1 WITHCONVERTER=`${classOf[BytesConverter].getCanonicalName}`;INSERT INTO $target2 SELECT * FROM $source2 WITHCONVERTER=`${classOf[JsonSimpleConverter].getCanonicalName}`;INSERT INTO $target3 SELECT * FROM $source3 WITHCONVERTER=`${classOf[AvroConverter].getCanonicalName}`",
-      MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> keepAlive.toString,
+      MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
       AvroConverter.SCHEMA_CONFIG -> s"$source3=${getSchemaFile(studentSchema)}",
-      MqttConfigConstants.CLIENT_ID_CONFIG -> clientId,
+      MqttConfigConstants.CLIENT_ID_CONFIG -> "MqttSourceTaskTest",
       MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
       MqttConfigConstants.HOSTS_CONFIG -> connection,
-      MqttConfigConstants.QS_CONFIG -> qs.toString
+      MqttConfigConstants.QS_CONFIG -> "1"
     ).asJava
     val context = mock[SourceTaskContext]
     when(context.configs()).thenReturn(props)
@@ -170,6 +165,7 @@ class MqttSourceTaskTest extends AnyWordSpec with Matchers with BeforeAndAfter w
     msg.setQos(2)
     msg.setRetained(false)
 
+    val connection = s"tcp://0.0.0.0:${mqttContainer.getMappedPort(1883)}"
     val client = new MqttClient(connection, UUID.randomUUID.toString)
     client.connect()
     client.publish(topic, msg)
