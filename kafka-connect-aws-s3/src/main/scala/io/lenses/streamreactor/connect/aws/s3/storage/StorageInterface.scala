@@ -51,5 +51,6 @@ trait StorageInterface {
 
   def getBlobSize(bucketAndPath: BucketAndPath): Long
 
+  def checkBucket(bucketAndPrefix: BucketAndPrefix): Option[Throwable]
 }
 

@@ -128,6 +128,16 @@ class MultipartBlobStoreStorageInterfaceTest extends AnyFlatSpec with MockitoSug
       be(List("only"))
   }
 
+  "checkBucket" should "return None on success" in {
+    multipartBlobStoreStorageInterface.checkBucket(BucketAndPrefix(testBucketAndPath.bucket, Some("prefix"))) should be (None)
+  }
+
+  "checkBucket" should "return Some(exception) on failure" in {
+    val ex = new IllegalArgumentException("Error listing bucket")
+    when(blobStore.list(anyString(), any(classOf[ListContainerOptions]))).thenThrow(ex)
+    multipartBlobStoreStorageInterface.checkBucket(BucketAndPrefix(testBucketAndPath.bucket, Some("incorrectPrefix"))) should be (Some(ex))
+  }
+
   private def createUploadState(
                                  existingParts: Vector[MultipartPart] = Vector(),
                                  existingBufferBytes: Array[Byte] = Array()

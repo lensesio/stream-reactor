@@ -89,6 +89,20 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     new SinkRecord(TopicName, 1, null, createKey(keySchema, ("phonePrefix", "+49"), ("region", 5)), null, users(2), 2, null, null)
   )
 
+  "S3SinkTask" should "validate connection on startup" in {
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into incorrectbucket:$PrefixName select * from $TopicName WITH_FLUSH_INTERVAL = 1")
+      ).asJava
+
+    assertThrows[IllegalStateException] {
+      task.start(props)
+    }
+  }
+
   "S3SinkTask" should "flush on configured flush time intervals" in {
 
     val task = new S3SinkTask()

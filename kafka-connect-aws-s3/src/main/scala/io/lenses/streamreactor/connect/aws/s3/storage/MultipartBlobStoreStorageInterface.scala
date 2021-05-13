@@ -34,7 +34,7 @@ import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.util.UUID
 import scala.collection.JavaConverters._
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 class MultipartBlobStoreStorageInterface(sinkName: String, blobStoreContext: BlobStoreContext) extends StorageInterface with LazyLogging {
 
@@ -169,6 +169,25 @@ class MultipartBlobStoreStorageInterface(sinkName: String, blobStoreContext: Blo
 
     } while (nextMarker.nonEmpty)
     pageSetStrings
+
+  }
+
+  override def checkBucket(bucketAndPrefix: BucketAndPrefix): Option[Throwable] = {
+    val options = bucketAndPrefix
+      .prefix
+      .fold(
+        ListContainerOptions.Builder.recursive()
+      )(
+        ListContainerOptions.Builder.recursive().prefix
+      )
+      .maxResults(1)
+
+    Try(blobStore.list(bucketAndPrefix.bucket, options)) match {
+      case Failure(ex) => Some(ex)
+      case Success(_) => None
+    }
+
+
 
   }
 

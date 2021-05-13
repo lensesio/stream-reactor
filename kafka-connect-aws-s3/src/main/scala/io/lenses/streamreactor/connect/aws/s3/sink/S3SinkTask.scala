@@ -54,8 +54,7 @@ class S3SinkTask extends SinkTask {
   def validateBuckets(storageInterface: StorageInterface, config: S3SinkConfig) = {
     config.bucketOptions.foreach(
       bucketOption => {
-        val bucketAndPrefix = bucketOption.bucketAndPrefix
-        storageInterface.list(bucketAndPrefix)
+        storageInterface.checkBucket(bucketOption.bucketAndPrefix).fold()(e => throw new IllegalStateException(e))
       }
     )
   }
