@@ -147,7 +147,7 @@ class S3SinkTask extends SinkTask {
     }
     logger.debug(s"[{}] preCommit with offsets={}", sinkName, getDebugInfo(currentOffsets): Any)
 
-    val topicPartitionOffsetTransformed: Map[TopicPartition, OffsetAndMetadata] = currentOffsets
+    val topicPartitionOffsetTransformed: Map[TopicPartition, OffsetAndMetadata] = Option(currentOffsets).getOrElse(new util.HashMap())
       .asScala
       .map {
         topicPartToOffsetTuple: (KafkaTopicPartition, OffsetAndMetadata) =>
