@@ -19,16 +19,13 @@ package com.datamountaineer.streamreactor.connect.mqtt.source
 import com.datamountaineer.streamreactor.common.converters.MsgKey
 import com.datamountaineer.streamreactor.common.serialization.AvroSerializer
 import com.datamountaineer.streamreactor.connect.converters.source.{AvroConverter, BytesConverter, Converter, JsonSimpleConverter}
-import com.datamountaineer.streamreactor.connect.mqtt.config.MqttSourceSettings
+import com.datamountaineer.streamreactor.connect.mqtt.MqttTestContainer
+import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSourceConfig, MqttSourceSettings}
 import com.datamountaineer.streamreactor.connect.mqtt.connection.MqttClientConnectionFn
 import com.sksamuel.avro4s.SchemaFor
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.source.SourceRecord
 import org.eclipse.paho.client.mqttv3.{MqttClient, MqttMessage}
-import org.scalatest.BeforeAndAfter
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
-import org.testcontainers.containers.{FixedHostPortGenericContainer, GenericContainer}
 
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.Paths
@@ -36,12 +33,8 @@ import java.util
 import java.util.UUID
 import scala.collection.JavaConverters._
 
-class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
+class MqttManagerTest extends MqttTestContainer {
 
-  val mqttContainer : GenericContainer[_] = new FixedHostPortGenericContainer("eclipse-mosquitto")
-    .withFixedExposedPort(1883, 1883)
-
-  val connection = "tcp://0.0.0.0:1883"
   val clientId = "MqttManagerTest"
   val clientPersistentId = "MqttManagerTestDisableClean"
   val qs = 1
@@ -49,21 +42,6 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
   val pollingTimeout = 500
   val keepAlive = 1000
 
-  before {
-    startNewMockMqttBroker()
-  }
-
-  after {
-    stopMockMqttBroker()
-  }
-
-  private def startNewMockMqttBroker(): Unit = {
-    mqttContainer.start()
-  }
-
-  private def stopMockMqttBroker(): Unit = {
-    mqttContainer.stop()
-  }
 
   private def initializeConverter(mqttSource: String, converter: AvroConverter, schema: org.apache.avro.Schema): Unit = {
     val schemaFile = Paths.get(UUID.randomUUID().toString)
@@ -95,7 +73,7 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
       val target = "`$`"
       val sourcesToConvMap = Map(source -> new BytesConverter)
       val settings = MqttSourceSettings(
-        connection,
+        getMqttConnectionUrl,
         None,
         None,
         clientId,
@@ -162,7 +140,7 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
       val target = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)
       val settings = MqttSourceSettings(
-        connection,
+        getMqttConnectionUrl,
         None,
         None,
         clientId,
@@ -229,7 +207,7 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
       val target = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)
       val settings = MqttSourceSettings(
-        connection,
+        getMqttConnectionUrl,
         None,
         None,
         clientId,
@@ -295,7 +273,7 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
       val target = "kafkaTopic"
       val sourcesToConvMap = Map(source -> new BytesConverter)
       val settings = MqttSourceSettings(
-        connection,
+        getMqttConnectionUrl,
         None,
         None,
         clientPersistentId,
@@ -363,7 +341,7 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
         source3 -> avroConverter)
 
       val settings = MqttSourceSettings(
-        connection,
+        getMqttConnectionUrl,
         None,
         None,
         clientId,
@@ -452,50 +430,38 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
         mqttManager.close()
       }
     }
-    "resubscribe after losing the connection with the broker" in {
-      val source = "mqttSourceTopic"
-      val target = "kafkaTopic"
-      val sourcesToConvMap = Map(source -> new BytesConverter)
-      val settings = MqttSourceSettings(
-        connection,
-        None,
-        None,
-        clientId,
-        sourcesToConvMap.map { case (k, v) => k -> v.getClass.getCanonicalName },
-        throwOnConversion = true,
-        Array(s"INSERT INTO $target SELECT * FROM $source"),
-        qs,
-        connectionTimeout,
-        pollingTimeout,
-        cleanSession = true,
-        keepAlive,
-        None,
-        None,
-        None
-      )
+  }
 
-      // Instantiate the mqtt manager. It will subscribe to topic $source, at the currently active broker.
+  "MqttManager" should {
+    "process the messages on shared mqtt topic and create source records with Bytes schema with Wildcards" in {
+      val sourceTopic = "$share/connect/mqttSourceTopic"
+      val sourceKCQL = "`$share/connect/mqttSourceTopic`" // same with sourceTopic but with quotes
+      val target = "kafkaTopic"
+      val sourcesToConvMap = Map(sourceTopic -> new BytesConverter)
+      val props = Map(
+        MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
+        MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> connectionTimeout.toString,
+        MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $target SELECT * FROM $sourceKCQL withregex=`\\$$share/connect/.*`",
+        MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> keepAlive.toString,
+        MqttConfigConstants.CLIENT_ID_CONFIG -> clientId,
+        MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
+        MqttConfigConstants.HOSTS_CONFIG -> getMqttConnectionUrl,
+        MqttConfigConstants.QS_CONFIG -> qs.toString
+      )
       val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
         sourcesToConvMap,
-        settings)
+        MqttSourceSettings(MqttSourceConfig(props.asJava)))
       Thread.sleep(2000)
 
-      // The broker "crashes" and loses all state. The mqttManager should reconnect and resubscribe.
-      stopMockMqttBroker()
+      val message = "message"
 
-      // A new broker starts up. The MqttManager should now reconnect and resubscribe.
-      startNewMockMqttBroker()
-      Thread.sleep(8000)
+      publishMessage(sourceTopic, message.getBytes)
 
-      // Publish a message to the topic the manager should have resubscribed to.
-      val message = "message1"
-      publishMessage(source, message.getBytes())
       Thread.sleep(2000)
 
       val records = new util.LinkedList[SourceRecord]()
       mqttManager.getRecords(records)
 
-      // Verify that the records were received by the manager.
       try {
         records.size() shouldBe 1
         records.get(0).topic() shouldBe target
@@ -506,50 +472,8 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
         mqttManager.close()
       }
     }
-  }
 
-//  "MqttManager" should {
-//    "process the messages on shared mqtt topic and create source records with Bytes schema with Wildcards" in {
-//      val sourceTopic = "$share/connect/mqttSourceTopic"
-//      val sourceKCQL = "`$share/connect/mqttSourceTopic`" // same with sourceTopic but with quotes
-//      val target = "kafkaTopic"
-//      val sourcesToConvMap = Map(sourceTopic -> new BytesConverter)
-//      val props = Map(
-//        MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
-//        MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> connectionTimeout.toString,
-//        MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $target SELECT * FROM $sourceKCQL withregex=`\\$$share/connect/.*`",
-//        MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> keepAlive.toString,
-//        MqttConfigConstants.CLIENT_ID_CONFIG -> clientId,
-//        MqttConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG -> "true",
-//        MqttConfigConstants.HOSTS_CONFIG -> connection,
-//        MqttConfigConstants.QS_CONFIG -> qs.toString
-//      )
-//      val mqttManager = new MqttManager(MqttClientConnectionFn.apply,
-//        sourcesToConvMap,
-//        MqttSourceSettings(MqttSourceConfig(props.asJava)))
-//      Thread.sleep(2000)
-//
-//      val message = "message"
-//
-//      publishMessage(sourceTopic, message.getBytes)
-//
-//      Thread.sleep(2000)
-//
-//      val records = new util.LinkedList[SourceRecord]()
-//      mqttManager.getRecords(records)
-//
-//      try {
-//        records.size() shouldBe 1
-//        records.get(0).topic() shouldBe target
-//        records.get(0).value() shouldBe message.getBytes()
-//        records.get(0).valueSchema() shouldBe Schema.BYTES_SCHEMA
-//      }
-//      finally {
-//        mqttManager.close()
-//      }
-//    }
-//
-//  }
+  }
 
   private def publishMessage(topic: String, payload: Array[Byte]): Unit = {
     val msg = new MqttMessage(payload)
@@ -557,7 +481,7 @@ class MqttManagerTest extends AnyWordSpec with Matchers with BeforeAndAfter {
     msg.setQos(2)
     msg.setRetained(false)
 
-    val client = new MqttClient(connection, UUID.randomUUID.toString)
+    val client = new MqttClient(getMqttConnectionUrl, UUID.randomUUID.toString)
     client.connect()
     client.publish(topic, msg)
     client.disconnect()

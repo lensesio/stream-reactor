@@ -17,10 +17,14 @@
 project(":kafka-connect-mqtt") {
 
     ext {
-        mqttVersion = "1.2.2"
+        mqttVersion = "1.2.5"
         bouncyCastle = "1.54"
         json4s = "3.5.0"
         activeMq = "5.7.0"
+    }
+
+    test {
+        maxParallelForks = 1
     }
 
     dependencies {
@@ -36,7 +40,6 @@ project(":kafka-connect-mqtt") {
 
         testCompile "org.json4s:json4s-core_$scalaMajorVersion:$json4s"
         testCompile "org.json4s:json4s-jackson_$scalaMajorVersion:$json4s"
-        //testCompile("org.apache.activemq:activemq-core:$activeMq")
-        testImplementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.0'
+        testImplementation "org.testcontainers:toxiproxy:$testcontainersVersion"
     }
 }

@@ -17,6 +17,7 @@
 package com.datamountaineer.streamreactor.connect.mqtt.sink
 
 import com.datamountaineer.streamreactor.common.converters.sink.Converter
+import com.datamountaineer.streamreactor.connect.mqtt.MqttTestContainer
 import com.datamountaineer.streamreactor.connect.mqtt.config.{MqttConfigConstants, MqttSinkConfig, MqttSinkSettings}
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.avro.generic.{GenericData, GenericDatumWriter, GenericRecord}
@@ -28,15 +29,12 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence
 import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttClient, MqttConnectOptions, MqttMessage}
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
-import org.testcontainers.containers.{FixedHostPortGenericContainer, GenericContainer}
 
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.file.Paths
 import java.util
+import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -46,38 +44,12 @@ import scala.util.{Failure, Success, Try}
   * Created by andrew@datamountaineer.com on 27/08/2017.
   * stream-reactor
   */
-class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll with MqttCallback with StrictLogging {
+class TestMqttWriter extends MqttTestContainer with MqttCallback with StrictLogging {
 
-  val mqttContainer : GenericContainer[_] = new FixedHostPortGenericContainer("eclipse-mosquitto")
-    .withFixedExposedPort(1883, 1883)
+  val mqttUser = "user"
+  val mqttPassword = "passwd"
 
-  val connection = "tcp://0.0.0.0:1883"
-  val clientId = "MqttManagerTest"
-  val qs = 1
-  val connectionTimeout = 1000
-  val keepAlive = 1000
-  val queue1 = new LinkedBlockingQueue[MqttMessage](10)
-  val queue2 = new LinkedBlockingQueue[MqttMessage](10)
-  val conOpt = new MqttConnectOptions
-  conOpt.setCleanSession(true)
-  conOpt.setUserName("somepassw")
-  conOpt.setPassword("user".toCharArray)
-
-  // Construct an MQTT blocking mode client
-  val tmpDir = System.getProperty("java.io.tmpdir")
-  val dataStore = new MqttDefaultFilePersistence(tmpDir)
-  val client = new MqttClient(connection, "test", dataStore)
-  client.setCallback(this)
-
-
-  override def beforeAll(): Unit = {
-    mqttContainer.start()
-    client.connect(conOpt)
-  }
-
-  override def afterAll(): Unit = {
-    mqttContainer.stop()
-  }
+  val queue = new LinkedBlockingQueue[MqttMessage](10)
 
   val JSON = "{\"id\":\"kafka_topic2-12-1\",\"int_field\":12,\"long_field\":12,\"string_field\":\"foo\",\"float_field\":0.1,\"float64_field\":0.199999,\"boolean_field\":true,\"byte_field\":\"Ynl0ZXM=\"}"
   val JSON_IGNORE_ID = "{\"id\":\"kafka_topic2-12-1\"}}"
@@ -95,6 +67,26 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
   ASSIGNMENT.add(TOPIC_PARTITION)
   ASSIGNMENT.add(TOPIC_PARTITION2)
   ASSIGNMENT.add(TOPIC_PARTITION3)
+
+
+  private def withSubscribedMqttClient(fun: => Any): Unit = {
+    val conOpt = new MqttConnectOptions
+    conOpt.setCleanSession(true)
+    conOpt.setUserName(mqttUser)
+    conOpt.setPassword(mqttPassword.toCharArray)
+
+    val dataStore = new MqttDefaultFilePersistence(System.getProperty("java.io.tmpdir"))
+
+    val client = new MqttClient(getMqttConnectionUrl, UUID.randomUUID().toString, dataStore)
+    client.setCallback(this)
+    client.connect(conOpt)
+    client.subscribe(TARGET)
+
+    fun
+
+    client.disconnect()
+    client.close()
+  }
 
   def createSinkRecord(record: Struct, topic: String, offset: Long): SinkRecord = {
     new SinkRecord(topic, 1, Schema.STRING_SCHEMA, "key", record.schema(), record, offset, System.currentTimeMillis(), TimestampType.CREATE_TIME)
@@ -178,15 +170,15 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
 
   "writer should writer all fields" in {
     val props = Map(
-      MqttConfigConstants.HOSTS_CONFIG -> connection,
+      MqttConfigConstants.HOSTS_CONFIG -> getMqttConnectionUrl,
       MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $TARGET SELECT * FROM $TOPIC;INSERT INTO $TARGET SELECT * FROM $TOPIC2",
       MqttConfigConstants.QS_CONFIG -> "1",
       MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
-      MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
-      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> connectionTimeout.toString,
+      MqttConfigConstants.CLIENT_ID_CONFIG -> UUID.randomUUID().toString,
+      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
       MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
-      MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
-      MqttConfigConstants.USER_CONFIG -> "user"
+      MqttConfigConstants.PASSWORD_CONFIG -> mqttPassword,
+      MqttConfigConstants.USER_CONFIG -> mqttUser
     )
 
     val config = MqttSinkConfig(props.asJava)
@@ -206,22 +198,20 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
         }
       }
 
-
     val writer = MqttWriter(settings, convertersMap)
     val records = getTestRecords
 
-    client.subscribe(TARGET)
+    withSubscribedMqttClient {
+      writer.write(records)
+      Thread.sleep(2000)
 
-    writer.write(records)
-    Thread.sleep(2000)
-
-    queue1.size() shouldBe 3
-    val message = new String(queue1.asScala.take(1).head.getPayload)
-    message shouldBe JSON
-    queue1.clear()
-    writer.close
+      queue.size() shouldBe 3
+      val message = new String(queue.asScala.take(1).head.getPayload)
+      queue.clear()
+      message shouldBe JSON
+      writer.close
+    }
   }
-
 
   "writer should writer all fields in avro" in {
 
@@ -231,80 +221,52 @@ class TestMqttWriter extends AnyWordSpec with Matchers with BeforeAndAfterAll wi
     val sinkAvroSchemas = s"kafka_topic=$schemaPath;kafka_topic2=$schemaPath"
 
     val props = Map(
-      MqttConfigConstants.HOSTS_CONFIG -> connection,
+      MqttConfigConstants.HOSTS_CONFIG -> getMqttConnectionUrl,
       MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $TARGET SELECT * FROM $TOPIC WITHCONVERTER=`com.datamountaineer.streamreactor.common.converters.sink.AvroConverter` WITHTARGET=string_field;INSERT INTO $TARGET SELECT * FROM $TOPIC2 WITHCONVERTER=`com.datamountaineer.streamreactor.common.converters.sink.AvroConverter` WITHTARGET=string_field",
       MqttConfigConstants.QS_CONFIG -> "1",
       MqttConfigConstants.AVRO_CONVERTERS_SCHEMA_FILES -> sinkAvroSchemas,
       MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
-      MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
-      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> connectionTimeout.toString,
+      MqttConfigConstants.CLIENT_ID_CONFIG -> UUID.randomUUID().toString,
+      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> "1000",
       MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
-      MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
-      MqttConfigConstants.USER_CONFIG -> "user"
+      MqttConfigConstants.PASSWORD_CONFIG -> mqttPassword,
+      MqttConfigConstants.USER_CONFIG -> mqttUser
     ).asJava
 
     val config = MqttSinkConfig(props)
     val settings = MqttSinkSettings(config)
 
     val convertersMap = settings.sinksToConverters.map { case (topic, clazz) =>
-        logger.info(s"Creating converter instance for $clazz")
-        val converter = Try(Class.forName(clazz).newInstance()) match {
-          case Success(value) => value.asInstanceOf[Converter]
-          case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
-        }
-
-        converter.initialize(props.asScala.toMap)
-        topic -> converter
+      logger.info(s"Creating converter instance for $clazz")
+      val converter = Try(Class.forName(clazz).newInstance()) match {
+        case Success(value) => value.asInstanceOf[Converter]
+        case Failure(_) => throw new ConfigException(s"Invalid ${MqttConfigConstants.KCQL_CONFIG} is invalid. $clazz should have an empty ctor!")
       }
+
+      converter.initialize(props.asScala.toMap)
+      topic -> converter
+    }
 
     val writer = MqttWriter(settings, convertersMap)
     val records = getTestRecords
 
-    client.subscribe("foo")
+    withSubscribedMqttClient {
+      writer.write(records)
+      Thread.sleep(2000)
 
-    writer.write(records)
-    Thread.sleep(2000)
+      queue.size() shouldBe 3
 
-    queue1.size() shouldBe 3
+      val message = createAvroRecord(s"$schemaPath")
 
-    val message = createAvroRecord(s"$schemaPath")
-
-    queue1.asScala.take(1).head.getPayload shouldBe message
-    queue1.clear()
-    writer.close
+      queue.asScala.take(1).head.getPayload shouldBe message
+      queue.clear()
+      writer.close
+    }
   }
 
-//  "writer should ignore fields if ignore set and select only id" in {
-//    val props = Map(
-//      MqttConfigConstants.HOSTS_CONFIG -> connection,
-//      MqttConfigConstants.KCQL_CONFIG -> s"INSERT INTO $TARGET2 SELECT * FROM $TOPIC IGNORE id;INSERT INTO $TARGET2 SELECT id FROM $TOPIC2",
-//      MqttConfigConstants.QS_CONFIG -> "1",
-//      MqttConfigConstants.CLEAN_SESSION_CONFIG -> "true",
-//      MqttConfigConstants.CLIENT_ID_CONFIG -> "someid",
-//      MqttConfigConstants.CONNECTION_TIMEOUT_CONFIG -> connectionTimeout.toString,
-//      MqttConfigConstants.KEEP_ALIVE_INTERVAL_CONFIG -> "1000",
-//      MqttConfigConstants.PASSWORD_CONFIG -> "somepassw",
-//      MqttConfigConstants.USER_CONFIG -> "user"
-//    )
-//
-//    val config = MqttSinkConfig(props)
-//    val settings = MqttSinkSettings(config)
-//    val writer = MqttWriter(settings)
-//    client.subscribe(TARGET2)
-//    val records = getTestRecords
-//    writer.write(records)
-//    Thread.sleep(2000)
-//
-//    queue2.size() shouldBe 3
-//    val message = new String(queue2.take(1).head.getPayload)
-//    message shouldBe JSON_IGNORE_ID
-//    queue2.clear()
-//    writer.close
-//  }
-
   override def messageArrived(topic: String, message: MqttMessage): Unit = {
-    logger.info(s"Received message ${new String(message.getPayload)} on topic $topic")
-    if (topic.equals(TARGET)) queue1.put(message) else queue2.put(message)
+    logger.info(s"Received message on topic $topic")
+    queue.put(message)
   }
 
   override def deliveryComplete(token: IMqttDeliveryToken): Unit = {}
