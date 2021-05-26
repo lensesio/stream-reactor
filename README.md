@@ -13,6 +13,7 @@ You can find more on [lenses.io](http://www.lenses.io)
 
 
 ![Alt text](images/streamreactor-logo.png)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Flensesio%2Fstream-reactor.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Flensesio%2Fstream-reactor?ref=badge_shield)
 
 
 A collection of components to build a real time ingestion pipeline.
@@ -540,3 +541,7 @@ gradle :kafka-connect-elastic5:shadowJar
 
 We'd love to accept your contributions! Please use GitHub pull requests: fork the repo, develop and test your code, 
 [semantically commit](http://karma-runner.github.io/1.0/dev/git-commit-msg.html) and submit a pull request. Thanks!
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Flensesio%2Fstream-reactor.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Flensesio%2Fstream-reactor?ref=badge_large)
