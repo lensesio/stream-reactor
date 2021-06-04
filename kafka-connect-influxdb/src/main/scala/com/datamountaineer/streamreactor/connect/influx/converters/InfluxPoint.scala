@@ -1,24 +1,17 @@
 package com.datamountaineer.streamreactor.connect.influx.converters
 
+import com.datamountaineer.streamreactor.connect.influx.NanoClock
+import com.datamountaineer.streamreactor.connect.influx.converters.SinkRecordParser.{ParsedKeyValueSinkRecord, ParsedSinkRecord}
+import com.datamountaineer.streamreactor.connect.influx.helpers.Util
+import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails
+import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails.{ConstantTag, DynamicTag, Path}
+import org.influxdb.dto.Point
+
 import java.time.Instant
 import java.util.Date
 import java.util.concurrent.TimeUnit
-
-import com.datamountaineer.streamreactor.connect.influx.NanoClock
-import com.datamountaineer.streamreactor.connect.influx.converters.SinkRecordParser.{
-  ParsedKeyValueSinkRecord,
-  ParsedSinkRecord
-}
-import com.datamountaineer.streamreactor.connect.influx.helpers.Util
-import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails
-import com.datamountaineer.streamreactor.connect.influx.writers.KcqlDetails.{
-  ConstantTag,
-  DynamicTag,
-  Path
-}
-import org.influxdb.dto.Point
-
-import scala.util.{Failure, Try}
+import scala.collection.convert.ImplicitConversions._
+import scala.util.{Failure, Success, Try}
 
 object InfluxPoint {
 
@@ -122,9 +115,24 @@ object InfluxPoint {
     case value: BigDecimal           => Try(builder.addField(field, value.bigDecimal))
     case value: String               => Try(builder.addField(field, value))
     case value: java.util.Date       => Try(builder.addField(field, value.getTime))
+    case value: java.util.List[_]    => flattenArray(builder)(field, value)
     case value =>
       Failure(new RuntimeException(
         s"Can't select field:'$field' because it leads to value:'$value' (${Option(
           value).map(_.getClass.getName).getOrElse("")})is not a valid type for InfluxDb."))
+  }
+
+  /**
+   * Flatten an array writing each element as a new field with the following convention:
+   * "name": ["a", "b", "c"] => name0 = "a", name1 = "b", name3 = "c"
+   */
+  private def flattenArray(builder: Point.Builder)(field: String, value: java.util.List[_]) = {
+    val res = value.toList.zipWithIndex.map {
+      case (el, i) => writeField(builder)(field + i, el)
+    }
+    // return first failure
+    res.collectFirst({
+      case Failure(x) => Failure(x)
+    }).getOrElse(Success(builder))
   }
 }

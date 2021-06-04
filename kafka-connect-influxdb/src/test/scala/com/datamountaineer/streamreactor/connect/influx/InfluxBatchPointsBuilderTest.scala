@@ -17,13 +17,12 @@
 package com.datamountaineer.streamreactor.connect.influx
 
 import java.util
-
 import com.datamountaineer.kcql.Kcql
 import com.datamountaineer.streamreactor.connect.influx.config.InfluxSettings
 import com.datamountaineer.streamreactor.connect.influx.writers.InfluxBatchPointsBuilder
 import com.fasterxml.jackson.core.`type`.TypeReference
 import com.landoop.json.sql.JacksonJson
-import org.apache.kafka.connect.data.Schema
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.sink.SinkRecord
 import org.influxdb.InfluxDB.ConsistencyLevel
 import org.influxdb.dto.{BatchPoints, Point}
@@ -1120,6 +1119,51 @@ class InfluxBatchPointsBuilderTest extends AnyWordSpec with Matchers {
       map("_id") shouldBe "580151bca6f3a2f0577baaac"
       map("guid") shouldBe "6f4dbd32-d325-4eb7-87f9-2e7fa6701cba"
       map.get("index") shouldBe 'Empty
+    }
+
+    "flatten sink record arrays" in {
+      val topic = "topic1"
+      val measurement = "measurement1"
+
+      val schema = SchemaBuilder.struct().name("foo")
+        .field("name", Schema.STRING_SCHEMA)
+        .field("array", SchemaBuilder.array(Schema.FLOAT64_SCHEMA))
+        .build()
+
+      val struct = new Struct(schema)
+        .put("name", "Array with floats")
+        .put("array", new util.ArrayList[Double](List(1.0, 2.0, 3.0).asJava))
+
+      val structEmptyArray = new Struct(schema)
+        .put("name", "Empty array")
+        .put("array", new util.ArrayList[Double](List().asJava))
+
+      val sinkRecord = new SinkRecord(topic, 0, null, null, schema, struct, 1)
+      val sinkRecordEmptyArray = new SinkRecord(topic, 0, null, null, schema, structEmptyArray, 2)
+
+      val settings = InfluxSettings("connection", "user", "password", "database1", "autogen", ConsistencyLevel.ALL,
+        Seq(Kcql.parse(s"INSERT INTO $measurement SELECT * FROM $topic"))
+      )
+
+      val builder = new InfluxBatchPointsBuilder(settings, nanoClock)
+
+      val result = builder.build(Seq(sinkRecord, sinkRecordEmptyArray))
+      result shouldBe 'Success
+      val points = result.get.getPoints
+      points.size shouldBe 2
+
+      val point = points.get(0)
+      val map = PointMapFieldGetter.fields(point)
+      map.size shouldBe 4
+      map("name") shouldBe "Array with floats"
+      map("array0") shouldBe 1.0
+      map("array1") shouldBe 2.0
+      map("array2") shouldBe 3.0
+
+      val pointEmptyArray = points.get(1)
+      val mapEmptyArray = PointMapFieldGetter.fields(pointEmptyArray)
+      mapEmptyArray.size shouldBe 1
+      mapEmptyArray("name") shouldBe "Empty array"
     }
 
     object PointMapFieldGetter {
