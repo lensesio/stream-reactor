@@ -504,6 +504,16 @@ public class SchemaManager {
   }
 
   private com.google.cloud.bigquery.Schema getBigQuerySchema(Schema kafkaKeySchema, Schema kafkaValueSchema) {
+    // When converting schema from the last record of a batch, if the record is a tombstone with
+    // null value schema, only allow it to pass if schema unionization is enabled.
+    if (kafkaValueSchema == null) {
+      if (!allowSchemaUnionization) {
+        throw new BigQueryConnectException(
+            "Cannot create/update BigQuery table for record with no value schema. "
+            + "If delete mode is enabled, it may be necessary to enable schema unionization to handle this case.");
+      }
+      return com.google.cloud.bigquery.Schema.of();
+    }
     com.google.cloud.bigquery.Schema valueSchema = schemaConverter.convertSchema(kafkaValueSchema);
 
     List<Field> schemaFields = intermediateTables

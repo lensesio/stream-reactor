@@ -25,7 +25,6 @@ import static org.junit.Assert.assertThrows;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 
-import com.google.common.collect.ImmutableList;
 import com.wepay.kafka.connect.bigquery.exception.ConversionConnectException;
 
 import org.apache.kafka.connect.data.Date;

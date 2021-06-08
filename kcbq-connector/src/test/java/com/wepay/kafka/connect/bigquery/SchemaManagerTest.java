@@ -31,8 +31,9 @@ import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
-
 import com.google.cloud.bigquery.TimePartitioning;
+import com.google.common.collect.ImmutableList;
+
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
 import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 
@@ -513,6 +514,43 @@ public class SchemaManagerTest {
     SchemaManager schemaManager = createSchemaManager(true, true, true);
 
     testGetAndValidateProposedSchema(schemaManager, existingSchema, expandedSchema, expectedSchema);
+  }
+
+  @Test(expected = BigQueryConnectException.class)
+  public void testDisallowedUnionizedUpdateWithTombstoneRecord() {
+    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
+        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
+    );
+
+    Table existingTable = tableWithSchema(existingSchema);
+    List<SinkRecord> incomingSinkRecords = ImmutableList.of(recordWithValueSchema(null));
+
+    when(mockBigQuery.getTable(tableId)).thenReturn(existingTable);
+    SchemaManager schemaManager = createSchemaManager(false, true, false);
+    schemaManager.getAndValidateProposedSchema(tableId, incomingSinkRecords);
+  }
+
+  @Test
+  public void testAllowedUnionizedUpdateWithTombstoneRecord() {
+    com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
+        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
+    );
+
+    com.google.cloud.bigquery.Schema expectedSchema = com.google.cloud.bigquery.Schema.of(
+        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.NULLABLE).build()
+    );
+
+    Table existingTable = tableWithSchema(existingSchema);
+    SinkRecord tombstone = recordWithValueSchema(null);
+    List<SinkRecord> incomingSinkRecords = ImmutableList.of(tombstone);
+
+    when(mockBigQuery.getTable(tableId)).thenReturn(existingTable);
+
+    SchemaManager schemaManager = createSchemaManager(false, true, true);
+    com.google.cloud.bigquery.Schema proposedSchema =
+        schemaManager.getAndValidateProposedSchema(tableId, incomingSinkRecords);
+
+    Assert.assertEquals(expectedSchema, proposedSchema);
   }
 
   private SchemaManager createSchemaManager(
