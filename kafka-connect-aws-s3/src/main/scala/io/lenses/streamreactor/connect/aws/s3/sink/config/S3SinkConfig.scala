@@ -25,6 +25,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPrefix
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionSelection
 import io.lenses.streamreactor.connect.aws.s3.sink._
+import io.lenses.streamreactor.connect.aws.s3.config.S3FlushSettings.{defaultFlushCount, defaultFlushInterval, defaultFlushSize}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
@@ -44,14 +45,12 @@ case class S3SinkConfig(
                        )
 
 object SinkBucketOptions {
+
   def apply(props: Map[String, String]): Set[SinkBucketOptions] = {
 
     val config = S3ConfigDefBuilder(props.asJava)
 
     config.getKCQL.map { kcql: Kcql =>
-
-      val flushInterval = Option(kcql.getWithFlushInterval).filter(_ > 0).map(_.seconds).orElse(Option(300.seconds))
-      val flushCount = Option(kcql.getWithFlushCount).filter(_ > 0)
 
       val formatSelection: FormatSelection = Option(kcql.getStoredAs) match {
         case Some(format: String) => FormatSelection(format)
@@ -64,22 +63,13 @@ object SinkBucketOptions {
         case None => new HierarchicalS3FileNamingStrategy(formatSelection)
       }
 
-      val flushSize = Option(kcql.getWithFlushSize).filter(_ > 0)
-
-      // we must have at least one way of committing files
-      val finalFlushSize = Some(flushSize.fold(1000L * 1000 * 128)(identity)) //if (flushSize.isEmpty /*&& flushInterval.isEmpty && flushCount.isEmpty*/) Some(1000L * 1000 * 128) else flushSize
-
       SinkBucketOptions(
         kcql.getSource,
         BucketAndPrefix(kcql.getTarget),
         formatSelection = formatSelection,
         fileNamingStrategy = namingStrategy,
         partitionSelection = partitionSelection,
-        commitPolicy = DefaultCommitPolicy(
-          fileSize = finalFlushSize,
-          interval = flushInterval,
-          recordCount = flushCount
-        )
+        commitPolicy = config.commitPolicy(kcql)
       )
     }
 
@@ -93,5 +83,5 @@ case class SinkBucketOptions(
                               formatSelection: FormatSelection,
                               fileNamingStrategy: S3FileNamingStrategy,
                               partitionSelection: Option[PartitionSelection] = None,
-                              commitPolicy: CommitPolicy = DefaultCommitPolicy(Some(1000 * 1000 * 128), None, None),
+                              commitPolicy: CommitPolicy = DefaultCommitPolicy(Some(defaultFlushSize), Some(defaultFlushInterval), Some(defaultFlushCount)),
                             )
