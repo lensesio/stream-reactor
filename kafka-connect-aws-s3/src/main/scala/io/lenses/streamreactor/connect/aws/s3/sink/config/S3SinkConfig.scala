@@ -18,17 +18,13 @@
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
 import com.datamountaineer.kcql.Kcql
-import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
-import io.lenses.streamreactor.connect.aws.s3.config.S3Config
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
-import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPrefix
-import io.lenses.streamreactor.connect.aws.s3.model.PartitionSelection
-import io.lenses.streamreactor.connect.aws.s3.sink._
 import io.lenses.streamreactor.connect.aws.s3.config.S3FlushSettings.{defaultFlushCount, defaultFlushInterval, defaultFlushSize}
+import io.lenses.streamreactor.connect.aws.s3.config.{FormatSelection, S3Config, S3ConfigDefBuilder, S3WriteModeSettings}
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPrefix, LocalLocation, PartitionSelection, S3WriteMode}
+import io.lenses.streamreactor.connect.aws.s3.sink._
 
 import scala.collection.JavaConverters._
-import scala.concurrent.duration._
 
 object S3SinkConfig {
 
@@ -69,7 +65,9 @@ object SinkBucketOptions {
         formatSelection = formatSelection,
         fileNamingStrategy = namingStrategy,
         partitionSelection = partitionSelection,
-        commitPolicy = config.commitPolicy(kcql)
+        commitPolicy = config.commitPolicy(kcql),
+        writeMode = config.s3WriteMode(),
+        localBuildDirectory = config.s3LocalBuildDirectory(props.get("name"))
       )
     }
 
@@ -84,4 +82,6 @@ case class SinkBucketOptions(
                               fileNamingStrategy: S3FileNamingStrategy,
                               partitionSelection: Option[PartitionSelection] = None,
                               commitPolicy: CommitPolicy = DefaultCommitPolicy(Some(defaultFlushSize), Some(defaultFlushInterval), Some(defaultFlushCount)),
+                              writeMode: S3WriteMode = S3WriteModeSettings.defaultWriteMode,
+                              localBuildDirectory: Option[LocalLocation] = None
                             )

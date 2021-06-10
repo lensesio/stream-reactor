@@ -110,7 +110,7 @@ class MultipartBlobStoreOutputStreamTest extends AnyFlatSpec with MockitoSugar w
     val payloadCaptor: ArgumentCaptor[Array[Byte]] = setUpUploadPartPayloadCaptor(returnState)
 
     target.write(nBytes(8, 'X'), 0, 8)
-    target.complete
+    target.complete(testBucketAndPath)
 
     val submittedPayloads: Seq[Array[Byte]] = payloadCaptor.getAllValues.asScala.toList
     submittedPayloads should have size 1
@@ -127,7 +127,7 @@ class MultipartBlobStoreOutputStreamTest extends AnyFlatSpec with MockitoSugar w
 
     reset(mockStorageInterface)
 
-    target.complete
+    target.complete(testBucketAndPath)
 
     verify(mockStorageInterface, never).uploadPart(any[MultiPartUploadState], payloadCaptor.capture(), ArgumentMatchers.eq(8))
 

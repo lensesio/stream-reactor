@@ -46,7 +46,7 @@ class AvroFormatStreamReaderTest extends AnyFlatSpec with Matchers {
     val outputStream = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
     firstUsers.foreach(str => avroFormatWriter.write(None, StructSinkData(str), topic))
-    avroFormatWriter.close()
+    avroFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
     new ByteArrayInputStream(outputStream.toByteArray)
   }

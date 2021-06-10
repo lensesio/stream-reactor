@@ -48,9 +48,11 @@ case class S3WriterState(topicPartition: TopicPartition,
                          lastKnownFileSize: Long = 0,
                          lastKnownSchema: Option[Schema] = None
                         ) {
+
   def show(): String = {
     s"${topicPartition.topic}-${topicPartition.partition}:${offset.value} ${committedOffset.map(_.value.toString).getOrElse("-")} $recordCount $lastKnownFileSize ${lastFlushedTimestamp.map(_.toString).getOrElse("-")}"
   }
+
 }
 
 class S3WriterImpl(sinkName: String,
@@ -114,29 +116,19 @@ class S3WriterImpl(sinkName: String,
       internalState.topicPartition.partition,
       internalState.offset)
 
-    formatWriter.close()
-    if (formatWriter.getOutstandingRename) {
-      renameFile(topicPartitionOffset, partitionValues)
-    }
+    formatWriter.close(finalFileName(topicPartitionOffset, partitionValues))
 
     resetState(topicPartitionOffset)
 
     topicPartitionOffset
   }
 
-  private def renameFile(topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): Unit = {
-    val originalFilename = fileNamingStrategy.stagingFilename(
-      bucketAndPrefix,
-      topicPartitionOffset.toTopicPartition,
-      partitionValues
-    )
-    val finalFilename = fileNamingStrategy.finalFilename(
+  private def finalFileName(topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]) =
+    fileNamingStrategy.finalFilename(
       bucketAndPrefix,
       topicPartitionOffset,
       partitionValues
     )
-    storageInterface.rename(originalFilename, finalFilename)
-  }
 
   private def resetState(topicPartitionOffset: TopicPartitionOffset): Unit = {
     logger.debug(s"[{}] S3Writer.resetState: Resetting state $internalState", sinkName)

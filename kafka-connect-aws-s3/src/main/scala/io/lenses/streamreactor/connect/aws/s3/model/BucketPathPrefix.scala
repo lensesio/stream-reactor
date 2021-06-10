@@ -17,6 +17,11 @@
 package io.lenses.streamreactor.connect.aws.s3.model
 
 import com.amazonaws.services.s3.internal.BucketNameUtils
+import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.sink.S3WriterManager.logger
+
+import java.io.File
+import java.util.UUID
 
 
 case object BucketAndPrefix {
@@ -32,7 +37,7 @@ case object BucketAndPrefix {
 case class BucketAndPrefix(
                             bucket: String,
                             prefix: Option[String]
-                          ) {
+                          )  extends Location {
 
   BucketNameUtils.validateBucketName(bucket)
 
@@ -41,10 +46,36 @@ case class BucketAndPrefix(
     .foreach(_ => throw new IllegalArgumentException("Nested prefix not currently supported"))
 }
 
-case class BucketAndPath(
+trait Location {
+
+}
+
+object LocalLocation extends LazyLogging {
+  def apply(parentDir : LocalLocation, bucketAndPath: BucketAndPath): LocalLocation = {
+    val uuid = UUID.randomUUID().toString
+
+    val dir = new File(s"${parentDir.path}/${bucketAndPath.bucket}/${bucketAndPath.path}")
+    logger.info("Creating dir {}", dir)
+    dir.mkdirs()
+
+    val file = new File(dir, s"/$uuid")
+    logger.info("Creating file {}", file)
+    file.createNewFile()
+    LocalLocation(file.getAbsolutePath)
+  }
+}
+case class LocalLocation (
+                           path: String,
+                         ) extends Location {
+
+
+
+}
+
+case class BucketAndPath (
                           bucket: String,
                           path: String
-                        ) {
+                        ) extends Location {
 
   BucketNameUtils.validateBucketName(bucket)
 

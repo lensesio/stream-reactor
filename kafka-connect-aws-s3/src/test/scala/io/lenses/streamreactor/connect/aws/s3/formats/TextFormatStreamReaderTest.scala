@@ -47,7 +47,7 @@ class TextFormatStreamReaderTest extends AnyFlatSpec with Matchers {
     val outputStream = new S3ByteArrayOutputStream()
     val jsonFormatWriter = new JsonFormatWriter(() => outputStream)
     firstUsers.foreach(data => jsonFormatWriter.write(None, StructSinkData(data), topic))
-    jsonFormatWriter.close()
+    jsonFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
     val byteArrayInputStream = new ByteArrayInputStream(outputStream.toByteArray)
     byteArrayInputStream

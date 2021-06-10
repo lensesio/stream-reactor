@@ -17,7 +17,7 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, BytesOutputRow, BytesWriteMode, SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, ByteArraySinkData, BytesOutputRow, BytesWriteMode, SinkData, Topic}
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 
 import scala.util.Try
@@ -25,7 +25,6 @@ import scala.util.Try
 class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: BytesWriteMode) extends S3FormatWriter with LazyLogging {
 
   private val outputStream: S3OutputStream = outputStreamFn()
-  private var outstandingRename: Boolean = false
 
   override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit = {
 
@@ -71,14 +70,12 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
 
   override def rolloverFileOnSchemaChange(): Boolean = false
 
-  override def close(): Unit = {
-    Try(outstandingRename = outputStream.complete)
+  override def close(newName: BucketAndPath) = {
+    Try(outputStream.complete(newName))
 
     Try(outputStream.flush())
     Try(outputStream.close())
   }
-
-  override def getOutstandingRename: Boolean = outstandingRename
 
   override def getPointer: Long = outputStream.getPointer
 

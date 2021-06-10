@@ -18,20 +18,14 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPath
-import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPrefix
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix, LocalLocation}
 import org.jclouds.blobstore.BlobStoreContext
-import org.jclouds.blobstore.domain.BlobMetadata
-import org.jclouds.blobstore.domain.StorageType
+import org.jclouds.blobstore.domain.{BlobMetadata, StorageType}
 import org.jclouds.blobstore.domain.internal.MutableBlobMetadataImpl
-import org.jclouds.blobstore.options.CopyOptions
-import org.jclouds.blobstore.options.ListContainerOptions
-import org.jclouds.blobstore.options.PutOptions
-import org.jclouds.io.payloads.BaseMutableContentMetadata
-import org.jclouds.io.payloads.InputStreamPayload
+import org.jclouds.blobstore.options.{CopyOptions, ListContainerOptions, PutOptions}
+import org.jclouds.io.payloads.{BaseMutableContentMetadata, InputStreamPayload}
 
-import java.io.ByteArrayInputStream
-import java.io.InputStream
+import java.io.{ByteArrayInputStream, File, InputStream}
 import java.util.UUID
 import scala.collection.JavaConverters._
 import scala.util.Try
@@ -40,6 +34,22 @@ class MultipartBlobStoreStorageInterface(sinkName: String, blobStoreContext: Blo
 
   private val blobStore = blobStoreContext.getBlobStore
   private val awsMaxKeys = 1000
+
+  override def uploadFile(initialName: LocalLocation, finalDestination: BucketAndPath): Unit = {
+    logger.debug(s"[{}] Initialising upload from local {} to s3 {}", sinkName, initialName, finalDestination)
+
+    val file = new File(initialName.path)
+    val blob = blobStore
+      .blobBuilder(finalDestination.path)
+      .payload(file)
+      .contentLength(file.length()) // TODO: Not sure if necessary
+      .build()
+
+    blobStore.putBlob(finalDestination.bucket, blob)
+
+    logger.debug(s"[{}] Completed upload from local {} to s3 {}", sinkName, initialName, finalDestination)
+
+  }
 
   override def initUpload(bucketAndPath: BucketAndPath): MultiPartUploadState = {
     logger.debug(s"[{}] Initialising upload for bucketAndPath: {}", sinkName, bucketAndPath)

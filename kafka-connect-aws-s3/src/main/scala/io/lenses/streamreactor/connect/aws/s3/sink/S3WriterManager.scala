@@ -18,14 +18,16 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import com.datamountaineer.streamreactor.common.errors.{ErrorHandler, ErrorPolicy}
-import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.{LazyLogging, StrictLogging}
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
-import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreOutputStream, S3Writer, S3WriterImpl, StorageInterface}
+import io.lenses.streamreactor.connect.aws.s3.storage.{BuildLocalOutputStream, MultipartBlobStoreOutputStream, S3Writer, S3WriterImpl, StorageInterface}
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.errors.ConnectException
 
+import java.io.File
+import java.util.UUID
 import scala.util.Try
 
 /**
@@ -184,7 +186,7 @@ class S3WriterManager(sinkName: String,
   }
 }
 
-object S3WriterManager {
+object S3WriterManager extends LazyLogging {
   def from(config: S3SinkConfig, sinkName: String)
           (implicit storageInterface: StorageInterface): S3WriterManager = {
 
@@ -207,6 +209,10 @@ object S3WriterManager {
 
     val minAllowedMultipartSizeFn: () => Int = () => MinAllowedMultipartSize
 
+    val buildLocalOutputStreamFn: (LocalLocation) => () => BuildLocalOutputStream = {
+      localLocation => () => new BuildLocalOutputStream(localLocation)
+    }
+
     val outputStreamFn: (BucketAndPath, Int) => () => MultipartBlobStoreOutputStream = {
       (bucketAndPath, int) =>
         () => new MultipartBlobStoreOutputStream(bucketAndPath, int)
@@ -215,12 +221,22 @@ object S3WriterManager {
     val formatWriterFn: (TopicPartition, Map[PartitionField, String]) => S3FormatWriter = (topicPartition, partitionValues) =>
       config.bucketOptions.find(_.sourceTopic == topicPartition.topic.value) match {
         case Some(bucketOptions) =>
-          val fileNamingStrategy = fileNamingStrategyFn(topicPartition.topic)
-
-          val path: BucketAndPath = fileNamingStrategy
-            .stagingFilename(bucketOptions.bucketAndPrefix, topicPartition, partitionValues)
-          val size: Int = minAllowedMultipartSizeFn()
-          S3FormatWriter(bucketOptions.formatSelection, outputStreamFn(path, size))
+          bucketOptions.writeMode match {
+            case S3WriteMode.Streamed => val fileNamingStrategy = fileNamingStrategyFn(topicPartition.topic)
+              val path: BucketAndPath = fileNamingStrategy
+                .stagingFilename(bucketOptions.bucketAndPrefix, topicPartition, partitionValues)
+              val size: Int = minAllowedMultipartSizeFn()
+              S3FormatWriter(bucketOptions.formatSelection, outputStreamFn(path, size))
+            case S3WriteMode.BuildLocal => val fileNamingStrategy = fileNamingStrategyFn(topicPartition.topic)
+              bucketOptions.localBuildDirectory match {
+                case Some(value) =>
+                  val path: BucketAndPath = fileNamingStrategy
+                    .stagingFilename(bucketOptions.bucketAndPrefix, topicPartition, partitionValues)
+                  val newLocalLocation = LocalLocation(value, path)
+                  S3FormatWriter(bucketOptions.formatSelection, buildLocalOutputStreamFn(newLocalLocation))
+                case None =>throw new IllegalStateException("No file specified")
+              }
+          }
         case None => throw new IllegalArgumentException("Can't find commitPolicy in config")
       }
 

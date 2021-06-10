@@ -33,7 +33,7 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3TestCo
 
     val avroFormatWriter = new AvroFormatWriter(() => blobStream)
     avroFormatWriter.write(None, StructSinkData(users.head), topic)
-    avroFormatWriter.close()
+    avroFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
     val bytes = S3TestPayloadReader.readPayload(BucketName, "myPrefix", blobStoreContext)
 
@@ -48,7 +48,7 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3TestCo
 
     val avroFormatWriter = new AvroFormatWriter(() => blobStream)
     firstUsers.foreach(u => avroFormatWriter.write(None, StructSinkData(u), topic))
-    avroFormatWriter.close()
+    avroFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
     val bytes = S3TestPayloadReader.readPayload(BucketName, "myPrefix", blobStoreContext)
     val genericRecords = avroFormatReader.read(bytes)

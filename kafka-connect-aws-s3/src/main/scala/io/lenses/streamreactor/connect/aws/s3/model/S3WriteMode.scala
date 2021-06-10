@@ -1,6 +1,5 @@
-
 /*
- * Copyright 2020 Lenses.io
+ * Copyright 2021 Lenses.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,16 +14,21 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.storage
+package io.lenses.streamreactor.connect.aws.s3.model
 
-import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPath
+import enumeratum.{Enum, EnumEntry}
 
-import java.io.OutputStream
+import scala.collection.immutable
 
-trait S3OutputStream extends OutputStream {
+sealed trait S3WriteMode extends EnumEntry
 
-  def complete(finalDestination: BucketAndPath): Unit
+object S3WriteMode extends Enum[S3WriteMode] {
 
-  def getPointer: Long
+  override val values: immutable.IndexedSeq[S3WriteMode] = findValues
+
+  case object Streamed extends S3WriteMode
+
+  case object BuildLocal extends S3WriteMode
+
 
 }

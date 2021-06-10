@@ -26,8 +26,6 @@ trait S3FormatReader extends AutoCloseable {
 
   def write(struct: Struct, topic: Topic): Unit
 
-  def getOutstandingRename: Boolean
-
   def getPointer: Long
 }
 

@@ -39,7 +39,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers {
     val outputStream = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
     avroFormatWriter.write(None, StructSinkData(users.head), topic)
-    avroFormatWriter.close()
+    avroFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)
 
@@ -52,7 +52,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers {
     val outputStream = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
     firstUsers.foreach(u => avroFormatWriter.write(None, StructSinkData(u), topic))
-    avroFormatWriter.close()
+    avroFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)
     genericRecords.size should be(3)
@@ -64,7 +64,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers {
     val outputStream = new S3ByteArrayOutputStream()
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
     avroFormatWriter.write(None, IntSinkData(100, Some(Schema.OPTIONAL_INT32_SCHEMA)), topic)
-    avroFormatWriter.close()
+    avroFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)
 
@@ -78,7 +78,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers {
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
     avroFormatWriter.write(None, IntSinkData(100, Some(Schema.OPTIONAL_INT32_SCHEMA)), topic)
     avroFormatWriter.write(None, IntSinkData(200, Some(Schema.OPTIONAL_INT32_SCHEMA)), topic)
-    avroFormatWriter.close()
+    avroFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)
 
@@ -101,7 +101,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers {
           StringSinkData("alfred")
         ), Some(arraySchema)),
       topic)
-    avroFormatWriter.close()
+    avroFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)
     genericRecords.size should be(1)
@@ -131,7 +131,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers {
           StringSinkData("lois lane")
         ), Some(arraySchema)),
       topic)
-    avroFormatWriter.close()
+    avroFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)
     genericRecords.size should be(2)
@@ -180,7 +180,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers {
           StringSinkData("lois lane") -> IntSinkData(5)
         ), Some(mapSchema)),
       topic)
-    avroFormatWriter.close()
+    avroFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)
     genericRecords.size should be(2)
@@ -205,7 +205,7 @@ class AvroFormatWriterTest extends AnyFlatSpec with Matchers {
     val avroFormatWriter = new AvroFormatWriter(() => outputStream)
     avroFormatWriter.write(None, ByteArraySinkData("Sausages".getBytes(), Some(byteSchema)), topic)
     avroFormatWriter.write(None, ByteArraySinkData("Mash".getBytes(), Some(byteSchema)), topic)
-    avroFormatWriter.close()
+    avroFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
     val genericRecords = avroFormatReader.read(outputStream.toByteArray)
     genericRecords.size should be(2)

@@ -18,7 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.ByteArrayUtils
-import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, BytesWriteMode, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, ByteArraySinkData, BytesWriteMode, StructSinkData}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.storage.S3ByteArrayOutputStream
 import org.apache.commons.io.IOUtils
@@ -40,7 +40,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     outputStream.toString should be("Sausages")
 
-    bytesFormatWriter.close()
+    bytesFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
   }
 
   "convert" should "write binary with ValueOnly" in {
@@ -52,7 +52,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     outputStream.toByteArray should be(bytes)
 
-    bytesFormatWriter.close()
+    bytesFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
   }
 
@@ -64,7 +64,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     outputStream.toByteArray should be(bytes)
 
-    bytesFormatWriter.close()
+    bytesFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
   }
 
@@ -77,7 +77,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     outputStream.toByteArray should be(pixelLengthBytes ++ pixelLengthBytes ++ bytes ++ bytes)
 
-    bytesFormatWriter.close()
+    bytesFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
   }
 
@@ -90,7 +90,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     outputStream.toByteArray should be(pixelLengthBytes ++ bytes)
 
-    bytesFormatWriter.close()
+    bytesFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
   }
 
@@ -103,7 +103,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     outputStream.toByteArray should be(pixelLengthBytes ++ bytes)
 
-    bytesFormatWriter.close()
+    bytesFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
   }
 
@@ -120,7 +120,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
 
     outputStream.toByteArray should be(bytes)
 
-    bytesFormatWriter.close()
+    bytesFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
   }
 
   "convert" should "throw error when avro value is supplied" in {
@@ -130,7 +130,7 @@ class BytesFormatWriterTest extends AnyFlatSpec with Matchers {
     assertThrows[IllegalStateException] {
       bytesFormatWriter.write(None, StructSinkData(users.head), topic)
     }
-    bytesFormatWriter.close()
+    bytesFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
   }
 
   private def getPixelBytes = {

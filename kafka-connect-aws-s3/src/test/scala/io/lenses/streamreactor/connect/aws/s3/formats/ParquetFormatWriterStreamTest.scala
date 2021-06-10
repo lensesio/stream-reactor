@@ -34,7 +34,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
 
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
     parquetFormatWriter.write(None, StructSinkData(users.head), topic)
-    parquetFormatWriter.close()
+    parquetFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
     val bytes = S3TestPayloadReader.readPayload(BucketName, "myPrefix", blobStoreContext)
 
@@ -49,7 +49,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
 
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
     firstUsers.foreach(e => parquetFormatWriter.write(None, StructSinkData(e), topic))
-    parquetFormatWriter.close()
+    parquetFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
 
     val bytes = S3TestPayloadReader.readPayload(BucketName, "myPrefix", blobStoreContext)
     val genericRecords = parquetFormatReader.read(bytes)
@@ -90,6 +90,6 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
           ), Some(mapSchema)),
         topic)
     }.getMessage should be("Avro schema must be a record.")
-    parquetFormatWriter.close()
+    parquetFormatWriter.close(BucketAndPath("my-bucket", "my-path"))
   }
 }
