@@ -63,6 +63,13 @@ object S3ConfigDef {
       Importance.LOW,
       "Enable virtual host buckets"
     )
+    .define(
+      DISABLE_FLUSH_COUNT,
+      Type.BOOLEAN,
+      false,
+      Importance.LOW,
+      "Disable flush on reaching count"
+    )
     .define(KcqlKey, Type.STRING, Importance.HIGH, KCQL_DOC)
     .define(ERROR_POLICY,
       Type.STRING,
@@ -123,3 +130,5 @@ case class S3ConfigDefBuilder(props: util.Map[String, String])
     with NumberRetriesSettings
     with UserSettings
     with ConnectionSettings
+    with S3FlushSettings
+

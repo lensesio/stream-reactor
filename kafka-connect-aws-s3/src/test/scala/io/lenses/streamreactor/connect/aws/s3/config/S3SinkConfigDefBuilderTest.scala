@@ -21,6 +21,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.collection.JavaConverters._
+import scala.concurrent.duration.DurationInt
 
 class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
@@ -28,9 +29,9 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
   val TopicName = "myTopic"
   val BucketName = "myBucket"
 
-  val props = Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1")
-
   "apply" should "respect defined properties" in {
+    val props = Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_COUNT = 1")
+
     val kcql = S3ConfigDefBuilder(props.asJava).getKCQL
     kcql should have size 1
 
@@ -42,5 +43,41 @@ class S3SinkConfigDefBuilderTest extends AnyFlatSpec with MockitoSugar with Matc
     element.getPartitionBy.asScala.toSet should be(Set("_key"))
 
   }
+
+  "apply" should "respect default flush settings" in {
+    val props = Map(
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values"
+    )
+
+    val commitPolicy = S3ConfigDefBuilder(props.asJava).commitPolicy(S3ConfigDefBuilder(props.asJava).getKCQL.head)
+
+    commitPolicy.recordCount should be (Some(S3FlushSettings.defaultFlushCount))
+    commitPolicy.fileSize should be (Some(S3FlushSettings.defaultFlushSize))
+    commitPolicy.interval should be (Some(S3FlushSettings.defaultFlushInterval))
+  }
+
+  "apply" should "respect disabled flush count" in {
+    val props = Map(
+      "connect.s3.disable.flush.count" -> true.toString,
+      "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values"
+    )
+
+    val commitPolicy = S3ConfigDefBuilder(props.asJava).commitPolicy(S3ConfigDefBuilder(props.asJava).getKCQL.head)
+
+    commitPolicy.recordCount should be (None)
+    commitPolicy.fileSize should be (Some(S3FlushSettings.defaultFlushSize))
+    commitPolicy.interval should be (Some(S3FlushSettings.defaultFlushInterval))
+  }
+
+  "apply" should "respect custom flush settings" in {
+    val props = Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITH_FLUSH_SIZE = 3 WITH_FLUSH_INTERVAL = 2 WITH_FLUSH_COUNT = 1")
+
+    val commitPolicy = S3ConfigDefBuilder(props.asJava).commitPolicy(S3ConfigDefBuilder(props.asJava).getKCQL.head)
+
+    commitPolicy.recordCount should be (Some(1))
+    commitPolicy.fileSize should be (Some(3))
+    commitPolicy.interval should be (Some(2.seconds))
+  }
+
 
 }
