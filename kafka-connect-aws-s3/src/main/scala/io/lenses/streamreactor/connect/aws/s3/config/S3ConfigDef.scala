@@ -18,7 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.config
 
 import com.datamountaineer.streamreactor.common.config.base.traits.{BaseConfig, ConnectionSettings, ErrorPolicySettings, KcqlSettings, NumberRetriesSettings, UserSettings}
-import io.lenses.streamreactor.connect.aws.s3.model.S3WriteMode
+import io.lenses.streamreactor.connect.aws.s3.model.S3WriteMode.{BuildLocal, Streamed}
 
 import java.util
 import org.apache.kafka.common.config.ConfigDef
@@ -74,16 +74,16 @@ object S3ConfigDef {
     .define(
       WRITE_MODE,
       Type.STRING,
-      S3WriteModeSettings.defaultWriteMode.toString,
+      Streamed.entryName,
       Importance.HIGH,
-      s"Write mode, '${S3WriteMode.Streamed.toString}' or '${S3WriteMode.BuildLocal.toString}'"
+      s"Write mode, '${Streamed.entryName}' or '${BuildLocal.entryName}'"
     )
     .define(
       LOCAL_TMP_DIRECTORY,
       Type.STRING,
       "",
       Importance.LOW,
-      s"Local tmp directory for use with ${S3WriteMode.BuildLocal} write mode"
+      s"Local tmp directory for use with ${BuildLocal.entryName} write mode"
     )
     .define(KcqlKey, Type.STRING, Importance.HIGH, KCQL_DOC)
     .define(ERROR_POLICY,

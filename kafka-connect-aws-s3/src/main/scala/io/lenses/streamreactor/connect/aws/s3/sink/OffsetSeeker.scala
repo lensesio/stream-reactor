@@ -17,7 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, TopicPartitionOffset}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, TopicPartitionOffset}
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
 import scala.util.control.NonFatal
@@ -31,7 +31,7 @@ import scala.util.control.NonFatal
 class OffsetSeeker(fileNamingStrategy: S3FileNamingStrategy) {
   private val logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
 
-  def seek(bucketAndPath: BucketAndPath)(implicit storageInterface: StorageInterface): Set[TopicPartitionOffset] = {
+  def seek(bucketAndPath: RemotePathLocation)(implicit storageInterface: StorageInterface): Set[TopicPartitionOffset] = {
     try {
 
       // the path may not have been created, in which case we have no offsets defined

@@ -20,10 +20,10 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 import java.io.OutputStream
 import java.nio.ByteBuffer
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, Location}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, Location}
 
 class MultipartBlobStoreOutputStream(
-                                      initialName: BucketAndPath,
+                                      initialName: RemotePathLocation,
                                       minAllowedMultipartSize: Int
                                     )(
                                       implicit storageInterface: StorageInterface
@@ -82,7 +82,7 @@ class MultipartBlobStoreOutputStream(
     pointer += numberOfBytes
   }
 
-  override def complete(finalDestination: BucketAndPath): Unit = {
+  override def complete(finalDestination: RemotePathLocation): Unit = {
 
     if (buffer.position() > 0)
       uploadState = storageInterface.uploadPart(uploadState, buffer.array(), buffer.position)

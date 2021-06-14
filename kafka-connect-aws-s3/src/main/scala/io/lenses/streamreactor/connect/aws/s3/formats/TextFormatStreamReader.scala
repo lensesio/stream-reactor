@@ -18,12 +18,12 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import java.io.InputStream
 
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, StringSourceData}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, StringSourceData}
 
 import scala.io.Source
 import scala.util.Try
 
-class TextFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: BucketAndPath) extends S3FormatStreamReader[StringSourceData] {
+class TextFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: RemotePathLocation) extends S3FormatStreamReader[StringSourceData] {
 
   private val inputStream: InputStream = inputStreamFn()
   private val source = Source.fromInputStream(inputStream, "UTF-8")
@@ -42,7 +42,7 @@ class TextFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: Bu
     StringSourceData(sourceLines.next(), lineNumber)
   }
 
-  override def getBucketAndPath: BucketAndPath = bucketAndPath
+  override def getBucketAndPath: RemotePathLocation = bucketAndPath
 
   override def getLineNumber: Long = lineNumber
 }

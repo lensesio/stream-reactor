@@ -56,7 +56,7 @@ case class S3WriterState(topicPartition: TopicPartition,
 }
 
 class S3WriterImpl(sinkName: String,
-                   bucketAndPrefix: BucketAndPrefix,
+                   bucketAndPrefix: RemoteRootLocation,
                    commitPolicy: CommitPolicy,
                    formatWriterFn: (TopicPartition, Map[PartitionField, String]) => S3FormatWriter,
                    fileNamingStrategy: S3FileNamingStrategy,

@@ -17,41 +17,16 @@
 package io.lenses.streamreactor.connect.aws.s3.config
 
 import com.datamountaineer.streamreactor.common.config.base.traits.BaseSettings
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.{LOCAL_TMP_DIRECTORY, WRITE_MODE}
-import io.lenses.streamreactor.connect.aws.s3.config.S3WriteModeSettings.defaultWriteMode
-import io.lenses.streamreactor.connect.aws.s3.model.{LocalLocation, S3WriteMode}
-import io.lenses.streamreactor.connect.aws.s3.model.S3WriteMode.{BuildLocal, Streamed}
-
-import java.nio.file.Files
-import java.util.UUID
-
-object S3WriteModeSettings {
-
-  val defaultWriteMode: S3WriteMode = Streamed
-
-}
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.WRITE_MODE
+import io.lenses.streamreactor.connect.aws.s3.model.S3OutputStreamOptions
 
 trait S3WriteModeSettings extends BaseSettings {
 
-  def s3WriteMode() : S3WriteMode = {
-    S3WriteMode
-      .withNameInsensitiveOption(getString(WRITE_MODE))
-      .getOrElse(defaultWriteMode)
-  }
-
-  def s3LocalBuildDirectory(sinkName: Option[String]) : Option[LocalLocation] = {
-    s3WriteMode() match {
-      case S3WriteMode.Streamed => Option.empty[LocalLocation]
-      case S3WriteMode.BuildLocal => Option(getString(LOCAL_TMP_DIRECTORY))
-        .filter(_.trim.nonEmpty)
-        .orElse(createTmpDir(sinkName))
-        .map(LocalLocation(_))
+  def s3WriteOptions(props: Map[String,String]) : S3OutputStreamOptions = {
+    S3OutputStreamOptions(getString(WRITE_MODE), props) match {
+      case Left(exception) => throw exception
+      case Right(value) => value
     }
   }
 
-  private def createTmpDir(sinkName: Option[String]): Option[String] = {
-    val sinkIdent = sinkName.getOrElse("MissingSinkName")
-    val uuid = UUID.randomUUID().toString
-    Some(Files.createTempDirectory(s"$sinkIdent.$uuid").toAbsolutePath.toString)
-  }
 }

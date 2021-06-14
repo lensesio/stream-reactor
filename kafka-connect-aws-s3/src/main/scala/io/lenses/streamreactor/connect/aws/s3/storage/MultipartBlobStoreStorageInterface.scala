@@ -18,7 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BucketAndPrefix, LocalLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, RemoteRootLocation, LocalLocation}
 import org.jclouds.blobstore.BlobStoreContext
 import org.jclouds.blobstore.domain.{BlobMetadata, StorageType}
 import org.jclouds.blobstore.domain.internal.MutableBlobMetadataImpl
@@ -35,7 +35,7 @@ class MultipartBlobStoreStorageInterface(sinkName: String, blobStoreContext: Blo
   private val blobStore = blobStoreContext.getBlobStore
   private val awsMaxKeys = 1000
 
-  override def uploadFile(initialName: LocalLocation, finalDestination: BucketAndPath): Unit = {
+  override def uploadFile(initialName: LocalLocation, finalDestination: RemotePathLocation): Unit = {
     logger.debug(s"[{}] Initialising upload from local {} to s3 {}", sinkName, initialName, finalDestination)
 
     val file = new File(initialName.path)
@@ -51,7 +51,7 @@ class MultipartBlobStoreStorageInterface(sinkName: String, blobStoreContext: Blo
 
   }
 
-  override def initUpload(bucketAndPath: BucketAndPath): MultiPartUploadState = {
+  override def initUpload(bucketAndPath: RemotePathLocation): MultiPartUploadState = {
     logger.debug(s"[{}] Initialising upload for bucketAndPath: {}", sinkName, bucketAndPath)
     val s3PutOptions = PutOptions.Builder.multipart()
 
@@ -65,7 +65,7 @@ class MultipartBlobStoreStorageInterface(sinkName: String, blobStoreContext: Blo
     )
   }
 
-  private def buildBlobMetadata(bucketAndPath: BucketAndPath): BlobMetadata = {
+  private def buildBlobMetadata(bucketAndPath: RemotePathLocation): BlobMetadata = {
     val blobMetadata = new MutableBlobMetadataImpl()
     blobMetadata.setId(UUID.randomUUID().toString)
     blobMetadata.setName(bucketAndPath.path)
@@ -111,7 +111,7 @@ class MultipartBlobStoreStorageInterface(sinkName: String, blobStoreContext: Blo
     )
   }
 
-  override def rename(originalFilename: BucketAndPath, newFilename: BucketAndPath): Unit = {
+  override def rename(originalFilename: RemotePathLocation, newFilename: RemotePathLocation): Unit = {
     logger.info(s"[{}] Renaming upload from {} to {}", sinkName, originalFilename, newFilename)
 
     blobStore.copyBlob(originalFilename.bucket, originalFilename.path, newFilename.bucket, newFilename.path, CopyOptions.NONE)
@@ -121,13 +121,13 @@ class MultipartBlobStoreStorageInterface(sinkName: String, blobStoreContext: Blo
 
   override def close(): Unit = blobStoreContext.close()
 
-  override def pathExists(bucketAndPrefix: BucketAndPrefix): Boolean =
+  override def pathExists(bucketAndPrefix: RemoteRootLocation): Boolean =
     blobStore.list(bucketAndPrefix.bucket, ListContainerOptions.Builder.prefix(bucketAndPrefix.prefix.getOrElse(""))).size() > 0
 
-  override def pathExists(bucketAndPath: BucketAndPath): Boolean =
+  override def pathExists(bucketAndPath: RemotePathLocation): Boolean =
     blobStore.list(bucketAndPath.bucket, ListContainerOptions.Builder.prefix(bucketAndPath.path)).size() > 0
 
-  override def list(bucketAndPath: BucketAndPath): List[String] = {
+  override def list(bucketAndPath: RemotePathLocation): List[String] = {
 
     val options = ListContainerOptions.Builder.recursive().prefix(bucketAndPath.path).maxResults(awsMaxKeys)
 
@@ -151,7 +151,7 @@ class MultipartBlobStoreStorageInterface(sinkName: String, blobStoreContext: Blo
     pageSetStrings
   }
 
-  override def list(bucketAndPrefix: BucketAndPrefix): List[String] = {
+  override def list(bucketAndPrefix: RemoteRootLocation): List[String] = {
     val options = bucketAndPrefix
       .prefix
       .fold(
@@ -182,11 +182,11 @@ class MultipartBlobStoreStorageInterface(sinkName: String, blobStoreContext: Blo
 
   }
 
-  override def getBlob(bucketAndPath: BucketAndPath): InputStream = {
+  override def getBlob(bucketAndPath: RemotePathLocation): InputStream = {
     blobStore.getBlob(bucketAndPath.bucket, bucketAndPath.path).getPayload.openStream()
   }
 
-  override def getBlobSize(bucketAndPath: BucketAndPath): Long = {
+  override def getBlobSize(bucketAndPath: RemotePathLocation): Long = {
     blobStore.getBlob(bucketAndPath.bucket, bucketAndPath.path).getMetadata.getSize
   }
 

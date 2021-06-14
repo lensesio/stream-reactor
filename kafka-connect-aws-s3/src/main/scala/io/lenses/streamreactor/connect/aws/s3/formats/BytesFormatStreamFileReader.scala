@@ -19,11 +19,11 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import java.io.InputStream
 
 import com.google.common.io.ByteStreams
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, ByteArraySourceData, BytesWriteMode}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, ByteArraySourceData, BytesWriteMode}
 
 import scala.util.Try
 
-class BytesFormatStreamFileReader(inputStreamFn: () => InputStream, fileSizeFn: () => Long, bucketAndPath: BucketAndPath, bytesWriteMode: BytesWriteMode) extends S3FormatStreamReader[ByteArraySourceData] {
+class BytesFormatStreamFileReader(inputStreamFn: () => InputStream, fileSizeFn: () => Long, bucketAndPath: RemotePathLocation, bytesWriteMode: BytesWriteMode) extends S3FormatStreamReader[ByteArraySourceData] {
 
   private var consumed : Boolean = false
   private val inputStream = inputStreamFn()
@@ -45,6 +45,6 @@ class BytesFormatStreamFileReader(inputStreamFn: () => InputStream, fileSizeFn: 
     }
   }
 
-  override def getBucketAndPath: BucketAndPath = bucketAndPath
+  override def getBucketAndPath: RemotePathLocation = bucketAndPath
 
 }

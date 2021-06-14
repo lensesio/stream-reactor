@@ -57,7 +57,7 @@ class JsonFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
   override def rolloverFileOnSchemaChange(): Boolean = false
 
-  override def close(newName: BucketAndPath): Unit = {
+  override def close(newName: RemotePathLocation): Unit = {
     Try(outputStream.complete(newName))
 
     Try(outputStream.flush())

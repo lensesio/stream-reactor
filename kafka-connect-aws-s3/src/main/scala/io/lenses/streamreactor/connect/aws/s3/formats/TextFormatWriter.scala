@@ -18,7 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import java.nio.charset.StandardCharsets
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, PrimitiveSinkData, SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, PrimitiveSinkData, SinkData, Topic}
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 
 import scala.util.{Failure, Success, Try}
@@ -48,7 +48,7 @@ class TextFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
   override def rolloverFileOnSchemaChange(): Boolean = false
 
-  override def close(newName: BucketAndPath): Unit = {
+  override def close(newName: RemotePathLocation): Unit = {
     Try(outputStream.complete(newName))
 
     Try(outputStream.flush())

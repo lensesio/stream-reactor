@@ -38,7 +38,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
   private val PathPrefix = "streamReactorBackups"
   private val avroFormatReader = new AvroFormatReader
 
-  private val bucketAndPrefix = BucketAndPrefix(BucketName, Some(PathPrefix))
+  private val bucketAndPrefix = RemoteRootLocation(BucketName, Some(PathPrefix))
   private val avroConfig = S3SinkConfig(S3Config(
     Some(Identity),
     Some(Credential),

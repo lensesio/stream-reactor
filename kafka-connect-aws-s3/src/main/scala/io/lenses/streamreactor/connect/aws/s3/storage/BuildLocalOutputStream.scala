@@ -18,7 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, LocalLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, LocalLocation}
 import org.jclouds.blobstore.domain.{MultipartPart, MultipartUpload}
 
 import java.io.{BufferedOutputStream, File, FileOutputStream, OutputStream}
@@ -57,7 +57,7 @@ class BuildLocalOutputStream(
     pointer += 1
   }
 
-  override def complete(finalDestination: BucketAndPath): Unit = {
+  override def complete(finalDestination: RemotePathLocation): Unit = {
     outputStream.close()
     storageInterface.uploadFile(initialName, finalDestination)
     if (cleanUp) file.delete()

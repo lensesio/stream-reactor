@@ -18,7 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import io.lenses.streamreactor.connect.aws.s3.formats.Using
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, LocalLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, LocalLocation}
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -28,7 +28,7 @@ import scala.io.Source
 
 class BuildLocalOutputStreamTest extends AnyFlatSpec with MockitoSugar with Matchers with Using {
 
-  private val testBucketAndPath = BucketAndPath("my-bucket", "my-path")
+  private val testBucketAndPath = RemotePathLocation("my-bucket", "my-path")
   private val tmpDir = Files.createTempDirectory("myTmpDir")
   private val testLocalLocation = LocalLocation(s"$tmpDir/tmpFileTest.tmp")
 

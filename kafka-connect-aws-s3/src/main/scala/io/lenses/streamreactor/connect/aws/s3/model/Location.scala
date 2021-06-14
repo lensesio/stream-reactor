@@ -18,23 +18,26 @@ package io.lenses.streamreactor.connect.aws.s3.model
 
 import com.amazonaws.services.s3.internal.BucketNameUtils
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.sink.S3WriterManager.logger
 
 import java.io.File
 import java.util.UUID
 
 
-case object BucketAndPrefix {
-  def apply(bucketAndPath: String): BucketAndPrefix = {
+sealed trait Location {
+  def path: String
+}
+
+case object RemoteRootLocation {
+  def apply(bucketAndPath: String): RemoteRootLocation = {
     bucketAndPath.split(":") match {
-      case Array(bucket) => BucketAndPrefix(bucket, None)
-      case Array(bucket, path) => BucketAndPrefix(bucket, Some(path))
+      case Array(bucket) => RemoteRootLocation(bucket, None)
+      case Array(bucket, path) => RemoteRootLocation(bucket, Some(path))
       case _ => throw new IllegalArgumentException("Invalid number of arguments provided to create BucketAndPrefix")
     }
   }
 }
 
-case class BucketAndPrefix(
+case class RemoteRootLocation(
                             bucket: String,
                             prefix: Option[String]
                           )  extends Location {
@@ -44,14 +47,22 @@ case class BucketAndPrefix(
   prefix
     .filter(_.contains("/"))
     .foreach(_ => throw new IllegalArgumentException("Nested prefix not currently supported"))
+
+  override def path: String = s"$bucket/$prefix"
 }
 
-trait Location {
+case class RemotePathLocation(
+                           bucket: String,
+                           override val path: String
+                         ) extends Location {
+
+  BucketNameUtils.validateBucketName(bucket)
 
 }
+
 
 object LocalLocation extends LazyLogging {
-  def apply(parentDir : LocalLocation, bucketAndPath: BucketAndPath): LocalLocation = {
+  def apply(parentDir : LocalLocation, bucketAndPath: RemotePathLocation): LocalLocation = {
     val uuid = UUID.randomUUID().toString
 
     val dir = new File(s"${parentDir.path}/${bucketAndPath.bucket}/${bucketAndPath.path}")
@@ -65,18 +76,9 @@ object LocalLocation extends LazyLogging {
   }
 }
 case class LocalLocation (
-                           path: String,
+                           override val path: String,
                          ) extends Location {
 
 
-
-}
-
-case class BucketAndPath (
-                          bucket: String,
-                          path: String
-                        ) extends Location {
-
-  BucketNameUtils.validateBucketName(bucket)
 
 }

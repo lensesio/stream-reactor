@@ -39,7 +39,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
   "json sink" should "write single json record" in {
 
-    val bucketAndPrefix = BucketAndPrefix(BucketName, Some(PathPrefix))
+    val bucketAndPrefix = RemoteRootLocation(BucketName, Some(PathPrefix))
     val config = S3SinkConfig(S3Config(
       Some(Identity),
       Some(Credential),
@@ -66,7 +66,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
   "json sink" should "write schemas to json" in {
 
-    val bucketAndPrefix = BucketAndPrefix(BucketName, Some(PathPrefix))
+    val bucketAndPrefix = RemoteRootLocation(BucketName, Some(PathPrefix))
     val config = S3SinkConfig(S3Config(
       Some(Identity),
       Some(Credential),

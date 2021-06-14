@@ -26,7 +26,7 @@ sealed trait PartitionDisplay extends EnumEntry
 
 object PartitionDisplay extends Enum[PartitionDisplay] {
 
-  val values: immutable.IndexedSeq[PartitionDisplay] = findValues
+  override val values: immutable.IndexedSeq[PartitionDisplay] = findValues
 
   case object KeysAndValues extends PartitionDisplay
 

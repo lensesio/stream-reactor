@@ -47,7 +47,7 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
   }
 
-  override def close(newName: BucketAndPath): Unit = {
+  override def close(newName: RemotePathLocation): Unit = {
     avroWriterState.fold(logger.debug("Requesting close when there's nothing to close"))(_.close(newName))
   }
 
@@ -69,7 +69,7 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
     }
 
 
-    def close(newName: BucketAndPath) = {
+    def close(newName: RemotePathLocation) = {
       Try(fileWriter.flush())
       Try(outputStream.complete(newName))
       Try(fileWriter.close())

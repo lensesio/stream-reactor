@@ -20,7 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import io.lenses.streamreactor.connect.aws.s3.config.Format._
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
 import io.lenses.streamreactor.connect.aws.s3.config.{FormatOptions, FormatSelection}
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BytesWriteMode, SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, BytesWriteMode, SinkData, Topic}
 import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreOutputStream, S3OutputStream}
 import org.apache.kafka.connect.errors.ConnectException
 
@@ -59,7 +59,7 @@ trait S3FormatWriter {
 
   def getPointer: Long
 
-  def close(newName: BucketAndPath)
+  def close(newName: RemotePathLocation)
 }
 
 

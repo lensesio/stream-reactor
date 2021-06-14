@@ -19,11 +19,11 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import java.io.{DataInputStream, InputStream}
 import java.util.concurrent.atomic.AtomicLong
 
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, ByteArraySourceData, BytesWriteMode}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, ByteArraySourceData, BytesWriteMode}
 
 import scala.util.Try
 
-class BytesFormatWithSizesStreamReader(inputStreamFn: () => InputStream, fileSizeFn: () => Long, bucketAndPath: BucketAndPath, bytesWriteMode: BytesWriteMode) extends S3FormatStreamReader[ByteArraySourceData] {
+class BytesFormatWithSizesStreamReader(inputStreamFn: () => InputStream, fileSizeFn: () => Long, bucketAndPath: RemotePathLocation, bytesWriteMode: BytesWriteMode) extends S3FormatStreamReader[ByteArraySourceData] {
 
   private val inputStream = new DataInputStream(inputStreamFn())
 
@@ -48,6 +48,6 @@ class BytesFormatWithSizesStreamReader(inputStreamFn: () => InputStream, fileSiz
     }
   }
 
-  override def getBucketAndPath: BucketAndPath = bucketAndPath
+  override def getBucketAndPath: RemotePathLocation = bucketAndPath
 
 }

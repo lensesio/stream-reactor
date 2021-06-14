@@ -18,10 +18,10 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import java.io.InputStream
 
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, StringSourceData}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, StringSourceData}
 
 
-class CsvFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: BucketAndPath, hasHeaders: Boolean)
+class CsvFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: RemotePathLocation, hasHeaders: Boolean)
   extends TextFormatStreamReader(inputStreamFn, bucketAndPath) {
 
   private var firstRun : Boolean = true;

@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, Offset, Topic, TopicPartitionOffset}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, Offset, Topic, TopicPartitionOffset}
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
@@ -32,7 +32,7 @@ class OffsetSeekerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   private implicit val storageInterface: StorageInterface = mock[StorageInterface]
 
-  private val bucketAndPath = BucketAndPath("my-bucket", "path/myTopic/0")
+  private val bucketAndPath = RemotePathLocation("my-bucket", "path/myTopic/0")
 
   "seek" should "return empty set when path does not exist" in {
 

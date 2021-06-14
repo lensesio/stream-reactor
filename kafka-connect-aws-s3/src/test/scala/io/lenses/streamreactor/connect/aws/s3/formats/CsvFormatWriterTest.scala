@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import java.io.StringReader
 import au.com.bytecode.opencsv.CSVReader
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, StructSinkData}
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorError
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorType.UnexpectedType
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
@@ -136,7 +136,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
     val caught = intercept[ExtractorError] {
       formatWriter.write(None, StructSinkData(struct), topic)
     }
-    formatWriter.close(BucketAndPath("my-bucket", "my-path"))
+    formatWriter.close(RemotePathLocation("my-bucket", "my-path"))
     caught.extractorErrorType should be(UnexpectedType)
   }
 
@@ -159,7 +159,7 @@ class CsvFormatWriterTest extends AnyFlatSpec with Matchers with Assertions {
     val caught = intercept[ExtractorError] {
       formatWriter.write(None, StructSinkData(struct), topic)
     }
-    formatWriter.close(BucketAndPath("my-bucket", "my-path"))
+    formatWriter.close(RemotePathLocation("my-bucket", "my-path"))
     caught.extractorErrorType should be(UnexpectedType)
   }
 }

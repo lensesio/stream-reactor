@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import au.com.bytecode.opencsv.CSVWriter
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, PartitionNamePath, SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, PartitionNamePath, SinkData, Topic}
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorAdaptor.adaptErrorResponse
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.SinkDataExtractor
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
@@ -51,7 +51,7 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
 
   override def rolloverFileOnSchemaChange(): Boolean = true
 
-  def close(newName: BucketAndPath) = {
+  def close(newName: RemotePathLocation) = {
     Try(outputStream.complete(newName))
 
     Try(csvWriter.flush())

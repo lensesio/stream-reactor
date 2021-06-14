@@ -18,17 +18,11 @@ package io.lenses.streamreactor.connect.aws.s3.model
 
 import enumeratum.{Enum, EnumEntry}
 
-import scala.collection.immutable
-
 sealed trait S3WriteMode extends EnumEntry
 
 object S3WriteMode extends Enum[S3WriteMode] {
-
-  override val values: immutable.IndexedSeq[S3WriteMode] = findValues
-
-  case object Streamed extends S3WriteMode
+  override val values = findValues
 
   case object BuildLocal extends S3WriteMode
-
-
+  case object Streamed extends S3WriteMode
 }
