@@ -18,19 +18,17 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, LocalLocation}
-import org.jclouds.blobstore.domain.{MultipartPart, MultipartUpload}
+import io.lenses.streamreactor.connect.aws.s3.model.{LocalLocation, RemotePathLocation}
 
 import java.io.{BufferedOutputStream, File, FileOutputStream, OutputStream}
-import java.nio.ByteBuffer
 
 
 class BuildLocalOutputStream(
-                                      initialName: LocalLocation,
-                                      cleanUp: Boolean = true,
-                                    )(
-                                      implicit storageInterface: StorageInterface
-                                    ) extends OutputStream with LazyLogging with S3OutputStream {
+                              initialName: LocalLocation,
+                              cleanUp: Boolean = true,
+                            )(
+                              implicit storageInterface: StorageInterface
+                            ) extends OutputStream with LazyLogging with S3OutputStream {
 
   private val file = new File(initialName.path)
 
