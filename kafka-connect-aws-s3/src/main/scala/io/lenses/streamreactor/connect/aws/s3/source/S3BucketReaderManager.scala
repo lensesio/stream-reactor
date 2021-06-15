@@ -107,7 +107,7 @@ class S3BucketReaderManager(
   }
 
   private def setUpReader(s3StoredFile: S3StoredFile): Option[S3FormatStreamReader[_ <: SourceData]] = {
-    val bucketAndPath = BucketAndPath(sourceBucketOptions.sourceBucketAndPrefix.bucket, s3StoredFile.path)
+    val bucketAndPath = RemotePathLocation(sourceBucketOptions.sourceBucketAndPrefix.bucket, s3StoredFile.path)
     val inputStreamFn = () => storageInterface.getBlob(bucketAndPath)
     val fileSizeFn = () => storageInterface.getBlobSize(bucketAndPath)
     logger.info(s"Reading next file: $s3StoredFile")

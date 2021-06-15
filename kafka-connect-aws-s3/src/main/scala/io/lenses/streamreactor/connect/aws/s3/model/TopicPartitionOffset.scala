@@ -22,7 +22,7 @@ case class OffsetReaderResult(path: String, line: String)
 
 case class PollResults(
                         resultList: Vector[_ <: SourceData],
-                        bucketAndPath: BucketAndPath,
+                        bucketAndPath: RemotePathLocation,
                         prefix: String,
                         targetTopic: String
                       )

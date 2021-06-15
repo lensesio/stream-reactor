@@ -29,6 +29,8 @@ object S3ConfigSettings {
   val CUSTOM_ENDPOINT: String = "aws.custom.endpoint"
   val ENABLE_VIRTUAL_HOST_BUCKETS: String = "aws.vhost.bucket"
   val DISABLE_FLUSH_COUNT: String = s"$CONNECTOR_PREFIX.disable.flush.count"
+  val WRITE_MODE: String = s"$CONNECTOR_PREFIX.write.mode"
+  val LOCAL_TMP_DIRECTORY: String = s"$CONNECTOR_PREFIX.local.tmp.directory"
 
   val KcqlKey = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
   val KCQL_CONFIG = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"

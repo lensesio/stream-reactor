@@ -18,6 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.config
 
 import com.datamountaineer.streamreactor.common.config.base.traits.{BaseConfig, ConnectionSettings, ErrorPolicySettings, KcqlSettings, NumberRetriesSettings, UserSettings}
+import io.lenses.streamreactor.connect.aws.s3.model.S3WriteMode.{BuildLocal, Streamed}
 
 import java.util
 import org.apache.kafka.common.config.ConfigDef
@@ -69,6 +70,20 @@ object S3ConfigDef {
       false,
       Importance.LOW,
       "Disable flush on reaching count"
+    )
+    .define(
+      WRITE_MODE,
+      Type.STRING,
+      Streamed.entryName,
+      Importance.HIGH,
+      s"Write mode, '${Streamed.entryName}' or '${BuildLocal.entryName}'"
+    )
+    .define(
+      LOCAL_TMP_DIRECTORY,
+      Type.STRING,
+      "",
+      Importance.LOW,
+      s"Local tmp directory for use with ${BuildLocal.entryName} write mode"
     )
     .define(KcqlKey, Type.STRING, Importance.HIGH, KCQL_DOC)
     .define(ERROR_POLICY,
@@ -131,4 +146,6 @@ case class S3ConfigDefBuilder(props: util.Map[String, String])
     with UserSettings
     with ConnectionSettings
     with S3FlushSettings
+    with S3WriteModeSettings
+
 

@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import au.com.bytecode.opencsv.CSVWriter
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{PartitionNamePath, SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, PartitionNamePath, SinkData, Topic}
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorAdaptor.adaptErrorResponse
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.SinkDataExtractor
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
@@ -34,8 +34,6 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
   private val outputStream: S3OutputStream = outputStreamFn()
   private val outputStreamWriter = new OutputStreamWriter(outputStream)
   private val csvWriter = new CSVWriter(outputStreamWriter)
-
-  private var outstandingRename: Boolean = false
 
   private var fieldsWritten = false
 
@@ -53,8 +51,8 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
 
   override def rolloverFileOnSchemaChange(): Boolean = true
 
-  override def close(): Unit = {
-    Try(outstandingRename = outputStream.complete)
+  def close(newName: RemotePathLocation) = {
+    Try(outputStream.complete(newName))
 
     Try(csvWriter.flush())
     Try(outputStream.flush())
@@ -62,8 +60,6 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
     Try(outputStreamWriter.close())
     Try(outputStream.close())
   }
-
-  override def getOutstandingRename: Boolean = outstandingRename
 
   override def getPointer: Long = outputStream.getPointer
 

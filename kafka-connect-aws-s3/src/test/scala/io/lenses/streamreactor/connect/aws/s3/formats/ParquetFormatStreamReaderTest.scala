@@ -16,7 +16,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPath
+import io.lenses.streamreactor.connect.aws.s3.model.RemotePathLocation
 import org.apache.kafka.connect.data.Struct
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -24,7 +24,7 @@ import org.scalatest.matchers.should.Matchers
 
 class ParquetFormatStreamReaderTest extends AnyFlatSpec with Matchers {
 
-  private val bucketAndPath = BucketAndPath("my-bucket", "myPath")
+  private val bucketAndPath = RemotePathLocation("my-bucket", "myPath")
 
   "iteration" should "read parquet files" in {
     val inputStreamFn = () => getClass.getResourceAsStream("/parquet/1.parquet")

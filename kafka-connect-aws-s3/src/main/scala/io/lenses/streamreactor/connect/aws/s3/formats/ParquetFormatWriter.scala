@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.parquet.ParquetOutputFile
-import io.lenses.streamreactor.connect.aws.s3.model.{SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, SinkData, Topic}
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 import org.apache.avro.Schema
@@ -31,7 +31,6 @@ import org.apache.parquet.hadoop.ParquetWriter.{DEFAULT_BLOCK_SIZE, DEFAULT_PAGE
 import scala.util.Try
 
 class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWriter with LazyLogging {
-  private var outstandingRename: Boolean = false
 
   private var outputStream: S3OutputStream = _
 
@@ -67,14 +66,12 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
 
   override def rolloverFileOnSchemaChange() = true
 
-  override def close(): Unit = {
+  override def close(newName: RemotePathLocation) = {
     Try(writer.close())
     Try(outputStream.flush())
-    Try(outstandingRename = outputStream.complete)
+    Try(outputStream.complete(newName))
     Try(outputStream.close())
   }
-
-  override def getOutstandingRename: Boolean = outstandingRename
 
   override def getPointer: Long = outputStream.getPointer
 }

@@ -17,25 +17,25 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.config
 
+import cats.syntax.all._
 import com.datamountaineer.kcql.Kcql
-import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
-import io.lenses.streamreactor.connect.aws.s3.config.S3Config
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
-import io.lenses.streamreactor.connect.aws.s3.model.BucketAndPrefix
-import io.lenses.streamreactor.connect.aws.s3.model.PartitionSelection
-import io.lenses.streamreactor.connect.aws.s3.sink._
 import io.lenses.streamreactor.connect.aws.s3.config.S3FlushSettings.{defaultFlushCount, defaultFlushInterval, defaultFlushSize}
+import io.lenses.streamreactor.connect.aws.s3.config.{FormatSelection, S3Config, S3ConfigDefBuilder}
+import io.lenses.streamreactor.connect.aws.s3.model.{PartitionSelection, RemoteRootLocation, S3OutputStreamOptions, StreamedWriteOutputStreamOptions}
+import io.lenses.streamreactor.connect.aws.s3.sink._
 
 import scala.collection.JavaConverters._
-import scala.concurrent.duration._
 
 object S3SinkConfig {
 
-  def apply(props: Map[String, String]): S3SinkConfig = S3SinkConfig(
-    S3Config(props),
-    SinkBucketOptions(props)
-  )
+  def apply(props: Map[String, String]): Either[Exception, S3SinkConfig] = {
+    SinkBucketOptions(props) match {
+      case Left(ex) => ex.asLeft[S3SinkConfig]
+      case Right(value) => S3SinkConfig(S3Config(props), value).asRight[Exception]
+    }
+
+  }
 
 }
 
@@ -46,7 +46,7 @@ case class S3SinkConfig(
 
 object SinkBucketOptions {
 
-  def apply(props: Map[String, String]): Set[SinkBucketOptions] = {
+  def apply(props: Map[String, String]): Either[Exception, Set[SinkBucketOptions]] = {
 
     val config = S3ConfigDefBuilder(props.asJava)
 
@@ -63,15 +63,20 @@ object SinkBucketOptions {
         case None => new HierarchicalS3FileNamingStrategy(formatSelection)
       }
 
-      SinkBucketOptions(
-        kcql.getSource,
-        BucketAndPrefix(kcql.getTarget),
-        formatSelection = formatSelection,
-        fileNamingStrategy = namingStrategy,
-        partitionSelection = partitionSelection,
-        commitPolicy = config.commitPolicy(kcql)
-      )
-    }
+      val s3WriteOptions = config.s3WriteOptions(props)
+      s3WriteOptions match {
+        case Right(value) => SinkBucketOptions(
+          kcql.getSource,
+          RemoteRootLocation(kcql.getTarget),
+          formatSelection = formatSelection,
+          fileNamingStrategy = namingStrategy,
+          partitionSelection = partitionSelection,
+          commitPolicy = config.commitPolicy(kcql),
+          writeMode = value,
+        )
+        case Left(exception) => return exception.asLeft[Set[SinkBucketOptions]]
+      }
+    }.asRight[Exception]
 
   }
 
@@ -79,9 +84,10 @@ object SinkBucketOptions {
 
 case class SinkBucketOptions(
                               sourceTopic: String,
-                              bucketAndPrefix: BucketAndPrefix,
+                              bucketAndPrefix: RemoteRootLocation,
                               formatSelection: FormatSelection,
                               fileNamingStrategy: S3FileNamingStrategy,
                               partitionSelection: Option[PartitionSelection] = None,
                               commitPolicy: CommitPolicy = DefaultCommitPolicy(Some(defaultFlushSize), Some(defaultFlushInterval), Some(defaultFlushCount)),
+                              writeMode: S3OutputStreamOptions = StreamedWriteOutputStreamOptions(),
                             )

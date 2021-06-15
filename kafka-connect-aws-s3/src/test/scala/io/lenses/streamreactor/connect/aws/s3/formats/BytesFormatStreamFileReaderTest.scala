@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import java.io.ByteArrayInputStream
 
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, BytesOutputRow, BytesOutputRowTest, BytesWriteMode}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, BytesOutputRow, BytesOutputRowTest, BytesWriteMode}
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -27,7 +27,7 @@ class BytesFormatStreamFileReaderTest extends AnyFlatSpec with MockitoSugar with
 
   import BytesOutputRowTest._
 
-  val bucketAndPath: BucketAndPath = mock[BucketAndPath]
+  val bucketAndPath: RemotePathLocation = mock[RemotePathLocation]
   val fileContents = "lemonOlivelemonOlive".getBytes
 
   "read" should "read entire file at once" in {

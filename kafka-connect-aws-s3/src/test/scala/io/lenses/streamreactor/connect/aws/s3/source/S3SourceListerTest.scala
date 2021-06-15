@@ -32,7 +32,7 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   private implicit val storageInterface: StorageInterface = mock[StorageInterface]
 
-  private val bucketAndPrefix = BucketAndPrefix("my-bucket", Some("path"))
+  private val bucketAndPrefix = RemoteRootLocation("my-bucket", Some("path"))
   private val sourceLister = new S3SourceLister
 
   // comes back in random order

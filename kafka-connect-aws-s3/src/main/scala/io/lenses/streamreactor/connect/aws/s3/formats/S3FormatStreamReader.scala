@@ -20,7 +20,7 @@ import java.io.InputStream
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, SourceData}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, SourceData}
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
 
 object S3FormatStreamReader {
@@ -29,7 +29,7 @@ object S3FormatStreamReader {
              inputStreamFn: () => InputStream,
              fileSizeFn: () => Long,
              options: SourceBucketOptions,
-             bucketAndPath: BucketAndPath
+             bucketAndPath: RemotePathLocation
            ): S3FormatStreamReader[_ <: SourceData] =
     options.format.format match {
       case Format.Avro => new AvroFormatStreamReader(inputStreamFn, bucketAndPath)
@@ -49,7 +49,7 @@ object S3FormatStreamReader {
 
 trait S3FormatStreamReader[R <: SourceData] extends AutoCloseable with Iterator[R] {
 
-  def getBucketAndPath: BucketAndPath
+  def getBucketAndPath: RemotePathLocation
 
   def getLineNumber: Long
 

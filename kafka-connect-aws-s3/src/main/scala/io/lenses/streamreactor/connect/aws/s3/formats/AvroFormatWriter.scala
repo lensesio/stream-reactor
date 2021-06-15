@@ -31,8 +31,6 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
   private var avroWriterState: Option[AvroWriterState] = None
 
-  private var outstandingRename: Boolean = false
-
   override def rolloverFileOnSchemaChange() = true
 
   override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit = {
@@ -49,11 +47,9 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
   }
 
-  override def close(): Unit = {
-    avroWriterState.fold(logger.debug("Requesting close when there's nothing to close"))(_.close())
+  override def close(newName: RemotePathLocation): Unit = {
+    avroWriterState.fold(logger.debug("Requesting close when there's nothing to close"))(_.close(newName))
   }
-
-  override def getOutstandingRename: Boolean = outstandingRename
 
   override def getPointer: Long = avroWriterState.fold(0L)(_.pointer)
 
@@ -72,10 +68,10 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
     }
 
-    def close(): Unit = {
-      Try(fileWriter.flush())
-      Try(outstandingRename = outputStream.complete)
 
+    def close(newName: RemotePathLocation) = {
+      Try(fileWriter.flush())
+      Try(outputStream.complete(newName))
       Try(fileWriter.close())
       Try(outputStream.close())
     }

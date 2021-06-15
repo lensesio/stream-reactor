@@ -18,8 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import java.nio.charset.StandardCharsets
-
-import io.lenses.streamreactor.connect.aws.s3.model.{PrimitiveSinkData, SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, PrimitiveSinkData, SinkData, Topic}
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 
 import scala.util.{Failure, Success, Try}
@@ -29,7 +28,6 @@ class TextFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
   private val LineSeparatorBytes: Array[Byte] = System.lineSeparator.getBytes(StandardCharsets.UTF_8)
 
   private val outputStream: S3OutputStream = outputStreamFn()
-  private var outstandingRename: Boolean = false
 
   override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit = {
 
@@ -50,14 +48,12 @@ class TextFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
   override def rolloverFileOnSchemaChange(): Boolean = false
 
-  override def close(): Unit = {
-    Try(outstandingRename = outputStream.complete)
+  override def close(newName: RemotePathLocation): Unit = {
+    Try(outputStream.complete(newName))
 
     Try(outputStream.flush())
     Try(outputStream.close())
   }
-
-  override def getOutstandingRename: Boolean = outstandingRename
 
   override def getPointer: Long = outputStream.getPointer
 }

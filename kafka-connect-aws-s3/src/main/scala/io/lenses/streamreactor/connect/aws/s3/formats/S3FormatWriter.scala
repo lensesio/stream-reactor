@@ -20,8 +20,8 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import io.lenses.streamreactor.connect.aws.s3.config.Format._
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
 import io.lenses.streamreactor.connect.aws.s3.config.{FormatOptions, FormatSelection}
-import io.lenses.streamreactor.connect.aws.s3.model.{BytesWriteMode, SinkData, Topic}
-import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreOutputStream
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, BytesWriteMode, SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreOutputStream, S3OutputStream}
 import org.apache.kafka.connect.errors.ConnectException
 
 object S3FormatWriter {
@@ -35,7 +35,7 @@ object S3FormatWriter {
 
   def apply(
              formatInfo: FormatSelection,
-             outputStreamFn: () => MultipartBlobStoreOutputStream
+             outputStreamFn: () => S3OutputStream
            ): S3FormatWriter = {
 
     formatInfo.format match {
@@ -51,15 +51,15 @@ object S3FormatWriter {
 
 }
 
-trait S3FormatWriter extends AutoCloseable {
+trait S3FormatWriter {
 
   def rolloverFileOnSchemaChange(): Boolean
 
   def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit
 
-  def getOutstandingRename: Boolean
-
   def getPointer: Long
+
+  def close(newName: RemotePathLocation)
 }
 
 

@@ -32,17 +32,17 @@ trait S3FileNamingStrategy {
 
   def getFormat: Format
 
-  def prefix(bucketAndPrefix: BucketAndPrefix): String = bucketAndPrefix.prefix.getOrElse(DefaultPrefix)
+  def prefix(bucketAndPrefix: RemoteRootLocation): String = bucketAndPrefix.prefix.getOrElse(DefaultPrefix)
 
-  def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): BucketAndPath
+  def stagingFilename(bucketAndPrefix: RemoteRootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): RemotePathLocation
 
-  def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath
+  def finalFilename(bucketAndPrefix: RemoteRootLocation, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): RemotePathLocation
 
   def shouldProcessPartitionValues: Boolean
 
   def processPartitionValues(messageDetail: MessageDetail, topicPartition: TopicPartition): Map[PartitionField, String]
 
-  def topicPartitionPrefix(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath
+  def topicPartitionPrefix(bucketAndPrefix: RemoteRootLocation, topicPartition: TopicPartition): RemotePathLocation
 
   val committedFilenameRegex: Regex
 }
@@ -51,11 +51,11 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends
 
   val format: Format = formatSelection.format
 
-  override def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): BucketAndPath =
-    BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/.temp/${topicPartition.topic.value}/${topicPartition.partition}.${format.entryName.toLowerCase}")
+  override def stagingFilename(bucketAndPrefix: RemoteRootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): RemotePathLocation =
+    RemotePathLocation(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/.temp/${topicPartition.topic.value}/${topicPartition.partition}.${format.entryName.toLowerCase}")
 
-  override def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath =
-    BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${topicPartitionOffset.topic.value}/${topicPartitionOffset.partition}/${topicPartitionOffset.offset.value}.${format.entryName.toLowerCase}")
+  override def finalFilename(bucketAndPrefix: RemoteRootLocation, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): RemotePathLocation =
+    RemotePathLocation(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${topicPartitionOffset.topic.value}/${topicPartitionOffset.partition}/${topicPartitionOffset.offset.value}.${format.entryName.toLowerCase}")
 
   override def getFormat: Format = format
 
@@ -65,7 +65,7 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends
 
   override val committedFilenameRegex: Regex = s".+/(.+)/(\\d+)/(\\d+).(.+)".r
 
-  override def topicPartitionPrefix(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath = BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${topicPartition.topic.value}/${topicPartition.partition}/")
+  override def topicPartitionPrefix(bucketAndPrefix: RemoteRootLocation, topicPartition: TopicPartition): RemotePathLocation = RemotePathLocation(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${topicPartition.topic.value}/${topicPartition.partition}/")
 
 }
 
@@ -75,8 +75,8 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
 
   override def getFormat: Format = format
 
-  override def stagingFilename(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): BucketAndPath = {
-    BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartition.topic.value}/${topicPartition.partition}/temp.${format.entryName.toLowerCase}")
+  override def stagingFilename(bucketAndPrefix: RemoteRootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): RemotePathLocation = {
+    RemotePathLocation(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartition.topic.value}/${topicPartition.partition}/temp.${format.entryName.toLowerCase}")
   }
 
   private def buildPartitionPrefix(partitionValues: Map[PartitionField, String]): String = {
@@ -91,8 +91,8 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
     if (partitionSelection.partitionDisplay == KeysAndValues) s"${partition.valuePrefixDisplay()}=" else ""
   }
 
-  override def finalFilename(bucketAndPrefix: BucketAndPrefix, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): BucketAndPath =
-    BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartitionOffset.topic.value}(${topicPartitionOffset.partition}_${topicPartitionOffset.offset.value}).${format.entryName.toLowerCase}")
+  override def finalFilename(bucketAndPrefix: RemoteRootLocation, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): RemotePathLocation =
+    RemotePathLocation(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartitionOffset.topic.value}(${topicPartitionOffset.partition}_${topicPartitionOffset.offset.value}).${format.entryName.toLowerCase}")
 
   override def processPartitionValues(messageDetail: MessageDetail, topicPartition: TopicPartition): Map[PartitionField, String] = {
     partitionSelection
@@ -145,7 +145,7 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
 
   override val committedFilenameRegex: Regex = s"^[^/]+?/(?:.+/)*(.+)\\((\\d+)_(\\d+)\\).(.+)".r
 
-  override def topicPartitionPrefix(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition): BucketAndPath = BucketAndPath(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/")
+  override def topicPartitionPrefix(bucketAndPrefix: RemoteRootLocation, topicPartition: TopicPartition): RemotePathLocation = RemotePathLocation(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/")
 }
 
 

@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.source.config
 import com.datamountaineer.kcql.Kcql
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.{FormatSelection, S3Config, S3ConfigDefBuilder}
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPrefix, PartitionSelection}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemoteRootLocation, PartitionSelection}
 import io.lenses.streamreactor.connect.aws.s3.sink.{HierarchicalS3FileNamingStrategy, PartitionedS3FileNamingStrategy, S3FileNamingStrategy}
 
 import scala.collection.JavaConverters._
@@ -39,7 +39,7 @@ case class S3SourceConfig(
                          )
 
 case class SourceBucketOptions(
-                                sourceBucketAndPrefix: BucketAndPrefix,
+                                sourceBucketAndPrefix: RemoteRootLocation,
                                 targetTopic: String,
                                 format: FormatSelection,
                                 fileNamingStrategy: S3FileNamingStrategy,
@@ -70,7 +70,7 @@ object SourceBucketOptions {
           case None => new HierarchicalS3FileNamingStrategy(formatSelection)
         }
         SourceBucketOptions(
-          BucketAndPrefix(kcql.getSource),
+          RemoteRootLocation(kcql.getSource),
           kcql.getTarget,
           format = formatSelection,
           fileNamingStrategy = namingStrategy,

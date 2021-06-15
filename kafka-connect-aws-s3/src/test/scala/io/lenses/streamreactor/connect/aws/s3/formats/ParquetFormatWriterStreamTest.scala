@@ -30,11 +30,11 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
   val parquetFormatReader = new ParquetFormatReader()
 
   "convert" should "write byte output stream with json for a single record" in {
-    val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"), 20000)(storageInterface)
+    val blobStream = new MultipartBlobStoreOutputStream(RemotePathLocation(BucketName, "myPrefix"), 20000)(storageInterface)
 
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
     parquetFormatWriter.write(None, StructSinkData(users.head), topic)
-    parquetFormatWriter.close()
+    parquetFormatWriter.close(RemotePathLocation("my-bucket", "my-path"))
 
     val bytes = S3TestPayloadReader.readPayload(BucketName, "myPrefix", blobStoreContext)
 
@@ -45,11 +45,11 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
   }
 
   "convert" should "write byte output stream with json for multiple records" in {
-    val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"), 100)(storageInterface)
+    val blobStream = new MultipartBlobStoreOutputStream(RemotePathLocation(BucketName, "myPrefix"), 100)(storageInterface)
 
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
     firstUsers.foreach(e => parquetFormatWriter.write(None, StructSinkData(e), topic))
-    parquetFormatWriter.close()
+    parquetFormatWriter.close(RemotePathLocation("my-bucket", "my-path"))
 
     val bytes = S3TestPayloadReader.readPayload(BucketName, "myPrefix", blobStoreContext)
     val genericRecords = parquetFormatReader.read(bytes)
@@ -59,7 +59,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
 
   "convert" should "throw an error when writing array without schema" in {
 
-    val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"), 100)(storageInterface)
+    val blobStream = new MultipartBlobStoreOutputStream(RemotePathLocation(BucketName, "myPrefix"), 100)(storageInterface)
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
     intercept[IllegalArgumentException] {
       parquetFormatWriter.write(
@@ -77,7 +77,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
   "convert" should "throw an exception when trying to write map values" in {
     val mapSchema = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA)
 
-    val blobStream = new MultipartBlobStoreOutputStream(BucketAndPath(BucketName, "myPrefix"), 100)(storageInterface)
+    val blobStream = new MultipartBlobStoreOutputStream(RemotePathLocation(BucketName, "myPrefix"), 100)(storageInterface)
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
     intercept[IllegalArgumentException] {
       parquetFormatWriter.write(
@@ -90,6 +90,6 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
           ), Some(mapSchema)),
         topic)
     }.getMessage should be("Avro schema must be a record.")
-    parquetFormatWriter.close()
+    parquetFormatWriter.close(RemotePathLocation("my-bucket", "my-path"))
   }
 }

@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import java.io.ByteArrayInputStream
 
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, StringSourceData}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, StringSourceData}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
@@ -26,7 +26,7 @@ import org.scalatest.matchers.should.Matchers
 
 class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSugar {
 
-  private val bucketAndPath = mock[BucketAndPath]
+  private val bucketAndPath = mock[RemotePathLocation]
 
   "next" should "throw an error when you try and read an empty file when headers are configured" in {
     val reader = setUpReader(List(), includesHeaders = true)

@@ -38,7 +38,7 @@ class S3ParquetWriterManagerTest extends AnyFlatSpec with Matchers with S3TestCo
   private val PathPrefix = "streamReactorBackups"
   private val parquetFormatReader = new ParquetFormatReader
 
-  private val bucketAndPrefix = BucketAndPrefix(BucketName, Some(PathPrefix))
+  private val bucketAndPrefix = RemoteRootLocation(BucketName, Some(PathPrefix))
   private val parquetConfig = S3SinkConfig(S3Config(
     Some(Identity),
     Some(Credential),

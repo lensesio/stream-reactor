@@ -19,13 +19,13 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import java.io.InputStream
 
 import io.confluent.connect.avro.AvroData
-import io.lenses.streamreactor.connect.aws.s3.model.{BucketAndPath, SchemaAndValueSourceData}
+import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, SchemaAndValueSourceData}
 import org.apache.avro.file.DataFileStream
 import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
 
 import scala.util.Try
 
-class AvroFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: BucketAndPath) extends S3FormatStreamReader[SchemaAndValueSourceData] {
+class AvroFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: RemotePathLocation) extends S3FormatStreamReader[SchemaAndValueSourceData] {
   private val avroDataConverter = new AvroData(100)
 
   private val datumReader = new GenericDatumReader[GenericRecord]()
@@ -50,7 +50,7 @@ class AvroFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: Bu
     SchemaAndValueSourceData(schemaAndValue, lineNumber)
   }
 
-  override def getBucketAndPath: BucketAndPath = bucketAndPath
+  override def getBucketAndPath: RemotePathLocation = bucketAndPath
 
   override def getLineNumber: Long = lineNumber
 }

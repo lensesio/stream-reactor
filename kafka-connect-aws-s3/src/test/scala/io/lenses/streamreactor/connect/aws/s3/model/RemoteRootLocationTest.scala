@@ -21,31 +21,31 @@ import com.amazonaws.services.s3.model.IllegalBucketNameException
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class BucketAndPrefixTest extends AnyFlatSpec with Matchers {
+class RemoteRootLocationTest extends AnyFlatSpec with Matchers {
 
   "bucketAndPrefix" should "reject prefixes with slashes" in {
     assertThrows[IllegalArgumentException] {
-      BucketAndPrefix("bucket", Some("/slash"))
+      RemoteRootLocation("bucket", Some("/slash"))
     }
   }
 
   "bucketAndPrefix" should "allow prefixes without slashes" in {
-    BucketAndPrefix("bucket", Some("noSlash"))
+    RemoteRootLocation("bucket", Some("noSlash"))
   }
 
   "bucketAndPrefix" should "split a the bucket and path" in {
-    BucketAndPrefix("bucket:path") should be(BucketAndPrefix("bucket", Some("path")))
+    RemoteRootLocation("bucket:path") should be(RemoteRootLocation("bucket", Some("path")))
   }
 
   "bucketAndPrefix" should "fail if given too many components to split" in {
     assertThrows[IllegalArgumentException] {
-      BucketAndPrefix("bucket:path:whatIsThis")
+      RemoteRootLocation("bucket:path:whatIsThis")
     }
   }
 
   "bucketAndPrefix" should "fail if not a valid bucket name" in {
     assertThrows[IllegalBucketNameException] {
-      BucketAndPrefix("bucket-police-refu$e-this-name:path")
+      RemoteRootLocation("bucket-police-refu$e-this-name:path")
     }
   }
 }

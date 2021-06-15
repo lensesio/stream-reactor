@@ -1,6 +1,5 @@
-
 /*
- * Copyright 2020 Lenses.io
+ * Copyright 2021 Lenses.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,16 +14,16 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.storage
+package io.lenses.streamreactor.connect.aws.s3.config
 
-import io.lenses.streamreactor.connect.aws.s3.model.RemotePathLocation
+import com.datamountaineer.streamreactor.common.config.base.traits.BaseSettings
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.WRITE_MODE
+import io.lenses.streamreactor.connect.aws.s3.model.S3OutputStreamOptions
 
-import java.io.OutputStream
+trait S3WriteModeSettings extends BaseSettings {
 
-trait S3OutputStream extends OutputStream {
-
-  def complete(finalDestination: RemotePathLocation): Unit
-
-  def getPointer: Long
+  def s3WriteOptions(props: Map[String,String]) : Either[Exception,S3OutputStreamOptions] = {
+    S3OutputStreamOptions(getString(WRITE_MODE), props)
+  }
 
 }

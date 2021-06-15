@@ -18,14 +18,16 @@
 package io.lenses.streamreactor.connect.aws.s3.sink
 
 import com.datamountaineer.streamreactor.common.errors.{ErrorHandler, ErrorPolicy}
-import com.typesafe.scalalogging.StrictLogging
+import com.typesafe.scalalogging.{LazyLogging, StrictLogging}
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
-import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreOutputStream, S3Writer, S3WriterImpl, StorageInterface}
+import io.lenses.streamreactor.connect.aws.s3.storage.{BuildLocalOutputStream, MultipartBlobStoreOutputStream, S3Writer, S3WriterImpl, StorageInterface}
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.connect.errors.ConnectException
 
+import java.io.File
+import java.util.UUID
 import scala.util.Try
 
 /**
@@ -40,7 +42,7 @@ import scala.util.Try
 class S3WriterManager(sinkName: String,
                       formatWriterFn: (TopicPartition, Map[PartitionField, String]) => S3FormatWriter,
                       commitPolicyFn: Topic => CommitPolicy,
-                      bucketAndPrefixFn: Topic => BucketAndPrefix,
+                      bucketAndPrefixFn: Topic => RemoteRootLocation,
                       fileNamingStrategyFn: Topic => S3FileNamingStrategy,
                       errorPolicy: ErrorPolicy,
                       numberOfRetries: Int,
@@ -49,7 +51,7 @@ class S3WriterManager(sinkName: String,
 
   initialize(numberOfRetries, errorPolicy)
 
-  case class MapKey(topicPartition: TopicPartition, bucketAndPath: BucketAndPath)
+  case class MapKey(topicPartition: TopicPartition, bucketAndPath: RemotePathLocation)
 
   private val writers = scala.collection.mutable.Map.empty[MapKey, S3Writer]
 
@@ -135,12 +137,12 @@ class S3WriterManager(sinkName: String,
 
     val partitionValues = if (fileNamingStrategy.shouldProcessPartitionValues) fileNamingStrategy.processPartitionValues(messageDetail, topicPartition) else Map.empty[PartitionField, String]
 
-    val tempBucketAndPath: BucketAndPath = fileNamingStrategy.stagingFilename(bucketAndPrefix, topicPartition, partitionValues)
+    val tempBucketAndPath: RemotePathLocation = fileNamingStrategy.stagingFilename(bucketAndPrefix, topicPartition, partitionValues)
 
     writers.getOrElseUpdate(MapKey(topicPartition, tempBucketAndPath), createWriter(bucketAndPrefix, topicPartition, partitionValues))
   }
 
-  private def createWriter(bucketAndPrefix: BucketAndPrefix, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): S3Writer = {
+  private def createWriter(bucketAndPrefix: RemoteRootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): S3Writer = {
     logger.debug(s"[$sinkName] Creating new writer for bucketAndPrefix:$bucketAndPrefix")
 
     new S3WriterImpl(
@@ -184,43 +186,30 @@ class S3WriterManager(sinkName: String,
   }
 }
 
-object S3WriterManager {
+object S3WriterManager extends LazyLogging {
   def from(config: S3SinkConfig, sinkName: String)
           (implicit storageInterface: StorageInterface): S3WriterManager = {
 
-    // TODO: make this configurable
-    val MinAllowedMultipartSize: Int = 5242880
-
-    val bucketAndPrefixFn: Topic => BucketAndPrefix = topic => config.bucketOptions.find(_.sourceTopic == topic.value)
+    val bucketAndPrefixFn: Topic => RemoteRootLocation = topic => bucketOptsForTopic(config, topic)
       .getOrElse(throw new ConnectException(s"No bucket config for $topic")).bucketAndPrefix
 
-    val commitPolicyFn: Topic => CommitPolicy = topic => config.bucketOptions.find(_.sourceTopic == topic.value) match {
+    val commitPolicyFn: Topic => CommitPolicy = topic => bucketOptsForTopic(config, topic) match {
       case Some(bucketOptions) => bucketOptions.commitPolicy
       case None => throw new IllegalArgumentException("Can't find commitPolicy in config")
     }
 
-    val fileNamingStrategyFn: Topic => S3FileNamingStrategy = topic => config.bucketOptions
-      .find(_.sourceTopic == topic.value) match {
+    val fileNamingStrategyFn: Topic => S3FileNamingStrategy = topic => bucketOptsForTopic(config, topic) match {
       case Some(bucketOptions) => bucketOptions.fileNamingStrategy
       case None => throw new IllegalArgumentException("Can't find fileNamingStrategy in config")
     }
 
-    val minAllowedMultipartSizeFn: () => Int = () => MinAllowedMultipartSize
-
-    val outputStreamFn: (BucketAndPath, Int) => () => MultipartBlobStoreOutputStream = {
-      (bucketAndPath, int) =>
-        () => new MultipartBlobStoreOutputStream(bucketAndPath, int)
-    }
-
     val formatWriterFn: (TopicPartition, Map[PartitionField, String]) => S3FormatWriter = (topicPartition, partitionValues) =>
-      config.bucketOptions.find(_.sourceTopic == topicPartition.topic.value) match {
+      bucketOptsForTopic(config, topicPartition.topic) match {
         case Some(bucketOptions) =>
-          val fileNamingStrategy = fileNamingStrategyFn(topicPartition.topic)
-
-          val path: BucketAndPath = fileNamingStrategy
-            .stagingFilename(bucketOptions.bucketAndPrefix, topicPartition, partitionValues)
-          val size: Int = minAllowedMultipartSizeFn()
-          S3FormatWriter(bucketOptions.formatSelection, outputStreamFn(path, size))
+          bucketOptions.writeMode.createFormatWriter(
+            bucketOptions.formatSelection,
+            fileNamingStrategyFn(topicPartition.topic).stagingFilename(bucketOptions.bucketAndPrefix, topicPartition, partitionValues)
+          )
         case None => throw new IllegalArgumentException("Can't find commitPolicy in config")
       }
 
@@ -233,5 +222,9 @@ object S3WriterManager {
       config.s3Config.errorPolicy,
       config.s3Config.connectorRetryConfig.numberOfRetries,
     )
+  }
+
+  private def bucketOptsForTopic(config: S3SinkConfig, topic: Topic) = {
+    config.bucketOptions.find(_.sourceTopic == topic.value)
   }
 }

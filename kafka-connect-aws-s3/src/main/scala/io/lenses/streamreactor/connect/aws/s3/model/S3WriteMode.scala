@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Lenses.io
+ * Copyright 2021 Lenses.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,28 +16,13 @@
 
 package io.lenses.streamreactor.connect.aws.s3.model
 
-import com.datamountaineer.kcql.Kcql
 import enumeratum.{Enum, EnumEntry}
 
-import scala.collection.immutable
+sealed trait S3WriteMode extends EnumEntry
 
+object S3WriteMode extends Enum[S3WriteMode] {
+  override val values = findValues
 
-sealed trait PartitionDisplay extends EnumEntry
-
-object PartitionDisplay extends Enum[PartitionDisplay] {
-
-  override val values: immutable.IndexedSeq[PartitionDisplay] = findValues
-
-  case object KeysAndValues extends PartitionDisplay
-
-  case object Values extends PartitionDisplay
-
-  def apply(kcql: Kcql): PartitionDisplay = {
-    Option(kcql.getWithPartitioner).fold[PartitionDisplay](KeysAndValues) {
-      PartitionDisplay
-        .withNameInsensitiveOption(_)
-        .getOrElse(KeysAndValues)
-    }
-  }
-
+  case object BuildLocal extends S3WriteMode
+  case object Streamed extends S3WriteMode
 }

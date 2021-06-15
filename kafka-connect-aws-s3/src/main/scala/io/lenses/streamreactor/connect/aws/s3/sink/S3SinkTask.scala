@@ -20,16 +20,14 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsContextCreator
+import io.lenses.streamreactor.connect.aws.s3.config.S3Config
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.HeaderToStringConverter
-import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ValueToSinkDataConverter
-import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreStorageInterface
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.sink.conversion.{HeaderToStringConverter, ValueToSinkDataConverter}
+import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreStorageInterface, StorageInterface}
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
-import org.apache.kafka.connect.sink.SinkRecord
-import org.apache.kafka.connect.sink.SinkTask
+import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
 
 import java.util
 import scala.collection.JavaConverters._
@@ -45,8 +43,6 @@ class S3SinkTask extends SinkTask {
 
   private var storageInterface: StorageInterface = _
 
-  private var config: S3SinkConfig = _
-
   private var sinkName: String = _
 
   override def version(): String = manifest.version()
@@ -56,24 +52,26 @@ class S3SinkTask extends SinkTask {
 
     logger.debug(s"[{}] S3SinkTask.start", sinkName)
 
-    val awsConfig = S3SinkConfig(props.asScala.toMap)
+    S3SinkConfig(propsFromContext(props)) match {
+      case Left(ex) => throw ex
+      case Right(config) =>
+        val awsContextCreator = new AwsContextCreator(AwsContextCreator.DefaultCredentialsFn)
+        storageInterface = new MultipartBlobStoreStorageInterface(sinkName, awsContextCreator.fromConfig(config.s3Config))
+        setErrorRetryInterval(config.s3Config)
 
-    val awsContextCreator = new AwsContextCreator(AwsContextCreator.DefaultCredentialsFn)
-    storageInterface = new MultipartBlobStoreStorageInterface(sinkName, awsContextCreator.fromConfig(awsConfig.s3Config))
+        writerManager = S3WriterManager.from(config, sinkName)(storageInterface)
+    }
 
-    val configs = Option(context).flatMap(c => Option(c.configs())).filter(_.isEmpty == false).getOrElse(props)
-
-    config = S3SinkConfig(configs.asScala.toMap)
-
-    setErrorRetryInterval
-
-    writerManager = S3WriterManager.from(config, sinkName)(storageInterface)
   }
 
-  private def setErrorRetryInterval = {
+  private def propsFromContext(props: util.Map[String, String]) = {
+    Option(context).flatMap(c => Option(c.configs())).filter(_.isEmpty == false).getOrElse(props).asScala.toMap
+  }
+
+  private def setErrorRetryInterval(s3Config: S3Config) = {
     //if error policy is retry set retry interval
-    config.s3Config.errorPolicy match {
-      case RetryErrorPolicy() => context.timeout(config.s3Config.connectorRetryConfig.errorRetryInterval)
+    s3Config.errorPolicy match {
+      case RetryErrorPolicy() => context.timeout(s3Config.connectorRetryConfig.errorRetryInterval)
       case _ =>
     }
   }

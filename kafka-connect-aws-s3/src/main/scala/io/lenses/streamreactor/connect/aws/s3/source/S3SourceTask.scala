@@ -97,7 +97,7 @@ class S3SourceTask extends SourceTask {
       "prefix" -> prefix
     )
 
-  private def fromSourceOffset(bucketAndPath: BucketAndPath, offset: Long): Map[String, AnyRef] =
+  private def fromSourceOffset(bucketAndPath: RemotePathLocation, offset: Long): Map[String, AnyRef] =
     Map(
       "path" -> bucketAndPath.path,
       "line" -> offset.toString

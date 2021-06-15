@@ -30,7 +30,7 @@ sealed trait BytesWriteMode extends EnumEntry {
 }
 
 object BytesWriteMode extends Enum[BytesWriteMode] {
-  val values: immutable.IndexedSeq[BytesWriteMode] = findValues
+  override val values: immutable.IndexedSeq[BytesWriteMode] = findValues
 
   case object KeyAndValueWithSizes extends BytesWriteMode {
     override def read(storedByteArray: Array[Byte]): BytesOutputRow = throw new IllegalArgumentException(s"Invalid apply function for bytesWriteMode key/value only $this")
