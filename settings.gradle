@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-include 'kafka-connect-bloomberg',
-        'kafka-connect-elastic7',
+include 'kafka-connect-elastic7',
         'kafka-connect-elastic6',
         'kafka-connect-kudu',
         'kafka-connect-cassandra',
@@ -28,15 +27,12 @@ include 'kafka-connect-bloomberg',
         'kafka-connect-hive-1.1:it',
         'kafka-connect-jms',
         'kafka-connect-influxdb',
-        'kafka-connect-voltdb',
-        'kafka-connect-blockchain',
         'kafka-connect-mongodb',
         'kafka-connect-mqtt',
         'kafka-connect-coap',
         'kafka-connect-ftp',
         'kafka-connect-azure-documentdb',
         'kafka-connect-pulsar',
-        'kafka-connect-rethink',
         'kafka-connect-aws-s3',
         'kafka-connect-common',
         'kafka-connect-testcontainers'
