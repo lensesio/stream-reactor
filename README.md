@@ -1,4 +1,4 @@
-![Actions Status](https://github.com/lensesio/stream-reactor/workflows/CI/badge.svg)
+![Actions Status](https://github.com/lensesio/stream-reactor/actions/workflows/build.yml/badge.svg)
 [<img src="https://img.shields.io/badge/docs--orange.svg?"/>](https://docs.lenses.io/connectors/)
 
 Join us on slack [![Alt text](images/slack.jpeg)](https://launchpass.com/lensesio)
