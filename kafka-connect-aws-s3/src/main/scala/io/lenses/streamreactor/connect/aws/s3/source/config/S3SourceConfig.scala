@@ -19,16 +19,14 @@ package io.lenses.streamreactor.connect.aws.s3.source.config
 import com.datamountaineer.kcql.Kcql
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.{FormatSelection, S3Config, S3ConfigDefBuilder}
-import io.lenses.streamreactor.connect.aws.s3.model.{RemoteRootLocation, PartitionSelection}
+import io.lenses.streamreactor.connect.aws.s3.model.{PartitionSelection, RemoteRootLocation}
 import io.lenses.streamreactor.connect.aws.s3.sink.{HierarchicalS3FileNamingStrategy, PartitionedS3FileNamingStrategy, S3FileNamingStrategy}
-
-import scala.collection.JavaConverters._
 
 object S3SourceConfig {
 
-  def apply(props: Map[String, String]): S3SourceConfig = S3SourceConfig(
-    S3Config(props),
-    SourceBucketOptions(props)
+  def apply(s3ConfigDefBuilder: S3ConfigDefBuilder): S3SourceConfig = S3SourceConfig(
+    S3Config(s3ConfigDefBuilder.getParsedValues),
+    SourceBucketOptions(s3ConfigDefBuilder)
   )
 
 }
@@ -50,11 +48,8 @@ case class SourceBucketOptions(
 object SourceBucketOptions {
 
   private val DEFAULT_LIMIT = 1024
-  private val DEFAULT_BATCH_SIZE = 1000000
 
-  def apply(props: Map[String, String]): Seq[SourceBucketOptions] = {
-
-    val config = S3ConfigDefBuilder(props.asJava)
+  def apply(config: S3ConfigDefBuilder): Seq[SourceBucketOptions] = {
 
     config.getKCQL.map {
 

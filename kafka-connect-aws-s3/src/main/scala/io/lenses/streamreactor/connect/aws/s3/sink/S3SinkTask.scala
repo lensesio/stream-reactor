@@ -20,7 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import com.datamountaineer.streamreactor.common.errors.RetryErrorPolicy
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsContextCreator
-import io.lenses.streamreactor.connect.aws.s3.config.S3Config
+import io.lenses.streamreactor.connect.aws.s3.config.{S3Config, S3ConfigDefBuilder}
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.{HeaderToStringConverter, ValueToSinkDataConverter}
@@ -48,11 +48,11 @@ class S3SinkTask extends SinkTask {
   override def version(): String = manifest.version()
 
   override def start(props: util.Map[String, String]): Unit = {
-    sinkName = Option(props.get("name")).getOrElse("MissingSinkName")
+    sinkName = getSinkName(props).getOrElse("MissingSinkName")
 
     logger.debug(s"[{}] S3SinkTask.start", sinkName)
 
-    S3SinkConfig(propsFromContext(props)) match {
+    S3SinkConfig(S3ConfigDefBuilder(getSinkName(props), propsFromContext(props))) match {
       case Left(ex) => throw ex
       case Right(config) =>
         val awsContextCreator = new AwsContextCreator(AwsContextCreator.DefaultCredentialsFn)
@@ -64,8 +64,15 @@ class S3SinkTask extends SinkTask {
 
   }
 
-  private def propsFromContext(props: util.Map[String, String]) = {
-    Option(context).flatMap(c => Option(c.configs())).filter(_.isEmpty == false).getOrElse(props).asScala.toMap
+  private def getSinkName(props: util.Map[String, String]) = {
+    Option(props.get("name")).filter(_.trim.nonEmpty)
+  }
+
+  private def propsFromContext(props: util.Map[String, String]): util.Map[String, String] = {
+    Option(context)
+      .flatMap(c => Option(c.configs()))
+      .filter(_.isEmpty == false)
+      .getOrElse(props)
   }
 
   private def setErrorRetryInterval(s3Config: S3Config) = {

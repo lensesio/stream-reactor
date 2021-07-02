@@ -19,6 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink.config
 
 import cats.syntax.all._
 import com.datamountaineer.kcql.Kcql
+import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.S3FlushSettings.{defaultFlushCount, defaultFlushInterval, defaultFlushSize}
 import io.lenses.streamreactor.connect.aws.s3.config.{FormatSelection, S3Config, S3ConfigDefBuilder}
@@ -29,10 +30,10 @@ import scala.collection.JavaConverters._
 
 object S3SinkConfig {
 
-  def apply(props: Map[String, String]): Either[Exception, S3SinkConfig] = {
-    SinkBucketOptions(props) match {
+  def apply(s3ConfigDefBuilder: S3ConfigDefBuilder): Either[Exception, S3SinkConfig] = {
+    SinkBucketOptions(s3ConfigDefBuilder) match {
       case Left(ex) => ex.asLeft[S3SinkConfig]
-      case Right(value) => S3SinkConfig(S3Config(props), value).asRight[Exception]
+      case Right(value) => S3SinkConfig(S3Config(s3ConfigDefBuilder.getParsedValues), value).asRight
     }
 
   }
@@ -44,11 +45,9 @@ case class S3SinkConfig(
                          bucketOptions: Set[SinkBucketOptions] = Set.empty
                        )
 
-object SinkBucketOptions {
+object SinkBucketOptions extends LazyLogging {
 
-  def apply(props: Map[String, String]): Either[Exception, Set[SinkBucketOptions]] = {
-
-    val config = S3ConfigDefBuilder(props.asJava)
+  def apply(config: S3ConfigDefBuilder): Either[Exception, Set[SinkBucketOptions]] = {
 
     config.getKCQL.map { kcql: Kcql =>
 
@@ -63,7 +62,7 @@ object SinkBucketOptions {
         case None => new HierarchicalS3FileNamingStrategy(formatSelection)
       }
 
-      val s3WriteOptions = config.s3WriteOptions(props)
+      val s3WriteOptions = config.s3WriteOptions(config)
       s3WriteOptions match {
         case Right(value) => SinkBucketOptions(
           kcql.getSource,
@@ -76,7 +75,7 @@ object SinkBucketOptions {
         )
         case Left(exception) => return exception.asLeft[Set[SinkBucketOptions]]
       }
-    }.asRight[Exception]
+    }.asRight
 
   }
 

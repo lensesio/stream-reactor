@@ -37,8 +37,8 @@ object BytesWriteMode extends Enum[BytesWriteMode] {
 
     override def read(inputStream: DataInputStream): BytesOutputRow = WithSizesBytesOutputRowReader.read(
       inputStream,
-      true,
-      true
+      readKey = true,
+      readValue = true
     )
   }
 
@@ -47,8 +47,8 @@ object BytesWriteMode extends Enum[BytesWriteMode] {
 
     override def read(inputStream: DataInputStream): BytesOutputRow = WithSizesBytesOutputRowReader.read(
       inputStream,
-      true,
-      false
+      readKey = true,
+      readValue = false
     )
   }
 
@@ -57,8 +57,8 @@ object BytesWriteMode extends Enum[BytesWriteMode] {
 
     override def read(inputStream: DataInputStream): BytesOutputRow = WithSizesBytesOutputRowReader.read(
       inputStream,
-      false,
-      true
+      readKey = false,
+      readValue = true
     )
   }
 

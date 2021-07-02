@@ -18,6 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.source
 
 import com.datamountaineer.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsContextCreator
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreStorageInterface, StorageInterface}
@@ -38,28 +39,31 @@ class S3SourceTask extends SourceTask {
 
   private implicit var sourceLister: S3SourceLister = _
 
-  private var config: S3SourceConfig = _
-
   private var readerManagers: Seq[S3BucketReaderManager] = _
 
   override def version(): String = manifest.version()
+
+  private def propsFromContext(props: util.Map[String, String]): util.Map[String, String] = {
+    Option(context)
+      .flatMap(c => Option(c.configs()))
+      .filter(_.isEmpty == false)
+      .getOrElse(props)
+  }
 
   /**
     * Start sets up readers for every configured connection in the properties
     **/
   override def start(props: util.Map[String, String]): Unit = {
 
-    logger.debug(s"Received call to S3SinkTask.start with ${props.size()} properties")
+    logger.debug(s"Received call to S3SourceTask.start with ${props.size()} properties")
 
-    val awsConfig = S3SourceConfig(props.asScala.toMap)
+    val config = S3ConfigDefBuilder(getSinkName(props), propsFromContext(props))
+
+    val awsConfig = S3SourceConfig(config)
 
     val awsContextCreator = new AwsContextCreator(AwsContextCreator.DefaultCredentialsFn)
     storageInterface = new MultipartBlobStoreStorageInterface("sink", awsContextCreator.fromConfig(awsConfig.s3Config))
     sourceLister = new S3SourceLister()
-
-    val configs = Option(context).flatMap(c => Option(c.configs())).filter(_.isEmpty == false).getOrElse(props)
-
-    config = S3SourceConfig(configs.asScala.toMap)
 
 
     val offsetFn: (String, String) => Option[OffsetReaderResult] =
@@ -75,7 +79,7 @@ class S3SourceTask extends SourceTask {
         }.toOption
       }
 
-    readerManagers = config.bucketOptions
+    readerManagers = awsConfig.bucketOptions
       .map(new S3BucketReaderManager(_, offsetFn))
 
   }
@@ -140,4 +144,7 @@ class S3SourceTask extends SourceTask {
 
   }
 
+  private def getSinkName(props: util.Map[String, String]) = {
+    Option(props.get("name")).filter(_.trim.nonEmpty)
+  }
 }

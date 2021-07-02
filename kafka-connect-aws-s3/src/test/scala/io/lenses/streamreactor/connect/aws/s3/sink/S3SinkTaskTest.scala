@@ -52,6 +52,14 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
   private val PrefixName = "streamReactorBackups"
   private val TopicName = "myTopic"
 
+  private val DeprecatedProps = Map(
+    DEP_AWS_ACCESS_KEY -> Identity,
+    DEP_AWS_SECRET_KEY -> Credential,
+    DEP_AUTH_MODE -> AuthMode.Credentials.toString,
+    DEP_CUSTOM_ENDPOINT -> S3ProxyContext.Uri,
+    DEP_ENABLE_VIRTUAL_HOST_BUCKETS -> "true"
+  )
+
   private val DefaultProps = Map(
     AWS_ACCESS_KEY -> Identity,
     AWS_SECRET_KEY -> Credential,
@@ -59,7 +67,6 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     CUSTOM_ENDPOINT -> S3ProxyContext.Uri,
     ENABLE_VIRTUAL_HOST_BUCKETS -> "true"
   )
-
 
   private val partitionedData: List[Struct] = List(
     new Struct(schema).put("name", "first").put("title", "primary").put("salary", null),
@@ -93,7 +100,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
     val task = new S3SinkTask()
 
-    val props = DefaultProps
+    val props = DeprecatedProps
       .combine(
         Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_INTERVAL = 1")
       ).asJava
@@ -1448,6 +1455,28 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
   }
 
+
+  "S3SinkTask" should "read from profile" in {
+
+    val task = new S3SinkTask()
+
+    val props = Map(
+      PROFILES -> s"/profiles/inttest1.yaml,/profiles/inttest2.yaml"
+    ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(records.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(3)
+
+    readFileToString(BucketName, "streamReactorBackups/myTopic/1/0.json", blobStoreContext) should be("""{"name":"sam","title":"mr","salary":100.43}""")
+    readFileToString(BucketName, "streamReactorBackups/myTopic/1/1.json", blobStoreContext) should be("""{"name":"laura","title":"ms","salary":429.06}""")
+    readFileToString(BucketName, "streamReactorBackups/myTopic/1/2.json", blobStoreContext) should be("""{"name":"tom","title":null,"salary":395.44}""")
+
+  }
 
   private def createSinkRecord(partition: Int, valueStruct: Struct, offset: Int, headers: lang.Iterable[Header]) = {
     new SinkRecord(TopicName, partition, null, null, null, valueStruct, offset, null, null, headers)

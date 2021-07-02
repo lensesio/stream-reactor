@@ -143,7 +143,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
   }
 
   "task" should "read stored bytes files continuously" in {
-    val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.ValueOnly));
+    val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.ValueOnly))
 
     setUpBucketData(BucketName, blobStoreContext, format, formatOptions)
 
@@ -173,7 +173,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
   }
 
   "task" should "read stored bytes key/value files continuously" in {
-    val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.KeyAndValueWithSizes));
+    val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.KeyAndValueWithSizes))
 
     setUpBucketData(BucketName, blobStoreContext, format, formatOptions)
 

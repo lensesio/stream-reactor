@@ -24,7 +24,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, StringS
 class CsvFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: RemotePathLocation, hasHeaders: Boolean)
   extends TextFormatStreamReader(inputStreamFn, bucketAndPath) {
 
-  private var firstRun : Boolean = true;
+  private var firstRun : Boolean = true
 
   override def next(): StringSourceData = {
     if(firstRun) {
