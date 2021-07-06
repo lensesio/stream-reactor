@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Lenses.io
+ * Copyright 2021 Lenses.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,16 +17,19 @@
 package io.lenses.streamreactor.connect.aws.s3.config
 
 import com.datamountaineer.streamreactor.common.errors.{ErrorPolicy, ErrorPolicyEnum, ThrowErrorPolicy}
+import com.typesafe.scalalogging.LazyLogging
 import enumeratum.{Enum, EnumEntry}
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
+import org.apache.kafka.common.config.types.Password
 
-import scala.collection.immutable
+import scala.collection.immutable.ListMap
+import scala.collection.{immutable, mutable}
 
 sealed trait AuthMode extends EnumEntry
 
 object AuthMode extends Enum[AuthMode] {
 
-  val values: immutable.IndexedSeq[AuthMode] = findValues
+  override val values: immutable.IndexedSeq[AuthMode] = findValues
 
   case object Credentials extends AuthMode
 
@@ -38,7 +41,7 @@ sealed trait FormatOptions extends EnumEntry
 
 object FormatOptions extends Enum[FormatOptions] {
 
-  val values: immutable.IndexedSeq[FormatOptions] = findValues
+  override val values: immutable.IndexedSeq[FormatOptions] = findValues
 
   /** CSV Options */
   case object WithHeaders extends FormatOptions
@@ -85,7 +88,7 @@ sealed trait Format extends EnumEntry
 
 object Format extends Enum[Format] {
 
-  val values: immutable.IndexedSeq[Format] = findValues
+  override val values: immutable.IndexedSeq[Format] = findValues
 
   case object Json extends Format
 
@@ -117,15 +120,36 @@ object Format extends Enum[Format] {
 
 object S3Config {
 
-  def apply(props: Map[String, String]): S3Config = S3Config(
-    props.get(AWS_ACCESS_KEY),
-    props.get(AWS_SECRET_KEY),
+  def getString(props: Map[String, _], key: String ): Option[String] = {
+    props.get(key).fold(Option.empty[String]){
+      case v : String => Some(v)
+        case _ => None
+      }
+  }
+
+  def getPassword(props: Map[String, _], key: String ): Option[String] = {
+    props.get(key).fold(Option.empty[String]){
+      case v : Password => Some(v.value())
+      case _ => None
+    }
+  }
+
+  def getBoolean(props: Map[String, _], key: String ): Option[Boolean] = {
+    props.get(key).fold(Option.empty[Boolean]){
+      case v : Boolean => Some(v)
+      case _ => None
+    }
+  }
+
+  def apply(props: Map[String, _]): S3Config = S3Config(
+    getPassword(props, AWS_ACCESS_KEY),
+    getPassword(props, AWS_SECRET_KEY),
     AuthMode.withNameInsensitive(
-      props.getOrElse(AUTH_MODE, AuthMode.Default.toString)
+      getString(props, AUTH_MODE).getOrElse(AuthMode.Default.toString)
     ),
-    props.get(CUSTOM_ENDPOINT),
-    props.getOrElse(ENABLE_VIRTUAL_HOST_BUCKETS, "false").toBoolean,
-    ErrorPolicy(ErrorPolicyEnum.withName(props.getOrElse(ERROR_POLICY, ERROR_POLICY_DEFAULT).toUpperCase())),
+    getString(props, CUSTOM_ENDPOINT),
+    getBoolean(props, ENABLE_VIRTUAL_HOST_BUCKETS).getOrElse(false),
+    ErrorPolicy(ErrorPolicyEnum.withName(getString(props, ERROR_POLICY).map(_.toUpperCase()).getOrElse(ERROR_POLICY_DEFAULT))),
     RetryConfig(
       props.getOrElse(NBR_OF_RETRIES, NBR_OF_RETIRES_DEFAULT).toString.toInt,
       props.getOrElse(ERROR_RETRY_INTERVAL, ERROR_RETRY_INTERVAL_DEFAULT).toString.toLong

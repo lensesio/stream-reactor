@@ -18,7 +18,7 @@ package io.lenses.streamreactor.connect.aws.s3.model
 
 import cats.syntax.all._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
+import io.lenses.streamreactor.connect.aws.s3.config.{FormatSelection, S3ConfigDefBuilder}
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.LOCAL_TMP_DIRECTORY
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model.S3WriteMode.{BuildLocal, Streamed}
@@ -34,9 +34,9 @@ sealed trait S3OutputStreamOptions {
 
 object S3OutputStreamOptions extends LazyLogging{
 
-  def apply(writeMode: String, props: Map[String, String]) : Either[Exception, S3OutputStreamOptions] = {
+  def apply(writeMode: String, s3ConfigDefBuilder: S3ConfigDefBuilder) : Either[Exception, S3OutputStreamOptions] = {
     S3WriteMode.withNameInsensitiveOption(writeMode) match {
-      case Some(BuildLocal) => BuildLocalOutputStreamOptions(props)
+      case Some(BuildLocal) => BuildLocalOutputStreamOptions(s3ConfigDefBuilder)
       case Some(Streamed) => StreamedWriteOutputStreamOptions().asRight[Exception]
       case None => logger.warn(s"Unknown write mode ('$writeMode') requested, defaulting to 'Streamed'")
         StreamedWriteOutputStreamOptions().asRight[Exception]
@@ -66,17 +66,24 @@ object BuildLocalOutputStreamOptions {
 
   val PROPERTY_SINK_NAME = "name"
 
-  def apply(props: Map[String, String]): Either[Exception, BuildLocalOutputStreamOptions]  = {
+  def apply(s3ConfigDefBuilder: S3ConfigDefBuilder): Either[Exception, BuildLocalOutputStreamOptions]  = {
 
+    val sinkName = s3ConfigDefBuilder.sinkName
+    val props = s3ConfigDefBuilder.getParsedValues
     def fetchFromProps(propertyToFetch: String) : Option[String] = {
       props
         .get(propertyToFetch)
-        .filter(_.trim.nonEmpty)
+      match {
+        case Some(value : String) if value.trim.nonEmpty => Some(value.trim)
+        case Some(_) => None
+        case None => None
+      }
+
     }
 
     fetchFromProps(LOCAL_TMP_DIRECTORY)
       .orElse(
-        fetchFromProps(PROPERTY_SINK_NAME)
+        sinkName
           .map(
             sinkName =>
               Option(Files.createTempDirectory(s"$sinkName.${UUID.randomUUID().toString}.").toAbsolutePath.toString)

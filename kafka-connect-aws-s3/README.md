@@ -42,3 +42,8 @@ Please see the [S3 Sink configuration readme](README-sink.md)
 
 Please see the [S3 Source configuration readme](README-source.md)
 
+
+## YAML Profile Support
+
+Please see the [YAML Profile readme](README-profiles.md)
+

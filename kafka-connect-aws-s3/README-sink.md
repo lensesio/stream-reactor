@@ -11,9 +11,9 @@ An example configuration is provided:
     topics=$TOPIC_NAME
     tasks.max=1
     connect.s3.kcql=insert into $BUCKET_NAME:$PREFIX_NAME select * from $TOPIC_NAME STOREAS `parquet` WITH_FLUSH_COUNT = 5000 
-    aws.access.key=ACCESS_KEY
-    aws.secret.key=SECRET_KEY
-    aws.auth.mode=Credentials
+    connect.s3.aws.access.key=ACCESS_KEY
+    connect.s3.aws.secret.key=SECRET_KEY
+    connect.s3.aws.auth.mode=Credentials
 
 You should replace $BUCKET_NAME, $PREFIX_NAME and $TOPIC_NAME with the names of the bucket, desired prefix and topic.
 
@@ -28,16 +28,16 @@ Please read below for a detailed explanation of these and other options, includi
 
 ACCESS_KEY and SECRET_KEY are credentials generated within AWS IAM and must be set and configured with permissions to write to the desired S3 bucket.
 
-    aws.auth.mode=Credentials
-    aws.access.key=ACCESS_KEY
-    aws.secret.key=SECRET_KEY
+    connect.s3.aws.auth.mode=Credentials
+    connect.s3.aws.access.key=ACCESS_KEY
+    connect.s3.aws.secret.key=SECRET_KEY
 
 
 #### Default
 
 In this auth mode no credentials need be supplied.  If no auth mode is specified, then this default will be used.
 
-    aws.auth.mode=Default
+    connect.s3.aws.auth.mode=Default
     
 The credentials will be discovered through the default chain, in this order:
 
@@ -137,6 +137,12 @@ If you want a file written for each 10,000 records, then you would set the FLUSH
     
     connect.s3.kcql=insert into $BUCKET_NAME:$PREFIX_NAME select * from $TOPIC_NAME STOREAS `json` WITH_FLUSH_COUNT = 1
 
+To disable the flush after each count entirely you can set the property:
+
+    connect.s3.disable.flush.count=true
+
+By default a flush is triggered after processing 50000 records.
+
 
 #### FLUSH_SIZE
 
@@ -146,6 +152,8 @@ For example, to flush after each 10000 bytes written to a file, you would set th
 
     connect.s3.kcql=insert into $BUCKET_NAME:$PREFIX_NAME select * from $TOPIC_NAME STOREAS `json` WITH_FLUSH_SIZE = 10000
 
+By default a flush is triggered after processing 500000000 bytes.
+
 #### FLUSH_INTERVAL
 
 The flush occurs after the configured interval.
@@ -153,7 +161,8 @@ The flush occurs after the configured interval.
 For example, to roll over to a new file after each 10 minutes, you would set the FLUSH_INTERVAL to 600 (10 minutes * 60 seconds)
     
     connect.s3.kcql=insert into $BUCKET_NAME:$PREFIX_NAME select * from $TOPIC_NAME STOREAS `json` WITH_FLUSH_INTERVAL = 600
-    
+
+By default a flush is triggered from an hour from processing the first record.
 
 
 ## Partitioning Options
@@ -259,3 +268,20 @@ An example Kcql string showing all available config options for the Sink follows
     insert into $BucketName:$PrefixName select * from $TopicName PARTITIONBY _key STOREAS `CSV` WITHPARTITIONER=Values WITH_FLUSH_SIZE=1000 WITH_FLUSH_INTERVAL=200 WITH_FLUSH_COUNT=200
 
 
+## Write modes
+
+There are two write modes available for the upload of files to S3.
+
+* Sreaming (Default) - Streaming files to S3 as they are written to via Multi-part uploads, and the commit moves the file to the committed name.
+* BuildLocal - Building the file locally in completion before uploading in one operation in the commit.  This may be preferred when bucket versioning is enabled as it reduces write operations to the bucket at the expense of increasing disk space requirements locally.
+
+To configure the write modes explicitly you can use either:
+
+    connect.s3.write.mode=BuildLocal
+    connect.s3.write.mode=Streamed
+
+Also, to optionally supply a directory to write the files to locally. If none is supplied and BuildLocal mode is used, then a directory will be created in your system temporary directory (eg /tmp)
+
+    connect.s3.local.tmp.directory 
+
+The new BuildLocal write mode is currently limited to 5GB as it does not use the multipart upload API.  This can be addressed in future if it is required.

@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.config
+package io.lenses.streamreactor.connect.aws.s3.config.processors
 
-import com.datamountaineer.streamreactor.common.config.base.traits.BaseSettings
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.WRITE_MODE
-import io.lenses.streamreactor.connect.aws.s3.model.S3OutputStreamOptions
+/**
+  * ConfigDefProcessor provides an interface to process the configs on entry
+  * into the sink.
+  */
+trait ConfigDefProcessor {
 
-trait S3WriteModeSettings extends BaseSettings {
-
-  def s3WriteOptions(s3ConfigDefBuilder: S3ConfigDefBuilder) : Either[Exception,S3OutputStreamOptions] = {
-    S3OutputStreamOptions(getString(WRITE_MODE), s3ConfigDefBuilder)
-  }
+  def process(input: Map[String, AnyRef]): Either[Throwable, Map[String, AnyRef]]
 
 }

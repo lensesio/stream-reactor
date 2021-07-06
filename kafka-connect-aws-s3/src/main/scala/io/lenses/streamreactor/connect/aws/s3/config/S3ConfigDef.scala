@@ -17,21 +17,27 @@
 
 package io.lenses.streamreactor.connect.aws.s3.config
 
+import cats.implicits.catsSyntaxEitherId
 import com.datamountaineer.streamreactor.common.config.base.traits.{BaseConfig, ConnectionSettings, ErrorPolicySettings, KcqlSettings, NumberRetriesSettings, UserSettings}
+import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.config.processors.{ConfigDefProcessor, DeprecationConfigDefProcessor, YamlProfileProcessor}
 import io.lenses.streamreactor.connect.aws.s3.model.S3WriteMode.{BuildLocal, Streamed}
 
 import java.util
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
+import scala.collection.immutable.ListMap
+import scala.jdk.CollectionConverters._
+
 object S3ConfigDef {
 
   import S3ConfigSettings._
 
-  val config: ConfigDef = new ConfigDef()
+  val config: ConfigDef = new S3ConfigDef()
     .define(
       AWS_ACCESS_KEY,
-      Type.STRING,
+      Type.PASSWORD,
       "",
       Importance.HIGH,
       "AWS access key"
@@ -85,7 +91,7 @@ object S3ConfigDef {
       Importance.LOW,
       s"Local tmp directory for use with ${BuildLocal.entryName} write mode"
     )
-    .define(KcqlKey, Type.STRING, Importance.HIGH, KCQL_DOC)
+    .define(KCQL_CONFIG, Type.STRING, Importance.HIGH, KCQL_DOC)
     .define(ERROR_POLICY,
       Type.STRING,
       ERROR_POLICY_DEFAULT,
@@ -138,7 +144,45 @@ object S3ConfigDef {
 
 }
 
-case class S3ConfigDefBuilder(props: util.Map[String, String])
+class S3ConfigDef() extends ConfigDef with LazyLogging {
+
+  val processorChain: List[ConfigDefProcessor] = List(new DeprecationConfigDefProcessor, new YamlProfileProcessor)
+
+  override def parse(jProps: util.Map[_, _]): util.Map[String, AnyRef] = {
+    val scalaProps: Map[Any, Any] = jProps.asScala.toMap
+    processProperties(scalaProps) match {
+      case Left(exception) => throw exception
+      case Right(value) => super.parse(value.asJava)
+    }
+  }
+
+  private def processProperties(scalaProps: Map[Any, Any]): Either[Throwable, Map[Any, Any]] = {
+    val stringProps = scalaProps.collect { case (k: String, v: AnyRef) => (k.toLowerCase, v) }
+    val nonStringProps = scalaProps -- stringProps.keySet
+    processStringKeyedProperties(stringProps) match {
+      case Left(exception) => exception.asLeft[Map[Any,Any]]
+      case Right(stringKeyedProps) => (nonStringProps ++ stringKeyedProps).asRight
+    }
+  }
+
+  def writeInOrder(remappedProps: Map[String, AnyRef]) : ListMap[String,AnyRef] = ListMap(remappedProps.toSeq.sortBy(_._1):_*)
+
+  def processStringKeyedProperties(stringProps: Map[String,AnyRef]): Either[Throwable, Map[String, AnyRef]] = {
+    var remappedProps: Map[String, AnyRef] = stringProps
+    for (proc <- processorChain) {
+      logger.info("START: Executing ConfigDef processor {} with props {}", proc.getClass.getSimpleName, writeInOrder(remappedProps))
+      proc.process(remappedProps) match {
+        case Left(exception) => return exception.asLeft[Map[String,AnyRef]]
+        case Right(properties) => remappedProps = properties
+      }
+      logger.info("END: Executing ConfigDef processor {} with props {}", proc.getClass.getSimpleName, writeInOrder(remappedProps))
+    }
+    remappedProps.asRight
+  }
+
+}
+
+case class S3ConfigDefBuilder(sinkName: Option[String], props: util.Map[String, String])
   extends BaseConfig(S3ConfigSettings.CONNECTOR_PREFIX, S3ConfigDef.config, props)
     with KcqlSettings
     with ErrorPolicySettings
@@ -146,6 +190,10 @@ case class S3ConfigDefBuilder(props: util.Map[String, String])
     with UserSettings
     with ConnectionSettings
     with S3FlushSettings
-    with S3WriteModeSettings
+    with S3WriteModeSettings {
+
+  def getParsedValues : Map[String,_] = values().asScala.toMap
+
+}
 
 

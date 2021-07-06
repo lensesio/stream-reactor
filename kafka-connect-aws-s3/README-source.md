@@ -15,9 +15,9 @@ An example configuration is provided:
     connector.class=io.lenses.streamreactor.connect.aws.s3.source.S3SourceConnector
     tasks.max=1
     connect.s3.kcql=insert into $TOPIC_NAME select * from $BUCKET_NAME:$PREFIX_NAME STOREAS `parquet`
-    aws.secret.key=SECRET_KEY
-    aws.access.key=ACCESS_KEY
-    aws.auth.mode=Credentials
+    connect.s3.aws.secret.key=SECRET_KEY
+    connect.s3.aws.access.key=ACCESS_KEY
+    connect.s3.aws.auth.mode=Credentials
     value.converter=io.confluent.connect.avro.AvroConverter
     value.converter.schema.registry.url=http://localhost:8089
 
@@ -34,16 +34,16 @@ Please read below for a detailed explanation of these and other options, includi
 
 ACCESS_KEY and SECRET_KEY are credentials generated within AWS IAM and must be set and configured with permissions to write to the desired S3 bucket.
 
-    aws.auth.mode=Credentials
-    aws.access.key=ACCESS_KEY
-    aws.secret.key=SECRET_KEY
+    connect.s3.aws.auth.mode=Credentials
+    connect.s3.aws.access.key=ACCESS_KEY
+    connect.s3.aws.secret.key=SECRET_KEY
 
 
 #### Default
 
 In this auth mode no credentials need be supplied.  If no auth mode is specified, then this default will be used.
 
-    aws.auth.mode=Default
+    connect.s3.aws.auth.mode=Default
     
 The credentials will be discovered through the default chain, in this order:
 

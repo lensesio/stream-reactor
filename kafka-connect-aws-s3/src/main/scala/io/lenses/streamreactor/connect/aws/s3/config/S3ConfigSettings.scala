@@ -23,16 +23,26 @@ object S3ConfigSettings {
 
   val CONNECTOR_PREFIX = "connect.s3"
 
-  val AWS_ACCESS_KEY: String = "aws.access.key"
-  val AWS_SECRET_KEY: String = "aws.secret.key"
-  val AUTH_MODE: String = "aws.auth.mode"
-  val CUSTOM_ENDPOINT: String = "aws.custom.endpoint"
-  val ENABLE_VIRTUAL_HOST_BUCKETS: String = "aws.vhost.bucket"
+  // Deprecated and will be removed in future
+  val DEP_AWS_ACCESS_KEY: String = "aws.access.key"
+  val DEP_AWS_SECRET_KEY: String = "aws.secret.key"
+  val DEP_AUTH_MODE: String = "aws.auth.mode"
+  val DEP_CUSTOM_ENDPOINT: String = "aws.custom.endpoint"
+  val DEP_ENABLE_VIRTUAL_HOST_BUCKETS: String = "aws.vhost.bucket"
+
+  val AWS_ACCESS_KEY: String = s"$CONNECTOR_PREFIX.aws.access.key"
+  val AWS_SECRET_KEY: String = s"$CONNECTOR_PREFIX.aws.secret.key"
+  val AUTH_MODE: String = s"$CONNECTOR_PREFIX.aws.auth.mode"
+  val CUSTOM_ENDPOINT: String = s"$CONNECTOR_PREFIX.custom.endpoint"
+  val ENABLE_VIRTUAL_HOST_BUCKETS: String = s"$CONNECTOR_PREFIX.vhost.bucket"
+
   val DISABLE_FLUSH_COUNT: String = s"$CONNECTOR_PREFIX.disable.flush.count"
   val WRITE_MODE: String = s"$CONNECTOR_PREFIX.write.mode"
   val LOCAL_TMP_DIRECTORY: String = s"$CONNECTOR_PREFIX.local.tmp.directory"
 
-  val KcqlKey = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
+  val PROFILES: String = s"$CONNECTOR_PREFIX.config.profiles"
+
+  val KCQL_BUILDER = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX.builder"
   val KCQL_CONFIG = s"$CONNECTOR_PREFIX.$KCQL_PROP_SUFFIX"
   val KCQL_DOC = "Contains the Kafka Connect Query Language describing the flow from Apache Kafka topics to Apache Hive tables."
   val KCQL_DISPLAY = "KCQL commands"
