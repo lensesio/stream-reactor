@@ -15,14 +15,13 @@
  */
 
 package io.lenses.streamreactor.connect.aws.s3.config.processors
-
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings
 import io.lenses.streamreactor.connect.aws.s3.config.processors.kcql.KcqlProcessor
 import org.yaml.snakeyaml.Yaml
 
-import java.io.{FileNotFoundException, InputStream, SequenceInputStream}
+import java.io._
 import java.util
 import java.util.Collections.enumeration
 import scala.jdk.CollectionConverters._
@@ -73,15 +72,35 @@ class YamlProfileProcessor extends ConfigDefProcessor with LazyLogging {
     }
   }
 
+  private def toEitherNotNull(profile: String, triedStream: Try[InputStream]): Either[Throwable, InputStream] = {
+    triedStream match {
+      case Failure(exception) => exception.asLeft
+      case Success(null) => new FileNotFoundException(s"yaml profile not found: $profile").asLeft
+      case Success(value) => value.asRight
+    }
+  }
+
+  private def getClassPathResource(profile: String): Either[Throwable, InputStream] = {
+    logger.info("seeking profile in classpath {}", profile)
+    toEitherNotNull(profile, Try {
+      classOf[YamlProfileProcessor].getResourceAsStream(profile)
+    })
+  }
+
+  private def getFileResource(profile: String): Either[Throwable, InputStream] = {
+    logger.info("seeking profile in file {}", profile)
+    toEitherNotNull(profile, Try {
+      val initialFile = new File(profile)
+      new FileInputStream(initialFile)
+    })
+  }
+
   private def openProfileFiles(profiles: String): Either[Throwable, List[InputStream]] = {
     profiles.split(",").map(
       profile =>
-        Try {
-          classOf[YamlProfileProcessor].getResourceAsStream(profile)
-        } match {
-          case Success(value: InputStream) => value
-          case Failure(exception) => return exception.asLeft[List[InputStream]]
-          case Success(null) => return new FileNotFoundException(s"yaml profile not found: $profile").asLeft[List[InputStream]]
+        getClassPathResource(profile).orElse(getFileResource(profile)) match {
+          case Right(inputStream) => inputStream
+          case Left(exception) => return exception.asLeft[List[InputStream]]
         }
     ).toList.asRight
   }
