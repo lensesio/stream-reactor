@@ -15,6 +15,7 @@
  */
 
 package io.lenses.streamreactor.connect.aws.s3.config.processors
+
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings
@@ -46,7 +47,7 @@ class YamlProfileProcessor extends ConfigDefProcessor with LazyLogging {
     }
   }
 
-  def closeStreams(streams: Seq[InputStream]) : Either[Throwable, Unit] = {
+  def closeStreams(streams: Seq[InputStream]): Either[Throwable, Unit] = {
     streams.foreach(s => Try(s.close()))
     ().asRight
   }
@@ -80,13 +81,6 @@ class YamlProfileProcessor extends ConfigDefProcessor with LazyLogging {
     }
   }
 
-  private def getClassPathResource(profile: String): Either[Throwable, InputStream] = {
-    logger.info("seeking profile in classpath {}", profile)
-    toEitherNotNull(profile, Try {
-      classOf[YamlProfileProcessor].getResourceAsStream(profile)
-    })
-  }
-
   private def getFileResource(profile: String): Either[Throwable, InputStream] = {
     logger.info("seeking profile in file {}", profile)
     toEitherNotNull(profile, Try {
@@ -98,7 +92,7 @@ class YamlProfileProcessor extends ConfigDefProcessor with LazyLogging {
   private def openProfileFiles(profiles: String): Either[Throwable, List[InputStream]] = {
     profiles.split(",").map(
       profile =>
-        getClassPathResource(profile).orElse(getFileResource(profile)) match {
+        getFileResource(profile) match {
           case Right(inputStream) => inputStream
           case Left(exception) => return exception.asLeft[List[InputStream]]
         }
