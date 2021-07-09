@@ -80,7 +80,7 @@ class YamlProfileProcessorTest extends AnyFlatSpec with Matchers with LazyLoggin
     val result = process(Map(), "/kcql_all.yaml", "/kcql_override.yaml")
 
     result should be('Right)
-    val r: Map[String, AnyRef] = result.right.get
+    val r = result.right.get
     r.size should be(1)
     r("connect.s3.kcql") should be("INSERT INTO `myOverrideBucket:myOverridePartition` SELECT * FROM `my-kafka-override-topic` PARTITIONBY name,title,salary STOREAS `parquet` WITHPARTITIONER = Values WITH_FLUSH_SIZE = 1 WITH_FLUSH_INTERVAL = 2 WITH_FLUSH_COUNT = 3")
   }
@@ -89,7 +89,7 @@ class YamlProfileProcessorTest extends AnyFlatSpec with Matchers with LazyLoggin
     val result = process(Map(), "/default.yaml", "/kcql_override.yaml")
 
     result should be('Right)
-    val r: Map[String, AnyRef] = result.right.get
+    val r = result.right.get
     r.size should be(4)
     r("connect.s3.kcql") should be("INSERT INTO `myOverrideBucket:myOverridePartition` SELECT * FROM `my-kafka-override-topic` PARTITIONBY name,title,salary STOREAS `parquet` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000")
   }
@@ -98,7 +98,7 @@ class YamlProfileProcessorTest extends AnyFlatSpec with Matchers with LazyLoggin
     val result = process(Map(KCQL_CONFIG -> "INSERT INTO expectedTarget SELECT * FROM expectedSource PARTITIONBY name,title,salary STOREAS `parquet` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000"), "/default.yaml", "/kcql_override.yaml")
 
     result should be('Right)
-    val r: Map[String, AnyRef] = result.right.get
+    val r = result.right.get
     r.size should be(4)
     r("connect.s3.kcql") should be("INSERT INTO `expectedTarget` SELECT * FROM `expectedSource` PARTITIONBY name,title,salary STOREAS `parquet` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000")
   }
@@ -107,12 +107,12 @@ class YamlProfileProcessorTest extends AnyFlatSpec with Matchers with LazyLoggin
     val result = process(Map(KCQL_CONFIG -> "INSERT INTO use_profile SELECT * FROM use_profile PARTITIONBY name,title,salary STOREAS `parquet` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000"), "/default.yaml", "/kcql_override.yaml")
 
     result should be('Right)
-    val r: Map[String, AnyRef] = result.right.get
+    val r = result.right.get
     r.size should be(4)
     r("connect.s3.kcql") should be("INSERT INTO `myOverrideBucket:myOverridePartition` SELECT * FROM `my-kafka-override-topic` PARTITIONBY name,title,salary STOREAS `parquet` WITH_FLUSH_SIZE = 500000000 WITH_FLUSH_INTERVAL = 3600 WITH_FLUSH_COUNT = 50000")
   }
 
-  private def process(properties: Map[String, String], yamls: String*): Either[Throwable, Map[String, AnyRef]] = {
+  private def process(properties: Map[String, String], yamls: String*): Either[Throwable, Map[String, Any]] = {
     ClasspathResourceResolver.getResourcesDirectory() match {
       case Left(ex) => ex.asLeft
       case Right(resourcesDir) => new YamlProfileProcessor().process(Map[String, String](

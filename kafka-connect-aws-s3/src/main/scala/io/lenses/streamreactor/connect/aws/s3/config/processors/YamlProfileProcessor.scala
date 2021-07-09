@@ -36,12 +36,12 @@ class YamlProfileProcessor extends ConfigDefProcessor with LazyLogging {
 
   private val yaml = new Yaml()
 
-  override def process(connectorConfig: Map[String, AnyRef]): Either[Throwable, Map[String, AnyRef]] = {
+  override def process(connectorConfig: Map[String, Any]): Either[Throwable, Map[String, Any]] = {
     val profileResources = for {
       profileResources <- getConfigProfileProperty(connectorConfig)
     } yield profileResources
     profileResources match {
-      case Left(error) => error.asLeft[Map[String, AnyRef]]
+      case Left(error) => error.asLeft
       case Right(None) => connectorConfig.asRight
       case Right(Some(value)) => parseProps(connectorConfig, value)
     }
@@ -52,7 +52,7 @@ class YamlProfileProcessor extends ConfigDefProcessor with LazyLogging {
     ().asRight
   }
 
-  private def parseProps(connectorConfig: Map[String, AnyRef], profileResources: String): Either[Throwable, Map[String, AnyRef]] = {
+  private def parseProps(connectorConfig: Map[String, Any], profileResources: String): Either[Throwable, Map[String, Any]] = {
 
     for {
       streams <- openProfileFiles(profileResources)
@@ -65,7 +65,7 @@ class YamlProfileProcessor extends ConfigDefProcessor with LazyLogging {
     } yield merged
   }
 
-  private def getConfigProfileProperty(input: Map[String, AnyRef]): Either[Throwable, Option[String]] = {
+  private def getConfigProfileProperty(input: Map[String, Any]): Either[Throwable, Option[String]] = {
     input.get(S3ConfigSettings.PROFILES) match {
       case Some(value: String) => Some(value).asRight
       case None => None.asRight
@@ -127,8 +127,8 @@ class YamlProfileProcessor extends ConfigDefProcessor with LazyLogging {
     }.toMap.asRight
   }
 
-  private def mergeYamlProperties(input: Map[String, AnyRef], yamlProps: Map[String, AnyRef], kcqlString: String): Either[Throwable, Map[String, AnyRef]] = {
-    var merged: Map[String, AnyRef] = yamlProps ++ input
+  private def mergeYamlProperties(input: Map[String, Any], yamlProps: Map[String, Any], kcqlString: String): Either[Throwable, Map[String, Any]] = {
+    var merged: Map[String, Any] = yamlProps ++ input
     merged = merged -- Seq(S3ConfigSettings.KCQL_BUILDER, S3ConfigSettings.PROFILES)
     merged = merged + (S3ConfigSettings.KCQL_CONFIG -> kcqlString)
     merged.asRight
