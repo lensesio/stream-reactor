@@ -51,6 +51,10 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
     avroWriterState.fold(logger.debug("Requesting close when there's nothing to close"))(_.close(newName))
   }
 
+  override def close(): Unit = {
+    avroWriterState.fold(logger.debug("Requesting close with args when there's nothing to close"))(_.close())
+  }
+
   override def getPointer: Long = avroWriterState.fold(0L)(_.pointer)
 
 
@@ -78,6 +82,9 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
     def pointer: Long = outputStream.getPointer
 
+    def close(): Unit = {
+      Try(outputStream.close())
+    }
   }
 
 }

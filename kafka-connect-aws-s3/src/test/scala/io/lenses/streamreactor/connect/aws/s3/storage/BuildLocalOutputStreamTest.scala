@@ -18,13 +18,14 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import io.lenses.streamreactor.connect.aws.s3.formats.Using
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, LocalLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.{LocalLocation, RemotePathLocation}
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.nio.file.Files
 import scala.io.Source
+import scala.jdk.CollectionConverters.asScalaIteratorConverter
 
 class BuildLocalOutputStreamTest extends AnyFlatSpec with MockitoSugar with Matchers with Using {
 
@@ -32,7 +33,7 @@ class BuildLocalOutputStreamTest extends AnyFlatSpec with MockitoSugar with Matc
   private val tmpDir = Files.createTempDirectory("myTmpDir")
   private val testLocalLocation = LocalLocation(s"$tmpDir/tmpFileTest.tmp")
 
-  "write" should "write single byte sequences" in new TestContext {
+  "write" should "write single byte sequences" in new TestContext(false) {
     val bytesToUpload: Array[Byte] = "Sausages".getBytes
     target.write(bytesToUpload, 0, bytesToUpload.length)
 
@@ -53,7 +54,7 @@ class BuildLocalOutputStreamTest extends AnyFlatSpec with MockitoSugar with Matc
     target.getPointer should be (8)
   }
 
-  "write" should "write multiple byte sequences" in new TestContext {
+  "write" should "write multiple byte sequences" in new TestContext(false) {
     val bytesToUpload1: Array[Byte] = "Sausages".getBytes
     target.write(bytesToUpload1, 0, bytesToUpload1.length)
     target.getPointer should be (8)
@@ -72,18 +73,26 @@ class BuildLocalOutputStreamTest extends AnyFlatSpec with MockitoSugar with Matc
     )
   }
 
+  "close" should "close the output stream and clean up the files" in new TestContext(true) {
+    val bytesToUpload1: Array[Byte] = "Sausages".getBytes
+    target.write(bytesToUpload1, 0, bytesToUpload1.length)
+    target.complete(testBucketAndPath)
+
+    Files.exists(tmpDir) should be (false)
+  }
+
   private def readFileContents = {
     using(Source.fromFile(testLocalLocation.path)) {
       _.getLines().mkString
     }
   }
 
-  class TestContext {
+  class TestContext(cleanup: Boolean) {
 
     implicit val mockStorageInterface: StorageInterface = mock[StorageInterface]
     doNothing.when(mockStorageInterface).uploadFile(testLocalLocation, testBucketAndPath)
 
-    val target = new BuildLocalOutputStream(testLocalLocation, false)
+    val target = new BuildLocalOutputStream(testLocalLocation, cleanup)
   }
 
 }

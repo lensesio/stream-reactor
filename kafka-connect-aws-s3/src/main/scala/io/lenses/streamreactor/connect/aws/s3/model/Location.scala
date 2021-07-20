@@ -18,9 +18,11 @@ package io.lenses.streamreactor.connect.aws.s3.model
 
 import com.amazonaws.services.s3.internal.BucketNameUtils
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.model.LocalLocation.logger
 
-import java.io.File
+import java.io.{BufferedOutputStream, File, FileOutputStream}
 import java.util.UUID
+import scala.util.Try
 
 
 sealed trait Location {
@@ -60,25 +62,37 @@ case class RemotePathLocation(
 
 }
 
-
 object LocalLocation extends LazyLogging {
   def apply(parentDir : LocalLocation, bucketAndPath: RemotePathLocation): LocalLocation = {
     val uuid = UUID.randomUUID().toString
-
-    val dir = new File(s"${parentDir.path}/${bucketAndPath.bucket}/${bucketAndPath.path}")
-    logger.info("Creating dir {}", dir)
-    dir.mkdirs()
-
-    val file = new File(dir, s"/$uuid")
-    logger.info("Creating file {}", file)
-    file.createNewFile()
-    LocalLocation(file.getAbsolutePath)
+    LocalLocation(
+      s"${parentDir.path}/${bucketAndPath.bucket}/${bucketAndPath.path}/$uuid",
+    )
   }
 }
+
 case class LocalLocation (
                            override val path: String,
-                         ) extends Location {
+                         ) extends Location with LazyLogging {
 
+  private val file = new File(path)
 
+  logger.info("Creating dir {}", file.getParentFile)
+  file.getParentFile.mkdirs()
+  file.getParentFile.deleteOnExit()
+
+  logger.info("Creating file {}", file)
+  file.createNewFile()
+  file.deleteOnExit()
+
+  /**
+    * Makes a best effort to clean up the file and parent directory.
+    */
+  def delete(): Unit = {
+    Try(file.delete())
+    Try(file.getParentFile.delete())
+  }
+
+  def toBufferedFileOutputStream() = new BufferedOutputStream(new FileOutputStream(file))
 
 }

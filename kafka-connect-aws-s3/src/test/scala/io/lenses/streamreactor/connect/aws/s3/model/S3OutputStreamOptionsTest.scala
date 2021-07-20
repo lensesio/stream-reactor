@@ -22,9 +22,12 @@ import io.lenses.streamreactor.connect.aws.s3.model.BuildLocalOutputStreamOption
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.nio.file.Files
 import scala.jdk.CollectionConverters.mapAsJavaMapConverter
 
 class S3OutputStreamOptionsTest extends AnyFlatSpec with Matchers {
+
+  private val tmpDir = Files.createTempDirectory("S3OutputStreamOptionsTest")
 
   behavior of "S3OutputStreamOptions"
 
@@ -49,14 +52,14 @@ class S3OutputStreamOptionsTest extends AnyFlatSpec with Matchers {
   }
 
   it should "create BuildLocalOutputStreamOptions when temp directory has been supplied" in {
-    S3OutputStreamOptions("buildlocal", adapt(Map(LOCAL_TMP_DIRECTORY -> "/my/path"))) should
-      be (Right(BuildLocalOutputStreamOptions(LocalLocation("/my/path"))))
+    S3OutputStreamOptions("buildlocal", adapt(Map(LOCAL_TMP_DIRECTORY -> s"$tmpDir/my/path"))) should
+      be (Right(BuildLocalOutputStreamOptions(LocalLocation(s"$tmpDir/my/path"))))
   }
 
   it should "create BuildLocalOutputStreamOptions when temp directory and sink name has been supplied" in {
     // should ignore the sinkName
-    S3OutputStreamOptions("BuildLocal", adapt(Map(LOCAL_TMP_DIRECTORY -> "/my/path", PROPERTY_SINK_NAME -> "superSleekSinkName"))) should
-      be (Right(BuildLocalOutputStreamOptions(LocalLocation("/my/path"))))
+    S3OutputStreamOptions("BuildLocal", adapt(Map(LOCAL_TMP_DIRECTORY -> s"$tmpDir/my/path", PROPERTY_SINK_NAME -> "superSleekSinkName"))) should
+      be (Right(BuildLocalOutputStreamOptions(LocalLocation(s"$tmpDir/my/path"))))
   }
 
   it should "create BuildLocalOutputStreamOptions when sink name has been supplied" in {

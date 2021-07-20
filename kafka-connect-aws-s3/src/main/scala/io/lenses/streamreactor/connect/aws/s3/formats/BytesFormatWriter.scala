@@ -79,4 +79,7 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
 
   override def getPointer: Long = outputStream.getPointer
 
+  override def close(): Unit = {
+    Try(outputStream.close())
+  }
 }

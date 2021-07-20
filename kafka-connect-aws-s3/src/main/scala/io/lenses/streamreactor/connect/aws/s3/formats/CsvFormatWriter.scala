@@ -51,7 +51,7 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
 
   override def rolloverFileOnSchemaChange(): Boolean = true
 
-  def close(newName: RemotePathLocation) = {
+  override def close(newName: RemotePathLocation) = {
     Try(outputStream.complete(newName))
 
     Try(csvWriter.flush())
@@ -71,4 +71,7 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
     fieldsWritten = true
   }
 
+  override def close(): Unit = {
+    Try(outputStream.close())
+  }
 }

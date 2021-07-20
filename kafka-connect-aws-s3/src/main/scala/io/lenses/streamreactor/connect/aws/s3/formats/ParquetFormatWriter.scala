@@ -74,4 +74,7 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
   }
 
   override def getPointer: Long = outputStream.getPointer
+
+  override def close(): Unit =     Try(outputStream.close())
+
 }

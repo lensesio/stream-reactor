@@ -51,7 +51,7 @@ object S3FormatWriter {
 
 }
 
-trait S3FormatWriter {
+trait S3FormatWriter extends AutoCloseable {
 
   def rolloverFileOnSchemaChange(): Boolean
 
@@ -60,6 +60,7 @@ trait S3FormatWriter {
   def getPointer: Long
 
   def close(newName: RemotePathLocation)
+
 }
 
 

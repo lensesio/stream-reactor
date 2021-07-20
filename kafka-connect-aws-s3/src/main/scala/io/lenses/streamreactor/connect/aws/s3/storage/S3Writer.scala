@@ -145,7 +145,10 @@ class S3WriterImpl(sinkName: String,
     logger.debug(s"[{}] S3Writer.resetState: New internal state: $internalState", sinkName)
   }
 
-  override def close(): Unit = storageInterface.close()
+  override def close(): Unit = {
+    formatWriter.close()
+    storageInterface.close()
+  }
 
   override def getCommittedOffset: Option[Offset] = internalState.committedOffset
 

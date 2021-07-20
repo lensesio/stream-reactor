@@ -20,7 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.{LocalLocation, RemotePathLocation}
 
-import java.io.{BufferedOutputStream, File, FileOutputStream, OutputStream}
+import java.io.OutputStream
 
 
 class BuildLocalOutputStream(
@@ -30,9 +30,7 @@ class BuildLocalOutputStream(
                               implicit storageInterface: StorageInterface
                             ) extends OutputStream with LazyLogging with S3OutputStream {
 
-  private val file = new File(initialName.path)
-
-  private val outputStream = new BufferedOutputStream(new FileOutputStream(file))
+  private val outputStream = initialName.toBufferedFileOutputStream()
 
   private var pointer = 0
 
@@ -58,10 +56,18 @@ class BuildLocalOutputStream(
   override def complete(finalDestination: RemotePathLocation): Unit = {
     outputStream.close()
     storageInterface.uploadFile(initialName, finalDestination)
-    if (cleanUp) file.delete()
+    close()
+  }
+
+  override def close(): Unit = {
+    super.close()
+    if (cleanUp) {
+      initialName.delete()
+    }
   }
 
   private def validateRange(startOffset: Int, numberOfBytes: Int) = startOffset >= 0 && startOffset <= numberOfBytes
 
   override def getPointer: Long = pointer
+
 }
