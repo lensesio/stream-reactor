@@ -31,7 +31,7 @@ import org.apache.avro.util.Utf8
 import org.apache.commons.io.IOUtils
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
-import org.apache.kafka.connect.errors.ConnectException
+import org.apache.kafka.connect.errors.{ConnectException, RetriableException}
 import org.apache.kafka.connect.header.{ConnectHeaders, Header}
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
 import org.jclouds.blobstore.options.ListContainerOptions
@@ -1479,6 +1479,116 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     readFileToString(BucketName, "streamReactorBackups/myTopic/1/0.json", blobStoreContext) should be("""{"name":"sam","title":"mr","salary":100.43}""")
     readFileToString(BucketName, "streamReactorBackups/myTopic/1/1.json", blobStoreContext) should be("""{"name":"laura","title":"ms","salary":429.06}""")
     readFileToString(BucketName, "streamReactorBackups/myTopic/1/2.json", blobStoreContext) should be("""{"name":"tom","title":null,"salary":395.44}""")
+
+  }
+
+
+  "S3SinkTask" should "not write duplicate offsets" in {
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map("connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `avro` WITH_FLUSH_COUNT = 3")
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(records.asJava)
+    task.put(records.asJava)
+
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(1)
+
+    val bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/2.avro", blobStoreContext)
+
+    val genericRecords1 = avroFormatReader.read(bytes)
+    genericRecords1.size should be(3)
+
+    // TODO check records
+  }
+
+
+  "S3SinkTask" should "recover after a failure" in {
+
+    val task = new S3SinkTask()
+    val context = mock[SinkTaskContext]
+    task.initialize(context)
+
+    val props = DefaultProps
+      .combine(
+        Map(
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `json` WITH_FLUSH_COUNT = 3",
+          ERROR_POLICY -> "RETRY",
+          ERROR_RETRY_INTERVAL -> "10",
+        )
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+
+    // things going to start failing as our server is down
+    proxyContext.stopProxy
+
+    intercept[RetriableException] {
+      task.put(records.asJava)
+    }
+    intercept[RetriableException] {
+      task.put(records.asJava)
+    }
+    proxyContext.startProxy
+    task.put(records.asJava)
+
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(1)
+
+    readFileToString(BucketName, "streamReactorBackups/myTopic/1/2.json", blobStoreContext) should be("""{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}{"name":"tom","title":null,"salary":395.44}""")
+
+  }
+
+  "S3SinkTask" should "recover after a failure for single record commits" in {
+
+    val task = new S3SinkTask()
+    val context = mock[SinkTaskContext]
+    task.initialize(context)
+
+    val props = DefaultProps
+      .combine(
+        Map(
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName STOREAS `avro` WITH_FLUSH_COUNT = 1",
+          ERROR_POLICY -> "RETRY",
+          ERROR_RETRY_INTERVAL -> "10",
+        )
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+
+    // things going to start failing as our server is down
+    proxyContext.stopProxy
+
+    intercept[RetriableException] {
+      task.put(records.asJava)
+    }
+    intercept[RetriableException] {
+      task.put(records.asJava)
+    }
+    proxyContext.startProxy
+    task.put(records.asJava)
+
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(3)
+
+    val bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/0.avro", blobStoreContext)
+
+    val genericRecords1 = avroFormatReader.read(bytes)
+    genericRecords1.size should be(1)
 
   }
 

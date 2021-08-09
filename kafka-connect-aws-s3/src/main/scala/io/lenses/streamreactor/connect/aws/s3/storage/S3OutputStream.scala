@@ -17,13 +17,13 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import io.lenses.streamreactor.connect.aws.s3.model.RemotePathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.{Offset, RemotePathLocation}
 
 import java.io.OutputStream
 
 trait S3OutputStream extends OutputStream {
 
-  def complete(finalDestination: RemotePathLocation): Unit
+  def complete(finalDestination: RemotePathLocation, offset: Offset): Unit
 
   def getPointer: Long
 

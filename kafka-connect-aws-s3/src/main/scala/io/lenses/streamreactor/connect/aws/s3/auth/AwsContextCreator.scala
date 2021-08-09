@@ -17,8 +17,6 @@
 
 package io.lenses.streamreactor.connect.aws.s3.auth
 
-import java.util.Properties
-
 import com.amazonaws.auth.{AWSCredentialsProvider, AWSSessionCredentials, DefaultAWSCredentialsProviderChain}
 import com.google.common.base.Supplier
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, S3Config}
@@ -27,9 +25,11 @@ import org.jclouds.aws.domain.SessionCredentials
 import org.jclouds.blobstore.BlobStoreContext
 import org.jclouds.domain.Credentials
 
+import java.util.Properties
+
 object AwsContextCreator {
 
-  def DefaultCredentialsFn : () => AWSCredentialsProvider = {
+  def DefaultCredentialsFn: () => AWSCredentialsProvider = {
     () => new DefaultAWSCredentialsProviderChain()
   }
 
@@ -47,7 +47,7 @@ class AwsContextCreator(credentialsProviderFn: () => AWSCredentialsProvider) {
 
     awsConfig.customEndpoint.foreach(contextBuilder.endpoint)
 
-      contextBuilder.overrides(createOverride(awsConfig))
+    contextBuilder.overrides(createOverride(awsConfig))
 
     contextBuilder.buildView(classOf[BlobStoreContext])
 

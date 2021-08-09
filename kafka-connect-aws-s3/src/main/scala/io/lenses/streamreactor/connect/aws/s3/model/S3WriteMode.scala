@@ -24,5 +24,6 @@ object S3WriteMode extends Enum[S3WriteMode] {
   override val values = findValues
 
   case object BuildLocal extends S3WriteMode
+
   case object Streamed extends S3WriteMode
 }

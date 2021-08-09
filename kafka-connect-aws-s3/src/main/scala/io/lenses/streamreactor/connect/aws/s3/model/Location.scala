@@ -18,7 +18,6 @@ package io.lenses.streamreactor.connect.aws.s3.model
 
 import com.amazonaws.services.s3.internal.BucketNameUtils
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.LocalLocation.logger
 
 import java.io.{BufferedOutputStream, File, FileOutputStream}
 import java.util.UUID
@@ -40,9 +39,9 @@ case object RemoteRootLocation {
 }
 
 case class RemoteRootLocation(
-                            bucket: String,
-                            prefix: Option[String]
-                          )  extends Location {
+                               bucket: String,
+                               prefix: Option[String]
+                             ) extends Location {
 
   BucketNameUtils.validateBucketName(bucket)
 
@@ -54,16 +53,16 @@ case class RemoteRootLocation(
 }
 
 case class RemotePathLocation(
-                           bucket: String,
-                           override val path: String
-                         ) extends Location {
+                               bucket: String,
+                               override val path: String
+                             ) extends Location {
 
   BucketNameUtils.validateBucketName(bucket)
 
 }
 
 object LocalLocation extends LazyLogging {
-  def apply(parentDir : LocalLocation, bucketAndPath: RemotePathLocation): LocalLocation = {
+  def apply(parentDir: LocalLocation, bucketAndPath: RemotePathLocation): LocalLocation = {
     val uuid = UUID.randomUUID().toString
     LocalLocation(
       s"${parentDir.path}/${bucketAndPath.bucket}/${bucketAndPath.path}/$uuid",
@@ -71,9 +70,9 @@ object LocalLocation extends LazyLogging {
   }
 }
 
-case class LocalLocation (
-                           override val path: String,
-                         ) extends Location with LazyLogging {
+case class LocalLocation(
+                          override val path: String,
+                        ) extends Location with LazyLogging {
 
   private val file = new File(path)
 

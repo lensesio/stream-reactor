@@ -16,24 +16,24 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.io.InputStream
-
 import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, StringSourceData}
+
+import java.io.InputStream
 
 
 class CsvFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: RemotePathLocation, hasHeaders: Boolean)
   extends TextFormatStreamReader(inputStreamFn, bucketAndPath) {
 
-  private var firstRun : Boolean = true
+  private var firstRun: Boolean = true
 
   override def next(): StringSourceData = {
-    if(firstRun) {
-      if(hasHeaders) {
-        if(sourceLines.hasNext) {
+    if (firstRun) {
+      if (hasHeaders) {
+        if (sourceLines.hasNext) {
           sourceLines.next()
           lineNumber += 1
         } else {
-          throw new IllegalStateException("No column headers are available")
+          throw FormatWriterException("No column headers are available")
         }
       }
       firstRun = false

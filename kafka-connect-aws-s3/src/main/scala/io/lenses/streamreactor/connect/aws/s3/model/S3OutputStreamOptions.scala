@@ -18,23 +18,26 @@ package io.lenses.streamreactor.connect.aws.s3.model
 
 import cats.syntax.all._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.{FormatSelection, S3ConfigDefBuilder}
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.LOCAL_TMP_DIRECTORY
+import io.lenses.streamreactor.connect.aws.s3.config.{FormatSelection, S3ConfigDefBuilder}
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model.S3WriteMode.{BuildLocal, Streamed}
+import io.lenses.streamreactor.connect.aws.s3.processing.BlockingQueueProcessor
+import io.lenses.streamreactor.connect.aws.s3.sink.ProcessorException
 import io.lenses.streamreactor.connect.aws.s3.storage.{BuildLocalOutputStream, MultipartBlobStoreOutputStream, S3OutputStream, StorageInterface}
 
 import java.nio.file.Files
 import java.util.UUID
+import scala.util.{Failure, Success, Try}
 
 
 sealed trait S3OutputStreamOptions {
-  def createFormatWriter(formatSelection: FormatSelection, path: RemotePathLocation)(implicit storageInterface: StorageInterface): S3FormatWriter
+  def createFormatWriter(formatSelection: FormatSelection, path: RemotePathLocation, initialOffset: Offset, updateOffsetFn: Offset => () => Unit)(implicit storageInterface: StorageInterface, queueProcessor: BlockingQueueProcessor): Either[ProcessorException, S3FormatWriter]
 }
 
-object S3OutputStreamOptions extends LazyLogging{
+object S3OutputStreamOptions extends LazyLogging {
 
-  def apply(writeMode: String, s3ConfigDefBuilder: S3ConfigDefBuilder) : Either[Exception, S3OutputStreamOptions] = {
+  def apply(writeMode: String, s3ConfigDefBuilder: S3ConfigDefBuilder): Either[Exception, S3OutputStreamOptions] = {
     S3WriteMode.withNameInsensitiveOption(writeMode) match {
       case Some(BuildLocal) => BuildLocalOutputStreamOptions(s3ConfigDefBuilder)
       case Some(Streamed) => StreamedWriteOutputStreamOptions().asRight[Exception]
@@ -49,32 +52,34 @@ case class StreamedWriteOutputStreamOptions() extends S3OutputStreamOptions {
 
   val MinAllowedMultipartSize: Int = 5242880
 
-  override def createFormatWriter(formatSelection: FormatSelection, path: RemotePathLocation)(implicit storageInterface: StorageInterface): S3FormatWriter = {
-    val streamFn = createOutputStreamFn(storageInterface, path)
-    S3FormatWriter(formatSelection, streamFn)
+  override def createFormatWriter(formatSelection: FormatSelection, path: RemotePathLocation, initialOffset: Offset, updateOffsetFn: Offset => () => Unit)(implicit storageInterface: StorageInterface, queueProcessor: BlockingQueueProcessor): Either[ProcessorException, S3FormatWriter] = {
+    Try(createOutputStreamFn(path, initialOffset, updateOffsetFn)) match {
+      case Failure(exception: Throwable) => ProcessorException(exception).asLeft
+      case Success(streamFn) => S3FormatWriter(formatSelection, streamFn).asRight
+    }
   }
 
-  private def createOutputStreamFn(storageInterface: StorageInterface, location: RemotePathLocation): () => S3OutputStream = {
-    () => new MultipartBlobStoreOutputStream(location, MinAllowedMultipartSize)(storageInterface)
+  private def createOutputStreamFn(location: RemotePathLocation, initialOffset: Offset, updateOffsetFn: Offset => () => Unit)(implicit queueProcessor: BlockingQueueProcessor): () => S3OutputStream = {
+    () => new MultipartBlobStoreOutputStream(location, initialOffset, updateOffsetFn, MinAllowedMultipartSize)
   }
 
 }
-
 
 
 object BuildLocalOutputStreamOptions {
 
   val PROPERTY_SINK_NAME = "name"
 
-  def apply(s3ConfigDefBuilder: S3ConfigDefBuilder): Either[Exception, BuildLocalOutputStreamOptions]  = {
+  def apply(s3ConfigDefBuilder: S3ConfigDefBuilder): Either[Exception, BuildLocalOutputStreamOptions] = {
 
     val sinkName = s3ConfigDefBuilder.sinkName
     val props = s3ConfigDefBuilder.getParsedValues
-    def fetchFromProps(propertyToFetch: String) : Option[String] = {
+
+    def fetchFromProps(propertyToFetch: String): Option[String] = {
       props
         .get(propertyToFetch)
       match {
-        case Some(value : String) if value.trim.nonEmpty => Some(value.trim)
+        case Some(value: String) if value.trim.nonEmpty => Some(value.trim)
         case Some(_) => None
         case None => None
       }
@@ -98,13 +103,15 @@ object BuildLocalOutputStreamOptions {
 
 case class BuildLocalOutputStreamOptions(localLocation: LocalLocation) extends S3OutputStreamOptions {
 
-  override def createFormatWriter(formatSelection: FormatSelection, path: RemotePathLocation)(implicit storageInterface: StorageInterface): S3FormatWriter = {
-    val streamFn = createOutputStreamFn(storageInterface, LocalLocation(localLocation, path))
-    S3FormatWriter(formatSelection, streamFn)
+  override def createFormatWriter(formatSelection: FormatSelection, path: RemotePathLocation, initialOffset: Offset, updateOffsetFn: Offset => () => Unit)(implicit storageInterface: StorageInterface, processor: BlockingQueueProcessor): Either[ProcessorException, S3FormatWriter] = {
+    Try(createOutputStreamFn(LocalLocation(localLocation, path), initialOffset, updateOffsetFn)) match {
+      case Failure(exception) => ProcessorException(exception).asLeft
+      case Success(streamFn) => S3FormatWriter(formatSelection, streamFn).asRight
+    }
   }
 
-  private def createOutputStreamFn(storageInterface: StorageInterface, location: LocalLocation): () => S3OutputStream = {
-    () => new BuildLocalOutputStream(location)(storageInterface)
+  private def createOutputStreamFn(location: LocalLocation, initialOffset: Offset, updateOffsetFn: Offset => () => Unit)(implicit queueProcessor: BlockingQueueProcessor): () => S3OutputStream = {
+    () => new BuildLocalOutputStream(location, initialOffset, updateOffsetFn)
   }
 
 }

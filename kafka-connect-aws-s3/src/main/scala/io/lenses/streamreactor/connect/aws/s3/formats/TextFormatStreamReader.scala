@@ -16,10 +16,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.io.InputStream
-
 import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, StringSourceData}
 
+import java.io.InputStream
 import scala.io.Source
 import scala.util.Try
 
@@ -36,8 +35,8 @@ class TextFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: Re
 
   override def next(): StringSourceData = {
     lineNumber += 1
-    if(!sourceLines.hasNext) {
-      throw new IllegalStateException("Invalid state reached: invalid state reached. The file content has been consumed, no further calls to next() are possible.")
+    if (!sourceLines.hasNext) {
+      throw FormatWriterException("Invalid state reached: the file content has been consumed, no further calls to next() are possible.")
     }
     StringSourceData(sourceLines.next(), lineNumber)
   }

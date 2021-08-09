@@ -196,7 +196,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
     val sourceRecords7 = task.poll()
 
     task.stop()
-    
+
     sourceRecords1 should have size 190
     sourceRecords2 should have size 190
     sourceRecords3 should have size 190
@@ -212,9 +212,9 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
       .union(sourceRecords5.asScala)
       .union(sourceRecords6.asScala)
       .toSet should have size 1000
-    
-    sourceRecords1.get(0).key should be ("myKey".getBytes)
-    sourceRecords1.get(0).value() should be ("somestring".getBytes)
+
+    sourceRecords1.get(0).key should be("myKey".getBytes)
+    sourceRecords1.get(0).value() should be("somestring".getBytes)
   }
 
 }

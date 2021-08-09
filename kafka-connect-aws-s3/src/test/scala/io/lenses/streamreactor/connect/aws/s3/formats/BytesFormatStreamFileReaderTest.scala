@@ -16,12 +16,12 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.io.ByteArrayInputStream
-
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, BytesOutputRow, BytesOutputRowTest, BytesWriteMode}
+import io.lenses.streamreactor.connect.aws.s3.model.{BytesOutputRow, BytesOutputRowTest, BytesWriteMode, RemotePathLocation}
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import java.io.ByteArrayInputStream
 
 class BytesFormatStreamFileReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 

@@ -17,7 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.config
 
-import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst.{ERROR_POLICY_PROP_SUFFIX, KCQL_PROP_SUFFIX, MAX_RETRIES_PROP_SUFFIX, PROGRESS_ENABLED_CONST, RETRY_INTERVAL_PROP_SUFFIX}
+import com.datamountaineer.streamreactor.common.config.base.const.TraitConfigConst._
 
 object S3ConfigSettings {
 

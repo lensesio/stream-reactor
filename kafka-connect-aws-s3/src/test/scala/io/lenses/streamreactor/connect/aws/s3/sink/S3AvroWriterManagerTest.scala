@@ -57,7 +57,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
 
   "avro sink" should "write 2 records to avro format in s3" in {
-    val sink = S3WriterManager.from(avroConfig,"sinkName")
+    val sink = S3WriterManager.from(avroConfig, "sinkName")
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) =>
         sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData]))
@@ -92,7 +92,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
       new Struct(secondSchema).put("name", "coco").put("designation", null).put("salary", 395.44)
     )
 
-    val sink = S3WriterManager.from(avroConfig,"sinkName")
+    val sink = S3WriterManager.from(avroConfig, "sinkName")
     firstUsers.union(usersWithNewSchema).zipWithIndex.foreach {
       case (user, index) =>
         sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(user), Map.empty[String, SinkData]))

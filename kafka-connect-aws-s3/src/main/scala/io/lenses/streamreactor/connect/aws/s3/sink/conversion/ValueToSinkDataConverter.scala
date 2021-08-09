@@ -16,11 +16,11 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.conversion
 
-import java.util
 import io.lenses.streamreactor.connect.aws.s3.model._
 import org.apache.kafka.connect.data.{Schema, Struct}
 import org.apache.kafka.connect.errors.ConnectException
 
+import java.util
 import scala.collection.JavaConverters._
 
 object ValueToSinkDataConverter {

@@ -26,8 +26,6 @@ import io.lenses.streamreactor.connect.aws.s3.config.{FormatSelection, S3Config,
 import io.lenses.streamreactor.connect.aws.s3.model.{PartitionSelection, RemoteRootLocation, S3OutputStreamOptions, StreamedWriteOutputStreamOptions}
 import io.lenses.streamreactor.connect.aws.s3.sink._
 
-import scala.collection.JavaConverters._
-
 object S3SinkConfig {
 
   def apply(s3ConfigDefBuilder: S3ConfigDefBuilder): Either[Exception, S3SinkConfig] = {

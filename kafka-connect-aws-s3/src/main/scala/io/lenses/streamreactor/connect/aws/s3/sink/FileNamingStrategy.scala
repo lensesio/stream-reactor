@@ -17,6 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink
 
+import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection}
 import io.lenses.streamreactor.connect.aws.s3.model.PartitionDisplay.KeysAndValues
 import io.lenses.streamreactor.connect.aws.s3.model._
@@ -34,13 +35,13 @@ trait S3FileNamingStrategy {
 
   def prefix(bucketAndPrefix: RemoteRootLocation): String = bucketAndPrefix.prefix.getOrElse(DefaultPrefix)
 
-  def stagingFilename(bucketAndPrefix: RemoteRootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): RemotePathLocation
+  def stagingFilename(bucketAndPrefix: RemoteRootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): Either[ProcessorException, RemotePathLocation]
 
-  def finalFilename(bucketAndPrefix: RemoteRootLocation, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): RemotePathLocation
+  def finalFilename(bucketAndPrefix: RemoteRootLocation, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): Either[ProcessorException, RemotePathLocation]
 
   def shouldProcessPartitionValues: Boolean
 
-  def processPartitionValues(messageDetail: MessageDetail, topicPartition: TopicPartition): Map[PartitionField, String]
+  def processPartitionValues(messageDetail: MessageDetail, topicPartition: TopicPartition): Either[ProcessorException, Map[PartitionField, String]]
 
   def topicPartitionPrefix(bucketAndPrefix: RemoteRootLocation, topicPartition: TopicPartition): RemotePathLocation
 
@@ -51,17 +52,17 @@ class HierarchicalS3FileNamingStrategy(formatSelection: FormatSelection) extends
 
   val format: Format = formatSelection.format
 
-  override def stagingFilename(bucketAndPrefix: RemoteRootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): RemotePathLocation =
-    RemotePathLocation(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/.temp/${topicPartition.topic.value}/${topicPartition.partition}.${format.entryName.toLowerCase}")
+  override def stagingFilename(bucketAndPrefix: RemoteRootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): Either[ProcessorException, RemotePathLocation] =
+    Try(RemotePathLocation(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/.temp/${topicPartition.topic.value}/${topicPartition.partition}.${format.entryName.toLowerCase}")).toEither.left.map(ex => ProcessorException(Seq(ex)))
 
-  override def finalFilename(bucketAndPrefix: RemoteRootLocation, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): RemotePathLocation =
-    RemotePathLocation(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${topicPartitionOffset.topic.value}/${topicPartitionOffset.partition}/${topicPartitionOffset.offset.value}.${format.entryName.toLowerCase}")
+  override def finalFilename(bucketAndPrefix: RemoteRootLocation, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): Either[ProcessorException, RemotePathLocation] =
+    Try(RemotePathLocation(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${topicPartitionOffset.topic.value}/${topicPartitionOffset.partition}/${topicPartitionOffset.offset.value}.${format.entryName.toLowerCase}")).toEither.left.map(ex => ProcessorException(Seq(ex)))
 
   override def getFormat: Format = format
 
   override def shouldProcessPartitionValues: Boolean = false
 
-  override def processPartitionValues(messageDetail: MessageDetail, topicPartition: TopicPartition): Map[PartitionField, String] = throw new UnsupportedOperationException("This should never be called for this object")
+  override def processPartitionValues(messageDetail: MessageDetail, topicPartition: TopicPartition): Either[ProcessorException, Map[PartitionField, String]] = ProcessorException("This should never be called for this object").asLeft[Map[PartitionField, String]]
 
   override val committedFilenameRegex: Regex = s".+/(.+)/(\\d+)/(\\d+).(.+)".r
 
@@ -75,8 +76,8 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
 
   override def getFormat: Format = format
 
-  override def stagingFilename(bucketAndPrefix: RemoteRootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): RemotePathLocation = {
-    RemotePathLocation(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartition.topic.value}/${topicPartition.partition}/temp.${format.entryName.toLowerCase}")
+  override def stagingFilename(bucketAndPrefix: RemoteRootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String]): Either[ProcessorException, RemotePathLocation] = {
+    Try(RemotePathLocation(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartition.topic.value}/${topicPartition.partition}/temp.${format.entryName.toLowerCase}")).toEither.left.map(ex => ProcessorException(Seq(ex)))
   }
 
   private def buildPartitionPrefix(partitionValues: Map[PartitionField, String]): String = {
@@ -91,27 +92,29 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
     if (partitionSelection.partitionDisplay == KeysAndValues) s"${partition.valuePrefixDisplay()}=" else ""
   }
 
-  override def finalFilename(bucketAndPrefix: RemoteRootLocation, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): RemotePathLocation =
-    RemotePathLocation(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartitionOffset.topic.value}(${topicPartitionOffset.partition}_${topicPartitionOffset.offset.value}).${format.entryName.toLowerCase}")
+  override def finalFilename(bucketAndPrefix: RemoteRootLocation, topicPartitionOffset: TopicPartitionOffset, partitionValues: Map[PartitionField, String]): Either[ProcessorException, RemotePathLocation] =
+    Try(RemotePathLocation(bucketAndPrefix.bucket, s"${prefix(bucketAndPrefix)}/${buildPartitionPrefix(partitionValues)}/${topicPartitionOffset.topic.value}(${topicPartitionOffset.partition}_${topicPartitionOffset.offset.value}).${format.entryName.toLowerCase}")).toEither.left.map(ex => ProcessorException(ex))
 
-  override def processPartitionValues(messageDetail: MessageDetail, topicPartition: TopicPartition): Map[PartitionField, String] = {
-    partitionSelection
-      .partitions
-      .map {
-        case partition@HeaderPartitionField(name) => partition -> {
-          val sinkData = messageDetail.headers.getOrElse(name.head, throw new IllegalArgumentException(s"Header '$name' not found in message"))
-          getPartitionValueFromSinkData(sinkData, name.tail)
+  override def processPartitionValues(messageDetail: MessageDetail, topicPartition: TopicPartition): Either[ProcessorException, Map[PartitionField, String]] = {
+    Try {
+      partitionSelection
+        .partitions
+        .map {
+          case partition@HeaderPartitionField(name) => partition -> {
+            val sinkData = messageDetail.headers.getOrElse(name.head, throw new IllegalArgumentException(s"Header '$name' not found in message"))
+            getPartitionValueFromSinkData(sinkData, name.tail)
+          }
+          case partition@KeyPartitionField(name) => partition -> {
+            val sinkData = messageDetail.keySinkData.getOrElse(throw new IllegalArgumentException(s"No key data found"))
+            getPartitionValueFromSinkData(sinkData, name)
+          }
+          case partition@ValuePartitionField(name) => partition -> getPartitionValueFromSinkData(messageDetail.valueSinkData, name)
+          case partition@WholeKeyPartitionField() => partition -> getPartitionByWholeKeyValue(messageDetail.keySinkData)
+          case partition@TopicPartitionField() => partition -> topicPartition.topic.value
+          case partition@PartitionPartitionField() => partition -> topicPartition.partition.toString
         }
-        case partition@KeyPartitionField(name) => partition -> {
-          val sinkData = messageDetail.keySinkData.getOrElse(throw new IllegalArgumentException(s"No key data found"))
-          getPartitionValueFromSinkData(sinkData, name)
-        }
-        case partition@ValuePartitionField(name) => partition -> getPartitionValueFromSinkData(messageDetail.valueSinkData, name)
-        case partition@WholeKeyPartitionField() => partition -> getPartitionByWholeKeyValue(messageDetail.keySinkData)
-        case partition@TopicPartitionField() => partition -> topicPartition.topic.value
-        case partition@PartitionPartitionField() => partition -> topicPartition.partition.toString
-      }
-      .toMap
+        .toMap[PartitionField, String]
+    }.toEither.left.map(ex => ProcessorException(ex))
   }
 
   private def getPartitionByWholeKeyValue(structOpt: Option[SinkData]): String = {

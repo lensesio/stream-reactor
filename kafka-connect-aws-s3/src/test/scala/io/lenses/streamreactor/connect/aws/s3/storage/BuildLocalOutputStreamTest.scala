@@ -18,14 +18,14 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import io.lenses.streamreactor.connect.aws.s3.formats.Using
-import io.lenses.streamreactor.connect.aws.s3.model.{LocalLocation, RemotePathLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.{LocalLocation, Offset, RemotePathLocation}
+import io.lenses.streamreactor.connect.aws.s3.processing.BlockingQueueProcessor
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.nio.file.Files
 import scala.io.Source
-import scala.jdk.CollectionConverters.asScalaIteratorConverter
 
 class BuildLocalOutputStreamTest extends AnyFlatSpec with MockitoSugar with Matchers with Using {
 
@@ -42,30 +42,30 @@ class BuildLocalOutputStreamTest extends AnyFlatSpec with MockitoSugar with Matc
       testBucketAndPath
     )
 
-    target.complete(testBucketAndPath)
+    target.complete(testBucketAndPath, Offset(0))
 
-    readFileContents should be ("Sausages")
+    readFileContents should be("Sausages")
 
     verify(mockStorageInterface, times(1)).uploadFile(
       testLocalLocation,
       testBucketAndPath
     )
 
-    target.getPointer should be (8)
+    target.getPointer should be(8)
   }
 
   "write" should "write multiple byte sequences" in new TestContext(false) {
     val bytesToUpload1: Array[Byte] = "Sausages".getBytes
     target.write(bytesToUpload1, 0, bytesToUpload1.length)
-    target.getPointer should be (8)
+    target.getPointer should be(8)
 
     val bytesToUpload2: Array[Byte] = "Mash".getBytes
     target.write(bytesToUpload2, 0, bytesToUpload2.length)
-    target.getPointer should be (12)
+    target.getPointer should be(12)
 
-    target.complete(testBucketAndPath)
+    target.complete(testBucketAndPath, Offset(0))
 
-    readFileContents should be ("SausagesMash")
+    readFileContents should be("SausagesMash")
 
     verify(mockStorageInterface, times(1)).uploadFile(
       testLocalLocation,
@@ -76,9 +76,9 @@ class BuildLocalOutputStreamTest extends AnyFlatSpec with MockitoSugar with Matc
   "close" should "close the output stream and clean up the files" in new TestContext(true) {
     val bytesToUpload1: Array[Byte] = "Sausages".getBytes
     target.write(bytesToUpload1, 0, bytesToUpload1.length)
-    target.complete(testBucketAndPath)
+    target.complete(testBucketAndPath, Offset(0))
 
-    Files.exists(tmpDir) should be (false)
+    Files.exists(tmpDir) should be(false)
   }
 
   private def readFileContents = {
@@ -90,9 +90,15 @@ class BuildLocalOutputStreamTest extends AnyFlatSpec with MockitoSugar with Matc
   class TestContext(cleanup: Boolean) {
 
     implicit val mockStorageInterface: StorageInterface = mock[StorageInterface]
+    implicit val queueProcessor: BlockingQueueProcessor = new BlockingQueueProcessor()
     doNothing.when(mockStorageInterface).uploadFile(testLocalLocation, testBucketAndPath)
 
-    val target = new BuildLocalOutputStream(testLocalLocation, cleanup)
+    val target = new BuildLocalOutputStream(
+      testLocalLocation,
+      Offset(0),
+      updateOffsetFn = (_) => () => (),
+      cleanup
+    )
   }
 
 }

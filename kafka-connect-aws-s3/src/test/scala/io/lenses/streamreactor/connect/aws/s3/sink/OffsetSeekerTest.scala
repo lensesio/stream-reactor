@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, Offset, Topic, TopicPartitionOffset}
+import io.lenses.streamreactor.connect.aws.s3.model.{Offset, RemotePathLocation, Topic, TopicPartitionOffset}
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec

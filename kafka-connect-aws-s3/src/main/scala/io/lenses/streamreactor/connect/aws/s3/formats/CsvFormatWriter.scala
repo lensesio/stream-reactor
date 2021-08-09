@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import au.com.bytecode.opencsv.CSVWriter
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, PartitionNamePath, SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorAdaptor.adaptErrorResponse
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.SinkDataExtractor
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
@@ -39,20 +39,22 @@ class CsvFormatWriter(outputStreamFn: () => S3OutputStream, writeHeaders: Boolea
 
   private var fields: Array[String] = _
 
-  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit = {
-    if (!fieldsWritten) {
-      writeFields(valueSinkData.schema().orNull)
-    }
-    val nextRow = fields.map(PartitionNamePath(_))
-      .map(path => adaptErrorResponse(SinkDataExtractor.extractPathFromSinkData(valueSinkData)(Some(path))).orNull )
-    csvWriter.writeNext(nextRow: _*)
-    csvWriter.flush()
+  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] = {
+    Try {
+      if (!fieldsWritten) {
+        writeFields(valueSinkData.schema().orNull)
+      }
+      val nextRow = fields.map(PartitionNamePath(_))
+        .map(path => adaptErrorResponse(SinkDataExtractor.extractPathFromSinkData(valueSinkData)(Some(path))).orNull)
+      csvWriter.writeNext(nextRow: _*)
+      csvWriter.flush()
+    }.toEither
   }
 
   override def rolloverFileOnSchemaChange(): Boolean = true
 
-  override def close(newName: RemotePathLocation) = {
-    Try(outputStream.complete(newName))
+  override def close(newName: RemotePathLocation, offset: Offset, updateOffsetFn: () => Unit) = {
+    Try(outputStream.complete(newName, offset))
 
     Try(csvWriter.flush())
     Try(outputStream.flush())

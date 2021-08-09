@@ -52,7 +52,7 @@ class S3SourceTask extends SourceTask {
 
   /**
     * Start sets up readers for every configured connection in the properties
-    **/
+    * */
   override def start(props: util.Map[String, String]): Unit = {
 
     logger.debug(s"Received call to S3SourceTask.start with ${props.size()} properties")

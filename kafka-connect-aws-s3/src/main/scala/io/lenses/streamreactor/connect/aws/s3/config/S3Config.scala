@@ -114,45 +114,45 @@ object Format extends Enum[Format] {
 
 object S3Config {
 
-  def getString(props: Map[String, _], key: String ): Option[String] = {
+  def getString(props: Map[String, _], key: String): Option[String] = {
     props.get(key)
-      .collect{
+      .collect {
         case s: String if s.nonEmpty => s
       }
   }
 
-  def getPassword(props: Map[String, _], key: String ): Option[String] = {
+  def getPassword(props: Map[String, _], key: String): Option[String] = {
     props.get(key)
-      .collect{
+      .collect {
         case p: Password if p.value().nonEmpty => p.value()
         case s: String if s.nonEmpty => s
-    }
+      }
   }
 
-  def getBoolean(props: Map[String, _], key: String ): Option[Boolean] = {
+  def getBoolean(props: Map[String, _], key: String): Option[Boolean] = {
     props.get(key)
-      .collect{
-        case b : Boolean => b
+      .collect {
+        case b: Boolean => b
         case "true" => true
         case "false" => false
       }
   }
 
-  def getLong(props: Map[String, _], key: String ): Option[Long] = {
+  def getLong(props: Map[String, _], key: String): Option[Long] = {
     props.get(key)
-      .collect{
-        case i : Int => i.toLong
-        case l : Long => l
-        case s : String => s.toLong
+      .collect {
+        case i: Int => i.toLong
+        case l: Long => l
+        case s: String => s.toLong
       }
   }
 
-  def getInt(props: Map[String, _], key: String ): Option[Int] = {
+  def getInt(props: Map[String, _], key: String): Option[Int] = {
     props.get(key)
-      .collect{
-        case i : Int => i
-        case l : Long => l.toInt
-        case i : String => i.toInt
+      .collect {
+        case i: Int => i
+        case l: Long => l.toInt
+        case i: String => i.toInt
       }
   }
 
@@ -181,7 +181,7 @@ object S3Config {
   }
 }
 
-case class RetryConfig( numberOfRetries: Int, errorRetryInterval: Long)
+case class RetryConfig(numberOfRetries: Int, errorRetryInterval: Long)
 
 case class S3Config(
                      accessKey: Option[String],

@@ -64,4 +64,6 @@ case class TopicPartition(topic: Topic, partition: Int) {
 
 case class TopicPartitionOffset(topic: Topic, partition: Int, offset: Offset) {
   def toTopicPartition: TopicPartition = TopicPartition(topic, partition)
+
+  def toTopicPartitionOffsetTuple = (toTopicPartition, offset)
 }

@@ -18,10 +18,10 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, RemoteRootLocation, LocalLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.{LocalLocation, RemotePathLocation, RemoteRootLocation}
 import org.jclouds.blobstore.BlobStoreContext
-import org.jclouds.blobstore.domain.{BlobMetadata, StorageType}
 import org.jclouds.blobstore.domain.internal.MutableBlobMetadataImpl
+import org.jclouds.blobstore.domain.{BlobMetadata, StorageType}
 import org.jclouds.blobstore.options.{CopyOptions, ListContainerOptions, PutOptions}
 import org.jclouds.io.payloads.{BaseMutableContentMetadata, InputStreamPayload}
 
@@ -72,16 +72,16 @@ class MultipartBlobStoreStorageInterface(sinkName: String, blobStoreContext: Blo
     blobMetadata
   }
 
-  override def uploadPart(state: MultiPartUploadState, bytes: Array[Byte], size: Long): MultiPartUploadState = {
+  override def uploadPart(state: MultiPartUploadState, bytes: Array[Byte]): MultiPartUploadState = {
     logger.debug(s"[{}] Uploading part #{} for {}/{}",
       sinkName, state.parts.size, state.upload.containerName(), state.upload.blobName())
 
-    val byteArrayInputStream = new ByteArrayInputStream(bytes.slice(0, size.toInt))
+    val byteArrayInputStream = new ByteArrayInputStream(bytes)
 
     val payload = new InputStreamPayload(byteArrayInputStream)
     val newPart = try {
       val contentMetadata = new BaseMutableContentMetadata()
-      contentMetadata.setContentLength(size)
+      contentMetadata.setContentLength(bytes.length)
       payload.setContentMetadata(contentMetadata)
       blobStore.uploadMultipartPart(
         state.upload,
@@ -113,6 +113,9 @@ class MultipartBlobStoreStorageInterface(sinkName: String, blobStoreContext: Blo
 
   override def rename(originalFilename: RemotePathLocation, newFilename: RemotePathLocation): Unit = {
     logger.info(s"[{}] Renaming upload from {} to {}", sinkName, originalFilename, newFilename)
+    if (originalFilename == newFilename) {
+      return
+    }
 
     blobStore.copyBlob(originalFilename.bucket, originalFilename.path, newFilename.bucket, newFilename.path, CopyOptions.NONE)
 

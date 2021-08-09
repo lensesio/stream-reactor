@@ -16,6 +16,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
+import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
@@ -25,7 +26,7 @@ import org.apache.avro.file.DataFileWriter
 import org.apache.avro.generic.GenericDatumWriter
 import org.apache.kafka.connect.data.{Schema => ConnectSchema}
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWriter with LazyLogging {
 
@@ -33,26 +34,40 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
   override def rolloverFileOnSchemaChange() = true
 
-  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit = {
+  override def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit] = {
 
-    logger.debug("AvroFormatWriter - write")
+    Try {
 
-    avroWriterState
-      .fold {
-        val newWs = new AvroWriterState(outputStreamFn(), valueSinkData.schema())
-        avroWriterState = Some(newWs)
-        newWs
-      }(ws => ws)
-      .write(valueSinkData)
+      logger.trace("AvroFormatWriter - write")
 
+      avroWriterState = Some(avroWriterState
+        .getOrElse {
+          val outputStream = outputStreamFn()
+          Try(new AvroWriterState(outputStream, valueSinkData.schema())) match {
+            case Failure(exception) =>
+              exception.printStackTrace(); throw exception
+            case Success(writerState: AvroWriterState) =>
+              avroWriterState = Some(writerState)
+              writerState
+          }
+
+        })
+
+
+      avroWriterState.map(_.write(valueSinkData))
+
+    }.toEither match {
+      case Left(value) => value.asLeft
+      case Right(_) => ().asRight
+    }
   }
 
-  override def close(newName: RemotePathLocation): Unit = {
-    avroWriterState.fold(logger.debug("Requesting close when there's nothing to close"))(_.close(newName))
+  override def close(newName: RemotePathLocation, offset: Offset, updateOffsetFn: () => Unit): Unit = {
+    avroWriterState.fold(logger.debug("Requesting close (with args) when there's nothing to close"))(_.close(newName, offset))
   }
 
   override def close(): Unit = {
-    avroWriterState.fold(logger.debug("Requesting close with args when there's nothing to close"))(_.close())
+    avroWriterState.fold(logger.debug("Requesting close when there's nothing to close"))(_.close())
   }
 
   override def getPointer: Long = avroWriterState.fold(0L)(_.pointer)
@@ -73,9 +88,9 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
     }
 
 
-    def close(newName: RemotePathLocation) = {
+    def close(newName: RemotePathLocation, offset: Offset) = {
       Try(fileWriter.flush())
-      Try(outputStream.complete(newName))
+      Try(outputStream.complete(newName, offset))
       Try(fileWriter.close())
       Try(outputStream.close())
     }

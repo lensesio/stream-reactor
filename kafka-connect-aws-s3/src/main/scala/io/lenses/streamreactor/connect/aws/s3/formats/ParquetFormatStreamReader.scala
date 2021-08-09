@@ -16,8 +16,6 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.io.InputStream
-
 import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.aws.s3.formats.parquet.ParquetStreamingInputFile
 import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, SchemaAndValueSourceData}
@@ -25,6 +23,7 @@ import org.apache.avro.generic.GenericRecord
 import org.apache.parquet.avro.AvroParquetReader
 import org.apache.parquet.hadoop.ParquetReader
 
+import java.io.InputStream
 import scala.util.Try
 
 class ParquetFormatStreamReader(inputStreamFn: () => InputStream, fileSizeFn: () => Long, bucketAndPath: RemotePathLocation)

@@ -31,7 +31,7 @@ object YamlToKcqlMapConverter {
       case other => new IllegalArgumentException("Invalid value for other " + other).asLeft
     }
     val (l, r) = mapped.partition(_.isLeft)
-    if(l.nonEmpty) {
+    if (l.nonEmpty) {
       r.head.left.get.asLeft
     } else {
       r.map(_.right.get).toMap.asRight

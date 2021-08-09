@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import io.lenses.streamreactor.connect.aws.s3.config.Format.{Avro, Csv, Json}
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
-import io.lenses.streamreactor.connect.aws.s3.model.{Offset, PartitionNamePath, PartitionSelection, Topic, ValuePartitionField}
+import io.lenses.streamreactor.connect.aws.s3.model._
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 

@@ -30,9 +30,9 @@ class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
       "defined" -> "hello",
       "blank" -> ""
     )
-    S3Config.getString(map, "defined") should be (Some("hello"))
-    S3Config.getString(map, "blank") should be (None)
-    S3Config.getString(map, "undefined") should be (None)
+    S3Config.getString(map, "defined") should be(Some("hello"))
+    S3Config.getString(map, "blank") should be(None)
+    S3Config.getString(map, "undefined") should be(None)
   }
 
   "S3Config" should "get password value" in {
@@ -42,11 +42,11 @@ class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
       "definedString" -> "defined",
       "emptyString" -> "",
     )
-    S3Config.getPassword(map, "definedPass") should be (Some("hello"))
-    S3Config.getPassword(map, "emptyPass") should be (None)
-    S3Config.getPassword(map, "undefined") should be (None)
-    S3Config.getPassword(map, "definedString") should be (Some("defined"))
-    S3Config.getPassword(map, "emptyString") should be (None)
+    S3Config.getPassword(map, "definedPass") should be(Some("hello"))
+    S3Config.getPassword(map, "emptyPass") should be(None)
+    S3Config.getPassword(map, "undefined") should be(None)
+    S3Config.getPassword(map, "definedString") should be(Some("defined"))
+    S3Config.getPassword(map, "emptyString") should be(None)
 
   }
 
@@ -58,12 +58,12 @@ class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
       "falseStringProp" -> "false",
       "emptyProp" -> ""
     )
-    S3Config.getBoolean(map, "trueBoolProp") should be (Some(true))
-    S3Config.getBoolean(map, "falseBoolProp") should be (Some(false))
-    S3Config.getBoolean(map, "trueStringProp") should be (Some(true))
-    S3Config.getBoolean(map, "falseStringProp") should be (Some(false))
-    S3Config.getBoolean(map, "emptyProp") should be (None)
-    S3Config.getBoolean(map, "undefinedProp") should be (None)
+    S3Config.getBoolean(map, "trueBoolProp") should be(Some(true))
+    S3Config.getBoolean(map, "falseBoolProp") should be(Some(false))
+    S3Config.getBoolean(map, "trueStringProp") should be(Some(true))
+    S3Config.getBoolean(map, "falseStringProp") should be(Some(false))
+    S3Config.getBoolean(map, "emptyProp") should be(None)
+    S3Config.getBoolean(map, "undefinedProp") should be(None)
   }
 
   "S3Config" should "set error policies in a case insensitive way" in {
@@ -80,25 +80,25 @@ class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
     )
 
     forAll(errorPolicyValuesMap) {
-     (name, value, clazz) =>
-       logger.debug("Executing {}", name)
-       S3Config( Map("connect.s3.error.policy" -> value)).errorPolicy should be(clazz)
+      (name, value, clazz) =>
+        logger.debug("Executing {}", name)
+        S3Config(Map("connect.s3.error.policy" -> value)).errorPolicy should be(clazz)
     }
   }
 
   val retryValuesMap = Table(
     ("testName", "retries", "interval", "result"),
-    ("noret-noint",  0, 0, RetryConfig(0, 0)),
-    ("ret-and-int",  1, 2, RetryConfig(1, 2)),
-    ("noret-noint-strings",  "0", "0", RetryConfig(0, 0)),
-    ("ret-and-int-strings",  "1", "2", RetryConfig(1, 2)),
+    ("noret-noint", 0, 0, RetryConfig(0, 0)),
+    ("ret-and-int", 1, 2, RetryConfig(1, 2)),
+    ("noret-noint-strings", "0", "0", RetryConfig(0, 0)),
+    ("ret-and-int-strings", "1", "2", RetryConfig(1, 2)),
   )
 
   "S3Config" should "set retry config" in {
     forAll(retryValuesMap) {
       (name: String, ret: Any, interval: Any, result: RetryConfig) =>
         logger.debug("Executing {}", name)
-        S3Config( Map(
+        S3Config(Map(
           "connect.s3.max.retries" -> ret,
           "connect.s3.retry.interval" -> interval)
         ).connectorRetryConfig should be(result)
@@ -109,7 +109,7 @@ class S3ConfigTest extends AnyFlatSpec with Matchers with LazyLogging {
     forAll(retryValuesMap) {
       (name: String, ret: Any, interval: Any, result: RetryConfig) =>
         logger.debug("Executing {}", name)
-        S3Config( Map(
+        S3Config(Map(
           "connect.s3.http.max.retries" -> ret,
           "connect.s3.http.retry.interval" -> interval)
         ).httpRetryConfig should be(result)

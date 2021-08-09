@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.NullNode
-import io.lenses.streamreactor.connect.aws.s3.model.{ArraySinkData, MapSinkData, NullSinkData, StringSinkData, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.storage.S3ByteArrayOutputStream
 import org.apache.kafka.connect.data.SchemaBuilder
@@ -140,6 +140,6 @@ class JsonFormatWriterTest extends AnyFlatSpec with Matchers {
     val lines = outputStream.toString().split(System.lineSeparator())
     val treeLine1 = new ObjectMapper().readTree(lines(0))
     treeLine1.get("bees").textValue() should be("sting when scared")
-    treeLine1.get("wasps") shouldBe a [NullNode]
+    treeLine1.get("wasps") shouldBe a[NullNode]
   }
 }

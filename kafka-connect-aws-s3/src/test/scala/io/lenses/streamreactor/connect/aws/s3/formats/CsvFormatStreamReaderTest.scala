@@ -16,13 +16,13 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.io.ByteArrayInputStream
-
 import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, StringSourceData}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import java.io.ByteArrayInputStream
 
 class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSugar {
 
@@ -30,7 +30,7 @@ class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSu
 
   "next" should "throw an error when you try and read an empty file when headers are configured" in {
     val reader = setUpReader(List(), includesHeaders = true)
-    intercept[IllegalStateException] {
+    intercept[FormatWriterException] {
       reader.next()
     }.getMessage should be("No column headers are available")
     reader.close()
@@ -38,17 +38,17 @@ class CsvFormatStreamReaderTest extends AnyFlatSpec with Matchers with MockitoSu
 
   "next" should "throw an error when you try to read an empty file" in {
     val reader = setUpReader(List(), includesHeaders = false)
-    intercept[IllegalStateException] {
+    intercept[FormatWriterException] {
       reader.next()
-    }.getMessage should be("Invalid state reached: invalid state reached. The file content has been consumed, no further calls to next() are possible.")
+    }.getMessage should be("Invalid state reached: the file content has been consumed, no further calls to next() are possible.")
     reader.close()
   }
 
   "next" should "throw error when you call next incorrectly when headers are configured" in {
     val reader = setUpReader(List(TestSampleSchemaAndData.csvHeader), includesHeaders = true)
-    intercept[IllegalStateException] {
+    intercept[FormatWriterException] {
       reader.next()
-    }.getMessage should be("Invalid state reached: invalid state reached. The file content has been consumed, no further calls to next() are possible.")
+    }.getMessage should be("Invalid state reached: the file content has been consumed, no further calls to next() are possible.")
     reader.close()
   }
 

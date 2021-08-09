@@ -20,7 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.storage
 import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, RemoteRootLocation}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestPayloadReader
 import org.jclouds.blobstore.domain.internal.{PageSetImpl, StorageMetadataImpl}
-import org.jclouds.blobstore.domain.{BlobMetadata, MultipartPart, MultipartUpload, StorageMetadata, StorageType}
+import org.jclouds.blobstore.domain._
 import org.jclouds.blobstore.options.{ListContainerOptions, PutOptions}
 import org.jclouds.blobstore.{BlobStore, BlobStoreContext}
 import org.jclouds.io.payloads.ByteSourcePayload
@@ -68,7 +68,7 @@ class MultipartBlobStoreStorageInterfaceTest extends AnyFlatSpec with MockitoSug
 
     val bytesToUpload = "Sausages".getBytes()
 
-    val updatedState = multipartBlobStoreStorageInterface.uploadPart(uploadState, bytesToUpload, bytesToUpload.length)
+    val updatedState = multipartBlobStoreStorageInterface.uploadPart(uploadState, bytesToUpload)
     updatedState.parts should contain(multipartPart)
 
     val submittedPayloads: Seq[ByteSourcePayload] = payloadCaptor.getAllValues.asScala.toList

@@ -40,11 +40,11 @@ class S3ConfigSettingsTest extends AnyFlatSpec with Matchers with LazyLogging {
       .collect {
         case m: MethodSymbol if m.isGetter && m.isPublic => (m.fullName, getValue(m))
       }
-      .filterNot{
+      .filterNot {
         case (k, _) => ignorePropertiesWithSuffix.exists(k.contains(_))
       }
 
-    docs should have size(23)
+    docs should have size (23)
     docs.foreach {
       case (k, v) => {
         logger.info("method: {}, value: {}", k, v)

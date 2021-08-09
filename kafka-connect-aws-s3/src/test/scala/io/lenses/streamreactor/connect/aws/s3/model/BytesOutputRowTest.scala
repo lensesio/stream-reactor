@@ -16,12 +16,12 @@
 
 package io.lenses.streamreactor.connect.aws.s3.model
 
-import java.io.{ByteArrayInputStream, DataInputStream}
-
 import io.lenses.streamreactor.connect.aws.s3.formats.bytes.ByteArrayUtils
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
+
+import java.io.{ByteArrayInputStream, DataInputStream}
 
 object BytesOutputRowTest extends Matchers {
 

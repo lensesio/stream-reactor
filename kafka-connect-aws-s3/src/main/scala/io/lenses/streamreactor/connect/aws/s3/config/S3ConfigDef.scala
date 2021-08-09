@@ -18,15 +18,14 @@
 package io.lenses.streamreactor.connect.aws.s3.config
 
 import cats.implicits.catsSyntaxEitherId
-import com.datamountaineer.streamreactor.common.config.base.traits.{BaseConfig, ConnectionSettings, ErrorPolicySettings, KcqlSettings, NumberRetriesSettings, UserSettings}
+import com.datamountaineer.streamreactor.common.config.base.traits._
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.processors.{ConfigDefProcessor, DeprecationConfigDefProcessor, LowerCaseKeyConfigDefProcessor, YamlProfileProcessor}
 import io.lenses.streamreactor.connect.aws.s3.model.S3WriteMode.{BuildLocal, Streamed}
-
-import java.util
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.common.config.ConfigDef.{Importance, Type}
 
+import java.util
 import scala.collection.immutable.ListMap
 import scala.jdk.CollectionConverters._
 
@@ -160,19 +159,19 @@ class S3ConfigDef() extends ConfigDef with LazyLogging {
     val stringProps = scalaProps.collect { case (k: String, v: AnyRef) => (k.toLowerCase, v) }
     val nonStringProps = scalaProps -- stringProps.keySet
     processStringKeyedProperties(stringProps) match {
-      case Left(exception) => exception.asLeft[Map[Any,Any]]
+      case Left(exception) => exception.asLeft[Map[Any, Any]]
       case Right(stringKeyedProps) => (nonStringProps ++ stringKeyedProps).asRight
     }
   }
 
-  def writeInOrder(remappedProps: Map[String, Any]) : ListMap[String,Any] = ListMap(remappedProps.toSeq.sortBy(_._1):_*)
+  def writeInOrder(remappedProps: Map[String, Any]): ListMap[String, Any] = ListMap(remappedProps.toSeq.sortBy(_._1): _*)
 
-  def processStringKeyedProperties(stringProps: Map[String,Any]): Either[Throwable, Map[String, Any]] = {
+  def processStringKeyedProperties(stringProps: Map[String, Any]): Either[Throwable, Map[String, Any]] = {
     var remappedProps: Map[String, Any] = stringProps
     for (proc <- processorChain) {
       logger.info("START: Executing ConfigDef processor {} with props {}", proc.getClass.getSimpleName, writeInOrder(remappedProps))
       proc.process(remappedProps) match {
-        case Left(exception) => return exception.asLeft[Map[String,AnyRef]]
+        case Left(exception) => return exception.asLeft[Map[String, AnyRef]]
         case Right(properties) => remappedProps = properties
       }
       logger.info("END: Executing ConfigDef processor {} with props {}", proc.getClass.getSimpleName, writeInOrder(remappedProps))
@@ -192,7 +191,7 @@ case class S3ConfigDefBuilder(sinkName: Option[String], props: util.Map[String, 
     with S3FlushSettings
     with S3WriteModeSettings {
 
-  def getParsedValues : Map[String,_] = values().asScala.toMap
+  def getParsedValues: Map[String, _] = values().asScala.toMap
 
 }
 

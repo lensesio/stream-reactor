@@ -16,11 +16,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import java.io.ByteArrayInputStream
-
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection}
-import io.lenses.streamreactor.connect.aws.s3.model.{StringSourceData, _}
+import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.HierarchicalS3FileNamingStrategy
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData.resourceToByteArray
@@ -29,6 +27,8 @@ import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import java.io.ByteArrayInputStream
 
 class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Matchers with LazyLogging {
 

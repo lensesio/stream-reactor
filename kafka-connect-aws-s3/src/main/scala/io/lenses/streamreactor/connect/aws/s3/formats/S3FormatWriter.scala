@@ -20,9 +20,8 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import io.lenses.streamreactor.connect.aws.s3.config.Format._
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
 import io.lenses.streamreactor.connect.aws.s3.config.{FormatOptions, FormatSelection}
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, BytesWriteMode, SinkData, Topic}
-import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreOutputStream, S3OutputStream}
-import org.apache.kafka.connect.errors.ConnectException
+import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 
 object S3FormatWriter {
 
@@ -45,7 +44,7 @@ object S3FormatWriter {
       case Text => new TextFormatWriter(outputStreamFn)
       case Csv => new CsvFormatWriter(outputStreamFn, formatInfo.formatOptions.contains(WithHeaders))
       case Bytes => new BytesFormatWriter(outputStreamFn, convertToBytesWriteMode(formatInfo.formatOptions))
-      case _ => throw new ConnectException(s"Unsupported S3 format $formatInfo.format")
+      case _ => throw FormatWriterException(s"Unsupported S3 format $formatInfo.format")
     }
   }
 
@@ -55,11 +54,11 @@ trait S3FormatWriter extends AutoCloseable {
 
   def rolloverFileOnSchemaChange(): Boolean
 
-  def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Unit
+  def write(keySinkData: Option[SinkData], valueSinkData: SinkData, topic: Topic): Either[Throwable, Unit]
 
   def getPointer: Long
 
-  def close(newName: RemotePathLocation)
+  def close(newName: RemotePathLocation, offset: Offset, updateOffsetFn: () => Unit = () => ())
 
 }
 

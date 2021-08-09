@@ -22,7 +22,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.S3OutputStreamOptions
 
 trait S3WriteModeSettings extends BaseSettings {
 
-  def s3WriteOptions(s3ConfigDefBuilder: S3ConfigDefBuilder) : Either[Exception,S3OutputStreamOptions] = {
+  def s3WriteOptions(s3ConfigDefBuilder: S3ConfigDefBuilder): Either[Exception, S3OutputStreamOptions] = {
     S3OutputStreamOptions(getString(WRITE_MODE), s3ConfigDefBuilder)
   }
 

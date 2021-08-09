@@ -17,11 +17,6 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.utils
 
-import java.io._
-import java.nio.charset.StandardCharsets
-import java.util.Scanner
-import java.util.stream.Collectors
-
 import com.google.common.io.ByteStreams
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreStorageInterface
@@ -31,6 +26,11 @@ import org.jclouds.io.Payload
 import org.scalatest.BeforeAndAfter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import java.io._
+import java.nio.charset.StandardCharsets
+import java.util.Scanner
+import java.util.stream.Collectors
 
 object S3TestPayloadReader extends Matchers {
 
@@ -91,8 +91,8 @@ object S3TestPayloadReader extends Matchers {
 
 
   def fileLengthBytes(
-                            resourceSourceFilename: String
-                          ): Int = {
+                       resourceSourceFilename: String
+                     ): Int = {
 
     val inputStream = classOf[S3TestConfig].getResourceAsStream(resourceSourceFilename)
     require(inputStream != null)

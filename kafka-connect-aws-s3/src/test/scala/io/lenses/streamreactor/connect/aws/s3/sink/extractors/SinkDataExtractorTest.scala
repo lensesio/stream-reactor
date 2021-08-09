@@ -64,7 +64,7 @@ class SinkDataExtractorTest extends AnyFlatSpec with Matchers {
     .field("mystruct", emptyStructSchema)
     .field("mycomplexmap", mapSchema)
     .field("mymapofmaps", mapOfMapsSchema)
-    .field("mynestedschema",nestedStringSchema)
+    .field("mynestedschema", nestedStringSchema)
     .field("myarrayofstructs", arrayOfStructsSchema)
     .field("mystructswitharrayofprimitives", structWithArrayPrimitiveSchema)
     .field("mystructswitharrayofstructprimitives", structWithArrayStructPrimitiveSchema)
@@ -140,41 +140,41 @@ class SinkDataExtractorTest extends AnyFlatSpec with Matchers {
   }
 
   "lookupFieldValueFromSinkData" should "return error when non-primitive supplied" in {
-    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystruct"))) should be (Left(ExtractorError(UnexpectedType)))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystruct"))) should be(Left(ExtractorError(UnexpectedType)))
   }
 
 
   "lookupFieldValueFromSinkData" should "handle nested string schema" in {
-    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mynestedschema","mynestedstring")))  should be(Right("zip"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mynestedschema", "mynestedstring"))) should be(Right("zip"))
   }
 
   "lookupFieldValueFromSinkData" should "handle complex map schema" in {
-    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mycomplexmap","mykey", "mynestedstring")))  should be(Right("wiz"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mycomplexmap", "mykey", "mynestedstring"))) should be(Right("wiz"))
   }
 
   "lookupFieldValueFromSinkData" should "handle struct containing map of maps" in {
-    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mymapofmaps","c","d")))  should be(Right("2"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mymapofmaps", "c", "d"))) should be(Right("2"))
   }
 
   "lookupFieldValueFromSinkData" should "handle array of structs" in {
-    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("myarrayofstructs","0","mynestedstring")))  should be(Right("wiz1"))
-    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("myarrayofstructs","1","mynestedstring")))  should be(Right("wiz2"))
-    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("myarrayofstructs","2","mynestedstring")))  should be(Right("wiz3"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("myarrayofstructs", "0", "mynestedstring"))) should be(Right("wiz1"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("myarrayofstructs", "1", "mynestedstring"))) should be(Right("wiz2"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("myarrayofstructs", "2", "mynestedstring"))) should be(Right("wiz3"))
   }
 
   "lookupFieldValueFromSinkData" should "handle structs containing array of primitives" in {
-    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofprimitives","myarray","0"))) should be(Right("sausages"))
-    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofprimitives","myarray","1"))) should be(Right("mash"))
-    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofprimitives","myarray","2"))) should be(Right("peas"))
-    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofprimitives","myarray","3"))) should be(Right("gravy"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofprimitives", "myarray", "0"))) should be(Right("sausages"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofprimitives", "myarray", "1"))) should be(Right("mash"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofprimitives", "myarray", "2"))) should be(Right("peas"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofprimitives", "myarray", "3"))) should be(Right("gravy"))
   }
 
 
   "lookupFieldValueFromSinkData" should "handle structs containing array of structs containing primitives" in {
-    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofstructprimitives","myarray","0", "mynestedstring")))  should be(Right("wiz1"))
-    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofstructprimitives","myarray","1", "mynestedstring")))  should be(Right("wiz2"))
-    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofstructprimitives","myarray","2", "mynestedstring")))  should be(Right("wiz3"))
-    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofstructprimitives","myarray","3", "mynestedstring")))  should be(Left(ExtractorError(MissingValue)))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofstructprimitives", "myarray", "0", "mynestedstring"))) should be(Right("wiz1"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofstructprimitives", "myarray", "1", "mynestedstring"))) should be(Right("wiz2"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofstructprimitives", "myarray", "2", "mynestedstring"))) should be(Right("wiz3"))
+    SinkDataExtractor.extractPathFromSinkData(StructSinkData(struct))(Some(PartitionNamePath("mystructswitharrayofstructprimitives", "myarray", "3", "mynestedstring"))) should be(Left(ExtractorError(MissingValue)))
   }
 
   "lookupFieldValueFromSinkData" should "handle flat map sink data without schema" in {
@@ -185,7 +185,7 @@ class SinkDataExtractorTest extends AnyFlatSpec with Matchers {
       ),
       None
     )
-    SinkDataExtractor.extractPathFromSinkData(mapSinkData)(Some(PartitionNamePath("key1"))) should be (Right("val1"))
+    SinkDataExtractor.extractPathFromSinkData(mapSinkData)(Some(PartitionNamePath("key1"))) should be(Right("val1"))
   }
 
   "lookupFieldValueFromSinkData" should "handle 3d map sink data without schema" in {
@@ -199,7 +199,7 @@ class SinkDataExtractorTest extends AnyFlatSpec with Matchers {
       ),
       None
     )
-    SinkDataExtractor.extractPathFromSinkData(mapSinkData)(Some(PartitionNamePath("key2", "key3"))) should be (Right("val2"))
+    SinkDataExtractor.extractPathFromSinkData(mapSinkData)(Some(PartitionNamePath("key2", "key3"))) should be(Right("val2"))
   }
 
   "lookupFieldValueFromSinkData" should "handle 3d list sink data without schema" in {
@@ -213,7 +213,7 @@ class SinkDataExtractorTest extends AnyFlatSpec with Matchers {
       ),
       None
     )
-    SinkDataExtractor.extractPathFromSinkData(arraySinkData)(Some(PartitionNamePath("0"))) should be (Right("val1"))
-    SinkDataExtractor.extractPathFromSinkData(arraySinkData)(Some(PartitionNamePath("1", "key3"))) should be (Right("val2"))
+    SinkDataExtractor.extractPathFromSinkData(arraySinkData)(Some(PartitionNamePath("0"))) should be(Right("val1"))
+    SinkDataExtractor.extractPathFromSinkData(arraySinkData)(Some(PartitionNamePath("1", "key3"))) should be(Right("val2"))
   }
 }

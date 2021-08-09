@@ -17,22 +17,56 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
+import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.model.{Offset, RemotePathLocation}
+import io.lenses.streamreactor.connect.aws.s3.processing._
+
 import java.io.OutputStream
 import java.nio.ByteBuffer
-import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, Location}
+
+object MultipartBlobStoreOutputStream {
+  def apply(initialName: RemotePathLocation,
+            initialOffset: Offset,
+            updateOffsetFn: Offset => () => Unit,
+            minAllowedMultipartSize: Int)(implicit queueProcessor: BlockingQueueProcessor): Either[Throwable, MultipartBlobStoreOutputStream] = {
+
+    MultipartBlobStoreOutputStream(initialName, initialOffset, updateOffsetFn, minAllowedMultipartSize)
+
+  }
+}
 
 class MultipartBlobStoreOutputStream(
                                       initialName: RemotePathLocation,
+                                      initialOffset: Offset,
+                                      updateOffsetFn: Offset => () => Unit,
                                       minAllowedMultipartSize: Int
-                                    )(
-                                      implicit storageInterface: StorageInterface
-                                    ) extends OutputStream with LazyLogging with S3OutputStream {
+                                    )(implicit queueProcessor: BlockingQueueProcessor) extends OutputStream with LazyLogging with S3OutputStream {
 
-  private var uploadState: MultiPartUploadState = storageInterface.initUpload(initialName)
+
   private val buffer: ByteBuffer = ByteBuffer.allocate(minAllowedMultipartSize)
   private var pointer = 0
-  private var uploadedBytes: Long = 0
+  private var uploadState: Option[MultiPartUploadState] = None
+  private var completed = false
+
+  queueProcessor.enqueue(InitUploadProcessorOperation(initialOffset, initialName, setStateCallbackFn))
+
+  private def getLatestStateFn: () => MultiPartUploadState = () => {
+    logger.trace(s"Retrieving state $uploadState")
+    uploadState.getOrElse(throw new IllegalStateException("No state has been set"))
+  }
+
+  private def setStateCallbackFn(state: MultiPartUploadState): Unit = {
+    uploadState.fold {} {
+      us =>
+        if (state.upload.blobName() != us.upload.blobName()) {
+          throw new IllegalStateException("Upload blobname has changed, it should be fixed")
+        }
+        logger.trace(s"Replacing state, old state " +
+          s"(${us.parts.size} ${us.upload.blobName()}) new state: " +
+          s"(${state.parts.size}) ${state.upload.blobName()}")
+    }
+    uploadState = Some(state)
+  }
 
   override def write(bytes: Array[Byte], startOffset: Int, numberOfBytes: Int): Unit = {
 
@@ -50,7 +84,7 @@ class MultipartBlobStoreOutputStream(
     appendToBuffer(bytes, startOffset, numberOfBytesToAppend)
 
     if (remainingOnBuffer == numberOfBytesToAppend) {
-      uploadPart(minAllowedMultipartSize)
+      uploadPart(minAllowedMultipartSize, None)
       val remaining = numberOfBytes - remainingOnBuffer
       if (remaining > 0) {
         write(
@@ -63,18 +97,17 @@ class MultipartBlobStoreOutputStream(
   }
 
   override def write(b: Int): Unit = {
-
     buffer.put(b.toByte)
     if (!buffer.hasRemaining) {
-      uploadPart(minAllowedMultipartSize)
+      uploadPart(minAllowedMultipartSize, None)
     }
     pointer += 1
   }
 
-  private def uploadPart(size: Long): Unit = {
-    uploadState = storageInterface.uploadPart(uploadState, getCurrentBufferContents, size)
+  private def uploadPart(size: Long, kafkaOffset: Option[Offset]): Unit = {
+    val toUpload = getCurrentBufferContents.slice(0, size.toInt)
     buffer.clear
-    uploadedBytes += size
+    queueProcessor.enqueue(UploadPartProcessorOperation(kafkaOffset, getLatestStateFn, toUpload, setStateCallbackFn))
   }
 
   private def appendToBuffer(bytes: Array[Byte], startOffset: Int, numberOfBytes: Int): Unit = {
@@ -82,21 +115,22 @@ class MultipartBlobStoreOutputStream(
     pointer += numberOfBytes
   }
 
-  override def complete(finalDestination: RemotePathLocation): Unit = {
+  override def complete(finalDestination: RemotePathLocation, kafkaOffset: Offset): Unit = {
 
-    if (buffer.position() > 0)
-      uploadState = storageInterface.uploadPart(uploadState, buffer.array(), buffer.position)
+    if (completed) return
 
-    uploadState match {
-      case state if state.parts.nonEmpty =>
-        storageInterface.completeUpload(state)
-        buffer.clear()
-        if(initialName != finalDestination) {
-          storageInterface.rename(initialName, finalDestination)
-        }
-      case _ =>
+    if (buffer.position() > 0) {
+      val nextPart = buffer.array().slice(0, buffer.position)
+      queueProcessor.enqueue(UploadPartProcessorOperation(Some(kafkaOffset), getLatestStateFn, nextPart, setStateCallbackFn))
     }
 
+    buffer.clear()
+    queueProcessor.enqueue(
+      CompleteUploadProcessorOperation(kafkaOffset, getLatestStateFn),
+      RenameFileProcessorOperation(kafkaOffset, initialName, finalDestination, updateOffsetFn(kafkaOffset))
+    )
+
+    completed = true
   }
 
   private def validateRange(startOffset: Int, numberOfBytes: Int) = startOffset >= 0 && startOffset <= numberOfBytes

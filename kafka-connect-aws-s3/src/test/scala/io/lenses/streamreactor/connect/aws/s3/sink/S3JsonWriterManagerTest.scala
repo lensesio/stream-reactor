@@ -20,6 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.processing.ProcessorManager
 import io.lenses.streamreactor.connect.aws.s3.sink.config.{S3SinkConfig, SinkBucketOptions}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestPayloadReader._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig}
@@ -52,8 +53,9 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
       )
     )
 
-    val sink = S3WriterManager.from(config,"sinkName")
+    val sink = S3WriterManager.from(config, "sinkName")
     sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(1)), MessageDetail(None, StructSinkData(users.head), Map.empty[String, SinkData]))
+    sink.catchUp()
     sink.close()
 
 
@@ -78,11 +80,12 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
       )
     )
 
-    val sink = S3WriterManager.from(config,"sinkName")
+    val sink = S3WriterManager.from(config, "sinkName")
     firstUsers.zipWithIndex.foreach {
       case (struct: Struct, index: Int) => sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(struct), Map.empty[String, SinkData]))
     }
 
+    sink.catchUp()
     sink.close()
 
     //val list1 = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix(""))

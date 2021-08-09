@@ -112,7 +112,7 @@ class YamlProfileProcessor extends ConfigDefProcessor with LazyLogging {
     Try {
       yaml.loadAll(fullYamlStream).asScala.map {
         case map: util.Map[_, _] => map.asInstanceOf[util.Map[String, AnyRef]].asScala.toMap
-        case _ => throw new IllegalStateException("Unexpected type") //TODO don't throw
+        case _ => return new IllegalStateException("Unexpected type").asLeft
       }.toList
     }.toEither
   }

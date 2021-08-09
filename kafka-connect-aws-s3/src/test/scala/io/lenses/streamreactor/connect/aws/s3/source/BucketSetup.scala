@@ -56,7 +56,7 @@ object BucketSetup extends Matchers {
         ) should be(true)
     }
   }
-  
+
   def totalFileLengthBytes(format: Format, formatOption: Option[FormatOptions]): Int = {
     1 to 5 map {
       fileNum: Int =>

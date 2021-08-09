@@ -30,7 +30,7 @@ class MapSinkDataConverterTest extends AnyFlatSpec with Matchers {
         "key2" -> null
       ),
       None
-    ) should be (MapSinkData(Map(StringSinkData("key1") -> StringSinkData("val1"),StringSinkData("key2") -> NullSinkData())))
+    ) should be(MapSinkData(Map(StringSinkData("key1") -> StringSinkData("val1"), StringSinkData("key2") -> NullSinkData())))
   }
 
   "convert" should "convert null values in maps to NullSinkData with schemas" in {
@@ -41,9 +41,9 @@ class MapSinkDataConverterTest extends AnyFlatSpec with Matchers {
         "key2" -> null
       ),
       Some(schema)
-    ) should be (
+    ) should be(
       MapSinkData(
-        Map(StringSinkData("key1") -> StringSinkData("val1"),StringSinkData("key2") -> NullSinkData()),
+        Map(StringSinkData("key1") -> StringSinkData("val1"), StringSinkData("key2") -> NullSinkData()),
         Some(schema)
       )
     )

@@ -20,10 +20,11 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import io.lenses.streamreactor.connect.aws.s3.model.{StringSinkData, StructSinkData}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.storage.S3ByteArrayOutputStream
+import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class TextFormatWriterTest extends AnyFlatSpec with Matchers {
+class TextFormatWriterTest extends AnyFlatSpec with Matchers with EitherValues {
 
 
   "convert" should "write byte output stream with text format for a single record" in {
@@ -51,9 +52,8 @@ class TextFormatWriterTest extends AnyFlatSpec with Matchers {
   "convert" should "throw error when avro value is supplied" in {
 
     val outputStream = new S3ByteArrayOutputStream()
-    val jsonFormatWriter = new TextFormatWriter(() => outputStream)
-    assertThrows[IllegalStateException] {
-      jsonFormatWriter.write(None, StructSinkData(users.head), topic)
-    }
+    val textFormatWriter = new TextFormatWriter(() => outputStream)
+    val caught = textFormatWriter.write(None, StructSinkData(users.head), topic)
+    caught.left.value shouldBe a [FormatWriterException]
   }
 }

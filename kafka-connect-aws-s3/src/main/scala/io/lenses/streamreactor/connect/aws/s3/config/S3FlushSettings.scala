@@ -22,6 +22,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.DISABLE_FL
 import io.lenses.streamreactor.connect.aws.s3.sink.DefaultCommitPolicy
 
 import scala.concurrent.duration.{DurationInt, DurationLong, FiniteDuration}
+
 object S3FlushSettings {
 
   val defaultFlushSize = 500000000
@@ -34,11 +35,11 @@ trait S3FlushSettings extends BaseSettings {
 
   import S3FlushSettings._
 
-  private def isFlushCountDisabled : Boolean = {
+  private def isFlushCountDisabled: Boolean = {
     getBoolean(s"$DISABLE_FLUSH_COUNT")
   }
 
-  private def isFlushCountEnabled : Boolean = {
+  private def isFlushCountEnabled: Boolean = {
     !isFlushCountDisabled
   }
 

@@ -17,10 +17,11 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import io.lenses.streamreactor.connect.aws.s3.model.RemotePathLocation
-import org.jclouds.blobstore.domain.{MultipartPart, MultipartUpload}
+import io.lenses.streamreactor.connect.aws.s3.model.{Offset, RemotePathLocation}
+import io.lenses.streamreactor.connect.aws.s3.processing._
+import org.jclouds.blobstore.domain.MultipartUpload
 import org.mockito.ArgumentMatchers._
-import org.mockito.{ArgumentCaptor, ArgumentMatchers, MockitoSugar}
+import org.mockito.{ArgumentCaptor, MockitoSugar}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -44,8 +45,9 @@ class MultipartBlobStoreOutputStreamTest extends AnyFlatSpec with MockitoSugar w
   }
 
 
-  "write" should "setup the state on the construction" in new TestContext {
-    verify(mockStorageInterface, times(1)).initUpload(testBucketAndPath)
+  "write" should "queue up creation of the state on the construction" in new TestContext {
+    verify(queueProcessor, times(1)).enqueue(any[InitUploadProcessorOperation])
+    verifyNoMoreInteractions()
   }
 
   "write" should "append directly to the buffer for bytes smaller than remaining buffer size" in new TestContext {
@@ -53,11 +55,11 @@ class MultipartBlobStoreOutputStreamTest extends AnyFlatSpec with MockitoSugar w
 
     target.write(bytesToUpload, 0, bytesToUpload.length)
 
-    verify(mockStorageInterface, never).uploadPart(
-      any[MultiPartUploadState],
-      any[Array[Byte]],
-      ArgumentMatchers.eq(8)
-    )
+    val order = inOrder(queueProcessor)
+    order.verify(queueProcessor).enqueue(any[InitUploadProcessorOperation])
+    order.verify(queueProcessor, never).enqueue(any[UploadPartProcessorOperation])
+    order.verify(queueProcessor, never).enqueue(any[CompleteUploadProcessorOperation])
+    order.verifyNoMoreInteractions()
   }
 
   "write" should "start clear buffer and write part when nearly full" in new TestContext {
@@ -67,70 +69,63 @@ class MultipartBlobStoreOutputStreamTest extends AnyFlatSpec with MockitoSugar w
 
     new String(target.getCurrentBufferContents).trim should be("YYY")
 
-    verify(mockStorageInterface).uploadPart(
-      any[MultiPartUploadState],
-      any[Array[Byte]],
-      ArgumentMatchers.eq(10L)
-    )
+    val order = inOrder(queueProcessor)
+    order.verify(queueProcessor).enqueue(any(classOf[InitUploadProcessorOperation]))
+    order.verify(queueProcessor).enqueue(any(classOf[UploadPartProcessorOperation]))
+    order.verifyNoMoreInteractions()
+
+    matchOperationData(0, "XXXXXXXXYY")
+
   }
 
   "write" should "put multiple parts when exceeds buffer" in new TestContext {
-    val payloadCaptor: ArgumentCaptor[Array[Byte]] = setUpUploadPartPayloadCaptor(mock[MultiPartUploadState])
+    val upload = mock[MultipartUpload]
+    val updatedState = mock[MultiPartUploadState]
+    when(updatedState.upload).thenReturn(upload)
 
     target.write(nBytes(8, 'X'), 0, 8)
     target.write(nBytes(12, 'Y') ++ nBytes(15, 'Z'), 0, 27)
 
     new String(target.getCurrentBufferContents).trim should be("ZZZZZ")
 
-    val submittedPayloads: Seq[Array[Byte]] = payloadCaptor.getAllValues.asScala.toList
-    submittedPayloads should have size 3
-    new String(submittedPayloads(0)) should be("XXXXXXXXYY")
-    new String(submittedPayloads(1)) should be("YYYYYYYYYY")
-    new String(submittedPayloads(2)) should be("ZZZZZZZZZZ")
+    val order = inOrder(queueProcessor)
+    order.verify(queueProcessor).enqueue(any(classOf[InitUploadProcessorOperation]))
+    order.verify(queueProcessor, times(3)).enqueue(any(classOf[UploadPartProcessorOperation]))
+    order.verifyNoMoreInteractions()
+
+    matchOperationData(0, "XXXXXXXXYY")
+    matchOperationData(1, "YYYYYYYYYY")
+    matchOperationData(2, "ZZZZZZZZZZ")
+
   }
 
   "write" should "put multiple parts when data exceeded buffer" in new TestContext {
-    val payloadCaptor: ArgumentCaptor[Array[Byte]] = setUpUploadPartPayloadCaptor(mock[MultiPartUploadState])
 
     target.write(nBytes(8, 'X'), 0, 8)
     target.write(nBytes(12, 'Y'), 0, 12)
 
     new String(target.getCurrentBufferContents).trim should be("")
 
-    val submittedPayloads: Seq[Array[Byte]] = payloadCaptor.getAllValues.asScala.toList
-    submittedPayloads should have size 2
-    new String(submittedPayloads(0)) should be("XXXXXXXXYY")
-    new String(submittedPayloads(1)) should be("YYYYYYYYYY")
+    matchOperationData(0, "XXXXXXXXYY")
+    matchOperationData(1, "YYYYYYYYYY")
+
   }
 
   "complete" should "add a multipart file part if data remains in the buffer" in new TestContext {
 
-    val returnPart: MultipartPart = mock[MultipartPart]
-    val returnState: MultiPartUploadState = MultiPartUploadState(mock[MultipartUpload], Vector(returnPart))
-    val payloadCaptor: ArgumentCaptor[Array[Byte]] = setUpUploadPartPayloadCaptor(returnState)
-
     target.write(nBytes(8, 'X'), 0, 8)
-    target.complete(testBucketAndPath)
+    target.complete(testBucketAndPath, Offset(0))
 
-    val submittedPayloads: Seq[Array[Byte]] = payloadCaptor.getAllValues.asScala.toList
-    submittedPayloads should have size 1
-    new String(submittedPayloads.head).trim() should be("XXXXXXXX")
+    matchOperationData(0, "XXXXXXXX")
+
   }
 
   "complete" should "complete the upload if no data remains in the buffer" in new TestContext {
 
-    val returnPart: MultipartPart = mock[MultipartPart]
-    val returnState: MultiPartUploadState = MultiPartUploadState(mock[MultipartUpload], Vector(returnPart))
-    val payloadCaptor: ArgumentCaptor[Array[Byte]] = setUpUploadPartPayloadCaptor(returnState)
-
     target.write(nBytes(10, 'X'), 0, 10)
+    target.complete(testBucketAndPath, Offset(0))
 
-    reset(mockStorageInterface)
-
-    target.complete(testBucketAndPath)
-
-    verify(mockStorageInterface, never).uploadPart(any[MultiPartUploadState], payloadCaptor.capture(), ArgumentMatchers.eq(8))
-
+    target.getCurrentBufferContents should be (empty)
   }
 
   /**
@@ -146,29 +141,30 @@ class MultipartBlobStoreOutputStreamTest extends AnyFlatSpec with MockitoSugar w
 
   class TestContext {
 
-    implicit val mockStorageInterface: StorageInterface = mock[StorageInterface]
-    val target = new MultipartBlobStoreOutputStream(testBucketAndPath, MinFileSizeBytes)
+    implicit val queueProcessor = mock[BlockingQueueProcessor]
+    when(queueProcessor.hasOperations).thenReturn(false)
+
+    val target = new MultipartBlobStoreOutputStream(testBucketAndPath, Offset(0), minAllowedMultipartSize = MinFileSizeBytes, updateOffsetFn = (_) => () => ())
+
     private val multipartUpload: MultipartUpload = mock[MultipartUpload]
+    when(multipartUpload.containerName()).thenReturn("myContainerName")
+    when(multipartUpload.blobName()).thenReturn("myBlobName")
 
-    private val initUploadState = MultiPartUploadState(multipartUpload, Vector())
+    val opDataCaptor = opDataPayloadCaptor()
+    def opDataPayloadCaptor(): ArgumentCaptor[ProcessorOperation] = {
 
-    when(mockStorageInterface.initUpload(testBucketAndPath)).thenReturn(
-      initUploadState
-    )
-
-    def setUpUploadPartPayloadCaptor(returnState: MultiPartUploadState): ArgumentCaptor[Array[Byte]] = {
-
-      val payloadCaptor: ArgumentCaptor[Array[Byte]] = ArgumentCaptor.forClass(classOf[Array[Byte]])
-      when(mockStorageInterface.uploadPart(
-        any[MultiPartUploadState],
-        payloadCaptor.capture(),
-        anyLong()
-      )).thenReturn(returnState)
+      val payloadCaptor: ArgumentCaptor[ProcessorOperation] = ArgumentCaptor.forClass(classOf[ProcessorOperation])
+      doNothing.when(queueProcessor).enqueue(payloadCaptor.capture())
 
       payloadCaptor
     }
 
+    def matchOperationData(index: Int, expectedString : String) = {
+      val operationData = opDataCaptor.getAllValues.asScala.toList
+      operationData(index) match {
+        case UploadPartProcessorOperation(_, _, bytes, _) => bytes should be(expectedString.getBytes)
+        case _ => fail("wrong match")
+      }
+    }
   }
-
-
 }

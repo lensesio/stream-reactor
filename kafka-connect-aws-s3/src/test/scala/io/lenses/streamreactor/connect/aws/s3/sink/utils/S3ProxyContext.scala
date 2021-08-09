@@ -17,9 +17,6 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.utils
 
-import java.net.URI
-import java.util.Properties
-
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.regions.Regions
@@ -31,6 +28,8 @@ import org.gaul.s3proxy.S3Proxy
 import org.jclouds.ContextBuilder
 import org.jclouds.blobstore.BlobStoreContext
 
+import java.net.URI
+import java.util.Properties
 import scala.collection.JavaConverters._
 import scala.util.Try
 

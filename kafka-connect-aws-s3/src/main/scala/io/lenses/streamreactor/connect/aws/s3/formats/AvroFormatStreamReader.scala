@@ -16,13 +16,12 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.io.InputStream
-
 import io.confluent.connect.avro.AvroData
 import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, SchemaAndValueSourceData}
 import org.apache.avro.file.DataFileStream
 import org.apache.avro.generic.{GenericDatumReader, GenericRecord}
 
+import java.io.InputStream
 import scala.util.Try
 
 class AvroFormatStreamReader(inputStreamFn: () => InputStream, bucketAndPath: RemotePathLocation) extends S3FormatStreamReader[SchemaAndValueSourceData] {

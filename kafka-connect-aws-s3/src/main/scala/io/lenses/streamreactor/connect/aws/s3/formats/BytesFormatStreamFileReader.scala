@@ -16,16 +16,15 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.io.InputStream
-
 import com.google.common.io.ByteStreams
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, ByteArraySourceData, BytesWriteMode}
+import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySourceData, BytesWriteMode, RemotePathLocation}
 
+import java.io.InputStream
 import scala.util.Try
 
 class BytesFormatStreamFileReader(inputStreamFn: () => InputStream, fileSizeFn: () => Long, bucketAndPath: RemotePathLocation, bytesWriteMode: BytesWriteMode) extends S3FormatStreamReader[ByteArraySourceData] {
 
-  private var consumed : Boolean = false
+  private var consumed: Boolean = false
   private val inputStream = inputStreamFn()
   private val fileSize = fileSizeFn()
 

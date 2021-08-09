@@ -16,12 +16,12 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import java.io.InputStream
-
 import io.lenses.streamreactor.connect.aws.s3.config.Format
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
 import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, SourceData}
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
+
+import java.io.InputStream
 
 object S3FormatStreamReader {
 

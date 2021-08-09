@@ -25,19 +25,19 @@ class LowerCaseKeyConfigDefProcessorTest extends AnyFlatSpec with Matchers {
   val processor = new LowerCaseKeyConfigDefProcessor()
 
   "lower case key processor" should "leave non-relevant keys alone" in {
-    processor.process(Map("ABC" -> "XYZ")) should be (Right(Map("ABC" -> "XYZ")))
+    processor.process(Map("ABC" -> "XYZ")) should be(Right(Map("ABC" -> "XYZ")))
   }
 
   "lower case key processor" should "alter upper case keys" in {
-    processor.process(Map("connect.s3.ABC" -> "XYZ")) should be (Right(Map("connect.s3.abc" -> "XYZ")))
+    processor.process(Map("connect.s3.ABC" -> "XYZ")) should be(Right(Map("connect.s3.abc" -> "XYZ")))
   }
 
   "lower case key processor" should "not change lower case keys" in {
-    processor.process(Map("connect.s3.abc" -> "XYZ")) should be (Right(Map("connect.s3.abc" -> "XYZ")))
+    processor.process(Map("connect.s3.abc" -> "XYZ")) should be(Right(Map("connect.s3.abc" -> "XYZ")))
   }
 
   "lower case key processor" should "not crash with empty map" in {
-    processor.process(Map()) should be (Right(Map()))
+    processor.process(Map()) should be(Right(Map()))
   }
 
   "lower case key processor" should "work with real example keys" in {
@@ -47,7 +47,7 @@ class LowerCaseKeyConfigDefProcessorTest extends AnyFlatSpec with Matchers {
       AUTH_MODE.toUpperCase() -> "Credentials",
       CUSTOM_ENDPOINT -> "http://127.0.0.1:8099",
       ENABLE_VIRTUAL_HOST_BUCKETS.toUpperCase() -> "true",
-    )) should be (Right(Map(
+    )) should be(Right(Map(
       AWS_ACCESS_KEY -> "identity",
       AWS_SECRET_KEY -> "credential",
       AUTH_MODE -> "Credentials",
