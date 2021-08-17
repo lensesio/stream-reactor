@@ -283,7 +283,16 @@ public class SchemaManager {
       result = getUnionizedSchema(bigQuerySchemas);
     } else {
       com.google.cloud.bigquery.Schema existingSchema = readTableSchema(table);
-      result = convertRecordSchema(records.get(records.size() - 1));
+      SinkRecord recordToConvert = getRecordToConvert(records);
+      if (recordToConvert == null) {
+        String errorMessage = "Could not convert to BigQuery schema with a batch of tombstone records.";
+        if (existingSchema == null) {
+          throw new BigQueryConnectException(errorMessage);
+        }
+        logger.debug(errorMessage + " Will fall back to existing schema.");
+        return existingSchema;
+      }
+      result = convertRecordSchema(recordToConvert);
       if (existingSchema != null) {
         validateSchemaChange(existingSchema, result);
         if (allowBQRequiredFieldRelaxation) {
@@ -304,9 +313,30 @@ public class SchemaManager {
     List<com.google.cloud.bigquery.Schema> bigQuerySchemas = new ArrayList<>();
     Optional.ofNullable(readTableSchema(table)).ifPresent(bigQuerySchemas::add);
     for (SinkRecord record : records) {
+      Schema kafkaValueSchema = schemaRetriever.retrieveValueSchema(record);
+      if (kafkaValueSchema == null) {
+        continue;
+      }
       bigQuerySchemas.add(convertRecordSchema(record));
     }
     return bigQuerySchemas;
+  }
+
+  /**
+   * Gets a regular record from the given batch of SinkRecord for schema conversion. This is needed
+   * when delete is enabled, because a tombstone record has null value, thus null value schema.
+   * Converting null value schema to BigQuery schema is not possible.
+   * @param records List of SinkRecord to look for.
+   * @return a regular record or null if the whole batch are all tombstone records.
+   */
+  private SinkRecord getRecordToConvert(List<SinkRecord> records) {
+    for (int i = records.size() - 1; i >= 0; i--) {
+      SinkRecord record = records.get(i);
+      if (schemaRetriever.retrieveValueSchema(record) != null) {
+        return record;
+      }
+    }
+    return null;
   }
 
   private com.google.cloud.bigquery.Schema convertRecordSchema(SinkRecord record) {
@@ -431,10 +461,14 @@ public class SchemaManager {
    * @param records The records used to get the unionized table description
    * @return The resulting table description
    */
-  private String getUnionizedTableDescription(List<SinkRecord> records) {
+  @VisibleForTesting
+  String getUnionizedTableDescription(List<SinkRecord> records) {
     String tableDescription = null;
     for (SinkRecord record : records) {
       Schema kafkaValueSchema = schemaRetriever.retrieveValueSchema(record);
+      if (kafkaValueSchema == null) {
+        continue;
+      }
       tableDescription = kafkaValueSchema.doc() != null ? kafkaValueSchema.doc() : tableDescription;
     }
     return tableDescription;
@@ -495,16 +529,6 @@ public class SchemaManager {
   }
 
   private com.google.cloud.bigquery.Schema getBigQuerySchema(Schema kafkaKeySchema, Schema kafkaValueSchema) {
-    // When converting schema from the last record of a batch, if the record is a tombstone with
-    // null value schema, only allow it to pass if schema unionization is enabled.
-    if (kafkaValueSchema == null) {
-      if (!allowSchemaUnionization) {
-        throw new BigQueryConnectException(
-            "Cannot create/update BigQuery table for record with no value schema. "
-            + "If delete mode is enabled, it may be necessary to enable schema unionization to handle this case.");
-      }
-      return com.google.cloud.bigquery.Schema.of();
-    }
     com.google.cloud.bigquery.Schema valueSchema = schemaConverter.convertSchema(kafkaValueSchema);
 
     List<Field> schemaFields = intermediateTables
