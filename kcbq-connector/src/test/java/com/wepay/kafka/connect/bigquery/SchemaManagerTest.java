@@ -39,8 +39,11 @@ import com.wepay.kafka.connect.bigquery.convert.SchemaConverter;
 
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.retrieve.IdentitySchemaRetriever;
+import java.util.Random;
 import org.apache.kafka.connect.data.Schema;
 
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.Assert;
 import org.junit.Before;
@@ -516,41 +519,62 @@ public class SchemaManagerTest {
     testGetAndValidateProposedSchema(schemaManager, existingSchema, expandedSchema, expectedSchema);
   }
 
-  @Test(expected = BigQueryConnectException.class)
-  public void testDisallowedUnionizedUpdateWithTombstoneRecord() {
+  @Test
+  public void testUpdateWithOnlyTombstoneRecordsAndExistingSchema() {
     com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
         Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
     );
 
-    Table existingTable = tableWithSchema(existingSchema);
-    List<SinkRecord> incomingSinkRecords = ImmutableList.of(recordWithValueSchema(null));
+    SchemaManager schemaManager = createSchemaManager(true, false, false);
+    List<SinkRecord> incomingSinkRecords = Collections.nCopies(2, recordWithValueSchema(null));
+    // Tombstone records are skipped, and existing schema is reused.
+    testGetAndValidateProposedSchema(schemaManager, existingSchema,
+        Collections.singletonList(existingSchema), existingSchema, incomingSinkRecords);
+  }
 
-    when(mockBigQuery.getTable(tableId)).thenReturn(existingTable);
-    SchemaManager schemaManager = createSchemaManager(false, true, false);
-    schemaManager.getAndValidateProposedSchema(tableId, incomingSinkRecords);
+  @Test(expected = BigQueryConnectException.class)
+  public void testUpdateWithOnlyTombstoneRecordsNoExistingSchema() {
+    SchemaManager schemaManager = createSchemaManager(true, false, false);
+    List<SinkRecord> incomingSinkRecords = Collections.nCopies(2, recordWithValueSchema(null));
+    testGetAndValidateProposedSchema(
+        schemaManager, null, Collections.singletonList(null), null, incomingSinkRecords);
   }
 
   @Test
-  public void testAllowedUnionizedUpdateWithTombstoneRecord() {
+  public void testUpdateWithRegularAndTombstoneRecords() {
     com.google.cloud.bigquery.Schema existingSchema = com.google.cloud.bigquery.Schema.of(
         Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build()
     );
 
-    com.google.cloud.bigquery.Schema expectedSchema = com.google.cloud.bigquery.Schema.of(
-        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.NULLABLE).build()
+    com.google.cloud.bigquery.Schema expandedSchema = com.google.cloud.bigquery.Schema.of(
+        Field.newBuilder("f1", LegacySQLTypeName.BOOLEAN).setMode(Field.Mode.REQUIRED).build(),
+        Field.newBuilder("f2", LegacySQLTypeName.INTEGER).setMode(Field.Mode.NULLABLE).build()
     );
 
-    Table existingTable = tableWithSchema(existingSchema);
+    SchemaManager schemaManager = createSchemaManager(true, false, false);
+    // Put tombstone at the end of the batch.
+    List<SinkRecord> incomingSinkRecords = ImmutableList.of(
+        recordWithValueSchema(mockKafkaSchema), recordWithValueSchema(null));
+    // Tombstone record is skipped when converting schema.
+    testGetAndValidateProposedSchema(schemaManager, existingSchema,
+        Collections.singletonList(expandedSchema), expandedSchema, incomingSinkRecords);
+  }
+
+  @Test
+  public void testGetUnionizedTableDescriptionFromTombstoneRecord() {
+    SchemaManager schemaManager = createSchemaManager(false, true, true);
     SinkRecord tombstone = recordWithValueSchema(null);
     List<SinkRecord> incomingSinkRecords = ImmutableList.of(tombstone);
+    Assert.assertNull(schemaManager.getUnionizedTableDescription(incomingSinkRecords));
+  }
 
-    when(mockBigQuery.getTable(tableId)).thenReturn(existingTable);
-
-    SchemaManager schemaManager = createSchemaManager(false, true, true);
-    com.google.cloud.bigquery.Schema proposedSchema =
-        schemaManager.getAndValidateProposedSchema(tableId, incomingSinkRecords);
-
-    Assert.assertEquals(expectedSchema, proposedSchema);
+  @Test
+  public void testGetUnionizedTableDescriptionFromRegularAndNullRecords() {
+    SchemaManager schemaManager = createSchemaManager(false, true, true).forIntermediateTables();
+    List<SinkRecord> incomingSinkRecords = ImmutableList.of(
+        recordWithValueSchema(mockKafkaSchema), recordWithValueSchema(null));
+    when(mockKafkaSchema.doc()).thenReturn(testDoc);
+    Assert.assertNotNull(schemaManager.getUnionizedTableDescription(incomingSinkRecords));
   }
 
   private SchemaManager createSchemaManager(
@@ -575,11 +599,17 @@ public class SchemaManagerTest {
       com.google.cloud.bigquery.Schema existingSchema,
       List<com.google.cloud.bigquery.Schema> newSchemas,
       com.google.cloud.bigquery.Schema expectedSchema) {
+    testGetAndValidateProposedSchema(schemaManager, existingSchema, newSchemas, expectedSchema,
+        Collections.nCopies(newSchemas.size(), recordWithValueSchema(mockKafkaSchema)));
+  }
+
+  private void testGetAndValidateProposedSchema(
+      SchemaManager schemaManager,
+      com.google.cloud.bigquery.Schema existingSchema,
+      List<com.google.cloud.bigquery.Schema> newSchemas,
+      com.google.cloud.bigquery.Schema expectedSchema,
+      List<SinkRecord> incomingSinkRecords) {
     Table existingTable = existingSchema != null ? tableWithSchema(existingSchema) : null;
-
-    SinkRecord mockSinkRecord = recordWithValueSchema(mockKafkaSchema);
-    List<SinkRecord> incomingSinkRecords = Collections.nCopies(newSchemas.size(), mockSinkRecord);
-
     when(mockBigQuery.getTable(tableId)).thenReturn(existingTable);
     OngoingStubbing<com.google.cloud.bigquery.Schema> converterStub =
         when(mockSchemaConverter.convertSchema(mockKafkaSchema));
