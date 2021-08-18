@@ -17,7 +17,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import io.lenses.streamreactor.connect.aws.s3.model.{Offset, RemotePathLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.processing._
 import org.jclouds.blobstore.domain.MultipartUpload
 import org.mockito.ArgumentMatchers._
@@ -31,7 +32,7 @@ class MultipartBlobStoreOutputStreamTest extends AnyFlatSpec with MockitoSugar w
 
   private val MinFileSizeBytes = 10
 
-  private val testBucketAndPath = RemotePathLocation("my-bucket", "my-path")
+  private val testBucketAndPath = RemoteS3PathLocation("my-bucket", "my-path")
 
   /**
     * Create a byte array consisting of a given number of a repeating characters

@@ -16,7 +16,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.processing
 
-import io.lenses.streamreactor.connect.aws.s3.model.{LocalLocation, Offset, RemotePathLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
+import io.lenses.streamreactor.connect.aws.s3.model.location.{LocalPathLocation, RemoteS3PathLocation}
 import io.lenses.streamreactor.connect.aws.s3.sink.ProcessorException
 import io.lenses.streamreactor.connect.aws.s3.storage.{MultiPartUploadState, StorageInterface}
 
@@ -30,7 +31,7 @@ sealed abstract class ProcessorOperation(maybeOffset: Option[Offset]) {
   override def toString = s"$offset | "
 }
 
-case class InitUploadProcessorOperation(initialOffset: Offset, initialName: RemotePathLocation, callbackFn: MultiPartUploadState => Unit) extends ProcessorOperation(Some(initialOffset)) {
+case class InitUploadProcessorOperation(initialOffset: Offset, initialName: RemoteS3PathLocation, callbackFn: MultiPartUploadState => Unit) extends ProcessorOperation(Some(initialOffset)) {
   override def toString = super.toString + s"initUpload ($initialName)"
 
   override def process(implicit storageInterface: StorageInterface): Either[ProcessorException, Unit] = {
@@ -61,7 +62,7 @@ case class UploadPartProcessorOperation(maybeOffset: Option[Offset], stateFn: ()
 
 // completion functions
 
-case class UploadFileProcessorOperation(offset: Offset, initialName: LocalLocation, finalDestination: RemotePathLocation, callbackFn: () => Unit) extends ProcessorOperation(Some(offset)) {
+case class UploadFileProcessorOperation(offset: Offset, initialName: LocalPathLocation, finalDestination: RemoteS3PathLocation, callbackFn: () => Unit) extends ProcessorOperation(Some(offset)) {
   override def toString = super.toString + s"uploadFile ($initialName -> $finalDestination)"
 
   override def process(implicit storageInterface: StorageInterface): Either[ProcessorException, Unit] = Try {
@@ -70,7 +71,7 @@ case class UploadFileProcessorOperation(offset: Offset, initialName: LocalLocati
   }.toEither.left.map(ex => ProcessorException(ex))
 }
 
-case class RenameFileProcessorOperation(offset: Offset, originalFilename: RemotePathLocation, newFilename: RemotePathLocation, callbackFn: () => Unit) extends ProcessorOperation(Some(offset)) {
+case class RenameFileProcessorOperation(offset: Offset, originalFilename: RemoteS3PathLocation, newFilename: RemoteS3PathLocation, callbackFn: () => Unit) extends ProcessorOperation(Some(offset)) {
   override def toString = super.toString + s"renameFile ($originalFilename -> $newFilename)"
 
   override def process(implicit storageInterface: StorageInterface): Either[ProcessorException, Unit] = Try {

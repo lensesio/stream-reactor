@@ -21,6 +21,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.Format._
 import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
 import io.lenses.streamreactor.connect.aws.s3.config.{FormatOptions, FormatSelection}
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 
 object S3FormatWriter {
@@ -58,7 +59,7 @@ trait S3FormatWriter extends AutoCloseable {
 
   def getPointer: Long
 
-  def close(newName: RemotePathLocation, offset: Offset, updateOffsetFn: () => Unit = () => ())
+  def close(newName: RemoteS3PathLocation, offset: Offset, updateOffsetFn: () => Unit = () => ())
 
 }
 

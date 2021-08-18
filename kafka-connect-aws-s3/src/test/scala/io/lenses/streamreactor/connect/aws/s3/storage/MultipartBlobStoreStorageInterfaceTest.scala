@@ -17,10 +17,10 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, RemoteRootLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestPayloadReader
-import org.jclouds.blobstore.domain.internal.{PageSetImpl, StorageMetadataImpl}
 import org.jclouds.blobstore.domain._
+import org.jclouds.blobstore.domain.internal.{PageSetImpl, StorageMetadataImpl}
 import org.jclouds.blobstore.options.{ListContainerOptions, PutOptions}
 import org.jclouds.blobstore.{BlobStore, BlobStoreContext}
 import org.jclouds.io.payloads.ByteSourcePayload
@@ -36,7 +36,7 @@ class MultipartBlobStoreStorageInterfaceTest extends AnyFlatSpec with MockitoSug
 
   private val blobStoreContext: BlobStoreContext = mock[BlobStoreContext]
   private val blobStore: BlobStore = mock[BlobStore]
-  private val testBucketAndPath = RemotePathLocation("my-bucket", "myPath")
+  private val testBucketAndPath = RemoteS3PathLocation("my-bucket", "myPath")
 
   when(blobStoreContext.getBlobStore).thenReturn(blobStore)
 
@@ -109,7 +109,7 @@ class MultipartBlobStoreStorageInterfaceTest extends AnyFlatSpec with MockitoSug
         any[ListContainerOptions]
       )
 
-    multipartBlobStoreStorageInterface.list(RemoteRootLocation(testBucketAndPath.bucket, Some("prefix"))) should
+    multipartBlobStoreStorageInterface.list(RemoteS3RootLocation(testBucketAndPath.bucket, Some("prefix"))) should
       be(List("first", "second"))
   }
 
@@ -124,7 +124,7 @@ class MultipartBlobStoreStorageInterfaceTest extends AnyFlatSpec with MockitoSug
         any[ListContainerOptions]
       )
 
-    multipartBlobStoreStorageInterface.list(RemoteRootLocation(testBucketAndPath.bucket, Some("prefix"))) should
+    multipartBlobStoreStorageInterface.list(RemoteS3RootLocation(testBucketAndPath.bucket, Some("prefix"))) should
       be(List("only"))
   }
 

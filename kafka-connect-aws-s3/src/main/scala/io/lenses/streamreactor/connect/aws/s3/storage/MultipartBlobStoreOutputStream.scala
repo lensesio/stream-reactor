@@ -18,14 +18,15 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{Offset, RemotePathLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.processing._
 
 import java.io.OutputStream
 import java.nio.ByteBuffer
 
 object MultipartBlobStoreOutputStream {
-  def apply(initialName: RemotePathLocation,
+  def apply(initialName: RemoteS3PathLocation,
             initialOffset: Offset,
             updateOffsetFn: Offset => () => Unit,
             minAllowedMultipartSize: Int)(implicit queueProcessor: BlockingQueueProcessor): Either[Throwable, MultipartBlobStoreOutputStream] = {
@@ -36,7 +37,7 @@ object MultipartBlobStoreOutputStream {
 }
 
 class MultipartBlobStoreOutputStream(
-                                      initialName: RemotePathLocation,
+                                      initialName: RemoteS3PathLocation,
                                       initialOffset: Offset,
                                       updateOffsetFn: Offset => () => Unit,
                                       minAllowedMultipartSize: Int
@@ -115,7 +116,7 @@ class MultipartBlobStoreOutputStream(
     pointer += numberOfBytes
   }
 
-  override def complete(finalDestination: RemotePathLocation, kafkaOffset: Offset): Unit = {
+  override def complete(finalDestination: RemoteS3PathLocation, kafkaOffset: Offset): Unit = {
 
     if (completed) return
 

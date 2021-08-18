@@ -3,7 +3,8 @@ package io.lenses.streamreactor.connect.aws.s3.source
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats._
 import io.lenses.streamreactor.connect.aws.s3.model.BytesWriteMode.KeyAndValueWithSizes
-import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, Offset, RemotePathLocation, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, Offset, StructSinkData}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData.{schema, topic}
 import io.lenses.streamreactor.connect.aws.s3.storage.{S3ByteArrayOutputStream, S3OutputStream}
 import org.apache.commons.io.FileUtils
@@ -76,7 +77,7 @@ class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
 
               val writer: S3FormatWriter = writerClass(outputStreamFn)
               1 to numberOfRecords foreach { _ => writer.write(None, StructSinkData(userGen.sample.get), topic) }
-              writer.close(RemotePathLocation("", ""), Offset(0)) // TODO: FIX
+              writer.close(RemoteS3PathLocation("", ""), Offset(0)) // TODO: FIX
 
               val dataFile = new File(s"$dir/$format/$fileNum.$format")
               logger.info(s"Writing $format file ${dataFile.getAbsolutePath}")
@@ -108,7 +109,7 @@ class GenerateResourcesTest extends AnyFlatSpec with Matchers with LazyLogging {
 
               val writer: S3FormatWriter = writerClass(outputStreamFn)
               1 to numberOfRecords foreach { _ => writer.write(Some(ByteArraySinkData("myKey".getBytes)), ByteArraySinkData("somestring".getBytes), topic) }
-              writer.close(RemotePathLocation("", ""), Offset(0)) // TODO: FIX
+              writer.close(RemoteS3PathLocation("", ""), Offset(0)) // TODO: FIX
 
               val dataFile = new File(s"$dir/$format/$fileNum.$format")
               logger.info(s"Writing $format file ${dataFile.getAbsolutePath}")

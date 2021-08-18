@@ -20,7 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.model._
-import io.lenses.streamreactor.connect.aws.s3.processing.ProcessorManager
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.config.{S3SinkConfig, SinkBucketOptions}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestPayloadReader._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig}
@@ -40,7 +40,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
   "json sink" should "write single json record" in {
 
-    val bucketAndPrefix = RemoteRootLocation(BucketName, Some(PathPrefix))
+    val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix))
     val config = S3SinkConfig(S3Config(
       Some(Identity),
       Some(Credential),
@@ -68,7 +68,7 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
   "json sink" should "write schemas to json" in {
 
-    val bucketAndPrefix = RemoteRootLocation(BucketName, Some(PathPrefix))
+    val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix))
     val config = S3SinkConfig(S3Config(
       Some(Identity),
       Some(Credential),

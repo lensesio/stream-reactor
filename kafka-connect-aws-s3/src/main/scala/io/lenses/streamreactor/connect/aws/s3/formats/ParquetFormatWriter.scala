@@ -19,7 +19,8 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.parquet.ParquetOutputFile
-import io.lenses.streamreactor.connect.aws.s3.model.{Offset, RemotePathLocation, SinkData, Topic}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.{Offset, SinkData, Topic}
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 import org.apache.avro.Schema
@@ -69,7 +70,7 @@ class ParquetFormatWriter(outputStreamFn: () => S3OutputStream) extends S3Format
 
   override def rolloverFileOnSchemaChange() = true
 
-  override def close(newName: RemotePathLocation, offset: Offset, updateOffsetFn: () => Unit) = {
+  override def close(newName: RemoteS3PathLocation, offset: Offset, updateOffsetFn: () => Unit) = {
     Try(writer.close())
     Try(outputStream.flush())
     Try(outputStream.complete(newName, offset))

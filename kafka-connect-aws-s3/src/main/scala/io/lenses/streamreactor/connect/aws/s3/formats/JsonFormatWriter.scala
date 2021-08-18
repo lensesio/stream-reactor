@@ -18,6 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToJsonDataConverter
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 import org.apache.kafka.connect.json.JsonConverter
@@ -59,7 +60,7 @@ class JsonFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
 
   override def rolloverFileOnSchemaChange(): Boolean = false
 
-  override def close(newName: RemotePathLocation, offset: Offset, updateOffsetFn: () => Unit): Unit = {
+  override def close(newName: RemoteS3PathLocation, offset: Offset, updateOffsetFn: () => Unit): Unit = {
     Try(outputStream.complete(newName, offset))
 
     Try(outputStream.flush())

@@ -21,6 +21,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.Format.Avro
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, FormatSelection, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.formats.AvroFormatReader
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.config.{S3SinkConfig, SinkBucketOptions}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig, S3TestPayloadReader}
@@ -38,7 +39,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
   private val PathPrefix = "streamReactorBackups"
   private val avroFormatReader = new AvroFormatReader
 
-  private val bucketAndPrefix = RemoteRootLocation(BucketName, Some(PathPrefix))
+  private val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix))
   private val avroConfig = S3SinkConfig(S3Config(
     Some(Identity),
     Some(Credential),

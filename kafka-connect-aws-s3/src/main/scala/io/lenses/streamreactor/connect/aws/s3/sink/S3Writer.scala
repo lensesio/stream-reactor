@@ -21,6 +21,7 @@ import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.processing.BlockingQueueProcessor
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.apache.kafka.connect.data.Schema
@@ -29,7 +30,7 @@ import scala.Option.empty
 import scala.math.Ordered.orderingToOrdered
 
 class S3Writer(sinkName: String,
-               bucketAndPrefix: RemoteRootLocation,
+               bucketAndPrefix: RemoteS3RootLocation,
                commitPolicy: CommitPolicy,
                formatWriterFn: (TopicPartitionOffset, Map[PartitionField, String], Offset => () => Unit) => Either[ProcessorException, S3FormatWriter],
                fileNamingStrategy: S3FileNamingStrategy,

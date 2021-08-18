@@ -22,6 +22,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.LOCAL_TMP_
 import io.lenses.streamreactor.connect.aws.s3.config.{FormatSelection, S3ConfigDefBuilder}
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model.S3WriteMode.{BuildLocal, Streamed}
+import io.lenses.streamreactor.connect.aws.s3.model.location.{LocalPathLocation, LocalRootLocation, RemoteS3PathLocation}
 import io.lenses.streamreactor.connect.aws.s3.processing.BlockingQueueProcessor
 import io.lenses.streamreactor.connect.aws.s3.sink.ProcessorException
 import io.lenses.streamreactor.connect.aws.s3.storage.{BuildLocalOutputStream, MultipartBlobStoreOutputStream, S3OutputStream, StorageInterface}
@@ -32,7 +33,7 @@ import scala.util.{Failure, Success, Try}
 
 
 sealed trait S3OutputStreamOptions {
-  def createFormatWriter(formatSelection: FormatSelection, path: RemotePathLocation, initialOffset: Offset, updateOffsetFn: Offset => () => Unit)(implicit storageInterface: StorageInterface, queueProcessor: BlockingQueueProcessor): Either[ProcessorException, S3FormatWriter]
+  def createFormatWriter(formatSelection: FormatSelection, path: RemoteS3PathLocation, initialOffset: Offset, updateOffsetFn: Offset => () => Unit)(implicit storageInterface: StorageInterface, queueProcessor: BlockingQueueProcessor): Either[ProcessorException, S3FormatWriter]
 }
 
 object S3OutputStreamOptions extends LazyLogging {
@@ -52,14 +53,14 @@ case class StreamedWriteOutputStreamOptions() extends S3OutputStreamOptions {
 
   val MinAllowedMultipartSize: Int = 5242880
 
-  override def createFormatWriter(formatSelection: FormatSelection, path: RemotePathLocation, initialOffset: Offset, updateOffsetFn: Offset => () => Unit)(implicit storageInterface: StorageInterface, queueProcessor: BlockingQueueProcessor): Either[ProcessorException, S3FormatWriter] = {
+  override def createFormatWriter(formatSelection: FormatSelection, path: RemoteS3PathLocation, initialOffset: Offset, updateOffsetFn: Offset => () => Unit)(implicit storageInterface: StorageInterface, queueProcessor: BlockingQueueProcessor): Either[ProcessorException, S3FormatWriter] = {
     Try(createOutputStreamFn(path, initialOffset, updateOffsetFn)) match {
       case Failure(exception: Throwable) => ProcessorException(exception).asLeft
       case Success(streamFn) => S3FormatWriter(formatSelection, streamFn).asRight
     }
   }
 
-  private def createOutputStreamFn(location: RemotePathLocation, initialOffset: Offset, updateOffsetFn: Offset => () => Unit)(implicit queueProcessor: BlockingQueueProcessor): () => S3OutputStream = {
+  private def createOutputStreamFn(location: RemoteS3PathLocation, initialOffset: Offset, updateOffsetFn: Offset => () => Unit)(implicit queueProcessor: BlockingQueueProcessor): () => S3OutputStream = {
     () => new MultipartBlobStoreOutputStream(location, initialOffset, updateOffsetFn, MinAllowedMultipartSize)
   }
 
@@ -95,22 +96,22 @@ object BuildLocalOutputStreamOptions {
           ).getOrElse(Option.empty[String])
       )
     match {
-      case Some(value) => BuildLocalOutputStreamOptions(LocalLocation(value)).asRight[Exception]
+      case Some(value) => BuildLocalOutputStreamOptions(LocalRootLocation(value)).asRight[Exception]
       case None => new IllegalStateException(s"Either a local temporary directory ($LOCAL_TMP_DIRECTORY) or a Sink Name ($PROPERTY_SINK_NAME) must be configured to use '${BuildLocal.entryName}' write mode.").asLeft[BuildLocalOutputStreamOptions]
     }
   }
 }
 
-case class BuildLocalOutputStreamOptions(localLocation: LocalLocation) extends S3OutputStreamOptions {
+case class BuildLocalOutputStreamOptions(localLocation: LocalRootLocation) extends S3OutputStreamOptions {
 
-  override def createFormatWriter(formatSelection: FormatSelection, path: RemotePathLocation, initialOffset: Offset, updateOffsetFn: Offset => () => Unit)(implicit storageInterface: StorageInterface, processor: BlockingQueueProcessor): Either[ProcessorException, S3FormatWriter] = {
-    Try(createOutputStreamFn(LocalLocation(localLocation, path), initialOffset, updateOffsetFn)) match {
+  override def createFormatWriter(formatSelection: FormatSelection, path: RemoteS3PathLocation, initialOffset: Offset, updateOffsetFn: Offset => () => Unit)(implicit storageInterface: StorageInterface, processor: BlockingQueueProcessor): Either[ProcessorException, S3FormatWriter] = {
+    Try(createOutputStreamFn(path.toLocalPathLocation(localLocation), initialOffset, updateOffsetFn)) match {
       case Failure(exception) => ProcessorException(exception).asLeft
       case Success(streamFn) => S3FormatWriter(formatSelection, streamFn).asRight
     }
   }
 
-  private def createOutputStreamFn(location: LocalLocation, initialOffset: Offset, updateOffsetFn: Offset => () => Unit)(implicit queueProcessor: BlockingQueueProcessor): () => S3OutputStream = {
+  private def createOutputStreamFn(location: LocalPathLocation, initialOffset: Offset, updateOffsetFn: Offset => () => Unit)(implicit queueProcessor: BlockingQueueProcessor): () => S3OutputStream = {
     () => new BuildLocalOutputStream(location, initialOffset, updateOffsetFn)
   }
 

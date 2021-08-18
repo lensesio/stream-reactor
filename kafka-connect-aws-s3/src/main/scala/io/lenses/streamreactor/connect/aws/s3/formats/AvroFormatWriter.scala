@@ -19,6 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 import org.apache.avro.Schema
@@ -62,7 +63,7 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
     }
   }
 
-  override def close(newName: RemotePathLocation, offset: Offset, updateOffsetFn: () => Unit): Unit = {
+  override def close(newName: RemoteS3PathLocation, offset: Offset, updateOffsetFn: () => Unit): Unit = {
     avroWriterState.fold(logger.debug("Requesting close (with args) when there's nothing to close"))(_.close(newName, offset))
   }
 
@@ -88,7 +89,7 @@ class AvroFormatWriter(outputStreamFn: () => S3OutputStream) extends S3FormatWri
     }
 
 
-    def close(newName: RemotePathLocation, offset: Offset) = {
+    def close(newName: RemoteS3PathLocation, offset: Offset) = {
       Try(fileWriter.flush())
       Try(outputStream.complete(newName, offset))
       Try(fileWriter.close())

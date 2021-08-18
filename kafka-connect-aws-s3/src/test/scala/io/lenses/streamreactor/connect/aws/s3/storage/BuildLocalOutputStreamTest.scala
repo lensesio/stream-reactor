@@ -18,7 +18,8 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import io.lenses.streamreactor.connect.aws.s3.formats.Using
-import io.lenses.streamreactor.connect.aws.s3.model.{LocalLocation, Offset, RemotePathLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
+import io.lenses.streamreactor.connect.aws.s3.model.location.{LocalPathLocation, RemoteS3PathLocation}
 import io.lenses.streamreactor.connect.aws.s3.processing.BlockingQueueProcessor
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
@@ -29,9 +30,9 @@ import scala.io.Source
 
 class BuildLocalOutputStreamTest extends AnyFlatSpec with MockitoSugar with Matchers with Using {
 
-  private val testBucketAndPath = RemotePathLocation("my-bucket", "my-path")
+  private val testBucketAndPath = RemoteS3PathLocation("my-bucket", "my-path")
   private val tmpDir = Files.createTempDirectory("myTmpDir")
-  private val testLocalLocation = LocalLocation(s"$tmpDir/tmpFileTest.tmp")
+  private val testLocalLocation = LocalPathLocation(s"$tmpDir/tmpFileTest.tmp")
 
   "write" should "write single byte sequences" in new TestContext(false) {
     val bytesToUpload: Array[Byte] = "Sausages".getBytes

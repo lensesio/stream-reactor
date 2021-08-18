@@ -18,14 +18,15 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{LocalLocation, Offset, RemotePathLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
+import io.lenses.streamreactor.connect.aws.s3.model.location.{LocalPathLocation, RemoteS3PathLocation}
 import io.lenses.streamreactor.connect.aws.s3.processing.{BlockingQueueProcessor, UploadFileProcessorOperation}
 
 import java.io.OutputStream
 
 
 class BuildLocalOutputStream(
-                              initialName: LocalLocation,
+                              initialName: LocalPathLocation,
                               initialOffset: Offset,
                               updateOffsetFn: Offset => () => Unit,
                               cleanUp: Boolean = true,
@@ -33,7 +34,7 @@ class BuildLocalOutputStream(
                               implicit queueProcessor: BlockingQueueProcessor
                             ) extends OutputStream with LazyLogging with S3OutputStream {
 
-  private val outputStream = initialName.toBufferedFileOutputStream()
+  private val outputStream = initialName.toBufferedFileOutputStream
 
   private var pointer = 0
 
@@ -56,7 +57,7 @@ class BuildLocalOutputStream(
     pointer += 1
   }
 
-  override def complete(finalDestination: RemotePathLocation, offset: Offset): Unit = {
+  override def complete(finalDestination: RemoteS3PathLocation, offset: Offset): Unit = {
     outputStream.close()
     queueProcessor.enqueue(UploadFileProcessorOperation(offset, initialName, finalDestination, updateOffsetFn(offset)))
     queueProcessor.process()

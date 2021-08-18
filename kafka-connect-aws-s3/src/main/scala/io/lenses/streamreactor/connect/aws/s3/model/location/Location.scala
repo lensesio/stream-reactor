@@ -1,6 +1,5 @@
-
 /*
- * Copyright 2020 Lenses.io
+ * Copyright 2021 Lenses.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,17 +14,15 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.storage
+package io.lenses.streamreactor.connect.aws.s3.model.location
 
-import io.lenses.streamreactor.connect.aws.s3.model.Offset
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+trait Location {
+}
 
-import java.io.OutputStream
+trait RootLocation[P <: PathLocation] extends Location {
+  def withPath(path: String) : P
+}
 
-trait S3OutputStream extends OutputStream {
-
-  def complete(finalDestination: RemoteS3PathLocation, offset: Offset): Unit
-
-  def getPointer: Long
-
+trait PathLocation extends Location {
+  def path: String
 }

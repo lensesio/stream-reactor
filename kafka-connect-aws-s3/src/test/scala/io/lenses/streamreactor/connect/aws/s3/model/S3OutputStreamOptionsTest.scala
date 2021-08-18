@@ -19,6 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.model
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings.LOCAL_TMP_DIRECTORY
 import io.lenses.streamreactor.connect.aws.s3.model.BuildLocalOutputStreamOptions.PROPERTY_SINK_NAME
+import io.lenses.streamreactor.connect.aws.s3.model.location.LocalRootLocation
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -55,13 +56,13 @@ class S3OutputStreamOptionsTest extends AnyFlatSpec with Matchers {
 
   it should "create BuildLocalOutputStreamOptions when temp directory has been supplied" in {
     S3OutputStreamOptions("buildlocal", adapt(Map(LOCAL_TMP_DIRECTORY -> s"$tmpDir/my/path"))) should
-      be(Right(BuildLocalOutputStreamOptions(LocalLocation(s"$tmpDir/my/path"))))
+      be(Right(BuildLocalOutputStreamOptions(LocalRootLocation(s"$tmpDir/my/path"))))
   }
 
   it should "create BuildLocalOutputStreamOptions when temp directory and sink name has been supplied" in {
     // should ignore the sinkName
     S3OutputStreamOptions("BuildLocal", adapt(Map(LOCAL_TMP_DIRECTORY -> s"$tmpDir/my/path", PROPERTY_SINK_NAME -> "superSleekSinkName"))) should
-      be(Right(BuildLocalOutputStreamOptions(LocalLocation(s"$tmpDir/my/path"))))
+      be(Right(BuildLocalOutputStreamOptions(LocalRootLocation(s"$tmpDir/my/path"))))
   }
 
   it should "create BuildLocalOutputStreamOptions when sink name has been supplied" in {
@@ -69,7 +70,7 @@ class S3OutputStreamOptionsTest extends AnyFlatSpec with Matchers {
     val result = S3OutputStreamOptions("BUILDLOCAL", adapt(Map(), Option("superSleekSinkName")))
     result.isRight should be(true)
     result.right.get match {
-      case BuildLocalOutputStreamOptions(localLocation) => localLocation.path should startWith(s"$tempDir/superSleekSinkName")
+      case BuildLocalOutputStreamOptions(localLocation) => localLocation.basePath should startWith(s"$tempDir/superSleekSinkName")
       case _ => fail("Wrong")
     }
   }

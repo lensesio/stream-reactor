@@ -18,7 +18,8 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{RemoteRootLocation, S3StoredFile, S3StoredFileSorter}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.{S3StoredFile, S3StoredFileSorter}
 import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
@@ -30,7 +31,7 @@ import scala.util.control.NonFatal
   */
 class S3SourceLister(implicit storageInterface: StorageInterface) extends LazyLogging {
 
-  def list(implicit fileNamingStrategy: S3FileNamingStrategy, bucketAndPrefix: RemoteRootLocation): List[S3StoredFile] = {
+  def list(implicit fileNamingStrategy: S3FileNamingStrategy, bucketAndPrefix: RemoteS3RootLocation): List[S3StoredFile] = {
 
     def bucketLocationExists: Boolean = storageInterface.pathExists(bucketAndPrefix)
 
@@ -51,7 +52,7 @@ class S3SourceLister(implicit storageInterface: StorageInterface) extends LazyLo
 
   }
 
-  def next(fileNamingStrategy: S3FileNamingStrategy, bucketAndPrefix: RemoteRootLocation, lastResult: Option[S3StoredFile], resumeFrom: Option[S3StoredFile]): Option[S3StoredFile] = {
+  def next(fileNamingStrategy: S3FileNamingStrategy, bucketAndPrefix: RemoteS3RootLocation, lastResult: Option[S3StoredFile], resumeFrom: Option[S3StoredFile]): Option[S3StoredFile] = {
     val names = list(fileNamingStrategy, bucketAndPrefix)
 
     val position = if (resumeFrom.nonEmpty) {

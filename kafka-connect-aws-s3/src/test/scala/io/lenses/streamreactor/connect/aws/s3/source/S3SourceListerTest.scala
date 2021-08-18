@@ -20,6 +20,7 @@ package io.lenses.streamreactor.connect.aws.s3.source
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.HierarchicalS3FileNamingStrategy
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.mockito.MockitoSugar
@@ -32,7 +33,7 @@ class S3SourceListerTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
   private implicit val storageInterface: StorageInterface = mock[StorageInterface]
 
-  private val bucketAndPrefix = RemoteRootLocation("my-bucket", Some("path"))
+  private val bucketAndPrefix = RemoteS3RootLocation("my-bucket", Some("path"))
   private val sourceLister = new S3SourceLister
 
   // comes back in random order

@@ -17,7 +17,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.storage
 
-import io.lenses.streamreactor.connect.aws.s3.model.{Offset, RemotePathLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 
 import java.io.ByteArrayOutputStream
 
@@ -27,7 +28,7 @@ class S3ByteArrayOutputStream extends S3OutputStream {
 
   var pointer: Long = 0L
 
-  override def complete(finalDestination: RemotePathLocation, offset: Offset) = {}
+  override def complete(finalDestination: RemoteS3PathLocation, offset: Offset) = {}
 
   override def getPointer: Long = pointer
 

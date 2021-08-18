@@ -19,6 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.source
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection}
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
 import io.lenses.streamreactor.connect.aws.s3.sink.HierarchicalS3FileNamingStrategy
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData.resourceToByteArray
@@ -38,7 +39,7 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
   private val format = FormatSelection(Format.Json)
   private val fileNamingStrategy = new HierarchicalS3FileNamingStrategy(format)
   private val prefix = "ing"
-  private val bucketAndPrefix: RemoteRootLocation = RemoteRootLocation("test", Some(prefix))
+  private val bucketAndPrefix: RemoteS3RootLocation = RemoteS3RootLocation("test", Some(prefix))
   private val targetTopic: String = "topic"
 
   private val sourceBucketOptions = SourceBucketOptions(
@@ -70,7 +71,7 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
     when(sourceLister.next(fileNamingStrategy, bucketAndPrefix, None, None)).thenReturn(Some(nextTopicPartitionOffset))
     when(sourceLister.next(fileNamingStrategy, bucketAndPrefix, Some(nextTopicPartitionOffset), None)).thenReturn(None)
 
-    val bucketAndPath = RemotePathLocation(bucketAndPrefix.bucket, "ing/topic/9/0.json")
+    val bucketAndPath = RemoteS3PathLocation(bucketAndPrefix.bucket, "ing/topic/9/0.json")
     val inputStream = new ByteArrayInputStream(TestSampleSchemaAndData.recordsAsJson(0).getBytes())
     when(storageInterface.getBlob(bucketAndPath)).thenReturn(inputStream)
 
@@ -103,7 +104,7 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
     when(sourceLister.next(fileNamingStrategy, bucketAndPrefix, None, Some(nextTopicPartitionOffset))).thenReturn(Some(nextTopicPartitionOffset))
     when(sourceLister.next(fileNamingStrategy, bucketAndPrefix, Some(nextTopicPartitionOffset), None)).thenReturn(None)
 
-    val bucketAndPath = RemotePathLocation(bucketAndPrefix.bucket, "ing/topic/9/0.json")
+    val bucketAndPath = RemoteS3PathLocation(bucketAndPrefix.bucket, "ing/topic/9/0.json")
     val inputStream = new ByteArrayInputStream(
       TestSampleSchemaAndData.recordsAsJson.mkString(System.lineSeparator()).getBytes
     )
@@ -135,13 +136,13 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
     val file1Name = "ing/topic/9/200.json"
     val file1Tpo = Topic("topic").withPartition(9).withOffset(200)
     val file1StoredFile = S3StoredFile(file1Name, file1Tpo)
-    val file1BucketAndPath = RemotePathLocation(bucketAndPrefix.bucket, "ing/topic/9/200.json")
+    val file1BucketAndPath = RemoteS3PathLocation(bucketAndPrefix.bucket, "ing/topic/9/200.json")
 
     val file2ByteArray = resourceToByteArray(getClass.getClassLoader.getResourceAsStream("json/2.json"))
     val file2Name = "ing/topic/9/400.json"
     val file2Tpo = Topic("topic").withPartition(9).withOffset(400)
     val file2StoredFile = S3StoredFile(file2Name, file2Tpo)
-    val file2BucketAndPath = RemotePathLocation(bucketAndPrefix.bucket, "ing/topic/9/400.json")
+    val file2BucketAndPath = RemoteS3PathLocation(bucketAndPrefix.bucket, "ing/topic/9/400.json")
 
     // start at file 2, line 10
     val offsetReaderResultFn: (String, String) => Option[OffsetReaderResult] = (bucketAndPath, prefix) => {
@@ -178,13 +179,13 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
     )
 
     val file1ByteArray = resourceToByteArray(getClass.getClassLoader.getResourceAsStream("json/1.json"))
-    val file1BucketAndPath = RemotePathLocation(bucketAndPrefix.bucket, "ing/topic/9/200.json")
+    val file1BucketAndPath = RemoteS3PathLocation(bucketAndPrefix.bucket, "ing/topic/9/200.json")
 
     val file2ByteArray = resourceToByteArray(getClass.getClassLoader.getResourceAsStream("json/2.json"))
     val file2Name = "ing/topic/9/400.json"
     val file2Tpo = Topic("topic").withPartition(9).withOffset(400)
     val file2StoredFile = S3StoredFile(file2Name, file2Tpo)
-    val file2BucketAndPath = RemotePathLocation(bucketAndPrefix.bucket, "ing/topic/9/400.json")
+    val file2BucketAndPath = RemoteS3PathLocation(bucketAndPrefix.bucket, "ing/topic/9/400.json")
 
     // start at file 2, line 10
     val offsetReaderResultFn: (String, String) => Option[OffsetReaderResult] = (bucketAndPath, prefix) => {
@@ -236,19 +237,19 @@ class S3BucketReaderManagerTest extends AnyFlatSpec with MockitoSugar with Match
     )
 
     val file1ByteArray = resourceToByteArray(getClass.getClassLoader.getResourceAsStream("json/1.json"))
-    val file1BucketAndPath = RemotePathLocation(bucketAndPrefix.bucket, "ing/topic/9/200.json")
+    val file1BucketAndPath = RemoteS3PathLocation(bucketAndPrefix.bucket, "ing/topic/9/200.json")
 
     val file2ByteArray = resourceToByteArray(getClass.getClassLoader.getResourceAsStream("json/2.json"))
     val file2Name = "ing/topic/9/400.json"
     val file2Tpo = Topic("topic").withPartition(9).withOffset(400)
     val file2StoredFile = S3StoredFile(file2Name, file2Tpo)
-    val file2BucketAndPath = RemotePathLocation(bucketAndPrefix.bucket, "ing/topic/9/400.json")
+    val file2BucketAndPath = RemoteS3PathLocation(bucketAndPrefix.bucket, "ing/topic/9/400.json")
 
     val file3ByteArray = resourceToByteArray(getClass.getClassLoader.getResourceAsStream("json/3.json"))
     val file3Name = "ing/topic/9/600.json"
     val file3Tpo = Topic("topic").withPartition(9).withOffset(600)
     val file3StoredFile = S3StoredFile(file3Name, file3Tpo)
-    val file3BucketAndPath = RemotePathLocation(bucketAndPrefix.bucket, "ing/topic/9/600.json")
+    val file3BucketAndPath = RemoteS3PathLocation(bucketAndPrefix.bucket, "ing/topic/9/600.json")
 
     // start at file 2, line 10
     val offsetReaderResultFn: (String, String) => Option[OffsetReaderResult] = (bucketAndPath, prefix) => {

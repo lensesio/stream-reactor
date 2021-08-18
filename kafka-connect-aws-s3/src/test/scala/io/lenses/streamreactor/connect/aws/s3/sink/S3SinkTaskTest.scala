@@ -40,6 +40,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.StringReader
+import java.nio.file.Files
 import java.{lang, util}
 import scala.collection.JavaConverters._
 
@@ -1437,6 +1438,36 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
       .combine(
         Map(
           "name" -> "s3SinkTaskBuildLocalTest",
+          "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1",
+          "connect.s3.write.mode" -> "BuildLocal",
+        )
+      ).asJava
+
+    task.start(props)
+    task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.put(records.asJava)
+    task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
+    task.stop()
+
+    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(3)
+
+    readFileToString(BucketName, "streamReactorBackups/myTopic/1/0.json", blobStoreContext) should be("""{"name":"sam","title":"mr","salary":100.43}""")
+    readFileToString(BucketName, "streamReactorBackups/myTopic/1/1.json", blobStoreContext) should be("""{"name":"laura","title":"ms","salary":429.06}""")
+    readFileToString(BucketName, "streamReactorBackups/myTopic/1/2.json", blobStoreContext) should be("""{"name":"tom","title":null,"salary":395.44}""")
+
+  }
+
+  "S3SinkTask" should "flush for every record when configured flush count size of 1 with build local write mode and specifying dir" in {
+
+    val tempDir = Files.createTempDirectory("tempdirtest")
+
+    val task = new S3SinkTask()
+
+    val props = DefaultProps
+      .combine(
+        Map(
+          "name" -> "s3SinkTaskBuildLocalTest",
+          "connect.s3.local.tmp.directory" -> tempDir.toString,
           "connect.s3.kcql" -> s"insert into $BucketName:$PrefixName select * from $TopicName WITH_FLUSH_COUNT = 1",
           "connect.s3.write.mode" -> "BuildLocal",
         )

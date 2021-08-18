@@ -22,6 +22,7 @@ import com.typesafe.scalalogging.{LazyLogging, StrictLogging}
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatWriter
 import io.lenses.streamreactor.connect.aws.s3.model.Offset.orderingByOffsetValue
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
 import io.lenses.streamreactor.connect.aws.s3.processing.{BlockingQueueProcessor, ProcessorManager}
 import io.lenses.streamreactor.connect.aws.s3.sink.config.{S3SinkConfig, SinkBucketOptions}
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
@@ -31,7 +32,7 @@ import org.apache.kafka.connect.data.Schema
 import scala.collection.mutable
 import scala.util.Try
 
-case class MapKey(topicPartition: TopicPartition, bucketAndPath: RemotePathLocation)
+case class MapKey(topicPartition: TopicPartition, bucketAndPath: RemoteS3PathLocation)
 
 /**
   * Manages the lifecycle of [[S3Writer]] instances.
@@ -45,7 +46,7 @@ case class MapKey(topicPartition: TopicPartition, bucketAndPath: RemotePathLocat
 class S3WriterManager(sinkName: String,
                       formatWriterFn: (TopicPartitionOffset, Map[PartitionField, String], Offset => () => Unit) => Either[ProcessorException, S3FormatWriter],
                       commitPolicyFn: Topic => Either[ProcessorException, CommitPolicy],
-                      bucketAndPrefixFn: Topic => Either[ProcessorException, RemoteRootLocation],
+                      bucketAndPrefixFn: Topic => Either[ProcessorException, RemoteS3RootLocation],
                       fileNamingStrategyFn: Topic => Either[ProcessorException, S3FileNamingStrategy],
                      )
                      (implicit storageInterface: StorageInterface,
@@ -217,7 +218,7 @@ class S3WriterManager(sinkName: String,
     )
   }
 
-  private def createWriter(bucketAndPrefix: RemoteRootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String], processor: BlockingQueueProcessor): Either[ProcessorException, S3Writer] = {
+  private def createWriter(bucketAndPrefix: RemoteS3RootLocation, topicPartition: TopicPartition, partitionValues: Map[PartitionField, String], processor: BlockingQueueProcessor): Either[ProcessorException, S3Writer] = {
     logger.debug(s"[$sinkName] Creating new writer for bucketAndPrefix:$bucketAndPrefix")
     for {
       commitPolicy <- commitPolicyFn(topicPartition.topic)
@@ -297,9 +298,9 @@ object S3WriterManager extends LazyLogging {
 
     implicit val processorMan: ProcessorManager = new ProcessorManager()
 
-    val bucketAndPrefixFn: Topic => Either[ProcessorException, RemoteRootLocation] = topic => {
+    val bucketAndPrefixFn: Topic => Either[ProcessorException, RemoteS3RootLocation] = topic => {
       bucketOptsForTopic(config, topic)
-        .fold(ProcessorException(s"No bucket config for $topic").asLeft[RemoteRootLocation])(_.bucketAndPrefix.asRight[ProcessorException])
+        .fold(ProcessorException(s"No bucket config for $topic").asLeft[RemoteS3RootLocation])(_.bucketAndPrefix.asRight[ProcessorException])
     }
 
     val commitPolicyFn: Topic => Either[ProcessorException, CommitPolicy] = topic => bucketOptsForTopic(config, topic) match {
@@ -313,7 +314,7 @@ object S3WriterManager extends LazyLogging {
         case None => ProcessorException("Can't find fileNamingStrategy in config").asLeft
       }
 
-    val processorFn: (TopicPartition, RemotePathLocation) => BlockingQueueProcessor = processorMan.processor
+    val processorFn: (TopicPartition, RemoteS3PathLocation) => BlockingQueueProcessor = processorMan.processor
 
     val formatWriterFn: (TopicPartitionOffset, Map[PartitionField, String], Offset => () => Unit) => Either[ProcessorException, S3FormatWriter] = (topicPartitionInitialOffset, partitionValues, updateOffsetFn) =>
       bucketOptsForTopic(config, topicPartitionInitialOffset.topic) match {

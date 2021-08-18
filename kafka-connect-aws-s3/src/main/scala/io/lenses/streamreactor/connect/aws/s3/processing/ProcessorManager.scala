@@ -18,7 +18,8 @@ package io.lenses.streamreactor.connect.aws.s3.processing
 
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.{RemotePathLocation, TopicPartition}
+import io.lenses.streamreactor.connect.aws.s3.model.TopicPartition
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.{MapKey, ProcessorException}
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 
@@ -38,7 +39,7 @@ class ProcessorManager()(implicit storageInterface: StorageInterface) extends La
     * Returns a processor that can processor records for a particular topic and partition.
     * The writer will create a file inside the given directory if there is no open writer.
     */
-  def processor(topicPartition: TopicPartition, tempBucketAndPath: RemotePathLocation): BlockingQueueProcessor = {
+  def processor(topicPartition: TopicPartition, tempBucketAndPath: RemoteS3PathLocation): BlockingQueueProcessor = {
     val mapKey = MapKey(topicPartition, tempBucketAndPath)
     processors.getOrElseUpdate(mapKey, new BlockingQueueProcessor())
   }

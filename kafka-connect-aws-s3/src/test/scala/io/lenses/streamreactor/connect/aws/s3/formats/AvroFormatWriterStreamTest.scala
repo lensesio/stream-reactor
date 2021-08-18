@@ -17,7 +17,8 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats
 
-import io.lenses.streamreactor.connect.aws.s3.model.{Offset, RemotePathLocation, StructSinkData}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.model.{Offset, StructSinkData}
 import io.lenses.streamreactor.connect.aws.s3.processing.BlockingQueueProcessor
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3TestConfig, S3TestPayloadReader}
@@ -32,11 +33,11 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3TestCo
   implicit val queueProcessor = new BlockingQueueProcessor()
 
   "convert" should "write byte output stream with json for a single record" in {
-    val blobStream = new MultipartBlobStoreOutputStream(RemotePathLocation(BucketName, "myPrefix"), Offset(0), minAllowedMultipartSize = 20000, updateOffsetFn = (_) => () => ())
+    val blobStream = new MultipartBlobStoreOutputStream(RemoteS3PathLocation(BucketName, "myPrefix"), Offset(0), minAllowedMultipartSize = 20000, updateOffsetFn = (_) => () => ())
 
     val avroFormatWriter = new AvroFormatWriter(() => blobStream)
     avroFormatWriter.write(None, StructSinkData(users.head), topic)
-    avroFormatWriter.close(RemotePathLocation(BucketName, "my-path"), Offset(0))
+    avroFormatWriter.close(RemoteS3PathLocation(BucketName, "my-path"), Offset(0))
 
     queueProcessor.process()
 
@@ -49,11 +50,11 @@ class AvroFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3TestCo
   }
 
   "convert" should "write byte output stream with json for multiple records" in {
-    val blobStream = new MultipartBlobStoreOutputStream(RemotePathLocation(BucketName, "myPrefix"), Offset(0), minAllowedMultipartSize = 100, updateOffsetFn = (_) => () => ())
+    val blobStream = new MultipartBlobStoreOutputStream(RemoteS3PathLocation(BucketName, "myPrefix"), Offset(0), minAllowedMultipartSize = 100, updateOffsetFn = (_) => () => ())
 
     val avroFormatWriter = new AvroFormatWriter(() => blobStream)
     firstUsers.foreach(u => avroFormatWriter.write(None, StructSinkData(u), topic))
-    avroFormatWriter.close(RemotePathLocation(BucketName, "my-path"), Offset(0))
+    avroFormatWriter.close(RemoteS3PathLocation(BucketName, "my-path"), Offset(0))
 
     queueProcessor.process()
 

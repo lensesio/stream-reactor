@@ -18,34 +18,35 @@
 package io.lenses.streamreactor.connect.aws.s3.model
 
 import com.amazonaws.services.s3.model.IllegalBucketNameException
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class RemoteRootLocationTest extends AnyFlatSpec with Matchers {
+class RemoteS3RootLocationTest extends AnyFlatSpec with Matchers {
 
   "bucketAndPrefix" should "reject prefixes with slashes" in {
     assertThrows[IllegalArgumentException] {
-      RemoteRootLocation("bucket", Some("/slash"))
+      RemoteS3RootLocation("bucket", Some("/slash"))
     }
   }
 
   "bucketAndPrefix" should "allow prefixes without slashes" in {
-    RemoteRootLocation("bucket", Some("noSlash"))
+    RemoteS3RootLocation("bucket", Some("noSlash"))
   }
 
   "bucketAndPrefix" should "split a the bucket and path" in {
-    RemoteRootLocation("bucket:path") should be(RemoteRootLocation("bucket", Some("path")))
+    RemoteS3RootLocation("bucket:path") should be(RemoteS3RootLocation("bucket", Some("path")))
   }
 
   "bucketAndPrefix" should "fail if given too many components to split" in {
     assertThrows[IllegalArgumentException] {
-      RemoteRootLocation("bucket:path:whatIsThis")
+      RemoteS3RootLocation("bucket:path:whatIsThis")
     }
   }
 
   "bucketAndPrefix" should "fail if not a valid bucket name" in {
     assertThrows[IllegalBucketNameException] {
-      RemoteRootLocation("bucket-police-refu$e-this-name:path")
+      RemoteS3RootLocation("bucket-police-refu$e-this-name:path")
     }
   }
 }

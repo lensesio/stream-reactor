@@ -18,6 +18,7 @@
 package io.lenses.streamreactor.connect.aws.s3.formats
 
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.processing.BlockingQueueProcessor
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3TestConfig, S3TestPayloadReader}
@@ -33,11 +34,11 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
   implicit val queueProcessor = new BlockingQueueProcessor()
 
   "convert" should "write byte output stream with json for a single record" in {
-    val blobStream = new MultipartBlobStoreOutputStream(RemotePathLocation(BucketName, "myPrefix"), Offset(0), minAllowedMultipartSize = 20000, updateOffsetFn = (_) => () => ())
+    val blobStream = new MultipartBlobStoreOutputStream(RemoteS3PathLocation(BucketName, "myPrefix"), Offset(0), minAllowedMultipartSize = 20000, updateOffsetFn = (_) => () => ())
 
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
     parquetFormatWriter.write(None, StructSinkData(users.head), topic)
-    parquetFormatWriter.close(RemotePathLocation(BucketName, "my-path"), Offset(0))
+    parquetFormatWriter.close(RemoteS3PathLocation(BucketName, "my-path"), Offset(0))
 
     queueProcessor.process()
 
@@ -50,11 +51,11 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
   }
 
   "convert" should "write byte output stream with json for multiple records" in {
-    val blobStream = new MultipartBlobStoreOutputStream(RemotePathLocation(BucketName, "myPrefix"), Offset(0), minAllowedMultipartSize = 100, updateOffsetFn = (_) => () => ())
+    val blobStream = new MultipartBlobStoreOutputStream(RemoteS3PathLocation(BucketName, "myPrefix"), Offset(0), minAllowedMultipartSize = 100, updateOffsetFn = (_) => () => ())
 
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
     firstUsers.foreach(e => parquetFormatWriter.write(None, StructSinkData(e), topic))
-    parquetFormatWriter.close(RemotePathLocation(BucketName, "my-path"), Offset(0))
+    parquetFormatWriter.close(RemoteS3PathLocation(BucketName, "my-path"), Offset(0))
 
     queueProcessor.process()
 
@@ -66,7 +67,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
 
   "convert" should "throw an error when writing array without schema" in {
 
-    val blobStream = new MultipartBlobStoreOutputStream(RemotePathLocation(BucketName, "myPrefix"), Offset(0), minAllowedMultipartSize = 100, updateOffsetFn = (_) => () => ())
+    val blobStream = new MultipartBlobStoreOutputStream(RemoteS3PathLocation(BucketName, "myPrefix"), Offset(0), minAllowedMultipartSize = 100, updateOffsetFn = (_) => () => ())
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
       parquetFormatWriter.write(
         None,
@@ -82,7 +83,7 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
   "convert" should "throw an exception when trying to write map values" in {
     val mapSchema = SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA)
 
-    val blobStream = new MultipartBlobStoreOutputStream(RemotePathLocation(BucketName, "myPrefix"), Offset(0), minAllowedMultipartSize = 100, updateOffsetFn = (_) => () => ())
+    val blobStream = new MultipartBlobStoreOutputStream(RemoteS3PathLocation(BucketName, "myPrefix"), Offset(0), minAllowedMultipartSize = 100, updateOffsetFn = (_) => () => ())
     val parquetFormatWriter = new ParquetFormatWriter(() => blobStream)
       parquetFormatWriter.write(
         None,
@@ -93,6 +94,6 @@ class ParquetFormatWriterStreamTest extends AnyFlatSpec with Matchers with S3Tes
             StringSinkData("alfred") -> IntSinkData(3)
           ), Some(mapSchema)),
         topic).left.value.getMessage should be("Avro schema must be a record.")
-    parquetFormatWriter.close(RemotePathLocation(BucketName, "my-path"), Offset(0))
+    parquetFormatWriter.close(RemoteS3PathLocation(BucketName, "my-path"), Offset(0))
   }
 }

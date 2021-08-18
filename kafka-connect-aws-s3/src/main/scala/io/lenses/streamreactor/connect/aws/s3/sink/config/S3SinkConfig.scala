@@ -23,7 +23,8 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.Format.Json
 import io.lenses.streamreactor.connect.aws.s3.config.S3FlushSettings.{defaultFlushCount, defaultFlushInterval, defaultFlushSize}
 import io.lenses.streamreactor.connect.aws.s3.config.{FormatSelection, S3Config, S3ConfigDefBuilder}
-import io.lenses.streamreactor.connect.aws.s3.model.{PartitionSelection, RemoteRootLocation, S3OutputStreamOptions, StreamedWriteOutputStreamOptions}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
+import io.lenses.streamreactor.connect.aws.s3.model.{PartitionSelection, S3OutputStreamOptions, StreamedWriteOutputStreamOptions}
 import io.lenses.streamreactor.connect.aws.s3.sink._
 
 object S3SinkConfig {
@@ -64,7 +65,7 @@ object SinkBucketOptions extends LazyLogging {
       s3WriteOptions match {
         case Right(value) => SinkBucketOptions(
           kcql.getSource,
-          RemoteRootLocation(kcql.getTarget),
+          RemoteS3RootLocation(kcql.getTarget),
           formatSelection = formatSelection,
           fileNamingStrategy = namingStrategy,
           partitionSelection = partitionSelection,
@@ -81,7 +82,7 @@ object SinkBucketOptions extends LazyLogging {
 
 case class SinkBucketOptions(
                               sourceTopic: String,
-                              bucketAndPrefix: RemoteRootLocation,
+                              bucketAndPrefix: RemoteS3RootLocation,
                               formatSelection: FormatSelection,
                               fileNamingStrategy: S3FileNamingStrategy,
                               partitionSelection: Option[PartitionSelection] = None,

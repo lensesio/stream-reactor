@@ -19,6 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.formats
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
 
 import scala.util.Try
@@ -77,7 +78,7 @@ class BytesFormatWriter(outputStreamFn: () => S3OutputStream, bytesWriteMode: By
 
   override def rolloverFileOnSchemaChange(): Boolean = false
 
-  override def close(newName: RemotePathLocation, offset: Offset, updateOffsetFn: () => Unit) = {
+  override def close(newName: RemoteS3PathLocation, offset: Offset, updateOffsetFn: () => Unit) = {
     Try(outputStream.complete(newName, offset))
 
     Try(outputStream.flush())

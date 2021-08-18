@@ -20,6 +20,7 @@ import com.datamountaineer.streamreactor.common.utils.JarManifest
 import io.lenses.streamreactor.connect.aws.s3.auth.AwsContextCreator
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreStorageInterface, StorageInterface}
 import org.apache.kafka.connect.data.{Schema, SchemaAndValue}
@@ -101,7 +102,7 @@ class S3SourceTask extends SourceTask {
       "prefix" -> prefix
     )
 
-  private def fromSourceOffset(bucketAndPath: RemotePathLocation, offset: Long): Map[String, AnyRef] =
+  private def fromSourceOffset(bucketAndPath: RemoteS3PathLocation, offset: Long): Map[String, AnyRef] =
     Map(
       "path" -> bucketAndPath.path,
       "line" -> offset.toString
