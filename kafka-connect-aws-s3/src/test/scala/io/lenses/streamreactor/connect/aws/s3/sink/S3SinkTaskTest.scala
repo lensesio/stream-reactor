@@ -1457,6 +1457,12 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
 
   }
 
+  "S3SinkTask" should "be able to stop when there is no state" in {
+
+    val task = new S3SinkTask()
+    task.stop()
+  }
+
   "S3SinkTask" should "flush for every record when configured flush count size of 1 with build local write mode and specifying dir" in {
 
     val tempDir = Files.createTempDirectory("tempdirtest")

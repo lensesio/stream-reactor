@@ -236,13 +236,13 @@ class S3SinkTask extends SinkTask with ErrorHandler {
   override def close(partitions: util.Collection[KafkaTopicPartition]): Unit = {
     logger.debug(s"[{}] S3SinkTask.close with {} partitions", sinkName, partitions.size())
 
-    writerManager.close()
+    Option(writerManager).foreach(_.close())
   }
 
   override def stop(): Unit = {
     logger.debug(s"[{}] Stop")
 
-    writerManager.close()
+    Option(writerManager).foreach(_.close())
     writerManager = null
   }
 
