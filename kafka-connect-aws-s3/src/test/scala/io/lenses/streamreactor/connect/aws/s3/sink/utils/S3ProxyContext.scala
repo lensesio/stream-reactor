@@ -17,16 +17,16 @@
 
 package io.lenses.streamreactor.connect.aws.s3.sink.utils
 
-import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
-import com.amazonaws.client.builder.AwsClientBuilder
-import com.amazonaws.regions.Regions
-import com.amazonaws.services.s3.model.{DeleteObjectsRequest, DeleteObjectsResult}
-import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.typesafe.scalalogging.LazyLogging
 import org.eclipse.jetty.util.component.AbstractLifeCycle
 import org.gaul.s3proxy.S3Proxy
 import org.jclouds.ContextBuilder
 import org.jclouds.blobstore.BlobStoreContext
+import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCredentialsProvider}
+import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder
+import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.s3.model.{CreateBucketRequest, Delete, DeleteObjectsRequest, DeleteObjectsResponse, ListObjectsRequest, ListObjectsV2Request, ObjectIdentifier}
+import software.amazon.awssdk.services.s3.{S3Client, S3ClientBuilder}
 
 import java.net.URI
 import java.util.Properties
@@ -86,28 +86,30 @@ class S3ProxyContext extends LazyLogging {
     proxy
   }
 
-  def createTestBucket: Try[DeleteObjectsResult] = {
+  def createTestBucket: Try[DeleteObjectsResponse] = {
 
     // create bucket using the proper client
 
-    val s3Client = AmazonS3ClientBuilder
-      .standard
-      .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(Identity, Credential)))
-      .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(Uri, Regions.US_EAST_1.getName))
-      .build
+    val s3Client = S3Client
+      .builder()
+      .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(Identity, Credential)))
+      .endpointOverride(URI.create(Uri))
+      .region(Region.US_EAST_1)
+      .build()
 
 
     // I don't care if it already exists
-    Try(s3Client.createBucket(TestBucket))
+    Try(s3Client.createBucket(CreateBucketRequest.builder().bucket(TestBucket).build()))
 
     Try(clearTestBucket(s3Client))
 
   }
 
-  def clearTestBucket(s3Client: AmazonS3): DeleteObjectsResult = {
-    val toDelete = s3Client.listObjects(TestBucket).getObjectSummaries.asScala
-    val toDeleteArray = toDelete.map(_.getKey).toArray[String]
-    s3Client.deleteObjects(new DeleteObjectsRequest(TestBucket).withKeys(toDeleteArray: _*))
+  def clearTestBucket(s3Client: S3Client): DeleteObjectsResponse = {
+    val toDelete = s3Client.listObjectsV2(ListObjectsV2Request.builder().bucket(TestBucket).build()).contents().asScala
+    val toDeleteArray = toDelete.map(delMe => ObjectIdentifier.builder().key(delMe.key()).build())
+    val delete = Delete.builder().objects(toDeleteArray: _*).build
+    s3Client.deleteObjects(DeleteObjectsRequest.builder().bucket(TestBucket).delete(delete).build())
   }
 
   def createBlobStoreContext: BlobStoreContext = {

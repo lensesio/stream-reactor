@@ -17,25 +17,25 @@
 
 package io.lenses.streamreactor.connect.aws.s3.auth
 
-import com.amazonaws.auth.{AWSCredentialsProvider, AWSSessionCredentials, DefaultAWSCredentialsProviderChain}
 import com.google.common.base.Supplier
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, S3Config}
 import org.jclouds.ContextBuilder
 import org.jclouds.aws.domain.SessionCredentials
 import org.jclouds.blobstore.BlobStoreContext
 import org.jclouds.domain.Credentials
+import software.amazon.awssdk.auth.credentials.{AwsCredentialsProvider, AwsSessionCredentials, DefaultCredentialsProvider}
 
 import java.util.Properties
 
 object AwsContextCreator {
 
-  def DefaultCredentialsFn: () => AWSCredentialsProvider = {
-    () => new DefaultAWSCredentialsProviderChain()
+  def DefaultCredentialsFn: () => AwsCredentialsProvider = {
+    () => DefaultCredentialsProvider.create()
   }
 
 }
 
-class AwsContextCreator(credentialsProviderFn: () => AWSCredentialsProvider) {
+class AwsContextCreator(credentialsProviderFn: () => AwsCredentialsProvider) {
 
   private val missingCredentialsError = "Configured to use credentials however one or both of `AWS_ACCESS_KEY` or `AWS_SECRET_KEY` are missing."
 
@@ -67,11 +67,11 @@ class AwsContextCreator(credentialsProviderFn: () => AWSCredentialsProvider) {
 
   private def credentialsFromDefaultChain(): Supplier[Credentials] = () => {
     val credentialsProvider = credentialsProviderFn()
-    val credentials = Option(credentialsProvider.getCredentials)
+    val credentials = Option(credentialsProvider.resolveCredentials())
       .getOrElse(throw new IllegalStateException("No credentials found on default provider chain."))
     credentials match {
-      case credentials: AWSSessionCredentials => SessionCredentials.builder().accessKeyId(credentials.getAWSAccessKeyId).secretAccessKey(credentials.getAWSSecretKey).sessionToken(credentials.getSessionToken).build()
-      case _ => new Credentials(credentials.getAWSAccessKeyId, credentials.getAWSSecretKey)
+      case credentials: AwsSessionCredentials => SessionCredentials.builder().accessKeyId(credentials.accessKeyId()).secretAccessKey(credentials.secretAccessKey()).sessionToken(credentials.sessionToken()).build()
+      case _ => new Credentials(credentials.accessKeyId(), credentials.secretAccessKey())
     }
   }
 

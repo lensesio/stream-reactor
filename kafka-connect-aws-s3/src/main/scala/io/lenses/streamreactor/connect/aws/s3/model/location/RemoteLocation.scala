@@ -16,7 +16,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.model.location
 
-import com.amazonaws.services.s3.internal.BucketNameUtils
+import software.amazon.awssdk.services.s3.internal.BucketUtils
 
 import java.util.UUID
 
@@ -36,7 +36,7 @@ case class RemoteS3RootLocation(
                                prefix: Option[String]
                              ) extends RootLocation[RemoteS3PathLocation] {
 
-  BucketNameUtils.validateBucketName(bucket)
+  BucketUtils.isValidDnsBucketName(bucket, true)
 
   prefix
     .filter(_.contains("/"))
@@ -59,6 +59,6 @@ case class RemoteS3PathLocation(
     localRoot.withPath(s"${localRoot.basePath}/$bucket/$path/$uuid")
   }
 
-  BucketNameUtils.validateBucketName(bucket)
+  BucketUtils.isValidDnsBucketName(bucket, true)
 
 }

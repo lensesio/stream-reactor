@@ -17,7 +17,6 @@
 
 package io.lenses.streamreactor.connect.aws.s3.model
 
-import com.amazonaws.services.s3.model.IllegalBucketNameException
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -45,7 +44,7 @@ class RemoteS3RootLocationTest extends AnyFlatSpec with Matchers {
   }
 
   "bucketAndPrefix" should "fail if not a valid bucket name" in {
-    assertThrows[IllegalBucketNameException] {
+    assertThrows[IllegalArgumentException] {
       RemoteS3RootLocation("bucket-police-refu$e-this-name:path")
     }
   }

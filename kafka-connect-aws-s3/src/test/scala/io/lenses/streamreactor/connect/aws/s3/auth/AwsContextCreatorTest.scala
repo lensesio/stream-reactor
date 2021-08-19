@@ -16,7 +16,6 @@
 
 package io.lenses.streamreactor.connect.aws.s3.auth
 
-import com.amazonaws.auth.{AWSCredentials, AWSCredentialsProvider}
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, S3Config}
 import org.jclouds.blobstore.BlobStoreContext
 import org.jclouds.providers.ProviderMetadata
@@ -25,14 +24,15 @@ import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import software.amazon.awssdk.auth.credentials.{AwsCredentials, AwsCredentialsProvider}
 
 class AwsContextCreatorTest extends AnyFlatSpec with MockitoSugar with Matchers with BeforeAndAfter {
 
   private val AWS_ACCESS_KEY_ID = "awsAccessKeyId"
 
-  private val awsCredentials = mock[AWSCredentials]
-  private val credentialsProvider = mock[AWSCredentialsProvider]
-  private val credentialsProviderFn = mock[() => AWSCredentialsProvider]
+  private val awsCredentials = mock[AwsCredentials]
+  private val credentialsProvider = mock[AwsCredentialsProvider]
+  private val credentialsProviderFn = mock[() => AwsCredentialsProvider]
 
   private val target = new AwsContextCreator(credentialsProviderFn)
 
@@ -42,8 +42,8 @@ class AwsContextCreatorTest extends AnyFlatSpec with MockitoSugar with Matchers 
 
   "fromConfig" should "use default credentials provider when auth mode is 'Default'" in {
 
-    when(awsCredentials.getAWSAccessKeyId).thenReturn(AWS_ACCESS_KEY_ID)
-    when(credentialsProvider.getCredentials).thenReturn(awsCredentials)
+    when(awsCredentials.accessKeyId()).thenReturn(AWS_ACCESS_KEY_ID)
+    when(credentialsProvider.resolveCredentials()).thenReturn(awsCredentials)
     when(credentialsProviderFn.apply()).thenReturn(credentialsProvider)
 
     val blobStoreContext = target.fromConfig(
@@ -85,7 +85,7 @@ class AwsContextCreatorTest extends AnyFlatSpec with MockitoSugar with Matchers 
 
   "fromConfig" should "fail when no credentials are found on the default provider chain" in {
 
-    when(credentialsProvider.getCredentials).thenReturn(null)
+    when(credentialsProvider.resolveCredentials()).thenReturn(null)
     when(credentialsProviderFn.apply()).thenReturn(credentialsProvider)
 
     val blobStoreContext = target.fromConfig(S3Config(None, None, AuthMode.Default))
@@ -95,7 +95,7 @@ class AwsContextCreatorTest extends AnyFlatSpec with MockitoSugar with Matchers 
     }.getMessage should be("No credentials found on default provider chain.")
 
     verify(credentialsProviderFn, times(1)).apply()
-    verify(credentialsProvider, times(1)).getCredentials
+    verify(credentialsProvider, times(1)).resolveCredentials()
     verifyZeroInteractions(awsCredentials)
   }
 
