@@ -121,12 +121,12 @@ allprojects {
                         artifactId "kcql"
                         description project.description
                         packaging 'jar'
-                        url 'https://github.com/datamountaineer/kafka-connector-query-langauge'
+                        url 'https://github.com/datamountaineer/kafka-connect-query-language'
 
                         scm {
-                            connection 'scm:git:https://github.com/datamountaineer/kafka-connector-query-langauge.git'
-                            developerConnection 'scm:git:git@github.com:datamountaineer/kafka-connector-query-langauge.git'
-                            url 'https://github.com/datamountaineer/kafka-connector-query-langauge.git'
+                            connection 'scm:git:https://github.com/datamountaineer/kafka-connect-query-language.git'
+                            developerConnection 'scm:git:git@github.com:datamountaineer/kafka-connect-query-language.git'
+                            url 'https://github.com/datamountaineer/kafka-connect-query-language.git'
                         }
 
                         licenses {
