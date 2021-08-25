@@ -112,7 +112,7 @@ case class BuildLocalOutputStreamOptions(localLocation: LocalRootLocation) exten
   }
 
   private def createOutputStreamFn(location: LocalPathLocation, initialOffset: Offset, updateOffsetFn: Offset => () => Unit)(implicit queueProcessor: BlockingQueueProcessor): () => S3OutputStream = {
-    () => new BuildLocalOutputStream(location, initialOffset, updateOffsetFn)
+    () => new BuildLocalOutputStream(location, updateOffsetFn)
   }
 
 }

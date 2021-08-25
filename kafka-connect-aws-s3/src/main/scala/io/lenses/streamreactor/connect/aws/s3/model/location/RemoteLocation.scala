@@ -44,6 +44,7 @@ case class RemoteS3RootLocation(
 
   override def withPath(path: String) = RemoteS3PathLocation(bucket, path)
 
+  def prefixOrDefault(): String = prefix.getOrElse("")
 }
 
 case class RemoteS3PathLocation(
@@ -61,4 +62,16 @@ case class RemoteS3PathLocation(
 
   BucketUtils.isValidDnsBucketName(bucket, true)
 
+  def atLine(line: Int): RemoteS3PathLocationWithLine = {
+    RemoteS3PathLocationWithLine(this, line)
+  }
+
+  def fromStart(): RemoteS3PathLocationWithLine = {
+    RemoteS3PathLocationWithLine(this, -1)
+  }
+}
+
+case class RemoteS3PathLocationWithLine(file: RemoteS3PathLocation, line: Int) {
+  // TODO: use option instead of -1
+  def isFromStart : Boolean = line == -1
 }

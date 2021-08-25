@@ -47,8 +47,6 @@ trait StorageInterface {
 
   def list(bucketAndPrefix: RemoteS3PathLocation): List[String]
 
-  def list(bucketAndPrefix: RemoteS3RootLocation): List[String]
-
   def getBlob(bucketAndPath: RemoteS3PathLocation): InputStream
 
   def getBlobSize(bucketAndPath: RemoteS3PathLocation): Long

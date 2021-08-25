@@ -17,6 +17,7 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
 import com.datamountaineer.streamreactor.common.utils.JarManifest
+import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDef
 import org.apache.kafka.common.config.ConfigDef
 import org.apache.kafka.connect.connector.Task
@@ -26,9 +27,7 @@ import org.slf4j.Logger
 import java.util
 import scala.collection.JavaConverters._
 
-class S3SourceConnector extends SourceConnector {
-
-  val logger: Logger = org.slf4j.LoggerFactory.getLogger(getClass.getName)
+class S3SourceConnector extends SourceConnector with LazyLogging {
 
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
   private var props: util.Map[String, String] = _

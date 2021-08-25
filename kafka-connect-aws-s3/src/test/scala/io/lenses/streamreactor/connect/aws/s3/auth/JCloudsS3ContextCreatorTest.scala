@@ -26,7 +26,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import software.amazon.awssdk.auth.credentials.{AwsCredentials, AwsCredentialsProvider}
 
-class AwsContextCreatorTest extends AnyFlatSpec with MockitoSugar with Matchers with BeforeAndAfter {
+class JCloudsS3ContextCreatorTest extends AnyFlatSpec with MockitoSugar with Matchers with BeforeAndAfter {
 
   private val AWS_ACCESS_KEY_ID = "awsAccessKeyId"
 
@@ -34,7 +34,7 @@ class AwsContextCreatorTest extends AnyFlatSpec with MockitoSugar with Matchers 
   private val credentialsProvider = mock[AwsCredentialsProvider]
   private val credentialsProviderFn = mock[() => AwsCredentialsProvider]
 
-  private val target = new AwsContextCreator(credentialsProviderFn)
+  private val target = new JCloudsS3ContextCreator(credentialsProviderFn)
 
   before {
     reset(awsCredentials, credentialsProvider, credentialsProviderFn)

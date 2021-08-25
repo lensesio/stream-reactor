@@ -96,38 +96,6 @@ class MultipartBlobStoreStorageInterfaceTest extends AnyFlatSpec with MockitoSug
     new PageSetImpl(List(storageMetadata1).asJava, nextMarker)
   }
 
-
-  "list" should "return several pages of results when a marker is returned" in {
-
-    val ret1 = mockStorageMetadata("first", "nextMarker")
-    val ret2 = mockStorageMetadata("second", null)
-
-    doReturn(ret1, ret2)
-      .when(blobStore)
-      .list(
-        ArgumentMatchers.eq(testBucketAndPath.bucket),
-        any[ListContainerOptions]
-      )
-
-    multipartBlobStoreStorageInterface.list(RemoteS3RootLocation(testBucketAndPath.bucket, Some("prefix"))) should
-      be(List("first", "second"))
-  }
-
-  "list" should "return single page of results when no marker is returned" in {
-
-    val ret1 = mockStorageMetadata("only", null)
-
-    doReturn(ret1)
-      .when(blobStore)
-      .list(
-        ArgumentMatchers.eq(testBucketAndPath.bucket),
-        any[ListContainerOptions]
-      )
-
-    multipartBlobStoreStorageInterface.list(RemoteS3RootLocation(testBucketAndPath.bucket, Some("prefix"))) should
-      be(List("only"))
-  }
-
   private def createUploadState(
                                  existingParts: Vector[MultipartPart] = Vector(),
                                  existingBufferBytes: Array[Byte] = Array()

@@ -1,6 +1,6 @@
 
 /*
- * Copyright 2020 Lenses.io
+ * Copyright 2021 Lenses.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,59 +17,32 @@
 
 package io.lenses.streamreactor.connect.aws.s3.source
 
+import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
-import io.lenses.streamreactor.connect.aws.s3.model.{S3StoredFile, S3StoredFileSorter}
-import io.lenses.streamreactor.connect.aws.s3.sink.S3FileNamingStrategy
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
-
-import scala.util.control.NonFatal
+import io.lenses.streamreactor.connect.aws.s3.config.Format
+import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
+import io.lenses.streamreactor.connect.aws.s3.storage.{ListFilesStorageInterface, StorageInterface}
 
 /**
   * The [[S3SourceLister]] is responsible for querying the [[StorageInterface]] to
   * retrieve a list of S3 topics and partitions for reading
   */
-class S3SourceLister(implicit storageInterface: StorageInterface) extends LazyLogging {
+class S3SourceLister(format: Format)(implicit storageInterface: ListFilesStorageInterface) extends LazyLogging {
 
-  def list(implicit fileNamingStrategy: S3FileNamingStrategy, bucketAndPrefix: RemoteS3RootLocation): List[S3StoredFile] = {
+  import storageInterface._
 
-    def bucketLocationExists: Boolean = storageInterface.pathExists(bucketAndPrefix)
+  def listBatch(
+            bucketAndPrefix: RemoteS3RootLocation,
+            lastFile: Option[RemoteS3PathLocation],
+            numResults : Int
+          ): Either[Throwable, List[RemoteS3PathLocation]] = {
 
-    def listFilesInS3: List[S3StoredFile] = storageInterface
-      .list(bucketAndPrefix)
-      .flatMap(S3StoredFile(_))
-
-    try {
-
-      // the path may not have been created, in which case we have no offsets defined
-      if (bucketLocationExists) S3StoredFileSorter.sort(listFilesInS3) else List.empty
-
-    } catch {
-      case NonFatal(e) =>
-        logger.error(s"Error listing bucket/prefix $bucketAndPrefix")
-        throw e
+    for {
+      exists <- pathExists(bucketAndPrefix)
+      list <- if (exists) list(bucketAndPrefix, lastFile, numResults) else List.empty[String].asRight
+    } yield list.collect{
+      case path: String if path.toLowerCase.endsWith(format.entryName.toLowerCase) => bucketAndPrefix.withPath(path)
     }
-
-  }
-
-  def next(fileNamingStrategy: S3FileNamingStrategy, bucketAndPrefix: RemoteS3RootLocation, lastResult: Option[S3StoredFile], resumeFrom: Option[S3StoredFile]): Option[S3StoredFile] = {
-    val names = list(fileNamingStrategy, bucketAndPrefix)
-
-    val position = if (resumeFrom.nonEmpty) {
-      resumeFrom.fold(0) { result =>
-        val idx = names.indexOf(result)
-        if (idx == -1) {
-          throw new IllegalStateException(s"${result.path} was not found in $names")
-        }
-        idx
-      }
-    } else {
-      lastResult.fold(0) { result =>
-        names.indexOf(result) + 1
-      }
-    }
-
-    if (names.nonEmpty && position < names.size) Some(names(position)) else None
 
   }
 

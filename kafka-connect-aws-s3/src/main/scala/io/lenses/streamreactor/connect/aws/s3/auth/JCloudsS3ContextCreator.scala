@@ -1,6 +1,6 @@
 
 /*
- * Copyright 2020 Lenses.io
+ * Copyright 2021 Lenses.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import software.amazon.awssdk.auth.credentials.{AwsCredentialsProvider, AwsSessi
 
 import java.util.Properties
 
-object AwsContextCreator {
+object JCloudsS3ContextCreator {
 
   def DefaultCredentialsFn: () => AwsCredentialsProvider = {
     () => DefaultCredentialsProvider.create()
@@ -35,11 +35,11 @@ object AwsContextCreator {
 
 }
 
-class AwsContextCreator(credentialsProviderFn: () => AwsCredentialsProvider) {
+class JCloudsS3ContextCreator(credentialsProviderFn: () => AwsCredentialsProvider) {
 
   private val missingCredentialsError = "Configured to use credentials however one or both of `AWS_ACCESS_KEY` or `AWS_SECRET_KEY` are missing."
 
-  def fromConfig(awsConfig: S3Config): BlobStoreContext = {
+   def fromConfig(awsConfig: S3Config): BlobStoreContext = {
 
     val contextBuilder = ContextBuilder
       .newBuilder("aws-s3")

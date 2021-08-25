@@ -96,7 +96,6 @@ class BuildLocalOutputStreamTest extends AnyFlatSpec with MockitoSugar with Matc
 
     val target = new BuildLocalOutputStream(
       testLocalLocation,
-      Offset(0),
       updateOffsetFn = (_) => () => (),
       cleanup
     )

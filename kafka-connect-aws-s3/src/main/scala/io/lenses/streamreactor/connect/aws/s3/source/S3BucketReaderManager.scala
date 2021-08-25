@@ -17,140 +17,157 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
 import com.typesafe.scalalogging.LazyLogging
+import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection}
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatStreamReader
 import io.lenses.streamreactor.connect.aws.s3.model._
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
 import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.storage.{ListFilesStorageInterface, StorageInterface}
 import org.apache.kafka.common.errors.OffsetOutOfRangeException
 
-case class State(
-                  initFile: Option[S3StoredFile],
-                  initLine: Option[Int],
-                  file: Option[S3StoredFile],
-                  currentReader: Option[_ <: S3FormatStreamReader[_ <: SourceData]],
-                  terminated: Boolean = false
-                )
+sealed trait ReaderState extends AutoCloseable {
+
+  def hasReader: Boolean
+
+  override def close(): Unit = {}
+}
+
+case class EmptyReaderState() extends ReaderState {
+  override def hasReader: Boolean = false
+}
+
+case class InitialisedReaderState(
+                                   currentReader: S3FormatStreamReader[_ <: SourceData],
+                                 ) extends ReaderState {
+
+  override def close(): Unit = currentReader.close()
+
+  override def hasReader: Boolean = true
+}
+
+case class CompleteReaderState() extends ReaderState {
+  override def hasReader: Boolean = false
+}
+
+case class NoMoreFilesReaderState() extends ReaderState {
+  override def hasReader: Boolean = false
+}
+
+case class ExceptionReaderState(exception: Throwable) extends ReaderState {
+  override def hasReader: Boolean = false
+}
 
 /**
   * Given a sourceBucketOptions, manages readers for all of the files
   */
 class S3BucketReaderManager(
-                             sourceBucketOptions: SourceBucketOptions,
-                             offsetReaderResultFn: (String, String) => Option[OffsetReaderResult]
-                           )
-                           (
+                             recordsLimit: Int,
+                             format: FormatSelection,
+                             startingOffset: Option[RemoteS3PathLocationWithLine],
+                             fileQueueProcessor: SourceFileQueue,
+                             resultReader: ResultReader
+                           )(
                              implicit storageInterface: StorageInterface,
-                             sourceLister: S3SourceLister
-                           ) extends LazyLogging {
+                             listFilesStorageInterface: ListFilesStorageInterface,
+                           ) extends LazyLogging with AutoCloseable {
 
-  private val prefix = sourceBucketOptions.fileNamingStrategy.prefix(sourceBucketOptions.sourceBucketAndPrefix)
-  private val resultReader = new ResultReader(prefix, sourceBucketOptions.targetTopic)
-
-  private var state: State = setupInitialState()
-
-  def close(): Unit = state.currentReader.foreach(_.close)
+  private var state: ReaderState = EmptyReaderState()
+  startingOffset.foreach(fileQueueProcessor.init)
 
   def poll(): Vector[PollResults] = {
     logger.debug(s"Fresh poll call received")
 
-    state = state.copy(terminated = false)
-    val limit = sourceBucketOptions.limit
-
     var allResults: Vector[PollResults] = Vector()
 
-    var n = 0
-    var allLimit: Int = limit
+    var allLimit: Int = recordsLimit
+
+    var moreFiles = true
     do {
-      chooseReader() match {
-        case Some(currentReader) =>
-          val newResults = resultReader.retrieveResults(currentReader, allLimit)
-          state = newResults match {
-            case Some(value) if value.resultList.size < allLimit => state.copy(currentReader = None)
-            case Some(_) => state.copy(terminated = true)
-            case None => state.copy(currentReader = None)
-          }
-          allLimit -= newResults.fold(0)(_.resultList.size)
-          allResults = allResults ++ newResults
-        case None => state = state.copy(initLine = None, initFile = None, currentReader = None, terminated = true)
+
+      // set up a reader
+      state match {
+        case ExceptionReaderState(err) => throw err
+        case EmptyReaderState() | CompleteReaderState() | NoMoreFilesReaderState() =>
+          state = refreshStateForNextReader()
+        case InitialisedReaderState(_) =>
       }
-      n += 1
-      logger.debug(s"Moving onto next iteration of loop, $n, state not terminated yet")
-    } while (!state.terminated)
+
+      state match {
+        case InitialisedReaderState(currentReader) =>
+          resultReader.retrieveResults(currentReader, allLimit) match {
+            case None => state = toReaderCompleteState(currentReader)
+            case Some(pollResults) => {
+              allLimit -= pollResults.resultList.size
+              allResults = allResults :+ pollResults
+              if (pollResults.resultList.size < allLimit) {
+                state = toReaderCompleteState(currentReader)
+              }
+            }
+          }
+        case _ =>
+      }
+
+      moreFiles = state match {
+        case NoMoreFilesReaderState() => false
+        case _ => true
+      }
+
+    } while (allLimit > 0 && moreFiles)
 
     logger.debug(s"State terminated")
     allResults
   }
 
-  private def chooseReader(): Option[S3FormatStreamReader[_ <: SourceData]] = {
-    state.currentReader.fold(readNextFile()) { currentReader => Some(currentReader) }
+  private def toReaderCompleteState(currentReader: S3FormatStreamReader[_ <: SourceData]): ReaderState = {
+    fileQueueProcessor.markFileComplete(currentReader.getBucketAndPath)
+    currentReader.close()
+    CompleteReaderState()
   }
 
-  private def readNextFile(): Option[S3FormatStreamReader[_ <: SourceData]] = {
+  private def refreshStateForNextReader(): ReaderState = {
 
-    logger.debug("Reading next file")
-    sourceLister
-      .next(
-        sourceBucketOptions.fileNamingStrategy,
-        sourceBucketOptions.sourceBucketAndPrefix,
-        state.file,
-        state.initFile
-      ).fold({
-      logger.debug("No next file found")
-      Option.empty[S3FormatStreamReader[_ <: SourceData]]
-    }
-    ) {
-      value =>
-        val reader = setUpReader(value)
-        state = state.copy(file = Some(value), initLine = None, initFile = None, currentReader = reader)
-        reader
+    fileQueueProcessor.next() match {
+      case Left(exception: Throwable) =>
+        ExceptionReaderState(exception)
+      case Right(Some(nextFile)) =>
+        logger.debug(s"refreshStateForNextReader - Next file (${nextFile}) found")
+        setUpReader(nextFile) match {
+          case Some(value) => InitialisedReaderState(value)
+          case None => ExceptionReaderState(new IllegalStateException(s"Cannot load requested next file $nextFile"))
+        }
+      case Right(None) =>
+        logger.debug("refreshStateForNextReader - No next file found")
+        NoMoreFilesReaderState()
     }
   }
 
-  private def setUpReader(s3StoredFile: S3StoredFile): Option[S3FormatStreamReader[_ <: SourceData]] = {
-    val bucketAndPath = sourceBucketOptions.sourceBucketAndPrefix.withPath(s3StoredFile.path)
-    val inputStreamFn = () => storageInterface.getBlob(bucketAndPath)
-    val fileSizeFn = () => storageInterface.getBlobSize(bucketAndPath)
-    logger.info(s"Reading next file: $s3StoredFile")
+  private def setUpReader(bucketAndPath: RemoteS3PathLocationWithLine): Option[S3FormatStreamReader[_ <: SourceData]] = {
+    val file = bucketAndPath.file
+    val inputStreamFn = () => storageInterface.getBlob(file)
+    val fileSizeFn = () => storageInterface.getBlobSize(file)
+    logger.info(s"Reading next file: ${bucketAndPath.file} from line ${bucketAndPath.line}")
 
-    val reader = S3FormatStreamReader(inputStreamFn, fileSizeFn, sourceBucketOptions, bucketAndPath)
+    val reader = S3FormatStreamReader(inputStreamFn, fileSizeFn, format, file)
 
-    skipLinesToStartLine(reader)
+    if (!bucketAndPath.isFromStart) {
+      skipLinesToStartLine(reader, bucketAndPath.line)
+    }
 
     Some(reader)
   }
 
-  private def skipLinesToStartLine(reader: S3FormatStreamReader[_ <: SourceData]) = {
-    state.initLine.map(
-      line =>
-        for (_ <- 0 to line) {
-          if (reader.hasNext) {
-            reader.next()
-          } else {
-            throw new OffsetOutOfRangeException("Unknown file offset")
-          }
-        }
-    )
+  private def skipLinesToStartLine(reader: S3FormatStreamReader[_ <: SourceData], lineToStartOn: Int) = {
+
+    for (_ <- 0 to lineToStartOn) {
+      if (reader.hasNext) {
+        reader.next()
+      } else {
+        throw new OffsetOutOfRangeException("Unknown file offset")
+      }
+    }
   }
 
 
-  private def setupInitialState(): State = {
-    val startingPoint: Option[OffsetReaderResult] = offsetReaderResultFn(
-      sourceBucketOptions.sourceBucketAndPrefix.bucket,
-      sourceBucketOptions.fileNamingStrategy.prefix(sourceBucketOptions.sourceBucketAndPrefix)
-    )
-
-    val s3StoredFile: Option[S3StoredFile] = startingPoint.fold(Option.empty[S3StoredFile])(offsetReaderResult =>
-      S3StoredFile(offsetReaderResult.path)(sourceBucketOptions.fileNamingStrategy)
-    )
-
-    val offsetLine: Option[Int] = startingPoint.fold(Option.empty[Int])(offsetReaderResult => Some(offsetReaderResult.line.toInt))
-
-    State(
-      initFile = s3StoredFile,
-      initLine = offsetLine,
-      file = None,
-      currentReader = None
-    )
-  }
+  override def close(): Unit = state.close()
 
 }

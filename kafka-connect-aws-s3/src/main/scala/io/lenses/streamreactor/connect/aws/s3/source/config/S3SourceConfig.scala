@@ -41,14 +41,15 @@ case class SourceBucketOptions(
                                 sourceBucketAndPrefix: RemoteS3RootLocation,
                                 targetTopic: String,
                                 format: FormatSelection,
-                                fileNamingStrategy: S3FileNamingStrategy,
-                                limit: Int
+                                recordsLimit: Int,
+                                filesLimit: Int,
                               )
 
 
 object SourceBucketOptions {
 
-  private val DEFAULT_LIMIT = 1024
+  private val DEFAULT_RECORDS_LIMIT = 1024
+  private val DEFAULT_FILES_LIMIT = 1000
 
   def apply(config: S3ConfigDefBuilder): Seq[SourceBucketOptions] = {
 
@@ -60,17 +61,12 @@ object SourceBucketOptions {
           case Some(format: String) => FormatSelection(format)
           case None => FormatSelection(Json, Set.empty)
         }
-        val partitionSelection = PartitionSelection(kcql)
-        val namingStrategy = partitionSelection match {
-          case Some(partSel) => new PartitionedS3FileNamingStrategy(formatSelection, partSel)
-          case None => new HierarchicalS3FileNamingStrategy(formatSelection)
-        }
         SourceBucketOptions(
           RemoteS3RootLocation(kcql.getSource),
           kcql.getTarget,
           format = formatSelection,
-          fileNamingStrategy = namingStrategy,
-          limit = if (kcql.getLimit < 1) DEFAULT_LIMIT else kcql.getLimit
+          recordsLimit = if (kcql.getLimit < 1) DEFAULT_RECORDS_LIMIT else kcql.getLimit,
+          filesLimit = if (kcql.getBatchSize < 1) DEFAULT_FILES_LIMIT else kcql.getBatchSize,
         )
     }.toList
 

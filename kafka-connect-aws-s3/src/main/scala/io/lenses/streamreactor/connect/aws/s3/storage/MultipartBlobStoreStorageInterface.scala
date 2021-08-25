@@ -125,7 +125,7 @@ class MultipartBlobStoreStorageInterface(sinkName: String, blobStoreContext: Blo
   override def close(): Unit = blobStoreContext.close()
 
   override def pathExists(bucketAndPrefix: RemoteS3RootLocation): Boolean =
-    blobStore.list(bucketAndPrefix.bucket, ListContainerOptions.Builder.prefix(bucketAndPrefix.prefix.getOrElse(""))).size() > 0
+    blobStore.list(bucketAndPrefix.bucket, ListContainerOptions.Builder.prefix(bucketAndPrefix.prefixOrDefault)).size() > 0
 
   override def pathExists(bucketAndPath: RemoteS3PathLocation): Boolean =
     blobStore.list(bucketAndPath.bucket, ListContainerOptions.Builder.prefix(bucketAndPath.path)).size() > 0
@@ -152,37 +152,6 @@ class MultipartBlobStoreStorageInterface(sinkName: String, blobStoreContext: Blo
 
     } while (nextMarker.nonEmpty)
     pageSetStrings
-  }
-
-  override def list(bucketAndPrefix: RemoteS3RootLocation): List[String] = {
-    val options = bucketAndPrefix
-      .prefix
-      .fold(
-        ListContainerOptions.Builder.recursive()
-      )(
-        ListContainerOptions.Builder.recursive().prefix
-      )
-      .maxResults(awsMaxKeys)
-
-    var pageSetStrings: List[String] = List()
-    var nextMarker: Option[String] = None
-    do {
-      if (nextMarker.nonEmpty) {
-        options.afterMarker(nextMarker.get)
-      }
-      val pageSet = blobStore.list(bucketAndPrefix.bucket, options)
-      nextMarker = Option(pageSet.getNextMarker)
-      pageSetStrings ++= pageSet
-        .asScala
-        .filter(_.getType == StorageType.BLOB)
-        .map(
-          storageMetadata => storageMetadata.getName
-        )
-        .toList
-
-    } while (nextMarker.nonEmpty)
-    pageSetStrings
-
   }
 
   override def getBlob(bucketAndPath: RemoteS3PathLocation): InputStream = {

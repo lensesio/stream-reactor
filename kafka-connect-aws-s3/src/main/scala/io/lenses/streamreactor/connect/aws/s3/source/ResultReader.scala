@@ -32,10 +32,10 @@ class ResultReader(prefix: String, targetTopic: String) extends LazyLogging {
 
     val results: Vector[_ <: SourceData] = retrieveResults(limit, reader, Vector.empty[SourceData])
     if (results.isEmpty) {
-      logger.debug(s"No results found in reader ${reader.getBucketAndPath}")
+      logger.trace(s"No results found in reader ${reader.getBucketAndPath}")
       Option.empty[PollResults]
     } else {
-      logger.debug(s"Results found in reader ${reader.getBucketAndPath}")
+      logger.trace(s"Results found in reader ${reader.getBucketAndPath}")
       Some(
         PollResults(
           results,
@@ -49,13 +49,13 @@ class ResultReader(prefix: String, targetTopic: String) extends LazyLogging {
   }
 
   @tailrec
-  final def retrieveResults(
+  private final def retrieveResults(
                              limit: Int,
                              reader: S3FormatStreamReader[_ <: SourceData],
                              accumulatedResults: Vector[_ <: SourceData]
                            ): Vector[_ <: SourceData] = {
 
-    logger.debug(s"Calling retrieveResults with limit ($limit), reader (${reader.getBucketAndPath}/${reader.getLineNumber}), accumulatedResults size ${accumulatedResults.size}")
+    logger.trace(s"Calling retrieveResults with limit ($limit), reader (${reader.getBucketAndPath}/${reader.getLineNumber}), accumulatedResults size ${accumulatedResults.size}")
     if (limit > 0 && reader.hasNext) {
       retrieveResults(limit - 1, reader, accumulatedResults :+ reader.next())
     } else {

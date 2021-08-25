@@ -114,7 +114,7 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
     // record 3 only - next schema is different so ending the file
     val genericRecords2: List[GenericRecord] = avroFormatReader.read(
-      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/3.avro", blobStoreContext)
+      S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/03.avro", blobStoreContext)
     )
     genericRecords2.size should be(1)
     genericRecords2(0).get("name").toString should be("tom")

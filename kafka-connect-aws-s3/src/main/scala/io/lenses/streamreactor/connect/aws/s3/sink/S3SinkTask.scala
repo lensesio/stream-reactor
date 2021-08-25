@@ -19,7 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import com.datamountaineer.streamreactor.common.errors.{ErrorHandler, RetryErrorPolicy}
 import com.datamountaineer.streamreactor.common.utils.JarManifest
-import io.lenses.streamreactor.connect.aws.s3.auth.AwsContextCreator
+import io.lenses.streamreactor.connect.aws.s3.auth.{AuthResources, JCloudsS3ContextCreator}
 import io.lenses.streamreactor.connect.aws.s3.config.{S3Config, S3ConfigDefBuilder}
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither.toJavaThrowableConverter
@@ -40,8 +40,6 @@ class S3SinkTask extends SinkTask with ErrorHandler {
 
   private var writerManager: S3WriterManager = _
 
-  private var storageInterface: StorageInterface = _
-
   private var sinkName: String = _
 
   override def version(): String = manifest.version()
@@ -51,19 +49,23 @@ class S3SinkTask extends SinkTask with ErrorHandler {
 
     logger.debug(s"[{}] S3SinkTask.start", sinkName)
 
-    S3SinkConfig(S3ConfigDefBuilder(getSinkName(props), propsFromContext(props))) match {
-      case Left(ex) => throw ex
-      case Right(config) =>
-        val awsContextCreator = new AwsContextCreator(AwsContextCreator.DefaultCredentialsFn)
-        storageInterface = new MultipartBlobStoreStorageInterface(sinkName, awsContextCreator.fromConfig(config.s3Config))
-        setErrorRetryInterval(config.s3Config)
+    val errOrWriterMan = for {
+      config <- S3SinkConfig(S3ConfigDefBuilder(getSinkName(props), propsFromContext(props)))
+      jCloudsAuth <- new AuthResources(config.s3Config).jClouds
+      storageInterface <- Try {new MultipartBlobStoreStorageInterface(sinkName, jCloudsAuth)}.toEither
+      _ <- Try {setErrorRetryInterval(config.s3Config)} .toEither
+      writerManager <- Try {S3WriterManager.from(config, sinkName)(storageInterface)}.toEither
+      _ <- Try(initialize(
+        config.s3Config.connectorRetryConfig.numberOfRetries,
+        config.s3Config.errorPolicy,
+      )).toEither
+    } yield writerManager
 
-        writerManager = S3WriterManager.from(config, sinkName)(storageInterface)
-
-        initialize(
-          config.s3Config.connectorRetryConfig.numberOfRetries,
-          config.s3Config.errorPolicy,
-        )
+    errOrWriterMan match {
+      case Left(error: String) => throw new IllegalStateException(error)
+      case Left(error: Throwable) => throw error
+      case Right(writerMan) =>
+        writerManager = writerMan
     }
 
   }

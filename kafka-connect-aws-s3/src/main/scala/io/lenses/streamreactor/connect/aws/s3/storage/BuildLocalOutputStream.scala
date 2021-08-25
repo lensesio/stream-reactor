@@ -27,7 +27,6 @@ import java.io.OutputStream
 
 class BuildLocalOutputStream(
                               initialName: LocalPathLocation,
-                              initialOffset: Offset,
                               updateOffsetFn: Offset => () => Unit,
                               cleanUp: Boolean = true,
                             )(

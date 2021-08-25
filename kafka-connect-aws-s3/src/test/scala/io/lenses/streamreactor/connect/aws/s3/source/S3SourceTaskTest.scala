@@ -46,6 +46,8 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
   "task" should "read stored files continuously" in {
     forAll(formats) {
       (format, formatOptions) =>
+        val t1 = System.currentTimeMillis()
+
         setUpBucketData(BucketName, blobStoreContext, format, formatOptions)
 
         val task = new S3SourceTask()
@@ -83,6 +85,10 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
           .union(sourceRecords5.asScala)
           .union(sourceRecords6.asScala)
           .toSet should have size 1000
+
+        val t2 = System.currentTimeMillis()
+        val dur = t2 - t1
+        logger.info(s"$format DUR: $dur ms")
     }
   }
 

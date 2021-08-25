@@ -19,8 +19,6 @@ package io.lenses.streamreactor.connect.aws.s3.model
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
 
-case class OffsetReaderResult(path: String, line: String)
-
 case class PollResults(
                         resultList: Vector[_ <: SourceData],
                         bucketAndPath: RemoteS3PathLocation,
