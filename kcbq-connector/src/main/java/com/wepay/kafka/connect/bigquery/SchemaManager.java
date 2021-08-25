@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.Clustering;
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.Field.Mode;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
@@ -49,6 +50,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Class for managing Schemas of BigQuery tables (creating and updating).
@@ -362,13 +365,46 @@ public class SchemaManager {
     return currentSchema;
   }
 
+  private Field unionizeFields(Field firstField, Field secondField) {
+    if (secondField == null) {
+      if (!Field.Mode.REPEATED.equals(firstField.getMode())) {
+        return firstField.toBuilder().setMode(Field.Mode.NULLABLE).build();
+      } else {
+        return firstField;
+      }
+    }
+
+    checkState(firstField.getName().equals(secondField.getName()));
+    checkState(firstField.getType() == secondField.getType());
+
+    Field.Builder retBuilder = firstField.toBuilder();
+    if (isFieldRelaxation(firstField, secondField)) {
+      retBuilder.setMode(secondField.getMode());
+    }
+    if (firstField.getType() == LegacySQLTypeName.RECORD) {
+      Map<String, Field> firstSubFields = subFields(firstField);
+      Map<String, Field> secondSubFields = subFields(secondField);
+      Map<String, Field> unionizedSubFields = new LinkedHashMap<>();
+
+      firstSubFields.forEach((name, firstSubField) -> {
+        Field secondSubField = secondSubFields.get(name);
+        unionizedSubFields.put(name, unionizeFields(firstSubField, secondSubField));
+      });
+      maybeAddToUnionizedFields(secondSubFields, unionizedSubFields);
+      retBuilder.setType(LegacySQLTypeName.RECORD,
+          unionizedSubFields.values().toArray(new Field[]{}));
+    }
+    return retBuilder.build();
+  }
+
   /**
    * Returns a single unionized BigQuery schema from two BigQuery schemas.
    * @param firstSchema The first BigQuery schema to unionize
    * @param secondSchema The second BigQuery schema to unionize
    * @return The resulting unionized BigQuery schema
    */
-  private com.google.cloud.bigquery.Schema unionizeSchemas(
+  // VisibleForTesting
+  com.google.cloud.bigquery.Schema unionizeSchemas(
       com.google.cloud.bigquery.Schema firstSchema, com.google.cloud.bigquery.Schema secondSchema) {
     Map<String, Field> firstSchemaFields = schemaFields(firstSchema);
     Map<String, Field> secondSchemaFields = schemaFields(secondSchema);
@@ -383,24 +419,27 @@ public class SchemaManager {
         } else {
           unionizedSchemaFields.put(name, firstField);
         }
-      } else if (isFieldRelaxation(firstField, secondField)) {
-        unionizedSchemaFields.put(name, secondField);
       } else {
-        unionizedSchemaFields.put(name, firstField);
+        unionizedSchemaFields.put(name, unionizeFields(firstField, secondField));
       }
     });
 
+    maybeAddToUnionizedFields(secondSchemaFields, unionizedSchemaFields);
+    return com.google.cloud.bigquery.Schema.of(unionizedSchemaFields.values());
+  }
+
+  private void maybeAddToUnionizedFields(Map<String, Field> secondSchemaFields,
+      Map<String, Field> unionizedFields) {
     secondSchemaFields.forEach((name, secondField) -> {
-      if (!unionizedSchemaFields.containsKey(name)) {
-        if (Field.Mode.REPEATED.equals(secondField.getMode())) {
+      if (!unionizedFields.containsKey(name)) {
+        if (Mode.REPEATED.equals(secondField.getMode())) {
         // Repeated fields are implicitly nullable; no need to set a new mode for them
-          unionizedSchemaFields.put(name, secondField);
+          unionizedFields.put(name, secondField);
         } else {
-          unionizedSchemaFields.put(name, secondField.toBuilder().setMode(Field.Mode.NULLABLE).build());
+          unionizedFields.put(name, secondField.toBuilder().setMode(Mode.NULLABLE).build());
         }
       }
     });
-    return com.google.cloud.bigquery.Schema.of(unionizedSchemaFields.values());
   }
 
   private void validateSchemaChange(
@@ -472,6 +511,20 @@ public class SchemaManager {
       tableDescription = kafkaValueSchema.doc() != null ? kafkaValueSchema.doc() : tableDescription;
     }
     return tableDescription;
+  }
+
+  private Map<String, Field> subFields(Field parent) {
+    Map<String, Field> result = new LinkedHashMap<>();
+    if (parent == null || parent.getSubFields() == null) {
+      return result;
+    }
+    parent.getSubFields().forEach(field -> {
+      if (field.getMode() == null) {
+        field = field.toBuilder().setMode(Mode.NULLABLE).build();
+      }
+      result.put(field.getName(), field);
+    });
+    return result;
   }
 
   /**

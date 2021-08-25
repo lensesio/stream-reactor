@@ -19,6 +19,7 @@
 
 package com.wepay.kafka.connect.bigquery;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -49,10 +50,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.stubbing.OngoingStubbing;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class SchemaManagerTest {
 
@@ -91,7 +94,7 @@ public class SchemaManagerTest {
     TableInfo tableInfo = schemaManager
         .constructTableInfo(tableId, fakeBigQuerySchema, testDoc);
 
-    Assert.assertEquals("Kafka doc does not match BigQuery table description",
+    assertEquals("Kafka doc does not match BigQuery table description",
         testDoc, tableInfo.getDescription());
     Assert.assertNull("Timestamp partition field name is not null",
         ((StandardTableDefinition) tableInfo.getDefinition()).getTimePartitioning().getField());
@@ -109,9 +112,9 @@ public class SchemaManagerTest {
     TableInfo tableInfo = schemaManager
         .constructTableInfo(tableId, fakeBigQuerySchema, testDoc);
 
-    Assert.assertEquals("Kafka doc does not match BigQuery table description",
+    assertEquals("Kafka doc does not match BigQuery table description",
         testDoc, tableInfo.getDescription());
-    Assert.assertEquals("The field name does not match the field name of time partition",
+    assertEquals("The field name does not match the field name of time partition",
         testField.get(),
         ((StandardTableDefinition) tableInfo.getDefinition()).getTimePartitioning().getField());
   }
@@ -129,11 +132,11 @@ public class SchemaManagerTest {
     TableInfo tableInfo = schemaManager
         .constructTableInfo(tableId, fakeBigQuerySchema, testDoc);
 
-    Assert.assertEquals("Kafka doc does not match BigQuery table description",
+    assertEquals("Kafka doc does not match BigQuery table description",
         testDoc, tableInfo.getDescription());
     StandardTableDefinition definition = tableInfo.getDefinition();
     Assert.assertNotNull(definition.getClustering());
-    Assert.assertEquals("The field name does not match the field name of time partition",
+    assertEquals("The field name does not match the field name of time partition",
         testField.get(),
         definition.getClustering().getFields());
   }
@@ -491,7 +494,7 @@ public class SchemaManagerTest {
         schemaManager.getAndValidateProposedSchema(tableId, incomingSinkRecords);
 
     if (expectedSchema != null) {
-      Assert.assertEquals(expectedSchema, proposedSchema);
+      assertEquals(expectedSchema, proposedSchema);
     }
   }
 
@@ -510,4 +513,121 @@ public class SchemaManagerTest {
     when(result.valueSchema()).thenReturn(valueSchema);
     return result;
   }
+
+  @Test
+  public void testUnionizeSchemaNoNestedOrRepeatedRecords() {
+    com.google.cloud.bigquery.Schema s1 = com.google.cloud.bigquery.Schema.of(
+        Field.of(LegacySQLTypeName.BYTES.name(), LegacySQLTypeName.BYTES),
+        Field.of(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING),
+        Field.of(LegacySQLTypeName.DATE.name(), LegacySQLTypeName.DATE)
+    );
+    com.google.cloud.bigquery.Schema s2 = com.google.cloud.bigquery.Schema.of(
+        Field.of(LegacySQLTypeName.TIMESTAMP.name(), LegacySQLTypeName.TIMESTAMP),
+        Field.of(LegacySQLTypeName.FLOAT.name(), LegacySQLTypeName.FLOAT)
+    );
+
+    List<Field> expectedFields = new ArrayList<>();
+    expectedFields.addAll(s1.getFields());
+    expectedFields.addAll(s2.getFields());
+
+    assertUnion(makeNullable(com.google.cloud.bigquery.Schema.of(expectedFields)), s1, s2);
+  }
+
+  @Test
+  public void testUnionizeSchemaWithNestedRecords() {
+    com.google.cloud.bigquery.Schema s1 = com.google.cloud.bigquery.Schema.of(
+        Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+            Field.of(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING),
+            Field.of(LegacySQLTypeName.DATE.name(), LegacySQLTypeName.DATE)
+    ));
+    com.google.cloud.bigquery.Schema s2 = com.google.cloud.bigquery.Schema.of(
+        Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+            Field.of(LegacySQLTypeName.TIMESTAMP.name(), LegacySQLTypeName.TIMESTAMP)
+        ));
+    com.google.cloud.bigquery.Schema expected = com.google.cloud.bigquery.Schema.of(
+        Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+            Field.of(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING),
+            Field.of(LegacySQLTypeName.DATE.name(), LegacySQLTypeName.DATE),
+            Field.of(LegacySQLTypeName.TIMESTAMP.name(), LegacySQLTypeName.TIMESTAMP)
+            )
+    );
+    assertUnion(makeNullable(expected), s1, s2);
+  }
+
+  @Test
+  public void testUnionizeSchemaWithNestedAndRepeatedFields() {
+    com.google.cloud.bigquery.Schema s1 = com.google.cloud.bigquery.Schema.of(
+        Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+            Field.newBuilder(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING).setMode(Mode.REPEATED).build(),
+            Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+                Field.of(LegacySQLTypeName.BYTES.name(), LegacySQLTypeName.BYTES)
+            )
+        )
+    );
+    com.google.cloud.bigquery.Schema s2 = com.google.cloud.bigquery.Schema.of(
+        Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+            Field.newBuilder(LegacySQLTypeName.DATE.name(), LegacySQLTypeName.DATE).setMode(Mode.REPEATED).build(),
+            Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+                Field.of(LegacySQLTypeName.FLOAT.name(), LegacySQLTypeName.FLOAT)
+            )
+        )
+    );
+
+    com.google.cloud.bigquery.Schema expected = com.google.cloud.bigquery.Schema.of(
+        Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+            Field.newBuilder(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING).setMode(Mode.REPEATED).build(),
+            Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+                Field.of(LegacySQLTypeName.BYTES.name(), LegacySQLTypeName.BYTES),
+                Field.of(LegacySQLTypeName.FLOAT.name(), LegacySQLTypeName.FLOAT)
+            ),
+            Field.newBuilder(LegacySQLTypeName.DATE.name(), LegacySQLTypeName.DATE).setMode(Mode.REPEATED).build()
+        )
+    );
+    assertUnion(makeNullable(expected), s1, s2);
+  }
+
+  @Test
+  public void testUnionizeSchemaNestedRelax() {
+    com.google.cloud.bigquery.Schema s1 = com.google.cloud.bigquery.Schema.of(
+        Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+            Field.newBuilder(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING).setMode(Mode.REQUIRED).build()
+        )
+    );
+    com.google.cloud.bigquery.Schema s2 = com.google.cloud.bigquery.Schema.of(
+        Field.of(LegacySQLTypeName.RECORD.name(), LegacySQLTypeName.RECORD,
+            Field.newBuilder(LegacySQLTypeName.STRING.name(), LegacySQLTypeName.STRING).setMode(Mode.NULLABLE).build()
+        )
+    );
+    assertUnion(makeNullable(s2), s1, s2);
+  }
+
+  private com.google.cloud.bigquery.Schema makeNullable(com.google.cloud.bigquery.Schema s) {
+    return com.google.cloud.bigquery.Schema.of(
+        s.getFields().stream()
+            .map(this::makeNullable)
+            .collect(Collectors.toList())
+    );
+  }
+
+  private Field makeNullable(Field f) {
+    Field.Builder builder = f.toBuilder();
+    if (f.getSubFields() != null) {
+      List<Field> subFields = f.getSubFields().stream()
+          .map(this::makeNullable)
+          .collect(Collectors.toList());
+      builder.setType(LegacySQLTypeName.RECORD, subFields.toArray(new Field[]{})).build();
+    }
+    return builder
+        .setMode(f.getMode() == Mode.REPEATED ? Mode.REPEATED : Mode.NULLABLE)
+        .build();
+  }
+
+  private void assertUnion(com.google.cloud.bigquery.Schema expected,
+      com.google.cloud.bigquery.Schema schema1, com.google.cloud.bigquery.Schema schema2) {
+    SchemaManager sm = createSchemaManager(true, true, true);
+    assertEquals(
+        expected, sm.unionizeSchemas(schema1, schema2)
+    );
+  }
+
 }
