@@ -25,7 +25,7 @@ import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither.toJavaThrowableConverter
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.{HeaderToStringConverter, ValueToSinkDataConverter}
-import io.lenses.streamreactor.connect.aws.s3.storage.{MultipartBlobStoreStorageInterface, StorageInterface}
+import io.lenses.streamreactor.connect.aws.s3.storage.{JCloudsStorageInterface, S3StorageInterface, StorageInterface}
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
@@ -51,8 +51,10 @@ class S3SinkTask extends SinkTask with ErrorHandler {
 
     val errOrWriterMan = for {
       config <- S3SinkConfig(S3ConfigDefBuilder(getSinkName(props), propsFromContext(props)))
-      jCloudsAuth <- new AuthResources(config.s3Config).jClouds
-      storageInterface <- Try {new MultipartBlobStoreStorageInterface(sinkName, jCloudsAuth)}.toEither
+      authResources = new AuthResources(config.s3Config)
+      jCloudsAuth <- authResources.jClouds
+      awsAuth <- authResources.aws
+      storageInterface <- Try {new S3StorageInterface(sinkName, awsAuth, jCloudsAuth)}.toEither
       _ <- Try {setErrorRetryInterval(config.s3Config)} .toEither
       writerManager <- Try {S3WriterManager.from(config, sinkName)(storageInterface)}.toEither
       _ <- Try(initialize(

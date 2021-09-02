@@ -41,6 +41,6 @@ class S3StoredFileTest extends AnyFlatSpec with Matchers {
       PartitionSelection(Seq.empty[PartitionField]),
     )
 
-    S3StoredFile("dragon-test/dragon-test(1_2).json") should be (Some(S3StoredFile("dragon-test/myTopicName/1/1.json", Topic("myTopicName").withPartition(1).withOffset(2))))
+    S3StoredFile("dragon-test/myTopicName(1_2).json") should be (Some(S3StoredFile("dragon-test/myTopicName(1_2).json", Topic("myTopicName").withPartition(1).withOffset(2))))
   }
 }

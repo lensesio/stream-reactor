@@ -1,6 +1,6 @@
 
 /*
- * Copyright 2020 Lenses.io
+ * Copyright 2021 Lenses.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.storage
+package io.lenses.streamreactor.connect.aws.s3.storage.stream
 
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.Offset

@@ -6,7 +6,6 @@ import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatOptions}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestConfig
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
-import org.jclouds.blobstore.domain.Blob
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
@@ -16,7 +15,8 @@ import scala.collection.JavaConverters._
 
 class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with LazyLogging {
 
-  import BucketSetup._
+  val bucketSetup = new BucketSetup()
+  import bucketSetup._
 
   private val formats = Table(
     ("format", "formatOptionOption"),
@@ -28,11 +28,9 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
   )
 
   "blobstore get input stream" should "reveal availability" in {
-    setUpBucketData(BucketName, blobStoreContext, Format.Json, None)
+    setUpBucketData(BucketName, Format.Json, None)
 
-    val blob: Blob = blobStoreContext.getBlobStore.getBlob(BucketName, s"$PrefixName/$TopicName/0/399.json")
-    val inputStream = blob.getPayload.openStream()
-
+    val inputStream = helper.remoteFileAsStream(BucketName, s"$PrefixName/$TopicName/0/399.json")
     val initialAvailable = inputStream.available()
 
     var expectedAvailable = initialAvailable
@@ -48,7 +46,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
       (format, formatOptions) =>
         val t1 = System.currentTimeMillis()
 
-        setUpBucketData(BucketName, blobStoreContext, format, formatOptions)
+        setUpBucketData(BucketName, format, formatOptions)
 
         val task = new S3SourceTask()
 
@@ -95,7 +93,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
   "task" should "resume from a specific offset through initialize" in {
     forAll(formats) {
       (format, formatOptions) =>
-        setUpBucketData(BucketName, blobStoreContext, format, formatOptions)
+        setUpBucketData(BucketName, format, formatOptions)
         val formatExtensionString = generateFormatString(formatOptions)
 
         val task = new S3SourceTask()
@@ -151,7 +149,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
   "task" should "read stored bytes files continuously" in {
     val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.ValueOnly))
 
-    setUpBucketData(BucketName, blobStoreContext, format, formatOptions)
+    setUpBucketData(BucketName, format, formatOptions)
 
     val task = new S3SourceTask()
 
@@ -181,7 +179,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
   "task" should "read stored bytes key/value files continuously" in {
     val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.KeyAndValueWithSizes))
 
-    setUpBucketData(BucketName, blobStoreContext, format, formatOptions)
+    setUpBucketData(BucketName, format, formatOptions)
 
     val task = new S3SourceTask()
 

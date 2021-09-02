@@ -22,7 +22,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.WithHeaders
 import io.lenses.streamreactor.connect.aws.s3.config.{FormatOptions, FormatSelection}
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
-import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
+import io.lenses.streamreactor.connect.aws.s3.storage.stream.S3OutputStream
 
 object S3FormatWriter {
 

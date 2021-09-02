@@ -17,7 +17,7 @@
 
 package io.lenses.streamreactor.connect.aws.s3.formats.parquet
 
-import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
+import io.lenses.streamreactor.connect.aws.s3.storage.stream.S3OutputStream
 import org.apache.parquet.io.{OutputFile, PositionOutputStream}
 
 class ParquetOutputFile(multipartBlobStoreOutputStream: S3OutputStream) extends OutputFile {

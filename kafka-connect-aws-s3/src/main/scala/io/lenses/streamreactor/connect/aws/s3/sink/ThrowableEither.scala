@@ -24,18 +24,19 @@ import com.typesafe.scalalogging.LazyLogging
   * @param e either of a Throwable or type A
   * @tparam A custom type
   */
-case class ThrowableEither[A](e: Either[Throwable, A]) extends LazyLogging {
+case class ThrowableEither[T, A](e: Either[T, A]) extends LazyLogging {
   def toThrowable(sinkName: String): A = e match {
-    case Left(ex) => {
+    case Left(ex: Throwable) => {
       logger.error(s"[$sinkName] Error", ex)
       throw ex
     }
+    case Left(ex: String) => throw new IllegalStateException(ex)
     case Right(a: A) => a
   }
 }
 
 object ThrowableEither {
 
-  implicit def toJavaThrowableConverter[A](e: Either[Throwable, A]): ThrowableEither[A] = ThrowableEither(e)
+  implicit def toJavaThrowableConverter[T, A](e: Either[T, A]): ThrowableEither[T, A] = ThrowableEither(e)
 
 }

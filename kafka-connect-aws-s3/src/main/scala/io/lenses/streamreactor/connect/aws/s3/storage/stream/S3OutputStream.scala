@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.storage
+package io.lenses.streamreactor.connect.aws.s3.storage.stream
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
+import io.lenses.streamreactor.connect.aws.s3.model.Offset
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 
-trait ListFilesStorageInterface {
+import java.io.OutputStream
 
-  def pathExists(bucketAndPrefix: RemoteS3RootLocation): Either[Throwable, Boolean]
+trait S3OutputStream extends OutputStream {
 
-  def list(
-            bucketAndPrefix: RemoteS3RootLocation,
-            lastFile : Option[RemoteS3PathLocation],
-            numResults : Int
-          ): Either[Throwable, List[String]]
+  def complete(finalDestination: RemoteS3PathLocation, offset: Offset): Unit
+
+  def getPointer: Long
 
 }

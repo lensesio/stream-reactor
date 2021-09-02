@@ -25,7 +25,8 @@ import io.lenses.streamreactor.connect.aws.s3.model.S3WriteMode.{BuildLocal, Str
 import io.lenses.streamreactor.connect.aws.s3.model.location.{LocalPathLocation, LocalRootLocation, RemoteS3PathLocation}
 import io.lenses.streamreactor.connect.aws.s3.processing.BlockingQueueProcessor
 import io.lenses.streamreactor.connect.aws.s3.sink.ProcessorException
-import io.lenses.streamreactor.connect.aws.s3.storage.{BuildLocalOutputStream, MultipartBlobStoreOutputStream, S3OutputStream, StorageInterface}
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
+import io.lenses.streamreactor.connect.aws.s3.storage.stream.{BuildLocalOutputStream, MultipartBlobStoreOutputStream, S3OutputStream}
 
 import java.nio.file.Files
 import java.util.UUID
@@ -51,8 +52,6 @@ object S3OutputStreamOptions extends LazyLogging {
 
 case class StreamedWriteOutputStreamOptions() extends S3OutputStreamOptions {
 
-  val MinAllowedMultipartSize: Int = 5242880
-
   override def createFormatWriter(formatSelection: FormatSelection, path: RemoteS3PathLocation, initialOffset: Offset, updateOffsetFn: Offset => () => Unit)(implicit storageInterface: StorageInterface, queueProcessor: BlockingQueueProcessor): Either[ProcessorException, S3FormatWriter] = {
     Try(createOutputStreamFn(path, initialOffset, updateOffsetFn)) match {
       case Failure(exception: Throwable) => ProcessorException(exception).asLeft
@@ -61,7 +60,7 @@ case class StreamedWriteOutputStreamOptions() extends S3OutputStreamOptions {
   }
 
   private def createOutputStreamFn(location: RemoteS3PathLocation, initialOffset: Offset, updateOffsetFn: Offset => () => Unit)(implicit queueProcessor: BlockingQueueProcessor): () => S3OutputStream = {
-    () => new MultipartBlobStoreOutputStream(location, initialOffset, updateOffsetFn, MinAllowedMultipartSize)
+    () => new MultipartBlobStoreOutputStream(location, initialOffset, updateOffsetFn)
   }
 
 }

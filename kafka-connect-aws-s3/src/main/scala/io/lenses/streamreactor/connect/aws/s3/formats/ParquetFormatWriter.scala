@@ -22,7 +22,7 @@ import io.lenses.streamreactor.connect.aws.s3.formats.parquet.ParquetOutputFile
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.model.{Offset, SinkData, Topic}
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.ToAvroDataConverter
-import io.lenses.streamreactor.connect.aws.s3.storage.S3OutputStream
+import io.lenses.streamreactor.connect.aws.s3.storage.stream.S3OutputStream
 import org.apache.avro.Schema
 import org.apache.kafka.connect.data.{Schema => ConnectSchema}
 import org.apache.parquet.avro.AvroParquetWriter

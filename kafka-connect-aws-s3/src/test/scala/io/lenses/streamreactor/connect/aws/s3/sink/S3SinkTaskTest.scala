@@ -24,8 +24,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
 import io.lenses.streamreactor.connect.aws.s3.config.processors.ClasspathResourceResolver
 import io.lenses.streamreactor.connect.aws.s3.formats.{AvroFormatReader, BytesFormatWriter, ParquetFormatReader}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContext.{Credential, Identity}
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestPayloadReader._
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig, S3TestPayloadReader}
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig}
 import org.apache.avro.generic.GenericData
 import org.apache.avro.util.Utf8
 import org.apache.commons.io.IOUtils
@@ -34,7 +33,6 @@ import org.apache.kafka.connect.data.{Schema, SchemaBuilder, Struct}
 import org.apache.kafka.connect.errors.{ConnectException, RetriableException}
 import org.apache.kafka.connect.header.{ConnectHeaders, Header}
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTaskContext}
-import org.jclouds.blobstore.options.ListContainerOptions
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -47,6 +45,7 @@ import scala.collection.JavaConverters._
 class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with MockitoSugar {
 
   import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData._
+  import helper._
 
   private val parquetFormatReader = new ParquetFormatReader()
   private val avroFormatReader = new AvroFormatReader()
@@ -111,9 +110,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.open(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.put(records.asJava)
 
-    blobStoreContext.getBlobStore.list(BucketName,
-      ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1")
-    ).size() should be(0)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1").size should be(0)
 
     Thread.sleep(1200) // wait for 1000 millisecond so the next call to put will cause a flush
 
@@ -123,9 +120,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/2.json", blobStoreContext) should be("""{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}{"name":"tom","title":null,"salary":395.44}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/2.json") should be("""{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}{"name":"tom","title":null,"salary":395.44}""")
 
   }
 
@@ -162,11 +159,11 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(3)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/0.json", blobStoreContext) should be("""{"name":"sam","title":"mr","salary":100.43}""")
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/1.json", blobStoreContext) should be("""{"name":"laura","title":"ms","salary":429.06}""")
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/2.json", blobStoreContext) should be("""{"name":"tom","title":null,"salary":395.44}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/0.json") should be("""{"name":"sam","title":"mr","salary":100.43}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1.json") should be("""{"name":"laura","title":"ms","salary":429.06}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/2.json") should be("""{"name":"tom","title":null,"salary":395.44}""")
 
   }
 
@@ -192,9 +189,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/1.json", blobStoreContext) should be("""{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1.json") should be("""{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}""")
 
   }
 
@@ -222,11 +219,11 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(3)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/0.json", blobStoreContext) should be("""{"name":"sam","title":"mr","salary":100.43}""")
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/1.json", blobStoreContext) should be("""{"name":"laura","title":"ms","salary":429.06}""")
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/2.json", blobStoreContext) should be("""{"name":"tom","title":null,"salary":395.44}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/0.json") should be("""{"name":"sam","title":"mr","salary":100.43}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1.json") should be("""{"name":"laura","title":"ms","salary":429.06}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/2.json") should be("""{"name":"tom","title":null,"salary":395.44}""")
 
     verify(sinkTaskContext).offset(new TopicPartition("myTopic", 1), 2)
   }
@@ -246,9 +243,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(3)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    val bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/0.parquet", blobStoreContext)
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/0.parquet")
 
     val genericRecords = parquetFormatReader.read(bytes)
     genericRecords.size should be(1)
@@ -271,9 +268,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(3)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    val bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/0.avro", blobStoreContext)
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/0.avro")
 
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)
@@ -322,12 +319,12 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(2)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
 
-    val file1Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/1.text", blobStoreContext)
+    val file1Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/1.text")
     new String(file1Bytes) should be("Sausages\nMash\n")
 
-    val file2Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/3.text", blobStoreContext)
+    val file2Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/3.text")
     new String(file2Bytes) should be("Peas\nGravy\n")
 
   }
@@ -352,9 +349,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(2)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
 
-    val file1Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/1.csv", blobStoreContext)
+    val file1Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/1.csv")
 
     val file1Reader = new StringReader(new String(file1Bytes))
     val file1CsvReader = new CSVReader(file1Reader)
@@ -364,7 +361,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     file1CsvReader.readNext() should be(Array("laura", "ms", "429.06"))
     file1CsvReader.readNext() should be(null)
 
-    val file2Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/3.csv", blobStoreContext)
+    val file2Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/3.csv")
 
     val file2Reader = new StringReader(new String(file2Bytes))
     val file2CsvReader = new CSVReader(file2Reader)
@@ -395,9 +392,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(2)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(2)
 
-    val file1Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/1.csv", blobStoreContext)
+    val file1Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/1.csv")
 
     val file1Reader = new StringReader(new String(file1Bytes))
     val file1CsvReader = new CSVReader(file1Reader)
@@ -406,7 +403,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     file1CsvReader.readNext() should be(Array("laura", "ms", "429.06"))
     file1CsvReader.readNext() should be(null)
 
-    val file2Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/3.csv", blobStoreContext)
+    val file2Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/3.csv")
 
     val file2Reader = new StringReader(new String(file2Bytes))
     val file2CsvReader = new CSVReader(file2Reader)
@@ -431,14 +428,14 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.recursive().prefix("streamReactorBackups/")).size() should be(6)
+    listBucketPath(BucketName, "streamReactorBackups/").size should be(6)
 
-    readFileToString(BucketName, "streamReactorBackups/name=first/title=primary/salary=[missing]/myTopic(1_0).json", blobStoreContext) should be("""{"name":"first","title":"primary","salary":null}""")
-    readFileToString(BucketName, "streamReactorBackups/name=second/title=secondary/salary=100.0/myTopic(1_1).json", blobStoreContext) should be("""{"name":"second","title":"secondary","salary":100.0}""")
-    readFileToString(BucketName, "streamReactorBackups/name=third/title=primary/salary=100.0/myTopic(1_2).json", blobStoreContext) should be("""{"name":"third","title":"primary","salary":100.0}""")
-    readFileToString(BucketName, "streamReactorBackups/name=first/title=[missing]/salary=200.0/myTopic(1_3).json", blobStoreContext) should be("""{"name":"first","title":null,"salary":200.0}""")
-    readFileToString(BucketName, "streamReactorBackups/name=second/title=[missing]/salary=100.0/myTopic(1_4).json", blobStoreContext) should be("""{"name":"second","title":null,"salary":100.0}""")
-    readFileToString(BucketName, "streamReactorBackups/name=third/title=[missing]/salary=100.0/myTopic(1_5).json", blobStoreContext) should be("""{"name":"third","title":null,"salary":100.0}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/name=first/title=primary/salary=[missing]/myTopic(1_0).json") should be("""{"name":"first","title":"primary","salary":null}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/name=second/title=secondary/salary=100.0/myTopic(1_1).json") should be("""{"name":"second","title":"secondary","salary":100.0}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/name=third/title=primary/salary=100.0/myTopic(1_2).json") should be("""{"name":"third","title":"primary","salary":100.0}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/name=first/title=[missing]/salary=200.0/myTopic(1_3).json") should be("""{"name":"first","title":null,"salary":200.0}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/name=second/title=[missing]/salary=100.0/myTopic(1_4).json") should be("""{"name":"second","title":null,"salary":100.0}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/name=third/title=[missing]/salary=100.0/myTopic(1_5).json") should be("""{"name":"third","title":null,"salary":100.0}""")
 
   }
 
@@ -475,12 +472,12 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.recursive().prefix("streamReactorBackups/")).size() should be(4)
+    listBucketPath(BucketName, "streamReactorBackups/").size should be(4)
 
-    readFileToString(BucketName, "streamReactorBackups/name=first/title=primary/myTopic(1_2).json", blobStoreContext) should be("""{"name":"first","title":"primary","salary":null}{"name":"first","title":"primary","salary":100.0}""")
-    readFileToString(BucketName, "streamReactorBackups/name=first/title=secondary/myTopic(1_1).json", blobStoreContext) should be("""{"name":"first","title":"secondary","salary":100.0}""")
-    readFileToString(BucketName, "streamReactorBackups/name=second/title=secondary/myTopic(1_5).json", blobStoreContext) should be("""{"name":"second","title":"secondary","salary":200.0}{"name":"second","title":"secondary","salary":100.0}""")
-    readFileToString(BucketName, "streamReactorBackups/name=second/title=primary/myTopic(1_4).json", blobStoreContext) should be("""{"name":"second","title":"primary","salary":100.0}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/name=first/title=primary/myTopic(1_2).json") should be("""{"name":"first","title":"primary","salary":null}{"name":"first","title":"primary","salary":100.0}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/name=first/title=secondary/myTopic(1_1).json") should be("""{"name":"first","title":"secondary","salary":100.0}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/name=second/title=secondary/myTopic(1_5).json") should be("""{"name":"second","title":"secondary","salary":200.0}{"name":"second","title":"secondary","salary":100.0}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/name=second/title=primary/myTopic(1_4).json") should be("""{"name":"second","title":"primary","salary":100.0}""")
 
   }
 
@@ -499,14 +496,14 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.recursive().prefix("streamReactorBackups/")).size() should be(6)
+    listBucketPath(BucketName, "streamReactorBackups/").size should be(6)
 
-    readFileToString(BucketName, "streamReactorBackups/first/primary/[missing]/myTopic(1_0).json", blobStoreContext) should be("""{"name":"first","title":"primary","salary":null}""")
-    readFileToString(BucketName, "streamReactorBackups/second/secondary/100.0/myTopic(1_1).json", blobStoreContext) should be("""{"name":"second","title":"secondary","salary":100.0}""")
-    readFileToString(BucketName, "streamReactorBackups/third/primary/100.0/myTopic(1_2).json", blobStoreContext) should be("""{"name":"third","title":"primary","salary":100.0}""")
-    readFileToString(BucketName, "streamReactorBackups/first/[missing]/200.0/myTopic(1_3).json", blobStoreContext) should be("""{"name":"first","title":null,"salary":200.0}""")
-    readFileToString(BucketName, "streamReactorBackups/second/[missing]/100.0/myTopic(1_4).json", blobStoreContext) should be("""{"name":"second","title":null,"salary":100.0}""")
-    readFileToString(BucketName, "streamReactorBackups/third/[missing]/100.0/myTopic(1_5).json", blobStoreContext) should be("""{"name":"third","title":null,"salary":100.0}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/first/primary/[missing]/myTopic(1_0).json") should be("""{"name":"first","title":"primary","salary":null}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/second/secondary/100.0/myTopic(1_1).json") should be("""{"name":"second","title":"secondary","salary":100.0}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/third/primary/100.0/myTopic(1_2).json") should be("""{"name":"third","title":"primary","salary":100.0}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/first/[missing]/200.0/myTopic(1_3).json") should be("""{"name":"first","title":null,"salary":200.0}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/second/[missing]/100.0/myTopic(1_4).json") should be("""{"name":"second","title":null,"salary":100.0}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/third/[missing]/100.0/myTopic(1_5).json") should be("""{"name":"third","title":null,"salary":100.0}""")
 
   }
 
@@ -533,9 +530,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    val file1Bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/1.bytes", blobStoreContext)
+    val file1Bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/1.bytes")
     file1Bytes should be(bytes)
 
   }
@@ -561,7 +558,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive()).size() should be(3)
+    listBucketPath(BucketName, "streamReactorBackups/").size should be(3)
 
     val file1CsvReader: CSVReader = openCsvReaderToBucketFile("streamReactorBackups/phonePrefix=+44/region=8/myTopic(1_0).csv")
     file1CsvReader.readNext() should be(Array("sam", "mr", "100.43"))
@@ -591,10 +588,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
-    fileList.size() should be(6)
+    val fileList = listBucketPath(BucketName, "streamReactorBackups/")
+    fileList.size should be(6)
 
-    fileList.asScala.map(file => file.getName) should contain allOf(
+    fileList should contain allOf(
       "streamReactorBackups/headerPartitionKey=0/name=first/myTopic(1_0).csv",
       "streamReactorBackups/headerPartitionKey=1/name=second/myTopic(1_1).csv",
       "streamReactorBackups/headerPartitionKey=0/name=third/myTopic(1_2).csv",
@@ -629,7 +626,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive()).size() should be(0)
+    listBucketPath(BucketName, "streamReactorBackups/").size should be(0)
 
   }
 
@@ -653,10 +650,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
-    fileList.size() should be(3)
+    val fileList = listBucketPath(BucketName, "streamReactorBackups/")
+    fileList.size should be(3)
 
-    fileList.asScala.map(file => file.getName) should contain allOf(
+    fileList should contain allOf(
       "streamReactorBackups/intheader=1/longheader=2/myTopic(1_0).csv",
       "streamReactorBackups/intheader=2/longheader=2/myTopic(1_1).csv",
       "streamReactorBackups/intheader=1/longheader=1/myTopic(2_2).csv",
@@ -682,10 +679,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
-    fileList.size() should be(6)
+    val fileList = listBucketPath(BucketName, "streamReactorBackups/")
+    fileList.size should be(6)
 
-    fileList.asScala.map(file => file.getName) should contain allOf(
+    fileList should contain allOf(
       "streamReactorBackups/key=0/myTopic(1_0).csv",
       "streamReactorBackups/key=1/myTopic(1_1).csv",
       "streamReactorBackups/key=0/myTopic(1_2).csv",
@@ -714,10 +711,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
-    fileList.size() should be(6)
+    val fileList = listBucketPath(BucketName, "streamReactorBackups/")
+    fileList.size should be(6)
 
-    fileList.asScala.map(file => file.getName) should contain allOf(
+    fileList should contain allOf(
       "streamReactorBackups/0/myTopic(1_0).csv",
       "streamReactorBackups/1/myTopic(1_1).csv",
       "streamReactorBackups/0/myTopic(1_2).csv",
@@ -746,10 +743,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
-    fileList.size() should be(6)
+    val fileList = listBucketPath(BucketName, "streamReactorBackups/")
+    fileList.size should be(6)
 
-    fileList.asScala.map(file => file.getName) should contain allOf(
+    fileList should contain allOf(
       "streamReactorBackups/myTopic/1/myTopic(1_0).csv",
       "streamReactorBackups/myTopic/1/myTopic(1_1).csv",
       "streamReactorBackups/myTopic/1/myTopic(1_2).csv",
@@ -782,8 +779,8 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
-    fileList.size() should be(0)
+    val fileList = listBucketPath(BucketName, "streamReactorBackups/")
+    fileList.size should be(0)
 
   }
 
@@ -806,10 +803,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
-    fileList.size() should be(6)
+    val fileList = listBucketPath(BucketName, "streamReactorBackups/")
+    fileList.size should be(6)
 
-    fileList.asScala.map(file => file.getName) should contain allOf(
+    fileList should contain allOf(
       "streamReactorBackups/0/myTopic(1_0).csv",
       "streamReactorBackups/1/myTopic(1_1).csv",
       "streamReactorBackups/0/myTopic(1_2).csv",
@@ -834,10 +831,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
-    fileList.size() should be(3)
+    val fileList = listBucketPath(BucketName, "streamReactorBackups/")
+    fileList.size should be(3)
 
-    fileList.asScala.map(file => file.getName) should contain allOf(
+    fileList should contain allOf(
       "streamReactorBackups/region=8/phonePrefix=+44/myTopic(1_0).csv",
       "streamReactorBackups/region=5/phonePrefix=+49/myTopic(1_1).csv",
       "streamReactorBackups/region=5/phonePrefix=+49/myTopic(1_2).csv"
@@ -876,10 +873,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
-    fileList.size() should be(3)
+    val fileList = listBucketPath(BucketName, "streamReactorBackups/")
+    fileList.size should be(3)
 
-    fileList.asScala.map(file => file.getName) should contain allOf(
+    fileList should contain allOf(
       "streamReactorBackups/region=8/name=sam/myTopic(1_0).json",
       "streamReactorBackups/region=5/name=laura/myTopic(1_1).json",
       "streamReactorBackups/region=5/name=tom/myTopic(1_2).json"
@@ -916,10 +913,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(topicPartitionsToManage)
     task.stop()
 
-    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
-    fileList.size() should be(1)
+    val fileList = listBucketPath(BucketName, "streamReactorBackups/")
+    fileList.size should be(1)
 
-    fileList.asScala.map(file => file.getName) should contain(
+    fileList should contain(
       "streamReactorBackups/myTopic/1/1.json",
     )
   }
@@ -954,10 +951,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(topicPartitionsToManage)
     task.stop()
 
-    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
-    fileList.size() should be(1)
+    val fileList = listBucketPath(BucketName, "streamReactorBackups/")
+    fileList.size should be(1)
 
-    fileList.asScala.map(file => file.getName) should contain(
+    fileList should contain(
       "streamReactorBackups/jedi=1/myTopic(0_0).json",
     )
   }
@@ -992,10 +989,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(topicPartitionsToManage)
     task.stop()
 
-    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
-    fileList.size() should be(1)
+    val fileList = listBucketPath(BucketName, "streamReactorBackups/")
+    fileList.size should be(1)
 
-    readFileToString(BucketName, "streamReactorBackups/myTopic/0/0.json", blobStoreContext) should be("""["jedi","klingons","cylons"]""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/0/0.json") should be("""["jedi","klingons","cylons"]""")
 
   }
 
@@ -1029,9 +1026,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(topicPartitionsToManage)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/0/")).size() should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/0/").size should be(1)
 
-    val bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/0/0.avro", blobStoreContext)
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/0/0.avro")
 
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)
@@ -1068,9 +1065,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(topicPartitionsToManage)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/0/")).size() should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/0/").size should be(1)
 
-    val bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/0/0.avro", blobStoreContext)
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/0/0.avro")
 
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)
@@ -1119,9 +1116,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(topicPartitionsToManage)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/0/")).size() should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/0/").size should be(1)
 
-    val bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/0/0.avro", blobStoreContext)
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/0/0.avro")
 
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)
@@ -1175,9 +1172,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(topicPartitionsToManage)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/0/")).size() should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/0/").size should be(1)
 
-    readFileToString(BucketName, "streamReactorBackups/myTopic/0/0.json", blobStoreContext) should be("""{"jedi":{"name":"sam","title":"mr","salary":100.43},"cylons":null}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/0/0.json") should be("""{"jedi":{"name":"sam","title":"mr","salary":100.43},"cylons":null}""")
 
   }
 
@@ -1211,9 +1208,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(topicPartitionsToManage)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/0/")).size() should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/0/").size should be(1)
 
-    val bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/0/0.avro", blobStoreContext)
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/0/0.avro")
 
     val genericRecords = avroFormatReader.read(bytes)
     genericRecords.size should be(1)
@@ -1298,10 +1295,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(topicPartitionsToManage)
     task.stop()
 
-    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
-    fileList.size() should be(3)
+    val fileList = listBucketPath(BucketName, "streamReactorBackups/")
+    fileList.size should be(3)
 
-    fileList.asScala.map(file => file.getName) should contain allOf(
+    fileList should contain allOf(
       "streamReactorBackups/user.name=laura/myTopic(1_0).json",
       "streamReactorBackups/user.name=sam/myTopic(0_0).json",
       "streamReactorBackups/user.name=tom/myTopic(1_1).json",
@@ -1379,10 +1376,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(topicPartitionsToManage)
     task.stop()
 
-    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
-    fileList.size() should be(3)
+    val fileList = listBucketPath(BucketName, "streamReactorBackups/")
+    fileList.size should be(3)
 
-    fileList.asScala.map(file => file.getName) should contain allOf(
+    fileList should contain allOf(
       "streamReactorBackups/favourites.band=the strokes/myTopic(1_0).json",
       "streamReactorBackups/favourites.band=the killers/myTopic(0_0).json",
       "streamReactorBackups/favourites.band=[missing]/myTopic(1_1).json",
@@ -1420,10 +1417,10 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(topicPartitionsToManage)
     task.stop()
 
-    val fileList = blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/").recursive())
-    fileList.size() should be(3)
+    val fileList = listBucketPath(BucketName, "streamReactorBackups/")
+    fileList.size should be(3)
 
-    fileList.asScala.map(file => file.getName) should contain allOf(
+    fileList should contain allOf(
       "streamReactorBackups/header1.user.name=laura/myTopic(1_0).json",
       "streamReactorBackups/header1.user.name=sam/myTopic(0_0).json",
       "streamReactorBackups/header1.user.name=tom/myTopic(1_1).json",
@@ -1449,11 +1446,11 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(3)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/0.json", blobStoreContext) should be("""{"name":"sam","title":"mr","salary":100.43}""")
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/1.json", blobStoreContext) should be("""{"name":"laura","title":"ms","salary":429.06}""")
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/2.json", blobStoreContext) should be("""{"name":"tom","title":null,"salary":395.44}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/0.json") should be("""{"name":"sam","title":"mr","salary":100.43}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1.json") should be("""{"name":"laura","title":"ms","salary":429.06}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/2.json") should be("""{"name":"tom","title":null,"salary":395.44}""")
 
   }
 
@@ -1485,11 +1482,11 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(3)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/0.json", blobStoreContext) should be("""{"name":"sam","title":"mr","salary":100.43}""")
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/1.json", blobStoreContext) should be("""{"name":"laura","title":"ms","salary":429.06}""")
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/2.json", blobStoreContext) should be("""{"name":"tom","title":null,"salary":395.44}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/0.json") should be("""{"name":"sam","title":"mr","salary":100.43}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1.json") should be("""{"name":"laura","title":"ms","salary":429.06}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/2.json") should be("""{"name":"tom","title":null,"salary":395.44}""")
 
   }
 
@@ -1511,11 +1508,11 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(3)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/0.json", blobStoreContext) should be("""{"name":"sam","title":"mr","salary":100.43}""")
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/1.json", blobStoreContext) should be("""{"name":"laura","title":"ms","salary":429.06}""")
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/2.json", blobStoreContext) should be("""{"name":"tom","title":null,"salary":395.44}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/0.json") should be("""{"name":"sam","title":"mr","salary":100.43}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/1.json") should be("""{"name":"laura","title":"ms","salary":429.06}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/2.json") should be("""{"name":"tom","title":null,"salary":395.44}""")
 
   }
 
@@ -1537,9 +1534,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    val bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/2.avro", blobStoreContext)
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/2.avro")
 
     val genericRecords1 = avroFormatReader.read(bytes)
     genericRecords1.size should be(3)
@@ -1581,9 +1578,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(1)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
-    readFileToString(BucketName, "streamReactorBackups/myTopic/1/2.json", blobStoreContext) should be("""{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}{"name":"tom","title":null,"salary":395.44}""")
+    remoteFileAsString(BucketName, "streamReactorBackups/myTopic/1/2.json") should be("""{"name":"sam","title":"mr","salary":100.43}{"name":"laura","title":"ms","salary":429.06}{"name":"tom","title":null,"salary":395.44}""")
 
   }
 
@@ -1620,9 +1617,9 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
     task.close(Seq(new TopicPartition(TopicName, 1)).asJava)
     task.stop()
 
-    blobStoreContext.getBlobStore.list(BucketName, ListContainerOptions.Builder.prefix("streamReactorBackups/myTopic/1/")).size() should be(3)
+    listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 
-    val bytes = S3TestPayloadReader.readPayload(BucketName, "streamReactorBackups/myTopic/1/0.avro", blobStoreContext)
+    val bytes = remoteFileAsBytes(BucketName, "streamReactorBackups/myTopic/1/0.avro")
 
     val genericRecords1 = avroFormatReader.read(bytes)
     genericRecords1.size should be(1)
@@ -1650,7 +1647,7 @@ class S3SinkTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with Mo
   }
 
   private def openCsvReaderToBucketFile(bucketFileName: String) = {
-    val file1Bytes = S3TestPayloadReader.readPayload(BucketName, bucketFileName, blobStoreContext)
+    val file1Bytes = remoteFileAsBytes(BucketName, bucketFileName)
 
     val file1Reader = new StringReader(new String(file1Bytes))
     new CSVReader(file1Reader)

@@ -18,12 +18,13 @@
 package io.lenses.streamreactor.connect.aws.s3.storage
 
 import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestPayloadReader
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.RemoteFileTestHelper
 import org.jclouds.blobstore.domain._
 import org.jclouds.blobstore.domain.internal.{PageSetImpl, StorageMetadataImpl}
 import org.jclouds.blobstore.options.{ListContainerOptions, PutOptions}
 import org.jclouds.blobstore.{BlobStore, BlobStoreContext}
-import org.jclouds.io.payloads.ByteSourcePayload
+import org.jclouds.io.Payload
+import org.jclouds.io.payloads.{ByteSourcePayload, InputStreamPayload}
 import org.mockito.ArgumentMatchers._
 import org.mockito.{ArgumentCaptor, ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfter
@@ -32,7 +33,7 @@ import org.scalatest.matchers.should.Matchers
 
 import scala.collection.JavaConverters._
 
-class MultipartBlobStoreStorageInterfaceTest extends AnyFlatSpec with MockitoSugar with Matchers with BeforeAndAfter {
+class JCloudsStorageInterfaceTest extends AnyFlatSpec with MockitoSugar with Matchers with BeforeAndAfter {
 
   private val blobStoreContext: BlobStoreContext = mock[BlobStoreContext]
   private val blobStore: BlobStore = mock[BlobStore]
@@ -40,7 +41,15 @@ class MultipartBlobStoreStorageInterfaceTest extends AnyFlatSpec with MockitoSug
 
   when(blobStoreContext.getBlobStore).thenReturn(blobStore)
 
-  private val multipartBlobStoreStorageInterface = new MultipartBlobStoreStorageInterface("test", blobStoreContext)
+
+  private implicit val jCloudsStorageInterface: JCloudsStorageInterface = new JCloudsStorageInterface("test", blobStoreContext) {
+    override def pathExists(bucketAndPrefix: RemoteS3RootLocation): Either[Throwable, Boolean] = ???
+
+    override def list(bucketAndPrefix: RemoteS3RootLocation, lastFile: Option[RemoteS3PathLocation], numResults: Int): Either[Throwable, List[String]] = ???
+  }
+
+  private val payloadReader = new RemoteFileTestHelper
+  import payloadReader._
 
   before {
     reset(blobStore)
@@ -53,7 +62,7 @@ class MultipartBlobStoreStorageInterfaceTest extends AnyFlatSpec with MockitoSug
     when(blobStore.initiateMultipartUpload(anyString(), any(classOf[BlobMetadata]), any(classOf[PutOptions])))
       .thenReturn(multipartUpload)
 
-    val newState = multipartBlobStoreStorageInterface.initUpload(testBucketAndPath)
+    val newState = jCloudsStorageInterface.initUpload(testBucketAndPath)
 
     newState.parts should be(List())
   }
@@ -61,26 +70,26 @@ class MultipartBlobStoreStorageInterfaceTest extends AnyFlatSpec with MockitoSug
   "uploadPart" should "call blob store and add part to the state" in {
 
     val multipartPart = mock[MultipartPart]
-    val payloadCaptor: ArgumentCaptor[ByteSourcePayload] = ArgumentCaptor.forClass(classOf[ByteSourcePayload])
+    val payloadCaptor: ArgumentCaptor[Payload] = ArgumentCaptor.forClass(classOf[ByteSourcePayload])
     when(blobStore.uploadMultipartPart(any(classOf[MultipartUpload]), anyInt(), payloadCaptor.capture())).thenReturn(multipartPart)
 
     val uploadState = createUploadState(existingBufferBytes = nBytes(8, 'X'))
 
     val bytesToUpload = "Sausages".getBytes()
 
-    val updatedState = multipartBlobStoreStorageInterface.uploadPart(uploadState, bytesToUpload)
+    val updatedState = jCloudsStorageInterface.uploadPart(uploadState, bytesToUpload)
     updatedState.parts should contain(multipartPart)
 
-    val submittedPayloads: Seq[ByteSourcePayload] = payloadCaptor.getAllValues.asScala.toList
+    val submittedPayloads: List[Payload] = payloadCaptor.getAllValues.asScala.toList
     submittedPayloads should have size 1
-    S3TestPayloadReader.extractPayload(submittedPayloads.head) should be("Sausages")
+    streamToString(submittedPayloads.head.openStream()) should be("Sausages")
   }
 
   "completeUpload" should "complete the upload" in {
 
     val uploadState: MultiPartUploadState = createUploadState()
 
-    multipartBlobStoreStorageInterface.completeUpload(uploadState)
+    jCloudsStorageInterface.completeUpload(uploadState)
 
     verify(blobStore).completeMultipartUpload(
       any(classOf[MultipartUpload]),

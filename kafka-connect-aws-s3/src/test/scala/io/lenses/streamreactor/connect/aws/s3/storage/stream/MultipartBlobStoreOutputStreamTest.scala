@@ -1,6 +1,6 @@
 
 /*
- * Copyright 2020 Lenses.io
+ * Copyright 2021 Lenses.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,11 +15,12 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.storage
+package io.lenses.streamreactor.connect.aws.s3.storage.stream
 
 import io.lenses.streamreactor.connect.aws.s3.model.Offset
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.processing._
+import io.lenses.streamreactor.connect.aws.s3.storage.MultiPartUploadState
 import org.jclouds.blobstore.domain.MultipartUpload
 import org.mockito.ArgumentMatchers._
 import org.mockito.{ArgumentCaptor, MockitoSugar}
@@ -145,7 +146,7 @@ class MultipartBlobStoreOutputStreamTest extends AnyFlatSpec with MockitoSugar w
     implicit val queueProcessor = mock[BlockingQueueProcessor]
     when(queueProcessor.hasOperations).thenReturn(false)
 
-    val target = new MultipartBlobStoreOutputStream(testBucketAndPath, Offset(0), minAllowedMultipartSize = MinFileSizeBytes, updateOffsetFn = (_) => () => ())
+    val target = new MultipartBlobStoreOutputStream(testBucketAndPath, Offset(0), updateOffsetFn = (_) => () => (), MinFileSizeBytes)
 
     private val multipartUpload: MultipartUpload = mock[MultipartUpload]
     when(multipartUpload.containerName()).thenReturn("myContainerName")

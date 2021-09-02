@@ -22,7 +22,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3RootLocation
 import io.lenses.streamreactor.connect.aws.s3.sink.HierarchicalS3FileNamingStrategy
-import io.lenses.streamreactor.connect.aws.s3.storage.{AwsS3ListFilesStorageInterface, ListFilesStorageInterface, StorageInterface}
+import io.lenses.streamreactor.connect.aws.s3.storage.{AwsS3StorageInterface, StorageInterface}
 import org.mockito.MockitoSugar
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

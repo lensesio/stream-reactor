@@ -22,16 +22,9 @@ import org.eclipse.jetty.util.component.AbstractLifeCycle
 import org.gaul.s3proxy.S3Proxy
 import org.jclouds.ContextBuilder
 import org.jclouds.blobstore.BlobStoreContext
-import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCredentialsProvider}
-import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder
-import software.amazon.awssdk.regions.Region
-import software.amazon.awssdk.services.s3.model.{CreateBucketRequest, Delete, DeleteObjectsRequest, DeleteObjectsResponse, ListObjectsRequest, ListObjectsV2Request, ObjectIdentifier}
-import software.amazon.awssdk.services.s3.{S3Client, S3ClientBuilder}
 
 import java.net.URI
 import java.util.Properties
-import scala.collection.JavaConverters._
-import scala.util.Try
 
 object S3ProxyContext {
 
@@ -84,46 +77,6 @@ class S3ProxyContext extends LazyLogging {
     }) Thread.sleep(1)
 
     proxy
-  }
-
-  def createTestBucket: Try[DeleteObjectsResponse] = {
-
-    // create bucket using the proper client
-
-    val s3Client = S3Client
-      .builder()
-      .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(Identity, Credential)))
-      .endpointOverride(URI.create(Uri))
-      .region(Region.US_EAST_1)
-      .build()
-
-
-    // I don't care if it already exists
-    Try(s3Client.createBucket(CreateBucketRequest.builder().bucket(TestBucket).build()))
-
-    Try(clearTestBucket(s3Client))
-
-  }
-
-  def clearTestBucket(s3Client: S3Client): DeleteObjectsResponse = {
-    val toDelete = s3Client.listObjectsV2(ListObjectsV2Request.builder().bucket(TestBucket).build()).contents().asScala
-    val toDeleteArray = toDelete.map(delMe => ObjectIdentifier.builder().key(delMe.key()).build())
-    val delete = Delete.builder().objects(toDeleteArray: _*).build
-    s3Client.deleteObjects(DeleteObjectsRequest.builder().bucket(TestBucket).delete(delete).build())
-  }
-
-  def createBlobStoreContext: BlobStoreContext = {
-
-    val overrides = new Properties()
-    overrides.put(org.jclouds.s3.reference.S3Constants.PROPERTY_S3_VIRTUAL_HOST_BUCKETS, "false")
-
-    ContextBuilder
-      .newBuilder("aws-s3")
-      .credentials(S3ProxyContext.Identity, S3ProxyContext.Credential)
-      .overrides(overrides)
-      .endpoint(S3ProxyContext.Uri)
-      .buildView(classOf[BlobStoreContext])
-
   }
 
 }

@@ -16,108 +16,95 @@
  */
 
 package io.lenses.streamreactor.connect.aws.s3.sink.utils
-
-import com.google.common.io.ByteStreams
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.storage.MultipartBlobStoreStorageInterface
-import org.apache.commons.io.FileUtils
-import org.jclouds.blobstore.BlobStoreContext
-import org.jclouds.io.Payload
+import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
+import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, S3Config}
+import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither._
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContext.{Credential, Identity, TestBucket}
+import io.lenses.streamreactor.connect.aws.s3.storage.S3StorageInterface
 import org.scalatest.BeforeAndAfter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCredentialsProvider}
+import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.{CreateBucketRequest, Delete, DeleteObjectsRequest, ObjectIdentifier}
 
-import java.io._
-import java.nio.charset.StandardCharsets
-import java.util.Scanner
-import java.util.stream.Collectors
-
-object S3TestPayloadReader extends Matchers {
-
-  def readFileToString(bucketName: String, fileName: String, blobStoreContext: BlobStoreContext): String = {
-    try {
-      val payload: Payload = S3TestPayloadReader.getPayload(bucketName, fileName, blobStoreContext)
-      S3TestPayloadReader.extractPayload(payload)
-    } catch {
-      case t: Throwable => fail("Unable to read file", t)
-    }
-  }
-
-  def fileExists(bucketName: String, path: String, blobStoreContext: BlobStoreContext): Boolean = blobStoreContext.getBlobStore.blobExists(bucketName, path)
-
-  def extractPayload(payload: Payload): String = {
-    val state = new Scanner(payload.openStream(), StandardCharsets.UTF_8.name).useDelimiter("\\Z").next
-    new BufferedReader(new StringReader(state)).lines().collect(Collectors.joining())
-  }
-
-  def writeToFile(bucketName: String, fileName: String, blobStoreContext: BlobStoreContext, localFileName: String): Unit = {
-    val bytes = readPayload(bucketName, fileName, blobStoreContext)
-    FileUtils.writeByteArrayToFile(new File(localFileName), bytes)
-  }
-
-  def readPayload(bucketName: String, fileName: String, blobStoreContext: BlobStoreContext): Array[Byte] = {
-    toByteArray(getPayload(bucketName, fileName, blobStoreContext))
-  }
-
-  def getPayload(bucketName: String, fileName: String, blobStoreContext: BlobStoreContext): Payload = {
-    blobStoreContext.getBlobStore.getBlob(bucketName, fileName).getPayload
-  }
-
-  def toByteArray(payload: Payload): Array[Byte] = {
-    ByteStreams.toByteArray(payload.openStream())
-  }
-
-  def copyResourceToBucket(
-                            resourceSourceFilename: String,
-                            blobStoreContainerName: String,
-                            blobStoreTargetFilename: String,
-                            blobStoreContext: BlobStoreContext
-                          ): String = {
-
-    require(blobStoreContext.getBlobStore.containerExists(blobStoreContainerName))
-    val inputStream = classOf[S3TestConfig].getResourceAsStream(resourceSourceFilename)
-    require(inputStream != null)
-    val contentLength = inputStream.available()
-    blobStoreContext.getBlobStore.putBlob(
-      blobStoreContainerName,
-      blobStoreContext
-        .getBlobStore
-        .blobBuilder(blobStoreTargetFilename)
-        .payload(inputStream)
-        .contentLength(contentLength)
-        .build()
-    )
-  }
+import java.net.URI
+import scala.util.Try
 
 
-  def fileLengthBytes(
-                       resourceSourceFilename: String
-                     ): Int = {
 
-    val inputStream = classOf[S3TestConfig].getResourceAsStream(resourceSourceFilename)
-    require(inputStream != null)
-    inputStream.available()
-  }
-}
-
-trait S3TestConfig extends AnyFlatSpec with BeforeAndAfter with LazyLogging {
+trait S3TestConfig extends AnyFlatSpec with BeforeAndAfter with Matchers with LazyLogging {
 
   protected val proxyContext: S3ProxyContext = new S3ProxyContext()
 
-  implicit val blobStoreContext: BlobStoreContext = proxyContext.createBlobStoreContext
-  implicit val storageInterface: MultipartBlobStoreStorageInterface = new MultipartBlobStoreStorageInterface("test", blobStoreContext)
+  private val s3Config = S3Config(
+    accessKey = Some(S3ProxyContext.Identity),
+    secretKey = Some(S3ProxyContext.Credential),
+    authMode = AuthMode.Credentials,
+    customEndpoint = Some(S3ProxyContext.Uri),
+    enableVirtualHostBuckets = true,
+  )
+  private val storageInterfaceS3ClientEither = for {
+    authResource <- Try {new AuthResources(s3Config)}.toEither
+    awsAuthResource <- authResource.aws
+    jCloudsAuthResource <- authResource.jClouds
+    storageInterface <- Try {new S3StorageInterface("test", awsAuthResource, jCloudsAuthResource)}.toEither
+  } yield (storageInterface, awsAuthResource)
+
+  implicit val storageInterface: S3StorageInterface = storageInterfaceS3ClientEither.toThrowable("testSink")._1
+  private val s3Client: S3Client = storageInterfaceS3ClientEither.toThrowable("testSink")._2
 
   val BucketName: String = S3ProxyContext.TestBucket
+  private var bucketExists = false
 
   before {
     logger.debug("Starting proxy")
     proxyContext.startProxy
-    logger.debug("Creating test bucket")
-    proxyContext.createTestBucket
+
+    if (!bucketExists) {
+      logger.debug("Creating test bucket")
+      createTestBucket()// should be ('right)
+      bucketExists = true
+    }
+
+    clearTestBucket()
+
   }
 
   after {
     proxyContext.stopProxy
   }
 
+  val helper = new RemoteFileTestHelper()
+
+  private def clearTestBucket(): Either[Throwable, Unit] = {
+    Try {
+
+      val toDeleteArray = helper
+        .listBucketPath(BucketName, "")
+        .map(ObjectIdentifier.builder().key(_).build())
+      val delete = Delete.builder().objects(toDeleteArray: _*).build
+      s3Client.deleteObjects(DeleteObjectsRequest.builder().bucket(TestBucket).delete(delete).build())
+
+    }.toEither.right.map(_ => ())
+  }
+
+  private def createTestBucket(): Either[Throwable, Unit] = {
+
+    // Create the bucket using the AWS client.
+    // The only difference between this and using the s3Client already available is that the region is set.
+
+    val s3Client = S3Client
+      .builder()
+      .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(Identity, Credential)))
+      .endpointOverride(URI.create(S3ProxyContext.Uri))
+      .region(Region.US_EAST_1)
+      .build()
+
+
+    // I don't care if it already exists
+    Try(s3Client.createBucket(CreateBucketRequest.builder().bucket(TestBucket).build())).toEither.right.map(_ => ())
+  }
 }

@@ -23,7 +23,7 @@ import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocationWithLine, RemoteS3RootLocation}
 import io.lenses.streamreactor.connect.aws.s3.source.SourceRecordConverter.convertToSourceRecordList
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
-import io.lenses.streamreactor.connect.aws.s3.storage.{AwsS3ListFilesStorageInterface, MultipartBlobStoreStorageInterface}
+import io.lenses.streamreactor.connect.aws.s3.storage.{AwsS3StorageInterface, JCloudsStorageInterface, S3StorageInterface}
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import java.util
@@ -59,8 +59,7 @@ class S3SourceTask extends SourceTask with LazyLogging {
       authResources = new AuthResources(config.s3Config)
       jCloudsAuth <- authResources.jClouds
       awsAuth <- authResources.aws
-      storageInterface <- Try(new MultipartBlobStoreStorageInterface(getSourceName(props).getOrElse("EmptySourceName"), jCloudsAuth)).toEither
-      listStorageInterface <- Try(new AwsS3ListFilesStorageInterface(awsAuth)).toEither
+      storageInterface <- Try(new S3StorageInterface(getSourceName(props).getOrElse("EmptySourceName"), awsAuth, jCloudsAuth)).toEither
       readerManagers = config.bucketOptions.map(
         bOpts =>
           new S3BucketReaderManager(
@@ -70,11 +69,11 @@ class S3SourceTask extends SourceTask with LazyLogging {
             new S3SourceFileQueue(
               bOpts.sourceBucketAndPrefix,
               bOpts.filesLimit,
-              new S3SourceLister(bOpts.format.format)(listStorageInterface),
+              new S3SourceLister(bOpts.format.format)(storageInterface),
             ),
             new ResultReader(bOpts.sourceBucketAndPrefix.prefixOrDefault(), bOpts.targetTopic),
           )(
-            storageInterface, listStorageInterface
+            storageInterface
           )
       )
     } yield readerManagers

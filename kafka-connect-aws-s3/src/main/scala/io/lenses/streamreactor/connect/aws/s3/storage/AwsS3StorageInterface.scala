@@ -15,6 +15,7 @@
  */
 
 package io.lenses.streamreactor.connect.aws.s3.storage
+import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
@@ -22,7 +23,7 @@ import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 import scala.jdk.CollectionConverters.asScalaBufferConverter
 import scala.util.Try
 
-class AwsS3ListFilesStorageInterface(s3Client: S3Client) extends ListFilesStorageInterface {
+abstract class AwsS3StorageInterface(s3Client: S3Client) extends StorageInterface with LazyLogging {
 
   override def list(bucketAndPrefix: RemoteS3RootLocation, lastFile: Option[RemoteS3PathLocation], numResults: Int): Either[Throwable, List[String]] = {
 
@@ -57,4 +58,5 @@ class AwsS3ListFilesStorageInterface(s3Client: S3Client) extends ListFilesStorag
 
     }.toEither
   }
+
 }

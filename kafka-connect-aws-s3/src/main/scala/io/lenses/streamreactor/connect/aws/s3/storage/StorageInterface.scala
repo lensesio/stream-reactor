@@ -41,8 +41,6 @@ trait StorageInterface {
 
   def close(): Unit
 
-  def pathExists(bucketAndPrefix: RemoteS3RootLocation): Boolean
-
   def pathExists(bucketAndPath: RemoteS3PathLocation): Boolean
 
   def list(bucketAndPrefix: RemoteS3PathLocation): List[String]
@@ -50,6 +48,14 @@ trait StorageInterface {
   def getBlob(bucketAndPath: RemoteS3PathLocation): InputStream
 
   def getBlobSize(bucketAndPath: RemoteS3PathLocation): Long
+
+  def pathExists(bucketAndPrefix: RemoteS3RootLocation): Either[Throwable, Boolean]
+
+  def list(
+            bucketAndPrefix: RemoteS3RootLocation,
+            lastFile : Option[RemoteS3PathLocation],
+            numResults : Int
+          ): Either[Throwable, List[String]]
 
 }
 

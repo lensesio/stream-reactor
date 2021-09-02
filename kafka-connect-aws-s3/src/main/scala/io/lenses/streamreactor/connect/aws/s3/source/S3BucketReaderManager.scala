@@ -17,12 +17,11 @@
 package io.lenses.streamreactor.connect.aws.s3.source
 
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatSelection}
+import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatStreamReader
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocationWithLine
-import io.lenses.streamreactor.connect.aws.s3.source.config.SourceBucketOptions
-import io.lenses.streamreactor.connect.aws.s3.storage.{ListFilesStorageInterface, StorageInterface}
+import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.apache.kafka.common.errors.OffsetOutOfRangeException
 
 sealed trait ReaderState extends AutoCloseable {
@@ -68,7 +67,6 @@ class S3BucketReaderManager(
                              resultReader: ResultReader
                            )(
                              implicit storageInterface: StorageInterface,
-                             listFilesStorageInterface: ListFilesStorageInterface,
                            ) extends LazyLogging with AutoCloseable {
 
   private var state: ReaderState = EmptyReaderState()
@@ -96,13 +94,12 @@ class S3BucketReaderManager(
         case InitialisedReaderState(currentReader) =>
           resultReader.retrieveResults(currentReader, allLimit) match {
             case None => state = toReaderCompleteState(currentReader)
-            case Some(pollResults) => {
+            case Some(pollResults) =>
               allLimit -= pollResults.resultList.size
               allResults = allResults :+ pollResults
               if (pollResults.resultList.size < allLimit) {
                 state = toReaderCompleteState(currentReader)
               }
-            }
           }
         case _ =>
       }
@@ -130,7 +127,7 @@ class S3BucketReaderManager(
       case Left(exception: Throwable) =>
         ExceptionReaderState(exception)
       case Right(Some(nextFile)) =>
-        logger.debug(s"refreshStateForNextReader - Next file (${nextFile}) found")
+        logger.debug(s"refreshStateForNextReader - Next file ($nextFile) found")
         setUpReader(nextFile) match {
           case Some(value) => InitialisedReaderState(value)
           case None => ExceptionReaderState(new IllegalStateException(s"Cannot load requested next file $nextFile"))

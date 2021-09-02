@@ -30,7 +30,7 @@ import java.util.UUID
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-class MultipartBlobStoreStorageInterface(sinkName: String, blobStoreContext: BlobStoreContext) extends StorageInterface with LazyLogging {
+abstract class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreContext) extends StorageInterface with LazyLogging {
 
   private val blobStore = blobStoreContext.getBlobStore
   private val awsMaxKeys = 1000
@@ -123,9 +123,6 @@ class MultipartBlobStoreStorageInterface(sinkName: String, blobStoreContext: Blo
   }
 
   override def close(): Unit = blobStoreContext.close()
-
-  override def pathExists(bucketAndPrefix: RemoteS3RootLocation): Boolean =
-    blobStore.list(bucketAndPrefix.bucket, ListContainerOptions.Builder.prefix(bucketAndPrefix.prefixOrDefault)).size() > 0
 
   override def pathExists(bucketAndPath: RemoteS3PathLocation): Boolean =
     blobStore.list(bucketAndPath.bucket, ListContainerOptions.Builder.prefix(bucketAndPath.path)).size() > 0

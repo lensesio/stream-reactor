@@ -6,7 +6,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.BytesWriteMode.KeyAndValueWi
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import io.lenses.streamreactor.connect.aws.s3.model.{ByteArraySinkData, Offset, StructSinkData}
 import io.lenses.streamreactor.connect.aws.s3.sink.utils.TestSampleSchemaAndData.{schema, topic}
-import io.lenses.streamreactor.connect.aws.s3.storage.{S3ByteArrayOutputStream, S3OutputStream}
+import io.lenses.streamreactor.connect.aws.s3.storage.stream.{S3ByteArrayOutputStream, S3OutputStream}
 import org.apache.commons.io.FileUtils
 import org.apache.kafka.connect.data.Struct
 import org.scalacheck.Gen

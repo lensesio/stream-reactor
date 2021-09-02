@@ -32,9 +32,9 @@ case object RemoteS3RootLocation {
 }
 
 case class RemoteS3RootLocation(
-                               bucket: String,
-                               prefix: Option[String]
-                             ) extends RootLocation[RemoteS3PathLocation] {
+                                 bucket: String,
+                                 prefix: Option[String]
+                               ) extends RootLocation[RemoteS3PathLocation] {
 
   BucketUtils.isValidDnsBucketName(bucket, true)
 
@@ -48,9 +48,9 @@ case class RemoteS3RootLocation(
 }
 
 case class RemoteS3PathLocation(
-                               bucket: String,
-                               override val path: String
-                             ) extends PathLocation {
+                                 bucket: String,
+                                 override val path: String
+                               ) extends PathLocation {
 
   /**
     * Given a LocalRootLocation, returns a new LocalPathLocation with the path including the remote location.
@@ -73,5 +73,5 @@ case class RemoteS3PathLocation(
 
 case class RemoteS3PathLocationWithLine(file: RemoteS3PathLocation, line: Int) {
   // TODO: use option instead of -1
-  def isFromStart : Boolean = line == -1
+  def isFromStart: Boolean = line == -1
 }
