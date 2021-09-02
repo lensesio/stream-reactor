@@ -2,10 +2,16 @@ package io.lenses.streamreactor.connect.aws.s3.source
 
 import cats.implicits._
 import com.typesafe.scalalogging.LazyLogging
-import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatOptions}
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestConfig
+import io.lenses.streamreactor.connect.aws.s3.config.Format.Bytes
+import io.lenses.streamreactor.connect.aws.s3.config.FormatOptions.{KeyAndValueWithSizes, ValueOnly, WithHeaders}
+import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
+import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, Format, FormatOptions}
+import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContext._
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig}
 import org.apache.kafka.connect.source.SourceTaskContext
 import org.apache.kafka.connect.storage.OffsetStorageReader
+import org.scalatest.BeforeAndAfter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks._
@@ -13,24 +19,34 @@ import org.scalatest.prop.TableDrivenPropertyChecks._
 import java.util
 import scala.collection.JavaConverters._
 
-class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with LazyLogging {
+class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with LazyLogging with BeforeAndAfter {
 
   val bucketSetup = new BucketSetup()
   import bucketSetup._
 
-  private val formats = Table(
-    ("format", "formatOptionOption"),
-    (Format.Avro, None),
-    (Format.Json, None),
-    (Format.Parquet, None),
-    (Format.Csv, Some(FormatOptions.WithHeaders)),
-    (Format.Csv, None),
+  val DefaultProps = Map(
+    AWS_ACCESS_KEY -> Identity,
+    AWS_SECRET_KEY -> Credential,
+    AWS_REGION -> "eu-west-1",
+    AUTH_MODE -> AuthMode.Credentials.toString,
+    CUSTOM_ENDPOINT -> S3ProxyContext.Uri,
+    ENABLE_VIRTUAL_HOST_BUCKETS -> "true"
   )
 
-  "blobstore get input stream" should "reveal availability" in {
-    setUpBucketData(BucketName, Format.Json, None)
+  private val formats = Table(
+    ("format", "formatOptionOption", "dirName"),
+    (Format.Avro, None, "avro"),
+    (Format.Json, None, "json"),
+    (Format.Parquet, None, "parquet"),
+    (Format.Csv, Some(FormatOptions.WithHeaders), "csvheaders"),
+    (Format.Csv, None, "csvnoheaders"),
+  )
 
-    val inputStream = helper.remoteFileAsStream(BucketName, s"$PrefixName/$TopicName/0/399.json")
+
+
+  "blobstore get input stream" should "reveal availability" in {
+
+    val inputStream = helper.remoteFileAsStream(BucketName, s"$PrefixName/json/$TopicName/0/399.json")
     val initialAvailable = inputStream.available()
 
     var expectedAvailable = initialAvailable
@@ -43,10 +59,8 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
 
   "task" should "read stored files continuously" in {
     forAll(formats) {
-      (format, formatOptions) =>
+      (format, formatOptions, dir) =>
         val t1 = System.currentTimeMillis()
-
-        setUpBucketData(BucketName, format, formatOptions)
 
         val task = new S3SourceTask()
 
@@ -54,7 +68,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
 
         val props = DefaultProps
           .combine(
-            Map("connect.s3.kcql" -> s"insert into $TopicName select * from $BucketName:$PrefixName STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
+            Map("connect.s3.kcql" -> s"insert into $TopicName select * from $BucketName:$PrefixName/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
           ).asJava
 
         task.start(props)
@@ -92,8 +106,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
 
   "task" should "resume from a specific offset through initialize" in {
     forAll(formats) {
-      (format, formatOptions) =>
-        setUpBucketData(BucketName, format, formatOptions)
+      (format, formatOptions, dir) =>
         val formatExtensionString = generateFormatString(formatOptions)
 
         val task = new S3SourceTask()
@@ -103,7 +116,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
 
           override def offsetStorageReader(): OffsetStorageReader = new OffsetStorageReader {
             override def offset[T](partition: util.Map[String, T]): util.Map[String, AnyRef] = Map(
-              "path" -> s"$PrefixName/$TopicName/0/399.${format.entryName.toLowerCase}",
+              "path" -> s"$PrefixName/$dir/$TopicName/0/399.${format.entryName.toLowerCase}",
               "line" -> "9".asInstanceOf[Object]
             ).asJava
 
@@ -114,7 +127,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
 
         val props = DefaultProps
           .combine(
-            Map("connect.s3.kcql" -> s"insert into $TopicName select * from $BucketName:$PrefixName STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
+            Map("connect.s3.kcql" -> s"insert into $TopicName select * from $BucketName:$PrefixName/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
           ).asJava
 
         task.start(props)
@@ -148,8 +161,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
 
   "task" should "read stored bytes files continuously" in {
     val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.ValueOnly))
-
-    setUpBucketData(BucketName, format, formatOptions)
+    val dir = "bytesval"
 
     val task = new S3SourceTask()
 
@@ -157,7 +169,7 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
 
     val props = DefaultProps
       .combine(
-        Map("connect.s3.kcql" -> s"insert into $TopicName select * from $BucketName:$PrefixName STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
+        Map("connect.s3.kcql" -> s"insert into $TopicName select * from $BucketName:$PrefixName/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
       ).asJava
 
     task.start(props)
@@ -179,15 +191,14 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
   "task" should "read stored bytes key/value files continuously" in {
     val (format, formatOptions) = (Format.Bytes, Some(FormatOptions.KeyAndValueWithSizes))
 
-    setUpBucketData(BucketName, format, formatOptions)
-
+    val dir = "byteskv"
     val task = new S3SourceTask()
 
     val formatExtensionString = generateFormatString(formatOptions)
 
     val props = DefaultProps
       .combine(
-        Map("connect.s3.kcql" -> s"insert into $TopicName select * from $BucketName:$PrefixName STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
+        Map("connect.s3.kcql" -> s"insert into $TopicName select * from $BucketName:$PrefixName/$dir STOREAS `${format.entryName}$formatExtensionString` LIMIT 190")
       ).asJava
 
     task.start(props)
@@ -221,4 +232,15 @@ class S3SourceTaskTest extends AnyFlatSpec with Matchers with S3TestConfig with 
     sourceRecords1.get(0).value() should be("somestring".getBytes)
   }
 
+  override def cleanUpEnabled: Boolean = false
+
+  override def setUpTestData(): Unit = {
+    formats.foreach{
+      case (format: Format, formatOptions: Option[FormatOptions], dir: String) =>
+        setUpBucketData(BucketName, format, formatOptions, dir)
+    }
+
+    setUpBucketData(BucketName, Bytes, Some(KeyAndValueWithSizes), "byteskv")
+    setUpBucketData(BucketName, Bytes, Some(ValueOnly), "bytesval")
+  }
 }

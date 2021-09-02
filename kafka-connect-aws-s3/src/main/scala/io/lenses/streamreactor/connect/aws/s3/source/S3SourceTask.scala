@@ -21,9 +21,10 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocationWithLine, RemoteS3RootLocation}
+import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither.toJavaThrowableConverter
 import io.lenses.streamreactor.connect.aws.s3.source.SourceRecordConverter.convertToSourceRecordList
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
-import io.lenses.streamreactor.connect.aws.s3.storage.{AwsS3StorageInterface, JCloudsStorageInterface, S3StorageInterface}
+import io.lenses.streamreactor.connect.aws.s3.storage.{AwsS3StorageInterface, JCloudsStorageInterface}
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
 
 import java.util
@@ -35,6 +36,8 @@ class S3SourceTask extends SourceTask with LazyLogging {
   private val manifest = JarManifest(getClass.getProtectionDomain.getCodeSource.getLocation)
 
   private var readerManagers: Seq[S3BucketReaderManager] = _
+
+  private var sourceName: String = _
 
   override def version(): String = manifest.version()
 
@@ -49,6 +52,7 @@ class S3SourceTask extends SourceTask with LazyLogging {
     * Start sets up readers for every configured connection in the properties
     * */
   override def start(props: util.Map[String, String]): Unit = {
+    sourceName = getSourceName(props).getOrElse("MissingSourceName")
 
     logger.debug(s"Received call to S3SourceTask.start with ${props.size()} properties")
 
@@ -59,7 +63,8 @@ class S3SourceTask extends SourceTask with LazyLogging {
       authResources = new AuthResources(config.s3Config)
       jCloudsAuth <- authResources.jClouds
       awsAuth <- authResources.aws
-      storageInterface <- Try(new S3StorageInterface(getSourceName(props).getOrElse("EmptySourceName"), awsAuth, jCloudsAuth)).toEither
+      storageInterface <- Try(new JCloudsStorageInterface(getSourceName(props).getOrElse("EmptySourceName"), jCloudsAuth)).toEither
+      sourceStorageInterface <- Try(new AwsS3StorageInterface(awsAuth)).toEither
       readerManagers = config.bucketOptions.map(
         bOpts =>
           new S3BucketReaderManager(
@@ -69,7 +74,7 @@ class S3SourceTask extends SourceTask with LazyLogging {
             new S3SourceFileQueue(
               bOpts.sourceBucketAndPrefix,
               bOpts.filesLimit,
-              new S3SourceLister(bOpts.format.format)(storageInterface),
+              new S3SourceLister(bOpts.format.format)(sourceStorageInterface),
             ),
             new ResultReader(bOpts.sourceBucketAndPrefix.prefixOrDefault(), bOpts.targetTopic),
           )(
@@ -78,11 +83,7 @@ class S3SourceTask extends SourceTask with LazyLogging {
       )
     } yield readerManagers
 
-    eitherErrOrReaderMan match {
-      case Left(err: Throwable) => throw err
-      case Left(err: String) => throw new IllegalStateException(err)
-      case Right(readerMan) => readerManagers = readerMan
-    }
+    readerManagers = eitherErrOrReaderMan.toThrowable(sourceName)
   }
 
   override def stop(): Unit = {

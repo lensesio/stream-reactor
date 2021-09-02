@@ -16,7 +16,7 @@
 
 project(":kafka-connect-cassandra") {
     if(JavaVersion.current() != JavaVersion.VERSION_1_8){
-        throw new GradleException("This build must be run with java 8")
+        throw new GradleException("This build must be run with java 8, it is " + JavaVersion.current())
     }
     ext {
         cassandraDriverVersion = "3.7.1"

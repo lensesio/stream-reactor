@@ -24,6 +24,7 @@ import org.jclouds.ContextBuilder
 import org.jclouds.blobstore.BlobStoreContext
 
 import java.net.URI
+import java.nio.file.Files
 import java.util.Properties
 
 object S3ProxyContext {
@@ -44,8 +45,9 @@ class S3ProxyContext extends LazyLogging {
 
   def createProxy: S3Proxy = {
 
+    val tmpDir = Files.createTempDirectory("blobStore")
     val properties = new Properties()
-    properties.setProperty("jclouds.filesystem.basedir", "/tmp/blobstore")
+    properties.setProperty("jclouds.filesystem.basedir", tmpDir.toAbsolutePath.toString)
 
     val context: BlobStoreContext = ContextBuilder
       .newBuilder("filesystem")

@@ -19,6 +19,7 @@ package io.lenses.streamreactor.connect.aws.s3.auth
 import cats.implicits.catsSyntaxEitherId
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, S3Config}
 import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, AwsCredentials, AwsCredentialsProvider, DefaultCredentialsProvider}
+import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.{S3Client, S3Configuration}
 
 import java.net.URI
@@ -45,6 +46,12 @@ class AwsS3ClientCreator(config: S3Config) {
           .serviceConfiguration(s3Config)
           .credentialsProvider(credsProv)
       }
+
+      config
+        .region
+        .foreach(
+          reg => s3ClientBuilder.region(Region.of(reg))
+        )
 
       config
         .customEndpoint

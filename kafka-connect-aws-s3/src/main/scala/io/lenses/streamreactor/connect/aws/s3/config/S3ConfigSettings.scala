@@ -30,6 +30,7 @@ object S3ConfigSettings {
   val DEP_CUSTOM_ENDPOINT: String = "aws.custom.endpoint"
   val DEP_ENABLE_VIRTUAL_HOST_BUCKETS: String = "aws.vhost.bucket"
 
+  val AWS_REGION: String = s"$CONNECTOR_PREFIX.aws.region"
   val AWS_ACCESS_KEY: String = s"$CONNECTOR_PREFIX.aws.access.key"
   val AWS_SECRET_KEY: String = s"$CONNECTOR_PREFIX.aws.secret.key"
   val AUTH_MODE: String = s"$CONNECTOR_PREFIX.aws.auth.mode"

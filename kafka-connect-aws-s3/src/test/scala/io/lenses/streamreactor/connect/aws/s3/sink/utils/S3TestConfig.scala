@@ -20,26 +20,28 @@ import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
 import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, S3Config}
 import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither._
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContext.{Credential, Identity, TestBucket}
-import io.lenses.streamreactor.connect.aws.s3.storage.S3StorageInterface
-import org.scalatest.BeforeAndAfter
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3ProxyContext.TestBucket
+import io.lenses.streamreactor.connect.aws.s3.storage.{JCloudsStorageInterface, StorageInterface}
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCredentialsProvider}
-import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.{CreateBucketRequest, Delete, DeleteObjectsRequest, ObjectIdentifier}
 
-import java.net.URI
 import scala.util.Try
 
 
 
-trait S3TestConfig extends AnyFlatSpec with BeforeAndAfter with Matchers with LazyLogging {
+trait S3TestConfig extends AnyFlatSpec with BeforeAndAfter with BeforeAndAfterAll with Matchers with LazyLogging {
+
+  def cleanUpEnabled : Boolean = true
+
+  def setUpTestData(): Unit = {}
 
   protected val proxyContext: S3ProxyContext = new S3ProxyContext()
 
   private val s3Config = S3Config(
+    region = Some("us-east-1"),
     accessKey = Some(S3ProxyContext.Identity),
     secretKey = Some(S3ProxyContext.Credential),
     authMode = AuthMode.Credentials,
@@ -50,31 +52,44 @@ trait S3TestConfig extends AnyFlatSpec with BeforeAndAfter with Matchers with La
     authResource <- Try {new AuthResources(s3Config)}.toEither
     awsAuthResource <- authResource.aws
     jCloudsAuthResource <- authResource.jClouds
-    storageInterface <- Try {new S3StorageInterface("test", awsAuthResource, jCloudsAuthResource)}.toEither
+    storageInterface <- Try {new JCloudsStorageInterface("test", jCloudsAuthResource)}.toEither
   } yield (storageInterface, awsAuthResource)
 
-  implicit val storageInterface: S3StorageInterface = storageInterfaceS3ClientEither.toThrowable("testSink")._1
+  implicit val storageInterface: StorageInterface = storageInterfaceS3ClientEither.toThrowable("testSink")._1
   private val s3Client: S3Client = storageInterfaceS3ClientEither.toThrowable("testSink")._2
 
   val BucketName: String = S3ProxyContext.TestBucket
-  private var bucketExists = false
+
 
   before {
+    if (cleanUpEnabled) {
+      clearTestBucket()
+      setUpTestData()
+    }
+  }
+
+  override protected def beforeAll(): Unit = {
+
+    super.beforeAll()
+
     logger.debug("Starting proxy")
     proxyContext.startProxy
 
-    if (!bucketExists) {
-      logger.debug("Creating test bucket")
-      createTestBucket()// should be ('right)
-      bucketExists = true
+    logger.debug("Creating test bucket")
+    createTestBucket() match {
+      case Left(err) => logger.error("Error creating test bucket", err)
+      case Right(_) =>
     }
-
     clearTestBucket()
-
+    setUpTestData()
   }
 
-  after {
+  override protected def afterAll(): Unit = {
+
+    super.afterAll()
+
     proxyContext.stopProxy
+
   }
 
   val helper = new RemoteFileTestHelper()
@@ -92,19 +107,7 @@ trait S3TestConfig extends AnyFlatSpec with BeforeAndAfter with Matchers with La
   }
 
   private def createTestBucket(): Either[Throwable, Unit] = {
-
-    // Create the bucket using the AWS client.
-    // The only difference between this and using the s3Client already available is that the region is set.
-
-    val s3Client = S3Client
-      .builder()
-      .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(Identity, Credential)))
-      .endpointOverride(URI.create(S3ProxyContext.Uri))
-      .region(Region.US_EAST_1)
-      .build()
-
-
-    // I don't care if it already exists
+    // It is fine if it already exists
     Try(s3Client.createBucket(CreateBucketRequest.builder().bucket(TestBucket).build())).toEither.right.map(_ => ())
   }
 }

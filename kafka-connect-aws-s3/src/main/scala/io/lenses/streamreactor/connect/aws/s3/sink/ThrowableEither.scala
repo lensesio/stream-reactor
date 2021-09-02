@@ -31,6 +31,7 @@ case class ThrowableEither[T, A](e: Either[T, A]) extends LazyLogging {
       throw ex
     }
     case Left(ex: String) => throw new IllegalStateException(ex)
+    case Left(_) => throw new IllegalStateException("Unexpected err type")
     case Right(a: A) => a
   }
 }

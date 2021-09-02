@@ -35,6 +35,13 @@ object S3ConfigDef {
 
   val config: ConfigDef = new S3ConfigDef()
     .define(
+      AWS_REGION,
+      Type.STRING,
+      "",
+      Importance.HIGH,
+      "AWS region"
+    )
+    .define(
       AWS_ACCESS_KEY,
       Type.PASSWORD,
       "",

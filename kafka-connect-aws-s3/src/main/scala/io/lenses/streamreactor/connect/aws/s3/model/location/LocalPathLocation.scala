@@ -39,17 +39,20 @@ case class LocalRootLocation (
 
 case class LocalPathLocation(
                           override val path: String,
+                          createFile : Boolean = true,
                         ) extends PathLocation with LazyLogging {
 
   private val file = new File(path)
 
-  logger.info("Creating dir {}", file.getParentFile)
-  file.getParentFile.mkdirs()
-  file.getParentFile.deleteOnExit()
+  if(createFile) {
+    logger.info("Creating dir {}", file.getParentFile)
+    file.getParentFile.mkdirs()
+    file.getParentFile.deleteOnExit()
 
-  logger.info("Creating file {}", file)
-  file.createNewFile()
-  file.deleteOnExit()
+    logger.info("Creating file {}", file)
+    file.createNewFile()
+    file.deleteOnExit()
+  }
 
   /**
     * Makes a best effort to clean up the file and parent directory.

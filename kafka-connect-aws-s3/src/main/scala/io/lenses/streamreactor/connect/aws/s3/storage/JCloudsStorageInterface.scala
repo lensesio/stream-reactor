@@ -30,13 +30,13 @@ import java.util.UUID
 import scala.collection.JavaConverters._
 import scala.util.Try
 
-abstract class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreContext) extends StorageInterface with LazyLogging {
+class JCloudsStorageInterface(sinkName: String, blobStoreContext: BlobStoreContext) extends StorageInterface with LazyLogging {
 
   private val blobStore = blobStoreContext.getBlobStore
   private val awsMaxKeys = 1000
 
   override def uploadFile(initialName: LocalPathLocation, finalDestination: RemoteS3PathLocation): Unit = {
-    logger.debug(s"[{}] Initialising upload from local {} to s3 {}", sinkName, initialName, finalDestination)
+    logger.debug(s"[{}] Uploading file from local {} to s3 {}", sinkName, initialName, finalDestination)
 
     val file = new File(initialName.path)
     val blob = blobStore

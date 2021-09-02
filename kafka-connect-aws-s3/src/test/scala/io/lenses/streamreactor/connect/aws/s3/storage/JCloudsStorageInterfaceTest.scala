@@ -42,11 +42,7 @@ class JCloudsStorageInterfaceTest extends AnyFlatSpec with MockitoSugar with Mat
   when(blobStoreContext.getBlobStore).thenReturn(blobStore)
 
 
-  private implicit val jCloudsStorageInterface: JCloudsStorageInterface = new JCloudsStorageInterface("test", blobStoreContext) {
-    override def pathExists(bucketAndPrefix: RemoteS3RootLocation): Either[Throwable, Boolean] = ???
-
-    override def list(bucketAndPrefix: RemoteS3RootLocation, lastFile: Option[RemoteS3PathLocation], numResults: Int): Either[Throwable, List[String]] = ???
-  }
+  private implicit val jCloudsStorageInterface: JCloudsStorageInterface = new JCloudsStorageInterface("test", blobStoreContext)
 
   private val payloadReader = new RemoteFileTestHelper
   import payloadReader._

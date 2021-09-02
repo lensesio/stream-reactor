@@ -19,13 +19,13 @@ package io.lenses.streamreactor.connect.aws.s3.sink
 
 import com.datamountaineer.streamreactor.common.errors.{ErrorHandler, RetryErrorPolicy}
 import com.datamountaineer.streamreactor.common.utils.JarManifest
-import io.lenses.streamreactor.connect.aws.s3.auth.{AuthResources, JCloudsS3ContextCreator}
+import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
 import io.lenses.streamreactor.connect.aws.s3.config.{S3Config, S3ConfigDefBuilder}
 import io.lenses.streamreactor.connect.aws.s3.model._
 import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither.toJavaThrowableConverter
 import io.lenses.streamreactor.connect.aws.s3.sink.config.S3SinkConfig
 import io.lenses.streamreactor.connect.aws.s3.sink.conversion.{HeaderToStringConverter, ValueToSinkDataConverter}
-import io.lenses.streamreactor.connect.aws.s3.storage.{JCloudsStorageInterface, S3StorageInterface, StorageInterface}
+import io.lenses.streamreactor.connect.aws.s3.storage.JCloudsStorageInterface
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
 import org.apache.kafka.connect.sink.{SinkRecord, SinkTask}
@@ -53,8 +53,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
       config <- S3SinkConfig(S3ConfigDefBuilder(getSinkName(props), propsFromContext(props)))
       authResources = new AuthResources(config.s3Config)
       jCloudsAuth <- authResources.jClouds
-      awsAuth <- authResources.aws
-      storageInterface <- Try {new S3StorageInterface(sinkName, awsAuth, jCloudsAuth)}.toEither
+      storageInterface <- Try {new JCloudsStorageInterface(sinkName, jCloudsAuth)}.toEither
       _ <- Try {setErrorRetryInterval(config.s3Config)} .toEither
       writerManager <- Try {S3WriterManager.from(config, sinkName)(storageInterface)}.toEither
       _ <- Try(initialize(
@@ -63,12 +62,7 @@ class S3SinkTask extends SinkTask with ErrorHandler {
       )).toEither
     } yield writerManager
 
-    errOrWriterMan match {
-      case Left(error: String) => throw new IllegalStateException(error)
-      case Left(error: Throwable) => throw error
-      case Right(writerMan) =>
-        writerManager = writerMan
-    }
+    writerManager = errOrWriterMan.toThrowable(sinkName)
 
   }
 

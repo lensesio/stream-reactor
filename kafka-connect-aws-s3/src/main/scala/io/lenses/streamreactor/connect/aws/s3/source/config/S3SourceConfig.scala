@@ -62,7 +62,7 @@ object SourceBucketOptions {
           case None => FormatSelection(Json, Set.empty)
         }
         SourceBucketOptions(
-          RemoteS3RootLocation(kcql.getSource),
+          RemoteS3RootLocation(kcql.getSource, allowSlash = true),
           kcql.getTarget,
           format = formatSelection,
           recordsLimit = if (kcql.getLimit < 1) DEFAULT_RECORDS_LIMIT else kcql.getLimit,

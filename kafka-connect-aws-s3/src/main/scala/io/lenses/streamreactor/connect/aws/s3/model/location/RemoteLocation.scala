@@ -21,10 +21,10 @@ import software.amazon.awssdk.services.s3.internal.BucketUtils
 import java.util.UUID
 
 case object RemoteS3RootLocation {
-  def apply(bucketAndPath: String): RemoteS3RootLocation = {
+  def apply(bucketAndPath: String, allowSlash: Boolean = false): RemoteS3RootLocation = {
     bucketAndPath.split(":") match {
-      case Array(bucket) => RemoteS3RootLocation(bucket, None)
-      case Array(bucket, path) => RemoteS3RootLocation(bucket, Some(path))
+      case Array(bucket) => RemoteS3RootLocation(bucket, None, allowSlash)
+      case Array(bucket, path) => RemoteS3RootLocation(bucket, Some(path), allowSlash)
       case _ => throw new IllegalArgumentException("Invalid number of arguments provided to create BucketAndPrefix")
     }
   }
@@ -33,16 +33,19 @@ case object RemoteS3RootLocation {
 
 case class RemoteS3RootLocation(
                                  bucket: String,
-                                 prefix: Option[String]
+                                 prefix: Option[String],
+                                 allowSlash: Boolean,
                                ) extends RootLocation[RemoteS3PathLocation] {
 
   BucketUtils.isValidDnsBucketName(bucket, true)
 
-  prefix
-    .filter(_.contains("/"))
-    .foreach(_ => throw new IllegalArgumentException("Nested prefix not currently supported"))
+  if (!allowSlash) {
+    prefix
+      .filter(_.contains("/"))
+      .foreach(_ => throw new IllegalArgumentException("Nested prefix not currently supported"))
+  }
 
-  override def withPath(path: String) = RemoteS3PathLocation(bucket, path)
+  override def withPath(path: String): RemoteS3PathLocation = RemoteS3PathLocation(bucket, path)
 
   def prefixOrDefault(): String = prefix.getOrElse("")
 }

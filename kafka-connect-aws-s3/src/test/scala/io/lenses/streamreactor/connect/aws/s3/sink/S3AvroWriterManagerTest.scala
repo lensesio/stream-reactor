@@ -40,8 +40,9 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
   private val PathPrefix = "streamReactorBackups"
   private val avroFormatReader = new AvroFormatReader
 
-  private val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix))
+  private val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix), false)
   private val avroConfig = S3SinkConfig(S3Config(
+    None,
     Some(Identity),
     Some(Credential),
     AuthMode.Credentials,
@@ -66,8 +67,6 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
     }
 
     sink.close()
-
-    //val list1 = listBucketPath(BucketName, "streamReactorBackups/myTopic/1/"))
 
     listBucketPath( BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
@@ -100,8 +99,6 @@ class S3AvroWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
         sink.write(TopicPartitionOffset(Topic(TopicName), 1, Offset(index + 1)), MessageDetail(None, StructSinkData(user), Map.empty[String, SinkData]))
     }
     sink.close()
-
-    //val list1 = listBucketPath(BucketName, "streamReactorBackups/myTopic/1/"))
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(3)
 

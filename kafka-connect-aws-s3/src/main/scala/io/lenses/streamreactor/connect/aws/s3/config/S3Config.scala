@@ -158,6 +158,7 @@ object S3Config {
 
 
   def apply(props: Map[String, _]): S3Config = S3Config(
+    getString(props, AWS_REGION),
     getPassword(props, AWS_ACCESS_KEY),
     getPassword(props, AWS_SECRET_KEY),
     AuthMode.withNameInsensitive(
@@ -184,6 +185,7 @@ object S3Config {
 case class RetryConfig(numberOfRetries: Int, errorRetryInterval: Long)
 
 case class S3Config(
+                     region: Option[String],
                      accessKey: Option[String],
                      secretKey: Option[String],
                      authMode: AuthMode,

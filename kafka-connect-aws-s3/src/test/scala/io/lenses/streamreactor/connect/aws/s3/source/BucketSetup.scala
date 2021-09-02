@@ -16,40 +16,29 @@
 
 package io.lenses.streamreactor.connect.aws.s3.source
 
-import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigSettings._
-import io.lenses.streamreactor.connect.aws.s3.config.{AuthMode, Format, FormatOptions}
+import io.lenses.streamreactor.connect.aws.s3.config.{Format, FormatOptions}
 import io.lenses.streamreactor.connect.aws.s3.model.location.{LocalPathLocation, RemoteS3PathLocation}
-import io.lenses.streamreactor.connect.aws.s3.sink.utils.{S3ProxyContext, S3TestConfig, RemoteFileTestHelper}
+import io.lenses.streamreactor.connect.aws.s3.sink.utils.S3TestConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.StorageInterface
 import org.scalatest.matchers.should.Matchers
 
 
 class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers {
 
-  import S3ProxyContext._
-
-  val DefaultProps = Map(
-    AWS_ACCESS_KEY -> Identity,
-    AWS_SECRET_KEY -> Credential,
-    AUTH_MODE -> AuthMode.Credentials.toString,
-    CUSTOM_ENDPOINT -> S3ProxyContext.Uri,
-    ENABLE_VIRTUAL_HOST_BUCKETS -> "true"
-  )
-
   val PrefixName = "streamReactorBackups"
   val TopicName = "myTopic"
 
-  def setUpBucketData(bucketName: String, format: Format, formatOption: Option[FormatOptions]): Unit = {
+  def setUpBucketData(bucketName: String, format: Format, formatOption: Option[FormatOptions], dir: String): Unit = {
 
     1 to 5 foreach {
       fileNum =>
         copyResourceToBucket(
           s"/${format.entryName.toLowerCase}${generateFormatString(formatOption)}/$fileNum.${format.entryName.toLowerCase}",
           bucketName,
-          s"$PrefixName/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}"
+          s"$PrefixName/$dir/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}"
         )
 
-        storageInterface.pathExists(RemoteS3PathLocation(bucketName, s"$PrefixName/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}"))should be(true)
+        storageInterface.pathExists(RemoteS3PathLocation(bucketName, s"$PrefixName/$dir/$TopicName/0/${fileNum * 200 - 1}.${format.entryName.toLowerCase}"))should be(true)
     }
   }
 
@@ -84,7 +73,7 @@ class BucketSetup(implicit storageInterface: StorageInterface) extends Matchers 
     val resource = classOf[S3TestConfig].getResource(resourceSourceFilename)
     require(resource != null)
     storageInterface.uploadFile(
-      LocalPathLocation(resource.getFile),
+      LocalPathLocation(resource.getFile, createFile = false),
       RemoteS3PathLocation(blobStoreContainerName, blobStoreTargetFilename)
     )
   }

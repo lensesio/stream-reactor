@@ -21,15 +21,15 @@ import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.Format
 import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocation, RemoteS3RootLocation}
-import io.lenses.streamreactor.connect.aws.s3.storage.{StorageInterface}
+import io.lenses.streamreactor.connect.aws.s3.storage.{SourceStorageInterface, StorageInterface}
 
 /**
   * The [[S3SourceLister]] is responsible for querying the [[StorageInterface]] to
   * retrieve a list of S3 topics and partitions for reading
   */
-class S3SourceLister(format: Format)(implicit storageInterface: StorageInterface) extends LazyLogging {
+class S3SourceLister(format: Format)(implicit sourceStorageInterface: SourceStorageInterface) extends LazyLogging {
 
-  import storageInterface._
+  import sourceStorageInterface._
 
   def listBatch(
             bucketAndPrefix: RemoteS3RootLocation,

@@ -25,27 +25,27 @@ class RemoteS3RootLocationTest extends AnyFlatSpec with Matchers {
 
   "bucketAndPrefix" should "reject prefixes with slashes" in {
     assertThrows[IllegalArgumentException] {
-      RemoteS3RootLocation("bucket", Some("/slash"))
+      RemoteS3RootLocation("bucket", Some("/slash"), false)
     }
   }
 
   "bucketAndPrefix" should "allow prefixes without slashes" in {
-    RemoteS3RootLocation("bucket", Some("noSlash"))
+    RemoteS3RootLocation("bucket", Some("noSlash"), false)
   }
 
   "bucketAndPrefix" should "split a the bucket and path" in {
-    RemoteS3RootLocation("bucket:path") should be(RemoteS3RootLocation("bucket", Some("path")))
+    RemoteS3RootLocation("bucket:path") should be(RemoteS3RootLocation("bucket", Some("path"), false))
   }
 
   "bucketAndPrefix" should "fail if given too many components to split" in {
     assertThrows[IllegalArgumentException] {
-      RemoteS3RootLocation("bucket:path:whatIsThis")
+      RemoteS3RootLocation("bucket:path:whatIsThis", false)
     }
   }
 
   "bucketAndPrefix" should "fail if not a valid bucket name" in {
     assertThrows[IllegalArgumentException] {
-      RemoteS3RootLocation("bucket-police-refu$e-this-name:path")
+      RemoteS3RootLocation("bucket-police-refu$e-this-name:path", false)
     }
   }
 }

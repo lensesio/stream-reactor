@@ -39,8 +39,9 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
   "json sink" should "write single json record" in {
 
-    val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix))
+    val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix), false)
     val config = S3SinkConfig(S3Config(
+      None,
       Some(Identity),
       Some(Credential),
       AuthMode.Credentials),
@@ -64,8 +65,9 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
   "json sink" should "write schemas to json" in {
 
-    val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix))
+    val bucketAndPrefix = RemoteS3RootLocation(BucketName, Some(PathPrefix), false)
     val config = S3SinkConfig(S3Config(
+      None,
       Some(Identity),
       Some(Credential),
       AuthMode.Credentials),
@@ -83,8 +85,6 @@ class S3JsonWriterManagerTest extends AnyFlatSpec with Matchers with S3TestConfi
 
     sink.catchUp()
     sink.close()
-
-    //val list1 = listBucketPath(BucketName, ""))
 
     listBucketPath(BucketName, "streamReactorBackups/myTopic/1/").size should be(1)
 
