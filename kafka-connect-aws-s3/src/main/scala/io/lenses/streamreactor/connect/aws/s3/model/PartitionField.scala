@@ -47,6 +47,7 @@ object PartitionField {
       case PartitionSpecifier.Partition => PartitionPartitionField()
       case PartitionSpecifier.Header => throw new IllegalArgumentException("cannot partition by Header partition field without path")
       case PartitionSpecifier.Value => throw new IllegalArgumentException("cannot partition by Value partition field without path")
+      case PartitionSpecifier.Date => throw new IllegalArgumentException("cannot partition by Date partition field without format")
     }
   }
 
@@ -57,6 +58,7 @@ object PartitionField {
       case PartitionSpecifier.Header => HeaderPartitionField(PartitionNamePath(path: _*))
       case PartitionSpecifier.Topic => throw new IllegalArgumentException("partitioning by topic requires no path")
       case PartitionSpecifier.Partition => throw new IllegalArgumentException("partitioning by partition requires no path")
+      case PartitionSpecifier.Date => if (path.size == 1) DatePartitionField(path.head) else throw new IllegalArgumentException("only one format should be provided for date")
     }
   }
 
@@ -92,3 +94,6 @@ case class PartitionPartitionField() extends PartitionField {
   override def valuePrefixDisplay(): String = "partition"
 }
 
+case class DatePartitionField(format: String) extends PartitionField {
+  override def valuePrefixDisplay(): String = "date"
+}

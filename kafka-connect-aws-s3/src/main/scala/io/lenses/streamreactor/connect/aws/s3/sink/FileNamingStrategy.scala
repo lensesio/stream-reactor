@@ -26,6 +26,8 @@ import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocati
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.ExtractorErrorAdaptor.adaptErrorResponse
 import io.lenses.streamreactor.connect.aws.s3.sink.extractors.SinkDataExtractor
 
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.io.File
 import java.util.UUID
 import scala.util.matching.Regex
@@ -147,6 +149,7 @@ class PartitionedS3FileNamingStrategy(formatSelection: FormatSelection, partitio
           case partition@WholeKeyPartitionField() => partition -> getPartitionByWholeKeyValue(messageDetail.keySinkData)
           case partition@TopicPartitionField() => partition -> topicPartition.topic.value
           case partition@PartitionPartitionField() => partition -> topicPartition.partition.toString
+          case partition@DatePartitionField(format) => partition -> DateTimeFormatter.ofPattern(format).format(LocalDate.now())
         }
         .toMap[PartitionField, String]
     }.toEither.left.map(ex => FatalS3SinkError(ex.getMessage, ex, topicPartition))

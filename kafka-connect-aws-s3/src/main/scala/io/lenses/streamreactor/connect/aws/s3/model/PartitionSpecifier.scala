@@ -35,4 +35,6 @@ object PartitionSpecifier extends Enum[PartitionSpecifier] {
   case object Header extends PartitionSpecifier("_header")
 
   case object Value extends PartitionSpecifier("_value")
+
+  case object Date extends PartitionSpecifier("_date")
 }
