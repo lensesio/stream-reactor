@@ -22,7 +22,6 @@ import io.lenses.streamreactor.connect.aws.s3.auth.AuthResources
 import io.lenses.streamreactor.connect.aws.s3.config.S3ConfigDefBuilder
 import io.lenses.streamreactor.connect.aws.s3.model.location.{RemoteS3PathLocationWithLine, RemoteS3RootLocation}
 import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither.toJavaThrowableConverter
-import io.lenses.streamreactor.connect.aws.s3.source.SourceRecordConverter.convertToSourceRecordList
 import io.lenses.streamreactor.connect.aws.s3.source.config.S3SourceConfig
 import io.lenses.streamreactor.connect.aws.s3.storage.{AwsS3StorageInterface, JCloudsStorageInterface}
 import org.apache.kafka.connect.source.{SourceRecord, SourceTask}
@@ -68,6 +67,7 @@ class S3SourceTask extends SourceTask with LazyLogging {
       readerManagers = config.bucketOptions.map(
         bOpts =>
           new S3BucketReaderManager(
+            sourceName,
             bOpts.recordsLimit,
             bOpts.format,
             contextFn(bOpts.sourceBucketAndPrefix),
@@ -76,7 +76,7 @@ class S3SourceTask extends SourceTask with LazyLogging {
               bOpts.filesLimit,
               new S3SourceLister(bOpts.format.format)(sourceStorageInterface),
             ),
-            new ResultReader(bOpts.sourceBucketAndPrefix.prefixOrDefault(), bOpts.targetTopic),
+            new ResultReader(bOpts.targetTopic),
           )(
             storageInterface
           )
@@ -95,7 +95,7 @@ class S3SourceTask extends SourceTask with LazyLogging {
   override def poll(): util.List[SourceRecord] = {
     readerManagers
       .flatMap(_.poll())
-      .flatMap(convertToSourceRecordList)
+      .flatMap(_.toSourceRecordList)
       .asJava
   }
 

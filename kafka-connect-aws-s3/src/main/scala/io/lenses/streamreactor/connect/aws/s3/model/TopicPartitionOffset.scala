@@ -16,15 +16,9 @@
 
 package io.lenses.streamreactor.connect.aws.s3.model
 
-import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
 import org.apache.kafka.common.{TopicPartition => KafkaTopicPartition}
 
-case class PollResults(
-                        resultList: Vector[_ <: SourceData],
-                        bucketAndPath: RemoteS3PathLocation,
-                        prefix: String,
-                        targetTopic: String
-                      )
+
 
 
 case class Topic(value: String) {

@@ -44,7 +44,7 @@ class ContextReaderTest extends AnyFlatSpec with Matchers with MockitoSugar {
 
   }
 
-  "getCurrentOffset" should "return none when no invalid offset has been defined" in {
+  "getCurrentOffset" should "return none when invalid offset has been defined" in {
 
     val mapValue = Map[String,AnyRef](
       "path" -> filePath,

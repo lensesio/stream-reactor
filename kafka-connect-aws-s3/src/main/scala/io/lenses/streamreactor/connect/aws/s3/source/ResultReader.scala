@@ -23,7 +23,7 @@ import io.lenses.streamreactor.connect.aws.s3.model.{PollResults, SourceData}
 import scala.annotation.tailrec
 
 
-class ResultReader(prefix: String, targetTopic: String) extends LazyLogging {
+class ResultReader(targetTopic: String) extends LazyLogging {
 
   /**
     * Retrieves the results for a particular reader, or None if no further results are available
@@ -40,7 +40,6 @@ class ResultReader(prefix: String, targetTopic: String) extends LazyLogging {
         PollResults(
           results,
           reader.getBucketAndPath,
-          prefix,
           targetTopic
         )
       )

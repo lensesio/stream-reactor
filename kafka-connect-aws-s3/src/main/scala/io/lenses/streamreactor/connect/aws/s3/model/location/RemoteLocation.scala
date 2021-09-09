@@ -45,13 +45,20 @@ case class RemoteS3RootLocation(
       .foreach(_ => throw new IllegalArgumentException("Nested prefix not currently supported"))
   }
 
-  override def withPath(path: String): RemoteS3PathLocation = RemoteS3PathLocation(bucket, path)
+  override def withPath(path: String): RemoteS3PathLocation = RemoteS3PathLocation(bucket, prefix, path)
 
   def prefixOrDefault(): String = prefix.getOrElse("")
 }
 
+case object RemoteS3PathLocation {
+  def apply(bucket: String, path: String): RemoteS3PathLocation = {
+    RemoteS3PathLocation(bucket, None, path)
+  }
+
+}
 case class RemoteS3PathLocation(
                                  bucket: String,
+                                 prefix: Option[String],
                                  override val path: String
                                ) extends PathLocation {
 
@@ -72,6 +79,8 @@ case class RemoteS3PathLocation(
   def fromStart(): RemoteS3PathLocationWithLine = {
     RemoteS3PathLocationWithLine(this, -1)
   }
+
+  def root(): RemoteS3RootLocation = RemoteS3RootLocation(bucket, prefix, true)
 }
 
 case class RemoteS3PathLocationWithLine(file: RemoteS3PathLocation, line: Int) {

@@ -25,8 +25,7 @@ import org.scalatest.matchers.should.Matchers
 
 class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
 
-  private val readerBucketAndPath = RemoteS3PathLocation("bucket-and-path", "prefix")
-  private val prefix = "MyPrefix"
+  private val readerBucketAndPath = RemoteS3PathLocation("bucket-and-path", Some("MyPrefix"), "prefix")
   private val targetTopic = "MyTargetTopic"
   private val limit = 10
   private val reader = mock[S3FormatStreamReader[_ <: SourceData]]
@@ -35,7 +34,7 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
   private val result2 = StringSourceData("myJsonStuff1", 1)
   private val result3 = StringSourceData("myJsonStuff2", 2)
 
-  val target = new ResultReader(prefix, targetTopic)
+  val target = new ResultReader(targetTopic)
 
   "resultReader" should "read a single results from the reader" in {
     when(reader.getBucketAndPath).thenReturn(readerBucketAndPath)
@@ -46,7 +45,6 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
       PollResults(
         Vector(result1),
         readerBucketAndPath,
-        prefix,
         targetTopic
       )
     ))
@@ -63,7 +61,6 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
           result1, result2, result3
         ),
         readerBucketAndPath,
-        prefix,
         targetTopic
       )
     ))
@@ -87,7 +84,6 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
       PollResults(
         Vector(result1, result2),
         readerBucketAndPath,
-        prefix,
         targetTopic
       )
     ))
@@ -96,7 +92,6 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
       PollResults(
         Vector(result3),
         readerBucketAndPath,
-        prefix,
         targetTopic
       )
     ))

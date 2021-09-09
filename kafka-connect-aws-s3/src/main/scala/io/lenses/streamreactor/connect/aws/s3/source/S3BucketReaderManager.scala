@@ -15,7 +15,7 @@
  */
 
 package io.lenses.streamreactor.connect.aws.s3.source
-
+import io.lenses.streamreactor.connect.aws.s3.sink.ThrowableEither.toJavaThrowableConverter
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.config.FormatSelection
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatStreamReader
@@ -60,6 +60,7 @@ case class ExceptionReaderState(exception: Throwable) extends ReaderState {
   * Given a sourceBucketOptions, manages readers for all of the files
   */
 class S3BucketReaderManager(
+                             sourceName: String,
                              recordsLimit: Int,
                              format: FormatSelection,
                              startingOffset: Option[RemoteS3PathLocationWithLine],
@@ -116,7 +117,7 @@ class S3BucketReaderManager(
   }
 
   private def toReaderCompleteState(currentReader: S3FormatStreamReader[_ <: SourceData]): ReaderState = {
-    fileQueueProcessor.markFileComplete(currentReader.getBucketAndPath)
+    fileQueueProcessor.markFileComplete(currentReader.getBucketAndPath).toThrowable(sourceName)
     currentReader.close()
     CompleteReaderState()
   }

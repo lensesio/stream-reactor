@@ -28,7 +28,8 @@ trait SourceFileQueue {
 
   def next(): Either[Throwable, Option[RemoteS3PathLocationWithLine]]
 
-  def markFileComplete(fileWithLine: RemoteS3PathLocation): Unit
+  def markFileComplete(fileWithLine: RemoteS3PathLocation): Either[String, Unit]
+
 }
 
 /**
@@ -53,8 +54,7 @@ class S3SourceFileQueue(
   }
 
   private def retrieveNextFile(lastSeenFile: Option[RemoteS3PathLocation]): Either[Throwable, Option[RemoteS3PathLocationWithLine]] = {
-    val list = sourceLister.listBatch(root, lastSeenFile , numResults )
-    list match {
+    sourceLister.listBatch(root, lastSeenFile , numResults ) match {
       case Left(ex) => ex.asLeft
       case Right(value) =>
         files ++= value.map(_.fromStart())
@@ -62,11 +62,16 @@ class S3SourceFileQueue(
     }
   }
 
-  override def markFileComplete(file: RemoteS3PathLocation): Unit = {
-    val head = files.head
-    require(head.file.equals(file))
-    files = files.drop(1)
-    lastSeenFile = Some(file)
+  override def markFileComplete(file: RemoteS3PathLocation): Either[String, Unit] = {
+    files.headOption match {
+      case Some(RemoteS3PathLocationWithLine(headFile, _)) if headFile.equals(file) => files =
+        files.drop(1)
+        lastSeenFile = Some(file)
+        ().asRight
+      case Some(RemoteS3PathLocationWithLine(headFile, _)) => s"File (${file.bucket}:${file.path}) does not match that at head of the queue, which is (${headFile.bucket}:${headFile.path})".asLeft
+      case None => "No files in queue to mark as complete".asLeft
+    }
+
   }
 
   override def init(initFile: RemoteS3PathLocationWithLine): Unit = {
