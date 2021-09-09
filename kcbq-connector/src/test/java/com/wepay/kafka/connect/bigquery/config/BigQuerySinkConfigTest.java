@@ -19,10 +19,6 @@
 
 package com.wepay.kafka.connect.bigquery.config;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-
 import com.google.cloud.bigquery.TimePartitioning;
 import com.wepay.kafka.connect.bigquery.SinkPropertiesFactory;
 import com.wepay.kafka.connect.bigquery.convert.BigQueryRecordConverter;
@@ -39,6 +35,7 @@ import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class BigQuerySinkConfigTest {
@@ -184,18 +181,17 @@ public class BigQuerySinkConfigTest {
     assertEquals(expectedClusteringPartitionFieldName, testClusteringPartitionFieldName.get());
   }
 
-
   @Test
   public void testValidTimePartitioningTypes() {
     Map<String, String> configProperties = propertiesFactory.getProperties();
-    configProperties.put(BigQuerySinkTaskConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "false");
+    configProperties.put(BigQuerySinkConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "false");
 
     for (TimePartitioning.Type type : TimePartitioning.Type.values()) {
       configProperties.put(BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG, type.name());
       assertEquals(type, new BigQuerySinkConfig(configProperties).getTimePartitioningType());
     }
 
-    configProperties.put(BigQuerySinkTaskConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "true");
+    configProperties.put(BigQuerySinkConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "true");
     configProperties.put(BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG, TimePartitioning.Type.DAY.name());
     assertEquals(TimePartitioning.Type.DAY, new BigQuerySinkConfig(configProperties).getTimePartitioningType());
   }
@@ -203,8 +199,8 @@ public class BigQuerySinkConfigTest {
   @Test
   public void testInvalidTimePartitioningTypes() {
     Map<String, String> configProperties = propertiesFactory.getProperties();
-    configProperties.put(BigQuerySinkTaskConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "true");
-    configProperties.put(BigQuerySinkTaskConfig.TABLE_CREATE_CONFIG, "true");
+    configProperties.put(BigQuerySinkConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "true");
+    configProperties.put(BigQuerySinkConfig.TABLE_CREATE_CONFIG, "true");
 
     for (TimePartitioning.Type type : TimePartitioning.Type.values()) {
       if (TimePartitioning.Type.DAY.equals(type)) {
