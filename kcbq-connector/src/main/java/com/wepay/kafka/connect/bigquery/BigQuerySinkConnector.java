@@ -50,6 +50,7 @@ public class BigQuerySinkConnector extends SinkConnector {
     return BigQuerySinkConfig.getConfig();
   }
 
+
   @Override
   public void start(Map<String, String> properties) {
     logger.trace("connector.start()");
