@@ -21,20 +21,16 @@ import io.lenses.streamreactor.connect.aws.s3.source.SourceRecordConverter.fromS
 import org.apache.kafka.connect.source.SourceTaskContext
 
 import scala.jdk.CollectionConverters.{mapAsJavaMapConverter, mapAsScalaMapConverter}
-import scala.util.Try
 
 class ContextReader(context: () => SourceTaskContext) {
 
   def getCurrentOffset(sourceRoot: RemoteS3RootLocation): Option[RemoteS3PathLocationWithLine] = {
-    val key = fromSourcePartition(sourceRoot.bucket, sourceRoot.prefixOrDefault).asJava
-    Try {
-      val matchingOffset = context().offsetStorageReader().offset(key).asScala.toMap
-      sourceRoot.withPath(
-        matchingOffset.getOrElse("path", throw new IllegalArgumentException("Could not find path value in matching offset")).asInstanceOf[String]
-      ).atLine(
-        matchingOffset.getOrElse("line", throw new IllegalArgumentException("Could not find line value in matching offset")).asInstanceOf[String].toInt
-      )
-    }.toOption
+    val key = fromSourcePartition(sourceRoot.bucket, sourceRoot.prefixOrDefault()).asJava
+    for {
+      offsetMap <- Option(context().offsetStorageReader.offset(key).asScala)
+      path <- offsetMap.get("path").collect { case value: String => value }
+      line <- offsetMap.get("line").collect { case value: String if value forall Character.isDigit => value.toInt }
+    } yield sourceRoot.withPath(path).atLine(line)
   }
 
 }
