@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.source
+package io.lenses.streamreactor.connect.aws.s3.source.reader
 
 import com.typesafe.scalalogging.LazyLogging
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatStreamReader
@@ -23,12 +23,12 @@ import io.lenses.streamreactor.connect.aws.s3.model.{PollResults, SourceData}
 import scala.annotation.tailrec
 
 
-class ResultReader(targetTopic: String) extends LazyLogging {
+class ResultReader(reader: S3FormatStreamReader[_ <: SourceData], targetTopic: String) extends LazyLogging with AutoCloseable {
 
   /**
     * Retrieves the results for a particular reader, or None if no further results are available
     */
-  def retrieveResults(reader: S3FormatStreamReader[_ <: SourceData], limit: Int): Option[PollResults] = {
+  def retrieveResults(limit: Int): Option[PollResults] = {
 
     val results: Vector[_ <: SourceData] = retrieveResults(limit, reader, Vector.empty[SourceData])
     if (results.isEmpty) {
@@ -62,4 +62,7 @@ class ResultReader(targetTopic: String) extends LazyLogging {
     }
   }
 
+  override def close(): Unit = reader.close()
+
+  def getLocation = reader.getBucketAndPath
 }

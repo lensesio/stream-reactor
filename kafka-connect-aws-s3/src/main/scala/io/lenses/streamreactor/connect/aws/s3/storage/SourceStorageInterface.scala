@@ -24,8 +24,6 @@ import java.io.InputStream
 
 trait SourceStorageInterface {
 
-  def pathExists(bucketAndPrefix: RemoteS3RootLocation): Either[Throwable, Boolean]
-
   def list(
             bucketAndPrefix: RemoteS3RootLocation,
             lastFile : Option[RemoteS3PathLocation],

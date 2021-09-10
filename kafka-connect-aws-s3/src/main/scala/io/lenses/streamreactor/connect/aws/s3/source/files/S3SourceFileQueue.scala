@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.source
+package io.lenses.streamreactor.connect.aws.s3.source.files
 
 import cats.implicits.catsSyntaxEitherId
 import com.typesafe.scalalogging.LazyLogging
@@ -48,7 +48,6 @@ class S3SourceFileQueue(
 
   private var files = ListBuffer.empty[RemoteS3PathLocationWithLine]
 
-
   override def next(): Either[Throwable, Option[RemoteS3PathLocationWithLine]] = {
     files.headOption.fold(retrieveNextFile(lastSeenFile))(nextFile => Some(nextFile).asRight)
   }
@@ -71,7 +70,6 @@ class S3SourceFileQueue(
       case Some(RemoteS3PathLocationWithLine(headFile, _)) => s"File (${file.bucket}:${file.path}) does not match that at head of the queue, which is (${headFile.bucket}:${headFile.path})".asLeft
       case None => "No files in queue to mark as complete".asLeft
     }
-
   }
 
   override def init(initFile: RemoteS3PathLocationWithLine): Unit = {

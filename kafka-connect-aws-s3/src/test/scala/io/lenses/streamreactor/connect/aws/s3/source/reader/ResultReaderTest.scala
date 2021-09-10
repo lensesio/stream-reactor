@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.lenses.streamreactor.connect.aws.s3.source
+package io.lenses.streamreactor.connect.aws.s3.source.reader
 
 import io.lenses.streamreactor.connect.aws.s3.formats.S3FormatStreamReader
 import io.lenses.streamreactor.connect.aws.s3.model.location.RemoteS3PathLocation
@@ -34,14 +34,14 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
   private val result2 = StringSourceData("myJsonStuff1", 1)
   private val result3 = StringSourceData("myJsonStuff2", 2)
 
-  val target = new ResultReader(targetTopic)
+  val target = new ResultReader(reader, targetTopic)
 
   "resultReader" should "read a single results from the reader" in {
     when(reader.getBucketAndPath).thenReturn(readerBucketAndPath)
     when(reader.hasNext).thenReturn(true, false)
     when(reader.next()).thenReturn(result1)
 
-    target.retrieveResults(reader, limit) should be(Some(
+    target.retrieveResults(limit) should be(Some(
       PollResults(
         Vector(result1),
         readerBucketAndPath,
@@ -55,7 +55,7 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
     when(reader.hasNext).thenReturn(true, true, true, false)
     when(reader.next()).thenReturn(result1, result2, result3)
 
-    target.retrieveResults(reader, limit) should be(Some(
+    target.retrieveResults(limit) should be(Some(
       PollResults(
         Vector(
           result1, result2, result3
@@ -70,7 +70,7 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
     when(reader.getBucketAndPath).thenReturn(readerBucketAndPath)
     when(reader.hasNext).thenReturn(false)
 
-    target.retrieveResults(reader, limit) should be(None)
+    target.retrieveResults(limit) should be(None)
   }
 
 
@@ -80,7 +80,7 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
     when(reader.hasNext).thenReturn(true, true, true, false)
     when(reader.next()).thenReturn(result1, result2, result3)
 
-    target.retrieveResults(reader, 2) should be(Some(
+    target.retrieveResults(2) should be(Some(
       PollResults(
         Vector(result1, result2),
         readerBucketAndPath,
@@ -88,7 +88,7 @@ class ResultReaderTest extends AnyFlatSpec with MockitoSugar with Matchers {
       )
     ))
 
-    target.retrieveResults(reader, 2) should be(Some(
+    target.retrieveResults(2) should be(Some(
       PollResults(
         Vector(result3),
         readerBucketAndPath,

@@ -43,20 +43,4 @@ class AwsS3StorageInterface(s3Client: S3Client) extends SourceStorageInterface w
     }.toEither
   }
 
-  override def pathExists(bucketAndPrefix: RemoteS3RootLocation): Either[Throwable, Boolean] = {
-
-    Try {
-
-      val builder = ListObjectsV2Request
-        .builder()
-        .maxKeys(1)
-        .bucket(bucketAndPrefix.bucket)
-
-      bucketAndPrefix.prefix.foreach(builder.prefix)
-
-      s3Client.listObjectsV2(builder.build()).hasContents
-
-    }.toEither
-  }
-
 }
