@@ -52,7 +52,7 @@ The following connectors will be deprecated and no longer included in any releas
 | Hive           | Source | Copy data from Hive/HDFS to Kafka.                             | [Docs](https://docs.lenses.io/connectors/source/hive.html)                 |
 | Hive           | Sink   | Copy data from Kafka to Hive/HDFS                            | [Docs](https://docs.lenses.io/connectors/sink/hive.html)                   |
 | InfluxDb       | Sink   | Copy data from Kafka to InfluxDb.                                  | [Docs](https://docs.lenses.io/4.0/integrations/connectors/stream-reactor/sinks/influxsinkconnector/)|
-| Kudu           | Sink   | Copy data from Kafka to Kudu.                                | [Docs](https://docs.lenses.io/connectors/sink/influx.html)                 |
+| Kudu           | Sink   | Copy data from Kafka to Kudu.                                | [Docs](https://docs.lenses.io/connectors/sink/kudu.html)                 |
 | JMS            | Source | Copy data from JMS topics/queues to Kafka.                                   | [Docs](https://docs.lenses.io/connectors/source/jms.html)                  |
 | JMS            | Sink   | Copy data from Kafka to JMS.                                  | [Docs](https://docs.lenses.io/connectors/sink/jms.html)                    |
 | MongoDB        | Sink   | Copy data from Kafka to MongoDB.                                    | [Docs](https://docs.lenses.io/connectors/sink/mongo.html)                  |
