@@ -64,7 +64,7 @@ allprojects {
         slf4jVersion = "1.7.7"
         json4sVersion = "3.6.7"
         gsonVersion = "2.6.2"
-        kcqlVersion = "2.8.7"
+        kcqlVersion = "2.9.0"
         connectCLIVersion = "1.0.6"
         avro4sVersion = "1.6.4"
         smt = "2.0.0"

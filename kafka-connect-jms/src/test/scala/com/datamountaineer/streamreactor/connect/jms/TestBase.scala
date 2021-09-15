@@ -56,11 +56,14 @@ trait TestBase extends AnyWordSpec with Matchers with MockitoSugar {
   val JMS_URL_1 = "tcp://localhost:61621"
   val AVRO_QUEUE = "avro_queue"
   val QUEUE_CONVERTER = s"`com.datamountaineer.streamreactor.connect.converters.source.AvroConverter`"
+  val QUEUE_CONVERTER_JMS = s"`com.datamountaineer.streamreactor.connect.jms.sink.converters.AvroMessageConverter`"
+  val FORMAT = "AVRO"
   val AVRO_FILE = getSchemaFile()
 
 
   def getAvroProp(topic: String) = s"${topic}=${AVRO_FILE}"
   def getKCQL(target: String, source: String, jmsType: String) = s"INSERT INTO $target SELECT * FROM $source WITHTYPE $jmsType"
+  def getKCQLAvroSinkConverter(target: String, source: String, jmsType: String) = s"INSERT INTO $target SELECT * FROM $source WITHTYPE $jmsType WITHCONVERTER=$QUEUE_CONVERTER_JMS"
   def getKCQLAvroSource(topic: String, queue: String, jmsType: String) = s"INSERT INTO $topic SELECT * FROM $queue WITHTYPE $jmsType WITHCONVERTER=$QUEUE_CONVERTER"
 
   def getSchemaFile(): String = {

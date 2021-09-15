@@ -67,6 +67,8 @@ object JMSConfig {
 
     .define(JMSConfigConstants.DEFAULT_CONVERTER_CONFIG, Type.STRING, "", Importance.HIGH, JMSConfigConstants.DEFAULT_CONVERTER_DOC,
       "Converter", 1, ConfigDef.Width.MEDIUM, JMSConfigConstants.DEFAULT_CONVERTER_DISPLAY)
+    .define(JMSConfigConstants.DEFAULT_SINK_CONVERTER_CONFIG, Type.STRING, "", Importance.HIGH, JMSConfigConstants.DEFAULT_SINK_CONVERTER_DOC,
+        "Converter", 1, ConfigDef.Width.MEDIUM, JMSConfigConstants.DEFAULT_SINK_CONVERTER_DISPLAY)
     .define(JMSConfigConstants.THROW_ON_CONVERT_ERRORS_CONFIG, Type.BOOLEAN, JMSConfigConstants.THROW_ON_CONVERT_ERRORS_DEFAULT,
       Importance.HIGH, JMSConfigConstants.THROW_ON_CONVERT_ERRORS_DOC, "Converter", 2, ConfigDef.Width.MEDIUM,
       JMSConfigConstants.THROW_ON_CONVERT_ERRORS_DISPLAY)

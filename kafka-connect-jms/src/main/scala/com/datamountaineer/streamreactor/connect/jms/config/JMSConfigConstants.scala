@@ -74,6 +74,13 @@ object JMSConfigConstants {
       |i.e. com.datamountaineer.streamreactor.connect.source.converters.AvroConverter""".stripMargin
   private[config] val DEFAULT_CONVERTER_DISPLAY = "Default Converter class"
 
+  val DEFAULT_SINK_CONVERTER_CONFIG = s"${CONNECTOR_PREFIX}.sink.default.converter"
+  private[config] val DEFAULT_SINK_CONVERTER_DOC =
+    """
+      |Contains a canonical class name for the default converter from a SinkRecord to a raw JMS message.
+      |i.e. com.datamountaineer.streamreactor.connect.jms.sink.converters.AvroMessageConverter""".stripMargin
+  private[config] val DEFAULT_SINK_CONVERTER_DISPLAY = "Default Sink Converter class"
+
   val HEADERS_CONFIG = s"${CONNECTOR_PREFIX}.headers"
   private[config] val HEADERS_CONFIG_DOC =
     s"""

@@ -20,6 +20,7 @@ package com.datamountaineer.streamreactor.connect.jms.config
 
 import com.datamountaineer.streamreactor.connect.converters.source.AvroConverter
 import com.datamountaineer.streamreactor.connect.jms
+import com.datamountaineer.streamreactor.connect.jms.sink.converters.AvroMessageConverter
 import com.datamountaineer.streamreactor.connect.jms.{JMSSessionProvider, TestBase}
 import org.apache.kafka.common.config.ConfigException
 import org.scalatest.BeforeAndAfterAll
@@ -141,7 +142,7 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     settings.connectionURL shouldBe JMS_URL
   }
 
-  "should create a JMSSettings for a sink with only 1 topic, 1 queue and JNDI and converters for a sink" in {
+  "should create a JMSSettings for a sink with only 1 topic, 1 queue and JNDI" in {
     val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
     val topicName = UUID.randomUUID().toString
     val queueName = UUID.randomUUID().toString
@@ -156,6 +157,65 @@ class JMSSettingsTest extends TestBase with BeforeAndAfterAll {
     queue.source shouldBe queueName
     queue.target shouldBe kafkaTopic1
     queue.sourceConverters shouldBe None
+    queue.messageSelector shouldBe None
+
+    val topic = settings.settings.last
+    topic.source shouldBe topicName
+    topic.target shouldBe kafkaTopic1
+    topic.destinationType shouldBe TopicDestination
+    topic.messageSelector shouldBe None
+
+    settings.destinationSelector shouldBe DestinationSelector.CDI
+    settings.connectionURL shouldBe JMS_URL
+  }
+
+  "should create a JMSSettings for a sink with only 1 topic, 1 queue and JNDI and converters for a sink in kcql" in {
+    val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
+    val converter =  new AvroMessageConverter().getClass
+    val topicName = UUID.randomUUID().toString
+    val queueName = UUID.randomUUID().toString
+
+    val kcqlQ = getKCQLAvroSinkConverter(kafkaTopic1, queueName, "QUEUE")
+    val kcqlT = getKCQLAvroSinkConverter(kafkaTopic1, topicName, "TOPIC")
+    val props = getProps(s"$kcqlQ;$kcqlT", JMS_URL)
+
+    val config = JMSConfig(props.asJava)
+    val settings = JMSSettings(config, true)
+    val queue = settings.settings.head
+    queue.source shouldBe queueName
+    queue.target shouldBe kafkaTopic1
+    queue.sourceConverters shouldBe None
+    queue.sinkConverter.getClass shouldBe converter
+    println(queue)
+    queue.messageSelector shouldBe None
+
+    val topic = settings.settings.last
+    topic.source shouldBe topicName
+    topic.target shouldBe kafkaTopic1
+    topic.destinationType shouldBe TopicDestination
+    topic.messageSelector shouldBe None
+
+    settings.destinationSelector shouldBe DestinationSelector.CDI
+    settings.connectionURL shouldBe JMS_URL
+  }
+
+  "should create a JMSSettings for a sink with only 1 topic, 1 queue and JNDI and converters for a sink in a connector" in {
+    val kafkaTopic1 = s"kafka-${UUID.randomUUID().toString}"
+    val converter =  new AvroMessageConverter().getClass
+    val topicName = UUID.randomUUID().toString
+    val queueName = UUID.randomUUID().toString
+
+    val kcqlQ = getKCQL(kafkaTopic1, queueName, "QUEUE")
+    val kcqlT = getKCQL(kafkaTopic1, topicName, "TOPIC")
+    val props = getProps(s"$kcqlQ;$kcqlT", JMS_URL) ++ Map(JMSConfigConstants.DEFAULT_SINK_CONVERTER_CONFIG  -> "com.datamountaineer.streamreactor.connect.jms.sink.converters.AvroMessageConverter")
+
+    val config = JMSConfig(props.asJava)
+    val settings = JMSSettings(config, true)
+    val queue = settings.settings.head
+    queue.source shouldBe queueName
+    queue.target shouldBe kafkaTopic1
+    queue.sourceConverters shouldBe None
+    queue.sinkConverter.getClass shouldBe converter
     queue.messageSelector shouldBe None
 
     val topic = settings.settings.last

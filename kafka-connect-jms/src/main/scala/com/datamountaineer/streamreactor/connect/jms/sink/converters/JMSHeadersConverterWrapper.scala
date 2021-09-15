@@ -30,6 +30,7 @@ class JMSHeadersConverterWrapper(headers: Map[String, String], delegate: JMSMess
   override def convert(record: SinkRecord, session: Session, setting: JMSSetting): (String, Message) = {
     val response = delegate.convert(record, session, setting)
     val message = response._2
+    message.setStringProperty("JMSXGroupID", record.kafkaPartition().toString)
     for((key, value) <- headers) {
       message.setObjectProperty(key, value)
     }
