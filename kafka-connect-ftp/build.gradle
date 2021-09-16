@@ -32,6 +32,8 @@ project(":kafka-connect-ftp") {
     compile project(':kafka-connect-common')
     compile "commons-net:commons-net:${commonsnetVersion}"
     compile "commons-codec:commons-codec:${commonsCodecVersion}"
+    compile "com.jcraft:jsch:0.1.55"
+    testCompile "org.apache.mina:mina-core:2.1.4"
     testCompile "com.github.pathikrit:better-files_2.12:${pathikritVersion}"
     testCompile "org.apache.ftpserver:ftpserver-core:${ftpserverVersion}"
   }
