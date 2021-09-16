@@ -268,6 +268,11 @@ class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
     val offsets = new DummyOffsetStorage
     val poller = new FtpSourcePoller(cfg, offsets)
     val records = poller.poll()
+    var retries = 0
+//    while (records.isEmpty && retries < 5) {
+//      retries += 1
+//    }
+      Thread.sleep(5000)
     assert(records.size > 10)
     records.foreach(record => println(record.value()))
   }
