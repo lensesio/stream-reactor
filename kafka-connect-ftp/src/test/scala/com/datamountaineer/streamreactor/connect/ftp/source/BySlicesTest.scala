@@ -1,6 +1,7 @@
 package com.datamountaineer.streamreactor.connect.ftp.source
 
 
+import com.datamountaineer.streamreactor.connect.ftp.source.EndToEndTest.{Append, DummyOffsetStorage, EmbeddedFtpServer, FileSystem}
 import com.typesafe.scalalogging.StrictLogging
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite

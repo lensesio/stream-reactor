@@ -5,11 +5,9 @@ import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.commons.net.ftp.{FTPClient, FTPFile}
 
 import java.io.OutputStream
-import java.text.{DateFormat, SimpleDateFormat}
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
+import java.text.SimpleDateFormat
 import java.util
-import java.util.{Calendar, Date, Locale}
+import java.util.Calendar
 import scala.util.{Failure, Success, Try}
 
 class SFTPClient extends FTPClient {
