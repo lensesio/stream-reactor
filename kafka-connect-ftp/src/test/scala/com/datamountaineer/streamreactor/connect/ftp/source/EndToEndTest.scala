@@ -282,7 +282,6 @@ class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
       val poller = new FtpSourcePoller(cfg, offsets)
       poller.poll().size shouldBe 2
     })
-
   }
 
   test("SFTP Happy flow: explicit port in communication") {
@@ -307,6 +306,32 @@ class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
       val poller = new FtpSourcePoller(cfg, offsets)
       Thread.sleep(1000)
       poller.poll().size shouldBe 1
+    })
+  }
+
+  test("SFTP Streaming flow: files are only fetched when the records are polled") {
+    withSftpServer(server => {
+      server.setPort(22)
+      server.addUser("demo", "password")
+      server.createDirectory("/directory/")
+      val configMap = Map()
+        .updated(FtpSourceConfig.Address, "localhost")
+        .updated(FtpSourceConfig.protocol, "sftp")
+        .updated(FtpSourceConfig.User, "demo")
+        .updated(FtpSourceConfig.Password, "password")
+        .updated(FtpSourceConfig.RefreshRate, "PT0S")
+        .updated(FtpSourceConfig.MonitorTail, "/directory/:kafka_topic")
+        .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
+        .updated(FtpSourceConfig.KeyStyle, "struct")
+        .updated(FtpSourceConfig.fileFilter, ".*")
+
+      val cfg = new FtpSourceConfig(configMap.asJava)
+      val offsets = new DummyOffsetStorage
+      val poller = new FtpSourcePoller(cfg, offsets)
+      poller.poll().size shouldBe 0
+      server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
+      server.putFile("/directory/file2.txt", "bla bla bla", Charset.defaultCharset())
+      poller.poll().size shouldBe 2
     })
 
   }
