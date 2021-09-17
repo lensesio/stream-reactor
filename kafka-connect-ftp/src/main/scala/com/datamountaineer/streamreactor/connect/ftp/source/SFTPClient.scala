@@ -12,9 +12,19 @@ import java.util.{Calendar, Properties}
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
+/**
+  * Implementation for Secure File Transfer Protocol, to allow Source a SFTP server
+  * and continue using the rest of implementation of the Connector to send to Kafka topic.
+  *
+  * This class use the [Adapter] pattern to adapt the contract of [FTPClient] invoked from the
+  * core library, to the [JsCh] implementation that we use internally.
+  */
 class SFTPClient extends FTPClient with StrictLogging {
 
+
   var lastReplyCode: Int = 500
+  var maybeConnectTimeout: Option[Int] = None
+  var maybeDataTimeout: Option[Int] = None
   var maybeHostname: Option[String] = None
   var maybeExplicitPort: Option[Int] = None
   var maybeJschSession: Option[Session] = None
@@ -36,9 +46,19 @@ class SFTPClient extends FTPClient with StrictLogging {
     maybeJschSession.isDefined && maybeJschSession.get.isConnected
   }
 
-  //  ftp.setConnectTimeout(settings.timeoutMs)
-  //  ftp.setDefaultTimeout(settings.timeoutMs)
-  //  ftp.setDataTimeout(settings.timeoutMs)
+  /**
+    * Max Timeout in Ms to open a session with SFTP Server
+    */
+  override def setConnectTimeout(timeoutMs: Int) {
+    maybeConnectTimeout = Some(timeoutMs)
+  }
+
+  /**
+    * Max Timeout in Ms to connect a channel with SFTP Server
+    */
+  override def setDataTimeout(timeoutMs: Int) {
+    maybeDataTimeout = Some(timeoutMs)
+  }
 
   /**
     * Using JsCh library, the only thing we can do in this moment it's to keep the information
@@ -97,7 +117,12 @@ class SFTPClient extends FTPClient with StrictLogging {
   override def listFiles(pathname: String): Array[FTPFile] = {
     maybeChannelSftp match {
       case Some(channel) =>
-        if (!channel.isConnected) channel.connect()
+        if (!channel.isConnected) {
+          maybeDataTimeout match {
+            case Some(dataTimeout) => channel.connect(dataTimeout)
+            case None => channel.connect()
+          }
+        }
         logger.debug(s"SFTPClient obtaining remote files from $pathname")
         val ftpFiles: List[FTPFile] = Try(channel.cd(pathname)) match {
           case Success(_) => fetchFiles(pathname, channel)
@@ -107,7 +132,6 @@ class SFTPClient extends FTPClient with StrictLogging {
         }
         logger.debug(s"SFTPClient ${ftpFiles.size} remote files obtained from $pathname")
         ftpFiles.toArray
-      //TODO:Close channel
       case None =>
         logger.error(s"SFTPClient Error no channel ready to obtain files from pathname $pathname.")
         Array()
@@ -120,8 +144,8 @@ class SFTPClient extends FTPClient with StrictLogging {
     */
   override def retrieveFile(remote: String, fileBody: OutputStream): Boolean = {
     maybeChannelSftp match {
-      case Some(channelSftp) =>
-        channelSftp.get(remote, fileBody)
+      case Some(channel) =>
+        channel.get(remote, fileBody)
         logger.debug(s"SFTPClient Successful retrieving files in path $remote.")
         true
       case None =>
@@ -186,7 +210,10 @@ class SFTPClient extends FTPClient with StrictLogging {
         val config = new Properties();
         config.put("StrictHostKeyChecking", "no")
         session.setConfig(config);
-        session.connect()
+        maybeConnectTimeout match {
+          case Some(connectTimeout) => session.connect(connectTimeout)
+          case None => session.connect()
+        }
         session
       }
   }

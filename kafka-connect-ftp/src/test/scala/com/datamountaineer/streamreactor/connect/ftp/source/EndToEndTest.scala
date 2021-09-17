@@ -254,14 +254,17 @@ class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
 
   test("SFTP Happy flow: file updates are properly reflected by corresponding SourceRecords with structured keys") {
     //TODO:This test is using an external SFTP Server, refactor to create an embedded sftp mock server
-    val configMap = defaultConfig
+    val configMap = Map()
       .updated(FtpSourceConfig.Address, "test.rebex.net")
       .updated(FtpSourceConfig.KeyStyle, "struct")
       .updated(FtpSourceConfig.protocol, "sftp")
       .updated(FtpSourceConfig.Password, "password")
       .updated(FtpSourceConfig.User, "demo")
+      .updated(FtpSourceConfig.RefreshRate, "PT0S")
       .updated(FtpSourceConfig.MonitorTail, "/pub/example/:kafka_topic")
       .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
+      .updated(FtpSourceConfig.KeyStyle, "string")
+      .updated(FtpSourceConfig.fileFilter, ".*")
 
 
     val cfg = new FtpSourceConfig(configMap.asJava)
@@ -270,11 +273,10 @@ class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
     val poller = new FtpSourcePoller(cfg, offsets)
     val records = poller.poll()
     var retries = 0
-//    while (records.isEmpty && retries < 5) {
-//      retries += 1
-//    }
-    //TODO:Fix me
-      Thread.sleep(5000)
+    while (records.isEmpty && retries < 5) {
+      retries += 1
+      Thread.sleep(1000)
+    }
     assert(records.size > 10)
     records.foreach(record => println(record.value()))
 
