@@ -255,6 +255,7 @@ class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
   test("SFTP Happy flow: file updates are properly reflected by corresponding SourceRecords with structured keys") {
     //TODO:This test is using an external SFTP Server, refactor to create an embedded sftp mock server
     val configMap = defaultConfig
+      .updated(FtpSourceConfig.Address, "test.rebex.net")
       .updated(FtpSourceConfig.KeyStyle, "struct")
       .updated(FtpSourceConfig.protocol, "sftp")
       .updated(FtpSourceConfig.Password, "password")
@@ -272,9 +273,11 @@ class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
 //    while (records.isEmpty && retries < 5) {
 //      retries += 1
 //    }
+    //TODO:Fix me
       Thread.sleep(5000)
     assert(records.size > 10)
     records.foreach(record => println(record.value()))
+
   }
 
   test("Streaming flow: files are only fetched when the records are polled") {

@@ -8,14 +8,14 @@ import org.apache.commons.net.ftp.{FTPClient, FTPFile}
 
 import java.io.OutputStream
 import java.text.SimpleDateFormat
-import java.util
 import java.util.{Calendar, Properties}
+import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 class SFTPClient extends FTPClient with StrictLogging {
 
   var hostname: String = _
-  var explicitPort: Int = _
+  var maybeExplicitPort: Option[Int] = None
   var lastReplyCode: Int = 200
   var maybeJschSession: Option[Session] = None
   var maybeChannelSftp: Option[ChannelSftp] = None
@@ -44,38 +44,25 @@ class SFTPClient extends FTPClient with StrictLogging {
     maybeJschSession.isDefined && maybeChannelSftp.isDefined
   }
 
+
   override def listFiles(pathname: String): Array[FTPFile] = {
-    //TODO:Control side-effects
-    val channel = maybeChannelSftp.get
-    if (!channel.isConnected) channel.connect()
-    logger.debug(s"SFTPClient obtaining remote files from $pathname")
-    //TODO:Mutable Array uggggg fix me!
-    var ftpFiles = List[FTPFile]()
-    Try(channel.cd(pathname)) match {
-      case Success(_) =>
-        val files: util.Vector[_] = channel.ls(pathname)
-        files.forEach(file => {
-          val entry = file.asInstanceOf[ChannelSftp#LsEntry]
-          if (entry.getFilename != "." && entry.getFilename != "..") {
-            val ftpFile: FTPFile = new FTPFile()
-            ftpFile.setType(0)
-            ftpFile.setName(entry.getFilename)
-            ftpFile.setSize(entry.getAttrs.getSize)
-
-            val dateFormat = new SimpleDateFormat("EEE MMM d HH:mm:ss zzz uuuu")
-            val calendar = Calendar.getInstance()
-            calendar.setTime(dateFormat.parse(entry.getAttrs.getMtimeString))
-            ftpFile.setTimestamp(calendar)
-
-            ftpFiles = ftpFiles ++ List(ftpFile)
-          }
-        })
-      case Failure(t) =>
-        //TODO:Log me
-        println(s"Error obtaining resources from pathname $pathname. Caused by ${ExceptionUtils.getStackTrace(t)}")
+    maybeChannelSftp match {
+      case Some(channel) =>
+        if (!channel.isConnected) channel.connect()
+        logger.debug(s"SFTPClient obtaining remote files from $pathname")
+        val ftpFiles: List[FTPFile] = Try(channel.cd(pathname)) match {
+          case Success(_) => fetchFiles(pathname, channel)
+          case Failure(t) =>
+            logger.error(s"SFTPClient Error obtaining resources from pathname $pathname. Caused by ${ExceptionUtils.getStackTrace(t)}")
+            List[FTPFile]()
+        }
+        logger.debug(s"SFTPClient ${ftpFiles.size} remote files obtained from $pathname")
+        ftpFiles.toArray
+      //TODO:Close channel
+      case None =>
+        logger.error(s"SFTPClient Error no channel ready to obtain files from pathname $pathname.")
+        Array()
     }
-    ftpFiles.toArray
-    //TODO:Close channel
   }
 
   override def isConnected(): Boolean = {
@@ -91,7 +78,7 @@ class SFTPClient extends FTPClient with StrictLogging {
 
   override def connect(hostname: String, explicitPort: Int): Unit = {
     this.hostname = hostname
-    this.explicitPort = explicitPort
+    this.maybeExplicitPort = Some(explicitPort)
   }
 
   override def connect(hostname: String): Unit = {
@@ -102,7 +89,27 @@ class SFTPClient extends FTPClient with StrictLogging {
     true
   }
 
-  private val remoteHost = "test.rebex.net"
+  private def fetchFiles(pathname: String, channel: ChannelSftp): List[FTPFile] = {
+    channel.ls(pathname)
+      .asScala
+      .toList
+      .map(file => file.asInstanceOf[ChannelSftp#LsEntry])
+      .filter(lsEntry => lsEntry.getFilename != "." && lsEntry.getFilename != "..")
+      .map(lsEntry => createFtpFile(lsEntry))
+  }
+
+  private def createFtpFile(lsEntry: ChannelSftp#LsEntry) = {
+    val ftpFile: FTPFile = new FTPFile()
+    ftpFile.setType(0)
+    ftpFile.setName(lsEntry.getFilename)
+    ftpFile.setSize(lsEntry.getAttrs.getSize)
+
+    val dateFormat = new SimpleDateFormat("EEE MMM d HH:mm:ss zzz uuuu")
+    val calendar = Calendar.getInstance()
+    calendar.setTime(dateFormat.parse(lsEntry.getAttrs.getMtimeString))
+    ftpFile.setTimestamp(calendar)
+    ftpFile
+  }
 
   private def getSessionAndChannel(username: Username,
                                    password: Password): Try[(Session, ChannelSftp)] = {
@@ -125,7 +132,10 @@ class SFTPClient extends FTPClient with StrictLogging {
       val config = new Properties();
       config.put("StrictHostKeyChecking", "no")
       val jsch = new JSch()
-      val jschSession: Session = jsch.getSession(username.value, remoteHost)
+      val jschSession: Session = maybeExplicitPort match {
+        case Some(explicitPort) => jsch.getSession(username.value, hostname, explicitPort)
+        case None => jsch.getSession(username.value, hostname)
+      }
       jschSession.setPassword(password.value)
       //TODO:Only for testing
       jschSession.setConfig(config);
