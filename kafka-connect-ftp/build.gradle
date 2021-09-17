@@ -36,6 +36,7 @@ project(":kafka-connect-ftp") {
     testCompile "org.apache.mina:mina-core:2.1.4"
     testCompile "com.github.pathikrit:better-files_2.12:${pathikritVersion}"
     testCompile "org.apache.ftpserver:ftpserver-core:${ftpserverVersion}"
+    testCompile "com.github.stefanbirkner:fake-sftp-server-lambda:2.0.0"
   }
 }
 

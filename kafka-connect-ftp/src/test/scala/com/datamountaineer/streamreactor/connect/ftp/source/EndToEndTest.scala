@@ -20,6 +20,7 @@ import better.files._
 import com.datamountaineer.streamreactor.connect.ftp.source.EndToEndTest.{Append, DummyOffsetStorage, EmbeddedFtpServer, FileDiff, FileSystem, Update}
 import com.datamountaineer.streamreactor.connect.ftp.source.KeyStyle.KeyStyle
 import com.datamountaineer.streamreactor.connect.ftp.source.MonitorMode.Tail
+import com.github.stefanbirkner.fakesftpserver.lambda.FakeSftpServer.withSftpServer
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.ftpserver.listener.ListenerFactory
 import org.apache.ftpserver.usermanager.PropertiesUserManagerFactory
@@ -32,6 +33,7 @@ import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
+import java.nio.charset.Charset
 import java.nio.file.Path
 import java.util
 import scala.collection.JavaConverters._
@@ -252,33 +254,40 @@ class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
     server.stop()
   }
 
-  test("SFTP Happy flow: file updates are properly reflected by corresponding SourceRecords with structured keys") {
-    //TODO:This test is using an external SFTP Server, refactor to create an embedded sftp mock server
-    val configMap = Map()
-      .updated(FtpSourceConfig.Address, "test.rebex.net")
-      .updated(FtpSourceConfig.KeyStyle, "struct")
-      .updated(FtpSourceConfig.protocol, "sftp")
-      .updated(FtpSourceConfig.Password, "password")
-      .updated(FtpSourceConfig.User, "demo")
-      .updated(FtpSourceConfig.RefreshRate, "PT0S")
-      .updated(FtpSourceConfig.MonitorTail, "/pub/example/:kafka_topic")
-      .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
-      .updated(FtpSourceConfig.KeyStyle, "string")
-      .updated(FtpSourceConfig.fileFilter, ".*")
+  test("SFTP Happy flow: files on sftp server are properly reflected by corresponding SourceRecords with structured keys") {
+    withSftpServer(server => {
+      server.setPort(1234)
+      server.addUser("demo", "password")
+      server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
+      server.putFile("/directory/file2.txt", "bla bla bla", Charset.defaultCharset())
 
 
-    val cfg = new FtpSourceConfig(configMap.asJava)
+      val configMap = Map()
+        .updated(FtpSourceConfig.Address, "localhost:1234")
+        .updated(FtpSourceConfig.KeyStyle, "struct")
+        .updated(FtpSourceConfig.protocol, "sftp")
+        .updated(FtpSourceConfig.Password, "password")
+        .updated(FtpSourceConfig.User, "demo")
+        .updated(FtpSourceConfig.RefreshRate, "PT0S")
+        .updated(FtpSourceConfig.MonitorTail, "/directory/:kafka_topic")
+        .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
+        .updated(FtpSourceConfig.KeyStyle, "string")
+        .updated(FtpSourceConfig.fileFilter, ".*")
 
-    val offsets = new DummyOffsetStorage
-    val poller = new FtpSourcePoller(cfg, offsets)
-    val records = poller.poll()
-    var retries = 0
-    while (records.isEmpty && retries < 5) {
-      retries += 1
-      Thread.sleep(1000)
-    }
-    assert(records.size > 10)
-    records.foreach(record => println(record.value()))
+
+      val cfg = new FtpSourceConfig(configMap.asJava)
+
+      val offsets = new DummyOffsetStorage
+      val poller = new FtpSourcePoller(cfg, offsets)
+      val records = poller.poll()
+      var retries = 0
+      while (records.isEmpty && retries < 5) {
+        retries += 1
+        Thread.sleep(1000)
+      }
+      assert(records.size == 2)
+      records.foreach(record => println(record.value()))
+    })
 
   }
 
