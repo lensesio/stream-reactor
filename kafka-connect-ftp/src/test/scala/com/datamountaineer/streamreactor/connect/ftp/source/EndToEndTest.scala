@@ -50,28 +50,6 @@ object EndToEndTest {
     }
   }
 
-  //  import com.jcraft.jsch.UserAuth
-  //  import java.util
-  //
-  //  def setupSftpServer(): Unit = {
-  //    val sshd = SshServer.setUpDefaultServer
-  //    sshd.setPort(22)
-  //    sshd.setKeyPairProvider(new Nothing("hostkey.ser"))
-  //    val userAuthFactories = new util.ArrayList[Nothing]
-  //    userAuthFactories.add(new Nothing)
-  //    sshd.setUserAuthFactories(userAuthFactories)
-  //    sshd.setCommandFactory(new Nothing)
-  //    val namedFactoryList = new util.ArrayList[Nothing]
-  //    namedFactoryList.add(new Nothing)
-  //    sshd.setSubsystemFactories(namedFactoryList)
-  //    try sshd.start
-  //    catch {
-  //      case e: Exception =>
-  //        e.printStackTrace()
-  //    }
-  //  }
-
-
   class EmbeddedFtpServer(portNumber: Int) extends StrictLogging {
     val username = "my-User_name7"
     val password = "=541%2@$;;'`"
@@ -254,43 +232,6 @@ class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
     server.stop()
   }
 
-  test("SFTP Happy flow: files on sftp server are properly reflected by corresponding SourceRecords with structured keys") {
-    withSftpServer(server => {
-      server.setPort(1234)
-      server.addUser("demo", "password")
-      server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
-      server.putFile("/directory/file2.txt", "bla bla bla", Charset.defaultCharset())
-
-
-      val configMap = Map()
-        .updated(FtpSourceConfig.Address, "localhost:1234")
-        .updated(FtpSourceConfig.KeyStyle, "struct")
-        .updated(FtpSourceConfig.protocol, "sftp")
-        .updated(FtpSourceConfig.Password, "password")
-        .updated(FtpSourceConfig.User, "demo")
-        .updated(FtpSourceConfig.RefreshRate, "PT0S")
-        .updated(FtpSourceConfig.MonitorTail, "/directory/:kafka_topic")
-        .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
-        .updated(FtpSourceConfig.KeyStyle, "string")
-        .updated(FtpSourceConfig.fileFilter, ".*")
-
-
-      val cfg = new FtpSourceConfig(configMap.asJava)
-
-      val offsets = new DummyOffsetStorage
-      val poller = new FtpSourcePoller(cfg, offsets)
-      val records = poller.poll()
-      var retries = 0
-      while (records.isEmpty && retries < 5) {
-        retries += 1
-        Thread.sleep(1000)
-      }
-      assert(records.size == 2)
-      records.foreach(record => println(record.value()))
-    })
-
-  }
-
   test("Streaming flow: files are only fetched when the records are polled") {
     logger.info("Start test")
     val fs = new FileSystem(server.rootDir).clear
@@ -317,4 +258,156 @@ class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
 
     server.stop()
   }
+
+  test("SFTP Happy flow: files on sftp server are properly reflected by corresponding SourceRecords with structured keys") {
+    withSftpServer(server => {
+      server.setPort(22)
+      server.addUser("demo", "password")
+      server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
+      server.putFile("/directory/file2.txt", "bla bla bla", Charset.defaultCharset())
+
+      val configMap = Map()
+        .updated(FtpSourceConfig.Address, "localhost")
+        .updated(FtpSourceConfig.protocol, "sftp")
+        .updated(FtpSourceConfig.User, "demo")
+        .updated(FtpSourceConfig.Password, "password")
+        .updated(FtpSourceConfig.RefreshRate, "PT0S")
+        .updated(FtpSourceConfig.MonitorTail, "/directory/:kafka_topic")
+        .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
+        .updated(FtpSourceConfig.KeyStyle, "struct")
+        .updated(FtpSourceConfig.fileFilter, ".*")
+
+      val cfg = new FtpSourceConfig(configMap.asJava)
+      val offsets = new DummyOffsetStorage
+      val poller = new FtpSourcePoller(cfg, offsets)
+      poller.poll().size shouldBe 2
+    })
+
+  }
+
+  test("SFTP Happy flow: explicit port in communication") {
+    withSftpServer(server => {
+      server.setPort(1234)
+      server.addUser("demo", "password")
+      server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
+
+      val configMap = Map()
+        .updated(FtpSourceConfig.Address, "localhost:1234")
+        .updated(FtpSourceConfig.protocol, "sftp")
+        .updated(FtpSourceConfig.User, "demo")
+        .updated(FtpSourceConfig.Password, "password")
+        .updated(FtpSourceConfig.RefreshRate, "PT0S")
+        .updated(FtpSourceConfig.MonitorTail, "/directory/:kafka_topic")
+        .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
+        .updated(FtpSourceConfig.KeyStyle, "struct")
+        .updated(FtpSourceConfig.fileFilter, ".*")
+
+      val cfg = new FtpSourceConfig(configMap.asJava)
+      val offsets = new DummyOffsetStorage
+      val poller = new FtpSourcePoller(cfg, offsets)
+      Thread.sleep(1000)
+      poller.poll().size shouldBe 1
+    })
+
+  }
+
+  test("SFTP Ugly flow: wrong address in SFTP connection") {
+    withSftpServer(server => {
+      server.setPort(1234)
+      server.addUser("demo", "password")
+      server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
+
+      val configMap = Map()
+        .updated(FtpSourceConfig.Address, "foo:1234")
+        .updated(FtpSourceConfig.protocol, "sftp")
+        .updated(FtpSourceConfig.User, "demo")
+        .updated(FtpSourceConfig.Password, "password")
+        .updated(FtpSourceConfig.RefreshRate, "PT0S")
+        .updated(FtpSourceConfig.MonitorTail, "/directory/:kafka_topic")
+        .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
+        .updated(FtpSourceConfig.KeyStyle, "string")
+        .updated(FtpSourceConfig.fileFilter, ".*")
+
+      val cfg = new FtpSourceConfig(configMap.asJava)
+      val offsets = new DummyOffsetStorage
+      val poller = new FtpSourcePoller(cfg, offsets)
+      poller.poll().size shouldBe 0
+    })
+  }
+
+  test("SFTP Ugly flow: wrong credentials in SFTP connection") {
+    withSftpServer(server => {
+      server.setPort(1234)
+      server.addUser("demo", "password")
+      server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
+
+
+      val configMap = Map()
+        .updated(FtpSourceConfig.Address, "localhost:1234")
+        .updated(FtpSourceConfig.protocol, "sftp")
+        .updated(FtpSourceConfig.User, "foo")
+        .updated(FtpSourceConfig.Password, "bla")
+        .updated(FtpSourceConfig.RefreshRate, "PT0S")
+        .updated(FtpSourceConfig.MonitorTail, "/directory/:kafka_topic")
+        .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
+        .updated(FtpSourceConfig.KeyStyle, "string")
+        .updated(FtpSourceConfig.fileFilter, ".*")
+
+      val cfg = new FtpSourceConfig(configMap.asJava)
+      val offsets = new DummyOffsetStorage
+      val poller = new FtpSourcePoller(cfg, offsets)
+      poller.poll().size shouldBe 0
+    })
+
+  }
+
+  test("SFTP Ugly flow: wrong directory in SFTP connection") {
+    withSftpServer(server => {
+      server.setPort(1234)
+      server.addUser("demo", "password")
+      server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
+
+      val configMap = Map()
+        .updated(FtpSourceConfig.Address, "localhost:1234")
+        .updated(FtpSourceConfig.protocol, "sftp")
+        .updated(FtpSourceConfig.User, "demo")
+        .updated(FtpSourceConfig.Password, "password")
+        .updated(FtpSourceConfig.RefreshRate, "PT0S")
+        .updated(FtpSourceConfig.MonitorTail, "/foo/:kafka_topic")
+        .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
+        .updated(FtpSourceConfig.KeyStyle, "string")
+        .updated(FtpSourceConfig.fileFilter, ".*")
+
+      val cfg = new FtpSourceConfig(configMap.asJava)
+      val offsets = new DummyOffsetStorage
+      val poller = new FtpSourcePoller(cfg, offsets)
+      poller.poll().size shouldBe 0
+    })
+  }
+
+  test("SFTP Ugly flow: timeout in SFTP connection") {
+    withSftpServer(server => {
+      server.setPort(1234)
+      server.addUser("demo", "password")
+      server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
+
+      val configMap = Map()
+        .updated(FtpSourceConfig.Address, "localhost:1234")
+        .updated(FtpSourceConfig.protocol, "sftp")
+        .updated(FtpSourceConfig.User, "demo")
+        .updated(FtpSourceConfig.Password, "password")
+        .updated(FtpSourceConfig.RefreshRate, "PT0S")
+        .updated(FtpSourceConfig.MonitorTail, "/directory/:kafka_topic")
+        .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
+        .updated(FtpSourceConfig.KeyStyle, "string")
+        .updated(FtpSourceConfig.fileFilter, ".*")
+        .updated(FtpSourceConfig.FtpTimeout, "1")
+
+      val cfg = new FtpSourceConfig(configMap.asJava)
+      val offsets = new DummyOffsetStorage
+      val poller = new FtpSourcePoller(cfg, offsets)
+      poller.poll().size shouldBe 0
+    })
+  }
+
 }
