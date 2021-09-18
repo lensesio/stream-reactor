@@ -21,7 +21,6 @@ import scala.util.{Failure, Success, Try}
   */
 class SFTPClient extends FTPClient with StrictLogging {
 
-
   var lastReplyCode: Int = 500
   var maybeConnectTimeout: Option[Int] = None
   var maybeDataTimeout: Option[Int] = None
@@ -35,8 +34,8 @@ class SFTPClient extends FTPClient with StrictLogging {
     * transaction.
     */
   override def disconnect(): Unit = {
-    if (maybeJschSession.isDefined) maybeJschSession.get.disconnect()
-    if (maybeChannelSftp.isDefined) maybeChannelSftp.get.disconnect()
+    maybeJschSession.foreach(session => session.disconnect())
+    maybeChannelSftp.foreach(channel => channel.disconnect())
   }
 
   /**
@@ -117,19 +116,9 @@ class SFTPClient extends FTPClient with StrictLogging {
   override def listFiles(pathname: String): Array[FTPFile] = {
     maybeChannelSftp match {
       case Some(channel) =>
-        if (!channel.isConnected) {
-          maybeDataTimeout match {
-            case Some(dataTimeout) => channel.connect(dataTimeout)
-            case None => channel.connect()
-          }
-        }
+        if (!channel.isConnected) connectChannel(channel)
         logger.debug(s"SFTPClient obtaining remote files from $pathname")
-        val ftpFiles: List[FTPFile] = Try(channel.cd(pathname)) match {
-          case Success(_) => fetchFiles(pathname, channel)
-          case Failure(t) =>
-            logger.error(s"SFTPClient Error obtaining resources from pathname $pathname. Caused by ${ExceptionUtils.getStackTrace(t)}")
-            List[FTPFile]()
-        }
+        val ftpFiles = getFTPFiles(pathname, channel)
         logger.debug(s"SFTPClient ${ftpFiles.size} remote files obtained from $pathname")
         ftpFiles.toArray
       case None =>
@@ -151,6 +140,22 @@ class SFTPClient extends FTPClient with StrictLogging {
       case None =>
         logger.debug(s"SFTPClient Error, channel not initiated in path $remote.")
         false
+    }
+  }
+
+  private def getFTPFiles(pathname: String, channel: ChannelSftp): List[FTPFile] = {
+    Try(channel.cd(pathname)) match {
+      case Success(_) => fetchFiles(pathname, channel)
+      case Failure(t) =>
+        logger.error(s"SFTPClient Error obtaining resources from pathname $pathname. Caused by ${ExceptionUtils.getStackTrace(t)}")
+        List[FTPFile]()
+    }
+  }
+
+  private def connectChannel(channel: ChannelSftp): Unit = {
+    maybeDataTimeout match {
+      case Some(dataTimeout) => channel.connect(dataTimeout)
+      case None => channel.connect()
     }
   }
 
@@ -179,7 +184,7 @@ class SFTPClient extends FTPClient with StrictLogging {
   private def getSessionAndChannel(username: Username,
                                    password: Password): Try[(Session, ChannelSftp)] = {
     for {
-      session <- createSession(username, password)
+      session <- openSession(username, password)
       channel <- createChannel(session)
     } yield (session, channel)
   }
@@ -194,28 +199,44 @@ class SFTPClient extends FTPClient with StrictLogging {
   /**
     * Create and open a session in default port 22 or in a specific one using hostname, username and password
     */
-  private val createSession: (Username, Password) => Try[Session] = {
+  private val openSession: (Username, Password) => Try[Session] = {
     (username, password) =>
       Try {
         val jsch = new JSch()
-        val hostname = maybeHostname match {
-          case Some(hostname) => hostname
-          case None => throw new NoSuchElementException(s"Hostname not provided in transaction for Username $username")
-        }
-        val session: Session = maybeExplicitPort match {
-          case Some(explicitPort) => jsch.getSession(username.value, hostname, explicitPort)
-          case None => jsch.getSession(username.value, hostname)
-        }
+        val hostname = getHostname(username)
+        val session = createSession(username, jsch, hostname)
         session.setPassword(password.value)
-        val config = new Properties();
-        config.put("StrictHostKeyChecking", "no")
-        session.setConfig(config);
-        maybeConnectTimeout match {
-          case Some(connectTimeout) => session.connect(connectTimeout)
-          case None => session.connect()
-        }
+        setSessionConfig(session)
+        connectSession(session)
         session
       }
+  }
+
+  private def setSessionConfig(session: Session): Unit = {
+    val config = new Properties();
+    config.put("StrictHostKeyChecking", "no")
+    session.setConfig(config);
+  }
+
+  private def connectSession(session: Session): Unit = {
+    maybeConnectTimeout match {
+      case Some(connectTimeout) => session.connect(connectTimeout)
+      case None => session.connect()
+    }
+  }
+
+  private def createSession(username: Username, jsch: JSch, hostname: String): Session = {
+    maybeExplicitPort match {
+      case Some(explicitPort) => jsch.getSession(username.value, hostname, explicitPort)
+      case None => jsch.getSession(username.value, hostname)
+    }
+  }
+
+  private def getHostname(username: Username): String = {
+    maybeHostname match {
+      case Some(hostname) => hostname
+      case None => throw new NoSuchElementException(s"Hostname not provided in transaction for Username $username")
+    }
   }
 }
 
@@ -224,6 +245,5 @@ object SFTPClient {
   case class Username(value: String) extends AnyVal
 
   case class Password(value: String) extends AnyVal
-
 
 }
