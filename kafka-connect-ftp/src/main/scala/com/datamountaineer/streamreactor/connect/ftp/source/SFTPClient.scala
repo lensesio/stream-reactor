@@ -115,15 +115,15 @@ class SFTPClient extends FTPClient with StrictLogging {
     * and it returns a Array[FTPFile] with all directory file info.
     */
   override def listFiles(pathname: String): Array[FTPFile] = {
-    maybeChannelSftp.map(channel => {
+    maybeChannelSftp.fold {
+      logger.error(s"SFTPClient Error no channel ready to obtain files from pathname $pathname.")
+      Array[FTPFile]()
+    } { channel =>
       if (!channel.isConnected) connectChannel(channel)
       logger.debug(s"SFTPClient obtaining remote files from $pathname")
       val ftpFiles = getFTPFiles(pathname, channel)
       logger.debug(s"SFTPClient ${ftpFiles.size} remote files obtained from $pathname")
       ftpFiles.toArray
-    }).getOrElse {
-      logger.error(s"SFTPClient Error no channel ready to obtain files from pathname $pathname.")
-      Array()
     }
   }
 
@@ -132,13 +132,13 @@ class SFTPClient extends FTPClient with StrictLogging {
     * the content into the [OutputStream].
     */
   override def retrieveFile(remote: String, fileBody: OutputStream): Boolean = {
-    maybeChannelSftp.map(channel => {
+    maybeChannelSftp.fold {
+      logger.debug(s"SFTPClient Error, channel not initiated in path $remote.")
+      false
+    } { channel =>
       channel.get(remote, fileBody)
       logger.debug(s"SFTPClient Successful retrieving files in path $remote.")
       true
-    }).getOrElse {
-      logger.debug(s"SFTPClient Error, channel not initiated in path $remote.")
-      false
     }
   }
 
@@ -156,8 +156,7 @@ class SFTPClient extends FTPClient with StrictLogging {
 
   private def connectChannel(channel: ChannelSftp): Unit = {
     maybeDataTimeout
-      .map(dataTimeout => channel.connect(dataTimeout))
-      .getOrElse(channel.connect())
+      .fold(channel.connect())(dataTimeout => channel.connect(dataTimeout))
   }
 
   private def fetchFiles(pathname: String, channel: ChannelSftp): Try[List[FTPFile]] = {
@@ -223,14 +222,16 @@ class SFTPClient extends FTPClient with StrictLogging {
 
   private def connectSession(session: Session): Unit = {
     maybeConnectTimeout
-      .map(connectTimeout => session.connect(connectTimeout))
-      .getOrElse(session.connect())
+      .fold(session.connect()) {
+        connectTimeout => session.connect(connectTimeout)
+      }
   }
 
   private def createSession(username: Username, jsch: JSch, hostname: String): Session = {
     maybeExplicitPort
-      .map(explicitPort => jsch.getSession(username.value, hostname, explicitPort))
-      .getOrElse(jsch.getSession(username.value, hostname))
+      .fold(jsch.getSession(username.value, hostname)) {
+        explicitPort => jsch.getSession(username.value, hostname, explicitPort)
+      }
   }
 
   private def getHostname(username: Username): String = {
