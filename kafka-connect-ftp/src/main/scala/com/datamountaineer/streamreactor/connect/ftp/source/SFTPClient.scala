@@ -89,14 +89,15 @@ class SFTPClient extends FTPClient with StrictLogging {
     * be used later in subsequent steps to get folder info, or download files.
     */
   override def login(username: String, password: String): Boolean = {
-    getSessionAndChannel(Username(username), Password(password)) match {
-      case Success((session, channel)) =>
+    getSessionAndChannel(Username(username), Password(password))
+      .map { case (session, channel) =>
         maybeJschSession = Some(session)
         maybeChannelSftp = Some(channel)
         logger.debug(s"SFTPClient Successful Session/Channel created by username $username.")
         lastReplyCode = 200
-      case Failure(exception) =>
-        logger.error(s"SFTPClient error login username $username. Caused by ${ExceptionUtils.getStackTrace(exception)}")
+      }.recover {
+      case e: Exception =>
+        logger.error(s"SFTPClient error login username $username. Caused by ${ExceptionUtils.getStackTrace(e)}")
         lastReplyCode = 500
     }
     maybeJschSession.isDefined && maybeChannelSftp.isDefined
@@ -114,16 +115,15 @@ class SFTPClient extends FTPClient with StrictLogging {
     * and it returns a Array[FTPFile] with all directory file info.
     */
   override def listFiles(pathname: String): Array[FTPFile] = {
-    maybeChannelSftp match {
-      case Some(channel) =>
-        if (!channel.isConnected) connectChannel(channel)
-        logger.debug(s"SFTPClient obtaining remote files from $pathname")
-        val ftpFiles = getFTPFiles(pathname, channel)
-        logger.debug(s"SFTPClient ${ftpFiles.size} remote files obtained from $pathname")
-        ftpFiles.toArray
-      case None =>
-        logger.error(s"SFTPClient Error no channel ready to obtain files from pathname $pathname.")
-        Array()
+    maybeChannelSftp.map(channel => {
+      if (!channel.isConnected) connectChannel(channel)
+      logger.debug(s"SFTPClient obtaining remote files from $pathname")
+      val ftpFiles = getFTPFiles(pathname, channel)
+      logger.debug(s"SFTPClient ${ftpFiles.size} remote files obtained from $pathname")
+      ftpFiles.toArray
+    }).getOrElse {
+      logger.error(s"SFTPClient Error no channel ready to obtain files from pathname $pathname.")
+      Array()
     }
   }
 
@@ -132,40 +132,43 @@ class SFTPClient extends FTPClient with StrictLogging {
     * the content into the [OutputStream].
     */
   override def retrieveFile(remote: String, fileBody: OutputStream): Boolean = {
-    maybeChannelSftp match {
-      case Some(channel) =>
-        channel.get(remote, fileBody)
-        logger.debug(s"SFTPClient Successful retrieving files in path $remote.")
-        true
-      case None =>
-        logger.debug(s"SFTPClient Error, channel not initiated in path $remote.")
-        false
+    maybeChannelSftp.map(channel => {
+      channel.get(remote, fileBody)
+      logger.debug(s"SFTPClient Successful retrieving files in path $remote.")
+      true
+    }).getOrElse {
+      logger.debug(s"SFTPClient Error, channel not initiated in path $remote.")
+      false
     }
   }
 
   private def getFTPFiles(pathname: String, channel: ChannelSftp): List[FTPFile] = {
-    Try(channel.cd(pathname)) match {
-      case Success(_) => fetchFiles(pathname, channel)
-      case Failure(t) =>
-        logger.error(s"SFTPClient Error obtaining resources from pathname $pathname. Caused by ${ExceptionUtils.getStackTrace(t)}")
-        List[FTPFile]()
-    }
+    (for {
+      _ <- Try(channel.cd(pathname))
+      ftpFiles <- fetchFiles(pathname, channel)
+    } yield ftpFiles)
+      .recover {
+        case e: Exception =>
+          logger.error(s"SFTPClient Error obtaining resources from pathname $pathname. Caused by ${ExceptionUtils.getStackTrace(e)}")
+          List()
+      }.get
   }
 
   private def connectChannel(channel: ChannelSftp): Unit = {
-    maybeDataTimeout match {
-      case Some(dataTimeout) => channel.connect(dataTimeout)
-      case None => channel.connect()
-    }
+    maybeDataTimeout
+      .map(dataTimeout => channel.connect(dataTimeout))
+      .getOrElse(channel.connect())
   }
 
-  private def fetchFiles(pathname: String, channel: ChannelSftp): List[FTPFile] = {
-    channel.ls(pathname)
-      .asScala
-      .toList
-      .map(file => file.asInstanceOf[ChannelSftp#LsEntry])
-      .filter(lsEntry => lsEntry.getFilename != "." && lsEntry.getFilename != "..")
-      .map(lsEntry => createFtpFile(lsEntry))
+  private def fetchFiles(pathname: String, channel: ChannelSftp): Try[List[FTPFile]] = {
+    Try {
+      channel.ls(pathname)
+        .asScala
+        .toList
+        .map(file => file.asInstanceOf[ChannelSftp#LsEntry])
+        .filter(lsEntry => lsEntry.getFilename != "." && lsEntry.getFilename != "..")
+        .map(lsEntry => createFtpFile(lsEntry))
+    }
   }
 
   private def createFtpFile(lsEntry: ChannelSftp#LsEntry) = {
@@ -219,24 +222,20 @@ class SFTPClient extends FTPClient with StrictLogging {
   }
 
   private def connectSession(session: Session): Unit = {
-    maybeConnectTimeout match {
-      case Some(connectTimeout) => session.connect(connectTimeout)
-      case None => session.connect()
-    }
+    maybeConnectTimeout
+      .map(connectTimeout => session.connect(connectTimeout))
+      .getOrElse(session.connect())
   }
 
   private def createSession(username: Username, jsch: JSch, hostname: String): Session = {
-    maybeExplicitPort match {
-      case Some(explicitPort) => jsch.getSession(username.value, hostname, explicitPort)
-      case None => jsch.getSession(username.value, hostname)
-    }
+    maybeExplicitPort
+      .map(explicitPort => jsch.getSession(username.value, hostname, explicitPort))
+      .getOrElse(jsch.getSession(username.value, hostname))
   }
 
   private def getHostname(username: Username): String = {
-    maybeHostname match {
-      case Some(hostname) => hostname
-      case None => throw new NoSuchElementException(s"Hostname not provided in transaction for Username $username")
-    }
+    maybeHostname
+      .getOrElse(throw new NoSuchElementException(s"Hostname not provided in transaction for Username $username"))
   }
 }
 
