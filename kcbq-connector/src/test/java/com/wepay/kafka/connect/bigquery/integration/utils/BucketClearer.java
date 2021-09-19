@@ -23,7 +23,7 @@ import com.google.api.gax.paging.Page;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
-import com.wepay.kafka.connect.bigquery.GCSBuilder;
+import com.wepay.kafka.connect.bigquery.GcpClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,9 +41,12 @@ public class BucketClearer {
    * @param keySource The key source. If "FILE", then the {@code key} parameter will be treated as a
    *                  filename; if "JSON", then {@code key} will be treated as a raw JSON string.
    */
-  public static void clearBucket(
-      String key, String project, String bucketName, String folderName, String keySource) {
-    Storage gcs = new GCSBuilder(project).setKey(key).setKeySource(keySource).build();
+  public static void clearBucket(String key, String project, String bucketName, String folderName, String keySource) {
+    Storage gcs = new GcpClientBuilder.GcsBuilder()
+        .withKeySource(GcpClientBuilder.KeySource.valueOf(keySource))
+        .withKey(key)
+        .withProject(project)
+        .build();
     Bucket bucket = gcs.get(bucketName);
     if (bucket != null) {
       logger.info("Deleting objects in the {} folder for bucket {}",

@@ -22,7 +22,9 @@ package com.wepay.kafka.connect.bigquery;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
 import com.wepay.kafka.connect.bigquery.utils.Version;
+import org.apache.kafka.common.config.Config;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigValue;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
 import org.slf4j.Logger;
@@ -50,6 +52,17 @@ public class BigQuerySinkConnector extends SinkConnector {
     return BigQuerySinkConfig.getConfig();
   }
 
+  @Override
+  public Config validate(Map<String, String> properties) {
+    List<ConfigValue> singlePropertyValidations = config().validate(properties);
+    // If any of our properties had malformed syntax or failed a validation to ensure, e.g., that it fell within an
+    // acceptable numeric range, we only report those errors since they prevent us from being able to construct a
+    // valid BigQuerySinkConfig instance
+    if (singlePropertyValidations.stream().anyMatch(v -> !v.errorMessages().isEmpty())) {
+      return new Config(singlePropertyValidations);
+    }
+    return new BigQuerySinkConfig(properties).validate();
+  }
 
   @Override
   public void start(Map<String, String> properties) {

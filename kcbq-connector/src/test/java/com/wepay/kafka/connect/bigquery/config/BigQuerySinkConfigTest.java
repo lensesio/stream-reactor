@@ -51,7 +51,11 @@ public class BigQuerySinkConfigTest {
   public void metaTestBasicConfigProperties() {
     Map<String, String> basicConfigProperties = propertiesFactory.getProperties();
     BigQuerySinkConfig config = new BigQuerySinkConfig(basicConfigProperties);
-    propertiesFactory.testProperties(config);
+    config.getList(BigQuerySinkConfig.TOPICS_CONFIG);
+    config.getString(BigQuerySinkConfig.PROJECT_CONFIG);
+    config.getKey();
+    config.getBoolean(BigQuerySinkConfig.SANITIZE_TOPICS_CONFIG);
+    config.getInt(BigQuerySinkConfig.AVRO_DATA_CACHE_SIZE_CONFIG);
   }
 
   @Test
@@ -97,16 +101,6 @@ public class BigQuerySinkConfigTest {
   }
 
   /**
-   * Test if the field name being non-empty and the decorator default (true) errors correctly.
-   */
-  @Test (expected = ConfigException.class)
-  public void testTimestampPartitionFieldNameError() {
-    Map<String, String> configProperties = propertiesFactory.getProperties();
-    configProperties.put(BigQuerySinkConfig.BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG, "name");
-    new BigQuerySinkConfig(configProperties);
-  }
-
-  /**
    * Test the field name being non-empty and the decorator set to false works correctly.
    */
   @Test
@@ -126,22 +120,7 @@ public class BigQuerySinkConfigTest {
   public void testEmptyClusteringFieldNames() {
     Map<String, String> configProperties = propertiesFactory.getProperties();
     BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
-    assertFalse(testConfig.getClusteringPartitionFieldName().isPresent());
-  }
-
-  /**
-   * Test if the field names being non-empty and the partitioning is not present errors correctly.
-   */
-  @Test (expected = ConfigException.class)
-  public void testClusteringFieldNamesWithoutTimestampPartitionError() {
-    Map<String, String> configProperties = propertiesFactory.getProperties();
-    configProperties.put(BigQuerySinkConfig.BIGQUERY_TIMESTAMP_PARTITION_FIELD_NAME_CONFIG, null);
-    configProperties.put(BigQuerySinkConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "false");
-    configProperties.put(
-        BigQuerySinkConfig.BIGQUERY_CLUSTERING_FIELD_NAMES_CONFIG,
-        "column1,column2"
-    );
-    new BigQuerySinkConfig(configProperties);
+    assertFalse(testConfig.getClusteringPartitionFieldNames().isPresent());
   }
 
   /**
@@ -176,7 +155,7 @@ public class BigQuerySinkConfigTest {
     );
 
     BigQuerySinkConfig testConfig = new BigQuerySinkConfig(configProperties);
-    Optional<List<String>> testClusteringPartitionFieldName = testConfig.getClusteringPartitionFieldName();
+    Optional<List<String>> testClusteringPartitionFieldName = testConfig.getClusteringPartitionFieldNames();
     assertTrue(testClusteringPartitionFieldName.isPresent());
     assertEquals(expectedClusteringPartitionFieldName, testClusteringPartitionFieldName.get());
   }
@@ -184,31 +163,10 @@ public class BigQuerySinkConfigTest {
   @Test
   public void testValidTimePartitioningTypes() {
     Map<String, String> configProperties = propertiesFactory.getProperties();
-    configProperties.put(BigQuerySinkConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "false");
 
     for (TimePartitioning.Type type : TimePartitioning.Type.values()) {
       configProperties.put(BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG, type.name());
       assertEquals(type, new BigQuerySinkConfig(configProperties).getTimePartitioningType());
-    }
-
-    configProperties.put(BigQuerySinkConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "true");
-    configProperties.put(BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG, TimePartitioning.Type.DAY.name());
-    assertEquals(TimePartitioning.Type.DAY, new BigQuerySinkConfig(configProperties).getTimePartitioningType());
-  }
-
-  @Test
-  public void testInvalidTimePartitioningTypes() {
-    Map<String, String> configProperties = propertiesFactory.getProperties();
-    configProperties.put(BigQuerySinkConfig.BIGQUERY_PARTITION_DECORATOR_CONFIG, "true");
-    configProperties.put(BigQuerySinkConfig.TABLE_CREATE_CONFIG, "true");
-
-    for (TimePartitioning.Type type : TimePartitioning.Type.values()) {
-      if (TimePartitioning.Type.DAY.equals(type)) {
-        continue;
-      }
-
-      configProperties.put(BigQuerySinkConfig.TIME_PARTITIONING_TYPE_CONFIG, type.name());
-      assertThrows(ConfigException.class, () -> new BigQuerySinkConfig(configProperties));
     }
   }
 

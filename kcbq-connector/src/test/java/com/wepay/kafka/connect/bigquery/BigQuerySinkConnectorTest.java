@@ -19,20 +19,9 @@
 
 package com.wepay.kafka.connect.bigquery;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-
 import com.wepay.kafka.connect.bigquery.api.SchemaRetriever;
-
-import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
-
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkTaskConfig;
-import com.wepay.kafka.connect.bigquery.exception.SinkConfigConnectException;
-import org.apache.kafka.common.config.ConfigException;
-
 import org.apache.kafka.connect.data.Schema;
-
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -40,6 +29,10 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 
 public class BigQuerySinkConnectorTest {
   private static SinkPropertiesFactory propertiesFactory;
@@ -112,19 +105,6 @@ public class BigQuerySinkConnectorTest {
   @Test
   public void testConfig() {
     assertNotNull(new BigQuerySinkConnector().config());
-  }
-
-  // Make sure that a config exception is properly translated into a SinkConfigConnectException
-  @Test(expected = SinkConfigConnectException.class)
-  public void testConfigException() {
-    try {
-      Map<String, String> badProperties = propertiesFactory.getProperties();
-      badProperties.remove(BigQuerySinkConfig.TOPICS_CONFIG);
-      BigQuerySinkConfig.validate(badProperties);
-      new BigQuerySinkConnector().start(badProperties);
-    } catch (ConfigException e) {
-      throw new SinkConfigConnectException(e);
-    }
   }
 
   @Test
