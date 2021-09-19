@@ -46,7 +46,6 @@ import com.wepay.kafka.connect.bigquery.write.row.SimpleBigQueryWriter;
 import com.wepay.kafka.connect.bigquery.write.row.UpsertDeleteBigQueryWriter;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -170,7 +169,7 @@ public class BigQuerySinkTask extends SinkTask {
 
   private PartitionedTableId getRecordTable(SinkRecord record) {
     String tableName;
-    String dataset = config.getString(config.DEFAULT_DATASET_CONFIG);
+    String dataset = config.getString(BigQuerySinkConfig.DEFAULT_DATASET_CONFIG);
     String[] smtReplacement = record.topic().split(":");
 
     if (smtReplacement.length == 2) {
@@ -179,8 +178,12 @@ public class BigQuerySinkTask extends SinkTask {
     } else if (smtReplacement.length == 1) {
       tableName = smtReplacement[0];
     } else {
-      throw new ConfigException("Incorrect regex replacement format. " +
-              "SMT replacement should either produce the <dataset>:<tableName> format or just the <tableName> format.");
+      throw new ConnectException(String.format(
+          "Incorrect regex replacement format in topic name '%s'. "
+              + "SMT replacement should either produce the <dataset>:<tableName> format " 
+              + "or just the <tableName> format.",
+          record.topic()
+      ));
     }
 
     if (sanitize) {
@@ -290,10 +293,9 @@ public class BigQuerySinkTask extends SinkTask {
   }
 
   private BigQuery newBigQuery() {
-    String projectName = config.getString(BigQuerySinkConfig.PROJECT_CONFIG);
-    String keyFile = config.getKeyFile();
-    String keySource = config.getString(BigQuerySinkConfig.KEY_SOURCE_CONFIG);
-    return new BigQueryHelper().setKeySource(keySource).connect(projectName, keyFile);
+    return new GcpClientBuilder.BigQueryBuilder()
+        .withConfig(config)
+        .build();
   }
 
   private SchemaManager getSchemaManager() {
@@ -310,7 +312,7 @@ public class BigQuerySinkTask extends SinkTask {
     Optional<String> kafkaKeyFieldName = config.getKafkaKeyFieldName();
     Optional<String> kafkaDataFieldName = config.getKafkaDataFieldName();
     Optional<String> timestampPartitionFieldName = config.getTimestampPartitionFieldName();
-    Optional<List<String>> clusteringFieldName = config.getClusteringPartitionFieldName();
+    Optional<List<String>> clusteringFieldName = config.getClusteringPartitionFieldNames();
     boolean allowNewBQFields = config.getBoolean(BigQuerySinkConfig.ALLOW_NEW_BIGQUERY_FIELDS_CONFIG);
     boolean allowReqFieldRelaxation = config.getBoolean(BigQuerySinkConfig.ALLOW_BIGQUERY_REQUIRED_FIELD_RELAXATION_CONFIG);
     boolean allowSchemaUnionization = config.getBoolean(BigQuerySinkConfig.ALLOW_SCHEMA_UNIONIZATION_CONFIG);
@@ -349,11 +351,9 @@ public class BigQuerySinkTask extends SinkTask {
     if (testGcs != null) {
       return testGcs;
     }
-    String projectName = config.getString(BigQuerySinkConfig.PROJECT_CONFIG);
-    String key = config.getKeyFile();
-    String keySource = config.getString(BigQuerySinkConfig.KEY_SOURCE_CONFIG);
-    return new GCSBuilder(projectName).setKey(key).setKeySource(keySource).build();
-
+    return new GcpClientBuilder.GcsBuilder()
+        .withConfig(config)
+        .build();
   }
 
   private GCSToBQWriter getGcsWriter() {

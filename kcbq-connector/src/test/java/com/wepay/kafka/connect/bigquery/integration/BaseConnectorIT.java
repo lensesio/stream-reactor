@@ -43,7 +43,7 @@ import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.Table;
 import com.google.cloud.bigquery.TableResult;
-import com.wepay.kafka.connect.bigquery.BigQueryHelper;
+import com.wepay.kafka.connect.bigquery.GcpClientBuilder;
 import com.wepay.kafka.connect.bigquery.config.BigQuerySinkConfig;
 import com.wepay.kafka.connect.bigquery.utils.FieldNameSanitizer;
 import org.apache.kafka.clients.admin.Admin;
@@ -145,9 +145,11 @@ public abstract class BaseConnectorIT {
   }
 
   protected BigQuery newBigQuery() {
-    return new BigQueryHelper()
-        .setKeySource(keySource())
-        .connect(project(), keyFile());
+    return new GcpClientBuilder.BigQueryBuilder()
+        .withKey(keyFile())
+        .withKeySource(GcpClientBuilder.KeySource.valueOf(keySource()))
+        .withProject(project())
+        .build();
   }
 
   protected void waitForCommittedRecords(
