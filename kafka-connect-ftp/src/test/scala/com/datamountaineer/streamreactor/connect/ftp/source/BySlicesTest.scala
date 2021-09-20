@@ -2,6 +2,7 @@ package com.datamountaineer.streamreactor.connect.ftp.source
 
 
 import com.datamountaineer.streamreactor.connect.ftp.source.EndToEndTest.{Append, DummyOffsetStorage, EmbeddedFtpServer, FileSystem}
+import com.github.stefanbirkner.fakesftpserver.lambda.FakeSftpServer.withSftpServer
 import com.typesafe.scalalogging.StrictLogging
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
@@ -61,11 +62,12 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
   )
 
   val configSftpUpdateWithSimpleFileConverter = Map(FtpSourceConfig.Address -> s"${ftpServer.host}:${ftpServer.port}",
+    FtpSourceConfig.Address -> "localhost",
     FtpSourceConfig.protocol -> "sftp",
-    FtpSourceConfig.User -> ftpServer.username,
-    FtpSourceConfig.Password -> ftpServer.password,
+    FtpSourceConfig.User -> "demo",
+    FtpSourceConfig.Password -> "password",
     FtpSourceConfig.RefreshRate -> "PT0S",
-    FtpSourceConfig.MonitorUpdate -> "/update_slice/:update_slice",
+    FtpSourceConfig.MonitorUpdate -> "/directory/:sftp_update_slice",
     FtpSourceConfig.MonitorSliceSize -> sliceSize.toString,
     FtpSourceConfig.FileMaxAge -> "P7D",
     FtpSourceConfig.KeyStyle -> "string",
@@ -189,31 +191,155 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
     * ------
     */
 
-//  test("Sftp:Update mode by slices mode with SimpleFileConverter : file content is ingested with no loss of data") {
-//    val fs = new FileSystem(ftpServer.rootDir).clear
-//
-//    val cfg = new FtpSourceConfig(configSftpUpdateWithSimpleFileConverter.updated(FtpSourceConfig.KeyStyle, "struct").asJava)
-//
-//    val offsets = new DummyOffsetStorage
-//    val poller = new FtpSourcePoller(cfg, offsets)
-//
-//
-//    //push file
-//    fs.applyChanges(Seq(filePathUpdate -> Append(fileContent1)))
-//
-//    var readBytes = pollUntilEnd(poller, "update_slice")
-//    readBytes.size shouldBe fileContent1.size
-//    readBytes.deep shouldBe fileContent1.deep
-//
-//    logger.info(s"===================================================")
-//
-//    //append content to file
-//    fs.applyChanges(Seq(filePathUpdate -> Append(fileContent2)))
-//    readBytes = pollUntilEnd(poller, "update_slice")
-//    //ftpServer.stop()
-//
-//    val expectedBytes = (fileContent1 ++ fileContent2)
-//    readBytes.size shouldBe expectedBytes.size
-//    readBytes.deep shouldBe expectedBytes.deep
-//  }
+  test("Sftp:Same content mode by slices mode with SimpleFileConverter : " +
+    "after update file with same data, we detect same info so no data must be sent") {
+
+    withSftpServer(server => {
+      server.setPort(22)
+      server.addUser("demo", "password")
+
+      val offsets = new DummyOffsetStorage
+      val configMap = Map()
+        .updated(FtpSourceConfig.Address, "localhost")
+        .updated(FtpSourceConfig.protocol, "sftp")
+        .updated(FtpSourceConfig.User, "demo")
+        .updated(FtpSourceConfig.Password, "password")
+        .updated(FtpSourceConfig.RefreshRate, "PT0S")
+        .updated(FtpSourceConfig.MonitorTail, "/directory/:sftp_update_slice")
+        .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
+        .updated(FtpSourceConfig.KeyStyle, "struct")
+        .updated(FtpSourceConfig.fileFilter, ".*")
+
+      val cfg = new FtpSourceConfig(configMap.asJava)
+
+      val poller = new FtpSourcePoller(cfg, offsets)
+
+      //push file
+      server.putFile("/directory/file1.txt", fileContent1)
+
+
+      val allReadBytes: Array[Byte] = sftpPollUntilEnd(poller)
+
+      allReadBytes.length shouldBe fileContent1.size
+      allReadBytes.deep shouldBe fileContent1.deep
+
+      logger.info(s"===================================================")
+
+      //append same content to file
+      server.putFile("/directory/file1.txt", fileContent1)
+
+      val allReadBytes1: Array[Byte] = sftpPollUntilEnd(poller)
+
+      //No event is generated
+      allReadBytes1.length shouldBe 0
+    })
+  }
+
+  test("Sftp:Update mode by slices mode with MonitorUpdate and SimpleFileConverter :" +
+    " after update of file, all file data must be sent") {
+    withSftpServer(server => {
+      server.setPort(23)
+      server.addUser("demo", "password")
+
+      val offsets = new DummyOffsetStorage
+      val configMap = Map()
+        .updated(FtpSourceConfig.Address, "localhost:23")
+        .updated(FtpSourceConfig.protocol, "sftp")
+        .updated(FtpSourceConfig.User, "demo")
+        .updated(FtpSourceConfig.Password, "password")
+        .updated(FtpSourceConfig.RefreshRate, "PT0S")
+        .updated(FtpSourceConfig.MonitorUpdate, "/directory/:sftp_update_slice")
+        .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
+        .updated(FtpSourceConfig.KeyStyle, "struct")
+        .updated(FtpSourceConfig.fileFilter, ".*")
+
+      val cfg = new FtpSourceConfig(configMap.asJava)
+
+      val poller = new FtpSourcePoller(cfg, offsets)
+
+
+      //push file
+      server.putFile("/directory/file1.txt", fileContent1)
+
+
+      val allReadBytes: Array[Byte] = sftpPollUntilEnd(poller)
+
+      allReadBytes.length shouldBe fileContent1.size
+      allReadBytes.deep shouldBe fileContent1.deep
+
+      logger.info(s"===================================================")
+
+      //append content to file
+      val deltaContent = "extra".getBytes
+      server.putFile("/directory/file1.txt", fileContent1 ++ deltaContent)
+
+      val allReadBytes1: Array[Byte] = sftpPollUntilEnd(poller)
+
+      //Only the new delta
+      allReadBytes1.length shouldBe (fileContent1.size + deltaContent.size)
+    })
+  }
+
+  test("Sftp:Update mode by slices mode with MonitorTail and SimpleFileConverter :" +
+    " after update of file, only new data must be sent") {
+    withSftpServer(server => {
+      server.setPort(24)
+      server.addUser("demo", "password")
+
+      val offsets = new DummyOffsetStorage
+      val configMap = Map()
+        .updated(FtpSourceConfig.Address, "localhost:24")
+        .updated(FtpSourceConfig.protocol, "sftp")
+        .updated(FtpSourceConfig.User, "demo")
+        .updated(FtpSourceConfig.Password, "password")
+        .updated(FtpSourceConfig.RefreshRate, "PT0S")
+        .updated(FtpSourceConfig.MonitorTail, "/directory/:sftp_update_slice")
+        .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
+        .updated(FtpSourceConfig.KeyStyle, "struct")
+        .updated(FtpSourceConfig.fileFilter, ".*")
+
+      val cfg = new FtpSourceConfig(configMap.asJava)
+
+      val poller: FtpSourcePoller = new FtpSourcePoller(cfg, offsets)
+
+      //push file
+      server.putFile("/directory/file1.txt", fileContent1)
+
+
+      val allReadBytes: Array[Byte] = sftpPollUntilEnd(poller)
+
+      allReadBytes.length shouldBe fileContent1.size
+      allReadBytes.deep shouldBe fileContent1.deep
+
+      logger.info(s"===================================================")
+
+      //append content to file
+      val deltaContent = "extra".getBytes
+      server.putFile("/directory/file1.txt", fileContent1 ++ deltaContent)
+
+      val allReadBytes1: Array[Byte] = sftpPollUntilEnd(poller)
+
+      //Only the new delta
+      allReadBytes1.length shouldBe deltaContent.size
+    })
+  }
+
+  def sftpPollUntilEnd(poller: FtpSourcePoller): Array[Byte] = {
+    var cnt = 0
+    logger.info("--------------------poll" + cnt + "-------------------------")
+    var slice = poller.poll()
+    //TODO:RC fix me
+    Thread.sleep(2000)
+    var allReadBytes = new Array[Byte](0)
+    while (slice.lengthCompare(1) == 0) {
+      slice.head.topic shouldBe "sftp_update_slice"
+      val bytes = slice.head.value().asInstanceOf[Array[Byte]]
+      allReadBytes ++= bytes
+      logger.info(s"bytes.size=${bytes.length}")
+      cnt += 1
+      logger.info(s"--------------------poll$cnt-------------------------")
+      slice = poller.poll()
+    }
+    allReadBytes
+  }
 }

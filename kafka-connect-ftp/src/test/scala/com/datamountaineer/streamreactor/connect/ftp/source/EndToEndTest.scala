@@ -280,6 +280,7 @@ class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
       val cfg = new FtpSourceConfig(configMap.asJava)
       val offsets = new DummyOffsetStorage
       val poller = new FtpSourcePoller(cfg, offsets)
+      Thread.sleep(1000)
       poller.poll().size shouldBe 2
     })
   }
@@ -331,6 +332,7 @@ class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
       poller.poll().size shouldBe 0
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
       server.putFile("/directory/file2.txt", "bla bla bla", Charset.defaultCharset())
+      Thread.sleep(1000)
       poller.poll().size shouldBe 2
     })
 
@@ -356,6 +358,7 @@ class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
       val cfg = new FtpSourceConfig(configMap.asJava)
       val offsets = new DummyOffsetStorage
       val poller = new FtpSourcePoller(cfg, offsets)
+      Thread.sleep(1000)
       poller.poll().size shouldBe 0
     })
   }
@@ -406,6 +409,7 @@ class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
       val cfg = new FtpSourceConfig(configMap.asJava)
       val offsets = new DummyOffsetStorage
       val poller = new FtpSourcePoller(cfg, offsets)
+      Thread.sleep(1000)
       poller.poll().size shouldBe 0
     })
   }
@@ -431,6 +435,7 @@ class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
       val cfg = new FtpSourceConfig(configMap.asJava)
       val offsets = new DummyOffsetStorage
       val poller = new FtpSourcePoller(cfg, offsets)
+      Thread.sleep(1000)
       poller.poll().size shouldBe 0
     })
   }
