@@ -60,7 +60,7 @@ object S3ConfigDef {
       Type.STRING,
       AuthMode.Default.toString,
       Importance.HIGH,
-      "Authenticate mode, 'env' or 'default'"
+      "Authenticate mode, 'credentials' or 'default'"
     )
     .define(
       CUSTOM_ENDPOINT,
