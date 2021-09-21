@@ -365,13 +365,13 @@ class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
 
   test("SFTP Ugly flow: wrong credentials in SFTP connection") {
     withSftpServer(server => {
-      server.setPort(1234)
+      server.setPort(1235)
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
 
 
       val configMap = Map()
-        .updated(FtpSourceConfig.Address, "localhost:1234")
+        .updated(FtpSourceConfig.Address, "localhost:1235")
         .updated(FtpSourceConfig.protocol, "sftp")
         .updated(FtpSourceConfig.User, "foo")
         .updated(FtpSourceConfig.Password, "bla")
@@ -391,12 +391,12 @@ class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
 
   test("SFTP Ugly flow: wrong directory in SFTP connection") {
     withSftpServer(server => {
-      server.setPort(1234)
+      server.setPort(1236)
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
 
       val configMap = Map()
-        .updated(FtpSourceConfig.Address, "localhost:1234")
+        .updated(FtpSourceConfig.Address, "localhost:1236")
         .updated(FtpSourceConfig.protocol, "sftp")
         .updated(FtpSourceConfig.User, "demo")
         .updated(FtpSourceConfig.Password, "password")
@@ -416,12 +416,12 @@ class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
 
   test("SFTP Ugly flow: timeout in SFTP connection") {
     withSftpServer(server => {
-      server.setPort(1234)
+      server.setPort(1237)
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
 
       val configMap = Map()
-        .updated(FtpSourceConfig.Address, "localhost:1234")
+        .updated(FtpSourceConfig.Address, "localhost:1237")
         .updated(FtpSourceConfig.protocol, "sftp")
         .updated(FtpSourceConfig.User, "demo")
         .updated(FtpSourceConfig.Password, "password")

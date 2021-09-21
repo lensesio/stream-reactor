@@ -4,6 +4,7 @@ package com.datamountaineer.streamreactor.connect.ftp.source
 import com.datamountaineer.streamreactor.connect.ftp.source.EndToEndTest.{Append, DummyOffsetStorage, EmbeddedFtpServer, FileSystem}
 import com.github.stefanbirkner.fakesftpserver.lambda.FakeSftpServer.withSftpServer
 import com.typesafe.scalalogging.StrictLogging
+import org.apache.kafka.connect.source.SourceRecord
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -257,7 +258,6 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
 
       val poller = new FtpSourcePoller(cfg, offsets)
 
-
       //push file
       server.putFile("/directory/file1.txt", fileContent1)
 
@@ -327,9 +327,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
   def sftpPollUntilEnd(poller: FtpSourcePoller): Array[Byte] = {
     var cnt = 0
     logger.info("--------------------poll" + cnt + "-------------------------")
-    var slice = poller.poll()
-    //TODO:RC fix me
-    Thread.sleep(2000)
+    var slice = waitForSlice(poller)
     var allReadBytes = new Array[Byte](0)
     while (slice.lengthCompare(1) == 0) {
       slice.head.topic shouldBe "sftp_update_slice"
@@ -338,8 +336,19 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
       logger.info(s"bytes.size=${bytes.length}")
       cnt += 1
       logger.info(s"--------------------poll$cnt-------------------------")
-      slice = poller.poll()
+      slice = waitForSlice(poller)
     }
     allReadBytes
+  }
+
+  private def waitForSlice(poller: FtpSourcePoller): Stream[SourceRecord] = {
+    var count = 0
+    var slice: Stream[SourceRecord] = poller.poll()
+    while (slice.isEmpty && count < 5) {
+      Thread.sleep(1000)
+      count += 1
+      slice = poller.poll()
+    }
+    slice
   }
 }
