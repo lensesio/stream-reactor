@@ -122,9 +122,11 @@ public class BigQueryWriterTest {
     when(insertAllResponse.hasErrors()).thenReturn(false);
     when(insertAllResponse.getInsertErrors()).thenReturn(emptyMap);
 
-    BigQueryException missTableException = new BigQueryException(404, "Table is missing");
+    String errorMessage = "Not found: Table project.scratch.test_topic";
+    BigQueryError error = new BigQueryError("notFound", "global", errorMessage);
+    BigQueryException nonExistentTableException = new BigQueryException(404, errorMessage, error); 
 
-    when(bigQuery.insertAll(anyObject())).thenThrow(missTableException).thenReturn(insertAllResponse);
+    when(bigQuery.insertAll(anyObject())).thenThrow(nonExistentTableException).thenReturn(insertAllResponse);
 
     SinkTaskContext sinkTaskContext = mock(SinkTaskContext.class);
 

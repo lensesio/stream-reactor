@@ -27,6 +27,7 @@ import com.wepay.kafka.connect.bigquery.utils.SinkRecordConverter;
 import com.wepay.kafka.connect.bigquery.exception.BigQueryConnectException;
 import com.wepay.kafka.connect.bigquery.exception.ExpectedInterruptException;
 import com.wepay.kafka.connect.bigquery.utils.PartitionedTableId;
+import com.wepay.kafka.connect.bigquery.write.row.BigQueryErrorResponses;
 import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
 
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -49,10 +50,6 @@ import java.util.function.Consumer;
 public class TableWriter implements Runnable {
 
   private static final Logger logger = LoggerFactory.getLogger(TableWriter.class);
-
-  private static final int BAD_REQUEST_CODE = 400;
-  private static final String INVALID_REASON = "invalid";
-  private static final String PAYLOAD_TOO_LARGE_REASON = "Request payload size exceeds the limit:";
 
   private final BigQueryWriter writer;
   private final PartitionedTableId table;
@@ -139,30 +136,15 @@ public class TableWriter implements Runnable {
    *         size, or false otherwise.
    */
   private static boolean isBatchSizeError(BigQueryException exception) {
-    if (exception.getCode() == BAD_REQUEST_CODE
-        && exception.getError() == null
-        && exception.getReason() == null) {
-      /*
-       * 400 with no error or reason represents a request that is more than 10MB. This is not
-       * documented but is referenced slightly under "Error codes" here:
-       * https://cloud.google.com/bigquery/quota-policy
-       * (by decreasing the batch size we can eventually expect to end up with a request under 10MB)
-       */
-      return true;
-    } else if (exception.getCode() == BAD_REQUEST_CODE
-               && INVALID_REASON.equals(exception.getReason())) {
-      /*
-       * this is the error that the documentation claims google will return if a request exceeds
-       * 10MB. if this actually ever happens...
-       * todo distinguish this from other invalids (like invalid table schema).
-       */
-      return true;
-    } else if (exception.getCode() == BAD_REQUEST_CODE
-        && exception.getMessage() != null
-        && exception.getMessage().contains(PAYLOAD_TOO_LARGE_REASON)) {
-      return true;
-    }
-    return false;
+    /*
+     * 400 with no error or reason represents a request that is more than 10MB. This is not
+     * documented but is referenced slightly under "Error codes" here:
+     * https://cloud.google.com/bigquery/quota-policy
+     * (by decreasing the batch size we can eventually expect to end up with a request under 10MB)
+     */
+    return BigQueryErrorResponses.isUnspecifiedBadRequestError(exception)
+        || BigQueryErrorResponses.isRequestTooLargeError(exception)
+        || BigQueryErrorResponses.isTooManyRowsError(exception);
   }
 
 
