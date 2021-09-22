@@ -17,7 +17,7 @@
 package com.datamountaineer.streamreactor.connect.ftp.source
 
 import better.files._
-import com.datamountaineer.streamreactor.connect.ftp.source.EndToEndTest.{Append, DummyOffsetStorage, EmbeddedFtpServer, FileDiff, FileSystem, Update}
+import com.datamountaineer.streamreactor.connect.ftp.source.EndToEnd.{Append, DummyOffsetStorage, EmbeddedFtpServer, FileDiff, FileSystem, Update}
 import com.datamountaineer.streamreactor.connect.ftp.source.KeyStyle.KeyStyle
 import com.datamountaineer.streamreactor.connect.ftp.source.MonitorMode.Tail
 import com.github.stefanbirkner.fakesftpserver.lambda.FakeSftpServer.withSftpServer
@@ -38,7 +38,7 @@ import java.nio.file.Path
 import java.util
 import scala.collection.JavaConverters._
 
-object EndToEndTest {
+object EndToEnd {
   // TODO: to be done for more advanced tests
   class DummyOffsetStorage extends OffsetStorageReader {
     override def offset[T](map: util.Map[String, T]): util.Map[String, AnyRef] = {
@@ -125,7 +125,7 @@ object EndToEndTest {
 }
 
 // spins up an embedded ftp server, updates files, uses FtpSourcePoller to obtain SourceRecords which are verified
-class EndToEndTest extends AnyFunSuite with Matchers with BeforeAndAfter with StrictLogging {
+class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with StrictLogging {
   val sEmpty = new Array[Byte](0)
   val s0 = (0 to 255).map(_.toByte).toArray
   val s1 = "Hebban olla vogala nestas hagunnan hinase hic enda thu wat unbidan we nu\r\n\t\u0000:)".getBytes

@@ -1,7 +1,7 @@
 package com.datamountaineer.streamreactor.connect.ftp.source
 
 
-import com.datamountaineer.streamreactor.connect.ftp.source.EndToEndTest.{Append, DummyOffsetStorage, EmbeddedFtpServer, FileSystem}
+import com.datamountaineer.streamreactor.connect.ftp.source.EndToEnd.{Append, DummyOffsetStorage, EmbeddedFtpServer, FileSystem}
 import com.github.stefanbirkner.fakesftpserver.lambda.FakeSftpServer.withSftpServer
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord
