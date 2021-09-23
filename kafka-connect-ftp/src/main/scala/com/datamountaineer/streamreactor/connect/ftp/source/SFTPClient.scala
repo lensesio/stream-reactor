@@ -7,8 +7,9 @@ import org.apache.commons.lang3.exception.ExceptionUtils
 import org.apache.commons.net.ftp.{FTPClient, FTPFile}
 
 import java.io.OutputStream
-import java.text.SimpleDateFormat
-import java.util.{Calendar, Properties}
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.util.{GregorianCalendar, Properties}
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -21,13 +22,15 @@ import scala.util.{Failure, Success, Try}
   */
 class SFTPClient extends FTPClient with StrictLogging {
 
-  var lastReplyCode: Int = 500
-  var maybeConnectTimeout: Option[Int] = None
-  var maybeDataTimeout: Option[Int] = None
-  var maybeHostname: Option[String] = None
-  var maybeExplicitPort: Option[Int] = None
-  var maybeJschSession: Option[Session] = None
-  var maybeChannelSftp: Option[ChannelSftp] = None
+  private var lastReplyCode: Int = 500
+  private var maybeConnectTimeout: Option[Int] = None
+  private var maybeDataTimeout: Option[Int] = None
+  private var maybeHostname: Option[String] = None
+  private var maybeExplicitPort: Option[Int] = None
+  private var maybeJschSession: Option[Session] = None
+  private var maybeChannelSftp: Option[ChannelSftp] = None
+
+  private val dateFormat = DateTimeFormatter.ofPattern("EEE MMM d HH:mm:ss zzz uuuu")
 
   /**
     * We ensure that not only the session with the server is close, but also the channel that it might be open from a previous
@@ -42,7 +45,7 @@ class SFTPClient extends FTPClient with StrictLogging {
     * We just check the session with the SFTP server is open
     */
   override def isConnected(): Boolean = {
-    maybeJschSession.isDefined && maybeJschSession.get.isConnected
+    maybeJschSession.exists(_.isConnected)
   }
 
   /**
@@ -164,9 +167,16 @@ class SFTPClient extends FTPClient with StrictLogging {
       channel.ls(pathname)
         .asScala
         .toList
-        .map(file => file.asInstanceOf[ChannelSftp#LsEntry])
+        .map(file => transformToLsEntry(file))
         .filter(lsEntry => lsEntry.getFilename != "." && lsEntry.getFilename != "..")
         .map(lsEntry => createFtpFile(lsEntry))
+    }
+  }
+
+  private def transformToLsEntry(file: Any): ChannelSftp#LsEntry = {
+    file match {
+      case lsEntry:ChannelSftp#LsEntry => lsEntry
+      case unknown:Any => throw new ClassCastException(s"SFTPClient Error obtaining LsEntry. Unknown type $unknown")
     }
   }
 
@@ -176,10 +186,8 @@ class SFTPClient extends FTPClient with StrictLogging {
     ftpFile.setName(lsEntry.getFilename)
     ftpFile.setSize(lsEntry.getAttrs.getSize)
 
-    val dateFormat = new SimpleDateFormat("EEE MMM d HH:mm:ss zzz uuuu")
-    val calendar = Calendar.getInstance()
-    calendar.setTime(dateFormat.parse(lsEntry.getAttrs.getMtimeString))
-    ftpFile.setTimestamp(calendar)
+    val date = ZonedDateTime.parse(lsEntry.getAttrs.getMtimeString, dateFormat)
+    ftpFile.setTimestamp(GregorianCalendar.from(date))
     ftpFile
   }
 
@@ -195,7 +203,11 @@ class SFTPClient extends FTPClient with StrictLogging {
     * Open a channel with protocol [sftp].
     */
   private val createChannel: Session => Try[ChannelSftp] = {
-    session => Try(session.openChannel("sftp").asInstanceOf[ChannelSftp])
+    session =>
+      session.openChannel("sftp") match {
+        case channelSftp: ChannelSftp => Success(channelSftp)
+        case unknown:Any => Failure(new ClassCastException(s"SFTPClient Error obtaining ChannelSftp. Unknown Channel type $unknown"))
+      }
   }
 
   /**
@@ -203,15 +215,17 @@ class SFTPClient extends FTPClient with StrictLogging {
     */
   private val openSession: (Username, Password) => Try[Session] = {
     (username, password) =>
-      Try {
-        val jsch = new JSch()
-        val hostname = getHostname(username)
-        val session = createSession(username, jsch, hostname)
-        session.setPassword(password.value)
-        setSessionConfig(session)
-        connectSession(session)
-        session
-      }
+      for {
+        hostname <- getHostname(username)
+        session <- Try {
+          val jsch = new JSch()
+          val session = createSession(username, jsch, hostname)
+          session.setPassword(password.value)
+          setSessionConfig(session)
+          connectSession(session)
+          session
+        }
+      } yield session
   }
 
   private def setSessionConfig(session: Session): Unit = {
@@ -234,9 +248,11 @@ class SFTPClient extends FTPClient with StrictLogging {
       }
   }
 
-  private def getHostname(username: Username): String = {
-    maybeHostname
-      .getOrElse(throw new NoSuchElementException(s"Hostname not provided in transaction for Username $username"))
+  private def getHostname(username: Username): Try[String] = {
+    maybeHostname match {
+      case Some(hostname) => Success(hostname)
+      case None => Failure(new NoSuchElementException(s"Hostname not provided in transaction for Username $username"))
+    }
   }
 }
 

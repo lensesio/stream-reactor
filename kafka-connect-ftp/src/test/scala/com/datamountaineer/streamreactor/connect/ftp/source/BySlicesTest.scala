@@ -6,11 +6,15 @@ import com.github.stefanbirkner.fakesftpserver.lambda.FakeSftpServer.withSftpSer
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord
 import org.scalatest.BeforeAndAfter
+import org.scalatest.concurrent.Eventually.eventually
+import org.scalatest.concurrent.Waiters.timeout
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.time.{Seconds, Span}
 
 import java.util
 import scala.collection.JavaConverters._
+import scala.tools.nsc.backend.jvm.BackendReporting.emptyOptimizerWarning
 
 
 class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with StrictLogging {
