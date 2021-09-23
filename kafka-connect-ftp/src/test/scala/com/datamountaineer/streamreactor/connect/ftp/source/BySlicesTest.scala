@@ -243,12 +243,11 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
   test("Sftp:Update mode by slices mode with MonitorUpdate and SimpleFileConverter :" +
     " after update of file, all file data must be sent") {
     withSftpServer(server => {
-      server.setPort(23)
       server.addUser("demo", "password")
 
       val offsets = new DummyOffsetStorage
       val configMap = Map()
-        .updated(FtpSourceConfig.Address, "localhost:23")
+        .updated(FtpSourceConfig.Address, s"localhost:${server.getPort}")
         .updated(FtpSourceConfig.protocol, "sftp")
         .updated(FtpSourceConfig.User, "demo")
         .updated(FtpSourceConfig.Password, "password")
@@ -287,12 +286,11 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
   test("Sftp:Update mode by slices mode with MonitorTail and SimpleFileConverter :" +
     " after update of file, only new data must be sent") {
     withSftpServer(server => {
-      server.setPort(24)
       server.addUser("demo", "password")
 
       val offsets = new DummyOffsetStorage
       val configMap = Map()
-        .updated(FtpSourceConfig.Address, "localhost:24")
+        .updated(FtpSourceConfig.Address, s"localhost:${server.getPort}")
         .updated(FtpSourceConfig.protocol, "sftp")
         .updated(FtpSourceConfig.User, "demo")
         .updated(FtpSourceConfig.Password, "password")

@@ -287,12 +287,11 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
 
   test("SFTP Happy flow: explicit port in communication") {
     withSftpServer(server => {
-      server.setPort(1234)
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
 
       val configMap = Map()
-        .updated(FtpSourceConfig.Address, "localhost:1234")
+        .updated(FtpSourceConfig.Address, s"localhost:${server.getPort}")
         .updated(FtpSourceConfig.protocol, "sftp")
         .updated(FtpSourceConfig.User, "demo")
         .updated(FtpSourceConfig.Password, "password")
@@ -312,11 +311,10 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
 
   test("SFTP Streaming flow: files are only fetched when the records are polled") {
     withSftpServer(server => {
-      server.setPort(22)
       server.addUser("demo", "password")
       server.createDirectory("/directory/")
       val configMap = Map()
-        .updated(FtpSourceConfig.Address, "localhost")
+        .updated(FtpSourceConfig.Address, s"localhost:${server.getPort}")
         .updated(FtpSourceConfig.protocol, "sftp")
         .updated(FtpSourceConfig.User, "demo")
         .updated(FtpSourceConfig.Password, "password")
@@ -340,12 +338,11 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
 
   test("SFTP Ugly flow: wrong address in SFTP connection") {
     withSftpServer(server => {
-      server.setPort(1234)
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
 
       val configMap = Map()
-        .updated(FtpSourceConfig.Address, "foo:1234")
+        .updated(FtpSourceConfig.Address, s"foo:${server.getPort}")
         .updated(FtpSourceConfig.protocol, "sftp")
         .updated(FtpSourceConfig.User, "demo")
         .updated(FtpSourceConfig.Password, "password")
@@ -365,13 +362,12 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
 
   test("SFTP Ugly flow: wrong credentials in SFTP connection") {
     withSftpServer(server => {
-      server.setPort(1235)
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
 
 
       val configMap = Map()
-        .updated(FtpSourceConfig.Address, "localhost:1235")
+        .updated(FtpSourceConfig.Address, s"localhost:${server.getPort}")
         .updated(FtpSourceConfig.protocol, "sftp")
         .updated(FtpSourceConfig.User, "foo")
         .updated(FtpSourceConfig.Password, "bla")
@@ -391,12 +387,11 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
 
   test("SFTP Ugly flow: wrong directory in SFTP connection") {
     withSftpServer(server => {
-      server.setPort(1236)
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
 
       val configMap = Map()
-        .updated(FtpSourceConfig.Address, "localhost:1236")
+        .updated(FtpSourceConfig.Address, s"localhost:${server.getPort}")
         .updated(FtpSourceConfig.protocol, "sftp")
         .updated(FtpSourceConfig.User, "demo")
         .updated(FtpSourceConfig.Password, "password")
@@ -416,12 +411,11 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
 
   test("SFTP Ugly flow: timeout in SFTP connection") {
     withSftpServer(server => {
-      server.setPort(1237)
       server.addUser("demo", "password")
       server.putFile("/directory/file1.txt", "content of file", Charset.defaultCharset())
 
       val configMap = Map()
-        .updated(FtpSourceConfig.Address, "localhost:1237")
+        .updated(FtpSourceConfig.Address, s"localhost:${server.getPort}")
         .updated(FtpSourceConfig.protocol, "sftp")
         .updated(FtpSourceConfig.User, "demo")
         .updated(FtpSourceConfig.Password, "password")
