@@ -7,14 +7,11 @@ import com.typesafe.scalalogging.StrictLogging
 import org.apache.kafka.connect.source.SourceRecord
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.Eventually.eventually
-import org.scalatest.concurrent.Waiters.timeout
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.time.{Seconds, Span}
 
 import java.util
 import scala.collection.JavaConverters._
-import scala.tools.nsc.backend.jvm.BackendReporting.emptyOptimizerWarning
 
 
 class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with StrictLogging {
@@ -209,7 +206,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
         .updated(FtpSourceConfig.protocol, "sftp")
         .updated(FtpSourceConfig.User, "demo")
         .updated(FtpSourceConfig.Password, "password")
-        .updated(FtpSourceConfig.RefreshRate, "PT0S")
+        .updated(FtpSourceConfig.RefreshRate, "PT1S")
         .updated(FtpSourceConfig.MonitorTail, "/directory/:sftp_update_slice")
         .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
         .updated(FtpSourceConfig.KeyStyle, "struct")
@@ -251,7 +248,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
         .updated(FtpSourceConfig.protocol, "sftp")
         .updated(FtpSourceConfig.User, "demo")
         .updated(FtpSourceConfig.Password, "password")
-        .updated(FtpSourceConfig.RefreshRate, "PT0S")
+        .updated(FtpSourceConfig.RefreshRate, "PT1S")
         .updated(FtpSourceConfig.MonitorUpdate, "/directory/:sftp_update_slice")
         .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
         .updated(FtpSourceConfig.KeyStyle, "struct")
@@ -294,7 +291,7 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
         .updated(FtpSourceConfig.protocol, "sftp")
         .updated(FtpSourceConfig.User, "demo")
         .updated(FtpSourceConfig.Password, "password")
-        .updated(FtpSourceConfig.RefreshRate, "PT0S")
+        .updated(FtpSourceConfig.RefreshRate, "PT1S")
         .updated(FtpSourceConfig.MonitorTail, "/directory/:sftp_update_slice")
         .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
         .updated(FtpSourceConfig.KeyStyle, "struct")
@@ -344,12 +341,12 @@ class BySlicesTest extends AnyFunSuite with Matchers with BeforeAndAfter with St
   }
 
   private def waitForSlice(poller: FtpSourcePoller): Stream[SourceRecord] = {
-    var count = 0
     var slice: Stream[SourceRecord] = poller.poll()
-    while (slice.isEmpty && count < 5) {
-      Thread.sleep(1000)
-      count += 1
+    eventually {
+      Thread.sleep(500)
       slice = poller.poll()
+      println(slice)
+      slice should not be null
     }
     slice
   }

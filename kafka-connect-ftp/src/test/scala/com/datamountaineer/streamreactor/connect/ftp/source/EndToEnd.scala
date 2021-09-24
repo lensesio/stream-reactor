@@ -17,9 +17,8 @@
 package com.datamountaineer.streamreactor.connect.ftp.source
 
 import better.files._
-import com.datamountaineer.streamreactor.connect.ftp.source.EndToEnd.{Append, DummyOffsetStorage, EmbeddedFtpServer, FileDiff, FileSystem, Update}
+import com.datamountaineer.streamreactor.connect.ftp.source.EndToEnd._
 import com.datamountaineer.streamreactor.connect.ftp.source.KeyStyle.KeyStyle
-import com.datamountaineer.streamreactor.connect.ftp.source.MonitorMode.Tail
 import com.github.stefanbirkner.fakesftpserver.lambda.FakeSftpServer.withSftpServer
 import com.typesafe.scalalogging.StrictLogging
 import org.apache.ftpserver.listener.ListenerFactory
@@ -285,6 +284,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
     })
   }
 
+
   test("SFTP Happy flow: explicit port in communication") {
     withSftpServer(server => {
       server.addUser("demo", "password")
@@ -346,7 +346,7 @@ class EndToEnd extends AnyFunSuite with Matchers with BeforeAndAfter with Strict
         .updated(FtpSourceConfig.protocol, "sftp")
         .updated(FtpSourceConfig.User, "demo")
         .updated(FtpSourceConfig.Password, "password")
-        .updated(FtpSourceConfig.RefreshRate, "PT0S")
+        .updated(FtpSourceConfig.RefreshRate, "PT1S")
         .updated(FtpSourceConfig.MonitorTail, "/directory/:kafka_topic")
         .updated(FtpSourceConfig.FileMaxAge, "PT952302H53M5.962S")
         .updated(FtpSourceConfig.KeyStyle, "string")
